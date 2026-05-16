@@ -440,6 +440,10 @@
         "MEETING_POINT_UPDATED": "碰头地点更新后及时收到提醒，减少到场前找不到集合点的风险。"
       }
     },
+    "joinCommunityFollowup": {
+      "title": "社群与公众号",
+      "closeAction": "完成"
+    },
     "waitlistSuccessSubscriptions": {
       "description": "候补已提交，现在可以开启补位通知。",
       "notificationReasons": {
@@ -454,6 +458,13 @@
       "title": "分享邀请",
       "hint": "把当前活动分享给合适的搭子。",
       "action": "分享"
+    },
+    "betaGroupEntry": {
+      "title": "加入活动群",
+      "description": "加群获得活动最新动态",
+      "action": "加入活动群",
+      "qrAlt": "{eventTitle} 活动群二维码",
+      "qrMissing": "该活动暂未配置活动群二维码。"
     },
     "messageEntry": {
       "title": "留言",

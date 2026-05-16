@@ -6,6 +6,8 @@ import { resolveUserByOpenId } from "../../user";
 import { PRSupportResourceRepository } from "../../../repositories/PRSupportResourceRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
+import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
+import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
 import {
   buildBookingSupportPreview,
   getEffectiveBookingDeadline,
@@ -35,6 +37,8 @@ import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.
 const prSupportRepo = new PRSupportResourceRepository();
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
+const anchorEventRepo = new AnchorEventRepository();
+const anchorEventContextRepo = new AnchorEventPRContextRepository();
 
 export type PRMeetingPointVisibility =
   | "VISIBLE"
@@ -62,6 +66,11 @@ export type PRDetail = {
     meetingPoint: EffectiveMeetingPoint | null;
     meetingPointVisibility: PRMeetingPointVisibility;
   };
+  anchorEventContext: {
+    id: number;
+    title: string;
+    betaGroupQrCode: string | null;
+  } | null;
   share: {
     canonical: PRCanonicalShareMetadata;
     xiaohongshuPoster?: {
@@ -126,6 +135,26 @@ const resolveMeetingPointProjection = (
   };
 };
 
+const resolveAnchorEventContextProjection = async (
+  prId: number,
+): Promise<PRDetail["anchorEventContext"]> => {
+  const context = await anchorEventContextRepo.findByPrId(prId);
+  if (!context) {
+    return null;
+  }
+
+  const event = await anchorEventRepo.findById(context.anchorEventId);
+  if (!event) {
+    return null;
+  }
+
+  return {
+    id: event.id,
+    title: event.title,
+    betaGroupQrCode: event.betaGroupQrCode,
+  };
+};
+
 export async function getPRDetailView(
   id: number,
   viewerIdentity?: {
@@ -153,6 +182,8 @@ export async function getPRDetailView(
     effectiveMeetingPoint,
   );
   const canonicalShare = buildPRCanonicalShareMetadata(publicPR);
+  const anchorEventContext =
+    await resolveAnchorEventContextProjection(publicPR.id);
   const supportResources = await prSupportRepo.findByPrId(id);
   const bookingSupportPreview = buildBookingSupportPreview(supportResources);
   const bookingDeadlineAt = await getEffectiveBookingDeadline(id);
@@ -212,6 +243,7 @@ export async function getPRDetailView(
       meetingPoint: meetingPointProjection.meetingPoint,
       meetingPointVisibility: meetingPointProjection.meetingPointVisibility,
     },
+    anchorEventContext,
     share: {
       canonical: canonicalShare,
       xiaohongshuPoster: publicPR.xiaohongshuPoster

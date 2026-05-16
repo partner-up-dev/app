@@ -73,11 +73,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import { useReducedMotion } from "@/shared/motion/useReducedMotion";
+import { useExpandableCardAttention } from "./useExpandableCardAttention";
 
 type LocationOption = {
   locationId: string;
@@ -90,9 +90,6 @@ type TimeWindowOption = {
   key: string;
   label: string;
 };
-
-const AUTO_EXPAND_DELAY_MS = 1000;
-const AUTO_EXPAND_FLASH_DURATION_MS = 900;
 
 const props = withDefaults(
   defineProps<{
@@ -124,87 +121,22 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { prefersReducedMotion } = useReducedMotion();
 
 const selectedLocationId = ref("");
-const expandableDefaultExpanded = ref(props.defaultExpanded);
-const expandableCardVersion = ref(0);
-const autoExpandHighlightActive = ref(false);
-let autoExpandTimerId: number | null = null;
-let autoExpandHighlightTimerId: number | null = null;
-let autoExpandHighlightAnimationFrameId: number | null = null;
+const {
+  autoExpandHighlightActive,
+  expandableCardKey,
+  expandableDefaultExpanded,
+} = useExpandableCardAttention({
+  defaultExpanded: toRef(props, "defaultExpanded"),
+  autoExpandContextKey: toRef(props, "autoExpandContextKey"),
+});
 
 const selectFirstAvailable = () => {
   const firstAvailable = props.locationOptions.find(
     (option) => !option.disabled,
   );
   selectedLocationId.value = firstAvailable?.locationId ?? "";
-};
-
-const expandableCardKey = computed(() => {
-  const contextKey = props.autoExpandContextKey ?? "default";
-  const expandedState = expandableDefaultExpanded.value
-    ? "expanded"
-    : "collapsed";
-  return `${contextKey}:${expandedState}:${expandableCardVersion.value}`;
-});
-
-const clearAutoExpandTimer = () => {
-  if (typeof window === "undefined" || autoExpandTimerId === null) {
-    return;
-  }
-
-  window.clearTimeout(autoExpandTimerId);
-  autoExpandTimerId = null;
-};
-
-const clearAutoExpandHighlightTimer = () => {
-  if (typeof window === "undefined" || autoExpandHighlightTimerId === null) {
-    return;
-  }
-
-  window.clearTimeout(autoExpandHighlightTimerId);
-  autoExpandHighlightTimerId = null;
-};
-
-const clearAutoExpandHighlightAnimationFrame = () => {
-  if (
-    typeof window === "undefined" ||
-    autoExpandHighlightAnimationFrameId === null
-  ) {
-    return;
-  }
-
-  window.cancelAnimationFrame(autoExpandHighlightAnimationFrameId);
-  autoExpandHighlightAnimationFrameId = null;
-};
-
-const resetAutoExpandAttention = () => {
-  clearAutoExpandHighlightTimer();
-  clearAutoExpandHighlightAnimationFrame();
-  autoExpandHighlightActive.value = false;
-};
-
-const remountExpandableCard = (expanded: boolean) => {
-  expandableDefaultExpanded.value = expanded;
-  expandableCardVersion.value += 1;
-};
-
-const triggerAutoExpandHighlight = () => {
-  resetAutoExpandAttention();
-
-  if (prefersReducedMotion.value || typeof window === "undefined") {
-    return;
-  }
-
-  autoExpandHighlightAnimationFrameId = window.requestAnimationFrame(() => {
-    autoExpandHighlightAnimationFrameId = null;
-    autoExpandHighlightActive.value = true;
-    autoExpandHighlightTimerId = window.setTimeout(() => {
-      autoExpandHighlightTimerId = null;
-      autoExpandHighlightActive.value = false;
-    }, AUTO_EXPAND_FLASH_DURATION_MS);
-  });
 };
 
 watch(
@@ -223,54 +155,6 @@ watch(
   },
   { immediate: true, deep: true },
 );
-
-watch(
-  [() => props.autoExpandContextKey, () => props.defaultExpanded],
-  ([contextKey, shouldAutoExpand], previousValues) => {
-    clearAutoExpandTimer();
-    resetAutoExpandAttention();
-
-    const previousContextKey = previousValues?.[0];
-    const isFirstSync = previousValues === undefined;
-    const contextChanged = !isFirstSync && contextKey !== previousContextKey;
-
-    if (!contextChanged) {
-      remountExpandableCard(shouldAutoExpand);
-      return;
-    }
-
-    remountExpandableCard(false);
-
-    if (!shouldAutoExpand) {
-      return;
-    }
-
-    if (typeof window === "undefined") {
-      remountExpandableCard(true);
-      return;
-    }
-
-    autoExpandTimerId = window.setTimeout(() => {
-      autoExpandTimerId = null;
-      remountExpandableCard(true);
-      triggerAutoExpandHighlight();
-    }, AUTO_EXPAND_DELAY_MS);
-  },
-  { immediate: true },
-);
-
-watch(prefersReducedMotion, (reduced) => {
-  if (!reduced) {
-    return;
-  }
-
-  resetAutoExpandAttention();
-});
-
-onUnmounted(() => {
-  clearAutoExpandTimer();
-  resetAutoExpandAttention();
-});
 
 const formatLocationOptionLabel = (option: LocationOption): string => {
   if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {

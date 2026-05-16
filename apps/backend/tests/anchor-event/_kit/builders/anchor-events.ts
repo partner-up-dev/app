@@ -33,6 +33,7 @@ export type ScenarioAnchorEvent = {
   id: AnchorEventId;
   title: string;
   type: string;
+  betaGroupQrCode: string | null;
   locationId: string;
   locationIds: string[];
   timeWindow: [string, string];
@@ -69,6 +70,7 @@ export async function givenAnchorEvent(input: {
   fullPrExpansionPolicy?: AnchorEventFullPrExpansionPolicy;
   participationFrequencyLimit?: AnchorEventParticipationFrequencyLimit;
   feedbackQuestionnaireTemplateId?: FeedbackQuestionnaireTemplateId | null;
+  betaGroupQrCode?: string | null;
 }): Promise<ScenarioAnchorEvent> {
   const sequence = scenarioAnchorEventSequence++;
   const timeWindows = input.timeWindows ?? [buildScenarioTimeWindow(sequence)];
@@ -108,7 +110,7 @@ export async function givenAnchorEvent(input: {
       input.feedbackQuestionnaireTemplateId ?? null,
     locationMeetingPoints: {},
     coverImage: null,
-    betaGroupQrCode: null,
+    betaGroupQrCode: input.betaGroupQrCode ?? null,
     prCreationPolicy: input.prCreationPolicy ?? "USER_AND_ADMIN",
     fullPrExpansionPolicy: input.fullPrExpansionPolicy ?? "DISABLED",
     status: "ACTIVE",
@@ -118,6 +120,7 @@ export async function givenAnchorEvent(input: {
     id: event.id,
     title: event.title,
     type: event.type,
+    betaGroupQrCode: event.betaGroupQrCode,
     locationId,
     locationIds,
     timeWindow,

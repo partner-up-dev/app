@@ -131,7 +131,7 @@
 - Mounted post-event feedback is optional unless the PR integration presents it for the current collaboration. Absence of a questionnaire response is tracked as missing feedback for that questionnaire instance, separate from attendance state.
 - PR messaging is a non-realtime coordination layer and must not introduce chat-room semantics such as presence, typing, or read receipts.
 - Notification subscription is modeled by remaining send quota, not by a simple toggle.
-- Successful join in a PR that supports reminder registration should immediately offer the notification-subscription modal while still leaving a durable management path on the detail page.
+- Successful join in a PR that supports reminder registration should immediately offer the notification-subscription modal while still leaving a durable management path on the detail page. After that modal, join success may show one combined community follow-up view for the Anchor Event beta group and official-account follow prompt.
 - The successful-join notification-subscription modal focuses on confirmation reminders, new-partner reminders, and meeting-point reminders, with copy explaining the reason to subscribe. Confirmation reminder copy includes the confirmation deadline when that deadline is known. PRs with confirmation disabled omit the confirmation reminder recommendation from this join-success modal.
 - Confirmation-start reminders must become claimable and deliverable at or after the configured confirmation-start instant, because the linked confirm action is backend-gated by the same window.
 - Successful waitlist entry should offer a focused `WAITLIST_PROMOTED` subscription prompt so the user can receive one notification when the pending slot becomes active.
@@ -164,5 +164,6 @@
 - `/me` should present PR history and POI application history as equal shortcuts under the profile surface while keeping `/pr/mine` as the dedicated PR history route.
 - The "Need Help" path must keep support, author feedback, and about-page routing distinct.
 - Event-specific beta groups are support and activity-coordination entrypoints. They may help users request new sessions, get booking/subsidy support, or coordinate activity context, and backend-owned PR messaging keeps participant visibility and participant rules authoritative.
+- PR detail and join-success follow-up may expose the current Anchor Event beta-group QR when the PR resolves to an event with that QR configured.
 - Build metadata shown in `/about` must be interpretable in the current runtime and must not depend on a local git checkout inside the browser environment.
 - Operator-managed configuration counts as product behavior whenever it changes a user-visible path.

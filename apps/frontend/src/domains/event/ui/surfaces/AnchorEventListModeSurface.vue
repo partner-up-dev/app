@@ -85,10 +85,12 @@
           data-region="create-pr"
         />
         <AnchorEventBetaGroupCard
+          v-if="eventBetaGroupQrCode !== null"
           :event-id="eventIdValue"
           :event-title="eventTitle"
           :qr-code-url="eventBetaGroupQrCode"
-          :default-expanded="false"
+          :default-expanded="shouldAutoExpandBetaGroupCard"
+          :auto-expand-context-key="betaGroupCardAutoExpandContextKey"
           variant="list"
         />
         <OtherAnchorEventsSection
@@ -690,9 +692,21 @@ const shouldAutoExpandCreateCard = computed(() => {
   return canUserCreatePR.value && !hasJoinablePRInSelectedDate.value;
 });
 
+const shouldAutoExpandBetaGroupCard = computed(
+  () =>
+    detail.value?.prCreationPolicy === "ADMIN_ONLY" &&
+    eventBetaGroupQrCode.value !== null &&
+    !hasJoinablePRInSelectedDate.value,
+);
+
 const createCardAutoExpandContextKey = computed(
   () =>
     `${selectedDateKey.value ?? "none"}:${selectedTimeWindowKey.value ?? "none"}`,
+);
+
+const betaGroupCardAutoExpandContextKey = computed(
+  () =>
+    `${selectedDateKey.value ?? "none"}:${eventBetaGroupQrCode.value ?? "none"}`,
 );
 
 const handleSelectedTimeWindowChange = (key: string | null) => {

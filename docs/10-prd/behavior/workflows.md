@@ -30,7 +30,7 @@
 4. Before join, the system checks time-window conflict, state, capacity, context-specific rules, and any PR-owned join gates.
 5. Join gates are rendered as one modal flow on the PR detail page. With no configured custom gate, the frontend injects the relevant fallback confirmation. With custom gates, each unresolved gate contributes one view such as join notice agreement or user-phone collection for booking contact.
 6. If join succeeds in a PR where reminder registration is relevant, the system immediately prompts the notification-subscription modal with confirmation reminder, new-partner reminder, and meeting-point reminder recommendations. Each recommendation explains why it is useful, and the confirmation reminder includes the confirmation deadline when known. When confirmation is disabled for that PR, the join-success recommendation omits confirmation reminder while leaving the persistent notification-subscriptions section available on the detail page for later revisit.
-7. After the join-success notification-subscription modal is completed, the same flow may recommend following the official account when the user is not backend-confirmed as a follower and the frontend cooldown is not active.
+7. After the join-success notification-subscription modal is completed, the same flow may show one combined community follow-up view. That view can include the current Anchor Event's beta-group QR with the copy "加群获得活动最新动态", the official-account QR when the user is eligible for that prompt, or both when both are relevant.
 8. If join succeeds, the user enters the downstream progression of that collaboration object.
 9. If the current PR was entered from Anchor Event context and is not the right fit, `/pr/:id` keeps a lightweight path back to browsing other active Anchor Events without hiding the current collaboration detail.
 
@@ -59,7 +59,7 @@
 20. The event page submits the same structured create command used by the form path. If the user already has an authenticated account, the backend creates and publishes the PR inside that same command.
 21. The current Anchor Event and downstream PR detail surfaces may also expose other active Anchor Events as a secondary browsing path, so the user can pivot without leaving the event-context collaboration journey entirely.
 22. The user may then join, continue browsing other visible PRs in that event context, or view booking-support information.
-23. The resulting PR may continue through timing and reliability loops such as confirmation, reminders, attendance follow-up, and mounted post-event feedback when the corresponding modules are active.
+23. The resulting PR may continue through timing and reliability loops such as confirmation, reminders, attendance follow-up, event beta-group follow-up, and mounted post-event feedback when the corresponding modules are active.
 
 ## 4.1 Submit And Review A POI Location Application
 

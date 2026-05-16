@@ -2,7 +2,11 @@
   <section class="utility-area">
     <div class="utility-actions">
       <div
-        v-if="showBookingSupportEntry || (showMessageThread && prId !== null)"
+        v-if="
+          showBookingSupportEntry ||
+          showBetaGroupEntry ||
+          (showMessageThread && prId !== null)
+        "
         class="utility-action-row"
       >
         <Button
@@ -12,6 +16,16 @@
           @click="goBookingSupport"
         >
           {{ t("prPage.bookingSupportEntry.viewAction") }}
+        </Button>
+
+        <Button
+          v-if="showBetaGroupEntry"
+          tone="outline"
+          block
+          data-testid="pr-detail.beta-group.open"
+          @click="handleOpenBetaGroupModal"
+        >
+          {{ t("prPage.betaGroupEntry.action") }}
         </Button>
 
         <Button
@@ -70,6 +84,16 @@
         :auto-rotate-interval-ms="null"
       />
     </BottomDrawer>
+
+    <Modal
+      :open="showBetaGroupModal"
+      @close="showBetaGroupModal = false"
+    >
+      <AnchorEventBetaGroupQrPanel
+        :event-title="betaGroupEventTitle"
+        :qr-code-url="betaGroupQrCode"
+      />
+    </Modal>
   </section>
 </template>
 
@@ -81,14 +105,17 @@ import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import Button from "@/shared/ui/actions/Button.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
+import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
+import AnchorEventBetaGroupQrPanel from "@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue";
 import PRShareSection from "@/domains/pr/ui/sections/PRShareSection.vue";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
 import {
   prBookingSupportPath,
   prMessagesPath,
 } from "@/domains/pr/routing/routes";
+import { trackEvent } from "@/shared/telemetry/track";
 
 const props = defineProps<{
   prId: PRId | null;
@@ -99,6 +126,7 @@ const props = defineProps<{
 const router = useRouter();
 const { t } = useI18n();
 const showShareDrawer = ref(false);
+const showBetaGroupModal = ref(false);
 const id = computed(() => props.prId);
 const prDetail = computed(() => props.pr);
 const { shareUrl, spmRouteKey, prShareData } = usePRShareContext({
@@ -116,6 +144,14 @@ const showBookingSupportEntry = computed(
   () => props.supportsEventContextFeatures,
 );
 const showEventPlazaLink = computed(() => props.supportsEventContextFeatures);
+const betaGroupQrCode = computed(() => {
+  const qrCode = props.pr.anchorEventContext?.betaGroupQrCode?.trim() ?? "";
+  return qrCode.length > 0 ? qrCode : null;
+});
+const betaGroupEventTitle = computed(
+  () => props.pr.anchorEventContext?.title ?? props.pr.core.type,
+);
+const showBetaGroupEntry = computed(() => betaGroupQrCode.value !== null);
 
 const showInlineReminderSubscriptions = computed(() => {
   const section = props.pr.partnerSection;
@@ -123,7 +159,9 @@ const showInlineReminderSubscriptions = computed(() => {
   return section.viewer.isParticipant;
 });
 
-useBodyScrollLock(computed(() => showShareDrawer.value));
+useBodyScrollLock(
+  computed(() => showShareDrawer.value || showBetaGroupModal.value),
+);
 
 const goBookingSupport = () => {
   if (props.prId === null || !props.supportsEventContextFeatures) return;
@@ -133,6 +171,15 @@ const goBookingSupport = () => {
 const handleOpenMessages = () => {
   if (props.prId === null || !props.supportsEventContextFeatures) return;
   router.push(prMessagesPath(props.prId));
+};
+
+const handleOpenBetaGroupModal = () => {
+  showBetaGroupModal.value = true;
+  if (props.prId === null) return;
+  trackEvent("pr_secondary_action_click", {
+    prId: props.prId,
+    actionType: "JOIN_BETA_GROUP",
+  });
 };
 </script>
 

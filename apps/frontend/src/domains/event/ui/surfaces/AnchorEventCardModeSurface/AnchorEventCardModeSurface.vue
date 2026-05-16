@@ -229,6 +229,7 @@
     </div>
 
     <AnchorEventBetaGroupCard
+      v-if="resolvedEventBetaGroupQrCode !== null"
       :event-id="eventIdValue"
       :event-title="resolvedEventTitle"
       :qr-code-url="resolvedEventBetaGroupQrCode"

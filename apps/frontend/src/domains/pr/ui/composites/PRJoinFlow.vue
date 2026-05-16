@@ -66,17 +66,19 @@
       </template>
 
       <template v-else>
-        <OfficialAccountFollowPanel />
+        <PRJoinCommunityFollowupPanel
+          :event-title="joinSuccessEventTitle"
+          :beta-group-qr-code="joinSuccessBetaGroupQrCode"
+          :show-official-account="communityFollowupShowsOfficialAccount"
+        />
         <div class="join-success-modal__actions">
           <Button
-            tone="surface"
             type="button"
-            @click="handleCloseJoinOfficialAccountPrompt"
+            block
+            data-testid="pr-detail.join-success.community-followup.done"
+            @click="handleJoinCommunityFollowupDone"
           >
-            {{ t("officialAccountFollow.laterAction") }}
-          </Button>
-          <Button type="button" @click="handleJoinOfficialAccountDone">
-            {{ t("officialAccountFollow.doneAction") }}
+            {{ t("prPage.joinCommunityFollowup.closeAction") }}
           </Button>
         </div>
       </template>
@@ -94,11 +96,11 @@ import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
-import OfficialAccountFollowPanel from "@/domains/marketing/ui/OfficialAccountFollowPanel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { useJoinSuccessNotificationPrompt } from "@/domains/notification/use-cases/useJoinSuccessNotificationPrompt";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import PRJoinCommunityFollowupPanel from "@/domains/pr/ui/composites/PRJoinCommunityFollowupPanel.vue";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRJoinFallbackConfirmGate from "@/domains/pr/ui/gates/PRJoinFallbackConfirmGate.vue";
 import {
@@ -111,7 +113,7 @@ import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 
-type JoinSuccessPromptStep = "SUBSCRIPTIONS" | "OFFICIAL_ACCOUNT";
+type JoinSuccessPromptStep = "SUBSCRIPTIONS" | "COMMUNITY_FOLLOWUP";
 type PRJoinEntrySurface =
   | "pr_detail"
   | "form_mode_matched"
@@ -181,6 +183,7 @@ const joinFlowError = ref<string | null>(null);
 const joined = ref(false);
 const joinSuccessPromptStep = ref<JoinSuccessPromptStep>("SUBSCRIPTIONS");
 const successPromptOpenForJoin = ref(false);
+const communityFollowupShowsOfficialAccount = ref(false);
 
 const joinMutation = useJoinPR();
 const prDetailId = computed(() => props.prId);
@@ -209,6 +212,17 @@ const confirmationReminderSupported = computed(() => {
   }
   return prDetailForPrompt.value?.partnerSection.confirmation.enabled ?? true;
 });
+const joinSuccessBetaGroupQrCode = computed(() => {
+  const qrCode =
+    prDetailForPrompt.value?.anchorEventContext?.betaGroupQrCode?.trim() ?? "";
+  return qrCode.length > 0 ? qrCode : null;
+});
+const joinSuccessEventTitle = computed(
+  () =>
+    prDetailForPrompt.value?.anchorEventContext?.title ??
+    prDetailForPrompt.value?.core.type ??
+    "",
+);
 const joinSuccessNotificationKinds = computed<readonly WeChatNotificationKind[]>(
   () =>
     confirmationReminderSupported.value
@@ -320,6 +334,7 @@ const closeJoinFlowModal = (): void => {
 
 const finishSuccessPrompt = (): void => {
   joinSuccessPromptStep.value = "SUBSCRIPTIONS";
+  communityFollowupShowsOfficialAccount.value = false;
   closeJoinSuccessNotificationPrompt();
   if (successPromptOpenForJoin.value) {
     successPromptOpenForJoin.value = false;
@@ -328,28 +343,35 @@ const finishSuccessPrompt = (): void => {
 };
 
 const closeJoinSuccessPrompt = (): void => {
-  if (joinSuccessPromptStep.value === "OFFICIAL_ACCOUNT") {
+  if (
+    joinSuccessPromptStep.value === "COMMUNITY_FOLLOWUP" &&
+    communityFollowupShowsOfficialAccount.value
+  ) {
     officialAccountFollowPrompt.dismissPrompt();
   }
   finishSuccessPrompt();
 };
 
 const handleJoinSuccessSubscriptionDone = (): void => {
-  if (officialAccountFollowPrompt.canPromptNow()) {
-    officialAccountFollowPrompt.markPromptPresented();
-    joinSuccessPromptStep.value = "OFFICIAL_ACCOUNT";
+  const shouldShowOfficialAccount = officialAccountFollowPrompt.canPromptNow();
+  const shouldShowBetaGroup = joinSuccessBetaGroupQrCode.value !== null;
+
+  if (shouldShowOfficialAccount || shouldShowBetaGroup) {
+    communityFollowupShowsOfficialAccount.value = shouldShowOfficialAccount;
+    if (shouldShowOfficialAccount) {
+      officialAccountFollowPrompt.markPromptPresented();
+    }
+    joinSuccessPromptStep.value = "COMMUNITY_FOLLOWUP";
     return;
   }
+
   finishSuccessPrompt();
 };
 
-const handleCloseJoinOfficialAccountPrompt = (): void => {
-  officialAccountFollowPrompt.dismissPrompt();
-  finishSuccessPrompt();
-};
-
-const handleJoinOfficialAccountDone = (): void => {
-  officialAccountFollowPrompt.markPromptCompleted();
+const handleJoinCommunityFollowupDone = (): void => {
+  if (communityFollowupShowsOfficialAccount.value) {
+    officialAccountFollowPrompt.markPromptCompleted();
+  }
   finishSuccessPrompt();
 };
 
@@ -360,6 +382,7 @@ const openSuccessPrompt = (): void => {
   }
   successPromptOpenForJoin.value = true;
   joinSuccessPromptStep.value = "SUBSCRIPTIONS";
+  communityFollowupShowsOfficialAccount.value = false;
   openJoinSuccessNotificationPrompt();
 };
 

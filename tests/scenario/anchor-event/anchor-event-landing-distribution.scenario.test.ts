@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import type { Page } from "playwright";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { withScenarioPage } from "../_infra/browser/browser";
@@ -72,6 +73,13 @@ const expectListMode = async (page: Page, prTitle: string) => {
   });
 };
 
+const expectNoBetaGroupCard = async (page: Page) => {
+  assert.equal(
+    await page.getByTestId("anchor-event.beta-group-card").count(),
+    0,
+  );
+};
+
 scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
   const creator = await givenUser("system-anchor-landing-distribution-creator");
   const visitor = await givenUser("system-anchor-landing-distribution-visitor");
@@ -126,6 +134,7 @@ scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
 
     await page.goto(`/e/${listEvent.id}`);
     await expectListMode(page, listPrTitle);
+    await expectNoBetaGroupCard(page);
   });
 });
 
@@ -172,6 +181,88 @@ scenario(
       });
       await page.reload();
       await expectFormMode(page);
+    });
+  },
+);
+
+scenario(
+  "anchor_event_card_mode_empty_state_hides_beta_group_card_without_qr",
+  async (ctx) => {
+    const visitor = await givenUser(
+      "system-anchor-card-no-beta-group-visitor",
+    );
+    const event = await givenAnchorEvent({ label: "card-no-beta-group" });
+
+    await setAnchorEventLandingRollout({
+      eventId: event.id,
+      ratios: CARD_RICH_ONLY,
+      assignmentRevision: 1,
+    });
+
+    ctx.record("eventId", event.id);
+
+    await withScenarioPage(async (page) => {
+      await installScenarioUserSession(page, visitor);
+
+      await page.goto(`/e/${event.id}`);
+      await expectLandingPage(page);
+      await page
+        .locator(
+          '[data-testid="anchor-event-card-mode.surface"][data-mode-state="empty"]',
+        )
+        .waitFor({
+          state: "visible",
+          timeout: 10_000,
+        });
+      await expectNoBetaGroupCard(page);
+    });
+  },
+);
+
+scenario(
+  "anchor_event_list_mode_admin_only_highlights_beta_group_card",
+  async (ctx) => {
+    const visitor = await givenUser("system-anchor-list-beta-group-visitor");
+    const event = await givenAnchorEvent({
+      label: "list-beta-group",
+      prCreationPolicy: "ADMIN_ONLY",
+      betaGroupQrCode: "https://example.com/list-beta-group.png",
+    });
+
+    await setAnchorEventLandingRollout({
+      eventId: event.id,
+      ratios: LIST_ONLY,
+      assignmentRevision: 1,
+    });
+
+    ctx.record("eventId", event.id);
+
+    await withScenarioPage(async (page) => {
+      await installScenarioUserSession(page, visitor);
+
+      await page.goto(`/e/${event.id}`);
+      await expectLandingPage(page);
+      await page.getByTestId("anchor-event-list-mode.surface").waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+
+      const betaGroupCard = page.getByTestId("anchor-event.beta-group-card");
+      await betaGroupCard.waitFor({ state: "visible", timeout: 10_000 });
+      const betaGroupCardElement = await betaGroupCard.elementHandle();
+      assert.ok(betaGroupCardElement);
+      await page.waitForFunction(
+        (element) =>
+          element instanceof HTMLElement &&
+          element.classList.contains(
+            "anchor-event-beta-group-card-shell--flash",
+          ),
+        betaGroupCardElement,
+        { timeout: 4_000 },
+      );
+      await betaGroupCard
+        .getByRole("img", { name: `${event.title} 搭子群二维码` })
+        .waitFor({ state: "visible", timeout: 4_000 });
     });
   },
 );

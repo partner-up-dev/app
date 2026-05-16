@@ -463,6 +463,10 @@ export interface MessageSchema {
         MEETING_POINT_UPDATED: string;
       };
     };
+    joinCommunityFollowup: {
+      title: string;
+      closeAction: string;
+    };
     waitlistSuccessSubscriptions: {
       description: string;
       notificationReasons: {
@@ -477,6 +481,13 @@ export interface MessageSchema {
       title: string;
       hint: string;
       action: string;
+    };
+    betaGroupEntry: {
+      title: string;
+      description: string;
+      action: string;
+      qrAlt: string;
+      qrMissing: string;
     };
     messageEntry: {
       title: string;
