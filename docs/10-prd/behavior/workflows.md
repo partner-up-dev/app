@@ -15,16 +15,17 @@
 1. The user enters `/pr/new` and chooses the structured form path.
 2. The `type` field accepts arbitrary input and may offer suggestion options from known event types.
 3. The `time_window` field uses batch or free UI mode. Batch mode offers suggested windows from known event-side availability. Free mode allows direct manual time entry.
-4. The UI resolves those inputs into one PR-owned create payload with one concrete `type` and one concrete `time_window`.
-5. The frontend submits the structured create command. If the selected `type` resolves to an Anchor Event, that event's PR creation policy gates user creation, and PR creation materializes that event's PR defaults such as default notes when the create payload has no notes, join gates, support resources, and mounted feedback questionnaire instance onto the created PR.
-6. If the user already has an authenticated account, the backend creates and publishes the PR inside the same creation flow.
-7. If the user is anonymous, the backend creates a `DRAFT` and waits for a later authenticated publish step.
-8. The publish step assigns creator ownership and returns a shareable, revisitable `PR`.
+4. The user chooses one place mode for the PR. Location mode supplies one primary location. Route mode supplies an ordered `PR.route` from departure to destination, with optional waypoints.
+5. The UI resolves those inputs into one PR-owned create payload with one concrete `type`, one concrete `time_window`, and one place mode.
+6. The frontend submits the structured create command. If the selected `type` resolves to an Anchor Event, that event's PR creation policy gates user creation, and PR creation materializes that event's PR defaults such as default notes when the create payload has no notes, join gates, support resources, and mounted feedback questionnaire instance onto the created PR.
+7. If the user already has an authenticated account, the backend creates and publishes the PR inside the same creation flow.
+8. If the user is anonymous, the backend creates a `DRAFT` and waits for a later authenticated publish step.
+9. The publish step assigns creator ownership and returns a shareable, revisitable `PR`.
 
 ## 3. Enter Through a Link and Join a PR
 
 1. The user opens `/pr/:id`.
-2. The user reads the request details, current count, visible status, participant list, and status-appropriate meeting-point guidance. In the current event-context detail layout, meeting-point guidance appears in the facts card directly under the primary location while it is visible; after the PR becomes `ACTIVE`, non-participant viewers see a private meeting-point placeholder while current active participants can still read the guidance. Notification subscriptions remain as a persistent section, the participant roster opens from the facts-card participant row, and venue images use the same clickable label-row entry pattern.
+2. The user reads the request details, current count, visible status, participant list, and status-appropriate meeting-point guidance. In the current event-context detail layout, meeting-point guidance appears in the facts card directly under the primary location while it is visible. Route-mode PRs show Route as a separate facts row that can open route map detail. After the PR becomes `ACTIVE`, non-participant viewers see a private meeting-point placeholder while current active participants can still read the guidance. Notification subscriptions remain as a persistent section, the participant roster opens from the facts-card participant row, and venue images use the same clickable label-row entry pattern.
 3. Revisit continuity uses the restored anonymous UUID session; actions that require stronger identity guarantees use authenticated session plus WeChat binding.
 4. Before join, the system checks time-window conflict, state, capacity, context-specific rules, and any PR-owned join gates.
 5. Join gates are rendered as one modal flow on the PR detail page. With no configured custom gate, the frontend injects the relevant fallback confirmation. With custom gates, each unresolved gate contributes one view such as join notice agreement or user-phone collection for booking contact.
@@ -54,7 +55,7 @@
 16. The user enters an existing `PR` from event card or search-result context. `/events/:eventId` may accept `mode=card|list` as the initial rendering hint, and `/e/:eventId` may enter the same list browsing experience through `LIST` landing mode. In card mode, the active demand card itself is also a detail-entry affordance, so tapping it should resolve to the same detail intent as the rightward action. In list mode, top-level tabs aggregate by local date while still preserving time-window grouping and location context inside the selected date panel; dates before the current product-local date are expired dates, the expired tab set keeps at most the latest three dates that contain `CLOSED` PRs, expired date panels show `CLOSED` rows, and current or future date panels hide `EXPIRED` rows. Card-mode drag feedback should reveal directional skip versus detail cues in exposed stage space and keep the card body unobscured by opaque action stamps.
 17. The Anchor Event page exposes that event's beta-group entry as an independent card. List mode defaults the card to a collapsed summary; card mode defaults it to an expanded state with the QR code. The group is for event-specific support such as requesting new sessions, getting booking/subsidy support, and coordinating activity context.
 18. If the current local date, time-pool rule, or location does not have a suitable PR and the Anchor Event PR creation policy allows user creation, the user can create one through the controlled event-page flow. Card and list creation pickers include event-authored time-window description copy in each described time option.
-19. The event page resolves its assisted-create choices into the same structured PR create payload shape used by `/pr/new` and may carry transient event referral context for route continuity.
+19. The event page resolves its assisted-create choices into the same structured PR create payload shape used by `/pr/new`. Assisted-create place options may resolve to a primary location or to `PR.route`, and may carry transient event referral context for browser-route continuity.
 20. The event page submits the same structured create command used by the form path. If the user already has an authenticated account, the backend creates and publishes the PR inside that same command.
 21. The current Anchor Event and downstream PR detail surfaces may also expose other active Anchor Events as a secondary browsing path, so the user can pivot without leaving the event-context collaboration journey entirely.
 22. The user may then join, continue browsing other visible PRs in that event context, or view booking-support information.
@@ -83,8 +84,9 @@
 
 1. The user triggers sharing from a PR page or support-related page.
 2. The system provides the available share method for that scenario, such as public link, WeChat share, or Xiaohongshu output.
-3. Share links may carry `spm` attribution.
-4. New visitors re-enter the corresponding route and continue the collaboration path.
+3. Route-mode PRs use backend-authored canonical route summary in base share metadata, while richer route wording belongs to the sharing surface that renders it.
+4. Share links may carry `spm` attribution.
+5. New visitors re-enter the corresponding browser route and continue the collaboration path.
 
 ## 7. Non-Realtime PR Messaging
 

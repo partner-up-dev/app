@@ -65,6 +65,7 @@ export async function updateAdminPRContent(
       type: input.type,
       time: input.timeWindow,
       location: input.location,
+      route: null,
       minPartners: input.minPartners,
       maxPartners: input.maxPartners,
       partners: [],

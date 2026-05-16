@@ -67,6 +67,7 @@ const editableFields = computed<PRFormFields>(() => ({
   type: props.pr.core.type ?? "",
   time: props.pr.core.time ?? [null, null],
   location: props.pr.core.location ?? null,
+  route: props.pr.core.route ?? null,
   minPartners: props.pr.core.minPartners ?? null,
   maxPartners: props.pr.core.maxPartners ?? null,
   partners: props.pr.core.partners ?? [],

@@ -51,6 +51,13 @@ export {
   normalizeAutomaticPartnerBounds,
   assertManualPartnerBoundsValid,
 } from "../../pr-core/services/partner-bounds.service";
+export {
+  PR_PLACE_MODE_CONFLICT_CODE,
+  assertPRPlaceModeValid,
+  buildPRRouteSummary,
+  normalizePartnerRequestFieldsForPersistence,
+  resolvePRPlaceDisplayName,
+} from "../../pr-core/services/pr-place-mode.service";
 export { assertNoUserTimeWindowConflict } from "../../pr-core/services/participation-time-conflict.service";
 export {
   assertPRTimeWindowAvailableAtLocation,

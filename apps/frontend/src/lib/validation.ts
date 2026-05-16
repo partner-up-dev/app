@@ -48,13 +48,18 @@ const buildTimeSchema = (validateTime: boolean) =>
 
 const buildFieldsSchema = ({
   validateTime = true,
-}: PartnerRequestFormSchemaOptions = {}): z.ZodType<PRFormFields> =>
+}: PartnerRequestFormSchemaOptions = {}) =>
   z
     .object({
       title: z.string().optional(),
       type: z.string().min(1, i18n.global.t("validation.typeRequired")),
       time: buildTimeSchema(validateTime),
       location: z.string().nullable(),
+      route: z
+        .custom<PRFormFields["route"]>(
+          (value) => value === null || Array.isArray(value),
+        )
+        .default(null),
       minPartners: z.number().int().nonnegative().nullable(),
       maxPartners: z.number().int().nonnegative().nullable(),
       partners: z.array(z.number().int().positive()),

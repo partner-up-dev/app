@@ -19,6 +19,7 @@ import {
 } from "./create-pr.shared";
 import { materializeEventDefaultsForPR } from "../services/event-default-materialization.service";
 import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
+import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
 
 const prRepo = new PartnerRequestRepository();
 const aiService = new PartnerRequestAIService();
@@ -30,33 +31,35 @@ export async function createPRFromNaturalLanguage(
   creatorIdentity: CreatorIdentityInput,
 ): Promise<CreatePRCommandResult> {
   const fields = await aiService.parseRequest(rawText, nowIso, nowWeekday);
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
   await assertUserPRCreationAllowedForAnchorEvent({
-    type: fields.type,
+    type: normalizedFields.type,
   });
   const partnerBounds = normalizeAutomaticPartnerBounds(
-    fields.minPartners,
-    fields.maxPartners,
+    normalizedFields.minPartners,
+    normalizedFields.maxPartners,
     0,
   );
   await assertPRTimeWindowAvailableAtLocation({
-    location: fields.location,
-    timeWindow: fields.time,
+    location: normalizedFields.location,
+    timeWindow: normalizedFields.time,
   });
 
   const creator = await resolveDraftCreator(creatorIdentity);
   const createdBy = creator?.id ?? null;
 
   const request = await prRepo.create({
-    title: fields.title,
-    type: fields.type,
-    time: fields.time,
-    location: fields.location,
+    title: normalizedFields.title,
+    type: normalizedFields.type,
+    time: normalizedFields.time,
+    location: normalizedFields.location,
+    route: normalizedFields.route,
     minPartners: partnerBounds.minPartners,
     maxPartners: partnerBounds.maxPartners,
-    budget: fields.budget,
-    preferences: fields.preferences,
-    notes: fields.notes,
-    meetingPoint: fields.meetingPoint ?? null,
+    budget: normalizedFields.budget,
+    preferences: normalizedFields.preferences,
+    notes: normalizedFields.notes,
+    meetingPoint: normalizedFields.meetingPoint ?? null,
     status: "DRAFT",
     createdBy,
   });

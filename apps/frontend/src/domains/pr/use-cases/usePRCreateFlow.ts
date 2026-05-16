@@ -28,6 +28,7 @@ const buildInitialFields = (topic: string | null): PRFormFields => ({
   type: topic ?? "",
   time: [null, null],
   location: null,
+  route: null,
   minPartners: 2,
   maxPartners: null,
   partners: [],

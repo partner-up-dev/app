@@ -9,7 +9,10 @@
 - PR messaging currently uses a dedicated `/pr/:id/messages` page rather than an inline detail-page composer.
 - PR messaging may contain both participant-authored messages and operator-authored system messages; system messages are part of the same thread and remain visually identifiable as system-authored context.
 - PR meeting-point guidance answers where participants should meet at or inside the primary location. Before a `PR` becomes `ACTIVE`, it may appear on the public PR detail surface. After the `PR` becomes `ACTIVE`, the guidance is visible only to current active participants.
-- When a `PR` has no explicit title, user-facing detail and share surfaces identify it by primary location first, then by type, then by a generic `PR` label.
+- A `PR` owns one place mode at a time. Location mode carries the primary location string. Route mode carries an ordered route and persists `location` as `null`.
+- Route points carry display names and at least one coordinate pair so route surfaces can render markers and route geometry.
+- When a `PR` has no explicit title, user-facing detail and share surfaces identify it by compact route summary when present, then by primary location, then by type, then by a generic `PR` label.
+- The compact route summary uses the departure and destination point names as `route[0].name~route[-1].name`, with each endpoint truncated independently so the joined summary stays within 16 characters.
 
 ## 2. Creation And Publish Rules
 
@@ -18,6 +21,7 @@
 - If the creator is anonymous, that create flow persists a `DRAFT` and waits for a later authenticated publish step.
 - Structured creation uses one PR-owned form contract. Its `type` field accepts arbitrary input and may offer suggestion options from known event types.
 - Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window.
+- Structured creation uses one PR-owned place-mode result. Route-mode structured creation stores `route` and clears `location`; location-mode structured creation stores `location` and clears `route`.
 - PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, support resources, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
 - Event-context PR creation is one assisted mode inside the Anchor Event domain.
 - Event-assisted create resolves event-side choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
@@ -60,7 +64,7 @@
 - Waitlist entries are stored as `Partner.status = PENDING`. Cancelled waitlist entries are stored as `Partner.status = CANCELLED` and no longer hold queue position.
 - Pending users are not current active participants, cannot see PR messages, and do not count toward active capacity.
 - When an active slot is released or exited, the system promotes waitlisted users by earliest `waitlistedAt` first, subject to current eligibility checks. Promotion converts the existing pending slot into an active partner slot.
-- A user entering a waitlist may opt in to cross-PR alternative availability reminders. The match rule is exact normalized PR type plus exact normalized PR location, and the source waitlist slot keeps its queue position while reminders are sent.
+- A user entering a waitlist may opt in to cross-PR alternative availability reminders. The current match rule is exact normalized PR type plus exact normalized PR location, and the source waitlist slot keeps its queue position while reminders are sent. Route-mode PRs have `location = null`, so they stay outside that location-driven alternative reminder match until a route-specific match rule exists.
 - Cross-PR alternative availability is an invitation to inspect or join another PR with capacity. The source waitlist slot closes as `CANCELLED` after the same user successfully joins a matching alternative PR.
 - `PR` may carry join gates that must be completed before joining. Join gate definitions are PR-owned runtime configuration, while their resolved state comes from the owning fact for each gate kind.
 - When a PR has no configured custom join gate, the frontend flow injects the relevant fallback confirmation view. When any custom join gate exists, the fallback confirmation is absent.
@@ -74,7 +78,7 @@
 - Only current active participants may view the thread or act on read markers and participant posting, while operators may inject system messages through admin tooling without becoming participants themselves.
 - PR detail keeps notification-subscription management visible as a persistent section when reminder registration is relevant for that PR.
 - The participant roster is opened from the facts-card participant row, and each participant badge remains a read-only navigation entry into that participant's profile page.
-- PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible.
+- PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. Route-mode PRs carry `location = null`, so location-specific Anchor Event and POI meeting-point fallbacks naturally skip. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible for location-mode PRs.
 - Updating meeting-point guidance keeps PR status, participation, and confirmation state stable while notifying current active participants through the dedicated meeting-point update notification path.
 
 ### Status Semantics

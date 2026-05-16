@@ -2,6 +2,7 @@ import type {
   AnchorEventPrCreationPolicy,
   PartnerRequest,
   PRJoinGateConfig,
+  PRRoute,
 } from "../../../entities";
 import type { MeetingPointConfig } from "../../../entities";
 import type {
@@ -18,6 +19,7 @@ import {
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
 import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 
@@ -30,6 +32,8 @@ export type AdminPRWorkspaceSummary = {
   title: string | null;
   type: string;
   location: string | null;
+  route: PRRoute | null;
+  placeDisplayName: string | null;
   time: [string | null, string | null];
   status: string;
   visibilityStatus: string;
@@ -87,6 +91,8 @@ const toAdminPRWorkspaceSummary = async (
   title: root.title,
   type: root.type,
   location: root.location,
+  route: root.route,
+  placeDisplayName: resolvePRPlaceDisplayName(root),
   time: root.time,
   status: root.status,
   visibilityStatus: root.visibilityStatus,

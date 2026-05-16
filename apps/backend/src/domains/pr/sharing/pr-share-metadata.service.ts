@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { env } from "../../../lib/env";
 import type { PublicPR } from "../read-models/public-pr-view.service";
+import { buildPRRouteSummary } from "../../pr-core/services/pr-place-mode.service";
 
 export type PRCanonicalShareMetadata = {
   title: string;
@@ -40,6 +41,11 @@ const resolveTitle = (pr: PublicPR): string => {
     return explicitTitle;
   }
 
+  const routeSummary = buildPRRouteSummary(pr.route);
+  if (routeSummary) {
+    return routeSummary;
+  }
+
   const location = normalizeWhitespace(pr.location);
   if (location.length > 0) {
     return location;
@@ -56,6 +62,7 @@ const resolveTitle = (pr: PublicPR): string => {
 const resolveDescription = (pr: PublicPR): string => {
   const summary = joinSummaryParts([
     pr.type,
+    buildPRRouteSummary(pr.route),
     pr.location,
     pr.budget,
     ...pr.preferences.slice(0, 2),
@@ -76,6 +83,7 @@ const buildRevision = (pr: PublicPR): string => {
     type: pr.type,
     time: pr.time,
     location: pr.location,
+    route: pr.route,
     minPartners: pr.minPartners,
     maxPartners: pr.maxPartners,
     budget: pr.budget,

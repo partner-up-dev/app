@@ -7,6 +7,7 @@
 - use `/pr/new` for mixed natural-language and structured creation
 - create a `PR` through a structured form where `type` accepts arbitrary input with suggestion options from known event types
 - create a `PR` through a structured form where `time_window` uses a batch or free UI mode and still resolves to one PR-owned time window
+- create a structured `PR` in location mode with one primary location or in route mode with an ordered route from departure to destination
 - create and publish `PR` drafts
 - let natural-language creation stay simple while the system may map the intent to an existing Anchor Event context or synthesize a new `PR.type`
 
@@ -26,12 +27,14 @@
 - enter `PR` from Anchor Event context
 - keep the current event-context `PR` detail page focused on facts, participation, booking support, and persistent notification-subscription management
 - show public meeting-point guidance in the PR facts card under the primary location
+- show route-mode PRs with a separate Route facts row and a map/detail entry when route geometry is available
 - open the PR message experience through `/pr/:id/messages`
 - open the participant roster modal from the facts-card participant row
 - open venue images through a clickable label row aligned with other facts-card entry rows
 - open participant profile pages from clickable participant badges
 - re-discover other active Anchor Events from current Anchor Event and PR context
 - create `PR` from Anchor Event context as one assisted mode inside the Anchor Event domain
+- create or enter route-mode `PR`s from Anchor Event context when the event-assisted place options carry `PR.route` values
 - review alternative recommendations under the same time-pool rules
 - submit a new POI location application from Form Mode when the desired location is missing
 - revisit the current user's submitted POI location applications
@@ -52,6 +55,7 @@
 - generate system share links
 - support WeChat sharing
 - generate Xiaohongshu captions and posters
+- include route-mode `PR` identity in canonical share metadata and downstream sharing outputs
 - carry `spm` attribution through the link chain
 
 ## 6. Notifications And Reliability

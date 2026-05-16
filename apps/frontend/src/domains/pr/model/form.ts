@@ -7,6 +7,7 @@ export const clonePRFields = (
   type: fields.type,
   time: [fields.time[0], fields.time[1]],
   location: fields.location,
+  route: fields.route ?? null,
   minPartners: fields.minPartners,
   maxPartners: fields.maxPartners,
   partners: [...fields.partners],

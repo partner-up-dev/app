@@ -20,6 +20,7 @@ import {
 } from "./create-pr.shared";
 import { materializeEventDefaultsForPR } from "../services/event-default-materialization.service";
 import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
+import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
 
 const prRepo = new PartnerRequestRepository();
 
@@ -34,14 +35,19 @@ export async function createPRFromStructured(
     joinGateConfig?: PRJoinGateConfig;
   } = {},
 ): Promise<CreatePRCommandResult> {
-  assertManualPartnerBoundsValid(fields.minPartners, fields.maxPartners, 0);
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
+  assertManualPartnerBoundsValid(
+    normalizedFields.minPartners,
+    normalizedFields.maxPartners,
+    0,
+  );
   await assertUserPRCreationAllowedForAnchorEvent({
     anchorEventId: options.anchorEventId,
-    type: fields.type,
+    type: normalizedFields.type,
   });
   await assertPRTimeWindowAvailableAtLocation({
-    location: fields.location,
-    timeWindow: fields.time,
+    location: normalizedFields.location,
+    timeWindow: normalizedFields.time,
   });
 
   const creator = await resolveDraftCreator(creatorIdentity);
@@ -49,16 +55,17 @@ export async function createPRFromStructured(
   const createSource = options.createSource ?? "FORM";
 
   const request = await prRepo.create({
-    title: fields.title,
-    type: fields.type,
-    time: fields.time,
-    location: fields.location,
-    minPartners: fields.minPartners,
-    maxPartners: fields.maxPartners,
-    budget: fields.budget,
-    preferences: fields.preferences,
-    notes: fields.notes,
-    meetingPoint: fields.meetingPoint ?? null,
+    title: normalizedFields.title,
+    type: normalizedFields.type,
+    time: normalizedFields.time,
+    location: normalizedFields.location,
+    route: normalizedFields.route,
+    minPartners: normalizedFields.minPartners,
+    maxPartners: normalizedFields.maxPartners,
+    budget: normalizedFields.budget,
+    preferences: normalizedFields.preferences,
+    notes: normalizedFields.notes,
+    meetingPoint: normalizedFields.meetingPoint ?? null,
     joinGateConfig: options.joinGateConfig ?? [],
     status: "DRAFT",
     createdBy,

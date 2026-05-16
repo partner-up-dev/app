@@ -1,5 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRRoute, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
 import { resolveUserByOpenId } from "../../user";
@@ -30,6 +30,7 @@ import {
   type PRCanonicalShareMetadata,
 } from "../sharing/pr-share-metadata.service";
 import { toPublicPR } from "./public-pr-view.service";
+import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
 
 const prSupportRepo = new PRSupportResourceRepository();
 const partnerRepo = new PartnerRepository();
@@ -49,6 +50,8 @@ export type PRDetail = {
     type: string;
     time: [string | null, string | null];
     location: string | null;
+    route: PRRoute | null;
+    placeDisplayName: string | null;
     minPartners: number | null;
     maxPartners: number | null;
     partners: number[];
@@ -197,6 +200,8 @@ export async function getPRDetailView(
       type: publicPR.type,
       time: publicPR.time,
       location: publicPR.location,
+      route: publicPR.route,
+      placeDisplayName: resolvePRPlaceDisplayName(publicPR),
       minPartners: publicPR.minPartners,
       maxPartners: publicPR.maxPartners,
       partners: publicPR.partners,

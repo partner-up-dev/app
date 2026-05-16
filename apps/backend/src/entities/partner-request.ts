@@ -32,9 +32,36 @@ const isoDateOrDateTimeSchema = z.union([isoDateTimeSchema, isoDateSchema]);
 const partnerSlotIdSchema = z.number().int().positive();
 const weekdayLabelSchema = z.string().trim().min(1).max(32);
 export type WeekdayLabel = z.infer<typeof weekdayLabelSchema>;
+export const coordinatePairSchema = z.tuple([
+  z.number(),
+  z.number(),
+]);
+export type CoordinatePair = z.infer<typeof coordinatePairSchema>;
+export const prRoutePointSchema = z
+  .object({
+    wgs84: coordinatePairSchema.nullable(),
+    bd09: coordinatePairSchema.nullable(),
+    gcj02: coordinatePairSchema.nullable(),
+    name: z.string().trim().min(1),
+    full_address: z.string().trim().nullable(),
+  })
+  .superRefine((point, ctx) => {
+    if (point.wgs84 !== null || point.bd09 !== null || point.gcj02 !== null) {
+      return;
+    }
+
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Route point requires at least one coordinate pair",
+      path: ["gcj02"],
+    });
+  });
+export type PRRoutePoint = z.infer<typeof prRoutePointSchema>;
+export const prRouteSchema = z.array(prRoutePointSchema).min(2);
+export type PRRoute = z.infer<typeof prRouteSchema>;
 
 // Partner request fields (from LLM / client edits)
-export const partnerRequestFieldsSchema = z.object({
+export const partnerRequestFieldsObjectSchema = z.object({
   title: z.string().optional(),
   type: z.string(),
   time: z.tuple([
@@ -42,6 +69,7 @@ export const partnerRequestFieldsSchema = z.object({
     isoDateOrDateTimeSchema.nullable(),
   ]),
   location: z.string().nullable(),
+  route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
   maxPartners: z.number().int().nonnegative().nullable(),
   partners: z.array(partnerSlotIdSchema).default([]),
@@ -49,6 +77,17 @@ export const partnerRequestFieldsSchema = z.object({
   preferences: z.array(z.string()),
   notes: z.string().nullable(),
   meetingPoint: meetingPointConfigSchema.nullable().optional(),
+});
+
+export const partnerRequestFieldsSchema = partnerRequestFieldsObjectSchema.superRefine((fields, ctx) => {
+  const hasLocation = (fields.location?.trim() ?? "").length > 0;
+  if (hasLocation && fields.route !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "PartnerRequest must use either location or route",
+      path: ["route"],
+    });
+  }
 });
 
 export type PartnerRequestFields = z.infer<typeof partnerRequestFieldsSchema>;
@@ -126,6 +165,7 @@ export const partnerRequests = pgTable("partner_requests", {
     .notNull()
     .default(sql`ARRAY[NULL, NULL]::text[]`),
   location: text("location"),
+  route: jsonb("route").$type<PRRoute | null>().default(null),
   status: text("status").$type<PRStatus>().notNull().default("OPEN"),
   visibilityStatus: text("visibility_status")
     .$type<VisibilityStatus>()
@@ -171,22 +211,24 @@ export const partnerRequests = pgTable("partner_requests", {
 
 // Zod schemas for validation
 export const insertPartnerRequestSchema = createInsertSchema(partnerRequests, {
-  time: partnerRequestFieldsSchema.shape.time,
-  minPartners: partnerRequestFieldsSchema.shape.minPartners,
-  maxPartners: partnerRequestFieldsSchema.shape.maxPartners,
+  time: partnerRequestFieldsObjectSchema.shape.time,
+  minPartners: partnerRequestFieldsObjectSchema.shape.minPartners,
+  maxPartners: partnerRequestFieldsObjectSchema.shape.maxPartners,
   status: prStatusSchema,
   visibilityStatus: visibilityStatusSchema,
+  route: prRouteSchema.nullable().optional(),
   meetingPoint: meetingPointConfigSchema.nullable().optional(),
   joinGateConfig: prJoinGateConfigSchema.optional(),
 });
 
 export const selectPartnerRequestSchema = createSelectSchema(partnerRequests, {
-  time: partnerRequestFieldsSchema.shape.time,
-  minPartners: partnerRequestFieldsSchema.shape.minPartners,
-  maxPartners: partnerRequestFieldsSchema.shape.maxPartners,
-  budget: partnerRequestFieldsSchema.shape.budget,
+  time: partnerRequestFieldsObjectSchema.shape.time,
+  minPartners: partnerRequestFieldsObjectSchema.shape.minPartners,
+  maxPartners: partnerRequestFieldsObjectSchema.shape.maxPartners,
+  budget: partnerRequestFieldsObjectSchema.shape.budget,
   status: prStatusSchema,
   visibilityStatus: visibilityStatusSchema,
+  route: prRouteSchema.nullable(),
   meetingPoint: meetingPointConfigSchema.nullable(),
   joinGateConfig: prJoinGateConfigSchema,
 });

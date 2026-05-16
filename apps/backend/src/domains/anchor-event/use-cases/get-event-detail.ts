@@ -12,13 +12,18 @@ import type {
   AnchorEventPrCreationPolicy,
   TimeWindowEntry,
 } from "../../../entities/anchor-event";
-import type { PRStatus, PartnerRequest } from "../../../entities/partner-request";
+import type {
+  PRRoute,
+  PRStatus,
+  PartnerRequest,
+} from "../../../entities/partner-request";
 import {
   isActiveVisiblePRStatus,
   isTimeWindowAvailableByPoiRules,
   readVisiblePartnerRequestsByType,
   readVisiblePartnerRequestsByTypeAndTime,
   canUserCreatePRForAnchorEvent,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
 import {
   listAnchorEventTimeWindowDetails,
@@ -35,6 +40,8 @@ export interface EventPRSummary {
   title: string | null;
   type: string;
   location: string | null;
+  route: PRRoute | null;
+  placeDisplayName: string | null;
   preferences: string[];
   notes: string | null;
   time: [string | null, string | null];
@@ -100,6 +107,8 @@ const toPRSummary = (pr: PartnerRequest): EventPRSummary => ({
   title: pr.title,
   type: pr.type,
   location: pr.location,
+  route: pr.route,
+  placeDisplayName: resolvePRPlaceDisplayName(pr),
   preferences: Array.isArray(pr.preferences) ? pr.preferences : [],
   notes: pr.notes,
   time: pr.time,

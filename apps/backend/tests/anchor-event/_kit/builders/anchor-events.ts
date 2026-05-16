@@ -140,6 +140,7 @@ export async function givenAnchorEventVisiblePR(input: {
     type: input.event.type,
     time: input.timeWindow ?? input.event.timeWindow,
     location: input.location ?? input.event.locationId,
+    route: null,
     minPartners: input.minPartners ?? 2,
     maxPartners: input.maxPartners ?? null,
     partners: [],

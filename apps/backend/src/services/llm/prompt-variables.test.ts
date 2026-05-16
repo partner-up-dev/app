@@ -24,6 +24,7 @@ const buildPR = (
   type: "badminton",
   time,
   location: "Jing'an Sports Center",
+  route: null,
   minPartners: 4,
   maxPartners: 8,
   partners: [1, 2],

@@ -255,6 +255,7 @@ export class ShareService {
     type: string;
     time: PartnerRequestFields["time"];
     location: string | null;
+    route: PartnerRequestFields["route"];
     minPartners: number | null;
     maxPartners: number | null;
     partners: PartnerRequestFields["partners"];
@@ -267,6 +268,7 @@ export class ShareService {
       type: pr.type,
       time: pr.time,
       location: pr.location,
+      route: pr.route,
       minPartners: pr.minPartners,
       maxPartners: pr.maxPartners,
       partners: pr.partners,

@@ -207,6 +207,7 @@ export class PartnerRequestRepository {
         type: fields.type,
         time: fields.time,
         location: fields.location,
+        route: fields.route,
         minPartners: fields.minPartners,
         maxPartners: fields.maxPartners,
         budget: fields.budget,

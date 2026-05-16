@@ -4,7 +4,7 @@
 
 Persisted in Postgres via backend entities and repositories:
 
-- `PartnerRequest` as the single durable PR record, including PR-level meeting-point override configuration, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
+- `PartnerRequest` as the single durable PR record, including PR-level place facts (`location` or `PR.route`), PR-level meeting-point override configuration, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
 - partner slots and participation state
 - PR messages and per-user PR message inbox state
 - users, including `users.phone_number`, user notification options, and user reliability
@@ -46,6 +46,7 @@ slots.
 The backend is authoritative for:
 
 - PartnerRequest and partner-slot state
+- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, and canonical share metadata derivation
 - PR feedback questionnaire instance pointers
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution
@@ -68,6 +69,7 @@ The frontend is authoritative for:
 
 - route composition and page assembly
 - UI-specific interaction state
+- route editor draft interaction state, map provider rendering state, marker/polyline presentation state, and viewport fitting behavior
 - browser-side storage and pending-action continuity
 - capability detection and fallback UX
 - client-side caching and invalidation strategy

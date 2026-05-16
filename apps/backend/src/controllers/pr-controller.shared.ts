@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import {
   createNaturalLanguagePRSchema,
   createStructuredPRSchema,
+  partnerRequestFieldsObjectSchema,
   partnerRequestFieldsSchema,
   prStatusManualSchema,
 } from "../entities/partner-request";
@@ -58,7 +59,7 @@ export const updateStatusSchema = z.object({
   status: prStatusManualSchema,
 });
 
-export const userUpdateContentFieldsSchema = partnerRequestFieldsSchema
+export const userUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
   .omit({
     type: true,
   })
@@ -70,7 +71,7 @@ export const updateContentSchema = z
   })
   .strict();
 
-export const anchorUpdateContentFieldsSchema = partnerRequestFieldsSchema
+export const anchorUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
   .omit({
     type: true,
     time: true,

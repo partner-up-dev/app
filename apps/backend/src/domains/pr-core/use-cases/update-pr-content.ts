@@ -23,6 +23,7 @@ import { refreshTemporalStatus } from "../temporal-refresh";
 import { operationLogService } from "../../../infra/operation-log";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
 import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
+import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
 
 const prRepo = new PartnerRequestRepository();
 
@@ -50,6 +51,7 @@ export async function updatePRContent(
   actorUserId: UserId | null,
   options: UpdatePRContentOptions = {},
 ): Promise<PublicPR> {
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
@@ -65,29 +67,30 @@ export async function updatePRContent(
   }
 
   const minMaxChanged =
-    refreshedRequest.minPartners !== fields.minPartners ||
-    refreshedRequest.maxPartners !== fields.maxPartners;
+    refreshedRequest.minPartners !== normalizedFields.minPartners ||
+    refreshedRequest.maxPartners !== normalizedFields.maxPartners;
   const timeChanged =
-    refreshedRequest.time[0] !== fields.time[0] ||
-    refreshedRequest.time[1] !== fields.time[1];
-  const typeChanged = refreshedRequest.type.trim() !== fields.type.trim();
+    refreshedRequest.time[0] !== normalizedFields.time[0] ||
+    refreshedRequest.time[1] !== normalizedFields.time[1];
+  const typeChanged =
+    refreshedRequest.type.trim() !== normalizedFields.type.trim();
   if (typeChanged && !options.bypassTypeImmutableGuard) {
     throwTypeImmutable();
   }
   if (typeChanged && !options.bypassUserCreationPolicyGuard) {
     await assertUserPRCreationAllowedForAnchorEvent({
-      type: fields.type,
+      type: normalizedFields.type,
     });
   }
   const currentParticipants = await countActivePartnersForPR(id);
   assertManualPartnerBoundsValid(
-    fields.minPartners,
-    fields.maxPartners,
+    normalizedFields.minPartners,
+    normalizedFields.maxPartners,
     currentParticipants,
   );
   await assertPRTimeWindowAvailableAtLocation({
-    location: fields.location,
-    timeWindow: fields.time,
+    location: normalizedFields.location,
+    timeWindow: normalizedFields.time,
   });
   const previousMeetingPoints = await captureEffectiveMeetingPointsForRequests([
     refreshedRequest,
@@ -102,19 +105,19 @@ export async function updatePRContent(
     for (const participantUserId of participantUserIds) {
       await assertNoUserTimeWindowConflict({
         userId: participantUserId,
-        targetTimeWindow: fields.time,
+        targetTimeWindow: normalizedFields.time,
         excludePrId: id,
       });
     }
   }
 
-  const updated = await prRepo.updateFields(id, fields);
+  const updated = await prRepo.updateFields(id, normalizedFields);
   if (!updated) {
     return throwHttpProblem({ status: 500, detail: "Failed to update content" });
   }
 
   if (minMaxChanged) {
-    await syncSlotCapacity(id, fields.maxPartners);
+    await syncSlotCapacity(id, normalizedFields.maxPartners);
   }
   await prRepo.clearPosterCache(id);
 

@@ -1,11 +1,13 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { AnchorEventId } from "../../../entities/anchor-event";
+import type { PRRoute } from "../../../entities/partner-request";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import {
   getProductLocalDateKey,
   getProductLocalDateKeyForTimeWindowStart,
   readVisiblePartnerRequestsByType,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
 
 const ISO_DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -26,6 +28,8 @@ export type PRSearchResponse = {
       canonicalPath: string;
       title: string | null;
       location: string | null;
+      route: PRRoute | null;
+      placeDisplayName: string | null;
       preferences: string[];
       notes: string | null;
       time: [string | null, string | null];
@@ -193,6 +197,8 @@ export async function searchPRs(input: {
               canonicalPath: `/pr/${record.id}`,
               title: record.title,
               location: record.location,
+              route: record.route,
+              placeDisplayName: resolvePRPlaceDisplayName(record),
               preferences: Array.isArray(record.preferences)
                 ? record.preferences
                 : [],

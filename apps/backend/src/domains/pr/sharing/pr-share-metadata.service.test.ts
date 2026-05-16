@@ -16,6 +16,7 @@ const buildPublicPR = ({
   type: "羽毛球",
   time: [null, null],
   location: "天河体育中心",
+  route: null,
   status: "OPEN",
   visibilityStatus: "VISIBLE",
   confirmationStartOffsetMinutes: null,
@@ -66,6 +67,84 @@ test("buildPRCanonicalShareMetadata falls back to location before type", async (
   );
 
   assert.equal(metadata.title, "万胜围");
+});
+
+test("buildPRCanonicalShareMetadata falls back to route before location", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const metadata = buildPRCanonicalShareMetadata(
+    buildPublicPR({
+      title: undefined,
+      location: "万胜围",
+      route: [
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.1, 113.2],
+          name: "广州南站",
+          full_address: null,
+        },
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.2, 113.3],
+          name: "天河体育中心",
+          full_address: null,
+        },
+      ],
+      type: "通勤拼车",
+    }),
+  );
+
+  assert.equal(metadata.title, "广州南站~天河体育中心");
+});
+
+test("buildPRCanonicalShareMetadata includes route in revision", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const base = buildPublicPR({
+    title: undefined,
+    location: null,
+    type: "通勤拼车",
+  });
+  const left = buildPRCanonicalShareMetadata({
+    ...base,
+    route: [
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.1, 113.2],
+        name: "广州南站",
+        full_address: null,
+      },
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.2, 113.3],
+        name: "天河体育中心",
+        full_address: null,
+      },
+    ],
+  });
+  const right = buildPRCanonicalShareMetadata({
+    ...base,
+    route: [
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.1, 113.2],
+        name: "广州南站",
+        full_address: null,
+      },
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.3, 113.4],
+        name: "琶洲会展中心",
+        full_address: null,
+      },
+    ],
+  });
+
+  assert.notEqual(left.revision, right.revision);
 });
 
 test("buildPRCanonicalShareMetadata falls back to type when location is empty", async () => {

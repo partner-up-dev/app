@@ -96,6 +96,7 @@ export class PRRootRepository {
         type: fields.type,
         time: fields.time,
         location: fields.location,
+        route: fields.route,
         minPartners: fields.minPartners,
         maxPartners: fields.maxPartners,
         preferences: fields.preferences,

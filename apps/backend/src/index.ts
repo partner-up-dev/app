@@ -263,9 +263,12 @@ const runRequestTailMaintenance = async (): Promise<void> => {
 export type {
   PartnerRequestFields,
   CreatePRStructuredStatus,
+  CoordinatePair,
   PRStatus,
   PRStatusManual,
   PRId,
+  PRRoute,
+  PRRoutePoint,
   WeekdayLabel,
 } from "./entities/partner-request";
 export type {
