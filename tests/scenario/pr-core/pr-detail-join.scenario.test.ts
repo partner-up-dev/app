@@ -6,6 +6,10 @@ import {
   givenAnchorEvent,
   givenAnchorEventVisiblePR,
 } from "../../../apps/backend/tests/anchor-event/_kit/builders/anchor-events";
+import {
+  bindScenarioWeChatOpenId,
+  configureScenarioConfirmationReminderTemplate,
+} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import { givenPublishedPartnerRequest } from "../../../apps/backend/tests/pr-core/_kit/builders/partner-requests";
 import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
 
@@ -18,6 +22,11 @@ scenario("pr_detail_join_flow_reaches_confirm_action", async (ctx) => {
     maxPartners: null,
     title: "System scenario badminton partner request",
   });
+  await bindScenarioWeChatOpenId({
+    user: joiner,
+    openId: "system-pr-detail-joiner-openid",
+  });
+  await configureScenarioConfirmationReminderTemplate();
 
   ctx.record("creatorUserId", creator.user.id);
   ctx.record("joinerUserId", joiner.user.id);
@@ -30,6 +39,22 @@ scenario("pr_detail_join_flow_reaches_confirm_action", async (ctx) => {
     await page.goto(`/pr/${pr.id}`);
     await page.getByTestId("pr-detail.join.open").click();
     await page.getByTestId("pr-detail.join.confirm").click();
+    const confirmationFollowup = page.getByTestId(
+      "pr-detail.join-success.confirmation-followup",
+    );
+    await confirmationFollowup.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await confirmationFollowup
+      .getByRole("button", { name: "订阅 1 次" })
+      .waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+    await page
+      .getByTestId("pr-detail.join-success.confirmation-followup.done")
+      .click();
     await page.getByTestId("pr-detail.join-success.subscriptions").waitFor({
       state: "visible",
       timeout: 10_000,
@@ -68,6 +93,15 @@ scenario("pr_detail_join_success_shows_event_beta_group_followup", async (ctx) =
     await page.goto(`/pr/${pr.id}`);
     await page.getByTestId("pr-detail.join.open").click();
     await page.getByTestId("pr-detail.join.confirm").click();
+    await page
+      .getByTestId("pr-detail.join-success.confirmation-followup")
+      .waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+    await page
+      .getByTestId("pr-detail.join-success.confirmation-followup.done")
+      .click();
     await page.getByTestId("pr-detail.join-success.subscriptions").waitFor({
       state: "visible",
       timeout: 10_000,

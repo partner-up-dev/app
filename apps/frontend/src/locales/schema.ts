@@ -451,14 +451,18 @@ export interface MessageSchema {
         };
       };
     };
+    joinConfirmationFollowup: {
+      title: string;
+      descriptionWithWindow: string;
+      descriptionFallback: string;
+      windowRange: string;
+      windowDeadline: string;
+      notificationReason: string;
+    };
     joinSuccessSubscriptions: {
       description: string;
       closeAction: string;
       notificationReasons: {
-        REMINDER_CONFIRMATION: {
-          withDeadline: string;
-          fallback: string;
-        };
         NEW_PARTNER: string;
         MEETING_POINT_UPDATED: string;
       };

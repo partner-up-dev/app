@@ -29,7 +29,22 @@
 
   <Modal :open="showJoinSubscriptionModal" @close="closeJoinSuccessPrompt">
     <div class="join-success-modal">
-      <template v-if="joinSuccessPromptStep === 'SUBSCRIPTIONS'">
+      <template v-if="joinSuccessPromptStep === 'CONFIRMATION_FOLLOWUP'">
+        <PRJoinConfirmationFollowupPanel
+          :confirmation-window-text="confirmationWindowText"
+        />
+
+        <Button
+          tone="surface"
+          block
+          data-testid="pr-detail.join-success.confirmation-followup.done"
+          @click="handleJoinConfirmationFollowupDone"
+        >
+          {{ t("prPage.joinSuccessSubscriptions.closeAction") }}
+        </Button>
+      </template>
+
+      <template v-else-if="joinSuccessPromptStep === 'SUBSCRIPTIONS'">
         <section
           class="join-success-modal__subscriptions"
           data-testid="pr-detail.join-success.subscriptions"
@@ -100,6 +115,7 @@ import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/us
 import { useJoinSuccessNotificationPrompt } from "@/domains/notification/use-cases/useJoinSuccessNotificationPrompt";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import PRJoinConfirmationFollowupPanel from "@/domains/pr/ui/composites/PRJoinConfirmationFollowupPanel.vue";
 import PRJoinCommunityFollowupPanel from "@/domains/pr/ui/composites/PRJoinCommunityFollowupPanel.vue";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRJoinFallbackConfirmGate from "@/domains/pr/ui/gates/PRJoinFallbackConfirmGate.vue";
@@ -113,7 +129,10 @@ import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 
-type JoinSuccessPromptStep = "SUBSCRIPTIONS" | "COMMUNITY_FOLLOWUP";
+type JoinSuccessPromptStep =
+  | "CONFIRMATION_FOLLOWUP"
+  | "SUBSCRIPTIONS"
+  | "COMMUNITY_FOLLOWUP";
 type PRJoinEntrySurface =
   | "pr_detail"
   | "form_mode_matched"
@@ -172,7 +191,6 @@ const { t } = useI18n();
 const userSessionStore = useUserSessionStore();
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const JOIN_SUCCESS_NOTIFICATION_KINDS = [
-  "REMINDER_CONFIRMATION",
   "NEW_PARTNER",
   "MEETING_POINT_UPDATED",
 ] as const satisfies readonly WeChatNotificationKind[];
@@ -196,15 +214,31 @@ const {
 const officialAccountFollowPrompt =
   useOfficialAccountFollowPrompt("pr_join_result");
 
-const confirmationDeadlineText = computed(() => {
-  const deadline =
+const confirmationWindowText = computed(() => {
+  const start =
+    prDetailForPrompt.value?.partnerSection.timeline?.confirmationStartAt?.trim() ??
+    "";
+  const end =
     props.confirmationDeadlineAt?.trim() ||
     prDetailForPrompt.value?.partnerSection.timeline?.confirmationEndAt?.trim() ||
     "";
-  if (deadline.length === 0) {
-    return null;
+  const startText =
+    start.length > 0 ? (formatLocalDateTimeValue(start) ?? start) : null;
+  const endText =
+    end.length > 0 ? (formatLocalDateTimeValue(end) ?? end) : null;
+
+  if (startText && endText) {
+    return t("prPage.joinConfirmationFollowup.windowRange", {
+      start: startText,
+      end: endText,
+    });
   }
-  return formatLocalDateTimeValue(deadline) ?? deadline;
+  if (endText) {
+    return t("prPage.joinConfirmationFollowup.windowDeadline", {
+      deadline: endText,
+    });
+  }
+  return null;
 });
 const confirmationReminderSupported = computed(() => {
   if (props.confirmationReminderSupported !== null) {
@@ -224,24 +258,11 @@ const joinSuccessEventTitle = computed(
     "",
 );
 const joinSuccessNotificationKinds = computed<readonly WeChatNotificationKind[]>(
-  () =>
-    confirmationReminderSupported.value
-      ? JOIN_SUCCESS_NOTIFICATION_KINDS
-      : JOIN_SUCCESS_NOTIFICATION_KINDS.filter(
-          (kind) => kind !== "REMINDER_CONFIRMATION",
-        ),
+  () => JOIN_SUCCESS_NOTIFICATION_KINDS,
 );
 const joinSuccessNotificationDescriptionPrefixes = computed<
   Partial<Record<WeChatNotificationKind, string>>
 >(() => ({
-  REMINDER_CONFIRMATION: confirmationDeadlineText.value
-    ? t(
-        "prPage.joinSuccessSubscriptions.notificationReasons.REMINDER_CONFIRMATION.withDeadline",
-        { deadline: confirmationDeadlineText.value },
-      )
-    : t(
-        "prPage.joinSuccessSubscriptions.notificationReasons.REMINDER_CONFIRMATION.fallback",
-      ),
   NEW_PARTNER: t(
     "prPage.joinSuccessSubscriptions.notificationReasons.NEW_PARTNER",
   ),
@@ -332,6 +353,11 @@ const closeJoinFlowModal = (): void => {
   joinFlowError.value = null;
 };
 
+const resolveInitialJoinSuccessPromptStep = (): JoinSuccessPromptStep =>
+  confirmationReminderSupported.value
+    ? "CONFIRMATION_FOLLOWUP"
+    : "SUBSCRIPTIONS";
+
 const finishSuccessPrompt = (): void => {
   joinSuccessPromptStep.value = "SUBSCRIPTIONS";
   communityFollowupShowsOfficialAccount.value = false;
@@ -350,6 +376,10 @@ const closeJoinSuccessPrompt = (): void => {
     officialAccountFollowPrompt.dismissPrompt();
   }
   finishSuccessPrompt();
+};
+
+const handleJoinConfirmationFollowupDone = (): void => {
+  joinSuccessPromptStep.value = "SUBSCRIPTIONS";
 };
 
 const handleJoinSuccessSubscriptionDone = (): void => {
@@ -381,7 +411,7 @@ const openSuccessPrompt = (): void => {
     return;
   }
   successPromptOpenForJoin.value = true;
-  joinSuccessPromptStep.value = "SUBSCRIPTIONS";
+  joinSuccessPromptStep.value = resolveInitialJoinSuccessPromptStep();
   communityFollowupShowsOfficialAccount.value = false;
   openJoinSuccessNotificationPrompt();
 };

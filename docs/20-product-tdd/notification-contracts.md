@@ -132,6 +132,6 @@ Backend owns:
 - unread-wave reset rules
 - delivery result persistence
 
-Frontend renders notification subscription management and prompts users after successful PR join when reminder registration is relevant for that PR, then relies on backend responses and durable state for delivery-adjacent truth.
+Frontend renders notification subscription management and prompts users after successful PR join when reminder registration is relevant for that PR. When PR confirmation is enabled, the join-success sequence places `REMINDER_CONFIRMATION` inside a dedicated confirmation follow-up and keeps the general recommendation follow-up focused on other PR reminders. Frontend then relies on backend responses and durable state for delivery-adjacent truth.
 
 Frontend also prompts after successful waitlist entry for the focused `WAITLIST_PROMOTED` notification kind, and includes `WAITLIST_ALTERNATIVE_AVAILABLE` when the waitlist entry selected cross-PR alternative reminders.

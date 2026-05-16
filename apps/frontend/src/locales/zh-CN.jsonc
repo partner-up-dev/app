@@ -428,14 +428,18 @@
         }
       }
     },
+    "joinConfirmationFollowup": {
+      "title": "完成参加确认",
+      "descriptionWithWindow": "参加确认会保留你的名额，也让同组搭子更早知道成团状态。请在 {window} 完成确认；逾期后系统会释放名额给候补用户。",
+      "descriptionFallback": "参加确认会保留你的名额，也让同组搭子更早知道成团状态。请在限定时间内完成确认；逾期后系统会释放名额给候补用户。",
+      "windowRange": "{start} 至 {end}",
+      "windowDeadline": "{deadline} 前",
+      "notificationReason": "订阅后会在确认开放和截止前提醒你完成确认。"
+    },
     "joinSuccessSubscriptions": {
       "description": "刚加入成功，现在可以顺手开启你关心的提醒。",
       "closeAction": "完成",
       "notificationReasons": {
-        "REMINDER_CONFIRMATION": {
-          "withDeadline": "若未在 {deadline} 前完成确认，席位将被释放。",
-          "fallback": "若未在限定时间内完成确认，席位将被释放。"
-        },
         "NEW_PARTNER": "有人加入时及时知道当前搭子人数，方便确认成团进展。",
         "MEETING_POINT_UPDATED": "碰头地点更新后及时收到提醒，减少到场前找不到集合点的风险。"
       }

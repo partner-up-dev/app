@@ -96,6 +96,15 @@ scenario(
         .getByTestId("pr-detail.join-gate.booking-contact.input")
         .fill("13800138000");
       await page.getByTestId("pr-detail.join-gate.booking-contact.submit").click();
+      await page
+        .getByTestId("pr-detail.join-success.confirmation-followup")
+        .waitFor({
+          state: "visible",
+          timeout: 10_000,
+        });
+      await page
+        .getByTestId("pr-detail.join-success.confirmation-followup.done")
+        .click();
       await page.getByTestId("pr-detail.join-success.subscriptions").waitFor({
         state: "visible",
         timeout: 10_000,
