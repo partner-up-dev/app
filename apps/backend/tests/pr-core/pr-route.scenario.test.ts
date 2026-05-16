@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
+import { WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND } from "../../src/domains/notification";
+import { prepareWaitlistAlternativeAvailableNotificationDispatch } from "../../src/domains/notification/services/waitlist-alternative-available-dispatch.service";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
+import { UserNotificationOptRepository } from "../../src/repositories/UserNotificationOptRepository";
 import {
   partnerRequests,
   type PartnerRequestFields,
@@ -10,7 +13,10 @@ import {
   type PRRoute,
   type PRStatus,
 } from "../../src/entities";
-import { givenUser } from "./_kit/builders/users";
+import { bindScenarioWeChatOpenId } from "./_kit/actions/system-state";
+import { joinPartnerRequest } from "./_kit/actions/join";
+import { waitlistPR } from "./_kit/actions/waitlist";
+import { givenUser, type ScenarioUser } from "./_kit/builders/users";
 
 type CreatePRResponse = {
   id: PRId;
@@ -58,12 +64,15 @@ const buildRoute = (endName = "天河体育中心"): PRRoute => [
   },
 ];
 
-const buildRouteFields = (route: PRRoute): PartnerRequestFields => ({
+const userNotificationOptRepo = new UserNotificationOptRepository();
+
+const buildRouteFields = (
+  route: PRRoute,
+  overrides: Partial<Omit<PartnerRequestFields, "location" | "route">> = {},
+): PartnerRequestFields => ({
   title: undefined,
   type: "通勤拼车",
   time: ["2036-02-01T00:00:00.000Z", "2036-02-01T01:00:00.000Z"],
-  location: null,
-  route,
   minPartners: 2,
   maxPartners: null,
   partners: [],
@@ -71,20 +80,35 @@ const buildRouteFields = (route: PRRoute): PartnerRequestFields => ({
   preferences: ["安静"],
   notes: null,
   meetingPoint: null,
+  ...overrides,
+  location: null,
+  route,
 });
+
+const createRoutePR = async (input: {
+  creator: ScenarioUser;
+  route: PRRoute;
+  fields?: Partial<Omit<PartnerRequestFields, "location" | "route">>;
+}): Promise<CreatePRResponse> => {
+  const response = await requestJson("/api/pr/new/form", {
+    method: "POST",
+    token: input.creator.token,
+    body: {
+      fields: buildRouteFields(input.route, input.fields),
+      createSource: "FORM",
+    },
+  });
+
+  return await expectJsonResponse<CreatePRResponse>(response, 201);
+};
 
 scenario("route_pr_create_read_and_update", async (ctx) => {
   const creator = await givenUser("route-pr-creator");
   const initialRoute = buildRoute();
-  const createResponse = await requestJson("/api/pr/new/form", {
-    method: "POST",
-    token: creator.token,
-    body: {
-      fields: buildRouteFields(initialRoute),
-      createSource: "FORM",
-    },
+  const created = await createRoutePR({
+    creator,
+    route: initialRoute,
   });
-  const created = await expectJsonResponse<CreatePRResponse>(createResponse, 201);
   ctx.record("prId", created.id);
 
   assert.equal(created.status, "OPEN");
@@ -150,4 +174,69 @@ scenario("route_pr_create_read_and_update", async (ctx) => {
     updatedDetail.share.canonical.revision,
     detail.share.canonical.revision,
   );
+});
+
+scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ctx) => {
+  const sourceCreator = await givenUser("route-alt-source-creator");
+  const sourceJoiner = await givenUser("route-alt-source-joiner");
+  const alternativeCreator = await givenUser("route-alt-alt-creator");
+  const candidate = await givenUser("route-alt-candidate");
+
+  const source = await createRoutePR({
+    creator: sourceCreator,
+    route: buildRoute("珠江新城"),
+    fields: {
+      title: "Route alternative source",
+      minPartners: 1,
+      maxPartners: 2,
+    },
+  });
+  const alternative = await createRoutePR({
+    creator: alternativeCreator,
+    route: buildRoute("琶洲会展中心"),
+    fields: {
+      title: "Route alternative candidate",
+      minPartners: 1,
+      maxPartners: 2,
+    },
+  });
+  ctx.record("sourcePrId", source.id);
+  ctx.record("alternativePrId", alternative.id);
+  ctx.record("candidateUserId", candidate.user.id);
+
+  const joined = await joinPartnerRequest({
+    pr: source,
+    user: sourceJoiner,
+  });
+  assert.equal(joined.status, "FULL");
+
+  await bindScenarioWeChatOpenId({
+    user: candidate,
+    openId: "openid-route-alt-candidate",
+  });
+  await userNotificationOptRepo.addOneWechatNotificationCredit(
+    candidate.user.id,
+    WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND,
+  );
+
+  const waitlisted = await waitlistPR({
+    pr: source,
+    user: candidate,
+    alternativePrReminderOptIn: true,
+  });
+  if (waitlisted.myPendingPartnerId === null) {
+    throw new Error("Expected route PR pending waitlist slot");
+  }
+
+  const prepared =
+    await prepareWaitlistAlternativeAvailableNotificationDispatch({
+      sourcePrId: source.id,
+      sourcePartnerId: waitlisted.myPendingPartnerId,
+      candidatePrId: alternative.id,
+      recipientUserId: candidate.user.id,
+    });
+  assert.equal(prepared.status, "SKIPPED");
+  if (prepared.status !== "READY") {
+    assert.equal(prepared.errorCode, "CANDIDATE_PR_MISMATCH");
+  }
 });

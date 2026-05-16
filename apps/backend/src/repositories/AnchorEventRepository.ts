@@ -76,6 +76,7 @@ export class AnchorEventRepository {
         | "type"
         | "description"
         | "locationPool"
+        | "routePool"
         | "timePoolConfig"
         | "defaultMinPartners"
         | "defaultMaxPartners"

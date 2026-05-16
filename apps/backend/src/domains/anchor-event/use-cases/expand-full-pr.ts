@@ -72,6 +72,10 @@ export async function expandFullPR(prId: PRId): Promise<void> {
     fullPR.anchor.timeWindow,
   );
   const locationPool = await resolvePublicEventLocationPool(event);
+  const sourceLocation = fullPR.root.location?.trim() ?? "";
+  if (!sourceLocation || !locationPool.includes(sourceLocation)) {
+    return;
+  }
   const pois = await findPoisByNames(locationPool);
   const perTimeWindowCapByLocation = new Map(
     pois.map((poi) => [poi.name, poi.perTimeWindowCap]),

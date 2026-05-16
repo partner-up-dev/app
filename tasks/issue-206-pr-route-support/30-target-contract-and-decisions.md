@@ -162,8 +162,11 @@ Viewport behavior:
 
 - Route mode persists `location` as `null`.
 - Existing location-driven POI availability checks short-circuit when `location` is `null`.
-- Existing location-driven POI and Anchor Event meeting-point fallback short-circuits when `location` is `null`.
+- Automatic Anchor Event and POI meeting-point fallbacks stop when `location` is `null`; route-mode PRs can still carry a PR-specific meeting point.
 - Route mode may still carry a PR-specific meeting point if the existing form surface keeps that field available.
+- Event-wide support resources still materialize for route-mode PRs, while location-scoped support resources require a non-empty event-scoped location.
+- Waitlist alternative reminders stay exact type plus exact location; route-mode PRs stay out of that matcher until a route matcher exists.
+- Anchor Event Form Mode location recommendation and full-PR expansion use only event-scoped location PRs.
 - Natural-language route parsing is a follow-up capability.
 - First-version creation/editing scope covers structured PR create, creator edit, Admin PR management, and event-assisted create from Anchor Event route pool.
 
@@ -183,6 +186,7 @@ Event-assisted create:
 
 - location-pool selection maps to `PartnerRequestFields.location`.
 - route-pool selection maps to `PartnerRequestFields.route` and clears `location`.
+- backend accepts an optional `routePoolEntryId` for event-assisted create and resolves it against the current Anchor Event `routePool`; when the id is absent, an exact submitted-route match can resolve the selected route entry.
 
 Selector contract:
 
@@ -194,6 +198,13 @@ Selector contract:
 - Location dropdown items render as standalone map markers.
 - Route dropdown items render markers plus planned or fallback polyline.
 - Dropdown active item changes fit the map viewport to the selected marker or route bounds with padding.
+
+Slice 4 implementation:
+
+- `AnchorEvent.routePool` is stored as a default-empty JSONB array of `{ id, route }` entries.
+- `locationPool` and `routePool` mutual exclusion is enforced at the Admin use-case layer and by the database migration check constraint.
+- Public event list/detail and Form Mode bootstrap expose `routePool`/`routes` alongside existing location projections.
+- Event-assisted route-pool create persists route mode by resolving `routePoolEntryId` into `PartnerRequestFields.route` and writing `location: null`.
 
 ## Open Questions For Human Confirmation
 

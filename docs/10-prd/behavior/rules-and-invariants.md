@@ -25,6 +25,9 @@
 - PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, support resources, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
 - Event-context PR creation is one assisted mode inside the Anchor Event domain.
 - Event-assisted create resolves event-side choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
+- Anchor Event assisted creation can source place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
+- A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same activity type remains governed by the PR create contract and may choose either PR place mode.
+- Route-pool event-assisted create resolves the selected route entry into `PR.route` and persists `location = null`. Location-pool event-assisted create resolves the selected place into `PR.location` and persists `route = null`.
 - PR existence does not depend on Anchor Event identity or time-pool selection.
 - Natural-language creation may map the intent to an existing Anchor Event context or synthesize a new `PR.type`.
 - User-created PR from Anchor Event context uses the controlled event-page flow and remains constrained by that event page's local rules. The persisted PR still keeps only PR-owned facts.
@@ -78,7 +81,7 @@
 - Only current active participants may view the thread or act on read markers and participant posting, while operators may inject system messages through admin tooling without becoming participants themselves.
 - PR detail keeps notification-subscription management visible as a persistent section when reminder registration is relevant for that PR.
 - The participant roster is opened from the facts-card participant row, and each participant badge remains a read-only navigation entry into that participant's profile page.
-- PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. Route-mode PRs carry `location = null`, so location-specific Anchor Event and POI meeting-point fallbacks naturally skip. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible for location-mode PRs.
+- PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. Route-mode PRs carry `location = null`, so the backend returns only PR-specific meeting-point guidance; automatic Anchor Event and POI fallbacks resolve to empty. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible for location-mode PRs.
 - Updating meeting-point guidance keeps PR status, participation, and confirmation state stable while notifying current active participants through the dedicated meeting-point update notification path.
 
 ### Status Semantics

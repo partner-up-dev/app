@@ -101,6 +101,8 @@ Implementation result:
 
 ## Slice 3 Route-Mode Domain Policy Sweep
 
+Status: implemented on 2026-05-16.
+
 Purpose:
 
 - Resolve non-display domain behavior that currently depends on single `location`.
@@ -118,15 +120,28 @@ Implementation notes:
 - First route-capable version uses explicit policies:
   - route mode sets `location` to `null`.
   - POI availability remains location-driven and short-circuits on `null` location.
-  - meeting-point fallback remains location-driven and short-circuits on `null` location.
+  - meeting-point resolution keeps PR-specific guidance, then stops automatic fallbacks on `null` location.
+  - event-wide support resources still materialize; location-scoped support resources require a non-empty matching location.
   - route-mode waitlist alternative reminders are disabled until a route matching rule exists.
+  - Anchor Event Form Mode recommendation and full-PR expansion only consume event-scoped location PRs.
+  - route-mode activity start reminder copy uses route summary as the location field value.
 
 Exit:
 
 - Domain policy is explicit in code and Product TDD.
 - Tests cover route-mode behavior for each touched service.
 
+Implementation result:
+
+- POI availability null-location behavior is covered by unit tests.
+- Meeting-point resolution now returns PR-specific meeting point for route mode and skips automatic Anchor Event / POI fallback when location is null.
+- Waitlist alternative dispatch now treats missing source or candidate location as a mismatch.
+- Anchor Event Form Mode recommendation filters out route-mode PRs; full-PR expansion ignores route-mode source PRs.
+- Activity-start notification location copy uses backend `resolvePRPlaceDisplayName`, so route mode can show route summary.
+
 ## Slice 4 Anchor Event Route Pool And Event-Assisted Create
+
+Status: implemented on 2026-05-16.
 
 Purpose:
 
@@ -154,6 +169,14 @@ Exit:
 
 - Backend tests prove mutual exclusion and route-pool create payload assembly.
 - Admin can maintain route pool without corrupting existing location-pool events.
+
+Implementation result:
+
+- Added `anchor_events.route_pool` with event-local `{ id, route }` entries and a database place-pool mutual-exclusion check.
+- Added Anchor Event route-pool schema, normalization, route-entry lookup, and route equality helpers.
+- Admin Anchor Event create/update accepts `routePool`, returns it in workspace reads, and rejects events that contain both location and route pool entries.
+- Public Anchor Event list, detail, and Form Mode bootstrap responses expose route-pool data; event detail create windows include route options.
+- Event-assisted create accepts `routePoolEntryId` and resolves route-pool selections into `route` plus `location: null`; location-pool assisted create keeps existing location-mode behavior.
 
 ## Slice 5 Frontend Model And Editor Components
 

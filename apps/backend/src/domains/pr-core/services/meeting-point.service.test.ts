@@ -106,3 +106,73 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
     PoiRepositoryClass.prototype.findByName = originalFindByName;
   }
 });
+
+test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is null", async () => {
+  const { AnchorEventRepository: AnchorEventRepositoryClass } = await import(
+    "../../../repositories/AnchorEventRepository"
+  );
+  const { PoiRepository: PoiRepositoryClass } = await import(
+    "../../../repositories/PoiRepository"
+  );
+
+  const originalFindOneByType =
+    AnchorEventRepositoryClass.prototype.findOneByType;
+  const originalFindByName = PoiRepositoryClass.prototype.findByName;
+
+  AnchorEventRepositoryClass.prototype.findOneByType = async () =>
+    ({
+      meetingPoint: {
+        description: "活动默认入口",
+        imageUrl: null,
+      },
+      locationMeetingPoints: {
+        poiA: {
+          description: "A 店门口",
+          imageUrl: null,
+        },
+      },
+    }) as unknown as Awaited<
+      ReturnType<AnchorEventRepository["findOneByType"]>
+    >;
+  PoiRepositoryClass.prototype.findByName = async () =>
+    ({
+      meetingPoint: {
+        description: "POI 兜底入口",
+        imageUrl: null,
+      },
+    }) as unknown as Awaited<ReturnType<PoiRepository["findByName"]>>;
+
+  try {
+    const { resolveEffectiveMeetingPoint } = await import(
+      "./meeting-point.service"
+    );
+
+    assert.deepEqual(
+      await resolveEffectiveMeetingPoint({
+        type: "board-game",
+        location: null,
+        meetingPoint: {
+          description: "PR 单独入口",
+          imageUrl: null,
+        },
+      }),
+      {
+        source: "PR",
+        description: "PR 单独入口",
+        imageUrl: null,
+      },
+    );
+
+    assert.equal(
+      await resolveEffectiveMeetingPoint({
+        type: "board-game",
+        location: null,
+        meetingPoint: null,
+      }),
+      null,
+    );
+  } finally {
+    AnchorEventRepositoryClass.prototype.findOneByType = originalFindOneByType;
+    PoiRepositoryClass.prototype.findByName = originalFindByName;
+  }
+});

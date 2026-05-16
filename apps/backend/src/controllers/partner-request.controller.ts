@@ -85,6 +85,7 @@ const createStructuredPRCommandSchema = z.union([
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("EVENT_ASSISTED"),
     anchorEventId: z.coerce.number().int().positive(),
+    routePoolEntryId: z.string().trim().min(1).max(120).optional(),
     correlationId: correlationIdSchema,
   }),
   z.object({
@@ -184,6 +185,7 @@ export const partnerRequestRoute = app
               anchorEventId: command.anchorEventId,
               fields,
               creatorIdentity,
+              routePoolEntryId: command.routePoolEntryId ?? null,
             })
           : await createPRFromStructured(fields, creatorIdentity, {
               createSource,

@@ -10,7 +10,7 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 
 - Input route: Intent.
 - Current mode: Execute.
-- Implementation state: Slice 0, Slice 1, and Slice 2 implemented on 2026-05-16.
+- Implementation state: Slice 0, Slice 1, Slice 2, and Slice 3 implemented on 2026-05-16.
 
 ## Issue Source
 
@@ -65,8 +65,15 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - `pnpm lint:backend`: passed on 2026-05-16.
 - `pnpm build:backend`: passed on 2026-05-16.
 - `pnpm test:scenario:backend -- apps/backend/tests/pr-core/pr-route.scenario.test.ts`: passed on 2026-05-16.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-mode-policy.scenario.test.ts`: passed on 2026-05-16.
+- `pnpm test:unit:backend -- apps/backend/src/entities/anchor-event.test.ts`: passed on 2026-05-16.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed on 2026-05-16.
+- `pnpm test:unit:backend`: passed on 2026-05-16.
+- `pnpm lint:backend`: passed on 2026-05-16.
 - `pnpm test:scenario:backend`: passed on 2026-05-16.
+- `pnpm build:backend`: passed on 2026-05-16.
 - `pnpm build:frontend`: passed on 2026-05-16.
+- `git diff --check`: passed on 2026-05-16.
 - Browser verification on `/pr/new`, `/pr/:id`, `/admin/pr`, and `/e/:eventId` remains tied to UI slices.
 - Map rendering verification with a valid Tencent key remains tied to UI slices.
 

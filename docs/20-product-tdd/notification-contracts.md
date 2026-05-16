@@ -49,7 +49,7 @@ The `MEETING_POINT_UPDATED` policy creates one-shot notifications to current act
 
 The `WAITLIST_PROMOTED` policy creates one one-shot notification for the user whose pending waitlist slot has just become active. Dispatch revalidates that the recipient is still active, still owns the promoted active partner slot, and still has enabled quota for this notification kind.
 
-The `WAITLIST_ALTERNATIVE_AVAILABLE` policy creates one one-shot notification for a user who opted in from a source pending waitlist slot when another visible same-type and same-location PR has joinable capacity. Dispatch revalidates recipient activity, bound openId, enabled quota, source pending slot ownership and opt-in, source/candidate type-location match, candidate PR availability, and recipient time-window compatibility.
+The `WAITLIST_ALTERNATIVE_AVAILABLE` policy creates one one-shot notification for a user who opted in from a source pending waitlist slot when another visible same-type and same-location PR has joinable capacity. Dispatch revalidates recipient activity, bound openId, enabled quota, source pending slot ownership and opt-in, source/candidate type-location match, candidate PR availability, and recipient time-window compatibility. Route-mode PRs carry no location, so this policy has no route-mode match until a route-specific matcher exists.
 
 When `WAITLIST_ALTERNATIVE_AVAILABLE` quota turns positive, backend rescans that user's opted-in pending source waitlist slots so existing alternatives can be scheduled after the post-waitlist subscription prompt.
 

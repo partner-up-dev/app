@@ -3,7 +3,10 @@ import { AnchorEventRepository } from "../../../repositories/AnchorEventReposito
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
 import type { AnchorEventId, PRStatus } from "../../../entities";
-import { isPublicEventScopedLocation } from "../services/event-scope";
+import {
+  isPublicEventScopedLocation,
+  resolvePublicEventLocationPool,
+} from "../services/event-scope";
 import {
   buildAnchorEventFormModeTimeWindow,
   buildAnchorEventRecommendationMatch,
@@ -80,9 +83,15 @@ export async function recommendAnchorEventFormModePRs(input: {
   const selectionPreferences = Array.from(
     new Set(input.preferences.map((preference) => preference.trim()).filter(Boolean)),
   );
+  const publicLocationIds = await resolvePublicEventLocationPool(event);
+  const publicLocationSet = new Set(publicLocationIds);
 
   const candidateRecords = (await eventContextRepo.findVisibleByAnchorEventId(event.id))
     .filter((record) => RECOMMENDABLE_PR_STATUSES.has(record.root.status))
+    .filter((record) => {
+      const location = record.root.location?.trim() ?? "";
+      return location.length > 0 && publicLocationSet.has(location);
+    })
     .filter((record) => record.root.id !== undefined);
 
   const activePartnerCounts = await partnerRepo.countActiveByPrIds(

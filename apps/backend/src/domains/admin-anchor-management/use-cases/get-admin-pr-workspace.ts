@@ -1,5 +1,6 @@
 import type {
   AnchorEventPrCreationPolicy,
+  AnchorEventRoutePool,
   PartnerRequest,
   PRJoinGateConfig,
   PRRoute,
@@ -10,7 +11,7 @@ import type {
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireTemplate,
 } from "../../../entities";
-import { normalizeLocationPool } from "../../../entities";
+import { normalizeAnchorEventRoutePool, normalizeLocationPool } from "../../../entities";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -57,6 +58,7 @@ export type AdminPRTypeOption = {
   type: string;
   eventTitle: string;
   locationOptions: string[];
+  routeOptions: AnchorEventRoutePool;
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
   defaultConfirmationEnabled: boolean;
@@ -138,6 +140,7 @@ export async function getAdminPRWorkspace(): Promise<AdminPRWorkspace> {
       type: event.type,
       eventTitle: event.title,
       locationOptions: normalizeLocationPool(event.locationPool),
+      routeOptions: normalizeAnchorEventRoutePool(event.routePool),
       defaultMinPartners: event.defaultMinPartners ?? null,
       defaultMaxPartners: event.defaultMaxPartners ?? null,
       defaultConfirmationEnabled: event.defaultConfirmationEnabled,

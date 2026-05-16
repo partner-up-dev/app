@@ -1,7 +1,11 @@
 import { z } from "zod";
 import type { PRId, PartnerRequest } from "../../../entities/partner-request";
 import { userIdSchema, type User, type UserId } from "../../../entities/user";
-import { getTimeWindowStart } from "../../pr/services";
+import {
+  getTimeWindowStart,
+  hasAnchorParticipationPolicy,
+  resolvePRPlaceDisplayName,
+} from "../../pr/services";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
@@ -9,7 +13,6 @@ import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRe
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
 import { ACTIVITY_START_REMINDER_NOTIFICATION_KIND } from "../model/notification-kind";
-import { hasAnchorParticipationPolicy } from "../../pr/services";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -114,6 +117,10 @@ const resolveActivityName = (request: PartnerRequest): string => {
   return `活动 #${request.id}`;
 };
 
+export const resolveActivityStartReminderLocation = (
+  request: Pick<PartnerRequest, "location" | "route">,
+): string => resolvePRPlaceDisplayName(request) ?? "地点待定";
+
 export const shouldScheduleActivityStartReminderNotification = async (input: {
   request: PartnerRequest;
   userId: UserId;
@@ -202,7 +209,7 @@ export const prepareActivityStartReminderNotificationDispatch = async (
     message: {
       activityName: resolveActivityName(request),
       startAt: formatReminderDateField(startAt),
-      location: request.location?.trim() || "地点待定",
+      location: resolveActivityStartReminderLocation(request),
       remark: ACTIVITY_START_REMARK,
       page: resolvePrUrl(request),
     },

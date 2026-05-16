@@ -9,7 +9,7 @@ Persisted in Postgres via backend entities and repositories:
 - PR messages and per-user PR message inbox state
 - users, including `users.phone_number`, user notification options, and user reliability
 - `users.wechat_official_account_followed_at` as the positive marker that the backend has confirmed a user follows the WeChat official account
-- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, support resources, booking-resource join-gate templates, booking-contact resolution derived from users and active participants, join-notice acceptances, and booking execution records
+- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned route pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, support resources, booking-resource join-gate templates, booking-contact resolution derived from users and active participants, join-notice acceptances, and booking execution records
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
 - config, operation logs, domain events, outbox events, jobs, notification opportunities, notification waves, and notification deliveries
 - analytics aggregate tables
@@ -60,7 +60,7 @@ The backend is authoritative for:
 - PR feedback questionnaire projection, including mounted instance and current viewer response state
 - notification scheduling and dispatch for meeting-point update notifications
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
-- event-owned preference-tag pool, moderation state, default PR notes for future materialization, landing recommendation, and type-derived Anchor Event PR context
+- event-owned preference-tag pool, moderation state, default PR notes for future materialization, route pool, landing recommendation, and type-derived Anchor Event PR context
 - event-owned feedback questionnaire template pointer used for future PR materialization
 - event-specific beta-group QR codes; generic config must not be the owner for activity-specific beta-group entry
 - domain events, notifications, analytics persistence, and operation logs

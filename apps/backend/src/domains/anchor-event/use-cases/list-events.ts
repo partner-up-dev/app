@@ -4,8 +4,10 @@
 
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import {
+  type AnchorEventRoutePool,
   type AnchorEventPrCreationPolicy,
   type AnchorEvent,
+  normalizeAnchorEventRoutePool,
   normalizeLocationPool,
 } from "../../../entities/anchor-event";
 import { isPublishedPoi } from "../../../entities/poi";
@@ -25,6 +27,8 @@ export interface AnchorEventSummary {
   betaGroupQrCode: string | null;
   locationCount: number;
   locationPool: string[];
+  routeCount: number;
+  routePool: AnchorEventRoutePool;
   pois: Array<{
     id: number;
     name: string;
@@ -56,6 +60,7 @@ function getLocationLabels(event: AnchorEvent): string[] {
 function toSummary(
   e: AnchorEvent,
   locationPool: string[],
+  routePool: AnchorEventRoutePool,
   pois: Array<{
     id: number;
     name: string;
@@ -72,6 +77,8 @@ function toSummary(
     betaGroupQrCode: e.betaGroupQrCode,
     locationCount: locationPool.length,
     locationPool,
+    routeCount: routePool.length,
+    routePool,
     pois,
     fallbackGallery,
     prCreationPolicy: e.prCreationPolicy,
@@ -177,6 +184,7 @@ export async function listAnchorEvents(): Promise<AnchorEventSummary[]> {
     return toSummary(
       event,
       locationPool,
+      normalizeAnchorEventRoutePool(event.routePool),
       Array.from(matchedPoisById.values()),
       Array.from(fallbackGallerySet),
     );

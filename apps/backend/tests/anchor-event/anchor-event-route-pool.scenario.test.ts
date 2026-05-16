@@ -1,0 +1,361 @@
+import assert from "node:assert/strict";
+import { eq } from "drizzle-orm";
+import { scenario } from "../_infra/scenario/scenario";
+import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
+import { getTestDb } from "../_infra/probes/sql-probe";
+import {
+  DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
+  DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
+  DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
+} from "../../src/domains/pr/services";
+import {
+  partnerRequests,
+  type AnchorEventRoutePool,
+  type PartnerRequestFields,
+  type PRId,
+  type PRRoute,
+  type PRStatus,
+} from "../../src/entities";
+import { bindScenarioWeChatOpenId } from "../pr-core/_kit/actions/system-state";
+import { givenAdminUser, givenUser } from "../pr-core/_kit/builders/users";
+import { givenAnchorEvent } from "./_kit/builders/anchor-events";
+
+type AdminAnchorEventResponse = {
+  id: number;
+  type: string;
+  locationPool: string[];
+  routePool: AnchorEventRoutePool;
+};
+
+type AdminAnchorWorkspaceResponse = {
+  events: Array<{
+    id: number;
+    locationPool: string[];
+    routePool: AnchorEventRoutePool;
+  }>;
+};
+
+type AnchorEventDetailResponse = {
+  id: number;
+  locationPool: string[];
+  routePool: AnchorEventRoutePool;
+  exhausted: boolean;
+  createTimeWindows: Array<{
+    routeOptions: Array<{
+      routePoolEntryId: string;
+      route: PRRoute;
+      disabled: boolean;
+      disabledReason: "NONE";
+    }>;
+  }>;
+};
+
+type AnchorEventFormModeResponse = {
+  locations: Array<{
+    id: string;
+  }>;
+  routes: Array<{
+    id: string;
+    route: PRRoute;
+    availableStartKeys: string[];
+  }>;
+};
+
+type AnchorEventSummaryResponse = Array<{
+  id: number;
+  locationPool: string[];
+  routeCount: number;
+  routePool: AnchorEventRoutePool;
+}>;
+
+type CreatePRResponse = {
+  id: PRId;
+  status: PRStatus;
+};
+
+type ProblemDetailsResponse = {
+  code?: string;
+  detail?: string;
+};
+
+const buildRoute = (endName = "天河体育中心"): PRRoute => [
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.0674, 113.2698],
+    name: "广州南站",
+    full_address: "广州市番禺区石壁街道",
+  },
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.1405, 113.327],
+    name: endName,
+    full_address: null,
+  },
+];
+
+const buildEventInput = (input: {
+  label: string;
+  locationPool?: string[];
+  routePool?: AnchorEventRoutePool;
+}) => {
+  const startAt = "2037-03-01T10:00:00.000Z";
+  return {
+    title: `Route Pool Event ${input.label}`,
+    type: `route-pool-event-${input.label}`,
+    description: "Route pool scenario event",
+    locationPool: input.locationPool ?? [],
+    routePool: input.routePool ?? [],
+    timePoolConfig: {
+      durationMinutes: 60,
+      earliestLeadMinutes: null,
+      startRules: [
+        {
+          id: "route-pool-start-1",
+          kind: "ABSOLUTE" as const,
+          startAt,
+          description: "Route pool scenario start",
+        },
+      ],
+    },
+    defaultMinPartners: 2,
+    defaultMaxPartners: null,
+    defaultPrNotes: null,
+    defaultConfirmationEnabled: true,
+    defaultConfirmationStartOffsetMinutes:
+      DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
+    defaultConfirmationEndOffsetMinutes: DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
+    defaultJoinLockOffsetMinutes: DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
+    meetingPoint: null,
+    joinGateConfig: [],
+    participationFrequencyLimit: null,
+    feedbackQuestionnaireTemplateId: null,
+    locationMeetingPoints: {},
+    coverImage: null,
+    betaGroupQrCode: null,
+    prCreationPolicy: "USER_AND_ADMIN" as const,
+    fullPrExpansionPolicy: "DISABLED" as const,
+    status: "ACTIVE" as const,
+  };
+};
+
+const createAdminAnchorEvent = async (input: ReturnType<typeof buildEventInput>) => {
+  const admin = await givenAdminUser(`route-pool-admin-${input.type}`);
+  const response = await requestJson("/api/admin/anchor-events", {
+    method: "POST",
+    token: admin.token,
+    body: input,
+  });
+  return await expectJsonResponse<AdminAnchorEventResponse>(response, 200);
+};
+
+const buildEventAssistedFields = (input: {
+  type: string;
+  timeWindow: [string, string];
+  route?: PRRoute | null;
+  location?: string | null;
+}): PartnerRequestFields => ({
+  title: "Route pool assisted PR",
+  type: input.type,
+  time: input.timeWindow,
+  location: input.location ?? null,
+  route: input.route ?? null,
+  minPartners: 2,
+  maxPartners: null,
+  partners: [],
+  budget: null,
+  preferences: ["路线池"],
+  notes: null,
+});
+
+const probePRPlace = async (prId: PRId) => {
+  const rows = await getTestDb()
+    .select({
+      location: partnerRequests.location,
+      route: partnerRequests.route,
+    })
+    .from(partnerRequests)
+    .where(eq(partnerRequests.id, prId));
+  return rows[0] ?? null;
+};
+
+scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => {
+  const routePool: AnchorEventRoutePool = [
+    {
+      id: "south-to-stadium",
+      route: buildRoute(),
+    },
+  ];
+  const event = await createAdminAnchorEvent(
+    buildEventInput({ label: "read-models", routePool }),
+  );
+  ctx.record("eventId", event.id);
+
+  assert.deepEqual(event.locationPool, []);
+  assert.deepEqual(event.routePool, routePool);
+
+  const workspace = await expectJsonResponse<AdminAnchorWorkspaceResponse>(
+    await requestJson("/api/admin/anchor-events/workspace", {
+      token: (await givenAdminUser("route-pool-workspace")).token,
+    }),
+    200,
+  );
+  const workspaceEvent = workspace.events.find((item) => item.id === event.id);
+  assert.deepEqual(workspaceEvent?.locationPool, []);
+  assert.deepEqual(workspaceEvent?.routePool, routePool);
+
+  const detail = await expectJsonResponse<AnchorEventDetailResponse>(
+    await requestJson(`/api/events/${event.id}`),
+    200,
+  );
+  assert.equal(detail.exhausted, false);
+  assert.deepEqual(detail.locationPool, []);
+  assert.deepEqual(detail.routePool, routePool);
+  assert.deepEqual(detail.createTimeWindows[0]?.routeOptions[0], {
+    routePoolEntryId: "south-to-stadium",
+    route: routePool[0]?.route,
+    disabled: false,
+    disabledReason: "NONE",
+  });
+
+  const formMode = await expectJsonResponse<AnchorEventFormModeResponse>(
+    await requestJson(`/api/events/${event.id}/form-mode`),
+    200,
+  );
+  assert.deepEqual(formMode.locations, []);
+  assert.equal(formMode.routes[0]?.id, "south-to-stadium");
+  assert.deepEqual(formMode.routes[0]?.route, routePool[0]?.route);
+  assert.deepEqual(formMode.routes[0]?.availableStartKeys, [
+    "2037-03-01T10:00:00.000Z::2037-03-01T11:00:00.000Z",
+  ]);
+
+  const summaries = await expectJsonResponse<AnchorEventSummaryResponse>(
+    await requestJson("/api/events"),
+    200,
+  );
+  const summary = summaries.find((item) => item.id === event.id);
+  assert.equal(summary?.routeCount, 1);
+  assert.deepEqual(summary?.routePool, routePool);
+});
+
+scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) => {
+  const creator = await givenUser("route-pool-assisted-creator");
+  await bindScenarioWeChatOpenId({
+    user: creator,
+    openId: "openid-route-pool-assisted-creator",
+  });
+  const routePool: AnchorEventRoutePool = [
+    {
+      id: "south-to-pazhou",
+      route: buildRoute("琶洲会展中心"),
+    },
+  ];
+  const event = await createAdminAnchorEvent(
+    buildEventInput({ label: "assisted-create", routePool }),
+  );
+  const timeWindow: [string, string] = [
+    "2037-03-01T10:00:00.000Z",
+    "2037-03-01T11:00:00.000Z",
+  ];
+  ctx.record("eventId", event.id);
+
+  const created = await expectJsonResponse<CreatePRResponse>(
+    await requestJson("/api/pr/new/form", {
+      method: "POST",
+      token: creator.token,
+      body: {
+        fields: buildEventAssistedFields({
+          type: event.type,
+          timeWindow,
+          route: routePool[0]?.route,
+          location: null,
+        }),
+        createSource: "EVENT_ASSISTED",
+        anchorEventId: event.id,
+        routePoolEntryId: "south-to-pazhou",
+      },
+    }),
+    201,
+  );
+  ctx.record("prId", created.id);
+  assert.equal(created.status, "OPEN");
+
+  const stored = await probePRPlace(created.id);
+  assert.equal(stored?.location, null);
+  assert.deepEqual(stored?.route, routePool[0]?.route);
+
+  const rejected = await requestJson("/api/pr/new/form", {
+    method: "POST",
+    token: creator.token,
+    body: {
+      fields: buildEventAssistedFields({
+        type: event.type,
+        timeWindow,
+        route: buildRoute("珠江新城"),
+      }),
+      createSource: "EVENT_ASSISTED",
+      anchorEventId: event.id,
+      routePoolEntryId: "outside-route",
+    },
+  });
+  const problem = await expectJsonResponse<ProblemDetailsResponse>(rejected, 400);
+  assert.match(problem.detail ?? "", /Selected route/);
+});
+
+scenario("location_pool_event_assisted_create_keeps_location_mode", async (ctx) => {
+  const creator = await givenUser("location-pool-assisted-creator");
+  await bindScenarioWeChatOpenId({
+    user: creator,
+    openId: "openid-location-pool-assisted-creator",
+  });
+  const event = await givenAnchorEvent({
+    label: "location-pool-assisted",
+  });
+  ctx.record("eventId", event.id);
+
+  const created = await expectJsonResponse<CreatePRResponse>(
+    await requestJson("/api/pr/new/form", {
+      method: "POST",
+      token: creator.token,
+      body: {
+        fields: buildEventAssistedFields({
+          type: event.type,
+          timeWindow: event.timeWindow,
+          location: event.locationId,
+          route: null,
+        }),
+        createSource: "EVENT_ASSISTED",
+        anchorEventId: event.id,
+      },
+    }),
+    201,
+  );
+
+  const stored = await probePRPlace(created.id);
+  assert.equal(stored?.location, event.locationId);
+  assert.equal(stored?.route, null);
+});
+
+scenario("anchor_event_place_pool_mutual_exclusion_blocks_admin_write", async () => {
+  const admin = await givenAdminUser("route-pool-conflict");
+  const routePool: AnchorEventRoutePool = [
+    {
+      id: "conflict-route",
+      route: buildRoute("珠江新城"),
+    },
+  ];
+
+  const response = await requestJson("/api/admin/anchor-events", {
+    method: "POST",
+    token: admin.token,
+    body: buildEventInput({
+      label: "conflict",
+      locationPool: ["冲突球场"],
+      routePool,
+    }),
+  });
+  const problem = await expectJsonResponse<ProblemDetailsResponse>(response, 400);
+
+  assert.equal(problem.code, "ANCHOR_EVENT_PLACE_POOL_CONFLICT");
+});

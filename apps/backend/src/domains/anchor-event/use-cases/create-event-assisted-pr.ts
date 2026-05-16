@@ -5,7 +5,12 @@ import { createPRFromStructured } from "../../pr-core/use-cases/create-pr-struct
 import {
   type CreatorIdentityInput,
 } from "../../pr/services";
-import { isPublicEventScopedLocation } from "../services/event-scope";
+import {
+  findEventRoutePoolEntry,
+  findEventRoutePoolEntryByRoute,
+  isPublicEventScopedLocation,
+  resolveEventRoutePool,
+} from "../services/event-scope";
 import { buildAnchorEventFormModeTimeWindow } from "../services/form-mode";
 import { eventOwnsTimeWindow } from "../services/time-window-pool";
 
@@ -16,6 +21,7 @@ export async function createEventAssistedPR(
     anchorEventId: AnchorEventId;
     fields: PartnerRequestFields;
     creatorIdentity: CreatorIdentityInput;
+    routePoolEntryId?: string | null;
   },
 ) {
   const event = await anchorEventRepo.findById(input.anchorEventId);
@@ -31,11 +37,37 @@ export async function createEventAssistedPR(
     return throwHttpProblem({ status: 400, detail: "Selected type does not match the anchor event type" });
   }
 
-  if (!(await isPublicEventScopedLocation(event, input.fields.location))) {
-    return throwHttpProblem({ status: 400, detail: "Selected location is outside the anchor event scope" });
+  const routePool = resolveEventRoutePool(event);
+  const selectedRouteEntry =
+    routePool.length > 0 || input.routePoolEntryId
+      ? input.routePoolEntryId
+        ? findEventRoutePoolEntry(event, input.routePoolEntryId)
+        : findEventRoutePoolEntryByRoute(event, input.fields.route)
+      : null;
+  const selectedFields =
+    selectedRouteEntry === null
+      ? input.fields
+      : {
+          ...input.fields,
+          location: null,
+          route: selectedRouteEntry.route,
+        };
+
+  if (routePool.length > 0 || input.routePoolEntryId) {
+    if (!selectedRouteEntry) {
+      return throwHttpProblem({
+        status: 400,
+        detail: "Selected route is outside the anchor event scope",
+      });
+    }
+  } else if (!(await isPublicEventScopedLocation(event, input.fields.location))) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Selected location is outside the anchor event scope",
+    });
   }
 
-  const [startAt] = input.fields.time;
+  const [startAt] = selectedFields.time;
   if (!startAt) {
     return throwHttpProblem({ status: 400, detail: "Missing start time" });
   }
@@ -47,7 +79,7 @@ export async function createEventAssistedPR(
 
   const result = await createPRFromStructured(
     {
-      ...input.fields,
+      ...selectedFields,
       time: validatedTimeWindow,
     },
     input.creatorIdentity,

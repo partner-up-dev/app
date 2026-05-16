@@ -36,6 +36,29 @@ Command log for Slice 0, Slice 1, and Slice 2:
 - `pnpm test:scenario:backend`: passed, 12 files / 39 tests.
 - `pnpm build:frontend`: passed.
 
+Command log for Slice 3:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm test:unit:backend`: passed, 24 files / 89 tests.
+- `pnpm lint:backend`: passed.
+- `pnpm test:scenario:backend -- apps/backend/tests/pr-core/pr-route.scenario.test.ts`: passed, 1 file / 2 tests.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-mode-policy.scenario.test.ts`: passed, 1 file / 2 tests.
+- `pnpm test:scenario:backend`: passed, 13 files / 42 tests.
+- `pnpm build:backend`: passed.
+
+Command log for Slice 4:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm db:lint`: passed.
+- `pnpm test:unit:backend -- apps/backend/src/entities/anchor-event.test.ts`: passed, 1 file / 3 tests.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed, 1 file / 4 tests.
+- `pnpm test:unit:backend`: passed, 25 files / 92 tests.
+- `pnpm lint:backend`: passed.
+- `pnpm test:scenario:backend`: passed, 14 files / 46 tests.
+- `pnpm build:backend`: passed.
+- `pnpm build:frontend`: passed.
+- `git diff --check`: passed.
+
 Deferred verification:
 
 - `pnpm test:unit:frontend` after frontend route helper and map/editor components exist.
@@ -71,7 +94,6 @@ Deferred verification:
 ## Current Residual Risk
 
 - Tencent key management and SDK loading are unresolved; Direction WebService direct frontend calls are acceptable for the first version.
-- Route mode uses `location = null`; create/update now normalize before POI availability checks, and meeting-point fallback will read persisted `location = null`.
 - Planned polyline has no first-version cache; tests and browser checks need to cover planning failure fallback.
 - Anchor Event route pool expands first-version scope across Form Mode, Card Mode, List Mode, and Admin Anchor Event pool editing.
 - Mixed place-option dropdown behavior needs a normalized read model so the UI can list location and route options while preserving Anchor Event raw pool invariants.

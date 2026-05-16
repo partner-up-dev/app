@@ -25,6 +25,7 @@ import {
   feedbackQuestionnaireTemplates,
   type FeedbackQuestionnaireTemplateId,
 } from "./feedback-questionnaire";
+import { prRouteSchema } from "./partner-request";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -106,6 +107,58 @@ export const normalizeLocationPool = (rawPool: unknown): LocationEntry[] => {
   }
 
   return Array.from(unique);
+};
+
+export const anchorEventRoutePoolEntrySchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  route: prRouteSchema,
+});
+export type AnchorEventRoutePoolEntry = z.infer<
+  typeof anchorEventRoutePoolEntrySchema
+>;
+
+export const anchorEventRoutePoolSchema = z
+  .array(anchorEventRoutePoolEntrySchema)
+  .superRefine((entries, ctx) => {
+    const seen = new Set<string>();
+    entries.forEach((entry, index) => {
+      if (seen.has(entry.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Route pool entry id must be unique within the anchor event",
+          path: [index, "id"],
+        });
+        return;
+      }
+      seen.add(entry.id);
+    });
+  });
+export type AnchorEventRoutePool = z.infer<typeof anchorEventRoutePoolSchema>;
+
+export const normalizeAnchorEventRoutePool = (
+  rawPool: unknown,
+): AnchorEventRoutePool => {
+  if (!Array.isArray(rawPool)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const normalized: AnchorEventRoutePool = [];
+  for (const item of rawPool) {
+    const parsed = anchorEventRoutePoolEntrySchema.safeParse(item);
+    if (!parsed.success) {
+      continue;
+    }
+
+    if (seen.has(parsed.data.id)) {
+      continue;
+    }
+
+    seen.add(parsed.data.id);
+    normalized.push(parsed.data);
+  }
+
+  return normalized;
 };
 
 /** A time-window entry: [start, end] in the same format PR uses (ISO date or datetime, nullable) */
@@ -362,6 +415,10 @@ export const anchorEvents = pgTable("anchor_events", {
   locationPool: jsonb("location_pool")
     .$type<LocationEntry[]>()
     .notNull(),
+  routePool: jsonb("route_pool")
+    .$type<AnchorEventRoutePool>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   timePoolConfig: jsonb("time_pool_config")
     .$type<AnchorEventTimePoolConfig>()
     .notNull(),
@@ -420,6 +477,7 @@ export const anchorEvents = pgTable("anchor_events", {
 // ---------------------------------------------------------------------------
 
 export const insertAnchorEventSchema = createInsertSchema(anchorEvents, {
+  routePool: anchorEventRoutePoolSchema.optional(),
   timePoolConfig: anchorEventTimePoolConfigSchema,
   meetingPoint: meetingPointConfigSchema.nullable().optional(),
   joinGateConfig: prJoinGateConfigSchema.optional(),
@@ -428,6 +486,7 @@ export const insertAnchorEventSchema = createInsertSchema(anchorEvents, {
   locationMeetingPoints: meetingPointConfigMapSchema.optional(),
 });
 export const selectAnchorEventSchema = createSelectSchema(anchorEvents, {
+  routePool: anchorEventRoutePoolSchema,
   timePoolConfig: anchorEventTimePoolConfigSchema,
   meetingPoint: meetingPointConfigSchema.nullable(),
   joinGateConfig: prJoinGateConfigSchema,

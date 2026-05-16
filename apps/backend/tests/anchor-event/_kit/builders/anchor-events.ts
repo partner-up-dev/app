@@ -83,6 +83,7 @@ export async function givenAnchorEvent(input: {
     type,
     description: `System scenario anchor event for ${input.label}`,
     locationPool: locationIds,
+    routePool: [],
     timePoolConfig: {
       durationMinutes: 60,
       earliestLeadMinutes: null,

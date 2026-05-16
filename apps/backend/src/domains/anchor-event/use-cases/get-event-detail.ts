@@ -10,6 +10,7 @@ import type {
   AnchorEvent,
   AnchorEventId,
   AnchorEventPrCreationPolicy,
+  AnchorEventRoutePool,
   TimeWindowEntry,
 } from "../../../entities/anchor-event";
 import type {
@@ -29,7 +30,10 @@ import {
   listAnchorEventTimeWindowDetails,
   resolveAnchorEventTimeWindowDescription,
 } from "../services/time-window-pool";
-import { resolvePublicEventLocationPool } from "../services/event-scope";
+import {
+  resolveEventRoutePool,
+  resolvePublicEventLocationPool,
+} from "../services/event-scope";
 import { findPoisByNames } from "../../poi";
 
 const eventRepo = new AnchorEventRepository();
@@ -64,6 +68,7 @@ export interface CreateTimeWindowDetail {
   timeWindow: [string | null, string | null];
   description: string | null;
   locationOptions: LocationOption[];
+  routeOptions: RouteOption[];
 }
 
 export interface LocationOption {
@@ -71,6 +76,13 @@ export interface LocationOption {
   remainingQuota: number | null;
   disabled: boolean;
   disabledReason: "NONE" | "MAX_REACHED" | "TIME_UNAVAILABLE";
+}
+
+export interface RouteOption {
+  routePoolEntryId: string;
+  route: AnchorEventRoutePool[number]["route"];
+  disabled: boolean;
+  disabledReason: "NONE";
 }
 
 export interface AnchorEventDetail {
@@ -81,6 +93,7 @@ export interface AnchorEventDetail {
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
   locationPool: string[];
+  routePool: AnchorEventRoutePool;
   timeWindowPool: TimeWindowEntry[];
   coverImage: string | null;
   betaGroupQrCode: string | null;
@@ -181,6 +194,7 @@ export async function getAnchorEventDetail(
   }
 
   const locationPool = await resolvePublicEventLocationPool(event);
+  const routePool = resolveEventRoutePool(event);
   const timeWindowDetails = listAnchorEventTimeWindowDetails(event);
   const timeWindowPool = timeWindowDetails.map((detail) => detail.timeWindow);
   const pois = await findPoisByNames(locationPool);
@@ -256,16 +270,29 @@ export async function getAnchorEventDetail(
       };
     });
 
+    const routeOptions: RouteOption[] = routePool.map((entry) => ({
+      routePoolEntryId: entry.id,
+      route: entry.route,
+      disabled: false,
+      disabledReason: "NONE",
+    }));
+    if (routeOptions.length > 0) {
+      hasAvailableCapacity = true;
+    }
+
     createTimeWindows.push({
       key: timeWindowDetail.key,
       timeWindow,
       description: timeWindowDetail.description,
       locationOptions,
+      routeOptions,
     });
   }
 
   const exhausted =
-    timeWindowPool.length === 0 || locationPool.length === 0 || !hasAvailableCapacity;
+    timeWindowPool.length === 0 ||
+    (locationPool.length === 0 && routePool.length === 0) ||
+    !hasAvailableCapacity;
 
   return {
     id: event.id,
@@ -275,6 +302,7 @@ export async function getAnchorEventDetail(
     defaultMinPartners: event.defaultMinPartners ?? null,
     defaultMaxPartners: event.defaultMaxPartners ?? null,
     locationPool,
+    routePool,
     timeWindowPool,
     coverImage: event.coverImage,
     betaGroupQrCode: event.betaGroupQrCode,

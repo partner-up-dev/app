@@ -122,13 +122,15 @@ Likely backend surfaces:
 - `apps/backend/src/domains/anchor-event/use-cases/list-events.ts`
 - event-assisted create command preparation and recommendation payloads.
 
-Contract changes:
+Implemented Slice 4 contract:
 
-- Anchor Event entity gains nullable or default-empty `routePool`.
-- Anchor Event validation enforces `locationPool` and `routePool` mutual exclusion.
-- Form Mode bootstrap returns `places` or a typed place projection instead of location-only data.
-- Event detail create time windows expose `placeOptions` or route-aware option payloads.
-- Event-assisted create accepts the chosen place mode and resolves it into `PartnerRequestFields.location` or `PartnerRequestFields.route`.
+- Anchor Event entity stores default-empty `routePool`.
+- Route pool entries use `{ id, route }`; `route` uses the same schema as `PR.route`.
+- Anchor Event validation and database checks enforce `locationPool` and `routePool` mutual exclusion.
+- Form Mode bootstrap returns existing `locations` plus `routes` for route-pool entries.
+- Event detail create time windows expose existing `locationOptions` plus `routeOptions`.
+- Event-assisted create accepts `routePoolEntryId`; backend resolves it into `PartnerRequestFields.route` and clears `location`.
+- Location-pool event-assisted create keeps the existing location-mode payload path.
 
 ## Verification
 

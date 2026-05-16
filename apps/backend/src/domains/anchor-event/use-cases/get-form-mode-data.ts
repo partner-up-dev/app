@@ -6,6 +6,7 @@ import {
   type AnchorEventPRContextRecord,
 } from "../../../repositories/AnchorEventPRContextRepository";
 import {
+  type AnchorEventRoutePool,
   type AnchorEvent,
   type AnchorEventId,
   type AnchorEventPrCreationPolicy,
@@ -16,7 +17,10 @@ import {
   isTimeWindowAvailableByPoiRules,
 } from "../../pr/services";
 import { isAnchorEventFormModeStartSelectable } from "../services/form-mode";
-import { resolvePublicEventLocationPool } from "../services/event-scope";
+import {
+  resolveEventRoutePool,
+  resolvePublicEventLocationPool,
+} from "../services/event-scope";
 import { listAnchorEventTimeWindowDetails } from "../services/time-window-pool";
 import { findPoisByNames } from "../../poi";
 
@@ -116,6 +120,11 @@ export interface AnchorEventFormModeData {
     gallery: string[];
     availableStartKeys: string[];
   }>;
+  routes: Array<{
+    id: string;
+    route: AnchorEventRoutePool[number]["route"];
+    availableStartKeys: string[];
+  }>;
   startOptions: Array<{
     key: string;
     startAt: string;
@@ -143,6 +152,7 @@ export async function getAnchorEventFormModeData(
   }
 
   const locationIds = await resolveLocationIds(event);
+  const routePool = resolveEventRoutePool(event);
   const [pois, tags, visiblePrRecords] = await Promise.all([
     findPoisByNames(locationIds),
     preferenceTagRepo.findByAnchorEventIdAndStatuses(eventId, ["PUBLISHED"]),
@@ -203,6 +213,11 @@ export async function getAnchorEventFormModeData(
           );
         })
         .map((option) => option.key),
+    })),
+    routes: routePool.map((entry) => ({
+      id: entry.id,
+      route: entry.route,
+      availableStartKeys: startOptions.map((option) => option.key),
     })),
     startOptions,
     presetTags: tags.map((tag) => ({

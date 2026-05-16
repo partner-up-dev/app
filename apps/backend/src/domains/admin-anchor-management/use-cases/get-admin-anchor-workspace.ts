@@ -1,19 +1,23 @@
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import type {
+  AnchorEventRoutePool,
   MeetingPointConfig,
   MeetingPointConfigMap,
   PRJoinGateConfig,
+  PRRoute,
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
   FeedbackQuestionnaireTemplate,
   FeedbackQuestionnaireTemplateId,
 } from "../../../entities";
+import { normalizeAnchorEventRoutePool } from "../../../entities";
 import type { AnchorEventPRContextRecord } from "../../../repositories/AnchorEventPRContextRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import {
   countActivePartnersForPR,
   readAnchorEventPRContextRecordsByEventTimeWindow,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
 import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 import { listAnchorEventTimeWindowDetails } from "../../anchor-event/services/time-window-pool";
@@ -26,6 +30,8 @@ type AdminPRSummary = {
   title: string | null;
   type: string;
   location: string | null;
+  route: PRRoute | null;
+  placeDisplayName: string | null;
   time: [string | null, string | null];
   status: string;
   visibilityStatus: string;
@@ -58,6 +64,7 @@ export type AdminAnchorEventSummary = {
   type: string;
   description: string | null;
   locationPool: string[];
+  routePool: AnchorEventRoutePool;
   timePoolConfig: {
     durationMinutes: number | null;
     earliestLeadMinutes: number | null;
@@ -117,6 +124,8 @@ const toAdminPRSummary = async (
   title: record.root.title,
   type: record.root.type,
   location: record.root.location,
+  route: record.root.route,
+  placeDisplayName: resolvePRPlaceDisplayName(record.root),
   time: record.root.time,
   status: record.root.status,
   visibilityStatus: record.anchor.visibilityStatus,
@@ -176,6 +185,7 @@ export async function getAdminAnchorEventWorkspace(): Promise<AdminAnchorEventWo
         locationPool: Array.isArray(event.locationPool)
           ? [...event.locationPool]
           : [],
+        routePool: normalizeAnchorEventRoutePool(event.routePool),
         timePoolConfig: event.timePoolConfig,
         defaultMinPartners: event.defaultMinPartners ?? null,
         defaultMaxPartners: event.defaultMaxPartners ?? null,
