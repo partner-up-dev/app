@@ -902,7 +902,12 @@ export interface MessageSchema {
     };
     asLink: {
       previewTitle: string;
-      shareButton: string;
+      linkPreviewTitle: string;
+      titleFallback: string;
+      qrPosterAlt: string;
+      qrGenerating: string;
+      qrPosterFailed: string;
+      copyLinkButton: string;
       shared: string;
       shareFailed: string;
     };

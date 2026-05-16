@@ -40,6 +40,7 @@
           class="method-pane"
           :share-url="shareUrl"
           :spm-route-key="spmRouteKey"
+          :share-title="shareData.canonicalShare.title"
         />
       </Transition>
 

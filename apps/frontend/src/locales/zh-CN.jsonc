@@ -1336,8 +1336,13 @@
       "xiaohongshu": "分享到小红书"
     },
     "asLink": {
-      "previewTitle": "将分享的链接",
-      "shareButton": "立即分享",
+      "previewTitle": "二维码海报",
+      "linkPreviewTitle": "将分享的链接",
+      "titleFallback": "搭子请求",
+      "qrPosterAlt": "分享二维码",
+      "qrGenerating": "二维码海报生成中...",
+      "qrPosterFailed": "二维码海报生成失败",
+      "copyLinkButton": "复制链接",
       "shared": "已分享",
       "shareFailed": "分享失败"
     },
