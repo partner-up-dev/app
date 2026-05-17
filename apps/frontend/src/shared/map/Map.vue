@@ -1,6 +1,11 @@
 <template>
   <div class="map-shell" :class="`map-shell--${variant}`">
-    <div ref="containerRef" class="map-shell__canvas" aria-hidden="true"></div>
+    <div
+      ref="containerRef"
+      class="map-shell__canvas"
+      :style="canvasStyle"
+      aria-hidden="true"
+    ></div>
 
     <div
       v-if="overlayVisible"
@@ -21,7 +26,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+  type CSSProperties,
+} from "vue";
 import type {
   MapActiveGeometry,
   MapCoordinate,
@@ -50,6 +62,7 @@ const props = withDefaults(
     libraries?: readonly TencentLBSLibrary[];
     interactive?: boolean;
     variant?: "inline" | "immersive";
+    hideBottomAttribution?: boolean;
     loadingMessage?: string;
     unavailableMessage?: string;
     errorMessage?: string;
@@ -67,6 +80,7 @@ const props = withDefaults(
     libraries: () => [],
     interactive: true,
     variant: "inline",
+    hideBottomAttribution: false,
     loadingMessage: "地图加载中",
     unavailableMessage: "地图暂不可用",
     errorMessage: "地图加载失败",
@@ -81,6 +95,34 @@ const emit = defineEmits<{
 const containerRef = ref<HTMLElement | null>(null);
 const provider = ref<TencentLBSMapProvider | null>(null);
 const status = ref<MapProviderStatus>("idle");
+const hiddenBottomAttributionBleedPx = computed(() =>
+  props.hideBottomAttribution ? 20 : 0,
+);
+
+const canvasStyle = computed<CSSProperties>(() => ({
+  bottom: `-${hiddenBottomAttributionBleedPx.value}px`,
+}));
+
+const compensatedFitPadding = computed<MapFitPadding>(() => {
+  const extraBottomPadding = hiddenBottomAttributionBleedPx.value;
+  if (extraBottomPadding === 0) {
+    return props.fitPadding;
+  }
+
+  if (typeof props.fitPadding === "number") {
+    return {
+      top: props.fitPadding,
+      right: props.fitPadding,
+      bottom: props.fitPadding + extraBottomPadding,
+      left: props.fitPadding,
+    };
+  }
+
+  return {
+    ...props.fitPadding,
+    bottom: props.fitPadding.bottom + extraBottomPadding,
+  };
+});
 
 const normalizedApiKey = computed(() => {
   const explicit = props.apiKey?.trim() ?? "";
@@ -120,7 +162,7 @@ const applyMapData = () => {
     markers: props.markers,
     polylines: props.polylines,
     activeGeometry: props.activeGeometry ?? { kind: "all" },
-    padding: props.fitPadding,
+    padding: compensatedFitPadding.value,
     maxZoom: props.maxZoom,
   });
 };
@@ -171,6 +213,7 @@ watch(
     props.center,
     props.zoom,
     props.fitPadding,
+    props.hideBottomAttribution,
     props.activeGeometry,
     props.maxZoom,
   ],

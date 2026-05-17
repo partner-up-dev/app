@@ -10,6 +10,7 @@
       :max-zoom="maxZoom"
       :interactive="interactive"
       :variant="variant"
+      :hide-bottom-attribution="hideBottomAttribution"
       :loading-message="t('route.mapLoading')"
       :unavailable-message="t('route.mapUnavailable')"
       :error-message="t('route.mapFailed')"
@@ -81,6 +82,7 @@ const props = withDefaults(
     apiKey?: string;
     interactive?: boolean;
     variant?: "inline" | "immersive";
+    hideBottomAttribution?: boolean;
   }>(),
   {
     plannedPolyline: null,
@@ -92,6 +94,7 @@ const props = withDefaults(
     apiKey: undefined,
     interactive: true,
     variant: "inline",
+    hideBottomAttribution: false,
   },
 );
 

@@ -44,6 +44,7 @@
             :fit-padding="24"
             :max-zoom="15"
             variant="inline"
+            hide-bottom-attribution
           />
 
           <img

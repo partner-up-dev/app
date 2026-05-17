@@ -8,6 +8,7 @@
         :fit-padding="36"
         :max-zoom="15"
         variant="inline"
+        hide-bottom-attribution
       />
 
       <SharedMap
@@ -21,6 +22,7 @@
         :loading-message="t('route.mapLoading')"
         :unavailable-message="t('route.mapUnavailable')"
         :error-message="t('route.mapFailed')"
+        hide-bottom-attribution
       />
 
       <div v-else class="inline-place-selector__fallback">

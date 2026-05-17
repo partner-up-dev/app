@@ -277,3 +277,14 @@ Follow-up correction for Form Mode route card click handling:
 - `pnpm --filter @partner-up-dev/frontend build`: passed.
 - `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
 - `git diff --check`: passed.
+
+Follow-up correction for Tencent map bottom attribution band:
+
+- Shared `Map.vue` now supports opt-in bottom attribution hiding by extending the Tencent map canvas 20px below the clipped shell and adding 20px to fit-geometry bottom padding.
+- `RouteMap.vue` forwards the opt-in prop.
+- Anchor Event Form Mode route carousel maps and Card/List inline place preview maps opt into the behavior.
+- Browser verified `https://partner-up.localhost/e/4?mode=form`: the route-card map shell stayed clipped at 138px height with `overflow: hidden`; the map container and Tencent canvas measured 158px height and bottom extended 20px below the shell.
+- Browser checked `https://partner-up.localhost/e/4?mode=list`: the current page state had no visible inline selector instance, so inline preview visual verification remains pending.
+- `git diff --check`: passed.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
