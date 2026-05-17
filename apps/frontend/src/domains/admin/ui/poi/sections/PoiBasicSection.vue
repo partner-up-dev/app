@@ -24,6 +24,50 @@
             :placeholder="t('adminPois.fullAddressPlaceholder')"
           />
         </label>
+
+        <div class="field field--full coordinate-field">
+          <div class="coordinate-field__header">
+            <span class="field-label">{{ t("adminPois.coordinateLabel") }}</span>
+            <div class="coordinate-field__actions">
+              <Button
+                appearance="pill"
+                tone="outline"
+                size="sm"
+                type="button"
+                :disabled="selectedPoiId === null"
+                data-testid="admin-pois.pick-coordinate"
+                @click="isLocationPickerOpen = true"
+              >
+                <template #leading>
+                  <span class="i-mdi-map-marker-radius" />
+                </template>
+                {{ t("adminPois.pickCoordinateAction") }}
+              </Button>
+              <Button
+                v-if="selectedPoiHasCoordinate"
+                appearance="pill"
+                tone="danger"
+                size="sm"
+                type="button"
+                :disabled="selectedPoiId === null"
+                data-testid="admin-pois.clear-coordinate"
+                @click="emit('clear-coordinates')"
+              >
+                <template #leading>
+                  <span class="i-mdi-map-marker-remove" />
+                </template>
+                {{ t("adminPois.clearCoordinateAction") }}
+              </Button>
+            </div>
+          </div>
+          <p class="coordinate-field__value">
+            {{
+              selectedPoiCoordinateText ||
+              t("adminPois.coordinateEmpty")
+            }}
+          </p>
+          <p class="hint">{{ t("adminPois.coordinateHint") }}</p>
+        </div>
       </div>
     </BentoItem>
 
@@ -297,11 +341,22 @@
       </div>
     </BentoItem>
   </BentoLayout>
+
+  <LocationPickerModal
+    :open="isLocationPickerOpen"
+    :title="t('adminPois.coordinatePickerTitle')"
+    :initial-location="selectedPoiPickerLocation"
+    @pick="handleLocationPicked"
+    @close="isLocationPickerOpen = false"
+  />
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { EditableAvailabilityRule } from "@/domains/admin/use-cases/poi/useAdminPoiEditor";
+import type { PickedLocation } from "@/domains/location/model/location-picker";
+import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -310,6 +365,9 @@ import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
 defineProps<{
   selectedPoiId: number | null;
   selectedPoiGallery: string[];
+  selectedPoiCoordinateText: string;
+  selectedPoiHasCoordinate: boolean;
+  selectedPoiPickerLocation: PickedLocation | null;
   selectedPoiAvailabilityRules: EditableAvailabilityRule[];
   weekdayOptions: readonly {
     readonly value: number;
@@ -321,6 +379,8 @@ const emit = defineEmits<{
   "add-manual-url": [];
   "gallery-uploaded": [url: string];
   "remove-gallery-image": [index: number];
+  "pick-location": [location: PickedLocation];
+  "clear-coordinates": [];
   "add-availability-rule": [];
   "remove-availability-rule": [index: number];
   "mark-dirty": [];
@@ -349,6 +409,12 @@ const selectedPoiMeetingPointImageUrl = defineModel<string>(
 );
 
 const { t } = useI18n();
+const isLocationPickerOpen = ref(false);
+
+const handleLocationPicked = (location: PickedLocation) => {
+  emit("pick-location", location);
+  isLocationPickerOpen.value = false;
+};
 </script>
 
 <style lang="scss" scoped>
@@ -436,6 +502,34 @@ const { t } = useI18n();
   gap: var(--sys-spacing-small);
 }
 
+.coordinate-field {
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface-container-low);
+}
+
+.coordinate-field__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sys-spacing-small);
+}
+
+.coordinate-field__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.coordinate-field__value {
+  @include mx.pu-font(body-medium);
+  margin: var(--sys-spacing-xsmall) 0 0;
+  color: var(--sys-color-on-surface);
+  overflow-wrap: anywhere;
+}
+
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -469,8 +563,17 @@ const { t } = useI18n();
 
 @media (max-width: 720px) {
   .grid,
-  .manual-url-row {
+  .manual-url-row,
+  .coordinate-field__header {
     grid-template-columns: 1fr;
+  }
+
+  .coordinate-field__header {
+    display: grid;
+  }
+
+  .coordinate-field__actions {
+    justify-content: flex-start;
   }
 }
 </style>

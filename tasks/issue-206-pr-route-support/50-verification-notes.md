@@ -234,3 +234,13 @@ Deferred verification:
 - LocationPicker provider details need browser verification against Tencent `componentPicker` postMessage/page-return behavior.
 - Natural-language route parsing is follow-up scope.
 - Active issue 201 POI upgrade can move current location-related files before implementation starts.
+
+Local migration remediation on 2026-05-17:
+
+- Runtime `GET /api/admin/anchor-events/workspace` reported `relation "anchor_event_route_applications" does not exist`.
+- Confirmed `apps/backend/drizzle/0058_anchor_event_route_applications.sql` exists and was included in commit `e866cb82`.
+- Initial `pnpm db:migrate` from the root failed because the shell lacked `DATABASE_URL`; reran with `DATABASE_URL` loaded from `apps/backend/.env`.
+- The local development database had schema columns/tables from migrations 0047-0057, while `app_migrations` lacked 0047-0057 rows. The runner failed before reaching 0058 on an already-existing `anchor_events.pr_creation_policy` column.
+- Verified key 0047-0057 schema artifacts existed locally, reconciled only those local `app_migrations` rows, then reran standard `pnpm db:migrate`.
+- Standard migration runner then applied `drizzle/0058_anchor_event_route_applications.sql` successfully with `applied=1 skipped=58`.
+- Verified `anchor_event_route_applications` exists and `schema:0058_anchor_event_route_applications.sql` is present in `app_migrations`.

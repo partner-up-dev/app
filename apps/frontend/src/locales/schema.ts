@@ -1328,6 +1328,12 @@ export interface MessageSchema {
     newPoiPlaceholder: string;
     fullAddressLabel: string;
     fullAddressPlaceholder: string;
+    coordinateLabel: string;
+    coordinateEmpty: string;
+    coordinateHint: string;
+    pickCoordinateAction: string;
+    clearCoordinateAction: string;
+    coordinatePickerTitle: string;
     createPoiAction: string;
     creatingPoi: string;
     galleryHint: string;

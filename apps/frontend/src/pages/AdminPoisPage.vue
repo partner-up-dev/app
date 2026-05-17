@@ -63,11 +63,16 @@
             v-model:selected-poi-meeting-point-image-url="selectedPoiMeetingPointImageUrl"
             :selected-poi-id="selectedPoiId"
             :selected-poi-gallery="selectedPoiGallery"
+            :selected-poi-coordinate-text="selectedPoiCoordinateText"
+            :selected-poi-has-coordinate="selectedPoiHasCoordinate"
+            :selected-poi-picker-location="selectedPoiPickerLocation"
             :selected-poi-availability-rules="selectedPoiAvailabilityRules"
             :weekday-options="weekdayOptions"
             @add-manual-url="handleAddManualUrl"
             @gallery-uploaded="handleGalleryUploaded"
             @remove-gallery-image="handleRemoveGalleryImage"
+            @pick-location="handlePickPoiLocation"
+            @clear-coordinates="handleClearPoiCoordinates"
             @add-availability-rule="handleAddAvailabilityRule"
             @remove-availability-rule="handleRemoveAvailabilityRule"
             @mark-dirty="markSelectedPoiDirty"
@@ -124,6 +129,9 @@ const {
   isUploadingGalleryImage,
   selectedPoiGallery,
   selectedPoiFullAddress,
+  selectedPoiCoordinateText,
+  selectedPoiHasCoordinate,
+  selectedPoiPickerLocation,
   selectedPoiCapText,
   selectedPoiMeetingPointDescription,
   selectedPoiMeetingPointImageUrl,
@@ -132,6 +140,8 @@ const {
   handleAddManualUrl,
   handleGalleryUploaded,
   handleRemoveGalleryImage,
+  handlePickPoiLocation,
+  handleClearPoiCoordinates,
   handleAddAvailabilityRule,
   handleRemoveAvailabilityRule,
   weekdayOptions,
