@@ -9,7 +9,7 @@
 - create a `PR` through a structured form where `time_window` uses a batch or free UI mode and still resolves to one PR-owned time window
 - create a structured `PR` in location mode with one primary location or in route mode with an ordered route from departure to destination
 - create and publish `PR` drafts
-- let natural-language creation stay simple while the system may map the intent to an existing Anchor Event context or synthesize a new `PR.type`
+- let natural-language creation stay simple while the system may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`
 
 ## 2. Collaboration Joining And Progression
 

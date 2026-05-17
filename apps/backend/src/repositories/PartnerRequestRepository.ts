@@ -55,6 +55,14 @@ export class PartnerRequestRepository {
       .orderBy(desc(partnerRequests.createdAt));
   }
 
+  async listDistinctTypes(): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ type: partnerRequests.type })
+      .from(partnerRequests)
+      .orderBy(partnerRequests.type);
+    return rows.map((row) => row.type);
+  }
+
   async findVisibleByType(type: string): Promise<PartnerRequest[]> {
     return await db
       .select()

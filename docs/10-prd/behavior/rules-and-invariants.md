@@ -29,7 +29,7 @@
 - A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same activity type remains governed by the PR create contract and may choose either PR place mode.
 - Route-pool event-assisted create resolves the selected route entry into `PR.route` and persists `location = null`. Location-pool event-assisted create resolves the selected place into `PR.location` and persists `route = null`.
 - PR existence does not depend on Anchor Event identity or time-pool selection.
-- Natural-language creation may map the intent to an existing Anchor Event context or synthesize a new `PR.type`.
+- Natural-language creation may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`. Existing PR types have priority over Anchor Event types when both sources offer a candidate.
 - User-created PR from Anchor Event context uses the controlled event-page flow and remains constrained by that event page's local rules. The persisted PR still keeps only PR-owned facts.
 - Publishing a `DRAFT` PR requires an authenticated account.
 - Direct creation of an `OPEN` PR, including event-assisted create, requires an authenticated account.

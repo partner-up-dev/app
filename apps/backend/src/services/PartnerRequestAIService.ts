@@ -14,6 +14,11 @@ import { DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT } from "./prompts/partnerRe
 const CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT =
   "partner_request.parse_system_prompt";
 
+type PartnerRequestParseTypeHints = {
+  existingPRTypes: string[];
+  anchorEventTypes: string[];
+};
+
 const PARTNER_REQUEST_PARSE_PROMPT_TEMPLATE = PromptTemplate.fromTemplate<{
   variablesJson: string;
 }>(
@@ -48,6 +53,7 @@ export class PartnerRequestAIService {
     rawText: string,
     nowIso: string,
     nowWeekday: WeekdayLabel | null,
+    typeHints?: PartnerRequestParseTypeHints,
   ): Promise<PartnerRequestFields> {
     const systemPrompt = await this.configService.getValueOrFallback(
       CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT,
@@ -58,6 +64,7 @@ export class PartnerRequestAIService {
       rawText,
       nowIso,
       nowWeekday,
+      typeHints,
     );
     const prompt = await PARTNER_REQUEST_PARSE_PROMPT_TEMPLATE.format({
       variablesJson,

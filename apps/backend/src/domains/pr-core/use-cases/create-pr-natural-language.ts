@@ -20,6 +20,11 @@ import {
 import { materializeEventDefaultsForPR } from "../services/event-default-materialization.service";
 import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
 import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
+import { resolveNaturalLanguagePRTypeCandidates } from "../services/pr-type-options.service";
+import {
+  canonicalizeNaturalLanguagePRType,
+  toNaturalLanguagePRTypePromptHints,
+} from "../services/pr-type-options";
 
 const prRepo = new PartnerRequestRepository();
 const aiService = new PartnerRequestAIService();
@@ -30,8 +35,19 @@ export async function createPRFromNaturalLanguage(
   nowWeekday: WeekdayLabel | null,
   creatorIdentity: CreatorIdentityInput,
 ): Promise<CreatePRCommandResult> {
-  const fields = await aiService.parseRequest(rawText, nowIso, nowWeekday);
-  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
+  const typeCandidates = await resolveNaturalLanguagePRTypeCandidates();
+  const fields = await aiService.parseRequest(
+    rawText,
+    nowIso,
+    nowWeekday,
+    toNaturalLanguagePRTypePromptHints(typeCandidates),
+  );
+  const canonicalizedFields = {
+    ...fields,
+    type: canonicalizeNaturalLanguagePRType(fields.type, typeCandidates),
+  };
+  const normalizedFields =
+    normalizePartnerRequestFieldsForPersistence(canonicalizedFields);
   await assertUserPRCreationAllowedForAnchorEvent({
     type: normalizedFields.type,
   });

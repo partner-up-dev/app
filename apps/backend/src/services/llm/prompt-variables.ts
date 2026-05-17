@@ -152,12 +152,28 @@ export const buildPartnerRequestParsePromptVariablesJson = (
   rawText: string,
   nowIso: string,
   nowWeekday: WeekdayLabel | null,
+  typeHints: {
+    existingPRTypes: string[];
+    anchorEventTypes: string[];
+  } = {
+    existingPRTypes: [],
+    anchorEventTypes: [],
+  },
 ): string => {
   const normalizedRawText = rawText.trim().length > 0 ? rawText.trim() : rawText;
 
   return toPromptJson({
     nowIso,
     nowWeekday,
+    typeSelection: {
+      priority: [
+        "existingPRTypes",
+        "anchorEventTypes",
+        "newTypeWhenNoCandidateFits",
+      ],
+      existingPRTypes: typeHints.existingPRTypes,
+      anchorEventTypes: typeHints.anchorEventTypes,
+    },
     userInput: normalizedRawText,
   });
 };
