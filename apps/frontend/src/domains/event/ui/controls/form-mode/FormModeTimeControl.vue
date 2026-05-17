@@ -63,6 +63,7 @@ import {
   formatFormModeDurationLabel,
   formatFormModeTimeLabel,
   isValidFormModeDateTime,
+  shouldAutoOpenAdvancedFormModeTime,
 } from "@/domains/event/model/form-mode";
 
 type StartOption = AnchorEventFormModeResponse["startOptions"][number];
@@ -91,6 +92,13 @@ const defaultStartOptionGroups = computed(() =>
 const advancedStartOptionGroups = computed(() =>
   buildStartOptionsByDate(
     buildAdvancedModeStartOptions(props.earliestLeadMinutes),
+  ),
+);
+
+const shouldAutoOpenAdvancedMode = computed(() =>
+  shouldAutoOpenAdvancedFormModeTime(
+    props.startOptions,
+    props.earliestLeadMinutes,
   ),
 );
 
@@ -162,6 +170,16 @@ const resolveDateKey = (value: string): string | null => {
   }
   return buildFormModeDateKey(value);
 };
+
+watch(
+  shouldAutoOpenAdvancedMode,
+  (shouldOpen) => {
+    if (shouldOpen) {
+      advancedMode.value = true;
+    }
+  },
+  { immediate: true },
+);
 
 watch(
   [() => props.modelValue, defaultStartOptionGroups, advancedStartOptionGroups],

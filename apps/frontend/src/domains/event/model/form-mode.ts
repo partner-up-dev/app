@@ -250,3 +250,11 @@ export const buildStartOptionsByDate = (startOptions: readonly StartOption[]) =>
     }))
     .sort((left, right) => left.dateKey.localeCompare(right.dateKey));
 };
+
+export const shouldAutoOpenAdvancedFormModeTime = (
+  startOptions: readonly StartOption[],
+  earliestLeadMinutes: number | null,
+  now: Date = new Date(),
+): boolean =>
+  buildStartOptionsByDate(startOptions).length === 0 &&
+  buildAdvancedModeStartOptions(earliestLeadMinutes, now).length > 0;
