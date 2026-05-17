@@ -970,14 +970,91 @@ export interface MessageSchema {
     parsing: string;
     createFailed: string;
   };
+  route: {
+    title: string;
+    empty: string;
+    addWaypoint: string;
+    removeWaypoint: string;
+    movePointUp: string;
+    movePointDown: string;
+    editDatetime: string;
+    navigateAction: string;
+    mapTitle: string;
+    showMapAction: string;
+    hideMapAction: string;
+    mapLoading: string;
+    mapUnavailable: string;
+    mapFailed: string;
+    noCoordinateHint: string;
+    pointFallback: string;
+    pointPickHint: string;
+    pickPointTitle: string;
+    pointRole: {
+      departure: string;
+      waypoint: string;
+      arrival: string;
+    };
+    placeholder: {
+      departure: string;
+      waypoint: string;
+      arrival: string;
+    };
+    immersive: {
+      departure: {
+        title: string;
+        text: string;
+      };
+      waypoint: {
+        title: string;
+      };
+      arrival: {
+        title: string;
+      };
+    };
+  };
+  locationPicker: {
+    title: string;
+    iframeTitle: string;
+    keyMissing: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    addressLabel: string;
+    addressPlaceholder: string;
+    coordinateLabel: string;
+    coordinateEmpty: string;
+  };
   partnerRequestForm: {
     title: string;
     titlePlaceholder: string;
     type: string;
     typePlaceholder: string;
     typeImmutableHint: string;
+    placeMode: string;
+    placeModeAria: string;
+    placeModeLocation: string;
+    placeModeRoute: string;
     location: string;
     locationPlaceholder: string;
+    route: string;
+    routeEmpty: string;
+    routeAddWaypoint: string;
+    routeRemoveWaypoint: string;
+    routeMapLoading: string;
+    routeMapUnavailable: string;
+    routeMapFailed: string;
+    routeNoCoordinateHint: string;
+    routePointFallback: string;
+    routePointName: string;
+    routePointNamePlaceholder: string;
+    routePointAddress: string;
+    routePointAddressPlaceholder: string;
+    routePointLatitude: string;
+    routePointLongitude: string;
+    routePointRole: {
+      departure: string;
+      waypoint: string;
+      arrival: string;
+    };
     minPartners: string;
     minPartnersPlaceholder: string;
     maxPartners: string;
@@ -1405,6 +1482,7 @@ export interface MessageSchema {
     prTitleLabel: string;
     prTypeLabel: string;
     prLocationLabel: string;
+    prLocationRequiredValidation: string;
     noLocationOption: string;
     prStatusLabel: string;
     prVisibilityLabel: string;
@@ -1556,6 +1634,9 @@ export interface MessageSchema {
     minPartnersAtLeastOne: string;
     maxPartnersAtLeastTwo: string;
     maxPartnersMustBeAtLeastMinPartners: string;
+    routeMinPoints: string;
+    routePointNameRequired: string;
+    routePointCoordinateRequired: string;
   };
   errors: {
     anchorEventUserCreationDisabled: string;

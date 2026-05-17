@@ -13,6 +13,7 @@ import {
   normalizeAnchorEventRoutePool,
   normalizeLocationPool,
   prJoinGateConfigSchema,
+  prRouteSchema,
   prStatusManualSchema,
   visibilityStatusSchema,
 } from "../entities";
@@ -114,7 +115,8 @@ const adminCreatePRInputSchema = z.object({
   timeWindow: timeWindowSchema,
   title: z.string().trim().nullable(),
   type: z.string().trim().min(1),
-  location: z.string().trim().min(1),
+  location: z.string().trim().nullable(),
+  route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
   maxPartners: z.number().int().nonnegative().nullable(),
   preferences: z.array(z.string().trim()),
@@ -132,6 +134,7 @@ const adminUpdatePRContentSchema = z.object({
   type: z.string().trim().min(1),
   timeWindow: timeWindowSchema,
   location: z.string().trim().nullable(),
+  route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
   maxPartners: z.number().int().nonnegative().nullable(),
   preferences: z.array(z.string().trim()),
@@ -320,6 +323,7 @@ export const adminAnchorManagementRoute = app
       const result = await createAdminPR(payload.timeWindow, {
         ...payload,
         title: payload.title || null,
+        location: payload.location || null,
         notes: payload.notes || null,
       });
       return c.json(result);

@@ -23,6 +23,7 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 - `forms/ToggleSwitch.vue`: labeled boolean switch primitive with `v-model`; consuming components own copy, workflow meaning, and side effects.
 - `forms/WheelPicker.vue`: finite vertical option picker with centered snap selection for generic single-value choices.
 - `forms/ProductLocalDateCalendarPicker.vue`: product-local date-key calendar grid for fixed-window multi-select flows; keep date-window policy in the owning page or domain.
+- `controls/SegmentedControl.vue`: generic mutually exclusive mode selector; keep domain labels, state, workflow transitions, and option-level scenario test IDs in the consuming surface.
 - `display/InfoRow.vue`: neutral label/value layout for metadata.
 - `display/InfoRowAction.vue`: label row with a right-side inline action button for metadata rows whose action target is only the trailing affordance.
 - `display/Cell.vue`: compact title/value row with optional suffix icon or suffix slot for generic list and settings surfaces; pass `border` to show the bottom divider.

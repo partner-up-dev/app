@@ -2,6 +2,7 @@ import { z } from "zod";
 import { toTypedSchema } from "@vee-validate/zod";
 import { i18n } from "@/locales/i18n";
 import type { PRFormFields } from "@/domains/pr/model/types";
+import { getPRRouteValidationIssue } from "@/domains/pr/model/pr-route";
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const isoDateTimeSchema = z.string().datetime();
@@ -9,6 +10,21 @@ const isoDateOrDateTimeSchema = z.union([isoDateTimeSchema, isoDateSchema]);
 
 const MIN_MANUAL_PARTNERS = 1;
 const MIN_PRESENT_MAX_PARTNERS = 2;
+
+const hasRouteDraft = (
+  route: PRFormFields["route"],
+): route is NonNullable<PRFormFields["route"]> => Array.isArray(route);
+
+const addRouteIssue = (
+  context: z.RefinementCtx,
+  message: string,
+): void => {
+  context.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["route"],
+    message,
+  });
+};
 
 export const getMinPartnersAtLeastOneMessage = (): string =>
   i18n.global.t("validation.minPartnersAtLeastOne");
@@ -107,6 +123,27 @@ const buildFieldsSchema = ({
           path: ["maxPartners"],
           message: getMaxPartnersAtLeastMinPartnersMessage(),
         });
+      }
+
+      if (!hasRouteDraft(value.route)) {
+        return;
+      }
+
+      const issue = getPRRouteValidationIssue(value.route);
+      if (issue === "min-points") {
+        addRouteIssue(context, i18n.global.t("validation.routeMinPoints"));
+      }
+      if (issue === "name-required") {
+        addRouteIssue(
+          context,
+          i18n.global.t("validation.routePointNameRequired"),
+        );
+      }
+      if (issue === "coordinate-required") {
+        addRouteIssue(
+          context,
+          i18n.global.t("validation.routePointCoordinateRequired"),
+        );
       }
     });
 

@@ -10,7 +10,7 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 
 - Input route: Intent.
 - Current mode: Execute.
-- Implementation state: Slice 0, Slice 1, Slice 2, and Slice 3 implemented on 2026-05-16.
+- Implementation state: Slice 0 through Slice 6 implemented on 2026-05-16.
 
 ## Issue Source
 
@@ -46,6 +46,10 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - `uniapp2` contains mature route editor and map display references, but its location picker and route planner depend on Weixin mini-program plugins.
 - Tencent JavaScript API GL provides web-side marker/polyline rendering via `MultiMarker` / `MultiPolyline`; route planning uses Tencent Direction WebService and may be called directly from frontend when key exposure is acceptable.
 - Tencent LBS map rendering should be wrapped behind a Vue-friendly component interface before PR and Anchor Event surfaces consume it.
+- Route is a product/domain concept shared beyond PR; PR owns a route-mode place payload, commonly described as a Route PR. Frontend route helpers and UI should live under a route-owned or shared route boundary, with PR code acting as a consumer.
+- UniApp `routeEditor.vue` uses compact route item rows in normal mode and a staged departure/waypoint/arrival layout in immersive mode. The Web editor should follow that interaction shape instead of exposing coordinate fields in the main editor.
+- Tencent `componentPicker` is the first-version fit for location selection because it supports search, draggable map selection, initial coordinates, iframe embedding, page-return mode, and a location payload callback. Tencent `componentMarker` remains useful for position display.
+- Location picking is a generic capability. Route item editing should call a generic `LocationPicker` flow and then map the picked location into a route point.
 
 ## Open Decisions
 
@@ -57,6 +61,9 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - Direction WebService direct frontend calls are acceptable for the first version; backend proxy remains an optional future governance path.
 - Planned polyline is computed on demand; the first version keeps no planned-polyline cache.
 - PR Facts Card renders Route as its own `InfoRowAction`; clicking the row action opens a map modal.
+- Frontend route naming boundary: use generic `Route`, `RouteEditor`, `RouteMap`, and route model helpers; reserve PR naming for route-mode PR forms and PR-specific payload mapping.
+- Location picker boundary: build `LocationPickerPage` / picker session / Tencent component adapter as generic location infrastructure. RouteEditor opens it for a selected route item and maps `PickedLocation` to `{ name, full_address, gcj02 }`.
+- First-version location picker provider: Tencent map location picker component (`componentPicker`) through iframe or page-return mode. Keep JS API GL plus WebService Search/Geocoder as a later custom-provider option when manual coordinate editing and deeper control are needed.
 
 ## Verification
 
@@ -73,7 +80,18 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - `pnpm test:scenario:backend`: passed on 2026-05-16.
 - `pnpm build:backend`: passed on 2026-05-16.
 - `pnpm build:frontend`: passed on 2026-05-16.
+- `pnpm test:unit:frontend`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/pr/model/pr-route.test.ts`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend build`: passed on 2026-05-16.
+- `pnpm test:unit:backend`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/backend build`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/route/model/route.test.ts apps/frontend/src/domains/location/model/location-picker.test.ts apps/frontend/src/domains/pr/model/pr-route.test.ts`: passed on 2026-05-16.
+- `pnpm test:unit:frontend`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend build`: passed on 2026-05-16.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed on 2026-05-16.
 - `git diff --check`: passed on 2026-05-16.
+- Browser smoke on `http://127.0.0.1:5173/pr/new?mode=form`: route-mode editor and missing-key LocationPicker fallback passed on 2026-05-16.
 - Browser verification on `/pr/new`, `/pr/:id`, `/admin/pr`, and `/e/:eventId` remains tied to UI slices.
 - Map rendering verification with a valid Tencent key remains tied to UI slices.
 

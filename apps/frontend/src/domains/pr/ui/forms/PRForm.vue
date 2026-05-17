@@ -58,15 +58,16 @@
       <div v-if="isAdvancedOpen" class="advanced-section">
         <DateTimeRangePicker v-if="showTimeField" v-model="timeModel" />
 
-        <div class="form-field">
-          <label>{{ t("partnerRequestForm.location") }}</label>
-          <input
-            v-model="locationInput"
-            type="text"
-            data-testid="pr-create.form.location"
-            :placeholder="t('partnerRequestForm.locationPlaceholder')"
-          />
-        </div>
+        <PRPlaceModeField
+          v-model="placeValue"
+          :label="t('partnerRequestForm.placeMode')"
+          :aria-label="t('partnerRequestForm.placeModeAria')"
+          :location-label="t('partnerRequestForm.location')"
+          :location-placeholder="t('partnerRequestForm.locationPlaceholder')"
+          :location-error="errors['fields.location']"
+          :route-error="errors['fields.route']"
+          test-id-prefix="pr-create.form.place"
+        />
 
         <div class="form-field">
           <label>{{ t("partnerRequestForm.minPartners") }}</label>
@@ -158,6 +159,9 @@ import { useForm } from "vee-validate";
 import type { PartnerRequestFormInput } from "@/lib/validation";
 import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
 import DateTimeRangePicker from "@/domains/pr/ui/forms/DateTimeRangePicker.vue";
+import PRPlaceModeField, {
+  type PRPlaceModeFieldValue,
+} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
 import type { PRFormFields } from "@/domains/pr/model/types";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -217,6 +221,7 @@ const [titleModel] = defineField("fields.title");
 const [typeModel] = defineField("fields.type");
 const [timeModel] = defineField("fields.time");
 const [locationModel] = defineField("fields.location");
+const [routeModel] = defineField("fields.route");
 const [budgetModel] = defineField("fields.budget");
 const [notesModel] = defineField("fields.notes");
 const [preferencesModel] = defineField("fields.preferences");
@@ -228,10 +233,14 @@ const titleInput = computed({
   },
 });
 
-const locationInput = computed({
-  get: () => locationModel.value ?? "",
-  set: (value: string) => {
-    locationModel.value = value.trim().length === 0 ? null : value;
+const placeValue = computed<PRPlaceModeFieldValue>({
+  get: () => ({
+    location: locationModel.value ?? null,
+    route: routeModel.value ?? null,
+  }),
+  set: (value) => {
+    locationModel.value = value.location;
+    routeModel.value = value.route;
   },
 });
 

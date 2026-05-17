@@ -8,15 +8,24 @@ import {
   assertPRTimeWindowAvailableAtLocation,
   validateAnchorParticipationPolicyOffsets,
 } from "../../pr/services";
-import type { PartnerRequest, PRJoinGateConfig } from "../../../entities";
+import type {
+  PartnerRequest,
+  PartnerRequestFields,
+  PRJoinGateConfig,
+  PRRoute,
+} from "../../../entities";
 import type { MeetingPointConfig } from "../../../entities";
+import {
+  normalizePartnerRequestFieldsForPersistence,
+} from "../../pr-core/services/pr-place-mode.service";
 
 const prRepo = new PartnerRequestRepository();
 
 export interface CreateAdminPRInput {
   title: string | null;
   type: string;
-  location: string;
+  location: string | null;
+  route: PRRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   preferences: string[];
@@ -60,24 +69,44 @@ export async function createAdminPR(
     confirmationEndOffsetMinutes: input.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: input.joinLockOffsetMinutes,
   });
-  assertManualPartnerBoundsValid(input.minPartners, input.maxPartners, 0);
-  await assertPRTimeWindowAvailableAtLocation({
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence({
+    title: input.title ?? undefined,
+    type: input.type.trim(),
+    time: timeWindow,
     location: input.location,
+    route: input.route,
+    minPartners: input.minPartners,
+    maxPartners: input.maxPartners,
+    partners: [],
+    budget: null,
+    preferences: input.preferences,
+    notes: input.notes,
+    meetingPoint: input.meetingPoint ?? null,
+  } satisfies PartnerRequestFields);
+
+  assertManualPartnerBoundsValid(
+    normalizedFields.minPartners,
+    normalizedFields.maxPartners,
+    0,
+  );
+  await assertPRTimeWindowAvailableAtLocation({
+    location: normalizedFields.location,
     timeWindow,
   });
 
   const createdRoot = await prRepo.create({
-    title: input.title,
-    type: input.type.trim(),
-    time: timeWindow,
-    location: input.location,
+    title: normalizedFields.title,
+    type: normalizedFields.type,
+    time: normalizedFields.time,
+    location: normalizedFields.location,
+    route: normalizedFields.route,
     status: "OPEN",
     visibilityStatus: "VISIBLE",
-    minPartners: input.minPartners,
-    maxPartners: input.maxPartners,
-    preferences: input.preferences,
-    notes: input.notes,
-    meetingPoint: input.meetingPoint ?? null,
+    minPartners: normalizedFields.minPartners,
+    maxPartners: normalizedFields.maxPartners,
+    preferences: normalizedFields.preferences,
+    notes: normalizedFields.notes,
+    meetingPoint: normalizedFields.meetingPoint ?? null,
     joinGateConfig: input.joinGateConfig ?? [],
     confirmationEnabled: input.confirmationEnabled,
     confirmationStartOffsetMinutes: input.confirmationStartOffsetMinutes,

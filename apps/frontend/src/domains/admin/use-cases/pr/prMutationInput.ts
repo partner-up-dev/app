@@ -1,7 +1,6 @@
-import type {
-  AdminCreatePRInput,
-} from "@/domains/admin/queries/useAdminPRManagement";
-import type { PRJoinGateConfig } from "@partner-up-dev/backend";
+import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
+import type { AdminCreatePRInput } from "@/domains/admin/queries/useAdminPRManagement";
+import { normalizePRRouteForSubmit } from "@/domains/pr/model/pr-route";
 
 export type AdminPRBasicDraft = {
   title: string;
@@ -9,6 +8,7 @@ export type AdminPRBasicDraft = {
   startAt: string;
   endAt: string;
   location: string;
+  route: PRRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   confirmationStartOffsetMinutes: number;
@@ -64,12 +64,14 @@ export const buildPRContentInput = (
   if (!startAt || !endAt) {
     return null;
   }
+  const route = normalizePRRouteForSubmit(draft.route);
 
   return {
     timeWindow: [startAt, endAt],
     title: draft.title.trim() || null,
     type: draft.type.trim(),
-    location: draft.location.trim(),
+    location: route === null ? draft.location.trim() || null : null,
+    route,
     minPartners: draft.minPartners,
     maxPartners: draft.maxPartners,
     preferences: normalizeComma(draft.preferencesText),

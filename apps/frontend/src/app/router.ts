@@ -12,6 +12,7 @@ const HomePage = () => import("@/pages/HomePage.vue");
 const MePage = () => import("@/pages/MePage.vue");
 const LocationApplicationPage = () =>
   import("@/pages/LocationApplicationPage.vue");
+const LocationPickerPage = () => import("@/pages/LocationPickerPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
@@ -130,6 +131,15 @@ const routes: RouteRecordRaw[] = [
     path: "/bi",
     name: "bi-entry",
     component: BIEntryPage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
+    path: "/locations/pick",
+    name: "location-picker",
+    component: LocationPickerPage,
     meta: {
       wechatSharePolicy: "skip",
       wechatAutoLoginPolicy: "skip",
