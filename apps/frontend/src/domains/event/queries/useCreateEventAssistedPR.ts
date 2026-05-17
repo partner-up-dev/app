@@ -32,6 +32,15 @@ export type CreateEventAssistedPRError = ApiError & {
   status?: number;
 };
 
+export const buildEventAssistedPRCreateBody = (input: {
+  fields: PartnerRequestFields;
+  correlationId?: string;
+}) => ({
+  fields: input.fields,
+  createSource: "EVENT_ASSISTED" as const,
+  correlationId: input.correlationId,
+});
+
 export const useCreateEventAssistedPR = () => {
   const queryClient = useQueryClient();
 
@@ -43,19 +52,15 @@ export const useCreateEventAssistedPR = () => {
     mutationFn: async ({
       eventId,
       fields,
-      routePoolEntryId,
       handoff,
       correlationId,
     }) => {
       const response = await client.api.pr.new.form.$post(
         {
-          json: {
+          json: buildEventAssistedPRCreateBody({
             fields,
-            createSource: "EVENT_ASSISTED",
-            anchorEventId: eventId,
-            routePoolEntryId: routePoolEntryId ?? undefined,
             correlationId,
-          },
+          }),
         },
         {
           init: {
@@ -75,7 +80,6 @@ export const useCreateEventAssistedPR = () => {
             kind: "EVENT_ASSISTED_PR_CREATE",
             eventId,
             handoff,
-            routePoolEntryId: routePoolEntryId ?? null,
             fields: {
               type: fields.type,
               time: fields.time,

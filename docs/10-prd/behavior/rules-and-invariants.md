@@ -23,14 +23,14 @@
 - Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window.
 - Structured creation uses one PR-owned place-mode result. Route-mode structured creation stores `route` and clears `location`; location-mode structured creation stores `location` and clears `route`.
 - PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, support resources, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
-- Event-context PR creation is one assisted mode inside the Anchor Event domain.
-- Event-assisted create resolves event-side choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
-- Anchor Event assisted creation can source place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
+- Event-context PR creation is frontend assistance from Anchor Event surfaces into unified structured PR creation.
+- Event-assisted create resolves frontend-selected event-page choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
+- Anchor Event assisted creation can source suggested place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
 - A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same activity type remains governed by the PR create contract and may choose either PR place mode.
-- Route-pool event-assisted create resolves the selected route entry into `PR.route` and persists `location = null`. Location-pool event-assisted create resolves the selected place into `PR.location` and persists `route = null`.
+- Route-mode event-assisted create submits `PR.route` and persists `location = null`. Location-mode event-assisted create submits `PR.location` and persists `route = null`.
 - PR existence does not depend on Anchor Event identity or time-pool selection.
 - Natural-language creation may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`. Existing PR types have priority over Anchor Event types when both sources offer a candidate.
-- User-created PR from Anchor Event context uses the controlled event-page flow and remains constrained by that event page's local rules. The persisted PR still keeps only PR-owned facts.
+- User-created PR from Anchor Event context submits the unified PR create command. Unified PR creation owns creation policy, POI availability, creator publish identity, and creator time-window conflict checks.
 - Publishing a `DRAFT` PR requires an authenticated account.
 - Direct creation of an `OPEN` PR, including event-assisted create, requires an authenticated account.
 - `/e/:eventId` is the canonical Anchor Event landing entry for List, Card, and Form browsing. `/events/:eventId` is a compatibility entry that forwards to the same landing route.
@@ -46,8 +46,8 @@
 - Form Mode may route users to submit a new POI location application. That application is POI-owned and not tied to one Anchor Event.
 - User-submitted POIs start as `PENDING`; public location reads and Form Mode location gallery resolution use only `PUBLISHED` POIs.
 - A published POI does not appear in an Anchor Event Form Mode unless that Anchor Event's location pool references the POI name.
-- The Anchor Event landing page shows discoverable PRs under the same activity type and time-pool rules.
-- Event-page discovery reads root PR facts by activity type, resolved time window, and event-owned location rules rather than by durable PR-side event linkage.
+- The Anchor Event landing page shows discoverable PRs under the same activity type, grouped by each PR's own resolved time window.
+- Event-page discovery reads root PR facts by activity type and PR-owned time/place facts rather than by durable PR-side event linkage.
 - Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches `FULL`.
 - Anchor Event may own a participation frequency limit. When configured as `X`, a user with a current active participation in that event must wait through the next `X` complete PRs in event time-window order before joining or waitlisting another PR in the same event; the following PR is eligible. Only current `JOINED`, `CONFIRMED`, and `ATTENDED` slots count as limiting history. `PENDING`, `EXITED`, `RELEASED`, and `CANCELLED` slots do not count as limiting history.
 

@@ -79,19 +79,19 @@ const givenWeChatBoundUser = async (label: string): Promise<ScenarioUser> => {
 };
 
 const selectLocation = async (page: Page, locationId: string): Promise<void> => {
-  const selector = `[data-testid="anchor-event-form-mode.location.option"][data-location-id="${locationId}"]`;
+  const selector = `[data-testid="anchor-event-form-mode.place.option"][data-place-id="location:${locationId}"]`;
   const option = page.locator(selector);
   await option.waitFor({ state: "attached", timeout: 10_000 });
   await option.evaluate((element) => {
     if (!(element instanceof HTMLElement)) {
-      throw new Error("Location option should be an HTMLElement");
+      throw new Error("Place option should be an HTMLElement");
     }
     element.click();
   });
   await page.waitForFunction(
     (selectorValue) => {
       const element = document.querySelector(selectorValue);
-      return element?.classList.contains("location-card--selected") === true;
+      return element?.classList.contains("place-card--selected") === true;
     },
     selector,
     { timeout: 10_000 },
@@ -368,11 +368,24 @@ scenario(
       await installScenarioUserSession(page, visitor);
       await installDeterministicShareSidecarStubs(page);
 
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/pr/new/form") &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+
       await page.goto(`/e/${event.id}`);
       await expectFormMode(page);
       const recommendation = await submitFormAndReadRecommendation({ page, event });
       assert.equal(recommendation.matchedRecommendation, null);
       assert.deepEqual(recommendation.orderedCandidates, []);
+      const createResponse = await createResponsePromise;
+      assert.equal(createResponse.status(), 201);
+      const createRequestBody = JSON.parse(
+        createResponse.request().postData() ?? "{}",
+      ) as Record<string, unknown>;
+      assert.equal(createRequestBody.createSource, "EVENT_ASSISTED");
 
       await page.waitForURL(
         (url) =>

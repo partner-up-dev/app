@@ -33,9 +33,9 @@
 - open venue images through a clickable label row aligned with other facts-card entry rows
 - open participant profile pages from clickable participant badges
 - re-discover other active Anchor Events from current Anchor Event and PR context
-- create `PR` from Anchor Event context as one assisted mode inside the Anchor Event domain
+- create `PR` from Anchor Event context through frontend assistance into unified structured creation
 - create or enter route-mode `PR`s from Anchor Event context when the event-assisted place options carry `PR.route` values
-- review alternative recommendations under the same time-pool rules
+- review alternative recommendations under the same activity context
 - submit a new POI location application from Form Mode when the desired location is missing
 - revisit the current user's submitted POI location applications
 - view booking support and resource-support semantics

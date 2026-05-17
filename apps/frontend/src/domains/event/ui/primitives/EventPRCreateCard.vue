@@ -46,6 +46,7 @@
           type="button"
           appearance="pill"
           size="sm"
+          data-testid="anchor-event.create-card.create"
           :disabled="pending"
           @click="emitCreate"
         >

@@ -196,6 +196,7 @@
           type="button"
           appearance="pill"
           size="sm"
+          data-testid="anchor-event-card-mode.empty-create"
           :disabled="resolvedIsCreatePending"
           @click="emitCreateFromCardEmpty"
         >

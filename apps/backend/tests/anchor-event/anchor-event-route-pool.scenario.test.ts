@@ -400,6 +400,7 @@ scenario(
 
 scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) => {
   const creator = await givenUser("route-pool-assisted-creator");
+  const outsideRouteCreator = await givenUser("route-pool-assisted-outside-creator");
   await bindScenarioWeChatOpenId({
     user: creator,
     openId: "openid-route-pool-assisted-creator",
@@ -444,22 +445,26 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
   assert.equal(stored?.location, null);
   assert.deepEqual(stored?.route, routePool[0]?.route);
 
-  const rejected = await requestJson("/api/pr/new/form", {
-    method: "POST",
-    token: creator.token,
-    body: {
-      fields: buildEventAssistedFields({
-        type: event.type,
-        timeWindow,
-        route: buildRoute("珠江新城"),
-      }),
-      createSource: "EVENT_ASSISTED",
-      anchorEventId: event.id,
-      routePoolEntryId: "outside-route",
-    },
-  });
-  const problem = await expectJsonResponse<ProblemDetailsResponse>(rejected, 400);
-  assert.match(problem.detail ?? "", /Selected route/);
+  const outsideRoute = buildRoute("珠江新城");
+  const outsideCreated = await expectJsonResponse<CreatePRResponse>(
+    await requestJson("/api/pr/new/form", {
+      method: "POST",
+      token: outsideRouteCreator.token,
+      body: {
+        fields: buildEventAssistedFields({
+          type: event.type,
+          timeWindow,
+          route: outsideRoute,
+        }),
+        createSource: "EVENT_ASSISTED",
+        anchorEventId: event.id,
+      },
+    }),
+    201,
+  );
+  const outsideStored = await probePRPlace(outsideCreated.id);
+  assert.equal(outsideStored?.location, null);
+  assert.deepEqual(outsideStored?.route, outsideRoute);
 });
 
 scenario("location_pool_event_assisted_create_keeps_location_mode", async (ctx) => {

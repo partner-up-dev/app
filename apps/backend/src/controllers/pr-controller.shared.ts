@@ -158,65 +158,6 @@ export const tryReadAuthenticatedOpenId = async (
   return readBoundOpenId(c);
 };
 
-type AnchorAuthenticatedIdentity = {
-  userId: UserId;
-  openId: string;
-};
-
-export const tryReadAnchorAuthenticatedIdentity = async (
-  c: Context<AuthEnv>,
-): Promise<AnchorAuthenticatedIdentity | null> => {
-  const userId = getAuthenticatedUserId(c);
-  if (!userId) {
-    return null;
-  }
-
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
-    return null;
-  }
-
-  if (!user.openId) {
-    return null;
-  }
-
-  return {
-    userId,
-    openId: user.openId,
-  };
-};
-
-export const requireAnchorAuthenticatedIdentity = async (
-  c: Context<AuthEnv>,
-): Promise<AnchorAuthenticatedIdentity> => {
-  const userId = getAuthenticatedUserId(c);
-  if (!userId) {
-    return throwAuthenticatedRequired();
-  }
-
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
-    return throwCodedHttpException(
-      401,
-      "Invalid authenticated WeChat user",
-      AUTHENTICATED_REQUIRED_CODE,
-    );
-  }
-
-  if (!user.openId) {
-    return throwCodedHttpException(
-      401,
-      "Current account is not bound to WeChat",
-      AUTHENTICATED_REQUIRED_CODE,
-    );
-  }
-
-  return {
-    userId: user.id,
-    openId: user.openId,
-  };
-};
-
 export const getAuthenticatedUserId = (c: Context<AuthEnv>): UserId | null => {
   const auth = c.get("auth");
   if (!auth.roles.includes("authenticated") || !auth.userId) {

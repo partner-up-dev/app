@@ -5,7 +5,6 @@ export { assignAnchorEventLandingMode } from "./get-landing-mode-assignment";
 export { getAnchorEventFormModeData } from "./get-form-mode-data";
 export { submitAnchorEventFormModePreferenceTags } from "./submit-form-mode-preference-tags";
 export { recommendAnchorEventFormModePRs } from "./recommend-form-mode-prs";
-export { createEventAssistedPR } from "./create-event-assisted-pr";
 export { expandFullPR } from "./expand-full-pr";
 export type { AnchorEventSummary } from "./list-events";
 export type {

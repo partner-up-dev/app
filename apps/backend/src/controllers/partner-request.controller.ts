@@ -28,7 +28,6 @@ import {
   updatePRStatus,
   waitlistPRByIdentity,
 } from "../domains/pr";
-import { createEventAssistedPR } from "../domains/anchor-event";
 import { updatePRBookingContactPhone } from "../domains/pr-booking-support";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
 import {
@@ -40,8 +39,8 @@ import {
   prMessageReadMarkerSchema,
   prIdParamSchema,
   prPartnerProfileParamSchema,
+  requireAuthenticatedOpenId,
   requireAuthenticatedCreatorIdentity,
-  requireAnchorAuthenticatedIdentity,
   requireAuthenticatedUserId,
   requireSessionUserId,
   resolveAvatarUrl,
@@ -84,7 +83,7 @@ const createStructuredPRCommandSchema = z.union([
   z.object({
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("EVENT_ASSISTED"),
-    anchorEventId: z.coerce.number().int().positive(),
+    anchorEventId: z.coerce.number().int().positive().optional(),
     routePoolEntryId: z.string().trim().min(1).max(120).optional(),
     correlationId: correlationIdSchema,
   }),
@@ -167,29 +166,10 @@ export const partnerRequestRoute = app
       const command = c.req.valid("json");
       const { fields, createSource } = command;
 
-      const creatorIdentity =
-        createSource === "EVENT_ASSISTED"
-          ? await (async () => {
-              const identity = await requireAnchorAuthenticatedIdentity(c);
-              return {
-                authenticatedUserId: identity.userId,
-                anonymousUserId: null,
-                oauthOpenId: identity.openId,
-              };
-            })()
-          : await requireAuthenticatedCreatorIdentity(c);
-
-      const result =
-        createSource === "EVENT_ASSISTED"
-          ? await createEventAssistedPR({
-              anchorEventId: command.anchorEventId,
-              fields,
-              creatorIdentity,
-              routePoolEntryId: command.routePoolEntryId ?? null,
-            })
-          : await createPRFromStructured(fields, creatorIdentity, {
-              createSource,
-            });
+      const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
+      const result = await createPRFromStructured(fields, creatorIdentity, {
+        createSource,
+      });
 
       return c.json(result, 201);
     },
@@ -486,7 +466,7 @@ export const partnerRequestRoute = app
   .post("/:id/confirm", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
     await getPROr404(id);
-    const { openId } = await requireAnchorAuthenticatedIdentity(c);
+    const openId = await requireAuthenticatedOpenId(c);
     const result = await confirmSlot(id, openId);
     return c.json(result);
   })
@@ -497,7 +477,7 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       await getPROr404(id);
-      const { openId } = await requireAnchorAuthenticatedIdentity(c);
+      const openId = await requireAuthenticatedOpenId(c);
       const { didAttend } = c.req.valid("json");
       if (didAttend === false) {
         return throwHttpProblem({ status: 400, detail: "didAttend=false is no longer supported" });

@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 import { installScenarioUserSession } from "../_infra/browser/session";
+import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
 import { withScenarioPage } from "../_infra/browser/browser";
+import {
+  expectBackendJsonResponse,
+  requestBackendJson,
+} from "../_infra/http/backend";
 import { scenario } from "../_infra/scenario/scenario";
 import {
   givenAnchorEvent,
   givenAnchorEventVisiblePR,
   setAnchorEventLandingRollout,
+  type ScenarioAnchorEvent,
 } from "../../../apps/backend/tests/anchor-event/_kit/builders/anchor-events";
-import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+import { bindScenarioWeChatOpenId } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
+import {
+  givenUser,
+  type ScenarioUser,
+} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
 
 const FORM_ONLY = {
   FORM: 100,
@@ -26,6 +36,25 @@ const LIST_ONLY = {
   FORM: 0,
   CARD_RICH: 0,
   LIST: 100,
+};
+
+type PRDetailProbe = {
+  id: number;
+  status: string;
+  createdBy?: string | null;
+  core: {
+    type: string;
+    location: string | null;
+  };
+};
+
+const givenWeChatBoundUser = async (label: string): Promise<ScenarioUser> => {
+  const user = await givenUser(label);
+  await bindScenarioWeChatOpenId({
+    user,
+    openId: `${label}-openid`,
+  });
+  return user;
 };
 
 const expectLandingPage = async (page: Page) => {
@@ -100,6 +129,50 @@ const expectNoBetaGroupCard = async (page: Page) => {
     await page.getByTestId("anchor-event.beta-group-card").count(),
     0,
   );
+};
+
+const readPrIdFromCurrentUrl = (page: Page): number => {
+  const url = new URL(page.url());
+  const match = /^\/pr\/(\d+)$/.exec(url.pathname);
+  assert.ok(match, `Expected PR detail URL, got ${url.pathname}`);
+  const prId = Number(match[1]);
+  assert.ok(Number.isInteger(prId) && prId > 0);
+  return prId;
+};
+
+const waitForEventAssistedCreateResponse = async (page: Page) => {
+  const response = await page.waitForResponse(
+    (candidate) =>
+      candidate.url().includes("/api/pr/new/form") &&
+      candidate.request().method() === "POST",
+    { timeout: 20_000 },
+  );
+  assert.equal(response.status(), 201);
+  const body = JSON.parse(response.request().postData() ?? "{}") as Record<
+    string,
+    unknown
+  >;
+  assert.equal(body.createSource, "EVENT_ASSISTED");
+};
+
+const expectCreatedPRDetail = async (input: {
+  prId: number;
+  token: string;
+  creatorUserId: string;
+  event: ScenarioAnchorEvent;
+  locationId: string;
+}): Promise<void> => {
+  const detail = await expectBackendJsonResponse<PRDetailProbe>(
+    await requestBackendJson(`/api/pr/${input.prId}`, {
+      token: input.token,
+    }),
+    200,
+  );
+
+  assert.equal(detail.createdBy, input.creatorUserId);
+  assert.equal(detail.status, "OPEN");
+  assert.equal(detail.core.type, input.event.type);
+  assert.equal(detail.core.location, input.locationId);
 };
 
 scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
@@ -201,6 +274,102 @@ scenario("anchor_event_landing_footer_switches_modes", async (ctx) => {
 
     await switchLandingMode(page, "form");
     await expectFormMode(page);
+  });
+});
+
+scenario("anchor_event_card_mode_event_assisted_create_happy_path", async (ctx) => {
+  const visitor = await givenWeChatBoundUser(
+    "system-anchor-card-assisted-create-visitor",
+  );
+  const event = await givenAnchorEvent({ label: "card-assisted-create" });
+
+  await setAnchorEventLandingRollout({
+    eventId: event.id,
+    ratios: CARD_RICH_ONLY,
+    assignmentRevision: 1,
+  });
+
+  ctx.record("eventId", event.id);
+  ctx.record("visitorUserId", visitor.user.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, visitor);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/e/${event.id}`);
+    await expectLandingPage(page);
+    await page
+      .locator(
+        '[data-testid="anchor-event-card-mode.surface"][data-mode-state="empty"]',
+      )
+      .waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+
+    const createResponsePromise = waitForEventAssistedCreateResponse(page);
+    await page.getByTestId("anchor-event-card-mode.empty-create").click();
+    await createResponsePromise;
+
+    await page.waitForURL(
+      (url) =>
+        /^\/pr\/\d+$/.test(url.pathname) &&
+        url.searchParams.get("entry") === "create" &&
+        url.searchParams.get("fromEvent") === String(event.id),
+      { timeout: 20_000 },
+    );
+    const createdPrId = readPrIdFromCurrentUrl(page);
+    await expectCreatedPRDetail({
+      prId: createdPrId,
+      token: visitor.token,
+      creatorUserId: visitor.user.id,
+      event,
+      locationId: event.locationId,
+    });
+  });
+});
+
+scenario("anchor_event_list_mode_event_assisted_create_happy_path", async (ctx) => {
+  const visitor = await givenWeChatBoundUser(
+    "system-anchor-list-assisted-create-visitor",
+  );
+  const event = await givenAnchorEvent({ label: "list-assisted-create" });
+
+  await setAnchorEventLandingRollout({
+    eventId: event.id,
+    ratios: LIST_ONLY,
+    assignmentRevision: 1,
+  });
+
+  ctx.record("eventId", event.id);
+  ctx.record("visitorUserId", visitor.user.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, visitor);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/e/${event.id}`);
+    await expectListModeSurface(page);
+
+    const createResponsePromise = waitForEventAssistedCreateResponse(page);
+    await page.getByTestId("anchor-event.create-card.create").click();
+    await createResponsePromise;
+
+    await page.waitForURL(
+      (url) =>
+        /^\/pr\/\d+$/.test(url.pathname) &&
+        url.searchParams.get("entry") === "create" &&
+        url.searchParams.get("fromEvent") === String(event.id),
+      { timeout: 20_000 },
+    );
+    const createdPrId = readPrIdFromCurrentUrl(page);
+    await expectCreatedPRDetail({
+      prId: createdPrId,
+      token: visitor.token,
+      creatorUserId: visitor.user.id,
+      event,
+      locationId: event.locationId,
+    });
   });
 });
 
