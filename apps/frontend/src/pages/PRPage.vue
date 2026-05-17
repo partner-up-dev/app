@@ -10,11 +10,28 @@
         data-region="summary"
       >
         <template #top-actions>
-          <PRCreatorHeaderActions
-            :pr-id="id"
-            :pr="prDetail"
-            :supports-event-context-features="supportsEventContextFeatures"
-          />
+          <div v-if="showHeaderQuickActions" class="header-quick-actions">
+            <Button
+              v-if="showEditContentAction"
+              tone="outline"
+              size="sm"
+              type="button"
+              data-testid="pr-detail.creator.edit-content"
+              @click="openEditContentModal"
+            >
+              {{ t("prPage.editContent") }}
+            </Button>
+            <Button
+              v-if="showModifyStatusAction"
+              tone="outline"
+              size="sm"
+              type="button"
+              data-testid="pr-detail.creator.modify-status"
+              @click="openModifyStatusModal"
+            >
+              {{ t("prPage.modifyStatus") }}
+            </Button>
+          </div>
         </template>
 
         <template #meta>
@@ -22,6 +39,79 @@
           <PRStatusBadge :status="prDetail.status" />
         </template>
       </PageHeader>
+
+      <Modal
+        v-if="showEditContentModal && id !== null && editableFields"
+        :open="showEditContentModal"
+        max-width="480px"
+        :title="t('editContentModal.title')"
+        @close="closeEditContentModal"
+      >
+        <PRForm
+          ref="editContentFormRef"
+          :initial-fields="editableFields"
+          :show-budget-field="showBudgetField"
+          :show-time-field="showTimeField"
+          :type-editable="false"
+          @submit="handleEditContentSubmit"
+        />
+
+        <div class="creator-modal-actions creator-modal-actions--spaced">
+          <Button
+            type="button"
+            tone="outline"
+            @click="closeEditContentModal"
+          >
+            {{ t("common.cancel") }}
+          </Button>
+          <Button
+            type="button"
+            :loading="editContentPending"
+            :disabled="!isEditContentFormValid"
+            @click="submitEditContentForm"
+          >
+            {{ t("editContentModal.confirmAction") }}
+          </Button>
+        </div>
+
+        <ErrorToast
+          v-if="hasEditContentError"
+          :message="editContentError?.message || t('editContentModal.updateFailed')"
+          @close="resetContentUpdate"
+        />
+      </Modal>
+
+      <Modal
+        v-if="showModifyStatusModal && id !== null"
+        :open="showModifyStatusModal"
+        max-width="360px"
+        :title="t('modifyStatusModal.title')"
+        @close="closeModifyStatusModal"
+      >
+        <UpdatePRStatusForm
+          ref="updateStatusFormRef"
+          :disabled="updateStatusPending"
+          @submit="handleUpdateStatusSubmit"
+        />
+
+        <div class="creator-modal-actions">
+          <Button tone="outline" @click="closeModifyStatusModal">
+            {{ t("common.cancel") }}
+          </Button>
+          <Button
+            :loading="updateStatusPending"
+            @click="submitUpdateStatusForm"
+          >
+            {{ t("modifyStatusModal.confirmAction") }}
+          </Button>
+        </div>
+
+        <ErrorToast
+          v-if="hasUpdateStatusError"
+          :message="updateStatusError?.message || t('modifyStatusModal.updateFailed')"
+          @close="resetStatusUpdate"
+        />
+      </Modal>
 
       <PRDraftPublishNotice
         ref="creatorPublishNoticeRef"
@@ -70,28 +160,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, isRef, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import type { PRStatusManual } from "@partner-up-dev/backend";
+import type { PartnerRequestFormInput } from "@/lib/validation";
+import Button from "@/shared/ui/actions/Button.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
+import Modal from "@/shared/ui/overlay/Modal.vue";
+import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
 import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PRContextualActions from "@/domains/pr/ui/sections/PRContextualActions.vue";
-import PRCreatorHeaderActions from "@/domains/pr/ui/sections/PRCreatorHeaderActions.vue";
 import PRDraftPublishNotice from "@/domains/pr/ui/sections/PRDraftPublishNotice.vue";
 import PRUtilityActions from "@/domains/pr/ui/sections/PRUtilityActions.vue";
+import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
+import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
 import { usePRLivePolling } from "@/domains/pr/use-cases/usePRLivePolling";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
+import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions";
 import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
+import { trackEvent } from "@/shared/telemetry/track";
 import {
   clearPendingWeChatAction,
   readPendingWeChatAction,
@@ -109,6 +207,9 @@ type PRContextualActionsExpose = {
 type PRDraftPublishNoticeExpose = {
   replayPublishDraft: () => Promise<void>;
 };
+type CreatorSecondaryActionType =
+  | "CREATOR_EDIT_CONTENT"
+  | "CREATOR_MODIFY_STATUS";
 type ReplayablePendingAction = Extract<
   PendingWeChatAction,
   { kind: ContextualPendingActionKind | "PR_PUBLISH" }
@@ -120,9 +221,14 @@ const id = usePRRouteId();
 const { data, isLoading, error, refetch } = usePRDetail(id);
 const prDetail = computed(() => data.value);
 const factsCardTargetRef = ref<HTMLElement | null>(null);
+const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
+const updateStatusFormRef =
+  ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
 const contextualActionsRef = ref<PRContextualActionsExpose | null>(null);
 const creatorPublishNoticeRef = ref<PRDraftPublishNoticeExpose | null>(null);
 const pendingActionReplayRunning = ref(false);
+const showEditContentModal = ref(false);
+const showModifyStatusModal = ref(false);
 const matchedPRHandoff = useMatchedPRHandoff();
 
 const prDisplayTitle = computed(() => {
@@ -174,6 +280,38 @@ const showEventAssistedCreateHandoffNotice = computed(
     handoffEntry.value === "event_assisted_create",
 );
 
+const {
+  editableFields,
+  showBudgetField,
+  showTimeField,
+  showEditContentAction,
+  showModifyStatusAction,
+  showHeaderQuickActions,
+  editContentPending,
+  editContentError,
+  hasEditContentError,
+  updateStatusPending,
+  updateStatusError,
+  hasUpdateStatusError,
+  submitContentUpdate,
+  submitStatusUpdate,
+  resetContentUpdate,
+  resetStatusUpdate,
+} = usePRCreatorActions({
+  id,
+  pr: prDetail,
+  supportsEventContextFeatures,
+});
+
+const isEditContentFormValid = computed(() => {
+  const canSubmit = editContentFormRef.value?.canSubmit;
+  return isRef(canSubmit) ? canSubmit.value : Boolean(canSubmit);
+});
+
+useBodyScrollLock(
+  computed(() => showEditContentModal.value || showModifyStatusModal.value),
+);
+
 const { resetLivePolling } = usePRLivePolling({
   id,
   refetch,
@@ -193,6 +331,58 @@ useRouteShareDescriptorRegistration(routeShareDescriptor);
 const handlePRActionSuccess = () => {
   resetLivePolling();
   void refetch();
+};
+
+const trackCreatorActionClick = (actionType: CreatorSecondaryActionType) => {
+  if (id.value === null || !supportsEventContextFeatures.value) return;
+  trackEvent("pr_secondary_action_click", {
+    prId: id.value,
+    actionType,
+  });
+};
+
+const openEditContentModal = () => {
+  resetContentUpdate();
+  trackCreatorActionClick("CREATOR_EDIT_CONTENT");
+  showEditContentModal.value = true;
+};
+
+const closeEditContentModal = () => {
+  showEditContentModal.value = false;
+  resetContentUpdate();
+};
+
+const submitEditContentForm = () => {
+  editContentFormRef.value?.submitForm();
+};
+
+const handleEditContentSubmit = async (
+  payload: PartnerRequestFormInput,
+): Promise<void> => {
+  await submitContentUpdate(payload);
+  closeEditContentModal();
+};
+
+const openModifyStatusModal = () => {
+  resetStatusUpdate();
+  trackCreatorActionClick("CREATOR_MODIFY_STATUS");
+  showModifyStatusModal.value = true;
+};
+
+const closeModifyStatusModal = () => {
+  showModifyStatusModal.value = false;
+  resetStatusUpdate();
+};
+
+const submitUpdateStatusForm = () => {
+  updateStatusFormRef.value?.submitForm();
+};
+
+const handleUpdateStatusSubmit = async (
+  status: PRStatusManual,
+): Promise<void> => {
+  await submitStatusUpdate(status);
+  closeModifyStatusModal();
 };
 
 const shouldHideFactsForHandoff = computed(() =>
@@ -301,6 +491,26 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.header-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.creator-modal-actions {
+  display: flex;
+  gap: var(--sys-spacing-small);
+
+  :deep(.ui-button) {
+    flex: 1;
+    min-width: 66px;
+  }
+}
+
+.creator-modal-actions--spaced {
+  margin-top: var(--sys-spacing-large);
+}
+
 .type-badge {
   @include mx.pu-font(label-medium);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
@@ -315,5 +525,12 @@ onMounted(() => {
 
 .facts-card--handoff-hidden {
   visibility: hidden;
+}
+
+@media (max-width: 375px) {
+  .header-quick-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 </style>

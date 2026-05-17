@@ -1,7 +1,17 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith("wx-open-"),
+        },
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./apps/frontend/src", import.meta.url)),
@@ -9,6 +19,14 @@ export default defineConfig({
       "@partner-up-dev/backend": fileURLToPath(
         new URL("./apps/backend/src/index.ts", import.meta.url),
       ),
+    },
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData:
+          '@use "@/styles/functions" as fn; @use "@/styles/mixins" as mx;',
+      },
     },
   },
   test: {
