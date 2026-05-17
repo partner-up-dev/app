@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
@@ -10,7 +11,14 @@ import {
   submitAnchorEventFormModePreferenceTags,
   recommendAnchorEventFormModePRs,
 } from "../domains/anchor-event";
+import {
+  listMyAnchorEventRouteApplications,
+  submitAnchorEventRouteApplication,
+} from "../domains/anchor-event-route-application";
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
+import { prRouteSchema } from "../entities/partner-request";
+import type { UserId } from "../entities/user";
+import { throwHttpProblem } from "../lib/problem-details";
 
 const app = new Hono<AuthEnv>();
 
@@ -29,6 +37,18 @@ const formModeRecommendationSchema = z.object({
   correlationId: z.string().trim().min(1).max(128).optional(),
 });
 
+const routeApplicationSchema = z.object({
+  route: prRouteSchema,
+});
+
+const requireSessionUserId = (c: Context<AuthEnv>): UserId => {
+  const auth = c.get("auth");
+  if (!auth.userId) {
+    return throwHttpProblem({ status: 401, detail: "Authentication required" });
+  }
+  return auth.userId as UserId;
+};
+
 export const anchorEventRoute = app
   .use("*", authMiddleware)
   // GET /api/events - List all active anchor events (Event Plaza)
@@ -36,6 +56,27 @@ export const anchorEventRoute = app
     const events = await listAnchorEvents();
     return c.json(events);
   })
+  .get("/route-applications/mine", async (c) => {
+    const userId = requireSessionUserId(c);
+    const applications = await listMyAnchorEventRouteApplications(userId);
+    return c.json(applications);
+  })
+  .post(
+    "/:eventId/route-applications",
+    zValidator("param", eventIdParamSchema),
+    zValidator("json", routeApplicationSchema),
+    async (c) => {
+      const { eventId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const userId = requireSessionUserId(c);
+      const application = await submitAnchorEventRouteApplication({
+        anchorEventId: eventId,
+        route: payload.route,
+        submittedByUserId: userId,
+      });
+      return c.json(application, 201);
+    },
+  )
   // GET /api/events/:eventId - Get anchor event detail with time-window discovery
   .get("/:eventId", zValidator("param", eventIdParamSchema), async (c) => {
     const { eventId } = c.req.valid("param");

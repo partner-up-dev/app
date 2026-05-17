@@ -12,18 +12,24 @@ type AdminApi = typeof adminClient.api.admin;
 type AnchorEventsRoute = AdminApi["anchor-events"];
 type AnchorEventWorkspaceRoute = AnchorEventsRoute["workspace"];
 type AnchorEventRoute = AnchorEventsRoute[":eventId"];
+type RouteApplicationRoute = AdminApi["route-applications"][":applicationId"];
 
 const readErrorMessage = async (
   response: Response,
   fallback: string,
 ): Promise<string> => {
-  const payload = (await response.json()) as { error?: string };
-  return payload.error || fallback;
+  const payload = (await response.json()) as {
+    detail?: string;
+    error?: string;
+  };
+  return payload.detail || payload.error || fallback;
 };
 
 export type AdminAnchorEventWorkspaceResponse = InferResponseType<
   AnchorEventWorkspaceRoute["$get"]
 >;
+export type AdminRouteApplication =
+  AdminAnchorEventWorkspaceResponse["routeApplications"][number];
 
 export type CreateAdminAnchorEventResponse = InferResponseType<
   AnchorEventsRoute["$post"]
@@ -31,6 +37,12 @@ export type CreateAdminAnchorEventResponse = InferResponseType<
 
 export type UpdateAdminAnchorEventResponse = InferResponseType<
   AnchorEventRoute["$patch"]
+>;
+export type AcceptAdminRouteApplicationResponse = InferResponseType<
+  RouteApplicationRoute["accept"]["$post"]
+>;
+export type RejectAdminRouteApplicationResponse = InferResponseType<
+  RouteApplicationRoute["reject"]["$post"]
 >;
 
 export type AdminAnchorRecurringStartRuleInput = {
@@ -155,6 +167,56 @@ export const useUpdateAdminAnchorEvent = () => {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
+      });
+    },
+  });
+};
+export const useAcceptAdminRouteApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<AcceptAdminRouteApplicationResponse, Error, number>({
+    mutationFn: async (applicationId) => {
+      const res = await adminClient.api.admin["route-applications"][
+        ":applicationId"
+      ].accept.$post({
+        param: { applicationId: applicationId.toString() },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "通过路线申请失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.anchorEventWorkspace(),
+      });
+    },
+  });
+};
+
+export const useRejectAdminRouteApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    RejectAdminRouteApplicationResponse,
+    Error,
+    { applicationId: number; rejectReason: string | null }
+  >({
+    mutationFn: async ({ applicationId, rejectReason }) => {
+      const res = await adminClient.api.admin["route-applications"][
+        ":applicationId"
+      ].reject.$post({
+        param: { applicationId: applicationId.toString() },
+        json: { rejectReason },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "驳回路线申请失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.anchorEventWorkspace(),
       });
     },
   });

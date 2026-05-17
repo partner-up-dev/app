@@ -33,6 +33,7 @@ type AdminAnchorWorkspaceResponse = {
     locationPool: string[];
     routePool: AnchorEventRoutePool;
   }>;
+  routeApplications: RouteApplicationResponse[];
 };
 
 type AnchorEventDetailResponse = {
@@ -76,6 +77,14 @@ type CreatePRResponse = {
 type ProblemDetailsResponse = {
   code?: string;
   detail?: string;
+};
+
+type RouteApplicationResponse = {
+  id: number;
+  anchorEventId: number;
+  route: PRRoute;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  rejectReason: string | null;
 };
 
 const buildRoute = (endName = "天河体育中心"): PRRoute => [
@@ -238,6 +247,90 @@ scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => 
   assert.equal(summary?.routeCount, 1);
   assert.deepEqual(summary?.routePool, routePool);
 });
+
+scenario(
+  "anchor_event_route_application_accept_appends_route_pool",
+  async (ctx) => {
+    const applicant = await givenUser("route-application-applicant");
+    const admin = await givenAdminUser("route-application-reviewer");
+    const route = buildRoute("二沙岛体育公园");
+    const event = await createAdminAnchorEvent(
+      buildEventInput({ label: "route-application" }),
+    );
+    ctx.record("eventId", event.id);
+
+    const submitted = await expectJsonResponse<RouteApplicationResponse>(
+      await requestJson(`/api/events/${event.id}/route-applications`, {
+        method: "POST",
+        token: applicant.token,
+        body: { route },
+      }),
+      201,
+    );
+    ctx.record("routeApplicationId", submitted.id);
+    assert.equal(submitted.status, "PENDING");
+    assert.deepEqual(submitted.route, route);
+
+    const mine = await expectJsonResponse<RouteApplicationResponse[]>(
+      await requestJson("/api/events/route-applications/mine", {
+        token: applicant.token,
+      }),
+      200,
+    );
+    assert.ok(mine.some((application) => application.id === submitted.id));
+
+    const accepted = await expectJsonResponse<RouteApplicationResponse>(
+      await requestJson(
+        `/api/admin/route-applications/${submitted.id}/accept`,
+        {
+          method: "POST",
+          token: admin.token,
+        },
+      ),
+      200,
+    );
+    assert.equal(accepted.status, "ACCEPTED");
+
+    const workspace = await expectJsonResponse<AdminAnchorWorkspaceResponse>(
+      await requestJson("/api/admin/anchor-events/workspace", {
+        token: admin.token,
+      }),
+      200,
+    );
+    const workspaceEvent = workspace.events.find((item) => item.id === event.id);
+    assert.deepEqual(workspaceEvent?.routePool, [
+      {
+        id: `application-${submitted.id}`,
+        route,
+      },
+    ]);
+    assert.equal(
+      workspace.routeApplications.find((item) => item.id === submitted.id)
+        ?.status,
+      "ACCEPTED",
+    );
+
+    const locationPoolEvent = await createAdminAnchorEvent(
+      buildEventInput({
+        label: "route-application-location-pool",
+        locationPool: ["路线申请不适用场地"],
+      }),
+    );
+    const rejected = await requestJson(
+      `/api/events/${locationPoolEvent.id}/route-applications`,
+      {
+        method: "POST",
+        token: applicant.token,
+        body: { route },
+      },
+    );
+    const problem = await expectJsonResponse<ProblemDetailsResponse>(
+      rejected,
+      400,
+    );
+    assert.equal(problem.code, "ANCHOR_EVENT_ROUTE_APPLICATION_UNAVAILABLE");
+  },
+);
 
 scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) => {
   const creator = await givenUser("route-pool-assisted-creator");

@@ -42,6 +42,14 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         hash: sectionHash("anchor-event-locations"),
       },
       {
+        id: "anchor-event-route-applications",
+        labelKey: "adminCommon.navAnchorEventRouteApplications",
+        subtitleKey: "adminCommon.navAnchorEventRouteApplicationsSubtitle",
+        routeName: "admin-anchor-events",
+        sectionId: "anchor-event-route-applications",
+        hash: sectionHash("anchor-event-route-applications"),
+      },
+      {
         id: "anchor-event-time",
         labelKey: "adminCommon.navAnchorEventTime",
         subtitleKey: "adminCommon.navAnchorEventTimeSubtitle",

@@ -51,6 +51,10 @@ import {
   listAdminFeedbackQuestionnaireTemplates,
   updateAdminFeedbackQuestionnaireTemplate,
 } from "../domains/feedback-questionnaire";
+import {
+  acceptAdminAnchorEventRouteApplication,
+  rejectAdminAnchorEventRouteApplication,
+} from "../domains/anchor-event-route-application";
 import { prMessageCreateSchema } from "./pr-controller.shared";
 import { anchorEventLandingConfigSchema } from "../domains/anchor-event/landing-config";
 
@@ -73,6 +77,9 @@ const prMessageIdParamSchema = z.object({
 const preferenceTagIdParamSchema = z.object({
   eventId: z.coerce.number().int().positive(),
   tagId: z.coerce.number().int().positive(),
+});
+const routeApplicationIdParamSchema = z.object({
+  applicationId: z.coerce.number().int().positive(),
 });
 const partnerIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
@@ -177,6 +184,9 @@ const adminPreferenceTagsReplaceSchema = z.object({
 const adminManualReleaseSchema = z.object({
   reason: z.string().trim().min(1),
 });
+const adminRouteApplicationRejectSchema = z.object({
+  rejectReason: z.string().trim().nullable().optional(),
+});
 
 export const adminAnchorManagementRoute = app
   .use("*", adminAuthMiddleware)
@@ -184,6 +194,35 @@ export const adminAnchorManagementRoute = app
     const result = await getAdminAnchorEventWorkspace();
     return c.json(result);
   })
+  .post(
+    "/route-applications/:applicationId/accept",
+    zValidator("param", routeApplicationIdParamSchema),
+    async (c) => {
+      const { applicationId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await acceptAdminAnchorEventRouteApplication({
+        applicationId,
+        reviewedByUserId: auth.userId ?? null,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/route-applications/:applicationId/reject",
+    zValidator("param", routeApplicationIdParamSchema),
+    zValidator("json", adminRouteApplicationRejectSchema),
+    async (c) => {
+      const { applicationId } = c.req.valid("param");
+      const { rejectReason } = c.req.valid("json");
+      const auth = c.get("auth");
+      const result = await rejectAdminAnchorEventRouteApplication({
+        applicationId,
+        reviewedByUserId: auth.userId ?? null,
+        rejectReason: rejectReason ?? null,
+      });
+      return c.json(result);
+    },
+  )
   .get(
     "/events/:eventId/landing-config",
     zValidator("param", eventIdParamSchema),

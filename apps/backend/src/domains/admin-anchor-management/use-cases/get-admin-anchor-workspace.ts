@@ -21,6 +21,10 @@ import {
 } from "../../pr/services";
 import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 import { listAnchorEventTimeWindowDetails } from "../../anchor-event/services/time-window-pool";
+import {
+  listAdminAnchorEventRouteApplications,
+  type AnchorEventRouteApplicationView,
+} from "../../anchor-event-route-application";
 
 const anchorEventRepo = new AnchorEventRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -109,6 +113,7 @@ export type AdminAnchorEventSummary = {
 
 export interface AdminAnchorEventWorkspace {
   events: AdminAnchorEventSummary[];
+  routeApplications: AnchorEventRouteApplicationView[];
   feedbackQuestionnaireTemplates: Array<{
     id: FeedbackQuestionnaireTemplate["id"];
     key: string;
@@ -216,9 +221,11 @@ export async function getAdminAnchorEventWorkspace(): Promise<AdminAnchorEventWo
   );
 
   const templates = await feedbackRepo.listTemplates();
+  const routeApplications = await listAdminAnchorEventRouteApplications();
 
   return {
     events: eventSummaries,
+    routeApplications,
     feedbackQuestionnaireTemplates: templates.map((template) => ({
       id: template.id,
       key: template.key,

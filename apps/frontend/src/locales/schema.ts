@@ -671,6 +671,7 @@ export interface MessageSchema {
       locationTitle: string;
       locationAriaLabel: string;
       locationCreateLabel: string;
+      routeCreateLabel: string;
       timeEyebrow: string;
       timeTitle: string;
       dateWheelAriaLabel: string;
@@ -853,6 +854,30 @@ export interface MessageSchema {
     status: {
       PENDING: string;
       PUBLISHED: string;
+      REJECTED: string;
+    };
+  };
+  routeApplicationPage: {
+    title: string;
+    subtitle: string;
+    routeLabel: string;
+    routeHint: string;
+    routeReady: string;
+    missingEvent: string;
+    submitAction: string;
+    submitSuccess: string;
+    mineTitle: string;
+    mineSubtitle: string;
+    emptyMine: string;
+    unnamedRoute: string;
+    validation: {
+      minPoints: string;
+      nameRequired: string;
+      coordinateRequired: string;
+    };
+    status: {
+      PENDING: string;
+      ACCEPTED: string;
       REJECTED: string;
     };
   };
@@ -1108,6 +1133,8 @@ export interface MessageSchema {
     navAnchorEventBasicSubtitle: string;
     navAnchorEventLocations: string;
     navAnchorEventLocationsSubtitle: string;
+    navAnchorEventRouteApplications: string;
+    navAnchorEventRouteApplicationsSubtitle: string;
     navAnchorEventTime: string;
     navAnchorEventTimeSubtitle: string;
     navAnchorEventTags: string;
@@ -1424,6 +1451,18 @@ export interface MessageSchema {
     preferenceTagDescriptionEmpty: string;
     publishPreferenceTagAction: string;
     rejectPreferenceTagAction: string;
+    routeApplicationsTitle: string;
+    selectEventForRouteApplicationsHint: string;
+    emptyRouteApplications: string;
+    routeApplicationRejectPlaceholder: string;
+    acceptRouteApplicationAction: string;
+    rejectRouteApplicationAction: string;
+    routeSummaryFallback: string;
+    routeApplicationStatus: {
+      PENDING: string;
+      ACCEPTED: string;
+      REJECTED: string;
+    };
   };
   adminPR: {
     title: string;

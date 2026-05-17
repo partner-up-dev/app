@@ -29,6 +29,8 @@ export const queryKeys = {
       ["anchor-event", "detail", eventId] as const,
     formMode: (eventId: number | null) =>
       ["anchor-event", "form-mode", eventId] as const,
+    routeApplicationsMine: () =>
+      ["anchor-event", "route-applications", "mine"] as const,
     landingAssignment: (eventId: number | null) =>
       ["anchor-event", "landing-assignment", eventId] as const,
     demandCards: (eventId: number | null) =>

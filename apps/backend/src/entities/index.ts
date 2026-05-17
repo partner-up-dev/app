@@ -16,6 +16,7 @@ export * from "./telemetry-event";
 export * from "./user-telemetry";
 export * from "./operation-log";
 export * from "./anchor-event";
+export * from "./anchor-event-route-application";
 export * from "./job";
 export * from "./notification-delivery";
 export * from "./notification-opportunity";

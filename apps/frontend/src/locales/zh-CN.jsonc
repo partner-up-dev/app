@@ -685,6 +685,8 @@
     "navAnchorEventBasicSubtitle": "维护活动展示、主碰头地点、封面与默认参与策略。",
     "navAnchorEventLocations": "活动场地",
     "navAnchorEventLocationsSubtitle": "配置活动可用场地池和场地级碰头地点。",
+    "navAnchorEventRouteApplications": "路线申请",
+    "navAnchorEventRouteApplicationsSubtitle": "审核用户提交到活动路线池的新路线。",
     "navAnchorEventTime": "活动时间",
     "navAnchorEventTimeSubtitle": "维护时间窗口生成规则、时长和参与时间线。",
     "navAnchorEventTags": "活动标签",
@@ -955,7 +957,19 @@
     "emptyPendingPreferenceTags": "当前没有待审核标签。",
     "preferenceTagDescriptionEmpty": "暂无说明",
     "publishPreferenceTagAction": "发布",
-    "rejectPreferenceTagAction": "驳回"
+    "rejectPreferenceTagAction": "驳回",
+    "routeApplicationsTitle": "路线申请",
+    "selectEventForRouteApplicationsHint": "请先选择一个已有活动，再审核路线申请。",
+    "emptyRouteApplications": "当前活动没有待处理路线申请。",
+    "routeApplicationRejectPlaceholder": "填写驳回原因（可选）",
+    "acceptRouteApplicationAction": "通过",
+    "rejectRouteApplicationAction": "驳回",
+    "routeSummaryFallback": "路线摘要待完善",
+    "routeApplicationStatus": {
+      "PENDING": "待审核",
+      "ACCEPTED": "已通过",
+      "REJECTED": "已驳回"
+    }
   },
   "adminPR": {
     "title": "PR 管理",
@@ -1281,6 +1295,30 @@
     "status": {
       "PENDING": "待审核",
       "PUBLISHED": "已发布",
+      "REJECTED": "已驳回"
+    }
+  },
+  "routeApplicationPage": {
+    "title": "申请新路线",
+    "subtitle": "提交一条你希望加入当前活动的路线，审核通过后会进入该活动的路线池。",
+    "routeLabel": "路线",
+    "routeHint": "请选择至少两个地点，并确保每个地点都有名称和坐标。",
+    "routeReady": "路线已就绪，可以提交审核。",
+    "missingEvent": "缺少活动信息，请从活动页重新进入。",
+    "submitAction": "提交路线申请",
+    "submitSuccess": "已提交“{title}”，可以在下方查看审核状态。",
+    "mineTitle": "我的路线申请",
+    "mineSubtitle": "审核通过后，这条路线会加入对应活动的路线池。",
+    "emptyMine": "当前还没有提交过路线申请。",
+    "unnamedRoute": "未命名路线",
+    "validation": {
+      "minPoints": "路线至少需要起点和终点。",
+      "nameRequired": "路线上的每个地点都需要名称。",
+      "coordinateRequired": "路线上的每个地点都需要坐标。"
+    },
+    "status": {
+      "PENDING": "待审核",
+      "ACCEPTED": "已通过",
       "REJECTED": "已驳回"
     }
   },
@@ -1717,6 +1755,7 @@
       "locationTitle": "地点",
       "locationAriaLabel": "地点选择",
       "locationCreateLabel": "申请新地点",
+      "routeCreateLabel": "申请新路线",
       "timeEyebrow": "开始时间",
       "timeTitle": "开始时间",
       "dateWheelAriaLabel": "选择日期",
