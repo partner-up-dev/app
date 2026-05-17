@@ -39,7 +39,7 @@
 
 1. The user browses `/events`, `/events/:eventId`, `/e/:eventId`, or enters `/events/search`; event-card order on these entry surfaces is backend-authored display policy rather than frontend-owned ranking truth.
 2. `/e/:eventId` is the ad-scan-first Anchor Event landing entry. It keeps a lighter landing role than `/events/:eventId` and may enter `FORM`, `CARD_RICH`, or `LIST` landing mode for the same event.
-3. `/events/:eventId` and `/e/:eventId` may recommend bookmarking the web page after the user has stayed for 3 seconds, gated by a frontend 6-hour cooldown shared with the Home page bookmark recommendation.
+3. `/e/:eventId` may recommend following the official account after the user has stayed for 3 seconds, gated by the shared frontend 6-hour official-account prompt cooldown also used by Home and post-commitment follow-ups.
 4. The same user should keep a stable landing mode for the same event until the operator applies a new landing revision for that event.
 5. If the landing mode cannot be resolved in time, `/e/:eventId` still enters a usable `FORM` fallback experience.
 6. In `FORM` mode, the user selects one place option, one start time, and optional preferences before the system reveals candidate `PR`s. Location-pool events present POI/location choices; route-pool events present route choices with route geometry. When the selected start time inherits event-authored time-window description copy from its start rule, the time control surfaces that copy under the picker.

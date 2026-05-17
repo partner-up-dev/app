@@ -29,7 +29,7 @@ These shape runtime behavior but remain backend-owned.
 - TanStack Query caches of backend data
 - route-local UI state
 - local message composer drafts and thread expansion/collapse state
-- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, bookmark-page nudge cooldown, official-account follow prompt cooldown, anchor-event landing mode stability, analytics session id, and `spm`
+- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, official-account follow prompt cooldown, anchor-event landing mode stability, analytics session id, and `spm`
 - active route-share session state, currently selected share descriptor, and replay bookkeeping for WeChat/browser share flows
 
 This state improves UX and continuity but does not define product truth.

@@ -1,8 +1,10 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { useWeChatOfficialAccountFollowStatus } from "@/shared/wechat/queries/useWeChatOfficialAccountFollowStatus";
+import { trackEvent } from "@/shared/telemetry/track";
 
 export type OfficialAccountFollowPromptSource =
+  | "home"
   | "anchor_event"
   | "pr_join_result"
   | "pr_waitlist_result";
@@ -27,7 +29,8 @@ const isStoredPromptCooldown = (
   return (
     typeof record.cooldownUntilMs === "number" &&
     Number.isFinite(record.cooldownUntilMs) &&
-    (record.source === "anchor_event" ||
+    (record.source === "home" ||
+      record.source === "anchor_event" ||
       record.source === "pr_join_result" ||
       record.source === "pr_waitlist_result") &&
     (record.action === "shown" ||
@@ -114,6 +117,9 @@ export const useOfficialAccountFollowPrompt = (
 
   const markPromptPresented = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "shown");
+    trackEvent("official_account_follow_nudge_shown", {
+      source,
+    });
   };
 
   const requestPrompt = (): boolean => {
@@ -139,11 +145,19 @@ export const useOfficialAccountFollowPrompt = (
   const dismissPrompt = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "dismissed");
     isVisible.value = false;
+    trackEvent("official_account_follow_nudge_action_click", {
+      source,
+      action: "dismiss",
+    });
   };
 
   const markPromptCompleted = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "completed");
     isVisible.value = false;
+    trackEvent("official_account_follow_nudge_action_click", {
+      source,
+      action: "complete",
+    });
   };
 
   watch(isBackendConfirmedFollowed, (followed) => {

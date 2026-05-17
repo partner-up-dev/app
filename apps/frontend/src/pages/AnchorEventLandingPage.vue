@@ -106,9 +106,10 @@
     />
   </BottomDrawer>
 
-  <BookmarkPageNudge
-    :open="bookmarkPageNudgePrompt.isVisible.value"
-    @acknowledge="bookmarkPageNudgePrompt.acknowledgePrompt"
+  <OfficialAccountFollowNudge
+    :open="officialAccountFollowPrompt.isVisible.value"
+    @dismiss="officialAccountFollowPrompt.dismissPrompt"
+    @complete="officialAccountFollowPrompt.markPromptCompleted"
   />
 </template>
 
@@ -122,7 +123,7 @@ import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffol
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
 import AnchorEventFormModeSurface from "@/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue";
 import AnchorEventListModeSurface from "@/domains/event/ui/surfaces/AnchorEventListModeSurface.vue";
-import BookmarkPageNudge from "@/domains/marketing/ui/BookmarkPageNudge.vue";
+import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
@@ -149,7 +150,7 @@ import Button from "@/shared/ui/actions/Button.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
-import { useBookmarkPageNudgePrompt } from "@/domains/marketing/use-cases/useBookmarkPageNudgePrompt";
+import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
@@ -190,8 +191,9 @@ const { t } = useI18n();
 const showOtherEventsDrawer = ref(false);
 const formModeSurfaceRef = ref<FormModeSurfaceExposed | null>(null);
 const formModeResultState = ref<FormModeResultState>("selection");
-const bookmarkPageNudgePrompt = useBookmarkPageNudgePrompt("anchor_event");
-const BOOKMARK_PAGE_NUDGE_DELAY_MS = 3000;
+const officialAccountFollowPrompt =
+  useOfficialAccountFollowPrompt("anchor_event");
+const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
 
 const noop = () => undefined;
 
@@ -944,7 +946,9 @@ watch(
 
 onMounted(() => {
   void attemptPendingCreateReplay();
-  bookmarkPageNudgePrompt.requestPromptAfterDelay(BOOKMARK_PAGE_NUDGE_DELAY_MS);
+  officialAccountFollowPrompt.requestPromptAfterDelay(
+    OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS,
+  );
 });
 
 const handleCreateFromCardEmpty = async () => {

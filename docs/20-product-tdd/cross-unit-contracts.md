@@ -61,6 +61,7 @@ Contract implication:
 - The follower-list cursor is pagination state for one scan. It is not persisted as durable user state.
 - The sync task only writes positive confirmations. Missing users in a follower-list scan remain `UNKNOWN` until a later unsubscribe webhook or reconciliation contract exists.
 - Frontend official-account follow prompts combine backend status with a 6-hour local cooldown aligned to the follower-list sync period, so a user who recently saw the prompt or opened the follow QR is spared repeat presentation before the next expected backend confirmation opportunity.
+- Frontend may mount the shared official-account follow prompt on Home, Anchor Event landing, and post-commitment follow-ups; those surfaces share the same cooldown and emit user telemetry for prompt presentation and completion/dismissal actions.
 
 ## 5. Error Contract
 
@@ -153,7 +154,7 @@ Important coordination note:
 - `PATCH /api/admin/prs/:id/feedback-questionnaire-instance` is the admin-only PR feedback override command. It replaces the PR's mounted feedback questionnaire instance pointer and leaves general PR content, Anchor Event template selection, and prior response records under their owning persistence rules.
 - `/events/search` is a PR discovery route scoped by one active `Anchor Event` plus one or more local dates; its route state should be recoverable through query parameters such as `eventId` and repeated date values
 - `/e/:eventId` is the ad-scan-first Anchor Event landing entry; it may render `FORM`, `CARD_RICH`, or `LIST` mode while `/events/:eventId` keeps the existing rich page responsibility
-- `/`, `/events/:eventId`, and `/e/:eventId` may trigger the bookmark-page nudge through one shared frontend 6-hour local cooldown. The Home page uses a later timed prompt, while the event routes may prompt after 3 seconds.
+- `/` and `/e/:eventId` may trigger the official-account follow nudge through one shared frontend 6-hour local cooldown. The Home page uses a later timed prompt, while the event route may prompt after 3 seconds.
 - `/e/:eventId` owns the Form Mode selection state, no-match candidate result state, and zero-candidate assisted-create handoff in one route-level state machine.
 - `GET /api/events` is the public active Anchor Event catalog contract and should return enough event object data for event-card selection surfaces; response ordering is backend-authoritative display policy, so frontend should treat it as opaque instead of hardcoded ranking truth; it does not own PR search results
 - `GET /api/events` and `GET /api/events/:eventId` expose each Anchor Event's beta-group QR code when configured; `/about` and `/events/:eventId` use that event-owned value for beta-group entry instead of reading a generic beta-group public config key

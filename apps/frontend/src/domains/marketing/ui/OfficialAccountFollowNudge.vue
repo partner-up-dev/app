@@ -5,6 +5,7 @@
       class="official-account-follow-nudge"
       role="status"
       aria-live="polite"
+      data-testid="official-account-follow-nudge"
     >
       <div class="nudge-content">
         <span class="nudge-icon i-mdi-wechat" aria-hidden="true"></span>
@@ -24,6 +25,7 @@
           tone="surface"
           size="sm"
           type="button"
+          data-testid="official-account-follow-nudge.dismiss"
           @click="emit('dismiss')"
         >
           {{ t("officialAccountFollow.laterAction") }}
@@ -32,6 +34,7 @@
           appearance="pill"
           size="sm"
           type="button"
+          data-testid="official-account-follow-nudge.follow"
           @click="handleOpenOfficialAccountQr"
         >
           <template #leading>

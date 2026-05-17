@@ -153,19 +153,10 @@
       "footerNavMine": "我的"
     },
     "bookmarkNudge": {
-      "title": "需要时再回来",
-      "hint": "保存本页二维码，之後在微信扫一扫就能继续打开；也可以顺手扫码关注公众号。",
-      "webQrAction": "查看并保存二维码",
-      "officialAccountQrAction": "二维码关注公众号",
       "webQrModalTitle": "保存本页二维码",
-      "webQrModalDescription": "长按保存二维码，之後在微信扫一扫即可再次打开这个网页。",
+      "webQrModalDescription": "长按保存二维码，之后在微信扫一扫即可再次打开这个网页。",
       "webQrModalQrAlt": "本网页二维码",
-      "webQrModalQrMissing": "本网页二维码暂未配置，请稍后再试。",
-      "followQrModalTitle": "关注搭一把公众号",
-      "followQrModalDescription": "请使用微信扫码关注公众号。",
-      "followQrModalQrAlt": "搭一把公众号二维码",
-      "followQrModalQrMissing": "公众号二维码暂未配置，请稍后再试。",
-      "dismissAction": "稍后再说"
+      "webQrModalQrMissing": "本网页二维码暂未配置，请稍后再试。"
     },
     "topics": {
       "movie": {
@@ -228,11 +219,6 @@
       "staff": "报销 / 转账问题 -> 联系企业微信员工",
       "support": "投诉 / 使用问题 / 功能建议 -> 联系企业微信客服"
     }
-  },
-  "bookmarkPageNudge": {
-    "title": "收藏我们",
-    "description": "点击右上角，收藏本网页，方便在您需要找搭子的时候回来",
-    "acknowledgeAction": "我知道了"
   },
   "officialAccountFollow": {
     "nudgeTitle": "关注公众号，随时回来",

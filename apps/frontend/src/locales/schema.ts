@@ -187,19 +187,10 @@ export interface MessageSchema {
       footerNavMine: string;
     };
     bookmarkNudge: {
-      title: string;
-      hint: string;
-      webQrAction: string;
-      officialAccountQrAction: string;
       webQrModalTitle: string;
       webQrModalDescription: string;
       webQrModalQrAlt: string;
       webQrModalQrMissing: string;
-      followQrModalTitle: string;
-      followQrModalDescription: string;
-      followQrModalQrAlt: string;
-      followQrModalQrMissing: string;
-      dismissAction: string;
     };
     topics: {
       movie: {
@@ -262,11 +253,6 @@ export interface MessageSchema {
       staff: string;
       support: string;
     };
-  };
-  bookmarkPageNudge: {
-    title: string;
-    description: string;
-    acknowledgeAction: string;
   };
   officialAccountFollow: {
     nudgeTitle: string;

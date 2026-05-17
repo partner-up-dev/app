@@ -50,8 +50,8 @@ export type TelemetryEventName =
   | "home_event_highlight_click"
   | "home_event_plaza_entry_click"
   | "home_create_entry_click"
-  | "home_bookmark_nudge_shown"
-  | "home_bookmark_action_click"
+  | "official_account_follow_nudge_shown"
+  | "official_account_follow_nudge_action_click"
   | "anchor_event_form_impression"
   | "anchor_event_form_started"
   | "anchor_event_form_recommendation_impression"
@@ -92,6 +92,12 @@ type PRContextPayload = AnalyticsContextPayload & {
   prId?: number;
   prKind?: PRKind;
 };
+
+type OfficialAccountFollowPromptSource =
+  | "home"
+  | "anchor_event"
+  | "pr_join_result"
+  | "pr_waitlist_result";
 
 type ShareContextPayload = AnalyticsContextPayload & {
   prId?: number;
@@ -328,14 +334,12 @@ export type TelemetryPayloadMap = {
     source: "hero_secondary" | "fallback_section";
     target: "pr-create";
   };
-  home_bookmark_nudge_shown: PRContextPayload & {
-    triggerDepthPercent: number;
-    triggerMode: "time" | "bottom";
-    environment: "wechat" | "browser";
+  official_account_follow_nudge_shown: PRContextPayload & {
+    source: OfficialAccountFollowPromptSource;
   };
-  home_bookmark_action_click: PRContextPayload & {
-    action: "open_web_page_qr" | "open_official_account_qr" | "dismiss";
-    environment: "wechat" | "browser";
+  official_account_follow_nudge_action_click: PRContextPayload & {
+    source: OfficialAccountFollowPromptSource;
+    action: "dismiss" | "complete";
   };
   anchor_event_form_impression: AnalyticsContextPayload & {
     eventId: number;
