@@ -64,6 +64,13 @@ const expectListModeSurface = async (page: Page) => {
   });
 };
 
+const expectOtherEventsHeaderAction = async (page: Page) => {
+  await page.getByTestId("anchor-event-landing.other-events.open").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+};
+
 const expectListMode = async (page: Page, prTitle: string) => {
   await expectListModeSurface(page);
   const prList = page.getByTestId("anchor-event-list-mode.pr-list");
@@ -143,12 +150,15 @@ scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
 
     await page.goto(`/e/${formEvent.id}`);
     await expectFormMode(page);
+    await expectOtherEventsHeaderAction(page);
 
     await page.goto(`/e/${cardEvent.id}`);
     await expectCardRichMode(page);
+    await expectOtherEventsHeaderAction(page);
 
     await page.goto(`/e/${listEvent.id}`);
     await expectListMode(page, listPrTitle);
+    await expectOtherEventsHeaderAction(page);
     await expectNoBetaGroupCard(page);
   });
 });

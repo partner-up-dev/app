@@ -180,15 +180,6 @@ const props = defineProps<{
   eventId: number;
 }>();
 
-const emit = defineEmits<{
-  "header-context": [
-    context: {
-      title: string;
-      subtitle: string | null;
-    } | null,
-  ];
-}>();
-
 const { t } = useI18n();
 const eventId = computed<number | null>(() => props.eventId);
 const eventIdValue = computed(() => props.eventId);
@@ -206,22 +197,6 @@ const {
   createActionErrorMessage,
   isCreatePending,
 } = useEventAssistedPRCreateFlow(eventDetail);
-
-watch(
-  detail,
-  (event) => {
-    emit(
-      "header-context",
-      event
-        ? {
-            title: event.title,
-            subtitle: event.description ?? null,
-          }
-        : null,
-    );
-  },
-  { immediate: true },
-);
 
 const eventTitle = computed(() => detail.value?.title ?? "");
 const eventBetaGroupQrCode = computed(() => detail.value?.betaGroupQrCode ?? null);

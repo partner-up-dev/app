@@ -340,25 +340,6 @@ const isError = computed(
     (isDetailError.value || isDemandCardsError.value),
 );
 
-watch(
-  detail,
-  (event) => {
-    if (isControlled.value) {
-      return;
-    }
-    emit(
-      "header-context",
-      event
-        ? {
-            title: event.title,
-            subtitle: event.description ?? null,
-          }
-        : null,
-    );
-  },
-  { immediate: true },
-);
-
 const sortedCreateTimeWindows = computed(() => {
   const timeWindows = detail.value?.createTimeWindows ?? [];
   return [...timeWindows].sort((left, right) => {

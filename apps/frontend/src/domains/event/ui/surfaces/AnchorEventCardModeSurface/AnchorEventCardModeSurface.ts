@@ -82,11 +82,6 @@ export const anchorEventCardModeSurfaceDefaults: AnchorEventCardModeSurfaceDefau
   eventBetaGroupQrCode: null,
 };
 
-export type AnchorEventCardModeHeaderContext = {
-  title: string;
-  subtitle: string | null;
-} | null;
-
 export type AnchorEventCardModeSurfaceEmits = {
   "consume-drag-hint-window": [];
   "skip-active-card": [];
@@ -94,7 +89,6 @@ export type AnchorEventCardModeSurfaceEmits = {
   "update:cardCreateTimeWindowKey": [value: string | null];
   "update:cardCreateLocationId": [value: string];
   "create-from-card-empty": [];
-  "header-context": [context: AnchorEventCardModeHeaderContext];
   "card-stage-active-change": [isActive: boolean];
 };
 

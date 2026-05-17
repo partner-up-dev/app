@@ -19,11 +19,11 @@
       >
         <template #top-actions>
           <Button
-            v-if="resolvedMode === 'FORM'"
             appearance="pill"
             tone="outline"
             size="sm"
             type="button"
+            data-testid="anchor-event-landing.other-events.open"
             @click="showOtherEventsDrawer = true"
           >
             {{ t("anchorEvent.otherEvents.action") }}
