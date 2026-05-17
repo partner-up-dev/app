@@ -1218,6 +1218,26 @@ export interface MessageSchema {
     sourceBreakdownTitle: string;
     sourceBreakdownSubtitle: string;
     sourceColumn: string;
+    officialAccountNudgeTitle: string;
+    officialAccountNudgeSubtitle: string;
+    nudgeShownJourneysMetric: string;
+    nudgeFollowClickJourneysMetric: string;
+    nudgeFollowClickRateMetric: string;
+    nudgeDismissJourneysMetric: string;
+    nudgeEventsDetail: string;
+    nudgeFollowClickRateDetail: string;
+    nudgeSourceColumn: string;
+    nudgeShownJourneysColumn: string;
+    nudgeFollowClickJourneysColumn: string;
+    nudgeDismissJourneysColumn: string;
+    nudgeFollowClickRateColumn: string;
+    officialAccountNudgeSource: {
+      home: string;
+      anchor_event: string;
+      pr_join_result: string;
+      pr_waitlist_result: string;
+      unknown: string;
+    };
     failureBreakdownTitle: string;
     failureBreakdownSubtitle: string;
     eventNameColumn: string;

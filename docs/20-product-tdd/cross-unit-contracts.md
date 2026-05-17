@@ -294,7 +294,8 @@ Important coordination note:
 - Program-internal behavior collection belongs to a future observability track. Future internal collection should keep OTLP-compatible correlation through `correlation_id`, `request_id`, and `trace_id`.
 - Product analytics reads user telemetry and business state as a derived interpretation layer. `GET /api/analytics/anchor-event-funnel` is the v1 aggregate endpoint for the Anchor Event -> PR conversion funnel.
 - `GET /api/analytics/anchor-event-funnel` requires the `analytics` role and accepts optional `startAt`, `endAt`, `eventId`, `spm`, `sourceQr`, `assignmentRevision`, and `renderedMode` filters.
-- The aggregate response includes normalized filters, summary KPIs, mode comparison rows, per-mode funnel steps, commitment outcome breakdown, start-SPM source breakdown, and failure breakdown.
+- The aggregate response includes normalized filters, summary KPIs, mode comparison rows, per-mode funnel steps, commitment outcome breakdown, start-SPM source breakdown, failure breakdown, and official-account follow Nudge click-rate metrics.
+- Official-account follow Nudge BI treats `official.account.follow.nudge.action.click` with `action = "complete"` as the user clicking the Nudge's `关注公众号` button; its click rate is distinct from backend-confirmed follower sync truth.
 - Supported dashboard modes are `FORM`, `CARD_RICH`, and `LIST`. Each mode keeps its own funnel step sequence because the user behavior path differs by rendered landing mode.
 - PR commitment means a successful create, join, or waitlist result. The response keeps those commitment types as breakdown dimensions.
 

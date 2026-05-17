@@ -9,6 +9,12 @@ export type AnchorEventAnalyticsRenderedMode =
 
 export type AnchorEventCommitmentType = "create" | "join" | "waitlist";
 export type AnchorEventActionResult = "success" | "blocked" | "failure";
+export type OfficialAccountFollowNudgeSource =
+  | "home"
+  | "anchor_event"
+  | "pr_join_result"
+  | "pr_waitlist_result"
+  | "unknown";
 
 export type AnchorEventFunnelQueryInput = {
   startAt?: Date;
@@ -43,6 +49,13 @@ export type AnchorEventFunnelEventRow = {
   segmentId: string | null;
   renderedMode: string | null;
   properties: unknown;
+};
+
+export type OfficialAccountFollowNudgeEventRow = {
+  eventName: string;
+  appJourneyId: string;
+  source: string | null;
+  action: string | null;
 };
 
 export type AnalyticsModeComparisonRow = {
@@ -100,6 +113,28 @@ export type AnalyticsFailureBreakdownRow = {
   eventCount: number;
 };
 
+export type AnalyticsOfficialAccountFollowNudgeSourceRow = {
+  source: OfficialAccountFollowNudgeSource;
+  shownJourneys: number;
+  followClickJourneys: number;
+  dismissJourneys: number;
+  shownEvents: number;
+  followClickEvents: number;
+  dismissEvents: number;
+  followClickRate: number;
+};
+
+export type AnalyticsOfficialAccountFollowNudgeSummary = {
+  shownJourneys: number;
+  followClickJourneys: number;
+  dismissJourneys: number;
+  shownEvents: number;
+  followClickEvents: number;
+  dismissEvents: number;
+  followClickRate: number;
+  sources: AnalyticsOfficialAccountFollowNudgeSourceRow[];
+};
+
 export type AnchorEventFunnelResponse = {
   filters: AnchorEventFunnelFilters;
   summary: {
@@ -117,6 +152,7 @@ export type AnchorEventFunnelResponse = {
   outcomes: AnalyticsOutcomeBreakdownRow[];
   sources: AnalyticsSourceBreakdownRow[];
   failures: AnalyticsFailureBreakdownRow[];
+  officialAccountFollowNudge: AnalyticsOfficialAccountFollowNudgeSummary;
 };
 
 type FunnelStepDefinition = {
@@ -164,6 +200,16 @@ type FailureAccumulator = {
   eventCount: number;
 };
 
+type OfficialAccountFollowNudgeAccumulator = {
+  source?: OfficialAccountFollowNudgeSource;
+  shownJourneys: Set<string>;
+  followClickJourneys: Set<string>;
+  dismissJourneys: Set<string>;
+  shownEvents: number;
+  followClickEvents: number;
+  dismissEvents: number;
+};
+
 type SegmentContext = {
   segmentId: string;
   appJourneyId: string;
@@ -195,6 +241,11 @@ export const ANCHOR_EVENT_FUNNEL_EVENT_NAMES = [
   "anchor_event.list_create.started",
   "pr.entry.reached",
   "pr.commitment.result",
+] as const;
+
+export const OFFICIAL_ACCOUNT_FOLLOW_NUDGE_EVENT_NAMES = [
+  "official.account.follow.nudge.shown",
+  "official.account.follow.nudge.action.click",
 ] as const;
 
 const FORM_FUNNEL_STEPS: FunnelStepDefinition[] = [
@@ -380,6 +431,16 @@ const createStepAccumulator = (): StepAccumulator => ({
   eventCount: 0,
 });
 
+const createOfficialAccountFollowNudgeAccumulator =
+  (): OfficialAccountFollowNudgeAccumulator => ({
+    shownJourneys: new Set<string>(),
+    followClickJourneys: new Set<string>(),
+    dismissJourneys: new Set<string>(),
+    shownEvents: 0,
+    followClickEvents: 0,
+    dismissEvents: 0,
+  });
+
 const createModeAccumulatorMap = (): Map<
   AnchorEventAnalyticsRenderedMode,
   MetricAccumulator
@@ -488,6 +549,20 @@ const toActionResult = (value: string | null): AnchorEventActionResult | null =>
   return null;
 };
 
+const toOfficialAccountFollowNudgeSource = (
+  value: string | null | undefined,
+): OfficialAccountFollowNudgeSource => {
+  if (
+    value === "home" ||
+    value === "anchor_event" ||
+    value === "pr_join_result" ||
+    value === "pr_waitlist_result"
+  ) {
+    return value;
+  }
+  return "unknown";
+};
+
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
@@ -558,6 +633,21 @@ const buildFailureKey = (
     failureReason ?? ""
   }`;
 
+const getOfficialAccountFollowNudgeSourceAccumulator = (
+  map: Map<OfficialAccountFollowNudgeSource, OfficialAccountFollowNudgeAccumulator>,
+  source: OfficialAccountFollowNudgeSource,
+): OfficialAccountFollowNudgeAccumulator => {
+  const existing = map.get(source);
+  if (existing) return existing;
+
+  const created = {
+    ...createOfficialAccountFollowNudgeAccumulator(),
+    source,
+  };
+  map.set(source, created);
+  return created;
+};
+
 const addSuccessCount = (
   accumulator: MetricAccumulator,
   commitmentType: AnchorEventCommitmentType,
@@ -583,6 +673,22 @@ const toSummary = (accumulator: MetricAccumulator) => {
     createSuccess: accumulator.createSuccess,
     joinSuccess: accumulator.joinSuccess,
     waitlistSuccess: accumulator.waitlistSuccess,
+  };
+};
+
+const toOfficialAccountFollowNudgeSummary = (
+  accumulator: OfficialAccountFollowNudgeAccumulator,
+): Omit<AnalyticsOfficialAccountFollowNudgeSummary, "sources"> => {
+  const shownJourneys = accumulator.shownJourneys.size;
+  const followClickJourneys = accumulator.followClickJourneys.size;
+  return {
+    shownJourneys,
+    followClickJourneys,
+    dismissJourneys: accumulator.dismissJourneys.size,
+    shownEvents: accumulator.shownEvents,
+    followClickEvents: accumulator.followClickEvents,
+    dismissEvents: accumulator.dismissEvents,
+    followClickRate: buildRate(followClickJourneys, shownJourneys),
   };
 };
 
@@ -660,6 +766,7 @@ export const buildAnchorEventFunnelResponseFromRows = (
   filters: AnchorEventFunnelFilters,
   segmentRows: AnchorEventFunnelSegmentRow[],
   eventRows: AnchorEventFunnelEventRow[],
+  officialAccountFollowNudgeRows: OfficialAccountFollowNudgeEventRow[] = [],
 ): AnchorEventFunnelResponse => {
   const summaryAccumulator = createMetricAccumulator();
   const modeAccumulators = createModeAccumulatorMap();
@@ -668,6 +775,12 @@ export const buildAnchorEventFunnelResponseFromRows = (
   const outcomeAccumulators = new Map<string, OutcomeAccumulator>();
   const sourceAccumulators = new Map<string, SourceAccumulator>();
   const failureAccumulators = new Map<string, FailureAccumulator>();
+  const officialAccountFollowNudgeAccumulator =
+    createOfficialAccountFollowNudgeAccumulator();
+  const officialAccountFollowNudgeSourceAccumulators = new Map<
+    OfficialAccountFollowNudgeSource,
+    OfficialAccountFollowNudgeAccumulator
+  >();
 
   for (const segment of segmentRows) {
     const renderedMode = toRenderedMode(segment.renderedMode);
@@ -816,6 +929,43 @@ export const buildAnchorEventFunnelResponseFromRows = (
     failureAccumulators.set(failureKey, failureAccumulator);
   }
 
+  for (const event of officialAccountFollowNudgeRows) {
+    const source = toOfficialAccountFollowNudgeSource(event.source);
+    const sourceAccumulator =
+      getOfficialAccountFollowNudgeSourceAccumulator(
+        officialAccountFollowNudgeSourceAccumulators,
+        source,
+      );
+    const accumulators = [
+      officialAccountFollowNudgeAccumulator,
+      sourceAccumulator,
+    ];
+
+    if (event.eventName === "official.account.follow.nudge.shown") {
+      for (const accumulator of accumulators) {
+        accumulator.shownJourneys.add(event.appJourneyId);
+        accumulator.shownEvents += 1;
+      }
+      continue;
+    }
+
+    if (event.eventName !== "official.account.follow.nudge.action.click") {
+      continue;
+    }
+
+    if (event.action === "complete") {
+      for (const accumulator of accumulators) {
+        accumulator.followClickJourneys.add(event.appJourneyId);
+        accumulator.followClickEvents += 1;
+      }
+    } else if (event.action === "dismiss") {
+      for (const accumulator of accumulators) {
+        accumulator.dismissJourneys.add(event.appJourneyId);
+        accumulator.dismissEvents += 1;
+      }
+    }
+  }
+
   const modes = ANCHOR_EVENT_ANALYTICS_RENDERED_MODES.map((mode) =>
     buildModeComparisonRow(mode, getMetricAccumulator(modeAccumulators, mode)),
   );
@@ -879,5 +1029,16 @@ export const buildAnchorEventFunnelResponseFromRows = (
           `${b.eventName}:${b.commitmentType ?? ""}:${b.failureCode}`,
         ),
       ),
+    officialAccountFollowNudge: {
+      ...toOfficialAccountFollowNudgeSummary(
+        officialAccountFollowNudgeAccumulator,
+      ),
+      sources: Array.from(officialAccountFollowNudgeSourceAccumulators.values())
+        .map((accumulator) => ({
+          source: accumulator.source ?? "unknown",
+          ...toOfficialAccountFollowNudgeSummary(accumulator),
+        }))
+        .sort((a, b) => a.source.localeCompare(b.source)),
+    },
   };
 };

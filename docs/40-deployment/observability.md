@@ -23,7 +23,7 @@
 - `user_telemetry_journeys`, `user_telemetry_segments`, and `user_telemetry_events` record user-behavior telemetry for product funnel analysis
 - `/api/telemetry/user/events` ingests batched user telemetry events with app journey, business segment, typed subject, source, and correlation fields
 - `/api/analytics/*` exposes read/export-oriented product analytics derived from telemetry and business-state tables
-- `/api/analytics/anchor-event-funnel` exposes the BI v1 aggregate for Anchor Event -> PR conversion, split by `FORM`, `CARD_RICH`, and `LIST` landing modes
+- `/api/analytics/anchor-event-funnel` exposes the BI v1 aggregate for Anchor Event -> PR conversion, split by `FORM`, `CARD_RICH`, and `LIST` landing modes, plus official-account follow Nudge button-click metrics
 - `/admin/analytics` is the BI dashboard route and requires the `analytics` role
 - `/bi?code=...` is the lightweight BI entry route for the seeded analytics user
 

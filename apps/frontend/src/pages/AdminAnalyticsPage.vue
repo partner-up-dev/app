@@ -172,6 +172,124 @@
             </article>
           </section>
 
+          <section
+            class="analytics-panel"
+            data-testid="admin-analytics.official-account-nudge"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.officialAccountNudgeTitle") }}</h2>
+                <p>{{ t("adminAnalytics.officialAccountNudgeSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeShownJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.shownJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.shownEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeFollowClickJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.followClickJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.followClickEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeFollowClickRateMetric") }}</dt>
+                <dd>
+                  {{
+                    formatRate(
+                      dashboard.officialAccountFollowNudge.followClickRate,
+                    )
+                  }}
+                </dd>
+                <span>{{ t("adminAnalytics.nudgeFollowClickRateDetail") }}</span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeDismissJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.dismissJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.dismissEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+            </dl>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.nudgeSourceColumn") }}</th>
+                    <th>{{ t("adminAnalytics.nudgeShownJourneysColumn") }}</th>
+                    <th>
+                      {{ t("adminAnalytics.nudgeFollowClickJourneysColumn") }}
+                    </th>
+                    <th>{{ t("adminAnalytics.nudgeDismissJourneysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.nudgeFollowClickRateColumn") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in dashboard.officialAccountFollowNudge.sources"
+                    :key="row.source"
+                  >
+                    <td>{{ formatNudgeSource(row.source) }}</td>
+                    <td>{{ formatCount(row.shownJourneys) }}</td>
+                    <td>{{ formatCount(row.followClickJourneys) }}</td>
+                    <td>{{ formatCount(row.dismissJourneys) }}</td>
+                    <td>{{ formatRate(row.followClickRate) }}</td>
+                  </tr>
+                  <tr
+                    v-if="
+                      dashboard.officialAccountFollowNudge.sources.length === 0
+                    "
+                  >
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <section class="analytics-panel" data-testid="admin-analytics.modes">
             <div class="analytics-panel__header">
               <div>
@@ -414,6 +532,8 @@ type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];
 type OutcomeBreakdownRow = AdminAnalyticsFunnelResponse["outcomes"][number];
 type FailureBreakdownRow = AdminAnalyticsFunnelResponse["failures"][number];
+type OfficialAccountFollowNudgeSourceRow =
+  AdminAnalyticsFunnelResponse["officialAccountFollowNudge"]["sources"][number];
 
 const modeOptions: AnchorEventAnalyticsRenderedMode[] = [
   "FORM",
@@ -496,6 +616,9 @@ const formatCommitmentType = (
 ): string => t(`adminAnalytics.commitmentType.${type}`);
 const formatActionResult = (result: OutcomeBreakdownRow["actionResult"]): string =>
   t(`adminAnalytics.actionResult.${result}`);
+const formatNudgeSource = (
+  source: OfficialAccountFollowNudgeSourceRow["source"],
+): string => t(`adminAnalytics.officialAccountNudgeSource.${source}`);
 
 const formatBarWidth = (rate: number): string =>
   `${Math.max(0, Math.min(100, rate * 100)).toFixed(2)}%`;
@@ -678,6 +801,8 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-steps,
 .funnel-step__main,
 .funnel-step__metrics,
+.nudge-summary-grid,
+.nudge-summary-grid > div,
 .kpi-card {
   min-width: 0;
 }
@@ -691,6 +816,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-steps,
 .funnel-step__main,
 .funnel-step__metrics,
+.nudge-summary-grid > div,
 .kpi-card {
   display: flex;
   flex-direction: column;
@@ -717,6 +843,9 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-step p,
 .funnel-step__metrics dt,
 .funnel-step__metrics dd,
+.nudge-summary-grid dt,
+.nudge-summary-grid dd,
+.nudge-summary-grid span,
 .kpi-card__label,
 .kpi-card__detail {
   margin: 0;
@@ -757,6 +886,8 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-panel__header span,
 .funnel-step p,
 .funnel-step__metrics dt,
+.nudge-summary-grid dt,
+.nudge-summary-grid span,
 .kpi-card__detail {
   color: var(--sys-color-on-surface-variant);
 }
@@ -818,6 +949,32 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .analytics-panel p {
   @include mx.pu-font(body-medium);
+}
+
+.nudge-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sys-spacing-small);
+  padding: 0;
+  margin: 0;
+}
+
+.nudge-summary-grid > div {
+  gap: var(--sys-spacing-xsmall);
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface-container);
+}
+
+.nudge-summary-grid dt,
+.nudge-summary-grid span {
+  @include mx.pu-font(label-small);
+}
+
+.nudge-summary-grid dd {
+  @include mx.pu-font(title-large);
+  color: var(--sys-color-on-surface);
 }
 
 .analytics-table-wrap {
@@ -970,6 +1127,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 @media (max-width: 1180px) {
   .kpi-strip,
   .funnel-grid,
+  .nudge-summary-grid,
   .analytics-lower-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -978,6 +1136,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 @media (max-width: 760px) {
   .kpi-strip,
   .funnel-grid,
+  .nudge-summary-grid,
   .analytics-lower-grid {
     grid-template-columns: minmax(0, 1fr);
   }
