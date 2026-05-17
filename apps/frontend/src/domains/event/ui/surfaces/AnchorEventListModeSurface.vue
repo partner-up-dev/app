@@ -75,7 +75,9 @@
           :event-title="eventTitle"
           :time-window-options="createTimeWindowOptions"
           :selected-time-window-key="selectedTimeWindowKey"
-          :location-options="createTimeWindowLocationOptions"
+          :place-options="createTimeWindowPlaceOptions"
+          :place-label="createTimeWindowPlaceLabel"
+          :place-placeholder="createTimeWindowPlacePlaceholder"
           :default-expanded="shouldAutoExpandCreateCard"
           :auto-expand-context-key="createCardAutoExpandContextKey"
           :pending="isCreatePending"
@@ -134,6 +136,12 @@ import {
   isProductLocalDateKey,
   type ProductLocalDateKey,
 } from "@/shared/datetime/productLocalDate";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  getExclusiveCreateTimeWindowLocationOptions,
+  hasEnabledCreateTimeWindowPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { trackEvent } from "@/shared/telemetry/track";
 import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 
@@ -403,6 +411,14 @@ const allPoiIdsCsv = computed(() => {
       }
     }
   }
+  for (const entry of sortedCreateTimeWindows.value) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
 
   if (uniqueLocationIds.size === 0) {
     return null;
@@ -413,6 +429,9 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -553,7 +572,7 @@ const resolveDefaultCreateTimeWindowKey = (
 
   const firstCreatableTimeWindowWithoutAvailablePR = createTimeWindowChoices.find(
     ({ entry }) =>
-      entry.locationOptions.some((option) => !option.disabled) &&
+      hasEnabledCreateTimeWindowPlaceOption(entry) &&
       !hasJoinablePRAtBrowseTimeWindowKey(group, entry.key),
   );
   if (firstCreatableTimeWindowWithoutAvailablePR) {
@@ -561,7 +580,7 @@ const resolveDefaultCreateTimeWindowKey = (
   }
 
   const firstCreatableTimeWindow = createTimeWindowChoices.find(({ entry }) =>
-    entry.locationOptions.some((option) => !option.disabled),
+    hasEnabledCreateTimeWindowPlaceOption(entry),
   );
   if (firstCreatableTimeWindow) {
     return firstCreatableTimeWindow.entry.key;
@@ -638,8 +657,27 @@ const createCardSubtitleTimeLabel = computed(() => {
   return createTimeWindowLabel.value;
 });
 
-const createTimeWindowLocationOptions = computed(
-  () => selectedTimeWindowEntry.value?.locationOptions ?? [],
+const createTimeWindowPlaceOptions = computed(() =>
+  selectedTimeWindowEntry.value
+    ? buildCreateTimeWindowPlaceOptions({
+        placeSelector: selectedTimeWindowEntry.value.placeSelector,
+        locationOptions: selectedTimeWindowEntry.value.locationOptions,
+        routeOptions: selectedTimeWindowEntry.value.routeOptions,
+        poiByName: poiByName.value,
+      })
+    : [],
+);
+const createTimeWindowPlaceLabel = computed(() =>
+  t(
+    selectedTimeWindowEntry.value?.placeSelector.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const createTimeWindowPlacePlaceholder = computed(() =>
+  t(
+    selectedTimeWindowEntry.value?.placeSelector.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
 );
 
 const hasJoinablePRInSelectedDate = computed(() => {
@@ -717,7 +755,7 @@ const trackListPrRowAction = (item: VisiblePRItem): void => {
   });
 };
 
-const handleCreateInList = async (locationId: string | null) => {
+const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
   if (!canUserCreatePR.value) {
     return;
   }
@@ -725,12 +763,14 @@ const handleCreateInList = async (locationId: string | null) => {
   trackEvent("anchor_event_list_create_started", {
     ...buildListFunnelPayload(),
     dateKey: selectedDateKey.value,
-    locationId,
+    locationId: place?.kind === "location" ? place.locationId : null,
+    routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+    placeKind: place?.kind ?? null,
     timeWindowStart: selectedTimeWindowEntry.value?.timeWindow[0] ?? null,
   });
   await createEventAssistedPR({
     targetTimeWindow: selectedTimeWindowEntry.value?.timeWindow ?? null,
-    locationId,
+    place,
     entrySurface: "list_mode",
   });
 };

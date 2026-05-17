@@ -179,28 +179,14 @@
           </select>
         </label>
 
-        <label
+        <AnchorEventInlinePlaceSelector
           v-if="resolvedCardCreateTimeWindowOptions.length > 0"
-          class="card-empty__field"
-        >
-          <span class="card-empty__label">{{
-            t("anchorEvent.createCard.locationLabel")
-          }}</span>
-          <select
-            :value="resolvedCardCreateLocationId"
-            class="card-empty__input"
-            @change="handleCardCreateLocationChange"
-          >
-            <option
-              v-for="option in resolvedCardCreateLocationOptions"
-              :key="option.locationId"
-              :value="option.locationId"
-              :disabled="option.disabled"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+          :model-value="resolvedCardCreatePlaceId"
+          :options="resolvedCardCreatePlaceOptions"
+          :label="resolvedCardCreatePlaceLabel"
+          :placeholder="resolvedCardCreatePlacePlaceholder"
+          @update:model-value="handleCardCreatePlaceChange"
+        />
 
         <p v-if="resolvedCreateActionErrorMessage" class="card-empty__error">
           {{ resolvedCreateActionErrorMessage }}
@@ -246,6 +232,7 @@ import { useI18n } from "vue-i18n";
 import AnchorEventDemandCard from "@/domains/event/ui/primitives/AnchorEventDemandCard.vue";
 import AnchorEventBetaGroupCard from "@/domains/event/ui/primitives/AnchorEventBetaGroupCard.vue";
 import OtherAnchorEventsSection from "@/domains/event/ui/sections/OtherAnchorEventsSection.vue";
+import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
@@ -254,6 +241,15 @@ import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
 } from "@/domains/event/model/poi-gallery";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  findAnchorEventPlaceOption,
+  getExclusiveCreateTimeWindowLocationOptions,
+  getFirstEnabledPlaceOption,
+  hasEnabledCreateTimeWindowPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+} from "@/domains/event/model/place-options";
 import { usePoisByIds } from "@/shared/poi/queries/usePoisByIds";
 import {
   formatTimeWindowOptionLabel,
@@ -276,11 +272,9 @@ import {
   anchorEventCardModeSurfaceDefaults,
   type AnchorEventCardModeSurfaceEmits,
   type AnchorEventCardModeSurfaceProps,
-  type CardCreateLocationOption,
   type CardTimeWindowOption,
   type CreateTimeWindowEntry,
   type FrontDemandCardHandle,
-  type LocationOption,
 } from "./AnchorEventCardModeSurface";
 
 const props = withDefaults(
@@ -302,7 +296,7 @@ const processedCardKeys = ref<string[]>([]);
 const internalCardActionError = ref<string | null>(null);
 const internalIsCardRouting = ref(false);
 const internalCardCreateTimeWindowKey = ref<string | null>(null);
-const internalCardCreateLocationId = ref("");
+const internalCardCreatePlaceId = ref<string | null>(null);
 const internalDragHintToken = ref(0);
 let internalCardDragHintTimerId: number | null = null;
 
@@ -364,6 +358,14 @@ const allPoiIdsCsv = computed(() => {
       uniqueLocationIds.add(location);
     }
   }
+  for (const entry of sortedCreateTimeWindows.value) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
 
   if (uniqueLocationIds.size === 0) {
     return null;
@@ -374,6 +376,9 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -481,7 +486,7 @@ const internalCardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() 
 
 const resolveFirstCreatableTimeWindowKey = (): string | null => {
   for (const entry of upcomingSortedCreateTimeWindows.value) {
-    if (entry.locationOptions.some((option) => !option.disabled)) {
+    if (hasEnabledCreateTimeWindowPlaceOption(entry)) {
       return entry.key;
     }
   }
@@ -525,63 +530,35 @@ const selectedInternalCardCreateTimeWindow = computed(() => {
   );
 });
 
-const internalCardCreateLocationOptions = computed<LocationOption[]>(() => {
-  return selectedInternalCardCreateTimeWindow.value?.locationOptions ?? [];
-});
-
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
-
-const internalCardCreateLocationOptionViewModels = computed<
-  CardCreateLocationOption[]
->(() =>
-  internalCardCreateLocationOptions.value.map((option) => ({
-    locationId: option.locationId,
-    label: formatLocationOptionLabel(option),
-    disabled: option.disabled,
-  })),
+const internalCardCreatePlaceOptions = computed<AnchorEventPlaceOption[]>(() =>
+  selectedInternalCardCreateTimeWindow.value
+    ? buildCreateTimeWindowPlaceOptions({
+        placeSelector: selectedInternalCardCreateTimeWindow.value.placeSelector,
+        locationOptions: selectedInternalCardCreateTimeWindow.value.locationOptions,
+        routeOptions: selectedInternalCardCreateTimeWindow.value.routeOptions,
+        poiByName: poiByName.value,
+      })
+    : [],
 );
 
 watch(
-  internalCardCreateLocationOptions,
+  internalCardCreatePlaceOptions,
   (options) => {
     if (isControlled.value) {
       return;
     }
 
     if (
-      internalCardCreateLocationId.value.length > 0 &&
+      internalCardCreatePlaceId.value !== null &&
       options.some(
         (option) =>
-          option.locationId === internalCardCreateLocationId.value &&
-          !option.disabled,
+          option.id === internalCardCreatePlaceId.value && !option.disabled,
       )
     ) {
       return;
     }
 
-    const firstAvailable = options.find((option) => !option.disabled);
-    internalCardCreateLocationId.value = firstAvailable?.locationId ?? "";
+    internalCardCreatePlaceId.value = getFirstEnabledPlaceOption(options)?.id ?? null;
   },
   { immediate: true, deep: true },
 );
@@ -596,15 +573,36 @@ const resolvedCardCreateTimeWindowKey = computed(() =>
     ? props.cardCreateTimeWindowKey
     : internalCardCreateTimeWindowKey.value,
 );
-const resolvedCardCreateLocationId = computed(() =>
-  isControlled.value
-    ? props.cardCreateLocationId
-    : internalCardCreateLocationId.value,
+const resolvedCardCreatePlaceId = computed(() =>
+  isControlled.value ? props.cardCreatePlaceId : internalCardCreatePlaceId.value,
 );
-const resolvedCardCreateLocationOptions = computed(() =>
+const resolvedCardCreatePlaceOptions = computed(() =>
   isControlled.value
-    ? props.cardCreateLocationOptions
-    : internalCardCreateLocationOptionViewModels.value,
+    ? props.cardCreatePlaceOptions
+    : internalCardCreatePlaceOptions.value,
+);
+const internalCardCreatePlaceLabel = computed(() =>
+  t(
+    selectedInternalCardCreateTimeWindow.value?.placeSelector.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const internalCardCreatePlacePlaceholder = computed(() =>
+  t(
+    selectedInternalCardCreateTimeWindow.value?.placeSelector.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
+);
+const resolvedCardCreatePlaceLabel = computed(() =>
+  isControlled.value
+    ? (props.cardCreatePlaceLabel ?? t("anchorEvent.placeSelector.locationLabel"))
+    : internalCardCreatePlaceLabel.value,
+);
+const resolvedCardCreatePlacePlaceholder = computed(() =>
+  isControlled.value
+    ? (props.cardCreatePlacePlaceholder ??
+      t("anchorEvent.placeSelector.locationPlaceholder"))
+    : internalCardCreatePlacePlaceholder.value,
 );
 
 const syncCardOverflowGuard = (enabled: boolean) => {
@@ -880,7 +878,12 @@ const emitCreateFromCardEmpty = () => {
   void createEventAssistedPR({
     targetTimeWindow:
       selectedInternalCardCreateTimeWindow.value?.timeWindow ?? null,
-    locationId: internalCardCreateLocationId.value || null,
+    place: toAnchorEventSelectedPlace(
+      findAnchorEventPlaceOption(
+        internalCardCreatePlaceOptions.value,
+        internalCardCreatePlaceId.value,
+      ),
+    ),
     entrySurface: "card_rich",
   });
 };
@@ -908,17 +911,12 @@ const handleCardCreateTimeWindowChange = (event: Event) => {
   internalCardCreateTimeWindowKey.value = nextValue;
 };
 
-const handleCardCreateLocationChange = (event: Event) => {
-  const select = event.target;
-  if (!(select instanceof HTMLSelectElement)) {
-    return;
-  }
-
+const handleCardCreatePlaceChange = (value: string | null) => {
   if (isControlled.value) {
-    emit("update:cardCreateLocationId", select.value);
+    emit("update:cardCreatePlaceId", value);
     return;
   }
-  internalCardCreateLocationId.value = select.value;
+  internalCardCreatePlaceId.value = value;
 };
 
 watch(

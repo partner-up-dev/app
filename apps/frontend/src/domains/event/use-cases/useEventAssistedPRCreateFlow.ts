@@ -3,6 +3,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PartnerRequestFields } from "@partner-up-dev/backend";
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
+import type { AnchorEventSelectedPlace } from "@/domains/event/model/place-options";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";
 import {
   useCreateEventAssistedPR,
@@ -19,7 +20,7 @@ import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 
 type EventAssistedPRCreateInput = {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  place: AnchorEventSelectedPlace | null;
   entrySurface?: "form_mode" | "card_rich" | "list_mode";
 };
 
@@ -86,15 +87,14 @@ export const useEventAssistedPRCreateFlow = (
 
   const buildEventAssistedFields = ({
     targetTimeWindow,
-    locationId,
+    place,
   }: EventAssistedPRCreateInput): PartnerRequestFields => {
     const currentEvent = event.value;
     if (!currentEvent) {
       throw new Error(t("common.operationFailed"));
     }
 
-    const normalizedLocation = locationId?.trim() ?? "";
-    if (!targetTimeWindow || normalizedLocation.length === 0) {
+    if (!targetTimeWindow || !place) {
       throw new Error(t("common.operationFailed"));
     }
 
@@ -102,8 +102,8 @@ export const useEventAssistedPRCreateFlow = (
       title: undefined,
       type: currentEvent.type,
       time: targetTimeWindow,
-      location: normalizedLocation,
-      route: null,
+      location: place.kind === "location" ? place.locationId : null,
+      route: place.kind === "route" ? place.route : null,
       minPartners: currentEvent.defaultMinPartners ?? 2,
       maxPartners: currentEvent.defaultMaxPartners ?? null,
       partners: [],
@@ -154,7 +154,7 @@ export const useEventAssistedPRCreateFlow = (
   const trackCreateResult = (
     eventValue: AnchorEventDetailResponse,
     source: {
-      locationId: string;
+      place: AnchorEventSelectedPlace;
       startAt: string;
       preferenceCount: number;
     },
@@ -171,8 +171,15 @@ export const useEventAssistedPRCreateFlow = (
       eventId: eventValue.id,
       activityType: eventValue.type,
       prId: payload.prId,
-      locationId: source.locationId,
-      locationType: resolveLocationType(eventValue, source.locationId),
+      locationId:
+        source.place.kind === "location" ? source.place.locationId : null,
+      routePoolEntryId:
+        source.place.kind === "route" ? source.place.routePoolEntryId : null,
+      placeKind: source.place.kind,
+      locationType:
+        source.place.kind === "location"
+          ? resolveLocationType(eventValue, source.place.locationId)
+          : undefined,
       startAt: source.startAt,
       timeType: resolveTimeType(eventValue, source.startAt),
       preferenceCount: source.preferenceCount,
@@ -196,7 +203,7 @@ export const useEventAssistedPRCreateFlow = (
 
   const createEventAssistedPR = async ({
     targetTimeWindow,
-    locationId,
+    place,
     entrySurface,
   }: EventAssistedPRCreateInput) => {
     createEventAssistedPRMutation.reset();
@@ -206,13 +213,16 @@ export const useEventAssistedPRCreateFlow = (
     if (!currentEvent || !canUserCreatePR.value) {
       return;
     }
+    if (!place) {
+      return;
+    }
 
     const fields = buildEventAssistedFields({
       targetTimeWindow,
-      locationId,
+      place,
     });
     const createTelemetrySource = {
-      locationId: fields.location ?? "",
+      place,
       startAt: fields.time[0] ?? "",
       preferenceCount: fields.preferences.length,
     };
@@ -222,6 +232,8 @@ export const useEventAssistedPRCreateFlow = (
       const created = await createEventAssistedPRMutation.mutateAsync({
         eventId: currentEvent.id,
         fields,
+        routePoolEntryId:
+          place?.kind === "route" ? place.routePoolEntryId : null,
         correlationId,
       });
       trackCreateResult(currentEvent, createTelemetrySource, {
@@ -308,7 +320,17 @@ export const useEventAssistedPRCreateFlow = (
     const pendingCreateTelemetrySource =
       typeof pending.fields.time[0] === "string"
         ? {
-            locationId: pending.fields.location,
+            place:
+              pending.fields.route !== null
+                ? ({
+                    kind: "route",
+                    routePoolEntryId: pending.routePoolEntryId ?? "",
+                    route: pending.fields.route,
+                  } satisfies AnchorEventSelectedPlace)
+                : ({
+                    kind: "location",
+                    locationId: pending.fields.location ?? "",
+                  } satisfies AnchorEventSelectedPlace),
             startAt: pending.fields.time[0],
             preferenceCount: pending.fields.preferences.length,
           }
@@ -324,7 +346,7 @@ export const useEventAssistedPRCreateFlow = (
           type: pending.fields.type,
           time: pending.fields.time,
           location: pending.fields.location,
-          route: null,
+          route: pending.fields.route,
           minPartners: pending.fields.minPartners,
           maxPartners: pending.fields.maxPartners,
           partners: [],
@@ -332,6 +354,7 @@ export const useEventAssistedPRCreateFlow = (
           preferences: pending.fields.preferences,
           notes: null,
         },
+        routePoolEntryId: pending.routePoolEntryId ?? null,
       });
       if (pendingCreateTelemetrySource) {
         trackCreateResult(currentEvent, pendingCreateTelemetrySource, {

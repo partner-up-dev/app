@@ -1,3 +1,5 @@
+import type { PRRoute } from "@partner-up-dev/backend";
+
 const PENDING_WECHAT_ACTION_STORAGE_KEY = "partner_up_pending_wechat_action";
 const PENDING_WECHAT_ACTION_TTL_MS = 10 * 60 * 1000;
 
@@ -36,10 +38,12 @@ type PendingAnchorCreateAction = PendingActionBase & {
   kind: "EVENT_ASSISTED_PR_CREATE";
   eventId: number;
   handoff?: PendingAnchorCreateHandoff;
+  routePoolEntryId?: string | null;
   fields: {
     type: string;
     time: [string | null, string | null];
-    location: string;
+    location: string | null;
+    route: PRRoute | null;
     minPartners: number | null;
     maxPartners: number | null;
     preferences: string[];
@@ -79,10 +83,12 @@ type NewPendingWeChatAction =
       kind: "EVENT_ASSISTED_PR_CREATE";
       eventId: number;
       handoff?: PendingAnchorCreateHandoff;
+      routePoolEntryId?: string | null;
       fields: {
         type: string;
         time: [string | null, string | null];
-        location: string;
+        location: string | null;
+        route: PRRoute | null;
         minPartners: number | null;
         maxPartners: number | null;
         preferences: string[];
@@ -91,6 +97,39 @@ type NewPendingWeChatAction =
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
+
+const isCoordinatePair = (value: unknown): value is [number, number] =>
+  Array.isArray(value) &&
+  value.length === 2 &&
+  typeof value[0] === "number" &&
+  Number.isFinite(value[0]) &&
+  typeof value[1] === "number" &&
+  Number.isFinite(value[1]);
+
+const isNullableCoordinatePair = (
+  value: unknown,
+): value is [number, number] | null =>
+  value === null || isCoordinatePair(value);
+
+const isPRRoutePoint = (value: unknown): value is PRRoute[number] => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const point = value as Partial<PRRoute[number]>;
+  return (
+    isNullableCoordinatePair(point.wgs84) &&
+    isNullableCoordinatePair(point.bd09) &&
+    isNullableCoordinatePair(point.gcj02) &&
+    typeof point.name === "string" &&
+    point.name.trim().length > 0 &&
+    (point.full_address === null || typeof point.full_address === "string") &&
+    (point.wgs84 !== null || point.bd09 !== null || point.gcj02 !== null)
+  );
+};
+
+const isPRRoute = (value: unknown): value is PRRoute =>
+  Array.isArray(value) && value.length >= 2 && value.every(isPRRoutePoint);
 
 const isRecent = (createdAt: number): boolean =>
   Date.now() - createdAt <= PENDING_WECHAT_ACTION_TTL_MS;
@@ -137,8 +176,15 @@ const isPendingWeChatAction = (
       fields.time.length === 2 &&
       (fields.time[0] === null || typeof fields.time[0] === "string") &&
       (fields.time[1] === null || typeof fields.time[1] === "string") &&
-      typeof fields.location === "string" &&
-      fields.location.trim().length > 0 &&
+      (fields.location === null ||
+        (typeof fields.location === "string" &&
+          fields.location.trim().length > 0)) &&
+      (fields.route === null || isPRRoute(fields.route)) &&
+      (fields.location !== null || fields.route !== null) &&
+      (anchorCandidate.routePoolEntryId === undefined ||
+        anchorCandidate.routePoolEntryId === null ||
+        (typeof anchorCandidate.routePoolEntryId === "string" &&
+          anchorCandidate.routePoolEntryId.trim().length > 0)) &&
       Array.isArray(fields.preferences) &&
       fields.preferences.every((entry) => typeof entry === "string") &&
       (fields.minPartners === null || isPositiveInteger(fields.minPartners)) &&

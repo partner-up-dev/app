@@ -88,6 +88,13 @@ type AnchorEventFunnelContextPayload = AnalyticsContextPayload & {
   isTimeoutFallback?: boolean;
 };
 
+type AnchorEventPlaceTelemetryPayload = {
+  locationId?: string | null;
+  routePoolEntryId?: string | null;
+  placeKind?: "location" | "route" | null;
+  locationType?: "preset" | "user_submitted";
+};
+
 type PRContextPayload = AnalyticsContextPayload & {
   prId?: number;
   prKind?: PRKind;
@@ -162,12 +169,10 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_assisted_create_started: AnchorEventFunnelContextPayload & {
     trigger: "manual_fallback" | "auto_no_candidates";
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_card_stack_loaded: AnchorEventFunnelContextPayload & {
     cardCount: number;
   };
@@ -184,7 +189,9 @@ export type TelemetryPayloadMap = {
     rank: number;
   };
   anchor_event_card_empty_create_started: AnchorEventFunnelContextPayload & {
-    locationId: string;
+    locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
   };
   anchor_event_list_loaded: AnchorEventFunnelContextPayload & {
@@ -213,6 +220,8 @@ export type TelemetryPayloadMap = {
   anchor_event_list_create_started: AnchorEventFunnelContextPayload & {
     dateKey?: string | null;
     locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
   };
   pr_entry_reached: AnchorEventFunnelContextPayload & {
@@ -349,6 +358,8 @@ export type TelemetryPayloadMap = {
     trigger: "location" | "time" | "preference" | "primary_cta";
     hasDefaultSelection: boolean;
     locationId?: string;
+    routePoolEntryId?: string;
+    placeKind?: "location" | "route";
     locationType?: "preset" | "user_submitted";
     startAt?: string;
     timeType?: "preset" | "user_submitted";
@@ -387,7 +398,9 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_form_create_fallback_click: AnalyticsContextPayload & {
     eventId: number;
-    locationId: string;
+    locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     startAt: string;
     preferenceCount: number;
   };
@@ -396,8 +409,10 @@ export type TelemetryPayloadMap = {
       eventId: number;
       prId?: number;
       activityType?: string;
-      locationId: string;
-      locationType: "preset" | "user_submitted";
+      locationId?: string | null;
+      routePoolEntryId?: string | null;
+      placeKind?: "location" | "route";
+      locationType?: "preset" | "user_submitted";
       startAt: string;
       timeType: "preset" | "user_submitted";
       preferenceCount: number;

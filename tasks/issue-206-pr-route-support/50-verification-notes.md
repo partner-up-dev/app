@@ -256,3 +256,15 @@ Planning update for Route Application Admin route review draft:
 - `pnpm lint:backend`: passed.
 - `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
 - `git diff --check`: passed.
+
+
+Command log for Form Mode route place control correction:
+
+- Browser verified `https://partner-up.localhost/e/4` before the fix: route cards existed, but `.route-map--inline`, `.map-shell--inline`, and canvas height were `0`, so only `路线地图暂不可用` fallback text appeared.
+- `AnchorEventCarouselPlaceSelector.vue` now gives route-card `RouteMap` a full card-height layout path.
+- Selected route caption now renders a compact route-point list with primary departure dot, tertiary waypoint dot, error/danger arrival dot, and `label-large` route item names.
+- Browser verified `https://partner-up.localhost/e/4` after the fix: route card maps measured non-zero heights, canvases measured non-zero heights, and selected route caption rendered route item rows without compact-summary truncation.
+- Screenshot capture through the browser automation timed out on the Tencent map page, so verification used DOM/layout measurements.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- `git diff --check`: passed.

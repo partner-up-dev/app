@@ -64,8 +64,10 @@
         :drag-hint-token="0"
         :card-create-time-window-options="cardCreateTimeWindowOptions"
         :card-create-time-window-key="cardCreateTimeWindowKey"
-        :card-create-location-id="cardCreateLocationId"
-        :card-create-location-options="cardCreateLocationOptionViewModels"
+        :card-create-place-id="cardCreatePlaceId"
+        :card-create-place-options="cardCreatePlaceOptions"
+        :card-create-place-label="cardCreatePlaceLabel"
+        :card-create-place-placeholder="cardCreatePlacePlaceholder"
         :create-action-error-message="createActionErrorMessage"
         :is-create-pending="isCreatePending"
         :can-user-create-p-r="detail.canUserCreatePR"
@@ -76,7 +78,7 @@
         @skip-active-card="handleSkipActiveCard"
         @view-active-card-detail="handleViewActiveCardDetail"
         @update:card-create-time-window-key="cardCreateTimeWindowKey = $event"
-        @update:card-create-location-id="cardCreateLocationId = $event"
+        @update:card-create-place-id="cardCreatePlaceId = $event"
         @create-from-card-empty="handleCreateFromCardEmpty"
       />
     </template>
@@ -158,6 +160,16 @@ import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
 } from "@/domains/event/model/poi-gallery";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  findAnchorEventPlaceOption,
+  getExclusiveCreateTimeWindowLocationOptions,
+  getFirstEnabledPlaceOption,
+  hasEnabledCreateTimeWindowPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { formatTimeWindowOptionLabel } from "@/domains/event/model/time-window-view";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import type { ApiError } from "@/shared/api/error";
@@ -189,8 +201,6 @@ import {
 } from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
-type LocationOption =
-  AnchorEventDetailResponse["createTimeWindows"][number]["locationOptions"][number];
 type CreateTimeWindowEntry =
   AnchorEventDetailResponse["createTimeWindows"][number];
 
@@ -199,11 +209,6 @@ type CardTimeWindowOption = {
   label: string;
 };
 
-type CardCreateLocationOptionViewModel = {
-  locationId: string;
-  label: string;
-  disabled: boolean;
-};
 type FormModeResultState = "selection" | "no-match";
 type FormModeSurfaceExposed = {
   returnToSelection: () => void;
@@ -518,7 +523,7 @@ const upcomingSortedCreateTimeWindows = computed(() =>
 const canUserCreatePR = computed(() => detail.value?.canUserCreatePR === true);
 
 const cardCreateTimeWindowKey = ref<string | null>(null);
-const cardCreateLocationId = ref("");
+const cardCreatePlaceId = ref<string | null>(null);
 
 const cardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() =>
   upcomingSortedCreateTimeWindows.value.map((entry, index) => ({
@@ -534,7 +539,7 @@ const cardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() =>
 
 const resolveFirstCreatableTimeWindowKey = (): string | null => {
   for (const entry of upcomingSortedCreateTimeWindows.value) {
-    if (entry.locationOptions.some((option) => !option.disabled)) {
+    if (hasEnabledCreateTimeWindowPlaceOption(entry)) {
       return entry.key;
     }
   }
@@ -574,58 +579,42 @@ const selectedCardCreateTimeWindow = computed(() => {
   );
 });
 
-const cardCreateLocationOptions = computed<LocationOption[]>(() => {
-  return selectedCardCreateTimeWindow.value?.locationOptions ?? [];
-});
-
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
-
-const cardCreateLocationOptionViewModels = computed<
-  CardCreateLocationOptionViewModel[]
->(() =>
-  cardCreateLocationOptions.value.map((option) => ({
-    locationId: option.locationId,
-    label: formatLocationOptionLabel(option),
-    disabled: option.disabled,
-  })),
+const cardCreatePlaceOptions = computed<AnchorEventPlaceOption[]>(() =>
+  selectedCardCreateTimeWindow.value
+    ? buildCreateTimeWindowPlaceOptions({
+        placeSelector: selectedCardCreateTimeWindow.value.placeSelector,
+        locationOptions: selectedCardCreateTimeWindow.value.locationOptions,
+        routeOptions: selectedCardCreateTimeWindow.value.routeOptions,
+        poiByName: poiByName.value,
+      })
+    : [],
+);
+const cardCreatePlaceLabel = computed(() =>
+  t(
+    selectedCardCreateTimeWindow.value?.placeSelector.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const cardCreatePlacePlaceholder = computed(() =>
+  t(
+    selectedCardCreateTimeWindow.value?.placeSelector.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
 );
 
 watch(
-  cardCreateLocationOptions,
+  cardCreatePlaceOptions,
   (options) => {
     if (
-      cardCreateLocationId.value.length > 0 &&
+      cardCreatePlaceId.value !== null &&
       options.some(
-        (option) =>
-          option.locationId === cardCreateLocationId.value && !option.disabled,
+        (option) => option.id === cardCreatePlaceId.value && !option.disabled,
       )
     ) {
       return;
     }
 
-    const firstAvailable = options.find((option) => !option.disabled);
-    cardCreateLocationId.value = firstAvailable?.locationId ?? "";
+    cardCreatePlaceId.value = getFirstEnabledPlaceOption(options)?.id ?? null;
   },
   { immediate: true, deep: true },
 );
@@ -639,6 +628,14 @@ const allPoiIdsCsv = computed(() => {
       uniqueLocationIds.add(location);
     }
   }
+  for (const entry of detail.value?.createTimeWindows ?? []) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
 
   if (uniqueLocationIds.size === 0) {
     return null;
@@ -649,6 +646,9 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -831,18 +831,17 @@ const isWeChatAuthBlockingError = (
 
 const buildEventAssistedFields = ({
   targetTimeWindow,
-  locationId,
+  place,
 }: {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  place: AnchorEventSelectedPlace | null;
 }) => {
   const event = detail.value;
   if (!event) {
     throw new Error(t("common.operationFailed"));
   }
 
-  const normalizedLocation = locationId?.trim() ?? "";
-  if (!targetTimeWindow || normalizedLocation.length === 0) {
+  if (!targetTimeWindow || !place) {
     throw new Error(t("common.operationFailed"));
   }
 
@@ -850,8 +849,8 @@ const buildEventAssistedFields = ({
     title: undefined,
     type: event.type,
     time: targetTimeWindow,
-    location: normalizedLocation,
-    route: null,
+    location: place.kind === "location" ? place.locationId : null,
+    route: place.kind === "route" ? place.route : null,
     minPartners: event.defaultMinPartners ?? 2,
     maxPartners: event.defaultMaxPartners ?? null,
     partners: [],
@@ -878,10 +877,10 @@ const buildEventAssistedCreateTarget = (
 
 const createEventAssistedPR = async ({
   targetTimeWindow,
-  locationId,
+  place,
 }: {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  place: AnchorEventSelectedPlace | null;
 }) => {
   if (!canUserCreatePR.value) {
     return;
@@ -896,7 +895,7 @@ const createEventAssistedPR = async ({
 
   const fields = buildEventAssistedFields({
     targetTimeWindow,
-    locationId,
+    place,
   });
   const correlationId = createCommandCorrelationId();
   const funnelPayload =
@@ -909,6 +908,7 @@ const createEventAssistedPR = async ({
     const created = await createEventAssistedPRMutation.mutateAsync({
       eventId: event.id,
       fields,
+      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
       correlationId,
     });
     trackEvent("pr_commitment_result", {
@@ -986,7 +986,7 @@ const attemptPendingCreateReplay = async () => {
         type: pending.fields.type,
         time: pending.fields.time,
         location: pending.fields.location,
-        route: null,
+        route: pending.fields.route,
         minPartners: pending.fields.minPartners,
         maxPartners: pending.fields.maxPartners,
         partners: [],
@@ -994,6 +994,7 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
+      routePoolEntryId: pending.routePoolEntryId ?? null,
     });
     await router.push(
       buildEventAssistedCreateTarget(
@@ -1033,18 +1034,23 @@ const handleCreateFromCardEmpty = async () => {
   }
 
   const selectedTimeWindow = selectedCardCreateTimeWindow.value;
+  const place = toAnchorEventSelectedPlace(
+    findAnchorEventPlaceOption(cardCreatePlaceOptions.value, cardCreatePlaceId.value),
+  );
   const funnelPayload = buildCurrentFunnelPayload();
   if (funnelPayload) {
     trackEvent("anchor_event_card_empty_create_started", {
       ...funnelPayload,
-      locationId: cardCreateLocationId.value,
+      locationId: place?.kind === "location" ? place.locationId : null,
+      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+      placeKind: place?.kind ?? null,
       timeWindowStart: selectedTimeWindow?.timeWindow[0] ?? null,
     });
   }
 
   await createEventAssistedPR({
     targetTimeWindow: selectedTimeWindow?.timeWindow ?? null,
-    locationId: cardCreateLocationId.value || null,
+    place,
   });
 };
 

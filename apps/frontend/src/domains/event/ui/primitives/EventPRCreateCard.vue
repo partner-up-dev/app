@@ -33,24 +33,12 @@
           </select>
         </label>
 
-        <label class="create-card__field">
-          <span class="create-card__label">{{
-            t("anchorEvent.createCard.locationLabel")
-          }}</span>
-          <select v-model="selectedLocationId" class="create-card__input">
-            <option value="">
-              {{ t("anchorEvent.createCard.locationPlaceholder") }}
-            </option>
-            <option
-              v-for="option in locationOptions"
-              :key="option.locationId"
-              :value="option.locationId"
-              :disabled="option.disabled"
-            >
-              {{ formatLocationOptionLabel(option) }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventInlinePlaceSelector
+          v-model="selectedPlaceId"
+          :options="placeOptions"
+          :label="placeLabel"
+          :placeholder="placePlaceholder"
+        />
 
         <p v-if="errorMessage" class="create-card__error">{{ errorMessage }}</p>
 
@@ -77,14 +65,15 @@ import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
+import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
+import {
+  findAnchorEventPlaceOption,
+  getFirstEnabledPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { useExpandableCardAttention } from "./useExpandableCardAttention";
-
-type LocationOption = {
-  locationId: string;
-  remainingQuota: number | null;
-  disabled: boolean;
-  disabledReason: "NONE" | "MAX_REACHED" | "TIME_UNAVAILABLE";
-};
 
 type TimeWindowOption = {
   key: string;
@@ -98,7 +87,9 @@ const props = withDefaults(
     eventTitle: string;
     timeWindowOptions?: TimeWindowOption[];
     selectedTimeWindowKey?: string | null;
-    locationOptions: LocationOption[];
+    placeOptions: readonly AnchorEventPlaceOption[];
+    placeLabel?: string;
+    placePlaceholder?: string;
     pending?: boolean;
     errorMessage?: string | null;
     defaultExpanded?: boolean;
@@ -108,6 +99,8 @@ const props = withDefaults(
     title: undefined,
     timeWindowOptions: () => [],
     selectedTimeWindowKey: null,
+    placeLabel: undefined,
+    placePlaceholder: undefined,
     pending: false,
     errorMessage: null,
     defaultExpanded: false,
@@ -116,13 +109,20 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  create: [locationId: string | null];
+  create: [place: AnchorEventSelectedPlace | null];
   "update:selectedTimeWindowKey": [value: string | null];
 }>();
 
 const { t } = useI18n();
+const placeLabel = computed(
+  () => props.placeLabel ?? t("anchorEvent.placeSelector.locationLabel"),
+);
+const placePlaceholder = computed(
+  () =>
+    props.placePlaceholder ?? t("anchorEvent.placeSelector.locationPlaceholder"),
+);
 
-const selectedLocationId = ref("");
+const selectedPlaceId = ref<string | null>(null);
 const {
   autoExpandHighlightActive,
   expandableCardKey,
@@ -133,20 +133,16 @@ const {
 });
 
 const selectFirstAvailable = () => {
-  const firstAvailable = props.locationOptions.find(
-    (option) => !option.disabled,
-  );
-  selectedLocationId.value = firstAvailable?.locationId ?? "";
+  selectedPlaceId.value = getFirstEnabledPlaceOption(props.placeOptions)?.id ?? null;
 };
 
 watch(
-  () => props.locationOptions,
+  () => props.placeOptions,
   () => {
     if (
-      selectedLocationId.value.length > 0 &&
-      props.locationOptions.some(
-        (option) =>
-          option.locationId === selectedLocationId.value && !option.disabled,
+      selectedPlaceId.value !== null &&
+      props.placeOptions.some(
+        (option) => option.id === selectedPlaceId.value && !option.disabled,
       )
     ) {
       return;
@@ -155,27 +151,6 @@ watch(
   },
   { immediate: true, deep: true },
 );
-
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
 
 const handleTimeWindowChange = (event: Event) => {
   const target = event.target;
@@ -193,8 +168,12 @@ const handleTimeWindowChange = (event: Event) => {
 };
 
 const emitCreate = () => {
-  const normalized = selectedLocationId.value.trim();
-  emit("create", normalized.length > 0 ? normalized : null);
+  emit(
+    "create",
+    toAnchorEventSelectedPlace(
+      findAnchorEventPlaceOption(props.placeOptions, selectedPlaceId.value),
+    ),
+  );
 };
 </script>
 

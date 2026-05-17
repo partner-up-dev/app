@@ -1762,6 +1762,17 @@
       "placeholderTitle": "活动 Landing",
       "placeholderBody": "活动 Landing 已支持列表、卡片与表单三种浏览模式。"
     },
+    "placeSelector": {
+      "locationLabel": "地点",
+      "locationPlaceholder": "请选择地点",
+      "locationAriaLabel": "地点选择",
+      "applyLocation": "申请新地点",
+      "routeLabel": "路线",
+      "routePlaceholder": "请选择路线",
+      "routeAriaLabel": "路线选择",
+      "applyRoute": "申请新路线",
+      "emptyPlaceholder": "暂无可选地点"
+    },
     "formMode": {
       "recommendationSummaryEyebrow": "已选择条件",
       "modifyConditions": "修改条件",
@@ -1790,6 +1801,7 @@
       "viewAllSessions": "查看所有场次",
       "primaryCtaFallback": "请选择地点与开始时间",
       "primaryCta": "加入一场 {time} 在 {location} 的{eventTitle}活动",
+      "primaryCreateCta": "创建一场 {time} 经过 {place} 的{eventTitle}活动",
       "primaryCtaPending": "正在寻找场次...",
       "joinCandidateAction": "加入这场",
       "viewRecommendationDetail": "查看详情",
@@ -1816,6 +1828,7 @@
       "subtitle": "在你喜欢的场地创建一个{eventTitle}请求，找到搭子后我们会通知您",
       "locationLabel": "地点",
       "locationPlaceholder": "请选择地点",
+      "locationMapFallback": "{place} 暂无坐标",
       "createAction": "创建搭子请求",
       "creatingAction": "创建中...",
       "optionMaxReached": "{locationId}（已达上限）",

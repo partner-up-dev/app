@@ -28,16 +28,17 @@
       />
 
       <div v-else class="form-mode-selection">
-        <FormModeLocationControl
-          v-model="selectedLocationId"
-          :locations="formModeData.locations"
+        <AnchorEventCarouselPlaceSelector
+          v-model="selectedPlaceId"
+          :place-selector="formModeData.placeSelector"
           @update:model-value="trackFormStarted('location')"
           @create-location="handleCreateLocationApplication"
+          @create-route="handleCreateRouteApplication"
         />
 
         <FormModeTimeControl
           v-model="selectedStartAt"
-          :start-options="selectedLocationStartOptions"
+          :start-options="selectedPlaceStartOptions"
           :duration-minutes="formModeData.event.durationMinutes"
           :earliest-lead-minutes="formModeData.event.earliestLeadMinutes"
           @update:model-value="trackFormStarted('time')"
@@ -114,7 +115,7 @@ import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
 } from "@/domains/event/queries/useCreateEventAssistedPR";
-import FormModeLocationControl from "@/domains/event/ui/controls/form-mode/FormModeLocationControl.vue";
+import AnchorEventCarouselPlaceSelector from "@/domains/event/ui/controls/form-mode/AnchorEventCarouselPlaceSelector.vue";
 import FormModeTimeControl from "@/domains/event/ui/controls/form-mode/FormModeTimeControl.vue";
 import FormModePreferenceControl from "@/domains/event/ui/controls/form-mode/FormModePreferenceControl.vue";
 import FormModeNoMatchResult from "@/domains/event/ui/composites/FormModeNoMatchResult.vue";
@@ -127,6 +128,14 @@ import {
   pickStableGalleryImage,
 } from "@/domains/event/model/form-mode";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
+import {
+  buildFormModePlaceOptions,
+  buildLocationPlaceOptionId,
+  findAnchorEventPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import {
   clearPendingWeChatAction,
@@ -153,7 +162,7 @@ const recommendationMutation = useAnchorEventFormModeRecommendation();
 const createMutation = useCreateEventAssistedPR();
 const matchedPRHandoff = useMatchedPRHandoff();
 
-const selectedLocationId = ref<string | null>(null);
+const selectedPlaceId = ref<string | null>(null);
 const selectedStartAt = ref<string | null>(null);
 const selectedPreferences = ref<string[]>([]);
 const noMatchRecommendationResult =
@@ -188,29 +197,53 @@ const armFormStartTracking = (): void => {
   }, 0);
 };
 
-const selectedLocationStartOptions = computed(() => {
+const placeOptions = computed<AnchorEventPlaceOption[]>(() => {
   const data = formModeData.value;
   if (!data) {
     return [];
   }
 
-  const selectedLocation = data.locations.find(
-    (location) => location.id === selectedLocationId.value,
-  );
-  if (!selectedLocation) {
+  return buildFormModePlaceOptions({
+    placeSelector: data.placeSelector,
+    locations: data.locations,
+    routes: data.routes,
+  });
+});
+
+const selectedPlaceOption = computed(() =>
+  findAnchorEventPlaceOption(placeOptions.value, selectedPlaceId.value),
+);
+
+const selectedPlace = computed<AnchorEventSelectedPlace | null>(() =>
+  toAnchorEventSelectedPlace(selectedPlaceOption.value),
+);
+const selectedLocationId = computed(() =>
+  selectedPlace.value?.kind === "location" ? selectedPlace.value.locationId : null,
+);
+const selectedRoutePoolEntryId = computed(() =>
+  selectedPlace.value?.kind === "route" ? selectedPlace.value.routePoolEntryId : null,
+);
+
+const selectedPlaceStartOptions = computed(() => {
+  const data = formModeData.value;
+  if (!data) {
+    return [];
+  }
+
+  const selected = selectedPlaceOption.value;
+  if (!selected) {
     return data.startOptions;
   }
 
-  const availableStartKeys = new Set(selectedLocation.availableStartKeys);
+  const availableStartKeys = new Set(selected.availableStartKeys ?? []);
   return data.startOptions.filter((option) => availableStartKeys.has(option.key));
 });
 
-const selectedLocationLabel = computed(() => {
-  const selected = formModeData.value?.locations.find(
-    (location) => location.id === selectedLocationId.value,
-  );
-  return selected?.id ?? t("anchorEvent.formMode.locationPlaceholder");
-});
+const selectedPlaceLabel = computed(
+  () =>
+    selectedPlaceOption.value?.label ??
+    t(formModeData.value?.placeSelector.placeholderKey ?? "anchorEvent.placeSelector.emptyPlaceholder"),
+);
 
 const selectedTimeLabel = computed(() => {
   if (!isValidFormModeDateTime(selectedStartAt.value)) {
@@ -222,12 +255,19 @@ const selectedTimeLabel = computed(() => {
 });
 
 const primaryCtaLabel = computed(() => {
-  if (!selectedStartAt.value || !selectedLocationId.value) {
+  if (!selectedStartAt.value || !selectedPlace.value) {
     return t("anchorEvent.formMode.primaryCtaFallback");
+  }
+  if (selectedPlace.value.kind === "route") {
+    return t("anchorEvent.formMode.primaryCreateCta", {
+      time: selectedTimeLabel.value,
+      place: selectedPlaceLabel.value,
+      eventTitle: formModeData.value?.event.title ?? "",
+    });
   }
   return t("anchorEvent.formMode.primaryCta", {
     time: selectedTimeLabel.value,
-    location: selectedLocationLabel.value,
+    location: selectedPlaceLabel.value,
     eventTitle: formModeData.value?.event.title ?? "",
   });
 });
@@ -241,7 +281,7 @@ const recommendationSubmissionPending = computed(
 
 const canSubmitRecommendation = computed(() =>
   Boolean(
-    selectedLocationId.value &&
+    selectedPlace.value &&
       selectedStartAt.value &&
       isValidFormModeDateTime(selectedStartAt.value) &&
       !recommendationSubmissionPending.value,
@@ -251,7 +291,7 @@ const canSubmitRecommendation = computed(() =>
 const canCreateFallback = computed(() =>
   Boolean(
     canUserCreatePR.value &&
-    selectedLocationId.value &&
+    selectedPlace.value &&
       selectedStartAt.value &&
       isValidFormModeDateTime(selectedStartAt.value) &&
       formModeData.value,
@@ -423,6 +463,11 @@ watch(
     defaultSelectionAppliedEventId.value = data.event.id;
     hasTrackedFormStart.value = false;
     formStartTrackingArmed.value = false;
+    if (data.placeSelector.kind === "route") {
+      armFormStartTracking();
+      return;
+    }
+
     const defaultSelection = data.defaultSelection;
     if (!defaultSelection) {
       armFormStartTracking();
@@ -436,7 +481,7 @@ watch(
       return;
     }
 
-    selectedLocationId.value = defaultSelection.locationId;
+    selectedPlaceId.value = buildLocationPlaceOptionId(defaultSelection.locationId);
     selectedStartAt.value = defaultSelection.startAt;
     armFormStartTracking();
   },
@@ -468,7 +513,7 @@ defineExpose({
   returnToSelection,
 });
 
-watch([selectedLocationId, selectedStartAt, selectedPreferences], () => {
+watch([selectedPlaceId, selectedStartAt, selectedPreferences], () => {
   returnToSelection();
 });
 
@@ -501,6 +546,15 @@ const handleCreateLocationApplication = async () => {
   });
 };
 
+const handleCreateRouteApplication = async () => {
+  await router.push({
+    name: "anchor-event-route-apply",
+    query: {
+      fromEvent: props.eventId.toString(),
+    },
+  });
+};
+
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
     return null;
@@ -526,16 +580,22 @@ const buildFormFunnelPayload = () => ({
 });
 
 const buildSelectedConditionPayload = () => {
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  if (!place || !isValidFormModeDateTime(startAt)) {
     return null;
   }
 
   return {
     ...buildFormFunnelPayload(),
-    locationId,
-    locationType: resolveFormModeLocationType(locationId),
+    locationId: place.kind === "location" ? place.locationId : null,
+    routePoolEntryId:
+      place.kind === "route" ? place.routePoolEntryId : null,
+    placeKind: place.kind,
+    locationType:
+      place.kind === "location"
+        ? resolveFormModeLocationType(place.locationId)
+        : undefined,
     startAt,
     timeType: resolveFormModeTimeType(startAt),
     preferenceCount: selectedPreferences.value.length,
@@ -575,6 +635,8 @@ const trackFormStarted = (
       formModeData.value.defaultSelection !== null &&
       formModeData.value.defaultSelection !== undefined,
     locationId: selectedLocationId.value ?? undefined,
+    routePoolEntryId: selectedRoutePoolEntryId.value ?? undefined,
+    placeKind: selectedPlace.value?.kind,
     locationType:
       selectedLocationId.value === null
         ? undefined
@@ -700,7 +762,7 @@ const trackEventAssistedCreateResult = (
     correlationId?: string;
   },
   source: {
-    locationId: string;
+    place: AnchorEventSelectedPlace;
     startAt: string;
     preferenceCount: number;
   },
@@ -709,8 +771,15 @@ const trackEventAssistedCreateResult = (
     eventId: props.eventId,
     prId: payload.prId,
     activityType: resolveFormModeActivityType(),
-    locationId: source.locationId,
-    locationType: resolveFormModeLocationType(source.locationId),
+    locationId:
+      source.place.kind === "location" ? source.place.locationId : null,
+    routePoolEntryId:
+      source.place.kind === "route" ? source.place.routePoolEntryId : null,
+    placeKind: source.place.kind,
+    locationType:
+      source.place.kind === "location"
+        ? resolveFormModeLocationType(source.place.locationId)
+        : undefined,
     startAt: source.startAt,
     timeType: resolveFormModeTimeType(source.startAt),
     preferenceCount: source.preferenceCount,
@@ -754,9 +823,9 @@ const createEventAssistedPR = async (
     return false;
   }
 
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  if (!place || !isValidFormModeDateTime(startAt)) {
     return false;
   }
 
@@ -775,7 +844,10 @@ const createEventAssistedPR = async (
     trackEvent("anchor_event_form_create_fallback_click", {
       eventId: props.eventId,
       activityType: resolveFormModeActivityType(),
-      locationId,
+      locationId: place.kind === "location" ? place.locationId : null,
+      routePoolEntryId:
+        place.kind === "route" ? place.routePoolEntryId : null,
+      placeKind: place.kind,
       startAt,
       preferenceCount: selectedPreferences.value.length,
       correlationId,
@@ -783,7 +855,7 @@ const createEventAssistedPR = async (
   }
 
   const createTelemetrySource = {
-    locationId,
+    place,
     startAt,
     preferenceCount: selectedPreferences.value.length,
   };
@@ -800,6 +872,8 @@ const createEventAssistedPR = async (
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       fields,
+      routePoolEntryId:
+        place.kind === "route" ? place.routePoolEntryId : null,
       correlationId,
       handoff:
         trigger === "auto_no_candidates" ? "event_assisted_create" : undefined,
@@ -863,23 +937,31 @@ const createEventAssistedPR = async (
 };
 
 const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  if (!place || !isValidFormModeDateTime(startAt)) {
     return;
   }
 
   trackFormStarted("primary_cta");
   returnToSelection();
+  if (place.kind === "route") {
+    await createEventAssistedPR("manual_fallback");
+    return;
+  }
+
+  const locationId = place.locationId;
   const splashFill = startJoinSplash(originRect);
   const recommendationCorrelationId = createCommandCorrelationId();
-  const selectedConditionPayload = buildSelectedConditionPayload();
-  if (selectedConditionPayload) {
-    trackEvent("anchor_event_recommendation_requested", {
-      ...selectedConditionPayload,
-      correlationId: recommendationCorrelationId,
-    });
-  }
+  trackEvent("anchor_event_recommendation_requested", {
+    ...buildFormFunnelPayload(),
+    locationId,
+    locationType: resolveFormModeLocationType(locationId),
+    startAt,
+    timeType: resolveFormModeTimeType(startAt),
+    preferenceCount: selectedPreferences.value.length,
+    correlationId: recommendationCorrelationId,
+  });
 
   try {
     const result = await recommendationMutation.mutateAsync({
@@ -993,7 +1075,8 @@ const resolveSelectedTimeWindow = (): [string | null, string | null] => {
 
 const buildCreateFields = (): PartnerRequestFields | null => {
   const timeWindow = resolveSelectedTimeWindow();
-  if (!selectedLocationId.value || !timeWindow[0] || !timeWindow[1]) {
+  const place = selectedPlace.value;
+  if (!place || !timeWindow[0] || !timeWindow[1]) {
     return null;
   }
   if (!formModeData.value) {
@@ -1004,8 +1087,8 @@ const buildCreateFields = (): PartnerRequestFields | null => {
     title: undefined,
     type: formModeData.value.event.type,
     time: timeWindow,
-    location: selectedLocationId.value,
-    route: null,
+    location: place.kind === "location" ? place.locationId : null,
+    route: place.kind === "route" ? place.route : null,
     minPartners: formModeData.value.event.defaultMinPartners ?? 2,
     maxPartners: formModeData.value.event.defaultMaxPartners ?? null,
     partners: [],
@@ -1101,7 +1184,17 @@ const attemptPendingCreateReplay = async () => {
   const pendingCreateTelemetrySource =
     typeof pendingStartAt === "string" && isValidFormModeDateTime(pendingStartAt)
       ? {
-          locationId: pending.fields.location,
+          place:
+            pending.fields.route !== null
+              ? ({
+                  kind: "route",
+                  routePoolEntryId: pending.routePoolEntryId ?? "",
+                  route: pending.fields.route,
+                } satisfies AnchorEventSelectedPlace)
+              : ({
+                  kind: "location",
+                  locationId: pending.fields.location ?? "",
+                } satisfies AnchorEventSelectedPlace),
           startAt: pendingStartAt,
           preferenceCount: pending.fields.preferences.length,
         }
@@ -1117,7 +1210,7 @@ const attemptPendingCreateReplay = async () => {
         type: pending.fields.type,
         time: pending.fields.time,
         location: pending.fields.location,
-        route: null,
+        route: pending.fields.route,
         minPartners: pending.fields.minPartners,
         maxPartners: pending.fields.maxPartners,
         partners: [],
@@ -1125,6 +1218,7 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
+      routePoolEntryId: pending.routePoolEntryId ?? null,
     });
     if (pendingCreateTelemetrySource) {
       trackEventAssistedCreateResult(

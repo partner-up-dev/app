@@ -1,4 +1,7 @@
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
+import type {
+  AnchorEventPlaceOption,
+} from "@/domains/event/model/place-options";
 
 export type DemandCardViewModel = {
   cardKey: string;
@@ -13,12 +16,6 @@ export type DemandCardViewModel = {
 export type CardTimeWindowOption = {
   key: string;
   label: string;
-};
-
-export type CardCreateLocationOption = {
-  locationId: string;
-  label: string;
-  disabled: boolean;
 };
 
 export type LocationOption =
@@ -40,8 +37,10 @@ export type AnchorEventCardModeSurfaceProps = {
   dragHintToken?: number;
   cardCreateTimeWindowOptions?: CardTimeWindowOption[];
   cardCreateTimeWindowKey?: string | null;
-  cardCreateLocationId?: string;
-  cardCreateLocationOptions?: CardCreateLocationOption[];
+  cardCreatePlaceId?: string | null;
+  cardCreatePlaceOptions?: AnchorEventPlaceOption[];
+  cardCreatePlaceLabel?: string;
+  cardCreatePlacePlaceholder?: string;
   createActionErrorMessage?: string | null;
   isCreatePending?: boolean;
   canUserCreatePR?: boolean;
@@ -57,8 +56,10 @@ type AnchorEventCardModeSurfaceDefaults = {
   dragHintToken: number;
   cardCreateTimeWindowOptions: () => CardTimeWindowOption[];
   cardCreateTimeWindowKey: null;
-  cardCreateLocationId: string;
-  cardCreateLocationOptions: () => CardCreateLocationOption[];
+  cardCreatePlaceId: null;
+  cardCreatePlaceOptions: () => AnchorEventPlaceOption[];
+  cardCreatePlaceLabel: undefined;
+  cardCreatePlacePlaceholder: undefined;
   createActionErrorMessage: null;
   isCreatePending: boolean;
   canUserCreatePR: boolean;
@@ -73,8 +74,10 @@ export const anchorEventCardModeSurfaceDefaults: AnchorEventCardModeSurfaceDefau
   dragHintToken: 0,
   cardCreateTimeWindowOptions: () => [],
   cardCreateTimeWindowKey: null,
-  cardCreateLocationId: "",
-  cardCreateLocationOptions: () => [],
+  cardCreatePlaceId: null,
+  cardCreatePlaceOptions: () => [],
+  cardCreatePlaceLabel: undefined,
+  cardCreatePlacePlaceholder: undefined,
   createActionErrorMessage: null,
   isCreatePending: false,
   canUserCreatePR: true,
@@ -87,7 +90,7 @@ export type AnchorEventCardModeSurfaceEmits = {
   "skip-active-card": [];
   "view-active-card-detail": [];
   "update:cardCreateTimeWindowKey": [value: string | null];
-  "update:cardCreateLocationId": [value: string];
+  "update:cardCreatePlaceId": [value: string | null];
   "create-from-card-empty": [];
   "card-stage-active-change": [isActive: boolean];
 };

@@ -651,6 +651,17 @@ export interface MessageSchema {
       placeholderTitle: string;
       placeholderBody: string;
     };
+    placeSelector: {
+      locationLabel: string;
+      locationPlaceholder: string;
+      locationAriaLabel: string;
+      applyLocation: string;
+      routeLabel: string;
+      routePlaceholder: string;
+      routeAriaLabel: string;
+      applyRoute: string;
+      emptyPlaceholder: string;
+    };
     formMode: {
       recommendationSummaryEyebrow: string;
       modifyConditions: string;
@@ -679,6 +690,7 @@ export interface MessageSchema {
       viewAllSessions: string;
       primaryCtaFallback: string;
       primaryCta: string;
+      primaryCreateCta: string;
       primaryCtaPending: string;
       joinCandidateAction: string;
       viewRecommendationDetail: string;
@@ -705,6 +717,7 @@ export interface MessageSchema {
       subtitle: string;
       locationLabel: string;
       locationPlaceholder: string;
+      locationMapFallback: string;
       createAction: string;
       creatingAction: string;
       optionMaxReached: string;

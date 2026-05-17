@@ -31,6 +31,12 @@ import {
   resolveAnchorEventTimeWindowDescription,
 } from "../services/time-window-pool";
 import {
+  buildAnchorEventPlaceSelectorView,
+  toAnchorEventLocationPlaceOptionView,
+  toAnchorEventRoutePlaceOptionView,
+  type AnchorEventPlaceSelectorView,
+} from "../services/place-selector";
+import {
   resolveEventRoutePool,
   resolvePublicEventLocationPool,
 } from "../services/event-scope";
@@ -69,6 +75,7 @@ export interface CreateTimeWindowDetail {
   description: string | null;
   locationOptions: LocationOption[];
   routeOptions: RouteOption[];
+  placeSelector: AnchorEventPlaceSelectorView;
 }
 
 export interface LocationOption {
@@ -276,6 +283,23 @@ export async function getAnchorEventDetail(
       disabled: false,
       disabledReason: "NONE",
     }));
+    const locationPlaceOptions = locationOptions.map((option) =>
+      toAnchorEventLocationPlaceOptionView({
+        locationId: option.locationId,
+        poi: poiByLocation.get(option.locationId) ?? null,
+        remainingQuota: option.remainingQuota,
+        disabled: option.disabled,
+        disabledReason: option.disabledReason,
+      }),
+    );
+    const routePlaceOptions = routeOptions.map((option) =>
+      toAnchorEventRoutePlaceOptionView({
+        routePoolEntryId: option.routePoolEntryId,
+        route: option.route,
+        disabled: option.disabled,
+        disabledReason: option.disabledReason,
+      }),
+    );
     if (routeOptions.length > 0) {
       hasAvailableCapacity = true;
     }
@@ -286,6 +310,10 @@ export async function getAnchorEventDetail(
       description: timeWindowDetail.description,
       locationOptions,
       routeOptions,
+      placeSelector: buildAnchorEventPlaceSelectorView({
+        locationOptions: locationPlaceOptions,
+        routeOptions: routePlaceOptions,
+      }),
     });
   }
 

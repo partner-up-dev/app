@@ -19,6 +19,7 @@ import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 type CreateEventAssistedPRInput = {
   eventId: number;
   fields: PartnerRequestFields;
+  routePoolEntryId?: string | null;
   handoff?: "event_assisted_create";
   correlationId?: string;
 };
@@ -39,13 +40,20 @@ export const useCreateEventAssistedPR = () => {
     CreateEventAssistedPRError,
     CreateEventAssistedPRInput
   >({
-    mutationFn: async ({ eventId, fields, handoff, correlationId }) => {
+    mutationFn: async ({
+      eventId,
+      fields,
+      routePoolEntryId,
+      handoff,
+      correlationId,
+    }) => {
       const response = await client.api.pr.new.form.$post(
         {
           json: {
             fields,
             createSource: "EVENT_ASSISTED",
             anchorEventId: eventId,
+            routePoolEntryId: routePoolEntryId ?? undefined,
             correlationId,
           },
         },
@@ -67,10 +75,12 @@ export const useCreateEventAssistedPR = () => {
             kind: "EVENT_ASSISTED_PR_CREATE",
             eventId,
             handoff,
+            routePoolEntryId: routePoolEntryId ?? null,
             fields: {
               type: fields.type,
               time: fields.time,
-              location: fields.location ?? "",
+              location: fields.location ?? null,
+              route: fields.route ?? null,
               minPartners: fields.minPartners,
               maxPartners: fields.maxPartners,
               preferences: [...fields.preferences],

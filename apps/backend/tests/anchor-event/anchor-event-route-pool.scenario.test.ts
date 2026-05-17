@@ -42,6 +42,18 @@ type AnchorEventDetailResponse = {
   routePool: AnchorEventRoutePool;
   exhausted: boolean;
   createTimeWindows: Array<{
+    placeSelector: {
+      kind: "location" | "route" | "none";
+      labelKey: string;
+      placeholderKey: string;
+      applyActionKey: string | null;
+      options: Array<{
+        kind: "location" | "route";
+        id: string;
+        label: string;
+        disabled: boolean;
+      }>;
+    };
     routeOptions: Array<{
       routePoolEntryId: string;
       route: PRRoute;
@@ -60,6 +72,18 @@ type AnchorEventFormModeResponse = {
     route: PRRoute;
     availableStartKeys: string[];
   }>;
+  placeSelector: {
+    kind: "location" | "route" | "none";
+    labelKey: string;
+    placeholderKey: string;
+    applyActionKey: string | null;
+    options: Array<{
+      kind: "location" | "route";
+      id: string;
+      label: string;
+      disabled: boolean;
+    }>;
+  };
 };
 
 type AnchorEventSummaryResponse = Array<{
@@ -227,6 +251,24 @@ scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => 
     disabled: false,
     disabledReason: "NONE",
   });
+  assert.equal(detail.createTimeWindows[0]?.placeSelector.kind, "route");
+  assert.equal(
+    detail.createTimeWindows[0]?.placeSelector.labelKey,
+    "anchorEvent.placeSelector.routeLabel",
+  );
+  assert.equal(
+    detail.createTimeWindows[0]?.placeSelector.placeholderKey,
+    "anchorEvent.placeSelector.routePlaceholder",
+  );
+  assert.equal(
+    detail.createTimeWindows[0]?.placeSelector.applyActionKey,
+    "anchorEvent.placeSelector.applyRoute",
+  );
+  const detailPlaceOption = detail.createTimeWindows[0]?.placeSelector.options[0];
+  assert.equal(detailPlaceOption?.kind, "route");
+  assert.equal(detailPlaceOption?.id, "route:south-to-stadium");
+  assert.equal(detailPlaceOption?.label, "广州南站~天河体育中心");
+  assert.equal(detailPlaceOption?.disabled, false);
 
   const formMode = await expectJsonResponse<AnchorEventFormModeResponse>(
     await requestJson(`/api/events/${event.id}/form-mode`),
@@ -238,6 +280,15 @@ scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => 
   assert.deepEqual(formMode.routes[0]?.availableStartKeys, [
     "2037-03-01T10:00:00.000Z::2037-03-01T11:00:00.000Z",
   ]);
+  assert.equal(formMode.placeSelector.kind, "route");
+  assert.equal(
+    formMode.placeSelector.labelKey,
+    "anchorEvent.placeSelector.routeLabel",
+  );
+  assert.equal(
+    formMode.placeSelector.options[0]?.id,
+    "route:south-to-stadium",
+  );
 
   const summaries = await expectJsonResponse<AnchorEventSummaryResponse>(
     await requestJson("/api/events"),
