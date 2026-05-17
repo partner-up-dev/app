@@ -283,7 +283,9 @@ Follow-up correction for Tencent map bottom attribution band:
 - Shared `Map.vue` now supports opt-in bottom attribution hiding by extending the Tencent map canvas 20px below the clipped shell and adding 20px to fit-geometry bottom padding.
 - `RouteMap.vue` forwards the opt-in prop.
 - Anchor Event Form Mode route carousel maps and Card/List inline place preview maps opt into the behavior.
+- Tencent LBS provider now omits absent `minZoom` / `maxZoom` fields from `MapOptions` so the SDK does not warn about `undefined` zoom bounds.
 - Browser verified `https://partner-up.localhost/e/4?mode=form`: the route-card map shell stayed clipped at 138px height with `overflow: hidden`; the map container and Tencent canvas measured 158px height and bottom extended 20px below the shell.
+- Browser console check on `https://partner-up.localhost/e/4?mode=form`: no `minZoom` / `MapOptions` / Tencent type warning appeared after maps initialized.
 - Browser checked `https://partner-up.localhost/e/4?mode=list`: the current page state had no visible inline selector instance, so inline preview visual verification remains pending.
 - `git diff --check`: passed.
 - `pnpm --filter @partner-up-dev/frontend build`: passed.

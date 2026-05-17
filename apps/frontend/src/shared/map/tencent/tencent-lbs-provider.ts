@@ -13,6 +13,7 @@ import type {
   TencentLBSMapProviderInput,
   TencentLatLng,
   TencentMap,
+  TencentMapOptions,
   TencentMapSdk,
   TencentMultiMarker,
   TencentMultiPolyline,
@@ -324,18 +325,23 @@ export const createTencentLBSMapProvider = async ({
   interactive = true,
 }: TencentLBSMapProviderInput): Promise<TencentLBSMapProvider> => {
   const sdk = await loadTencentLBSSdk({ key: apiKey, libraries });
-  const map = new sdk.Map(container, {
+  const mapOptions: TencentMapOptions = {
     center: toTencentLatLng(sdk, center),
     zoom,
-    minZoom,
-    maxZoom,
     viewMode: "2D",
     showControl: interactive,
     draggable: interactive,
     scrollable: interactive,
     touchZoomable: interactive,
     doubleClickZoom: interactive,
-  });
+  };
+  if (typeof minZoom === "number") {
+    mapOptions.minZoom = minZoom;
+  }
+  if (typeof maxZoom === "number") {
+    mapOptions.maxZoom = maxZoom;
+  }
+  const map = new sdk.Map(container, mapOptions);
 
   let markerLayer: TencentMultiMarker | null = new sdk.MultiMarker({
     id: "partner-up-marker-layer",
