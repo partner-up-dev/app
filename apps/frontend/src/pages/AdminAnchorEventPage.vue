@@ -135,6 +135,7 @@ import AnchorEventTimeSection from "@/domains/admin/ui/anchor-event/sections/Anc
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNavigationSection";
 import {
+  type AcceptAdminRouteApplicationInput,
   type AdminAnchorEventWorkspaceResponse,
   useAcceptAdminRouteApplication,
   useAdminAnchorEventWorkspace,
@@ -597,9 +598,11 @@ const handleSaveAnchorEventOtherSettings = async () => {
   }
 };
 
-const handleAcceptRouteApplication = async (applicationId: number) => {
+const handleAcceptRouteApplication = async (
+  payload: AcceptAdminRouteApplicationInput,
+) => {
   try {
-    await acceptRouteApplicationMutation.mutateAsync(applicationId);
+    await acceptRouteApplicationMutation.mutateAsync(payload);
   } catch {
     // Mutation state already drives page-level feedback.
   }

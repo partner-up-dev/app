@@ -244,3 +244,15 @@ Local migration remediation on 2026-05-17:
 - Verified key 0047-0057 schema artifacts existed locally, reconciled only those local `app_migrations` rows, then reran standard `pnpm db:migrate`.
 - Standard migration runner then applied `drizzle/0058_anchor_event_route_applications.sql` successfully with `applied=1 skipped=58`.
 - Verified `anchor_event_route_applications` exists and `schema:0058_anchor_event_route_applications.sql` is present in `app_migrations`.
+
+Planning update for Route Application Admin route review draft:
+
+- Route application review should allow Admin to adjust route items before accepting.
+- The UI uses generic `RouteEditor`, so each route item keeps the same LocationPicker behavior as route creation and route-pool editing.
+- The Admin accept command now carries the normalized review draft route; backend acceptance uses that route for the event-local route-pool entry and stores it back on the reviewed application.
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed, 1 file / 5 tests, including edited accepted route coverage.
+- `pnpm lint:backend`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- `git diff --check`: passed.

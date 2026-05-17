@@ -14,6 +14,7 @@ import {
   normalizeLocationPool,
   prJoinGateConfigSchema,
   prRouteSchema,
+  type PRRoute,
   prStatusManualSchema,
   visibilityStatusSchema,
 } from "../entities";
@@ -184,6 +185,9 @@ const adminPreferenceTagsReplaceSchema = z.object({
 const adminManualReleaseSchema = z.object({
   reason: z.string().trim().min(1),
 });
+const adminRouteApplicationAcceptSchema = z.object({
+  route: prRouteSchema.optional(),
+});
 const adminRouteApplicationRejectSchema = z.object({
   rejectReason: z.string().trim().nullable().optional(),
 });
@@ -197,12 +201,15 @@ export const adminAnchorManagementRoute = app
   .post(
     "/route-applications/:applicationId/accept",
     zValidator("param", routeApplicationIdParamSchema),
+    zValidator("json", adminRouteApplicationAcceptSchema),
     async (c) => {
       const { applicationId } = c.req.valid("param");
+      const { route } = c.req.valid("json") as { route?: PRRoute };
       const auth = c.get("auth");
       const result = await acceptAdminAnchorEventRouteApplication({
         applicationId,
         reviewedByUserId: auth.userId ?? null,
+        route,
       });
       return c.json(result);
     },

@@ -1467,6 +1467,7 @@ export interface MessageSchema {
     routeApplicationsTitle: string;
     selectEventForRouteApplicationsHint: string;
     emptyRouteApplications: string;
+    routeApplicationEditHint: string;
     routeApplicationRejectPlaceholder: string;
     acceptRouteApplicationAction: string;
     rejectRouteApplicationAction: string;

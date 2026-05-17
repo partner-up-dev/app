@@ -23,7 +23,7 @@
           >
             <RouteMap
               class="route-application-card__map"
-              :route="application.route"
+              :route="displayRoute(application)"
               :interactive="false"
               :fit-padding="24"
               :max-zoom="15"
@@ -33,7 +33,7 @@
             <div class="route-application-card__body">
               <div class="route-application-card__header">
                 <div>
-                  <h3>{{ routeSummary(application.route) }}</h3>
+                  <h3>{{ routeSummary(displayRoute(application)) }}</h3>
                   <p>{{ formatCreatedAt(application.createdAt) }}</p>
                 </div>
                 <Chip
@@ -53,6 +53,29 @@
 
               <div
                 v-if="application.status === 'PENDING'"
+                class="route-application-card__editor"
+              >
+                <p class="route-application-card__hint">
+                  {{ t("adminAnchorEvents.routeApplicationEditHint") }}
+                </p>
+                <RouteEditor
+                  :model-value="routeDraft(application)"
+                  variant="inline"
+                  data-testid="admin-anchor-event.route-application.editor"
+                  @update:model-value="
+                    updateRouteDraft(application.id, $event)
+                  "
+                />
+                <p
+                  v-if="routeValidationMessage(application.id)"
+                  class="route-application-card__validation"
+                >
+                  {{ routeValidationMessage(application.id) }}
+                </p>
+              </div>
+
+              <div
+                v-if="application.status === 'PENDING'"
                 class="route-application-card__review"
               >
                 <textarea
@@ -69,8 +92,8 @@
                     appearance="pill"
                     size="sm"
                     type="button"
-                    :disabled="disabled"
-                    @click="$emit('accept', application.id)"
+                    :disabled="disabled || !canAccept(application.id)"
+                    @click="handleAccept(application)"
                   >
                     {{ t("adminAnchorEvents.acceptRouteApplicationAction") }}
                   </Button>
@@ -100,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -108,7 +131,16 @@ import Chip from "@/shared/ui/display/Chip.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import type { AdminRouteApplication } from "@/domains/admin/queries/useAdminAnchorEvents";
-import { buildRouteSummary } from "@/domains/route/model/route";
+import {
+  buildRouteSummary,
+  cloneRoute,
+  createEmptyRouteDraft,
+  getRouteValidationIssue,
+  normalizeRouteForSubmit,
+  type Route,
+  type RouteValidationIssue,
+} from "@/domains/route/model/route";
+import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 
 type RouteApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
@@ -119,13 +151,14 @@ const props = defineProps<{
   disabled: boolean;
 }>();
 
-defineEmits<{
-  accept: [applicationId: number];
+const emit = defineEmits<{
+  accept: [payload: { applicationId: number; route: PRRoute }];
   reject: [payload: { applicationId: number; rejectReason: string | null }];
 }>();
 
 const { t } = useI18n();
 const rejectReasons = ref<Record<number, string>>({});
+const routeDrafts = ref<Record<number, Route>>({});
 
 const visibleApplications = computed(() =>
   props.selectedEventId === null
@@ -137,6 +170,89 @@ const visibleApplications = computed(() =>
 
 const routeSummary = (route: PRRoute): string =>
   buildRouteSummary(route) ?? t("adminAnchorEvents.routeSummaryFallback");
+
+watch(
+  () => props.applications,
+  (applications) => {
+    const nextDrafts: Record<number, Route> = { ...routeDrafts.value };
+    const applicationIds = new Set<number>();
+    for (const application of applications) {
+      applicationIds.add(application.id);
+      if (
+        nextDrafts[application.id] === undefined ||
+        application.status !== "PENDING"
+      ) {
+        nextDrafts[application.id] =
+          cloneRoute(application.route) ?? createEmptyRouteDraft();
+      }
+    }
+
+    for (const draftId of Object.keys(nextDrafts)) {
+      if (!applicationIds.has(Number(draftId))) {
+        delete nextDrafts[Number(draftId)];
+      }
+    }
+
+    routeDrafts.value = nextDrafts;
+  },
+  { immediate: true },
+);
+
+const routeDraft = (application: AdminRouteApplication): Route =>
+  routeDrafts.value[application.id] ??
+  cloneRoute(application.route) ??
+  createEmptyRouteDraft();
+
+const displayRoute = (application: AdminRouteApplication): PRRoute =>
+  (application.status === "PENDING"
+    ? routeDraft(application)
+    : application.route) as PRRoute;
+
+const updateRouteDraft = (applicationId: number, route: Route): void => {
+  routeDrafts.value = {
+    ...routeDrafts.value,
+    [applicationId]: cloneRoute(route) ?? createEmptyRouteDraft(),
+  };
+};
+
+const routeIssue = (applicationId: number): RouteValidationIssue | null =>
+  getRouteValidationIssue(routeDrafts.value[applicationId]);
+
+const routeValidationMessage = (applicationId: number): string | null => {
+  const issue = routeIssue(applicationId);
+  if (issue === null) {
+    return null;
+  }
+
+  const keyByIssue: Record<RouteValidationIssue, string> = {
+    "min-points": "routeApplicationPage.validation.minPoints",
+    "name-required": "routeApplicationPage.validation.nameRequired",
+    "coordinate-required": "routeApplicationPage.validation.coordinateRequired",
+  };
+  return t(keyByIssue[issue]);
+};
+
+const normalizedRouteDraft = (applicationId: number): PRRoute | null => {
+  const route = routeDrafts.value[applicationId];
+  if (getRouteValidationIssue(route) !== null) {
+    return null;
+  }
+  return normalizeRouteForSubmit(route) as PRRoute | null;
+};
+
+const canAccept = (applicationId: number): boolean =>
+  normalizedRouteDraft(applicationId) !== null;
+
+const handleAccept = (application: AdminRouteApplication): void => {
+  const route = normalizedRouteDraft(application.id);
+  if (route === null) {
+    return;
+  }
+  emit("accept", {
+    applicationId: application.id,
+    route,
+  });
+};
 
 const rejectReasonDraft = (applicationId: number): string =>
   rejectReasons.value[applicationId] ?? "";
@@ -181,6 +297,7 @@ const formatCreatedAt = (value: string): string => {
 .anchor-event-route-applications-section,
 .route-application-list,
 .route-application-card__body,
+.route-application-card__editor,
 .route-application-card__review {
   display: flex;
   flex-direction: column;
@@ -189,6 +306,7 @@ const formatCreatedAt = (value: string): string => {
 .anchor-event-route-applications-section,
 .route-application-list,
 .route-application-card__body,
+.route-application-card__editor,
 .route-application-card__review {
   gap: var(--sys-spacing-medium);
 }
@@ -246,6 +364,20 @@ const formatCreatedAt = (value: string): string => {
 .route-application-card__reason {
   margin: 0;
   @include mx.pu-font(body-small);
+  color: var(--sys-color-error);
+}
+
+.route-application-card__hint,
+.route-application-card__validation {
+  margin: 0;
+  @include mx.pu-font(body-small);
+}
+
+.route-application-card__hint {
+  color: var(--sys-color-on-surface-variant);
+}
+
+.route-application-card__validation {
   color: var(--sys-color-error);
 }
 

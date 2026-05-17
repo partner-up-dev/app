@@ -271,6 +271,19 @@ scenario(
     assert.equal(submitted.status, "PENDING");
     assert.deepEqual(submitted.route, route);
 
+    const reviewedRoute: PRRoute = [
+      {
+        ...route[0]!,
+        name: "广州南站 P5 停车场",
+        full_address: "广州市番禺区石壁街道广州南站 P5 停车场",
+      },
+      {
+        ...route[1]!,
+        name: "二沙岛体育公园东门",
+        full_address: "广州市越秀区二沙岛体育公园东门",
+      },
+    ];
+
     const mine = await expectJsonResponse<RouteApplicationResponse[]>(
       await requestJson("/api/events/route-applications/mine", {
         token: applicant.token,
@@ -285,11 +298,13 @@ scenario(
         {
           method: "POST",
           token: admin.token,
+          body: { route: reviewedRoute },
         },
       ),
       200,
     );
     assert.equal(accepted.status, "ACCEPTED");
+    assert.deepEqual(accepted.route, reviewedRoute);
 
     const workspace = await expectJsonResponse<AdminAnchorWorkspaceResponse>(
       await requestJson("/api/admin/anchor-events/workspace", {
@@ -301,7 +316,7 @@ scenario(
     assert.deepEqual(workspaceEvent?.routePool, [
       {
         id: `application-${submitted.id}`,
-        route,
+        route: reviewedRoute,
       },
     ]);
     assert.equal(

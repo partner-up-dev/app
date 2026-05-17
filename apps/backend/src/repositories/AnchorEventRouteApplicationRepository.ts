@@ -6,6 +6,7 @@ import {
   type AnchorEventRouteApplicationStatus,
   type NewAnchorEventRouteApplication,
 } from "../entities/anchor-event-route-application";
+import type { PRRoute } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
 import { db } from "../lib/db";
 
@@ -74,18 +75,28 @@ export class AnchorEventRouteApplicationRepository {
       >;
       reviewedByUserId: UserId | null;
       rejectReason?: string | null;
+      route?: PRRoute;
     },
   ): Promise<AnchorEventRouteApplication | null> {
+    const reviewState = {
+      status: data.status,
+      reviewedByUserId: data.reviewedByUserId,
+      reviewedAt: new Date(),
+      rejectReason:
+        data.status === "REJECTED" ? data.rejectReason ?? null : null,
+      updatedAt: new Date(),
+    };
+    const values =
+      data.route === undefined
+        ? reviewState
+        : {
+            ...reviewState,
+            route: data.route,
+          };
+
     const result = await db
       .update(anchorEventRouteApplications)
-      .set({
-        status: data.status,
-        reviewedByUserId: data.reviewedByUserId,
-        reviewedAt: new Date(),
-        rejectReason:
-          data.status === "REJECTED" ? data.rejectReason ?? null : null,
-        updatedAt: new Date(),
-      })
+      .set(values)
       .where(eq(anchorEventRouteApplications.id, id))
       .returning();
 

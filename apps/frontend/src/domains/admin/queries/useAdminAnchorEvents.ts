@@ -3,6 +3,7 @@ import type { InferResponseType } from "hono";
 import { computed, unref, type MaybeRef } from "vue";
 import type {
   AnchorEventParticipationFrequencyLimit,
+  PRRoute,
   PRJoinGateConfig,
 } from "@partner-up-dev/backend";
 import { adminClient } from "@/lib/admin-rpc";
@@ -41,6 +42,10 @@ export type UpdateAdminAnchorEventResponse = InferResponseType<
 export type AcceptAdminRouteApplicationResponse = InferResponseType<
   RouteApplicationRoute["accept"]["$post"]
 >;
+export type AcceptAdminRouteApplicationInput = {
+  applicationId: number;
+  route: PRRoute;
+};
 export type RejectAdminRouteApplicationResponse = InferResponseType<
   RouteApplicationRoute["reject"]["$post"]
 >;
@@ -174,12 +179,17 @@ export const useUpdateAdminAnchorEvent = () => {
 export const useAcceptAdminRouteApplication = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<AcceptAdminRouteApplicationResponse, Error, number>({
-    mutationFn: async (applicationId) => {
+  return useMutation<
+    AcceptAdminRouteApplicationResponse,
+    Error,
+    AcceptAdminRouteApplicationInput
+  >({
+    mutationFn: async ({ applicationId, route }) => {
       const res = await adminClient.api.admin["route-applications"][
         ":applicationId"
       ].accept.$post({
         param: { applicationId: applicationId.toString() },
+        json: { route },
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "通过路线申请失败"));

@@ -3,6 +3,7 @@ import {
   normalizeLocationPool,
   type AnchorEventRoutePool,
 } from "../../../entities/anchor-event";
+import type { PRRoute } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
@@ -37,6 +38,7 @@ const buildApplicationRouteEntryId = (
 export async function acceptAdminAnchorEventRouteApplication(input: {
   applicationId: number;
   reviewedByUserId: UserId | null;
+  route?: PRRoute;
 }) {
   const application = await routeApplicationRepo.findById(input.applicationId);
   if (!application) {
@@ -66,8 +68,9 @@ export async function acceptAdminAnchorEventRouteApplication(input: {
   }
 
   const routePool = normalizeAnchorEventRoutePool(event.routePool);
+  const acceptedRoute = input.route ?? application.route;
   const hasSameRoute = routePool.some((entry) =>
-    arePRRoutesEqual(entry.route, application.route),
+    arePRRoutesEqual(entry.route, acceptedRoute),
   );
   const nextRoutePool = hasSameRoute
     ? routePool
@@ -75,7 +78,7 @@ export async function acceptAdminAnchorEventRouteApplication(input: {
         ...routePool,
         {
           id: buildApplicationRouteEntryId(application.id, routePool),
-          route: application.route,
+          route: acceptedRoute,
         },
       ];
 
@@ -86,6 +89,7 @@ export async function acceptAdminAnchorEventRouteApplication(input: {
   const updated = await routeApplicationRepo.updateReviewState(application.id, {
     status: "ACCEPTED",
     reviewedByUserId: input.reviewedByUserId,
+    route: input.route === undefined ? undefined : acceptedRoute,
   });
   if (!updated) {
     return throwHttpProblem({
@@ -102,6 +106,7 @@ export async function acceptAdminAnchorEventRouteApplication(input: {
     detail: {
       anchorEventId: event.id,
       routePoolEntryCreated: !hasSameRoute,
+      routeEdited: input.route !== undefined,
       status: updated.status,
     },
   });

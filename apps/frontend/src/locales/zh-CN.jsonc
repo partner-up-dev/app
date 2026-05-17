@@ -973,6 +973,7 @@
     "routeApplicationsTitle": "路线申请",
     "selectEventForRouteApplicationsHint": "请先选择一个已有活动，再审核路线申请。",
     "emptyRouteApplications": "当前活动没有待处理路线申请。",
+    "routeApplicationEditHint": "审核前可调整路线地点；选择地点会同步名称、地址和坐标。",
     "routeApplicationRejectPlaceholder": "填写驳回原因（可选）",
     "acceptRouteApplicationAction": "通过",
     "rejectRouteApplicationAction": "驳回",
