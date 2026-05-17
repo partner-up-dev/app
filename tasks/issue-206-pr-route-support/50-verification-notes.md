@@ -268,3 +268,12 @@ Command log for Form Mode route place control correction:
 - `pnpm --filter @partner-up-dev/frontend build`: passed.
 - `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
 - `git diff --check`: passed.
+
+Follow-up correction for Form Mode route card click handling:
+
+- Browser hit-testing showed route-card clicks land first on Tencent map canvas descendants.
+- Route cards now set the preview `RouteMap` to `pointer-events: none`, so click targeting reaches the card/carousel selection layer consistently.
+- Browser verified `https://partner-up.localhost/e/4?mode=form`: the second route card hit target is now the route card article, and clicking it selects `route:application-1`.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- `git diff --check`: passed.

@@ -344,6 +344,7 @@ watch(
 .place-card--route :deep(.route-map--inline) {
   height: 100%;
   min-height: 100%;
+  pointer-events: none;
 }
 
 .place-card :deep(.map-shell--inline),
