@@ -619,6 +619,7 @@ export interface MessageSchema {
       ariaLabel: string;
       card: string;
       list: string;
+      form: string;
     };
     card: {
       batchLabel: string;

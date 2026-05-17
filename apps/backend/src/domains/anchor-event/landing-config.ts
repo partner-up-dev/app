@@ -163,9 +163,9 @@ const resolveVariantWeights = (
 
   if (weights.FORM + weights.CARD_RICH + weights.LIST <= 0) {
     return {
-      FORM: 1,
+      FORM: 0,
       CARD_RICH: 0,
-      LIST: 0,
+      LIST: 1,
     };
   }
 
@@ -179,7 +179,7 @@ export const assignAnchorEventLandingModeFromConfig = (
   const weights = resolveVariantWeights(config);
   const totalWeight = weights.FORM + weights.CARD_RICH + weights.LIST;
   if (totalWeight <= 0) {
-    return "FORM";
+    return "LIST";
   }
 
   const resolvedRandomValue = Math.min(Math.max(randomValue, 0), 1);
@@ -193,7 +193,7 @@ export const assignAnchorEventLandingModeFromConfig = (
   ];
   let cumulativeWeight = 0;
 
-  let lastPositiveMode: AnchorEventLandingMode = "FORM";
+  let lastPositiveMode: AnchorEventLandingMode = "LIST";
 
   for (const entry of weightedModes) {
     if (entry.weight > 0) {

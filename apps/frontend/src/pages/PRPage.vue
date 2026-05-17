@@ -155,7 +155,7 @@ const routeEventId = computed(() => {
 });
 const backFallbackTo = computed(() => {
   if (routeEventId.value !== null) {
-    return `/events/${routeEventId.value}`;
+    return `/e/${routeEventId.value}?mode=list`;
   }
   return "/";
 });

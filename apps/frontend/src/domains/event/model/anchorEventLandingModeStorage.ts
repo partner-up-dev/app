@@ -7,10 +7,45 @@ const buildStorageKey = (
   assignmentRevision: number,
 ): string => `${STORAGE_KEY_PREFIX}:${eventId}:${assignmentRevision}`;
 
-const isValidAnchorEventLandingMode = (
+export const isValidAnchorEventLandingMode = (
   value: unknown,
 ): value is AnchorEventLandingMode =>
   value === "FORM" || value === "CARD_RICH" || value === "LIST";
+
+export const normalizeAnchorEventLandingMode = (
+  value: unknown,
+): AnchorEventLandingMode | null => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "form") {
+      return "FORM";
+    }
+    if (
+      normalized === "card" ||
+      normalized === "card_rich" ||
+      normalized === "card-rich"
+    ) {
+      return "CARD_RICH";
+    }
+    if (normalized === "list") {
+      return "LIST";
+    }
+    return null;
+  }
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  for (const item of value) {
+    const mode = normalizeAnchorEventLandingMode(item);
+    if (mode !== null) {
+      return mode;
+    }
+  }
+
+  return null;
+};
 
 export const readStoredAnchorEventLandingMode = (
   eventId: number,

@@ -915,7 +915,7 @@
     "cardRichRatioLabel": "CARD_RICH 比例",
     "listRatioLabel": "LIST 比例",
     "assignmentRevisionLabel": "Assignment Revision",
-    "landingFallbackHint": "比例为 0 的模式会退出加权分流；landing assignment 超时或失败时，系统进入 FORM fallback。",
+    "landingFallbackHint": "比例为 0 的模式会退出加权分流；landing assignment 超时或失败时，系统进入 LIST fallback。",
     "landingRatioValidation": "FORM、CARD_RICH 与 LIST 比例总和需要等于 100。",
     "assignmentRevisionValidation": "Assignment revision 需要是大于 0 的整数。",
     "saveLandingConfigAction": "保存 Landing Rollout",
@@ -1702,7 +1702,8 @@
     "viewMode": {
       "ariaLabel": "活动浏览模式",
       "card": "卡片",
-      "list": "列表"
+      "list": "列表",
+      "form": "表单"
     },
     "card": {
       "batchLabel": "时间时段",
@@ -1732,7 +1733,7 @@
     "landing": {
       "eyebrow": "Landing Entry",
       "placeholderTitle": "活动 Landing",
-      "placeholderBody": "FORM 模式会在后续 issue 接上完整流程；当前先交付 landing foundation。"
+      "placeholderBody": "活动 Landing 已支持列表、卡片与表单三种浏览模式。"
     },
     "formMode": {
       "recommendationSummaryEyebrow": "已选择条件",

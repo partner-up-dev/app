@@ -1,6 +1,9 @@
 <template>
   <FooterRevealPageScaffold
-    class="anchor-event-landing-page"
+    :class="[
+      'anchor-event-landing-page',
+      { 'anchor-event-landing-page--card-rich': resolvedMode === 'CARD_RICH' },
+    ]"
     data-page="event-landing"
     data-testid="anchor-event-landing.page"
     :content-placement="pageStatePlacement"
@@ -52,7 +55,7 @@
       :event-id="eventId"
     />
 
-    <template v-else-if="detail">
+    <template v-else-if="resolvedMode === 'CARD_RICH' && detail">
       <AnchorEventCardModeSurface
         :active-demand-card="activeDemandCard"
         :stack-preview-cards="stackPreviewCards"
@@ -79,7 +82,23 @@
     </template>
 
     <template #footer>
-      <FullCommonFooter />
+      <div class="anchor-event-landing-page__footer">
+        <div
+          v-if="detail && resolvedMode !== null"
+          class="anchor-event-landing-page__mode-switch-shell"
+          data-testid="anchor-event-landing.mode-switch"
+        >
+          <SegmentedControl
+            class="anchor-event-landing-page__mode-switch"
+            block
+            :model-value="resolvedMode"
+            :options="modeOptions"
+            :aria-label="t('anchorEvent.viewMode.ariaLabel')"
+            @update:model-value="handleModeControlChange"
+          />
+        </div>
+        <FullCommonFooter data-region="footer" />
+      </div>
     </template>
   </FooterRevealPageScaffold>
 
@@ -149,6 +168,10 @@ import {
 import Button from "@/shared/ui/actions/Button.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import SegmentedControl, {
+  type SegmentedControlOption,
+  type SegmentedControlValue,
+} from "@/shared/ui/controls/SegmentedControl.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
@@ -160,6 +183,10 @@ import {
   ensureAnchorEventLandingSegment,
   type AnchorEventFunnelContext,
 } from "@/domains/event/telemetry/anchor-event-funnel";
+import {
+  normalizeAnchorEventLandingMode,
+  type AnchorEventLandingMode,
+} from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
 type LocationOption =
@@ -197,14 +224,43 @@ const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
 
 const noop = () => undefined;
 
+const modeOptions = computed<SegmentedControlOption[]>(() => [
+  {
+    value: "LIST",
+    label: t("anchorEvent.viewMode.list"),
+    icon: "i-mdi:view-list",
+    testId: "anchor-event-landing.mode.list",
+  },
+  {
+    value: "CARD_RICH",
+    label: t("anchorEvent.viewMode.card"),
+    icon: "i-mdi:cards-outline",
+    testId: "anchor-event-landing.mode.card",
+  },
+  {
+    value: "FORM",
+    label: t("anchorEvent.viewMode.form"),
+    icon: "i-mdi:form-select",
+    testId: "anchor-event-landing.mode.form",
+  },
+]);
+
+const toModeQueryValue = (mode: AnchorEventLandingMode): string => {
+  if (mode === "CARD_RICH") {
+    return "card";
+  }
+  return mode.toLowerCase();
+};
+
 const eventId = computed(() => {
   const raw = route.params.eventId;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 });
 
-const { assignmentQuery, resolvedMode, isTimeoutFallback } =
-  useResolvedAnchorEventLandingMode(eventId);
+const requestedMode = computed(() => route.query.mode);
+const { assignmentQuery, resolvedMode, setResolvedMode, isTimeoutFallback } =
+  useResolvedAnchorEventLandingMode(eventId, requestedMode);
 const { data: detail, isLoading: isDetailLoading, isError: isDetailError } =
   useAnchorEventDetail(eventId);
 const otherEventsQuery = useAnchorEvents();
@@ -330,6 +386,26 @@ const handleLandingBack = async () => {
   }
 
   await router.replace(backFallbackTo);
+};
+
+const handleModeControlChange = (value: SegmentedControlValue) => {
+  const mode = normalizeAnchorEventLandingMode(value);
+  const resolvedEventId = eventId.value;
+  if (mode === null || resolvedEventId === null) {
+    return;
+  }
+
+  setResolvedMode(mode);
+  void router.replace({
+    name: "anchor-event-landing",
+    params: {
+      eventId: resolvedEventId.toString(),
+    },
+    query: {
+      ...route.query,
+      mode: toModeQueryValue(mode),
+    },
+  });
 };
 
 watch([eventId, resolvedMode], () => {
@@ -991,10 +1067,53 @@ const handleSelectOtherEvent = async (nextEventId: number | null) => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  isolation: isolate;
+}
+
+.anchor-event-landing-page :deep(.footer-reveal-page-scaffold__viewport) {
+  position: relative;
+  z-index: 1;
+}
+
+.anchor-event-landing-page :deep(.footer-reveal-page-scaffold__footer) {
+  position: relative;
+  z-index: 30;
+}
+
+.anchor-event-landing-page--card-rich
+  :deep(.footer-reveal-page-scaffold__viewport) {
+  height: var(--footer-reveal-first-screen-height);
+  overflow: hidden;
 }
 
 .anchor-event-landing-page__header {
   flex-shrink: 0;
+}
+
+.anchor-event-landing-page__footer {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--sys-color-surface-container);
+}
+
+.anchor-event-landing-page__mode-switch-shell {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  min-width: 0;
+  padding-top: var(--sys-spacing-medium);
+  padding-left: var(--full-common-footer-padding-inline-start, 0);
+  padding-right: var(--full-common-footer-padding-inline-end, 0);
+  background: var(--sys-color-surface-container);
+}
+
+.anchor-event-landing-page__mode-switch {
+  width: 100%;
+  max-width: var(--dcs-layout-page-max-width);
+  margin-inline: auto;
 }
 
 .loading-state,

@@ -55,13 +55,17 @@ const expectCardRichMode = async (page: Page) => {
     });
 };
 
-const expectListMode = async (page: Page, prTitle: string) => {
+const expectListModeSurface = async (page: Page) => {
   await expectLandingPage(page);
   const listSurface = page.getByTestId("anchor-event-list-mode.surface");
   await listSurface.waitFor({
     state: "visible",
     timeout: 10_000,
   });
+};
+
+const expectListMode = async (page: Page, prTitle: string) => {
+  await expectListModeSurface(page);
   const prList = page.getByTestId("anchor-event-list-mode.pr-list");
   await prList.waitFor({
     state: "visible",
@@ -71,6 +75,17 @@ const expectListMode = async (page: Page, prTitle: string) => {
     state: "visible",
     timeout: 10_000,
   });
+};
+
+const switchLandingMode = async (
+  page: Page,
+  mode: "list" | "card" | "form",
+) => {
+  const option = page.getByTestId(`anchor-event-landing.mode.${mode}`);
+  await option.evaluate((element) =>
+    element.scrollIntoView({ block: "end", inline: "nearest" }),
+  );
+  await option.click();
 };
 
 const expectNoBetaGroupCard = async (page: Page) => {
@@ -135,6 +150,47 @@ scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
     await page.goto(`/e/${listEvent.id}`);
     await expectListMode(page, listPrTitle);
     await expectNoBetaGroupCard(page);
+  });
+});
+
+scenario("anchor_event_landing_footer_switches_modes", async (ctx) => {
+  const creator = await givenUser("system-anchor-landing-switch-creator");
+  const visitor = await givenUser("system-anchor-landing-switch-visitor");
+  const event = await givenAnchorEvent({ label: "footer-mode-switch" });
+  const prTitle = "System footer switch PR";
+  const pr = await givenAnchorEventVisiblePR({
+    creator,
+    event,
+    title: prTitle,
+  });
+
+  await setAnchorEventLandingRollout({
+    eventId: event.id,
+    ratios: FORM_ONLY,
+    assignmentRevision: 1,
+  });
+
+  ctx.record("eventId", event.id);
+  ctx.record("prId", pr.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, visitor);
+
+    await page.goto(`/e/${event.id}`);
+    await expectFormMode(page);
+    await page.getByTestId("anchor-event-landing.mode-switch").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+
+    await switchLandingMode(page, "list");
+    await expectListMode(page, prTitle);
+
+    await switchLandingMode(page, "card");
+    await expectCardRichMode(page);
+
+    await switchLandingMode(page, "form");
+    await expectFormMode(page);
   });
 });
 
@@ -268,10 +324,17 @@ scenario(
 );
 
 scenario(
-  "anchor_event_landing_distribution_uses_form_fallback_on_assignment_timeout",
+  "anchor_event_landing_distribution_uses_list_fallback_on_assignment_timeout",
   async (ctx) => {
+    const creator = await givenUser("system-anchor-landing-timeout-creator");
     const visitor = await givenUser("system-anchor-landing-timeout-visitor");
     const event = await givenAnchorEvent({ label: "timeout-fallback" });
+    const prTitle = "System timeout fallback list PR";
+    const pr = await givenAnchorEventVisiblePR({
+      creator,
+      event,
+      title: prTitle,
+    });
 
     await setAnchorEventLandingRollout({
       eventId: event.id,
@@ -280,19 +343,27 @@ scenario(
     });
 
     ctx.record("eventId", event.id);
+    ctx.record("prId", pr.id);
 
     await withScenarioPage(async (page) => {
       await installScenarioUserSession(page, visitor);
+      let assignmentRequestCount = 0;
       await page.route(
         `**/api/events/${event.id}/landing-assignment`,
         async (route) => {
+          assignmentRequestCount += 1;
           await new Promise((resolve) => setTimeout(resolve, 800));
           await route.continue();
         },
       );
 
       await page.goto(`/e/${event.id}`);
+      await expectListMode(page, prTitle);
+      assert.equal(assignmentRequestCount, 1);
+
+      await page.goto(`/e/${event.id}?mode=form`);
       await expectFormMode(page);
+      assert.equal(assignmentRequestCount, 1);
     });
   },
 );

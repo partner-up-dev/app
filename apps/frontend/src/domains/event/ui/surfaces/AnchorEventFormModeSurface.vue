@@ -482,12 +482,12 @@ watch(
 
 const handleViewAllSessions = async () => {
   await router.push({
-    name: "anchor-event",
+    name: "anchor-event-landing",
     params: {
       eventId: props.eventId.toString(),
     },
     query: {
-      mode: "LIST",
+      mode: "list",
     },
   });
 };

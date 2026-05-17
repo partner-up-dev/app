@@ -40,6 +40,7 @@ const props = withDefaults(
 
 <style lang="scss" scoped>
 .footer-reveal-page-scaffold {
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   --pu-page-max-width: none;
@@ -59,6 +60,8 @@ const props = withDefaults(
 }
 
 .footer-reveal-page-scaffold__viewport {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: var(--footer-reveal-first-screen-height);
@@ -94,6 +97,9 @@ const props = withDefaults(
 }
 
 .footer-reveal-page-scaffold__footer {
+  position: relative;
+  z-index: 20;
+  isolation: isolate;
   --full-common-footer-padding-top: var(--sys-spacing-medium);
   --full-common-footer-padding-inline-start: var(
     --footer-reveal-inline-start-padding

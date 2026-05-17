@@ -33,10 +33,10 @@
 - User-created PR from Anchor Event context uses the controlled event-page flow and remains constrained by that event page's local rules. The persisted PR still keeps only PR-owned facts.
 - Publishing a `DRAFT` PR requires an authenticated account.
 - Direct creation of an `OPEN` PR, including event-assisted create, requires an authenticated account.
-- `/e/:eventId` is an Anchor Event landing entry distinct from `/events/:eventId`; the two routes address the same event object with different product roles.
-- `/e/:eventId` landing mode supports `FORM`, `CARD_RICH`, and `LIST`. `LIST` uses the same Anchor Event list browsing semantics as the list view on `/events/:eventId`.
-- The same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
-- If `/e/:eventId` cannot obtain its landing mode decision in time, it should still enter a usable `FORM` fallback experience.
+- `/e/:eventId` is the canonical Anchor Event landing entry for List, Card, and Form browsing. `/events/:eventId` is a compatibility entry that forwards to the same landing route.
+- `/e/:eventId` landing mode supports `FORM`, `CARD_RICH`, and `LIST`. `LIST` uses the same Anchor Event list browsing semantics as the previous `/events/:eventId` list view.
+- A valid `/e/:eventId?mode=` value is explicit route state and owns the current landing mode. Without valid route mode, the same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
+- If `/e/:eventId` cannot obtain its landing mode decision in time, it should still enter a usable `LIST` fallback experience.
 - Form Mode recommendation and candidate ordering are backend-authored even though the user chooses location, start time, and preferences on the page.
 - Form Mode directly creates an event-assisted PR when recommendation returns no matched PR and no ordered candidates; the created PR detail page should show a created-request notice.
 - Form Mode bootstrap may preselect location and start time from the nearest joinable PR in the current Anchor Event context when that PR's start time is inside the event `earliestLeadMinutes` boundary.
@@ -46,7 +46,7 @@
 - Form Mode may route users to submit a new POI location application. That application is POI-owned and not tied to one Anchor Event.
 - User-submitted POIs start as `PENDING`; public location reads and Form Mode location gallery resolution use only `PUBLISHED` POIs.
 - A published POI does not appear in an Anchor Event Form Mode unless that Anchor Event's location pool references the POI name.
-- The Anchor Event page shows discoverable PRs under the same activity type and time-pool rules.
+- The Anchor Event landing page shows discoverable PRs under the same activity type and time-pool rules.
 - Event-page discovery reads root PR facts by activity type, resolved time window, and event-owned location rules rather than by durable PR-side event linkage.
 - Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches `FULL`.
 - Anchor Event may own a participation frequency limit. When configured as `X`, a user with a current active participation in that event must wait through the next `X` complete PRs in event time-window order before joining or waitlisting another PR in the same event; the following PR is eligible. Only current `JOINED`, `CONFIRMED`, and `ATTENDED` slots count as limiting history. `PENDING`, `EXITED`, `RELEASED`, and `CANCELLED` slots do not count as limiting history.
