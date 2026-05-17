@@ -14,7 +14,18 @@
         ▾
       </span>
     </button>
-    <Transition name="expandable-card-content">
+    <div
+      v-if="keepContentMounted"
+      class="expandable-card__content-motion"
+      :class="{ 'is-open': expanded }"
+      :aria-hidden="!expanded"
+      :inert="!expanded"
+    >
+      <div class="expandable-card__content">
+        <slot />
+      </div>
+    </div>
+    <Transition v-else name="expandable-card-content">
       <div v-if="expanded" class="expandable-card__content">
         <slot />
       </div>
@@ -23,21 +34,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = withDefaults(
   defineProps<{
     title: string;
     subtitle?: string | null;
     defaultExpanded?: boolean;
+    expandedResetKey?: string | number | null;
+    keepContentMounted?: boolean;
   }>(),
   {
     subtitle: null,
     defaultExpanded: false,
+    expandedResetKey: null,
+    keepContentMounted: false,
   },
 );
 
 const expanded = ref(props.defaultExpanded);
+const keepContentMounted = computed(() => props.keepContentMounted);
+
+watch(
+  () => [props.defaultExpanded, props.expandedResetKey] as const,
+  ([defaultExpanded]) => {
+    expanded.value = defaultExpanded;
+  },
+);
 </script>
 
 <style lang="scss" scoped>
@@ -90,6 +113,31 @@ const expanded = ref(props.defaultExpanded);
 
 .expandable-card__content {
   padding: 0 var(--sys-spacing-medium) var(--sys-spacing-medium);
+}
+
+.expandable-card__content-motion {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.18s ease,
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.expandable-card__content-motion.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.expandable-card__content-motion > .expandable-card__content {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .expandable-card-content-enter-active,

@@ -4,7 +4,6 @@
     :class="{ 'create-card-shell--flash': autoExpandHighlightActive }"
   >
     <ExpandableCard
-      :key="expandableCardKey"
       :title="title ?? t('anchorEvent.createCard.title')"
       :subtitle="
         t('anchorEvent.createCard.subtitle', {
@@ -12,6 +11,8 @@
         })
       "
       :default-expanded="expandableDefaultExpanded"
+      :expanded-reset-key="expandableCardResetKey"
+      keep-content-mounted
     >
       <div class="create-card">
         <label v-if="timeWindowOptions.length > 0" class="create-card__field">
@@ -126,7 +127,7 @@ const placePlaceholder = computed(
 const selectedPlaceId = ref<string | null>(null);
 const {
   autoExpandHighlightActive,
-  expandableCardKey,
+  expandableCardResetKey,
   expandableDefaultExpanded,
 } = useExpandableCardAttention({
   defaultExpanded: toRef(props, "defaultExpanded"),

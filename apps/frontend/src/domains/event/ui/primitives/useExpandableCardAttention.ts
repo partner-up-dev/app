@@ -23,6 +23,7 @@ export const useExpandableCardAttention = (input: {
       : "collapsed";
     return `${contextKey}:${expandedState}:${expandableCardVersion.value}`;
   });
+  const expandableCardResetKey = computed(() => expandableCardKey.value);
 
   const clearAutoExpandTimer = () => {
     if (typeof window === "undefined" || autoExpandTimerId === null) {
@@ -139,6 +140,7 @@ export const useExpandableCardAttention = (input: {
   return {
     autoExpandHighlightActive,
     expandableCardKey,
+    expandableCardResetKey,
     expandableDefaultExpanded,
   };
 };
