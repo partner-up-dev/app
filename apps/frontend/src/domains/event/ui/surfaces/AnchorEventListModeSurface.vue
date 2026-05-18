@@ -713,8 +713,7 @@ const shouldAutoExpandBetaGroupCard = computed(
 );
 
 const createCardAutoExpandContextKey = computed(
-  () =>
-    `${selectedDateKey.value ?? "none"}:${selectedTimeWindowKey.value ?? "none"}`,
+  () => `${eventIdValue.value}:${selectedDateKey.value ?? "none"}`,
 );
 
 const betaGroupCardAutoExpandContextKey = computed(

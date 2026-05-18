@@ -28,3 +28,4 @@
 
 - 2026-05-17: List Mode creation card should preserve mounted content while collapsed because its time-window and place-selector controls can own expensive setup. `ExpandableCard` now has a narrow `keep-content-mounted` contract and an `expanded-reset-key` reset path so this card can hide collapsed content without remounting it during auto-expand resets.
 - Follow-up: `keep-content-mounted` preserves the collapse / expand animation with a CSS grid-row, opacity, and transform transition instead of `hidden`, so content stays mounted while the visible motion remains intact.
+- 2026-05-18: The List Mode create-card auto-expand context now keys by event id and selected date only. The selected create start time is form state, not browse context; keeping it in the key caused custom start-time edits to collapse the card and replay auto-expand.
