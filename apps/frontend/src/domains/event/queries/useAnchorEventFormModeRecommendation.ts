@@ -3,13 +3,23 @@ import { client } from "@/lib/rpc";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
 import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
+export type AnchorEventFormModeRecommendationPlaceInput =
+  | {
+      kind: "location";
+      locationId: string;
+    }
+  | {
+      kind: "route";
+      routePoolEntryId: string;
+    };
+
 export const useAnchorEventFormModeRecommendation = () =>
   useMutation<
     AnchorEventFormModeRecommendationResponse,
     Error,
     {
       eventId: number;
-      locationId: string;
+      place: AnchorEventFormModeRecommendationPlaceInput;
       startAt: string;
       preferences: string[];
       correlationId?: string;
@@ -17,7 +27,7 @@ export const useAnchorEventFormModeRecommendation = () =>
   >({
     mutationFn: async ({
       eventId,
-      locationId,
+      place,
       startAt,
       preferences,
       correlationId,
@@ -30,7 +40,7 @@ export const useAnchorEventFormModeRecommendation = () =>
             eventId: eventId.toString(),
           },
           json: {
-            locationId,
+            place,
             startAt,
             preferences,
             correlationId,

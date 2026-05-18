@@ -110,7 +110,10 @@ import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { useAnchorEventFormModeData } from "@/domains/event/queries/useAnchorEventFormModeData";
-import { useAnchorEventFormModeRecommendation } from "@/domains/event/queries/useAnchorEventFormModeRecommendation";
+import {
+  useAnchorEventFormModeRecommendation,
+  type AnchorEventFormModeRecommendationPlaceInput,
+} from "@/domains/event/queries/useAnchorEventFormModeRecommendation";
 import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
@@ -259,7 +262,7 @@ const primaryCtaLabel = computed(() => {
     return t("anchorEvent.formMode.primaryCtaFallback");
   }
   if (selectedPlace.value.kind === "route") {
-    return t("anchorEvent.formMode.primaryCreateCta", {
+    return t("anchorEvent.formMode.primaryRouteCta", {
       time: selectedTimeLabel.value,
       place: selectedPlaceLabel.value,
       eventTitle: formModeData.value?.event.title ?? "",
@@ -602,6 +605,19 @@ const buildSelectedConditionPayload = () => {
   };
 };
 
+const buildRecommendationPlaceInput = (
+  place: AnchorEventSelectedPlace,
+): AnchorEventFormModeRecommendationPlaceInput =>
+  place.kind === "route"
+    ? {
+        kind: "route",
+        routePoolEntryId: place.routePoolEntryId,
+      }
+    : {
+        kind: "location",
+        locationId: place.locationId,
+      };
+
 const resolveFormModeLocationType = (
   locationId: string | null,
 ): "preset" | "user_submitted" => {
@@ -655,22 +671,17 @@ const trackFormStarted = (
 const trackRecommendationExposure = (
   result: AnchorEventFormModeRecommendationResponse,
 ) => {
-  const locationId = selectedLocationId.value;
-  const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (!selectedConditionPayload) {
     return;
   }
 
   trackEvent("anchor_event_form_recommendation_impression", {
-    eventId: props.eventId,
-    activityType: resolveFormModeActivityType(),
+    ...selectedConditionPayload,
     hasMatchedRecommendation: Boolean(result.matchedRecommendation),
     candidateCount:
       result.orderedCandidates.length + (result.matchedRecommendation ? 1 : 0),
-    advancedMode: isAdvancedStartValue(startAt),
-    locationId,
-    startAt,
-    preferenceCount: selectedPreferences.value.length,
+    advancedMode: isAdvancedStartValue(selectedConditionPayload.startAt),
   });
 };
 
@@ -715,20 +726,13 @@ const trackRecommendationResult = (
     correlationId?: string;
   },
 ): void => {
-  const locationId = selectedLocationId.value;
-  const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (!selectedConditionPayload) {
     return;
   }
 
   trackEvent("anchor_event_recommendation_result", {
-    eventId: props.eventId,
-    activityType: resolveFormModeActivityType(),
-    locationId,
-    locationType: resolveFormModeLocationType(locationId),
-    startAt,
-    timeType: resolveFormModeTimeType(startAt),
-    preferenceCount: selectedPreferences.value.length,
+    ...selectedConditionPayload,
     correlationId: payload.correlationId,
     ...payload,
   });
@@ -739,12 +743,7 @@ const trackRecommendationResult = (
     typeof payload.candidateCount === "number"
   ) {
     trackEvent("anchor_event_recommendation_returned", {
-      ...buildFormFunnelPayload(),
-      locationId,
-      locationType: resolveFormModeLocationType(locationId),
-      startAt,
-      timeType: resolveFormModeTimeType(startAt),
-      preferenceCount: selectedPreferences.value.length,
+      ...selectedConditionPayload,
       outcome: payload.outcome,
       matchedPrId: payload.matchedPrId,
       candidateCount: payload.candidateCount,
@@ -945,28 +944,21 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
 
   trackFormStarted("primary_cta");
   returnToSelection();
-  if (place.kind === "route") {
-    await createEventAssistedPR("manual_fallback");
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (!selectedConditionPayload) {
     return;
   }
-
-  const locationId = place.locationId;
   const splashFill = startJoinSplash(originRect);
   const recommendationCorrelationId = createCommandCorrelationId();
   trackEvent("anchor_event_recommendation_requested", {
-    ...buildFormFunnelPayload(),
-    locationId,
-    locationType: resolveFormModeLocationType(locationId),
-    startAt,
-    timeType: resolveFormModeTimeType(startAt),
-    preferenceCount: selectedPreferences.value.length,
+    ...selectedConditionPayload,
     correlationId: recommendationCorrelationId,
   });
 
   try {
     const result = await recommendationMutation.mutateAsync({
       eventId: props.eventId,
-      locationId,
+      place: buildRecommendationPlaceInput(place),
       startAt,
       preferences: [...selectedPreferences.value],
       correlationId: recommendationCorrelationId,
@@ -1076,7 +1068,7 @@ const resolveSelectedTimeWindow = (): [string | null, string | null] => {
 const buildCreateFields = (): PartnerRequestFields | null => {
   const timeWindow = resolveSelectedTimeWindow();
   const place = selectedPlace.value;
-  if (!place || !timeWindow[0] || !timeWindow[1]) {
+  if (!place || !timeWindow[0]) {
     return null;
   }
   if (!formModeData.value) {

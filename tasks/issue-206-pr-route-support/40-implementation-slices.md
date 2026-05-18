@@ -468,12 +468,22 @@ Verification:
 
 ## Slice 7 Anchor Event Place Selectors
 
+Status: implemented on 2026-05-17.
+
 Purpose:
 
 - Upgrade Anchor Event event-assisted creation UI from location-only controls to place controls.
+- Add Admin Anchor Event route-pool editing because the backend route-pool contract needs an operator-owned data entry path before frontend route-pool creation can be verified end to end.
 
 Edits:
 
+- `apps/frontend/src/domains/admin/queries/useAdminAnchorEvents.ts`
+- `apps/frontend/src/domains/admin/ui/anchor-event/anchorEventEditorTypes.ts`
+- `apps/frontend/src/domains/admin/ui/anchor-event/sections/AnchorEventLocationsSection.vue`
+- new Admin Anchor Event route-pool editor component
+- `apps/frontend/src/domains/admin/use-cases/anchor-event/anchorEventMutationInput.ts`
+- `apps/backend/src/index.ts` if frontend needs exported route-pool types
+- new `apps/frontend/src/domains/event/model/place-options.ts`
 - `apps/frontend/src/domains/event/ui/controls/form-mode/FormModeLocationControl.vue`
 - new `AnchorEventCarouselPlaceSelector.vue`
 - new `AnchorEventInlinePlaceSelector.vue`
@@ -489,16 +499,235 @@ Implementation notes:
 - Route cards render map preview with markers and planned/fallback polyline.
 - Route card title uses `route[0].name~route[-1].name`.
 - Card/List creation card uses map preview plus dropdown over normalized place options.
-- The inline dropdown can include both location and route options.
-- Location options render as standalone markers on the map preview.
-- Route options render route markers plus planned/fallback polyline.
+- The inline dropdown consumes one active Anchor Event pool: route options for route-pool events, location options for location-pool events.
+- Location-pool events render standalone markers on the map preview.
+- Route-pool events render route markers plus planned/fallback polyline.
 - Dropdown active item changes fit the map viewport to the active marker or route bounds, centered and fully visible with padding.
+- Admin Anchor Event place-pool segment switching should preserve inactive draft values in the editor form. Submission remains the single source of backend pool selection: the active segment decides which pool is submitted and which backend field is cleared.
 
 Exit:
 
 - `/e/:eventId` Form Mode can select a route place and create a route PR.
 - Card/List creation controls can select a route place and create a route PR.
-- Card/List map preview follows dropdown active item changes for both location and route options.
+- Card/List map preview follows dropdown active item changes for the event's active pool.
+
+Implementation result:
+
+- Admin Anchor Event location section now uses a place-pool segmented control and can edit either a location pool or a route pool.
+- Admin Anchor Event route-pool editor uses generic `RouteEditor`, stable route entry ids, add/remove actions, and route summary preview.
+- Admin Anchor Event create/update inputs now submit only the active pool: location mode clears `routePool`, route mode clears `locationPool` and location meeting-point artifacts.
+- Added Anchor Event place-option model helpers that normalize the active location or route pool for Form/Card/List creation controls.
+- Form Mode now uses `AnchorEventCarouselPlaceSelector`: POI cards keep image/name fallback, route cards render `RouteMap`, and route selection creates a route PR directly through event-assisted create.
+- Card/List creation cards now use `AnchorEventInlinePlaceSelector`: location-pool events render standalone marker options, and route-pool events render route markers plus planned/fallback polyline options.
+- Event-assisted create flow and pending WeChat replay now carry either `{ location, route: null }` or `{ location: null, route, routePoolEntryId }`.
+- Telemetry payload types now carry route place metadata for route-assisted create and card/list/form create starts.
+
+Verification:
+
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/place-options.test.ts apps/frontend/src/domains/admin/use-cases/anchor-event/anchorEventMutationInput.test.ts`: passed, 2 files / 6 tests.
+- `pnpm test:unit:frontend`: passed, 10 files / 28 tests.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `git diff --check`: passed.
+- Browser smoke on `https://partner-up.localhost`: home page, unauthenticated Admin Anchor Event route, and `/events/1?mode=LIST` loaded without console errors.
+
+Residual verification:
+
+- Full route-pool UI browser verification still needs an authenticated admin session or a seeded route-pool Anchor Event fixture.
+- End-to-end route-pool create scenario remains part of Slice 9.
+
+Correction note from discussion on 2026-05-17:
+
+- Earlier Admin Anchor Event segment switching cleared the inactive draft pool immediately.
+- Corrected behavior: keep both location-pool and route-pool draft values while the admin toggles the segment, then submit only the active segment and clear the inactive backend field during mutation input assembly.
+- This keeps the backend Anchor Event pool invariant intact while making UI exploration and accidental segment toggles reversible.
+- Verification: `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/admin/use-cases/anchor-event/anchorEventMutationInput.test.ts` passed, and `pnpm --filter @partner-up-dev/frontend build` passed.
+
+Correction note from discussion on 2026-05-17:
+
+- Event-assisted create cannot have mixed location and route choices because Anchor Event enforces `locationPool` / `routePool` as mutually exclusive.
+- Corrected behavior: the place-option model treats route options as the active pool whenever route options exist; location options are used only for location-pool events.
+- If a malformed read model includes both route and location options, frontend event-assisted create consumes route options only and does not fall back to location options.
+- Form Mode's missing-location application card follows the same active-pool rule and appears only for location-pool events.
+- Verification: `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/place-options.test.ts apps/frontend/src/domains/admin/use-cases/anchor-event/anchorEventMutationInput.test.ts` passed, and `pnpm --filter @partner-up-dev/frontend build` passed.
+
+Correction note from discussion on 2026-05-17:
+
+- The deeper issue is ownership and copy. Frontend should not decide active place options from parallel `locations` / `routes` arrays.
+- Backend should expose the active Anchor Event place pool as a normalized response shape with `kind`, concrete option list, option availability, and selector copy hints.
+- Shared selectors should receive concrete copy for the active pool. Location-pool events render `地点` / `选择地点`; route-pool events render `路线` / `选择路线`.
+- `申请新地点` is a location-pool affordance. Route-pool events need a matching `申请新路线` affordance.
+- The current frontend exclusive-consumption helper remains a temporary guard until the backend-owned place-option contract lands.
+
+## Slice 7B Backend-Owned Anchor Event Place Options And Copy
+
+Status: implemented on 2026-05-17.
+
+Purpose:
+
+- Move Anchor Event assisted-create place-option authority to backend read models.
+- Remove user-facing combined strings from shared selectors.
+- Keep frontend selectors as renderers of a backend-derived active-pool view.
+
+Edits:
+
+- `apps/backend/src/domains/anchor-event/use-cases/get-form-mode-data.ts`
+- `apps/backend/src/domains/anchor-event/use-cases/get-event-detail.ts`
+- `apps/backend/src/domains/anchor-event/use-cases/list-events.ts` if list/card create controls need option data from list responses
+- event model response types exported through backend package
+- frontend event response models under `apps/frontend/src/domains/event/model/`
+- `apps/frontend/src/domains/event/model/place-options.ts`
+- `apps/frontend/src/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue`
+- `apps/frontend/src/domains/event/ui/controls/form-mode/AnchorEventCarouselPlaceSelector.vue`
+- Card/List/Form surfaces that currently build place options client-side
+- locale schema and Chinese copy for active-pool selector labels and placeholders
+
+Target response shape:
+
+```ts
+type AnchorEventPlaceSelectorView =
+  | {
+      kind: "location";
+      labelKey: "anchorEvent.placeSelector.locationLabel";
+      placeholderKey: "anchorEvent.placeSelector.locationPlaceholder";
+      applyActionKey: "anchorEvent.placeSelector.applyLocation";
+      options: AnchorEventLocationPlaceOption[];
+    }
+  | {
+      kind: "route";
+      labelKey: "anchorEvent.placeSelector.routeLabel";
+      placeholderKey: "anchorEvent.placeSelector.routePlaceholder";
+      applyActionKey: "anchorEvent.placeSelector.applyRoute";
+      options: AnchorEventRoutePlaceOption[];
+    }
+  | {
+      kind: "none";
+      labelKey: "anchorEvent.placeSelector.locationLabel";
+      placeholderKey: "anchorEvent.placeSelector.emptyPlaceholder";
+      applyActionKey: null;
+      options: [];
+    };
+```
+
+Implementation notes:
+
+- Backend derives `kind` from Anchor Event pool state and enforces mutual exclusion at the read-model boundary.
+- Backend attaches availability and disabled reason to each option.
+- Backend attaches route-pool provenance for route options and location identity for location options.
+- Backend may expose label keys rather than literal copy; frontend resolves locale copy from those keys.
+- Frontend place-option helpers become adapters for backend data and defensive validators.
+- Shared selectors receive `label`, `placeholder`, and optional `applyLabel` props. They stop hard-coding combined active-kind copy.
+- Existing frontend fallback that treats route options as active when present can remain only as a defensive branch for older API payloads during the transition.
+- Keep legacy `locations`, `routes`, `locationOptions`, and `routeOptions` in the response during this slice. The new `placeSelector` view becomes the primary consumer path, while legacy fields bound rollout risk and keep existing tests readable.
+
+Exit:
+
+- Form Mode, Card Mode, and List Mode render labels for one active kind only.
+- The visible inline selector label says `地点` for location-pool events and `路线` for route-pool events.
+- Place-option unit tests cover backend-owned `kind` and legacy defensive fallback.
+- Backend tests cover location-pool, route-pool, empty-pool, and malformed dual-pool read-model behavior.
+- Frontend build and unit tests pass.
+
+Implementation result:
+
+- Added backend `place-selector.ts` to build normalized Anchor Event assisted-create place selectors for location, route, and empty pools.
+- Form Mode bootstrap and event detail create time windows now include `placeSelector` with active kind, label key, placeholder key, apply-action key, option availability, location option metadata, and route-pool provenance.
+- Legacy `locations`, `routes`, `locationOptions`, and `routeOptions` remain in the payload during the transition.
+- Frontend place-option helpers now prefer backend `placeSelector`, clone backend-owned options defensively, and keep legacy fallback for older payloads.
+- Form Mode carousel, Card Mode creation, and List Mode creation now resolve active selector copy from backend keys, so location-pool events show `地点` copy and route-pool events show `路线` copy.
+- Inline selector empty state and placeholders now come from the active backend selector view.
+- Locale schema and Chinese copy now include `anchorEvent.placeSelector` labels, placeholders, aria labels, and apply actions including `申请新路线`.
+- Backend route-pool scenario coverage now asserts `placeSelector` on detail and Form Mode responses.
+- Form Mode route carousel cards have an explicit full-height route map layout. The selected route caption uses a compact route-point list instead of the compact route summary, so long route point names stay readable.
+
+Verification:
+
+- `git diff --check`: passed.
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/place-options.test.ts`: passed, 1 file / 7 tests.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed, 1 file / 5 tests.
+- `pnpm lint:backend`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- Browser verification on `https://partner-up.localhost/e/4` confirmed route map and canvas heights are non-zero and the selected route caption renders route item rows.
+
+Residual verification:
+
+- Authenticated browser verification for Admin route-pool and route-application review is still pending.
+- Dedicated backend unit coverage for empty-pool and malformed dual-pool selector construction can be added if the next review asks for tighter read-model proof.
+- List response propagation remains a follow-up only if a future Card/List entry point consumes list payloads directly.
+
+## Slice 7C Route Application
+
+Status: implemented on 2026-05-17.
+
+Purpose:
+
+- Add the route-pool counterpart to missing-location application: `申请新路线`.
+- Let users submit a route candidate when an Anchor Event is route-pool based.
+
+Durable owner decision:
+
+- Dedicated Anchor Event route application owner.
+- Rationale: existing location applications create global pending POIs with name/gallery semantics. Route applications are event-local route-pool candidates and should become route-pool entries only after Admin review.
+
+Suggested first implementation path:
+
+- Use a separate route application owner if existing location applications are tightly coupled to POI/name/gallery semantics.
+- Use generic `RouteEditor` and `LocationPicker` for the submission UI.
+- Store submitted route using the same route point schema as `PR.route`.
+- Admin review accepts or rejects route applications.
+- Accepted route applications become event-local route-pool entries so they flow into backend-owned place options.
+
+Edits:
+
+- Backend route application entity/use-case/repository or location application extension.
+- Public route application create endpoint.
+- Admin route application review surface.
+- Form Mode route-pool application card/action.
+- Locale copy for `申请新路线`, submission form, review states, and errors.
+- Scenario/unit tests for submission, review, and accepted route appearing in route-pool options.
+
+Exit:
+
+- Route-pool Form Mode shows `申请新路线`.
+- Submitting a route application stores a valid route candidate.
+- Admin can accept the application into the event route pool.
+- Accepted route appears in the existing route pool read models. Backend-owned route place options remain Slice 7B.
+
+Implementation result:
+
+- Added `anchor_event_route_applications` migration, entity, repository, public submission/list use-cases, and Admin accept/reject use-cases.
+- Public endpoints:
+  - `POST /api/events/:eventId/route-applications`
+  - `GET /api/events/route-applications/mine`
+- Admin endpoints:
+  - `POST /api/admin/route-applications/:applicationId/accept`
+  - `POST /api/admin/route-applications/:applicationId/reject`
+- Admin Anchor Event workspace now returns `routeApplications`.
+- Accepting a pending application appends `application-{id}` to the target event `routePool` unless the exact route is already present, then marks the application accepted.
+- Location-pool events reject public route applications with `ANCHOR_EVENT_ROUTE_APPLICATION_UNAVAILABLE`.
+- Form Mode route-pool carousel now shows `申请新路线` and opens `/routes/apply?fromEvent=:eventId`.
+- Added `/routes/apply` page using generic `RouteEditor` and listing the current user's route applications for the source event.
+- Admin Anchor Event page now has a `路线申请` section for reviewing event-local route applications.
+- Admin review now treats the submitted route as a review draft: the section renders generic `RouteEditor`, RouteItem rows open `LocationPicker`, and the accept endpoint can receive the edited route for insertion into the event route pool.
+
+Verification:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens`: passed.
+- `pnpm lint:backend`: passed.
+- `pnpm db:lint`: passed.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed, 1 file / 5 tests.
+- `git diff --check`: passed.
+- Browser smoke on `https://partner-up.localhost/routes/apply?fromEvent=1`: route application page title and submit action rendered. Browser logs still contained the earlier unrelated Admin login failure.
+
+Residual verification:
+
+- Authenticated browser smoke for Admin route application review remains pending.
+- Backend-owned place-option active-kind ownership and selector copy are implemented in Slice 7B.
+- Card/List creation, time-window, selector-label, and map-runtime follow-up corrections are recorded in `50-verification-notes.md` and consolidated in `60-current-status-review.md`.
 
 ## Slice 8 PR Detail, Preview, And Share UX
 
@@ -528,6 +757,70 @@ Implementation notes:
 Exit:
 
 - Browser verification proves route title, facts, preview, and share descriptor are coherent.
+
+Implementation result:
+
+- Added generic `RoutePointList.vue` for compact/detail ordered route-point display with departure, waypoint, and arrival role dots.
+- Added `PRRouteMapModal.vue`, composed from generic `RouteMap` plus detailed route-point list.
+- `PRFactsCard.vue` now hides the empty Location row for route-mode PRs, renders Route as an independent `InfoRowAction`, and opens the route map modal from the row action.
+- `PRFactsCard.vue` renders full route endpoint facts through the route point list, so detail-page facts are not constrained by compact PR title/share summary length.
+- `PRPreviewCard.vue` now resolves place display from backend `core.placeDisplayName`, then local `buildRouteSummary(route)`, then `core.location`; route-mode cards use the route place icon.
+- `PRPage.vue` now resolves its visible title through explicit title, backend `core.placeDisplayName`, local `buildRouteSummary(route)`, location, type, then generic fallback.
+- Locale schema and Chinese copy now include PR card route labels and route-map action copy.
+- `src/AGENTS.components.md` documents `RoutePointList.vue` as a route-domain UI primitive.
+
+Verification:
+
+- `pnpm --filter @partner-up-dev/frontend test:unit -- PRPage.creator-actions.test.ts PRPreviewCard.route.test.ts`: passed, 2 files / 8 tests.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- `git diff --check`: passed.
+- Browser verification on `https://partner-up.localhost/pr/19` with a local route-mode PR:
+  - visible PR title: `广州塔~大学城`
+  - dedicated Route row rendered with action `查看地图`
+  - route point list rendered `广州塔`, `琶洲`, `大学城`
+  - empty Location row was hidden for route mode
+  - route map modal opened with a `696x403` map shell and detailed route-point fallback
+- Temporary smoke PR `#19` was deleted after verification.
+- Browser note: the running local frontend process had no Tencent LBS JS SDK script loaded, so the modal map used fallback on that run. The RouteMap/Map component path is the same path already verified with non-zero Tencent canvas in earlier event route map checks.
+
+## Slice 8A Form Mode Recommendation Contract
+
+Purpose:
+
+- Route-pool Form Mode primary CTA should use the same matched / unmatched recommendation flow as location-pool Form Mode.
+
+Edits:
+
+- `apps/backend/src/controllers/anchor-event.controller.ts`
+- `apps/backend/src/domains/anchor-event/use-cases/recommend-form-mode-prs.ts`
+- `apps/backend/src/domains/anchor-event/services/form-mode.ts`
+- `apps/frontend/src/domains/event/queries/useAnchorEventFormModeRecommendation.ts`
+- `apps/frontend/src/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue`
+- `apps/frontend/src/shared/telemetry/events.ts`
+
+Implementation notes:
+
+- Recommendation request place selection is now a discriminated union for location or route.
+- Legacy `locationId` request shape remains accepted for rollout compatibility.
+- Route selections validate event-local route-pool ownership before ranking candidates.
+- Route candidate matching uses route equality plus existing start-time and preference compatibility.
+- Recommendation match now exposes `exactPlace`, `exactLocation`, and `exactRoute`.
+- Missing-duration route events return `[startAt, null]` instead of rejecting recommendation.
+- Frontend Form Mode route CTA calls recommendation and uses route-specific CTA copy.
+
+Exit:
+
+- Route-pool Form Mode can produce recommendation responses without direct-create bypass.
+- Route selections can return matched / unmatched state data through the same frontend result path as locations.
+
+Verification:
+
+- `pnpm --filter @partner-up-dev/backend test:unit -- apps/backend/src/domains/anchor-event/services/form-mode.test.ts`: passed, 1 file / 10 tests.
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+- `pnpm test:scenario:backend -- apps/backend/tests/anchor-event/anchor-event-route-pool.scenario.test.ts`: passed, 1 file / 6 tests.
+- `pnpm --filter @partner-up-dev/frontend build`: passed.
+- Runtime API check on `/api/events/4/form-mode/recommendation`: route payload returned `200`, `selection.kind = "route"`, and `timeWindow[1] = null`.
+- Browser verification on `https://partner-up.localhost/e/4?mode=form`: primary CTA displayed `加入一场 ... 经过 ... 的拼车搭子活动`, with no browser tab errors/warnings.
 
 ## Slice 9 Scenario Coverage
 

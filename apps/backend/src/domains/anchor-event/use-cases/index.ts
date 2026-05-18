@@ -18,5 +18,6 @@ export type { AnchorEventLandingAssignment } from "../landing-config";
 export type { AnchorEventFormModeData } from "./get-form-mode-data";
 export type {
   AnchorEventFormModeRecommendationResponse,
+  AnchorEventFormModeRecommendationPlaceSelection,
   FormModeRecommendationCandidate,
 } from "./recommend-form-mode-prs";

@@ -2,9 +2,12 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
-import type { AnchorEventId, PRStatus } from "../../../entities";
+import type { AnchorEvent, AnchorEventId, PRRoute, PRStatus } from "../../../entities";
 import {
+  arePRRoutesEqual,
+  findEventRoutePoolEntry,
   isPublicEventScopedLocation,
+  resolveEventRoutePool,
   resolvePublicEventLocationPool,
 } from "../services/event-scope";
 import {
@@ -20,14 +23,40 @@ const partnerRepo = new PartnerRepository();
 const RECOMMENDABLE_PR_STATUSES = new Set<PRStatus>(["OPEN", "READY"]);
 const MAX_ORDERED_CANDIDATE_COUNT = 6;
 
+export type AnchorEventFormModeRecommendationPlaceSelection =
+  | {
+      kind: "location";
+      locationId: string;
+    }
+  | {
+      kind: "route";
+      routePoolEntryId: string;
+    };
+
+type ResolvedRecommendationPlace =
+  | {
+      kind: "location";
+      locationId: string;
+      routePoolEntryId: null;
+      route: null;
+    }
+  | {
+      kind: "route";
+      locationId: null;
+      routePoolEntryId: string;
+      route: PRRoute;
+    };
+
 export interface AnchorEventFormModeRecommendationResponse {
   event: {
     id: number;
     title: string;
   };
   selection: {
-    locationId: string;
-    timeWindow: [string, string];
+    kind: "location" | "route";
+    locationId: string | null;
+    routePoolEntryId: string | null;
+    timeWindow: [string, string | null];
     preferences: string[];
   };
   matchedRecommendation: FormModeRecommendationCandidate | null;
@@ -40,6 +69,7 @@ export interface FormModeRecommendationCandidate {
     title: string | null;
     type: string;
     location: string | null;
+    route: PRRoute | null;
     time: [string | null, string | null];
     status: PRStatus;
     minPartners: number | null;
@@ -50,7 +80,9 @@ export interface FormModeRecommendationCandidate {
     createdAt: string;
   };
   match: {
+    exactPlace: boolean;
     exactLocation: boolean;
+    exactRoute: boolean;
     startDeltaMinutes: number | null;
     startWithinTolerance: boolean;
     exactTagMatches: string[];
@@ -60,9 +92,46 @@ export interface FormModeRecommendationCandidate {
   };
 }
 
+const resolveRecommendationPlace = async (
+  event: AnchorEvent,
+  place: AnchorEventFormModeRecommendationPlaceSelection,
+): Promise<ResolvedRecommendationPlace> => {
+  if (place.kind === "route") {
+    const routePoolEntry = findEventRoutePoolEntry(event, place.routePoolEntryId);
+    if (!routePoolEntry) {
+      return throwHttpProblem({
+        status: 400,
+        detail: "Selected route is outside the anchor event scope",
+      });
+    }
+
+    return {
+      kind: "route",
+      locationId: null,
+      routePoolEntryId: routePoolEntry.id,
+      route: routePoolEntry.route,
+    };
+  }
+
+  const locationId = place.locationId.trim();
+  if (!(await isPublicEventScopedLocation(event, locationId))) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Selected location is outside the anchor event scope",
+    });
+  }
+
+  return {
+    kind: "location",
+    locationId,
+    routePoolEntryId: null,
+    route: null,
+  };
+};
+
 export async function recommendAnchorEventFormModePRs(input: {
   eventId: AnchorEventId;
-  locationId: string;
+  place: AnchorEventFormModeRecommendationPlaceSelection;
   startAt: string;
   preferences: string[];
 }): Promise<AnchorEventFormModeRecommendationResponse> {
@@ -71,10 +140,7 @@ export async function recommendAnchorEventFormModePRs(input: {
     return throwHttpProblem({ status: 404, detail: "Anchor event not found" });
   }
 
-  const locationId = input.locationId.trim();
-  if (!(await isPublicEventScopedLocation(event, locationId))) {
-    return throwHttpProblem({ status: 400, detail: "Selected location is outside the anchor event scope" });
-  }
+  const selectedPlace = await resolveRecommendationPlace(event, input.place);
 
   const selectionTimeWindow = buildAnchorEventFormModeTimeWindow(
     event,
@@ -83,12 +149,18 @@ export async function recommendAnchorEventFormModePRs(input: {
   const selectionPreferences = Array.from(
     new Set(input.preferences.map((preference) => preference.trim()).filter(Boolean)),
   );
-  const publicLocationIds = await resolvePublicEventLocationPool(event);
-  const publicLocationSet = new Set(publicLocationIds);
+  const publicLocationSet = new Set(await resolvePublicEventLocationPool(event));
+  const routePool = resolveEventRoutePool(event);
 
   const candidateRecords = (await eventContextRepo.findVisibleByAnchorEventId(event.id))
     .filter((record) => RECOMMENDABLE_PR_STATUSES.has(record.root.status))
     .filter((record) => {
+      if (selectedPlace.kind === "route") {
+        return routePool.some((entry) =>
+          arePRRoutesEqual(entry.route, record.root.route),
+        );
+      }
+
       const location = record.root.location?.trim() ?? "";
       return location.length > 0 && publicLocationSet.has(location);
     })
@@ -101,10 +173,12 @@ export async function recommendAnchorEventFormModePRs(input: {
   const rankedCandidates = candidateRecords
     .map<FormModeRecommendationCandidate>((record) => {
       const match = buildAnchorEventRecommendationMatch({
-        requestedLocationId: locationId,
+        requestedLocationId: selectedPlace.locationId,
+        requestedRoute: selectedPlace.route,
         requestedStartAtIso: selectionTimeWindow[0]!,
         requestedPreferences: selectionPreferences,
         candidateLocationId: record.root.location,
+        candidateRoute: record.root.route,
         candidateTimeWindow: record.root.time,
         candidatePreferences: record.root.preferences,
         candidateMinPartners: record.root.minPartners,
@@ -117,6 +191,7 @@ export async function recommendAnchorEventFormModePRs(input: {
           title: record.root.title,
           type: record.root.type,
           location: record.root.location,
+          route: record.root.route,
           time: record.root.time,
           status: record.root.status,
           minPartners: record.root.minPartners,
@@ -158,8 +233,10 @@ export async function recommendAnchorEventFormModePRs(input: {
       title: event.title,
     },
     selection: {
-      locationId,
-      timeWindow: selectionTimeWindow as [string, string],
+      kind: selectedPlace.kind,
+      locationId: selectedPlace.locationId,
+      routePoolEntryId: selectedPlace.routePoolEntryId,
+      timeWindow: selectionTimeWindow as [string, string | null],
       preferences: selectionPreferences,
     },
     matchedRecommendation,

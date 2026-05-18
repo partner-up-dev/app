@@ -668,6 +668,7 @@ export interface MessageSchema {
       viewAllSessions: string;
       primaryCtaFallback: string;
       primaryCta: string;
+      primaryRouteCta: string;
       primaryCreateCta: string;
       primaryCtaPending: string;
       joinCandidateAction: string;

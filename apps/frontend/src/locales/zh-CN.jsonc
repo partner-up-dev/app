@@ -1561,6 +1561,7 @@
       "viewAllSessions": "查看所有场次",
       "primaryCtaFallback": "请选择地点与开始时间",
       "primaryCta": "加入一场 {time} 在 {location} 的{eventTitle}活动",
+      "primaryRouteCta": "加入一场 {time} 经过 {place} 的{eventTitle}活动",
       "primaryCreateCta": "创建一场 {time} 经过 {place} 的{eventTitle}活动",
       "primaryCtaPending": "正在寻找场次...",
       "joinCandidateAction": "加入这场",

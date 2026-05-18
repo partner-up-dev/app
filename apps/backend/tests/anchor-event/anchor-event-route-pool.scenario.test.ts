@@ -86,6 +86,29 @@ type AnchorEventFormModeResponse = {
   };
 };
 
+type AnchorEventFormModeRecommendationResponse = {
+  selection: {
+    kind: "location" | "route";
+    locationId: string | null;
+    routePoolEntryId: string | null;
+  };
+  matchedRecommendation: {
+    pr: {
+      id: PRId;
+      route: PRRoute | null;
+    };
+    match: {
+      exactPlace: boolean;
+      exactRoute: boolean;
+    };
+  } | null;
+  orderedCandidates: Array<{
+    pr: {
+      id: PRId;
+    };
+  }>;
+};
+
 type AnchorEventSummaryResponse = Array<{
   id: number;
   locationPool: string[];
@@ -465,6 +488,31 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
   const outsideStored = await probePRPlace(outsideCreated.id);
   assert.equal(outsideStored?.location, null);
   assert.deepEqual(outsideStored?.route, outsideRoute);
+
+  const recommendation =
+    await expectJsonResponse<AnchorEventFormModeRecommendationResponse>(
+      await requestJson(`/api/events/${event.id}/form-mode/recommendation`, {
+        method: "POST",
+        body: {
+          place: {
+            kind: "route",
+            routePoolEntryId: "south-to-pazhou",
+          },
+          startAt: timeWindow[0],
+          preferences: ["路线池"],
+        },
+      }),
+      200,
+    );
+
+  assert.equal(recommendation.selection.kind, "route");
+  assert.equal(recommendation.selection.locationId, null);
+  assert.equal(recommendation.selection.routePoolEntryId, "south-to-pazhou");
+  assert.equal(recommendation.matchedRecommendation?.pr.id, created.id);
+  assert.deepEqual(recommendation.matchedRecommendation?.pr.route, routePool[0]?.route);
+  assert.equal(recommendation.matchedRecommendation?.match.exactPlace, true);
+  assert.equal(recommendation.matchedRecommendation?.match.exactRoute, true);
+  assert.deepEqual(recommendation.orderedCandidates, []);
 });
 
 scenario("location_pool_event_assisted_create_keeps_location_mode", async (ctx) => {

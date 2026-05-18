@@ -145,22 +145,18 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_landing_viewed: AnchorEventFunnelContextPayload;
   anchor_event_recommendation_requested: AnchorEventFunnelContextPayload & {
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_recommendation_returned: AnchorEventFunnelContextPayload & {
     outcome: "matched" | "no_match";
     matchedPrId?: number | null;
     candidateCount: number;
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_candidate_engaged: AnchorEventFunnelContextPayload & {
     action: "detail" | "join" | "waitlist";
     targetPrId: number;
@@ -370,22 +366,19 @@ export type TelemetryPayloadMap = {
     hasMatchedRecommendation: boolean;
     candidateCount: number;
     advancedMode: boolean;
-    locationId: string;
     startAt: string;
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_recommendation_result: AnalyticsContextPayload &
     ResultTelemetryPayload & {
       eventId: number;
-      locationId: string;
-      locationType: "preset" | "user_submitted";
       startAt: string;
       timeType: "preset" | "user_submitted";
       preferenceCount: number;
       outcome?: "matched" | "no_match";
       matchedPrId?: number | null;
       candidateCount?: number;
-    };
+    } & AnchorEventPlaceTelemetryPayload;
   anchor_event_form_result_action_click: AnalyticsContextPayload & {
     eventId: number;
     action:

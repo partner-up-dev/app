@@ -10,6 +10,7 @@ import {
   getAnchorEventFormModeData,
   submitAnchorEventFormModePreferenceTags,
   recommendAnchorEventFormModePRs,
+  type AnchorEventFormModeRecommendationPlaceSelection,
 } from "../domains/anchor-event";
 import {
   listMyAnchorEventRouteApplications,
@@ -30,12 +31,48 @@ const formModePreferenceSubmissionSchema = z.object({
   labels: z.array(z.string().trim().min(1).max(80)).max(16),
 });
 
-const formModeRecommendationSchema = z.object({
-  locationId: z.string().trim().min(1),
+const formModeRecommendationPlaceSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("location"),
+    locationId: z.string().trim().min(1),
+  }),
+  z.object({
+    kind: z.literal("route"),
+    routePoolEntryId: z.string().trim().min(1).max(120),
+  }),
+]);
+
+const formModeRecommendationBaseSchema = z.object({
   startAt: z.string().datetime(),
   preferences: z.array(z.string().trim().min(1).max(80)).max(16),
   correlationId: z.string().trim().min(1).max(128).optional(),
 });
+
+const formModeRecommendationSchema = z.union([
+  formModeRecommendationBaseSchema.extend({
+    place: formModeRecommendationPlaceSchema,
+  }),
+  formModeRecommendationBaseSchema.extend({
+    locationId: z.string().trim().min(1),
+  }),
+]);
+
+type FormModeRecommendationPayload = z.infer<
+  typeof formModeRecommendationSchema
+>;
+
+const resolveFormModeRecommendationPlace = (
+  payload: FormModeRecommendationPayload,
+): AnchorEventFormModeRecommendationPlaceSelection => {
+  if ("place" in payload) {
+    return payload.place;
+  }
+
+  return {
+    kind: "location",
+    locationId: payload.locationId,
+  };
+};
 
 const routeApplicationSchema = z.object({
   route: prRouteSchema,
@@ -126,7 +163,9 @@ export const anchorEventRoute = app
       const payload = c.req.valid("json");
       const result = await recommendAnchorEventFormModePRs({
         eventId,
-        ...payload,
+        place: resolveFormModeRecommendationPlace(payload),
+        startAt: payload.startAt,
+        preferences: payload.preferences,
       });
       return c.json(result);
     },
