@@ -2,7 +2,13 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
-import type { AnchorEvent, AnchorEventId, PRRoute, PRStatus } from "../../../entities";
+import type {
+  AnchorEvent,
+  AnchorEventId,
+  PRRoute,
+  PRStatus,
+  UserId,
+} from "../../../entities";
 import {
   arePRRoutesEqual,
   findEventRoutePoolEntry,
@@ -46,6 +52,17 @@ type ResolvedRecommendationPlace =
       routePoolEntryId: string;
       route: PRRoute;
     };
+
+const findActivePartnerPrIdsByUser = async (
+  userId: UserId | null | undefined,
+): Promise<Set<number>> => {
+  if (!userId) {
+    return new Set<number>();
+  }
+
+  const slots = await partnerRepo.findActiveByUserId(userId);
+  return new Set(slots.map((slot) => slot.prId));
+};
 
 export interface AnchorEventFormModeRecommendationResponse {
   event: {
@@ -131,6 +148,7 @@ const resolveRecommendationPlace = async (
 
 export async function recommendAnchorEventFormModePRs(input: {
   eventId: AnchorEventId;
+  viewerUserId?: UserId | null;
   place: AnchorEventFormModeRecommendationPlaceSelection;
   startAt: string;
   preferences: string[];
@@ -152,7 +170,7 @@ export async function recommendAnchorEventFormModePRs(input: {
   const publicLocationSet = new Set(await resolvePublicEventLocationPool(event));
   const routePool = resolveEventRoutePool(event);
 
-  const candidateRecords = (await eventContextRepo.findVisibleByAnchorEventId(event.id))
+  const scopedCandidateRecords = (await eventContextRepo.findVisibleByAnchorEventId(event.id))
     .filter((record) => RECOMMENDABLE_PR_STATUSES.has(record.root.status))
     .filter((record) => {
       if (selectedPlace.kind === "route") {
@@ -165,6 +183,15 @@ export async function recommendAnchorEventFormModePRs(input: {
       return location.length > 0 && publicLocationSet.has(location);
     })
     .filter((record) => record.root.id !== undefined);
+  const activePartnerPrIds = await findActivePartnerPrIdsByUser(
+    input.viewerUserId,
+  );
+  const candidateRecords =
+    activePartnerPrIds.size === 0
+      ? scopedCandidateRecords
+      : scopedCandidateRecords.filter(
+          (record) => !activePartnerPrIds.has(record.root.id),
+        );
 
   const activePartnerCounts = await partnerRepo.countActiveByPrIds(
     candidateRecords.map((record) => record.root.id),

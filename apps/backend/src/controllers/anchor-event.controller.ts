@@ -86,6 +86,11 @@ const requireSessionUserId = (c: Context<AuthEnv>): UserId => {
   return auth.userId as UserId;
 };
 
+const readSessionUserId = (c: Context<AuthEnv>): UserId | null => {
+  const auth = c.get("auth");
+  return auth.userId ? (auth.userId as UserId) : null;
+};
+
 export const anchorEventRoute = app
   .use("*", authMiddleware)
   // GET /api/events - List all active anchor events (Event Plaza)
@@ -139,7 +144,10 @@ export const anchorEventRoute = app
     zValidator("param", eventIdParamSchema),
     async (c) => {
       const { eventId } = c.req.valid("param");
-      const cards = await getAnchorEventDemandCards(eventId);
+      const cards = await getAnchorEventDemandCards(
+        eventId,
+        readSessionUserId(c),
+      );
       return c.json(cards);
     },
   )
@@ -163,6 +171,7 @@ export const anchorEventRoute = app
       const payload = c.req.valid("json");
       const result = await recommendAnchorEventFormModePRs({
         eventId,
+        viewerUserId: readSessionUserId(c),
         place: resolveFormModeRecommendationPlace(payload),
         startAt: payload.startAt,
         preferences: payload.preferences,
