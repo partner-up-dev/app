@@ -48,3 +48,6 @@
 - Deleted `PRUtilityActions` and replaced it with peer utility components: `PRBetaGroupAction`, `PRMessageThreadAction`, `PRShareAction`, `PRPageEventPlazaEntry`, and `PRNotificationSubscriptionsSection`.
 - Updated `PRPage` to directly arrange these utility components and pass canonical share context into `PRShareAction`.
 - Added `EVENT_PLAZA_ENTRY` telemetry for PR detail event-plaza clicks and covered the utility components with focused happy-dom tests.
+- User asked whether removing `PRJoinFlow` requires a slot-customizable join trigger so Form Mode recommendation matched / candidate surfaces can keep custom buttons.
+- Recorded `74-join-waitlist-flow-follow-up.md`: `PRJoinFlow` replacement must preserve renderless trigger customization and avoid requiring full `PRDetailView` for Form Mode candidate usage.
+- Recorded `PRWaitlistFlow` follow-up direction and the remaining `PRPage` pending WeChat replay hand-dispatch issue.

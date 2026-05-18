@@ -45,6 +45,8 @@ Hypothesis:
   - `PR_CONFIRM` -> `PRConfirmationAction.replayConfirm`
 - `PRJoinEntryContext` remains as a temporary attribution bridge and is documented as context erosion in `cross-unit-contracts.md`.
 - Known residual: `PRJoinFlow` still owns an internal `usePRDetail` observer for success-prompt fallback data. This should be handled in a later slice.
+- Known residual: pending WeChat replay is still hand-dispatched inside `PRPage`; follow-up target is `usePRPendingWeChatReplay` with a small action registry.
+- Follow-up design notes for replacing `PRJoinFlow` / `PRWaitlistFlow` live in `74-join-waitlist-flow-follow-up.md`.
 
 ## Verification
 

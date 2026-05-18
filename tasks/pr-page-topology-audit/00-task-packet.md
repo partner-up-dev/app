@@ -44,4 +44,5 @@ Hypothesis:
 - Current contextual action topology: `71-current-pr-contextual-actions-topology.md`
 - Contextual actions refactor slice: `72-contextual-actions-refactor-slice.md`
 - Utility actions refactor slice: `73-utility-actions-refactor-slice.md`
+- Join / waitlist flow follow-up: `74-join-waitlist-flow-follow-up.md`
 - Discussion log: `90-discussion-log.md`
