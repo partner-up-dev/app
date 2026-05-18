@@ -117,7 +117,6 @@
         ref="creatorPublishNoticeRef"
         :pr-id="id"
         :pr="prDetail"
-        @published="handlePRActionSuccess"
       />
 
       <InlineNotice
@@ -137,15 +136,23 @@
         <PRFactsCard :pr-id="prDetail.id" @ready="handleFactsCardReady" />
       </div>
 
-      <PRContextualActions
-        ref="contextualActionsRef"
-        :pr-id="id"
+      <PRWaitlistActions
+        ref="waitlistActionsRef"
         :pr="prDetail"
-        :route-event-id="routeEventId"
-        :join-entry-surface="joinEntrySurface"
-        :confirmation-deadline-at="confirmationDeadlineAt"
-        :supports-event-context-features="supportsEventContextFeatures"
-        @action-success="handlePRActionSuccess"
+        :join-entry-context="joinEntryContext"
+      />
+
+      <PRConfirmationAction
+        ref="confirmationActionRef"
+        :pr="prDetail"
+      />
+
+      <PRCheckInFeedbackActions :pr="prDetail" />
+
+      <PRJoinExitActions
+        ref="joinExitActionsRef"
+        :pr="prDetail"
+        :join-entry-context="joinEntryContext"
       />
 
       <PRUtilityActions
@@ -176,17 +183,20 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
-import PRContextualActions from "@/domains/pr/ui/sections/PRContextualActions.vue";
+import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
+import PRConfirmationAction from "@/domains/pr/ui/sections/PRConfirmationAction.vue";
 import PRDraftPublishNotice from "@/domains/pr/ui/sections/PRDraftPublishNotice.vue";
+import PRJoinExitActions from "@/domains/pr/ui/sections/PRJoinExitActions.vue";
 import PRUtilityActions from "@/domains/pr/ui/sections/PRUtilityActions.vue";
+import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
-import { usePRLivePolling } from "@/domains/pr/use-cases/usePRLivePolling";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
 import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions";
+import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { buildRouteSummary } from "@/domains/route/model/route";
@@ -202,8 +212,15 @@ type ContextualPendingActionKind = Extract<
   PendingWeChatAction["kind"],
   "PR_JOIN" | "PR_WAITLIST" | "PR_EXIT" | "PR_CONFIRM"
 >;
-type PRContextualActionsExpose = {
-  replayPendingAction: (kind: ContextualPendingActionKind) => Promise<void>;
+type PRJoinExitActionsExpose = {
+  replayJoin: () => Promise<void>;
+  replayExit: () => Promise<void>;
+};
+type PRWaitlistActionsExpose = {
+  replayWaitlist: () => Promise<void>;
+};
+type PRConfirmationActionExpose = {
+  replayConfirm: () => Promise<void>;
 };
 type PRDraftPublishNoticeExpose = {
   replayPublishDraft: () => Promise<void>;
@@ -219,13 +236,15 @@ type ReplayablePendingAction = Extract<
 const route = useRoute();
 const { t } = useI18n();
 const id = usePRRouteId();
-const { data, isLoading, error, refetch } = usePRDetail(id);
+const { data, isLoading, error } = usePRDetail(id);
 const prDetail = computed(() => data.value);
 const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
 const updateStatusFormRef =
   ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
-const contextualActionsRef = ref<PRContextualActionsExpose | null>(null);
+const joinExitActionsRef = ref<PRJoinExitActionsExpose | null>(null);
+const waitlistActionsRef = ref<PRWaitlistActionsExpose | null>(null);
+const confirmationActionRef = ref<PRConfirmationActionExpose | null>(null);
 const creatorPublishNoticeRef = ref<PRDraftPublishNoticeExpose | null>(null);
 const pendingActionReplayRunning = ref(false);
 const showEditContentModal = ref(false);
@@ -245,9 +264,6 @@ const prDisplayTitle = computed(() => {
   if (type.length > 0) return type;
   return t("prPage.displayFallbackTitle");
 });
-const confirmationDeadlineAt = computed(
-  () => prDetail.value?.partnerSection.timeline?.confirmationEndAt ?? null,
-);
 const supportsEventContextFeatures = computed(
   () => prDetail.value?.partnerSection.reminder.supported ?? false,
 );
@@ -279,6 +295,10 @@ const handoffEntry = computed(() => {
 const joinEntrySurface = computed(() =>
   handoffEntry.value === "matched_pr" ? "form_mode_matched" : "pr_detail",
 );
+const joinEntryContext = computed<PRJoinEntryContext>(() => ({
+  routeEventId: routeEventId.value,
+  joinEntrySurface: joinEntrySurface.value,
+}));
 const showEventAssistedCreateHandoffNotice = computed(
   () =>
     (prDetail.value?.partnerSection.viewer.isCreator ?? false) &&
@@ -317,10 +337,6 @@ useBodyScrollLock(
   computed(() => showEditContentModal.value || showModifyStatusModal.value),
 );
 
-const { resetLivePolling } = usePRLivePolling({
-  id,
-  refetch,
-});
 const { shareUrl, spmRouteKey } = usePRShareContext({
   id,
   pr: prDetail,
@@ -332,11 +348,6 @@ const routeShareDescriptor = usePRRouteShareDescriptor({
 });
 usePRDetailHead({ pr: prDetail, shareUrl });
 useRouteShareDescriptorRegistration(routeShareDescriptor);
-
-const handlePRActionSuccess = () => {
-  resetLivePolling();
-  void refetch();
-};
 
 const trackCreatorActionClick = (actionType: CreatorSecondaryActionType) => {
   if (id.value === null || !supportsEventContextFeatures.value) return;
@@ -466,7 +477,19 @@ const attemptPendingWeChatActionReplay = async () => {
       return;
     }
 
-    await contextualActionsRef.value?.replayPendingAction(pending.kind);
+    if (pending.kind === "PR_JOIN") {
+      await joinExitActionsRef.value?.replayJoin();
+      return;
+    }
+    if (pending.kind === "PR_EXIT") {
+      await joinExitActionsRef.value?.replayExit();
+      return;
+    }
+    if (pending.kind === "PR_WAITLIST") {
+      await waitlistActionsRef.value?.replayWaitlist();
+      return;
+    }
+    await confirmationActionRef.value?.replayConfirm();
   } finally {
     pendingActionReplayRunning.value = false;
   }

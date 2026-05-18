@@ -29,3 +29,16 @@
 - Verified with frontend build, token governance lint, stale-reference search, and `git diff --check`.
 - User requested integration / unit coverage for when PR Page shows or hides creator edit/status actions, with `data-testid` support and a DOM-like test environment.
 - Added `happy-dom`, root Vue SFC Vitest support, and `PRPage.creator-actions.test.ts` covering creator draft/open/ready and visitor open/draft visibility states.
+- User reopened design discussion for `PRContextualActions` and `PRUtilityActions`.
+- Added `70-contextual-utility-action-design.md` with a feature-region plus presentational-action-group proposal, keeping feature logic in PR-domain middle layers while keeping `PRPage` as route assembly.
+- User asked to first map what `PRContextualActions` currently carries and what its child topology looks like.
+- Added `71-current-pr-contextual-actions-topology.md` to record the current capability inventory, direct child graph, use-case graph, state graph, and pending replay graph.
+- User proposed deleting `PRContextualActions` and replacing it with four peer feature components: join/exit, waitlist, confirmation, and check-in/feedback.
+- Updated `70-contextual-utility-action-design.md` with the revised peer-component topology and the `prId`-only component contract.
+- User observed that each action component would need `usePRDetail`, making a `prDetail` / PR object prop a better boundary.
+- Updated the revised topology so `PRPage` keeps the canonical `usePRDetail` observer and passes `pr: PRDetailView` into peer action components, with mutations deriving `pr.id`.
+- User decided live polling can be removed after usage showed little value.
+- Updated the contextual action design so action success refresh relies on existing query invalidation, with `usePRLivePolling`, `resetLivePolling`, and page-level contextual `action-success` refetch wiring planned for removal.
+- User confirmed the PR contextual action refactor may start, includes deleting live polling and related test mocks, and asked to record `PRJoinFlow`'s internal `usePRDetail` as later work.
+- Added a durable `PRJoinEntryContext` context-erosion note to `docs/20-product-tdd/cross-unit-contracts.md`.
+- Implemented the contextual action refactor by replacing `PRContextualActions` with four peer action components, removing `usePRLivePolling`, updating `PRPage`, and adding focused component tests.

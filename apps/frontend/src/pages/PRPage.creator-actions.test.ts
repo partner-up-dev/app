@@ -77,12 +77,6 @@ vi.mock("@/domains/pr/use-cases/usePRRouteShareDescriptor", () => ({
   usePRRouteShareDescriptor: () => ({}),
 }));
 
-vi.mock("@/domains/pr/use-cases/usePRLivePolling", () => ({
-  usePRLivePolling: () => ({
-    resetLivePolling: vi.fn(),
-  }),
-}));
-
 vi.mock("@/domains/pr/use-cases/usePRShareContext", async () => {
   const { ref } = await vi.importActual<typeof import("vue")>("vue");
 
@@ -124,10 +118,31 @@ vi.mock("@/domains/pr/ui/composites/PRFactsCard.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/pr/ui/sections/PRContextualActions.vue", () => ({
+vi.mock("@/domains/pr/ui/sections/PRWaitlistActions.vue", () => ({
   default: {
-    name: "PRContextualActions",
-    template: '<section data-testid="pr-detail.actions" />',
+    name: "PRWaitlistActions",
+    template: '<section data-testid="pr-detail.waitlist-actions" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRConfirmationAction.vue", () => ({
+  default: {
+    name: "PRConfirmationAction",
+    template: '<section data-testid="pr-detail.confirmation-action" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue", () => ({
+  default: {
+    name: "PRCheckInFeedbackActions",
+    template: '<section data-testid="pr-detail.check-in-feedback-actions" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRJoinExitActions.vue", () => ({
+  default: {
+    name: "PRJoinExitActions",
+    template: '<section data-testid="pr-detail.join-exit-actions" />',
   },
 }));
 

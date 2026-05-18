@@ -40,4 +40,7 @@ Hypothesis:
 - Boundary pressure map: `40-boundary-pressure-map.md`
 - Target topology draft: `50-target-topology.md`
 - Creator actions first slice: `60-creator-actions-first-slice.md`
+- Contextual / utility action design: `70-contextual-utility-action-design.md`
+- Current contextual action topology: `71-current-pr-contextual-actions-topology.md`
+- Contextual actions refactor slice: `72-contextual-actions-refactor-slice.md`
 - Discussion log: `90-discussion-log.md`

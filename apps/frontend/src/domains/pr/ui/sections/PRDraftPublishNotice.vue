@@ -41,10 +41,6 @@ const props = defineProps<{
   pr: PRDetailView;
 }>();
 
-const emit = defineEmits<{
-  published: [];
-}>();
-
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
@@ -61,7 +57,6 @@ const handlePublishDraft = async () => {
     userSessionStore.applyAuthSession(authPayload);
   }
   await router.replace({ query: { ...route.query, entry: "publish" } });
-  emit("published");
 };
 
 defineExpose({
