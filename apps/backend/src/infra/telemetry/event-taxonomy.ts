@@ -28,6 +28,7 @@ export const acceptedTelemetryEventTypes = [
   "home_create_entry_click",
   "home_bookmark_nudge_shown",
   "home_bookmark_action_click",
+  "wechat_oauth_trace",
   "anchor_event_form_impression",
   "anchor_event_form_started",
   "anchor_event_form_recommendation_impression",

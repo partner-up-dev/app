@@ -4,6 +4,7 @@
 
 - Objective: Check whether the current WeChat OAuth implementation adds avoidable latency beyond network fluctuation and serverless cold starts.
 - Hypothesis: The frontend callback handoff may add an extra page load and API round trip compared with a backend-owned OAuth callback redirect.
+- Issue 217 continuation: after moving WeChat profile refresh behind the 302, observed login still takes about 5-8s while the target is 2-3s. The next slice is full front-to-back instrumentation rather than another latency guess.
 
 ## Guardrails Touched
 
@@ -24,6 +25,7 @@
 - After switching to a top-level handoff gate, reran `pnpm --filter @partner-up-dev/frontend build` successfully.
 - `pnpm --filter @partner-up-dev/backend typecheck` passed. `pnpm --filter @partner-up-dev/frontend lint:tokens` exited 0 while reporting existing style-governance findings outside the touched files.
 - Added a hard-unit TDD page plus local frontend/backend AGENTS reminders because the handoff protocol now has non-obvious safety and UX invariants.
+- New issue-217 instrumentation slice should be verified with backend typecheck plus focused frontend WeChat OAuth unit tests. Runtime proof should inspect `wechat_oauth_trace` backend events/logs and `wechat.oauth.trace` frontend user telemetry by shared `traceId`.
 
 ## Findings Snapshot
 
@@ -45,3 +47,11 @@
 - Route share orchestration skips while handoff is pending and sanitizes route paths before building share targets, so the handoff nonce does not leak into share metadata after the app starts immediately.
 - Route auto-login skips while a handoff nonce is pending to avoid a redirect race on `/apr/:id`.
 - Telemetry page paths now strip OAuth-sensitive query/hash values such as `code`, `state`, `access_token`, and `wechatOAuthHandoff`.
+
+## Issue 217 Instrumentation Plan
+
+- Frontend login start creates a non-secret `traceId` and a start timestamp, stores them in `sessionStorage`, and sends them to `/api/wechat/oauth/login`.
+- Backend stores the `traceId` only in signed OAuth state and signed handoff cookie payloads. The public frontend return URL still carries only the `wechatOAuthHandoff` nonce.
+- Backend records route-level stages for login redirect preparation, callback state validation, WeChat code exchange, local user resolution, callback redirect, handoff receipt, and handoff completion.
+- Frontend records handoff start, slow threshold, completion, failure, and visitor-abandon events with durations from the original frontend start.
+- Trace data must not include OAuth `code`, `state`, WeChat access tokens, frontend access tokens, openid, or raw return URLs.

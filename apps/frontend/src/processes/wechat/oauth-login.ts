@@ -3,6 +3,11 @@ import {
   clearWeChatOAuthLoginPending,
   markWeChatOAuthLoginPending,
 } from "@/processes/wechat/oauth-login-pending";
+import {
+  appendWeChatOAuthTraceQuery,
+  startWeChatOAuthTrace,
+  trackWeChatOAuthTrace,
+} from "@/processes/wechat/oauth-trace";
 
 let oauthLoginRedirectInProgress = false;
 
@@ -21,8 +26,14 @@ const scheduleOAuthLoginRedirect = (url: string): void => {
   window.setTimeout(redirect, 0);
 };
 
-export const resolveOAuthLoginUrl = (returnTo: string): string => {
+export const resolveOAuthLoginUrl = (
+  returnTo: string,
+  trace?: ReturnType<typeof startWeChatOAuthTrace>,
+): string => {
   const query = new URLSearchParams({ returnTo });
+  if (trace) {
+    appendWeChatOAuthTraceQuery(query, trace);
+  }
   return resolveApiUrl("/api/wechat/oauth/login", query);
 };
 
@@ -31,8 +42,11 @@ export const requestWeChatOAuthLogin = (returnTo: string): boolean => {
   if (oauthLoginRedirectInProgress) return true;
 
   oauthLoginRedirectInProgress = true;
+  const trace = startWeChatOAuthTrace("login");
+  trackWeChatOAuthTrace("login_requested");
   markWeChatOAuthLoginPending();
-  scheduleOAuthLoginRedirect(resolveOAuthLoginUrl(returnTo));
+  trackWeChatOAuthTrace("redirect_scheduled");
+  scheduleOAuthLoginRedirect(resolveOAuthLoginUrl(returnTo, trace));
   return true;
 };
 
@@ -50,22 +64,36 @@ export const redirectToWeChatOAuthBind = async (
 ): Promise<void> => {
   if (typeof window === "undefined") return;
 
-  const query = new URLSearchParams({ returnTo });
+  const trace = startWeChatOAuthTrace("bind");
+  trackWeChatOAuthTrace("bind_requested");
+  const query = appendWeChatOAuthTraceQuery(
+    new URLSearchParams({ returnTo }),
+    trace,
+  );
   const res = await fetch(resolveApiUrl("/api/wechat/oauth/bind", query), {
     credentials: "include",
   });
 
   if (!res.ok) {
     // Fallback to login flow if bind endpoint is temporarily unavailable.
+    trackWeChatOAuthTrace("bind_fallback_login", {
+      result: "failure",
+      failureReason: `bind_status_${res.status}`,
+    });
     requestWeChatOAuthLogin(returnTo);
     return;
   }
 
   const payload = (await res.json()) as { authorizeUrl?: string };
   if (!payload.authorizeUrl) {
+    trackWeChatOAuthTrace("bind_fallback_login", {
+      result: "failure",
+      failureReason: "missing_authorize_url",
+    });
     requestWeChatOAuthLogin(returnTo);
     return;
   }
 
+  trackWeChatOAuthTrace("bind_authorize_received");
   window.location.replace(payload.authorizeUrl);
 };

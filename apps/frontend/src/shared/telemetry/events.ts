@@ -52,6 +52,7 @@ export type TelemetryEventName =
   | "home_create_entry_click"
   | "official_account_follow_nudge_shown"
   | "official_account_follow_nudge_action_click"
+  | "wechat_oauth_trace"
   | "anchor_event_form_impression"
   | "anchor_event_form_started"
   | "anchor_event_form_recommendation_impression"
@@ -345,6 +346,25 @@ export type TelemetryPayloadMap = {
   official_account_follow_nudge_action_click: PRContextPayload & {
     source: OfficialAccountFollowPromptSource;
     action: "dismiss" | "complete";
+  };
+  wechat_oauth_trace: AnalyticsContextPayload & {
+    flow: "login" | "bind";
+    phase:
+      | "login_requested"
+      | "redirect_scheduled"
+      | "bind_requested"
+      | "bind_authorize_received"
+      | "bind_fallback_login"
+      | "handoff_started"
+      | "handoff_slow"
+      | "handoff_completed"
+      | "handoff_failed"
+      | "handoff_abandoned";
+    sinceStartMs: number;
+    durationMs?: number;
+    attempt?: number;
+    result?: "success" | "failure" | "slow" | "abandoned";
+    failureReason?: string;
   };
   anchor_event_form_impression: AnalyticsContextPayload & {
     eventId: number;

@@ -106,6 +106,7 @@ const CANONICAL_EVENT_NAMES: Partial<Record<TelemetryEventName, string>> = {
   anchor_event_form_create_fallback_click:
     "anchor_event.form.create_fallback_clicked",
   event_assisted_create_result: "anchor_event.assisted_create.result",
+  wechat_oauth_trace: "wechat.oauth.trace",
 };
 
 let transportInitialized = false;

@@ -43,6 +43,10 @@ import {
   WECHAT_OAUTH_HANDOFF_QUERY_PARAM,
 } from "@/processes/wechat/oauth-handoff";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
+import {
+  clearWeChatOAuthTrace,
+  trackWeChatOAuthTrace,
+} from "@/processes/wechat/oauth-trace";
 
 const HANDOFF_SLOW_THRESHOLD_MS = 8_000;
 
@@ -126,14 +130,21 @@ const runHandoff = async (): Promise<void> => {
 
   const controller = new AbortController();
   abortController = controller;
+  const handoffStartedAtMs = Date.now();
+  trackWeChatOAuthTrace("handoff_started", { attempt: currentAttemptId });
   slowTimer = setTimeout(() => {
     if (attemptId === currentAttemptId && !ready.value) {
       state.value = "slow";
+      trackWeChatOAuthTrace("handoff_slow", {
+        attempt: currentAttemptId,
+        durationMs: Date.now() - handoffStartedAtMs,
+        result: "slow",
+      });
     }
   }, HANDOFF_SLOW_THRESHOLD_MS);
 
   try {
-    const consumed = await consumeWeChatOAuthHandoff({
+    const result = await consumeWeChatOAuthHandoff({
       signal: controller.signal,
     });
     if (attemptId !== currentAttemptId) return;
@@ -141,13 +152,25 @@ const runHandoff = async (): Promise<void> => {
     clearSlowTimer();
     abortController = null;
 
-    if (consumed) {
+    if (result.consumed) {
+      trackWeChatOAuthTrace("handoff_completed", {
+        attempt: currentAttemptId,
+        durationMs: Date.now() - handoffStartedAtMs,
+        result: "success",
+      });
       await clearHandoffRoute();
+      clearWeChatOAuthTrace();
       completeHandoff();
       return;
     }
 
     clearWeChatOAuthLoginPending();
+    trackWeChatOAuthTrace("handoff_failed", {
+      attempt: currentAttemptId,
+      durationMs: Date.now() - handoffStartedAtMs,
+      result: "failure",
+      failureReason: "not_consumed",
+    });
     state.value = "failed";
   } catch (error) {
     if (attemptId !== currentAttemptId) return;
@@ -160,6 +183,12 @@ const runHandoff = async (): Promise<void> => {
     }
 
     clearWeChatOAuthLoginPending();
+    trackWeChatOAuthTrace("handoff_failed", {
+      attempt: currentAttemptId,
+      durationMs: Date.now() - handoffStartedAtMs,
+      result: "failure",
+      failureReason: error instanceof Error ? error.name : "unknown_error",
+    });
     state.value = "failed";
   }
 };
@@ -172,7 +201,11 @@ const continueAsGuest = async (): Promise<void> => {
   attemptId += 1;
   stopPendingRequest();
   clearWeChatOAuthLoginPending();
+  trackWeChatOAuthTrace("handoff_abandoned", {
+    result: "abandoned",
+  });
   await clearHandoffRoute();
+  clearWeChatOAuthTrace();
   completeHandoff();
 };
 

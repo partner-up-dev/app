@@ -35,9 +35,21 @@ test("requestWeChatOAuthLogin single-flights redirect attempts", () => {
     assert.equal(isWeChatOAuthLoginPending(), true);
     assert.equal(requestWeChatOAuthLogin("https://partner-up.test/pr/2"), true);
 
-    assert.deepEqual(redirects, [
-      "/api/wechat/oauth/login?returnTo=https%3A%2F%2Fpartner-up.test%2Fpr%2F1",
-    ]);
+    assert.equal(redirects.length, 1);
+    const redirectUrl = new URL(redirects[0], "https://partner-up.test");
+    assert.equal(redirectUrl.pathname, "/api/wechat/oauth/login");
+    assert.equal(
+      redirectUrl.searchParams.get("returnTo"),
+      "https://partner-up.test/pr/1",
+    );
+    assert.match(
+      redirectUrl.searchParams.get("traceId") ?? "",
+      /^[0-9a-f-]{36}$/,
+    );
+    assert.match(
+      redirectUrl.searchParams.get("traceStartedAtMs") ?? "",
+      /^\d+$/,
+    );
   } finally {
     resetWeChatOAuthLoginRedirectStateForTest();
     assert.equal(isWeChatOAuthLoginPending(), false);
