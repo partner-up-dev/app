@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { Route } from "./route";
 import {
+  buildRouteEndpointLabel,
   buildRouteSummary,
   cloneRoute,
   createEmptyRouteDraft,
@@ -43,6 +44,25 @@ describe("route helpers", () => {
     expect(buildRouteSummary(route)).toBe("广州塔东广场~体育西路地铁站");
     expect(buildRouteSummary(route, 7)).toHaveLength(7);
     expect(buildRouteSummary(route, 7)).toBe("广州塔~体育西");
+  });
+
+  test("buildRouteEndpointLabel keeps full endpoint names", () => {
+    const longRoute: Route = [
+      {
+        ...route[0],
+        name: "广东外语外贸大学大学城校区北门",
+      },
+      route[1],
+      {
+        ...route[2],
+        name: "广州南站西广场网约车上车点",
+      },
+    ];
+
+    expect(buildRouteEndpointLabel(longRoute)).toBe(
+      "广东外语外贸大学大学城校区北门~广州南站西广场网约车上车点",
+    );
+    expect(buildRouteEndpointLabel(longRoute)?.length).toBeGreaterThan(16);
   });
 
   test("clone and normalize route preserve coordinate tuples without shared references", () => {

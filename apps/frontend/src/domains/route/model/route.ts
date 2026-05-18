@@ -114,6 +114,20 @@ export const buildRouteSummary = (
   ].join(ROUTE_SUMMARY_SEPARATOR);
 };
 
+export const buildRouteEndpointLabel = (
+  route: Route | null | undefined,
+): string | null => {
+  const first = route?.[0];
+  const last = route?.[route.length - 1];
+  const startName = normalizeRoutePointText(first?.name);
+  const endName = normalizeRoutePointText(last?.name);
+  if (!startName || !endName) {
+    return null;
+  }
+
+  return [startName, endName].join(ROUTE_SUMMARY_SEPARATOR);
+};
+
 export const pickRoutePointCoordinate = (
   point: RoutePoint,
 ): MapCoordinate | null => {
