@@ -97,6 +97,8 @@ export interface AnchorEventDetail {
   title: string;
   type: string;
   description: string | null;
+  durationMinutes: number | null;
+  earliestLeadMinutes: number | null;
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
   locationPool: string[];
@@ -109,6 +111,7 @@ export interface AnchorEventDetail {
   status: string;
   browseTimeWindows: BrowseTimeWindowDetail[];
   createTimeWindows: CreateTimeWindowDetail[];
+  placeSelector: AnchorEventPlaceSelectorView;
   exhausted: boolean;
   createdAt: string;
 }
@@ -192,6 +195,26 @@ const buildBrowseTimeWindowDetails = (
   return Array.from(byKey.values()).sort(sortBrowseTimeWindows);
 };
 
+const toRouteOptions = (routePool: AnchorEventRoutePool): RouteOption[] =>
+  routePool.map((entry) => ({
+    routePoolEntryId: entry.id,
+    route: entry.route,
+    disabled: false,
+    disabledReason: "NONE",
+  }));
+
+const toRoutePlaceOptions = (
+  routeOptions: readonly RouteOption[],
+): ReturnType<typeof toAnchorEventRoutePlaceOptionView>[] =>
+  routeOptions.map((option) =>
+    toAnchorEventRoutePlaceOptionView({
+      routePoolEntryId: option.routePoolEntryId,
+      route: option.route,
+      disabled: option.disabled,
+      disabledReason: option.disabledReason,
+    }),
+  );
+
 export async function getAnchorEventDetail(
   eventId: AnchorEventId,
 ): Promise<AnchorEventDetail> {
@@ -206,6 +229,19 @@ export async function getAnchorEventDetail(
   const timeWindowPool = timeWindowDetails.map((detail) => detail.timeWindow);
   const pois = await findPoisByNames(locationPool);
   const poiByLocation = new Map(pois.map((poi) => [poi.name, poi]));
+  const eventRouteOptions = toRouteOptions(routePool);
+  const eventPlaceSelector = buildAnchorEventPlaceSelectorView({
+    locationOptions: locationPool.map((locationId) =>
+      toAnchorEventLocationPlaceOptionView({
+        locationId,
+        poi: poiByLocation.get(locationId) ?? null,
+        remainingQuota: null,
+        disabled: false,
+        disabledReason: "NONE",
+      }),
+    ),
+    routeOptions: toRoutePlaceOptions(eventRouteOptions),
+  });
 
   const browsePRs = await readVisiblePartnerRequestsByType(event.type);
   const browseTimeWindows = buildBrowseTimeWindowDetails(browsePRs, event);
@@ -277,12 +313,7 @@ export async function getAnchorEventDetail(
       };
     });
 
-    const routeOptions: RouteOption[] = routePool.map((entry) => ({
-      routePoolEntryId: entry.id,
-      route: entry.route,
-      disabled: false,
-      disabledReason: "NONE",
-    }));
+    const routeOptions = toRouteOptions(routePool);
     const locationPlaceOptions = locationOptions.map((option) =>
       toAnchorEventLocationPlaceOptionView({
         locationId: option.locationId,
@@ -292,14 +323,7 @@ export async function getAnchorEventDetail(
         disabledReason: option.disabledReason,
       }),
     );
-    const routePlaceOptions = routeOptions.map((option) =>
-      toAnchorEventRoutePlaceOptionView({
-        routePoolEntryId: option.routePoolEntryId,
-        route: option.route,
-        disabled: option.disabled,
-        disabledReason: option.disabledReason,
-      }),
-    );
+    const routePlaceOptions = toRoutePlaceOptions(routeOptions);
     if (routeOptions.length > 0) {
       hasAvailableCapacity = true;
     }
@@ -327,6 +351,8 @@ export async function getAnchorEventDetail(
     title: event.title,
     type: event.type,
     description: event.description,
+    durationMinutes: event.timePoolConfig.durationMinutes,
+    earliestLeadMinutes: event.timePoolConfig.earliestLeadMinutes,
     defaultMinPartners: event.defaultMinPartners ?? null,
     defaultMaxPartners: event.defaultMaxPartners ?? null,
     locationPool,
@@ -339,6 +365,7 @@ export async function getAnchorEventDetail(
     status: event.status,
     browseTimeWindows,
     createTimeWindows,
+    placeSelector: eventPlaceSelector,
     exhausted,
     createdAt: event.createdAt.toISOString(),
   };

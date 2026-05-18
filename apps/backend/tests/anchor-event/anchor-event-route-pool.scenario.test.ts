@@ -41,6 +41,18 @@ type AnchorEventDetailResponse = {
   locationPool: string[];
   routePool: AnchorEventRoutePool;
   exhausted: boolean;
+  placeSelector: {
+    kind: "location" | "route" | "none";
+    labelKey: string;
+    placeholderKey: string;
+    applyActionKey: string | null;
+    options: Array<{
+      kind: "location" | "route";
+      id: string;
+      label: string;
+      disabled: boolean;
+    }>;
+  };
   createTimeWindows: Array<{
     placeSelector: {
       kind: "location" | "route" | "none";
@@ -268,6 +280,12 @@ scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => 
   assert.equal(detail.exhausted, false);
   assert.deepEqual(detail.locationPool, []);
   assert.deepEqual(detail.routePool, routePool);
+  assert.equal(detail.placeSelector.kind, "route");
+  assert.equal(
+    detail.placeSelector.labelKey,
+    "anchorEvent.placeSelector.routeLabel",
+  );
+  assert.equal(detail.placeSelector.options[0]?.id, "route:south-to-stadium");
   assert.deepEqual(detail.createTimeWindows[0]?.routeOptions[0], {
     routePoolEntryId: "south-to-stadium",
     route: routePool[0]?.route,
@@ -321,6 +339,42 @@ scenario("anchor_event_route_pool_admin_and_public_read_models", async (ctx) => 
   assert.equal(summary?.routeCount, 1);
   assert.deepEqual(summary?.routePool, routePool);
 });
+
+scenario(
+  "route_pool_event_detail_keeps_place_selector_without_create_windows",
+  async (ctx) => {
+    const routePool: AnchorEventRoutePool = [
+      {
+        id: "always-visible-route",
+        route: buildRoute("珠江新城"),
+      },
+    ];
+    const event = await createAdminAnchorEvent({
+      ...buildEventInput({ label: "detail-no-create-windows", routePool }),
+      timePoolConfig: {
+        durationMinutes: null,
+        earliestLeadMinutes: null,
+        startRules: [],
+      },
+    });
+    ctx.record("eventId", event.id);
+
+    const detail = await expectJsonResponse<AnchorEventDetailResponse>(
+      await requestJson(`/api/events/${event.id}`),
+      200,
+    );
+
+    assert.equal(detail.exhausted, true);
+    assert.deepEqual(detail.createTimeWindows, []);
+    assert.equal(detail.placeSelector.kind, "route");
+    assert.equal(
+      detail.placeSelector.placeholderKey,
+      "anchorEvent.placeSelector.routePlaceholder",
+    );
+    assert.equal(detail.placeSelector.options[0]?.id, "route:always-visible-route");
+    assert.equal(detail.placeSelector.options[0]?.disabled, false);
+  },
+);
 
 scenario(
   "anchor_event_route_application_accept_appends_route_pool",

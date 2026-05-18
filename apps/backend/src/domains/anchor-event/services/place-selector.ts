@@ -1,6 +1,5 @@
 import type { AnchorEventRoutePool } from "../../../entities/anchor-event";
 import type { Poi, PoiCoordinate } from "../../../entities/poi";
-import { buildPRRouteSummary } from "../../pr-core/services/pr-place-mode.service";
 
 export type AnchorEventPlaceOptionDisabledReason =
   | "NONE"
@@ -111,11 +110,27 @@ const resolvePoiMapCoordinate = (
   };
 };
 
+const normalizeRoutePointText = (value: string | null | undefined): string =>
+  (value ?? "").replace(/\s+/g, " ").trim();
+
+const buildRouteEndpointLabel = (
+  route: AnchorEventRoutePool[number]["route"],
+): string | null => {
+  const startName = normalizeRoutePointText(route[0]?.name);
+  const endName = normalizeRoutePointText(route[route.length - 1]?.name);
+  if (startName.length === 0 || endName.length === 0) {
+    return null;
+  }
+
+  return `${startName}~${endName}`;
+};
+
 const resolveRouteLabel = (
   routePoolEntryId: string,
   route: AnchorEventRoutePool[number]["route"],
 ): string =>
-  buildPRRouteSummary(route) ?? route[0]?.name?.trim() ?? routePoolEntryId;
+  buildRouteEndpointLabel(route) ??
+  (normalizeRoutePointText(route[0]?.name) || routePoolEntryId);
 
 export const toAnchorEventLocationPlaceOptionView = (input: {
   locationId: string;
