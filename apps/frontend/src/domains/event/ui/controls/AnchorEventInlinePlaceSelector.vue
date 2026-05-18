@@ -1,41 +1,48 @@
 <template>
   <section class="inline-place-selector">
-    <div class="inline-place-selector__preview">
-      <RouteMap
-        v-if="selectedOption?.kind === 'route'"
-        :route="selectedOption.route"
-        :interactive="false"
-        :fit-padding="36"
-        :max-zoom="15"
-        variant="inline"
-        hide-bottom-attribution
-      />
-
-      <SharedMap
-        v-else-if="selectedOption?.kind === 'location' && selectedOption.coordinate"
-        :markers="locationMarkers"
-        :active-geometry="{ kind: 'all' }"
-        :fit-padding="44"
-        :max-zoom="16"
-        :interactive="false"
-        variant="inline"
-        :loading-message="t('route.mapLoading')"
-        :unavailable-message="t('route.mapUnavailable')"
-        :error-message="t('route.mapFailed')"
-        hide-bottom-attribution
-      />
-
-      <div v-else class="inline-place-selector__fallback">
-        <span class="inline-place-selector__fallback-icon i-mdi-map-marker-path" aria-hidden="true"></span>
-        <span>{{ fallbackText }}</span>
-      </div>
-    </div>
-
-    <label class="inline-place-selector__field">
+    <div class="inline-place-selector__field">
       <span class="inline-place-selector__label">{{ label }}</span>
+
+      <div class="inline-place-selector__preview">
+        <RouteMap
+          v-if="selectedOption?.kind === 'route'"
+          :route="selectedOption.route"
+          :interactive="false"
+          :fit-padding="36"
+          :max-zoom="15"
+          variant="inline"
+          hide-bottom-attribution
+        />
+
+        <SharedMap
+          v-else-if="
+            selectedOption?.kind === 'location' && selectedOption.coordinate
+          "
+          :markers="locationMarkers"
+          :active-geometry="{ kind: 'all' }"
+          :fit-padding="44"
+          :max-zoom="16"
+          :interactive="false"
+          variant="inline"
+          :loading-message="t('route.mapLoading')"
+          :unavailable-message="t('route.mapUnavailable')"
+          :error-message="t('route.mapFailed')"
+          hide-bottom-attribution
+        />
+
+        <div v-else class="inline-place-selector__fallback">
+          <span
+            class="inline-place-selector__fallback-icon i-mdi-map-marker-path"
+            aria-hidden="true"
+          ></span>
+          <span>{{ fallbackText }}</span>
+        </div>
+      </div>
+
       <select
         :value="modelValue ?? ''"
         class="inline-place-selector__input"
+        :aria-label="label"
         data-testid="anchor-event-inline-place-selector.select"
         @change="handleChange"
       >
@@ -51,7 +58,7 @@
           {{ formatOptionLabel(option) }}
         </option>
       </select>
-    </label>
+    </div>
   </section>
 </template>
 
@@ -155,17 +162,24 @@ const handleChange = (event: Event): void => {
 }
 
 .inline-place-selector__preview {
+  height: 148px;
   min-width: 0;
+}
+
+.inline-place-selector__preview :deep(.route-map--inline) {
+  height: 100%;
 }
 
 .inline-place-selector__preview :deep(.map-shell--inline),
 .inline-place-selector__preview :deep(.route-map__fallback) {
-  min-height: 148px;
+  height: 100%;
+  min-height: 100%;
+  aspect-ratio: auto;
 }
 
 .inline-place-selector__fallback {
   display: flex;
-  min-height: 148px;
+  height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;

@@ -59,6 +59,39 @@ describe("anchor event place options", () => {
     });
   });
 
+  test("route selector option labels keep full endpoint names", () => {
+    const longRoute: PRRoute = [
+      {
+        ...route[0],
+        name: "广东外语外贸大学大学城校区北门",
+      },
+      route[1],
+      {
+        ...route[route.length - 1]!,
+        name: "广州南站西广场网约车上车点",
+      },
+    ];
+    const options = buildCreateTimeWindowPlaceOptions({
+      placeSelector: null,
+      locationOptions: [],
+      routeOptions: [
+        {
+          routePoolEntryId: "long-route",
+          route: longRoute,
+          disabled: false,
+          disabledReason: "NONE",
+        },
+      ],
+      poiByName: new Map(),
+    });
+
+    expect(options[0]).toMatchObject({
+      kind: "route",
+      label: "广东外语外贸大学大学城校区北门~广州南站西广场网约车上车点",
+    });
+    expect(options[0]?.label.length).toBeGreaterThan(16);
+  });
+
   test("buildFormModePlaceOptions returns locations when no routes exist", () => {
     const options = buildFormModePlaceOptions({
       placeSelector: null,

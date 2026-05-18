@@ -15,24 +15,11 @@
       keep-content-mounted
     >
       <div class="create-card">
-        <label v-if="timeWindowOptions.length > 0" class="create-card__field">
-          <span class="create-card__label">{{
-            t("anchorEvent.card.batchLabel")
-          }}</span>
-          <select
-            :value="selectedTimeWindowKey ?? ''"
-            class="create-card__input"
-            @change="handleTimeWindowChange"
-          >
-            <option
-              v-for="option in timeWindowOptions"
-              :key="option.key"
-              :value="option.key"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventAssistedPRTimeWindowInlineEditor
+          :anchor-event-id="eventId"
+          :model-value="timeWindow"
+          @update:model-value="emit('update:timeWindow', $event)"
+        />
 
         <AnchorEventInlinePlaceSelector
           v-model="selectedPlaceId"
@@ -48,7 +35,7 @@
           appearance="pill"
           size="sm"
           data-testid="anchor-event.create-card.create"
-          :disabled="pending"
+          :disabled="isCreateDisabled"
           @click="emitCreate"
         >
           {{
@@ -67,7 +54,9 @@ import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
+import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
 import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
+import type { TimeWindow } from "@/domains/event/model/time-window-view";
 import {
   findAnchorEventPlaceOption,
   getFirstEnabledPlaceOption,
@@ -77,33 +66,27 @@ import {
 } from "@/domains/event/model/place-options";
 import { useExpandableCardAttention } from "./useExpandableCardAttention";
 
-type TimeWindowOption = {
-  key: string;
-  label: string;
-};
-
 const props = withDefaults(
   defineProps<{
     title?: string;
-    timeWindowLabel: string;
+    eventId: number;
     eventTitle: string;
-    timeWindowOptions?: TimeWindowOption[];
-    selectedTimeWindowKey?: string | null;
+    timeWindow: TimeWindow | null;
     placeOptions: readonly AnchorEventPlaceOption[];
     placeLabel?: string;
     placePlaceholder?: string;
     pending?: boolean;
+    disabled?: boolean;
     errorMessage?: string | null;
     defaultExpanded?: boolean;
     autoExpandContextKey?: string | number | null;
   }>(),
   {
     title: undefined,
-    timeWindowOptions: () => [],
-    selectedTimeWindowKey: null,
     placeLabel: undefined,
     placePlaceholder: undefined,
     pending: false,
+    disabled: false,
     errorMessage: null,
     defaultExpanded: false,
     autoExpandContextKey: null,
@@ -112,7 +95,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   create: [place: AnchorEventSelectedPlace | null];
-  "update:selectedTimeWindowKey": [value: string | null];
+  "update:timeWindow": [value: TimeWindow | null];
 }>();
 
 const { t } = useI18n();
@@ -125,6 +108,9 @@ const placePlaceholder = computed(
 );
 
 const selectedPlaceId = ref<string | null>(null);
+const isCreateDisabled = computed(
+  () => props.pending || props.disabled || selectedPlaceId.value === null,
+);
 const {
   autoExpandHighlightActive,
   expandableCardResetKey,
@@ -154,22 +140,11 @@ watch(
   { immediate: true, deep: true },
 );
 
-const handleTimeWindowChange = (event: Event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLSelectElement)) {
-    return;
-  }
-
-  const normalized = target.value.trim();
-  if (normalized.length === 0) {
-    emit("update:selectedTimeWindowKey", null);
-    return;
-  }
-
-  emit("update:selectedTimeWindowKey", normalized);
-};
-
 const emitCreate = () => {
+  if (isCreateDisabled.value) {
+    return;
+  }
+
   emit(
     "create",
     toAnchorEventSelectedPlace(

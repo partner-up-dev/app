@@ -1,6 +1,6 @@
 import type { PRRoute } from "@partner-up-dev/backend";
 import type { MapCoordinate } from "@/shared/map/types";
-import { buildRouteSummary, type Route } from "@/domains/route/model/route";
+import { buildRouteEndpointLabel, type Route } from "@/domains/route/model/route";
 
 export type AnchorEventPlaceOptionDisabledReason =
   | "NONE"
@@ -128,7 +128,7 @@ export const resolvePoiMapCoordinate = (
 };
 
 const normalizeRouteLabel = (route: Route): string =>
-  buildRouteSummary(route) ?? route[0]?.name?.trim() ?? "";
+  buildRouteEndpointLabel(route) ?? route[0]?.name?.trim() ?? "";
 
 const clonePlaceSelectorOptions = (
   placeSelector: AnchorEventPlaceSelectorView | null | undefined,

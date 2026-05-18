@@ -697,6 +697,9 @@ export interface MessageSchema {
       locationLabel: string;
       locationPlaceholder: string;
       locationMapFallback: string;
+      timeWindowLabel: string;
+      customStartLabel: string;
+      durationMinutesLabel: string;
       createAction: string;
       creatingAction: string;
       optionMaxReached: string;
@@ -709,6 +712,11 @@ export interface MessageSchema {
         locationCapReached: string;
         eventUnavailable: string;
         userCreationDisabled: string;
+        missingTimeWindow: string;
+        missingDuration: string;
+        timeWindowAlreadyPassed: string;
+        timeWindowOutsideLead: string;
+        missingPlace: string;
         createFailed: string;
       };
     };

@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -92,9 +93,15 @@ const emit = defineEmits<{
   error: [error: Error];
 }>();
 
+const MAX_INIT_ATTEMPTS = 80;
+const INIT_RETRY_DELAY_MS = 50;
+
 const containerRef = ref<HTMLElement | null>(null);
 const provider = ref<TencentLBSMapProvider | null>(null);
 const status = ref<MapProviderStatus>("idle");
+const isInitializing = ref(false);
+let initFrameId: number | null = null;
+let initRetryTimeoutId: number | null = null;
 const hiddenBottomAttributionBleedPx = computed(() =>
   props.hideBottomAttribution ? 20 : 0,
 );
@@ -146,6 +153,11 @@ const overlayVisible = computed(
   () => status.value !== "ready" || normalizedApiKey.value.length === 0,
 );
 
+const hasUsableContainerSize = (container: HTMLElement): boolean => {
+  const rect = container.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+};
+
 const applyMapData = () => {
   const currentProvider = provider.value;
   if (!currentProvider) {
@@ -174,6 +186,16 @@ const initMap = async () => {
     return;
   }
 
+  if (provider.value || isInitializing.value) {
+    return;
+  }
+
+  if (!hasUsableContainerSize(container)) {
+    status.value = "idle";
+    return;
+  }
+
+  isInitializing.value = true;
   status.value = "loading";
   try {
     provider.value = await createTencentLBSMapProvider({
@@ -194,14 +216,88 @@ const initMap = async () => {
       error instanceof Error ? error : new Error(String(error));
     status.value = "error";
     emit("error", normalizedError);
+  } finally {
+    isInitializing.value = false;
   }
 };
 
+const clearScheduledInitialMapInit = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (initFrameId !== null) {
+    window.cancelAnimationFrame(initFrameId);
+    initFrameId = null;
+  }
+
+  if (initRetryTimeoutId !== null) {
+    window.clearTimeout(initRetryTimeoutId);
+    initRetryTimeoutId = null;
+  }
+};
+
+const scheduleInitialMapInitRetry = (attempt: number) => {
+  if (typeof window === "undefined") {
+    void scheduleInitialMapInit(attempt);
+    return;
+  }
+
+  if (initRetryTimeoutId !== null) {
+    window.clearTimeout(initRetryTimeoutId);
+  }
+
+  initRetryTimeoutId = window.setTimeout(() => {
+    initRetryTimeoutId = null;
+    void scheduleInitialMapInit(attempt);
+  }, INIT_RETRY_DELAY_MS);
+};
+
+const scheduleInitialMapInit = async (attempt = 0) => {
+  await nextTick();
+
+  if (provider.value || isInitializing.value) {
+    return;
+  }
+
+  if (typeof window === "undefined") {
+    void initMap();
+    return;
+  }
+
+  if (initFrameId !== null) {
+    window.cancelAnimationFrame(initFrameId);
+  }
+
+  initFrameId = window.requestAnimationFrame(() => {
+    initFrameId = null;
+    const container = containerRef.value;
+    const waitingForSize =
+      container !== null &&
+      normalizedApiKey.value.length > 0 &&
+      !hasUsableContainerSize(container);
+
+    if (
+      !provider.value &&
+      !isInitializing.value &&
+      waitingForSize &&
+      attempt < MAX_INIT_ATTEMPTS
+    ) {
+      status.value = "loading";
+      scheduleInitialMapInitRetry(attempt + 1);
+      return;
+    }
+
+    void initMap();
+  });
+};
+
 onMounted(() => {
-  void initMap();
+  void scheduleInitialMapInit();
 });
 
 onBeforeUnmount(() => {
+  clearScheduledInitialMapInit();
   provider.value?.destroy();
   provider.value = null;
 });

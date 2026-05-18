@@ -2,6 +2,7 @@ import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import type {
   AnchorEventPlaceOption,
 } from "@/domains/event/model/place-options";
+import type { TimeWindow } from "@/domains/event/model/time-window-view";
 
 export type DemandCardViewModel = {
   cardKey: string;
@@ -11,11 +12,6 @@ export type DemandCardViewModel = {
   notes: string | null;
   detailPrId: number | null;
   coverImage: string | null;
-};
-
-export type CardTimeWindowOption = {
-  key: string;
-  label: string;
 };
 
 export type LocationOption =
@@ -35,8 +31,7 @@ export type AnchorEventCardModeSurfaceProps = {
   isCardRouting?: boolean;
   cardActionError?: string | null;
   dragHintToken?: number;
-  cardCreateTimeWindowOptions?: CardTimeWindowOption[];
-  cardCreateTimeWindowKey?: string | null;
+  cardCreateTimeWindow?: TimeWindow | null;
   cardCreatePlaceId?: string | null;
   cardCreatePlaceOptions?: AnchorEventPlaceOption[];
   cardCreatePlaceLabel?: string;
@@ -54,8 +49,7 @@ type AnchorEventCardModeSurfaceDefaults = {
   isCardRouting: boolean;
   cardActionError: null;
   dragHintToken: number;
-  cardCreateTimeWindowOptions: () => CardTimeWindowOption[];
-  cardCreateTimeWindowKey: null;
+  cardCreateTimeWindow: null;
   cardCreatePlaceId: null;
   cardCreatePlaceOptions: () => AnchorEventPlaceOption[];
   cardCreatePlaceLabel: undefined;
@@ -72,8 +66,7 @@ export const anchorEventCardModeSurfaceDefaults: AnchorEventCardModeSurfaceDefau
   isCardRouting: false,
   cardActionError: null,
   dragHintToken: 0,
-  cardCreateTimeWindowOptions: () => [],
-  cardCreateTimeWindowKey: null,
+  cardCreateTimeWindow: null,
   cardCreatePlaceId: null,
   cardCreatePlaceOptions: () => [],
   cardCreatePlaceLabel: undefined,
@@ -89,7 +82,7 @@ export type AnchorEventCardModeSurfaceEmits = {
   "consume-drag-hint-window": [];
   "skip-active-card": [];
   "view-active-card-detail": [];
-  "update:cardCreateTimeWindowKey": [value: string | null];
+  "update:cardCreateTimeWindow": [value: TimeWindow | null];
   "update:cardCreatePlaceId": [value: string | null];
   "create-from-card-empty": [];
   "card-stage-active-change": [isActive: boolean];

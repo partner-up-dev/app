@@ -1590,6 +1590,9 @@
       "locationLabel": "地点",
       "locationPlaceholder": "请选择地点",
       "locationMapFallback": "{place} 暂无坐标",
+      "timeWindowLabel": "时间",
+      "customStartLabel": "开始时间",
+      "durationMinutesLabel": "时长（分钟）",
       "createAction": "创建搭子请求",
       "creatingAction": "创建中...",
       "optionMaxReached": "{locationId}（已达上限）",
@@ -1602,6 +1605,11 @@
         "locationCapReached": "该地点当前时段名额已满，请选择其他地点。",
         "eventUnavailable": "当前活动场次不可用，请刷新后重试。",
         "userCreationDisabled": "当前活动由运营创建 PR，请选择已有场次。",
+        "missingTimeWindow": "请选择开始时间。",
+        "missingDuration": "请填写有效时长。",
+        "timeWindowAlreadyPassed": "请选择未来时间。",
+        "timeWindowOutsideLead": "所选时间超出可提前创建范围。",
+        "missingPlace": "请选择地点或路线。",
         "createFailed": "创建活动搭子请求失败，请稍后重试。"
       }
     }

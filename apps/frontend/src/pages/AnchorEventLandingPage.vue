@@ -62,8 +62,7 @@
         :is-card-routing="isCardRouting"
         :card-action-error="cardActionError"
         :drag-hint-token="0"
-        :card-create-time-window-options="cardCreateTimeWindowOptions"
-        :card-create-time-window-key="cardCreateTimeWindowKey"
+        :card-create-time-window="cardCreateTimeWindow"
         :card-create-place-id="cardCreatePlaceId"
         :card-create-place-options="cardCreatePlaceOptions"
         :card-create-place-label="cardCreatePlaceLabel"
@@ -77,7 +76,7 @@
         @consume-drag-hint-window="noop"
         @skip-active-card="handleSkipActiveCard"
         @view-active-card-detail="handleViewActiveCardDetail"
-        @update:card-create-time-window-key="cardCreateTimeWindowKey = $event"
+        @update:card-create-time-window="cardCreateTimeWindow = $event"
         @update:card-create-place-id="cardCreatePlaceId = $event"
         @create-from-card-empty="handleCreateFromCardEmpty"
       />
@@ -170,7 +169,6 @@ import {
   type AnchorEventPlaceOption,
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
-import { formatTimeWindowOptionLabel } from "@/domains/event/model/time-window-view";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import type { ApiError } from "@/shared/api/error";
 import {
@@ -201,13 +199,6 @@ import {
 } from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
-type CreateTimeWindowEntry =
-  AnchorEventDetailResponse["createTimeWindows"][number];
-
-type CardTimeWindowOption = {
-  key: string;
-  label: string;
-};
 
 type FormModeResultState = "selection" | "no-match";
 type FormModeSurfaceExposed = {
@@ -522,82 +513,125 @@ const upcomingSortedCreateTimeWindows = computed(() =>
 );
 const canUserCreatePR = computed(() => detail.value?.canUserCreatePR === true);
 
-const cardCreateTimeWindowKey = ref<string | null>(null);
+const cardCreateTimeWindow = ref<TimeWindow | null>(null);
 const cardCreatePlaceId = ref<string | null>(null);
 
-const cardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() =>
-  upcomingSortedCreateTimeWindows.value.map((entry, index) => ({
-    key: entry.key,
-    label: formatTimeWindowOptionLabel(
-      entry.timeWindow,
-      index,
-      t("anchorEvent.batchLabel"),
-      entry.description,
-    ),
-  })),
-);
+const timeWindowsEqual = (
+  left: TimeWindow | null | undefined,
+  right: TimeWindow | null | undefined,
+): boolean =>
+  (left?.[0] ?? null) === (right?.[0] ?? null) &&
+  (left?.[1] ?? null) === (right?.[1] ?? null);
 
-const resolveFirstCreatableTimeWindowKey = (): string | null => {
+const resolveFirstCreatableTimeWindow = (): TimeWindow | null => {
   for (const entry of upcomingSortedCreateTimeWindows.value) {
     if (hasEnabledCreateTimeWindowPlaceOption(entry)) {
-      return entry.key;
+      return entry.timeWindow;
     }
   }
 
-  return upcomingSortedCreateTimeWindows.value[0]?.key ?? null;
+  return upcomingSortedCreateTimeWindows.value[0]?.timeWindow ?? null;
 };
 
 watch(
   upcomingSortedCreateTimeWindows,
   (timeWindows) => {
     if (timeWindows.length === 0) {
-      cardCreateTimeWindowKey.value = null;
+      cardCreateTimeWindow.value = null;
       return;
     }
 
     const current = timeWindows.find(
-      (entry) => entry.key === cardCreateTimeWindowKey.value,
+      (entry) => timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
     );
     if (current) {
       return;
     }
 
-    cardCreateTimeWindowKey.value = resolveFirstCreatableTimeWindowKey();
+    cardCreateTimeWindow.value = resolveFirstCreatableTimeWindow();
   },
   { immediate: true },
 );
 
 const selectedCardCreateTimeWindow = computed(() => {
-  const key = cardCreateTimeWindowKey.value;
-  if (key === null) {
+  const timeWindow = cardCreateTimeWindow.value;
+  if (timeWindow === null) {
     return null;
   }
 
   return (
-    upcomingSortedCreateTimeWindows.value.find((entry) => entry.key === key) ??
+    upcomingSortedCreateTimeWindows.value.find((entry) =>
+      timeWindowsEqual(entry.timeWindow, timeWindow),
+    ) ??
     null
   );
 });
 
+const allPoiIdsCsv = computed(() => {
+  const uniqueLocationIds = new Set<string>();
+
+  for (const card of demandCards.value ?? []) {
+    const location = card.displayLocationName?.trim() ?? "";
+    if (location.length > 0) {
+      uniqueLocationIds.add(location);
+    }
+  }
+  for (const entry of detail.value?.createTimeWindows ?? []) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
+  for (const option of detail.value?.placeSelector.options ?? []) {
+    if (option.kind !== "location") {
+      continue;
+    }
+
+    const locationId = option.locationId.trim();
+    if (locationId.length > 0) {
+      uniqueLocationIds.add(locationId);
+    }
+  }
+
+  if (uniqueLocationIds.size === 0) {
+    return null;
+  }
+
+  return Array.from(uniqueLocationIds).join(",");
+});
+
+const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
+const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
+
+const activeCardCreatePlaceSelector = computed(
+  () =>
+    selectedCardCreateTimeWindow.value?.placeSelector ??
+    detail.value?.placeSelector ??
+    null,
+);
+
 const cardCreatePlaceOptions = computed<AnchorEventPlaceOption[]>(() =>
-  selectedCardCreateTimeWindow.value
-    ? buildCreateTimeWindowPlaceOptions({
-        placeSelector: selectedCardCreateTimeWindow.value.placeSelector,
-        locationOptions: selectedCardCreateTimeWindow.value.locationOptions,
-        routeOptions: selectedCardCreateTimeWindow.value.routeOptions,
-        poiByName: poiByName.value,
-      })
-    : [],
+  buildCreateTimeWindowPlaceOptions({
+    placeSelector: activeCardCreatePlaceSelector.value,
+    locationOptions: selectedCardCreateTimeWindow.value?.locationOptions ?? [],
+    routeOptions: selectedCardCreateTimeWindow.value?.routeOptions ?? [],
+    poiByName: poiByName.value,
+  }),
 );
 const cardCreatePlaceLabel = computed(() =>
   t(
-    selectedCardCreateTimeWindow.value?.placeSelector.labelKey ??
+    activeCardCreatePlaceSelector.value?.labelKey ??
       "anchorEvent.placeSelector.locationLabel",
   ),
 );
 const cardCreatePlacePlaceholder = computed(() =>
   t(
-    selectedCardCreateTimeWindow.value?.placeSelector.placeholderKey ??
+    activeCardCreatePlaceSelector.value?.placeholderKey ??
       "anchorEvent.placeSelector.locationPlaceholder",
   ),
 );
@@ -617,37 +651,6 @@ watch(
     cardCreatePlaceId.value = getFirstEnabledPlaceOption(options)?.id ?? null;
   },
   { immediate: true, deep: true },
-);
-
-const allPoiIdsCsv = computed(() => {
-  const uniqueLocationIds = new Set<string>();
-
-  for (const card of demandCards.value ?? []) {
-    const location = card.displayLocationName?.trim() ?? "";
-    if (location.length > 0) {
-      uniqueLocationIds.add(location);
-    }
-  }
-  for (const entry of detail.value?.createTimeWindows ?? []) {
-    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
-      const locationId = option.locationId.trim();
-      if (locationId.length > 0) {
-        uniqueLocationIds.add(locationId);
-      }
-    }
-  }
-
-  if (uniqueLocationIds.size === 0) {
-    return null;
-  }
-
-  return Array.from(uniqueLocationIds).join(",");
-});
-
-const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
-const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
-const poiByName = computed(
-  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
 );
 
 const resolveCoverImage = (location: string | null): string | null => {
@@ -1033,10 +1036,13 @@ const handleCreateFromCardEmpty = async () => {
     return;
   }
 
-  const selectedTimeWindow = selectedCardCreateTimeWindow.value;
   const place = toAnchorEventSelectedPlace(
     findAnchorEventPlaceOption(cardCreatePlaceOptions.value, cardCreatePlaceId.value),
   );
+  const targetTimeWindow = cardCreateTimeWindow.value;
+  if (!targetTimeWindow?.[0] || !targetTimeWindow?.[1] || !place) {
+    return;
+  }
   const funnelPayload = buildCurrentFunnelPayload();
   if (funnelPayload) {
     trackEvent("anchor_event_card_empty_create_started", {
@@ -1044,12 +1050,12 @@ const handleCreateFromCardEmpty = async () => {
       locationId: place?.kind === "location" ? place.locationId : null,
       routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
       placeKind: place?.kind ?? null,
-      timeWindowStart: selectedTimeWindow?.timeWindow[0] ?? null,
+      timeWindowStart: targetTimeWindow[0],
     });
   }
 
   await createEventAssistedPR({
-    targetTimeWindow: selectedTimeWindow?.timeWindow ?? null,
+    targetTimeWindow,
     place,
   });
 };
