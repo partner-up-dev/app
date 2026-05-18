@@ -155,10 +155,25 @@
         :join-entry-context="joinEntryContext"
       />
 
-      <PRUtilityActions
-        :pr-id="id"
+      <div class="utility-stack" data-region="utility">
+        <div class="utility-action-row">
+          <PRBetaGroupAction :pr="prDetail" />
+          <PRMessageThreadAction :pr="prDetail" />
+        </div>
+
+        <PRShareAction
+          :pr="prDetail"
+          :share-url="shareUrl"
+          :spm-route-key="spmRouteKey"
+          :pr-share-data="prShareData"
+        />
+
+        <PRPageEventPlazaEntry :pr="prDetail" />
+      </div>
+
+      <PRNotificationSubscriptionsSection
+        class="notification-subscriptions-region"
         :pr="prDetail"
-        :supports-event-context-features="supportsEventContextFeatures"
       />
     </template>
 
@@ -183,11 +198,15 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
+import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
 import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "@/domains/pr/ui/sections/PRConfirmationAction.vue";
 import PRDraftPublishNotice from "@/domains/pr/ui/sections/PRDraftPublishNotice.vue";
 import PRJoinExitActions from "@/domains/pr/ui/sections/PRJoinExitActions.vue";
-import PRUtilityActions from "@/domains/pr/ui/sections/PRUtilityActions.vue";
+import PRMessageThreadAction from "@/domains/pr/ui/sections/PRMessageThreadAction.vue";
+import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue";
+import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
+import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
@@ -337,7 +356,7 @@ useBodyScrollLock(
   computed(() => showEditContentModal.value || showModifyStatusModal.value),
 );
 
-const { shareUrl, spmRouteKey } = usePRShareContext({
+const { shareUrl, spmRouteKey, prShareData } = usePRShareContext({
   id,
   pr: prDetail,
 });
@@ -555,10 +574,39 @@ onMounted(() => {
   visibility: hidden;
 }
 
+.utility-stack {
+  margin-top: var(--sys-spacing-large);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.utility-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sys-spacing-small);
+}
+
+.utility-action-row:empty {
+  display: none;
+}
+
+.utility-action-row > :deep(.utility-action-cell:only-child) {
+  grid-column: 1 / -1;
+}
+
+.notification-subscriptions-region {
+  margin-top: var(--sys-spacing-large);
+}
+
 @media (max-width: 375px) {
   .header-quick-actions {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .utility-action-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

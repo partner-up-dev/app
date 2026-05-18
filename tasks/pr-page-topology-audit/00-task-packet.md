@@ -43,4 +43,5 @@ Hypothesis:
 - Contextual / utility action design: `70-contextual-utility-action-design.md`
 - Current contextual action topology: `71-current-pr-contextual-actions-topology.md`
 - Contextual actions refactor slice: `72-contextual-actions-refactor-slice.md`
+- Utility actions refactor slice: `73-utility-actions-refactor-slice.md`
 - Discussion log: `90-discussion-log.md`

@@ -83,7 +83,8 @@ vi.mock("@/domains/pr/use-cases/usePRShareContext", async () => {
   return {
     usePRShareContext: () => ({
       shareUrl: ref("https://example.test/pr/123"),
-      spmRouteKey: ref("pr_detail"),
+      spmRouteKey: ref("pr"),
+      prShareData: ref({}),
     }),
   };
 });
@@ -153,10 +154,38 @@ vi.mock("@/domains/pr/ui/sections/PRDraftPublishNotice.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/pr/ui/sections/PRUtilityActions.vue", () => ({
+vi.mock("@/domains/pr/ui/sections/PRBetaGroupAction.vue", () => ({
   default: {
-    name: "PRUtilityActions",
-    template: '<section data-testid="pr-detail.utility-actions" />',
+    name: "PRBetaGroupAction",
+    template: '<section data-testid="pr-detail.beta-group-action" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRMessageThreadAction.vue", () => ({
+  default: {
+    name: "PRMessageThreadAction",
+    template: '<section data-testid="pr-detail.message-thread-action" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRShareAction.vue", () => ({
+  default: {
+    name: "PRShareAction",
+    template: '<section data-testid="pr-detail.share-action" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue", () => ({
+  default: {
+    name: "PRPageEventPlazaEntry",
+    template: '<section data-testid="pr-detail.event-plaza-entry" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue", () => ({
+  default: {
+    name: "PRNotificationSubscriptionsSection",
+    template: '<section data-testid="pr-detail.notification-subscriptions-section" />',
   },
 }));
 

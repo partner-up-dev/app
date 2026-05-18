@@ -42,3 +42,9 @@
 - User confirmed the PR contextual action refactor may start, includes deleting live polling and related test mocks, and asked to record `PRJoinFlow`'s internal `usePRDetail` as later work.
 - Added a durable `PRJoinEntryContext` context-erosion note to `docs/20-product-tdd/cross-unit-contracts.md`.
 - Implemented the contextual action refactor by replacing `PRContextualActions` with four peer action components, removing `usePRLivePolling`, updating `PRPage`, and adding focused component tests.
+- Committed the contextual action split as `556d6678 refactor(pr): split contextual PR actions`.
+- User asked to continue with `PRUtilityActions` and add click telemetry for the split `PRPageEventPlazaEntry`.
+- Added `73-utility-actions-refactor-slice.md` to track the utility action split.
+- Deleted `PRUtilityActions` and replaced it with peer utility components: `PRBetaGroupAction`, `PRMessageThreadAction`, `PRShareAction`, `PRPageEventPlazaEntry`, and `PRNotificationSubscriptionsSection`.
+- Updated `PRPage` to directly arrange these utility components and pass canonical share context into `PRShareAction`.
+- Added `EVENT_PLAZA_ENTRY` telemetry for PR detail event-plaza clicks and covered the utility components with focused happy-dom tests.

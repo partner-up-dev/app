@@ -461,6 +461,7 @@ export type TelemetryPayloadMap = {
       | "SHARE_METHOD_SWITCH"
       | "SHARE_LINK_TRIGGER"
       | "JOIN_BETA_GROUP"
+      | "EVENT_PLAZA_ENTRY"
       | "CREATOR_EDIT_CONTENT"
       | "CREATOR_MODIFY_STATUS";
     methodId?: string;
