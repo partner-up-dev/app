@@ -133,7 +133,7 @@ scenario("route_pr_create_read_and_update", async (ctx) => {
   assert.equal(detail.core.location, null);
   assert.deepEqual(detail.core.route, initialRoute);
   assert.equal(detail.core.placeDisplayName, "广州南站~天河体育中心");
-  assert.equal(detail.share.canonical.title, "广州南站~天河体育中心");
+  assert.equal(detail.share.canonical.title, "通勤拼车");
   assert.match(detail.share.canonical.description, /广州南站~天河体育中心/);
 
   const updatedRoute = buildRoute("琶洲会展中心");
@@ -169,7 +169,7 @@ scenario("route_pr_create_read_and_update", async (ctx) => {
     200,
   );
   assert.equal(updatedDetail.core.placeDisplayName, "广州南站~琶洲会展中心");
-  assert.equal(updatedDetail.share.canonical.title, "广州南站~琶洲会展中心");
+  assert.equal(updatedDetail.share.canonical.title, "通勤拼车");
   assert.notEqual(
     updatedDetail.share.canonical.revision,
     detail.share.canonical.revision,

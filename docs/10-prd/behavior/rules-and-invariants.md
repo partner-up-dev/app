@@ -9,9 +9,10 @@
 - PR messaging currently uses a dedicated `/pr/:id/messages` page rather than an inline detail-page composer.
 - PR messaging may contain both participant-authored messages and operator-authored system messages; system messages are part of the same thread and remain visually identifiable as system-authored context.
 - PR meeting-point guidance answers where participants should meet at or inside the primary location. Before a `PR` becomes `ACTIVE`, it may appear on the public PR detail surface. After the `PR` becomes `ACTIVE`, the guidance is visible only to current active participants.
+- Anchor Event title is contextual display identity, not durable PR identity. `PR.type` remains the matching and context-resolution input; route summary and location remain place descriptors.
 - A `PR` owns one place mode at a time. Location mode carries the primary location string. Route mode carries an ordered route and persists `location` as `null`.
 - Route points carry display names and at least one coordinate pair so route surfaces can render markers and route geometry.
-- When a `PR` has no explicit title, user-facing detail and share surfaces identify it by compact route summary when present, then by primary location, then by type, then by a generic `PR` label.
+- When a `PR` has no explicit title, user-facing detail and share surfaces identify it by resolved Anchor Event title when one exists, then by `PR.type`, then by compact route summary or primary location, then by a generic `PR` label.
 - The compact route summary uses the departure and destination point names as `route[0].name~route[-1].name`, with each endpoint truncated independently so the joined summary stays within 16 characters.
 
 ## 2. Creation And Publish Rules
@@ -26,7 +27,7 @@
 - Event-context PR creation is frontend assistance from Anchor Event surfaces into unified structured PR creation.
 - Event-assisted create resolves frontend-selected event-page choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
 - Anchor Event assisted creation can source suggested place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
-- A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same activity type remains governed by the PR create contract and may choose either PR place mode.
+- A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same `PR.type` remains governed by the PR create contract and may choose either PR place mode.
 - Route-mode event-assisted create submits `PR.route` and persists `location = null`. Location-mode event-assisted create submits `PR.location` and persists `route = null`.
 - PR existence does not depend on Anchor Event identity or time-pool selection.
 - Natural-language creation may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`. Existing PR types have priority over Anchor Event types when both sources offer a candidate.
@@ -46,8 +47,8 @@
 - Form Mode may route users to submit a new POI location application. That application is POI-owned and not tied to one Anchor Event.
 - User-submitted POIs start as `PENDING`; public location reads and Form Mode location gallery resolution use only `PUBLISHED` POIs.
 - A published POI does not appear in an Anchor Event Form Mode unless that Anchor Event's location pool references the POI name.
-- The Anchor Event landing page shows discoverable PRs under the same activity type, grouped by each PR's own resolved time window.
-- Event-page discovery reads root PR facts by activity type and PR-owned time/place facts rather than by durable PR-side event linkage.
+- The Anchor Event landing page shows discoverable PRs whose `PR.type` resolves to that Anchor Event, grouped by each PR's own resolved time window.
+- Event-page discovery reads root PR facts by Anchor Event context resolution and PR-owned time/place facts rather than by durable PR-side event linkage.
 - Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches `FULL`.
 - Anchor Event may own a participation frequency limit. When configured as `X`, a user with a current active participation in that event must wait through the next `X` complete PRs in event time-window order before joining or waitlisting another PR in the same event; the following PR is eligible. Only current `JOINED`, `CONFIRMED`, and `ATTENDED` slots count as limiting history. `PENDING`, `EXITED`, `RELEASED`, and `CANCELLED` slots do not count as limiting history.
 
@@ -156,7 +157,7 @@
 - `/me` logout clears the browser's current user session and starts a fresh anonymous UUID session for continued anonymous browsing.
 - `/me` should present PR history and POI application history as equal shortcuts under the profile surface while keeping `/pr/mine` as the dedicated PR history route.
 - The "Need Help" path must keep support, author feedback, and about-page routing distinct.
-- Event-specific beta groups are support and activity-coordination entrypoints. They may help users request new sessions or coordinate activity context, and backend-owned PR messaging keeps participant visibility and participant rules authoritative.
+- Event-specific beta groups are support and event-coordination entrypoints. They may help users request new sessions or coordinate Anchor Event context, and backend-owned PR messaging keeps participant visibility and participant rules authoritative.
 - PR detail and join-success follow-up may expose the current Anchor Event beta-group QR when the PR resolves to an event with that QR configured.
 - Build metadata shown in `/about` must be interpretable in the current runtime and must not depend on a local git checkout inside the browser environment.
 - Operator-managed configuration counts as product behavior whenever it changes a user-visible path.

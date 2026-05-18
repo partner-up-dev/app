@@ -289,7 +289,25 @@ describe("PRPage creator action visibility", () => {
 });
 
 describe("PRPage display title", () => {
-  test("uses backend place display when title is empty", async () => {
+  test("uses backend canonical title when anchor event title wins fallback", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: true,
+        title: "",
+        location: "万胜围",
+        placeDisplayName: "万胜围",
+        anchorEventTitle: "城市徒步局",
+        canonicalTitle: "城市徒步局",
+      }),
+    );
+
+    expect(host.querySelector(".page-header__title")?.textContent).toContain(
+      "城市徒步局",
+    );
+  });
+
+  test("uses backend canonical title when type wins before place", async () => {
     const host = await mountPage(
       buildPRDetail({
         status: "OPEN",
@@ -298,15 +316,16 @@ describe("PRPage display title", () => {
         location: null,
         route: buildRoute(),
         placeDisplayName: "广州塔~大学城",
+        canonicalTitle: "徒步",
       }),
     );
 
     expect(host.querySelector(".page-header__title")?.textContent).toContain(
-      "广州塔~大学城",
+      "徒步",
     );
   });
 
-  test("uses route summary when backend place display is unavailable", async () => {
+  test("uses backend canonical place fallback when higher labels are empty", async () => {
     const host = await mountPage(
       buildPRDetail({
         status: "OPEN",
@@ -314,7 +333,8 @@ describe("PRPage display title", () => {
         title: "",
         location: null,
         route: buildRoute(),
-        placeDisplayName: null,
+        placeDisplayName: "广州塔~大学城",
+        canonicalTitle: "广州塔~大学城",
       }),
     );
 
@@ -345,6 +365,8 @@ const buildPRDetail = ({
   location = "西湖",
   route = null,
   placeDisplayName = location,
+  anchorEventTitle = null,
+  canonicalTitle = title.trim() || "搭子请求",
 }: {
   status: PRStatus;
   isCreator: boolean;
@@ -352,6 +374,8 @@ const buildPRDetail = ({
   location?: string | null;
   route?: PRRoute | null;
   placeDisplayName?: string | null;
+  anchorEventTitle?: string | null;
+  canonicalTitle?: string;
 }): PRDetailView =>
   ({
     id: 123,
@@ -405,7 +429,25 @@ const buildPRDetail = ({
       },
     },
     feedbackQuestionnaire: null,
-    anchorEventContext: null,
+    anchorEventContext:
+      anchorEventTitle === null
+        ? null
+        : {
+            id: 1,
+            title: anchorEventTitle,
+            betaGroupQrCode: null,
+          },
+    share: {
+      canonical: {
+        title: canonicalTitle,
+        description: "搭子请求详情",
+        canonicalPath: "/pr/123",
+        defaultImagePath: "/share-logo.png",
+        revision: "test-revision",
+      },
+      xiaohongshuPoster: null,
+      wechatThumbnail: null,
+    },
   }) as unknown as PRDetailView;
 
 const buildRoute = (): PRRoute => [

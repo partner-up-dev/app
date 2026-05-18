@@ -218,7 +218,6 @@ import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions"
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
-import { buildRouteSummary } from "@/domains/route/model/route";
 import { trackEvent } from "@/shared/telemetry/track";
 import {
   clearPendingWeChatAction,
@@ -271,16 +270,8 @@ const showModifyStatusModal = ref(false);
 const matchedPRHandoff = useMatchedPRHandoff();
 
 const prDisplayTitle = computed(() => {
-  const explicitTitle = prDetail.value?.title?.trim() ?? "";
-  if (explicitTitle.length > 0) return explicitTitle;
-  const place =
-    prDetail.value?.core.placeDisplayName?.trim() ??
-    buildRouteSummary(prDetail.value?.core.route) ??
-    prDetail.value?.core.location?.trim() ??
-    "";
-  if (place.length > 0) return place;
-  const type = prDetail.value?.core.type?.trim() ?? "";
-  if (type.length > 0) return type;
+  const canonicalTitle = prDetail.value?.share.canonical.title.trim() ?? "";
+  if (canonicalTitle.length > 0) return canonicalTitle;
   return t("prPage.displayFallbackTitle");
 });
 const supportsEventContextFeatures = computed(

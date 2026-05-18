@@ -166,9 +166,11 @@ export async function getPRDetailView(
     publicPR,
     effectiveMeetingPoint,
   );
-  const canonicalShare = buildPRCanonicalShareMetadata(publicPR);
   const anchorEventContext =
     await resolveAnchorEventContextProjection(publicPR.id);
+  const canonicalShare = buildPRCanonicalShareMetadata(publicPR, {
+    anchorEventTitle: anchorEventContext?.title ?? null,
+  });
   const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
     id,
   );

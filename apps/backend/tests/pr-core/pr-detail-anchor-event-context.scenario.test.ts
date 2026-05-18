@@ -16,6 +16,11 @@ type PRDetailAnchorEventContextProbe = {
     title: string;
     betaGroupQrCode: string | null;
   } | null;
+  share: {
+    canonical: {
+      title: string;
+    };
+  };
 };
 
 const readPRDetail = async (input: {
@@ -39,7 +44,7 @@ scenario("pr_detail_projects_anchor_event_beta_group_context", async (ctx) => {
   const pr = await givenAnchorEventVisiblePR({
     creator,
     event,
-    title: "Scenario PR with beta group context",
+    title: "   ",
   });
 
   ctx.record("eventId", event.id);
@@ -55,4 +60,5 @@ scenario("pr_detail_projects_anchor_event_beta_group_context", async (ctx) => {
     title: event.title,
     betaGroupQrCode: "https://example.com/event-beta-group.png",
   });
+  assert.equal(detail.share.canonical.title, event.title);
 });

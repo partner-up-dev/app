@@ -46,7 +46,7 @@ slots.
 The backend is authoritative for:
 
 - PartnerRequest and partner-slot state
-- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, and canonical share metadata derivation
+- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, PR detail/share display-title derivation, and canonical share metadata derivation
 - PR feedback questionnaire instance pointers
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution
@@ -62,7 +62,7 @@ The backend is authoritative for:
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
 - event-owned preference-tag pool, moderation state, default PR notes for future materialization, route pool, landing recommendation, and type-derived Anchor Event PR context
 - event-owned feedback questionnaire template pointer used for future PR materialization
-- event-specific beta-group QR codes; generic config must not be the owner for activity-specific beta-group entry
+- event-specific beta-group QR codes; generic config must not be the owner for Anchor Event beta-group entry
 - domain events, notifications, analytics persistence, and operation logs
 
 The frontend is authoritative for:

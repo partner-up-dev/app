@@ -35,7 +35,7 @@
 - re-discover other active Anchor Events from current Anchor Event and PR context
 - create `PR` from Anchor Event context through frontend assistance into unified structured creation
 - create or enter route-mode `PR`s from Anchor Event context when the event-assisted place options carry `PR.route` values
-- review alternative recommendations under the same activity context
+- review alternative recommendations under the same Anchor Event context
 - submit a new POI location application from Form Mode when the desired location is missing
 - revisit the current user's submitted POI location applications
 
