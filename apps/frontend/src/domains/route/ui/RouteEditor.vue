@@ -361,7 +361,7 @@ const handleLocationPicked = (location: PickedLocation) => {
   flex-direction: column;
   justify-content: center;
   align-self: stretch;
-  gap: 0px;
+  gap: 0;
 }
 
 .route-editor--normal .operations {
