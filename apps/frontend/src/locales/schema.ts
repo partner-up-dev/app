@@ -1077,9 +1077,13 @@ export interface MessageSchema {
     type: string;
     time: string;
     location: string;
+    route: string;
     meetingPoint: string;
     meetingPointPrivate: string;
     viewLocationImages: string;
+    viewRouteMap: string;
+    viewRouteMapAria: string;
+    routeMapTitle: string;
     viewMeetingPointImage: string;
     meetingPointImageTitle: string;
     locationGallery: {

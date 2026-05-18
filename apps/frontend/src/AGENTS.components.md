@@ -143,6 +143,7 @@ Prohibited:
 - `domains/pr/ui/forms/PRForm.vue`: Structured PR create/edit form using `src/lib/validation`.
 - `domains/route/ui/RouteEditor.vue`: Generic route editor with compact route rows, waypoint add/remove, map preview toggle, and `LocationPicker` handoff for point selection.
 - `domains/route/ui/RouteMap.vue`: Generic route display wrapper over `shared/map/Map.vue`; consuming domains own payload conversion and planned polyline sourcing.
+- `domains/route/ui/RoutePointList.vue`: Generic compact/detail ordered route-point list with role dots; consuming domains choose whether to show addresses.
 - `domains/location/ui/LocationPickerPanel.vue`: Generic Tencent `componentPicker`-backed location picker that returns `PickedLocation`; consuming domains map the picked location into their own payload shape.
 - `domains/share/ui/composites/PRShareCarousel.vue`: Share-method carousel host.
 - `domains/share/ui/methods/as-link/ShareAsLink.vue`: Link-sharing method UI.

@@ -189,6 +189,7 @@ import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
 import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions";
 import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
+import { buildRouteSummary } from "@/domains/route/model/route";
 import { trackEvent } from "@/shared/telemetry/track";
 import {
   clearPendingWeChatAction,
@@ -234,8 +235,12 @@ const matchedPRHandoff = useMatchedPRHandoff();
 const prDisplayTitle = computed(() => {
   const explicitTitle = prDetail.value?.title?.trim() ?? "";
   if (explicitTitle.length > 0) return explicitTitle;
-  const location = prDetail.value?.core.location?.trim() ?? "";
-  if (location.length > 0) return location;
+  const place =
+    prDetail.value?.core.placeDisplayName?.trim() ??
+    buildRouteSummary(prDetail.value?.core.route) ??
+    prDetail.value?.core.location?.trim() ??
+    "";
+  if (place.length > 0) return place;
   const type = prDetail.value?.core.type?.trim() ?? "";
   if (type.length > 0) return type;
   return t("prPage.displayFallbackTitle");

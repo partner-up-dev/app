@@ -1330,9 +1330,13 @@
     "type": "类型",
     "time": "时间",
     "location": "地点",
+    "route": "路线",
     "meetingPoint": "碰头地点",
     "meetingPointPrivate": "仅搭子可见",
     "viewLocationImages": "查看图片",
+    "viewRouteMap": "查看地图",
+    "viewRouteMapAria": "查看路线地图：{route}",
+    "routeMapTitle": "路线地图",
     "viewMeetingPointImage": "查看碰头图片",
     "meetingPointImageTitle": "碰头地点图片",
     "locationGallery": {

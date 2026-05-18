@@ -31,8 +31,8 @@
           <span v-if="timeLabelText" class="pr-preview-card__time">
             🕒 {{ timeLabelText }}
           </span>
-          <span v-if="resolvedLocationLabel" class="pr-preview-card__location">
-            📍 {{ resolvedLocationLabel }}
+          <span v-if="resolvedPlaceLabel" class="pr-preview-card__location">
+            {{ resolvedPlaceIcon }} {{ resolvedPlaceLabel }}
           </span>
           <span v-if="resolvedPartnerCountLabel" class="pr-preview-card__partners">
             👥 {{ resolvedPartnerCountLabel }}
@@ -54,6 +54,7 @@ import { RouterLink } from "vue-router";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
+import { buildRouteSummary } from "@/domains/route/model/route";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 
 const props = withDefaults(
@@ -95,8 +96,15 @@ const prTitle = computed(() => {
 
 const resolvedStatus = computed(() => prDetail.value?.status ?? null);
 
-const resolvedLocationLabel = computed(
-  () => normalizeLabel(prDetail.value?.core.location),
+const resolvedPlaceLabel = computed(
+  () =>
+    normalizeLabel(prDetail.value?.core.placeDisplayName) ??
+    buildRouteSummary(prDetail.value?.core.route) ??
+    normalizeLabel(prDetail.value?.core.location),
+);
+
+const resolvedPlaceIcon = computed(
+  () => ((prDetail.value?.core.route?.length ?? 0) >= 2 ? "🧭" : "📍"),
 );
 
 const timeLabelText = computed(() => {

@@ -6,7 +6,7 @@
     <template v-else-if="prDetail">
       <h2 class="facts-title">活动信息</h2>
 
-      <section class="facts-entry">
+      <section v-if="showLocationSection" class="facts-entry">
         <Button
           v-if="interactive && locationGalleryAvailable"
           class="facts-entry-button"
@@ -31,15 +31,43 @@
         </Button>
 
         <InfoRow v-else :label="t('prCard.location')">
-          {{ prDetail.core.location ?? t("prPage.partnerSection.notSet") }}
+          {{ locationDisplayText }}
         </InfoRow>
 
         <p
           v-if="interactive && locationGalleryAvailable"
           class="facts-entry__value"
         >
-          {{ prDetail.core.location ?? t("prPage.partnerSection.notSet") }}
+          {{ locationDisplayText }}
         </p>
+      </section>
+
+      <section
+        v-if="routeAvailable"
+        class="facts-entry"
+        data-testid="pr-detail.route"
+      >
+        <InfoRowAction
+          v-if="interactive"
+          :label="t('prCard.route')"
+          :value="t('prCard.viewRouteMap')"
+          :aria-label="
+            t('prCard.viewRouteMapAria', {
+              route: routeDisplayText,
+            })
+          "
+          @click="showRouteMapModal = true"
+        />
+
+        <InfoRow v-else :label="t('prCard.route')">
+          {{ routeDisplayText }}
+        </InfoRow>
+
+        <RoutePointList
+          class="facts-route-list"
+          :route="prRoute"
+          variant="compact"
+        />
       </section>
 
       <section
@@ -175,6 +203,14 @@
     :title="t('prCard.meetingPointImageTitle')"
     @close="showMeetingPointGalleryModal = false"
   />
+
+  <PRRouteMapModal
+    v-if="interactive"
+    :open="showRouteMapModal"
+    :route="prRoute"
+    :title="t('prCard.routeMapTitle')"
+    @close="showRouteMapModal = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -191,11 +227,14 @@ import Button from "@/shared/ui/actions/Button.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
+import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
 import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRLocationGallery } from "@/domains/pr/use-cases/usePRLocationGallery";
+import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
+import { buildRouteEndpointLabel } from "@/domains/route/model/route";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 
 type RosterPreviewItem = PRPartnerSectionView["roster"][number];
@@ -225,9 +264,15 @@ const { data, isLoading, error } = usePRDetail(prId);
 const prDetail = computed(() => data.value);
 const showLocationGalleryModal = ref(false);
 const showMeetingPointGalleryModal = ref(false);
+const showRouteMapModal = ref(false);
 const showRosterModal = ref(false);
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const FACTS_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s(.+)$/;
+
+const normalizeDisplayText = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim() ?? "";
+  return normalized.length > 0 ? normalized : null;
+};
 
 const { locationId, locationGallery } = usePRLocationGallery(
   computed(() => prDetail.value?.core.location ?? null),
@@ -240,6 +285,28 @@ watch(locationId, () => {
 const locationGalleryAvailable = computed(
   () => locationGallery.value.length > 0,
 );
+
+const prRoute = computed(() => prDetail.value?.core.route ?? null);
+const routeAvailable = computed(() => (prRoute.value?.length ?? 0) >= 2);
+const locationDisplayName = computed(() =>
+  normalizeDisplayText(prDetail.value?.core.location),
+);
+const locationDisplayText = computed(
+  () => locationDisplayName.value ?? t("prPage.partnerSection.notSet"),
+);
+const showLocationSection = computed(
+  () => locationDisplayName.value !== null || !routeAvailable.value,
+);
+const routeDisplayText = computed(
+  () =>
+    buildRouteEndpointLabel(prRoute.value) ??
+    normalizeDisplayText(prDetail.value?.core.placeDisplayName) ??
+    t("prPage.partnerSection.notSet"),
+);
+
+watch(prRoute, () => {
+  showRouteMapModal.value = false;
+});
 
 const meetingPointDescription = computed(() => {
   const description =
@@ -440,6 +507,10 @@ watch(
 
 .facts-entry__value--badges {
   display: flex;
+}
+
+.facts-route-list {
+  padding-top: calc(var(--sys-spacing-xsmall) / 2);
 }
 
 .facts-entry-button {

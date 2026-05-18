@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, nextTick, type App } from "vue";
-import type { PRStatus } from "@partner-up-dev/backend";
+import type { PRRoute, PRStatus } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import PRPage from "./PRPage.vue";
 
@@ -244,6 +244,42 @@ describe("PRPage creator action visibility", () => {
   );
 });
 
+describe("PRPage display title", () => {
+  test("uses backend place display when title is empty", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: true,
+        title: "",
+        location: null,
+        route: buildRoute(),
+        placeDisplayName: "广州塔~大学城",
+      }),
+    );
+
+    expect(host.querySelector(".page-header__title")?.textContent).toContain(
+      "广州塔~大学城",
+    );
+  });
+
+  test("uses route summary when backend place display is unavailable", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: true,
+        title: "",
+        location: null,
+        route: buildRoute(),
+        placeDisplayName: null,
+      }),
+    );
+
+    expect(host.querySelector(".page-header__title")?.textContent).toContain(
+      "广州塔~大学城",
+    );
+  });
+});
+
 const mountPage = async (detail: PRDetailView): Promise<HTMLElement> => {
   testState.detail = detail;
   const host = document.createElement("div");
@@ -261,20 +297,29 @@ const hasTestId = (host: HTMLElement, testId: string): boolean =>
 const buildPRDetail = ({
   status,
   isCreator,
+  title = "周末徒步",
+  location = "西湖",
+  route = null,
+  placeDisplayName = location,
 }: {
   status: PRStatus;
   isCreator: boolean;
+  title?: string;
+  location?: string | null;
+  route?: PRRoute | null;
+  placeDisplayName?: string | null;
 }): PRDetailView =>
   ({
     id: 123,
-    title: "周末徒步",
+    title,
     status,
     createdBy: isCreator ? 10 : 20,
     core: {
       type: "徒步",
       time: [null, null],
-      location: "西湖",
-      route: null,
+      location,
+      route,
+      placeDisplayName,
       minPartners: null,
       maxPartners: null,
       partners: [],
@@ -282,6 +327,7 @@ const buildPRDetail = ({
       preferences: [],
       notes: null,
       meetingPoint: null,
+      meetingPointVisibility: "VISIBLE",
     },
     partnerSection: {
       viewer: {
@@ -317,3 +363,20 @@ const buildPRDetail = ({
     feedbackQuestionnaire: null,
     anchorEventContext: null,
   }) as unknown as PRDetailView;
+
+const buildRoute = (): PRRoute => [
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.12908, 113.26436],
+    name: "广州塔",
+    full_address: "广东省广州市海珠区阅江西路222号",
+  },
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.05799, 113.40084],
+    name: "大学城",
+    full_address: "广东省广州市番禺区大学城",
+  },
+];
