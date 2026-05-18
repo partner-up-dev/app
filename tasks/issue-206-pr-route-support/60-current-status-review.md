@@ -135,6 +135,7 @@ Command evidence from the task packet includes passing:
 - backend typecheck and lint
 - backend unit tests
 - backend scenario tests for PR route and Anchor Event route pool
+- system scenarios for structured route PR create-to-detail and Anchor Event Form Mode route-pool create
 - frontend route/place-option unit tests
 - frontend build
 - frontend token lint
@@ -156,6 +157,7 @@ Recent browser evidence:
 - Slice 8 browser note: the running local frontend process had no Tencent LBS JS SDK script loaded during `/pr/19` modal verification, so the modal used fallback. Earlier route-map event checks in this task verified the shared map path with non-zero Tencent canvas.
 - `https://partner-up.localhost/e/4?mode=form` now renders route cards, advanced time selection, and route recommendation CTA copy `加入一场 5/18 16:45 经过 广东外语外贸大学(大学城校区)~广州南站 的拼车搭子活动`; the checked browser tab had no errors or warnings.
 - Runtime API check on `/api/events/4/form-mode/recommendation` returned `200` for `{ place: { kind: "route", routePoolEntryId: "route-1" } }`, with route selection metadata and a null-ended time window.
+- Slice 9 system scenarios now prove `/pr/new?mode=form` route creation to `/pr/:id`, backend route read-model state, route facts rendering, share canonical description route summary, Anchor Event Form Mode route-pool zero-candidate event-assisted create, and Anchor Event Card/List route-pool event-assisted create.
 
 ## Remaining Product Gaps
 
@@ -175,12 +177,13 @@ Release-critical for issue 206 closure:
    - Browser verified `/pr/19` visible title as `广州塔~大学城`.
    - Frontend head/share registration still consumes backend canonical metadata; a browser/system check should prove route-share descriptors stay coherent.
 
-4. End-to-end scenario coverage still needs browser/system route journeys.
-   - Create route PR through `/pr/new`, land on `/pr/:id`, observe route facts/title/share.
-   - Exercise Anchor Event Form Mode route-pool recommendation through the UI, including matched and unmatched result states.
-   - Create route PR from Anchor Event Card/List creation controls if included in release scope.
+4. End-to-end scenario coverage is now partial but useful.
+   - Covered: structured route PR through `/pr/new`, landing on `/pr/:id`, route facts, persisted route read-model, and share canonical description containing route summary.
+   - Covered: Anchor Event Form Mode route-pool zero-candidate path, recommendation metadata, event-assisted route PR create, and PR detail route rendering.
+   - Covered: Anchor Event Card/List creation controls creating route PRs.
+   - Not required: a separate seeded matched-state route recommendation scenario. The current unmatched zero-candidate route scenario is sufficient.
 
-5. Authenticated Admin browser verification is still pending.
+5. Authenticated Admin browser verification is still pending and outside the current Slice 9 pass.
    - Route-pool editing exists.
    - Route-application editing exists.
    - Local admin login was blocked during earlier smoke attempts, so UI proof is incomplete.
@@ -200,12 +203,10 @@ Follow-up scope after first release:
 
 ## Practical Next Order
 
-Next slice should be Slice 9, focused on cross-unit proof:
+Slice 9 now covers the release-blocking cross-unit route scenarios. Practical remaining order:
 
-1. Add system scenario for structured route PR create to PR detail.
-2. Add system/browser scenario coverage for Anchor Event Form Mode route-pool recommendation result states.
-3. Add Card/List event-assisted route create coverage when that surface is part of the release acceptance path.
-4. Add browser/system proof for route-mode share descriptors.
+1. Add browser/system proof for route-mode share descriptors if share card output, not only backend canonical payload, is part of this issue's acceptance.
+2. Keep Admin scenario coverage deferred unless Admin route editing becomes release-blocking.
 
 ## Commit Hygiene
 

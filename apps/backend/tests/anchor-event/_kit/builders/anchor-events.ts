@@ -9,11 +9,13 @@ import type {
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
+  AnchorEventRoutePool,
 } from "../../../../src/entities";
 import type { FeedbackQuestionnaireTemplateId } from "../../../../src/entities/feedback-questionnaire";
 import type {
   PartnerRequestFields,
   PRId,
+  PRRoute,
   PRStatus,
 } from "../../../../src/entities/partner-request";
 import {
@@ -36,6 +38,7 @@ export type ScenarioAnchorEvent = {
   betaGroupQrCode: string | null;
   locationId: string;
   locationIds: string[];
+  routePool: AnchorEventRoutePool;
   timeWindow: [string, string];
   timeWindows: Array<[string, string]>;
 };
@@ -62,6 +65,7 @@ const buildScenarioTimeWindow = (sequence: number): [string, string] => {
 export async function givenAnchorEvent(input: {
   label: string;
   locationIds?: string[];
+  routePool?: AnchorEventRoutePool;
   timeWindows?: Array<[string, string]>;
   defaultMinPartners?: number | null;
   defaultMaxPartners?: number | null;
@@ -76,7 +80,11 @@ export async function givenAnchorEvent(input: {
   const timeWindows = input.timeWindows ?? [buildScenarioTimeWindow(sequence)];
   const type = `system-anchor-landing-${input.label}-${sequence}`;
   const title = `System Anchor Landing ${input.label}`;
-  const locationIds = input.locationIds ?? [`System Landing Court ${sequence}`];
+  const routePool = input.routePool ?? [];
+  const locationIds =
+    routePool.length > 0
+      ? []
+      : (input.locationIds ?? [`System Landing Court ${sequence}`]);
   const locationId = locationIds[0] ?? `System Landing Court ${sequence}`;
   const timeWindow = timeWindows[0] ?? buildScenarioTimeWindow(sequence);
 
@@ -85,7 +93,7 @@ export async function givenAnchorEvent(input: {
     type,
     description: `System scenario anchor event for ${input.label}`,
     locationPool: locationIds,
-    routePool: [],
+    routePool,
     timePoolConfig: {
       durationMinutes: 60,
       earliestLeadMinutes: null,
@@ -123,6 +131,7 @@ export async function givenAnchorEvent(input: {
     betaGroupQrCode: event.betaGroupQrCode,
     locationId,
     locationIds,
+    routePool,
     timeWindow,
     timeWindows,
   };
@@ -133,6 +142,7 @@ export async function givenAnchorEventVisiblePR(input: {
   event: ScenarioAnchorEvent;
   title: string;
   location?: string;
+  route?: PRRoute | null;
   timeWindow?: [string, string];
   preferences?: string[];
   minPartners?: number | null;
@@ -143,8 +153,8 @@ export async function givenAnchorEventVisiblePR(input: {
     title: input.title,
     type: input.event.type,
     time: input.timeWindow ?? input.event.timeWindow,
-    location: input.location ?? input.event.locationId,
-    route: null,
+    location: input.route ? null : (input.location ?? input.event.locationId),
+    route: input.route ?? null,
     minPartners: input.minPartners ?? 2,
     maxPartners: input.maxPartners ?? null,
     partners: [],

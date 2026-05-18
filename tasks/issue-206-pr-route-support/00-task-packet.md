@@ -9,8 +9,8 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 ## Input Route And Mode
 
 - Input route: Intent.
-- Current mode: Execute and verify Form Mode recommendation contract expansion after Slice 8.
-- Implementation state: Slice 0 through Slice 8 are implemented in the worktree. Later Card/List creation, time-window, selector-label, map-runtime corrections, and the Route Form Mode recommendation contract expansion are also in the worktree. Next route-task focus is Slice 9 system scenario coverage and any remaining share/browser proof.
+- Current mode: Execute and verify Slice 9 scenario coverage.
+- Implementation state: Slice 0 through Slice 9 are implemented in the worktree for backend route policy, structured route PR create-to-detail, Anchor Event Form Mode route-pool auto-create coverage, and release-blocking Card/List event-assisted route create scenarios. Later Card/List creation, time-window, selector-label, map-runtime corrections, and the Route Form Mode recommendation contract expansion are also in the worktree. Admin scenario coverage is explicitly excluded from the current Slice 9 pass.
 
 ## Issue Source
 
@@ -60,12 +60,15 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - Diagnosis on 2026-05-18: current local `/e/1?mode=form` is location-pool (`placeSelector.kind = "location"`), while `/e/4?mode=form` is the route-pool page. The earlier Route Form Mode primary CTA was hard-coded to bypass recommendation and call event-assisted PR create directly, so it could not produce matched / unmatched result states.
 - Implementation update on 2026-05-18: `/api/events/:eventId/form-mode/recommendation` now accepts a place-discriminated request, either `{ kind: "location", locationId }` or `{ kind: "route", routePoolEntryId }`. Route selections validate against the event route pool, match candidate PRs by route equality plus time/preference compatibility, and return route-aware candidate payloads. The frontend Route Form Mode CTA now calls the recommendation mutation and uses route-aware telemetry payloads.
 - Time-window update on 2026-05-18: route-pool Form Mode events may have no configured duration. Recommendation now accepts that by returning `timeWindow: [startAt, null]` instead of rejecting with `Anchor event duration is not configured`.
+- Slice 9 update on 2026-05-18: system scenario coverage now proves structured route PR creation through `/pr/new?mode=form`, route LocationPicker selection by Tencent callback payload, navigation to `/pr/:id`, route facts rendering, backend route read-model persistence, and share canonical description containing the compact route summary. Anchor Event Form Mode route-pool zero-candidate flow now proves route recommendation selection, event-assisted route PR creation, PR detail route rendering, and `location = null`. Anchor Event Card/List creation controls now also prove route-pool event-assisted route PR creation.
 
 ## Open Decisions
 
 - Route planning source: Tencent Direction WebService.
 - First-version route-mode domain policy: store `location` as `null`, so existing location-driven POI availability and meeting-point fallback short-circuit through their null-location paths.
 - First-version creation scope: structured create, creator edit, Admin PR, and event-assisted create through Anchor Event route pool; natural-language route parsing moves to a later slice.
+- Release-blocking scenario scope: Anchor Event Card/List event-assisted route create must be covered before issue 206 closure. This is now covered by `anchor-event-landing-distribution.scenario.test.ts`.
+- Non-blocking scenario scope: route recommendation matched-state does not need a separate seeded system scenario for issue 206 closure; the current zero-candidate unmatched route-pool scenario is sufficient for recommendation contract coverage.
 - Route title summary rule: independently truncate `route[0].name` and `route[-1].name`, join as `route[0].name~route[-1].name`, and keep the total title summary within 16 characters.
 - Sharing-specific route detail can use share description fields owned by each PR Sharing surface; PR core owns only the canonical compact title summary.
 - Anchor Event place selector option labels use the full endpoint label `route[0].name~route[-1].name`, preserving long names for route choice clarity.
@@ -151,7 +154,12 @@ Hypothesis: `PartnerRequest` can own a nullable JSONB `route` field with an orde
 - `pnpm --filter @partner-up-dev/frontend build`: passed on 2026-05-18 for Form Mode route recommendation wiring.
 - Runtime API check on `https://api.partner-up.localhost/api/events/4/form-mode/recommendation`: route payload returned `200`, `selection.kind = "route"`, `routePoolEntryId = "route-1"`, and `timeWindow[1] = null`.
 - Browser verification on `https://partner-up.localhost/e/4?mode=form`: passed on 2026-05-18 for route Form Mode CTA copy changing to `加入一场 ... 经过 ... 的拼车搭子活动`; browser console had no errors/warnings in the checked tab.
-- Browser verification on `/pr/new`, `/pr/:id`, `/admin/pr`, and `/e/:eventId` remains tied to UI slices.
+- `pnpm test:scenario:backend -- apps/backend/tests/pr-core/pr-route.scenario.test.ts`: passed on 2026-05-18 for Slice 9 backend route create/read/update proof, 1 file / 2 tests.
+- `pnpm test:scenario:system -- tests/scenario/pr-core/pr-create.scenario.test.ts tests/scenario/anchor-event/anchor-event-form-mode-participation.scenario.test.ts`: passed on 2026-05-18 for Slice 9 structured route PR and Anchor Event Form Mode route-pool create proof, 2 files / 8 tests.
+- `pnpm test:scenario:system -- tests/scenario/anchor-event/anchor-event-landing-distribution.scenario.test.ts`: passed on 2026-05-18 for Slice 9 Card/List event-assisted route create proof, 1 file / 10 tests.
+- `pnpm --filter @partner-up-dev/backend typecheck`: passed on 2026-05-18 for Slice 9 fixture and scenario typing.
+- `git diff --check`: passed on 2026-05-18 for Slice 9.
+- Browser verification on `/admin/pr` and authenticated Admin route editing remains outside this Slice 9 pass.
 - Map rendering verification with a valid Tencent key remains tied to UI slices.
 
 ## Packet Files

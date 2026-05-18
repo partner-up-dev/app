@@ -184,9 +184,29 @@ Command log for RouteEditor route item order actions and layout adjustment:
 - `pnpm test:unit:frontend`: passed, 8 files / 22 tests.
 - `git diff --check`: passed.
 
+Command log for Slice 9 scenario coverage:
+
+- Backend route scenario:
+  - `pnpm test:scenario:backend -- apps/backend/tests/pr-core/pr-route.scenario.test.ts`: passed, 1 file / 2 tests.
+  - Coverage: route PR create/read/update keeps `location = null`; route-mode waitlist alternative matching remains skipped.
+- System structured route PR scenario:
+  - `pnpm test:scenario:system -- tests/scenario/pr-core/pr-create.scenario.test.ts tests/scenario/anchor-event/anchor-event-form-mode-participation.scenario.test.ts`: passed, 2 files / 8 tests.
+  - Coverage: `/pr/new?mode=form` route mode, LocationPicker callback payloads, route publish request body, `/pr/:id` route facts, backend `core.route`, `core.location = null`, `core.placeDisplayName`, and share canonical description containing the compact route summary.
+  - Note: for a plain structured route PR with no explicit title, backend canonical share title remains the type label. Route-specific display title is proven through PR detail/read-model place display.
+- System Anchor Event Form Mode route-pool scenario:
+  - Same system command passed, 2 files / 8 tests.
+  - Coverage: route-pool option selection, route recommendation selection metadata, zero-candidate unmatched path, event-assisted route PR create request, `location = null`, persisted route payload, and PR detail route rendering.
+- System Anchor Event Card/List route-pool scenario:
+  - `pnpm test:scenario:system -- tests/scenario/anchor-event/anchor-event-landing-distribution.scenario.test.ts`: passed, 1 file / 10 tests.
+  - Coverage: Card Mode empty-state route-pool event-assisted create and List Mode create-card route-pool event-assisted create, including inline route selection, create request payload, `location = null`, route payload persistence, and PR detail route rendering.
+- Type and diff checks:
+  - `pnpm --filter @partner-up-dev/backend typecheck`: passed.
+  - `git diff --check`: passed.
+- Scope note: Admin scenario coverage was intentionally not added in this Slice 9 pass.
+
 Deferred verification:
 
-- `pnpm test:scenario:system` when browser route journeys are wired.
+- Route recommendation matched-state does not require a separate seeded system scenario for issue 206 closure. User confirmed the current unmatched route-pool recommendation scenario is sufficient.
 - Browser verification of Tencent `componentPicker` iframe/postMessage or page-return behavior with the configured key.
 - Browser visual screenshot of a full coordinate route after a seedable route fixture or Anchor Event route pool UI exists.
 

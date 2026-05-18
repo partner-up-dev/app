@@ -833,12 +833,23 @@ Tests:
 - Backend scenario: create route-mode PR, read detail, update route, ensure location stays clear.
 - System scenario: create route PR through `/pr/new`, land on `/pr/:id`, observe route facts and share title.
 - System scenario: create route PR from Anchor Event Form Mode route pool.
-- System scenario: create route PR from Anchor Event Card/List creation control when included in release scope.
-- Admin scenario if admin route editing is included in release scope.
+- System scenario: create route PR from Anchor Event Card/List creation control. This is release-blocking for issue 206 closure.
+- Admin scenario is explicitly excluded from the current Slice 9 pass by user direction.
+
+Implementation Result:
+
+- Backend route scenario coverage now uses route-aware Anchor Event test builders, including route-pool fixtures and visible route PR fixtures.
+- Structured create scenario now drives `/pr/new?mode=form`, switches to route mode, fills route points through the LocationPicker callback contract, publishes, lands on `/pr/:id`, and verifies route detail state.
+- Anchor Event Form Mode scenario now covers route-pool zero-candidate recommendation, event-assisted route PR create, `location = null`, selected `routePoolEntryId`, and PR detail route rendering.
+- Anchor Event Card/List scenarios now cover route-pool event-assisted create from the inline creation controls, including request payload shape, `location = null`, persisted route payload, and PR detail route rendering.
+- Share proof in the structured route scenario currently asserts the backend canonical description contains the compact route summary. The canonical title for a plain structured PR without explicit title remains the type label, while PR page visible title can use `core.placeDisplayName`.
+- Card/List event-assisted route create is now covered for issue 206 closure.
+- A separate seeded matched-state route recommendation scenario is not required; the current Form Mode zero-candidate unmatched route scenario is enough for this slice's recommendation coverage.
 
 Exit:
 
 - Targeted scenario tests pass through root Vitest projects.
+- Admin scenario coverage is not required for this Slice 9 exit.
 
 ## Suggested First Start Scope
 

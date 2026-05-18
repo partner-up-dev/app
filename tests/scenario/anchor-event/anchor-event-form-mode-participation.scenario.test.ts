@@ -20,12 +20,31 @@ import {
   givenUser,
   type ScenarioUser,
 } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+import type { PRRoute } from "../../../apps/backend/src/entities";
+import { buildPRRouteSummary } from "../../../apps/backend/src/domains/pr-core/services/pr-place-mode.service";
 
 const FORM_ONLY = {
   FORM: 100,
   CARD_RICH: 0,
   LIST: 0,
 };
+
+const formModeRoutePoolRoute: PRRoute = [
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.0674, 113.2698],
+    name: "System Route Origin",
+    full_address: "System Route Origin Address",
+  },
+  {
+    wgs84: null,
+    bd09: null,
+    gcj02: [23.1405, 113.327],
+    name: "System Route Destination",
+    full_address: "System Route Destination Address",
+  },
+];
 
 type PRDetailProbe = {
   id: number;
@@ -34,13 +53,17 @@ type PRDetailProbe = {
   core: {
     type: string;
     location: string | null;
+    route: PRRoute | null;
+    placeDisplayName: string | null;
     time: [string | null, string | null];
   };
 };
 
 type FormModeRecommendationProbe = {
   selection: {
-    locationId: string;
+    kind: "location" | "route";
+    locationId: string | null;
+    routePoolEntryId: string | null;
   };
   matchedRecommendation: {
     pr: {
@@ -88,6 +111,23 @@ const selectLocation = async (page: Page, locationId: string): Promise<void> => 
     }
     element.click();
   });
+  await page.waitForFunction(
+    (selectorValue) => {
+      const element = document.querySelector(selectorValue);
+      return element?.classList.contains("place-card--selected") === true;
+    },
+    selector,
+    { timeout: 10_000 },
+  );
+};
+
+const expectRouteSelected = async (
+  page: Page,
+  routePoolEntryId: string,
+): Promise<void> => {
+  const selector = `[data-testid="anchor-event-form-mode.place.option"][data-place-id="route:${routePoolEntryId}"]`;
+  const option = page.locator(selector);
+  await option.waitFor({ state: "attached", timeout: 10_000 });
   await page.waitForFunction(
     (selectorValue) => {
       const element = document.querySelector(selectorValue);
@@ -168,6 +208,28 @@ const expectCreatedPRDetail = async (input: {
   assert.equal(detail.status, "OPEN");
   assert.equal(detail.core.type, input.event.type);
   assert.equal(detail.core.location, input.locationId);
+};
+
+const expectCreatedRoutePRDetail = async (input: {
+  prId: number;
+  token: string;
+  creatorUserId: string;
+  event: ScenarioAnchorEvent;
+  route: PRRoute;
+}): Promise<void> => {
+  const detail = await expectBackendJsonResponse<PRDetailProbe>(
+    await requestBackendJson(`/api/pr/${input.prId}`, {
+      token: input.token,
+    }),
+    200,
+  );
+
+  assert.equal(detail.createdBy, input.creatorUserId);
+  assert.equal(detail.status, "OPEN");
+  assert.equal(detail.core.type, input.event.type);
+  assert.equal(detail.core.location, null);
+  assert.deepEqual(detail.core.route, input.route);
+  assert.equal(detail.core.placeDisplayName, buildPRRouteSummary(input.route));
 };
 
 const waitForJoinResultDetail = async (
@@ -408,6 +470,99 @@ scenario(
         creatorUserId: visitor.user.id,
         event,
         locationId: event.locationId,
+      });
+    });
+  },
+);
+
+scenario(
+  "anchor_event_form_mode_route_pool_zero_candidates_auto_creates_route_pr",
+  async (ctx) => {
+    const visitor = await givenWeChatBoundUser(
+      "system-form-mode-route-create-visitor",
+    );
+    const event = await givenAnchorEvent({
+      label: "form-mode-route-zero-candidates",
+      routePool: [
+        {
+          id: "system-route-pool-entry",
+          route: formModeRoutePoolRoute,
+        },
+      ],
+    });
+    await forceFormMode(event);
+
+    ctx.record("eventId", event.id);
+    ctx.record("visitorUserId", visitor.user.id);
+
+    await withScenarioPage(async (page) => {
+      await installScenarioUserSession(page, visitor);
+      await installDeterministicShareSidecarStubs(page);
+
+      const createResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/pr/new/form") &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+
+      await page.goto(`/e/${event.id}`);
+      await expectFormMode(page);
+      await expectRouteSelected(page, "system-route-pool-entry");
+
+      const recommendation = await submitFormAndReadRecommendation({
+        page,
+        event,
+      });
+      assert.equal(recommendation.selection.kind, "route");
+      assert.equal(recommendation.selection.locationId, null);
+      assert.equal(
+        recommendation.selection.routePoolEntryId,
+        "system-route-pool-entry",
+      );
+      assert.equal(recommendation.matchedRecommendation, null);
+      assert.deepEqual(recommendation.orderedCandidates, []);
+
+      const createResponse = await createResponsePromise;
+      assert.equal(createResponse.status(), 201);
+      const createRequestBody = JSON.parse(
+        createResponse.request().postData() ?? "{}",
+      ) as {
+        createSource?: unknown;
+        fields?: {
+          location?: unknown;
+          route?: unknown;
+        };
+      };
+      assert.equal(createRequestBody.createSource, "EVENT_ASSISTED");
+      assert.equal(createRequestBody.fields?.location, null);
+      assert.deepEqual(createRequestBody.fields?.route, formModeRoutePoolRoute);
+
+      await page.waitForURL(
+        (url) =>
+          /^\/pr\/\d+$/.test(url.pathname) &&
+          url.searchParams.get("entry") === "create" &&
+          url.searchParams.get("fromEvent") === String(event.id) &&
+          url.searchParams.get("handoff") === "event_assisted_create",
+        { timeout: 20_000 },
+      );
+      const createdPrId = readPrIdFromCurrentUrl(page);
+      await page
+        .getByTestId("pr-detail.event-assisted-create.notice")
+        .waitFor({
+          state: "visible",
+          timeout: 10_000,
+        });
+      await page.getByTestId("pr-detail.route").waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+      await expectCreatedRoutePRDetail({
+        prId: createdPrId,
+        token: visitor.token,
+        creatorUserId: visitor.user.id,
+        event,
+        route: formModeRoutePoolRoute,
       });
     });
   },
