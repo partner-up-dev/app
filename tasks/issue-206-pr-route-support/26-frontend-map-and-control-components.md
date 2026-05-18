@@ -184,9 +184,9 @@ type RoutePoint = {
 `AnchorEventPlaceMapPreview.vue`:
 
 - Uses `Map.vue`.
-- Accepts normalized location and route place options.
-- Renders location options as standalone markers.
-- Renders route options as markers plus planned/fallback polyline.
+- Accepts normalized place options from one active Anchor Event pool.
+- Renders location-pool options as standalone markers.
+- Renders route-pool options as markers plus planned/fallback polyline.
 - Drives `activeGeometry` from the Inline Place Selector dropdown active item.
 
 Route map visual parity target:

@@ -31,35 +31,56 @@ Notes:
 
 ## Normalized Place Option Shape
 
-Anchor Event UI should consume a normalized place-option list instead of directly binding each surface to `locationPool` or `routePool`.
+Anchor Event UI should consume a backend-owned normalized place-option contract instead of deriving the active pool from separate `locationPool` / `routePool` arrays in frontend code.
 
 Draft shape:
 
 ```ts
-type AnchorEventPlaceOption =
+type AnchorEventPlacePoolView =
   | {
       kind: "location";
-      id: string;
-      label: string;
-      coordinate: CoordinatePair | null;
-      disabled: boolean;
-      disabledReason: "NONE" | "MAX_REACHED" | "TIME_UNAVAILABLE";
+      label: "地点";
+      placeholder: "选择地点";
+      applyLabel: "申请新地点";
+      options: AnchorEventLocationPlaceOption[];
     }
   | {
       kind: "route";
-      id: string;
-      label: string;
-      route: PRRoute;
-      disabled: boolean;
-      disabledReason: "NONE" | "MAX_REACHED" | "TIME_UNAVAILABLE";
+      label: "路线";
+      placeholder: "选择路线";
+      applyLabel: "申请新路线";
+      options: AnchorEventRoutePlaceOption[];
+    }
+  | {
+      kind: "none";
+      label: "地点";
+      placeholder: "暂无可选地点";
+      applyLabel: null;
+      options: [];
     };
 ```
 
 Notes:
 
 - The raw Anchor Event pool invariant still applies: one event owns `locationPool` or `routePool`.
-- The read model may still expose location and route items through one dropdown when the event-assisted creation context has valid place sources for both kinds.
+- Backend decides the active place pool and exposes one normalized option list for each create surface.
+- Event-assisted creation reads one active place source per Anchor Event. Route-pool events expose route options; location-pool events expose location options.
 - Each place option carries enough geometry for map rendering and viewport fitting.
+- Frontend keeps only defensive validation for malformed API data. It should not determine the active pool by checking whether route arrays are non-empty.
+
+## User-Facing Copy Rules
+
+Visible labels should name the active pool type:
+
+- Location-pool event: selector label `地点`, placeholder `选择地点`, application action `申请新地点`.
+- Route-pool event: selector label `路线`, placeholder `选择路线`, application action `申请新路线`.
+- Empty/no-pool event: selector label follows the event's configured or backend-derived place kind when available; fallback copy should avoid implying that both kinds are available.
+
+Copy ownership:
+
+- Backend owns the active pool kind and can provide stable copy hints or label keys as part of `AnchorEventPlacePoolView`.
+- Frontend locale owns final human copy rendering from backend-provided kind/keys.
+- Shared selector components should receive concrete strings such as `label`, `placeholder`, and `applyLabel`; they should not hard-code combined copy like `地点 / 路线`.
 
 ## Event-Assisted Create
 
@@ -83,12 +104,32 @@ For POI entries:
 - Card continues to use gallery image when available.
 - Title falls back to POI/name behavior already used by Form Mode.
 - Missing location application entry remains location-mode only.
+- Missing location application entry appears only when the active Anchor Event pool is the location pool.
 
 For route entries:
 
 - Card renders a map preview with markers and planned or fallback polyline.
 - Card title is `route[0].name~route[-1].name`.
 - Selection value carries route-pool entry id and route payload needed for recommendation/create commands.
+- Route-pool events should expose an application entry for user-submitted routes when route application is enabled.
+
+## Route Application
+
+Route-pool events need a user-facing `申请新路线` path parallel to missing-location application.
+
+First-version route application scope:
+
+- The entry point appears only for route-pool events.
+- The creation surface should use the generic `RouteEditor` and `LocationPicker` flow, so users can build a route with departure, arrival, and optional waypoints.
+- Submitted application payload should carry the same route point schema as `PR.route`.
+- Admin review can start as a queue/list equivalent to location applications, or as an explicit route application type if the current location application domain cannot carry route payload safely.
+- Accepted route applications should add a route entry to the Anchor Event route pool or otherwise become selectable through the backend-owned place-option contract.
+
+Open route application design points:
+
+- Whether route applications reuse the existing location application workflow with a new `kind` field, or get a separate `route_application` backend owner.
+- Whether accepted user-submitted routes are event-local route-pool entries, POI-like reusable resources, or both.
+- Whether route applications need duplicate detection against existing route pool entries.
 
 ## Card/List Mode Create Control Upgrade
 
@@ -96,10 +137,10 @@ Current creation card location form control should become an `Anchor Event Inlin
 
 Target behavior:
 
-- The dropdown lists normalized place options and can include both location and route options.
-- Location options render as standalone markers on the compact map preview.
-- Route options render route markers plus planned or fallback polyline on the compact map preview.
-- Existing option availability labels carry forward for both location and route options.
+- The dropdown lists normalized place options from the Anchor Event's active pool only.
+- Location-pool events render location options as standalone markers on the compact map preview.
+- Route-pool events render route options as route markers plus planned or fallback polyline on the compact map preview.
+- Existing option availability labels carry forward for the active option kind.
 - The active dropdown item controls event-assisted create payload assembly.
 - When the active item changes, the map viewport moves to fit the active marker or active route bounds, keeps the geometry centered, keeps it fully visible, and preserves appropriate padding.
 
@@ -131,6 +172,14 @@ Implemented Slice 4 contract:
 - Event detail create time windows expose existing `locationOptions` plus `routeOptions`.
 - Event-assisted create accepts `routePoolEntryId`; backend resolves it into `PartnerRequestFields.route` and clears `location`.
 - Location-pool event-assisted create keeps the existing location-mode payload path.
+
+Target backend-owned place-option contract:
+
+- Event detail create time windows should expose active-pool `placeOptions` rather than parallel `locationOptions` and `routeOptions` for frontend selection.
+- Form Mode bootstrap should expose active-pool place selector data rather than parallel `locations` and `routes` for frontend selection.
+- Backend should attach availability state, disabled reason, option label, route payload or location geometry, and pool provenance to each option.
+- Backend should attach the selector copy key/string needed by frontend controls.
+- Event-assisted create should continue accepting route-pool provenance (`routePoolEntryId`) for route options and location identity for location options.
 
 ## Verification
 

@@ -192,12 +192,44 @@ Selector contract:
 
 - Form Mode `Location Selector` becomes `Anchor Event Carousel Place Selector`.
 - Card/List creation card location control becomes `Anchor Event Inline Place Selector`.
+- Backend owns the place-option decision for Anchor Event assisted creation.
+- Backend responses should expose the active pool kind plus one normalized option list for each assisted-create surface.
+- Place selector option labels use the full endpoint label `{route[0].name}~{route[-1].name}` so users can distinguish route choices.
 - POI place cards keep gallery -> name fallback.
 - Route place cards render map with markers and polyline; title uses `route[0].name~route[-1].name`.
-- Card/List inline dropdown consumes normalized place options and may list both location and route items.
+- Card/List inline dropdown consumes normalized place options from one active Anchor Event pool only.
+- Card/List creation card inline place selector layout order is: active kind label (`地点` / `路线`), map preview, then dropdown/control.
+- Card/List creation card map preview uses full width plus a fixed preview height. The hidden-attribution canvas bleed remains internal and should not change the visible shell height.
 - Location dropdown items render as standalone map markers.
 - Route dropdown items render markers plus planned or fallback polyline.
 - Dropdown active item changes fit the map viewport to the selected marker or route bounds with padding.
+- User-facing selector copy uses the active pool type. Location-pool events render `地点` / `选择地点`; route-pool events render `路线` / `选择路线`.
+- `申请新地点` belongs to location-pool events. `申请新路线` belongs to route-pool events.
+- Shared place selectors receive concrete label/placeholder/action strings from the page or backend-derived view model; shared selectors should not contain combined strings such as `地点 / 路线`.
+
+Route application:
+
+- Route-pool event-assisted creation should have a user-submitted route application path.
+- First-version route application should reuse generic `RouteEditor` and `LocationPicker` UI infrastructure.
+- Backend should own the submitted route application payload and the process that turns accepted applications into selectable route options.
+- The durable owner still needs confirmation: extend existing location application domain with `kind: "route"` or create a dedicated route application domain.
+
+List/Card assisted-create time-window discussion:
+
+- Current List/Card creation cards render a time `<select>` only when event detail `createTimeWindows.length > 0`.
+- Backend event detail only materializes `createTimeWindows` from configured `durationMinutes + startRules`; an event with only `earliestLeadMinutes` exposes no time-window choices in List/Card.
+- Form Mode can still create time choices through advanced mode because it builds advanced start options from `earliestLeadMinutes`.
+- Proposed direction: factor a shared `AnchorEventAssistedPRTimeWindowInlineEditor` for List/Card assisted create.
+- The editor receives `anchorEventId`, owns its Anchor Event time-window query through the shared query cache, and internally renders either preset time-window selection or advanced custom selection from the queried event timing state.
+- The editor output is the concrete PR time window tuple: `[null | start_datetime, null | end_datetime]`.
+- In the preset state, the editor emits the selected materialized create time window.
+- In the custom state, the editor exposes a compact datetime picker plus duration minutes input when the event does not provide a fixed duration. It emits `[startAt, endAt]` after local validation.
+- `Inline` layout contract: when custom time is active, datetime picker and duration-minutes input render on one row, with a 7:3 width ratio.
+- Backend reality correction: current event-assisted create is frontend semantics over unified structured PR create. The frontend posts to `/api/pr/new/form` with `fields` and `createSource: "EVENT_ASSISTED"`; the controller calls `createPRFromStructured` and does not run an Anchor Event-owned create use case.
+- Implementation decision: public event detail now exposes `durationMinutes` and `earliestLeadMinutes`, matching the timing metadata already exposed by Form Mode.
+- List/Card creation cards use `AnchorEventAssistedPRTimeWindowInlineEditor`; the shared editor queries event detail through the shared query cache and emits the concrete time window tuple.
+- When `createTimeWindows` is empty and `earliestLeadMinutes` can support custom creation, the editor renders a datetime-local input plus editable duration minutes when the event has no fixed duration.
+- For route-pool events with no materialized time windows, List/Card place selector still consumes the event-level backend `placeSelector`; selected time remains an independent structured PR field.
 
 Slice 4 implementation:
 
@@ -212,3 +244,5 @@ Slice 4 implementation:
 2. Should route mode be allowed for draft PRs with one missing endpoint during editing?
 3. Which frontend surfaces should display planned polyline versus point list fallback when Direction WebService planning fails?
 4. Should Form Mode recommendation accept route-pool place selection in the first version, or should route-pool events skip recommendation and use only assisted create?
+5. Should user-submitted route applications extend the existing location application workflow, or use a dedicated route application owner?
+6. After a route application is accepted, should it become an event-local route-pool entry only, or should it also create reusable route catalog data?
