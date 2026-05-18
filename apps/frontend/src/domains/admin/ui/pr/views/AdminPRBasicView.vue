@@ -194,7 +194,6 @@
                 :title="t('adminPR.participationPolicyTitle')"
                 :description="t('adminPR.participationPolicyDescription')"
                 :event-start-at="resolvedTimeWindow[0]"
-                :booking-deadline-at="selectedPR?.effectiveBookingDeadlineAt ?? null"
                 :validation-message="policyValidationMessage"
               />
 

@@ -1,35 +1,26 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type {
-  AnchorEvent,
-  AnchorEventSupportResource,
-  PRJoinGateConfig,
-} from "../../../entities";
+import type { AnchorEvent, PRJoinGateConfig } from "../../../entities";
 import { emptyAnchorEventTimePoolConfig } from "../../../entities";
 
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
-const timeWindow: [string, string] = [
-  "2031-01-01T10:00:00.000Z",
-  "2031-01-01T12:00:00.000Z",
-];
-
 const eventGate: PRJoinGateConfig[number] = {
   kind: "JOIN_NOTICE",
-  key: "event-notice",
+  key: "shared-notice",
   version: "v1",
   title: "Event notice",
   source: "ANCHOR_EVENT",
   body: "Read event notice",
 };
 
-const resourceGate: PRJoinGateConfig[number] = {
+const prGate: PRJoinGateConfig[number] = {
   kind: "JOIN_NOTICE",
-  key: "resource-notice",
+  key: "pr-notice",
   version: "v1",
-  title: "Resource notice",
-  source: "PR_SUPPORT_RESOURCE",
-  body: "Read resource notice",
+  title: "PR notice",
+  source: "PR",
+  body: "Read PR notice",
 };
 
 const buildEvent = (
@@ -64,88 +55,33 @@ const buildEvent = (
   ...overrides,
 });
 
-const buildResource = (
-  overrides: Partial<AnchorEventSupportResource> = {},
-): AnchorEventSupportResource => ({
-  id: 1,
-  anchorEventId: 1,
-  code: "resource",
-  title: "Scenario resource",
-  resourceKind: "VENUE",
-  appliesToAllLocations: true,
-  locationIds: [],
-  bookingRequired: false,
-  bookingHandledBy: null,
-  bookingDeadlineRule: null,
-  bookingLocksParticipant: false,
-  cancellationPolicy: null,
-  settlementMode: "NONE",
-  subsidyRate: null,
-  subsidyCap: null,
-  requiresUserTransferToPlatform: false,
-  summaryText: "Scenario support resource",
-  detailRules: [],
-  joinGateConfig: [resourceGate],
-  displayOrder: 0,
-  createdAt: new Date("2026-01-01T00:00:00.000Z"),
-  ...overrides,
-});
-
-test("buildMaterializedPRJoinGateConfig keeps all-location support-resource gates when PR location is null", async () => {
+test("buildMaterializedPRJoinGateConfig merges event and PR join-notice gates", async () => {
   const { buildMaterializedPRJoinGateConfig } = await import(
     "./join-gates.service"
   );
 
   const gates = buildMaterializedPRJoinGateConfig({
     event: buildEvent(),
-    resources: [buildResource()],
-    location: null,
-    timeWindow,
+    prGates: [prGate],
   });
 
   assert.deepEqual(
-    gates.map((gate) => gate.key),
-    ["event-notice", "resource-notice"],
+    gates.map((gate) => `${gate.source}:${gate.key}`),
+    ["ANCHOR_EVENT:shared-notice", "PR:pr-notice"],
   );
 });
 
-test("buildMaterializedPRJoinGateConfig skips scoped support-resource gates when PR location is null", async () => {
+test("buildMaterializedPRJoinGateConfig dedupes by kind, source, and key", async () => {
   const { buildMaterializedPRJoinGateConfig } = await import(
     "./join-gates.service"
   );
 
   const gates = buildMaterializedPRJoinGateConfig({
-    event: buildEvent(),
-    resources: [
-      buildResource({
-        appliesToAllLocations: false,
-        locationIds: ["Court A"],
-      }),
-    ],
-    location: null,
-    timeWindow,
+    event: buildEvent({
+      joinGateConfig: [eventGate, { ...eventGate, title: "Updated" }],
+    }),
   });
 
-  assert.deepEqual(
-    gates.map((gate) => gate.key),
-    ["event-notice"],
-  );
-});
-
-test("buildMaterializedPRJoinGateConfig includes support-resource gates when PR location matches", async () => {
-  const { buildMaterializedPRJoinGateConfig } = await import(
-    "./join-gates.service"
-  );
-
-  const gates = buildMaterializedPRJoinGateConfig({
-    event: buildEvent(),
-    resources: [buildResource()],
-    location: "Court A",
-    timeWindow,
-  });
-
-  assert.deepEqual(
-    gates.map((gate) => gate.key),
-    ["event-notice", "resource-notice"],
-  );
+  assert.equal(gates.length, 1);
+  assert.equal(gates[0]?.title, "Updated");
 });

@@ -25,7 +25,7 @@
 
 - browse Anchor Events and time-pool driven PR discovery surfaces
 - enter `PR` from Anchor Event context
-- keep the current event-context `PR` detail page focused on facts, participation, booking support, and persistent notification-subscription management
+- keep the current event-context `PR` detail page focused on facts, participation, and persistent notification-subscription management
 - show public meeting-point guidance in the PR facts card under the primary location
 - show route-mode PRs with a separate Route facts row and a map/detail entry when route geometry is available
 - open the PR message experience through `/pr/:id/messages`
@@ -38,7 +38,6 @@
 - review alternative recommendations under the same activity context
 - submit a new POI location application from Form Mode when the desired location is missing
 - revisit the current user's submitted POI location applications
-- view booking support and resource-support semantics
 
 ## 4. Identity And Revisit
 
@@ -61,7 +60,6 @@
 ## 6. Notifications And Reliability
 
 - support subscription reminders
-- notify booking results
 - notify new-partner events
 - notify new PR messages
 - notify meeting-point updates
@@ -73,9 +71,8 @@
 - route support entrypoints through "Need Help"
 - route `/contact-support` toward `/contact-author` and `/about`
 - expose repository and frontend/backend commit hashes in `/about`
-- let operator tooling maintain Anchor/Event/POI/Booking Support semantics
+- let operator tooling maintain Anchor Event and POI semantics
 - let operator tooling publish or reject user-submitted POI location applications
 - let operator tooling upload and maintain POI gallery images, Anchor Event cover images, and event beta-group QR images
 - let operator tooling select Anchor Event feedback questionnaire templates and override a PR's mounted questionnaire instance pointer
-- let operator tooling process booking fulfillment results and release invalid booking contacts
 - let configuration materially shape the real user experience

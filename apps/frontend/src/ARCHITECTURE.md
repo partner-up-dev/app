@@ -156,7 +156,7 @@ Examples:
 
 - partner participation availability
 - deadline-driven CTA states
-- status explanations that depend on booking / confirmation policy
+- status explanations that depend on participation and confirmation policy
 
 ### Model
 

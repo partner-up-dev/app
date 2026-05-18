@@ -44,8 +44,6 @@ type PRUpdateStatusInput = {
   status: PRStatusManual;
 };
 
-const BOOKING_CONTACT_PHONE_REQUIRED_CODE = "BOOKING_CONTACT_PHONE_REQUIRED";
-const BOOKING_CONTACT_PHONE_INVALID_CODE = "BOOKING_CONTACT_PHONE_INVALID";
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const PR_TYPE_IMMUTABLE_CODE = "PR_TYPE_IMMUTABLE";
 
@@ -85,14 +83,6 @@ const resolveUpdateContentErrorMessage = (
   );
 };
 
-const isBookingContactPhoneRequiredError = (
-  payload: ApiErrorPayload | null,
-): boolean => payload?.code === BOOKING_CONTACT_PHONE_REQUIRED_CODE;
-
-const isBookingContactPhoneInvalidError = (
-  payload: ApiErrorPayload | null,
-): boolean => payload?.code === BOOKING_CONTACT_PHONE_INVALID_CODE;
-
 const isPRJoinGateUnresolvedError = (
   payload: ApiErrorPayload | null,
 ): boolean => payload?.code === PR_JOIN_GATE_UNRESOLVED_CODE;
@@ -128,13 +118,9 @@ export const useJoinPR = () => {
             prId: id,
           });
         }
-        const fallbackMessage = isBookingContactPhoneRequiredError(payload)
-          ? i18n.global.t("prPage.bookingContact.ownerVerifyBeforeJoin")
-          : isBookingContactPhoneInvalidError(payload)
-            ? i18n.global.t("prPage.bookingContact.verifyFailed")
-            : isPRJoinGateUnresolvedError(payload)
-              ? "请先完成加入前置项"
-              : i18n.global.t("errors.joinRequestFailed");
+        const fallbackMessage = isPRJoinGateUnresolvedError(payload)
+          ? "请先完成加入前置项"
+          : i18n.global.t("errors.joinRequestFailed");
         throw buildApiError(
           resolveErrorMessage(res, payload, fallbackMessage),
           payload,
@@ -146,9 +132,6 @@ export const useJoinPR = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.pr.detail(variables.id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.pr.bookingSupport(variables.id),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.pr.joinGates(variables.id),
@@ -209,9 +192,6 @@ export const useWaitlistPR = () => {
         queryKey: queryKeys.pr.detail(variables.id),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.pr.bookingSupport(variables.id),
-      });
-      queryClient.invalidateQueries({
         queryKey: queryKeys.pr.joinGates(variables.id),
       });
       queryClient.invalidateQueries({
@@ -257,9 +237,6 @@ export const useCancelWaitlistPR = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.pr.detail(variables.id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.pr.bookingSupport(variables.id),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.pr.joinGates(variables.id),
@@ -384,8 +361,6 @@ export const useCheckInPRSlot = () => {
             eligible: false,
             canRequest: false,
             requested: false,
-            reimbursementStatus: "NONE",
-            reimbursementAmount: null,
             reason: "SLOT_NOT_ELIGIBLE",
           };
         }

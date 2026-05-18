@@ -174,14 +174,6 @@
             formatDateTime(section.timeline.joinLockAt)
           }}</span>
         </div>
-        <div class="partner-section__timeline-item">
-          <span class="partner-section__timeline-label">{{
-            t("prPage.partnerSection.timelineBookingDeadline")
-          }}</span>
-          <span class="partner-section__timeline-value">{{
-            formatDateTime(section.timeline.bookingDeadlineAt)
-          }}</span>
-        </div>
       </div>
     </section>
 
@@ -413,15 +405,11 @@ function blockedReasonText(
       return t("prPage.partnerSection.blockedJoinLocked");
     case "EVENT_STARTED":
       return t("prPage.partnerSection.blockedEventStarted");
-    case "BOOKING_LOCKED":
-      return t("prPage.partnerSection.blockedBookingLocked");
     case "OUTSIDE_CONFIRM_WINDOW":
       return t(
         "prPage.partnerSection.blockedConfirmWindow",
         confirmWindowText.value,
       );
-    case "BOOKING_CONTACT_REQUIRED":
-      return t("prPage.partnerSection.blockedBookingContactRequired");
     case "ALREADY_CONFIRMED":
       return t("prPage.partnerSection.blockedAlreadyConfirmed");
     case "ALREADY_JOINED":

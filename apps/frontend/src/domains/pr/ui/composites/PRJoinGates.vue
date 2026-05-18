@@ -12,6 +12,7 @@
           tone="surface"
           type="button"
           :disabled="interactionPending"
+          data-testid="pr-detail.join-gate.join-notice.cancel"
           @click="emit('cancel')"
         >
           取消
@@ -19,50 +20,10 @@
         <Button
           type="button"
           :loading="interactionPending"
+          data-testid="pr-detail.join-gate.join-notice.accept"
           @click="resolveJoinNotice(activeGate)"
         >
           同意
-        </Button>
-      </div>
-    </template>
-
-    <template v-else-if="activeGate?.kind === 'BOOKING_CONTACT'">
-      <h3 class="gate-title">{{ activeGate.title }}</h3>
-      <p class="gate-text">
-        {{ activeGate.prompt }}
-      </p>
-      <label class="phone-field">
-        <span class="phone-field__label">手机号</span>
-        <input
-          v-model.trim="phoneInput"
-          class="phone-field__input"
-          type="tel"
-          inputmode="numeric"
-          maxlength="11"
-          placeholder="请输入 11 位大陆手机号"
-          :disabled="interactionPending"
-          data-testid="pr-detail.join-gate.booking-contact.input"
-        />
-      </label>
-      <p v-if="phoneInputError" class="action-error">
-        {{ phoneInputError }}
-      </p>
-      <div class="gate-actions">
-        <Button
-          tone="surface"
-          type="button"
-          :disabled="interactionPending"
-          @click="emit('cancel')"
-        >
-          取消
-        </Button>
-        <Button
-          type="button"
-          :loading="interactionPending"
-          data-testid="pr-detail.join-gate.booking-contact.submit"
-          @click="resolveBookingContact(activeGate)"
-        >
-          提交
         </Button>
       </div>
     </template>
@@ -94,10 +55,6 @@ type JoinNoticeGate = Extract<
   PRJoinGateProjectionItem,
   { kind: "JOIN_NOTICE" }
 >;
-type BookingContactGate = Extract<
-  PRJoinGateProjectionItem,
-  { kind: "BOOKING_CONTACT" }
->;
 
 const props = defineProps<{
   prId: PRId | null;
@@ -115,9 +72,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const CN_MAINLAND_MOBILE_REGEX = /^1\d{10}$/;
-const phoneInput = ref("");
-const phoneInputError = ref<string | null>(null);
 const completionEmitted = ref(false);
 const prIdRef = computed(() => props.prId);
 const enabledRef = computed(() => props.enabled);
@@ -189,51 +143,11 @@ const resolveJoinNotice = async (gate: JoinNoticeGate): Promise<void> => {
   }
 };
 
-const resolveBookingContact = async (
-  gate: BookingContactGate,
-): Promise<void> => {
-  if (props.prId === null || interactionPending.value) return;
-  const phone = phoneInput.value.trim();
-  if (!phone) {
-    phoneInputError.value = "请输入手机号";
-    return;
-  }
-  if (!CN_MAINLAND_MOBILE_REGEX.test(phone)) {
-    phoneInputError.value = "请输入 11 位大陆手机号";
-    return;
-  }
-  phoneInputError.value = null;
-  try {
-    const result = await joinGatesQuery.resolveGate.mutateAsync({
-      id: props.prId,
-      gateKey: gate.key,
-      payload: {
-        kind: "BOOKING_CONTACT",
-        version: gate.version,
-        phone,
-      },
-    });
-    emit("resolved", result);
-  } catch (error) {
-    emit("error", resolveErrorMessage(error));
-  }
-};
-
 watch(
   () => [props.enabled, props.prId] as const,
   () => {
     completionEmitted.value = false;
-    phoneInput.value = "";
-    phoneInputError.value = null;
     joinGatesQuery.resolveGate.reset();
-  },
-);
-
-watch(
-  () => activeGate.value?.key ?? null,
-  () => {
-    phoneInput.value = "";
-    phoneInputError.value = null;
   },
 );
 
@@ -279,27 +193,6 @@ watch(allConfiguredGatesResolved, (resolved) => {
   @include mx.pu-font(body-medium);
   color: var(--sys-color-on-surface);
   white-space: pre-wrap;
-}
-
-.phone-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.phone-field__label {
-  @include mx.pu-font(label-medium);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.phone-field__input {
-  width: 100%;
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  padding: var(--sys-spacing-small);
-  @include mx.pu-font(body-medium);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
 }
 
 .gate-actions {

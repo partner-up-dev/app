@@ -227,15 +227,7 @@ export interface MessageSchema {
     description: string;
     guideTitle: string;
     actionsTitle: string;
-    staffBadge: string;
-    staffTitle: string;
-    staffDescription: string;
-    staffAction: string;
-    staffLinkMissing: string;
-    staffQrModalTitle: string;
-    staffQrModalDescription: string;
-    staffQrAlt: string;
-    staffQrMissing: string;
+
     supportBadge: string;
     supportTitle: string;
     supportDescription: string;
@@ -250,7 +242,7 @@ export interface MessageSchema {
     betaGroupAction: string;
     authorEntry: string;
     useCases: {
-      staff: string;
+
       support: string;
     };
   };
@@ -350,13 +342,6 @@ export interface MessageSchema {
     metaFallbackTitle: string;
     metaFallbackDescription: string;
     metaTitleWithName: string;
-    bookingSupportEntry: {
-      title: string;
-      viewAction: string;
-      headlineFallback: string;
-      deadlineUnset: string;
-      deadlineWithValue: string;
-    };
     sameBatch: {
       title: string;
       subtitle: string;
@@ -394,12 +379,6 @@ export interface MessageSchema {
           disabledHint: string;
         };
         ACTIVITY_START_REMINDER: {
-          title: string;
-          enabledHint: string;
-          disabledHint: string;
-          unconfiguredHint: string;
-        };
-        BOOKING_RESULT: {
           title: string;
           enabledHint: string;
           disabledHint: string;
@@ -523,7 +502,7 @@ export interface MessageSchema {
       blockedFull: string;
       blockedJoinLocked: string;
       blockedEventStarted: string;
-      blockedBookingLocked: string;
+
       blockedConfirmWindow: string;
       blockedAlreadyConfirmed: string;
       blockedNotJoined: string;
@@ -550,8 +529,7 @@ export interface MessageSchema {
       timelineEventStart: string;
       timelineConfirmationWindow: string;
       timelineJoinLock: string;
-      timelineBookingDeadline: string;
-      timelineBookingTriggered: string;
+
     };
   };
   eventPlaza: {
@@ -913,7 +891,7 @@ export interface MessageSchema {
     confirmationStart: string;
     confirmationEnd: string;
     joinLock: string;
-    bookingDeadline: string;
+
     confirmationStartMarker: string;
     confirmationEndMarker: string;
     joinLockMarker: string;
@@ -1151,13 +1129,7 @@ export interface MessageSchema {
     navAnalyticsGroup: string;
     navAnalytics: string;
     navAnalyticsSubtitle: string;
-    navSupportResourcesGroup: string;
-    navSupportResourceConfig: string;
-    navSupportResourceConfigSubtitle: string;
-    navSupportResourceExecution: string;
-    navSupportResourceExecutionSubtitle: string;
-    navBookingSupport: string;
-    navBookingExecution: string;
+
     navPoisGroup: string;
     navPoiBasic: string;
     navPoiBasicSubtitle: string;
@@ -1279,51 +1251,6 @@ export interface MessageSchema {
     loggingIn: string;
     loginAction: string;
     seedHint: string;
-  };
-  adminBookingSupport: {
-    title: string;
-    subtitle: string;
-    loginTitle: string;
-    passwordLabel: string;
-    loggingIn: string;
-    loginAction: string;
-    logoutAction: string;
-    eventLabel: string;
-    eventPlaceholder: string;
-    eventResourcesTitle: string;
-    addResourceAction: string;
-    resourceFallback: string;
-    removeAction: string;
-    resourceTitle: string;
-    resourceKind: string;
-    displayOrder: string;
-    appliesToAllLocations: string;
-    bookingRequired: string;
-    bookingLocksParticipant: string;
-    requiresTransfer: string;
-    locationIds: string;
-    locationSelectorHint: string;
-    locationRequiredValidation: string;
-    bookingHandledBy: string;
-    noneOption: string;
-    bookingDeadlineRule: string;
-    cancellationPolicy: string;
-    settlementMode: string;
-    subsidyRate: string;
-    subsidyCap: string;
-    summaryText: string;
-    detailRules: string;
-    saving: string;
-    saveEventResources: string;
-    batchOverridesTitle: string;
-    batchLabel: string;
-    batchPlaceholder: string;
-    disabled: string;
-    overrideBookingRequired: string;
-    overrideBookingLocks: string;
-    overrideTransfer: string;
-    addOverrideAction: string;
-    saveBatchOverrides: string;
   };
   adminPois: {
     title: string;
@@ -1568,10 +1495,10 @@ export interface MessageSchema {
     prContentLockedHint: string;
     participationPolicyTitle: string;
     participationPolicyDescription: string;
-    bookingTriggeredAtLabel: string;
+
     policyValidationStartBeforeEnd: string;
     policyValidationJoinLockAfterConfirmationEnd: string;
-    policyValidationDeadlineAfterConfirmationEnd: string;
+
     savePRAction: string;
     createPRAction: string;
     deletePRAction: string;
@@ -1624,74 +1551,6 @@ export interface MessageSchema {
     messageDeleting: string;
     editedAt: string;
     deleteConfirm: string;
-  };
-  adminBookingExecution: {
-    title: string;
-    subtitle: string;
-    searchTitle: string;
-    searchLabel: string;
-    searchPlaceholder: string;
-    searchHintWithCount: string;
-    statsPending: string;
-    statsAudit: string;
-    statsFilteredPending: string;
-    statsFilteredAudit: string;
-    pendingTitle: string;
-    pendingEmpty: string;
-    auditTitle: string;
-    auditEmpty: string;
-    prFallbackTitle: string;
-    eventLabel: string;
-    batchLabel: string;
-    timeLabel: string;
-    locationLabel: string;
-    bookingTriggeredLabel: string;
-    bookingDeadlineLabel: string;
-    partnerCountLabel: string;
-    contactStateLabel: string;
-    contactStateVerified: string;
-    contactStateMissing: string;
-    contactStateNotRequired: string;
-    contactOwnerLabel: string;
-    ownerFallback: string;
-    phoneLabel: string;
-    noPhone: string;
-    targetResourceLabel: string;
-    executionResultLabel: string;
-    resultSuccess: string;
-    resultFailed: string;
-    failureReasonLabel: string;
-    failureReasonHint: string;
-    releaseReasonLabel: string;
-    defaultReleaseReason: string;
-    reasonRequiredValidation: string;
-    releaseReasonRequired: string;
-    submitAction: string;
-    submittingAction: string;
-    releaseAction: string;
-    releasingAction: string;
-    releaseUnavailableHint: string;
-    auditBookingExecutionLabel: string;
-    auditManualReleaseLabel: string;
-    auditOperatorLabel: string;
-    auditPhoneLabel: string;
-    auditResultLabel: string;
-    auditResourceLabel: string;
-    auditReasonLabel: string;
-    auditNotificationSummaryLabel: string;
-    auditPartnerLabel: string;
-    auditReleasedUserLabel: string;
-    auditBookingContactCleared: string;
-    auditCreatorTransferredLabel: string;
-    notificationTargetCount: string;
-    notificationSuccessCount: string;
-    notificationFailureCount: string;
-    notificationSkippedCount: string;
-    noReason: string;
-    noActor: string;
-    noneText: string;
-    booleanYes: string;
-    booleanNo: string;
   };
   validation: {
     typeRequired: string;

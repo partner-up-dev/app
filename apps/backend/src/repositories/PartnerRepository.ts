@@ -382,12 +382,6 @@ export class PartnerRepository {
         checkInAt: null,
         didAttend: null,
         paymentStatus: "NONE",
-        reimbursementRequested: false,
-        reimbursementStatus: "NONE",
-        reimbursementAmount: null,
-        reimbursementRequestedAt: null,
-        reimbursementReviewedAt: null,
-        reimbursementPaidAt: null,
       })
       .where(eq(partners.id, id))
       .returning();
@@ -416,12 +410,6 @@ export class PartnerRepository {
         checkInAt: null,
         didAttend: null,
         paymentStatus: "NONE",
-        reimbursementRequested: false,
-        reimbursementStatus: "NONE",
-        reimbursementAmount: null,
-        reimbursementRequestedAt: null,
-        reimbursementReviewedAt: null,
-        reimbursementPaidAt: null,
       })
       .where(eq(partners.id, id))
       .returning();
@@ -446,12 +434,6 @@ export class PartnerRepository {
         checkInAt: null,
         didAttend: null,
         paymentStatus: "NONE",
-        reimbursementRequested: false,
-        reimbursementStatus: "NONE",
-        reimbursementAmount: null,
-        reimbursementRequestedAt: null,
-        reimbursementReviewedAt: null,
-        reimbursementPaidAt: null,
       })
       .where(and(eq(partners.id, id), eq(partners.status, "PENDING")))
       .returning();
@@ -474,12 +456,6 @@ export class PartnerRepository {
         checkInAt: null,
         didAttend: null,
         paymentStatus: "NONE",
-        reimbursementRequested: false,
-        reimbursementStatus: "NONE",
-        reimbursementAmount: null,
-        reimbursementRequestedAt: null,
-        reimbursementReviewedAt: null,
-        reimbursementPaidAt: null,
       })
       .where(and(eq(partners.id, id), eq(partners.status, "PENDING")))
       .returning();
@@ -599,12 +575,6 @@ export class PartnerRepository {
         checkInAt: null,
         didAttend: null,
         paymentStatus: "NONE",
-        reimbursementRequested: false,
-        reimbursementStatus: "NONE",
-        reimbursementAmount: null,
-        reimbursementRequestedAt: null,
-        reimbursementReviewedAt: null,
-        reimbursementPaidAt: null,
         releasedAt: now,
         releaseReason: options.releaseReason ?? null,
       })

@@ -11,7 +11,6 @@ import { handleWeChatAuthRequiredError } from "@/processes/wechat/auth-error";
 type WeChatNotificationKind =
   | "REMINDER_CONFIRMATION"
   | "ACTIVITY_START_REMINDER"
-  | "BOOKING_RESULT"
   | "NEW_PARTNER"
   | "MEETING_POINT_UPDATED"
   | "WAITLIST_PROMOTED"

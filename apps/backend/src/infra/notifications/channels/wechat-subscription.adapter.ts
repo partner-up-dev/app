@@ -39,9 +39,6 @@ export const isWeChatSubscriptionNotificationConfigured = async (
   if (kind === "ACTIVITY_START_REMINDER") {
     return service.isActivityStartReminderConfigured();
   }
-  if (kind === "BOOKING_RESULT") {
-    return service.isBookingResultConfigured();
-  }
   if (kind === "NEW_PARTNER") {
     return service.isNewPartnerConfigured();
   }
@@ -92,18 +89,6 @@ const send = async (
       startAt: message.startAt,
       location: message.location,
       remark: message.remark,
-      page: message.page,
-    });
-  }
-
-  if (message.kind === "BOOKING_RESULT") {
-    return service.sendBookingResultNotification({
-      openId: message.openId,
-      bookingItem: message.bookingItem,
-      statusLabel: message.statusLabel,
-      activityTime: message.activityTime,
-      address: message.address,
-      bookingDetail: message.bookingDetail,
       page: message.page,
     });
   }

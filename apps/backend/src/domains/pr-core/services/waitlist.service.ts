@@ -23,7 +23,6 @@ import {
 } from "./anchor-participation-policy.service";
 import { assertPRJoinGatesResolvedForUser } from "./join-gates.service";
 import { recalculatePRStatus } from "./slot-management.service";
-import { syncAnchorBookingTriggeredState } from "./anchor-booking-trigger.service";
 
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
@@ -100,7 +99,6 @@ const applyPromotedPartnerSideEffects = async (input: {
   });
 
   await recalculatePRStatus(input.request.id);
-  await syncAnchorBookingTriggeredState(input.request.id);
 
   const latest = await prRepo.findById(input.request.id);
   if (!latest) {

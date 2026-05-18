@@ -36,12 +36,6 @@ export const activityStartReminderSchedulePolicy: JobSchedulePolicy = {
   lateToleranceUnits: NO_LATE_TOLERANCE_UNITS,
 };
 
-export const bookingResultSchedulePolicy: JobSchedulePolicy = {
-  resolutionMs: SECOND_RESOLUTION_MS,
-  earlyToleranceUnits: 0,
-  lateToleranceUnits: NO_LATE_TOLERANCE_UNITS,
-};
-
 export const newPartnerSchedulePolicy: JobSchedulePolicy = {
   resolutionMs: SECOND_RESOLUTION_MS,
   earlyToleranceUnits: 0,

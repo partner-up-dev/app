@@ -3,8 +3,6 @@ import type { PRId } from "@partner-up-dev/backend";
 export const prCreatePath = (): string => "/pr/new";
 export const prDetailPath = (id: PRId): string => `/pr/${id}`;
 export const prMessagesPath = (id: PRId): string => `/pr/${id}/messages`;
-export const prBookingSupportPath = (id: PRId): string =>
-  `/pr/${id}/booking-support`;
 export const prPartnerProfilePath = (
   id: PRId,
   partnerId: number,

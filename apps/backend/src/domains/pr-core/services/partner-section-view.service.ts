@@ -5,10 +5,7 @@ import type {
   PendingParticipantSummary,
   RosterParticipantSummary,
 } from "../../../repositories/PartnerRepository";
-import {
-  hasEventStarted,
-  isBookingDeadlineReached,
-} from "./time-window.service";
+import { hasEventStarted } from "./time-window.service";
 import type { PublicPR } from "./pr-view.service";
 import type { AlternativeBatchRecommendation } from "../use-cases/recommend-alternative-batches";
 import type { PRId } from "../../../entities/partner-request";
@@ -21,8 +18,6 @@ export type PartnerSectionActionBlockedReason =
   | "NOT_JOINABLE_STATUS"
   | "JOIN_LOCKED"
   | "EVENT_STARTED"
-  | "BOOKING_LOCKED"
-  | "BOOKING_CONTACT_REQUIRED"
   | "PARTICIPATION_FREQUENCY_LIMITED"
   | "OUTSIDE_CONFIRM_WINDOW"
   | "NOT_JOINED"
@@ -102,16 +97,6 @@ export type PartnerSectionView = {
     confirmationStartAt: string | null;
     confirmationEndAt: string | null;
     joinLockAt: string | null;
-    bookingDeadlineAt: string | null;
-  };
-  bookingContact: {
-    required: boolean;
-    state: "NOT_REQUIRED" | "MISSING" | "VERIFIED";
-    ownerPartnerId: number | null;
-    ownerIsCurrentViewer: boolean;
-    maskedPhone: string | null;
-    verifiedAt: string | null;
-    deadlineAt: string | null;
   };
   fallbacks: {
     sameBatchAlternatives: Array<{
@@ -183,7 +168,7 @@ const buildBaseSection = (
   releaseStateByPartnerId: Map<number, PartnerSectionReleaseState>,
 ): Omit<
   PartnerSectionView,
-  "reminder" | "confirmation" | "timeline" | "bookingContact" | "fallbacks"
+  "reminder" | "confirmation" | "timeline" | "fallbacks"
 > => {
   const current = activeParticipants.length;
   const min = publicPR.minPartners;
@@ -298,18 +283,6 @@ const buildBaseSection = (
   };
 };
 
-type PartnerSectionBookingContact = PartnerSectionView["bookingContact"];
-
-const DEFAULT_BOOKING_CONTACT_STATE: PartnerSectionBookingContact = {
-  required: false,
-  state: "NOT_REQUIRED",
-  ownerPartnerId: null,
-  ownerIsCurrentViewer: false,
-  maskedPhone: null,
-  verifiedAt: null,
-  deadlineAt: null,
-};
-
 export function buildPRPartnerSection(params: {
   publicPR: PublicPR;
   activeParticipants: ActiveParticipantSummary[];
@@ -317,8 +290,6 @@ export function buildPRPartnerSection(params: {
   rosterParticipants: RosterParticipantSummary[];
   viewerUserId: UserId | null;
   policy?: ResolvedAnchorParticipationPolicy | null;
-  bookingDeadlineAt?: Date | null;
-  bookingContact?: PartnerSectionBookingContact;
   sameBatchAlternatives?: Array<{
     id: PRId;
     location: string;
@@ -335,8 +306,6 @@ export function buildPRPartnerSection(params: {
     rosterParticipants,
     viewerUserId,
     policy = null,
-    bookingDeadlineAt = null,
-    bookingContact = DEFAULT_BOOKING_CONTACT_STATE,
     sameBatchAlternatives = [],
     alternativeBatches = [],
     releaseStateByPartnerId = new Map(),
@@ -360,7 +329,6 @@ export function buildPRPartnerSection(params: {
     hasParticipationPolicy && policy?.joinLockAt
       ? Date.now() >= policy.joinLockAt.getTime()
       : false;
-  const bookingLocked = isBookingDeadlineReached(bookingDeadlineAt);
   const started = hasEventStarted(publicPR.time);
   const withinConfirmationWindow =
     confirmationPolicyEnabled &&
@@ -421,14 +389,6 @@ export function buildPRPartnerSection(params: {
   } else if (hasParticipationPolicy && started) {
     canExit = false;
     exitBlockedReason = "EVENT_STARTED";
-  } else if (
-    hasParticipationPolicy &&
-    bookingLocked &&
-    (base.viewer.slotState === "CONFIRMED" ||
-      base.viewer.slotState === "ATTENDED")
-  ) {
-    canExit = false;
-    exitBlockedReason = "BOOKING_LOCKED";
   }
 
   let canConfirm = true;
@@ -499,10 +459,8 @@ export function buildPRPartnerSection(params: {
           confirmationStartAt: toIsoString(policy?.confirmationStartAt),
           confirmationEndAt: toIsoString(policy?.confirmationEndAt),
           joinLockAt: toIsoString(policy?.joinLockAt),
-          bookingDeadlineAt: toIsoString(bookingDeadlineAt),
         }
       : null,
-    bookingContact,
     fallbacks: {
       sameBatchAlternatives,
       alternativeBatches,
@@ -538,16 +496,6 @@ export function buildAnchorPartnerSection(params: {
   rosterParticipants: RosterParticipantSummary[];
   viewerUserId: UserId | null;
   policy: ResolvedAnchorParticipationPolicy;
-  bookingDeadlineAt: Date | null;
-  bookingContact: {
-    required: boolean;
-    state: "NOT_REQUIRED" | "MISSING" | "VERIFIED";
-    ownerPartnerId: number | null;
-    ownerIsCurrentViewer: boolean;
-    maskedPhone: string | null;
-    verifiedAt: string | null;
-    deadlineAt: string | null;
-  };
   sameBatchAlternatives: Array<{
     id: PRId;
     location: string;
@@ -564,8 +512,6 @@ export function buildAnchorPartnerSection(params: {
     rosterParticipants: params.rosterParticipants,
     viewerUserId: params.viewerUserId,
     policy: params.policy,
-    bookingDeadlineAt: params.bookingDeadlineAt,
-    bookingContact: params.bookingContact,
     sameBatchAlternatives: params.sameBatchAlternatives,
     alternativeBatches: params.alternativeBatches,
     releaseStateByPartnerId: params.releaseStateByPartnerId,

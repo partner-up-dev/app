@@ -24,7 +24,7 @@ This means "will the person actually show up" and "should the signal remain trus
 
 ## 3. Operator Configuration Is Part of the User-Visible Product Loop
 
-Support links, notification templates, POIs, booking support, and subsidy-related resources are not merely technical configuration. They directly affect user experience and cold-start viability.
+Support links, notification templates, and POIs are product configuration. They directly affect user experience and cold-start viability.
 
 PRD therefore needs to recognize operator-managed configuration as part of product behavior whenever it changes the user-visible path.
 

@@ -9,7 +9,7 @@ Persisted in Postgres via backend entities and repositories:
 - PR messages and per-user PR message inbox state
 - users, including `users.phone_number`, user notification options, and user reliability
 - `users.wechat_official_account_followed_at` as the positive marker that the backend has confirmed a user follows the WeChat official account
-- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned route pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, support resources, booking-resource join-gate templates, booking-contact resolution derived from users and active participants, join-notice acceptances, and booking execution records
+- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned route pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, and join-notice acceptances
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
 - config, operation logs, domain events, outbox events, jobs, notification opportunities, notification waves, and notification deliveries
 - analytics aggregate tables
@@ -53,10 +53,10 @@ The backend is authoritative for:
 - PR message visibility, read-marker progression, and notification wave gating
 - identity binding, session verification, and role semantics
 - confirmed WeChat official-account follow state derived from official-account follower-list sync
-- event, time-pool, POI, booking-support, and admin-managed configuration state
+- event, time-pool, POI, and admin-managed configuration state
 - POI submission status, submitter linkage, reviewer linkage, and rejection reason
 - `POI.id` is the durable integer identity; `POI.name` is the business location label used when matching `PR.location` and Anchor Event location-pool entries to POI-owned data.
-- PR join-gate configuration, join-gate projection, booking-contact resolution from active participant `users.phone_number`, and join-notice acceptance resolution
+- PR join-gate configuration, join-gate projection, and join-notice acceptance resolution
 - PR feedback questionnaire projection, including mounted instance and current viewer response state
 - notification scheduling and dispatch for meeting-point update notifications
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window

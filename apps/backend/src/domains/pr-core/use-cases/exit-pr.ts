@@ -8,10 +8,7 @@ import { resolveUserByOpenId } from "../../user";
 import { hasAnchorParticipationPolicy } from "../services/anchor-participation-policy.service";
 import { isExitAllowedStatus } from "../services/status-rules";
 import { recalculatePRStatus } from "../services/slot-management.service";
-import {
-  hasEventStarted,
-  isBookingDeadlineReached,
-} from "../services/time-window.service";
+import { hasEventStarted } from "../services/time-window.service";
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { operationLogService } from "../../../infra/operation-log";
@@ -19,9 +16,6 @@ import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
 } from "../../../infra/notifications";
-import { getEffectiveBookingDeadline } from "../../pr-booking-support";
-import { resolveBookingContactState } from "../../pr-booking-support";
-import { syncAnchorBookingTriggeredState } from "../services/anchor-booking-trigger.service";
 import { resetPRJoinGateResolutionsForUser } from "../services/join-gates.service";
 import { promoteWaitlistedPartners } from "../services/waitlist.service";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
@@ -54,16 +48,6 @@ export async function exitPRByUserId(
     return throwHttpProblem({ status: 400, detail: "Cannot exit - partner is not joined" });
   }
 
-  if (
-    hasParticipationPolicy &&
-    (activeSlot.status === "CONFIRMED" || activeSlot.status === "ATTENDED")
-  ) {
-    const effectiveBookingDeadlineAt = await getEffectiveBookingDeadline(id);
-    if (isBookingDeadlineReached(effectiveBookingDeadlineAt)) {
-      return throwHttpProblem({ status: 400, detail: "Cannot exit - slot is locked after booking deadline" });
-    }
-  }
-
   if (hasParticipationPolicy && hasEventStarted(refreshedRequest.time)) {
     return throwHttpProblem({ status: 400, detail: "Cannot exit - event has already started" });
   }
@@ -78,13 +62,8 @@ export async function exitPRByUserId(
   if (hasParticipationPolicy) {
     await cancelWeChatReminderJobsForParticipant(id, userId);
     await cancelWeChatActivityStartReminderJobsForParticipant(id, userId);
-    await resolveBookingContactState({
-      prId: id,
-      viewerUserId: userId,
-    });
   }
   await recalculatePRStatus(id);
-  await syncAnchorBookingTriggeredState(id);
 
   operationLogService.log({
     actorId: userId,

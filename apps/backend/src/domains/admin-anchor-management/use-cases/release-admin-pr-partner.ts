@@ -11,12 +11,10 @@ import {
   applyAnchorParticipantReleaseEffects,
   promoteWaitlistedPartners,
   recalculatePRStatus,
-  syncAnchorBookingTriggeredState,
 } from "../../pr/services";
 import { operationLogService } from "../../../infra/operation-log";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../../pr-core/services/waitlist-alternative-reminder.service";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { resolveBookingContactState } from "../../pr-booking-support";
 
 const eventContextRepo = new AnchorEventPRContextRepository();
 const partnerRepo = new PartnerRepository();
@@ -55,14 +53,6 @@ export async function releaseAdminPRPartner(input: {
     return throwHttpProblem({ status: 400, detail: "Only JOINED or CONFIRMED slots can be released manually" });
   }
 
-  const bookingContactBeforeRelease = await resolveBookingContactState({
-    prId: input.prId,
-    viewerUserId: null,
-  });
-  const bookingContactPhone = bookingContactBeforeRelease.fullPhone;
-  const bookingContactOwnerUserIdToClear =
-    bookingContactBeforeRelease.ownerUserId === slot.userId ? slot.userId : null;
-
   const releasedSlot = await partnerRepo.markReleased(slot.id, {
     releaseReason: reason,
   });
@@ -77,15 +67,13 @@ export async function releaseAdminPRPartner(input: {
     slot.userId,
   );
 
-  const { bookingContactCleared, creatorTransferredToUserId } =
+  const { creatorTransferredToUserId } =
     await applyAnchorParticipantReleaseEffects({
       prId: input.prId,
       releasedUserIds: [slot.userId],
-      bookingContactOwnerUserIdToClear,
     });
 
   await recalculatePRStatus(input.prId);
-  await syncAnchorBookingTriggeredState(input.prId);
 
   operationLogService.log({
     actorId: input.actorUserId,
@@ -100,25 +88,9 @@ export async function releaseAdminPRPartner(input: {
       trigger: "admin_manual",
       manual: true,
       reason,
-      bookingContactPhone,
-      bookingContactCleared,
       creatorTransferredToUserId,
     },
   });
-  if (bookingContactCleared && bookingContactOwnerUserIdToClear) {
-    operationLogService.log({
-      actorId: input.actorUserId,
-      action: "user.phone_number_cleared",
-      aggregateType: "user",
-      aggregateId: bookingContactOwnerUserIdToClear,
-      detail: {
-        prId: input.prId,
-        partnerId: releasedSlot.id,
-        trigger: "admin_manual_release",
-        reason,
-      },
-    });
-  }
 
   await promoteWaitlistedPartners(input.prId);
   const latest = await prRepo.findById(input.prId);
@@ -133,7 +105,6 @@ export async function releaseAdminPRPartner(input: {
     previousStatus: slot.status,
     currentStatus: releasedSlot.status,
     reason,
-    bookingContactCleared,
     creatorTransferredToUserId,
   };
 }

@@ -6,12 +6,8 @@ export const queryKeys = {
     search: (eventId: number | null, dates: string[]) =>
       ["partner-request", "search", eventId, ...dates] as const,
     messages: (id: PRId | null) => ["partner-request", "messages", id] as const,
-    bookingSupport: (id: PRId | null) =>
-      ["partner-request", "booking-support", id] as const,
     joinGates: (id: PRId | null) =>
       ["partner-request", "join-gates", id] as const,
-    reimbursementStatus: (id: PRId | null) =>
-      ["partner-request", "reimbursement-status", id] as const,
     mineCreated: () => ["partner-request", "mine", "created"] as const,
     mineJoined: () => ["partner-request", "mine", "joined"] as const,
     partnerProfile: (prId: PRId | null, partnerId: number | null) =>
@@ -67,10 +63,6 @@ export const queryKeys = {
       ["admin", "pois", "by-names", namesCsv] as const,
     feedbackQuestionnaireTemplates: () =>
       ["admin", "feedback-questionnaires", "templates"] as const,
-    bookingSupport: (eventId: number | null) =>
-      ["admin", "booking-support", eventId] as const,
-    bookingExecutionWorkspace: () =>
-      ["admin", "booking-execution", "workspace"] as const,
     prWorkspace: () => ["admin", "pr-workspace"] as const,
     prMessages: (id: PRId | null) =>
       ["admin", "pr", "messages", id] as const,

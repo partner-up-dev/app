@@ -94,14 +94,12 @@ const props = withDefaults(
     title?: string;
     description?: string | null;
     eventStartAt: string | null;
-    bookingDeadlineAt?: string | null;
     disabled?: boolean;
     stepMinutes?: number;
     validationMessage?: string | null;
   }>(),
   {
     description: null,
-    bookingDeadlineAt: null,
     disabled: false,
     stepMinutes: 5,
     validationMessage: null,
@@ -146,19 +144,11 @@ const editableControls = computed(() => [
 ]);
 
 const eventStartDate = computed(() => parseDate(props.eventStartAt));
-const bookingDeadlineDate = computed(() => parseDate(props.bookingDeadlineAt));
-
 const timelineMarkers = computed(() => {
   const startDate = eventStartDate.value;
   if (!startDate) return [];
 
   const rawMarkers = [
-    {
-      key: "booking-deadline",
-      kind: "reference",
-      label: t("timelinePolicyPicker.bookingDeadline"),
-      at: bookingDeadlineDate.value,
-    },
     {
       key: "confirmation-start",
       kind: "editable",

@@ -22,7 +22,7 @@
 - Structured creation uses one PR-owned form contract. Its `type` field accepts arbitrary input and may offer suggestion options from known event types.
 - Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window.
 - Structured creation uses one PR-owned place-mode result. Route-mode structured creation stores `route` and clears `location`; location-mode structured creation stores `location` and clears `route`.
-- PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, support resources, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
+- PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
 - Event-context PR creation is frontend assistance from Anchor Event surfaces into unified structured PR creation.
 - Event-assisted create resolves frontend-selected event-page choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
 - Anchor Event assisted creation can source suggested place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
@@ -72,7 +72,6 @@
 - `PR` may carry join gates that must be completed before joining. Join gate definitions are PR-owned runtime configuration, while their resolved state comes from the owning fact for each gate kind.
 - When a PR has no configured custom join gate, the frontend flow injects the relevant fallback confirmation view. When any custom join gate exists, the fallback confirmation is absent.
 - Join notice gates are viewer-scoped agreements; each viewer must accept the current gate key and version before joining.
-- Booking contact gates require a usable user phone number for platform passthrough booking. Their presence is explicit join-gate configuration rather than an implicit result of booking-required or platform-handled booking flags.
 - `Partner` submodule may carry explicit confirmation and join-lock settings. Attendance follow-up may appear when the relevant collaboration module is active.
 - Post-event feedback questionnaires are a capability parallel to PR. Anchor Event selects a reusable feedback questionnaire template, PR stores one mounted questionnaire instance pointer, and each submitted answer set is stored as a feedback questionnaire response.
 - A questionnaire instance represents the mounted question definition snapshot for a consumer such as PR. Participant answers belong to response records keyed by the mounted instance and respondent identity.
@@ -126,7 +125,7 @@
 ## 5. Reliability Rules
 
 - Partner admission may have a confirmation window when its explicit configuration carries one and confirmation is enabled. Unconfirmed slots may be released inside that window, and late joining may be blocked.
-- Confirmation can be disabled at PR level. When disabled, the PR has no confirm action, confirmation reminders, confirmation-window auto-confirm, or confirmation-deadline slot release. Join lock, check-in, booking support, and the persistent PR detail notification-subscription management path continue to use their own eligibility rules.
+- Confirmation can be disabled at PR level. When disabled, the PR has no confirm action, confirmation reminders, confirmation-window auto-confirm, or confirmation-deadline slot release. Join lock, check-in, and the persistent PR detail notification-subscription management path continue to use their own eligibility rules.
 - Check-in feedback is not mandatory by default; absence of check-in should remain "unknown" rather than auto-converted into "did not attend".
 - Mounted post-event feedback is optional unless the PR integration presents it for the current collaboration. Absence of a questionnaire response is tracked as missing feedback for that questionnaire instance, separate from attendance state.
 - PR messaging is a non-realtime coordination layer and must not introduce chat-room semantics such as presence, typing, or read receipts.
@@ -139,15 +138,9 @@
 - PR message notifications are limited to at most one send per `PR / recipient / unread wave`.
 - The current `PR_MESSAGE` timing policy is one fixed short-debounce summary opportunity per unread wave.
 - Before a PR message notification is sent, the system must re-validate that the recipient is still a current active participant of that PR.
-- Availability of join, confirm, booking-contact handoff, and similar operations is enforced on backend write paths; frontend may use preflight reads to surface the same guardrails before the user acts.
+- Availability of join, confirm, and similar operations is enforced on backend write paths; frontend may use preflight reads to surface the same guardrails before the user acts.
 - The join command remains authoritative for unresolved join gates and must reject joining when any configured custom gate is unresolved for the current viewer or PR.
-- Notification cards and prompts are contributed by their owning modules, so confirmation, booking, and other features can add notification items without one central interpreter inside the card container.
-- Only `PLATFORM_PASSTHROUGH` booking requires at least one active participant or the joining viewer to have `users.phone_number`. Standard `PLATFORM` booking must keep that requirement absent.
-- When multiple active participants have phone numbers, booking support uses the earliest active participant with `users.phone_number` as the booking contact.
-- The platform-handled booking pending workspace admits PRs that are in `READY`, `FULL`, or `LOCKED_TO_START` and still meet minimum active-participant count. It does not require participants to be `CONFIRMED`.
-- When the booking deadline is reached, invalidation may depend on whether active participants still meet minimum viable count. Lack of confirmation alone must not auto-release the group or mark it unformed.
-- Once a PR enters the platform booking fulfillment stage, operator results must be auditable and notification results must target current active participants rather than only the booking-contact owner.
-- Manual operator release of an invalid booking contact clears that user's `users.phone_number` and records the user-level clearing together with the PR release audit semantics.
+- Notification cards and prompts are contributed by their owning modules, so confirmation and other features can add notification items without one central interpreter inside the card container.
 
 ## 6. Distribution And Revisit Rules
 
@@ -163,7 +156,7 @@
 - `/me` logout clears the browser's current user session and starts a fresh anonymous UUID session for continued anonymous browsing.
 - `/me` should present PR history and POI application history as equal shortcuts under the profile surface while keeping `/pr/mine` as the dedicated PR history route.
 - The "Need Help" path must keep support, author feedback, and about-page routing distinct.
-- Event-specific beta groups are support and activity-coordination entrypoints. They may help users request new sessions, get booking/subsidy support, or coordinate activity context, and backend-owned PR messaging keeps participant visibility and participant rules authoritative.
+- Event-specific beta groups are support and activity-coordination entrypoints. They may help users request new sessions or coordinate activity context, and backend-owned PR messaging keeps participant visibility and participant rules authoritative.
 - PR detail and join-success follow-up may expose the current Anchor Event beta-group QR when the PR resolves to an event with that QR configured.
 - Build metadata shown in `/about` must be interpretable in the current runtime and must not depend on a local git checkout inside the browser environment.
 - Operator-managed configuration counts as product behavior whenever it changes a user-visible path.

@@ -17,7 +17,7 @@
 3. The `time_window` field uses batch or free UI mode. Batch mode offers suggested windows from known event-side availability. Free mode allows direct manual time entry.
 4. The user chooses one place mode for the PR. Location mode supplies one primary location. Route mode supplies an ordered `PR.route` from departure to destination, with optional waypoints.
 5. The UI resolves those inputs into one PR-owned create payload with one concrete `type`, one concrete `time_window`, and one place mode.
-6. The frontend submits the structured create command. If the selected `type` resolves to an Anchor Event, that event's PR creation policy gates user creation, and PR creation materializes that event's PR defaults such as default notes when the create payload has no notes, join gates, support resources, and mounted feedback questionnaire instance onto the created PR.
+6. The frontend submits the structured create command. If the selected `type` resolves to an Anchor Event, that event's PR creation policy gates user creation, and PR creation materializes that event's PR defaults such as default notes when the create payload has no notes, join gates, and mounted feedback questionnaire instance onto the created PR.
 7. If the user already has an authenticated account, the backend creates and publishes the PR inside the same creation flow.
 8. If the user is anonymous, the backend creates a `DRAFT` and waits for a later authenticated publish step.
 9. The publish step assigns creator ownership and returns a shareable, revisitable `PR`.
@@ -28,7 +28,7 @@
 2. The user reads the request details, current count, visible status, participant list, and status-appropriate meeting-point guidance. In the current event-context detail layout, meeting-point guidance appears in the facts card directly under the primary location while it is visible. Route-mode PRs show Route as a separate facts row that can open route map detail. After the PR becomes `ACTIVE`, non-participant viewers see a private meeting-point placeholder while current active participants can still read the guidance. Notification subscriptions remain as a persistent section, the participant roster opens from the facts-card participant row, and venue images use the same clickable label-row entry pattern.
 3. Revisit continuity uses the restored anonymous UUID session; actions that require stronger identity guarantees use authenticated session plus WeChat binding.
 4. Before join, the system checks time-window conflict, state, capacity, context-specific rules, and any PR-owned join gates.
-5. Join gates are rendered as one modal flow on the PR detail page. With no configured custom gate, the frontend injects the relevant fallback confirmation. With custom gates, each unresolved gate contributes one view such as join notice agreement or user-phone collection for booking contact.
+5. Join gates are rendered as one modal flow on the PR detail page. With no configured custom gate, the frontend injects the relevant fallback confirmation. With custom gates, each unresolved gate contributes one join notice agreement view.
 6. If join succeeds in a PR where reminder registration is relevant and confirmation is enabled, the system immediately prompts a dedicated confirmation follow-up with the confirmation reminder subscription, confirmation importance, the confirmation window, and the slot-release consequence. The confirmation follow-up includes the confirmation deadline when known.
 7. The general join-success notification-subscription follow-up focuses on new-partner reminder and meeting-point reminder recommendations, and each recommendation explains why it is useful. When confirmation is disabled for that PR, the join-success sequence starts with this general follow-up while leaving the persistent notification-subscriptions section available on the detail page for later revisit.
 8. After the join-success notification follow-ups are completed, the same flow may show one combined community follow-up view. That view can include the current Anchor Event's beta-group QR with the copy "加群获得活动最新动态", the official-account QR when the user is eligible for that prompt, or both when both are relevant.
@@ -54,12 +54,12 @@
 14. Search results follow the chosen Anchor Event's activity type and time-pool rules; result cards identify candidate PRs by time, location, visible status, and participant count rather than repeating event-side context.
 15. If the search has exactly one result, the system may route directly to `/pr/:id`; otherwise, the user chooses one result from the list.
 16. The user enters an existing `PR` from event card or search-result context. `/events/:eventId?mode=card|list` forwards to `/e/:eventId` with the same explicit route mode, and `/e/:eventId` exposes a footer-top `LIST` / `CARD_RICH` / `FORM` mode switch that writes the route mode. In card mode, the active demand card itself is also a detail-entry affordance, so tapping it should resolve to the same detail intent as the rightward action. In list mode, top-level tabs aggregate by local date while still preserving time-window grouping and location context inside the selected date panel; dates before the current product-local date are expired dates, the expired tab set keeps at most the latest three dates that contain `CLOSED` PRs, expired date panels show `CLOSED` rows, and current or future date panels hide `EXPIRED` rows. Card-mode drag feedback should reveal directional skip versus detail cues in exposed stage space and keep the card body unobscured by opaque action stamps.
-17. The Anchor Event landing page exposes that event's beta-group entry as an independent card. List mode defaults the card to a collapsed summary; card mode defaults it to an expanded state with the QR code. The group is for event-specific support such as requesting new sessions, getting booking/subsidy support, and coordinating activity context.
+17. The Anchor Event landing page exposes that event's beta-group entry as an independent card. List mode defaults the card to a collapsed summary; card mode defaults it to an expanded state with the QR code. The group is for event-specific support such as requesting new sessions and coordinating activity context.
 18. If the current local date, suggested time, or selected place needs a new PR and the Anchor Event PR creation policy allows user creation, the user can create one through the controlled event landing flow. Card and list creation pickers include event-authored time-window description copy in each described time option.
 19. The event landing route resolves its assisted-create choices into the same structured PR create payload shape used by `/pr/new`. Assisted-create place options may resolve to a primary location or to `PR.route`, and the frontend may carry transient event referral context for browser-route continuity.
 20. The event landing route submits the same structured create command used by the form path. If the user already has an authenticated account, the backend creates and publishes the PR inside that same command.
 21. The current Anchor Event and downstream PR detail surfaces may also expose other active Anchor Events as a secondary browsing path, so the user can pivot without leaving the event-context collaboration journey entirely.
-22. The user may then join, continue browsing other visible PRs in that event context, or view booking-support information.
+22. The user may then join or continue browsing other visible PRs in that event context.
 23. The resulting PR may continue through timing and reliability loops such as confirmation, reminders, attendance follow-up, event beta-group follow-up, and mounted post-event feedback when the corresponding modules are active.
 
 ## 4.1 Submit And Review A POI Location Application
@@ -92,7 +92,7 @@
 ## 7. Non-Realtime PR Messaging
 
 1. A current active participant enters a `PR` detail page, reviews the current collaboration context, and uses that page as the handoff point into the dedicated message route `/pr/:id/messages`.
-2. The message experience is a separate page so the detail page can stay focused on facts, participation, booking-support context, and notification-subscription management.
+2. The message experience is a separate page so the detail page can stay focused on facts, participation, and notification-subscription management.
 3. A current active participant can post plain-text messages inside the PR to coordinate meetup details, timing changes, or other collaboration context.
 4. An operator may also add a plain-text system message to one specific `PR` when participants need an official coordination note, fulfillment update, or other operator-authored context inside the same thread.
 5. The system persists both participant messages and operator-authored system messages inside the corresponding `PartnerRequest` context rather than forcing participants into an external chat tool.
@@ -103,24 +103,16 @@
 
 1. The user joins a `PR` whose `Partner` submodule carries explicit reliability-related facts such as confirmation or join-lock settings.
 2. The relevant command path enforces whether confirmation is enabled, whether immediate confirmation is required, whether additional joining is still allowed, and whether unconfirmed slots are released.
-3. If the user still has relevant notification quota, the responsible modules may register reminder, new-partner, or booking-result notifications.
+3. If the user still has relevant notification quota, the responsible modules may register reminder or new-partner notifications.
 4. After the event, the attendance module may collect check-in feedback and contribute to the reliability loop.
 5. When the PR has a mounted feedback questionnaire instance, the PR detail flow may ask the participant to submit that questionnaire after check-in. The feedback command stores questionnaire answers in the feedback system, while the PR flow controls when the questionnaire is presented.
 
-## 9. Admin Booking Execution
-
-1. When a `PR` is in `READY`, `FULL`, or `LOCKED_TO_START`, has reached minimum active participants, and still requires platform-handled booking resources (`PLATFORM` or `PLATFORM_PASSTHROUGH`), the system admits it into the operator pending workspace.
-2. The operator reviews the target PR and executable resources. If the resource uses `PLATFORM_PASSTHROUGH`, the operator also reviews the current booking-contact user's phone number.
-3. The operator submits a success or failure result, and failure requires a reason.
-4. If the current booking-contact phone number is invalid under `PLATFORM_PASSTHROUGH`, the operator can release that contact and clear that user's phone number so another active participant with a valid phone number can take over the flow.
-5. The system records auditable execution results and notifies current active participants when the conditions are met.
-
-## 10. Support, Feedback, and Operator Support
+## 9. Support, Feedback, and Operator Support
 
 1. The user enters `/contact-support` from home or footer-level support entrypoints.
-2. The user is routed toward support, author feedback, or event-specific beta-group selection based on need. When `/contact-support` is opened inside a WeChat mini program webview, reimbursement-staff and platform-support entrypoints use QR presentation instead of outbound links.
+2. The user is routed toward platform support, author feedback, or event-specific beta-group selection based on need. When `/contact-support` is opened inside a WeChat mini program webview, the platform-support entrypoint uses QR presentation instead of outbound links.
 3. The user can also reach `/about` from that path, inspect product and repository metadata, choose which active activity beta group to join, and open the official-account QR modal.
-4. Operator pages maintain event, POI, booking-support, and related capabilities so the above workflows remain operable.
+4. Operator pages maintain event, POI, PR, feedback questionnaire, and related capabilities so the above workflows remain operable.
 5. Operator pages review, publish, or reject user-submitted POI location applications.
-6. PR Admin lets an operator hard-delete a selected PR after explicit confirmation. The delete removes the PR root plus the corresponding Partner rows and PR-owned resource rows.
+6. PR Admin lets an operator hard-delete a selected PR after explicit confirmation. The delete removes the PR root plus the corresponding Partner rows.
 7. Anchor Event Admin lets an operator select the feedback questionnaire template used for future PR materialization, and PR Admin lets an operator replace a specific PR's mounted questionnaire instance pointer.

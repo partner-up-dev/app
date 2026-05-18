@@ -10,7 +10,6 @@ import type { PartnerRequest } from "../../entities/partner-request";
 import {
   getTimeWindowStart,
   getTimeWindowClose,
-  isBookingDeadlineReached,
 } from "./services/time-window.service";
 import {
   hasAnchorParticipationPolicy,
@@ -31,8 +30,6 @@ import {
   cancelWeChatReminderJobsForParticipant,
 } from "../../infra/notifications";
 import { operationLogService } from "../../infra/operation-log";
-import { getEffectiveBookingDeadline } from "../pr-booking-support";
-import { syncAnchorBookingTriggeredState } from "./services/anchor-booking-trigger.service";
 import { applyAnchorParticipantReleaseEffects } from "./services/anchor-participant-release-effects.service";
 import { promoteWaitlistedPartners } from "./services/waitlist.service";
 
@@ -47,30 +44,11 @@ const userReliabilityRepo = new UserReliabilityRepository();
 export async function refreshTemporalStatus(
   request: PartnerRequest,
 ): Promise<PartnerRequest> {
-  const effectiveBookingDeadlineAt = hasAnchorParticipationPolicy(request)
-    ? await getEffectiveBookingDeadline(request.id)
-    : null;
-
   await releaseUnconfirmedSlotsIfNeeded(request);
   const afterRelease = await prRepo.findById(request.id);
   const normalized = afterRelease ?? request;
 
-  await syncAnchorBookingTriggeredState(request.id);
-  const afterSync = await prRepo.findById(request.id);
-  const syncNormalized = afterSync ?? normalized;
-
-  await expireIfUnderMinAfterBookingDeadline(
-    syncNormalized,
-    effectiveBookingDeadlineAt,
-  );
-  const afterDeadlineExpire = await prRepo.findById(request.id);
-  const deadlineNormalized = afterDeadlineExpire ?? syncNormalized;
-
-  await lockToStartIfNeeded(deadlineNormalized, effectiveBookingDeadlineAt);
-  const afterLock = await prRepo.findById(request.id);
-  const lockNormalized = afterLock ?? deadlineNormalized;
-
-  const activated = await activateIfNeeded(lockNormalized);
+  const activated = await activateIfNeeded(normalized);
   return expireIfNeeded(activated);
 }
 
@@ -123,81 +101,6 @@ async function expireIfNeeded(
 
   const updated = await prRepo.updateStatus(request.id, "EXPIRED");
   return updated ?? request;
-}
-
-function shouldLockToStart(
-  request: PartnerRequest,
-  resourceBookingDeadlineAt: Date | null,
-): boolean {
-  if (!hasAnchorParticipationPolicy(request)) {
-    return false;
-  }
-  if (
-    request.status !== "OPEN" &&
-    request.status !== "READY" &&
-    request.status !== "FULL"
-  ) {
-    return false;
-  }
-  return isBookingDeadlineReached(resourceBookingDeadlineAt);
-}
-
-async function lockToStartIfNeeded(
-  request: PartnerRequest,
-  resourceBookingDeadlineAt: Date | null,
-): Promise<void> {
-  if (!shouldLockToStart(request, resourceBookingDeadlineAt)) return;
-
-  const updated = await prRepo.updateStatus(request.id, "LOCKED_TO_START");
-  if (!updated || updated.status !== "LOCKED_TO_START") return;
-
-  operationLogService.log({
-    actorId: null,
-    action: "pr.status.locked_to_start",
-    aggregateType: "partner_request",
-    aggregateId: String(request.id),
-    detail: {
-      previousStatus: request.status,
-      resourceBookingDeadlineAt:
-        resourceBookingDeadlineAt?.toISOString() ?? null,
-      trigger: "booking_deadline",
-    },
-  });
-}
-
-async function expireIfUnderMinAfterBookingDeadline(
-  request: PartnerRequest,
-  resourceBookingDeadlineAt: Date | null,
-): Promise<void> {
-  if (!hasAnchorParticipationPolicy(request)) return;
-  if (!isBookingDeadlineReached(resourceBookingDeadlineAt)) return;
-
-  const slots = await partnerRepo.findByPrId(request.id);
-  const activeCount = slots.filter(
-    (slot) =>
-      slot.status === "JOINED" ||
-      slot.status === "CONFIRMED" ||
-      slot.status === "ATTENDED",
-  ).length;
-  const minPartners = request.minPartners ?? 1;
-  if (activeCount >= minPartners) return;
-
-  const updated = await prRepo.updateStatus(request.id, "EXPIRED");
-  if (!updated || updated.status !== "EXPIRED") return;
-
-  operationLogService.log({
-    actorId: null,
-    action: "pr.status.expired_under_min_active",
-    aggregateType: "partner_request",
-    aggregateId: String(request.id),
-    detail: {
-      activeCount,
-      minPartners,
-      resourceBookingDeadlineAt:
-        resourceBookingDeadlineAt?.toISOString() ?? null,
-      trigger: "booking_deadline",
-    },
-  });
 }
 
 async function resolveReleaseTrigger(

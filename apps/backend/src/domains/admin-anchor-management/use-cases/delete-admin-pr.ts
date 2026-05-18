@@ -3,11 +3,9 @@ import type { PRId, UserId } from "../../../entities";
 import { operationLogService } from "../../../infra/operation-log";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRSupportResourceRepository } from "../../../repositories/PRSupportResourceRepository";
 
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
-const prSupportRepo = new PRSupportResourceRepository();
 
 export async function deleteAdminPR(input: {
   prId: PRId;
@@ -18,10 +16,7 @@ export async function deleteAdminPR(input: {
     return throwHttpProblem({ status: 404, detail: "PR not found" });
   }
 
-  const [partnerCount, supportResourceCount] = await Promise.all([
-    partnerRepo.countTotalByPrId(input.prId),
-    prSupportRepo.countByPrId(input.prId),
-  ]);
+  const partnerCount = await partnerRepo.countTotalByPrId(input.prId);
 
   const deleted = await prRepo.deleteById(input.prId);
   if (!deleted) {
@@ -39,7 +34,6 @@ export async function deleteAdminPR(input: {
       location: existing.location,
       status: existing.status,
       partnerCount,
-      supportResourceCount,
     },
   });
 
@@ -47,6 +41,5 @@ export async function deleteAdminPR(input: {
     ok: true as const,
     prId: input.prId,
     deletedPartnerCount: partnerCount,
-    deletedSupportResourceCount: supportResourceCount,
   };
 }

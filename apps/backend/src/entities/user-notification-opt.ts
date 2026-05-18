@@ -12,7 +12,6 @@ import { users, type UserId } from "./user";
 export const wechatNotificationKindSchema = z.enum([
   "REMINDER_CONFIRMATION",
   "ACTIVITY_START_REMINDER",
-  "BOOKING_RESULT",
   "NEW_PARTNER",
   "MEETING_POINT_UPDATED",
   "WAITLIST_PROMOTED",
@@ -45,15 +44,6 @@ export const userNotificationOpts = pgTable("user_notification_opts", {
   ),
   wechatActivityStartReminderRemainingCount: integer(
     "wechat_activity_start_reminder_remaining_count",
-  )
-    .notNull()
-    .default(0),
-  wechatBookingResultOptIn: boolean("wechat_booking_result_opt_in")
-    .notNull()
-    .default(false),
-  wechatBookingResultOptInAt: timestamp("wechat_booking_result_opt_in_at"),
-  wechatBookingResultRemainingCount: integer(
-    "wechat_booking_result_remaining_count",
   )
     .notNull()
     .default(0),

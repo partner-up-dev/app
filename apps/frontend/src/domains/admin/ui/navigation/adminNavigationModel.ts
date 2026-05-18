@@ -112,25 +112,6 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
-    id: "support-resources",
-    labelKey: "adminCommon.navSupportResourcesGroup",
-    requiredRoles: ["service"],
-    items: [
-      {
-        id: "support-resource-config",
-        labelKey: "adminCommon.navSupportResourceConfig",
-        subtitleKey: "adminCommon.navSupportResourceConfigSubtitle",
-        routeName: "admin-booking-support",
-      },
-      {
-        id: "support-resource-execution",
-        labelKey: "adminCommon.navSupportResourceExecution",
-        subtitleKey: "adminCommon.navSupportResourceExecutionSubtitle",
-        routeName: "admin-booking-execution",
-      },
-    ],
-  },
-  {
     id: "pois",
     labelKey: "adminCommon.navPoisGroup",
     requiredRoles: ["service"],

@@ -35,15 +35,6 @@ export const partnerPaymentStatusSchema = z.enum([
 ]);
 export type PartnerPaymentStatus = z.infer<typeof partnerPaymentStatusSchema>;
 
-export const reimbursementStatusSchema = z.enum([
-  "NONE",
-  "PENDING",
-  "APPROVED",
-  "REJECTED",
-  "PAID",
-]);
-export type ReimbursementStatus = z.infer<typeof reimbursementStatusSchema>;
-
 export const partners = pgTable("partners", {
   id: bigserial("id", { mode: "number" }).$type<PartnerId>().primaryKey(),
   prId: bigint("pr_id", { mode: "number" })
@@ -73,17 +64,6 @@ export const partners = pgTable("partners", {
     .$type<PartnerPaymentStatus>()
     .notNull()
     .default("NONE"),
-  reimbursementRequested: boolean("reimbursement_requested")
-    .notNull()
-    .default(false),
-  reimbursementStatus: text("reimbursement_status")
-    .$type<ReimbursementStatus>()
-    .notNull()
-    .default("NONE"),
-  reimbursementAmount: bigint("reimbursement_amount", { mode: "number" }),
-  reimbursementRequestedAt: timestamp("reimbursement_requested_at"),
-  reimbursementReviewedAt: timestamp("reimbursement_reviewed_at"),
-  reimbursementPaidAt: timestamp("reimbursement_paid_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -19,7 +19,6 @@ import {
   readAnchorEventPRContextRecordsByEventTimeWindow,
   resolvePRPlaceDisplayName,
 } from "../../pr/services";
-import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 import { listAnchorEventTimeWindowDetails } from "../../anchor-event/services/time-window-pool";
 import {
   listAdminAnchorEventRouteApplications,
@@ -50,8 +49,6 @@ type AdminPRSummary = {
   confirmationStartOffsetMinutes: number;
   confirmationEndOffsetMinutes: number;
   joinLockOffsetMinutes: number;
-  bookingTriggeredAt: string | null;
-  effectiveBookingDeadlineAt: string | null;
   createdAt: string;
 };
 
@@ -145,9 +142,6 @@ const toAdminPRSummary = async (
   confirmationStartOffsetMinutes: record.anchor.confirmationStartOffsetMinutes,
   confirmationEndOffsetMinutes: record.anchor.confirmationEndOffsetMinutes,
   joinLockOffsetMinutes: record.anchor.joinLockOffsetMinutes,
-  bookingTriggeredAt: record.anchor.bookingTriggeredAt?.toISOString() ?? null,
-  effectiveBookingDeadlineAt:
-    (await getEffectiveBookingDeadline(record.root.id))?.toISOString() ?? null,
   createdAt: record.root.createdAt.toISOString(),
 });
 

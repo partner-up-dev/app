@@ -44,12 +44,11 @@ Current runtime facts:
 ## WeChat Notification Template Sources
 
 Subscription-message template ids for confirmation-reminder / activity-start-reminder /
-booking-result / new-partner / meeting-point-updated / waitlist-promoted / pr-message
+new-partner / meeting-point-updated / waitlist-promoted / pr-message
 are supplied only through backend `config` rows:
 
 - `wechat.submsg_confirmation_reminder_template_id`
 - `wechat.submsg_activity_start_reminder_template_id`
-- `wechat.submsg_booking_result_template_id`
 - `wechat.submsg_new_partner_template_id`
 - `wechat.submsg_meeting_point_updated_template_id`
 - `wechat.submsg_waitlist_promoted_template_id`

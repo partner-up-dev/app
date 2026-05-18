@@ -9,8 +9,6 @@ import { useExitPR, useJoinPR } from "@/domains/pr/queries/usePRActions";
 import type { ApiError } from "@/shared/api/error";
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
-const BOOKING_CONTACT_PHONE_REQUIRED_CODE = "BOOKING_CONTACT_PHONE_REQUIRED";
-const BOOKING_CONTACT_PHONE_INVALID_CODE = "BOOKING_CONTACT_PHONE_INVALID";
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const AUTHENTICATED_REQUIRED_CODE = "AUTHENTICATED_REQUIRED";
 const WECHAT_AUTH_REQUIRED_CODE = "WECHAT_AUTH_REQUIRED";
@@ -75,12 +73,6 @@ export const useSharedPRActions = ({
     if (!error) return null;
     if (error.code === JOIN_TIME_WINDOW_CONFLICT_CODE) {
       return t("prPage.partnerSection.blockedTimeWindowConflict");
-    }
-    if (error.code === BOOKING_CONTACT_PHONE_REQUIRED_CODE) {
-      return t("prPage.bookingContact.ownerVerifyBeforeJoin");
-    }
-    if (error.code === BOOKING_CONTACT_PHONE_INVALID_CODE) {
-      return t("prPage.bookingContact.verifyFailed");
     }
     if (error.code === PR_JOIN_GATE_UNRESOLVED_CODE) {
       return "请先完成加入前置项";

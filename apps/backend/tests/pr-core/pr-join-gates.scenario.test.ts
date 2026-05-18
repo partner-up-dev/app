@@ -4,7 +4,6 @@ import { scenario } from "../_infra/scenario/scenario";
 import { exitPR } from "./_kit/actions/exit";
 import {
   getJoinGateProjection,
-  resolveBookingContactGate,
   resolveJoinNoticeGate,
 } from "./_kit/actions/join-gates";
 import { joinPartnerRequest } from "./_kit/actions/join";
@@ -16,7 +15,6 @@ import { getTestDb } from "../_infra/probes/sql-probe";
 import {
   partnerRequests,
   prJoinNoticeAcceptances,
-  users,
 } from "../../src/entities";
 
 type ProblemDetailsResponse = {
@@ -129,110 +127,4 @@ scenario("join_notice_gate_blocks_join_until_viewer_accepts", async (ctx) => {
     400,
   );
   assert.equal(rejectedRejoin.code, "PR_JOIN_GATE_UNRESOLVED");
-});
-
-scenario("booking_contact_gate_collects_phone_before_join", async (ctx) => {
-  const creator = await givenUser("booking-contact-creator");
-  const joiner = await givenUser("booking-contact-joiner");
-  const pr = await givenPublishedPartnerRequest({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-  });
-  const db = getTestDb();
-
-  await db
-    .update(partnerRequests)
-    .set({
-      joinGateConfig: [
-        {
-          kind: "BOOKING_CONTACT",
-          key: "scenario-booking-contact",
-          version: "1",
-          title: "Booking contact",
-          source: "PR",
-          prompt: "Phone used for booking communication.",
-        },
-      ],
-    })
-    .where(eq(partnerRequests.id, pr.id));
-
-  ctx.record("prId", pr.id);
-  ctx.record("joinerUserId", joiner.user.id);
-
-  const rejectedJoin = await expectJsonResponse<ProblemDetailsResponse>(
-    await requestJson(`/api/pr/${pr.id}/join`, {
-      method: "POST",
-      token: joiner.token,
-      body: {},
-    }),
-    400,
-  );
-  assert.equal(rejectedJoin.code, "PR_JOIN_GATE_UNRESOLVED");
-
-  const resolvedProjection = await resolveBookingContactGate({
-    pr,
-    user: joiner,
-    gateKey: "scenario-booking-contact",
-    version: "1",
-    phone: "13800138000",
-  });
-  assert.equal(resolvedProjection.gates[0]?.resolved, true);
-
-  const [phoneAfterResolve] = await db
-    .select({ phoneNumber: users.phoneNumber })
-    .from(users)
-    .where(eq(users.id, joiner.user.id));
-  assert.equal(phoneAfterResolve?.phoneNumber, "+8613800138000");
-
-  const joined = await joinPartnerRequest({ pr, user: joiner });
-  assert.equal(joined.status, "READY");
-
-  await exitPR({ pr, user: joiner });
-
-  const afterExitProjection = await getJoinGateProjection({ pr, user: joiner });
-  assert.equal(afterExitProjection.gates[0]?.kind, "BOOKING_CONTACT");
-  assert.equal(afterExitProjection.gates[0]?.resolved, true);
-
-  const rejoined = await joinPartnerRequest({ pr, user: joiner });
-  assert.equal(rejoined.status, "READY");
-});
-
-scenario("booking_contact_gate_reuses_existing_participant_phone", async (ctx) => {
-  const creator = await givenUser("booking-contact-reuse-creator", {
-    phoneNumber: "+8613800138000",
-  });
-  const joiner = await givenUser("booking-contact-reuse-joiner");
-  const pr = await givenPublishedPartnerRequest({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-  });
-  const db = getTestDb();
-
-  await db
-    .update(partnerRequests)
-    .set({
-      joinGateConfig: [
-        {
-          kind: "BOOKING_CONTACT",
-          key: "scenario-booking-contact-reuse",
-          version: "1",
-          title: "Booking contact",
-          source: "PR",
-          prompt: "Phone used for booking communication.",
-        },
-      ],
-    })
-    .where(eq(partnerRequests.id, pr.id));
-
-  ctx.record("prId", pr.id);
-  ctx.record("joinerUserId", joiner.user.id);
-
-  const projection = await getJoinGateProjection({ pr, user: joiner });
-  assert.equal(projection.gates[0]?.kind, "BOOKING_CONTACT");
-  assert.equal(projection.gates[0]?.resolved, true);
-
-  const joined = await joinPartnerRequest({ pr, user: joiner });
-  assert.equal(joined.status, "READY");
 });

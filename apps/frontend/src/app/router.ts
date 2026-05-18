@@ -19,18 +19,12 @@ const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
-const PRBookingSupportPage = () =>
-  import("@/pages/PRBookingSupportPage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
 const BIEntryPage = () => import("@/pages/BIEntryPage.vue");
 const AdminAnchorEventPage = () =>
   import("@/pages/AdminAnchorEventPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
-const AdminBookingSupportPage = () =>
-  import("@/pages/AdminBookingSupportPage.vue");
-const AdminBookingExecutionPage = () =>
-  import("@/pages/AdminBookingExecutionPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
 const AdminFeedbackQuestionnairesPage = () =>
   import("@/pages/AdminFeedbackQuestionnairesPage.vue");
@@ -111,15 +105,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/pr/:id/booking-support",
-    name: "pr-booking-support",
-    component: PRBookingSupportPage,
-    meta: {
-      wechatSharePolicy: "skip",
-      wechatAutoLoginPolicy: "skip",
-    },
-  },
-  {
     path: "/admin/login",
     name: "admin-login",
     component: AdminLoginPage,
@@ -185,24 +170,6 @@ const routes: RouteRecordRaw[] = [
     path: "/admin/pr-messages",
     name: "admin-pr-messages",
     redirect: { name: "admin-pr" },
-  },
-  {
-    path: "/admin/booking-support",
-    name: "admin-booking-support",
-    component: AdminBookingSupportPage,
-    meta: {
-      wechatSharePolicy: "route",
-      requiredRoles: ["service"],
-    },
-  },
-  {
-    path: "/admin/booking-execution",
-    name: "admin-booking-execution",
-    component: AdminBookingExecutionPage,
-    meta: {
-      wechatSharePolicy: "route",
-      requiredRoles: ["service"],
-    },
   },
   {
     path: "/admin/pois",

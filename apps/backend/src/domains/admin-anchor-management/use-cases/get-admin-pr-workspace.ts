@@ -22,7 +22,6 @@ import {
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
   resolvePRPlaceDisplayName,
 } from "../../pr/services";
-import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 
 const anchorEventRepo = new AnchorEventRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -50,7 +49,6 @@ export type AdminPRWorkspaceSummary = {
   confirmationStartOffsetMinutes: number;
   confirmationEndOffsetMinutes: number;
   joinLockOffsetMinutes: number;
-  effectiveBookingDeadlineAt: string | null;
   createdAt: string;
 };
 
@@ -115,8 +113,6 @@ const toAdminPRWorkspaceSummary = async (
     root.confirmationEndOffsetMinutes ?? DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   joinLockOffsetMinutes:
     root.joinLockOffsetMinutes ?? DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-  effectiveBookingDeadlineAt:
-    (await getEffectiveBookingDeadline(root.id))?.toISOString() ?? null,
   createdAt: root.createdAt.toISOString(),
 });
 

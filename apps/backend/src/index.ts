@@ -28,8 +28,6 @@ import { internalMaintenanceRoute } from "./controllers/internal-maintenance.con
 import { poiRoute } from "./controllers/poi.controller";
 import { metaRoute } from "./controllers/meta.controller";
 import { adminAnchorManagementRoute } from "./controllers/admin-anchor-management.controller";
-import { adminBookingExecutionRoute } from "./controllers/admin-booking-execution.controller";
-import { adminBookingSupportRoute } from "./controllers/admin-booking-support.controller";
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { jobRunner } from "./infra/jobs";
 import {
@@ -38,7 +36,6 @@ import {
 } from "./infra/marketing";
 import {
   registerWeChatActivityStartReminderJobs,
-  registerWeChatBookingResultJobs,
   registerWeChatMeetingPointUpdatedJobs,
   registerWeChatNewPartnerJobs,
   registerWeChatPRMessageJobs,
@@ -63,7 +60,6 @@ export const app = new Hono();
 registerWeChatReminderJobs();
 registerWeChatActivityStartReminderJobs();
 registerWeChatNewPartnerJobs();
-registerWeChatBookingResultJobs();
 registerWeChatPRMessageJobs();
 registerWeChatMeetingPointUpdatedJobs();
 registerWeChatWaitlistPromotedJobs();
@@ -186,8 +182,6 @@ export const routes = app
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
   .route("/api/admin", adminAnchorManagementRoute)
-  .route("/api/admin", adminBookingExecutionRoute)
-  .route("/api/admin", adminBookingSupportRoute)
   .route("/api/admin", adminPoiRoute)
   .route("/internal/maintenance", internalMaintenanceRoute);
 
@@ -275,7 +269,6 @@ export type {
   PartnerId,
   PartnerStatus,
   PartnerPaymentStatus,
-  ReimbursementStatus,
 } from "./entities/partner";
 export type { UserId, UserRole, UserStatus, UserSex } from "./entities/user";
 export type {
@@ -286,7 +279,6 @@ export type {
   TimeWindowEntry,
 } from "./entities/anchor-event";
 export type {
-  PRBookingContactGateConfig,
   PRJoinGateConfig,
   PRJoinGateConfigItem,
   PRJoinGateSource,

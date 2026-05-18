@@ -1,11 +1,4 @@
 export {
-  registerWeChatBookingResultJobs,
-  scheduleWeChatBookingResultNotifications,
-  resolveBookingResultStatusLabel,
-} from "./wechat-booking-result";
-export type { BookingResultNotificationSummary } from "./wechat-booking-result";
-
-export {
   registerWeChatActivityStartReminderJobs,
   scheduleWeChatActivityStartReminderJobForParticipant,
   cancelWeChatActivityStartReminderJobsForParticipant,

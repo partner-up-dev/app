@@ -23,7 +23,7 @@
 - Evaluation Dimensions:
   - entry surfaces and suggestions can diverge
   - shared semantics such as participation and timing remain legible
-  - event-assisted collaboration can add discovery and booking context without changing the core object
+  - event-assisted collaboration can add discovery context without changing the core object
 - Evidence Expectation:
   - route families and workflows remain context-aware while durable vocabulary stays `PR`
   - the same `PR` object can be created from natural-language, structured form, and event-assisted paths
@@ -60,7 +60,7 @@
   - notification semantics model real send opportunities rather than a generic toggle
 - Evidence Expectation:
   - the `Partner` submodule and notification modules expose confirmation, reminder, and check-in behavior when the relevant facts are present
-  - fulfillment-related notifications and reliability feedback remain user-visible where relevant
+  - reminder, message, and reliability feedback remain user-visible where relevant
 - Source Rationale:
   - `../_drivers/market-and-user-pressures.md`
   - `../_drivers/operational-realities.md`

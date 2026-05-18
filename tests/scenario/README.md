@@ -93,6 +93,6 @@ Current PR detail coverage:
 - `pr-core/pr-detail-join.scenario.test.ts`: a joiner opens a PR detail page,
   joins through the fallback confirmation gate, and reaches the post-join
   confirm action.
-- `pr-core/pr-detail-participation.scenario.test.ts`: covers booking contact
-  Join gate, participant confirmation, and waitlist promotion after an active
+- `pr-core/pr-detail-participation.scenario.test.ts`: covers Join Notice
+  join gate, participant confirmation, and waitlist promotion after an active
   participant exits.

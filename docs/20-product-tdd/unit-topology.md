@@ -44,7 +44,7 @@ edge.
 Backend clusters:
 
 - PR lifecycle and coordination: `pr`
-- event and booking support: `anchor-event`, `pr-booking-support`
+- event context and POI integration: `anchor-event`, `poi`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
 - cross-cutting infra: events, jobs, notifications, analytics, operation log

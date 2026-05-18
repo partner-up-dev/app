@@ -3,21 +3,11 @@
     <div class="utility-actions">
       <div
         v-if="
-          showBookingSupportEntry ||
           showBetaGroupEntry ||
           (showMessageThread && prId !== null)
         "
         class="utility-action-row"
       >
-        <Button
-          v-if="showBookingSupportEntry"
-          tone="outline"
-          block
-          @click="goBookingSupport"
-        >
-          {{ t("prPage.bookingSupportEntry.viewAction") }}
-        </Button>
-
         <Button
           v-if="showBetaGroupEntry"
           tone="outline"
@@ -112,7 +102,6 @@ import AnchorEventBetaGroupQrPanel from "@/domains/event/ui/primitives/AnchorEve
 import PRShareSection from "@/domains/pr/ui/sections/PRShareSection.vue";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
 import {
-  prBookingSupportPath,
   prMessagesPath,
 } from "@/domains/pr/routing/routes";
 import { trackEvent } from "@/shared/telemetry/track";
@@ -140,9 +129,6 @@ const showMessageThread = computed(
     props.pr.partnerSection.viewer.isParticipant,
 );
 
-const showBookingSupportEntry = computed(
-  () => props.supportsEventContextFeatures,
-);
 const showEventPlazaLink = computed(() => props.supportsEventContextFeatures);
 const betaGroupQrCode = computed(() => {
   const qrCode = props.pr.anchorEventContext?.betaGroupQrCode?.trim() ?? "";
@@ -162,11 +148,6 @@ const showInlineReminderSubscriptions = computed(() => {
 useBodyScrollLock(
   computed(() => showShareDrawer.value || showBetaGroupModal.value),
 );
-
-const goBookingSupport = () => {
-  if (props.prId === null || !props.supportsEventContextFeatures) return;
-  router.push(prBookingSupportPath(props.prId));
-};
 
 const handleOpenMessages = () => {
   if (props.prId === null || !props.supportsEventContextFeatures) return;

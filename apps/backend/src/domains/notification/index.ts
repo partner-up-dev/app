@@ -1,6 +1,5 @@
 export {
   ACTIVITY_START_REMINDER_NOTIFICATION_KIND,
-  BOOKING_RESULT_NOTIFICATION_KIND,
   MEETING_POINT_UPDATED_NOTIFICATION_KIND,
   NEW_PARTNER_NOTIFICATION_KIND,
   PR_MESSAGE_NOTIFICATION_KIND,
@@ -42,20 +41,6 @@ export {
   type PRMessageNotificationJobPayload,
   type PRMessageNotificationScheduler,
 } from "./model/pr-message-notification";
-export {
-  bookingResultNotificationJobPayloadSchema,
-  buildBookingResultDedupeKey,
-  clearBookingResultNotificationCredits,
-  consumeBookingResultNotificationCredit,
-  createBookingResultNotificationSummary,
-  persistBookingResultNotificationSummary,
-  prepareBookingResultNotificationDispatch,
-  recordBookingResultNotificationDelivery,
-  resolveBookingResultStatusLabel,
-  type BookingResultDispatchPreparation,
-  type BookingResultNotificationJobPayload,
-  type BookingResultNotificationSummary,
-} from "./services/booking-result-dispatch.service";
 export {
   activityStartReminderNotificationJobPayloadSchema,
   buildActivityStartReminderDedupeKey,

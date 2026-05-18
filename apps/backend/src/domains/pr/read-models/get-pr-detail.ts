@@ -3,16 +3,10 @@ import type { PRRoute, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
 import { resolveUserByOpenId } from "../../user";
-import { PRSupportResourceRepository } from "../../../repositories/PRSupportResourceRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
-import {
-  buildBookingSupportPreview,
-  getEffectiveBookingDeadline,
-  resolveBookingContactState,
-} from "../../pr-booking-support";
 import {
   buildPRPartnerSection,
   type PartnerSectionView,
@@ -34,7 +28,6 @@ import {
 import { toPublicPR } from "./public-pr-view.service";
 import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
 
-const prSupportRepo = new PRSupportResourceRepository();
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
 const anchorEventRepo = new AnchorEventRepository();
@@ -84,14 +77,6 @@ export type PRDetail = {
       posterUrl: string;
       createdAt: string;
     } | null;
-  };
-  bookingSupport: {
-    available: boolean;
-    overview: {
-      headline: string | null;
-      highlights: string[];
-      effectiveBookingDeadlineAt: string | null;
-    };
   };
   feedbackQuestionnaire: {
     instanceId: number;
@@ -184,15 +169,6 @@ export async function getPRDetailView(
   const canonicalShare = buildPRCanonicalShareMetadata(publicPR);
   const anchorEventContext =
     await resolveAnchorEventContextProjection(publicPR.id);
-  const supportResources = await prSupportRepo.findByPrId(id);
-  const bookingSupportPreview = buildBookingSupportPreview(supportResources);
-  const bookingDeadlineAt = await getEffectiveBookingDeadline(id);
-  const bookingContact = await resolveBookingContactState({
-    prId: id,
-    viewerUserId,
-    supportResources,
-    effectiveBookingDeadlineAt: bookingDeadlineAt,
-  });
   const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
     id,
   );
@@ -259,15 +235,6 @@ export async function getPRDetailView(
           }
         : null,
     },
-    bookingSupport: {
-      available: supportResources.length > 0,
-      overview: {
-        headline: bookingSupportPreview.headline,
-        highlights: bookingSupportPreview.highlights,
-        effectiveBookingDeadlineAt:
-          bookingSupportPreview.effectiveBookingDeadlineAt,
-      },
-    },
     feedbackQuestionnaire: feedbackInstance
       ? {
           instanceId: feedbackInstance.id,
@@ -292,8 +259,6 @@ export async function getPRDetailView(
       rosterParticipants,
       viewerUserId,
       policy,
-      bookingDeadlineAt,
-      bookingContact,
       participationFrequencyLimited:
         participationFrequencyEvaluation.allowed === false,
     }),

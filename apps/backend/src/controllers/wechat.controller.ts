@@ -156,10 +156,6 @@ const buildNotificationChannelState = async (): Promise<{
     NotificationSubscriptionState,
     "configured" | "requiresOpenSubscribe" | "templateId"
   >;
-  bookingResult: Pick<
-    NotificationSubscriptionState,
-    "configured" | "requiresOpenSubscribe" | "templateId"
-  >;
   newPartner: Pick<
     NotificationSubscriptionState,
     "configured" | "requiresOpenSubscribe" | "templateId"
@@ -184,7 +180,6 @@ const buildNotificationChannelState = async (): Promise<{
   const [
     reminderTemplateId,
     activityStartReminderTemplateId,
-    bookingResultTemplateId,
     newPartnerTemplateId,
     prMessageTemplateId,
     meetingPointUpdatedTemplateId,
@@ -192,7 +187,6 @@ const buildNotificationChannelState = async (): Promise<{
   ] = await Promise.all([
     subscriptionMessageService.getConfirmationReminderTemplateId(),
     subscriptionMessageService.getActivityStartReminderTemplateId(),
-    subscriptionMessageService.getBookingResultTemplateId(),
     subscriptionMessageService.getNewPartnerTemplateId(),
     subscriptionMessageService.getPRMessageTemplateId(),
     subscriptionMessageService.getMeetingPointUpdatedTemplateId(),
@@ -202,7 +196,6 @@ const buildNotificationChannelState = async (): Promise<{
   const [
     reminderSubmsgConfigured,
     activityStartReminderSubmsgConfigured,
-    bookingResultSubmsgConfigured,
     newPartnerSubmsgConfigured,
     prMessageSubmsgConfigured,
     meetingPointUpdatedSubmsgConfigured,
@@ -210,7 +203,6 @@ const buildNotificationChannelState = async (): Promise<{
   ] = await Promise.all([
     subscriptionMessageService.isConfirmationReminderConfigured(),
     subscriptionMessageService.isActivityStartReminderConfigured(),
-    subscriptionMessageService.isBookingResultConfigured(),
     subscriptionMessageService.isNewPartnerConfigured(),
     subscriptionMessageService.isPRMessageConfigured(),
     subscriptionMessageService.isMeetingPointUpdatedConfigured(),
@@ -230,12 +222,6 @@ const buildNotificationChannelState = async (): Promise<{
         activityStartReminderSubmsgConfigured &&
         Boolean(activityStartReminderTemplateId),
       templateId: activityStartReminderTemplateId,
-    },
-    bookingResult: {
-      configured: bookingResultSubmsgConfigured,
-      requiresOpenSubscribe:
-        bookingResultSubmsgConfigured && Boolean(bookingResultTemplateId),
-      templateId: bookingResultTemplateId,
     },
     newPartner: {
       configured: newPartnerSubmsgConfigured,
@@ -297,14 +283,6 @@ const buildAnonymousSubscriptionsResponse = async (configured: boolean) => {
         requiresOpenSubscribe:
           channels.activityStartReminder.requiresOpenSubscribe,
         templateId: channels.activityStartReminder.templateId,
-      },
-      BOOKING_RESULT: {
-        enabled: false,
-        optInAt: null,
-        remainingCount: 0,
-        configured: channels.bookingResult.configured,
-        requiresOpenSubscribe: channels.bookingResult.requiresOpenSubscribe,
-        templateId: channels.bookingResult.templateId,
       },
       NEW_PARTNER: {
         enabled: false,
@@ -368,10 +346,6 @@ const buildAuthenticatedSubscriptionsResponse = async (
     notificationOpt,
     "REMINDER_CONFIRMATION",
   );
-  const bookingResult = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "BOOKING_RESULT",
-  );
   const activityStartReminder = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     "ACTIVITY_START_REMINDER",
@@ -421,16 +395,6 @@ const buildAuthenticatedSubscriptionsResponse = async (
         requiresOpenSubscribe:
           channels.activityStartReminder.requiresOpenSubscribe,
         templateId: channels.activityStartReminder.templateId,
-      },
-      BOOKING_RESULT: {
-        enabled: bookingResult.enabled,
-        optInAt: bookingResult.optInAt
-          ? bookingResult.optInAt.toISOString()
-          : null,
-        remainingCount: bookingResult.remainingCount,
-        configured: channels.bookingResult.configured,
-        requiresOpenSubscribe: channels.bookingResult.requiresOpenSubscribe,
-        templateId: channels.bookingResult.templateId,
       },
       NEW_PARTNER: {
         enabled: newPartner.enabled,

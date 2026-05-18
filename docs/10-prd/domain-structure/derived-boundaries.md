@@ -39,7 +39,7 @@ Focus:
 - Anchor Event and time-pool context
 - entering `PR` from event browsing
 - alternative recommendations
-- booking-support and POI semantics
+- POI semantics
 
 ## 5. Distribution And Attribution
 

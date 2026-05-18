@@ -26,7 +26,6 @@ export {
   isJoinLockedByTime,
   hasEventStarted,
   isWithinActiveWindow,
-  isBookingDeadlineReached,
   type TimeWindow,
 } from "../../pr-core/services/time-window.service";
 export {
@@ -67,7 +66,6 @@ export {
   isJoinableStatus,
   isExitAllowedStatus,
 } from "../../pr-core/services/status-rules";
-export { syncAnchorBookingTriggeredState } from "../../pr-core/services/anchor-booking-trigger.service";
 export { applyAnchorParticipantReleaseEffects } from "../../pr-core/services/anchor-participant-release-effects.service";
 export {
   isWaitlistOpenForRequest,
@@ -93,10 +91,7 @@ export {
   getPRJoinGateProjection,
   resolvePRJoinGate,
   assertPRJoinGatesResolvedForUser,
-  hasBookingContactJoinGate,
   PR_JOIN_GATE_UNRESOLVED_CODE,
-  BOOKING_CONTACT_PHONE_REQUIRED_CODE,
-  BOOKING_CONTACT_PHONE_INVALID_CODE,
   type PRJoinGateProjection,
   type PRJoinGateProjectionItem,
   type ResolveJoinGatePayload,

@@ -8,10 +8,6 @@ type CanonicalPRDetailView = InferResponseType<(typeof client.api.pr)[":id"]["$g
 export type PRDetailView = CanonicalPRDetailView;
 export type PRPartnerSectionView = CanonicalPRDetailView["partnerSection"];
 
-export type PRBookingSupportView = InferResponseType<
-  (typeof client.api.pr)[":id"]["booking-support"]["$get"]
->;
-
 export type PRSearchView = InferResponseType<
   (typeof client.api.pr)["search"]["$get"]
 >;

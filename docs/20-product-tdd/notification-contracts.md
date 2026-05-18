@@ -33,7 +33,6 @@ One-shot notifications represent a single opportunity created from a business co
 
 - `REMINDER_CONFIRMATION`
 - `ACTIVITY_START_REMINDER`
-- `BOOKING_RESULT`
 - `NEW_PARTNER`
 - `MEETING_POINT_UPDATED`
 - `WAITLIST_PROMOTED`
@@ -61,14 +60,13 @@ Business domains emit business events such as:
 - `partner.joined`
 - explicit waitlist promotion scheduling from PR participation logic
 - exact same-type and same-location alternative PR availability from PR waitlist and candidate-availability logic
-- booking execution submission through the admin booking execution flow
 
 `domains/notification` evaluates those facts or the scheduling input, creates `notification_opportunities` / `notification_waves`, and emits notification-owned events:
 
 - `notification.wave_opened`
 - `notification.opportunity_created`
 
-This keeps PR, Booking Support, and future domains coupled to business events and read models, while notification owns attention policy.
+This keeps PR and future domains coupled to business events and read models, while notification owns attention policy.
 
 ## Dispatch Contract
 

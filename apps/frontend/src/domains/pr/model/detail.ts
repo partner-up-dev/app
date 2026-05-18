@@ -4,6 +4,3 @@ import { client } from "@/lib/rpc";
 type CanonicalPRDetail = InferResponseType<(typeof client.api.pr)[":id"]["$get"]>;
 
 export type PRDetail = CanonicalPRDetail;
-export type PRBookingSupportDetail = InferResponseType<
-  (typeof client.api.pr)[":id"]["booking-support"]["$get"]
->;

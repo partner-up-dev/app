@@ -8,7 +8,7 @@ import type { ScenarioUser } from "../builders/users";
 export type JoinGateProjectionResponse = {
   gates: Array<{
     key: string;
-    kind: "JOIN_NOTICE" | "BOOKING_CONTACT";
+    kind: "JOIN_NOTICE";
     version: string;
     resolved: boolean;
   }>;
@@ -42,27 +42,6 @@ export async function resolveJoinNoticeGate(input: {
         kind: "JOIN_NOTICE",
         version: input.version,
         accepted: input.accepted,
-      },
-    }),
-    200,
-  );
-}
-
-export async function resolveBookingContactGate(input: {
-  pr: ScenarioPartnerRequest;
-  user: ScenarioUser;
-  gateKey: string;
-  version: string;
-  phone?: string;
-}): Promise<JoinGateProjectionResponse> {
-  return expectJsonResponse<JoinGateProjectionResponse>(
-    await requestJson(`/api/pr/${input.pr.id}/join-gates/${input.gateKey}/resolve`, {
-      method: "POST",
-      token: input.user.token,
-      body: {
-        kind: "BOOKING_CONTACT",
-        version: input.version,
-        phone: input.phone,
       },
     }),
     200,

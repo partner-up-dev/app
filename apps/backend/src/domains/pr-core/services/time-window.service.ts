@@ -190,15 +190,3 @@ export function isWithinActiveWindow(timeWindow: TimeWindow): boolean {
 
   return true;
 }
-
-/** Has the resource booking deadline been reached? */
-export function isBookingDeadlineReached(
-  deadline: Date | string | null | undefined,
-): boolean {
-  if (!deadline) return false;
-
-  const parsed =
-    deadline instanceof Date ? deadline : parseTimeWindowDate(deadline);
-  if (!parsed) return false;
-  return Date.now() >= parsed.getTime();
-}
