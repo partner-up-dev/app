@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, unref, type MaybeRef } from "vue";
 import type {
+  AnchorEventRoutePool,
   AnchorEventParticipationFrequencyLimit,
   PRRoute,
   PRJoinGateConfig,
@@ -83,6 +84,7 @@ export type AdminAnchorEventInput = {
   type: string;
   description: string | null;
   locationPool: string[];
+  routePool: AnchorEventRoutePool;
   meetingPoint?: MeetingPointInput | null;
   locationMeetingPoints?: Record<string, MeetingPointInput>;
   joinGateConfig: PRJoinGateConfig;
@@ -176,6 +178,7 @@ export const useUpdateAdminAnchorEvent = () => {
     },
   });
 };
+
 export const useAcceptAdminRouteApplication = () => {
   const queryClient = useQueryClient();
 

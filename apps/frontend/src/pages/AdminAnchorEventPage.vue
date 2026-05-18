@@ -60,6 +60,14 @@
             @save="handleSaveAnchorEventBasic"
           />
 
+          <AnchorEventLocationsSection
+            v-if="activeAdminSection === 'anchor-event-locations'"
+            v-model="eventForm"
+            :save-label="eventSaveLabel"
+            :save-disabled="isLocationsSaveDisabled"
+            @save="handleSaveAnchorEventLocations"
+          />
+
           <AnchorEventRouteApplicationsSection
             v-if="activeAdminSection === 'anchor-event-route-applications'"
             :applications="routeApplications"
@@ -67,14 +75,6 @@
             :disabled="isRouteApplicationReviewPending"
             @accept="handleAcceptRouteApplication"
             @reject="handleRejectRouteApplication"
-          />
-
-          <AnchorEventLocationsSection
-            v-if="activeAdminSection === 'anchor-event-locations'"
-            v-model="eventForm"
-            :save-label="eventSaveLabel"
-            :save-disabled="isLocationsSaveDisabled"
-            @save="handleSaveAnchorEventLocations"
           />
 
           <AnchorEventTimeSection
@@ -172,7 +172,9 @@ const emptyEventForm = (): EventForm => ({
   title: "",
   type: "",
   description: "",
+  placePoolMode: "location",
   locationPoolText: "",
+  routePool: [],
   meetingPointDescription: "",
   meetingPointImageUrl: "",
   locationMeetingPoints: {},
@@ -209,7 +211,9 @@ const toEventForm = (event: EventRecord): EventForm => ({
   title: event.title,
   type: event.type,
   description: event.description ?? "",
+  placePoolMode: event.routePool.length > 0 ? "route" : "location",
   locationPoolText: event.locationPool.join("\n"),
+  routePool: event.routePool,
   meetingPointDescription: event.meetingPoint?.description ?? "",
   meetingPointImageUrl: event.meetingPoint?.imageUrl ?? "",
   locationMeetingPoints: toEditableLocationMeetingPoints(
@@ -618,6 +622,7 @@ const handleRejectRouteApplication = async (payload: {
     // Mutation state already drives page-level feedback.
   }
 };
+
 </script>
 
 <style lang="scss" scoped>

@@ -274,6 +274,8 @@ export type { UserId, UserRole, UserStatus, UserSex } from "./entities/user";
 export type {
   AnchorEventId,
   AnchorEventParticipationFrequencyLimit,
+  AnchorEventRoutePool,
+  AnchorEventRoutePoolEntry,
   AnchorEventStatus,
   LocationEntry,
   TimeWindowEntry,
@@ -293,6 +295,7 @@ export type {
   CreateTimeWindowDetail,
   EventPRSummary,
 } from "./domains/anchor-event";
+export type { AnchorEventRouteApplicationView } from "./domains/anchor-event-route-application";
 export type {
   AnchorEventAnalyticsRenderedMode,
   AnchorEventFunnelResponse,

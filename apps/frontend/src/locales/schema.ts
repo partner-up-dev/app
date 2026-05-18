@@ -1460,7 +1460,16 @@ export interface MessageSchema {
     eventDefaultMinPartnersLabel: string;
     eventDefaultMaxPartnersLabel: string;
     eventPoiHint: string;
+    eventPlacePoolModeAria: string;
+    eventPlacePoolModeLocation: string;
+    eventPlacePoolModeRoute: string;
     eventLocationPoolLabel: string;
+    eventRoutePoolHint: string;
+    eventRoutePoolAddAction: string;
+    eventRoutePoolEmpty: string;
+    eventRoutePoolIdLabel: string;
+    eventRoutePoolRemoveAction: string;
+    eventRoutePoolSummaryFallback: string;
     eventDefaultMeetingPointTitle: string;
     eventLocationMeetingPointsTitle: string;
     eventLocationMeetingPointsLabel: string;

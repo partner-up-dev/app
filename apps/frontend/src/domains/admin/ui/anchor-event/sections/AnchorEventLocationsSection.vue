@@ -18,14 +18,17 @@
           </Button>
         </template>
 
-        <AnchorEventLocationPoolEditor v-model="form" />
+        <AnchorEventPlacePoolEditor v-model="form" />
       </BentoItem>
 
       <BentoItem :title="t('adminPR.eventDefaultMeetingPointTitle')">
         <AnchorEventDefaultMeetingPointEditor v-model="form" />
       </BentoItem>
 
-      <BentoItem :title="t('adminPR.eventLocationMeetingPointsTitle')">
+      <BentoItem
+        v-if="form.placePoolMode === 'location'"
+        :title="t('adminPR.eventLocationMeetingPointsTitle')"
+      >
         <AnchorEventLocationMeetingPointsEditor v-model="form" />
       </BentoItem>
     </BentoLayout>
@@ -39,7 +42,7 @@ import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventDefaultMeetingPointEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventDefaultMeetingPointEditor.vue";
 import AnchorEventLocationMeetingPointsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLocationMeetingPointsEditor.vue";
-import AnchorEventLocationPoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLocationPoolEditor.vue";
+import AnchorEventPlacePoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventPlacePoolEditor.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 
 defineProps<{
