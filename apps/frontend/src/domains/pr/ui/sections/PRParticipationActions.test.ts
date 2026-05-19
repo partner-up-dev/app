@@ -36,6 +36,7 @@ vi.mock("@/domains/pr/queries/usePRActions", () => {
     useCancelWaitlistPR: createMutation,
     useExitPR: createMutation,
     useJoinPR: createMutation,
+    useWaitlistPR: createMutation,
   };
 });
 
@@ -71,17 +72,10 @@ vi.mock("@/domains/pr/ui/composites/PRJoinSuccessPrompt.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/pr/ui/composites/PRWaitlistFlow.vue", () => ({
+vi.mock("@/domains/pr/ui/composites/PRWaitlistSuccessPrompt.vue", () => ({
   default: {
-    name: "PRWaitlistFlow",
-    props: ["disabled"],
-    setup() {
-      return {
-        open: vi.fn(),
-      };
-    },
-    template:
-      '<div><slot :open="open" :pending="false" :disabled="disabled" :joined="false" :error-message="null" /></div>',
+    name: "PRWaitlistSuccessPrompt",
+    template: '<div data-testid="waitlist-success-prompt" />',
   },
 }));
 
@@ -159,6 +153,58 @@ describe("PR participation action components", () => {
     });
 
     expect(hasTestId(host, "pr-detail.waitlist.open")).toBe(true);
+  });
+
+  test("waitlist component opens the waitlist gate modal from the trigger", async () => {
+    const host = await mountComponent(PRWaitlistActions, {
+      pr: buildPRDetail({
+        viewer: {
+          canWaitlist: true,
+        },
+      }),
+      joinEntryContext: entryContext,
+    });
+
+    const trigger = host.querySelector<HTMLButtonElement>(
+      '[data-testid="pr-detail.waitlist.open"]',
+    );
+    trigger?.click();
+    await nextTick();
+
+    expect(
+      hasTestId(document.body, "pr-detail.waitlist.alternative-reminder"),
+    ).toBe(true);
+    expect(hasTestId(document.body, "join-gates")).toBe(true);
+  });
+
+  test("waitlist component renders notice and cancel for waitlisted viewers", async () => {
+    const host = await mountComponent(PRWaitlistActions, {
+      pr: buildPRDetail({
+        viewer: {
+          isWaitlisted: true,
+          waitlistRank: 2,
+        },
+      }),
+      joinEntryContext: entryContext,
+    });
+
+    expect(hasTestId(host, "pr-detail.waitlist.notice")).toBe(true);
+    expect(hasTestId(host, "pr-detail.waitlist.cancel")).toBe(true);
+    expect(hasTestId(host, "pr-detail.waitlist.open")).toBe(false);
+  });
+
+  test("waitlist component hides waitlist trigger for participants", async () => {
+    const host = await mountComponent(PRWaitlistActions, {
+      pr: buildPRDetail({
+        viewer: {
+          isParticipant: true,
+          canWaitlist: true,
+        },
+      }),
+      joinEntryContext: entryContext,
+    });
+
+    expect(hasTestId(host, "pr-detail.waitlist.open")).toBe(false);
   });
 
   test("confirmation component renders confirm for joined participants", async () => {

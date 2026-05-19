@@ -1,6 +1,6 @@
 # Join / Waitlist Flow Follow-Up
 
-Status: join / exit slice implemented in working tree; waitlist and pending replay follow-ups remain.
+Status: join / exit slice committed; waitlist slice implemented in working tree; pending replay follow-up remains.
 
 ## Objective & Hypothesis
 
@@ -35,7 +35,9 @@ Hypothesis:
 - Form Mode uses the `PRJoinAction` trigger slot to render its own matched / candidate buttons and emit surface-specific telemetry before opening the join workflow.
 - Form Mode candidates do not naturally have the full canonical `PRDetailView`; they have candidate summary data plus event / rank attribution.
 - `PRJoinSuccessPrompt` owns the prompt-specific `usePRDetail(prId)` read, enabled only while the prompt is open.
-- `PRWaitlistFlow` is only used by `PRWaitlistActions` today, but it has the same slot-wrapper shape and owns a similarly heavy workflow.
+- `PRWaitlistFlow` was removed in the waitlist slice.
+- `PRWaitlistActions` now directly owns waitlist trigger visibility, gate modal assembly, waitlist command execution, result telemetry, success modal assembly, and cancel-waitlist confirmation.
+- `PRWaitlistSuccessPrompt` is content-only and owns the waitlist success prompt step state.
 - `entry=join` is Form Mode route behavior, not reusable join behavior. It must stay with Form Mode / route handoff surfaces and should not enter `useJoinPR`.
 - `api/pr/:id/publish`, `/status`, `/content`, `/join`, `/waitlist`, and `/join-gates/:gateKey/resolve` no longer return an `auth` object in JSON body. Session refresh stays in auth transport/session infrastructure.
 
@@ -69,7 +71,7 @@ Kept intentionally:
 - `PRJoinAction` owns join gate modal state, join mutation execution, success prompt modal assembly, and a narrow `trigger` slot for Form Mode.
 - `PRExitAction` owns exit visibility, blocked copy, confirmation dialog state, and exit mutation.
 - Form Mode owns `entry=join` route behavior after matched / candidate join success.
-- `PRWaitlistFlow` remains for a later waitlist slice.
+- `PRWaitlistActions` remains the PR-detail waitlist vertical owner.
 
 ## Join Flow Direction
 
@@ -169,11 +171,104 @@ Important distinction:
 
 Target:
 
-- Move waitlist mutation, telemetry, gate state, alternative reminder opt-in, and success prompt state into narrow waitlist action/content primitives.
-- Let `PRWaitlistActions` own the PR-detail waitlist button, notice, cancellation dialog, and visibility rules.
-- If Form Mode later needs candidate waitlist, compose the same command and content primitives from a narrow waitlist action component rather than re-growing `PRWaitlistFlow`.
+- Delete `PRWaitlistFlow`.
+- Let `PRWaitlistActions` own the PR-detail waitlist vertical:
+  - waitlist visible / blocked / already-waitlisted notices
+  - waitlist trigger button
+  - waitlist gate modal assembly
+  - `useWaitlistPR` command execution
+  - alternative PR reminder opt-in state
+  - waitlist result telemetry
+  - waitlist success modal assembly
+  - cancel-waitlist button, confirmation dialog, command, and local error state
+- Extract success prompt content into `PRWaitlistSuccessPrompt`, not `PRWaitlistSuccessPromptModal`.
+- Keep modal containers in `PRWaitlistActions`.
+- Keep gate content as existing `PRJoinGates` plus `PRWaitlistFallbackConfirmGate`.
+- If Form Mode later needs candidate waitlist, introduce a narrow custom trigger slot on the waitlist action only when there is a real second surface. Do not preserve `PRWaitlistFlow` preemptively for hypothetical reuse.
 
 This avoids leaving a large slot wrapper in place just because future surfaces might need custom buttons.
+
+Implemented waitlist topology:
+
+```mermaid
+flowchart TD
+  PRPage["PRPage"] --> WaitlistActions["PRWaitlistActions\nwaitlist vertical owner"]
+  WaitlistActions --> WaitlistCommand["useWaitlistPR"]
+  WaitlistActions --> WaitlistGateModal["Modal owned by PRWaitlistActions"]
+  WaitlistGateModal --> AlternativeReminder["alternative reminder checkbox"]
+  WaitlistGateModal --> WaitlistGates["PRJoinGates\nfallback: PRWaitlistFallbackConfirmGate"]
+  WaitlistActions --> WaitlistSuccessModal["Modal owned by PRWaitlistActions"]
+  WaitlistSuccessModal --> WaitlistSuccessPrompt["PRWaitlistSuccessPrompt\ncontent only"]
+  WaitlistActions --> CancelCommand["useCancelWaitlistPR"]
+  WaitlistActions --> CancelConfirm["ConfirmDialog"]
+```
+
+Removed:
+
+- `PRWaitlistFlow.vue`
+
+Added:
+
+- `PRWaitlistSuccessPrompt.vue`
+
+Previous waitlist topology:
+
+```mermaid
+flowchart TD
+  PRPage["PRPage"] --> WaitlistActions["PRWaitlistActions"]
+  WaitlistActions --> WaitlistFlow["PRWaitlistFlow\nslot wrapper + workflow owner"]
+  WaitlistFlow --> WaitlistGateModal["Modal"]
+  WaitlistGateModal --> AlternativeReminder["alternative reminder checkbox"]
+  WaitlistGateModal --> WaitlistGates["PRJoinGates\nfallback: PRWaitlistFallbackConfirmGate"]
+  WaitlistFlow --> WaitlistCommand["useWaitlistPR"]
+  WaitlistFlow --> WaitlistTelemetry["pr_waitlist_result\npr_commitment_result"]
+  WaitlistFlow --> WaitlistSuccessModal["Modal"]
+  WaitlistSuccessModal --> WaitlistSuccessContent["subscriptions + official-account prompt"]
+  WaitlistActions --> CancelCommand["useCancelWaitlistPR"]
+  WaitlistActions --> CancelConfirm["ConfirmDialog"]
+```
+
+Target waitlist topology, now implemented:
+
+```mermaid
+flowchart TD
+  PRPage["PRPage"] --> WaitlistActions["PRWaitlistActions\nwaitlist vertical owner"]
+  WaitlistActions --> WaitlistCommand["useWaitlistPR"]
+  WaitlistActions --> WaitlistGateModal["Modal owned by PRWaitlistActions"]
+  WaitlistGateModal --> AlternativeReminder["alternative reminder checkbox"]
+  WaitlistGateModal --> WaitlistGates["PRJoinGates\nfallback: PRWaitlistFallbackConfirmGate"]
+  WaitlistActions --> WaitlistSuccessModal["Modal owned by PRWaitlistActions"]
+  WaitlistSuccessModal --> WaitlistSuccessPrompt["PRWaitlistSuccessPrompt\ncontent only"]
+  WaitlistActions --> CancelCommand["useCancelWaitlistPR"]
+  WaitlistActions --> CancelConfirm["ConfirmDialog"]
+```
+
+Boundary notes:
+
+- `PRWaitlistActions` remains a single PR-detail action component for now because waitlist and cancel-waitlist are the same vertical state machine from the user's point of view.
+- Splitting `PRCancelWaitlistAction` is possible later if cancellation gains independent surfaces, copy, telemetry, or command policy. It is not required for deleting `PRWaitlistFlow`.
+- `PRWaitlistSuccessPrompt` may own the success-prompt step state and official-account prompt state, but it must not own a `Modal`.
+- `PRWaitlistSuccessPrompt` should receive `alternativePrReminderOptIn` or resolved visible notification kinds as input rather than owning the waitlist command state.
+- `PRWaitlistActions` should continue exposing `replayWaitlist()` for the existing pending WeChat replay path until the replay registry follow-up is extracted.
+
+Waitlist slice verification:
+
+- `PRParticipationActions.test.ts` no longer mocks `PRWaitlistFlow`; it mocks lower content primitives where necessary.
+- Added / kept coverage for:
+  - waitlistable visitor shows `data-testid="pr-detail.waitlist.open"`
+  - waitlisted viewer shows `data-testid="pr-detail.waitlist.notice"` and cancel affordance
+  - participant / non-waitlistable viewer does not show the waitlist trigger
+- Run so far:
+  - `pnpm exec vitest run --project frontend-unit apps/frontend/src/domains/pr/ui/sections/PRParticipationActions.test.ts`
+  - `pnpm test:unit:frontend`
+  - `pnpm --filter @partner-up-dev/frontend exec vite build`
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens`
+  - `rg -n "PRWaitlistFlow" apps/frontend/src -g "*.vue" -g "*.ts"`
+  - `git diff --check`
+- `pnpm --filter @partner-up-dev/frontend build` is currently blocked by unrelated Form Mode fuzzy-time type errors in the working tree:
+  - `apps/backend/src/domains/anchor-event/use-cases/recommend-form-mode-prs.ts`
+  - `apps/frontend/src/domains/event/model/form-mode.ts`
+  - `apps/frontend/src/domains/event/queries/useAnchorEventFormModeRecommendation.ts`
 
 ## Pending WeChat Replay Follow-Up
 
@@ -214,5 +309,4 @@ This keeps route/process handoff out of the page template assembly and makes new
   - `pnpm --filter @partner-up-dev/frontend lint:tokens`
   - `git diff --check`
 - Still needed for future slices:
-  - waitlist flow deletion coverage
   - pending WeChat replay registry coverage

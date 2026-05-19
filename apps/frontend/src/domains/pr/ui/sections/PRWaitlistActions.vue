@@ -18,47 +18,35 @@
       data-testid="pr-detail.waitlist.notice"
     />
 
-    <PRWaitlistFlow
-      ref="waitlistFlowRef"
-      :pr-id="pr.id"
-      :disabled="!showWaitlistAction"
-      :scenario-type="pr.core.type"
-      :event-id="joinEntryContext.routeEventId"
-      :entry-surface="joinEntryContext.joinEntrySurface"
-      :confirmation-deadline-at="confirmationDeadlineAt"
-      :viewer-is-participant="viewer.isParticipant"
-    >
-      <template #default="{ open, pending, disabled, joined, errorMessage }">
-        <div v-if="showWaitlistAction" class="primary-action">
-          <Button
-            class="primary-action__button"
-            tone="primary"
-            :disabled="disabled"
-            :loading="pending"
-            block
-            data-testid="pr-detail.waitlist.open"
-            @click="handleWaitlistAction(open, pending, disabled)"
-          >
-            {{
-              joined
-                ? t("prPage.waitlisted")
-                : pending
-                  ? t("prPage.waitlisting")
-                  : t("prPage.waitlist")
-            }}
-          </Button>
-          <p v-if="errorMessage" class="action-error">
-            {{ errorMessage }}
-          </p>
-        </div>
-      </template>
-    </PRWaitlistFlow>
+    <div v-if="showWaitlistAction" class="primary-action">
+      <Button
+        class="primary-action__button"
+        tone="primary"
+        :disabled="openDisabled"
+        :loading="flowPending"
+        block
+        data-testid="pr-detail.waitlist.open"
+        @click="handleWaitlistAction"
+      >
+        {{
+          waitlisted
+            ? t("prPage.waitlisted")
+            : flowPending
+              ? t("prPage.waitlisting")
+              : t("prPage.waitlist")
+        }}
+      </Button>
+      <p v-if="waitlistActionError" class="action-error">
+        {{ waitlistActionError }}
+      </p>
+    </div>
 
     <div v-if="showCancelWaitlistAction" class="secondary-action">
       <Button
         tone="surface"
         :loading="cancelWaitlistMutation.isPending.value"
         block
+        data-testid="pr-detail.waitlist.cancel"
         @click="requestCancelWaitlistWithConfirm"
       >
         {{
@@ -87,27 +75,76 @@
       @confirm="confirmCancelWaitlist"
     />
   </section>
+
+  <Modal
+    :open="showWaitlistGateModal"
+    max-width="420px"
+    title="提交候补"
+    @close="closeWaitlistGateModal"
+  >
+    <label class="alternative-reminder-option">
+      <input
+        v-model="alternativePrReminderOptIn"
+        class="alternative-reminder-option__control"
+        type="checkbox"
+        :disabled="flowPending"
+        data-testid="pr-detail.waitlist.alternative-reminder"
+      />
+      <span class="alternative-reminder-option__text">
+        {{ t("prPage.waitlistAlternativeReminder.optionLabel") }}
+      </span>
+    </label>
+    <PRJoinGates
+      :pr-id="pr.id"
+      :enabled="showWaitlistGateModal"
+      :pending="flowPending"
+      :error="waitlistActionError"
+      :fallback-confirm-gate="PRWaitlistFallbackConfirmGate"
+      @cancel="closeWaitlistGateModal"
+      @completed="finalizeWaitlist"
+      @error="setWaitlistActionError"
+    />
+  </Modal>
+
+  <Modal :open="showWaitlistSuccessPrompt" @close="closeWaitlistSuccessPrompt">
+    <PRWaitlistSuccessPrompt
+      ref="waitlistSuccessPromptRef"
+      :open="showWaitlistSuccessPrompt"
+      :alternative-pr-reminder-opt-in="waitlistSuccessAlternativeReminderOptIn"
+      @done="handleWaitlistSuccessPromptDone"
+    />
+  </Modal>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import Button from "@/shared/ui/actions/Button.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
+import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
-import PRWaitlistFlow from "@/domains/pr/ui/composites/PRWaitlistFlow.vue";
-import { useCancelWaitlistPR } from "@/domains/pr/queries/usePRActions";
+import {
+  useCancelWaitlistPR,
+  useWaitlistPR,
+} from "@/domains/pr/queries/usePRActions";
+import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
+import PRWaitlistSuccessPrompt from "@/domains/pr/ui/composites/PRWaitlistSuccessPrompt.vue";
+import PRWaitlistFallbackConfirmGate from "@/domains/pr/ui/gates/PRWaitlistFallbackConfirmGate.vue";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
+import type { ApiError } from "@/shared/api/error";
+import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
+import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import { trackEvent } from "@/shared/telemetry/track";
 
-type WaitlistFlowExpose = {
-  open: () => Promise<void>;
+type WaitlistSuccessPromptExpose = {
+  close: () => void;
 };
 
 const props = defineProps<{
@@ -116,17 +153,22 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const prDetail = computed(() => props.pr);
 const viewer = computed(() => props.pr.partnerSection.viewer);
-const waitlistFlowRef = ref<WaitlistFlowExpose | null>(null);
+const waitlistSuccessPromptRef = ref<WaitlistSuccessPromptExpose | null>(null);
+const showWaitlistGateModal = ref(false);
+const showWaitlistSuccessPrompt = ref(false);
 const showCancelWaitlistConfirmModal = ref(false);
+const waitlistActionPending = ref(false);
 const cancelWaitlistActionError = ref<string | null>(null);
+const waitlistActionError = ref<string | null>(null);
+const waitlisted = ref(false);
+const alternativePrReminderOptIn = ref(false);
+const waitlistSuccessAlternativeReminderOptIn = ref(false);
+const waitlistMutation = useWaitlistPR();
 const cancelWaitlistMutation = useCancelWaitlistPR();
 const { blockedReasonText } = usePRActionCopy(prDetail);
-
-const confirmationDeadlineAt = computed(
-  () => props.pr.partnerSection.timeline?.confirmationEndAt ?? null,
-);
 
 const showWaitlistAction = computed(
   () =>
@@ -159,6 +201,13 @@ const waitlistBlockedMessage = computed(() => {
 
 const showCancelWaitlistAction = computed(() => viewer.value.isWaitlisted);
 
+const flowPending = computed(
+  () => waitlistActionPending.value || waitlistMutation.isPending.value,
+);
+const openDisabled = computed(
+  () => !showWaitlistAction.value || waitlisted.value,
+);
+
 const showActionArea = computed(() =>
   Boolean(
     waitlistBlockedMessage.value ||
@@ -174,21 +223,129 @@ usePRPrimaryActionImpression({
   visible: showWaitlistAction,
 });
 
-useBodyScrollLock(computed(() => showCancelWaitlistConfirmModal.value));
+useBodyScrollLock(
+  computed(
+    () =>
+      showWaitlistGateModal.value ||
+      showWaitlistSuccessPrompt.value ||
+      showCancelWaitlistConfirmModal.value,
+  ),
+);
 
-const openWaitlistFlow = async (): Promise<void> => {
-  await nextTick();
-  await waitlistFlowRef.value?.open();
+const resolveErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : t("common.operationFailed");
+
+const setWaitlistActionError = (message: string): void => {
+  waitlistActionError.value = message;
 };
 
-const handleWaitlistAction = (
-  open: () => Promise<void>,
-  pending: boolean,
-  disabled: boolean,
-): void => {
-  if (pending || disabled) return;
+const trackWaitlistResult = (payload: {
+  actionResult: "success" | "failure" | "blocked";
+  failureCode?: string;
+  failureReason?: string;
+  correlationId?: string;
+}): void => {
+  trackEvent("pr_waitlist_result", {
+    prId: props.pr.id,
+    scenarioType: props.pr.core.type,
+    eventId: props.joinEntryContext.routeEventId ?? undefined,
+    entrySurface: props.joinEntryContext.joinEntrySurface,
+    correlationId: payload.correlationId,
+    ...payload,
+  });
+  if (props.joinEntryContext.routeEventId !== null) {
+    trackEvent("pr_commitment_result", {
+      eventId: props.joinEntryContext.routeEventId,
+      activityType: props.pr.core.type,
+      prId: props.pr.id,
+      commitmentType: "waitlist",
+      entrySurface: props.joinEntryContext.joinEntrySurface,
+      actionResult: payload.actionResult,
+      failureCode: payload.failureCode,
+      failureReason: payload.failureReason,
+      correlationId: payload.correlationId,
+    });
+  }
+};
+
+const closeWaitlistGateModal = (): void => {
+  showWaitlistGateModal.value = false;
+  waitlistActionPending.value = false;
+  waitlistActionError.value = null;
+};
+
+const handleWaitlistSuccessPromptDone = (): void => {
+  if (!showWaitlistSuccessPrompt.value) return;
+  showWaitlistSuccessPrompt.value = false;
+};
+
+const closeWaitlistSuccessPrompt = (): void => {
+  waitlistSuccessPromptRef.value?.close();
+  if (!waitlistSuccessPromptRef.value) {
+    handleWaitlistSuccessPromptDone();
+  }
+};
+
+const openWaitlistSuccessPrompt = (): void => {
+  waitlistSuccessAlternativeReminderOptIn.value =
+    alternativePrReminderOptIn.value;
+  showWaitlistSuccessPrompt.value = true;
+};
+
+const finalizeWaitlist = async (): Promise<void> => {
+  if (waitlistActionPending.value || waitlistMutation.isPending.value) {
+    return;
+  }
+
+  waitlistActionPending.value = true;
+  waitlistActionError.value = null;
+  const correlationId = createCommandCorrelationId();
+  try {
+    await waitlistMutation.mutateAsync({
+      id: props.pr.id,
+      alternativePrReminderOptIn: alternativePrReminderOptIn.value,
+      correlationId,
+    });
+    waitlisted.value = true;
+    trackWaitlistResult({ actionResult: "success", correlationId });
+    closeWaitlistGateModal();
+    openWaitlistSuccessPrompt();
+  } catch (error) {
+    const apiError = error as ApiError;
+    if (apiError.code === PR_JOIN_GATE_UNRESOLVED_CODE) {
+      trackWaitlistResult({
+        actionResult: "blocked",
+        failureCode: PR_JOIN_GATE_UNRESOLVED_CODE,
+        failureReason: resolveErrorMessage(error),
+        correlationId,
+      });
+      showWaitlistGateModal.value = true;
+      return;
+    }
+    trackWaitlistResult({
+      ...resolveTelemetryFailurePayload(
+        error,
+        "PR_WAITLIST_FAILED",
+        resolveErrorMessage(error),
+      ),
+      correlationId,
+    });
+    setWaitlistActionError(resolveErrorMessage(error));
+  } finally {
+    waitlistActionPending.value = false;
+  }
+};
+
+const openWaitlistGateModal = (): void => {
+  if (openDisabled.value || flowPending.value) return;
+  waitlistActionError.value = null;
+  showWaitlistGateModal.value = true;
+};
+
+const handleWaitlistAction = (): void => {
+  if (flowPending.value || openDisabled.value) return;
   trackPRPrimaryActionClick(props.pr, "WAITLIST");
-  void open();
+  void openWaitlistGateModal();
 };
 
 const requestCancelWaitlistWithConfirm = (): void => {
@@ -208,11 +365,36 @@ const confirmCancelWaitlist = async (): Promise<void> => {
   }
 };
 
-const replayWaitlist = async (): Promise<void> => {
-  if (viewer.value.isParticipant || viewer.value.isWaitlisted) return;
-  if (!viewer.value.canWaitlist) return;
-  await openWaitlistFlow();
+const replayWaitlist = (): Promise<void> => {
+  if (viewer.value.isParticipant || viewer.value.isWaitlisted) {
+    return Promise.resolve();
+  }
+  if (!viewer.value.canWaitlist) {
+    return Promise.resolve();
+  }
+  openWaitlistGateModal();
+  return Promise.resolve();
 };
+
+watch(
+  () => props.pr.id,
+  () => {
+    waitlisted.value = false;
+    alternativePrReminderOptIn.value = false;
+    waitlistSuccessAlternativeReminderOptIn.value = false;
+    closeWaitlistGateModal();
+    showWaitlistSuccessPrompt.value = false;
+  },
+);
+
+watch(
+  () => viewer.value.isWaitlisted,
+  (isWaitlisted) => {
+    if (isWaitlisted === false) {
+      waitlisted.value = false;
+    }
+  },
+);
 
 defineExpose({
   replayWaitlist,
@@ -236,6 +418,27 @@ defineExpose({
 
 .primary-action__button {
   max-width: 100%;
+}
+
+.alternative-reminder-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sys-spacing-xsmall);
+  margin-bottom: var(--sys-spacing-medium);
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface-container-low);
+}
+
+.alternative-reminder-option__control {
+  flex: 0 0 auto;
+  margin-top: 0.125rem;
+}
+
+.alternative-reminder-option__text {
+  @include mx.pu-font(body-medium);
+  color: var(--sys-color-on-surface);
 }
 
 .action-error {

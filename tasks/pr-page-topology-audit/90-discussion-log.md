@@ -66,3 +66,16 @@
 - Implemented the session-boundary cleanup in working tree: PR command response bodies no longer return `auth`; PR UI code no longer reads `result.auth`; the durable session contract now prohibits domain command bodies from carrying session payloads.
 - Implemented the join / exit split in working tree: deleted `PRJoinFlow` and `PRJoinExitActions`, added `PRJoinAction`, `PRExitAction`, and content-only `PRJoinSuccessPrompt`, and migrated PR Page plus Form Mode matched / candidate join surfaces to `PRJoinAction`.
 - Verification so far: targeted frontend unit tests, backend PR draft scenario, frontend build, and backend problem-details lint all pass.
+- Completed broader verification with frontend unit, backend unit, backend scenario, frontend build, backend lint, token lint, and `git diff --check`.
+- Committed the join / exit split as `422f4a11 refactor(pr): split join and exit actions`.
+- User asked to examine the PR Waitlist series next.
+- Current waitlist diagnosis: `PRWaitlistActions` is already the PR Page vertical action boundary, but it still delegates the command workflow to `PRWaitlistFlow`.
+- `PRWaitlistFlow` has only one current caller and owns too much: trigger slot contract, gate modal, waitlist command execution, alternative reminder state, success modal, subscription / official-account prompt steps, and result telemetry.
+- Recommended next slice: delete `PRWaitlistFlow`, keep `PRWaitlistActions` as the waitlist vertical owner, and extract a content-only `PRWaitlistSuccessPrompt`.
+- Modal containers and confirm dialogs should be assembled by `PRWaitlistActions`; prompt content should not own modal containers.
+- Pending WeChat replay remains page-level dispatch for this slice and should be handled by the separate replay-registry follow-up.
+- User approved starting the waitlist slice.
+- Implemented the waitlist slice in working tree: deleted `PRWaitlistFlow`, added content-only `PRWaitlistSuccessPrompt`, and moved waitlist gate modal assembly, `useWaitlistPR`, telemetry, alternative reminder state, success prompt modal assembly, and cancel-waitlist confirmation into `PRWaitlistActions`.
+- Targeted verification so far: `pnpm exec vitest run --project frontend-unit apps/frontend/src/domains/pr/ui/sections/PRParticipationActions.test.ts`.
+- Completed additional waitlist-slice verification: `pnpm test:unit:frontend`, `pnpm --filter @partner-up-dev/frontend exec vite build`, `pnpm --filter @partner-up-dev/frontend lint:tokens`, `rg -n "PRWaitlistFlow" apps/frontend/src -g "*.vue" -g "*.ts"`, and `git diff --check`.
+- Full frontend build remains blocked by unrelated Form Mode fuzzy-time type errors in the current working tree.
