@@ -227,7 +227,6 @@ export interface MessageSchema {
     description: string;
     guideTitle: string;
     actionsTitle: string;
-
     supportBadge: string;
     supportTitle: string;
     supportDescription: string;
@@ -242,7 +241,6 @@ export interface MessageSchema {
     betaGroupAction: string;
     authorEntry: string;
     useCases: {
-
       support: string;
     };
   };
@@ -502,7 +500,6 @@ export interface MessageSchema {
       blockedFull: string;
       blockedJoinLocked: string;
       blockedEventStarted: string;
-
       blockedConfirmWindow: string;
       blockedAlreadyConfirmed: string;
       blockedNotJoined: string;
@@ -529,7 +526,6 @@ export interface MessageSchema {
       timelineEventStart: string;
       timelineConfirmationWindow: string;
       timelineJoinLock: string;
-
     };
   };
   eventPlaza: {
@@ -644,10 +640,13 @@ export interface MessageSchema {
       recommendationSummaryEyebrow: string;
       modifyConditions: string;
       locationEyebrow: string;
-      locationTitle: string;
-      locationAriaLabel: string;
-      locationCreateLabel: string;
-      routeCreateLabel: string;
+        locationTitle: string;
+        locationAriaLabel: string;
+        locationCreateLabel: string;
+        routeCreateLabel: string;
+        placeTitle: string;
+      placeAriaLabel: string;
+      placePlaceholder: string;
       timeEyebrow: string;
       timeTitle: string;
       dateWheelAriaLabel: string;
@@ -696,6 +695,8 @@ export interface MessageSchema {
       subtitle: string;
       locationLabel: string;
       locationPlaceholder: string;
+      placeLabel: string;
+      placePlaceholder: string;
       locationMapFallback: string;
       timeWindowLabel: string;
       customStartLabel: string;
@@ -821,9 +822,9 @@ export interface MessageSchema {
       action: string;
     };
   };
-  locationApplicationPage: {
-    title: string;
-    subtitle: string;
+    locationApplicationPage: {
+      title: string;
+      subtitle: string;
     nameLabel: string;
     namePlaceholder: string;
     imageLabel: string;
@@ -841,33 +842,33 @@ export interface MessageSchema {
     status: {
       PENDING: string;
       PUBLISHED: string;
-      REJECTED: string;
+        REJECTED: string;
+      };
     };
-  };
-  routeApplicationPage: {
-    title: string;
-    subtitle: string;
-    routeLabel: string;
-    routeHint: string;
-    routeReady: string;
-    missingEvent: string;
-    submitAction: string;
-    submitSuccess: string;
-    mineTitle: string;
-    mineSubtitle: string;
-    emptyMine: string;
-    unnamedRoute: string;
-    validation: {
-      minPoints: string;
-      nameRequired: string;
-      coordinateRequired: string;
+    routeApplicationPage: {
+      title: string;
+      subtitle: string;
+      routeLabel: string;
+      routeHint: string;
+      routeReady: string;
+      missingEvent: string;
+      submitAction: string;
+      submitSuccess: string;
+      mineTitle: string;
+      mineSubtitle: string;
+      emptyMine: string;
+      unnamedRoute: string;
+      validation: {
+        minPoints: string;
+        nameRequired: string;
+        coordinateRequired: string;
+      };
+      status: {
+        PENDING: string;
+        ACCEPTED: string;
+        REJECTED: string;
+      };
     };
-    status: {
-      PENDING: string;
-      ACCEPTED: string;
-      REJECTED: string;
-    };
-  };
   userProfilePage: {
     title: string;
     subtitle: string;
@@ -900,7 +901,6 @@ export interface MessageSchema {
     confirmationStart: string;
     confirmationEnd: string;
     joinLock: string;
-
     confirmationStartMarker: string;
     confirmationEndMarker: string;
     joinLockMarker: string;
@@ -1121,12 +1121,12 @@ export interface MessageSchema {
     subtitle: string;
     navAnchorEventGroup: string;
     navAnchorEventBasic: string;
-    navAnchorEventBasicSubtitle: string;
-    navAnchorEventLocations: string;
-    navAnchorEventLocationsSubtitle: string;
-    navAnchorEventRouteApplications: string;
-    navAnchorEventRouteApplicationsSubtitle: string;
-    navAnchorEventTime: string;
+      navAnchorEventBasicSubtitle: string;
+      navAnchorEventLocations: string;
+      navAnchorEventLocationsSubtitle: string;
+      navAnchorEventRouteApplications: string;
+      navAnchorEventRouteApplicationsSubtitle: string;
+      navAnchorEventTime: string;
     navAnchorEventTimeSubtitle: string;
     navAnchorEventTags: string;
     navAnchorEventTagsSubtitle: string;
@@ -1142,7 +1142,6 @@ export interface MessageSchema {
     navAnalyticsGroup: string;
     navAnalytics: string;
     navAnalyticsSubtitle: string;
-
     navPoisGroup: string;
     navPoiBasic: string;
     navPoiBasicSubtitle: string;
@@ -1415,22 +1414,22 @@ export interface MessageSchema {
     pendingPreferenceTagsTitle: string;
     emptyPendingPreferenceTags: string;
     preferenceTagDescriptionEmpty: string;
-    publishPreferenceTagAction: string;
-    rejectPreferenceTagAction: string;
-    routeApplicationsTitle: string;
-    selectEventForRouteApplicationsHint: string;
-    emptyRouteApplications: string;
-    routeApplicationEditHint: string;
-    routeApplicationRejectPlaceholder: string;
-    acceptRouteApplicationAction: string;
-    rejectRouteApplicationAction: string;
-    routeSummaryFallback: string;
-    routeApplicationStatus: {
-      PENDING: string;
-      ACCEPTED: string;
-      REJECTED: string;
+      publishPreferenceTagAction: string;
+      rejectPreferenceTagAction: string;
+      routeApplicationsTitle: string;
+      selectEventForRouteApplicationsHint: string;
+      emptyRouteApplications: string;
+      routeApplicationEditHint: string;
+      routeApplicationRejectPlaceholder: string;
+      acceptRouteApplicationAction: string;
+      rejectRouteApplicationAction: string;
+      routeSummaryFallback: string;
+      routeApplicationStatus: {
+        PENDING: string;
+        ACCEPTED: string;
+        REJECTED: string;
+      };
     };
-  };
   adminPR: {
     title: string;
     subtitle: string;
@@ -1517,10 +1516,8 @@ export interface MessageSchema {
     prContentLockedHint: string;
     participationPolicyTitle: string;
     participationPolicyDescription: string;
-
     policyValidationStartBeforeEnd: string;
     policyValidationJoinLockAfterConfirmationEnd: string;
-
     savePRAction: string;
     createPRAction: string;
     deletePRAction: string;
