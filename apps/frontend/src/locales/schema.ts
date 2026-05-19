@@ -649,6 +649,7 @@ export interface MessageSchema {
       placePlaceholder: string;
       timeEyebrow: string;
       timeTitle: string;
+    timeModeToggleAriaLabel: string;
       dateWheelAriaLabel: string;
       timeWheelAriaLabel: string;
       advancedModeLabel: string;

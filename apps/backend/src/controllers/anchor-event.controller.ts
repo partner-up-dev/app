@@ -43,17 +43,39 @@ const formModeRecommendationPlaceSchema = z.discriminatedUnion("kind", [
 ]);
 
 const formModeRecommendationBaseSchema = z.object({
-  startAt: z.string().datetime(),
   preferences: z.array(z.string().trim().min(1).max(80)).max(16),
   correlationId: z.string().trim().min(1).max(128).optional(),
 });
 
+const formModeTimeSelectionSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("EXACT"),
+    startAt: z.string().datetime(),
+  }),
+  z.object({
+    mode: z.literal("FUZZY"),
+    datePreset: z.string().trim().min(1).max(160),
+    timePreset: z.enum([
+      "ANY_TIME",
+      "MORNING",
+      "NOON",
+      "AFTERNOON",
+      "DUSK",
+      "NIGHT",
+      "LATE_NIGHT",
+    ]),
+    candidateStartKeys: z.array(z.string().trim().min(1).max(160)).max(64).optional(),
+  }),
+]);
+
 const formModeRecommendationSchema = z.union([
   formModeRecommendationBaseSchema.extend({
     place: formModeRecommendationPlaceSchema,
+    timeSelection: formModeTimeSelectionSchema,
   }),
   formModeRecommendationBaseSchema.extend({
     locationId: z.string().trim().min(1),
+    startAt: z.string().datetime(),
   }),
 ]);
 
@@ -173,7 +195,9 @@ export const anchorEventRoute = app
         eventId,
         viewerUserId: readSessionUserId(c),
         place: resolveFormModeRecommendationPlace(payload),
-        startAt: payload.startAt,
+        timeSelection: "timeSelection" in payload
+          ? payload.timeSelection
+          : { mode: "EXACT", startAt: payload.startAt },
         preferences: payload.preferences,
       });
       return c.json(result);

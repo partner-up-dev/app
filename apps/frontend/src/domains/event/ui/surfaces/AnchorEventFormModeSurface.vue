@@ -37,7 +37,7 @@
         />
 
         <FormModeTimeControl
-          v-model="selectedStartAt"
+          v-model="selectedTimeSelection"
           :start-options="selectedPlaceStartOptions"
           :duration-minutes="formModeData.event.durationMinutes"
           :earliest-lead-minutes="formModeData.event.earliestLeadMinutes"
@@ -125,8 +125,12 @@ import FormModeNoMatchResult from "@/domains/event/ui/composites/FormModeNoMatch
 import FormModeLongPressButton from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import type { LongPressOriginRect } from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import {
+  buildFormModeFuzzyDateOptions,
+  buildFormModeFuzzyTimeOptions,
+  filterStartOptionsByFuzzyTime,
   formatFormModeDateLabel,
   formatFormModeTimeLabel,
+  type FormModeTimeSelection,
   isValidFormModeDateTime,
   pickStableGalleryImage,
 } from "@/domains/event/model/form-mode";
@@ -166,7 +170,7 @@ const createMutation = useCreateEventAssistedPR();
 const matchedPRHandoff = useMatchedPRHandoff();
 
 const selectedPlaceId = ref<string | null>(null);
-const selectedStartAt = ref<string | null>(null);
+const selectedTimeSelection = ref<FormModeTimeSelection | null>(null);
 const selectedPreferences = ref<string[]>([]);
 const noMatchRecommendationResult =
   ref<AnchorEventFormModeRecommendationResponse | null>(null);
@@ -227,6 +231,30 @@ const selectedRoutePoolEntryId = computed(() =>
   selectedPlace.value?.kind === "route" ? selectedPlace.value.routePoolEntryId : null,
 );
 
+const selectedStartAt = computed(() => {
+  if (selectedTimeSelection.value?.mode === "EXACT") {
+    return selectedTimeSelection.value.startAt;
+  }
+  if (selectedTimeSelection.value?.mode === "FUZZY") {
+    return selectedTimeSelection.value.fallbackStartAt;
+  }
+  return null;
+});
+
+const hasValidTimeSelection = computed(() => {
+  const selection = selectedTimeSelection.value;
+  if (!selection) {
+    return false;
+  }
+  if (selection.mode === "EXACT") {
+    return isValidFormModeDateTime(selection.startAt);
+  }
+  return (
+    selection.candidateStartKeys.length > 0 &&
+    isValidFormModeDateTime(selection.fallbackStartAt)
+  );
+});
+
 const selectedPlaceStartOptions = computed(() => {
   const data = formModeData.value;
   if (!data) {
@@ -248,7 +276,42 @@ const selectedPlaceLabel = computed(
     t(formModeData.value?.placeSelector.placeholderKey ?? "anchorEvent.placeSelector.emptyPlaceholder"),
 );
 
+const selectedFuzzyTimeLabel = computed(() => {
+  const selection = selectedTimeSelection.value;
+  if (selection?.mode !== "FUZZY") {
+    return null;
+  }
+
+  const dateOption = buildFormModeFuzzyDateOptions(
+    selectedPlaceStartOptions.value,
+  ).find((option) => option.value === selection.datePreset);
+  const dateLabel = dateOption?.label ?? "";
+  const dateFilteredStartOptions = filterStartOptionsByFuzzyTime(
+    selectedPlaceStartOptions.value,
+    selection.datePreset,
+    "ANY_TIME",
+  );
+  const timeOption = buildFormModeFuzzyTimeOptions(
+    dateFilteredStartOptions,
+  ).find((option) => option.value === selection.timePreset);
+  const timeLabel = timeOption?.label ?? "";
+
+  if (selection.datePreset === "ANY_DAY" && selection.timePreset === "ANY_TIME") {
+    return "任意时间";
+  }
+  if (selection.timePreset === "ANY_TIME") {
+    return dateLabel || timeLabel || null;
+  }
+  if (selection.datePreset === "ANY_DAY") {
+    return timeLabel || dateLabel || null;
+  }
+  return dateLabel || timeLabel ? `${dateLabel}${timeLabel}` : null;
+});
+
 const selectedTimeLabel = computed(() => {
+  if (selectedFuzzyTimeLabel.value) {
+    return selectedFuzzyTimeLabel.value;
+  }
   if (!isValidFormModeDateTime(selectedStartAt.value)) {
     return t("anchorEvent.formMode.timePlaceholder");
   }
@@ -285,8 +348,7 @@ const recommendationSubmissionPending = computed(
 const canSubmitRecommendation = computed(() =>
   Boolean(
     selectedPlace.value &&
-      selectedStartAt.value &&
-      isValidFormModeDateTime(selectedStartAt.value) &&
+      hasValidTimeSelection.value &&
       !recommendationSubmissionPending.value,
   ),
 );
@@ -295,8 +357,7 @@ const canCreateFallback = computed(() =>
   Boolean(
     canUserCreatePR.value &&
     selectedPlace.value &&
-      selectedStartAt.value &&
-      isValidFormModeDateTime(selectedStartAt.value) &&
+      hasValidTimeSelection.value &&
       formModeData.value,
   ),
 );
@@ -485,7 +546,11 @@ watch(
     }
 
     selectedPlaceId.value = buildLocationPlaceOptionId(defaultSelection.locationId);
-    selectedStartAt.value = defaultSelection.startAt;
+    selectedTimeSelection.value = {
+      mode: "EXACT",
+      startAt: defaultSelection.startAt,
+      sourceMode: "NORMAL",
+    };
     armFormStartTracking();
   },
   { immediate: true },
@@ -516,7 +581,7 @@ defineExpose({
   returnToSelection,
 });
 
-watch([selectedPlaceId, selectedStartAt, selectedPreferences], () => {
+watch([selectedPlaceId, selectedTimeSelection, selectedPreferences], () => {
   returnToSelection();
 });
 
@@ -618,6 +683,33 @@ const buildRecommendationPlaceInput = (
         locationId: place.locationId,
       };
 
+const buildRecommendationTimeInput = () => {
+  const selection = selectedTimeSelection.value;
+  if (!selection) {
+    return null;
+  }
+  if (selection.mode === "EXACT") {
+    return isValidFormModeDateTime(selection.startAt)
+      ? {
+          mode: "EXACT" as const,
+          startAt: selection.startAt,
+        }
+      : null;
+  }
+  if (
+    selection.candidateStartKeys.length === 0 ||
+    !isValidFormModeDateTime(selection.fallbackStartAt)
+  ) {
+    return null;
+  }
+  return {
+    mode: "FUZZY" as const,
+    datePreset: selection.datePreset,
+    timePreset: selection.timePreset,
+    candidateStartKeys: [...selection.candidateStartKeys],
+  };
+};
+
 const resolveFormModeLocationType = (
   locationId: string | null,
 ): "preset" | "user_submitted" => {
@@ -630,7 +722,9 @@ const resolveFormModeLocationType = (
 const resolveFormModeTimeType = (
   startAt: string,
 ): "preset" | "user_submitted" =>
-  isAdvancedStartValue(startAt) ? "user_submitted" : "preset";
+  selectedTimeSelection.value?.mode === "FUZZY" || !isAdvancedStartValue(startAt)
+    ? "preset"
+    : "user_submitted";
 
 const trackFormStarted = (
   trigger: "location" | "time" | "preference" | "primary_cta",
@@ -938,7 +1032,8 @@ const createEventAssistedPR = async (
 const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
   const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!place || !isValidFormModeDateTime(startAt)) {
+  const timeSelection = buildRecommendationTimeInput();
+  if (!place || !isValidFormModeDateTime(startAt) || !timeSelection) {
     return;
   }
 
@@ -959,7 +1054,7 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
     const result = await recommendationMutation.mutateAsync({
       eventId: props.eventId,
       place: buildRecommendationPlaceInput(place),
-      startAt,
+      timeSelection,
       preferences: [...selectedPreferences.value],
       correlationId: recommendationCorrelationId,
     });

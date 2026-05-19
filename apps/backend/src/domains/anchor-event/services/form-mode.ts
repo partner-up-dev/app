@@ -1,5 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { AnchorEvent, TimeWindowEntry } from "../../../entities";
+import { listAnchorEventTimeWindowDetails } from "./time-window-pool";
 import {
   deriveAnchorEventPreferenceTagCategory,
   normalizeAnchorEventPreferenceTagLabel,
@@ -11,6 +12,7 @@ import {
 import type { CoordinatePair, PRRoute } from "../../../entities/partner-request";
 
 const MINUTE_MS = 60 * 1000;
+const PRODUCT_TIME_ZONE = "Asia/Shanghai";
 const MATCHED_START_TOLERANCE_MINUTES = 5;
 const EXACT_LOCATION_SCORE = 2;
 const LOCATION_MISMATCH_SCORE = -2;
@@ -26,6 +28,32 @@ const parseTimestamp = (value: string): Date | null => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
+
+const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: PRODUCT_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export type AnchorEventFormModeTimeSelection =
+  | {
+      mode: "EXACT";
+      startAt: string;
+    }
+  | {
+      mode: "FUZZY";
+      datePreset: string;
+      timePreset:
+        | "ANY_TIME"
+        | "MORNING"
+        | "NOON"
+        | "AFTERNOON"
+        | "DUSK"
+        | "NIGHT"
+        | "LATE_NIGHT";
+      candidateStartKeys?: string[];
+    };
 
 export const buildAnchorEventFormModeTimeWindow = (
   event: AnchorEvent,
@@ -78,6 +106,131 @@ export const isAnchorEventFormModeStartSelectable = (
   }
 
   return startAt.getTime() <= now.getTime() + earliestLeadMinutes * MINUTE_MS;
+};
+
+const getProductLocalDateKey = (value: string): string | null => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return dateKeyFormatter.format(date);
+};
+
+const getProductLocalHour = (value: string): number | null => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: PRODUCT_TIME_ZONE,
+    hour: "2-digit",
+    hourCycle: "h23",
+    hour12: false,
+  }).format(date);
+  const parsed = Number(hour);
+  return Number.isInteger(parsed) ? parsed : null;
+};
+
+const matchesFuzzyDatePreset = (datePreset: string, startAt: string): boolean => {
+  const dateKey = getProductLocalDateKey(startAt);
+  if (!dateKey) {
+    return false;
+  }
+  if (datePreset === "ANY_DAY") {
+    return true;
+  }
+  if (datePreset.startsWith("DATE:")) {
+    return datePreset.slice("DATE:".length) === dateKey;
+  }
+  if (datePreset.startsWith("WEEKEND:")) {
+    const dateKeys = datePreset
+      .slice("WEEKEND:".length)
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return dateKeys.includes(dateKey);
+  }
+  return false;
+};
+
+const matchesFuzzyTimePreset = (
+  timePreset: Extract<AnchorEventFormModeTimeSelection, { mode: "FUZZY" }>["timePreset"],
+  startAt: string,
+): boolean => {
+  if (timePreset === "ANY_TIME") {
+    return true;
+  }
+  const hour = getProductLocalHour(startAt);
+  if (hour === null) {
+    return false;
+  }
+  switch (timePreset) {
+    case "MORNING":
+      return hour >= 6 && hour < 11;
+    case "NOON":
+      return hour >= 11 && hour < 13;
+    case "AFTERNOON":
+      return hour >= 13 && hour < 17;
+    case "DUSK":
+      return hour >= 17 && hour < 19;
+    case "NIGHT":
+      return hour >= 19 && hour < 23;
+    case "LATE_NIGHT":
+      return hour >= 23 || hour < 6;
+  }
+};
+
+export const resolveAnchorEventFormModeSelectionTimeWindows = (
+  event: AnchorEvent,
+  selection: AnchorEventFormModeTimeSelection,
+): Array<[string, string | null]> => {
+  if (selection.mode === "EXACT") {
+    return [
+      buildAnchorEventFormModeTimeWindow(
+        event,
+        selection.startAt,
+      ) as [string, string | null],
+    ];
+  }
+
+  const allowedStartKeys = selection.candidateStartKeys
+    ? new Set(selection.candidateStartKeys)
+    : null;
+  const timeWindows = listAnchorEventTimeWindowDetails(event)
+    .filter((detail) => {
+      const [startAt] = detail.timeWindow;
+      if (!startAt) {
+        return false;
+      }
+      if (allowedStartKeys && !allowedStartKeys.has(detail.key)) {
+        return false;
+      }
+      return (
+        matchesFuzzyDatePreset(selection.datePreset, startAt) &&
+        matchesFuzzyTimePreset(selection.timePreset, startAt)
+      );
+    })
+    .flatMap((detail) => {
+      const [startAt] = detail.timeWindow;
+      if (!startAt) {
+        return [];
+      }
+      return [
+        buildAnchorEventFormModeTimeWindow(
+          event,
+          startAt,
+        ) as [string, string | null],
+      ];
+    });
+
+  if (timeWindows.length === 0) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "No event start options match the fuzzy time preference",
+    });
+  }
+
+  return timeWindows;
 };
 
 const normalizePreferenceLabels = (preferences: readonly string[]): string[] => {

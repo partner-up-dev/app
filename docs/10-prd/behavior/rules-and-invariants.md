@@ -39,7 +39,9 @@
 - A valid `/e/:eventId?mode=` value is explicit route state and owns the current landing mode. Without valid route mode, the same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
 - If `/e/:eventId` cannot obtain its landing mode decision in time, it should still enter a usable `LIST` fallback experience.
 - Form Mode recommendation and candidate ordering are backend-authored even though the user chooses location, start time, and preferences on the page.
+- Form Mode may accept a fuzzy time preference as recommendation input by expanding it against the Anchor Event's available time pool. This preference is a discovery filter, not a persisted `PR` time fact.
 - Form Mode directly creates an event-assisted PR when recommendation returns no matched PR and no ordered candidates; the created PR detail page should show a created-request notice.
+- Event-assisted PR creation from Form Mode still creates a `PR` with one resolved `time_window`; fuzzy time preferences must be resolved to a concrete time before creation.
 - Form Mode bootstrap may preselect location and start time from the nearest joinable PR in the current Anchor Event context when that PR's start time is inside the event `earliestLeadMinutes` boundary.
 - Anchor Event owns the event-specific preset preference tag pool, its moderation state, and which published tags later visitors may see in Form Mode.
 - Anchor Event start rules may own optional description copy. Generated time windows inherit the first non-empty matching start-rule description by configured start-rule order, and that copy remains presentation context rather than a persisted PR fact.

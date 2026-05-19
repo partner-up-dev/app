@@ -6,9 +6,11 @@
           {{ t("anchorEvent.formMode.timeTitle") }}
         </h2>
 
-        <ToggleSwitch
-          v-model="advancedMode"
-          :label="t('anchorEvent.formMode.advancedModeLabel')"
+        <MultiStopToggle
+          v-model="activeMode"
+          :options="timeModeOptions"
+          :aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
+          size="sm"
         />
       </div>
 
@@ -19,7 +21,7 @@
 
     <div class="time-wheel">
       <WheelPicker
-        :model-value="selectedDateKey"
+        :model-value="dateWheelModelValue"
         :options="dateWheelOptions"
         :item-height="42"
         :visible-count="3"
@@ -29,7 +31,7 @@
       />
 
       <WheelPicker
-        :model-value="props.modelValue"
+        :model-value="timeWheelModelValue"
         :options="timeWheelOptions"
         :item-height="42"
         :visible-count="3"
@@ -55,13 +57,21 @@ import type { AnchorEventFormModeResponse } from "@/domains/event/model/types";
 import WheelPicker, {
   type WheelPickerValue,
 } from "@/shared/ui/forms/WheelPicker.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
+import MultiStopToggle, {
+  type MultiStopToggleOption,
+} from "@/shared/ui/forms/MultiStopToggle.vue";
 import {
   buildAdvancedModeStartOptions,
+  buildFormModeFuzzyDateOptions,
+  buildFormModeFuzzyTimeOptions,
   buildFormModeDateKey,
   buildStartOptionsByDate,
+  filterStartOptionsByFuzzyTime,
   formatFormModeDurationLabel,
   formatFormModeTimeLabel,
+  type FormModeFuzzyTimePreset,
+  type FormModeTimeMode,
+  type FormModeTimeSelection,
   isValidFormModeDateTime,
   shouldAutoOpenAdvancedFormModeTime,
 } from "@/domains/event/model/form-mode";
@@ -70,20 +80,27 @@ type StartOption = AnchorEventFormModeResponse["startOptions"][number];
 type StartOptionGroup = ReturnType<typeof buildStartOptionsByDate>[number];
 
 const props = defineProps<{
-  modelValue: string | null;
+  modelValue: FormModeTimeSelection | null;
   startOptions: readonly StartOption[];
   durationMinutes: number | null;
   earliestLeadMinutes: number | null;
 }>();
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string | null];
+  "update:modelValue": [value: FormModeTimeSelection | null];
 }>();
 
 const { t } = useI18n();
 
+const timeModeOptions: readonly MultiStopToggleOption[] = [
+  { value: "NORMAL", label: "普通" },
+  { value: "ADVANCED", label: "高级" },
+  { value: "FUZZY", label: "模糊" },
+];
 const selectedDateKey = ref<string | null>(null);
-const advancedMode = ref(false);
+const activeMode = ref<FormModeTimeMode>("NORMAL");
+const selectedFuzzyDatePreset = ref<string | null>(null);
+const selectedFuzzyTimePreset = ref<FormModeFuzzyTimePreset | null>(null);
 
 const defaultStartOptionGroups = computed(() =>
   buildStartOptionsByDate(props.startOptions),
@@ -103,7 +120,7 @@ const shouldAutoOpenAdvancedMode = computed(() =>
 );
 
 const activeStartOptionGroups = computed(() =>
-  advancedMode.value
+  activeMode.value === "ADVANCED"
     ? advancedStartOptionGroups.value
     : defaultStartOptionGroups.value,
 );
@@ -116,17 +133,73 @@ const activeTimeOptions = computed<StartOption[]>(() => {
 });
 
 const dateWheelOptions = computed(() =>
-  activeStartOptionGroups.value.map((group) => ({
-    label: group.dateLabel,
-    value: group.dateKey,
-  })),
+  activeMode.value === "FUZZY"
+    ? fuzzyDateOptions.value.map((option) => ({
+        label: option.label,
+        value: option.value,
+      }))
+    : activeStartOptionGroups.value.map((group) => ({
+        label: group.dateLabel,
+        value: group.dateKey,
+      })),
 );
 
 const timeWheelOptions = computed(() =>
-  activeTimeOptions.value.map((option) => ({
-    label: formatFormModeTimeLabel(option.startAt),
-    value: option.startAt,
-  })),
+  activeMode.value === "FUZZY"
+    ? fuzzyTimeOptions.value.map((option) => ({
+        label: option.label,
+        value: option.value,
+      }))
+    : activeTimeOptions.value.map((option) => ({
+        label: formatFormModeTimeLabel(option.startAt),
+        value: option.startAt,
+      })),
+);
+
+const fuzzyDateOptions = computed(() =>
+  buildFormModeFuzzyDateOptions(props.startOptions),
+);
+
+const fuzzyDateFilteredStartOptions = computed(() => {
+  if (!selectedFuzzyDatePreset.value) {
+    return props.startOptions;
+  }
+  return filterStartOptionsByFuzzyTime(
+    props.startOptions,
+    selectedFuzzyDatePreset.value,
+    "ANY_TIME",
+  );
+});
+
+const fuzzyTimeOptions = computed(() =>
+  buildFormModeFuzzyTimeOptions(fuzzyDateFilteredStartOptions.value),
+);
+
+const fuzzyCandidateStartOptions = computed(() => {
+  if (!selectedFuzzyDatePreset.value || !selectedFuzzyTimePreset.value) {
+    return [];
+  }
+  return filterStartOptionsByFuzzyTime(
+    props.startOptions,
+    selectedFuzzyDatePreset.value,
+    selectedFuzzyTimePreset.value,
+  );
+});
+
+const exactModelStartAt = computed(() =>
+  props.modelValue?.mode === "EXACT" ? props.modelValue.startAt : null,
+);
+
+const dateWheelModelValue = computed(() =>
+  activeMode.value === "FUZZY"
+    ? selectedFuzzyDatePreset.value
+    : selectedDateKey.value,
+);
+
+const timeWheelModelValue = computed(() =>
+  activeMode.value === "FUZZY"
+    ? selectedFuzzyTimePreset.value
+    : exactModelStartAt.value,
 );
 
 const durationLabel = computed(() =>
@@ -134,26 +207,59 @@ const durationLabel = computed(() =>
 );
 
 const selectedStartOptionDescription = computed(() => {
-  if (!props.modelValue) {
+  if (!exactModelStartAt.value) {
     return "";
   }
 
   const option = props.startOptions.find(
-    (startOption) => startOption.startAt === props.modelValue,
+    (startOption) => startOption.startAt === exactModelStartAt.value,
   );
   return option?.description?.trim() ?? "";
 });
 
 const handleDateWheelUpdate = (value: WheelPickerValue) => {
+  if (activeMode.value === "FUZZY") {
+    selectedFuzzyDatePreset.value = String(value);
+    return;
+  }
   selectedDateKey.value = String(value);
 };
 
 const handleTimeWheelUpdate = (value: WheelPickerValue) => {
+  if (activeMode.value === "FUZZY") {
+    selectedFuzzyTimePreset.value = String(value) as FormModeFuzzyTimePreset;
+    emitFuzzySelection();
+    return;
+  }
+
   const nextValue = String(value);
-  emit(
-    "update:modelValue",
-    isValidFormModeDateTime(nextValue) ? nextValue : null,
-  );
+  emitExactSelection(nextValue);
+};
+
+const emitExactSelection = (startAt: string | null) => {
+  if (!startAt || !isValidFormModeDateTime(startAt)) {
+    emit("update:modelValue", null);
+    return;
+  }
+  emit("update:modelValue", {
+    mode: "EXACT",
+    startAt,
+    sourceMode: activeMode.value === "ADVANCED" ? "ADVANCED" : "NORMAL",
+  });
+};
+
+const emitFuzzySelection = () => {
+  if (!selectedFuzzyDatePreset.value || !selectedFuzzyTimePreset.value) {
+    emit("update:modelValue", null);
+    return;
+  }
+  emit("update:modelValue", {
+    mode: "FUZZY",
+    datePreset: selectedFuzzyDatePreset.value,
+    timePreset: selectedFuzzyTimePreset.value,
+    candidateStartKeys: fuzzyCandidateStartOptions.value.map((option) => option.key),
+    fallbackStartAt: fuzzyCandidateStartOptions.value[0]?.startAt ?? null,
+  });
 };
 
 const findGroupForStartAt = (
@@ -174,8 +280,8 @@ const resolveDateKey = (value: string): string | null => {
 watch(
   shouldAutoOpenAdvancedMode,
   (shouldOpen) => {
-    if (shouldOpen) {
-      advancedMode.value = true;
+    if (shouldOpen && activeMode.value === "NORMAL") {
+      activeMode.value = "ADVANCED";
     }
   },
   { immediate: true },
@@ -187,42 +293,49 @@ watch(
     if (!modelValue) {
       return;
     }
-    if (!isValidFormModeDateTime(modelValue)) {
+    if (modelValue.mode === "FUZZY") {
+      activeMode.value = "FUZZY";
+      selectedFuzzyDatePreset.value = modelValue.datePreset;
+      selectedFuzzyTimePreset.value = modelValue.timePreset;
+      return;
+    }
+
+    if (!isValidFormModeDateTime(modelValue.startAt)) {
       emit("update:modelValue", null);
       return;
     }
 
     const activeGroup = findGroupForStartAt(
       activeStartOptionGroups.value,
-      modelValue,
+      modelValue.startAt,
     );
     if (activeGroup) {
       selectedDateKey.value = activeGroup.dateKey;
       return;
     }
 
-    const defaultGroup = findGroupForStartAt(defaultGroups, modelValue);
+    const defaultGroup = findGroupForStartAt(defaultGroups, modelValue.startAt);
     if (defaultGroup) {
-      advancedMode.value = false;
+      activeMode.value = "NORMAL";
       selectedDateKey.value = defaultGroup.dateKey;
       return;
     }
 
-    const advancedGroup = findGroupForStartAt(advancedGroups, modelValue);
+    const advancedGroup = findGroupForStartAt(advancedGroups, modelValue.startAt);
     if (advancedGroup) {
-      advancedMode.value = true;
+      activeMode.value = "ADVANCED";
       selectedDateKey.value = advancedGroup.dateKey;
       return;
     }
 
-    const modelDateKey = resolveDateKey(modelValue);
+    const modelDateKey = resolveDateKey(modelValue.startAt);
     const advancedDateGroup =
       modelDateKey === null
         ? null
         : (advancedGroups.find((group) => group.dateKey === modelDateKey) ??
           null);
     if (advancedDateGroup) {
-      advancedMode.value = true;
+      activeMode.value = "ADVANCED";
       selectedDateKey.value = advancedDateGroup.dateKey;
     }
   },
@@ -232,6 +345,9 @@ watch(
 watch(
   activeStartOptionGroups,
   (groups) => {
+    if (activeMode.value === "FUZZY") {
+      return;
+    }
     if (
       selectedDateKey.value &&
       groups.some((group) => group.dateKey === selectedDateKey.value)
@@ -246,13 +362,56 @@ watch(
 watch(
   [activeTimeOptions, selectedDateKey],
   ([options]) => {
+    if (activeMode.value === "FUZZY") {
+      return;
+    }
     if (
-      props.modelValue &&
-      options.some((option) => option.startAt === props.modelValue)
+      exactModelStartAt.value &&
+      options.some((option) => option.startAt === exactModelStartAt.value)
     ) {
       return;
     }
-    emit("update:modelValue", options[0]?.startAt ?? null);
+    emitExactSelection(options[0]?.startAt ?? null);
+  },
+  { immediate: true },
+);
+
+watch(
+  fuzzyDateOptions,
+  (options) => {
+    if (
+      selectedFuzzyDatePreset.value &&
+      options.some((option) => option.value === selectedFuzzyDatePreset.value)
+    ) {
+      return;
+    }
+    selectedFuzzyDatePreset.value = options[0]?.value ?? null;
+  },
+  { immediate: true },
+);
+
+watch(
+  fuzzyTimeOptions,
+  (options) => {
+    if (
+      selectedFuzzyTimePreset.value &&
+      options.some((option) => option.value === selectedFuzzyTimePreset.value)
+    ) {
+      return;
+    }
+    selectedFuzzyTimePreset.value = options[0]?.value ?? null;
+  },
+  { immediate: true },
+);
+
+watch(
+  [activeMode, selectedFuzzyDatePreset, selectedFuzzyTimePreset, fuzzyCandidateStartOptions],
+  () => {
+    if (activeMode.value === "FUZZY") {
+      emitFuzzySelection();
+      return;
+    }
+    emitExactSelection(activeTimeOptions.value[0]?.startAt ?? exactModelStartAt.value);
   },
   { immediate: true },
 );

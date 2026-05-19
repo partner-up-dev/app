@@ -1555,6 +1555,7 @@
       "placePlaceholder": "请选择地点或路线",
       "timeEyebrow": "开始时间",
       "timeTitle": "开始时间",
+      "timeModeToggleAriaLabel": "时间模式",
       "dateWheelAriaLabel": "选择日期",
       "timeWheelAriaLabel": "选择时间",
       "advancedModeLabel": "高级模式",
