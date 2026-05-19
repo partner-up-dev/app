@@ -50,6 +50,7 @@ Contract implication:
 - Backend may rotate tokens through the `x-access-token` response header.
 - Frontend must preserve `credentials: "include"` on flows that rely on cookie-backed session state, especially WeChat OAuth, OAuth handoff, and bind paths.
 - Frontend app bootstrap owns best-effort session restoration and anonymous continuity. Command requests rely on backend auth failures plus the RPC auth policy for required identity escalation.
+- Domain command response bodies must not carry user-session payloads such as `auth`, `accessToken`, `role`, or `userId` for session synchronization. Session issuance and rotation belong to auth transport/session infrastructure, primarily the `x-access-token` response header and explicit auth/session endpoints.
 - Admin and user sessions are separate client contexts. Admin session storage can carry `service`, `analytics`, or both.
 - WeChat OAuth callback completion must not place the long-lived access token in route query parameters. Backend-owned OAuth callbacks hand the frontend session across with a short-lived signed cookie plus a non-secret handoff nonce.
 

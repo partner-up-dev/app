@@ -35,7 +35,6 @@
       @cancel="closeWaitlistFlowModal"
       @completed="finalizeWaitlistFlow"
       @error="emitFlowError"
-      @resolved="applyAuthPayloadFromResult"
     />
   </Modal>
 
@@ -91,7 +90,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -106,10 +104,6 @@ import { useJoinSuccessNotificationPrompt } from "@/domains/notification/use-cas
 import { useWaitlistPR } from "@/domains/pr/queries/usePRActions";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRWaitlistFallbackConfirmGate from "@/domains/pr/ui/gates/PRWaitlistFallbackConfirmGate.vue";
-import {
-  useUserSessionStore,
-  type AuthSessionPayload,
-} from "@/shared/auth/useUserSessionStore";
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
@@ -138,7 +132,6 @@ const props = withDefaults(
     confirmationDeadlineAt?: string | null;
     viewerIsParticipant?: boolean | null;
     showSuccessPrompt?: boolean;
-    writeJoinEntryOnAuth?: boolean;
     eventId?: number | null;
     entrySurface?: PRWaitlistEntrySurface | null;
     candidateRank?: number | null;
@@ -149,7 +142,6 @@ const props = withDefaults(
     confirmationDeadlineAt: null,
     viewerIsParticipant: null,
     showSuccessPrompt: true,
-    writeJoinEntryOnAuth: false,
     eventId: null,
     entrySurface: null,
     candidateRank: null,
@@ -166,10 +158,7 @@ defineSlots<{
   default(props: PRWaitlistFlowSlotProps): unknown;
 }>();
 
-const route = useRoute();
-const router = useRouter();
 const { t } = useI18n();
-const userSessionStore = useUserSessionStore();
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const showWaitlistFlowModal = ref(false);
 const waitlistFlowPending = ref(false);
@@ -216,28 +205,6 @@ useBodyScrollLock(
     () => showWaitlistSubscriptionModal.value || showWaitlistFlowModal.value,
   ),
 );
-
-const readAuthPayload = (result: unknown): AuthSessionPayload | null => {
-  if (typeof result !== "object" || result === null) {
-    return null;
-  }
-  return (result as { auth?: AuthSessionPayload | null }).auth ?? null;
-};
-
-const applyAuthPayloadFromResult = async (result: unknown): Promise<void> => {
-  const authPayload = readAuthPayload(result);
-  if (authPayload) {
-    userSessionStore.applyAuthSession(authPayload);
-  }
-  if (authPayload && props.writeJoinEntryOnAuth) {
-    await router.replace({
-      query: {
-        ...route.query,
-        entry: "waitlist",
-      },
-    });
-  }
-};
 
 const resolveErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : t("common.operationFailed");
@@ -353,7 +320,6 @@ const finalizeWaitlistFlow = async (): Promise<void> => {
       alternativePrReminderOptIn: alternativePrReminderOptIn.value,
       correlationId,
     });
-    await applyAuthPayloadFromResult(result);
     joined.value = true;
     trackWaitlistResult({ actionResult: "success", correlationId });
     emit("joined", result);

@@ -140,10 +140,17 @@ vi.mock("@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/pr/ui/sections/PRJoinExitActions.vue", () => ({
+vi.mock("@/domains/pr/ui/sections/PRJoinAction.vue", () => ({
   default: {
-    name: "PRJoinExitActions",
-    template: '<section data-testid="pr-detail.join-exit-actions" />',
+    name: "PRJoinAction",
+    template: '<section data-testid="pr-detail.join-action" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/sections/PRExitAction.vue", () => ({
+  default: {
+    name: "PRExitAction",
+    template: '<section data-testid="pr-detail.exit-action" />',
   },
 }));
 

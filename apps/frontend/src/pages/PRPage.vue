@@ -149,11 +149,14 @@
 
       <PRCheckInFeedbackActions :pr="prDetail" />
 
-      <PRJoinExitActions
-        ref="joinExitActionsRef"
+      <PRJoinAction
+        ref="joinActionRef"
         :pr="prDetail"
-        :join-entry-context="joinEntryContext"
+        :event-id="joinEntryContext.routeEventId"
+        :entry-surface="joinEntryContext.joinEntrySurface"
       />
+
+      <PRExitAction ref="exitActionRef" :pr="prDetail" />
 
       <div class="utility-stack" data-region="utility">
         <div class="utility-action-row">
@@ -202,7 +205,8 @@ import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
 import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "@/domains/pr/ui/sections/PRConfirmationAction.vue";
 import PRDraftPublishNotice from "@/domains/pr/ui/sections/PRDraftPublishNotice.vue";
-import PRJoinExitActions from "@/domains/pr/ui/sections/PRJoinExitActions.vue";
+import PRExitAction from "@/domains/pr/ui/sections/PRExitAction.vue";
+import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 import PRMessageThreadAction from "@/domains/pr/ui/sections/PRMessageThreadAction.vue";
 import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue";
 import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
@@ -230,8 +234,10 @@ type ContextualPendingActionKind = Extract<
   PendingWeChatAction["kind"],
   "PR_JOIN" | "PR_WAITLIST" | "PR_EXIT" | "PR_CONFIRM"
 >;
-type PRJoinExitActionsExpose = {
+type PRJoinActionExpose = {
   replayJoin: () => Promise<void>;
+};
+type PRExitActionExpose = {
   replayExit: () => Promise<void>;
 };
 type PRWaitlistActionsExpose = {
@@ -260,7 +266,8 @@ const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
 const updateStatusFormRef =
   ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
-const joinExitActionsRef = ref<PRJoinExitActionsExpose | null>(null);
+const joinActionRef = ref<PRJoinActionExpose | null>(null);
+const exitActionRef = ref<PRExitActionExpose | null>(null);
 const waitlistActionsRef = ref<PRWaitlistActionsExpose | null>(null);
 const confirmationActionRef = ref<PRConfirmationActionExpose | null>(null);
 const creatorPublishNoticeRef = ref<PRDraftPublishNoticeExpose | null>(null);
@@ -488,11 +495,11 @@ const attemptPendingWeChatActionReplay = async () => {
     }
 
     if (pending.kind === "PR_JOIN") {
-      await joinExitActionsRef.value?.replayJoin();
+      await joinActionRef.value?.replayJoin();
       return;
     }
     if (pending.kind === "PR_EXIT") {
-      await joinExitActionsRef.value?.replayExit();
+      await exitActionRef.value?.replayExit();
       return;
     }
     if (pending.kind === "PR_WAITLIST") {

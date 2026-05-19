@@ -36,15 +36,16 @@ Hypothesis:
   - waitlist
   - confirmation
   - check-in / feedback
-  - join / exit
+  - join
+  - exit
 - `PRDraftPublishNotice` no longer emits `published`; `usePublishPR` invalidates the relevant query keys.
 - Pending WeChat replay remains in `PRPage`, routed to the relevant component expose:
-  - `PR_JOIN` -> `PRJoinExitActions.replayJoin`
-  - `PR_EXIT` -> `PRJoinExitActions.replayExit`
+  - `PR_JOIN` -> `PRJoinAction.replayJoin`
+  - `PR_EXIT` -> `PRExitAction.replayExit`
   - `PR_WAITLIST` -> `PRWaitlistActions.replayWaitlist`
   - `PR_CONFIRM` -> `PRConfirmationAction.replayConfirm`
 - `PRJoinEntryContext` remains as a temporary attribution bridge and is documented as context erosion in `cross-unit-contracts.md`.
-- Known residual: `PRJoinFlow` still owns an internal `usePRDetail` observer for success-prompt fallback data. This should be handled in a later slice.
+- `PRJoinFlow` was removed in the join / exit follow-up slice. Its success-prompt detail read moved into `PRJoinSuccessPrompt`, where the read is scoped to prompt content and enabled only while the prompt is open.
 - Known residual: pending WeChat replay is still hand-dispatched inside `PRPage`; follow-up target is `usePRPendingWeChatReplay` with a small action registry.
 - Follow-up design notes for replacing `PRJoinFlow` / `PRWaitlistFlow` live in `74-join-waitlist-flow-follow-up.md`.
 

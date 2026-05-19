@@ -6,7 +6,8 @@ import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import PRCheckInFeedbackActions from "./PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "./PRConfirmationAction.vue";
-import PRJoinExitActions from "./PRJoinExitActions.vue";
+import PRExitAction from "./PRExitAction.vue";
+import PRJoinAction from "./PRJoinAction.vue";
 import PRWaitlistActions from "./PRWaitlistActions.vue";
 
 vi.mock("vue-i18n", () => ({
@@ -34,6 +35,7 @@ vi.mock("@/domains/pr/queries/usePRActions", () => {
   return {
     useCancelWaitlistPR: createMutation,
     useExitPR: createMutation,
+    useJoinPR: createMutation,
   };
 });
 
@@ -55,17 +57,17 @@ vi.mock("@/domains/feedback/queries/useSubmitFeedbackQuestionnaire", () => ({
   }),
 }));
 
-vi.mock("@/domains/pr/ui/composites/PRJoinFlow.vue", () => ({
+vi.mock("@/domains/pr/ui/composites/PRJoinGates.vue", () => ({
   default: {
-    name: "PRJoinFlow",
-    props: ["disabled"],
-    setup() {
-      return {
-        open: vi.fn(),
-      };
-    },
-    template:
-      '<div><slot :open="open" :pending="false" :disabled="disabled" :joined="false" :error-message="null" /></div>',
+    name: "PRJoinGates",
+    template: '<div data-testid="join-gates" />',
+  },
+}));
+
+vi.mock("@/domains/pr/ui/composites/PRJoinSuccessPrompt.vue", () => ({
+  default: {
+    name: "PRJoinSuccessPrompt",
+    template: '<div data-testid="join-success-prompt" />',
   },
 }));
 
@@ -119,17 +121,31 @@ afterEach(() => {
 });
 
 describe("PR participation action components", () => {
-  test("join / exit component renders join for joinable visitors", async () => {
-    const host = await mountComponent(PRJoinExitActions, {
+  test("join component renders join for joinable visitors", async () => {
+    const host = await mountComponent(PRJoinAction, {
       pr: buildPRDetail({
         viewer: {
           canJoin: true,
         },
       }),
-      joinEntryContext: entryContext,
+      eventId: entryContext.routeEventId,
+      entrySurface: entryContext.joinEntrySurface,
     });
 
     expect(hasTestId(host, "pr-detail.join.open")).toBe(true);
+  });
+
+  test("exit component renders exit for participants", async () => {
+    const host = await mountComponent(PRExitAction, {
+      pr: buildPRDetail({
+        viewer: {
+          isParticipant: true,
+          canExit: true,
+        },
+      }),
+    });
+
+    expect(hasTestId(host, "pr-detail.exit.open")).toBe(true);
   });
 
   test("waitlist component renders waitlist for waitlistable visitors", async () => {

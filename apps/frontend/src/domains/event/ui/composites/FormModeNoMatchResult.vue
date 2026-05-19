@@ -22,7 +22,7 @@
           @open-detail="emit('candidate-detail', candidate.pr.id, index + 1)"
         >
           <template #actions>
-            <PRJoinFlow
+            <PRJoinAction
               :pr-id="candidate.pr.id"
               :scenario-type="candidate.pr.type"
               :event-id="props.eventId"
@@ -36,7 +36,7 @@
               "
             >
               <template
-                #default="{ open, pending, disabled, joined, errorMessage }"
+                #trigger="{ open, pending, disabled, joined, errorMessage }"
               >
                 <div class="candidate-join-flow">
                   <Button
@@ -66,7 +66,7 @@
                   </p>
                 </div>
               </template>
-            </PRJoinFlow>
+            </PRJoinAction>
           </template>
         </PRPreviewCard>
       </div>
@@ -115,7 +115,7 @@ import {
 } from "@/domains/event/model/form-mode";
 import Button from "@/shared/ui/actions/Button.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
-import PRJoinFlow from "@/domains/pr/ui/composites/PRJoinFlow.vue";
+import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 
 type RecommendationCandidate =
   AnchorEventFormModeRecommendationResponse["orderedCandidates"][number];

@@ -51,3 +51,18 @@
 - User asked whether removing `PRJoinFlow` requires a slot-customizable join trigger so Form Mode recommendation matched / candidate surfaces can keep custom buttons.
 - Recorded `74-join-waitlist-flow-follow-up.md`: `PRJoinFlow` replacement must preserve renderless trigger customization and avoid requiring full `PRDetailView` for Form Mode candidate usage.
 - Recorded `PRWaitlistFlow` follow-up direction and the remaining `PRPage` pending WeChat replay hand-dispatch issue.
+- User challenged that `PRJoinCapability` would just become a second `PRJoinFlow` if it keeps the broad slot workflow shape.
+- Revised the follow-up direction: avoid another broad capability component; split into smaller primitives (`usePRJoinCommand`, gate modal, success follow-up modal) that PR detail and Form Mode surfaces compose directly.
+- User clarified that `Modal` / `Card` are containers and should not be wrapped into business abstractions such as `PRJoinGateModal` or `PRJoinSuccessPromptModal`.
+- Revised the join follow-up target again: keep `PRJoinGates` and introduce content-only `PRJoinSuccessPrompt`; the action/surface owns the modal container assembly.
+- User challenged `usePRJoinCommand` as a potentially unnecessary abstraction over `useJoinPR`.
+- Revised the join command target: let `useJoinPR` own the narrow join command mutation boundary directly, including returned auth payload application and cache invalidation, while keeping modal state, route navigation, success prompt state, and surface attribution out of it.
+- User clarified that `entry=join` is Form Mode route behavior, not reusable join behavior.
+- User stated that PR command endpoints returning auth in JSON body should be removed and prohibited.
+- Updated `74-join-waitlist-flow-follow-up.md`: `useJoinPR` should not apply body-level auth; PR command response bodies should contain domain results only, and session sync should be centralized in auth transport/session infrastructure.
+- User suggested either `PRJoinAction` should fetch PR detail for `PRJoinSuccessPrompt`, or `PRJoinSuccessPrompt` should fetch PR detail itself.
+- Recorded the preferred boundary: `PRJoinSuccessPrompt` owns its prompt-specific `usePRDetail(prId)` read, enabled only while the prompt is open, so `PRJoinAction` does not become a prompt-data adapter.
+- User approved starting the `PRJoinExitActions` series refactor according to the discussed slices.
+- Implemented the session-boundary cleanup in working tree: PR command response bodies no longer return `auth`; PR UI code no longer reads `result.auth`; the durable session contract now prohibits domain command bodies from carrying session payloads.
+- Implemented the join / exit split in working tree: deleted `PRJoinFlow` and `PRJoinExitActions`, added `PRJoinAction`, `PRExitAction`, and content-only `PRJoinSuccessPrompt`, and migrated PR Page plus Form Mode matched / candidate join surfaces to `PRJoinAction`.
+- Verification so far: targeted frontend unit tests, backend PR draft scenario, frontend build, and backend problem-details lint all pass.

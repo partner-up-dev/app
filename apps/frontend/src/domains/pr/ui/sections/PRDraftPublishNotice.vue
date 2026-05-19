@@ -31,10 +31,6 @@ import Button from "@/shared/ui/actions/Button.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
-import {
-  useUserSessionStore,
-  type AuthSessionPayload,
-} from "@/shared/auth/useUserSessionStore";
 
 const props = defineProps<{
   prId: PRId | null;
@@ -44,18 +40,12 @@ const props = defineProps<{
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
-const userSessionStore = useUserSessionStore();
 const publishMutation = usePublishPR();
 const showDraftPublishCard = computed(() => props.pr.status === "DRAFT");
 
 const handlePublishDraft = async () => {
   if (props.prId === null || props.pr.status !== "DRAFT") return;
-  const result = await publishMutation.mutateAsync({ id: props.prId });
-  const authPayload = (result as { auth?: AuthSessionPayload | null } | null)
-    ?.auth;
-  if (authPayload) {
-    userSessionStore.applyAuthSession(authPayload);
-  }
+  await publishMutation.mutateAsync({ id: props.prId });
   await router.replace({ query: { ...route.query, entry: "publish" } });
 };
 

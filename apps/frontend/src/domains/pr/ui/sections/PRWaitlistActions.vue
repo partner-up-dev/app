@@ -27,7 +27,6 @@
       :entry-surface="joinEntryContext.joinEntrySurface"
       :confirmation-deadline-at="confirmationDeadlineAt"
       :viewer-is-participant="viewer.isParticipant"
-      write-join-entry-on-auth
     >
       <template #default="{ open, pending, disabled, joined, errorMessage }">
         <div v-if="showWaitlistAction" class="primary-action">

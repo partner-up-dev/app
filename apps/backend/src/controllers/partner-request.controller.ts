@@ -31,7 +31,7 @@ import {
   anchorUpdateContentSchema,
   createNaturalLanguagePRSchema,
   getSessionUserId,
-  issueAuthPayload,
+  issueResponseAuth,
   prMessageCreateSchema,
   prMessageReadMarkerSchema,
   prIdParamSchema,
@@ -179,12 +179,11 @@ export const partnerRequestRoute = app
     await getPROr404(id);
     const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
     const result = await publishPR(id, creatorIdentity);
-    const auth = await issueAuthPayload(c, result.createdBy);
+    await issueResponseAuth(c, result.createdBy);
 
     return c.json({
       id: result.pr.id,
       pr: result.pr,
-      auth,
     });
   })
   .get("/mine/created", async (c) => {
@@ -287,11 +286,8 @@ export const partnerRequestRoute = app
         viewerUserId: participant.user.id,
         payload,
       });
-      const auth = await issueAuthPayload(c, participant.user.id);
-      return c.json({
-        ...result,
-        auth,
-      });
+      await issueResponseAuth(c, participant.user.id);
+      return c.json(result);
     },
   )
   .patch(
@@ -315,10 +311,7 @@ export const partnerRequestRoute = app
       }
 
       const result = await updatePRStatus(id, status, creatorAuth.actorUserId);
-      return c.json({
-        ...result,
-        auth: null,
-      });
+      return c.json(result);
     },
   )
   .patch(
@@ -351,10 +344,7 @@ export const partnerRequestRoute = app
         fields,
         creatorAuth.actorUserId,
       );
-      return c.json({
-        ...result,
-        auth: null,
-      });
+      return c.json(result);
     },
   )
   .post(
@@ -366,11 +356,8 @@ export const partnerRequestRoute = app
       await getPROr404(id);
       const participantIdentity = await requireAuthenticatedCreatorIdentity(c);
       const result = await joinPRByIdentity(id, participantIdentity);
-      const auth = await issueAuthPayload(c, result.userId);
-      return c.json({
-        ...result.pr,
-        auth,
-      });
+      await issueResponseAuth(c, result.userId);
+      return c.json(result.pr);
     },
   )
   .post(
@@ -385,11 +372,8 @@ export const partnerRequestRoute = app
       const result = await waitlistPRByIdentity(id, participantIdentity, {
         alternativePrReminderOptIn: payload.alternativePrReminderOptIn === true,
       });
-      const auth = await issueAuthPayload(c, result.userId);
-      return c.json({
-        ...result.pr,
-        auth,
-      });
+      await issueResponseAuth(c, result.userId);
+      return c.json(result.pr);
     },
   )
   .post(

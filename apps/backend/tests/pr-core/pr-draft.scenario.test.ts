@@ -27,7 +27,6 @@ type PublishDraftPRResponse = {
     createdBy: string | null;
     partners: number[];
   };
-  auth: AuthSessionResponse;
 };
 
 type DraftContentUpdateResponse = {
@@ -95,20 +94,17 @@ scenario("authenticated_user_publish_claims_creatorless_draft", async (ctx) => {
   ctx.record("publisherUserId", publisher.user.id);
   ctx.record("prId", pr.id);
 
-  const result = await expectJsonResponse<PublishDraftPRResponse>(
-    await requestJson(`/api/pr/${pr.id}/publish`, {
-      method: "POST",
-      token: publisher.token,
-    }),
-    200,
-  );
+  const response = await requestJson(`/api/pr/${pr.id}/publish`, {
+    method: "POST",
+    token: publisher.token,
+  });
+  const result = await expectJsonResponse<PublishDraftPRResponse>(response, 200);
 
   assert.equal(result.id, pr.id);
   assert.equal(result.pr.createdBy, publisher.user.id);
   assert.equal(result.pr.status, "OPEN");
-  assert.equal(result.auth.role, "authenticated");
-  assert.deepEqual(result.auth.roles, ["authenticated"]);
-  assert.equal(result.auth.userId, publisher.user.id);
+  assert.equal("auth" in result, false);
+  assert.ok(response.headers.get("x-access-token"));
   await expectActiveParticipantsInclude(pr, [publisher.user.id]);
 
   const db = getTestDb();

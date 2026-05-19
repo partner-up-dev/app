@@ -69,9 +69,6 @@ export const usePRCreateFlow = () => {
     let createdStatus: PRStatus = result.status;
     if (createdStatus === "DRAFT" && pendingStatus.value === "PUBLISH") {
       const publishResult = await publishMutation.mutateAsync({ id: result.id });
-      if (publishResult.auth) {
-        userSessionStore.applyAuthSession(publishResult.auth);
-      }
       createdStatus = publishResult.pr.status;
     }
 
