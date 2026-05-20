@@ -31,7 +31,7 @@ const buildMatch = (
 ) =>
   buildAnchorEventRecommendationMatch({
     requestedLocationId,
-    requestedStartAtIso: requestedStartAt,
+    requestedTimeWindows: [{ startAt: requestedStartAt, endAt: requestedStartAt }],
     requestedPreferences: ["球风:进攻"],
     candidateLocationId: requestedLocationId,
     candidateTimeWindow: [requestedStartAt, "2026-04-27T12:30:00.000Z"],
@@ -41,17 +41,31 @@ const buildMatch = (
     ...overrides,
   });
 
-test("isAnchorEventMatchedRecommendation accepts exact location and start within tolerance without preference conflict", () => {
+test("isAnchorEventMatchedRecommendation accepts exact location and exact start without preference conflict", () => {
+  const match = buildMatch();
+
+  assert.equal(match.exactLocation, true);
+  assert.equal(match.exactPlace, true);
+  assert.equal(match.startDeltaMinutes, 0);
+  assert.equal(match.startWithinTolerance, true);
+  assert.equal(isAnchorEventMatchedRecommendation(match), true);
+});
+
+test("isAnchorEventMatchedRecommendation accepts candidate start inside a submitted interval", () => {
   const match = buildMatch({
+    requestedTimeWindows: [
+      {
+        startAt: "2026-04-27T11:00:00.000Z",
+        endAt: "2026-04-27T12:00:00.000Z",
+      },
+    ],
     candidateTimeWindow: [
       "2026-04-27T11:35:00.000Z",
       "2026-04-27T12:35:00.000Z",
     ],
   });
 
-  assert.equal(match.exactLocation, true);
-  assert.equal(match.exactPlace, true);
-  assert.equal(match.startDeltaMinutes, 5);
+  assert.equal(match.startDeltaMinutes, 0);
   assert.equal(match.startWithinTolerance, true);
   assert.equal(isAnchorEventMatchedRecommendation(match), true);
 });
@@ -99,15 +113,34 @@ test("isAnchorEventMatchedRecommendation rejects different route", () => {
   assert.equal(isAnchorEventMatchedRecommendation(match), false);
 });
 
-test("isAnchorEventMatchedRecommendation rejects start outside tolerance", () => {
+test("isAnchorEventMatchedRecommendation rejects non-exact start for a point window", () => {
   const match = buildMatch({
     candidateTimeWindow: [
-      "2026-04-27T11:36:00.000Z",
-      "2026-04-27T12:36:00.000Z",
+      "2026-04-27T11:35:00.000Z",
+      "2026-04-27T12:35:00.000Z",
     ],
   });
 
-  assert.equal(match.startDeltaMinutes, 6);
+  assert.equal(match.startDeltaMinutes, 5);
+  assert.equal(match.startWithinTolerance, false);
+  assert.equal(isAnchorEventMatchedRecommendation(match), false);
+});
+
+test("isAnchorEventMatchedRecommendation does not match PR duration overlap when start is outside interval", () => {
+  const match = buildMatch({
+    requestedTimeWindows: [
+      {
+        startAt: "2026-04-27T11:00:00.000Z",
+        endAt: "2026-04-27T12:00:00.000Z",
+      },
+    ],
+    candidateTimeWindow: [
+      "2026-04-27T10:30:00.000Z",
+      "2026-04-27T11:30:00.000Z",
+    ],
+  });
+
+  assert.equal(match.startDeltaMinutes, 30);
   assert.equal(match.startWithinTolerance, false);
   assert.equal(isAnchorEventMatchedRecommendation(match), false);
 });

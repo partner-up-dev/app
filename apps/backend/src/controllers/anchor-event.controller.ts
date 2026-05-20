@@ -47,31 +47,25 @@ const formModeRecommendationBaseSchema = z.object({
   correlationId: z.string().trim().min(1).max(128).optional(),
 });
 
-const formModeTimeSelectionSchema = z.discriminatedUnion("mode", [
-  z.object({
-    mode: z.literal("EXACT"),
+const formModeRecommendationTimeWindowSchema = z
+  .object({
     startAt: z.string().datetime(),
-  }),
-  z.object({
-    mode: z.literal("FUZZY"),
-    datePreset: z.string().trim().min(1).max(160),
-    timePreset: z.enum([
-      "ANY_TIME",
-      "MORNING",
-      "NOON",
-      "AFTERNOON",
-      "DUSK",
-      "NIGHT",
-      "LATE_NIGHT",
-    ]),
-    candidateStartKeys: z.array(z.string().trim().min(1).max(160)).max(64).optional(),
-  }),
-]);
+    endAt: z.string().datetime(),
+  })
+  .superRefine((timeWindow, ctx) => {
+    if (new Date(timeWindow.startAt).getTime() > new Date(timeWindow.endAt).getTime()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "timeWindows endAt must be greater than or equal to startAt",
+        path: ["endAt"],
+      });
+    }
+  });
 
 const formModeRecommendationSchema = z.union([
   formModeRecommendationBaseSchema.extend({
     place: formModeRecommendationPlaceSchema,
-    timeSelection: formModeTimeSelectionSchema,
+    timeWindows: z.array(formModeRecommendationTimeWindowSchema).min(1).max(14),
   }),
   formModeRecommendationBaseSchema.extend({
     locationId: z.string().trim().min(1),
@@ -195,9 +189,9 @@ export const anchorEventRoute = app
         eventId,
         viewerUserId: readSessionUserId(c),
         place: resolveFormModeRecommendationPlace(payload),
-        timeSelection: "timeSelection" in payload
-          ? payload.timeSelection
-          : { mode: "EXACT", startAt: payload.startAt },
+        timeWindows: "timeWindows" in payload
+          ? payload.timeWindows
+          : [{ startAt: payload.startAt, endAt: payload.startAt }],
         preferences: payload.preferences,
       });
       return c.json(result);

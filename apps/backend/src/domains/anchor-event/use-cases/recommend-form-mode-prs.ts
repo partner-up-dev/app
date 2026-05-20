@@ -19,8 +19,7 @@ import {
 import {
   buildAnchorEventRecommendationMatch,
   isAnchorEventMatchedRecommendation,
-  resolveAnchorEventFormModeSelectionTimeWindows,
-  type AnchorEventFormModeTimeSelection,
+  type AnchorEventFormModeTimeWindow,
 } from "../services/form-mode";
 
 const anchorEventRepo = new AnchorEventRepository();
@@ -74,9 +73,8 @@ export interface AnchorEventFormModeRecommendationResponse {
     kind: "location" | "route";
     locationId: string | null;
     routePoolEntryId: string | null;
-    timeMode: "EXACT" | "FUZZY";
-    timeWindow: [string, string | null];
-    timeWindows: Array<[string, string | null]>;
+    timeWindow: AnchorEventFormModeTimeWindow;
+    timeWindows: AnchorEventFormModeTimeWindow[];
     preferences: string[];
   };
   matchedRecommendation: FormModeRecommendationCandidate | null;
@@ -152,7 +150,7 @@ const resolveRecommendationPlace = async (
 const buildBestTimeSelectionMatch = (input: {
   requestedLocationId?: string | null;
   requestedRoute?: PRRoute | null;
-  requestedStartAtIsos: readonly string[];
+  requestedTimeWindows: readonly AnchorEventFormModeTimeWindow[];
   requestedPreferences: string[];
   candidateLocationId: string | null;
   candidateRoute?: PRRoute | null;
@@ -161,40 +159,56 @@ const buildBestTimeSelectionMatch = (input: {
   candidateMinPartners: number | null;
   activePartnerCount: number;
 }) =>
-  input.requestedStartAtIsos
-    .map((requestedStartAtIso) =>
-      buildAnchorEventRecommendationMatch({
-        requestedLocationId: input.requestedLocationId,
-        requestedRoute: input.requestedRoute,
-        requestedStartAtIso,
-        requestedPreferences: input.requestedPreferences,
-        candidateLocationId: input.candidateLocationId,
-        candidateRoute: input.candidateRoute,
-        candidateTimeWindow: input.candidateTimeWindow,
-        candidatePreferences: input.candidatePreferences,
-        candidateMinPartners: input.candidateMinPartners,
-        activePartnerCount: input.activePartnerCount,
-      }),
-    )
-    .sort((left, right) => {
-      const leftMatched = isAnchorEventMatchedRecommendation(left) ? 1 : 0;
-      const rightMatched = isAnchorEventMatchedRecommendation(right) ? 1 : 0;
-      if (leftMatched !== rightMatched) {
-        return rightMatched - leftMatched;
-      }
-      if (right.score !== left.score) {
-        return right.score - left.score;
-      }
-      const leftDelta = left.startDeltaMinutes ?? Number.POSITIVE_INFINITY;
-      const rightDelta = right.startDeltaMinutes ?? Number.POSITIVE_INFINITY;
-      return leftDelta - rightDelta;
-    })[0];
+  buildAnchorEventRecommendationMatch({
+    requestedLocationId: input.requestedLocationId,
+    requestedRoute: input.requestedRoute,
+    requestedTimeWindows: input.requestedTimeWindows,
+    requestedPreferences: input.requestedPreferences,
+    candidateLocationId: input.candidateLocationId,
+    candidateRoute: input.candidateRoute,
+    candidateTimeWindow: input.candidateTimeWindow,
+    candidatePreferences: input.candidatePreferences,
+    candidateMinPartners: input.candidateMinPartners,
+    activePartnerCount: input.activePartnerCount,
+  });
+
+const normalizeRecommendationTimeWindows = (
+  timeWindows: readonly AnchorEventFormModeTimeWindow[],
+): AnchorEventFormModeTimeWindow[] => {
+  if (timeWindows.length === 0 || timeWindows.length > 14) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "timeWindows must contain between 1 and 14 entries",
+    });
+  }
+
+  return timeWindows.map((timeWindow) => {
+    const startAt = new Date(timeWindow.startAt);
+    const endAt = new Date(timeWindow.endAt);
+    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
+      return throwHttpProblem({
+        status: 400,
+        detail: "Invalid recommendation time window",
+      });
+    }
+    if (startAt.getTime() > endAt.getTime()) {
+      return throwHttpProblem({
+        status: 400,
+        detail: "Recommendation time window endAt must not be before startAt",
+      });
+    }
+    return {
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+    };
+  });
+};
 
 export async function recommendAnchorEventFormModePRs(input: {
   eventId: AnchorEventId;
   viewerUserId?: UserId | null;
   place: AnchorEventFormModeRecommendationPlaceSelection;
-  timeSelection: AnchorEventFormModeTimeSelection;
+  timeWindows: AnchorEventFormModeTimeWindow[];
   preferences: string[];
 }): Promise<AnchorEventFormModeRecommendationResponse> {
   const event = await anchorEventRepo.findById(input.eventId);
@@ -204,11 +218,9 @@ export async function recommendAnchorEventFormModePRs(input: {
 
   const selectedPlace = await resolveRecommendationPlace(event, input.place);
 
-  const selectionTimeWindows = resolveAnchorEventFormModeSelectionTimeWindows(
-    event,
-    input.timeSelection,
+  const selectionTimeWindows = normalizeRecommendationTimeWindows(
+    input.timeWindows,
   );
-  const requestedStartAtIsos = selectionTimeWindows.map((timeWindow) => timeWindow[0]);
   const selectionPreferences = Array.from(
     new Set(input.preferences.map((preference) => preference.trim()).filter(Boolean)),
   );
@@ -247,7 +259,7 @@ export async function recommendAnchorEventFormModePRs(input: {
       const match = buildBestTimeSelectionMatch({
         requestedLocationId: selectedPlace.locationId,
         requestedRoute: selectedPlace.route,
-        requestedStartAtIsos,
+        requestedTimeWindows: selectionTimeWindows,
         requestedPreferences: selectionPreferences,
         candidateLocationId: record.root.location,
         candidateRoute: record.root.route,
@@ -306,9 +318,8 @@ export async function recommendAnchorEventFormModePRs(input: {
     },
     selection: {
       kind: selectedPlace.kind,
-        locationId: selectedPlace.locationId,
-        routePoolEntryId: selectedPlace.routePoolEntryId,
-      timeMode: input.timeSelection.mode,
+      locationId: selectedPlace.locationId,
+      routePoolEntryId: selectedPlace.routePoolEntryId,
       timeWindow: selectionTimeWindows[0]!,
       timeWindows: selectionTimeWindows,
       preferences: selectionPreferences,

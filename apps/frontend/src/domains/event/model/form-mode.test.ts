@@ -2,9 +2,11 @@ import { describe, expect, test } from "vitest";
 import type { AnchorEventFormModeResponse } from "@/domains/event/model/types";
 import {
   buildAdvancedModeStartOptions,
+  buildFormModeFuzzyTimeWindows,
   buildFormModeFuzzyDateOptions,
   buildFormModeFuzzyTimeOptions,
-  filterStartOptionsByFuzzyTime,
+  buildFormModePointTimeWindows,
+  formatFormModeFuzzySelectionLabel,
   shouldAutoOpenAdvancedFormModeTime,
 } from "./form-mode";
 
@@ -43,57 +45,60 @@ describe("form mode time options", () => {
     expect(shouldAutoOpenAdvancedFormModeTime([], null, now)).toBe(false);
   });
 
-  test("buildFormModeFuzzyDateOptions derives relative date presets from start options", () => {
+  test("buildFormModeFuzzyDateOptions derives fixed seven-day relative dates from now", () => {
     const options = buildFormModeFuzzyDateOptions(
-      [
-        {
-          key: "today-afternoon",
-          startAt: "2026-05-19T06:00:00.000Z",
-          endAt: "2026-05-19T08:00:00.000Z",
-          description: null,
-        },
-        {
-          key: "tomorrow-night",
-          startAt: "2026-05-20T12:00:00.000Z",
-          endAt: "2026-05-20T14:00:00.000Z",
-          description: null,
-        },
-      ],
       new Date("2026-05-19T01:00:00.000Z"),
     );
 
-    expect(options.map((option) => option.label)).toContain("今天");
-    expect(options.map((option) => option.label)).toContain("明天");
-    expect(options.at(-1)).toMatchObject({
-      label: "任一天",
-      value: "ANY_DAY",
-    });
+    expect(options).toHaveLength(7);
+    expect(options.map((option) => option.label).slice(0, 2)).toEqual([
+      "今天",
+      "明天",
+    ]);
+    expect(options.map((option) => option.value)).toEqual([
+      "2026-05-19",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-23",
+      "2026-05-24",
+      "2026-05-25",
+    ]);
   });
 
-  test("filterStartOptionsByFuzzyTime filters by product-local start hour", () => {
-    const options: StartOption[] = [
-      {
-        key: "afternoon",
-        startAt: "2026-05-19T06:00:00.000Z",
-        endAt: "2026-05-19T08:00:00.000Z",
-        description: null,
-      },
-      {
-        key: "night",
-        startAt: "2026-05-19T12:00:00.000Z",
-        endAt: "2026-05-19T14:00:00.000Z",
-        description: null,
-      },
-    ];
+  test("buildFormModeFuzzyTimeOptions returns fixed concrete time periods", () => {
+    expect(buildFormModeFuzzyTimeOptions()).toEqual([
+      { label: "上午", value: "MORNING", startTime: "06:00", endTime: "11:00" },
+      { label: "中午", value: "NOON", startTime: "11:00", endTime: "13:00" },
+      { label: "下午", value: "AFTERNOON", startTime: "13:00", endTime: "17:00" },
+      { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
+      { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
+      { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
+    ]);
+  });
 
-    expect(buildFormModeFuzzyTimeOptions(options).map((option) => option.value))
-      .toEqual(["AFTERNOON", "NIGHT", "ANY_TIME"]);
+  test("buildFormModePointTimeWindows emits a point window for exact modes", () => {
+    expect(buildFormModePointTimeWindows("2026-05-19T06:00:00.000Z")).toEqual([
+      {
+        startAt: "2026-05-19T06:00:00.000Z",
+        endAt: "2026-05-19T06:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("buildFormModeFuzzyTimeWindows emits a concrete interval and matching label", () => {
+    expect(buildFormModeFuzzyTimeWindows("2026-05-20", "DUSK")).toEqual([
+      {
+        startAt: "2026-05-20T09:00:00.000Z",
+        endAt: "2026-05-20T11:00:00.000Z",
+      },
+    ]);
     expect(
-      filterStartOptionsByFuzzyTime(
-        options,
-        "DATE:2026-05-19",
-        "AFTERNOON",
-      ).map((option) => option.key),
-    ).toEqual(["afternoon"]);
+      formatFormModeFuzzySelectionLabel(
+        "2026-05-20",
+        "DUSK",
+        new Date("2026-05-19T01:00:00.000Z"),
+      ),
+    ).toBe("明天傍晚");
   });
 });

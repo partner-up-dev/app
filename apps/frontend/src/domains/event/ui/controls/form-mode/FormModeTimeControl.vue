@@ -11,6 +11,7 @@
           :options="timeModeOptions"
           :aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
           size="sm"
+          data-testid="anchor-event-form-mode.time-mode-toggle"
         />
       </div>
 
@@ -27,6 +28,7 @@
         :visible-count="3"
         :aria-label="t('anchorEvent.formMode.dateWheelAriaLabel')"
         :empty-label="t('anchorEvent.formMode.timePlaceholder')"
+        data-testid="anchor-event-form-mode.time-date-wheel"
         @update:model-value="handleDateWheelUpdate"
       />
 
@@ -37,6 +39,7 @@
         :visible-count="3"
         :aria-label="t('anchorEvent.formMode.timeWheelAriaLabel')"
         :empty-label="t('anchorEvent.formMode.timePlaceholder')"
+        data-testid="anchor-event-form-mode.time-time-wheel"
         @update:model-value="handleTimeWheelUpdate"
       />
     </div>
@@ -62,12 +65,16 @@ import MultiStopToggle, {
 } from "@/shared/ui/forms/MultiStopToggle.vue";
 import {
   buildAdvancedModeStartOptions,
+  buildFormModeCreateTimeWindow,
   buildFormModeFuzzyDateOptions,
+  buildFormModeFuzzyTimeWindows,
   buildFormModeFuzzyTimeOptions,
   buildFormModeDateKey,
+  buildFormModePointTimeWindows,
   buildStartOptionsByDate,
-  filterStartOptionsByFuzzyTime,
+  formatFormModeFuzzySelectionLabel,
   formatFormModeDurationLabel,
+  formatFormModeDateLabel,
   formatFormModeTimeLabel,
   type FormModeFuzzyTimePreset,
   type FormModeTimeMode,
@@ -99,7 +106,7 @@ const timeModeOptions: readonly MultiStopToggleOption[] = [
 ];
 const selectedDateKey = ref<string | null>(null);
 const activeMode = ref<FormModeTimeMode>("NORMAL");
-const selectedFuzzyDatePreset = ref<string | null>(null);
+const selectedFuzzyDateValue = ref<string | null>(null);
 const selectedFuzzyTimePreset = ref<FormModeFuzzyTimePreset | null>(null);
 
 const defaultStartOptionGroups = computed(() =>
@@ -157,42 +164,20 @@ const timeWheelOptions = computed(() =>
 );
 
 const fuzzyDateOptions = computed(() =>
-  buildFormModeFuzzyDateOptions(props.startOptions),
+  buildFormModeFuzzyDateOptions(),
 );
 
-const fuzzyDateFilteredStartOptions = computed(() => {
-  if (!selectedFuzzyDatePreset.value) {
-    return props.startOptions;
-  }
-  return filterStartOptionsByFuzzyTime(
-    props.startOptions,
-    selectedFuzzyDatePreset.value,
-    "ANY_TIME",
-  );
-});
-
-const fuzzyTimeOptions = computed(() =>
-  buildFormModeFuzzyTimeOptions(fuzzyDateFilteredStartOptions.value),
-);
-
-const fuzzyCandidateStartOptions = computed(() => {
-  if (!selectedFuzzyDatePreset.value || !selectedFuzzyTimePreset.value) {
-    return [];
-  }
-  return filterStartOptionsByFuzzyTime(
-    props.startOptions,
-    selectedFuzzyDatePreset.value,
-    selectedFuzzyTimePreset.value,
-  );
-});
+const fuzzyTimeOptions = computed(() => buildFormModeFuzzyTimeOptions());
 
 const exactModelStartAt = computed(() =>
-  props.modelValue?.mode === "EXACT" ? props.modelValue.startAt : null,
+  props.modelValue?.mode !== "FUZZY"
+    ? props.modelValue?.createTimeWindow?.startAt ?? null
+    : null,
 );
 
 const dateWheelModelValue = computed(() =>
   activeMode.value === "FUZZY"
-    ? selectedFuzzyDatePreset.value
+    ? selectedFuzzyDateValue.value
     : selectedDateKey.value,
 );
 
@@ -219,7 +204,7 @@ const selectedStartOptionDescription = computed(() => {
 
 const handleDateWheelUpdate = (value: WheelPickerValue) => {
   if (activeMode.value === "FUZZY") {
-    selectedFuzzyDatePreset.value = String(value);
+    selectedFuzzyDateValue.value = String(value);
     return;
   }
   selectedDateKey.value = String(value);
@@ -241,24 +226,47 @@ const emitExactSelection = (startAt: string | null) => {
     emit("update:modelValue", null);
     return;
   }
+  const sourceMode = activeMode.value === "ADVANCED" ? "ADVANCED" : "NORMAL";
+  const matchingPreset = props.startOptions.find(
+    (option) => option.startAt === startAt,
+  );
+  const createTimeWindow =
+    sourceMode === "NORMAL" && matchingPreset
+      ? {
+          startAt: matchingPreset.startAt,
+          endAt: matchingPreset.endAt,
+        }
+      : buildFormModeCreateTimeWindow(startAt, props.durationMinutes);
+
   emit("update:modelValue", {
-    mode: "EXACT",
-    startAt,
-    sourceMode: activeMode.value === "ADVANCED" ? "ADVANCED" : "NORMAL",
+    mode: sourceMode,
+    label: `${formatFormModeDateLabel(startAt)} ${formatFormModeTimeLabel(startAt)}`,
+    timeWindows: buildFormModePointTimeWindows(startAt),
+    createTimeWindow,
   });
 };
 
 const emitFuzzySelection = () => {
-  if (!selectedFuzzyDatePreset.value || !selectedFuzzyTimePreset.value) {
+  if (!selectedFuzzyDateValue.value || !selectedFuzzyTimePreset.value) {
     emit("update:modelValue", null);
     return;
   }
+  const timeWindows = buildFormModeFuzzyTimeWindows(
+    selectedFuzzyDateValue.value,
+    selectedFuzzyTimePreset.value,
+  );
+  const fallbackStartAt = timeWindows[0]?.startAt ?? null;
   emit("update:modelValue", {
     mode: "FUZZY",
-    datePreset: selectedFuzzyDatePreset.value,
-    timePreset: selectedFuzzyTimePreset.value,
-    candidateStartKeys: fuzzyCandidateStartOptions.value.map((option) => option.key),
-    fallbackStartAt: fuzzyCandidateStartOptions.value[0]?.startAt ?? null,
+    label: formatFormModeFuzzySelectionLabel(
+      selectedFuzzyDateValue.value,
+      selectedFuzzyTimePreset.value,
+    ),
+    timeWindows,
+    createTimeWindow:
+      fallbackStartAt === null
+        ? null
+        : buildFormModeCreateTimeWindow(fallbackStartAt, props.durationMinutes),
   });
 };
 
@@ -293,42 +301,41 @@ watch(
     if (!modelValue) {
       return;
     }
+    activeMode.value = modelValue.mode;
     if (modelValue.mode === "FUZZY") {
-      activeMode.value = "FUZZY";
-      selectedFuzzyDatePreset.value = modelValue.datePreset;
-      selectedFuzzyTimePreset.value = modelValue.timePreset;
       return;
     }
 
-    if (!isValidFormModeDateTime(modelValue.startAt)) {
+    const modelStartAt = modelValue.createTimeWindow?.startAt ?? null;
+    if (!isValidFormModeDateTime(modelStartAt)) {
       emit("update:modelValue", null);
       return;
     }
 
     const activeGroup = findGroupForStartAt(
       activeStartOptionGroups.value,
-      modelValue.startAt,
+      modelStartAt,
     );
     if (activeGroup) {
       selectedDateKey.value = activeGroup.dateKey;
       return;
     }
 
-    const defaultGroup = findGroupForStartAt(defaultGroups, modelValue.startAt);
+    const defaultGroup = findGroupForStartAt(defaultGroups, modelStartAt);
     if (defaultGroup) {
       activeMode.value = "NORMAL";
       selectedDateKey.value = defaultGroup.dateKey;
       return;
     }
 
-    const advancedGroup = findGroupForStartAt(advancedGroups, modelValue.startAt);
+    const advancedGroup = findGroupForStartAt(advancedGroups, modelStartAt);
     if (advancedGroup) {
       activeMode.value = "ADVANCED";
       selectedDateKey.value = advancedGroup.dateKey;
       return;
     }
 
-    const modelDateKey = resolveDateKey(modelValue.startAt);
+    const modelDateKey = resolveDateKey(modelStartAt);
     const advancedDateGroup =
       modelDateKey === null
         ? null
@@ -380,12 +387,12 @@ watch(
   fuzzyDateOptions,
   (options) => {
     if (
-      selectedFuzzyDatePreset.value &&
-      options.some((option) => option.value === selectedFuzzyDatePreset.value)
+      selectedFuzzyDateValue.value &&
+      options.some((option) => option.value === selectedFuzzyDateValue.value)
     ) {
       return;
     }
-    selectedFuzzyDatePreset.value = options[0]?.value ?? null;
+    selectedFuzzyDateValue.value = options[0]?.value ?? null;
   },
   { immediate: true },
 );
@@ -405,7 +412,7 @@ watch(
 );
 
 watch(
-  [activeMode, selectedFuzzyDatePreset, selectedFuzzyTimePreset, fuzzyCandidateStartOptions],
+  [activeMode, selectedFuzzyDateValue, selectedFuzzyTimePreset],
   () => {
     if (activeMode.value === "FUZZY") {
       emitFuzzySelection();

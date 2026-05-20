@@ -125,9 +125,8 @@ import FormModeNoMatchResult from "@/domains/event/ui/composites/FormModeNoMatch
 import FormModeLongPressButton from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import type { LongPressOriginRect } from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import {
-  buildFormModeFuzzyDateOptions,
-  buildFormModeFuzzyTimeOptions,
-  filterStartOptionsByFuzzyTime,
+  buildFormModeCreateTimeWindow,
+  buildFormModePointTimeWindows,
   formatFormModeDateLabel,
   formatFormModeTimeLabel,
   type FormModeTimeSelection,
@@ -232,13 +231,7 @@ const selectedRoutePoolEntryId = computed(() =>
 );
 
 const selectedStartAt = computed(() => {
-  if (selectedTimeSelection.value?.mode === "EXACT") {
-    return selectedTimeSelection.value.startAt;
-  }
-  if (selectedTimeSelection.value?.mode === "FUZZY") {
-    return selectedTimeSelection.value.fallbackStartAt;
-  }
-  return null;
+  return selectedTimeSelection.value?.createTimeWindow?.startAt ?? null;
 });
 
 const hasValidTimeSelection = computed(() => {
@@ -246,12 +239,14 @@ const hasValidTimeSelection = computed(() => {
   if (!selection) {
     return false;
   }
-  if (selection.mode === "EXACT") {
-    return isValidFormModeDateTime(selection.startAt);
-  }
   return (
-    selection.candidateStartKeys.length > 0 &&
-    isValidFormModeDateTime(selection.fallbackStartAt)
+    selection.timeWindows.length > 0 &&
+    selection.timeWindows.every(
+      (timeWindow) =>
+        isValidFormModeDateTime(timeWindow.startAt) &&
+        isValidFormModeDateTime(timeWindow.endAt),
+    ) &&
+    isValidFormModeDateTime(selection.createTimeWindow?.startAt)
   );
 });
 
@@ -276,41 +271,10 @@ const selectedPlaceLabel = computed(
     t(formModeData.value?.placeSelector.placeholderKey ?? "anchorEvent.placeSelector.emptyPlaceholder"),
 );
 
-const selectedFuzzyTimeLabel = computed(() => {
-  const selection = selectedTimeSelection.value;
-  if (selection?.mode !== "FUZZY") {
-    return null;
-  }
-
-  const dateOption = buildFormModeFuzzyDateOptions(
-    selectedPlaceStartOptions.value,
-  ).find((option) => option.value === selection.datePreset);
-  const dateLabel = dateOption?.label ?? "";
-  const dateFilteredStartOptions = filterStartOptionsByFuzzyTime(
-    selectedPlaceStartOptions.value,
-    selection.datePreset,
-    "ANY_TIME",
-  );
-  const timeOption = buildFormModeFuzzyTimeOptions(
-    dateFilteredStartOptions,
-  ).find((option) => option.value === selection.timePreset);
-  const timeLabel = timeOption?.label ?? "";
-
-  if (selection.datePreset === "ANY_DAY" && selection.timePreset === "ANY_TIME") {
-    return "任意时间";
-  }
-  if (selection.timePreset === "ANY_TIME") {
-    return dateLabel || timeLabel || null;
-  }
-  if (selection.datePreset === "ANY_DAY") {
-    return timeLabel || dateLabel || null;
-  }
-  return dateLabel || timeLabel ? `${dateLabel}${timeLabel}` : null;
-});
-
 const selectedTimeLabel = computed(() => {
-  if (selectedFuzzyTimeLabel.value) {
-    return selectedFuzzyTimeLabel.value;
+  const label = selectedTimeSelection.value?.label.trim();
+  if (label) {
+    return label;
   }
   if (!isValidFormModeDateTime(selectedStartAt.value)) {
     return t("anchorEvent.formMode.timePlaceholder");
@@ -546,10 +510,24 @@ watch(
     }
 
     selectedPlaceId.value = buildLocationPlaceOptionId(defaultSelection.locationId);
+    const defaultStartOption = data.startOptions.find(
+      (option) => option.startAt === defaultSelection.startAt,
+    );
     selectedTimeSelection.value = {
-      mode: "EXACT",
-      startAt: defaultSelection.startAt,
-      sourceMode: "NORMAL",
+      mode: "NORMAL",
+      label: `${formatFormModeDateLabel(defaultSelection.startAt)} ${formatFormModeTimeLabel(
+        defaultSelection.startAt,
+      )}`,
+      timeWindows: buildFormModePointTimeWindows(defaultSelection.startAt),
+      createTimeWindow: defaultStartOption
+        ? {
+            startAt: defaultStartOption.startAt,
+            endAt: defaultStartOption.endAt,
+          }
+        : buildFormModeCreateTimeWindow(
+            defaultSelection.startAt,
+            data.event.durationMinutes,
+          ),
     };
     armFormStartTracking();
   },
@@ -683,31 +661,22 @@ const buildRecommendationPlaceInput = (
         locationId: place.locationId,
       };
 
-const buildRecommendationTimeInput = () => {
+const buildRecommendationTimeWindows = () => {
   const selection = selectedTimeSelection.value;
   if (!selection) {
     return null;
   }
-  if (selection.mode === "EXACT") {
-    return isValidFormModeDateTime(selection.startAt)
-      ? {
-          mode: "EXACT" as const,
-          startAt: selection.startAt,
-        }
-      : null;
-  }
   if (
-    selection.candidateStartKeys.length === 0 ||
-    !isValidFormModeDateTime(selection.fallbackStartAt)
+    selection.timeWindows.length === 0 ||
+    !selection.timeWindows.every(
+      (timeWindow) =>
+        isValidFormModeDateTime(timeWindow.startAt) &&
+        isValidFormModeDateTime(timeWindow.endAt),
+    )
   ) {
     return null;
   }
-  return {
-    mode: "FUZZY" as const,
-    datePreset: selection.datePreset,
-    timePreset: selection.timePreset,
-    candidateStartKeys: [...selection.candidateStartKeys],
-  };
+  return selection.timeWindows.map((timeWindow) => ({ ...timeWindow }));
 };
 
 const resolveFormModeLocationType = (
@@ -1032,8 +1001,8 @@ const createEventAssistedPR = async (
 const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
   const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  const timeSelection = buildRecommendationTimeInput();
-  if (!place || !isValidFormModeDateTime(startAt) || !timeSelection) {
+  const timeWindows = buildRecommendationTimeWindows();
+  if (!place || !isValidFormModeDateTime(startAt) || !timeWindows) {
     return;
   }
 
@@ -1054,7 +1023,7 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
     const result = await recommendationMutation.mutateAsync({
       eventId: props.eventId,
       place: buildRecommendationPlaceInput(place),
-      timeSelection,
+      timeWindows,
       preferences: [...selectedPreferences.value],
       correlationId: recommendationCorrelationId,
     });
@@ -1138,26 +1107,12 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
 };
 
 const resolveSelectedTimeWindow = (): [string | null, string | null] => {
-  if (!isValidFormModeDateTime(selectedStartAt.value)) {
+  const createTimeWindow = selectedTimeSelection.value?.createTimeWindow ?? null;
+  if (!isValidFormModeDateTime(createTimeWindow?.startAt)) {
     return [null, null];
   }
 
-  const defaultOption = formModeData.value?.startOptions.find(
-    (option) => option.startAt === selectedStartAt.value,
-  );
-  if (defaultOption) {
-    return [defaultOption.startAt, defaultOption.endAt];
-  }
-
-  const durationMinutes = formModeData.value?.event.durationMinutes ?? null;
-  if (durationMinutes === null) {
-    return [selectedStartAt.value, null];
-  }
-
-  const endAt = new Date(
-    new Date(selectedStartAt.value).getTime() + durationMinutes * 60 * 1000,
-  ).toISOString();
-  return [selectedStartAt.value, endAt];
+  return [createTimeWindow.startAt, createTimeWindow.endAt];
 };
 
 const buildCreateFields = (): PartnerRequestFields | null => {

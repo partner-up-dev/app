@@ -35,7 +35,6 @@ const FUZZY_DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type FormModeTimeMode = "NORMAL" | "ADVANCED" | "FUZZY";
 
 export type FormModeFuzzyTimePreset =
-  | "ANY_TIME"
   | "MORNING"
   | "NOON"
   | "AFTERNOON"
@@ -44,28 +43,34 @@ export type FormModeFuzzyTimePreset =
   | "LATE_NIGHT";
 
 export type FormModeTimeSelection =
-  | {
-      mode: "EXACT";
-      startAt: string;
-      sourceMode: Exclude<FormModeTimeMode, "FUZZY">;
-    }
-  | {
-      mode: "FUZZY";
-      datePreset: string;
-      timePreset: FormModeFuzzyTimePreset;
-      candidateStartKeys: string[];
-      fallbackStartAt: string | null;
-    };
+  {
+    mode: FormModeTimeMode;
+    label: string;
+    timeWindows: FormModeRecommendationTimeWindow[];
+    createTimeWindow: FormModeCreateTimeWindow | null;
+  };
+
+export type FormModeRecommendationTimeWindow = {
+  startAt: string;
+  endAt: string;
+};
+
+export type FormModeCreateTimeWindow = {
+  startAt: string;
+  endAt: string | null;
+};
 
 export type FormModeFuzzyDateOption = {
   label: string;
   value: string;
-  dateKeys: string[];
+  dateKey: string;
 };
 
 export type FormModeFuzzyTimeOption = {
   label: string;
   value: FormModeFuzzyTimePreset;
+  startTime: string;
+  endTime: string;
 };
 
 const parseFormModeDateTime = (value: string): Date | null => {
@@ -180,164 +185,101 @@ const formatRelativeDateOptionLabel = (
   return `${formatMonthDayFromDateKey(dateKey)} ${weekdayLabel}`.trim();
 };
 
-const formatWeekendOptionLabel = (weekStart: string, now: Date): string => {
-  const todayKey = dateKeyFormatter.format(now);
-  const currentWeekStart = getDateKeyWeekStart(todayKey);
-  const nextWeekStart = currentWeekStart
-    ? addDaysToDateKey(currentWeekStart, 7)
-    : null;
-  if (weekStart === currentWeekStart) {
-    return "本周末";
-  }
-  if (weekStart === nextWeekStart) {
-    return "下周末";
-  }
-  return `${formatMonthDayFromDateKey(addDaysToDateKey(weekStart, 5) ?? weekStart)}周末`;
-};
-
-const getStartOptionHour = (option: StartOption): number | null => {
-  const date = parseFormModeDateTime(option.startAt);
-  if (!date) {
-    return null;
-  }
-  const hourText = new Intl.DateTimeFormat("en-US", {
-    timeZone: PRODUCT_TIME_ZONE,
-    hour: "2-digit",
-    hourCycle: "h23",
-    hour12: false,
-  }).format(date);
-  const hour = Number(hourText);
-  return Number.isInteger(hour) ? hour : null;
-};
-
-const matchesFuzzyTimePreset = (
-  option: StartOption,
-  preset: FormModeFuzzyTimePreset,
-): boolean => {
-  if (preset === "ANY_TIME") {
-    return true;
-  }
-  const hour = getStartOptionHour(option);
-  if (hour === null) {
-    return false;
-  }
-  switch (preset) {
-    case "MORNING":
-      return hour >= 6 && hour < 11;
-    case "NOON":
-      return hour >= 11 && hour < 13;
-    case "AFTERNOON":
-      return hour >= 13 && hour < 17;
-    case "DUSK":
-      return hour >= 17 && hour < 19;
-    case "NIGHT":
-      return hour >= 19 && hour < 23;
-    case "LATE_NIGHT":
-      return hour >= 23 || hour < 6;
-  }
-};
-
-const matchesFuzzyDatePreset = (
-  option: StartOption,
-  preset: string,
-): boolean => {
-  const dateKey = buildFormModeDateKey(option.startAt);
-  if (!dateKey) {
-    return false;
-  }
-  if (preset === "ANY_DAY") {
-    return true;
-  }
-  if (preset.startsWith("DATE:")) {
-    return preset.slice("DATE:".length) === dateKey;
-  }
-  if (preset.startsWith("WEEKEND:")) {
-    return preset
-      .slice("WEEKEND:".length)
-      .split("|")
-      .includes(dateKey);
-  }
-  return false;
-};
-
 export const buildFormModeFuzzyDateOptions = (
-  startOptions: readonly StartOption[],
   now: Date = new Date(),
 ): FormModeFuzzyDateOption[] => {
-  const dateKeys = Array.from(
-    new Set(
-      startOptions
-        .map((option) => buildFormModeDateKey(option.startAt))
-        .filter((dateKey) => dateKey.length > 0),
-    ),
-  ).sort((left, right) => left.localeCompare(right));
+  const todayKey = dateKeyFormatter.format(now);
+  const dateKeys = Array.from({ length: 7 }, (_, index) =>
+    addDaysToDateKey(todayKey, index),
+  ).filter((dateKey): dateKey is string => dateKey !== null);
 
-  const dateOptions = dateKeys.map((dateKey) => ({
+  return dateKeys.map((dateKey) => ({
     label: formatRelativeDateOptionLabel(dateKey, now),
-    value: `DATE:${dateKey}`,
-    dateKeys: [dateKey],
+    value: dateKey,
+    dateKey,
   }));
-
-  const weekendOptions = Array.from(
-    dateKeys.reduce((groups, dateKey) => {
-      const weekday = getDateKeyDayOfWeek(dateKey);
-      if (weekday !== 0 && weekday !== 6) {
-        return groups;
-      }
-      const weekStart = getDateKeyWeekStart(dateKey);
-      if (!weekStart) {
-        return groups;
-      }
-      const items = groups.get(weekStart) ?? [];
-      items.push(dateKey);
-      groups.set(weekStart, items);
-      return groups;
-    }, new Map<string, string[]>()),
-  )
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([weekStart, keys]) => ({
-      label: formatWeekendOptionLabel(weekStart, now),
-      value: `WEEKEND:${keys.sort((left, right) => left.localeCompare(right)).join("|")}`,
-      dateKeys: keys,
-    }));
-
-  const anyOption =
-    dateKeys.length > 0
-      ? [{ label: "任一天", value: "ANY_DAY", dateKeys }]
-      : [];
-
-  return [...dateOptions, ...weekendOptions, ...anyOption];
 };
 
-export const buildFormModeFuzzyTimeOptions = (
-  startOptions: readonly StartOption[],
-): FormModeFuzzyTimeOption[] => {
-  const definitions: FormModeFuzzyTimeOption[] = [
-    { label: "上午", value: "MORNING" },
-    { label: "中午", value: "NOON" },
-    { label: "下午", value: "AFTERNOON" },
-    { label: "傍晚", value: "DUSK" },
-    { label: "夜晚", value: "NIGHT" },
-    { label: "深夜", value: "LATE_NIGHT" },
-  ];
-  const available = definitions.filter((definition) =>
-    startOptions.some((option) => matchesFuzzyTimePreset(option, definition.value)),
-  );
-  return startOptions.length > 0
-    ? [...available, { label: "任意时段", value: "ANY_TIME" }]
-    : [];
+export const buildFormModeFuzzyTimeOptions = (): FormModeFuzzyTimeOption[] => [
+  { label: "上午", value: "MORNING", startTime: "06:00", endTime: "11:00" },
+  { label: "中午", value: "NOON", startTime: "11:00", endTime: "13:00" },
+  { label: "下午", value: "AFTERNOON", startTime: "13:00", endTime: "17:00" },
+  { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
+  { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
+  { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
+];
+
+const buildProductLocalIso = (dateKey: string, timeKey: string): string | null => {
+  const isoDateTime = buildFormModeStartAtFromRouteParts(dateKey, timeKey);
+  return isoDateTime;
 };
 
-export const filterStartOptionsByFuzzyTime = (
-  startOptions: readonly StartOption[],
-  datePreset: string,
+export const buildFormModePointTimeWindows = (
+  startAt: string,
+): FormModeRecommendationTimeWindow[] =>
+  isValidFormModeDateTime(startAt) ? [{ startAt, endAt: startAt }] : [];
+
+export const buildFormModeCreateTimeWindow = (
+  startAt: string,
+  durationMinutes: number | null,
+): FormModeCreateTimeWindow | null => {
+  if (!isValidFormModeDateTime(startAt)) {
+    return null;
+  }
+
+  if (durationMinutes === null) {
+    return { startAt, endAt: null };
+  }
+
+  return {
+    startAt,
+    endAt: new Date(
+      new Date(startAt).getTime() + durationMinutes * MINUTE_MS,
+    ).toISOString(),
+  };
+};
+
+export const buildFormModeFuzzyTimeWindows = (
+  dateKey: string,
   timePreset: FormModeFuzzyTimePreset,
-): StartOption[] =>
-  startOptions.filter(
-    (option) =>
-      matchesFuzzyDatePreset(option, datePreset) &&
-      matchesFuzzyTimePreset(option, timePreset),
+): FormModeRecommendationTimeWindow[] => {
+  const option = buildFormModeFuzzyTimeOptions().find(
+    (item) => item.value === timePreset,
   );
+  if (!option) {
+    return [];
+  }
+
+  const startAt = buildProductLocalIso(dateKey, option.startTime);
+  const endDateKey =
+    option.endTime <= option.startTime
+      ? addDaysToDateKey(dateKey, 1)
+      : dateKey;
+  const endAt = endDateKey
+    ? buildProductLocalIso(endDateKey, option.endTime)
+    : null;
+  if (!startAt || !endAt) {
+    return [];
+  }
+
+  return [{ startAt, endAt }];
+};
+
+export const formatFormModeFuzzySelectionLabel = (
+  dateValue: string,
+  timePreset: FormModeFuzzyTimePreset,
+  now: Date = new Date(),
+): string => {
+  const dateOption = buildFormModeFuzzyDateOptions(now).find(
+    (option) => option.value === dateValue,
+  );
+  const timeOption = buildFormModeFuzzyTimeOptions().find(
+    (option) => option.value === timePreset,
+  );
+  const dateLabel = dateOption?.label ?? "";
+  const timeLabel = timeOption?.label ?? "";
+  return dateLabel || timeLabel ? `${dateLabel}${timeLabel}` : "";
+};
 
 export const buildFormModeRouteDateKey = (isoDateTime: string): string =>
   buildFormModeDateKey(isoDateTime);

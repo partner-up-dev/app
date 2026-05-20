@@ -1,9 +1,6 @@
 import { useMutation } from "@tanstack/vue-query";
 import { client } from "@/lib/rpc";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
-import type {
-  FormModeFuzzyTimePreset,
-} from "@/domains/event/model/form-mode";
 import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
 export type AnchorEventFormModeRecommendationPlaceInput =
@@ -16,17 +13,10 @@ export type AnchorEventFormModeRecommendationPlaceInput =
       routePoolEntryId: string;
     };
 
-export type AnchorEventFormModeRecommendationTimeInput =
-  | {
-      mode: "EXACT";
-      startAt: string;
-    }
-  | {
-      mode: "FUZZY";
-      datePreset: string;
-      timePreset: FormModeFuzzyTimePreset;
-      candidateStartKeys: string[];
-    };
+export type AnchorEventFormModeRecommendationTimeWindowInput = {
+  startAt: string;
+  endAt: string;
+};
 
 export const useAnchorEventFormModeRecommendation = () =>
   useMutation<
@@ -35,7 +25,7 @@ export const useAnchorEventFormModeRecommendation = () =>
     {
       eventId: number;
       place: AnchorEventFormModeRecommendationPlaceInput;
-      timeSelection: AnchorEventFormModeRecommendationTimeInput;
+      timeWindows: AnchorEventFormModeRecommendationTimeWindowInput[];
       preferences: string[];
       correlationId?: string;
     }
@@ -43,7 +33,7 @@ export const useAnchorEventFormModeRecommendation = () =>
     mutationFn: async ({
       eventId,
       place,
-      timeSelection,
+      timeWindows,
       preferences,
       correlationId,
     }) => {
@@ -56,7 +46,7 @@ export const useAnchorEventFormModeRecommendation = () =>
           },
           json: {
             place,
-            timeSelection,
+            timeWindows,
             preferences,
             correlationId,
           },

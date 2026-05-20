@@ -29,6 +29,13 @@ const FORM_ONLY = {
   LIST: 0,
 };
 
+const productLocalDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 const formModeRoutePoolRoute: PRRoute = [
   {
     wgs84: null,
@@ -45,6 +52,33 @@ const formModeRoutePoolRoute: PRRoute = [
     full_address: "System Route Destination Address",
   },
 ];
+
+const addDaysToDateKey = (dateKey: string, days: number): string => {
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const date = new Date(
+    Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText)),
+  );
+  date.setUTCDate(date.getUTCDate() + days);
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+};
+
+const buildProductLocalIso = (dateKey: string, timeKey: string): string =>
+  new Date(`${dateKey}T${timeKey}:00+08:00`).toISOString();
+
+const buildTomorrowDuskWindow = (): [string, string] => {
+  const tomorrowKey = addDaysToDateKey(
+    productLocalDateKeyFormatter.format(new Date()),
+    1,
+  );
+  return [
+    buildProductLocalIso(tomorrowKey, "18:00"),
+    buildProductLocalIso(tomorrowKey, "19:00"),
+  ];
+};
 
 type PRDetailProbe = {
   id: number;
@@ -64,6 +98,10 @@ type FormModeRecommendationProbe = {
     kind: "location" | "route";
     locationId: string | null;
     routePoolEntryId: string | null;
+    timeWindows?: Array<{
+      startAt: string;
+      endAt: string;
+    }>;
   };
   matchedRecommendation: {
     pr: {
@@ -168,6 +206,23 @@ const submitFormAndReadRecommendation = async (input: {
   const response = await responsePromise;
   assert.equal(response.status(), 200);
   return (await response.json()) as FormModeRecommendationProbe;
+};
+
+const selectFuzzyTomorrowDusk = async (page: Page): Promise<void> => {
+  const toggle = page.getByTestId("anchor-event-form-mode.time-mode-toggle");
+  await toggle.click();
+  await toggle.click();
+  await page.getByTestId("anchor-event-form-mode.time-date-wheel").click();
+  await page.keyboard.press("ArrowDown");
+  await page.getByTestId("anchor-event-form-mode.time-time-wheel").click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.waitForFunction(() =>
+    document
+      .querySelector('[data-testid="anchor-event-form-mode.primary-action"]')
+      ?.textContent?.includes("明天傍晚") === true,
+  );
 };
 
 const expectJoinedSlot = async (input: {
@@ -297,6 +352,46 @@ scenario("anchor_event_form_mode_matched_join_reaches_pr_detail", async (ctx) =>
 
   await expectJoinedSlot({ prId: pr.id, user: visitor });
 });
+
+scenario(
+  "anchor_event_form_mode_fuzzy_time_matches_pr_start_inside_submitted_window",
+  async (ctx) => {
+    const creator = await givenUser("system-form-mode-fuzzy-creator");
+    const visitor = await givenUser("system-form-mode-fuzzy-visitor");
+    const fuzzyMatchedWindow = buildTomorrowDuskWindow();
+    const event = await givenAnchorEvent({
+      label: "form-mode-fuzzy-matched",
+      timeWindows: [fuzzyMatchedWindow],
+    });
+    const pr = await givenAnchorEventVisiblePR({
+      creator,
+      event,
+      timeWindow: fuzzyMatchedWindow,
+      title: "System Form Mode fuzzy matched PR",
+    });
+    await forceFormMode(event);
+
+    ctx.record("eventId", event.id);
+    ctx.record("prId", pr.id);
+    ctx.record("visitorUserId", visitor.user.id);
+
+    await withScenarioPage(async (page) => {
+      await installScenarioUserSession(page, visitor);
+      await installDeterministicShareSidecarStubs(page);
+
+      await page.goto(`/e/${event.id}`);
+      await expectFormMode(page);
+      await selectFuzzyTomorrowDusk(page);
+
+      const recommendation = await submitFormAndReadRecommendation({ page, event });
+      const submittedWindow = recommendation.selection.timeWindows?.[0];
+      assert.ok(submittedWindow);
+      assert.ok(submittedWindow.startAt <= fuzzyMatchedWindow[0]);
+      assert.ok(fuzzyMatchedWindow[0] < submittedWindow.endAt);
+      assert.equal(recommendation.matchedRecommendation?.pr.id, pr.id);
+    });
+  },
+);
 
 scenario(
   "anchor_event_form_mode_unmatched_candidate_join_reaches_pr_detail",

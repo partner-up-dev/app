@@ -1,33 +1,54 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AnchorEvent } from "../../../entities";
-import { resolveAnchorEventFormModeSelectionTimeWindows } from "../services/form-mode";
+import {
+  buildAnchorEventRecommendationMatch,
+  isAnchorEventMatchedRecommendation,
+} from "../services/form-mode";
 
-const event = {
-  timePoolConfig: {
-    durationMinutes: 120,
-    earliestLeadMinutes: null,
-    startRules: [
+test("Form Mode recommendation time windows match candidate PR startAt inside the submitted interval", () => {
+  const match = buildAnchorEventRecommendationMatch({
+    requestedLocationId: "court-a",
+    requestedTimeWindows: [
       {
-        kind: "ABSOLUTE",
-        startAt: "2030-05-19T06:00:00.000Z",
-      },
-      {
-        kind: "ABSOLUTE",
-        startAt: "2030-05-19T12:00:00.000Z",
+        startAt: "2030-05-19T09:00:00.000Z",
+        endAt: "2030-05-19T11:00:00.000Z",
       },
     ],
-  },
-} as AnchorEvent;
-
-test("resolveAnchorEventFormModeSelectionTimeWindows expands fuzzy presets against event start options", () => {
-  const timeWindows = resolveAnchorEventFormModeSelectionTimeWindows(event, {
-    mode: "FUZZY",
-    datePreset: "DATE:2030-05-19",
-    timePreset: "AFTERNOON",
+    requestedPreferences: [],
+    candidateLocationId: "court-a",
+    candidateTimeWindow: [
+      "2030-05-19T10:00:00.000Z",
+      "2030-05-19T12:00:00.000Z",
+    ],
+    candidatePreferences: [],
+    candidateMinPartners: 2,
+    activePartnerCount: 1,
   });
 
-  assert.deepEqual(timeWindows, [
-    ["2030-05-19T06:00:00.000Z", "2030-05-19T08:00:00.000Z"],
-  ]);
+  assert.equal(match.startWithinTolerance, true);
+  assert.equal(isAnchorEventMatchedRecommendation(match), true);
+});
+
+test("Form Mode recommendation time windows ignore candidate PR duration overlap when startAt is outside", () => {
+  const match = buildAnchorEventRecommendationMatch({
+    requestedLocationId: "court-a",
+    requestedTimeWindows: [
+      {
+        startAt: "2030-05-19T09:00:00.000Z",
+        endAt: "2030-05-19T11:00:00.000Z",
+      },
+    ],
+    requestedPreferences: [],
+    candidateLocationId: "court-a",
+    candidateTimeWindow: [
+      "2030-05-19T08:30:00.000Z",
+      "2030-05-19T09:30:00.000Z",
+    ],
+    candidatePreferences: [],
+    candidateMinPartners: 2,
+    activePartnerCount: 1,
+  });
+
+  assert.equal(match.startWithinTolerance, false);
+  assert.equal(isAnchorEventMatchedRecommendation(match), false);
 });
