@@ -114,7 +114,6 @@
       </Modal>
 
       <PRDraftPublishNotice
-        ref="creatorPublishNoticeRef"
         :pr-id="id"
         :pr="prDetail"
       />
@@ -137,26 +136,23 @@
       </div>
 
       <PRWaitlistActions
-        ref="waitlistActionsRef"
         :pr="prDetail"
         :join-entry-context="joinEntryContext"
       />
 
       <PRConfirmationAction
-        ref="confirmationActionRef"
         :pr="prDetail"
       />
 
       <PRCheckInFeedbackActions :pr="prDetail" />
 
       <PRJoinAction
-        ref="joinActionRef"
         :pr="prDetail"
         :event-id="joinEntryContext.routeEventId"
         :entry-surface="joinEntryContext.joinEntrySurface"
       />
 
-      <PRExitAction ref="exitActionRef" :pr="prDetail" />
+      <PRExitAction :pr="prDetail" />
 
       <div class="utility-stack" data-region="utility">
         <div class="utility-action-row">
@@ -185,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, isRef, nextTick, onMounted, ref, watch } from "vue";
+import { computed, isRef, nextTick, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
@@ -224,57 +220,32 @@ import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/r
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { trackEvent } from "@/shared/telemetry/track";
 import {
-  clearPendingWeChatAction,
-  readPendingWeChatAction,
-  type PendingWeChatAction,
-} from "@/processes/wechat/pending-wechat-action";
+  providePRPendingReplayRegistry,
+  usePRPendingWeChatReplay,
+} from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
 
-type ContextualPendingActionKind = Extract<
-  PendingWeChatAction["kind"],
-  "PR_JOIN" | "PR_WAITLIST" | "PR_EXIT" | "PR_CONFIRM"
->;
-type PRJoinActionExpose = {
-  replayJoin: () => Promise<void>;
-};
-type PRExitActionExpose = {
-  replayExit: () => Promise<void>;
-};
-type PRWaitlistActionsExpose = {
-  replayWaitlist: () => Promise<void>;
-};
-type PRConfirmationActionExpose = {
-  replayConfirm: () => Promise<void>;
-};
-type PRDraftPublishNoticeExpose = {
-  replayPublishDraft: () => Promise<void>;
-};
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"
   | "CREATOR_MODIFY_STATUS";
-type ReplayablePendingAction = Extract<
-  PendingWeChatAction,
-  { kind: ContextualPendingActionKind | "PR_PUBLISH" }
->;
 
 const route = useRoute();
 const { t } = useI18n();
 const id = usePRRouteId();
 const { data, isLoading, error } = usePRDetail(id);
 const prDetail = computed(() => data.value);
+const pendingReplayRegistry = providePRPendingReplayRegistry();
 const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
 const updateStatusFormRef =
   ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
-const joinActionRef = ref<PRJoinActionExpose | null>(null);
-const exitActionRef = ref<PRExitActionExpose | null>(null);
-const waitlistActionsRef = ref<PRWaitlistActionsExpose | null>(null);
-const confirmationActionRef = ref<PRConfirmationActionExpose | null>(null);
-const creatorPublishNoticeRef = ref<PRDraftPublishNoticeExpose | null>(null);
-const pendingActionReplayRunning = ref(false);
 const showEditContentModal = ref(false);
 const showModifyStatusModal = ref(false);
 const matchedPRHandoff = useMatchedPRHandoff();
+const prReadyForPendingReplay = computed(
+  () =>
+    id.value !== null && prDetail.value !== undefined && prDetail.value !== null,
+);
 
 const prDisplayTitle = computed(() => {
   const canonicalTitle = prDetail.value?.share.canonical.title.trim() ?? "";
@@ -461,77 +432,10 @@ watch(
   { immediate: true },
 );
 
-const matchPendingActionForCurrentPR = (
-  pending: PendingWeChatAction | null,
-): ReplayablePendingAction | null => {
-  if (!pending || id.value === null) {
-    return null;
-  }
-  if (
-    pending.kind === "PR_JOIN" ||
-    pending.kind === "PR_WAITLIST" ||
-    pending.kind === "PR_EXIT" ||
-    pending.kind === "PR_CONFIRM" ||
-    pending.kind === "PR_PUBLISH"
-  ) {
-    return pending.prId === id.value ? pending : null;
-  }
-  return null;
-};
-
-const attemptPendingWeChatActionReplay = async () => {
-  if (pendingActionReplayRunning.value) return;
-  if (id.value === null || !prDetail.value) return;
-
-  const pending = matchPendingActionForCurrentPR(readPendingWeChatAction());
-  if (!pending) return;
-
-  pendingActionReplayRunning.value = true;
-  clearPendingWeChatAction();
-  try {
-    if (pending.kind === "PR_PUBLISH") {
-      await creatorPublishNoticeRef.value?.replayPublishDraft();
-      return;
-    }
-
-    if (pending.kind === "PR_JOIN") {
-      await joinActionRef.value?.replayJoin();
-      return;
-    }
-    if (pending.kind === "PR_EXIT") {
-      await exitActionRef.value?.replayExit();
-      return;
-    }
-    if (pending.kind === "PR_WAITLIST") {
-      await waitlistActionsRef.value?.replayWaitlist();
-      return;
-    }
-    await confirmationActionRef.value?.replayConfirm();
-  } finally {
-    pendingActionReplayRunning.value = false;
-  }
-};
-
-watch(
-  () =>
-    [
-      id.value,
-      prDetail.value?.partnerSection.viewer.isParticipant,
-      prDetail.value?.partnerSection.viewer.isWaitlisted,
-      prDetail.value?.partnerSection.viewer.canJoin,
-      prDetail.value?.partnerSection.viewer.canWaitlist,
-      prDetail.value?.partnerSection.viewer.canExit,
-      prDetail.value?.partnerSection.viewer.canConfirm,
-      prDetail.value?.status,
-    ] as const,
-  () => {
-    void attemptPendingWeChatActionReplay();
-  },
-  { immediate: true },
-);
-
-onMounted(() => {
-  void attemptPendingWeChatActionReplay();
+usePRPendingWeChatReplay({
+  prId: id,
+  ready: prReadyForPendingReplay,
+  registry: pendingReplayRegistry,
 });
 </script>
 

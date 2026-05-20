@@ -43,6 +43,7 @@ import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 
 const props = defineProps<{
   pr: PRDetailView;
@@ -95,6 +96,18 @@ const replayConfirm = async (): Promise<void> => {
   if (!attendanceActions.canConfirm.value) return;
   await handleConfirmSlot();
 };
+
+const pendingReplayReady = computed(
+  () =>
+    showConfirmAction.value &&
+    attendanceActions.canConfirm.value &&
+    !attendanceActions.confirmPending.value,
+);
+
+useRegisterPRPendingReplayHandler("PR_CONFIRM", {
+  ready: pendingReplayReady,
+  replay: replayConfirm,
+});
 
 defineExpose({
   replayConfirm,

@@ -79,3 +79,15 @@
 - Targeted verification so far: `pnpm exec vitest run --project frontend-unit apps/frontend/src/domains/pr/ui/sections/PRParticipationActions.test.ts`.
 - Completed additional waitlist-slice verification: `pnpm test:unit:frontend`, `pnpm --filter @partner-up-dev/frontend exec vite build`, `pnpm --filter @partner-up-dev/frontend lint:tokens`, `rg -n "PRWaitlistFlow" apps/frontend/src -g "*.vue" -g "*.ts"`, and `git diff --check`.
 - Full frontend build remains blocked by unrelated Form Mode fuzzy-time type errors in the current working tree.
+
+## 2026-05-20
+
+- User agreed that pending WeChat replay should use Vue capabilities rather than staying as a PR Page if-chain.
+- Recorded the target replay design in `74-join-waitlist-flow-follow-up.md`: route-scoped `provide` / `inject` registry, handler-local readiness, `onScopeDispose` cleanup, and `usePRPendingWeChatReplay` as the route observer.
+- User approved implementation and requested test coverage, with system scenario preferred if the harness can cover the behavior without excessive OAuth/auth setup.
+- Implemented the pending replay registry in working tree: `PRPage` provides a route-scoped registry and each replayable PR action registers its own ready/replay handler.
+- Removed PR Page replay-only refs and the pending action if-chain.
+- Added frontend unit coverage for registry readiness, delayed registration, unregister, and PR id mismatch behavior.
+- Added a system scenario proving pending `PR_JOIN` replay opens the PR detail join gate and clears pending storage.
+- Verification completed: targeted replay unit test, targeted system scenario, full frontend unit suite, PR Page/action targeted unit tests, frontend build, and `git diff --check`.
+- Token lint currently reports unrelated `MultiStopToggle.vue` hardcoded padding findings.

@@ -1,6 +1,6 @@
 # Join / Waitlist Flow Follow-Up
 
-Status: join / exit slice committed; waitlist slice implemented in working tree; pending replay follow-up remains.
+Status: join / exit and waitlist slices committed; pending replay registry slice implemented in working tree.
 
 ## Objective & Hypothesis
 
@@ -272,7 +272,7 @@ Waitlist slice verification:
 
 ## Pending WeChat Replay Follow-Up
 
-Known issue:
+Previous issue:
 
 - `PRPage` still hand-dispatches pending WeChat replay:
   - `PR_PUBLISH`
@@ -284,15 +284,122 @@ Known issue:
 Target:
 
 - Extract `usePRPendingWeChatReplay`.
-- `PRPage` should provide a small action registry and route-owned readiness state.
+- Add a route-scoped replay registry using Vue `provide` / `inject`.
+- `PRPage` should provide the registry and replay observer, but individual action owners should register their own replay handlers.
 - The replay composable should own:
   - reading / clearing pending action
   - `PR id` matching
   - replay running guard
-  - watcher dependencies for viewer/action readiness
-  - mapping pending action kind to registered handler
+  - watcher dependencies for handler readiness
+  - reactive handler lookup by pending action kind
 
 This keeps route/process handoff out of the page template assembly and makes new replayable actions additive.
+
+Target replay topology:
+
+```mermaid
+flowchart TD
+  PRPage["PRPage"] --> Provider["providePRPendingReplayRegistry"]
+  PRPage --> ReplayObserver["usePRPendingWeChatReplay"]
+
+  Publish["PRDraftPublishNotice"] --> RegisterPublish["register PR_PUBLISH"]
+  Join["PRJoinAction"] --> RegisterJoin["register PR_JOIN"]
+  Exit["PRExitAction"] --> RegisterExit["register PR_EXIT"]
+  Waitlist["PRWaitlistActions"] --> RegisterWaitlist["register PR_WAITLIST"]
+  Confirm["PRConfirmationAction"] --> RegisterConfirm["register PR_CONFIRM"]
+
+  RegisterPublish --> Registry["route-scoped reactive registry"]
+  RegisterJoin --> Registry
+  RegisterExit --> Registry
+  RegisterWaitlist --> Registry
+  RegisterConfirm --> Registry
+
+  ReplayObserver --> Pending["readPendingWeChatAction"]
+  ReplayObserver --> Registry
+  ReplayObserver --> Execute["when pr id matches + handler.ready, clear pending and run handler.replay"]
+```
+
+Vue implementation notes:
+
+- Use `provide` / `inject` instead of Pinia or a global event bus because the replay scope is one PR detail route instance.
+- Store handlers in a `shallowReactive` registry keyed by replayable pending action kind.
+- Each handler should expose:
+
+```ts
+type PRPendingReplayHandler = {
+  ready: Readonly<Ref<boolean>>;
+  replay: () => Promise<void> | void;
+};
+```
+
+- `useRegisterPRPendingReplayHandler(kind, handler)` should register during component setup and unregister with `onScopeDispose`.
+- Action owners should compute readiness locally:
+  - join action: can join and not pending
+  - waitlist action: can waitlist and not pending
+  - exit action: can exit and not pending
+  - confirmation action: can confirm and not pending
+  - draft publish notice: can publish and not pending
+- `usePRPendingWeChatReplay` should `watch` `prId`, a route-owned readiness source, the pending action snapshot, and matching handler readiness with `flush: "post"` so child registration can settle before replay is attempted.
+- Clear pending action only after a matching handler exists and is ready. If no handler is registered yet, leave the pending action available for the next watcher pass.
+- Do not let `PRPage` keep replay-only component refs or an if-chain of pending action kinds.
+
+Testing direction:
+
+- Prefer a system scenario test if the existing harness can drive the WeChat pending-action storage and route reload without expensive auth/OAuth setup.
+- At minimum add a frontend unit/integration test for the replay registry that proves:
+  - a matching pending action runs only after its registered handler is ready
+  - pending action is not cleared before a handler is registered and ready
+  - the handler is unregistered on scope disposal
+  - unrelated PR ids / action kinds do not run
+- Keep existing PR action component tests focused on visible affordances; replay orchestration belongs to the registry/composable tests.
+
+Implemented replay topology:
+
+```mermaid
+flowchart TD
+  PRPage["PRPage"] --> Provider["providePRPendingReplayRegistry"]
+  PRPage --> ReplayObserver["usePRPendingWeChatReplay"]
+
+  Publish["PRDraftPublishNotice"] --> PublishHandler["PR_PUBLISH handler"]
+  Join["PRJoinAction"] --> JoinHandler["PR_JOIN handler"]
+  Exit["PRExitAction"] --> ExitHandler["PR_EXIT handler"]
+  Waitlist["PRWaitlistActions"] --> WaitlistHandler["PR_WAITLIST handler"]
+  Confirm["PRConfirmationAction"] --> ConfirmHandler["PR_CONFIRM handler"]
+
+  PublishHandler --> Registry["route-scoped registry"]
+  JoinHandler --> Registry
+  ExitHandler --> Registry
+  WaitlistHandler --> Registry
+  ConfirmHandler --> Registry
+
+  ReplayObserver --> Registry
+  ReplayObserver --> PendingStorage["pending-wechat-action storage"]
+```
+
+Implemented files:
+
+- `apps/frontend/src/domains/pr/use-cases/usePRPendingWeChatReplay.ts`
+- `apps/frontend/src/domains/pr/use-cases/usePRPendingWeChatReplay.test.ts`
+- `tests/scenario/pr-core/pr-detail-join.scenario.test.ts`
+
+Page impact:
+
+- `PRPage` no longer keeps replay-only refs for publish, join, exit, waitlist, or confirmation.
+- `PRPage` no longer owns the pending action kind if-chain.
+- Action owners compute their own replay readiness and register handlers in their own setup scope.
+
+Replay verification:
+
+- `pnpm exec vitest run --project frontend-unit apps/frontend/src/domains/pr/use-cases/usePRPendingWeChatReplay.test.ts`
+- `pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-join.scenario.test.ts -t pending_wechat_join_replay`
+- `pnpm test:unit:frontend`
+- `pnpm exec vitest run --project frontend-unit apps/frontend/src/pages/PRPage.creator-actions.test.ts apps/frontend/src/domains/pr/ui/sections/PRParticipationActions.test.ts`
+- `pnpm --filter @partner-up-dev/frontend build`
+- `git diff --check`
+
+Notes:
+
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` currently reports unrelated `MultiStopToggle.vue` hardcoded padding findings.
 
 ## Verification For Future Slice
 

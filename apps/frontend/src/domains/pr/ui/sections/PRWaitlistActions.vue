@@ -138,6 +138,7 @@ import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import type { ApiError } from "@/shared/api/error";
 import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
@@ -375,6 +376,15 @@ const replayWaitlist = (): Promise<void> => {
   openWaitlistGateModal();
   return Promise.resolve();
 };
+
+const pendingReplayReady = computed(
+  () => showWaitlistAction.value && !flowPending.value && !openDisabled.value,
+);
+
+useRegisterPRPendingReplayHandler("PR_WAITLIST", {
+  ready: pendingReplayReady,
+  replay: replayWaitlist,
+});
 
 watch(
   () => props.pr.id,

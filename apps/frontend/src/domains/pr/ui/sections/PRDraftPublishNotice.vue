@@ -31,6 +31,7 @@ import Button from "@/shared/ui/actions/Button.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 
 const props = defineProps<{
   prId: PRId | null;
@@ -42,6 +43,12 @@ const router = useRouter();
 const { t } = useI18n();
 const publishMutation = usePublishPR();
 const showDraftPublishCard = computed(() => props.pr.status === "DRAFT");
+const pendingReplayReady = computed(
+  () =>
+    props.prId !== null &&
+    showDraftPublishCard.value &&
+    !publishMutation.isPending.value,
+);
 
 const handlePublishDraft = async () => {
   if (props.prId === null || props.pr.status !== "DRAFT") return;
@@ -51,5 +58,10 @@ const handlePublishDraft = async () => {
 
 defineExpose({
   replayPublishDraft: handlePublishDraft,
+});
+
+useRegisterPRPendingReplayHandler("PR_PUBLISH", {
+  ready: pendingReplayReady,
+  replay: handlePublishDraft,
 });
 </script>

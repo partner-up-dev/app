@@ -100,6 +100,7 @@ import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
@@ -354,6 +355,24 @@ const replayJoin = async (): Promise<void> => {
   }
   await open();
 };
+
+const pendingReplayReady = computed(() => {
+  const detailViewer = viewer.value;
+  if (detailViewer) {
+    return (
+      detailViewer.canJoin &&
+      !detailViewer.isParticipant &&
+      !flowPending.value &&
+      !openDisabled.value
+    );
+  }
+  return !flowPending.value && !openDisabled.value;
+});
+
+useRegisterPRPendingReplayHandler("PR_JOIN", {
+  ready: pendingReplayReady,
+  replay: replayJoin,
+});
 
 watch(
   resolvedPrId,

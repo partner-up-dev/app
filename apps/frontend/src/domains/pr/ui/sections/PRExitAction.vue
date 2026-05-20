@@ -48,6 +48,7 @@ import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useExitPR } from "@/domains/pr/queries/usePRActions";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import { trackEvent } from "@/shared/telemetry/track";
 
 const props = defineProps<{
@@ -97,6 +98,18 @@ const replayExit = async (): Promise<void> => {
   if (!viewer.value.canExit) return;
   await confirmExit();
 };
+
+const pendingReplayReady = computed(
+  () =>
+    showExitAction.value &&
+    viewer.value.canExit &&
+    !exitMutation.isPending.value,
+);
+
+useRegisterPRPendingReplayHandler("PR_EXIT", {
+  ready: pendingReplayReady,
+  replay: replayExit,
+});
 
 defineExpose({
   replayExit,
