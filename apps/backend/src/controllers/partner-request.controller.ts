@@ -46,6 +46,7 @@ import {
   updateContentSchema,
   updateStatusSchema,
 } from "./pr-controller.shared";
+import { recordUserTelemetryEventForRequest } from "../infra/telemetry";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
@@ -63,7 +64,6 @@ const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (
   await next();
 };
 const isoDateSearchParamSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const correlationIdSchema = z.string().trim().min(1).max(128).optional();
 const eventPRSearchQuerySchema = z.object({
   eventId: z.coerce.number().int().positive(),
   date: z.preprocess((value) => {
@@ -82,18 +82,13 @@ const createStructuredPRCommandSchema = z.union([
     createSource: z.literal("EVENT_ASSISTED"),
     anchorEventId: z.coerce.number().int().positive().optional(),
     routePoolEntryId: z.string().trim().min(1).max(120).optional(),
-    correlationId: correlationIdSchema,
   }),
   z.object({
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("FORM").optional(),
-    correlationId: correlationIdSchema,
   }),
 ]);
 const nlWordCountCommandSchema = createNaturalLanguagePRSchema
-  .extend({
-    correlationId: correlationIdSchema,
-  })
   .refine(
     ({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50,
     { message: "Natural language input must be 50 words or fewer" },
@@ -103,14 +98,11 @@ const canonicalUpdateContentSchema = z.union([
   anchorUpdateContentSchema,
 ]);
 const anchorJoinSchema = z
-  .object({
-    correlationId: correlationIdSchema,
-  })
+  .object({})
   .default({});
 const waitlistCommandSchema = z
   .object({
     alternativePrReminderOptIn: z.boolean().optional(),
-    correlationId: correlationIdSchema,
   })
   .default({});
 const slotCheckInSchema = z.object({
@@ -159,6 +151,15 @@ export const partnerRequestRoute = app
         createSource,
       });
 
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.created",
+        payload: {
+          pr_id: result.id,
+          creation_path: createSource === "EVENT_ASSISTED" ? "event_assisted" : "form",
+          status: result.status,
+        },
+      });
+
       return c.json(result, 201);
     },
   )
@@ -171,6 +172,15 @@ export const partnerRequestRoute = app
       nowWeekday ?? null,
       creatorIdentity,
     );
+
+    await recordUserTelemetryEventForRequest(c, {
+      eventName: "pr.created",
+      payload: {
+        pr_id: result.id,
+        creation_path: "natural_language",
+        status: result.status,
+      },
+    });
 
     return c.json(result, 201);
   })
@@ -310,7 +320,18 @@ export const partnerRequestRoute = app
         return throwHttpProblem({ status: 400, detail: "Use publish endpoint to publish DRAFT partner request" });
       }
 
+      const fromStatus = creatorAuth.request.status;
       const result = await updatePRStatus(id, status, creatorAuth.actorUserId);
+      if (status === "CLOSED") {
+        await recordUserTelemetryEventForRequest(c, {
+          eventName: "pr.closed",
+          payload: {
+            pr_id: id,
+            from_status: fromStatus,
+            to_status: status,
+          },
+        });
+      }
       return c.json(result);
     },
   )
@@ -357,6 +378,13 @@ export const partnerRequestRoute = app
       const participantIdentity = await requireAuthenticatedCreatorIdentity(c);
       const result = await joinPRByIdentity(id, participantIdentity);
       await issueResponseAuth(c, result.userId);
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.joined",
+        payload: {
+          pr_id: id,
+          result_status: "success",
+        },
+      });
       return c.json(result.pr);
     },
   )
@@ -373,6 +401,15 @@ export const partnerRequestRoute = app
         alternativePrReminderOptIn: payload.alternativePrReminderOptIn === true,
       });
       await issueResponseAuth(c, result.userId);
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.waitlisted",
+        payload: {
+          pr_id: id,
+          result_status: "success",
+          alternative_pr_reminder_opt_in:
+            payload.alternativePrReminderOptIn === true,
+        },
+      });
       return c.json(result.pr);
     },
   )

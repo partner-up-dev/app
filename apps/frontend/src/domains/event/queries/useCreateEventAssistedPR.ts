@@ -14,14 +14,12 @@ import {
   isWeChatAuthRequiredError,
 } from "@/processes/wechat/auth-error";
 import { setPendingWeChatAction } from "@/processes/wechat/pending-wechat-action";
-import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
 type CreateEventAssistedPRInput = {
   eventId: number;
   fields: PartnerRequestFields;
   routePoolEntryId?: string | null;
   handoff?: "event_assisted_create";
-  correlationId?: string;
 };
 
 export type CreateEventAssistedPRResponse = InferResponseType<
@@ -34,11 +32,9 @@ export type CreateEventAssistedPRError = ApiError & {
 
 export const buildEventAssistedPRCreateBody = (input: {
   fields: PartnerRequestFields;
-  correlationId?: string;
 }) => ({
   fields: input.fields,
   createSource: "EVENT_ASSISTED" as const,
-  correlationId: input.correlationId,
 });
 
 export const useCreateEventAssistedPR = () => {
@@ -49,23 +45,16 @@ export const useCreateEventAssistedPR = () => {
     CreateEventAssistedPRError,
     CreateEventAssistedPRInput
   >({
-    mutationFn: async ({
-      eventId,
-      fields,
-      handoff,
-      correlationId,
-    }) => {
+    mutationFn: async ({ eventId, fields, handoff }) => {
       const response = await client.api.pr.new.form.$post(
         {
           json: buildEventAssistedPRCreateBody({
             fields,
-            correlationId,
           }),
         },
         {
           init: {
             credentials: "include",
-            headers: buildCorrelationHeaders(correlationId),
           },
         },
       );

@@ -140,7 +140,6 @@ import {
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import type { ApiError } from "@/shared/api/error";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { trackEvent } from "@/shared/telemetry/track";
 
@@ -244,14 +243,12 @@ const trackWaitlistResult = (payload: {
   actionResult: "success" | "failure" | "blocked";
   failureCode?: string;
   failureReason?: string;
-  correlationId?: string;
 }): void => {
   trackEvent("pr_waitlist_result", {
     prId: props.pr.id,
     scenarioType: props.pr.core.type,
     eventId: props.joinEntryContext.routeEventId ?? undefined,
     entrySurface: props.joinEntryContext.joinEntrySurface,
-    correlationId: payload.correlationId,
     ...payload,
   });
   if (props.joinEntryContext.routeEventId !== null) {
@@ -264,7 +261,6 @@ const trackWaitlistResult = (payload: {
       actionResult: payload.actionResult,
       failureCode: payload.failureCode,
       failureReason: payload.failureReason,
-      correlationId: payload.correlationId,
     });
   }
 };
@@ -300,15 +296,13 @@ const finalizeWaitlist = async (): Promise<void> => {
 
   waitlistActionPending.value = true;
   waitlistActionError.value = null;
-  const correlationId = createCommandCorrelationId();
   try {
     await waitlistMutation.mutateAsync({
       id: props.pr.id,
       alternativePrReminderOptIn: alternativePrReminderOptIn.value,
-      correlationId,
     });
     waitlisted.value = true;
-    trackWaitlistResult({ actionResult: "success", correlationId });
+    trackWaitlistResult({ actionResult: "success" });
     closeWaitlistGateModal();
     openWaitlistSuccessPrompt();
   } catch (error) {
@@ -318,7 +312,6 @@ const finalizeWaitlist = async (): Promise<void> => {
         actionResult: "blocked",
         failureCode: PR_JOIN_GATE_UNRESOLVED_CODE,
         failureReason: resolveErrorMessage(error),
-        correlationId,
       });
       showWaitlistGateModal.value = true;
       return;
@@ -329,7 +322,6 @@ const finalizeWaitlist = async (): Promise<void> => {
         "PR_WAITLIST_FAILED",
         resolveErrorMessage(error),
       ),
-      correlationId,
     });
     setWaitlistActionError(resolveErrorMessage(error));
   } finally {

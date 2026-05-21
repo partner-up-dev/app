@@ -3,11 +3,7 @@ import type {
   TelemetryPayload,
 } from "@/shared/telemetry/events";
 import { resolveCurrentSpmAttribution } from "@/shared/telemetry/spm-attribution";
-import {
-  ensureAppJourney,
-  getActiveUserTelemetrySegment,
-  type UserTelemetrySegment,
-} from "@/shared/telemetry/journey";
+import { ensureAppJourneyWithState } from "@/shared/telemetry/journey";
 import { sanitizeSpmValue } from "@/shared/url/spm";
 import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 import { client } from "@/lib/rpc";
@@ -24,38 +20,14 @@ type TelemetryEventRecord<
 };
 
 type PendingUserTelemetryEvent = {
-  id: string;
-  eventName: string;
-  eventKind: "page" | "track" | "identify" | "group";
-  occurredAt: string;
-  source: "frontend";
-  anonymousId: string;
-  appJourneyId: string;
-  journeyStartedAt: string;
-  journeyStartRoute: string;
-  journeyStartRouteName?: string;
-  journeyStartReferrer?: string;
-  journeyStartSpm?: string;
-  journeyStartSourceQr?: string;
-  journeyStartEventId?: number;
-  journeyStartPrId?: number;
-  journeyEntryKind?: string;
-  segmentId?: string;
-  segment?: UserTelemetrySegment;
-  routePath: string;
-  routeName?: string;
-  referrer?: string;
-  startSpm?: string;
-  currentSpm?: string;
-  sourceQr?: string;
-  correlationId?: string;
-  requestId?: string;
-  traceId?: string;
-  eventIdRef?: number;
-  prIdRef?: number;
-  cardKey?: string;
-  segmentKey?: string;
-  properties: Record<string, unknown>;
+  event_id: string;
+  event_name: string;
+  event_version: number;
+  journey_id: string;
+  occurred_at: string;
+  trace_id?: string;
+  attributes: Record<string, string | number | boolean | null>;
+  payload: Record<string, unknown>;
 };
 
 declare global {
@@ -106,6 +78,9 @@ const CANONICAL_EVENT_NAMES: Partial<Record<TelemetryEventName, string>> = {
   anchor_event_form_create_fallback_click:
     "anchor_event.form.create_fallback_clicked",
   event_assisted_create_result: "anchor_event.assisted_create.result",
+  pr_primary_cta_impression: "pr.primary_cta.impression",
+  pr_primary_cta_click: "pr.primary_cta.click",
+  pr_secondary_action_click: "pr.secondary_action.click",
   wechat_oauth_trace: "wechat.oauth.trace",
 };
 
@@ -196,14 +171,10 @@ const createEventId = (): string => {
   return createUuid();
 };
 
-const toCanonicalEventName = (event: TelemetryEventName): string => {
-  return CANONICAL_EVENT_NAMES[event] ?? event.replaceAll("_", ".");
-};
-
-const resolveEventKind = (
+export const resolveCanonicalUserTelemetryEventName = (
   event: TelemetryEventName,
-): PendingUserTelemetryEvent["eventKind"] => {
-  return event === "page_view" ? "page" : "track";
+): string => {
+  return CANONICAL_EVENT_NAMES[event] ?? event.replaceAll("_", ".");
 };
 
 const resolveEventIdRef = (
@@ -213,6 +184,50 @@ const resolveEventIdRef = (
     readPositiveNumber(payload, "eventId") ??
     readPositiveNumber(payload, "eventIdRef")
   );
+};
+
+const FORBIDDEN_PAYLOAD_KEYS = new Set([
+  "anonymousId",
+  "anonymous_id",
+  "userIdHash",
+  "user_id_hash",
+  "authenticatedUserHash",
+  "authenticated_user_hash",
+  "correlationId",
+  "correlation_id",
+  "requestId",
+  "request_id",
+  "traceId",
+  "trace_id",
+  "causeEventId",
+  "cause_event_id",
+]);
+
+const stripForbiddenPayloadFields = (
+  payload: Record<string, unknown>,
+): Record<string, unknown> => {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined || FORBIDDEN_PAYLOAD_KEYS.has(key)) continue;
+    sanitized[key] = value;
+  }
+  return sanitized;
+};
+
+const buildAttributes = (input: {
+  routeName?: string;
+  currentSpm?: string;
+  sourceQr?: string;
+  cardKey?: string;
+  segmentKey?: string;
+}): Record<string, string | number | boolean | null> => {
+  const attributes: Record<string, string | number | boolean | null> = {};
+  if (input.routeName) attributes.route_name = input.routeName;
+  if (input.currentSpm) attributes.spm = input.currentSpm;
+  if (input.sourceQr) attributes.source_qr = input.sourceQr;
+  if (input.cardKey) attributes.card_key = input.cardKey;
+  if (input.segmentKey) attributes.segment_key = input.segmentKey;
+  return attributes;
 };
 
 const resolvePrIdRef = (
@@ -259,6 +274,52 @@ const enqueueEvent = (event: PendingUserTelemetryEvent): void => {
   }
 
   scheduleFlush(FLUSH_INTERVAL_MS);
+};
+
+const enqueueRawTelemetryEvent = (input: {
+  eventName: string;
+  journeyId: string;
+  occurredAt: string;
+  traceId?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+  payload?: Record<string, unknown>;
+}): void => {
+  enqueueEvent({
+    event_id: createEventId(),
+    event_name: input.eventName,
+    event_version: 1,
+    journey_id: input.journeyId,
+    occurred_at: input.occurredAt,
+    trace_id: input.traceId,
+    attributes: input.attributes ?? {},
+    payload: input.payload ?? {},
+  });
+};
+
+const enqueueJourneyStartedContext = (input: {
+  journey: ReturnType<typeof ensureAppJourneyWithState>["journey"];
+}): void => {
+  const { journey } = input;
+  enqueueRawTelemetryEvent({
+    eventName: "journey.started",
+    journeyId: journey.id,
+    occurredAt: journey.startedAt,
+    attributes: buildAttributes({
+      routeName: journey.startRouteName,
+      currentSpm: journey.startSpm,
+      sourceQr: journey.startSourceQr,
+    }),
+    payload: stripForbiddenPayloadFields({
+      routePath: journey.startRoute,
+      routeName: journey.startRouteName,
+      referrer: journey.startReferrer,
+      spm: journey.startSpm,
+      sourceQr: journey.startSourceQr,
+      eventId: journey.startEventId,
+      prId: journey.startPrId,
+      entryKind: journey.entryKind,
+    }),
+  });
 };
 
 const setupTransportLifecycleHooks = (): void => {
@@ -314,13 +375,17 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
   const currentPath = getCurrentPath();
   const referrer = getCurrentReferrer();
   const payloadRecord = withCurrentAttribution(asRecord(payload), currentPath);
-  const eventName = toCanonicalEventName(event);
+  const eventName = resolveCanonicalUserTelemetryEventName(event);
   const eventIdRef = resolveEventIdRef(payloadRecord);
   const prIdRef = resolvePrIdRef(payloadRecord);
   const routeName = readString(payloadRecord, "routeName");
   const currentSpm = readString(payloadRecord, "spm");
   const sourceQr = readString(payloadRecord, "sourceQr");
-  const journey = ensureAppJourney({
+  const traceId = readString(payloadRecord, "traceId");
+  const cardKey =
+    readString(payloadRecord, "cardKey") ?? readString(payloadRecord, "unitKey");
+  const segmentKey = readString(payloadRecord, "segmentKey");
+  const { journey, started } = ensureAppJourneyWithState({
     routePath: currentPath,
     routeName,
     referrer,
@@ -330,7 +395,6 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
     prIdRef,
     nowIso: occurredAt,
   });
-  const activeSegment = getActiveUserTelemetrySegment();
   const record: TelemetryEventRecord<TelemetryEventName> = {
     event,
     eventName,
@@ -341,43 +405,108 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
 
   setupTransportLifecycleHooks();
   pushDebugEvent(record);
-  enqueueEvent({
-    id: createEventId(),
+
+  if (started) {
+    enqueueJourneyStartedContext({ journey });
+  }
+
+  if (event === "page_view") {
+    enqueueRawTelemetryEvent({
+      eventName: "route.entered",
+      journeyId: journey.id,
+      occurredAt,
+      attributes: buildAttributes({
+        routeName,
+        currentSpm,
+        sourceQr,
+      }),
+      payload: stripForbiddenPayloadFields({
+        routePath: currentPath,
+        routeName,
+        referrer,
+        spm: currentSpm,
+        sourceQr,
+        prId: prIdRef,
+        eventId: eventIdRef,
+      }),
+    });
+  }
+
+  enqueueRawTelemetryEvent({
     eventName,
-    eventKind: resolveEventKind(event),
+    journeyId: journey.id,
     occurredAt,
-    source: "frontend",
-    anonymousId: journey.anonymousId,
-    appJourneyId: journey.id,
-    journeyStartedAt: journey.startedAt,
-    journeyStartRoute: journey.startRoute,
-    journeyStartRouteName: journey.startRouteName,
-    journeyStartReferrer: journey.startReferrer,
-    journeyStartSpm: journey.startSpm,
-    journeyStartSourceQr: journey.startSourceQr,
-    journeyStartEventId: journey.startEventId,
-    journeyStartPrId: journey.startPrId,
-    journeyEntryKind: journey.entryKind,
-    segmentId: activeSegment?.id,
-    segment: activeSegment ?? undefined,
-    routePath: currentPath,
-    routeName,
-    referrer,
-    startSpm: journey.startSpm,
-    currentSpm,
-    sourceQr,
-    correlationId: readString(payloadRecord, "correlationId"),
-    requestId: readString(payloadRecord, "requestId"),
-    traceId: readString(payloadRecord, "traceId"),
-    eventIdRef,
-    prIdRef,
-    cardKey:
-      readString(payloadRecord, "cardKey") ?? readString(payloadRecord, "unitKey"),
-    segmentKey: readString(payloadRecord, "segmentKey"),
-    properties: payloadRecord,
+    traceId,
+    attributes: buildAttributes({
+      routeName,
+      currentSpm,
+      sourceQr,
+      cardKey,
+      segmentKey,
+    }),
+    payload: stripForbiddenPayloadFields({
+      ...payloadRecord,
+      eventIdRef,
+      prIdRef,
+      cardKey,
+      segmentKey,
+    }),
   });
 
   if (import.meta.env.DEV) {
     console.debug("[telemetry]", record);
   }
+};
+
+export const trackRawUserTelemetryEvent = (input: {
+  eventName: string;
+  payload?: Record<string, unknown>;
+  attributes?: Record<string, string | number | boolean | null>;
+  occurredAt?: string;
+  traceId?: string;
+}): void => {
+  const occurredAt = input.occurredAt ?? new Date().toISOString();
+  const currentPath = getCurrentPath();
+  const referrer = getCurrentReferrer();
+  const payloadRecord = withCurrentAttribution(
+    asRecord(input.payload ?? {}),
+    currentPath,
+  );
+  const routeName = readString(payloadRecord, "routeName");
+  const currentSpm = readString(payloadRecord, "spm");
+  const sourceQr = readString(payloadRecord, "sourceQr");
+  const eventIdRef = resolveEventIdRef(payloadRecord);
+  const prIdRef = resolvePrIdRef(payloadRecord);
+  const { journey, started } = ensureAppJourneyWithState({
+    routePath: currentPath,
+    routeName,
+    referrer,
+    currentSpm,
+    sourceQr,
+    eventIdRef,
+    prIdRef,
+    nowIso: occurredAt,
+  });
+
+  setupTransportLifecycleHooks();
+
+  if (started) {
+    enqueueJourneyStartedContext({ journey });
+  }
+
+  enqueueRawTelemetryEvent({
+    eventName: input.eventName,
+    journeyId: journey.id,
+    occurredAt,
+    traceId: input.traceId,
+    attributes: {
+      ...buildAttributes({
+        routeName,
+        currentSpm,
+        sourceQr,
+      }),
+      ...(input.attributes ?? {}),
+    },
+    payload: payloadRecord,
+  });
 };

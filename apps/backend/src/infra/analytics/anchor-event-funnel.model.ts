@@ -38,14 +38,14 @@ export type AnchorEventFunnelFilters = {
 
 export type AnchorEventFunnelSegmentRow = {
   segmentId: string;
-  appJourneyId: string;
+  journeyId: string;
   renderedMode: string | null;
   startSpm: string | null;
 };
 
 export type AnchorEventFunnelEventRow = {
   eventName: string;
-  appJourneyId: string;
+  journeyId: string;
   segmentId: string | null;
   renderedMode: string | null;
   properties: unknown;
@@ -53,7 +53,7 @@ export type AnchorEventFunnelEventRow = {
 
 export type OfficialAccountFollowNudgeEventRow = {
   eventName: string;
-  appJourneyId: string;
+  journeyId: string;
   source: string | null;
   action: string | null;
 };
@@ -212,7 +212,7 @@ type OfficialAccountFollowNudgeAccumulator = {
 
 type SegmentContext = {
   segmentId: string;
-  appJourneyId: string;
+  journeyId: string;
   renderedMode: AnchorEventAnalyticsRenderedMode;
   sourceKey: string;
   sourceType: "start_spm" | "unknown";
@@ -789,21 +789,21 @@ export const buildAnchorEventFunnelResponseFromRows = (
     const source = buildSourceContext(segment.startSpm);
     const context: SegmentContext = {
       segmentId: segment.segmentId,
-      appJourneyId: segment.appJourneyId,
+      journeyId: segment.journeyId,
       renderedMode,
       ...source,
     };
     segmentContexts.set(segment.segmentId, context);
 
-    summaryAccumulator.journeys.add(segment.appJourneyId);
+    summaryAccumulator.journeys.add(segment.journeyId);
     getMetricAccumulator(modeAccumulators, renderedMode).journeys.add(
-      segment.appJourneyId,
+      segment.journeyId,
     );
     getStepAccumulator(
       stepAccumulators,
       renderedMode,
       "landing_viewed",
-    ).journeys.add(segment.appJourneyId);
+    ).journeys.add(segment.journeyId);
 
     const sourceKey = buildSourceKey(
       renderedMode,
@@ -819,7 +819,7 @@ export const buildAnchorEventFunnelResponseFromRows = (
         journeys: new Set<string>(),
         prCommitmentJourneys: new Set<string>(),
       };
-    sourceAccumulator.journeys.add(segment.appJourneyId);
+    sourceAccumulator.journeys.add(segment.journeyId);
     sourceAccumulators.set(sourceKey, sourceAccumulator);
   }
 
@@ -831,7 +831,7 @@ export const buildAnchorEventFunnelResponseFromRows = (
     const renderedMode = context?.renderedMode ?? toRenderedMode(event.renderedMode);
     if (!renderedMode) continue;
 
-    const journeyId = context?.appJourneyId ?? event.appJourneyId;
+    const journeyId = context?.journeyId ?? event.journeyId;
     const modeAccumulator = getMetricAccumulator(modeAccumulators, renderedMode);
     const step = findStepForEvent(renderedMode, event.eventName);
     if (step) {
@@ -943,7 +943,7 @@ export const buildAnchorEventFunnelResponseFromRows = (
 
     if (event.eventName === "official.account.follow.nudge.shown") {
       for (const accumulator of accumulators) {
-        accumulator.shownJourneys.add(event.appJourneyId);
+        accumulator.shownJourneys.add(event.journeyId);
         accumulator.shownEvents += 1;
       }
       continue;
@@ -955,12 +955,12 @@ export const buildAnchorEventFunnelResponseFromRows = (
 
     if (event.action === "complete") {
       for (const accumulator of accumulators) {
-        accumulator.followClickJourneys.add(event.appJourneyId);
+        accumulator.followClickJourneys.add(event.journeyId);
         accumulator.followClickEvents += 1;
       }
     } else if (event.action === "dismiss") {
       for (const accumulator of accumulators) {
-        accumulator.dismissJourneys.add(event.appJourneyId);
+        accumulator.dismissJourneys.add(event.journeyId);
         accumulator.dismissEvents += 1;
       }
     }

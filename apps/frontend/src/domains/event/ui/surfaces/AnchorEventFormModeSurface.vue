@@ -108,7 +108,6 @@ import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { useAnchorEventFormModeData } from "@/domains/event/queries/useAnchorEventFormModeData";
 import {
   useAnchorEventFormModeRecommendation,
@@ -786,7 +785,6 @@ const trackRecommendationResult = (
     outcome?: "matched" | "no_match";
     matchedPrId?: number | null;
     candidateCount?: number;
-    correlationId?: string;
   },
 ): void => {
   const selectedConditionPayload = buildSelectedConditionPayload();
@@ -796,7 +794,6 @@ const trackRecommendationResult = (
 
   trackEvent("anchor_event_recommendation_result", {
     ...selectedConditionPayload,
-    correlationId: payload.correlationId,
     ...payload,
   });
 
@@ -810,7 +807,6 @@ const trackRecommendationResult = (
       outcome: payload.outcome,
       matchedPrId: payload.matchedPrId,
       candidateCount: payload.candidateCount,
-      correlationId: payload.correlationId,
     });
   }
 };
@@ -821,7 +817,6 @@ const trackEventAssistedCreateResult = (
     failureCode?: string;
     failureReason?: string;
     prId?: number;
-    correlationId?: string;
   },
   source: {
     place: AnchorEventSelectedPlace;
@@ -848,7 +843,6 @@ const trackEventAssistedCreateResult = (
     actionResult: payload.actionResult,
     failureCode: payload.failureCode,
     failureReason: payload.failureReason,
-    correlationId: payload.correlationId,
   });
   trackEvent("pr_commitment_result", {
     ...buildFormFunnelPayload(),
@@ -858,7 +852,6 @@ const trackEventAssistedCreateResult = (
     actionResult: payload.actionResult,
     failureCode: payload.failureCode,
     failureReason: payload.failureReason,
-    correlationId: payload.correlationId,
   });
 };
 
@@ -901,7 +894,6 @@ const createEventAssistedPR = async (
     return false;
   }
 
-  const correlationId = createCommandCorrelationId();
   if (trigger === "manual_fallback") {
     trackEvent("anchor_event_form_create_fallback_click", {
       eventId: props.eventId,
@@ -912,7 +904,6 @@ const createEventAssistedPR = async (
       placeKind: place.kind,
       startAt,
       preferenceCount: selectedPreferences.value.length,
-      correlationId,
     });
   }
 
@@ -926,7 +917,6 @@ const createEventAssistedPR = async (
     trackEvent("anchor_event_assisted_create_started", {
       ...selectedConditionPayload,
       trigger,
-      correlationId,
     });
   }
 
@@ -936,7 +926,6 @@ const createEventAssistedPR = async (
       fields,
       routePoolEntryId:
         place.kind === "route" ? place.routePoolEntryId : null,
-      correlationId,
       handoff:
         trigger === "auto_no_candidates" ? "event_assisted_create" : undefined,
     });
@@ -945,7 +934,6 @@ const createEventAssistedPR = async (
       {
         actionResult: "success",
         prId: created.id,
-        correlationId,
       },
       createTelemetrySource,
     );
@@ -954,7 +942,6 @@ const createEventAssistedPR = async (
       prId: created.id,
       entrySurface: "form_mode",
       entryType: "create_handoff",
-      correlationId,
     });
     await router.push(
       buildEventAssistedCreateTarget(created.canonicalPath, trigger),
@@ -969,7 +956,6 @@ const createEventAssistedPR = async (
             "EVENT_ASSISTED_CREATE_BLOCKED",
             t("anchorEvent.createCard.errors.wechatAuthRequired"),
           ),
-          correlationId,
         },
         createTelemetrySource,
       );
@@ -984,7 +970,6 @@ const createEventAssistedPR = async (
             ? error.message
             : t("anchorEvent.createCard.errors.createFailed"),
         ),
-        correlationId,
       },
       createTelemetrySource,
     );
@@ -1013,10 +998,8 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
     return;
   }
   const splashFill = startJoinSplash(originRect);
-  const recommendationCorrelationId = createCommandCorrelationId();
   trackEvent("anchor_event_recommendation_requested", {
     ...selectedConditionPayload,
-    correlationId: recommendationCorrelationId,
   });
 
   try {
@@ -1025,7 +1008,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
       place: buildRecommendationPlaceInput(place),
       timeWindows,
       preferences: [...selectedPreferences.value],
-      correlationId: recommendationCorrelationId,
     });
     trackRecommendationExposure(result);
 
@@ -1036,7 +1018,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
       matchedPrId: matchedPRId,
       candidateCount:
         result.orderedCandidates.length + (matchedPRId === null ? 0 : 1),
-      correlationId: recommendationCorrelationId,
     });
 
     if (matchedPRId !== null) {
@@ -1046,7 +1027,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         targetPrId: matchedPRId,
         candidateRank: 1,
         entrySurface: "form_mode_matched",
-        correlationId: recommendationCorrelationId,
       });
       trackEvent("pr_entry_reached", {
         ...buildFormFunnelPayload(),
@@ -1054,7 +1034,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         entrySurface: "form_mode_matched",
         entryType: "detail",
         candidateRank: 1,
-        correlationId: recommendationCorrelationId,
       });
       await splashFill;
       await waitForJoinSplashFallback(140);
@@ -1096,11 +1075,10 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         ...resolveTelemetryFailurePayload(
           error,
           "ANCHOR_EVENT_RECOMMENDATION_FAILED",
-          selectionErrorMessage.value,
-        ),
-        correlationId: recommendationCorrelationId,
-      },
-    );
+        selectionErrorMessage.value,
+      ),
+    },
+  );
     await splashFill;
     await drainJoinSplash();
   }
@@ -1241,12 +1219,10 @@ const attemptPendingCreateReplay = async () => {
           preferenceCount: pending.fields.preferences.length,
         }
       : null;
-  const correlationId = createCommandCorrelationId();
   try {
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       handoff: pending.handoff,
-      correlationId,
       fields: {
         title: undefined,
         type: pending.fields.type,
@@ -1267,7 +1243,6 @@ const attemptPendingCreateReplay = async () => {
         {
           actionResult: "success",
           prId: created.id,
-          correlationId,
         },
         pendingCreateTelemetrySource,
       );
@@ -1291,7 +1266,6 @@ const attemptPendingCreateReplay = async () => {
               ? error.message
               : t("anchorEvent.createCard.errors.createFailed"),
           ),
-          correlationId,
         },
         pendingCreateTelemetrySource,
       );

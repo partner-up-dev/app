@@ -104,7 +104,6 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 
 type JoinSuccessPromptExpose = {
   close: () => void;
@@ -233,7 +232,6 @@ const trackJoinResult = (payload: {
   actionResult: "success" | "failure" | "blocked";
   failureCode?: string;
   failureReason?: string;
-  correlationId?: string;
 }): void => {
   const prId = resolvedPrId.value;
   if (prId === null) {
@@ -246,7 +244,6 @@ const trackJoinResult = (payload: {
     eventId: props.eventId ?? undefined,
     entrySurface: props.entrySurface ?? undefined,
     candidateRank: props.candidateRank ?? undefined,
-    correlationId: payload.correlationId,
     ...payload,
   });
   if (props.eventId !== null) {
@@ -260,7 +257,6 @@ const trackJoinResult = (payload: {
       actionResult: payload.actionResult,
       failureCode: payload.failureCode,
       failureReason: payload.failureReason,
-      correlationId: payload.correlationId,
     });
   }
 };
@@ -300,11 +296,10 @@ const finalizeJoin = async (): Promise<void> => {
 
   joinFlowPending.value = true;
   joinFlowError.value = null;
-  const correlationId = createCommandCorrelationId();
   try {
-    const result = await joinMutation.mutateAsync({ id: prId, correlationId });
+    const result = await joinMutation.mutateAsync({ id: prId });
     joined.value = true;
-    trackJoinResult({ actionResult: "success", correlationId });
+    trackJoinResult({ actionResult: "success" });
     emit("joined", result);
     closeJoinGateModal();
     openSuccessPrompt();
@@ -315,7 +310,6 @@ const finalizeJoin = async (): Promise<void> => {
         actionResult: "blocked",
         failureCode: PR_JOIN_GATE_UNRESOLVED_CODE,
         failureReason: resolveErrorMessage(error),
-        correlationId,
       });
       showJoinGateModal.value = true;
       return;
@@ -326,7 +320,6 @@ const finalizeJoin = async (): Promise<void> => {
         "PR_JOIN_FAILED",
         resolveErrorMessage(error),
       ),
-      correlationId,
     });
     emitFlowError(resolveErrorMessage(error));
   } finally {

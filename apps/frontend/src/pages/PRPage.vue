@@ -150,6 +150,7 @@
         :pr="prDetail"
         :event-id="joinEntryContext.routeEventId"
         :entry-surface="joinEntryContext.joinEntrySurface"
+        @success-closed="handleJoinSuccessClosed"
       />
 
       <PRExitAction :pr="prDetail" />
@@ -182,7 +183,7 @@
 
 <script setup lang="ts">
 import { computed, isRef, nextTick, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
 import type { PartnerRequestFormInput } from "@/lib/validation";
@@ -230,6 +231,7 @@ type CreatorSecondaryActionType =
   | "CREATOR_MODIFY_STATUS";
 
 const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
 const id = usePRRouteId();
 const { data, isLoading, error } = usePRDetail(id);
@@ -387,6 +389,20 @@ const handleUpdateStatusSubmit = async (
 ): Promise<void> => {
   await submitStatusUpdate(status);
   closeModifyStatusModal();
+};
+
+const handleJoinSuccessClosed = async (): Promise<void> => {
+  if (id.value === null || route.query.entry === "join") {
+    return;
+  }
+
+  await router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      entry: "join",
+    },
+  });
 };
 
 const shouldHideFactsForHandoff = computed(() =>

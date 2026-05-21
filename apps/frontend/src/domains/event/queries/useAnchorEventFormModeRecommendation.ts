@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/vue-query";
 import { client } from "@/lib/rpc";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
-import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
 export type AnchorEventFormModeRecommendationPlaceInput =
   | {
@@ -27,7 +26,6 @@ export const useAnchorEventFormModeRecommendation = () =>
       place: AnchorEventFormModeRecommendationPlaceInput;
       timeWindows: AnchorEventFormModeRecommendationTimeWindowInput[];
       preferences: string[];
-      correlationId?: string;
     }
   >({
     mutationFn: async ({
@@ -35,7 +33,6 @@ export const useAnchorEventFormModeRecommendation = () =>
       place,
       timeWindows,
       preferences,
-      correlationId,
     }) => {
       const response = await client.api.events[":eventId"]["form-mode"][
         "recommendation"
@@ -48,12 +45,6 @@ export const useAnchorEventFormModeRecommendation = () =>
             place,
             timeWindows,
             preferences,
-            correlationId,
-          },
-        },
-        {
-          init: {
-            headers: buildCorrelationHeaders(correlationId),
           },
         },
       );

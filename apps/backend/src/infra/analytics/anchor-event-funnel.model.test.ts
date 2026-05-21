@@ -19,20 +19,20 @@ const buildEvent = (
   properties: Record<string, unknown> = {},
 ): AnchorEventFunnelEventRow => ({
   eventName,
-  appJourneyId: segment.appJourneyId,
+  journeyId: segment.journeyId,
   segmentId: segment.segmentId,
   renderedMode: segment.renderedMode,
   properties,
 });
 
 const buildOfficialAccountFollowNudgeEvent = (
-  appJourneyId: string,
+  journeyId: string,
   eventName: OfficialAccountFollowNudgeEventRow["eventName"],
   source: string | null,
   action: string | null = null,
 ): OfficialAccountFollowNudgeEventRow => ({
   eventName,
-  appJourneyId,
+  journeyId,
   source,
   action,
 });
@@ -40,19 +40,19 @@ const buildOfficialAccountFollowNudgeEvent = (
 test("buildAnchorEventFunnelResponseFromRows aggregates Anchor Event funnel cohorts", () => {
   const formSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-form",
-    appJourneyId: "journey-form",
+    journeyId: "journey-form",
     renderedMode: "FORM",
     startSpm: "campaign.alpha",
   };
   const cardSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-card",
-    appJourneyId: "journey-card",
+    journeyId: "journey-card",
     renderedMode: "CARD_RICH",
     startSpm: "campaign.alpha",
   };
   const listSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-list",
-    appJourneyId: "journey-list",
+    journeyId: "journey-list",
     renderedMode: "LIST",
     startSpm: null,
   };
@@ -231,6 +231,56 @@ test("resolveAnchorEventFunnelFilters applies the seven day default window", () 
     assignmentRevision: null,
     renderedMode: "FORM",
   });
+});
+
+test("buildAnchorEventFunnelResponseFromRows keeps repeated landing contexts separate within one journey", () => {
+  const formSegment: AnchorEventFunnelSegmentRow = {
+    segmentId: "landing-form-event",
+    journeyId: "journey-reused",
+    renderedMode: "FORM",
+    startSpm: "campaign.alpha",
+  };
+  const cardSegment: AnchorEventFunnelSegmentRow = {
+    segmentId: "landing-card-event",
+    journeyId: "journey-reused",
+    renderedMode: "CARD_RICH",
+    startSpm: "campaign.alpha",
+  };
+
+  const response = buildAnchorEventFunnelResponseFromRows(
+    filters,
+    [formSegment, cardSegment],
+    [
+      buildEvent(formSegment, "anchor_event.landing.viewed"),
+      buildEvent(formSegment, "anchor_event.form.started"),
+      buildEvent(cardSegment, "anchor_event.landing.viewed"),
+      buildEvent(cardSegment, "anchor_event.card.seen"),
+    ],
+  );
+
+  const formMode = response.modes.find((mode) => mode.renderedMode === "FORM");
+  const cardMode = response.modes.find(
+    (mode) => mode.renderedMode === "CARD_RICH",
+  );
+  const formFunnel = response.funnels.find(
+    (funnel) => funnel.renderedMode === "FORM",
+  );
+  const cardFunnel = response.funnels.find(
+    (funnel) => funnel.renderedMode === "CARD_RICH",
+  );
+
+  assert.equal(response.summary.journeys, 1);
+  assert.equal(formMode?.prExposureJourneys, 0);
+  assert.equal(cardMode?.prExposureJourneys, 1);
+  assert.equal(
+    formFunnel?.steps.find((step) => step.stepKey === "form_started")
+      ?.eventCount,
+    1,
+  );
+  assert.equal(
+    cardFunnel?.steps.find((step) => step.stepKey === "card_seen")?.eventCount,
+    1,
+  );
 });
 
 test("buildAnchorEventFunnelResponseFromRows aggregates official account Nudge follow clicks", () => {

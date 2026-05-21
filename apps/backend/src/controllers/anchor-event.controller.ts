@@ -44,7 +44,6 @@ const formModeRecommendationPlaceSchema = z.discriminatedUnion("kind", [
 
 const formModeRecommendationBaseSchema = z.object({
   preferences: z.array(z.string().trim().min(1).max(80)).max(16),
-  correlationId: z.string().trim().min(1).max(128).optional(),
 });
 
 const formModeRecommendationTimeWindowSchema = z

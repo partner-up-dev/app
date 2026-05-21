@@ -6,7 +6,6 @@ import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
 import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { trackEvent } from "@/shared/telemetry/track";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import {
   toPartnerRequestFields,
@@ -59,11 +58,9 @@ export const usePRCreateFlow = () => {
   const handleSubmit = async ({ fields }: PartnerRequestFormInput) => {
     await ensureAuthSessionBootstrapped();
 
-    const correlationId = createCommandCorrelationId();
     const result = await createMutation.mutateAsync({
       fields: toPartnerRequestFields(fields),
       createSource: "FORM",
-      correlationId,
     });
 
     let createdStatus: PRStatus = result.status;
@@ -78,7 +75,6 @@ export const usePRCreateFlow = () => {
       status: createdStatus,
       scenarioType: fields.type,
       actionResult: "success",
-      correlationId,
     });
     if (createdStatus !== "DRAFT") {
       await router.push(`${result.canonicalPath}?entry=create`);

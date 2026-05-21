@@ -1,213 +1,207 @@
-import { createHmac } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../../lib/db";
-import { env } from "../../lib/env";
 import {
   userTelemetryEvents,
   userTelemetryJourneys,
-  userTelemetrySegments,
+  userTelemetryRejectedEvents,
 } from "../../entities/user-telemetry";
+import {
+  validateRegisteredUserTelemetryEvent,
+  type UserTelemetryAttributes,
+  type UserTelemetryPayload,
+} from "./user-event-registry";
 
-export type UserTelemetryEventKind = "page" | "track" | "identify" | "group";
-export type UserTelemetrySource = "frontend" | "backend";
-
-export type UserTelemetrySegmentInput = {
-  id: string;
-  segmentKind: string;
-  startedAt: string;
-  endedAt?: string | null;
-  eventId?: number | null;
-  prId?: number | null;
-  assignedMode?: string | null;
-  renderedMode?: string | null;
-  assignmentRevision?: string | null;
-  segmentStartRoute?: string | null;
-  segmentStartSpm?: string | null;
-  segmentStartSourceQr?: string | null;
-};
-
-export type UserTelemetryEventInput = {
-  id: string;
-  eventName: string;
-  eventKind: UserTelemetryEventKind;
-  occurredAt: string;
-  source?: UserTelemetrySource;
-  anonymousId?: string | null;
-  userIdHash?: string | null;
-  appJourneyId: string;
-  journeyStartedAt?: string | null;
-  journeyStartRoute?: string | null;
-  journeyStartRouteName?: string | null;
-  journeyStartReferrer?: string | null;
-  journeyStartSpm?: string | null;
-  journeyStartSourceQr?: string | null;
-  journeyStartEventId?: number | null;
-  journeyStartPrId?: number | null;
-  journeyEntryKind?: string | null;
-  segmentId?: string | null;
-  segment?: UserTelemetrySegmentInput | null;
-  routePath?: string | null;
-  routeName?: string | null;
-  referrer?: string | null;
-  startSpm?: string | null;
-  currentSpm?: string | null;
-  sourceQr?: string | null;
-  correlationId?: string | null;
-  requestId?: string | null;
-  traceId?: string | null;
-  eventIdRef?: number | null;
-  prIdRef?: number | null;
-  cardKey?: string | null;
-  segmentKey?: string | null;
-  properties: Record<string, unknown>;
+export type RawUserTelemetryEventInput = {
+  event_id: string;
+  event_name: string;
+  event_version: number;
+  journey_id: string;
+  occurred_at: string;
+  trace_id?: string | null;
+  event_family?: string | null;
+  attributes?: UserTelemetryAttributes;
+  payload?: UserTelemetryPayload;
 };
 
 export type UserTelemetryIngestResult = {
   ingested: number;
+  rejected: number;
 };
 
-const normalizeSource = (
-  source: UserTelemetrySource | undefined,
-): UserTelemetrySource => source ?? "frontend";
+type AcceptedUserTelemetryEvent = {
+  eventId: string;
+  eventName: string;
+  eventVersion: number;
+  eventFamily: string;
+  eventKind: string;
+  journeyId: string;
+  occurredAt: Date;
+  traceId: string | null;
+  attributes: UserTelemetryAttributes;
+  payload: UserTelemetryPayload;
+};
+
+type RejectedUserTelemetryEvent = {
+  eventId: string | null;
+  eventName: string | null;
+  eventVersion: number | null;
+  journeyId: string | null;
+  occurredAt: Date | null;
+  failureCode: string;
+  failureMessage: string;
+  rawEvent: Record<string, unknown>;
+};
+
+type JourneyBounds = {
+  startedAt: Date;
+  lastSeenAt: Date;
+};
 
 const parseDate = (value: string): Date => new Date(value);
 
-const nullableDate = (value: string | null | undefined): Date | null =>
-  value ? parseDate(value) : null;
-
-const resolveUserIdHash = (
-  userId: string | null | undefined,
-  explicitUserIdHash: string | null | undefined,
-): string | null => {
-  if (explicitUserIdHash) {
-    return explicitUserIdHash;
-  }
-  if (!userId) {
-    return null;
-  }
-
-  return createHmac("sha256", env.AUTH_JWT_SECRET)
-    .update(userId)
-    .digest("hex");
+const parseOptionalDate = (value: string): Date | null => {
+  const parsed = parseDate(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const normalizeRawEvent = (
+  event: RawUserTelemetryEventInput,
+): Record<string, unknown> => ({
+  event_id: event.event_id,
+  event_name: event.event_name,
+  event_version: event.event_version,
+  journey_id: event.journey_id,
+  occurred_at: event.occurred_at,
+  trace_id: event.trace_id ?? null,
+  event_family: event.event_family ?? null,
+  attributes: event.attributes ?? {},
+  payload: event.payload ?? {},
+});
+
 export async function ingestUserTelemetryEvents(
-  events: UserTelemetryEventInput[],
-  options: { authenticatedUserId?: string | null } = {},
+  events: RawUserTelemetryEventInput[],
 ): Promise<UserTelemetryIngestResult> {
-  if (events.length === 0) return { ingested: 0 };
+  if (events.length === 0) return { ingested: 0, rejected: 0 };
 
   return await db.transaction(async (tx) => {
-    const now = new Date();
+    const acceptedEvents: AcceptedUserTelemetryEvent[] = [];
+    const rejectedEvents: RejectedUserTelemetryEvent[] = [];
 
     for (const event of events) {
-      const occurredAt = parseDate(event.occurredAt);
-      const userIdHash = resolveUserIdHash(
-        options.authenticatedUserId,
-        event.userIdHash,
-      );
-      await tx
-        .insert(userTelemetryJourneys)
-        .values({
-          id: event.appJourneyId,
-          anonymousId: event.anonymousId ?? null,
-          userIdHash,
-          startedAt: event.journeyStartedAt
-            ? parseDate(event.journeyStartedAt)
-            : occurredAt,
-          lastSeenAt: occurredAt,
-          startRoute: event.journeyStartRoute ?? event.routePath ?? null,
-          startRouteName:
-            event.journeyStartRouteName ?? event.routeName ?? null,
-          startReferrer: event.journeyStartReferrer ?? event.referrer ?? null,
-          startSpm: event.journeyStartSpm ?? event.startSpm ?? null,
-          currentSpm: event.currentSpm ?? event.startSpm ?? null,
-          startSourceQr: event.journeyStartSourceQr ?? event.sourceQr ?? null,
-          currentSourceQr: event.sourceQr ?? null,
-          startEventId: event.journeyStartEventId ?? event.eventIdRef ?? null,
-          startPrId: event.journeyStartPrId ?? event.prIdRef ?? null,
-          entryKind: event.journeyEntryKind ?? null,
-          updatedAt: now,
-        })
-        .onConflictDoUpdate({
-          target: userTelemetryJourneys.id,
-          set: {
-            anonymousId: sql`coalesce(excluded.anonymous_id, ${userTelemetryJourneys.anonymousId})`,
-            userIdHash: sql`coalesce(excluded.user_id_hash, ${userTelemetryJourneys.userIdHash})`,
-            lastSeenAt: sql`greatest(${userTelemetryJourneys.lastSeenAt}, excluded.last_seen_at)`,
-            currentSpm: sql`coalesce(excluded.current_spm, ${userTelemetryJourneys.currentSpm})`,
-            currentSourceQr: sql`coalesce(excluded.current_source_qr, ${userTelemetryJourneys.currentSourceQr})`,
-            updatedAt: now,
-          },
-        });
+      const validation = validateRegisteredUserTelemetryEvent({
+        eventName: event.event_name,
+        eventVersion: event.event_version,
+        eventFamily: event.event_family,
+        attributes: event.attributes,
+        payload: event.payload,
+      });
 
-      if (event.segment) {
-        await tx
-          .insert(userTelemetrySegments)
-          .values({
-            id: event.segment.id,
-            appJourneyId: event.appJourneyId,
-            segmentKind: event.segment.segmentKind,
-            startedAt: parseDate(event.segment.startedAt),
-            endedAt: nullableDate(event.segment.endedAt),
-            eventId: event.segment.eventId ?? null,
-            prId: event.segment.prId ?? null,
-            assignedMode: event.segment.assignedMode ?? null,
-            renderedMode: event.segment.renderedMode ?? null,
-            assignmentRevision: event.segment.assignmentRevision ?? null,
-            segmentStartRoute: event.segment.segmentStartRoute ?? null,
-            segmentStartSpm: event.segment.segmentStartSpm ?? null,
-            segmentStartSourceQr: event.segment.segmentStartSourceQr ?? null,
-            updatedAt: now,
-          })
-          .onConflictDoUpdate({
-            target: userTelemetrySegments.id,
-            set: {
-              endedAt: sql`coalesce(excluded.ended_at, ${userTelemetrySegments.endedAt})`,
-              assignedMode: sql`coalesce(excluded.assigned_mode, ${userTelemetrySegments.assignedMode})`,
-              renderedMode: sql`coalesce(excluded.rendered_mode, ${userTelemetrySegments.renderedMode})`,
-              assignmentRevision: sql`coalesce(excluded.assignment_revision, ${userTelemetrySegments.assignmentRevision})`,
-              updatedAt: now,
-            },
-          });
+      if (!validation.ok) {
+        rejectedEvents.push({
+          eventId: event.event_id,
+          eventName: event.event_name,
+          eventVersion: event.event_version,
+          journeyId: event.journey_id,
+          occurredAt: parseOptionalDate(event.occurred_at),
+          failureCode: validation.failureCode,
+          failureMessage: validation.failureMessage,
+          rawEvent: normalizeRawEvent(event),
+        });
+        continue;
       }
+
+      acceptedEvents.push({
+        eventId: event.event_id,
+        eventName: event.event_name,
+        eventVersion: event.event_version,
+        eventFamily: validation.contract.eventFamily,
+        eventKind: validation.contract.eventKind,
+        journeyId: event.journey_id,
+        occurredAt: parseDate(event.occurred_at),
+        traceId: event.trace_id ?? null,
+        attributes: validation.attributes,
+        payload: validation.payload,
+      });
     }
 
-    const inserted = await tx
+    if (rejectedEvents.length > 0) {
+      await tx.insert(userTelemetryRejectedEvents).values(rejectedEvents);
+    }
+
+    if (acceptedEvents.length === 0) {
+      return { ingested: 0, rejected: rejectedEvents.length };
+    }
+
+    const journeyBounds = collectJourneyBounds(acceptedEvents);
+    const now = new Date();
+
+    await tx
+      .insert(userTelemetryJourneys)
+      .values(
+        [...journeyBounds.entries()].map(([journeyId, bounds]) => ({
+          id: journeyId,
+          startedAt: bounds.startedAt,
+          lastSeenAt: bounds.lastSeenAt,
+          updatedAt: now,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: userTelemetryJourneys.id,
+        set: {
+          startedAt: sql`least(${userTelemetryJourneys.startedAt}, excluded.started_at)`,
+          lastSeenAt: sql`greatest(${userTelemetryJourneys.lastSeenAt}, excluded.last_seen_at)`,
+          updatedAt: now,
+        },
+      });
+
+    const insertedEvents = await tx
       .insert(userTelemetryEvents)
       .values(
-        events.map((event) => ({
-          id: event.id,
+        acceptedEvents.map((event) => ({
+          eventId: event.eventId,
           eventName: event.eventName,
+          eventVersion: event.eventVersion,
+          eventFamily: event.eventFamily,
           eventKind: event.eventKind,
-          source: normalizeSource(event.source),
-          anonymousId: event.anonymousId ?? null,
-          userIdHash: resolveUserIdHash(
-            options.authenticatedUserId,
-            event.userIdHash,
-          ),
-          appJourneyId: event.appJourneyId,
-          segmentId: event.segmentId ?? event.segment?.id ?? null,
-          routePath: event.routePath ?? null,
-          routeName: event.routeName ?? null,
-          referrer: event.referrer ?? null,
-          startSpm: event.startSpm ?? event.journeyStartSpm ?? null,
-          currentSpm: event.currentSpm ?? null,
-          sourceQr: event.sourceQr ?? null,
-          correlationId: event.correlationId ?? null,
-          requestId: event.requestId ?? null,
-          traceId: event.traceId ?? null,
-          eventIdRef: event.eventIdRef ?? null,
-          prIdRef: event.prIdRef ?? null,
-          cardKey: event.cardKey ?? null,
-          segmentKey: event.segmentKey ?? null,
-          properties: event.properties,
-          occurredAt: parseDate(event.occurredAt),
+          journeyId: event.journeyId,
+          traceId: event.traceId,
+          attributes: event.attributes,
+          payload: event.payload,
+          occurredAt: event.occurredAt,
         })),
       )
       .onConflictDoNothing()
-      .returning({ id: userTelemetryEvents.id });
+      .returning({ eventId: userTelemetryEvents.eventId });
 
-    return { ingested: inserted.length };
+    return {
+      ingested: insertedEvents.length,
+      rejected: rejectedEvents.length,
+    };
   });
 }
+
+const collectJourneyBounds = (
+  events: readonly AcceptedUserTelemetryEvent[],
+): Map<string, JourneyBounds> => {
+  const boundsByJourney = new Map<string, JourneyBounds>();
+
+  for (const event of events) {
+    const existing = boundsByJourney.get(event.journeyId);
+    if (!existing) {
+      boundsByJourney.set(event.journeyId, {
+        startedAt: event.occurredAt,
+        lastSeenAt: event.occurredAt,
+      });
+      continue;
+    }
+
+    if (event.occurredAt < existing.startedAt) {
+      existing.startedAt = event.occurredAt;
+    }
+    if (event.occurredAt > existing.lastSeenAt) {
+      existing.lastSeenAt = event.occurredAt;
+    }
+  }
+
+  return boundsByJourney;
+};

@@ -37,6 +37,11 @@ export type UserTelemetryJourneyContext = {
   nowIso?: string;
 };
 
+export type EnsuredUserTelemetryJourney = {
+  journey: UserTelemetryJourney;
+  started: boolean;
+};
+
 export type UserTelemetrySegment = {
   id: string;
   segmentKind: string;
@@ -215,9 +220,9 @@ const isExpiredJourney = (
     : nowMs - lastSeenMs > APP_JOURNEY_INACTIVITY_TIMEOUT_MS;
 };
 
-export const ensureAppJourney = (
+export const ensureAppJourneyWithState = (
   context: UserTelemetryJourneyContext,
-): UserTelemetryJourney => {
+): EnsuredUserTelemetryJourney => {
   const nowIso = context.nowIso ?? new Date().toISOString();
   const nowMs = Date.parse(nowIso);
   const anonymousId = resolveAnonymousId();
@@ -232,7 +237,10 @@ export const ensureAppJourney = (
       currentSourceQr: context.sourceQr ?? stored.currentSourceQr,
     };
     persistJourney(updated);
-    return updated;
+    return {
+      journey: updated,
+      started: false,
+    };
   }
 
   const created: UserTelemetryJourney = {
@@ -252,8 +260,18 @@ export const ensureAppJourney = (
     entryKind: context.entryKind ?? resolveEntryKind(context.routePath),
   };
   persistJourney(created);
-  return created;
+  return {
+    journey: created,
+    started: true,
+  };
 };
+
+export const ensureAppJourney = (
+  context: UserTelemetryJourneyContext,
+): UserTelemetryJourney => ensureAppJourneyWithState(context).journey;
+
+export const resolveCurrentJourneyId = (): string | null =>
+  readStoredJourney()?.id ?? null;
 
 const parseStoredSegment = (
   record: Record<string, unknown>,

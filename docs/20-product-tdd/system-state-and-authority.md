@@ -12,7 +12,7 @@ Persisted in Postgres via backend entities and repositories:
 - anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned route pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, and join-notice acceptances
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
 - config, operation logs, domain events, outbox events, jobs, notification opportunities, notification waves, and notification deliveries
-- analytics aggregate tables
+- analytics aggregate / projection tables, including user telemetry enrichment and BI facts
 
 This is the source of truth for product behavior.
 
@@ -29,7 +29,7 @@ These shape runtime behavior but remain backend-owned.
 - TanStack Query caches of backend data
 - route-local UI state
 - local message composer drafts and thread expansion/collapse state
-- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, official-account follow prompt cooldown, anchor-event landing mode stability, analytics session id, and `spm`
+- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, official-account follow prompt cooldown, anchor-event landing mode stability, user telemetry `journey_id`, and `spm`
 - active route-share session state, currently selected share descriptor, and replay bookkeeping for WeChat/browser share flows
 
 This state improves UX and continuity but does not define product truth.
@@ -64,6 +64,7 @@ The backend is authoritative for:
 - event-owned feedback questionnaire template pointer used for future PR materialization
 - event-specific beta-group QR codes; generic config must not be the owner for Anchor Event beta-group entry
 - domain events, notifications, analytics persistence, and operation logs
+- user telemetry storage, event registry acceptance, telemetry enrichment, and BI projections
 
 The frontend is authoritative for:
 

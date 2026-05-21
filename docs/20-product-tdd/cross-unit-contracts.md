@@ -176,9 +176,9 @@ Important coordination note:
 - `/e/:eventId` `LIST` landing mode renders the event-domain List Mode surface and follows the same date grouping, PR visibility, event-assisted create, beta-group, and other-event browsing semantics as the previous Anchor Event list view
 - a valid `/e/:eventId?mode=` query is explicit frontend route state for initial rendering and in-page mode switching, and the frontend skips `GET /api/events/:eventId/landing-assignment` while it is present; `spm` remains attribution-only rather than a UI-mode switch
 - without valid route mode, frontend stabilizes `/e/:eventId` landing mode through local storage keyed by `eventId + assignmentRevision`; timeout fallback enters `LIST`
-- Anchor Event landing, recommendation, PR detail entry, PR create, PR join, and PR waitlist flows emit user telemetry for the Anchor Event -> PR funnel through one app journey and one `anchor_event_landing` business segment when the user path originates from `/e/:eventId`.
-- Funnel attribution uses `app_journey_id`, `segment_id`, typed subject fields such as `event_id_ref`, `pr_id_ref`, `card_key`, and command `correlation_id`. Correlated JSON commands must send `content-type: application/json` together with `x-correlation-id`.
-- Current PR detail participation action components receive a small `PRJoinEntryContext` for PR join/waitlist source attribution. This is intentional context erosion: route/process entry context leaks into PR action UI because the user-event collection system does not yet expose a cleaner ambient journey context for those flows. Future telemetry work should move this attribution into the event collection substrate so PR action components can depend only on the canonical PR read model.
+- Anchor Event landing, recommendation, PR detail entry, PR create, PR join, and PR waitlist flows emit registry-governed user telemetry for the Anchor Event -> PR funnel through the current `journey_id`.
+- Funnel attribution should be reconstructed from context events, event-owned payload, and BI projections rather than from `app_journey_id`, `segment_id`, or command `correlation_id` fields.
+- PR detail participation action components should depend on canonical PR read models plus ambient journey context. Route/process entry context should not be copied through component props solely to satisfy telemetry attribution.
 - `/pr/:id` participant roster UI should use the existing `/pr/:id/partners/:partnerId` profile route for participant-badge navigation rather than introducing a second profile-route family
 - `GET /api/pr/:id/actions/preflight` is the batch action-availability contract for PR detail UX. It evaluates one viewer against one PR and returns action entries such as `join`, `confirm`, and `check_in` through one stable minimal shape:
   - `evaluatedAt`
@@ -275,22 +275,24 @@ Important coordination note:
 
 ## 12. Analytics And User Telemetry Contract
 
-- User-behavior telemetry is stored in `user_telemetry_journeys`, `user_telemetry_segments`, and `user_telemetry_events`.
-- `POST /api/telemetry/user/events` ingests batched user telemetry. It accepts dot-separated event names, one required `appJourneyId`, optional segment context, typed subject references, source fields, and correlation fields.
-- `app_journey_id` represents one continuous user visit. The frontend keeps the journey active across route changes and starts a new journey after the configured inactivity expiry.
-- A business segment groups related actions inside a journey. Anchor Event landing uses segment kind `anchor_event_landing` and stores event id, assigned mode, rendered mode, assignment revision, segment start route, segment start SPM, and segment start source QR.
-- Journey source fields keep immutable entry attribution through `start_spm` and mutable current attribution through `current_spm`. Dashboard source breakdown v1 groups by journey `start_spm`.
-- User telemetry event names use dot-separated hierarchy, including Anchor Event funnel events such as `anchor_event.landing.viewed`, `anchor_event.recommendation.requested`, `anchor_event.pr_row.action_taken`, `pr.entry.reached`, and `pr.commitment.result`.
-- Program-internal behavior collection belongs to a future observability track. Future internal collection should keep OTLP-compatible correlation through `correlation_id`, `request_id`, and `trace_id`.
-- Product analytics reads user telemetry and business state as a derived interpretation layer. `GET /api/analytics/anchor-event-funnel` is the v1 aggregate endpoint for the Anchor Event -> PR conversion funnel.
-- `GET /api/analytics/anchor-event-funnel` requires the `analytics` role and accepts optional `startAt`, `endAt`, `eventId`, `spm`, `sourceQr`, `assignmentRevision`, and `renderedMode` filters.
-- The aggregate response includes normalized filters, summary KPIs, mode comparison rows, per-mode funnel steps, commitment outcome breakdown, start-SPM source breakdown, failure breakdown, and official-account follow Nudge click-rate metrics.
-- Official-account follow Nudge BI treats `official.account.follow.nudge.action.click` with `action = "complete"` as the user clicking the Nudge's `关注公众号` button; its click rate is distinct from backend-confirmed follower sync truth.
-- Supported dashboard modes are `FORM`, `CARD_RICH`, and `LIST`. Each mode keeps its own funnel step sequence because the user behavior path differs by rendered landing mode.
-- PR commitment means a successful create, join, or waitlist result. The response keeps those commitment types as breakdown dimensions.
+- The canonical user-behavior telemetry contract lives in `analytics-and-telemetry-contracts.md`.
+- User-behavior telemetry is stored in the `user_telemetry_*` table family and uses a registry-governed RawUserEvent envelope.
+- Accepted user telemetry events require `journey_id`, `event_id`, `event_name`, `event_version`, and `occurred_at`.
+- `POST /api/telemetry/user/events` ingests batched user telemetry events and rejects unknown or invalid events into a rejected-event quarantine.
+- User command requests carry the current journey through `x-journey-id`; backend request context exposes the parsed journey to controllers and typed downstream use-cases/services.
+- The frontend generates `journey_id` as a UUID, persists it in tab-scoped `sessionStorage`, and creates a new journey after 30 minutes of inactivity.
+- Backend request handlers do not generate orphan user journeys when `x-journey-id` is missing or invalid; they skip backend-confirmed user-result telemetry for that request.
+- Ordinary behavior events do not carry anonymous id, authenticated user hash, `seq`, `correlation_id`, `cause_event_id`, `source`, or `authority`.
+- User behavior telemetry may keep optional `trace_id` so it can join with program behavior collection / software observability.
+- Program-internal behavior collection is a separate signal family. Program correlation can use request/log/trace identifiers without copying those fields into every user behavior event.
+- Product analytics reads business fact data, enriched user behavior events, and program behavior signals as separate source families.
+- Automatic system facts such as `pr.expired` do not enter user telemetry.
 
 ## 13. BI Entry And Analytics Authorization Contract
 
+- The canonical BI domain contract lives in `bi-domain-contracts.md`.
+- PR lifecycle BI metrics query business fact data / current PR statuses, not user behavior events. Cohorts use PR `created_at` and PR time-window `endAt`.
+- User behavior BI reads enriched events or fact projections, not ad-hoc raw payloads.
 - `/admin/analytics` is the BI dashboard route and requires the `analytics` role.
 - `/bi?code=...` is a lightweight BI entry route. The page uses the query `code` as the analytics seed user's pin and a page-local hard-coded analytics seed user id, calls the admin login endpoint, then redirects to `/admin/analytics` on success.
 - `/bi` scrubs the code by replacing the route after a successful login. Failed login stays on `/bi`, renders a simple error message, and offers a home action.

@@ -9,11 +9,26 @@ import {
   getStoredUserId,
 } from "@/shared/auth/session-storage";
 import { hasPendingWeChatOAuthHandoff } from "@/processes/wechat/oauth-handoff";
+import { trackAuthSessionCreated } from "@/shared/telemetry/auth-session";
 
 let hasBootstrappedAuthSession = false;
 let bootstrappingPromise: Promise<void> | null = null;
 
 type AuthSessionBootstrapResult = "completed" | "deferred";
+
+const applyAndTrackAuthSession = async (
+  store: ReturnType<typeof useUserSessionStore>,
+  payload: AuthSessionPayload,
+): Promise<void> => {
+  store.applyAuthSession(payload);
+  try {
+    await trackAuthSessionCreated(payload);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("[telemetry] failed to record auth session", error);
+    }
+  }
+};
 
 const registerFreshAnonymousSession = async (
   store: ReturnType<typeof useUserSessionStore>,
@@ -32,7 +47,7 @@ const registerFreshAnonymousSession = async (
   }
 
   const payload = (await registerRes.json()) as AuthSessionPayload;
-  store.applyAuthSession(payload);
+  await applyAndTrackAuthSession(store, payload);
   return true;
 };
 
@@ -89,7 +104,7 @@ const runAuthSessionBootstrap = async (): Promise<AuthSessionBootstrapResult> =>
   }
 
   const payload = (await res.json()) as AuthSessionPayload;
-  store.applyAuthSession(payload);
+  await applyAndTrackAuthSession(store, payload);
   return "completed";
 };
 

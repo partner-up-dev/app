@@ -31,6 +31,10 @@ import { adminAnchorManagementRoute } from "./controllers/admin-anchor-managemen
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { jobRunner } from "./infra/jobs";
 import {
+  JOURNEY_ID_HEADER,
+  journeyContextMiddleware,
+} from "./infra/telemetry";
+import {
   bootstrapOfficialAccountFollowSyncJob,
   registerOfficialAccountFollowSyncJobs,
 } from "./infra/marketing";
@@ -83,10 +87,15 @@ app.use(
   cors({
     origin: (origin) => origin ?? "*",
     credentials: true,
-    allowHeaders: ["Content-Type", "Authorization", "x-correlation-id"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      JOURNEY_ID_HEADER,
+    ],
     exposeHeaders: ["x-access-token"],
   }),
 );
+app.use("*", journeyContextMiddleware);
 app.use("*", async (c, next) => {
   try {
     await next();

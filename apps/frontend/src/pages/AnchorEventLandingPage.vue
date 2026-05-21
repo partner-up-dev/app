@@ -185,7 +185,6 @@ import SegmentedControl, {
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 import {
@@ -900,7 +899,6 @@ const createEventAssistedPR = async ({
     targetTimeWindow,
     place,
   });
-  const correlationId = createCommandCorrelationId();
   const funnelPayload =
     buildCurrentFunnelPayload() ?? {
       eventId: event.id,
@@ -912,7 +910,6 @@ const createEventAssistedPR = async ({
       eventId: event.id,
       fields,
       routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
-      correlationId,
     });
     trackEvent("pr_commitment_result", {
       ...funnelPayload,
@@ -920,14 +917,12 @@ const createEventAssistedPR = async ({
       actionResult: "success",
       prId: created.id,
       entrySurface: "card_rich",
-      correlationId,
     });
     trackEvent("pr_entry_reached", {
       ...funnelPayload,
       prId: created.id,
       entrySurface: "card_rich",
       entryType: "create_handoff",
-      correlationId,
     });
     await router.push(buildEventAssistedCreateTarget(created.canonicalPath, event.id));
   } catch (error) {
@@ -941,7 +936,6 @@ const createEventAssistedPR = async ({
         ),
         commitmentType: "create",
         entrySurface: "card_rich",
-        correlationId,
       });
       return;
     }
@@ -956,7 +950,6 @@ const createEventAssistedPR = async ({
       ),
       commitmentType: "create",
       entrySurface: "card_rich",
-      correlationId,
     });
     throw error;
   }
