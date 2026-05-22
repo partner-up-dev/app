@@ -146,14 +146,14 @@
     <template #main>
       <div class="analytics-dashboard" data-testid="admin-analytics.dashboard">
         <LoadingIndicator
-          v-if="analyticsQuery.isLoading.value"
+          v-if="isInitialLoading"
           :message="t('adminAnalytics.loading')"
         />
         <InlineNotice
-          v-else-if="analyticsQuery.error.value"
+          v-else-if="dashboardError"
           tone="error"
           :title="t('adminAnalytics.loadFailedTitle')"
-          :message="analyticsQuery.error.value.message"
+          :message="dashboardError.message"
           data-testid="admin-analytics.error"
         />
 
@@ -170,6 +170,76 @@
                 {{ item.detail }}
               </span>
             </article>
+          </section>
+
+          <section
+            v-if="prJoinFunnel"
+            class="analytics-panel"
+            data-testid="admin-analytics.pr-join-funnel"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.prJoinFunnelTitle") }}</h2>
+                <p>{{ t("adminAnalytics.prJoinFunnelSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div
+                v-for="item in prJoinSummaryItems"
+                :key="item.key"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+                <span>{{ item.detail }}</span>
+              </div>
+            </dl>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.funnelStepColumn") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                    <th>{{ t("adminAnalytics.previousRateLabel") }}</th>
+                    <th>{{ t("adminAnalytics.startRateLabel") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="step in prJoinFunnel.steps"
+                    :key="step.stepKey"
+                  >
+                    <td>
+                      <strong>{{ step.label }}</strong>
+                      <span class="analytics-table__hint">
+                        {{ step.behavior }}
+                      </span>
+                    </td>
+                    <td>{{ formatCount(step.journeyCount) }}</td>
+                    <td>{{ formatCount(step.eventCount) }}</td>
+                    <td>{{ formatNullableRate(step.conversionFromPrevious) }}</td>
+                    <td>{{ formatRate(step.conversionFromStart) }}</td>
+                  </tr>
+                  <tr v-if="prJoinFunnel.steps.length === 0">
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="projection-footnote">
+              {{
+                t("adminAnalytics.prJoinProjectionContextDetail", {
+                  events: formatCount(prJoinFunnel.context.eventCount),
+                  route: formatCount(prJoinFunnel.context.routeContextUnknownEvents),
+                  auth: formatCount(prJoinFunnel.context.authContextUnknownEvents),
+                  authenticated: formatCount(prJoinFunnel.identity.authenticatedJourneys),
+                  unknown: formatCount(prJoinFunnel.identity.unknownSessionJourneys),
+                })
+              }}
+            </p>
           </section>
 
           <section
@@ -520,8 +590,10 @@ import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationP
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import {
   useAdminAnchorEventFunnelAnalytics,
+  useAdminPRJoinFunnelAnalytics,
   type AdminAnalyticsFunnelQuery,
   type AdminAnalyticsFunnelResponse,
+  type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
 import Button from "@/shared/ui/actions/Button.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
@@ -534,6 +606,7 @@ type OutcomeBreakdownRow = AdminAnalyticsFunnelResponse["outcomes"][number];
 type FailureBreakdownRow = AdminAnalyticsFunnelResponse["failures"][number];
 type OfficialAccountFollowNudgeSourceRow =
   AdminAnalyticsFunnelResponse["officialAccountFollowNudge"]["sources"][number];
+type PRJoinFunnelSummary = AdminPRJoinFunnelResponse["summary"];
 
 const modeOptions: AnchorEventAnalyticsRenderedMode[] = [
   "FORM",
@@ -588,9 +661,20 @@ const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
 });
 
 const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery);
+const prJoinFunnelQuery = useAdminPRJoinFunnelAnalytics(appliedQuery);
 const dashboard = computed(() => analyticsQuery.data.value ?? null);
+const prJoinFunnel = computed(() => prJoinFunnelQuery.data.value ?? null);
+const isInitialLoading = computed(
+  () => analyticsQuery.isLoading.value || prJoinFunnelQuery.isLoading.value,
+);
+const dashboardError = computed(
+  () => analyticsQuery.error.value ?? prJoinFunnelQuery.error.value ?? null,
+);
 const isDashboardRefreshing = computed(
-  () => refreshPending.value || analyticsQuery.isFetching.value,
+  () =>
+    refreshPending.value ||
+    analyticsQuery.isFetching.value ||
+    prJoinFunnelQuery.isFetching.value,
 );
 
 const numberFormatter = new Intl.NumberFormat("zh-CN");
@@ -681,6 +765,43 @@ const summaryItems = computed(() => {
   ];
 });
 
+const prJoinSummaryItems = computed(() => {
+  const summary = prJoinFunnel.value?.summary;
+  if (!summary) return [];
+  const items: Array<{
+    key: keyof PRJoinFunnelSummary;
+    label: string;
+    value: string;
+    detail: string;
+  }> = [
+    {
+      key: "impressionJourneys",
+      label: t("adminAnalytics.prJoinImpressionMetric"),
+      value: formatCount(summary.impressionJourneys),
+      detail: t("adminAnalytics.prJoinImpressionDetail"),
+    },
+    {
+      key: "clickJourneys",
+      label: t("adminAnalytics.prJoinClickMetric"),
+      value: formatCount(summary.clickJourneys),
+      detail: t("adminAnalytics.prJoinClickDetail"),
+    },
+    {
+      key: "backendJoinedJourneys",
+      label: t("adminAnalytics.prJoinBackendJoinedMetric"),
+      value: formatCount(summary.backendJoinedJourneys),
+      detail: t("adminAnalytics.prJoinBackendJoinedDetail"),
+    },
+    {
+      key: "clickToBackendJoinRate",
+      label: t("adminAnalytics.prJoinClickToBackendRateMetric"),
+      value: formatRate(summary.clickToBackendJoinRate),
+      detail: t("adminAnalytics.prJoinClickToBackendRateDetail"),
+    },
+  ];
+  return items;
+});
+
 const visibleFunnels = computed(() => {
   const funnels = dashboard.value?.funnels ?? [];
   if (!focusedMode.value) return funnels;
@@ -762,7 +883,7 @@ const resetFilters = (): void => {
 const refreshDashboard = async (): Promise<void> => {
   refreshPending.value = true;
   try {
-    await analyticsQuery.refetch();
+    await Promise.all([analyticsQuery.refetch(), prJoinFunnelQuery.refetch()]);
   } finally {
     refreshPending.value = false;
   }
@@ -883,6 +1004,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .analytics-panel p,
+.projection-footnote,
 .funnel-panel__header span,
 .funnel-step p,
 .funnel-step__metrics dt,
@@ -951,6 +1073,10 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   @include mx.pu-font(body-medium);
 }
 
+.projection-footnote {
+  @include mx.pu-font(body-small);
+}
+
 .nudge-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1014,6 +1140,13 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .analytics-table tbody tr[tabindex] {
   cursor: pointer;
+}
+
+.analytics-table__hint {
+  @include mx.pu-font(body-small);
+  display: block;
+  margin-top: var(--sys-spacing-xxsmall);
+  color: var(--sys-color-on-surface-variant);
 }
 
 .funnel-grid {

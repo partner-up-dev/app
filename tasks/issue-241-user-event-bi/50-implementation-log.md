@@ -39,10 +39,27 @@ Date: 2026-05-21
 - Dedicated enriched projection tables remain future work; the current reader reconstructs directly from the v2 ledger.
 - More BI surfaces beyond the existing Anchor Event funnel still need issue-specific implementation.
 
+## 2026-05-22 Minimal Projection Slice
+
+- Added query-level `dim_event` projection from the unique Event Registry.
+- Added query-level `event_enriched` reader over `user_telemetry_events`:
+  - route context is reconstructed from nearest prior `route.entered` in the same journey;
+  - identity context is reconstructed from nearest prior `auth.session.created` in the same journey;
+  - missing route or auth context is surfaced as `context_unknown`.
+- Added `/api/analytics/pr-join-funnel` using the enriched projection.
+- Added the first PR join dashboard projection over:
+  - `pr.primary_cta.impression`;
+  - `pr.primary_cta.click`;
+  - `pr.join.result`;
+  - `pr.joined`.
+- Updated `/admin/analytics` with a minimal PR join funnel panel and context-completeness footnote.
+
 ## Verification
 
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.
 - `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
+- `pnpm lint:backend` passed.
 - `pnpm build:backend` passed.
 - `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/anchor-event-funnel.model.test.ts apps/backend/src/infra/telemetry/request-journey-context.test.ts apps/backend/src/infra/telemetry/user-event-registry.test.ts` passed.
 - `pnpm --dir . exec vitest run --project frontend-unit apps/frontend/src/shared/telemetry/track.test.ts` passed.

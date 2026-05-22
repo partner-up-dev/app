@@ -9,6 +9,18 @@ export {
   type AnchorEventFunnelResponse,
 } from "./anchor-event-funnel";
 export {
+  getPRJoinFunnelAnalytics,
+  type PRJoinFunnelResponse,
+} from "./pr-join-funnel";
+export {
+  getUserTelemetryDimEvents,
+  type UserTelemetryDimEvent,
+} from "./user-event-dim";
+export {
+  fetchUserTelemetryEnrichedEvents,
+  type UserTelemetryEnrichedEventRow,
+} from "./user-event-projection";
+export {
   getColdStartAnalyticsSummary,
   type ColdStartAnalyticsSummary,
   type ColdStartAnalyticsEventCount,

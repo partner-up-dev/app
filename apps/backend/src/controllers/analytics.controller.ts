@@ -9,6 +9,7 @@ import {
   ANCHOR_EVENT_ANALYTICS_RENDERED_MODES,
   getAnchorEventFunnelAnalytics,
   getColdStartAnalyticsSummary,
+  getPRJoinFunnelAnalytics,
 } from "../infra/analytics";
 
 const app = new Hono<AdminAuthEnv>();
@@ -63,6 +64,18 @@ export const analyticsRoute = app
         sourceQr: query.sourceQr,
         assignmentRevision: query.assignmentRevision,
         renderedMode: query.renderedMode,
+      });
+      return c.json(result);
+    },
+  )
+  .get(
+    "/pr-join-funnel",
+    zValidator("query", coldStartSummaryQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      const result = await getPRJoinFunnelAnalytics({
+        startAt: parseOptionalDate(query.startAt),
+        endAt: parseOptionalDate(query.endAt),
       });
       return c.json(result);
     },

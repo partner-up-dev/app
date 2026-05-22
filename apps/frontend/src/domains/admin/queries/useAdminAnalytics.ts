@@ -7,9 +7,13 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 type AnalyticsApi = typeof adminClient.api.analytics;
 type AnchorEventFunnelRoute = AnalyticsApi["anchor-event-funnel"];
+type PRJoinFunnelRoute = AnalyticsApi["pr-join-funnel"];
 
 export type AdminAnalyticsFunnelResponse = InferResponseType<
   AnchorEventFunnelRoute["$get"]
+>;
+export type AdminPRJoinFunnelResponse = InferResponseType<
+  PRJoinFunnelRoute["$get"]
 >;
 
 export type AdminAnalyticsFunnelQuery = {
@@ -27,8 +31,11 @@ const readErrorMessage = async (
   fallback: string,
 ): Promise<string> => {
   try {
-    const payload = (await response.json()) as { error?: string };
-    return payload.error || fallback;
+    const payload = (await response.json()) as {
+      detail?: string;
+      error?: string;
+    };
+    return payload.error || payload.detail || fallback;
   } catch {
     return fallback;
   }
@@ -44,6 +51,13 @@ const normalizeQuery = (
   sourceQr: input.sourceQr?.trim() || null,
   assignmentRevision: input.assignmentRevision?.trim() || null,
   renderedMode: input.renderedMode ?? null,
+});
+
+const normalizePRJoinFunnelQuery = (
+  input: AdminAnalyticsFunnelQuery,
+): Pick<AdminAnalyticsFunnelQuery, "startAt" | "endAt"> => ({
+  startAt: input.startAt,
+  endAt: input.endAt,
 });
 
 export const useAdminAnchorEventFunnelAnalytics = (
@@ -73,6 +87,33 @@ export const useAdminAnchorEventFunnelAnalytics = (
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取 BI 看板数据失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminPRJoinFunnelAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+) => {
+  const normalizedQuery = computed(() =>
+    normalizePRJoinFunnelQuery(unref(input)),
+  );
+
+  return useQuery<AdminPRJoinFunnelResponse>({
+    queryKey: computed(() =>
+      queryKeys.admin.prJoinFunnelAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics["pr-join-funnel"].$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 PR 加入漏斗失败"));
       }
       return await res.json();
     },

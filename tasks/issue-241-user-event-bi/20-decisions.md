@@ -12,9 +12,14 @@
 - PR lifecycle cohorts use PR `created_at` and PR time-window `endAt`.
 - BI combines business fact data, user behavior events, and program behavior / observability data.
 
+## Issue-Local Decisions
+
+- First-pass `event_enriched` is a query-level projection, not a stored table or materialized view.
+- `dim_event` is projected from the unique Event Registry at query time; it is not a second hand-maintained catalog.
+- The first dashboard projection slice is a minimal PR join funnel over `pr.primary_cta.impression`, `pr.primary_cta.click`, `pr.join.result`, and `pr.joined`.
+
 ## Open For This Issue
 
 1. First failed-result event names and failure reason taxonomy.
 2. Exact frontend event names for PR create / join / waitlist / close observations and submissions.
 3. Whether `/api/telemetry/user/events` keeps the same route with breaking payload or moves to a versioned route. Current preference is same route, breaking payload.
-4. Exact shape of `event_enriched` and whether it is stored as a table, materialized view, or query-level projection in the first pass.

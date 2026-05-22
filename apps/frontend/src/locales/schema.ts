@@ -1218,6 +1218,18 @@ export interface MessageSchema {
     sourceColumn: string;
     officialAccountNudgeTitle: string;
     officialAccountNudgeSubtitle: string;
+    prJoinFunnelTitle: string;
+    prJoinFunnelSubtitle: string;
+    prJoinImpressionMetric: string;
+    prJoinImpressionDetail: string;
+    prJoinClickMetric: string;
+    prJoinClickDetail: string;
+    prJoinBackendJoinedMetric: string;
+    prJoinBackendJoinedDetail: string;
+    prJoinClickToBackendRateMetric: string;
+    prJoinClickToBackendRateDetail: string;
+    prJoinProjectionContextDetail: string;
+    funnelStepColumn: string;
     nudgeShownJourneysMetric: string;
     nudgeFollowClickJourneysMetric: string;
     nudgeFollowClickRateMetric: string;

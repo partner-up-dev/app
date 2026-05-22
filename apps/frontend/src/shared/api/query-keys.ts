@@ -75,6 +75,10 @@ export const queryKeys = {
       assignmentRevision?: string | null;
       renderedMode?: string | null;
     }) => ["admin", "analytics", "anchor-event-funnel", filters] as const,
+    prJoinFunnelAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "pr-join-funnel", filters] as const,
   },
   wechat: {
     notificationSubscriptions: () =>
