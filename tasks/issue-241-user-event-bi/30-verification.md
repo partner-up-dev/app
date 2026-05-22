@@ -19,7 +19,7 @@
 
 - Retention queries use enriched events / identity-session projection, not old event metadata.
 - Per-user PR count is queryable.
-- PR create / join funnels can be reconstructed from observation / intent / submission / backend result events.
+- PR create / join funnels can be reconstructed from explicit view / click / submission / backend result events.
 - Anchor-event transition and "view other activities" conversion are queryable from projections.
 - PR lifecycle metrics query business fact data / PR table current statuses using `created_at` and PR time-window `endAt`.
 - Unknown or incomplete context appears explicitly as `context_unknown` / `context_incomplete`.

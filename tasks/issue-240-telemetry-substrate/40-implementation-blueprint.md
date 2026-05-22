@@ -51,7 +51,6 @@ Create a single Event Registry source of truth in code. The registry should own:
 - event name;
 - event family;
 - version;
-- event kind: context / observation / intent / command_result;
 - owner;
 - trigger condition and forbidden condition;
 - attributes schema;
@@ -95,6 +94,7 @@ Data migration mapping rules:
 - otherwise legacy rows are quarantined or marked with explicit migration metadata;
 - old event rows become raw ledger events with registry-derived `event_family` and `event_version`;
 - preserve `occurred_at` as event time and `received_at` as ingest time where old data has both;
+- do not add or persist `event_kind`; BI queries must select explicit event names / families;
 - do not generate or persist a business `seq`.
 
 Checkpoint:

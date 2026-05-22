@@ -39,7 +39,7 @@ Checkpoint:
 Migrate existing user behavior events to registry-governed names and payloads:
 
 - preserve only behavior facts that are useful for #226 BI questions;
-- split observation, intent, command submission, and backend-confirmed result semantics clearly;
+- split view, click, command submission, and backend-confirmed result event names clearly;
 - use `attributes` for low-cardinality BI dimensions;
 - use `payload` for event-owned business facts such as PR id or anchor event type;
 - do not put technical correlation fields into user telemetry.

@@ -98,9 +98,9 @@ Goal: migrate current product events to governed contracts.
 Work:
 
 - Migrate Anchor Event landing / form / list / card events.
-- Migrate PR join/waitlist observation and intent events.
-- Add missing PR create intent/result coverage for structured and NL paths.
-- Add close/status-update command intent/result events.
+- Migrate PR join/waitlist view and click events.
+- Add missing PR create interaction/result coverage for structured and NL paths.
+- Add close/status-update command interaction/result events.
 - Remove old snake_case-to-dot compatibility where no longer needed.
 
 Exit proof:

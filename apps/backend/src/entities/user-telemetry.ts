@@ -36,7 +36,6 @@ export const userTelemetryEvents = pgTable(
     eventName: text("event_name").notNull(),
     eventVersion: integer("event_version").notNull(),
     eventFamily: text("event_family").notNull(),
-    eventKind: text("event_kind").notNull(),
     journeyId: uuid("journey_id")
       .notNull()
       .references(() => userTelemetryJourneys.id),

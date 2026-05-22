@@ -23,7 +23,7 @@
 ## Analytics Checks
 
 - Existing Anchor Event funnel scenario remains explainable after query migration.
-- Join funnel distinguishes frontend observation / intent from backend-confirmed user results.
+- Join funnel distinguishes explicit frontend interaction events from backend-confirmed user results.
 - PR user-result metrics count created, joined, and user-caused closed from user-behavior events.
 - Automatic lifecycle metrics such as expired use PR business fact data / business-state projection, not user-behavior telemetry.
 - Retention query uses identity projection rather than event metadata.

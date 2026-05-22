@@ -126,7 +126,6 @@ The Event Registry is the unique source of truth for event acceptance and event 
 - event name;
 - event family;
 - version;
-- kind: context, observation, intent, command result, or other allowed registry kind;
 - owner;
 - trigger condition;
 - forbidden condition;
@@ -136,6 +135,8 @@ The Event Registry is the unique source of truth for event acceptance and event 
 - BI usage.
 
 `dim_event` and other BI dictionaries are projections from this registry, not a second hand-maintained registry.
+
+`event_kind` is intentionally not part of the accepted envelope, storage schema, or registry contract. Query semantics must come from explicit `event_name` / `event_family` selection and BI usage metadata, not from a broad role bucket.
 
 ## Context Events
 

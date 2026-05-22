@@ -24,7 +24,9 @@ Date: 2026-05-21
 - Added awaited request-scoped user telemetry event recording for backend-confirmed command-result events.
 - Confirmed request behavior for missing or invalid journey context: the backend does not generate orphan user journeys and skips backend-confirmed user-result telemetry for that request.
 - Added forward-only schema migration `0061_user_telemetry_v2.sql`.
-- Added forward-only data migration `0062_user_telemetry_v2_backfill.sql`, including registry-aligned `event_family` and `event_kind` reconstruction for legacy rows.
+- Added forward-only data migration `0062_user_telemetry_v2_backfill.sql`, including registry-aligned `event_family` reconstruction for legacy rows.
+- Removed `event_kind` from the v2 user telemetry storage and registry contract; BI semantics now rely on explicit event names / families and registry BI usage metadata.
+- Preserved already-executed `0061` / `0062` migration files and added forward-only `0064_drop_user_telemetry_event_kind.sql` to drop the column and remove migrated `legacy_event_kind` attributes.
 
 ## Guardrails
 

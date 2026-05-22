@@ -60,6 +60,7 @@ BI event dictionaries are derived from the unique Event Registry.
 
 - `dim_event` is a projection, not an independent hand-edited catalog.
 - Event family, owner, version, schema, and BI usage must match the registry.
+- `event_kind` is not a BI dictionary dimension; dashboards should select explicit event names / families for each metric.
 - Event semantic changes require an event version bump.
 
 ## Dashboard Contract

@@ -187,22 +187,15 @@ network.changed
 - deprecated / replacement 策略
 - 映射到哪些 BI 指标或漏斗
 
-特别需要区分：
+不登记 `event_kind`。BI 不应依赖 observation / intent / command result 这类宽泛桶做查询口径，而应显式选择 `event_name` / `event_family`，并通过 registry 的 BI usage 说明事件参与哪些指标或漏斗。
+
+例如 PR join 路径可以用明确事件名表达链路：
 
 ```txt
-observation: 用户看到了什么 / 点击了什么
-intent: 用户表达了什么意图
-command result: 用户命令被后端确认成功 / 失败
-system fact: 程序或业务状态自动产生的事实，不属于用户行为采集
-```
-
-例如 PR join 路径：
-
-```txt
-pr_page.header.join_clicked       observation / intent
-pr.join_request_submitted         command submission
-pr.joined                         backend-confirmed user result
-pr.join_failed                    backend-confirmed user result
+pr.primary_cta.impression
+pr.primary_cta.click
+pr.join.result
+pr.joined
 ```
 
 自动过期示例：

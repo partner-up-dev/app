@@ -25,6 +25,7 @@ describe("user telemetry event registry", () => {
       expect(contract.trigger.length).toBeGreaterThan(0);
       expect(contract.forbidden.length).toBeGreaterThan(0);
       expect(contract.biUsage.length).toBeGreaterThan(0);
+      expect("eventKind" in contract).toBe(false);
     }
   });
 
@@ -39,7 +40,6 @@ describe("user telemetry event registry", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.contract.eventFamily).toBe("pr.joined");
-    expect(result.contract.eventKind).toBe("command_result");
     expect(result.attributes).toEqual({ surface: "pr_detail" });
     expect(result.payload).toEqual({ pr_id: 123 });
   });

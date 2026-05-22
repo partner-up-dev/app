@@ -33,7 +33,6 @@ type AcceptedUserTelemetryEvent = {
   eventName: string;
   eventVersion: number;
   eventFamily: string;
-  eventKind: string;
   journeyId: string;
   occurredAt: Date;
   traceId: string | null;
@@ -115,7 +114,6 @@ export async function ingestUserTelemetryEvents(
         eventName: event.event_name,
         eventVersion: event.event_version,
         eventFamily: validation.contract.eventFamily,
-        eventKind: validation.contract.eventKind,
         journeyId: event.journey_id,
         occurredAt: parseDate(event.occurred_at),
         traceId: event.trace_id ?? null,
@@ -162,7 +160,6 @@ export async function ingestUserTelemetryEvents(
           eventName: event.eventName,
           eventVersion: event.eventVersion,
           eventFamily: event.eventFamily,
-          eventKind: event.eventKind,
           journeyId: event.journeyId,
           traceId: event.traceId,
           attributes: event.attributes,

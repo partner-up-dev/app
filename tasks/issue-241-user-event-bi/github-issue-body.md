@@ -17,7 +17,7 @@ Implementation blueprint: `tasks/issue-241-user-event-bi/40-implementation-bluep
 - Attach `x-journey-id` to user command requests.
 - Remove legacy segment tracking and ordinary-event identity metadata.
 - Migrate existing user behavior collection to registry-governed events.
-- Add missing PR create / join / waitlist / close observation, intent, and submission events.
+- Add missing PR create / join / waitlist / close view, click, and submission events with explicit names.
 - Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`; include failed-result events after naming is confirmed.
 - Build `event_enriched` or equivalent projection from raw events plus context stream.
 - Project `dim_event` from the unique Event Registry.
@@ -38,7 +38,7 @@ Implementation blueprint: `tasks/issue-241-user-event-bi/40-implementation-bluep
 
 ## Exit Criteria
 
-- Core PR funnels can be reconstructed from frontend intent/submission plus backend result events.
+- Core PR funnels can be reconstructed from explicit frontend interaction/submission events plus backend result events.
 - Automatic `pr.expired` does not enter user telemetry.
 - BI queries do not depend on old telemetry envelope fields.
 - Lifecycle status metrics are not sourced from user behavior events.
@@ -50,7 +50,7 @@ Implementation blueprint: `tasks/issue-241-user-event-bi/40-implementation-bluep
 1. Confirm #240 substrate contract exists in the same branch.
 2. Replace frontend telemetry runtime and emit journey / route / auth-session context events.
 3. Attach `x-journey-id` to user command requests.
-4. Migrate product behavior events into registry-governed observation / intent / submission semantics.
+4. Migrate product behavior events into registry-governed explicit interaction / submission event names.
 5. Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`.
 6. Build enrichment, identity/session projection, `dim_event`, and required BI readers.
 7. Update `/admin/analytics`, remove obsolete telemetry paths, and verify with unit / scenario / staging checks.

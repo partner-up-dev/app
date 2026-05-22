@@ -49,7 +49,6 @@ Each v1 event row becomes one v2 raw user telemetry event:
 
 Low-cardinality legacy context that can still help BI is placed in `attributes`, for example:
 
-- legacy event kind
 - route name
 - start/current SPM
 - source QR attribution
@@ -64,9 +63,10 @@ Event-owned references are placed in `payload`, for example:
 
 ## Dropped Fields
 
-The migration does not copy these v1 envelope fields into the v2 accepted envelope:
+The final v2 model does not retain these v1 envelope fields:
 
 - `source`
+- `event_kind`
 - `anonymous_id`
 - `user_id_hash`
 - `segment_id`
@@ -74,6 +74,8 @@ The migration does not copy these v1 envelope fields into the v2 accepted envelo
 - `request_id`
 
 `correlation_id` and `request_id` are intentionally not carried forward as user-behavior event fields. `trace_id` is retained for observability linkage.
+
+`0061` and `0062` are historical forward-only migrations that may have already created / populated `event_kind`. The follow-up migration `0064_drop_user_telemetry_event_kind.sql` removes the target column and deletes the temporary `legacy_event_kind` attribute from migrated rows.
 
 ## Ordering
 

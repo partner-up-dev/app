@@ -18,7 +18,6 @@ export {
   validateRegisteredUserTelemetryEvent,
   type UserTelemetryAttributes,
   type UserTelemetryEventContract,
-  type UserTelemetryEventKind,
   type UserTelemetryPayload,
 } from "./user-event-registry";
 export {

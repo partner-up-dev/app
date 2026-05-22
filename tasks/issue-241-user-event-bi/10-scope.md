@@ -10,7 +10,7 @@
 - Attach `x-journey-id` to user command requests.
 - Remove legacy segment tracking and ordinary-event identity metadata.
 - Migrate existing user behavior collection to registry-governed events.
-- Add missing PR create / join / waitlist / close observation, intent, and submission events.
+- Add missing PR create / join / waitlist / close view, click, and submission events with explicit names.
 - Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`.
 - Add first-slice failed-result events after naming is confirmed.
 - Build `event_enriched` or equivalent projection from raw events plus context stream.
