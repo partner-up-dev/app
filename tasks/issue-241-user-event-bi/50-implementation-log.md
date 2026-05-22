@@ -85,6 +85,11 @@ Date: 2026-05-21
 - Removed the old `/api/telemetry/events` v1 ingest route and legacy `telemetry_events` ingest service; backend WeChat OAuth trace remains structured runtime logging instead of user-behavior collection.
 - Removed frontend telemetry segment production and segment-key propagation; component-local dedupe now prevents duplicate landing/list/card events without creating a segment context.
 
+## 2026-05-22 BI Overview Runtime Fix
+
+- Normalized query-level `event_enriched` `occurred_at` values to `Date` at the projection boundary.
+- Covered both `Date` values and Postgres timestamp strings so BI models never receive raw timestamp strings.
+
 ## Verification
 
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.

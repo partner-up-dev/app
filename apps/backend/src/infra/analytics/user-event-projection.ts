@@ -28,7 +28,8 @@ export type UserTelemetryEnrichedEventRow = {
   authContextStatus: UserTelemetryContextStatus;
 };
 
-interface EnrichedEventQueryRow extends Record<string, unknown> {
+export interface UserTelemetryEnrichedEventQueryRow
+  extends Record<string, unknown> {
   event_id: string;
   event_name: string;
   event_version: number;
@@ -39,7 +40,7 @@ interface EnrichedEventQueryRow extends Record<string, unknown> {
   trace_id: string | null;
   attributes: unknown;
   payload: unknown;
-  occurred_at: Date;
+  occurred_at: unknown;
   route_path: string | null;
   route_name: string | null;
   spm: string | null;
@@ -57,6 +58,39 @@ const toStringArray = (value: unknown): string[] => {
 
 const toContextStatus = (value: unknown): UserTelemetryContextStatus =>
   value === "context_complete" ? "context_complete" : "context_unknown";
+
+const POSTGRES_TIMESTAMP_WITHOUT_TIME_ZONE =
+  /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?$/;
+
+const parseTimestamp = (value: string): Date => {
+  const postgresTimestamp = POSTGRES_TIMESTAMP_WITHOUT_TIME_ZONE.exec(value);
+  if (postgresTimestamp) {
+    // Raw postgres-js queries can return timestamp without time zone as strings.
+    // User telemetry stores UTC instants, so no-zone timestamp strings stay UTC.
+    const [, date, time, fraction = ""] = postgresTimestamp;
+    const milliseconds = fraction.padEnd(3, "0").slice(0, 3);
+    return new Date(`${date}T${time}.${milliseconds}Z`);
+  }
+
+  return new Date(value);
+};
+
+const toDate = (value: unknown, fieldName: string): Date => {
+  const parsed =
+    value instanceof Date
+      ? value
+      : typeof value === "string"
+        ? parseTimestamp(value)
+        : null;
+
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    throw new Error(
+      `Invalid ${fieldName} returned from user telemetry projection`,
+    );
+  }
+
+  return parsed;
+};
 
 const eventNameSqlList = (eventNames: readonly string[]): SQL =>
   sql.join(eventNames.map((eventName) => sql`${eventName}`), sql`, `);
@@ -77,8 +111,8 @@ const dimEventValuesSql = (): SQL =>
     sql`, `,
   );
 
-const toEnrichedEventRow = (
-  row: EnrichedEventQueryRow,
+export const normalizeUserTelemetryEnrichedEventRow = (
+  row: UserTelemetryEnrichedEventQueryRow,
 ): UserTelemetryEnrichedEventRow => ({
   eventId: row.event_id,
   eventName: row.event_name,
@@ -90,7 +124,7 @@ const toEnrichedEventRow = (
   traceId: row.trace_id,
   attributes: row.attributes,
   payload: row.payload,
-  occurredAt: row.occurred_at,
+  occurredAt: toDate(row.occurred_at, "occurred_at"),
   routePath: row.route_path,
   routeName: row.route_name,
   spm: row.spm,
@@ -110,7 +144,7 @@ export const fetchUserTelemetryEnrichedEvents = async (input: {
     return [];
   }
 
-  const rows = await db.execute<EnrichedEventQueryRow>(sql`
+  const rows = await db.execute<UserTelemetryEnrichedEventQueryRow>(sql`
     with dim_event(
       event_name,
       event_version,
@@ -197,5 +231,5 @@ export const fetchUserTelemetryEnrichedEvents = async (input: {
     order by e.occurred_at asc, e.event_id asc
   `);
 
-  return rows.map(toEnrichedEventRow);
+  return rows.map(normalizeUserTelemetryEnrichedEventRow);
 };
