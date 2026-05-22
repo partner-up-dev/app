@@ -53,12 +53,26 @@ Date: 2026-05-21
   - `pr.join.result`;
   - `pr.joined`.
 - Updated `/admin/analytics` with a minimal PR join funnel panel and context-completeness footnote.
+- Committed this slice as `2666bcb6 feat(analytics): add query-level user event projection`.
+
+## 2026-05-22 PR Create Funnel Slice
+
+- Added `/api/analytics/pr-create-funnel` using the same enriched projection.
+- Added PR create dashboard projection over:
+  - `home.create.entry.click`;
+  - Anchor Event assisted-create entry events;
+  - `pr.create.result`;
+  - `anchor_event.assisted_create.result`;
+  - `pr.created`.
+- Added PR create path breakdown for `form`, `event_assisted`, `natural_language`, and `unknown` from backend-confirmed `pr.created` payloads.
+- Updated `/admin/analytics` with a minimal PR create funnel panel.
 
 ## Verification
 
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.
 - `pnpm --filter @partner-up-dev/frontend build` passed.
 - `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/pr-create-funnel.model.test.ts apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
 - `pnpm lint:backend` passed.
 - `pnpm build:backend` passed.
 - `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/anchor-event-funnel.model.test.ts apps/backend/src/infra/telemetry/request-journey-context.test.ts apps/backend/src/infra/telemetry/user-event-registry.test.ts` passed.

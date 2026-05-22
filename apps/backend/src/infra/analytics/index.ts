@@ -13,6 +13,10 @@ export {
   type PRJoinFunnelResponse,
 } from "./pr-join-funnel";
 export {
+  getPRCreateFunnelAnalytics,
+  type PRCreateFunnelResponse,
+} from "./pr-create-funnel";
+export {
   getUserTelemetryDimEvents,
   type UserTelemetryDimEvent,
 } from "./user-event-dim";

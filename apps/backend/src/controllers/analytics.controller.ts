@@ -9,6 +9,7 @@ import {
   ANCHOR_EVENT_ANALYTICS_RENDERED_MODES,
   getAnchorEventFunnelAnalytics,
   getColdStartAnalyticsSummary,
+  getPRCreateFunnelAnalytics,
   getPRJoinFunnelAnalytics,
 } from "../infra/analytics";
 
@@ -64,6 +65,18 @@ export const analyticsRoute = app
         sourceQr: query.sourceQr,
         assignmentRevision: query.assignmentRevision,
         renderedMode: query.renderedMode,
+      });
+      return c.json(result);
+    },
+  )
+  .get(
+    "/pr-create-funnel",
+    zValidator("query", coldStartSummaryQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      const result = await getPRCreateFunnelAnalytics({
+        startAt: parseOptionalDate(query.startAt),
+        endAt: parseOptionalDate(query.endAt),
       });
       return c.json(result);
     },

@@ -7,6 +7,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 type AnalyticsApi = typeof adminClient.api.analytics;
 type AnchorEventFunnelRoute = AnalyticsApi["anchor-event-funnel"];
+type PRCreateFunnelRoute = AnalyticsApi["pr-create-funnel"];
 type PRJoinFunnelRoute = AnalyticsApi["pr-join-funnel"];
 
 export type AdminAnalyticsFunnelResponse = InferResponseType<
@@ -14,6 +15,9 @@ export type AdminAnalyticsFunnelResponse = InferResponseType<
 >;
 export type AdminPRJoinFunnelResponse = InferResponseType<
   PRJoinFunnelRoute["$get"]
+>;
+export type AdminPRCreateFunnelResponse = InferResponseType<
+  PRCreateFunnelRoute["$get"]
 >;
 
 export type AdminAnalyticsFunnelQuery = {
@@ -53,7 +57,7 @@ const normalizeQuery = (
   renderedMode: input.renderedMode ?? null,
 });
 
-const normalizePRJoinFunnelQuery = (
+const normalizePRFunnelQuery = (
   input: AdminAnalyticsFunnelQuery,
 ): Pick<AdminAnalyticsFunnelQuery, "startAt" | "endAt"> => ({
   startAt: input.startAt,
@@ -97,7 +101,7 @@ export const useAdminPRJoinFunnelAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
 ) => {
   const normalizedQuery = computed(() =>
-    normalizePRJoinFunnelQuery(unref(input)),
+    normalizePRFunnelQuery(unref(input)),
   );
 
   return useQuery<AdminPRJoinFunnelResponse>({
@@ -114,6 +118,33 @@ export const useAdminPRJoinFunnelAnalytics = (
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取 PR 加入漏斗失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminPRCreateFunnelAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+) => {
+  const normalizedQuery = computed(() =>
+    normalizePRFunnelQuery(unref(input)),
+  );
+
+  return useQuery<AdminPRCreateFunnelResponse>({
+    queryKey: computed(() =>
+      queryKeys.admin.prCreateFunnelAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics["pr-create-funnel"].$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 PR 创建漏斗失败"));
       }
       return await res.json();
     },

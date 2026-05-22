@@ -1220,6 +1220,24 @@ export interface MessageSchema {
     officialAccountNudgeSubtitle: string;
     prJoinFunnelTitle: string;
     prJoinFunnelSubtitle: string;
+    prCreateFunnelTitle: string;
+    prCreateFunnelSubtitle: string;
+    prCreateEntryMetric: string;
+    prCreateEntryDetail: string;
+    prCreateFrontendSuccessMetric: string;
+    prCreateFrontendSuccessDetail: string;
+    prCreateBackendCreatedMetric: string;
+    prCreateBackendCreatedDetail: string;
+    prCreateEntryToBackendRateMetric: string;
+    prCreateEntryToBackendRateDetail: string;
+    prCreateProjectionContextDetail: string;
+    prCreatePathColumn: string;
+    prCreatePath: {
+      form: string;
+      event_assisted: string;
+      natural_language: string;
+      unknown: string;
+    };
     prJoinImpressionMetric: string;
     prJoinImpressionDetail: string;
     prJoinClickMetric: string;

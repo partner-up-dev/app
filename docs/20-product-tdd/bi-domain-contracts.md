@@ -47,7 +47,7 @@ Raw `user_telemetry_events` is the ledger. BI uses projections such as:
 
 The first implementation may realize these as SQL queries, views, materialized tables, or application-level query builders, but the ownership boundary remains the same.
 
-Current implementation note: the first `event_enriched` and `dim_event` slice is a query-level projection. It joins raw user events with a registry-derived `dim_event`, route context from nearest prior `route.entered` in the same journey, and identity context from nearest prior `auth.session.created` in the same journey.
+Current implementation note: the first `event_enriched` and `dim_event` slice is a query-level projection. It joins raw user events with a registry-derived `dim_event`, route context from nearest prior `route.entered` in the same journey, and identity context from nearest prior `auth.session.created` in the same journey. The current dashboard consumers are the minimal PR create and PR join funnel panels.
 
 ## Context Completeness
 

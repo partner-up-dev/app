@@ -79,6 +79,10 @@ export const queryKeys = {
       startAt?: string;
       endAt?: string;
     }) => ["admin", "analytics", "pr-join-funnel", filters] as const,
+    prCreateFunnelAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "pr-create-funnel", filters] as const,
   },
   wechat: {
     notificationSubscriptions: () =>

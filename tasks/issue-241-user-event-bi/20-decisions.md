@@ -16,7 +16,7 @@
 
 - First-pass `event_enriched` is a query-level projection, not a stored table or materialized view.
 - `dim_event` is projected from the unique Event Registry at query time; it is not a second hand-maintained catalog.
-- The first dashboard projection slice is a minimal PR join funnel over `pr.primary_cta.impression`, `pr.primary_cta.click`, `pr.join.result`, and `pr.joined`.
+- The first dashboard projection slices are minimal PR create / join funnels over existing registered events, without adding new event production in this pass.
 
 ## Open For This Issue
 
