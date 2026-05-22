@@ -48,7 +48,6 @@ import {
   type WeChatNotificationKind,
 } from "../entities/user-notification-opt";
 import { WeChatSubscriptionMessageService } from "../services/WeChatSubscriptionMessageService";
-import { ingestTelemetryEvents } from "../infra/telemetry";
 
 const app = new Hono<AuthEnv>();
 const jssdkService = new WeChatJssdkService();
@@ -199,7 +198,6 @@ const recordWeChatOAuthTrace = (input: {
   const { traceId } = input.context;
   if (!traceId) return;
 
-  const occurredAt = new Date().toISOString();
   const payload: Record<string, unknown> = {
     traceId,
     stage: input.stage,
@@ -219,22 +217,6 @@ const recordWeChatOAuthTrace = (input: {
   };
 
   console.info("[WeChatOAuthTrace]", payload);
-  void ingestTelemetryEvents([
-    {
-      type: "wechat_oauth_trace",
-      source: "backend",
-      sessionId: traceId,
-      requestId: traceId,
-      payload,
-      occurredAt,
-    },
-  ]).catch((error) => {
-    console.error("[WeChatOAuthTrace] ingest failed", {
-      traceId,
-      stage: input.stage,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  });
 };
 
 const isOAuthRuntimeAvailable = (): boolean =>

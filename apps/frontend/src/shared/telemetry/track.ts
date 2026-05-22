@@ -219,14 +219,12 @@ const buildAttributes = (input: {
   currentSpm?: string;
   sourceQr?: string;
   cardKey?: string;
-  segmentKey?: string;
 }): Record<string, string | number | boolean | null> => {
   const attributes: Record<string, string | number | boolean | null> = {};
   if (input.routeName) attributes.route_name = input.routeName;
   if (input.currentSpm) attributes.spm = input.currentSpm;
   if (input.sourceQr) attributes.source_qr = input.sourceQr;
   if (input.cardKey) attributes.card_key = input.cardKey;
-  if (input.segmentKey) attributes.segment_key = input.segmentKey;
   return attributes;
 };
 
@@ -384,7 +382,6 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
   const traceId = readString(payloadRecord, "traceId");
   const cardKey =
     readString(payloadRecord, "cardKey") ?? readString(payloadRecord, "unitKey");
-  const segmentKey = readString(payloadRecord, "segmentKey");
   const { journey, started } = ensureAppJourneyWithState({
     routePath: currentPath,
     routeName,
@@ -442,14 +439,12 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
       currentSpm,
       sourceQr,
       cardKey,
-      segmentKey,
     }),
     payload: stripForbiddenPayloadFields({
       ...payloadRecord,
       eventIdRef,
       prIdRef,
       cardKey,
-      segmentKey,
     }),
   });
 

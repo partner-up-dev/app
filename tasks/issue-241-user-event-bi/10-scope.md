@@ -12,7 +12,7 @@
 - Migrate existing user behavior collection to registry-governed events.
 - Add missing PR create / join / waitlist / close view, click, and submission events with explicit names.
 - Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`.
-- Add first-slice failed-result events after naming is confirmed.
+- Keep frontend-observed failed / blocked result payloads queryable; defer dedicated backend failed-result event names until the taxonomy is confirmed.
 - Build `event_enriched` or equivalent projection from raw events plus context stream.
 - Project `dim_event` from the unique Event Registry.
 - Build identity/session projection from nearest prior `auth.session.created`.

@@ -67,10 +67,32 @@ Date: 2026-05-21
 - Added PR create path breakdown for `form`, `event_assisted`, `natural_language`, and `unknown` from backend-confirmed `pr.created` payloads.
 - Updated `/admin/analytics` with a minimal PR create funnel panel.
 
+## 2026-05-22 BI Overview And Legacy Cleanup Slice
+
+- Added `/api/analytics/overview` as the minimal #241 BI overview projection.
+- Added query-level retention projection over enriched user events:
+  - identity key is nearest prior `auth.session.created`, falling back to anonymous id only when authenticated context is absent;
+  - cohort events are limited to the requested time window;
+  - 7-day lookahead is used only to evaluate returns, not to create new cohorts.
+- Added per-user PR count projection from business facts:
+  - created PRs from `partner_requests.created_by`;
+  - joined PRs from `partners` rows with active participation statuses.
+- Added PR lifecycle status summary from current `partner_requests.status`, projected as both PR `created_at` cohort and PR time-window `endAt` cohort.
+- Added Anchor Event transition projection from consecutive `anchor_event.landing.viewed` events by identity.
+- Added "view other activities" conversion from `home.event.all.click` to later `anchor_event.landing.viewed` in the same journey.
+- Updated `/admin/analytics` with the BI overview panel.
+- Removed the old `/api/analytics/cold-start/summary` route and old `telemetry_events`-backed analytics readers.
+- Removed the old `/api/telemetry/events` v1 ingest route and legacy `telemetry_events` ingest service; backend WeChat OAuth trace remains structured runtime logging instead of user-behavior collection.
+- Removed frontend telemetry segment production and segment-key propagation; component-local dedupe now prevents duplicate landing/list/card events without creating a segment context.
+
 ## Verification
 
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.
 - `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/bi-overview.model.test.ts apps/backend/src/infra/analytics/pr-create-funnel.model.test.ts apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
+- `pnpm --dir . exec vitest run --project frontend-unit apps/frontend/src/shared/telemetry/track.test.ts` passed.
+- `pnpm lint:backend` passed.
+- `pnpm build:backend` passed.
 - `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
 - `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/pr-create-funnel.model.test.ts apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts` passed.
 - `pnpm lint:backend` passed.

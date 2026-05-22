@@ -1,0 +1,470 @@
+import type { PRStatus } from "../../entities/partner-request";
+import { addDaysUtc8, formatDateKeyUtc8 } from "./time-window";
+import type { UserTelemetryEnrichedEventRow } from "./user-event-projection";
+
+export type BIOverviewQueryInput = {
+  startAt?: Date;
+  endAt?: Date;
+};
+
+export type BIOverviewFilters = {
+  startAt: string;
+  endAt: string;
+};
+
+export type RetentionWindowDays = 3 | 5 | 7;
+
+export type RetentionRow = {
+  cohortDate: string;
+  activeUsers: number;
+  retainedWithin3Days: number;
+  retainedWithin5Days: number;
+  retainedWithin7Days: number;
+  retentionRate3Days: number;
+  retentionRate5Days: number;
+  retentionRate7Days: number;
+};
+
+export type UserPRCountInputRow = {
+  userKey: string;
+  createdCount: number;
+  joinedCount: number;
+};
+
+export type UserPRCountSummary = {
+  usersWithAnyPR: number;
+  creatorUsers: number;
+  participantUsers: number;
+  createdPRs: number;
+  joinedPRs: number;
+  averageCreatedPerCreator: number;
+  averageJoinedPerParticipant: number;
+  maxCreatedByOneUser: number;
+  maxJoinedByOneUser: number;
+};
+
+export type PRLifecycleStatusInputRow = {
+  status: PRStatus;
+  count: number;
+};
+
+export type PRLifecycleStatusRow = {
+  status: PRStatus;
+  count: number;
+  share: number;
+};
+
+export type PRLifecycleCohortSummary = {
+  createdPRs: number;
+  formedPRs: number;
+  closedPRs: number;
+  expiredPRs: number;
+  activeOrOpenPRs: number;
+  statusRows: PRLifecycleStatusRow[];
+};
+
+export type PRLifecycleSummary = PRLifecycleCohortSummary & {
+  createdAtCohort: PRLifecycleCohortSummary;
+  timeWindowEndAtCohort: PRLifecycleCohortSummary;
+};
+
+export type AnchorEventTransitionRow = {
+  fromActivityType: string;
+  toActivityType: string;
+  userCount: number;
+  transitionCount: number;
+};
+
+export type ViewOtherActivitiesConversion = {
+  clickJourneys: number;
+  clickUsers: number;
+  landingViewJourneys: number;
+  landingViewUsers: number;
+  journeyConversionRate: number;
+  userConversionRate: number;
+};
+
+export type BIOverviewResponse = {
+  filters: BIOverviewFilters;
+  retention: {
+    rows: RetentionRow[];
+  };
+  userPRCounts: UserPRCountSummary;
+  prLifecycle: PRLifecycleSummary;
+  anchorEventTransitions: AnchorEventTransitionRow[];
+  viewOtherActivities: ViewOtherActivitiesConversion;
+};
+
+type TransitionAccumulator = {
+  users: Set<string>;
+  transitionCount: number;
+};
+
+const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
+
+const FORMED_STATUSES = new Set<PRStatus>([
+  "READY",
+  "FULL",
+  "LOCKED_TO_START",
+  "ACTIVE",
+  "CLOSED",
+]);
+
+const ACTIVE_OR_OPEN_STATUSES = new Set<PRStatus>([
+  "OPEN",
+  "READY",
+  "FULL",
+  "LOCKED_TO_START",
+  "ACTIVE",
+]);
+
+export const BI_OVERVIEW_EVENT_NAMES = [
+  "home.event.all.click",
+  "home.event.plaza.entry.click",
+  "anchor_event.landing.viewed",
+] as const;
+
+const VIEW_OTHER_ACTIVITY_CLICK_EVENT_NAMES = new Set<string>([
+  "home.event.all.click",
+  "home.event.plaza.entry.click",
+]);
+
+export const resolveBIOverviewFilters = (
+  input: BIOverviewQueryInput,
+): BIOverviewFilters => {
+  const endAt = input.endAt ?? new Date();
+  const startAt =
+    input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
+
+  if (startAt.getTime() >= endAt.getTime()) {
+    throw new Error("startAt must be before endAt");
+  }
+
+  return {
+    startAt: startAt.toISOString(),
+    endAt: endAt.toISOString(),
+  };
+};
+
+const buildRate = (numerator: number, denominator: number): number =>
+  denominator > 0 ? numerator / denominator : 0;
+
+const toRecord = (value: unknown): Record<string, unknown> => {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+};
+
+const readString = (
+  properties: Record<string, unknown>,
+  keys: readonly string[],
+): string | null => {
+  for (const key of keys) {
+    const value = properties[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
+const getIdentityKey = (event: UserTelemetryEnrichedEventRow): string | null =>
+  event.authenticatedUserHash ??
+  (event.anonymousId ? `anonymous:${event.anonymousId}` : null);
+
+const isOccurredInWindow = (
+  occurredAt: Date,
+  filters: BIOverviewFilters,
+): boolean => {
+  const timestamp = occurredAt.getTime();
+  return (
+    timestamp >= new Date(filters.startAt).getTime() &&
+    timestamp < new Date(filters.endAt).getTime()
+  );
+};
+
+const buildRetentionRows = (
+  filters: BIOverviewFilters,
+  retentionEvents: UserTelemetryEnrichedEventRow[],
+): RetentionRow[] => {
+  const activeDatesByUser = new Map<string, Set<string>>();
+  for (const event of retentionEvents) {
+    const identityKey = getIdentityKey(event);
+    if (!identityKey) continue;
+
+    const dateKey = formatDateKeyUtc8(event.occurredAt);
+    const activeDates = activeDatesByUser.get(identityKey) ?? new Set<string>();
+    activeDates.add(dateKey);
+    activeDatesByUser.set(identityKey, activeDates);
+  }
+
+  const usersByDate = new Map<string, Set<string>>();
+  for (const event of retentionEvents) {
+    if (!isOccurredInWindow(event.occurredAt, filters)) continue;
+    const identityKey = getIdentityKey(event);
+    if (!identityKey) continue;
+
+    const dateKey = formatDateKeyUtc8(event.occurredAt);
+    const users = usersByDate.get(dateKey) ?? new Set<string>();
+    users.add(identityKey);
+    usersByDate.set(dateKey, users);
+  }
+
+  const hasReturnWithinDays = (
+    activeDates: Set<string>,
+    cohortDate: string,
+    days: RetentionWindowDays,
+  ): boolean => {
+    const endDate = addDaysUtc8(cohortDate, days);
+    for (const dateKey of activeDates) {
+      if (dateKey > cohortDate && dateKey <= endDate) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  return Array.from(usersByDate.entries())
+    .map(([cohortDate, users]) => {
+      let retainedWithin3Days = 0;
+      let retainedWithin5Days = 0;
+      let retainedWithin7Days = 0;
+
+      for (const userKey of users) {
+        const activeDates = activeDatesByUser.get(userKey) ?? new Set<string>();
+        if (hasReturnWithinDays(activeDates, cohortDate, 3)) {
+          retainedWithin3Days += 1;
+        }
+        if (hasReturnWithinDays(activeDates, cohortDate, 5)) {
+          retainedWithin5Days += 1;
+        }
+        if (hasReturnWithinDays(activeDates, cohortDate, 7)) {
+          retainedWithin7Days += 1;
+        }
+      }
+
+      const activeUsers = users.size;
+      return {
+        cohortDate,
+        activeUsers,
+        retainedWithin3Days,
+        retainedWithin5Days,
+        retainedWithin7Days,
+        retentionRate3Days: buildRate(retainedWithin3Days, activeUsers),
+        retentionRate5Days: buildRate(retainedWithin5Days, activeUsers),
+        retentionRate7Days: buildRate(retainedWithin7Days, activeUsers),
+      };
+    })
+    .sort((left, right) => left.cohortDate.localeCompare(right.cohortDate));
+};
+
+const buildUserPRCountSummary = (
+  rows: readonly UserPRCountInputRow[],
+): UserPRCountSummary => {
+  let creatorUsers = 0;
+  let participantUsers = 0;
+  let createdPRs = 0;
+  let joinedPRs = 0;
+  let maxCreatedByOneUser = 0;
+  let maxJoinedByOneUser = 0;
+
+  for (const row of rows) {
+    if (row.createdCount > 0) creatorUsers += 1;
+    if (row.joinedCount > 0) participantUsers += 1;
+    createdPRs += row.createdCount;
+    joinedPRs += row.joinedCount;
+    maxCreatedByOneUser = Math.max(maxCreatedByOneUser, row.createdCount);
+    maxJoinedByOneUser = Math.max(maxJoinedByOneUser, row.joinedCount);
+  }
+
+  return {
+    usersWithAnyPR: rows.length,
+    creatorUsers,
+    participantUsers,
+    createdPRs,
+    joinedPRs,
+    averageCreatedPerCreator: buildRate(createdPRs, creatorUsers),
+    averageJoinedPerParticipant: buildRate(joinedPRs, participantUsers),
+    maxCreatedByOneUser,
+    maxJoinedByOneUser,
+  };
+};
+
+const buildPRLifecycleCohortSummary = (
+  rows: readonly PRLifecycleStatusInputRow[],
+): PRLifecycleCohortSummary => {
+  const createdPRs = rows.reduce((total, row) => total + row.count, 0);
+  let formedPRs = 0;
+  let closedPRs = 0;
+  let expiredPRs = 0;
+  let activeOrOpenPRs = 0;
+
+  for (const row of rows) {
+    if (FORMED_STATUSES.has(row.status)) {
+      formedPRs += row.count;
+    }
+    if (ACTIVE_OR_OPEN_STATUSES.has(row.status)) {
+      activeOrOpenPRs += row.count;
+    }
+    if (row.status === "CLOSED") {
+      closedPRs += row.count;
+    }
+    if (row.status === "EXPIRED") {
+      expiredPRs += row.count;
+    }
+  }
+
+  return {
+    createdPRs,
+    formedPRs,
+    closedPRs,
+    expiredPRs,
+    activeOrOpenPRs,
+    statusRows: rows
+      .map((row) => ({
+        status: row.status,
+        count: row.count,
+        share: buildRate(row.count, createdPRs),
+      }))
+      .sort((left, right) => left.status.localeCompare(right.status)),
+  };
+};
+
+const buildAnchorEventTransitions = (
+  events: UserTelemetryEnrichedEventRow[],
+): AnchorEventTransitionRow[] => {
+  const landingEventsByIdentity = new Map<string, UserTelemetryEnrichedEventRow[]>();
+  for (const event of events) {
+    if (event.eventName !== "anchor_event.landing.viewed") continue;
+    const identityKey = getIdentityKey(event);
+    if (!identityKey) continue;
+
+    const landingEvents = landingEventsByIdentity.get(identityKey) ?? [];
+    landingEvents.push(event);
+    landingEventsByIdentity.set(identityKey, landingEvents);
+  }
+
+  const transitions = new Map<string, TransitionAccumulator>();
+  for (const [identityKey, landingEvents] of landingEventsByIdentity.entries()) {
+    const sortedEvents = [...landingEvents].sort((left, right) =>
+      left.occurredAt.getTime() - right.occurredAt.getTime() ||
+      left.eventId.localeCompare(right.eventId),
+    );
+    for (let index = 1; index < sortedEvents.length; index += 1) {
+      const previous = sortedEvents[index - 1];
+      const current = sortedEvents[index];
+      if (!previous || !current) continue;
+
+      const fromActivityType =
+        readString(toRecord(previous.payload), ["activityType", "activity_type"]) ??
+        "unknown";
+      const toActivityType =
+        readString(toRecord(current.payload), ["activityType", "activity_type"]) ??
+        "unknown";
+      if (fromActivityType === toActivityType) continue;
+
+      const key = `${fromActivityType}:${toActivityType}`;
+      const accumulator = transitions.get(key) ?? {
+        users: new Set<string>(),
+        transitionCount: 0,
+      };
+      accumulator.users.add(identityKey);
+      accumulator.transitionCount += 1;
+      transitions.set(key, accumulator);
+    }
+  }
+
+  return Array.from(transitions.entries())
+    .map(([key, accumulator]) => {
+      const [fromActivityType = "unknown", toActivityType = "unknown"] =
+        key.split(":");
+      return {
+        fromActivityType,
+        toActivityType,
+        userCount: accumulator.users.size,
+        transitionCount: accumulator.transitionCount,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.userCount - left.userCount ||
+        right.transitionCount - left.transitionCount ||
+        `${left.fromActivityType}:${left.toActivityType}`.localeCompare(
+          `${right.fromActivityType}:${right.toActivityType}`,
+        ),
+    );
+};
+
+const buildViewOtherActivitiesConversion = (
+  events: UserTelemetryEnrichedEventRow[],
+): ViewOtherActivitiesConversion => {
+  const clickJourneys = new Set<string>();
+  const clickUsers = new Set<string>();
+  const landingViewJourneys = new Set<string>();
+  const landingViewUsers = new Set<string>();
+
+  const clickEvents = events
+    .filter((event) => VIEW_OTHER_ACTIVITY_CLICK_EVENT_NAMES.has(event.eventName))
+    .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime());
+
+  for (const clickEvent of clickEvents) {
+    const identityKey = getIdentityKey(clickEvent);
+    clickJourneys.add(clickEvent.journeyId);
+    if (identityKey) clickUsers.add(identityKey);
+
+    const hasLaterLandingView = events.some(
+      (event) =>
+        event.eventName === "anchor_event.landing.viewed" &&
+        event.journeyId === clickEvent.journeyId &&
+        event.occurredAt.getTime() >= clickEvent.occurredAt.getTime(),
+    );
+    if (hasLaterLandingView) {
+      landingViewJourneys.add(clickEvent.journeyId);
+      if (identityKey) landingViewUsers.add(identityKey);
+    }
+  }
+
+  return {
+    clickJourneys: clickJourneys.size,
+    clickUsers: clickUsers.size,
+    landingViewJourneys: landingViewJourneys.size,
+    landingViewUsers: landingViewUsers.size,
+    journeyConversionRate: buildRate(
+      landingViewJourneys.size,
+      clickJourneys.size,
+    ),
+    userConversionRate: buildRate(landingViewUsers.size, clickUsers.size),
+  };
+};
+
+export const buildBIOverviewResponse = (input: {
+  filters: BIOverviewFilters;
+  retentionEvents: UserTelemetryEnrichedEventRow[];
+  behaviorEvents: UserTelemetryEnrichedEventRow[];
+  userPRCountRows: UserPRCountInputRow[];
+  prLifecycleCreatedAtStatusRows: PRLifecycleStatusInputRow[];
+  prLifecycleTimeWindowEndAtStatusRows: PRLifecycleStatusInputRow[];
+}): BIOverviewResponse => {
+  const createdAtCohort = buildPRLifecycleCohortSummary(
+    input.prLifecycleCreatedAtStatusRows,
+  );
+  const timeWindowEndAtCohort = buildPRLifecycleCohortSummary(
+    input.prLifecycleTimeWindowEndAtStatusRows,
+  );
+
+  return {
+    filters: input.filters,
+    retention: {
+      rows: buildRetentionRows(input.filters, input.retentionEvents),
+    },
+    userPRCounts: buildUserPRCountSummary(input.userPRCountRows),
+    prLifecycle: {
+      ...createdAtCohort,
+      createdAtCohort,
+      timeWindowEndAtCohort,
+    },
+    anchorEventTransitions: buildAnchorEventTransitions(input.behaviorEvents),
+    viewOtherActivities: buildViewOtherActivitiesConversion(input.behaviorEvents),
+  };
+};

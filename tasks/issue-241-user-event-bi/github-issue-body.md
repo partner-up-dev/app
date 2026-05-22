@@ -18,7 +18,7 @@ Implementation blueprint: `tasks/issue-241-user-event-bi/40-implementation-bluep
 - Remove legacy segment tracking and ordinary-event identity metadata.
 - Migrate existing user behavior collection to registry-governed events.
 - Add missing PR create / join / waitlist / close view, click, and submission events with explicit names.
-- Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`; include failed-result events after naming is confirmed.
+- Emit backend-confirmed user-result events such as `pr.created`, `pr.joined`, `pr.waitlisted`, and `pr.closed`; keep frontend-observed failed / blocked result payloads queryable while dedicated backend failed-result events wait for a confirmed taxonomy.
 - Build `event_enriched` or equivalent projection from raw events plus context stream.
 - Project `dim_event` from the unique Event Registry.
 - Build identity/session projection from nearest prior `auth.session.created`.

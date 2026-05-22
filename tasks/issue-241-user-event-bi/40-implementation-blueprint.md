@@ -46,9 +46,9 @@ Migrate existing user behavior events to registry-governed names and payloads:
 
 PR paths to cover:
 
-- create: view / intent / submission / `pr.created` / failed-result event after naming confirmation;
-- join: view / intent / submission / `pr.joined` / failed-result event after naming confirmation;
-- waitlist: intent / submission / `pr.waitlisted` / failed-result event after naming confirmation;
+- create: view / intent / submission / `pr.created` / frontend-observed failed or blocked result payload;
+- join: view / intent / submission / `pr.joined` / frontend-observed failed or blocked result payload;
+- waitlist: intent / submission / `pr.waitlisted` / frontend-observed failed or blocked result payload;
 - close: intent / submission / `pr.closed` when user-caused.
 
 Non-goal:
@@ -63,7 +63,7 @@ Add backend user-result emission at command owners, not at arbitrary transport e
 - PR join confirmed by the backend emits `pr.joined`;
 - PR waitlist confirmed by the backend emits `pr.waitlisted`;
 - user-caused close confirmed by the backend emits `pr.closed`;
-- failed-result events use the confirmed naming and failure taxonomy.
+- dedicated backend failed-result events wait for a confirmed naming and failure taxonomy.
 
 Use the typed journey context passed from controllers. If journey context is missing, the user telemetry event should not be accepted as a normal user-behavior event.
 

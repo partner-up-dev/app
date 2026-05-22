@@ -186,10 +186,8 @@ import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEv
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 import {
   buildAnchorEventFunnelPayload,
-  ensureAnchorEventLandingSegment,
   type AnchorEventFunnelContext,
 } from "@/domains/event/telemetry/anchor-event-funnel";
 import {
@@ -213,6 +211,10 @@ const { t } = useI18n();
 const showOtherEventsDrawer = ref(false);
 const formModeSurfaceRef = ref<FormModeSurfaceExposed | null>(null);
 const formModeResultState = ref<FormModeResultState>("selection");
+const lastTrackedLandingKey = ref<string | null>(null);
+const activeCardTelemetryContextKey = ref<string | null>(null);
+const trackedCardStackKeys = ref<Set<string>>(new Set());
+const trackedCardSeenKeys = ref<Set<string>>(new Set());
 const officialAccountFollowPrompt =
   useOfficialAccountFollowPrompt("anchor_event");
 const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
@@ -301,6 +303,36 @@ const buildCurrentFunnelPayload = () => {
         activityType: event.type,
       }
     : null;
+};
+
+const buildFunnelContextKey = (context: AnchorEventFunnelContext): string =>
+  [
+    context.eventId,
+    context.renderedMode,
+    context.assignedMode ?? "none",
+    context.assignmentRevision ?? "none",
+  ].join(":");
+
+const claimTelemetryKey = (store: Set<string>, key: string): boolean => {
+  if (store.has(key)) return false;
+  store.add(key);
+  return true;
+};
+
+const claimLatestTelemetryKey = (
+  latestKey: { value: string | null },
+  key: string,
+): boolean => {
+  if (latestKey.value === key) return false;
+  latestKey.value = key;
+  return true;
+};
+
+const ensureCardTelemetryContext = (contextKey: string): void => {
+  if (activeCardTelemetryContextKey.value === contextKey) return;
+  activeCardTelemetryContextKey.value = contextKey;
+  trackedCardStackKeys.value = new Set();
+  trackedCardSeenKeys.value = new Set();
 };
 
 const {
@@ -411,12 +443,12 @@ watch(
   funnelContext,
   (context) => {
     if (!context) return;
+    const contextKey = buildFunnelContextKey(context);
 
-    const segment = ensureAnchorEventLandingSegment(context);
     if (
-      !claimUserTelemetrySegmentDedupeKey(
-        "anchor_event.landing.viewed",
-        segment.id,
+      !claimLatestTelemetryKey(
+        lastTrackedLandingKey,
+        `anchor_event.landing.viewed:${contextKey}`,
       )
     ) {
       return;
@@ -708,8 +740,13 @@ watch(
     ) {
       return;
     }
+    const contextKey = buildFunnelContextKey(context);
+    ensureCardTelemetryContext(contextKey);
     if (
-      !claimUserTelemetrySegmentDedupeKey("anchor_event.card_stack.loaded")
+      !claimTelemetryKey(
+        trackedCardStackKeys.value,
+        `anchor_event.card_stack.loaded:${contextKey}:${cards.length}`,
+      )
     ) {
       return;
     }
@@ -726,9 +763,12 @@ watch(
   [funnelContext, activeDemandCard],
   ([context, card]) => {
     if (!context || context.renderedMode !== "CARD_RICH" || !card) return;
+    const contextKey = buildFunnelContextKey(context);
+    ensureCardTelemetryContext(contextKey);
     if (
-      !claimUserTelemetrySegmentDedupeKey(
-        `anchor_event.card.seen:${card.cardKey}`,
+      !claimTelemetryKey(
+        trackedCardSeenKeys.value,
+        `anchor_event.card.seen:${contextKey}:${card.cardKey}`,
       )
     ) {
       return;

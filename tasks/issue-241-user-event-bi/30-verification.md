@@ -13,7 +13,7 @@
 - PR create / join / waitlist / close command paths can emit backend-confirmed user-result events with the request journey context.
 - Successful result names use direct past tense.
 - Automatic `pr.expired` is absent from user telemetry.
-- Failed-result events follow the confirmed naming and failure-reason contract.
+- Frontend-observed result events expose `actionResult`, `failureCode`, and `failureReason`; dedicated backend failed-result event names wait for a confirmed taxonomy.
 
 ## BI Verification
 

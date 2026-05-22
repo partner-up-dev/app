@@ -8,14 +8,14 @@ import {
 import {
   ANCHOR_EVENT_ANALYTICS_RENDERED_MODES,
   getAnchorEventFunnelAnalytics,
-  getColdStartAnalyticsSummary,
+  getBIOverviewAnalytics,
   getPRCreateFunnelAnalytics,
   getPRJoinFunnelAnalytics,
 } from "../infra/analytics";
 
 const app = new Hono<AdminAuthEnv>();
 
-const coldStartSummaryQuerySchema = z.object({
+const analyticsDateRangeQuerySchema = z.object({
   startAt: z.string().datetime().optional(),
   endAt: z.string().datetime().optional(),
 });
@@ -53,6 +53,18 @@ const parseOptionalDate = (value: string | undefined): Date | undefined =>
 export const analyticsRoute = app
   .use("*", analyticsAuthMiddleware)
   .get(
+    "/overview",
+    zValidator("query", analyticsDateRangeQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      const result = await getBIOverviewAnalytics({
+        startAt: parseOptionalDate(query.startAt),
+        endAt: parseOptionalDate(query.endAt),
+      });
+      return c.json(result);
+    },
+  )
+  .get(
     "/anchor-event-funnel",
     zValidator("query", anchorEventFunnelQuerySchema),
     async (c) => {
@@ -71,7 +83,7 @@ export const analyticsRoute = app
   )
   .get(
     "/pr-create-funnel",
-    zValidator("query", coldStartSummaryQuerySchema),
+    zValidator("query", analyticsDateRangeQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
       const result = await getPRCreateFunnelAnalytics({
@@ -83,22 +95,10 @@ export const analyticsRoute = app
   )
   .get(
     "/pr-join-funnel",
-    zValidator("query", coldStartSummaryQuerySchema),
+    zValidator("query", analyticsDateRangeQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
       const result = await getPRJoinFunnelAnalytics({
-        startAt: parseOptionalDate(query.startAt),
-        endAt: parseOptionalDate(query.endAt),
-      });
-      return c.json(result);
-    },
-  )
-  .get(
-    "/cold-start/summary",
-    zValidator("query", coldStartSummaryQuerySchema),
-    async (c) => {
-      const query = c.req.valid("query");
-      const result = await getColdStartAnalyticsSummary({
         startAt: parseOptionalDate(query.startAt),
         endAt: parseOptionalDate(query.endAt),
       });

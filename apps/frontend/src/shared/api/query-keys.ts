@@ -75,6 +75,10 @@ export const queryKeys = {
       assignmentRevision?: string | null;
       renderedMode?: string | null;
     }) => ["admin", "analytics", "anchor-event-funnel", filters] as const,
+    biOverviewAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "overview", filters] as const,
     prJoinFunnelAnalytics: (filters: {
       startAt?: string;
       endAt?: string;

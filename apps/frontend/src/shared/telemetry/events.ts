@@ -76,7 +76,6 @@ type AnalyticsContextPayload = {
   eventIdRef?: number;
   prIdRef?: number;
   cardKey?: string;
-  segmentKey?: string;
 };
 
 type AnchorEventFunnelContextPayload = AnalyticsContextPayload & {

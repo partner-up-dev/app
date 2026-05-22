@@ -36,6 +36,6 @@ Hypothesis: once event production and BI projections share a governed registry a
 - Analytics projection and dashboard readers: `apps/backend/src/infra/analytics/*`, `/admin/analytics`.
 - Cross-unit scenario tests under `tests/scenario/` when behavior crosses frontend and backend.
 
-## Current Recommendation
+## Current State
 
-Partially implemented in this slice, on top of #240. This issue should keep removing old event production paths rather than maintain dual envelopes, because #226 is intentionally a breaking release train.
+Implemented on top of #240 through query-level projections and dashboard readers. The only intentionally retained legacy path is historical Anchor Event segment reconstruction for migrated data; new frontend telemetry production no longer creates segments or v1 envelopes.

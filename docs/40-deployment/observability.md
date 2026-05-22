@@ -19,10 +19,10 @@
 - `operation_logs` records domain action audit trail
 - `jobs` records persisted scheduling semantics, including bucket resolution and early/late tolerance units
 - `notification_deliveries` records notification send outcomes
-- `telemetry_events` records legacy product telemetry from frontend/backend sources until the governed telemetry split replaces its uses
+- `telemetry_events` is legacy product telemetry storage and should be treated as recovery / historical-only for user behavior; production BI readers use `user_telemetry_*` projections plus business fact tables
 - `user_telemetry_journeys`, `user_telemetry_events`, and `user_telemetry_rejected_events` record governed user-behavior telemetry and ingest validation failures
 - `/api/telemetry/user/events` ingests batched registry-governed user telemetry events with mandatory `journey_id`, optional `trace_id`, attributes, and payload
-- `/api/analytics/*` exposes read/export-oriented product analytics derived from telemetry and business-state tables
+- `/api/analytics/*` exposes read-oriented product analytics derived from `user_telemetry_*` projections and business-state tables
 - `/api/analytics/anchor-event-funnel` exposes the BI v1 aggregate for Anchor Event -> PR conversion, split by `FORM`, `CARD_RICH`, and `LIST` landing modes, plus official-account follow Nudge button-click metrics
 - `/admin/analytics` is the BI dashboard route and requires the `analytics` role
 - `/bi?code=...` is the lightweight BI entry route for the seeded analytics user

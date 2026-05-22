@@ -7,12 +7,14 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 type AnalyticsApi = typeof adminClient.api.analytics;
 type AnchorEventFunnelRoute = AnalyticsApi["anchor-event-funnel"];
+type BIOverviewRoute = AnalyticsApi["overview"];
 type PRCreateFunnelRoute = AnalyticsApi["pr-create-funnel"];
 type PRJoinFunnelRoute = AnalyticsApi["pr-join-funnel"];
 
 export type AdminAnalyticsFunnelResponse = InferResponseType<
   AnchorEventFunnelRoute["$get"]
 >;
+export type AdminBIOverviewResponse = InferResponseType<BIOverviewRoute["$get"]>;
 export type AdminPRJoinFunnelResponse = InferResponseType<
   PRJoinFunnelRoute["$get"]
 >;
@@ -91,6 +93,31 @@ export const useAdminAnchorEventFunnelAnalytics = (
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取 BI 看板数据失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminBIOverviewAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+) => {
+  const normalizedQuery = computed(() => normalizePRFunnelQuery(unref(input)));
+
+  return useQuery<AdminBIOverviewResponse>({
+    queryKey: computed(() =>
+      queryKeys.admin.biOverviewAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics.overview.$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 BI 总览失败"));
       }
       return await res.json();
     },

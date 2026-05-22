@@ -142,7 +142,6 @@ import {
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
 import { trackEvent } from "@/shared/telemetry/track";
-import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 
 type DateTabItem = {
   key: string;
@@ -190,6 +189,8 @@ const eventId = computed<number | null>(() => props.eventId);
 const eventIdValue = computed(() => props.eventId);
 const selectedCreateTimeWindow = ref<TimeWindow | null>(null);
 const selectedDateKey = ref<string | null>(null);
+const activeListTelemetryContextKey = ref<string | null>(null);
+const trackedListTelemetryKeys = ref<Set<string>>(new Set());
 
 const {
   data: detail,
@@ -215,6 +216,19 @@ const buildListFunnelPayload = () => ({
   eventId: props.eventId,
   activityType: detail.value?.type,
 });
+
+const claimListTelemetryKey = (key: string): boolean => {
+  if (trackedListTelemetryKeys.value.has(key)) return false;
+  trackedListTelemetryKeys.value.add(key);
+  return true;
+};
+
+const ensureListTelemetryContext = (): void => {
+  const contextKey = props.eventId.toString();
+  if (activeListTelemetryContextKey.value === contextKey) return;
+  activeListTelemetryContextKey.value = contextKey;
+  trackedListTelemetryKeys.value = new Set();
+};
 
 const buildPrDetailRoute = (prId: number): string =>
   `/pr/${prId}?fromEvent=${props.eventId}`;
@@ -495,13 +509,26 @@ watch(
   [detail, dateGroups],
   ([event]) => {
     if (!event) return;
-    if (!claimUserTelemetrySegmentDedupeKey("anchor_event.list.loaded")) {
+    ensureListTelemetryContext();
+    const counts = listLoadedCounts.value;
+    if (
+      !claimListTelemetryKey(
+        [
+          "anchor_event.list.loaded",
+          props.eventId,
+          counts.dateCount,
+          counts.visiblePrCount,
+          counts.currentFuturePrCount,
+          counts.expiredPrCount,
+        ].join(":"),
+      )
+    ) {
       return;
     }
 
     trackEvent("anchor_event_list_loaded", {
       ...buildListFunnelPayload(),
-      ...listLoadedCounts.value,
+      ...counts,
     });
   },
   { immediate: true },
@@ -510,10 +537,11 @@ watch(
 watch(
   visiblePRItems,
   (items) => {
+    ensureListTelemetryContext();
     for (const item of items) {
       if (
-        !claimUserTelemetrySegmentDedupeKey(
-          `anchor_event.pr_row.seen:${item.pr.id}`,
+        !claimListTelemetryKey(
+          `anchor_event.pr_row.seen:${props.eventId}:${item.dateKey}:${item.timeWindowKey}:${item.pr.id}`,
         )
       ) {
         continue;

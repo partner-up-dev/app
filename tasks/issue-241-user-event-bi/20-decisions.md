@@ -16,10 +16,9 @@
 
 - First-pass `event_enriched` is a query-level projection, not a stored table or materialized view.
 - `dim_event` is projected from the unique Event Registry at query time; it is not a second hand-maintained catalog.
-- The first dashboard projection slices are minimal PR create / join funnels over existing registered events, without adding new event production in this pass.
+- Dashboard projections for #241 remain query-level and minimal: PR create / join funnels plus BI overview over retention, per-user PR counts, PR lifecycle status, Anchor Event transitions, and "view other activities" conversion.
+- Old cold-start analytics readers, the old `/api/telemetry/events` v1 ingest route, and frontend segment production paths are removed from production code. Backend legacy segment reads remain only to support migrated historical user telemetry.
 
 ## Open For This Issue
 
-1. First failed-result event names and failure reason taxonomy.
-2. Exact frontend event names for PR create / join / waitlist / close observations and submissions.
-3. Whether `/api/telemetry/user/events` keeps the same route with breaking payload or moves to a versioned route. Current preference is same route, breaking payload.
+1. Dedicated backend failed-result event names and failure reason taxonomy remain a future product decision. The current implementation records frontend-observed result events with `actionResult`, `failureCode`, and `failureReason`.
