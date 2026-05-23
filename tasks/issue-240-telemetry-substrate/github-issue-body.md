@@ -17,9 +17,9 @@ Implementation blueprint: `tasks/issue-240-telemetry-substrate/40-implementation
 - v1-to-v2 mapping table for existing telemetry rows.
 - Decision artifact for failed-result event naming.
 - Rename v1 telemetry tables to backup names.
-- Create new `user_telemetry_journeys`, `user_telemetry_events`, and `user_telemetry_rejected_events`.
-- Remove `user_telemetry_segments` from the target schema.
-- Data migration from v1 rows into v2 journeys, context events, and behavior events.
+- Create new `user_telemetry_events` and `user_telemetry_rejected_events`.
+- Remove `user_telemetry_segments` and `user_telemetry_journeys` from the final target schema.
+- Data migration from v1 rows into context events and behavior events.
 - New backend ingest validation against Event Registry.
 - `event_id` idempotence, rejected-event quarantine, optional `trace_id`, and mandatory `journey_id`.
 - Parse `x-journey-id` into Hono request context and pass typed journey context beyond controllers.
@@ -47,7 +47,7 @@ Implementation blueprint: `tasks/issue-240-telemetry-substrate/40-implementation
 1. Inventory current v1 telemetry schema, event names, analytics readers, and migration conventions.
 2. Finalize RawUserEvent and unique Event Registry contract.
 3. Define v1-to-v2 mapping before SQL.
-4. Replace `user_telemetry_*` storage with new journeys/events/rejected-events tables and data migration.
+4. Replace `user_telemetry_*` storage with new events/rejected-events tables and data migration.
 5. Update backend ingest validation, idempotence, rejection quarantine, `trace_id`, and mandatory `journey_id`.
 6. Parse `x-journey-id` into Hono context and pass typed journey context beyond controllers.
 7. Verify registry, ingest, migration, and request-context behavior with backend tests and guardrails.

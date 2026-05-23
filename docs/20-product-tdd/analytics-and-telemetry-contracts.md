@@ -232,9 +232,10 @@ Invalid, unknown, or schema-incompatible events enter `user_telemetry_rejected_e
 
 The target `user_telemetry_*` family contains:
 
-- `user_telemetry_journeys`
 - `user_telemetry_events`
 - `user_telemetry_rejected_events`
+
+`journey_id` is an event-ledger field, not a persisted journey entity. Do not introduce a separate journey table or attach identity, route, attribution, or environment context to a journey row unless a concrete query proves the event stream cannot answer it.
 
 `user_telemetry_segments` is retired from the target schema. Prior segment meaning should be represented by context events or projections.
 
@@ -244,7 +245,7 @@ Legacy `user_telemetry_*_v1` tables are migration-only staging surfaces. After f
 
 The current v1 telemetry data is migrated forward:
 
-- old journey rows become new journey rows;
+- old journey rows provide source data for reconstructed `journey.started`, `route.entered`, and `auth.session.created` context events;
 - old identity fields become reconstructed `auth.session.created` context events where possible;
 - old segment rows become context events only when the mapping is explicit;
 - old event rows become raw ledger events using the registry mapping;

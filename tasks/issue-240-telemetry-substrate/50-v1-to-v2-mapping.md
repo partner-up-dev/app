@@ -5,18 +5,12 @@
 - `user_telemetry_journeys` v1 is renamed to `user_telemetry_journeys_v1`.
 - `user_telemetry_segments` v1 is renamed to `user_telemetry_segments_v1`.
 - `user_telemetry_events` v1 is renamed to `user_telemetry_events_v1`.
-- New target tables are `user_telemetry_journeys`, `user_telemetry_events`, and `user_telemetry_rejected_events`.
+- New target tables are `user_telemetry_events` and `user_telemetry_rejected_events`.
 - `user_telemetry_segments` does not exist in the target schema.
+- `user_telemetry_journeys` does not exist in the final target schema; `journey_id` is carried by each event row.
 - The renamed `_v1` tables are migration-only staging surfaces and are dropped after the forward data backfill.
 
 ## Journey Rows
-
-Each v1 journey row becomes one v2 journey row:
-
-- `id` -> `id`
-- `started_at` -> `started_at`
-- `last_seen_at` -> `last_seen_at`
-- `created_at` / `updated_at` preserved
 
 V1 journey context fields become context events:
 
@@ -76,7 +70,7 @@ The final v2 model does not retain these v1 envelope fields:
 
 `correlation_id` and `request_id` are intentionally not carried forward as user-behavior event fields. `trace_id` is retained for observability linkage.
 
-`0061` and `0062` are historical forward-only migrations that may have already created / populated `event_kind`. The follow-up migration `0064_drop_user_telemetry_event_kind.sql` removes the target column and deletes the temporary `legacy_event_kind` attribute from migrated rows. `0065_user_telemetry_cleanup_and_timestamptz.sql` drops the `_v1` staging tables after backfill and converts target telemetry instant columns to `timestamptz`.
+`0061` and `0062` are historical forward-only migrations that may have already created / populated `event_kind` and `user_telemetry_journeys`. The follow-up migration `0064_drop_user_telemetry_event_kind.sql` removes the target column and deletes the temporary `legacy_event_kind` attribute from migrated rows. `0065_user_telemetry_cleanup_and_timestamptz.sql` drops the `_v1` staging tables after backfill and converts target telemetry instant columns to `timestamptz`. `0068_drop_user_telemetry_journeys.sql` removes the surviving journey entity table and the event FK.
 
 ## Ordering
 

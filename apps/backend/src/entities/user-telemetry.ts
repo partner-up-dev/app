@@ -10,29 +10,6 @@ import {
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-export const userTelemetryJourneys = pgTable(
-  "user_telemetry_journeys",
-  {
-    id: uuid("id").primaryKey(),
-    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    startedAtIdx: index("user_telemetry_journeys_started_at_idx").on(
-      table.startedAt,
-    ),
-    lastSeenAtIdx: index("user_telemetry_journeys_last_seen_at_idx").on(
-      table.lastSeenAt,
-    ),
-  }),
-);
-
 export const userTelemetryEvents = pgTable(
   "user_telemetry_events",
   {
@@ -40,9 +17,7 @@ export const userTelemetryEvents = pgTable(
     eventName: text("event_name").notNull(),
     eventVersion: integer("event_version").notNull(),
     eventFamily: text("event_family").notNull(),
-    journeyId: uuid("journey_id")
-      .notNull()
-      .references(() => userTelemetryJourneys.id),
+    journeyId: uuid("journey_id").notNull(),
     traceId: text("trace_id"),
     attributes: jsonb("attributes")
       .$type<Record<string, string | number | boolean | null>>()
@@ -99,12 +74,6 @@ export const userTelemetryRejectedEvents = pgTable(
   }),
 );
 
-export const insertUserTelemetryJourneySchema = createInsertSchema(
-  userTelemetryJourneys,
-);
-export const selectUserTelemetryJourneySchema = createSelectSchema(
-  userTelemetryJourneys,
-);
 export const insertUserTelemetryEventSchema =
   createInsertSchema(userTelemetryEvents);
 export const selectUserTelemetryEventSchema =
@@ -116,8 +85,6 @@ export const selectUserTelemetryRejectedEventSchema = createSelectSchema(
   userTelemetryRejectedEvents,
 );
 
-export type UserTelemetryJourney = typeof userTelemetryJourneys.$inferSelect;
-export type NewUserTelemetryJourney = typeof userTelemetryJourneys.$inferInsert;
 export type UserTelemetryEvent = typeof userTelemetryEvents.$inferSelect;
 export type NewUserTelemetryEvent = typeof userTelemetryEvents.$inferInsert;
 export type UserTelemetryRejectedEvent =

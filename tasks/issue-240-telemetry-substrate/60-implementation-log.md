@@ -5,9 +5,9 @@ Date: 2026-05-21
 ## Completed
 
 - Replaced the target `user_telemetry_*` schema with registry-backed v2 tables:
-  - `user_telemetry_journeys`
   - `user_telemetry_events`
   - `user_telemetry_rejected_events`
+- Removed `user_telemetry_journeys` from the final target schema with forward-only migration `0068_drop_user_telemetry_journeys.sql`; `journey_id` remains mandatory on each event row, but no separate journey entity is persisted.
 - Removed `user_telemetry_segments` from the target schema.
 - Added the unique backend Event Registry and registry validation.
 - Rebuilt `/api/telemetry/user/events` around the v2 RawUserEvent envelope:
@@ -52,3 +52,7 @@ Date: 2026-05-21
 - `pnpm test:unit:backend` passed after legacy telemetry entity removal.
 - `pnpm --filter @partner-up-dev/backend typecheck` passed after restoring `timestamptz` DB-boundary decoding.
 - Runtime DB check confirmed raw `db.execute()` returns `user_telemetry_events.occurred_at` as `Date` for `timestamptz`.
+- `pnpm db:lint` passed after adding `0068_drop_user_telemetry_journeys.sql`.
+- `pnpm --filter @partner-up-dev/backend typecheck` passed after removing `userTelemetryJourneys` from the Drizzle schema and ingest path.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/telemetry/user-event-registry.test.ts apps/backend/src/infra/telemetry/request-journey-context.test.ts apps/backend/src/infra/analytics/fact-event-references.test.ts` passed.
+- `pnpm --filter @partner-up-dev/backend build` passed.

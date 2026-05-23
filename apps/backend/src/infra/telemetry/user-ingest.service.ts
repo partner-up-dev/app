@@ -1,8 +1,6 @@
-import { sql } from "drizzle-orm";
 import { db } from "../../lib/db";
 import {
   userTelemetryEvents,
-  userTelemetryJourneys,
   userTelemetryRejectedEvents,
 } from "../../entities/user-telemetry";
 import {
@@ -49,11 +47,6 @@ type RejectedUserTelemetryEvent = {
   failureCode: string;
   failureMessage: string;
   rawEvent: Record<string, unknown>;
-};
-
-type JourneyBounds = {
-  startedAt: Date;
-  lastSeenAt: Date;
 };
 
 const parseDate = (value: string): Date => new Date(value);
@@ -130,28 +123,6 @@ export async function ingestUserTelemetryEvents(
       return { ingested: 0, rejected: rejectedEvents.length };
     }
 
-    const journeyBounds = collectJourneyBounds(acceptedEvents);
-    const now = new Date();
-
-    await tx
-      .insert(userTelemetryJourneys)
-      .values(
-        [...journeyBounds.entries()].map(([journeyId, bounds]) => ({
-          id: journeyId,
-          startedAt: bounds.startedAt,
-          lastSeenAt: bounds.lastSeenAt,
-          updatedAt: now,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: userTelemetryJourneys.id,
-        set: {
-          startedAt: sql`least(${userTelemetryJourneys.startedAt}, excluded.started_at)`,
-          lastSeenAt: sql`greatest(${userTelemetryJourneys.lastSeenAt}, excluded.last_seen_at)`,
-          updatedAt: now,
-        },
-      });
-
     const insertedEvents = await tx
       .insert(userTelemetryEvents)
       .values(
@@ -176,29 +147,3 @@ export async function ingestUserTelemetryEvents(
     };
   });
 }
-
-const collectJourneyBounds = (
-  events: readonly AcceptedUserTelemetryEvent[],
-): Map<string, JourneyBounds> => {
-  const boundsByJourney = new Map<string, JourneyBounds>();
-
-  for (const event of events) {
-    const existing = boundsByJourney.get(event.journeyId);
-    if (!existing) {
-      boundsByJourney.set(event.journeyId, {
-        startedAt: event.occurredAt,
-        lastSeenAt: event.occurredAt,
-      });
-      continue;
-    }
-
-    if (event.occurredAt < existing.startedAt) {
-      existing.startedAt = event.occurredAt;
-    }
-    if (event.occurredAt > existing.lastSeenAt) {
-      existing.lastSeenAt = event.occurredAt;
-    }
-  }
-
-  return boundsByJourney;
-};

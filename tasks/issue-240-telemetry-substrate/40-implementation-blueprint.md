@@ -80,10 +80,9 @@ Use a replacement-table migration:
    - `user_telemetry_segments_v1`
    - `user_telemetry_events_v1`
 2. Create new target tables:
-   - `user_telemetry_journeys`
    - `user_telemetry_events`
    - `user_telemetry_rejected_events`
-3. Do not recreate `user_telemetry_segments`.
+3. Do not recreate `user_telemetry_segments` or persist a separate journey entity table.
 4. Recreate indexes and constraints for the new query paths.
 5. Drop the `_v1` staging tables after forward backfill verification.
 6. Store telemetry instant columns as `timestamptz`, not `timestamp without time zone`.
@@ -91,7 +90,7 @@ Use a replacement-table migration:
 
 Data migration mapping rules:
 
-- old journey rows become new journey rows;
+- old journey rows become reconstructed context events, not surviving journey entity rows;
 - old identity fields become reconstructed `auth.session.created` context events where possible;
 - old segment rows become context events only when the mapping artifact gives them stable semantics;
 - otherwise legacy rows are quarantined or marked with explicit migration metadata;
