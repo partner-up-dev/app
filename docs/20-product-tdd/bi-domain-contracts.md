@@ -69,13 +69,19 @@ BI event dictionaries are derived from the unique Event Registry.
 
 ## Dashboard Contract
 
-`/admin/analytics` is the BI dashboard route and requires the `analytics` role.
+BI dashboard routes require the `analytics` role.
+
+- `/admin/analytics` redirects to the BI overview route.
+- `/admin/analytics/overview` owns BI health / overview panels.
+- `/admin/analytics/pr-funnels` owns PR create and join funnel panels.
+- `/admin/analytics/anchor-events` owns Anchor Event behavior panels, including landing-mode funnels, natural extension, view-other-Anchor-Events conversion, outcomes, sources, and failures.
+- `/admin/analytics/official-account` owns official-account follow nudge behavior panels.
 
 `/bi?code=...` remains the lightweight BI entry route for the seeded analytics user:
 
 - it uses the query `code` as the analytics seed user's pin;
 - it calls the admin login endpoint;
-- it redirects to `/admin/analytics` on success;
+- it redirects to `/admin/analytics`, which then enters the overview dashboard;
 - it scrubs the code from the route after successful login.
 
 Analytics APIs require the `analytics` role. Service-owned admin APIs require `service`; analytics-only sessions can see analytics surfaces without seeing service-owned admin routes.

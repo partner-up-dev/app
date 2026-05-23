@@ -104,10 +104,28 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     requiredRoles: ["analytics"],
     items: [
       {
-        id: "analytics-dashboard",
-        labelKey: "adminCommon.navAnalytics",
-        subtitleKey: "adminCommon.navAnalyticsSubtitle",
-        routeName: "admin-analytics",
+        id: "analytics-overview",
+        labelKey: "adminCommon.navAnalyticsOverview",
+        subtitleKey: "adminCommon.navAnalyticsOverviewSubtitle",
+        routeName: "admin-analytics-overview",
+      },
+      {
+        id: "analytics-pr-funnels",
+        labelKey: "adminCommon.navAnalyticsPRFunnels",
+        subtitleKey: "adminCommon.navAnalyticsPRFunnelsSubtitle",
+        routeName: "admin-analytics-pr-funnels",
+      },
+      {
+        id: "analytics-anchor-events",
+        labelKey: "adminCommon.navAnalyticsAnchorEvents",
+        subtitleKey: "adminCommon.navAnalyticsAnchorEventsSubtitle",
+        routeName: "admin-analytics-anchor-events",
+      },
+      {
+        id: "analytics-official-account",
+        labelKey: "adminCommon.navAnalyticsOfficialAccount",
+        subtitleKey: "adminCommon.navAnalyticsOfficialAccountSubtitle",
+        routeName: "admin-analytics-official-account",
       },
     ],
   },

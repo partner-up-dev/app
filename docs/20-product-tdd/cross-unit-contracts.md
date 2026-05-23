@@ -101,6 +101,10 @@ Stable user-facing route families that materially affect coordination include:
 - `/admin/pr-messages`
 - `/admin/pois`
 - `/admin/analytics`
+- `/admin/analytics/overview`
+- `/admin/analytics/pr-funnels`
+- `/admin/analytics/anchor-events`
+- `/admin/analytics/official-account`
 - `/bi`
 
 Important coordination note:
@@ -293,9 +297,10 @@ Important coordination note:
 - The canonical BI domain contract lives in `bi-domain-contracts.md`.
 - PR lifecycle BI metrics query business fact data / current PR statuses, not user behavior events. Cohorts use PR `created_at` and PR time-window `endAt`.
 - User behavior BI reads fact projections, not ad-hoc raw payloads or broad dashboard-facing enriched-event objects.
-- `/admin/analytics` is the BI dashboard route and requires the `analytics` role.
+- `/admin/analytics` redirects to `/admin/analytics/overview`; all BI dashboard routes under `/admin/analytics/*` require the `analytics` role.
+- `/admin/analytics/overview`, `/admin/analytics/pr-funnels`, `/admin/analytics/anchor-events`, and `/admin/analytics/official-account` split BI surfaces by fact family / BI question.
 - `/bi?code=...` is a lightweight BI entry route. The page uses the query `code` as the analytics seed user's pin and a page-local hard-coded analytics seed user id, calls the admin login endpoint, then redirects to `/admin/analytics` on success.
 - `/bi` scrubs the code by replacing the route after a successful login. Failed login stays on `/bi`, renders a simple error message, and offers a home action.
 - The analytics seed user is seeded with role `analytics`. The seed admin user is seeded with roles that include both `service` and `analytics`.
-- Admin navigation filters entries by route-required roles. An analytics-only session can see `/admin/analytics`; a service-plus-analytics session can see analytics plus service-owned admin routes.
+- Admin navigation filters entries by route-required roles. An analytics-only session can see BI dashboard routes; a service-plus-analytics session can see analytics plus service-owned admin routes.
 - Backend privileged route guards use `requireRoles(...)`. Service-owned admin APIs require `service`; analytics APIs require `analytics`.

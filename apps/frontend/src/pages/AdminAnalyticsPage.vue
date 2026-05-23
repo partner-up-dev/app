@@ -33,7 +33,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.eventIdLabel')" for-id="analytics-event-id">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.eventIdLabel')"
+          for-id="analytics-event-id"
+        >
           <input
             id="analytics-event-id"
             v-model="draftEventId"
@@ -44,7 +48,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.sourceSpmLabel')" for-id="analytics-spm">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.sourceSpmLabel')"
+          for-id="analytics-spm"
+        >
           <input
             id="analytics-spm"
             v-model="draftSpm"
@@ -54,7 +62,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.sourceQrLabel')" for-id="analytics-source-qr">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.sourceQrLabel')"
+          for-id="analytics-source-qr"
+        >
           <input
             id="analytics-source-qr"
             v-model="draftSourceQr"
@@ -65,6 +77,7 @@
         </FormField>
 
         <FormField
+          v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.assignmentRevisionLabel')"
           for-id="analytics-assignment-revision"
         >
@@ -77,7 +90,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.renderedModeLabel')" for-id="analytics-mode">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.renderedModeLabel')"
+          for-id="analytics-mode"
+        >
           <select
             id="analytics-mode"
             v-model="draftRenderedMode"
@@ -157,8 +174,12 @@
           data-testid="admin-analytics.error"
         />
 
-        <template v-else-if="dashboard">
-          <section class="kpi-strip" data-testid="admin-analytics.summary">
+        <template v-else-if="hasDashboardData">
+          <section
+            v-if="showsAnchorEventDashboard && dashboard"
+            class="kpi-strip"
+            data-testid="admin-analytics.summary"
+          >
             <article
               v-for="item in summaryItems"
               :key="item.key"
@@ -173,7 +194,7 @@
           </section>
 
           <section
-            v-if="biOverview"
+            v-if="showsOverviewDashboard && biOverview"
             class="analytics-panel"
             data-testid="admin-analytics.bi-overview"
           >
@@ -303,7 +324,7 @@
           </section>
 
           <section
-            v-if="prCreateFunnel"
+            v-if="showsPRFunnelDashboard && prCreateFunnel"
             class="analytics-panel"
             data-testid="admin-analytics.pr-create-funnel"
           >
@@ -398,7 +419,7 @@
           </section>
 
           <section
-            v-if="prJoinFunnel"
+            v-if="showsPRFunnelDashboard && prJoinFunnel"
             class="analytics-panel"
             data-testid="admin-analytics.pr-join-funnel"
           >
@@ -468,6 +489,7 @@
           </section>
 
           <section
+            v-if="showsOfficialAccountDashboard && dashboard"
             class="analytics-panel"
             data-testid="admin-analytics.official-account-nudge"
           >
@@ -585,6 +607,7 @@
             </div>
           </section>
 
+          <template v-if="showsAnchorEventDashboard && dashboard">
           <section class="analytics-panel" data-testid="admin-analytics.modes">
             <div class="analytics-panel__header">
               <div>
@@ -800,6 +823,7 @@
               </table>
             </div>
           </section>
+          </template>
         </template>
       </div>
     </template>
@@ -809,6 +833,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import type { AnchorEventAnalyticsRenderedMode } from "@partner-up-dev/backend";
 import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
@@ -841,6 +866,11 @@ type BIOverviewStatusRow =
 type PRCreateFunnelSummary = AdminPRCreateFunnelResponse["summary"];
 type PRCreatePath = AdminPRCreateFunnelResponse["paths"][number]["creationPath"];
 type PRJoinFunnelSummary = AdminPRJoinFunnelResponse["summary"];
+type AnalyticsDashboardKind =
+  | "overview"
+  | "pr-funnels"
+  | "anchor-events"
+  | "official-account";
 
 const modeOptions: AnchorEventAnalyticsRenderedMode[] = [
   "FORM",
@@ -855,7 +885,43 @@ const MODE_LABELS: Record<AnchorEventAnalyticsRenderedMode, string> = {
 };
 
 const { t } = useI18n();
+const route = useRoute();
 const { logout } = useAdminAccess();
+
+const activeDashboard = computed<AnalyticsDashboardKind>(() => {
+  switch (route.name) {
+    case "admin-analytics-pr-funnels":
+      return "pr-funnels";
+    case "admin-analytics-anchor-events":
+      return "anchor-events";
+    case "admin-analytics-official-account":
+      return "official-account";
+    case "admin-analytics-overview":
+    default:
+      return "overview";
+  }
+});
+
+const showsOverviewDashboard = computed(
+  () => activeDashboard.value === "overview",
+);
+const showsPRFunnelDashboard = computed(
+  () => activeDashboard.value === "pr-funnels",
+);
+const showsAnchorEventDashboard = computed(
+  () => activeDashboard.value === "anchor-events",
+);
+const showsOfficialAccountDashboard = computed(
+  () => activeDashboard.value === "official-account",
+);
+const showsAnchorEventFilters = computed(
+  () =>
+    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
+);
+const loadsAnchorEventAnalytics = computed(
+  () =>
+    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
+);
 
 const toLocalInputValue = (date: Date): string => {
   const offsetMs = date.getTimezoneOffset() * 60 * 1_000;
@@ -894,36 +960,54 @@ const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
   endAt: parseLocalInputValue(defaultRange.endAt)?.toISOString(),
 });
 
-const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery);
-const biOverviewQuery = useAdminBIOverviewAnalytics(appliedQuery);
-const prCreateFunnelQuery = useAdminPRCreateFunnelAnalytics(appliedQuery);
-const prJoinFunnelQuery = useAdminPRJoinFunnelAnalytics(appliedQuery);
+const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery, {
+  enabled: loadsAnchorEventAnalytics,
+});
+const biOverviewQuery = useAdminBIOverviewAnalytics(appliedQuery, {
+  enabled: showsOverviewDashboard,
+});
+const prCreateFunnelQuery = useAdminPRCreateFunnelAnalytics(appliedQuery, {
+  enabled: showsPRFunnelDashboard,
+});
+const prJoinFunnelQuery = useAdminPRJoinFunnelAnalytics(appliedQuery, {
+  enabled: showsPRFunnelDashboard,
+});
 const dashboard = computed(() => analyticsQuery.data.value ?? null);
 const biOverview = computed(() => biOverviewQuery.data.value ?? null);
 const prCreateFunnel = computed(() => prCreateFunnelQuery.data.value ?? null);
 const prJoinFunnel = computed(() => prJoinFunnelQuery.data.value ?? null);
 const isInitialLoading = computed(
   () =>
-    analyticsQuery.isLoading.value ||
-    biOverviewQuery.isLoading.value ||
-    prCreateFunnelQuery.isLoading.value ||
-    prJoinFunnelQuery.isLoading.value,
+    (loadsAnchorEventAnalytics.value && analyticsQuery.isLoading.value) ||
+    (showsOverviewDashboard.value && biOverviewQuery.isLoading.value) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnelQuery.isLoading.value ||
+        prJoinFunnelQuery.isLoading.value)),
 );
 const dashboardError = computed(
   () =>
-    analyticsQuery.error.value ??
-    biOverviewQuery.error.value ??
-    prCreateFunnelQuery.error.value ??
-    prJoinFunnelQuery.error.value ??
+    (loadsAnchorEventAnalytics.value ? analyticsQuery.error.value : null) ??
+    (showsOverviewDashboard.value ? biOverviewQuery.error.value : null) ??
+    (showsPRFunnelDashboard.value
+      ? prCreateFunnelQuery.error.value ?? prJoinFunnelQuery.error.value
+      : null) ??
     null,
+);
+const hasDashboardData = computed(
+  () =>
+    (showsOverviewDashboard.value && biOverview.value !== null) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnel.value !== null || prJoinFunnel.value !== null)) ||
+    (loadsAnchorEventAnalytics.value && dashboard.value !== null),
 );
 const isDashboardRefreshing = computed(
   () =>
     refreshPending.value ||
-    analyticsQuery.isFetching.value ||
-    biOverviewQuery.isFetching.value ||
-    prCreateFunnelQuery.isFetching.value ||
-    prJoinFunnelQuery.isFetching.value,
+    (loadsAnchorEventAnalytics.value && analyticsQuery.isFetching.value) ||
+    (showsOverviewDashboard.value && biOverviewQuery.isFetching.value) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnelQuery.isFetching.value ||
+        prJoinFunnelQuery.isFetching.value)),
 );
 
 const numberFormatter = new Intl.NumberFormat("zh-CN");
@@ -1165,9 +1249,17 @@ const visibleFunnels = computed(() => {
 });
 
 const activeFilterSummary = computed(() => {
-  const filters = dashboard.value?.filters ?? appliedQuery.value;
+  const filters = showsAnchorEventFilters.value
+    ? dashboard.value?.filters ?? appliedQuery.value
+    : appliedQuery.value;
   const start = filters.startAt ? dateTimeFormatter.format(new Date(filters.startAt)) : "-";
   const end = filters.endAt ? dateTimeFormatter.format(new Date(filters.endAt)) : "-";
+  if (!showsAnchorEventFilters.value) {
+    return t("adminAnalytics.activeTimeFilterSummary", {
+      start,
+      end,
+    });
+  }
   return t("adminAnalytics.activeFilterSummary", {
     start,
     end,
@@ -1194,7 +1286,7 @@ const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
     return null;
   }
 
-  const eventId = parseEventId();
+  const eventId = showsAnchorEventFilters.value ? parseEventId() : null;
   if (Number.isNaN(eventId)) {
     filterError.value = t("adminAnalytics.invalidEventId");
     return null;
@@ -1205,10 +1297,16 @@ const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString(),
     eventId,
-    spm: draftSpm.value.trim() || null,
-    sourceQr: draftSourceQr.value.trim() || null,
-    assignmentRevision: draftAssignmentRevision.value.trim() || null,
-    renderedMode: draftRenderedMode.value || null,
+    spm: showsAnchorEventFilters.value ? draftSpm.value.trim() || null : null,
+    sourceQr: showsAnchorEventFilters.value
+      ? draftSourceQr.value.trim() || null
+      : null,
+    assignmentRevision: showsAnchorEventFilters.value
+      ? draftAssignmentRevision.value.trim() || null
+      : null,
+    renderedMode: showsAnchorEventFilters.value
+      ? draftRenderedMode.value || null
+      : null,
   };
 };
 
@@ -1239,12 +1337,17 @@ const resetFilters = (): void => {
 const refreshDashboard = async (): Promise<void> => {
   refreshPending.value = true;
   try {
-    await Promise.all([
-      analyticsQuery.refetch(),
-      biOverviewQuery.refetch(),
-      prCreateFunnelQuery.refetch(),
-      prJoinFunnelQuery.refetch(),
-    ]);
+    const refetches: Array<Promise<unknown>> = [];
+    if (loadsAnchorEventAnalytics.value) {
+      refetches.push(analyticsQuery.refetch());
+    }
+    if (showsOverviewDashboard.value) {
+      refetches.push(biOverviewQuery.refetch());
+    }
+    if (showsPRFunnelDashboard.value) {
+      refetches.push(prCreateFunnelQuery.refetch(), prJoinFunnelQuery.refetch());
+    }
+    await Promise.all(refetches);
   } finally {
     refreshPending.value = false;
   }

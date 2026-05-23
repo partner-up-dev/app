@@ -32,6 +32,12 @@ Date: 2026-05-22 / 2026-05-23
 - Migrated BI overview, PR create funnel, PR join funnel, Anchor Event funnel, and official-account nudge readers away from the shared query-level `user-event-projection.ts` / production `db.execute<T>` projection paths.
 - Deleted `user-event-projection.ts` after production readers stopped depending on it.
 - Added registry-reference verification for the implemented fact event-name lists.
+- Split the frontend BI dashboard surface into role-gated route-level dashboards:
+  - `/admin/analytics` redirects to `/admin/analytics/overview`;
+  - `/admin/analytics/overview` loads only overview facts;
+  - `/admin/analytics/pr-funnels` loads PR create / join funnel facts;
+  - `/admin/analytics/anchor-events` loads Anchor Event behavior facts and owns Anchor Event-specific filters;
+  - `/admin/analytics/official-account` loads official-account follow nudge facts.
 - Verification passed:
   - targeted analytics / registry unit tests;
   - full backend unit tests;
@@ -41,9 +47,7 @@ Date: 2026-05-22 / 2026-05-23
   - DB migration lint;
   - source scan showing no analytics/controller production references to `db.execute<T>` or the removed shared projection.
 
-## Next Step
+## Remaining Follow-Up
 
-- Remaining #241 work is mainly dashboard/API IA:
-  - split frontend/admin surfaces by BI family;
-  - decide whether PR lifecycle and per-user PR counts should remain typed business-table queries or gain business fact views;
-  - add DB-backed smoke coverage after applying `0067` in local/staging DB.
+- Decide whether PR lifecycle and per-user PR counts should remain typed business-table queries or gain business fact views.
+- Add DB-backed smoke coverage after applying `0067` in local/staging DB if the team wants a persistent regression check beyond current unit/build coverage.

@@ -142,6 +142,42 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/admin/analytics",
     name: "admin-analytics",
+    redirect: { name: "admin-analytics-overview" },
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/overview",
+    name: "admin-analytics-overview",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/pr-funnels",
+    name: "admin-analytics-pr-funnels",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/anchor-events",
+    name: "admin-analytics-anchor-events",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/official-account",
+    name: "admin-analytics-official-account",
     component: AdminAnalyticsPage,
     meta: {
       wechatSharePolicy: "route",

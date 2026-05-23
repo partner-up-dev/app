@@ -180,9 +180,13 @@ Naming can change during implementation, but each fact must state:
 
 ## Dashboard And API Topology
 
-Current state:
+Implemented frontend route state:
 
-- `/admin/analytics` is a single route that renders overview, PR create funnel, PR join funnel, official-account nudge, Anchor Event modes, Anchor Event funnels, outcomes, sources, and failures.
+- `/admin/analytics` redirects to `/admin/analytics/overview`.
+- `/admin/analytics/overview` renders BI health / overview panels.
+- `/admin/analytics/pr-funnels` renders PR create and PR join funnel panels.
+- `/admin/analytics/anchor-events` renders Anchor Event mode, funnel, transition, conversion, outcome, source, and failure panels.
+- `/admin/analytics/official-account` renders official-account follow nudge panels.
 - Backend APIs are already partially split:
   - `/api/analytics/overview`
   - `/api/analytics/pr-create-funnel`
@@ -191,7 +195,7 @@ Current state:
 
 Target direction:
 
-- split frontend dashboards by BI question or fact family;
+- continue splitting dashboard internals by BI question or fact family as new facts are added;
 - keep shared date-range filter behavior where useful, but avoid forcing Anchor Event-specific filters onto unrelated dashboards;
 - align API boundaries with fact ownership and dashboard consumption.
 

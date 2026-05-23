@@ -1153,6 +1153,14 @@ export interface MessageSchema {
     navFeedbackQuestionnaireTemplates: string;
     navFeedbackQuestionnaireTemplatesSubtitle: string;
     navFeedbackQuestionnaires: string;
+    navAnalyticsOverview: string;
+    navAnalyticsOverviewSubtitle: string;
+    navAnalyticsPRFunnels: string;
+    navAnalyticsPRFunnelsSubtitle: string;
+    navAnalyticsAnchorEvents: string;
+    navAnalyticsAnchorEventsSubtitle: string;
+    navAnalyticsOfficialAccount: string;
+    navAnalyticsOfficialAccountSubtitle: string;
     collapseNavigationAction: string;
     expandNavigationAction: string;
     logoutAction: string;
@@ -1181,6 +1189,7 @@ export interface MessageSchema {
     invalidDateRange: string;
     invalidDateOrder: string;
     invalidEventId: string;
+    activeTimeFilterSummary: string;
     activeFilterSummary: string;
     summaryJourneys: string;
     summaryJourneysDetail: string;

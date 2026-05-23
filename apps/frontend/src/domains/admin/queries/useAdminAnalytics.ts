@@ -32,6 +32,14 @@ export type AdminAnalyticsFunnelQuery = {
   renderedMode?: AnchorEventAnalyticsRenderedMode | null;
 };
 
+type AdminAnalyticsQueryOptions = {
+  enabled?: MaybeRef<boolean>;
+};
+
+const resolveEnabled = (
+  options: AdminAnalyticsQueryOptions | undefined,
+) => computed(() => options?.enabled === undefined || unref(options.enabled));
+
 const readErrorMessage = async (
   response: Response,
   fallback: string,
@@ -68,10 +76,12 @@ const normalizePRFunnelQuery = (
 
 export const useAdminAnchorEventFunnelAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
 ) => {
   const normalizedQuery = computed(() => normalizeQuery(unref(input)));
 
   return useQuery<AdminAnalyticsFunnelResponse>({
+    enabled: resolveEnabled(options),
     queryKey: computed(() =>
       queryKeys.admin.anchorEventFunnelAnalytics(normalizedQuery.value),
     ),
@@ -101,10 +111,12 @@ export const useAdminAnchorEventFunnelAnalytics = (
 
 export const useAdminBIOverviewAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
 ) => {
   const normalizedQuery = computed(() => normalizePRFunnelQuery(unref(input)));
 
   return useQuery<AdminBIOverviewResponse>({
+    enabled: resolveEnabled(options),
     queryKey: computed(() =>
       queryKeys.admin.biOverviewAnalytics(normalizedQuery.value),
     ),
@@ -126,12 +138,14 @@ export const useAdminBIOverviewAnalytics = (
 
 export const useAdminPRJoinFunnelAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
 ) => {
   const normalizedQuery = computed(() =>
     normalizePRFunnelQuery(unref(input)),
   );
 
   return useQuery<AdminPRJoinFunnelResponse>({
+    enabled: resolveEnabled(options),
     queryKey: computed(() =>
       queryKeys.admin.prJoinFunnelAnalytics(normalizedQuery.value),
     ),
@@ -153,12 +167,14 @@ export const useAdminPRJoinFunnelAnalytics = (
 
 export const useAdminPRCreateFunnelAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
 ) => {
   const normalizedQuery = computed(() =>
     normalizePRFunnelQuery(unref(input)),
   );
 
   return useQuery<AdminPRCreateFunnelResponse>({
+    enabled: resolveEnabled(options),
     queryKey: computed(() =>
       queryKeys.admin.prCreateFunnelAnalytics(normalizedQuery.value),
     ),
