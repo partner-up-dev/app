@@ -1,5 +1,4 @@
 import { getUserTelemetryDimEvents } from "./user-event-dim";
-import type { UserTelemetryEnrichedEventRow } from "./user-event-projection";
 
 export type PRJoinFunnelQueryInput = {
   startAt?: Date;
@@ -52,6 +51,24 @@ export type PRJoinFunnelResponse = {
     authContextUnknownEvents: number;
   };
   eventDictionary: PRJoinFunnelEventDictionaryEntry[];
+};
+
+export type PRJoinFunnelContextStatus =
+  | "context_complete"
+  | "context_unknown";
+
+export type PRJoinFunnelFactRow = {
+  eventId: string;
+  eventName: string;
+  eventVersion: number;
+  journeyId: string;
+  traceId: string | null;
+  occurredAt: Date;
+  anonymousId: string | null;
+  authenticatedUserHash: string | null;
+  routeContextStatus: PRJoinFunnelContextStatus;
+  authContextStatus: PRJoinFunnelContextStatus;
+  stepKey: string | null;
 };
 
 type FunnelStepDefinition = {
@@ -127,57 +144,15 @@ const createStepAccumulator = (): StepAccumulator => ({
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
-const toRecord = (value: unknown): Record<string, unknown> => {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-};
-
-const readString = (
-  properties: Record<string, unknown>,
-  keys: readonly string[],
-): string | null => {
-  for (const key of keys) {
-    const value = properties[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-};
-
-const isJoinCtaEvent = (event: UserTelemetryEnrichedEventRow): boolean => {
-  const payload = toRecord(event.payload);
-  return readString(payload, ["ctaType", "cta_type"]) === "JOIN";
-};
-
-const isFrontendJoinSuccess = (
-  event: UserTelemetryEnrichedEventRow,
-): boolean => {
-  const payload = toRecord(event.payload);
-  return readString(payload, ["actionResult", "action_result"]) === "success";
-};
-
 const getStepKeyForEvent = (
-  event: UserTelemetryEnrichedEventRow,
+  event: PRJoinFunnelFactRow,
 ): string | null => {
-  if (
-    event.eventName === "pr.primary_cta.impression" ||
-    event.eventName === "pr.primary_cta.click"
-  ) {
-    if (!isJoinCtaEvent(event)) return null;
-  }
-
-  if (event.eventName === "pr.join.result" && !isFrontendJoinSuccess(event)) {
-    return null;
-  }
-
-  return (
-    PR_JOIN_FUNNEL_STEPS.find((step) => step.eventName === event.eventName)
-      ?.stepKey ?? null
-  );
+  if (!event.stepKey) return null;
+  return stepAccumulatorsHas(event.stepKey) ? event.stepKey : null;
 };
+
+const stepAccumulatorsHas = (stepKey: string): boolean =>
+  PR_JOIN_FUNNEL_STEPS.some((step) => step.stepKey === stepKey);
 
 const buildEventDictionary = (): PRJoinFunnelEventDictionaryEntry[] => {
   const eventNameSet = new Set<string>(PR_JOIN_FUNNEL_EVENT_NAMES);
@@ -195,7 +170,7 @@ const buildEventDictionary = (): PRJoinFunnelEventDictionaryEntry[] => {
 
 export const buildPRJoinFunnelResponseFromRows = (
   filters: PRJoinFunnelFilters,
-  eventRows: UserTelemetryEnrichedEventRow[],
+  eventRows: PRJoinFunnelFactRow[],
 ): PRJoinFunnelResponse => {
   const stepAccumulators = new Map<string, StepAccumulator>(
     PR_JOIN_FUNNEL_STEPS.map((step) => [step.stepKey, createStepAccumulator()]),

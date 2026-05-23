@@ -3,12 +3,10 @@ import { test } from "vitest";
 import {
   buildPRJoinFunnelResponseFromRows,
   resolvePRJoinFunnelFilters,
+  type PRJoinFunnelContextStatus,
+  type PRJoinFunnelFactRow,
   type PRJoinFunnelFilters,
 } from "./pr-join-funnel.model";
-import type {
-  UserTelemetryContextStatus,
-  UserTelemetryEnrichedEventRow,
-} from "./user-event-projection";
 
 const filters: PRJoinFunnelFilters = resolvePRJoinFunnelFilters({
   startAt: new Date("2026-05-01T00:00:00.000Z"),
@@ -18,31 +16,23 @@ const filters: PRJoinFunnelFilters = resolvePRJoinFunnelFilters({
 const buildEvent = (input: {
   eventName: string;
   journeyId: string;
-  payload?: Record<string, unknown>;
-  routeContextStatus?: UserTelemetryContextStatus;
-  authContextStatus?: UserTelemetryContextStatus;
+  stepKey: string | null;
+  routeContextStatus?: PRJoinFunnelContextStatus;
+  authContextStatus?: PRJoinFunnelContextStatus;
   anonymousId?: string | null;
   authenticatedUserHash?: string | null;
-}): UserTelemetryEnrichedEventRow => ({
+}): PRJoinFunnelFactRow => ({
   eventId: `${input.journeyId}:${input.eventName}`,
   eventName: input.eventName,
   eventVersion: 1,
-  eventFamily: input.eventName,
-  eventOwner: "test",
-  biUsage: ["pr_join_funnel"],
   journeyId: input.journeyId,
   traceId: null,
-  attributes: {},
-  payload: input.payload ?? {},
   occurredAt: new Date("2026-05-02T00:00:00.000Z"),
-  routePath: "/pr/1",
-  routeName: "pr-detail",
-  spm: "test.spm",
-  sourceQr: null,
   anonymousId: input.anonymousId ?? "anon",
   authenticatedUserHash: input.authenticatedUserHash ?? null,
   routeContextStatus: input.routeContextStatus ?? "context_complete",
   authContextStatus: input.authContextStatus ?? "context_complete",
+  stepKey: input.stepKey,
 });
 
 test("buildPRJoinFunnelResponseFromRows projects join behavior through enriched events", () => {
@@ -51,40 +41,40 @@ test("buildPRJoinFunnelResponseFromRows projects join behavior through enriched 
       journeyId: "journey-auth",
       eventName: "pr.primary_cta.impression",
       authenticatedUserHash: "user-hash",
-      payload: { ctaType: "JOIN" },
+      stepKey: "join_cta_impression",
     }),
     buildEvent({
       journeyId: "journey-auth",
       eventName: "pr.primary_cta.click",
       authenticatedUserHash: "user-hash",
-      payload: { ctaType: "JOIN" },
+      stepKey: "join_cta_click",
     }),
     buildEvent({
       journeyId: "journey-auth",
       eventName: "pr.join.result",
       authenticatedUserHash: "user-hash",
-      payload: { actionResult: "success" },
+      stepKey: "frontend_join_success",
     }),
     buildEvent({
       journeyId: "journey-auth",
       eventName: "pr.joined",
       authenticatedUserHash: "user-hash",
-      payload: { result_status: "success" },
+      stepKey: "backend_joined",
     }),
     buildEvent({
       journeyId: "journey-anon",
       eventName: "pr.primary_cta.impression",
-      payload: { ctaType: "JOIN" },
+      stepKey: "join_cta_impression",
     }),
     buildEvent({
       journeyId: "journey-anon",
       eventName: "pr.primary_cta.click",
-      payload: { ctaType: "JOIN" },
+      stepKey: "join_cta_click",
     }),
     buildEvent({
       journeyId: "journey-anon",
       eventName: "pr.join.result",
-      payload: { actionResult: "blocked" },
+      stepKey: null,
     }),
     buildEvent({
       journeyId: "journey-unknown-context",
@@ -92,12 +82,12 @@ test("buildPRJoinFunnelResponseFromRows projects join behavior through enriched 
       routeContextStatus: "context_unknown",
       authContextStatus: "context_unknown",
       anonymousId: null,
-      payload: { ctaType: "JOIN" },
+      stepKey: "join_cta_click",
     }),
     buildEvent({
       journeyId: "journey-waitlist",
       eventName: "pr.primary_cta.impression",
-      payload: { ctaType: "WAITLIST" },
+      stepKey: null,
     }),
   ]);
 

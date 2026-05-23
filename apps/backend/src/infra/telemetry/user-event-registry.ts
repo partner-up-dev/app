@@ -146,6 +146,8 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("anchor_event.landing.viewed", "anchor_event.landing", "frontend.event", [
     "anchor_event_funnel",
+    "anchor_event_transition",
+    "view_other_anchor_events_conversion",
   ]),
   looseEvent("anchor_event.recommendation.requested", "anchor_event.recommendation", "frontend.event", [
     "anchor_event_funnel",
@@ -158,6 +160,7 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("anchor_event.assisted_create.started", "anchor_event.assisted_create", "frontend.event", [
     "pr_create_funnel",
+    "anchor_event_funnel",
   ]),
   looseEvent("anchor_event.card_stack.loaded", "anchor_event.card_stack", "frontend.event", [
     "anchor_event_funnel",
@@ -170,6 +173,7 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("anchor_event.card_empty_create.started", "anchor_event.assisted_create", "frontend.event", [
     "pr_create_funnel",
+    "anchor_event_funnel",
   ]),
   looseEvent("anchor_event.list.loaded", "anchor_event.list", "frontend.event", [
     "anchor_event_funnel",
@@ -185,12 +189,15 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("anchor_event.list_create.started", "anchor_event.assisted_create", "frontend.event", [
     "pr_create_funnel",
+    "anchor_event_funnel",
   ]),
   looseEvent("pr.entry.reached", "pr.entry", "frontend.pr", [
     "pr_funnel",
+    "anchor_event_funnel",
   ]),
   looseEvent("pr.commitment.result", "pr.commitment_result", "frontend.pr", [
     "pr_funnel",
+    "anchor_event_funnel",
   ]),
   looseEvent("pr.create.result", "pr.create_result", "frontend.pr", [
     "pr_create_funnel",
@@ -272,12 +279,14 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("home.event.all.click", "home.event_discovery", "frontend.home", [
     "view_other_activities",
+    "view_other_anchor_events_conversion",
   ]),
   looseEvent("home.event.highlight.click", "home.event_discovery", "frontend.home", [
     "home_conversion",
   ]),
   looseEvent("home.event.plaza.entry.click", "home.event_discovery", "frontend.home", [
     "view_other_activities",
+    "view_other_anchor_events_conversion",
   ]),
   looseEvent("home.create.entry.click", "home.create_entry", "frontend.home", [
     "pr_create_funnel",
@@ -314,9 +323,11 @@ const userTelemetryEventRegistry = [
   ]),
   looseEvent("pr.primary_cta.impression", "pr.primary_cta", "frontend.pr", [
     "pr_funnel",
+    "pr_join_funnel",
   ]),
   looseEvent("pr.primary_cta.click", "pr.primary_cta", "frontend.pr", [
     "pr_funnel",
+    "pr_join_funnel",
   ]),
   looseEvent("pr.lane.expand", "pr.lane", "frontend.pr", [
     "pr_detail_usage",

@@ -105,7 +105,7 @@ Remove or retire:
 - old analytics readers that depend on v1 fields;
 - temporary compatibility paths that are not needed after data migration.
 
-Recovery-only v1 backup tables may remain in the database if #240 chose that rollback posture, but production readers should not depend on them.
+V1 telemetry tables are migration-only staging surfaces. After backfill verification, they should be dropped by a forward-only cleanup migration; production readers must only depend on target `user_telemetry_*` tables and migrated legacy context events such as `segment.started`.
 
 ## Phase 7: Verification And Staging
 

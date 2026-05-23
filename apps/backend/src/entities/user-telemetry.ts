@@ -14,10 +14,14 @@ export const userTelemetryJourneys = pgTable(
   "user_telemetry_journeys",
   {
     id: uuid("id").primaryKey(),
-    startedAt: timestamp("started_at").notNull(),
-    lastSeenAt: timestamp("last_seen_at").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     startedAtIdx: index("user_telemetry_journeys_started_at_idx").on(
@@ -45,8 +49,10 @@ export const userTelemetryEvents = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
     payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
-    occurredAt: timestamp("occurred_at").notNull(),
-    receivedAt: timestamp("received_at").notNull().defaultNow(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     eventNameOccurredAtIdx: index(
@@ -75,11 +81,13 @@ export const userTelemetryRejectedEvents = pgTable(
     eventName: text("event_name"),
     eventVersion: integer("event_version"),
     journeyId: text("journey_id"),
-    occurredAt: timestamp("occurred_at"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }),
     failureCode: text("failure_code").notNull(),
     failureMessage: text("failure_message").notNull(),
     rawEvent: jsonb("raw_event").$type<Record<string, unknown>>().notNull(),
-    receivedAt: timestamp("received_at").notNull().defaultNow(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     eventNameReceivedAtIdx: index(

@@ -1,6 +1,5 @@
 import type { PRStatus } from "../../entities/partner-request";
 import { addDaysUtc8, formatDateKeyUtc8 } from "./time-window";
-import type { UserTelemetryEnrichedEventRow } from "./user-event-projection";
 
 export type BIOverviewQueryInput = {
   startAt?: Date;
@@ -95,6 +94,30 @@ export type BIOverviewResponse = {
   viewOtherActivities: ViewOtherActivitiesConversion;
 };
 
+export type RetentionActivityFactRow = {
+  eventId: string;
+  eventName: string;
+  journeyId: string;
+  occurredAt: Date;
+  identityKey: string | null;
+};
+
+export type AnchorEventTransitionFactRow = {
+  eventId: string;
+  journeyId: string;
+  occurredAt: Date;
+  identityKey: string | null;
+  activityType: string;
+};
+
+export type ViewOtherAnchorEventsConversionFactRow = {
+  eventId: string;
+  eventName: string;
+  journeyId: string;
+  occurredAt: Date;
+  identityKey: string | null;
+};
+
 type TransitionAccumulator = {
   users: Set<string>;
   transitionCount: number;
@@ -149,30 +172,6 @@ export const resolveBIOverviewFilters = (
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
-const toRecord = (value: unknown): Record<string, unknown> => {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-};
-
-const readString = (
-  properties: Record<string, unknown>,
-  keys: readonly string[],
-): string | null => {
-  for (const key of keys) {
-    const value = properties[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-};
-
-const getIdentityKey = (event: UserTelemetryEnrichedEventRow): string | null =>
-  event.authenticatedUserHash ??
-  (event.anonymousId ? `anonymous:${event.anonymousId}` : null);
-
 const isOccurredInWindow = (
   occurredAt: Date,
   filters: BIOverviewFilters,
@@ -186,28 +185,27 @@ const isOccurredInWindow = (
 
 const buildRetentionRows = (
   filters: BIOverviewFilters,
-  retentionEvents: UserTelemetryEnrichedEventRow[],
+  retentionEvents: RetentionActivityFactRow[],
 ): RetentionRow[] => {
   const activeDatesByUser = new Map<string, Set<string>>();
   for (const event of retentionEvents) {
-    const identityKey = getIdentityKey(event);
-    if (!identityKey) continue;
+    if (!event.identityKey) continue;
 
     const dateKey = formatDateKeyUtc8(event.occurredAt);
-    const activeDates = activeDatesByUser.get(identityKey) ?? new Set<string>();
+    const activeDates =
+      activeDatesByUser.get(event.identityKey) ?? new Set<string>();
     activeDates.add(dateKey);
-    activeDatesByUser.set(identityKey, activeDates);
+    activeDatesByUser.set(event.identityKey, activeDates);
   }
 
   const usersByDate = new Map<string, Set<string>>();
   for (const event of retentionEvents) {
     if (!isOccurredInWindow(event.occurredAt, filters)) continue;
-    const identityKey = getIdentityKey(event);
-    if (!identityKey) continue;
+    if (!event.identityKey) continue;
 
     const dateKey = formatDateKeyUtc8(event.occurredAt);
     const users = usersByDate.get(dateKey) ?? new Set<string>();
-    users.add(identityKey);
+    users.add(event.identityKey);
     usersByDate.set(dateKey, users);
   }
 
@@ -332,17 +330,19 @@ const buildPRLifecycleCohortSummary = (
 };
 
 const buildAnchorEventTransitions = (
-  events: UserTelemetryEnrichedEventRow[],
+  events: AnchorEventTransitionFactRow[],
 ): AnchorEventTransitionRow[] => {
-  const landingEventsByIdentity = new Map<string, UserTelemetryEnrichedEventRow[]>();
+  const landingEventsByIdentity = new Map<
+    string,
+    AnchorEventTransitionFactRow[]
+  >();
   for (const event of events) {
-    if (event.eventName !== "anchor_event.landing.viewed") continue;
-    const identityKey = getIdentityKey(event);
-    if (!identityKey) continue;
+    if (!event.identityKey) continue;
 
-    const landingEvents = landingEventsByIdentity.get(identityKey) ?? [];
+    const landingEvents =
+      landingEventsByIdentity.get(event.identityKey) ?? [];
     landingEvents.push(event);
-    landingEventsByIdentity.set(identityKey, landingEvents);
+    landingEventsByIdentity.set(event.identityKey, landingEvents);
   }
 
   const transitions = new Map<string, TransitionAccumulator>();
@@ -356,12 +356,8 @@ const buildAnchorEventTransitions = (
       const current = sortedEvents[index];
       if (!previous || !current) continue;
 
-      const fromActivityType =
-        readString(toRecord(previous.payload), ["activityType", "activity_type"]) ??
-        "unknown";
-      const toActivityType =
-        readString(toRecord(current.payload), ["activityType", "activity_type"]) ??
-        "unknown";
+      const fromActivityType = previous.activityType;
+      const toActivityType = current.activityType;
       if (fromActivityType === toActivityType) continue;
 
       const key = `${fromActivityType}:${toActivityType}`;
@@ -397,7 +393,7 @@ const buildAnchorEventTransitions = (
 };
 
 const buildViewOtherActivitiesConversion = (
-  events: UserTelemetryEnrichedEventRow[],
+  events: ViewOtherAnchorEventsConversionFactRow[],
 ): ViewOtherActivitiesConversion => {
   const clickJourneys = new Set<string>();
   const clickUsers = new Set<string>();
@@ -409,9 +405,8 @@ const buildViewOtherActivitiesConversion = (
     .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime());
 
   for (const clickEvent of clickEvents) {
-    const identityKey = getIdentityKey(clickEvent);
     clickJourneys.add(clickEvent.journeyId);
-    if (identityKey) clickUsers.add(identityKey);
+    if (clickEvent.identityKey) clickUsers.add(clickEvent.identityKey);
 
     const hasLaterLandingView = events.some(
       (event) =>
@@ -421,7 +416,7 @@ const buildViewOtherActivitiesConversion = (
     );
     if (hasLaterLandingView) {
       landingViewJourneys.add(clickEvent.journeyId);
-      if (identityKey) landingViewUsers.add(identityKey);
+      if (clickEvent.identityKey) landingViewUsers.add(clickEvent.identityKey);
     }
   }
 
@@ -440,8 +435,9 @@ const buildViewOtherActivitiesConversion = (
 
 export const buildBIOverviewResponse = (input: {
   filters: BIOverviewFilters;
-  retentionEvents: UserTelemetryEnrichedEventRow[];
-  behaviorEvents: UserTelemetryEnrichedEventRow[];
+  retentionEvents: RetentionActivityFactRow[];
+  anchorEventTransitionEvents: AnchorEventTransitionFactRow[];
+  viewOtherAnchorEventEvents: ViewOtherAnchorEventsConversionFactRow[];
   userPRCountRows: UserPRCountInputRow[];
   prLifecycleCreatedAtStatusRows: PRLifecycleStatusInputRow[];
   prLifecycleTimeWindowEndAtStatusRows: PRLifecycleStatusInputRow[];
@@ -464,7 +460,11 @@ export const buildBIOverviewResponse = (input: {
       createdAtCohort,
       timeWindowEndAtCohort,
     },
-    anchorEventTransitions: buildAnchorEventTransitions(input.behaviorEvents),
-    viewOtherActivities: buildViewOtherActivitiesConversion(input.behaviorEvents),
+    anchorEventTransitions: buildAnchorEventTransitions(
+      input.anchorEventTransitionEvents,
+    ),
+    viewOtherActivities: buildViewOtherActivitiesConversion(
+      input.viewOtherAnchorEventEvents,
+    ),
   };
 };

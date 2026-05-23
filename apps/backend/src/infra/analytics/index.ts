@@ -20,7 +20,3 @@ export {
   getUserTelemetryDimEvents,
   type UserTelemetryDimEvent,
 } from "./user-event-dim";
-export {
-  fetchUserTelemetryEnrichedEvents,
-  type UserTelemetryEnrichedEventRow,
-} from "./user-event-projection";

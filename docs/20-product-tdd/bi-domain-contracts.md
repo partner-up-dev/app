@@ -7,7 +7,7 @@ This document owns the BI domain's cross-unit technical contract. It explains wh
 BI is built from three source families:
 
 - Business fact data: authoritative product tables and read models.
-- User behavior events: registry-governed `user_telemetry_*` raw events plus enriched projections.
+- User behavior events: registry-governed `user_telemetry_*` raw events plus fact projections.
 - Program behavior signals: software observability and program-internal behavior signals.
 
 BI must select the source family by the question being answered.
@@ -29,25 +29,27 @@ User behavior events answer questions about observed behavior chains:
 - retention by UV over 3 / 5 / 7 days or arbitrary windows;
 - PR create / join funnels from observation to intent to submission to backend-confirmed result;
 - anchor-event transition paths, for example whether users naturally move from self-study or running into badminton or commuting;
-- "view other activities" conversion;
+- view-other-Anchor-Events conversion;
 - official-account follow nudge click behavior.
 
-User behavior BI reads enriched events or fact projections. It should not repeatedly reconstruct route, identity, experiment, or consent context from raw events at dashboard query time.
+User behavior BI reads fact projections. It should not repeatedly reconstruct route, identity, experiment, or consent context from raw events at dashboard query time.
 
 ## Projection Boundary
 
-Raw `user_telemetry_events` is the ledger. BI uses projections such as:
+Raw `user_telemetry_events` is the ledger. BI uses fact-specific projections such as:
 
-- `event_enriched`: raw event plus reconstructed route, auth session, environment, experiment, consent, and attribution context.
-- `dim_event`: projected from the unique Event Registry.
-- `dim_identity` or equivalent identity/session projection: resolves identity by nearest prior `auth.session.created`.
-- funnel facts: PR create / join / waitlist / close funnel projections.
-- retention facts: UV and return-window projections.
-- anchor-event transition facts.
+- PR create / join funnel event facts;
+- retention activity facts;
+- Anchor Event transition facts;
+- view-other-Anchor-Events conversion facts;
+- Anchor Event funnel facts;
+- official-account follow nudge facts.
 
-The first implementation may realize these as SQL queries, views, materialized tables, or application-level query builders, but the ownership boundary remains the same.
+Do not introduce a broad dashboard-facing `event_enriched` projection as the primary BI API. Shared helper projections may be introduced later only when they are narrow, for example identity-context or route-context helpers, and when repeated fact-local reconstruction becomes a proven maintenance cost.
 
-Current implementation note: the first `event_enriched` and `dim_event` slice is a query-level projection. It joins raw user events with a registry-derived `dim_event`, route context from nearest prior `route.entered` in the same journey, and identity context from nearest prior `auth.session.created` in the same journey. The current dashboard consumers are PR create / join funnel panels and the BI overview projection for retention, per-user PR counts, current PR lifecycle status, Anchor Event transitions, and "view other activities" conversion. PR lifecycle status is projected as both a `created_at` cohort and a PR time-window `endAt` cohort; close / expired readings should use the `endAt` cohort when the question is about completed activity windows.
+Current implementation note: production user-behavior BI readers use PostgreSQL fact views with Drizzle schemas. Fact event-name references are verified against the TypeScript Event Registry. PR lifecycle status is projected from business fact tables as both a `created_at` cohort and a PR time-window `endAt` cohort; close / expired readings should use the `endAt` cohort when the question is about completed activity windows.
+
+BI query windows over user telemetry are instant ranges. API query parameters must carry timezone information, SQL filters must compare against `timestamptz`, and product-local date keys must be derived explicitly at projection time. Raw SQL projections must receive telemetry instants as boundary-decoded `Date` values rather than parsing timestamp strings inside BI code. BI code must not silently reinterpret telemetry instants as server-local `timestamp without time zone` values.
 
 ## Context Completeness
 
@@ -60,7 +62,7 @@ BI must not guess missing context.
 
 BI event dictionaries are derived from the unique Event Registry.
 
-- `dim_event` is a projection, not an independent hand-edited catalog.
+- Event dictionaries and fact event-name references are projected from or verified against the unique Event Registry, not maintained as independent catalogs.
 - Event family, owner, version, schema, and BI usage must match the registry.
 - `event_kind` is not a BI dictionary dimension; dashboards should select explicit event names / families for each metric.
 - Event semantic changes require an event version bump.
@@ -86,10 +88,10 @@ The BI domain must support:
 - per-user PR count;
 - PR formed / closed / expired metrics from business fact data;
 - PR create and join funnels;
-- anchor-event transition analysis;
-- "view other activities" conversion;
+- Anchor Event transition analysis;
+- view-other-Anchor-Events conversion;
 - official-account follow nudge click-rate behavior.
 
-The legacy Anchor Event funnel dashboard may keep compatibility-facing response fields while its internals migrate to the governed telemetry/projection model.
+The legacy Anchor Event funnel dashboard may keep compatibility-facing response fields while its internals use the governed telemetry/projection model.
 
-The old cold-start analytics reader is retired. Production BI readers must use `user_telemetry_*` projections and business fact tables; legacy telemetry entities may remain only as recovery or historical migration surfaces.
+The old cold-start analytics reader is retired. Production BI readers must use `user_telemetry_*` projections and business fact tables.

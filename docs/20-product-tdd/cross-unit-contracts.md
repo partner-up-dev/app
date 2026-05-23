@@ -285,14 +285,14 @@ Important coordination note:
 - Ordinary behavior events do not carry anonymous id, authenticated user hash, `seq`, `correlation_id`, `cause_event_id`, `source`, or `authority`.
 - User behavior telemetry may keep optional `trace_id` so it can join with program behavior collection / software observability.
 - Program-internal behavior collection is a separate signal family. Program correlation can use request/log/trace identifiers without copying those fields into every user behavior event.
-- Product analytics reads business fact data, enriched user behavior events, and program behavior signals as separate source families.
+- Product analytics reads business fact data, user behavior event fact projections, and program behavior signals as separate source families.
 - Automatic system facts such as `pr.expired` do not enter user telemetry.
 
 ## 13. BI Entry And Analytics Authorization Contract
 
 - The canonical BI domain contract lives in `bi-domain-contracts.md`.
 - PR lifecycle BI metrics query business fact data / current PR statuses, not user behavior events. Cohorts use PR `created_at` and PR time-window `endAt`.
-- User behavior BI reads enriched events or fact projections, not ad-hoc raw payloads.
+- User behavior BI reads fact projections, not ad-hoc raw payloads or broad dashboard-facing enriched-event objects.
 - `/admin/analytics` is the BI dashboard route and requires the `analytics` role.
 - `/bi?code=...` is a lightweight BI entry route. The page uses the query `code` as the analytics seed user's pin and a page-local hard-coded analytics seed user id, calls the admin login endpoint, then redirects to `/admin/analytics` on success.
 - `/bi` scrubs the code by replacing the route after a successful login. Failed login stays on `/bi`, renders a simple error message, and offers a home action.

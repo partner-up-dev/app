@@ -85,6 +85,9 @@ Use a replacement-table migration:
    - `user_telemetry_rejected_events`
 3. Do not recreate `user_telemetry_segments`.
 4. Recreate indexes and constraints for the new query paths.
+5. Drop the `_v1` staging tables after forward backfill verification.
+6. Store telemetry instant columns as `timestamptz`, not `timestamp without time zone`.
+7. Ensure the backend DB boundary decodes `timestamptz` into JavaScript `Date` for both Drizzle typed columns and raw SQL projection paths.
 
 Data migration mapping rules:
 
@@ -94,6 +97,7 @@ Data migration mapping rules:
 - otherwise legacy rows are quarantined or marked with explicit migration metadata;
 - old event rows become raw ledger events with registry-derived `event_family` and `event_version`;
 - preserve `occurred_at` as event time and `received_at` as ingest time where old data has both;
+- preserve timezone semantics for migrated instants by interpreting legacy no-timezone values as UTC;
 - do not add or persist `event_kind`; BI queries must select explicit event names / families;
 - do not generate or persist a business `seq`.
 

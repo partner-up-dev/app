@@ -7,6 +7,7 @@
 - `user_telemetry_events` v1 is renamed to `user_telemetry_events_v1`.
 - New target tables are `user_telemetry_journeys`, `user_telemetry_events`, and `user_telemetry_rejected_events`.
 - `user_telemetry_segments` does not exist in the target schema.
+- The renamed `_v1` tables are migration-only staging surfaces and are dropped after the forward data backfill.
 
 ## Journey Rows
 
@@ -75,7 +76,7 @@ The final v2 model does not retain these v1 envelope fields:
 
 `correlation_id` and `request_id` are intentionally not carried forward as user-behavior event fields. `trace_id` is retained for observability linkage.
 
-`0061` and `0062` are historical forward-only migrations that may have already created / populated `event_kind`. The follow-up migration `0064_drop_user_telemetry_event_kind.sql` removes the target column and deletes the temporary `legacy_event_kind` attribute from migrated rows.
+`0061` and `0062` are historical forward-only migrations that may have already created / populated `event_kind`. The follow-up migration `0064_drop_user_telemetry_event_kind.sql` removes the target column and deletes the temporary `legacy_event_kind` attribute from migrated rows. `0065_user_telemetry_cleanup_and_timestamptz.sql` drops the `_v1` staging tables after backfill and converts target telemetry instant columns to `timestamptz`.
 
 ## Ordering
 

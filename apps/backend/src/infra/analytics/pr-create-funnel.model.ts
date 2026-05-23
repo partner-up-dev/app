@@ -1,5 +1,4 @@
 import { getUserTelemetryDimEvents } from "./user-event-dim";
-import type { UserTelemetryEnrichedEventRow } from "./user-event-projection";
 
 export type PRCreateFunnelQueryInput = {
   startAt?: Date;
@@ -60,6 +59,25 @@ export type PRCreateFunnelResponse = {
     authContextUnknownEvents: number;
   };
   eventDictionary: PRCreateFunnelEventDictionaryEntry[];
+};
+
+export type PRCreateFunnelContextStatus =
+  | "context_complete"
+  | "context_unknown";
+
+export type PRCreateFunnelFactRow = {
+  eventId: string;
+  eventName: string;
+  eventVersion: number;
+  journeyId: string;
+  traceId: string | null;
+  occurredAt: Date;
+  anonymousId: string | null;
+  authenticatedUserHash: string | null;
+  routeContextStatus: PRCreateFunnelContextStatus;
+  authContextStatus: PRCreateFunnelContextStatus;
+  stepKey: string | null;
+  creationPath: PRCreatePath | null;
 };
 
 type FunnelStepDefinition = {
@@ -154,26 +172,6 @@ const createStepAccumulator = (): StepAccumulator => ({
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
-const toRecord = (value: unknown): Record<string, unknown> => {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-};
-
-const readString = (
-  properties: Record<string, unknown>,
-  keys: readonly string[],
-): string | null => {
-  for (const key of keys) {
-    const value = properties[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return null;
-};
-
 const toCreatePath = (value: string | null): PRCreatePath => {
   if (
     value === "form" ||
@@ -185,38 +183,13 @@ const toCreatePath = (value: string | null): PRCreatePath => {
   return "unknown";
 };
 
-const isFrontendCreateSuccess = (
-  event: UserTelemetryEnrichedEventRow,
-): boolean => {
-  if (
-    event.eventName !== "pr.create.result" &&
-    event.eventName !== "anchor_event.assisted_create.result"
-  ) {
-    return false;
-  }
-
-  const payload = toRecord(event.payload);
-  return readString(payload, ["actionResult", "action_result"]) === "success";
-};
-
 const getStepKeyForEvent = (
-  event: UserTelemetryEnrichedEventRow,
+  event: PRCreateFunnelFactRow,
 ): string | null => {
-  if (
-    (event.eventName === "pr.create.result" ||
-      event.eventName === "anchor_event.assisted_create.result") &&
-    !isFrontendCreateSuccess(event)
-  ) {
-    return null;
-  }
-
-  return (
-    PR_CREATE_FUNNEL_STEPS.find((step) =>
-      step.eventNames.includes(
-        event.eventName as (typeof PR_CREATE_FUNNEL_EVENT_NAMES)[number],
-      ),
-    )?.stepKey ?? null
-  );
+  if (!event.stepKey) return null;
+  return PR_CREATE_FUNNEL_STEPS.some((step) => step.stepKey === event.stepKey)
+    ? event.stepKey
+    : null;
 };
 
 const buildEventDictionary = (): PRCreateFunnelEventDictionaryEntry[] => {
@@ -250,7 +223,7 @@ const getPathAccumulator = (
 
 export const buildPRCreateFunnelResponseFromRows = (
   filters: PRCreateFunnelFilters,
-  eventRows: UserTelemetryEnrichedEventRow[],
+  eventRows: PRCreateFunnelFactRow[],
 ): PRCreateFunnelResponse => {
   const stepAccumulators = new Map<string, StepAccumulator>(
     PR_CREATE_FUNNEL_STEPS.map((step) => [step.stepKey, createStepAccumulator()]),
@@ -276,10 +249,7 @@ export const buildPRCreateFunnelResponseFromRows = (
     }
 
     if (event.eventName === "pr.created") {
-      const payload = toRecord(event.payload);
-      const creationPath = toCreatePath(
-        readString(payload, ["creation_path", "creationPath"]),
-      );
+      const creationPath = toCreatePath(event.creationPath);
       const pathAccumulator = getPathAccumulator(
         pathAccumulators,
         creationPath,

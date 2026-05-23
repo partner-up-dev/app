@@ -3,12 +3,11 @@ import { test } from "vitest";
 import {
   buildPRCreateFunnelResponseFromRows,
   resolvePRCreateFunnelFilters,
+  type PRCreateFunnelContextStatus,
+  type PRCreateFunnelFactRow,
   type PRCreateFunnelFilters,
+  type PRCreatePath,
 } from "./pr-create-funnel.model";
-import type {
-  UserTelemetryContextStatus,
-  UserTelemetryEnrichedEventRow,
-} from "./user-event-projection";
 
 const filters: PRCreateFunnelFilters = resolvePRCreateFunnelFilters({
   startAt: new Date("2026-05-01T00:00:00.000Z"),
@@ -18,31 +17,25 @@ const filters: PRCreateFunnelFilters = resolvePRCreateFunnelFilters({
 const buildEvent = (input: {
   eventName: string;
   journeyId: string;
-  payload?: Record<string, unknown>;
-  routeContextStatus?: UserTelemetryContextStatus;
-  authContextStatus?: UserTelemetryContextStatus;
+  stepKey: string | null;
+  creationPath?: PRCreatePath | null;
+  routeContextStatus?: PRCreateFunnelContextStatus;
+  authContextStatus?: PRCreateFunnelContextStatus;
   anonymousId?: string | null;
   authenticatedUserHash?: string | null;
-}): UserTelemetryEnrichedEventRow => ({
+}): PRCreateFunnelFactRow => ({
   eventId: `${input.journeyId}:${input.eventName}`,
   eventName: input.eventName,
   eventVersion: 1,
-  eventFamily: input.eventName,
-  eventOwner: "test",
-  biUsage: ["pr_create_funnel"],
   journeyId: input.journeyId,
   traceId: null,
-  attributes: {},
-  payload: input.payload ?? {},
   occurredAt: new Date("2026-05-02T00:00:00.000Z"),
-  routePath: "/pr/new",
-  routeName: "pr-create",
-  spm: "test.spm",
-  sourceQr: null,
   anonymousId: input.anonymousId ?? "anon",
   authenticatedUserHash: input.authenticatedUserHash ?? null,
   routeContextStatus: input.routeContextStatus ?? "context_complete",
   authContextStatus: input.authContextStatus ?? "context_complete",
+  stepKey: input.stepKey,
+  creationPath: input.creationPath ?? null,
 });
 
 test("buildPRCreateFunnelResponseFromRows projects create behavior through enriched events", () => {
@@ -51,32 +44,36 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
       journeyId: "journey-form",
       eventName: "home.create.entry.click",
       authenticatedUserHash: "user-hash",
+      stepKey: "create_entry_intent",
     }),
     buildEvent({
       journeyId: "journey-form",
       eventName: "pr.create.result",
       authenticatedUserHash: "user-hash",
-      payload: { actionResult: "success" },
+      stepKey: "frontend_create_success",
     }),
     buildEvent({
       journeyId: "journey-form",
       eventName: "pr.created",
       authenticatedUserHash: "user-hash",
-      payload: { creation_path: "form" },
+      stepKey: "backend_created",
+      creationPath: "form",
     }),
     buildEvent({
       journeyId: "journey-assisted",
       eventName: "anchor_event.assisted_create.started",
+      stepKey: "create_entry_intent",
     }),
     buildEvent({
       journeyId: "journey-assisted",
       eventName: "anchor_event.assisted_create.result",
-      payload: { actionResult: "success" },
+      stepKey: "frontend_create_success",
     }),
     buildEvent({
       journeyId: "journey-assisted",
       eventName: "pr.created",
-      payload: { creation_path: "event_assisted" },
+      stepKey: "backend_created",
+      creationPath: "event_assisted",
     }),
     buildEvent({
       journeyId: "journey-blocked",
@@ -84,6 +81,7 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
       routeContextStatus: "context_unknown",
       authContextStatus: "context_unknown",
       anonymousId: null,
+      stepKey: "create_entry_intent",
     }),
     buildEvent({
       journeyId: "journey-blocked",
@@ -91,12 +89,13 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
       routeContextStatus: "context_unknown",
       authContextStatus: "context_unknown",
       anonymousId: null,
-      payload: { actionResult: "blocked" },
+      stepKey: null,
     }),
     buildEvent({
       journeyId: "journey-nl",
       eventName: "pr.created",
-      payload: { creation_path: "natural_language" },
+      stepKey: "backend_created",
+      creationPath: "natural_language",
     }),
   ]);
 

@@ -23,9 +23,11 @@
 - Anchor-event transition and "view other activities" conversion are queryable from projections.
 - PR lifecycle metrics query business fact data / PR table current statuses using `created_at` and PR time-window `endAt`.
 - Unknown or incomplete context appears explicitly as `context_unknown` / `context_incomplete`.
+- User telemetry BI filters compare instant ranges with `::timestamptz`, not `::timestamp`.
+- Analytics API datetime query parameters require `Z` or an explicit offset.
 
 ## Release Verification
 
 - Scenario tests cover the cross-unit paths that emit user telemetry.
 - Staging validation runs after the `develop` breaking release train deploys.
-- Old v1 readers and event producers are removed or explicitly marked recovery-only.
+- Old v1 readers and event producers are removed; v1 staging tables are not a production dependency.

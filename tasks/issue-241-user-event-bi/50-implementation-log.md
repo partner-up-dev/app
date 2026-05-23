@@ -85,10 +85,14 @@ Date: 2026-05-21
 - Removed the old `/api/telemetry/events` v1 ingest route and legacy `telemetry_events` ingest service; backend WeChat OAuth trace remains structured runtime logging instead of user-behavior collection.
 - Removed frontend telemetry segment production and segment-key propagation; component-local dedupe now prevents duplicate landing/list/card events without creating a segment context.
 
-## 2026-05-22 BI Overview Runtime Fix
+## 2026-05-22 Telemetry Cleanup And Timezone Correction
 
-- Normalized query-level `event_enriched` `occurred_at` values to `Date` at the projection boundary.
-- Covered both `Date` values and Postgres timestamp strings so BI models never receive raw timestamp strings.
+- Removed the local timestamp parser/test approach from `event_enriched`; timestamp correctness belongs to the data model and system boundary contract.
+- Converted user telemetry analytics filters from `::timestamp` to `::timestamptz`.
+- Removed legacy `telemetry_events` code surface and migration-only v1 telemetry staging tables through a forward-only migration.
+- Added TDD guidance that telemetry instants must carry timezone semantics end to end.
+- Fixed the Drizzle/Postgres raw SQL boundary so `timestamptz` telemetry instants reach BI projections as `Date`, not driver strings.
+- Split the longer-term registry / DB projection / BI fact granularity questions into `tasks/issue-241-bi-projection-type-safety/`.
 
 ## Verification
 
@@ -109,3 +113,9 @@ Date: 2026-05-21
 - `pnpm lint:backend` passed.
 - `pnpm db:lint` passed.
 - `pnpm --dir . exec vitest run --project system-scenario tests/scenario/anchor-event/anchor-event-analytics-funnel.scenario.test.ts` passed.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/bi-overview.model.test.ts apps/backend/src/infra/analytics/pr-create-funnel.model.test.ts apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts apps/backend/src/infra/analytics/anchor-event-funnel.model.test.ts apps/backend/src/infra/telemetry/user-event-registry.test.ts apps/backend/src/infra/telemetry/request-journey-context.test.ts` passed after timezone/cast cleanup.
+- `pnpm lint:backend` and `pnpm build:backend` passed after legacy telemetry entity removal.
+- `pnpm --filter @partner-up-dev/backend typecheck` passed after the Drizzle/Postgres raw SQL boundary fix.
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/infra/analytics/bi-overview.model.test.ts apps/backend/src/infra/analytics/pr-create-funnel.model.test.ts apps/backend/src/infra/analytics/pr-join-funnel.model.test.ts apps/backend/src/infra/analytics/anchor-event-funnel.model.test.ts apps/backend/src/infra/telemetry/user-event-registry.test.ts apps/backend/src/infra/telemetry/request-journey-context.test.ts` passed after the Drizzle/Postgres raw SQL boundary fix.
+- `pnpm lint:backend` and `pnpm build:backend` passed after the Drizzle/Postgres raw SQL boundary fix.
+- Runtime check against the local DB confirmed `/api/analytics/overview`'s domain function returns successfully for `2026-05-15T13:29:00.000Z` to `2026-05-22T13:29:00.000Z`.

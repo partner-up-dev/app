@@ -15,9 +15,11 @@ import {
 
 const app = new Hono<AdminAuthEnv>();
 
+const instantDateTimeSchema = z.string().datetime({ offset: true });
+
 const analyticsDateRangeQuerySchema = z.object({
-  startAt: z.string().datetime().optional(),
-  endAt: z.string().datetime().optional(),
+  startAt: instantDateTimeSchema.optional(),
+  endAt: instantDateTimeSchema.optional(),
 });
 
 const optionalFilterString = (maxLength = 256) =>
@@ -25,8 +27,8 @@ const optionalFilterString = (maxLength = 256) =>
 
 const anchorEventFunnelQuerySchema = z
   .object({
-    startAt: z.string().datetime().optional(),
-    endAt: z.string().datetime().optional(),
+    startAt: instantDateTimeSchema.optional(),
+    endAt: instantDateTimeSchema.optional(),
     eventId: z.coerce.number().int().positive().optional(),
     spm: optionalFilterString(),
     sourceQr: optionalFilterString(),

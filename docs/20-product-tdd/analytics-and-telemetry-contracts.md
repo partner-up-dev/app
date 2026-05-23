@@ -17,7 +17,7 @@ BI may combine all three families. User behavior telemetry must not become the s
 User-behavior telemetry is a ledger, not a report.
 
 - Raw events are append-only and forward-only.
-- BI readers should consume enriched events or fact projections, not ad-hoc raw payloads.
+- BI readers should consume fact projections, not ad-hoc raw payloads or broad dashboard-facing enriched-event objects.
 - Historical events are not rewritten to repair BI; projection logic and data migrations own interpretation changes.
 
 User-behavior telemetry collects user-caused behavior chains only.
@@ -51,6 +51,18 @@ Event semantics are governed.
 - Same-name semantic changes require an `event_version` bump.
 - Frontend and backend must not add unowned, unversioned event names directly at call sites.
 
+## Time Instant Contract
+
+Telemetry timestamps represent real instants, not local wall-clock labels.
+
+- API inputs and outputs for telemetry instants must use ISO-8601 date-time strings with timezone information, either `Z` or an explicit offset.
+- Frontend telemetry, backend request-scoped telemetry, ingest DTOs, SQL filters, storage, and BI projections must preserve timezone semantics end to end.
+- Postgres storage for telemetry instants uses `timestamptz`; Drizzle schema uses `timestamp(..., { withTimezone: true })`.
+- SQL filters against telemetry instant columns cast date-time parameters as `::timestamptz`.
+- The backend DB boundary decodes `timestamptz` values into JavaScript `Date` before domain or projection code sees them, including raw SQL projection paths that bypass Drizzle column decoders.
+- Do not store cross-system telemetry instants as `timestamp without time zone` or accept no-offset datetime strings.
+- Exceptions are limited to explicit local calendar or wall-clock fields, such as a product-local date key or display-only local time. Those fields must state their local-time semantics in their contract.
+
 ## Raw User Event Contract
 
 `POST /api/telemetry/user/events` ingests batched user telemetry events. Accepted events use this conceptual shape:
@@ -75,7 +87,7 @@ Accepted events require:
 - `event_name`: registered, versioned event name.
 - `event_version`: registered event semantic version.
 - `journey_id`: application activity session id.
-- `occurred_at`: event-source time.
+- `occurred_at`: event-source instant with timezone information.
 
 Accepted events may carry:
 
@@ -134,7 +146,7 @@ The Event Registry is the unique source of truth for event acceptance and event 
 - PII / consent classification;
 - BI usage.
 
-`dim_event` and other BI dictionaries are projections from this registry, not a second hand-maintained registry.
+BI event dictionaries and fact event-name references are projections from or checks against this registry, not a second hand-maintained registry.
 
 `event_kind` is intentionally not part of the accepted envelope, storage schema, or registry contract. Query semantics must come from explicit `event_name` / `event_family` selection and BI usage metadata, not from a broad role bucket.
 
@@ -226,6 +238,8 @@ The target `user_telemetry_*` family contains:
 
 `user_telemetry_segments` is retired from the target schema. Prior segment meaning should be represented by context events or projections.
 
+Legacy `user_telemetry_*_v1` tables are migration-only staging surfaces. After forward migration and verification, they should be dropped by a forward-only cleanup migration rather than preserved as long-lived schema.
+
 ## Historical Data Migration
 
 The current v1 telemetry data is migrated forward:
@@ -236,5 +250,6 @@ The current v1 telemetry data is migrated forward:
 - old event rows become raw ledger events using the registry mapping;
 - unmapped rows are quarantined or marked with explicit migration metadata;
 - `occurred_at` remains event time and `received_at` remains ingest time where available.
+- legacy staging tables are not part of the target schema after backfill cleanup.
 
 Do not synthesize a business `seq` during migration.

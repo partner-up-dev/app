@@ -27,6 +27,8 @@ Date: 2026-05-21
 - Added forward-only data migration `0062_user_telemetry_v2_backfill.sql`, including registry-aligned `event_family` reconstruction for legacy rows.
 - Removed `event_kind` from the v2 user telemetry storage and registry contract; BI semantics now rely on explicit event names / families and registry BI usage metadata.
 - Preserved already-executed `0061` / `0062` migration files and added forward-only `0064_drop_user_telemetry_event_kind.sql` to drop the column and remove migrated `legacy_event_kind` attributes.
+- Added forward-only `0065_user_telemetry_cleanup_and_timestamptz.sql` to convert user telemetry instant columns to `timestamptz`, drop migration-only `_v1` staging tables, and remove legacy `telemetry_events` storage.
+- Restored `timestamptz` Date decoding at the backend Drizzle/Postgres boundary for raw SQL projection paths.
 
 ## Guardrails
 
@@ -34,6 +36,7 @@ Date: 2026-05-21
 - `trace_id` remains available for joining user behavior with program behavior / observability.
 - Legacy identity fields are only reconstructed into `auth.session.created` context events during data migration.
 - Legacy segment meaning is represented as migration-only context events, not as a surviving target table.
+- User telemetry instants keep timezone semantics end to end: API datetime inputs include `Z` or an explicit offset, DB columns use `timestamptz`, analytics filters cast as `::timestamptz`, and raw SQL projection paths receive DB-boundary-decoded `Date` values.
 
 ## Verification
 
@@ -44,3 +47,8 @@ Date: 2026-05-21
 - `pnpm test:unit:backend` passed.
 - `pnpm db:lint` passed.
 - `pnpm lint:backend` passed.
+- `pnpm db:lint` passed after `0065_user_telemetry_cleanup_and_timestamptz.sql`.
+- `pnpm --filter @partner-up-dev/backend typecheck` passed after telemetry `timestamptz` schema alignment.
+- `pnpm test:unit:backend` passed after legacy telemetry entity removal.
+- `pnpm --filter @partner-up-dev/backend typecheck` passed after restoring `timestamptz` DB-boundary decoding.
+- Runtime DB check confirmed raw `db.execute()` returns `user_telemetry_events.occurred_at` as `Date` for `timestamptz`.

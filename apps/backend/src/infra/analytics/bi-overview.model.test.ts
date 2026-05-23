@@ -3,66 +3,101 @@ import { test } from "vitest";
 import {
   buildBIOverviewResponse,
   resolveBIOverviewFilters,
+  type AnchorEventTransitionFactRow,
   type BIOverviewFilters,
+  type RetentionActivityFactRow,
+  type ViewOtherAnchorEventsConversionFactRow,
 } from "./bi-overview.model";
-import type { UserTelemetryEnrichedEventRow } from "./user-event-projection";
 
 const filters: BIOverviewFilters = resolveBIOverviewFilters({
   startAt: new Date("2026-05-01T00:00:00.000Z"),
   endAt: new Date("2026-05-08T00:00:00.000Z"),
 });
 
-const buildEvent = (input: {
+const buildIdentityKey = (input: {
+  anonymousId?: string | null;
+  authenticatedUserHash?: string | null;
+}): string | null =>
+  input.authenticatedUserHash ??
+  (input.anonymousId ? `anonymous:${input.anonymousId}` : null);
+
+const buildRetentionEvent = (input: {
   eventName: string;
   journeyId: string;
   eventId?: string;
   occurredAt: string;
   anonymousId?: string | null;
   authenticatedUserHash?: string | null;
-  payload?: Record<string, unknown>;
-}): UserTelemetryEnrichedEventRow => ({
+}): RetentionActivityFactRow => ({
   eventId: input.eventId ?? `${input.journeyId}:${input.eventName}:${input.occurredAt}`,
   eventName: input.eventName,
-  eventVersion: 1,
-  eventFamily: input.eventName,
-  eventOwner: "test",
-  biUsage: [],
   journeyId: input.journeyId,
-  traceId: null,
-  attributes: {},
-  payload: input.payload ?? {},
   occurredAt: new Date(input.occurredAt),
-  routePath: "/",
-  routeName: null,
-  spm: null,
-  sourceQr: null,
-  anonymousId: input.anonymousId ?? "anon",
-  authenticatedUserHash: input.authenticatedUserHash ?? null,
-  routeContextStatus: "context_complete",
-  authContextStatus: "context_complete",
+  identityKey: buildIdentityKey({
+    anonymousId: input.anonymousId ?? "anon",
+    authenticatedUserHash: input.authenticatedUserHash ?? null,
+  }),
+});
+
+const buildAnchorEventTransitionEvent = (input: {
+  journeyId: string;
+  eventId?: string;
+  occurredAt: string;
+  anonymousId?: string | null;
+  authenticatedUserHash?: string | null;
+  activityType: string;
+}): AnchorEventTransitionFactRow => ({
+  eventId:
+    input.eventId ??
+    `${input.journeyId}:anchor_event.landing.viewed:${input.occurredAt}`,
+  journeyId: input.journeyId,
+  occurredAt: new Date(input.occurredAt),
+  identityKey: buildIdentityKey({
+    anonymousId: input.anonymousId ?? "anon",
+    authenticatedUserHash: input.authenticatedUserHash ?? null,
+  }),
+  activityType: input.activityType,
+});
+
+const buildViewOtherAnchorEvent = (input: {
+  eventName: string;
+  journeyId: string;
+  eventId?: string;
+  occurredAt: string;
+  anonymousId?: string | null;
+  authenticatedUserHash?: string | null;
+}): ViewOtherAnchorEventsConversionFactRow => ({
+  eventId: input.eventId ?? `${input.journeyId}:${input.eventName}:${input.occurredAt}`,
+  eventName: input.eventName,
+  journeyId: input.journeyId,
+  occurredAt: new Date(input.occurredAt),
+  identityKey: buildIdentityKey({
+    anonymousId: input.anonymousId ?? "anon",
+    authenticatedUserHash: input.authenticatedUserHash ?? null,
+  }),
 });
 
 test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and view-other conversion", () => {
   const retentionEvents = [
-    buildEvent({
+    buildRetentionEvent({
       journeyId: "journey-a-1",
       eventName: "page.viewed",
       occurredAt: "2026-05-01T04:00:00.000Z",
       authenticatedUserHash: "user-a",
     }),
-    buildEvent({
+    buildRetentionEvent({
       journeyId: "journey-a-2",
       eventName: "page.viewed",
       occurredAt: "2026-05-03T04:00:00.000Z",
       authenticatedUserHash: "user-a",
     }),
-    buildEvent({
+    buildRetentionEvent({
       journeyId: "journey-b-1",
       eventName: "page.viewed",
       occurredAt: "2026-05-01T05:00:00.000Z",
       anonymousId: "anon-b",
     }),
-    buildEvent({
+    buildRetentionEvent({
       journeyId: "journey-b-2",
       eventName: "page.viewed",
       occurredAt: "2026-05-07T05:00:00.000Z",
@@ -70,28 +105,41 @@ test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and v
     }),
   ];
 
-  const behaviorEvents = [
-    buildEvent({
+  const anchorEventTransitionEvents = [
+    buildAnchorEventTransitionEvent({
+      journeyId: "journey-a-1",
+      occurredAt: "2026-05-01T04:12:00.000Z",
+      authenticatedUserHash: "user-a",
+      activityType: "badminton",
+    }),
+    buildAnchorEventTransitionEvent({
+      journeyId: "journey-a-2",
+      occurredAt: "2026-05-03T04:12:00.000Z",
+      authenticatedUserHash: "user-a",
+      activityType: "running",
+    }),
+  ];
+
+  const viewOtherAnchorEventEvents = [
+    buildViewOtherAnchorEvent({
       journeyId: "journey-a-1",
       eventName: "home.event.all.click",
       occurredAt: "2026-05-01T04:10:00.000Z",
       authenticatedUserHash: "user-a",
     }),
-    buildEvent({
+    buildViewOtherAnchorEvent({
       journeyId: "journey-a-1",
       eventName: "anchor_event.landing.viewed",
       occurredAt: "2026-05-01T04:12:00.000Z",
       authenticatedUserHash: "user-a",
-      payload: { activityType: "badminton" },
     }),
-    buildEvent({
+    buildViewOtherAnchorEvent({
       journeyId: "journey-a-2",
       eventName: "anchor_event.landing.viewed",
       occurredAt: "2026-05-03T04:12:00.000Z",
       authenticatedUserHash: "user-a",
-      payload: { activityType: "running" },
     }),
-    buildEvent({
+    buildViewOtherAnchorEvent({
       journeyId: "journey-b-1",
       eventName: "home.event.all.click",
       occurredAt: "2026-05-01T05:10:00.000Z",
@@ -102,7 +150,8 @@ test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and v
   const response = buildBIOverviewResponse({
     filters,
     retentionEvents,
-    behaviorEvents,
+    anchorEventTransitionEvents,
+    viewOtherAnchorEventEvents,
     userPRCountRows: [
       { userKey: "user-a", createdCount: 2, joinedCount: 1 },
       { userKey: "user-b", createdCount: 0, joinedCount: 2 },
@@ -191,26 +240,27 @@ test("buildBIOverviewResponse uses retention lookahead only for returns, not new
   const response = buildBIOverviewResponse({
     filters,
     retentionEvents: [
-      buildEvent({
+      buildRetentionEvent({
         journeyId: "journey-a-1",
         eventName: "page.viewed",
         occurredAt: "2026-05-01T04:00:00.000Z",
         authenticatedUserHash: "user-a",
       }),
-      buildEvent({
+      buildRetentionEvent({
         journeyId: "journey-a-2",
         eventName: "page.viewed",
         occurredAt: "2026-05-09T04:00:00.000Z",
         authenticatedUserHash: "user-a",
       }),
-      buildEvent({
+      buildRetentionEvent({
         journeyId: "journey-b-1",
         eventName: "page.viewed",
         occurredAt: "2026-05-09T04:00:00.000Z",
         authenticatedUserHash: "user-b",
       }),
     ],
-    behaviorEvents: [],
+    anchorEventTransitionEvents: [],
+    viewOtherAnchorEventEvents: [],
     userPRCountRows: [],
     prLifecycleCreatedAtStatusRows: [],
     prLifecycleTimeWindowEndAtStatusRows: [],
@@ -225,14 +275,15 @@ test("buildBIOverviewResponse treats plaza entry clicks as view-other conversion
   const response = buildBIOverviewResponse({
     filters,
     retentionEvents: [],
-    behaviorEvents: [
-      buildEvent({
+    anchorEventTransitionEvents: [],
+    viewOtherAnchorEventEvents: [
+      buildViewOtherAnchorEvent({
         journeyId: "journey-plaza",
         eventName: "home.event.plaza.entry.click",
         occurredAt: "2026-05-01T04:10:00.000Z",
         authenticatedUserHash: "user-a",
       }),
-      buildEvent({
+      buildViewOtherAnchorEvent({
         journeyId: "journey-plaza",
         eventName: "anchor_event.landing.viewed",
         occurredAt: "2026-05-01T04:12:00.000Z",

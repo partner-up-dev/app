@@ -16,6 +16,8 @@ const userTelemetryEventNameSchema = z
   .max(160)
   .regex(/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/);
 
+const instantDateTimeSchema = z.string().datetime({ offset: true });
+
 const userTelemetryAttributeValueSchema = z.union([
   z.string(),
   z.number(),
@@ -28,7 +30,7 @@ const userTelemetryEventSchema = z.object({
   event_name: userTelemetryEventNameSchema,
   event_version: z.number().int().positive(),
   journey_id: z.string().uuid(),
-  occurred_at: z.string().datetime(),
+  occurred_at: instantDateTimeSchema,
   trace_id: optionalNullableString(128),
   event_family: optionalNullableString(160),
   attributes: z.record(userTelemetryAttributeValueSchema).default({}),
