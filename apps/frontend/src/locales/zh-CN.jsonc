@@ -37,7 +37,7 @@
     "draft": "草稿",
     "open": "找人中",
     "ready": "已成团",
-    "full": "已满员",
+    "full": "已满人",
     "lockedToStart": "待开始锁定",
     "active": "进行中",
     "closed": "已结束",
@@ -360,6 +360,12 @@
           "disabledHint": "暂无可用通知",
           "unconfiguredHint": "当前环境未配置“碰头地点更新”通知模板。"
         },
+        "PR_READY": {
+          "title": "已成团提醒",
+          "enabledHint": "PR 进入已成团状态时提醒",
+          "disabledHint": "暂无可用通知",
+          "unconfiguredHint": "当前环境未配置“已成团提醒”通知模板。"
+        },
         "WAITLIST_PROMOTED": {
           "title": "候补补位",
           "enabledHint": "候补成功补位时提醒",
@@ -393,6 +399,7 @@
       "closeAction": "完成",
       "notificationReasons": {
         "NEW_PARTNER": "有人加入时及时知道当前搭子人数，方便确认成团进展。",
+        "PR_READY": "PR 已成团后及时提醒你进入执行准备阶段，后续可以关注订单、碰头和到场安排。",
         "MEETING_POINT_UPDATED": "碰头地点更新后及时收到提醒，减少到场前找不到集合点的风险。"
       }
     },

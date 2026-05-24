@@ -37,6 +37,8 @@ const CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID =
   "wechat.submsg_new_partner_template_id";
 const CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID =
   "wechat.submsg_meeting_point_updated_template_id";
+const CONFIG_KEY_PR_READY_TEMPLATE_ID =
+  "wechat.submsg_pr_ready_template_id";
 const CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID =
   "wechat.submsg_waitlist_promoted_template_id";
 const CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID =
@@ -47,6 +49,7 @@ type SubscriptionTemplateKind =
   | "ACTIVITY_START_REMINDER"
   | "NEW_PARTNER"
   | "MEETING_POINT_UPDATED"
+  | "PR_READY"
   | "WAITLIST_PROMOTED"
   | "PR_MESSAGE";
 
@@ -59,9 +62,11 @@ const resolveTemplateConfigKey = (kind: SubscriptionTemplateKind): string =>
         ? CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID
         : kind === "MEETING_POINT_UPDATED"
           ? CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID
-          : kind === "WAITLIST_PROMOTED"
-            ? CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID
-            : CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID;
+          : kind === "PR_READY"
+            ? CONFIG_KEY_PR_READY_TEMPLATE_ID
+            : kind === "WAITLIST_PROMOTED"
+              ? CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID
+              : CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID;
 
 export class WeChatSubscriptionMessageError extends Error {
   constructor(
@@ -128,6 +133,15 @@ export interface SendWaitlistPromotedNotificationParams {
   page: string | null;
 }
 
+export interface SendPRReadyNotificationParams {
+  openId: string;
+  title: string;
+  type: string;
+  status: string;
+  remark: string;
+  page: string | null;
+}
+
 const clipText = (value: string, max: number): string =>
   value.trim().slice(0, max);
 
@@ -160,6 +174,10 @@ export class WeChatSubscriptionMessageService {
     return this.isConfigured("WAITLIST_PROMOTED");
   }
 
+  async isPRReadyConfigured(): Promise<boolean> {
+    return this.isConfigured("PR_READY");
+  }
+
   async isPRMessageConfigured(): Promise<boolean> {
     return this.isConfigured("PR_MESSAGE");
   }
@@ -182,6 +200,10 @@ export class WeChatSubscriptionMessageService {
 
   async getWaitlistPromotedTemplateId(): Promise<string | null> {
     return this.resolveTemplateId("WAITLIST_PROMOTED");
+  }
+
+  async getPRReadyTemplateId(): Promise<string | null> {
+    return this.resolveTemplateId("PR_READY");
   }
 
   async getPRMessageTemplateId(): Promise<string | null> {
@@ -399,6 +421,22 @@ export class WeChatSubscriptionMessageService {
       data: {
         thing1: { value: clipText(params.title, 20) },
         phrase3: { value: clipText(params.status, 20) },
+        thing4: { value: clipText(params.remark, 20) },
+      },
+    });
+  }
+
+  async sendPRReadyNotification(
+    params: SendPRReadyNotificationParams,
+  ): Promise<string | number | null> {
+    return this.sendSubscribeMessage({
+      kind: "PR_READY",
+      openId: params.openId,
+      page: params.page,
+      data: {
+        thing1: { value: clipText(params.title, 20) },
+        thing2: { value: clipText(params.type, 20) },
+        phrase6: { value: clipText(params.status, 20) },
         thing4: { value: clipText(params.remark, 20) },
       },
     });

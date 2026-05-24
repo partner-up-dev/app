@@ -31,6 +31,12 @@ export {
 } from "./wechat-meeting-point-updated";
 
 export {
+  registerWeChatPRReadyJobs,
+  scheduleWeChatPRReadyNotifications,
+  cancelWeChatPRReadyJobsForUser,
+} from "./wechat-pr-ready";
+
+export {
   registerWeChatWaitlistPromotedJobs,
   scheduleWeChatWaitlistPromotedNotificationForParticipant,
   cancelWeChatWaitlistPromotedJobsForUser,

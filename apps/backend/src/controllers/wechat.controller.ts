@@ -35,6 +35,7 @@ import {
   cancelWeChatActivityStartReminderJobsForUser,
   cancelWeChatMeetingPointUpdatedJobsForUser,
   cancelWeChatNewPartnerJobsForUser,
+  cancelWeChatPRReadyJobsForUser,
   cancelWeChatPRMessageJobsForUser,
   cancelWeChatReminderJobsForUser,
   cancelWeChatWaitlistPromotedJobsForUser,
@@ -253,6 +254,10 @@ const buildNotificationChannelState = async (): Promise<{
     NotificationSubscriptionState,
     "configured" | "requiresOpenSubscribe" | "templateId"
   >;
+  prReady: Pick<
+    NotificationSubscriptionState,
+    "configured" | "requiresOpenSubscribe" | "templateId"
+  >;
   waitlistPromoted: Pick<
     NotificationSubscriptionState,
     "configured" | "requiresOpenSubscribe" | "templateId"
@@ -268,6 +273,7 @@ const buildNotificationChannelState = async (): Promise<{
     newPartnerTemplateId,
     prMessageTemplateId,
     meetingPointUpdatedTemplateId,
+    prReadyTemplateId,
     waitlistPromotedTemplateId,
   ] = await Promise.all([
     subscriptionMessageService.getConfirmationReminderTemplateId(),
@@ -275,6 +281,7 @@ const buildNotificationChannelState = async (): Promise<{
     subscriptionMessageService.getNewPartnerTemplateId(),
     subscriptionMessageService.getPRMessageTemplateId(),
     subscriptionMessageService.getMeetingPointUpdatedTemplateId(),
+    subscriptionMessageService.getPRReadyTemplateId(),
     subscriptionMessageService.getWaitlistPromotedTemplateId(),
   ]);
 
@@ -284,6 +291,7 @@ const buildNotificationChannelState = async (): Promise<{
     newPartnerSubmsgConfigured,
     prMessageSubmsgConfigured,
     meetingPointUpdatedSubmsgConfigured,
+    prReadySubmsgConfigured,
     waitlistPromotedSubmsgConfigured,
   ] = await Promise.all([
     subscriptionMessageService.isConfirmationReminderConfigured(),
@@ -291,6 +299,7 @@ const buildNotificationChannelState = async (): Promise<{
     subscriptionMessageService.isNewPartnerConfigured(),
     subscriptionMessageService.isPRMessageConfigured(),
     subscriptionMessageService.isMeetingPointUpdatedConfigured(),
+    subscriptionMessageService.isPRReadyConfigured(),
     subscriptionMessageService.isWaitlistPromotedConfigured(),
   ]);
 
@@ -326,6 +335,12 @@ const buildNotificationChannelState = async (): Promise<{
         meetingPointUpdatedSubmsgConfigured &&
         Boolean(meetingPointUpdatedTemplateId),
       templateId: meetingPointUpdatedTemplateId,
+    },
+    prReady: {
+      configured: prReadySubmsgConfigured,
+      requiresOpenSubscribe:
+        prReadySubmsgConfigured && Boolean(prReadyTemplateId),
+      templateId: prReadyTemplateId,
     },
     waitlistPromoted: {
       configured: waitlistPromotedSubmsgConfigured,
@@ -394,6 +409,14 @@ const buildAnonymousSubscriptionsResponse = async (configured: boolean) => {
           channels.meetingPointUpdated.requiresOpenSubscribe,
         templateId: channels.meetingPointUpdated.templateId,
       },
+      PR_READY: {
+        enabled: false,
+        optInAt: null,
+        remainingCount: 0,
+        configured: channels.prReady.configured,
+        requiresOpenSubscribe: channels.prReady.requiresOpenSubscribe,
+        templateId: channels.prReady.templateId,
+      },
       WAITLIST_PROMOTED: {
         enabled: false,
         optInAt: null,
@@ -446,6 +469,10 @@ const buildAuthenticatedSubscriptionsResponse = async (
   const meetingPointUpdated = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     "MEETING_POINT_UPDATED",
+  );
+  const prReady = userNotificationOptRepo.getSubscriptionSnapshot(
+    notificationOpt,
+    "PR_READY",
   );
   const waitlistPromoted = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
@@ -507,6 +534,14 @@ const buildAuthenticatedSubscriptionsResponse = async (
         requiresOpenSubscribe:
           channels.meetingPointUpdated.requiresOpenSubscribe,
         templateId: channels.meetingPointUpdated.templateId,
+      },
+      PR_READY: {
+        enabled: prReady.enabled,
+        optInAt: prReady.optInAt ? prReady.optInAt.toISOString() : null,
+        remainingCount: prReady.remainingCount,
+        configured: channels.prReady.configured,
+        requiresOpenSubscribe: channels.prReady.requiresOpenSubscribe,
+        templateId: channels.prReady.templateId,
       },
       WAITLIST_PROMOTED: {
         enabled: waitlistPromoted.enabled,
@@ -572,6 +607,10 @@ const applyNotificationSubscriptionSideEffects = async (
 
   if (kind === "MEETING_POINT_UPDATED" && nextRemainingCount <= 0) {
     return cancelWeChatMeetingPointUpdatedJobsForUser(userId);
+  }
+
+  if (kind === "PR_READY" && nextRemainingCount <= 0) {
+    return cancelWeChatPRReadyJobsForUser(userId);
   }
 
   if (kind === "WAITLIST_PROMOTED" && nextRemainingCount <= 0) {

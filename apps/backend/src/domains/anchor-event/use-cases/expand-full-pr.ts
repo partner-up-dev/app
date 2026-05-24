@@ -47,7 +47,11 @@ export async function expandFullPR(prId: PRId): Promise<void> {
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
-  if (request.status !== "FULL") {
+  if (request.maxPartners === null) {
+    return;
+  }
+  const sourceActiveCount = await partnerRepo.countActiveByPrId(prId);
+  if (sourceActiveCount < request.maxPartners) {
     return;
   }
 
@@ -152,8 +156,6 @@ export async function expandFullPR(prId: PRId): Promise<void> {
     prNotes: createdRoot.notes,
   });
 
-  const activeCount = await partnerRepo.countActiveByPrId(prId);
-
   operationLogService.log({
     actorId: null,
     action: "pr.auto_create",
@@ -163,7 +165,7 @@ export async function expandFullPR(prId: PRId): Promise<void> {
       sourcePrId: prId,
       timeWindow: fullPR.anchor.timeWindow,
       location: createdRoot.location,
-      activeCountAtSource: activeCount,
+      activeCountAtSource: sourceActiveCount,
     },
   });
 

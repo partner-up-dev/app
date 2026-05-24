@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, type App } from "vue";
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute, PRStatus } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import PRPreviewCard from "./PRPreviewCard.vue";
 
@@ -62,6 +62,31 @@ describe("PRPreviewCard route display", () => {
 
     expect(host.textContent).toContain("🧭 广州塔~大学城");
   });
+
+  test("shows derived full status for open PRs at capacity", () => {
+    const host = mountCard(
+      buildPRDetail({
+        status: "OPEN",
+        current: 4,
+        max: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("FULL");
+  });
+
+  test("keeps READY display ahead of derived fullness", () => {
+    const host = mountCard(
+      buildPRDetail({
+        status: "READY",
+        current: 4,
+        max: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("READY");
+    expect(host.textContent).not.toContain("FULL");
+  });
 });
 
 const mountCard = (detail: PRDetailView): HTMLElement => {
@@ -77,16 +102,22 @@ const mountCard = (detail: PRDetailView): HTMLElement => {
 };
 
 const buildPRDetail = ({
-  placeDisplayName,
-  route,
+  placeDisplayName = null,
+  route = null,
+  status = "OPEN",
+  current = 0,
+  max = 4,
 }: {
-  placeDisplayName: string | null;
-  route: PRRoute | null;
+  placeDisplayName?: string | null;
+  route?: PRRoute | null;
+  status?: PRStatus;
+  current?: number;
+  max?: number | null;
 }): PRDetailView =>
   ({
     id: 123,
     title: "",
-    status: "OPEN",
+    status,
     createdAt: "2026-05-17T00:00:00.000Z",
     core: {
       type: "通勤拼车",
@@ -106,8 +137,8 @@ const buildPRDetail = ({
     },
     partnerSection: {
       capacity: {
-        current: 0,
-        max: 4,
+        current,
+        max,
       },
     },
   }) as unknown as PRDetailView;

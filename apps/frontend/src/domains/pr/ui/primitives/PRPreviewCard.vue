@@ -53,6 +53,7 @@ import { computed, useSlots } from "vue";
 import { RouterLink } from "vue-router";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { prDetailPath } from "@/domains/pr/routing/routes";
+import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import { buildRouteSummary } from "@/domains/route/model/route";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
@@ -94,7 +95,11 @@ const prTitle = computed(() => {
   );
 });
 
-const resolvedStatus = computed(() => prDetail.value?.status ?? null);
+const resolvedStatus = computed(() => {
+  const detail = prDetail.value;
+  if (!detail) return null;
+  return resolvePRDisplayStatus(detail.status, detail.partnerSection.capacity);
+});
 
 const resolvedPlaceLabel = computed(
   () =>

@@ -15,6 +15,7 @@ import {
   hasAnchorParticipationPolicy,
   hasEnabledConfirmationPolicy,
   hasConfirmationWindowEnded,
+  isJoinLockedByPolicy,
   resolveAnchorParticipationPolicy,
 } from "./services/anchor-participation-policy.service";
 import {
@@ -28,6 +29,7 @@ import {
 import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
+  scheduleWeChatPRReadyNotifications,
 } from "../../infra/notifications";
 import { operationLogService } from "../../infra/operation-log";
 import { applyAnchorParticipantReleaseEffects } from "./services/anchor-participant-release-effects.service";
@@ -48,7 +50,8 @@ export async function refreshTemporalStatus(
   const afterRelease = await prRepo.findById(request.id);
   const normalized = afterRelease ?? request;
 
-  const activated = await activateIfNeeded(normalized);
+  const ready = await markReadyIfJoinLocked(normalized);
+  const activated = await activateIfNeeded(ready);
   return expireIfNeeded(activated);
 }
 
@@ -72,6 +75,32 @@ async function activateIfNeeded(
 
   const updated = await prRepo.updateStatus(request.id, "ACTIVE");
   return updated ?? request;
+}
+
+async function markReadyIfJoinLocked(
+  request: PartnerRequest,
+): Promise<PartnerRequest> {
+  if (request.status !== "OPEN") return request;
+  if (!hasAnchorParticipationPolicy(request)) return request;
+
+  const policy = resolveAnchorParticipationPolicy(request, request.time);
+  if (!isJoinLockedByPolicy(policy)) return request;
+
+  const updated = await prRepo.updateStatus(request.id, "READY");
+  if (!updated) return request;
+
+  await scheduleWeChatPRReadyNotifications({
+    request: updated,
+    readyAt: new Date(),
+  });
+  operationLogService.log({
+    actorId: null,
+    action: "pr.auto_ready",
+    aggregateType: "partner_request",
+    aggregateId: String(request.id),
+    detail: { trigger: "join_lock" },
+  });
+  return updated;
 }
 
 async function expireIfNeeded(

@@ -36,7 +36,7 @@
 
         <template #meta>
           <span class="type-badge">{{ prDetail.core.type || "-" }}</span>
-          <PRStatusBadge :status="prDetail.status" />
+          <PRStatusBadge :status="prDisplayStatus" />
         </template>
       </PageHeader>
 
@@ -91,6 +91,7 @@
         <UpdatePRStatusForm
           ref="updateStatusFormRef"
           :disabled="updateStatusPending"
+          :initial-status="updateStatusInitialStatus"
           @submit="handleUpdateStatusSubmit"
         />
 
@@ -212,6 +213,7 @@ import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
@@ -253,6 +255,18 @@ const prDisplayTitle = computed(() => {
   const canonicalTitle = prDetail.value?.share.canonical.title.trim() ?? "";
   if (canonicalTitle.length > 0) return canonicalTitle;
   return t("prPage.displayFallbackTitle");
+});
+const prDisplayStatus = computed(() => {
+  const detail = prDetail.value;
+  if (!detail) return "OPEN";
+  return resolvePRDisplayStatus(detail.status, detail.partnerSection.capacity);
+});
+const updateStatusInitialStatus = computed<PRStatusManual>(() => {
+  const status = prDetail.value?.status;
+  if (status === "READY" || status === "ACTIVE" || status === "CLOSED") {
+    return status;
+  }
+  return "OPEN";
 });
 const supportsEventContextFeatures = computed(
   () => prDetail.value?.partnerSection.reminder.supported ?? false,

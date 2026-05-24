@@ -74,6 +74,39 @@ const buildActiveParticipant = (
 });
 
 describe("buildPRPartnerSection", () => {
+  it("treats READY as roster-locked while allowing waitlist for non-participants", () => {
+    const participant = buildActiveParticipant("JOINED");
+    const view = buildPRPartnerSection({
+      publicPR: buildPublicPR({
+        status: "READY",
+        partners: [1],
+        myPartnerId: null,
+        maxPartners: 4,
+      }),
+      activeParticipants: [participant],
+      rosterParticipants: [participant],
+      viewerUserId: "22222222-2222-4222-8222-222222222222" as UserId,
+    });
+
+    assert.equal(view.capacity.readiness, "READY");
+    assert.equal(view.viewer.canJoin, false);
+    assert.equal(view.viewer.joinBlockedReason, "NOT_JOINABLE_STATUS");
+    assert.equal(view.viewer.canWaitlist, true);
+  });
+
+  it("blocks participant exit from READY", () => {
+    const participant = buildActiveParticipant("JOINED");
+    const view = buildPRPartnerSection({
+      publicPR: buildPublicPR({ status: "READY" }),
+      activeParticipants: [participant],
+      rosterParticipants: [participant],
+      viewerUserId,
+    });
+
+    assert.equal(view.viewer.canExit, false);
+    assert.equal(view.viewer.exitBlockedReason, "NOT_JOINABLE_STATUS");
+  });
+
   it("does not allow an attended participant to check in again", () => {
     const participant = buildActiveParticipant("ATTENDED");
     const view = buildPRPartnerSection({

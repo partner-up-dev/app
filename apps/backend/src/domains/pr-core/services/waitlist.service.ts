@@ -41,13 +41,21 @@ export const isWaitlistOpenForRequest = (input: {
   request: PartnerRequest;
   activeCount: number;
 }): boolean => {
-  if (input.request.status !== "FULL") {
+  if (input.request.status === "READY") {
+    return true;
+  }
+
+  const maxPartners = input.request.maxPartners;
+  if (maxPartners === null) {
     return false;
   }
-  if (input.request.maxPartners === null) {
+  const isAtCapacity =
+    input.request.status === "FULL" ||
+    input.activeCount >= maxPartners;
+  if (!isAtCapacity) {
     return false;
   }
-  if (input.activeCount < input.request.maxPartners) {
+  if (input.activeCount < maxPartners) {
     return false;
   }
   if (!hasAnchorParticipationPolicy(input.request)) {
@@ -59,11 +67,7 @@ export const isWaitlistOpenForRequest = (input: {
 };
 
 const isPromotionAllowed = (request: PartnerRequest): boolean => {
-  if (
-    request.status !== "OPEN" &&
-    request.status !== "READY" &&
-    request.status !== "FULL"
-  ) {
+  if (request.status !== "OPEN") {
     return false;
   }
   if (!hasAnchorParticipationPolicy(request)) {

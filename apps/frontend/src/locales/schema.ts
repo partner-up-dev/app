@@ -394,6 +394,12 @@ export interface MessageSchema {
           disabledHint: string;
           unconfiguredHint: string;
         };
+        PR_READY: {
+          title: string;
+          enabledHint: string;
+          disabledHint: string;
+          unconfiguredHint: string;
+        };
         WAITLIST_PROMOTED: {
           title: string;
           enabledHint: string;
@@ -427,6 +433,7 @@ export interface MessageSchema {
       closeAction: string;
       notificationReasons: {
         NEW_PARTNER: string;
+        PR_READY: string;
         MEETING_POINT_UPDATED: string;
       };
     };

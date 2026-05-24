@@ -48,6 +48,12 @@ export const meetingPointUpdatedSchedulePolicy: JobSchedulePolicy = {
   lateToleranceUnits: NO_LATE_TOLERANCE_UNITS,
 };
 
+export const prReadySchedulePolicy: JobSchedulePolicy = {
+  resolutionMs: SECOND_RESOLUTION_MS,
+  earlyToleranceUnits: 0,
+  lateToleranceUnits: NO_LATE_TOLERANCE_UNITS,
+};
+
 export const waitlistPromotedSchedulePolicy: JobSchedulePolicy = {
   resolutionMs: SECOND_RESOLUTION_MS,
   earlyToleranceUnits: 0,

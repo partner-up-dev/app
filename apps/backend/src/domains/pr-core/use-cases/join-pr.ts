@@ -132,9 +132,11 @@ export async function joinPRAsUser(
   await recalculatePRStatus(id);
 
   const afterRecalculate = await prRepo.findById(id);
+  const activeCountAfterJoin = await countActivePartnersForPR(id);
   if (
     afterRecalculate &&
-    afterRecalculate.status === "FULL"
+    afterRecalculate.maxPartners !== null &&
+    activeCountAfterJoin >= afterRecalculate.maxPartners
   ) {
     await expandFullPR(id);
   }

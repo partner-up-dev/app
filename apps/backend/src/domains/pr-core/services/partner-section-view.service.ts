@@ -134,6 +134,7 @@ const resolveReadiness = (
   if (status === "CLOSED" || status === "EXPIRED" || status === "DRAFT") {
     return "UNAVAILABLE";
   }
+  if (status === "READY") return "READY";
   if (max !== null && current >= max) return "FULL";
   if (min !== null && current >= min) return "READY";
   return "NEEDS_MORE";
@@ -342,9 +343,6 @@ export function buildPRPartnerSection(params: {
   if (base.viewer.isParticipant) {
     canJoin = false;
     joinBlockedReason = "ALREADY_JOINED";
-  } else if (publicPR.status === "FULL") {
-    canJoin = false;
-    joinBlockedReason = "FULL";
   } else if (!isJoinableStatus(publicPR.status)) {
     canJoin = false;
     joinBlockedReason = "NOT_JOINABLE_STATUS";
@@ -361,13 +359,17 @@ export function buildPRPartnerSection(params: {
 
   let canWaitlist = false;
   let waitlistBlockedReason: PartnerSectionActionBlockedReason = "NONE";
+  const waitlistOpen =
+    publicPR.status === "READY" ||
+    publicPR.status === "FULL" ||
+    (publicPR.maxPartners !== null && current >= publicPR.maxPartners);
   if (base.viewer.isParticipant) {
     waitlistBlockedReason = "ALREADY_JOINED";
   } else if (base.viewer.isWaitlisted) {
     waitlistBlockedReason = "ALREADY_WAITLISTED";
-  } else if (publicPR.status !== "FULL") {
+  } else if (!waitlistOpen) {
     waitlistBlockedReason = "NOT_JOINABLE_STATUS";
-  } else if (joinLocked) {
+  } else if (publicPR.status !== "READY" && joinLocked) {
     waitlistBlockedReason = "JOIN_LOCKED";
   } else if (participationFrequencyLimited) {
     waitlistBlockedReason = "PARTICIPATION_FREQUENCY_LIMITED";

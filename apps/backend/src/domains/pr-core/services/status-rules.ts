@@ -13,27 +13,22 @@ import { isWithinActiveWindow } from "./time-window.service";
 // Status predicates
 // ---------------------------------------------------------------------------
 
-/** Statuses that allow a partner to join. */
+/** Statuses that allow a partner to join directly. */
 export function isJoinableStatus(status: string): boolean {
-  return status === "OPEN" || status === "READY";
+  return status === "OPEN";
 }
 
 /** Statuses that allow a partner to exit. */
 export function isExitAllowedStatus(status: string): boolean {
-  return (
-    status === "OPEN" ||
-    status === "READY" ||
-    status === "FULL" ||
-    status === "ACTIVE"
-  );
+  return status === "OPEN";
 }
 
 /** Statuses where partner count changes recompute the status. */
 export function shouldRecalculateCapacityStatus(status: string): boolean {
-  return status === "OPEN" || status === "READY" || status === "FULL";
+  return status === "OPEN" || status === "FULL";
 }
 
-/** Statuses eligible for automatic activation (READY / FULL → ACTIVE). */
+/** Statuses eligible for automatic activation. */
 export function isActivatableStatus(status: string): boolean {
   return status === "READY" || status === "FULL" || status === "LOCKED_TO_START";
 }
@@ -58,8 +53,9 @@ export function deriveStatusFromPartnerCount(
   minPartners: number | null,
   maxPartners: number | null,
 ): PRStatus {
-  if (maxPartners !== null && partnerCount >= maxPartners) return "FULL";
-  if (minPartners !== null && partnerCount >= minPartners) return "READY";
+  void partnerCount;
+  void minPartners;
+  void maxPartners;
   return "OPEN";
 }
 

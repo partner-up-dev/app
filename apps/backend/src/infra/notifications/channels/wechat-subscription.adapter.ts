@@ -45,6 +45,9 @@ export const isWeChatSubscriptionNotificationConfigured = async (
   if (kind === "MEETING_POINT_UPDATED") {
     return service.isMeetingPointUpdatedConfigured();
   }
+  if (kind === "PR_READY") {
+    return service.isPRReadyConfigured();
+  }
   if (kind === "WAITLIST_PROMOTED") {
     return service.isWaitlistPromotedConfigured();
   }
@@ -111,6 +114,17 @@ const send = async (
       operatorName: message.operatorName,
       updatedAt: message.updatedAt,
       meetingPointDescription: message.meetingPointDescription,
+      page: message.page,
+    });
+  }
+
+  if (message.kind === "PR_READY") {
+    return service.sendPRReadyNotification({
+      openId: message.openId,
+      title: message.title,
+      type: message.type,
+      status: message.status,
+      remark: message.remark,
       page: message.page,
     });
   }

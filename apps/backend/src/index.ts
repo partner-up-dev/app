@@ -42,6 +42,7 @@ import {
   registerWeChatActivityStartReminderJobs,
   registerWeChatMeetingPointUpdatedJobs,
   registerWeChatNewPartnerJobs,
+  registerWeChatPRReadyJobs,
   registerWeChatPRMessageJobs,
   registerWeChatReminderJobs,
   registerWeChatWaitlistAlternativeAvailableJobs,
@@ -66,6 +67,7 @@ registerWeChatActivityStartReminderJobs();
 registerWeChatNewPartnerJobs();
 registerWeChatPRMessageJobs();
 registerWeChatMeetingPointUpdatedJobs();
+registerWeChatPRReadyJobs();
 registerWeChatWaitlistPromotedJobs();
 registerWeChatWaitlistAlternativeAvailableJobs();
 registerOfficialAccountFollowSyncJobs();

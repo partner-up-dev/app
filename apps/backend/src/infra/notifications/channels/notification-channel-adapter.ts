@@ -46,6 +46,15 @@ export type WeChatSubscriptionChannelMessage =
       page: string | null;
     }
   | {
+      kind: "PR_READY";
+      openId: string;
+      title: string;
+      type: string;
+      status: string;
+      remark: string;
+      page: string | null;
+    }
+  | {
       kind: "WAITLIST_PROMOTED";
       openId: string;
       title: string;

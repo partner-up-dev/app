@@ -351,6 +351,35 @@ describe("PRPage display title", () => {
   });
 });
 
+describe("PRPage display status", () => {
+  test("derives full display from open PR capacity", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: false,
+        capacityCurrent: 4,
+        capacityMax: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("status.full");
+  });
+
+  test("keeps ready display ahead of derived fullness", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "READY",
+        isCreator: false,
+        capacityCurrent: 4,
+        capacityMax: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("status.ready");
+    expect(host.textContent).not.toContain("status.full");
+  });
+});
+
 const mountPage = async (detail: PRDetailView): Promise<HTMLElement> => {
   testState.detail = detail;
   const host = document.createElement("div");
@@ -374,6 +403,8 @@ const buildPRDetail = ({
   placeDisplayName = location,
   anchorEventTitle = null,
   canonicalTitle = title.trim() || "搭子请求",
+  capacityCurrent = 0,
+  capacityMax = null,
 }: {
   status: PRStatus;
   isCreator: boolean;
@@ -383,6 +414,8 @@ const buildPRDetail = ({
   placeDisplayName?: string | null;
   anchorEventTitle?: string | null;
   canonicalTitle?: string;
+  capacityCurrent?: number;
+  capacityMax?: number | null;
 }): PRDetailView =>
   ({
     id: 123,
@@ -428,6 +461,10 @@ const buildPRDetail = ({
       },
       confirmation: {
         enabled: false,
+      },
+      capacity: {
+        current: capacityCurrent,
+        max: capacityMax,
       },
       timeline: {
         confirmationStartAt: null,

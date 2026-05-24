@@ -91,6 +91,13 @@ export class UserNotificationOptRepository {
         remainingCount: opt.wechatWaitlistPromotedRemainingCount,
       };
     }
+    if (kind === "PR_READY") {
+      return {
+        enabled: opt.wechatPrReadyRemainingCount > 0,
+        optInAt: opt.wechatPrReadyOptInAt,
+        remainingCount: opt.wechatPrReadyRemainingCount,
+      };
+    }
     if (kind === "WAITLIST_ALTERNATIVE_AVAILABLE") {
       return {
         enabled: opt.wechatWaitlistAlternativeAvailableRemainingCount > 0,
@@ -235,6 +242,29 @@ export class UserNotificationOptRepository {
             wechatWaitlistPromotedRemainingCount: normalizedCount,
             wechatWaitlistPromotedOptIn: enabled,
             wechatWaitlistPromotedOptInAt: optInAt,
+            updatedAt: now,
+          },
+        })
+        .returning();
+      return result[0] ?? null;
+    }
+
+    if (kind === "PR_READY") {
+      const result = await db
+        .insert(userNotificationOpts)
+        .values({
+          userId,
+          wechatPrReadyRemainingCount: normalizedCount,
+          wechatPrReadyOptIn: enabled,
+          wechatPrReadyOptInAt: optInAt,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: userNotificationOpts.userId,
+          set: {
+            wechatPrReadyRemainingCount: normalizedCount,
+            wechatPrReadyOptIn: enabled,
+            wechatPrReadyOptInAt: optInAt,
             updatedAt: now,
           },
         })
@@ -401,6 +431,29 @@ export class UserNotificationOptRepository {
             wechatWaitlistPromotedRemainingCount: sql`${userNotificationOpts.wechatWaitlistPromotedRemainingCount} + 1`,
             wechatWaitlistPromotedOptIn: true,
             wechatWaitlistPromotedOptInAt: now,
+            updatedAt: now,
+          },
+        })
+        .returning();
+      return result[0] ?? null;
+    }
+
+    if (kind === "PR_READY") {
+      const result = await db
+        .insert(userNotificationOpts)
+        .values({
+          userId,
+          wechatPrReadyRemainingCount: 1,
+          wechatPrReadyOptIn: true,
+          wechatPrReadyOptInAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: userNotificationOpts.userId,
+          set: {
+            wechatPrReadyRemainingCount: sql`${userNotificationOpts.wechatPrReadyRemainingCount} + 1`,
+            wechatPrReadyOptIn: true,
+            wechatPrReadyOptInAt: now,
             updatedAt: now,
           },
         })
@@ -585,6 +638,30 @@ export class UserNotificationOptRepository {
       return {
         consumed: row !== null,
         remainingCount: row?.wechatWaitlistPromotedRemainingCount ?? 0,
+        row,
+      };
+    }
+
+    if (kind === "PR_READY") {
+      const result = await db
+        .update(userNotificationOpts)
+        .set({
+          wechatPrReadyRemainingCount: sql`${userNotificationOpts.wechatPrReadyRemainingCount} - 1`,
+          wechatPrReadyOptIn: sql`(${userNotificationOpts.wechatPrReadyRemainingCount} - 1) > 0`,
+          wechatPrReadyOptInAt: sql`case when (${userNotificationOpts.wechatPrReadyRemainingCount} - 1) > 0 then ${userNotificationOpts.wechatPrReadyOptInAt} else null end`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(userNotificationOpts.userId, userId),
+            gt(userNotificationOpts.wechatPrReadyRemainingCount, 0),
+          ),
+        )
+        .returning();
+      const row = result[0] ?? null;
+      return {
+        consumed: row !== null,
+        remainingCount: row?.wechatPrReadyRemainingCount ?? 0,
         row,
       };
     }

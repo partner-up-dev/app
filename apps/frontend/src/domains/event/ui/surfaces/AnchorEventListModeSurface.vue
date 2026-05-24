@@ -561,7 +561,7 @@ watch(
 );
 
 const isJoinablePR = (pr: AnchorEventTimeWindowPR): boolean =>
-  pr.status === "OPEN" || pr.status === "READY";
+  pr.status === "OPEN";
 
 const timeWindowHasJoinablePR = (entry: AnchorEventTimeWindow): boolean =>
   entry.prs.some(isJoinablePR);

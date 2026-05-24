@@ -101,6 +101,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const JOIN_SUCCESS_NOTIFICATION_KINDS = [
   "NEW_PARTNER",
+  "PR_READY",
   "MEETING_POINT_UPDATED",
 ] as const satisfies readonly WeChatNotificationKind[];
 
@@ -158,6 +159,9 @@ const joinSuccessNotificationDescriptionPrefixes = computed<
 >(() => ({
   NEW_PARTNER: t(
     "prPage.joinSuccessSubscriptions.notificationReasons.NEW_PARTNER",
+  ),
+  PR_READY: t(
+    "prPage.joinSuccessSubscriptions.notificationReasons.PR_READY",
   ),
   MEETING_POINT_UPDATED: t(
     "prPage.joinSuccessSubscriptions.notificationReasons.MEETING_POINT_UPDATED",
