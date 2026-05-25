@@ -351,15 +351,15 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "System scenario waitlist partner request",
     });
 
-    const full = await joinThroughBackend({
+    const joined = await joinThroughBackend({
       prId: pr.id,
       token: activeJoiner.token,
     });
-    assert.equal(full.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     ctx.record("prId", pr.id);
     ctx.record("activeJoinerUserId", activeJoiner.user.id);

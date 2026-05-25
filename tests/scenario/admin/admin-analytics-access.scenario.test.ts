@@ -32,7 +32,7 @@ scenario("admin_analytics_entry_allows_analytics_role_only", async (ctx) => {
 
   await withScenarioPage(async (page) => {
     await page.goto("/bi?code=2026zcb");
-    await page.waitForURL("**/admin/analytics", { timeout: 20_000 });
+    await page.waitForURL("**/admin/analytics/overview", { timeout: 20_000 });
     await page.getByTestId("admin-analytics.dashboard").waitFor({
       state: "visible",
       timeout: 10_000,
