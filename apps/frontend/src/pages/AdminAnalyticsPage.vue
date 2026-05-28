@@ -437,7 +437,8 @@ const toLocalInputValue = (date: Date): string => {
 
 const createDefaultRange = (): { startAt: string; endAt: string } => {
   const end = new Date();
-  const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1_000);
+  const start = new Date(end);
+  start.setMonth(start.getMonth() - 1);
   return {
     startAt: toLocalInputValue(start),
     endAt: toLocalInputValue(end),
