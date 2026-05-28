@@ -45,6 +45,7 @@ Backend clusters:
 
 - PR lifecycle and coordination: `pr`
 - event context and POI integration: `anchor-event`, `poi`
+- ecommerce: `merchandising`, `trade`, `fulfillment`, `bill`, `payment`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
 - cross-cutting infra: events, jobs, notifications, user telemetry, analytics, operation log

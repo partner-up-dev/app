@@ -26,12 +26,14 @@ This layer exists because the product is realized by at least two meaningful uni
 
 1. `unit-topology.md`
 2. `system-state-and-authority.md`
-3. `cross-unit-contracts.md`
-4. `analytics-and-telemetry-contracts.md`
-5. `bi-domain-contracts.md`
-6. `test-platform.md`
-7. `notification-contracts.md`
-8. `claim-realization-matrix.md`
+3. `ecommerce-contracts.md` when the change touches ecommerce loops, admin
+   commerce surfaces, or PR-attached orders
+4. `cross-unit-contracts.md`
+5. `analytics-and-telemetry-contracts.md`
+6. `bi-domain-contracts.md`
+7. `test-platform.md`
+8. `notification-contracts.md`
+9. `claim-realization-matrix.md`
 
 If the change is reference-sensitive, read `docs/15-alignment/README.md` and `docs/15-alignment/ui-map.yaml` first.
 

@@ -13,6 +13,15 @@ Persisted in Postgres via backend entities and repositories:
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
 - config, operation logs, domain events, outbox events, jobs, notification opportunities, notification waves, and notification deliveries
 - analytics aggregate / projection tables, including user telemetry enrichment and BI facts
+- ecommerce merchandising truth, including Product Catalog (`SPU` / `SKU`),
+  Offer, Placement Instance, pricing truth definitions, and SKU base
+  cancellation policy
+- ecommerce trade truth, including Order, order snapshots, PR-attached order
+  relation, and order termination attempts
+- ecommerce fulfillment truth, including Rental Fulfillment and RideHailing
+  Fulfillment execution state
+- ecommerce bill truth, including Bill, BillLine, and settlement derivation
+- ecommerce payment truth, including PaymentTx and gateway-facing payment state
 
 This is the source of truth for product behavior.
 
@@ -58,6 +67,8 @@ The backend is authoritative for:
 - `POI.id` is the durable integer identity; `POI.name` is the business location label used when matching `PR.location` and Anchor Event location-pool entries to POI-owned data.
 - PR join-gate configuration, join-gate projection, and join-notice acceptance resolution
 - PR feedback questionnaire projection, including mounted instance and current viewer response state
+- ecommerce merchandising configuration and placement matching outcome
+- ecommerce order, fulfillment, bill, and payment persisted lifecycle truth
 - notification scheduling and dispatch for meeting-point update notifications
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
 - event-owned preference-tag pool, moderation state, default PR notes for future materialization, route pool, landing recommendation, and type-derived Anchor Event PR context
