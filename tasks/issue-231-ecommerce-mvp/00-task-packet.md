@@ -159,9 +159,11 @@ independent even when implementation ownership is grouped.
   item anymore. Current implementation should follow three admin principles:
   fine-grained APIs, single-column card layout by default, and separate admin
   navigation items for Merchandising, Trade, and Payment.
-- The first admin information architecture should use three nav items:
-  `Merchandising` (Product, Placement, Offer), `Trade` (Order, Bill,
-  Fulfillment), and `Payment`.
+- The long-term admin information architecture should use three nav items:
+  `Merchandising`, `Trade`, and `Payment`.
+- But current Phase 2 admin implementation should not build `Payment Admin`
+  yet. The first concrete admin views should be grouped as:
+  `Product`, `Placement+Offer`, `Order+Bill`, and `Fulfillment`.
 - Real-name / identity-document privacy, masking, retention, and operator
   permission hardening are deferred for now and should not block current issue
   231 implementation planning.
@@ -412,3 +414,26 @@ the baseline for downstream Order / Bill / Fulfillment design.
   `PR Page -> Offer Detail -> Order Detail`, with payment and cancellation
   staying inside the Order Detail journey rather than spawning extra user-facing
   routes by default.
+- 2026-05-28: Phase 0 started and completed. Stable ecommerce cross-unit
+  design was promoted into `docs/20-product-tdd/ecommerce-contracts.md` and
+  connected into Product TDD index, unit topology, and system-state authority.
+  A dedicated commit was created for this phase together with the task packet.
+- 2026-05-28: Phase 1 backend foundation started. Added backend domain
+  skeleton folders for `merchandising`, `trade`, `fulfillment`, `bill`, and
+  `payment`, plus pure model/service code for stable rules only: Order
+  termination attempt workflow, Rental/RideHailing fulfillment lifecycle
+  derivation, and Bill target-total delta derivation. Targeted backend unit
+  tests for the new ecommerce skeleton passed. Full `apps/backend` typecheck is
+  currently blocked by a pre-existing error in
+  `src/domains/pr-core/services/waitlist.service.test.ts`.
+- 2026-05-28: Bill design was simplified again before further implementation:
+  `BillLine` should no longer persist a structured upstream-cause union.
+  Human-readable `label` plus optional `description` is enough for BillLine.
+  `SplitRuleSnapshot` should use canonical `RELATIVE` or `ABSOLUTE` forms,
+  while `AA_EQUAL` is treated only as an upstream helper/input mode rather than
+  durable cross-domain truth.
+- 2026-05-28: Phase 2 admin scope was tightened again before UI work:
+  `Payment Admin` should not be built yet. Current admin-view implementation
+  order should group around `Product`, `Placement+Offer`, `Order+Bill`, and
+  `Fulfillment`, even though the longer-term admin IA still recognizes
+  `Merchandising`, `Trade`, and `Payment` as coarse product areas.

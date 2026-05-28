@@ -167,9 +167,12 @@ type OrderParticipantSnapshot = {
 };
 
 type SplitRuleSnapshot =
-  | { type: "AA_EQUAL" }
   | {
-      type: "FIXED_SHARE";
+      type: "RELATIVE";
+      shares: { user_id: string; percent_bps: number }[];
+    }
+  | {
+      type: "ABSOLUTE";
       shares: { user_id: string; amount_fen: number }[];
     };
 

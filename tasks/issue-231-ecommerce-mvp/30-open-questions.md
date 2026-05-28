@@ -125,8 +125,11 @@
    - fine-grained APIs
    - avoid two-column admin forms unless necessary
    - one card should usually occupy the full row
-   - admin navigation should start with three nav items:
+   - long-term admin IA recognizes three coarse areas:
      `Merchandising`, `Trade`, and `Payment`
+   - but current Phase 2 should not implement `Payment Admin` yet
+   - current concrete admin views should group as:
+     `Product`, `Placement+Offer`, `Order+Bill`, and `Fulfillment`
 
 ## Confirmed From Discussion
 
@@ -163,8 +166,9 @@
   cancellation policy is in scope.
 - Exact Admin CRUD field confirmation is not required before implementation.
   Current implementation should instead follow stable admin principles:
-  fine-grained APIs, one-column card layouts by default, and three admin nav
-  items for Merchandising, Trade, and Payment.
+  fine-grained APIs, one-column card layouts by default, and a current admin
+  view grouping of `Product`, `Placement+Offer`, `Order+Bill`, and
+  `Fulfillment`. `Payment Admin` is deferred for now.
 - Real-name / identity-document privacy, masking, retention, and permission
   hardening are deferred for now and should not block current issue 231
   implementation planning.

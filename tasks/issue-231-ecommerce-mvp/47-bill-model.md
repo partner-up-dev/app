@@ -57,7 +57,7 @@ Where:
 - `PaymentTx` targets one `BillLine`
 
 This keeps settlement machinery symmetric while allowing charge and refund
-bases to remain different.
+causes to remain different upstream.
 
 In the forward-versus-reverse performance framing:
 
@@ -67,6 +67,12 @@ In the forward-versus-reverse performance framing:
 Ride-hailing pre-trip abort fee, if approved by provider, is not a special new
 kind of cancellation domain. It is simply another Bill-side financial
 consequence emitted by upstream termination resolution.
+
+The key simplification here is:
+
+- `BillLine` should not persist a structured cross-domain cause union such as
+  `ORDER_SPLIT | ORDER_TERMINATION_REFUND | ORDER_TERMINATION_ABORT_FEE`
+- `BillLine` should keep obligation truth plus human-readable explanation only
 
 ## Aggregate Boundary
 
@@ -139,22 +145,9 @@ type BillLine = {
   kind: BillLineKind;
   amount_fen: number;
   currency: "CNY";
+  label: string;
+  description?: string | null;
   source_line_id?: string | null;
-  basis:
-    | {
-        kind: "ORDER_SPLIT";
-        split_rule_type: "AA_EQUAL" | "FIXED_SHARE";
-      }
-    | {
-        kind: "ORDER_TERMINATION_REFUND";
-        refund_basis: "CUSTOMER_PAID_AMOUNT";
-        selected_tier_code: string;
-        refund_percent: number;
-      }
-    | {
-        kind: "ORDER_TERMINATION_ABORT_FEE";
-        amount_fen: number;
-      };
 };
 
 type BillSeed = {
@@ -188,19 +181,21 @@ They are both participant obligations with:
 - a settlement lifecycle
 - successful PaymentTx applications
 
-The real asymmetry is only their basis:
+The real asymmetry is only their upstream cause:
 
 - charge lines come from order split
-- refund lines come from cancellation/refund decision
+- refund lines come from cancellation/refund consequence
 
-That asymmetry is real and should stay visible. But the line topology can stay
-unified.
+That asymmetry should stay visible in upstream services and user-facing line
+copy, but BillLine schema itself can stay unified.
 
-There is one more simplification available in current issue-231 scope:
+There are two important simplifications available in current issue-231 scope:
 
 - do not add a separate `BillApplication` table yet
 - let `PaymentTx` point directly to one `BillLine`
 - let Bill derive settlement from successful PaymentTx rows targeting its lines
+- do not make `BillLine` persist a structured upstream-cause union; keep
+  `label` and optional `description` instead
 
 This is the smallest topology that still preserves clean boundaries.
 
@@ -294,16 +289,20 @@ Charge-line generation is deterministic from:
 
 But once materialized, Bill should hold only the resulting `charge_lines`.
 
-Current issue-231 path can start with `AA_EQUAL` as the default practical rule.
+The split-rule snapshot itself should be canonical rather than UI-mode-shaped.
 
 Recommended rules:
 
-- `AA_EQUAL`
-  - each current order participant gets one `CHARGE` line
-  - fen remainder is allocated deterministically by stable participant ordering
-- `FIXED_SHARE`
-  - charge lines come directly from snapshot amounts
+- `RELATIVE`
+  - each share carries `percent_bps`
+  - sum must equal `10000`
+  - equal split is only a helper-expanded relative rule, not the stored shape
+- `ABSOLUTE`
+  - each share carries `amount_fen`
   - sum must equal the total billable amount
+
+This is cleaner because `AA_EQUAL` and similar names are convenience input
+modes, not durable cross-domain truth.
 
 ## Settlement Derivation
 
@@ -376,7 +375,6 @@ Recommended Bill aggregate methods:
 
 - `deriveChargeSettlementStatus()`
 - `deriveRefundSettlementStatus()`
-- `createRefundLines(refundDecisionSeed)`
 - `voidIfAllowed(at)`
 - `closeIfResolved(at)`
 

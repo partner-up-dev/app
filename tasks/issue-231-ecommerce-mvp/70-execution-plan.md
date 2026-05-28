@@ -87,11 +87,15 @@ Goal: ship admin/operator surfaces after the backend skeleton exists.
 
 Work:
 
-- Admin information architecture with three nav items:
-  `Merchandising`, `Trade`, and `Payment`.
-- Merchandising admin CRUD for Product, Placement, and Offer.
-- Trade admin read/action surfaces for Order, Bill, and Fulfillment where
-  needed.
+- Current phase should not build `Payment Admin` yet.
+- Concrete admin views should be grouped as:
+  - `Product`
+  - `Placement+Offer`
+  - `Order+Bill`
+  - `Fulfillment`
+- Product admin CRUD.
+- Placement+Offer admin CRUD.
+- Order+Bill admin read/action surfaces where needed.
 - Rental Fulfillment operations page/queue.
 - Use fine-grained APIs.
 - Prefer single-column card layout by default; avoid two-column forms unless
