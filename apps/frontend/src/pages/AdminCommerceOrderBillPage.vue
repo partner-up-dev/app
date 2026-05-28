@@ -34,6 +34,13 @@
           :message="workspaceQuery.error.value.message"
           persistent
         />
+        <EmptyState
+          v-else-if="orders.length === 0"
+          :title="t('adminCommerceOrderBill.emptyStateTitle')"
+          :description="t('adminCommerceOrderBill.emptyStateDescription')"
+          icon="i-mdi-receipt-text-outline"
+          align="start"
+        />
         <template v-else-if="selectedOrderRecord">
           <BentoItem :title="t('adminCommerceOrderBill.orderSummaryTitle')" span="full">
             <dl class="summary-grid">
@@ -108,6 +115,7 @@ import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminCommerceOrderBillWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
+import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 

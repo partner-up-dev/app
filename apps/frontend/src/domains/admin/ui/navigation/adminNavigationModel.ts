@@ -153,8 +153,8 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
-    id: "commerce-products",
-    labelKey: "adminCommon.navCommerceProductsGroup",
+    id: "commerce-merchandising",
+    labelKey: "adminCommon.navCommerceMerchandisingGroup",
     requiredRoles: ["service"],
     items: [
       {
@@ -163,13 +163,6 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         subtitleKey: "adminCommon.navCommerceProductsSubtitle",
         routeName: "admin-commerce-products",
       },
-    ],
-  },
-  {
-    id: "commerce-placement-offer",
-    labelKey: "adminCommon.navCommercePlacementOfferGroup",
-    requiredRoles: ["service"],
-    items: [
       {
         id: "commerce-placement-offer",
         labelKey: "adminCommon.navCommercePlacementOffer",
@@ -179,8 +172,8 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
-    id: "commerce-orders-bills",
-    labelKey: "adminCommon.navCommerceOrdersBillsGroup",
+    id: "commerce-trade",
+    labelKey: "adminCommon.navCommerceTradeGroup",
     requiredRoles: ["service"],
     items: [
       {
@@ -189,13 +182,6 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         subtitleKey: "adminCommon.navCommerceOrdersBillsSubtitle",
         routeName: "admin-commerce-orders-bills",
       },
-    ],
-  },
-  {
-    id: "commerce-fulfillments",
-    labelKey: "adminCommon.navCommerceFulfillmentsGroup",
-    requiredRoles: ["service"],
-    items: [
       {
         id: "commerce-fulfillments",
         labelKey: "adminCommon.navCommerceFulfillments",

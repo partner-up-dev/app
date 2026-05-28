@@ -1156,16 +1156,14 @@ export interface MessageSchema {
     navPoiReview: string;
     navPoiReviewSubtitle: string;
     navPois: string;
-    navCommerceProductsGroup: string;
+    navCommerceMerchandisingGroup: string;
     navCommerceProducts: string;
     navCommerceProductsSubtitle: string;
-    navCommercePlacementOfferGroup: string;
     navCommercePlacementOffer: string;
     navCommercePlacementOfferSubtitle: string;
-    navCommerceOrdersBillsGroup: string;
+    navCommerceTradeGroup: string;
     navCommerceOrdersBills: string;
     navCommerceOrdersBillsSubtitle: string;
-    navCommerceFulfillmentsGroup: string;
     navCommerceFulfillments: string;
     navCommerceFulfillmentsSubtitle: string;
     navFeedbackQuestionnairesGroup: string;
@@ -1500,11 +1498,13 @@ export interface MessageSchema {
     savePlacementAction: string;
     savingAction: string;
   };
-  adminCommerceOrderBill: {
-    ordersTitle: string;
-    emptyOrders: string;
-    unattachedLabel: string;
-    orderSummaryTitle: string;
+    adminCommerceOrderBill: {
+      ordersTitle: string;
+      emptyOrders: string;
+      emptyStateTitle: string;
+      emptyStateDescription: string;
+      unattachedLabel: string;
+      orderSummaryTitle: string;
     orderIdLabel: string;
     statusLabel: string;
     offerLabel: string;
@@ -1518,10 +1518,12 @@ export interface MessageSchema {
     billStatusLabel: string;
     effectiveTotalLabel: string;
   };
-  adminCommerceFulfillment: {
-    fulfillmentsTitle: string;
-    emptyFulfillments: string;
-    summaryTitle: string;
+    adminCommerceFulfillment: {
+      fulfillmentsTitle: string;
+      emptyFulfillments: string;
+      emptyStateTitle: string;
+      emptyStateDescription: string;
+      summaryTitle: string;
     fulfillmentIdLabel: string;
     orderIdLabel: string;
     lifecycleLabel: string;
