@@ -18,8 +18,9 @@ independent even when implementation ownership is grouped.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
-- Implementation status: not started. Do not create production code or
-  executable test files until the user explicitly says to start.
+- Implementation status: Phase 0 complete. Corrected Phase 1 is in progress.
+  Production code and executable tests are now allowed because the user
+  explicitly said to start.
 
 ## Baseline
 
@@ -173,6 +174,10 @@ independent even when implementation ownership is grouped.
   MVP user journeys. PR Page is the entry surface, Offer Detail is the
   pre-order assembly surface, and Order Detail is the long-lived post-create
   lifecycle surface.
+- Before baseline frontend UI implementation starts in earnest, Rental and
+  RideHailing browser system scenario tests should be discussed and written
+  first. Payment and fulfillment may initially use simple test doubles or mock
+  adapters inside those scenarios while the real integrations remain deferred.
 - Payment and cancellation should be expressed inside the Order Detail journey
   rather than by introducing separate user-facing payment-result or
   cancellation routes in MVP unless a gateway constraint later forces that.
@@ -437,3 +442,23 @@ the baseline for downstream Order / Bill / Fulfillment design.
   order should group around `Product`, `Placement+Offer`, `Order+Bill`, and
   `Fulfillment`, even though the longer-term admin IA still recognizes
   `Merchandising`, `Trade`, and `Payment` as coarse product areas.
+- 2026-05-28: Corrected Phase 1 implementation to match the user's real
+  definition: backend foundation now means `entities + repositories +
+  use-cases + migration`, while still excluding `controller`, `payment`, and
+  `ride hailing`. Added Rental-first persistence entities, repositories,
+  `0070_ecommerce_rental_foundation.sql`, merchandising contract guards,
+  merchandising create use cases, transactional `createRentalOrder` with PR
+  READY attach gate plus immediate Bill creation, and basic Rental Fulfillment
+  use cases. Verification: touched backend unit tests pass, `db:lint` passes,
+  and full backend typecheck now fails only on the pre-existing
+  `waitlist.service.test.ts` issue.
+- 2026-05-28: Adjusted Phase 3 sequencing: Rental and RideHailing browser
+  system scenario tests should be written before the bulk of baseline frontend
+  UI implementation. Early scenario work may use simple payment/fulfillment
+  test doubles while real integrations stay deferred to later phases.
+- 2026-05-28: Finished the main remaining Rental-side Phase 1 tail:
+  explicit `CancellationPolicySnapshot` typing on Order item snapshots,
+  Rental termination target-total derivation, Bill effective-total
+  reconciliation with deterministic proportional allocation, and trade use
+  cases for requesting/finalizing Rental termination attempts. The exact Bill
+  reconciliation rule is no longer treated as an open question.

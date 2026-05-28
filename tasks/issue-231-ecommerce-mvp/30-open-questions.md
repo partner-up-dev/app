@@ -111,7 +111,6 @@
 
    The main remaining pre-implementation gaps are:
 
-   - exact bill reconciliation rule from current total to target total
    - exact ride-hailing provider integration cut and live-tracking API shape
    - exact route/API/read-model contracts for operator-facing fulfillment pages
    - user-journey confirmation for baseline frontend UI before frontend-heavy

@@ -258,6 +258,29 @@ If a future scope needs one PaymentTx to settle multiple BillLines in one
 operation, reintroduce an explicit allocation/application join model then. It
 is not required for the current issue.
 
+## Exact Reconciliation Rule
+
+`ReconcileBillToTargetAmountService` should use this concrete rule in issue 231:
+
+1. Compute the current effective total as:
+   - `sum(CHARGE lines) - sum(REFUND lines)`
+2. Compare that effective total with `target_charge_total_fen`.
+3. If the target is lower:
+   - create new `REFUND` lines for the delta
+4. If the target is higher:
+   - create new `CHARGE` lines for the delta
+5. Allocate that delta across participants by the original charge-line
+   distribution, not by current refund-line distribution.
+6. When proportional allocation leaves remainder fen:
+   - distribute remainder deterministically by larger fractional remainder
+   - break ties by stable user id ordering
+
+This keeps Bill-side reconciliation:
+
+- deterministic
+- aligned with the original split basis
+- independent from Payment timing
+
 ## Relation To Order
 
 Bill is created from Order, but should not structurally mirror Order.

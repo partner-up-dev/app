@@ -12,7 +12,27 @@ import {
 const createOpenOrder = (): TradeOrder => ({
   id: "order-1",
   family: "RENTAL",
+  createdBy: "user-1",
   status: "OPEN",
+  participants: [],
+  splitRuleSnapshot: { type: "RELATIVE", shares: [] },
+  offerSnapshot: {
+    offerId: 1,
+    termsVersion: 1,
+    productType: "RENTAL",
+  },
+  items: [],
+  pricingSnapshot: {
+    currency: "CNY",
+    itemBreakdowns: [],
+    orderLevelExplanations: [],
+    subtotalFen: 0,
+    totalFen: 0,
+  },
+  timeout: {
+    unpaidExpiresAt: "2026-05-28T10:30:00.000Z",
+    defaultWindowMinutes: 30,
+  },
   terminationAttempts: [],
 });
 

@@ -29,7 +29,6 @@ the corresponding slice:
 - Placement read endpoint shape, currently recommended as
   `GET /api/placements?context=pr&contextId=:prId&type=BUTTON`.
 - Visible copy for SKU base cancellation policy.
-- Exact bill reconciliation rule from current total to target total.
 - Exact route/API/read-model contract for operator-facing fulfillment pages.
 - Basic frontend user journeys before frontend-heavy work starts.
 - Exact ride-hailing provider integration cut and live-tracking API shape.
@@ -60,26 +59,29 @@ Verification:
 
 ## Phase 1: Backend Domain Foundation
 
-Goal: implement backend domain skeletons and internal use cases first, while
-deliberately deferring broad controller/API surface work, payment integration,
-and ride-hailing provider-heavy work.
+Goal: implement backend foundation for the Rental slice across entities,
+repositories, migrations, and internal use cases, while deliberately deferring
+controller/API surface work, payment integration, and ride-hailing work.
 
 Work:
 
-- Merchandising write models and pricing/cancellation truth.
-- Trade write models, pricing execution pipeline, PR attach invariant, and
-  termination topology.
-- Bill write models and reconcile-to-target-total logic.
-- Rental Fulfillment and RideHailing Fulfillment write-model skeletons.
-- Internal application services and ports needed by later admin/user surfaces.
+- Rental-capable Merchandising persistence and create use cases for Product,
+  SKU, SKU cancellation policy, Offer, and Placement.
+- Trade persistence and transactional Rental order creation with the PR READY
+  attach invariant.
+- Bill persistence and immediate bill creation from Rental order creation.
+- Rental Fulfillment persistence and basic operator-facing use cases such as
+  booking confirmation/rejection and entry-guidance recording.
+- Internal application services and ports needed by later admin surfaces.
 - Add HTTP controllers only when a frontend or operator surface actually needs
   them; do not front-load broad route creation.
 
 Verification:
 
 - Backend unit tests for touched domains.
+- `db:lint` after schema migration changes.
 - Backend scenario tests for cross-domain invariants such as PR attach
-  rollback.
+  rollback can follow after the Rental foundation lands.
 
 ## Phase 2: Admin CRUD And Rental Fulfillment Ops
 
@@ -113,6 +115,10 @@ support, but only after user journeys are roughly confirmed.
 
 Work:
 
+- Start Phase 3 by writing the Rental and RideHailing browser system scenario
+  tests first.
+- During this first scenario-writing step, use simple fulfillment/payment test
+  doubles where the real implementation is intentionally deferred.
 - Button Placement inside PR Utility Actions.
 - Offer detail pages and ordering pages.
 - Rental and ride-hailing order detail foundations.
@@ -121,6 +127,8 @@ Work:
 
 Verification:
 
+- Rental and RideHailing browser system scenarios should exist before the
+  corresponding UI implementation is considered complete.
 - Frontend unit tests for the shipped UI surfaces.
 - Browser scenario progress on non-payment/non-provider parts.
 

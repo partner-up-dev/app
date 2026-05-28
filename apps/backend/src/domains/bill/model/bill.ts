@@ -18,3 +18,14 @@ export type Bill = {
   currency: "CNY";
   lines: BillLine[];
 };
+
+export type BillSeed = {
+  sourceOrderId: string;
+  currency: "CNY";
+  chargeLines: Array<{
+    userId: string;
+    amountFen: number;
+    label: string;
+    description?: string | null;
+  }>;
+};

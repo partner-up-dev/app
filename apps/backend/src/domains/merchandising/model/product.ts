@@ -36,6 +36,11 @@ export type ServicePolicy =
   | RentalServicePolicy
   | RideHailingServicePolicy;
 
+export type SpuSalesPolicy = {
+  skuSelectionPolicy: SkuSelectionPolicy;
+  quantityPolicy: QuantityPolicy;
+};
+
 export type RentalSkuFacts = {
   type: "RENTAL";
   zoneCode: string;
@@ -66,3 +71,34 @@ export type ProductPresentation = {
     content: string;
   }>;
 };
+
+export type ProductSpu = {
+  id: number;
+  version: number;
+  status: CatalogStatus;
+  name: string;
+  productType: ProductType;
+  salesPolicy: SpuSalesPolicy;
+  servicePolicy: ServicePolicy;
+  pricingPolicy: {
+    rules: PricingRule[];
+  };
+  presentation: ProductPresentation;
+  facts: Record<string, unknown>;
+};
+
+export type ProductSku = {
+  id: number;
+  spuId: number;
+  version: number;
+  status: CatalogStatus;
+  name: string;
+  sortOrder: number;
+  facts: SkuFacts;
+  pricingModel: PricingModel;
+  cancellationPolicyRef?: {
+    policyId: string;
+    policyVersion: number;
+  } | null;
+};
+import type { PricingModel, PricingRule } from "./pricing";

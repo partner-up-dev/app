@@ -11,6 +11,12 @@ isolated Postgres state. Assertions must be black-box browser assertions:
 visible UI state and browser interactions only. Do not assert by probing API
 response bodies, database rows, repositories, or backend internals.
 
+Phase 3 should begin by writing the Rental and RideHailing browser scenario
+tests first, even before the corresponding baseline frontend UI is fully
+implemented. Where payment, manual fulfillment, or provider execution are not
+yet real, use deliberately simple test doubles or mock adapters and still keep
+the user path browser-visible.
+
 Restaurant group-buy coupon demand has been moved out of this issue. It should
 not have a system scenario in this task.
 
