@@ -53,6 +53,14 @@ export const queryKeys = {
   },
   admin: {
     anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,
+    commerceProductsWorkspace: () =>
+      ["admin", "commerce", "products", "workspace"] as const,
+    commercePlacementOfferWorkspace: () =>
+      ["admin", "commerce", "placement-offer", "workspace"] as const,
+    commerceOrderBillWorkspace: () =>
+      ["admin", "commerce", "orders-bills", "workspace"] as const,
+    commerceFulfillmentWorkspace: () =>
+      ["admin", "commerce", "fulfillments", "workspace"] as const,
     anchorEventLandingConfig: (eventId: number | null) =>
       ["admin", "anchor-events", "landing-config", eventId] as const,
     anchorEventPreferenceTags: (eventId: number | null) =>

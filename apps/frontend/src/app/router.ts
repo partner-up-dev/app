@@ -26,6 +26,14 @@ const AdminAnchorEventPage = () =>
   import("@/pages/AdminAnchorEventPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
+const AdminCommerceProductPage = () =>
+  import("@/pages/AdminCommerceProductPage.vue");
+const AdminCommercePlacementOfferPage = () =>
+  import("@/pages/AdminCommercePlacementOfferPage.vue");
+const AdminCommerceOrderBillPage = () =>
+  import("@/pages/AdminCommerceOrderBillPage.vue");
+const AdminCommerceFulfillmentPage = () =>
+  import("@/pages/AdminCommerceFulfillmentPage.vue");
 const AdminFeedbackQuestionnairesPage = () =>
   import("@/pages/AdminFeedbackQuestionnairesPage.vue");
 const ContactAuthorPage = () => import("@/pages/ContactAuthorPage.vue");
@@ -211,6 +219,42 @@ const routes: RouteRecordRaw[] = [
     path: "/admin/pois",
     name: "admin-pois",
     component: AdminPoisPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/products",
+    name: "admin-commerce-products",
+    component: AdminCommerceProductPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/placement-offer",
+    name: "admin-commerce-placement-offer",
+    component: AdminCommercePlacementOfferPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/orders-bills",
+    name: "admin-commerce-orders-bills",
+    component: AdminCommerceOrderBillPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/fulfillments",
+    name: "admin-commerce-fulfillments",
+    component: AdminCommerceFulfillmentPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["service"],

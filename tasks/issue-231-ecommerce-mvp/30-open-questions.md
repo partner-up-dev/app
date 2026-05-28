@@ -105,14 +105,13 @@
 8. Overall implementation readiness
 
    Current packet is strong enough on topology and ownership to start backend
-   domain skeleton work and admin skeleton work. It is not yet strong enough
-   to code the whole issue straight through without additional design
+   domain work and Phase 2 admin/operator implementation. It is not yet strong
+   enough to code the whole issue straight through without additional design
    decisions.
 
    The main remaining pre-implementation gaps are:
 
    - exact ride-hailing provider integration cut and live-tracking API shape
-   - exact route/API/read-model contracts for operator-facing fulfillment pages
    - user-journey confirmation for baseline frontend UI before frontend-heavy
      implementation starts
 
@@ -129,6 +128,8 @@
    - but current Phase 2 should not implement `Payment Admin` yet
    - current concrete admin views should group as:
      `Product`, `Placement+Offer`, `Order+Bill`, and `Fulfillment`
+   - current Phase 2 should reuse the existing admin shell and backend
+     `/api/admin/*` topology rather than inventing a parallel admin surface
 
 ## Confirmed From Discussion
 
@@ -168,6 +169,8 @@
   fine-grained APIs, one-column card layouts by default, and a current admin
   view grouping of `Product`, `Placement+Offer`, `Order+Bill`, and
   `Fulfillment`. `Payment Admin` is deferred for now.
+- Phase 2 admin/operator implementation should reuse the existing admin shell
+  and place its backend surface under `/api/admin/commerce/*`.
 - Real-name / identity-document privacy, masking, retention, and permission
   hardening are deferred for now and should not block current issue 231
   implementation planning.

@@ -153,6 +153,58 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
+    id: "commerce-products",
+    labelKey: "adminCommon.navCommerceProductsGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-products",
+        labelKey: "adminCommon.navCommerceProducts",
+        subtitleKey: "adminCommon.navCommerceProductsSubtitle",
+        routeName: "admin-commerce-products",
+      },
+    ],
+  },
+  {
+    id: "commerce-placement-offer",
+    labelKey: "adminCommon.navCommercePlacementOfferGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-placement-offer",
+        labelKey: "adminCommon.navCommercePlacementOffer",
+        subtitleKey: "adminCommon.navCommercePlacementOfferSubtitle",
+        routeName: "admin-commerce-placement-offer",
+      },
+    ],
+  },
+  {
+    id: "commerce-orders-bills",
+    labelKey: "adminCommon.navCommerceOrdersBillsGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-orders-bills",
+        labelKey: "adminCommon.navCommerceOrdersBills",
+        subtitleKey: "adminCommon.navCommerceOrdersBillsSubtitle",
+        routeName: "admin-commerce-orders-bills",
+      },
+    ],
+  },
+  {
+    id: "commerce-fulfillments",
+    labelKey: "adminCommon.navCommerceFulfillmentsGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-fulfillments",
+        labelKey: "adminCommon.navCommerceFulfillments",
+        subtitleKey: "adminCommon.navCommerceFulfillmentsSubtitle",
+        routeName: "admin-commerce-fulfillments",
+      },
+    ],
+  },
+  {
     id: "feedback-questionnaires",
     labelKey: "adminCommon.navFeedbackQuestionnairesGroup",
     requiredRoles: ["service"],

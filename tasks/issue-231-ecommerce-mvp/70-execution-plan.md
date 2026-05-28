@@ -90,6 +90,8 @@ Goal: ship admin/operator surfaces after the backend skeleton exists.
 Work:
 
 - Current phase should not build `Payment Admin` yet.
+- Reuse the existing admin shell and `/api/admin/*` topology rather than
+  introducing a parallel admin surface.
 - Concrete admin views should be grouped as:
   - `Product`
   - `Placement+Offer`
@@ -107,6 +109,8 @@ Verification:
 
 - Admin browser scenario for merchandising CRUD.
 - Supporting unit tests for admin-facing write/read contracts as needed.
+- Frontend build should stay green after admin route, navigation, locale, and
+  page additions.
 
 ## Phase 3: Baseline Frontend UI
 

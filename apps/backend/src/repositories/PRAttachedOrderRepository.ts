@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   prAttachedOrders,
@@ -44,6 +44,13 @@ export class PRAttachedOrderRepository {
         ),
       );
     return result[0] ?? null;
+  }
+
+  async listAll(): Promise<PRAttachedOrder[]> {
+    return this.executor
+      .select()
+      .from(prAttachedOrders)
+      .orderBy(desc(prAttachedOrders.createdAt));
   }
 
   async detachByOrderId(orderId: TradeOrderId): Promise<PRAttachedOrder | null> {

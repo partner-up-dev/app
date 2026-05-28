@@ -1,0 +1,41 @@
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
+import { BillRepository } from "../../../repositories/BillRepository";
+import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+
+const tradeOrderRepo = new TradeOrderRepository();
+const prAttachedOrderRepo = new PRAttachedOrderRepository();
+const billRepo = new BillRepository();
+const billLineRepo = new BillLineRepository();
+
+export async function getAdminCommerceOrderBillWorkspace() {
+  const [orders, attachments, bills] = await Promise.all([
+    tradeOrderRepo.listAll(),
+    prAttachedOrderRepo.listAll(),
+    billRepo.listAll(),
+  ]);
+
+  const attachmentByOrderId = new Map(
+    attachments.map((attachment) => [attachment.orderId, attachment]),
+  );
+  const billByOrderId = new Map(bills.map((bill) => [bill.sourceOrderId, bill]));
+  const billLines = await billLineRepo.listByBillIds(bills.map((bill) => bill.id));
+  const billLinesByBillId = new Map<string, typeof billLines>();
+  for (const billLine of billLines) {
+    const current = billLinesByBillId.get(billLine.billId) ?? [];
+    current.push(billLine);
+    billLinesByBillId.set(billLine.billId, current);
+  }
+
+  return {
+    orders: orders.map((order) => {
+      const bill = billByOrderId.get(order.id) ?? null;
+      return {
+        order,
+        attachment: attachmentByOrderId.get(order.id) ?? null,
+        bill,
+        billLines: bill ? billLinesByBillId.get(bill.id) ?? [] : [],
+      };
+    }),
+  };
+}

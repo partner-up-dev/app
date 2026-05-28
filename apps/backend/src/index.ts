@@ -29,6 +29,7 @@ import { poiRoute } from "./controllers/poi.controller";
 import { metaRoute } from "./controllers/meta.controller";
 import { adminAnchorManagementRoute } from "./controllers/admin-anchor-management.controller";
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
+import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
 import { jobRunner } from "./infra/jobs";
 import {
   JOURNEY_ID_HEADER,
@@ -193,6 +194,7 @@ export const routes = app
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
   .route("/api/admin", adminAnchorManagementRoute)
+  .route("/api/admin", adminCommerceManagementRoute)
   .route("/api/admin", adminPoiRoute)
   .route("/internal/maintenance", internalMaintenanceRoute);
 

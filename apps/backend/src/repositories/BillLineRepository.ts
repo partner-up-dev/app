@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   billLines,
@@ -25,6 +25,18 @@ export class BillLineRepository {
       .select()
       .from(billLines)
       .where(eq(billLines.billId, billId))
+      .orderBy(asc(billLines.createdAt), asc(billLines.id));
+  }
+
+  async listByBillIds(billIds: BillId[]): Promise<BillLine[]> {
+    if (billIds.length === 0) {
+      return [];
+    }
+
+    return this.executor
+      .select()
+      .from(billLines)
+      .where(inArray(billLines.billId, billIds))
       .orderBy(asc(billLines.createdAt), asc(billLines.id));
   }
 

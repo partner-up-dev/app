@@ -13,13 +13,15 @@ independent even when implementation ownership is grouped.
 ## Input Classification
 
 - Type: Intent.
-- Active mode: Explore -> Solidify.
-- Current discussion scope: TDD and implementation slicing only.
+- Active mode: Execute.
+- Current discussion scope: corrected Phase 1 completion and Phase 2 admin
+  implementation.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
-- Implementation status: Phase 0 complete. Corrected Phase 1 is in progress.
-  Production code and executable tests are now allowed because the user
+- Implementation status: Phase 0 complete. Corrected Phase 1 complete.
+  Phase 2 is in progress.
+- Production code and executable tests are now allowed because the user
   explicitly said to start.
 
 ## Baseline
@@ -165,6 +167,11 @@ independent even when implementation ownership is grouped.
 - But current Phase 2 admin implementation should not build `Payment Admin`
   yet. The first concrete admin views should be grouped as:
   `Product`, `Placement+Offer`, `Order+Bill`, and `Fulfillment`.
+- Phase 2 should reuse the existing admin topology rather than invent a new
+  parallel admin shell. The current implementation direction is a dedicated
+  `admin-commerce-management` backend slice under `/api/admin/commerce/*`
+  plus concrete admin pages for `Product`, `Placement+Offer`, `Order+Bill`,
+  and `Fulfillment`.
 - Real-name / identity-document privacy, masking, retention, and operator
   permission hardening are deferred for now and should not block current issue
   231 implementation planning.
@@ -462,3 +469,11 @@ the baseline for downstream Order / Bill / Fulfillment design.
   reconciliation with deterministic proportional allocation, and trade use
   cases for requesting/finalizing Rental termination attempts. The exact Bill
   reconciliation rule is no longer treated as an open question.
+- 2026-05-28: Phase 2 started and baseline admin/operator implementation landed
+  on top of the corrected Rental foundation. The implementation reuses the
+  existing admin shell and adds a dedicated
+  `/api/admin/commerce/*` backend slice plus concrete admin views for
+  `Product`, `Placement+Offer`, `Order+Bill`, and `Fulfillment`. Verification:
+  targeted backend ecommerce unit tests still pass, backend typecheck remains
+  blocked only by the pre-existing `waitlist.service.test.ts` error, and
+  frontend build passes.
