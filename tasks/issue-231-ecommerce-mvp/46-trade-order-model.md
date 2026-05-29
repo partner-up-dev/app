@@ -284,6 +284,95 @@ type RideHailingOrder = TradeOrderBase & {
 };
 ```
 
+## Create Order Command
+
+`CreateOrderCommand` belongs to Trade / Order rather than Ordering.
+
+Reason:
+
+- Ordering only owns the current pre-order read model and evaluation state
+- Order creation is the authoritative contract-creation boundary
+- only Trade / Order can decide which upstream truth must be re-read,
+  revalidated, repriced, and finally frozen into snapshots
+
+So Ordering should inform what inputs are needed, but it should not own the
+command shape itself.
+
+This also gives the correct way to define Ordering input:
+
+- start from `CreateOrderCommand`
+- identify which command fields are user-editable current input
+- identify which command fields must be supplied or locked by backend from
+  existing owner truth, such as PR context, Placement binding, Offer, SPU, or
+  SKU
+- never let frontend-submitted input become authority for displayed contract
+  truth or frozen order snapshots
+
+Recommended model:
+
+```ts
+type CreateOrderBaseCommand = {
+  offer_id: number;
+  context?: {
+    kind: "PR";
+    id: string;
+  } | null;
+  items: CreateOrderItemInput[];
+};
+
+type CreateOrderItemInput = {
+  spu_id: number;
+  sku_id: number;
+  quantity?: number | null;
+};
+
+type CreateRentalOrderCommand = CreateOrderBaseCommand & {
+  request: {
+    service_start_at: string;
+    service_end_at: string;
+    contact_phone: string;
+    registrants: {
+      full_name: string;
+      national_id?: string | null;
+    }[];
+  };
+};
+
+type CreateRideHailingOrderCommand = CreateOrderBaseCommand & {
+  request: {
+    departure_time: string;
+    route: Route;
+    rider_contact_phone?: string | null;
+  };
+};
+
+type CreateOrderCommand =
+  | CreateRentalOrderCommand
+  | CreateRideHailingOrderCommand;
+```
+
+Boundary:
+
+- the command may reference `offer_id` even though Ordering read contract is
+  decoupled from Offer
+- this is acceptable because `offer_id` here is not page truth; it is Trade's
+  contract-source reference for re-reading and freezing the correct Offer truth
+- `context` may carry a PR reference when the order is created from PR-scoped
+  commerce, but `pr_id` should not be a universally required top-level field
+- the command must not carry authoritative pricing, policy, cancellation, or
+  catalog truth from the frontend
+- for PR-bound locked fields, backend must re-derive or revalidate against PR
+  context before creating the order; the client may display the value, but its
+  echo is not authoritative
+- route/page-entry refs and current user input are not enough to create an
+  order until Trade re-reads current upstream truth and rebuilds the effective
+  command inputs server-side
+- `family`, `productType`, `orderingKind`, `orderFamily`, and
+  `fulfillmentFamily` should not be carried by the command; they are derived
+  from the current Offer/SPU truth inside Trade
+- `route` should reuse the common Route model shared with PR rather than a
+  ride-order-specific duplicate shape
+
 ## Snapshot Boundary
 
 Order creation should freeze these truths:

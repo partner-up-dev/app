@@ -10,7 +10,7 @@ In scope:
 
 - Placement Instance selection from PR data / PR Context DTO.
 - Button-type Placement creative rendered in the PR Page Button Placement slot.
-- Offer detail as the independent user route.
+- Ordering Detail as the independent pre-order user route.
 - Admin CRUD for Offer and Button Placement Instance.
 - Backend-authored placement matching, creative payload, and target resolution.
 - SPU type selection of ordering, order, and fulfillment families.
@@ -37,6 +37,17 @@ rendering types and should not share a forced generic copy/media model.
 
 Offer must not own marketing copy, media, PR visibility rules, or existing-order
 target selection. Placement must not own order lifecycle or fulfillment.
+
+Current frontend/application direction:
+
+- `Ordering` is a first-class concept distinct from `Offer`
+- backend should finish `Offer + Placement binding -> Ordering page payload`
+  before the frontend enters Ordering Detail
+- do not introduce a separate standalone Ordering owner, persisted Ordering
+  entity, or persisted Offer-owned ordering-schema object in the current scope
+- do not treat a phrase like `Derived ordering definition` as a new model
+  layer; at most it is shorthand for the query-time field-definition fragment
+  already embedded in the Ordering page payload
 
 ## Product Type Contract
 
@@ -248,7 +259,70 @@ Marketing copy and media belong to Placement creative payloads. Product Catalog
 may still own product-level media and parameters, but those are product facts,
 not Offer marketing creative.
 
-Offer detail should return:
+## Ordering Field Definition At Query Time
+
+`Derived ordering definition` is only a discussion shorthand introduced in this
+packet. It should not survive as a named middle object in the topology.
+
+The simpler read is:
+
+- Product Catalog owns the stable sales/service/product truth
+- Offer selects the sellable SPU set and pricing overlay
+- Placement resolves bound values from context for known field keys
+- backend returns one Ordering page payload, and that payload already contains
+  the field-definition fragment needed by the page
+
+So the field definition below is not a new durable object. It is just one
+derived fragment inside the query-time Ordering page payload.
+
+Recommended model:
+
+```ts
+type OrderingFieldValueKind =
+  | "ENUM_SINGLE"
+  | "POSITIVE_INT"
+  | "PHONE"
+  | "PLAIN_STRING"
+  | "DATETIME"
+  | "TIME_WINDOW"
+  | "DURATION"
+  | "ROUTE";
+
+type OrderingFieldDefinition = {
+  key: string;
+  label: string;
+  valueKind: OrderingFieldValueKind;
+  required: boolean;
+};
+```
+
+Boundary:
+
+- The field definition is derived from Offer-selected catalog truth; it is not
+  a new persisted object under Offer
+- Offer still remains the commercial source that decides which catalog content
+  participates in this ordering flow
+- The field definition does not own page layout or widget choice
+- Placement may reference only `field.key` values that exist in this query-time
+  field definition
+- Whether a field is externally bindable should be derived by an
+  Offer/catalog-owned predicate rather than persisted as one more field flag
+
+Examples:
+
+- Rental field definition fragment:
+  - `zone`
+  - `timeSlot`
+  - `participantCount`
+  - `contactPhone`
+  - `realName`
+- RideHailing field definition fragment:
+  - `route`
+  - `vehicleClass`
+  - `departureTime`
+  - `contactPhone`
+
+The backend Ordering query should return:
 
 - SPU list resolved to SPU/SKU projections
 - one Offer `productType` / `orderingKind`
@@ -263,8 +337,8 @@ target data from the selected SKU/SPU/order context, not whether the PR itself
 matched a Placement. Offer top-level availability is limited to status and
 active window unless a later design adds an explicit Offer applicability rule.
 
-Offer Detail should assemble one ordering root per Offer because an Offer is now
-restricted to one `productType` / ordering family. The page may still show
+Ordering Detail should resolve one ordering root per Offer because an Offer is
+now restricted to one `productType` / ordering family. The page may still show
 multiple SPUs or SKU groups inside that one ordering flow. A single SPU must
 never contain mixed SKU product types, and one Offer must never mix SPUs from
 different product types.
@@ -302,6 +376,38 @@ type ButtonPlacementCreative = {
 };
 ```
 
+Placement also owns context-to-ordering field binding policy.
+
+Recommended model:
+
+```ts
+type PlacementContext = {
+  kind: "PR";
+  data: unknown;
+};
+
+type PlacementBindingRule = {
+  fieldKey: string;
+  contextPath: string;
+  lock: true;
+};
+```
+
+Boundary:
+
+- Placement Slot touches `PlacementContext` in order to select which
+  PlacementInstance should be rendered in that slot
+- Placement Instance owns `bindingRules` and resolves bound Ordering values
+  from that already-selected `PlacementContext`
+- Placement must know which Ordering field keys are bindable for the target
+  selling flow
+- Placement does not own the full ordering schema or page layout
+- current invariant: if a field is bound from PR context by Placement, that
+  field is locked
+- Placement save/resolve validation must reject binding rules that reference
+  unknown field keys or fields that fail the Offer/catalog-owned bindability
+  predicate over the derived ordering definition
+
 The frontend renders the returned projection. It must not infer matching rules,
 or whether to route to Offer or Order.
 
@@ -311,7 +417,7 @@ or whether to route to Offer or Order.
 - `PlacementInstance` is one configured merchandising record competing for that
   slot
 
-Button Placement is a UI rendering form, not a separate placement selection
+Button Placement is a UI rendering type, not a separate placement selection
 model. The selection flow is still: query suitable Placement Instances by PR
 data, then render the selected instance only when its type is `BUTTON` and its
 creative payload is valid for the PR Page Utility Actions Button Placement row.
@@ -405,8 +511,8 @@ Placement read returns a backend-authored target:
 type PlacementTarget =
   | { kind: "ORDER"; orderId: string; href: string }
   | {
-      kind: "OFFER";
-      offerId: number;
+      kind: "ORDERING";
+      placementInstanceId: string;
       context: { kind: "PR"; prId: number };
       href: string;
     };
@@ -422,15 +528,205 @@ Resolution order:
    Context data.
 4. Keep only the candidate whose type is renderable by the current UI slot
    (`BUTTON` for PR Page Utility Actions in this task).
-5. Ask Trade whether an active order already exists for `(offerId, prId)`.
+5. Resolve the target Offer internally from the selected Placement Instance,
+   then ask Trade whether an active order already exists for that
+   `(offerId, prId)` pair.
 6. Return `ORDER` target when an existing order exists. PR active participants
-   have access to PR-attached orders. Otherwise return `OFFER` target.
+   have access to PR-attached orders. Otherwise return `ORDERING` target.
 7. Return zero or one Placement projection for the Button Placement slot. If
    configuration creates multiple matches, the backend resolves that ambiguity
    deterministically before responding.
 
 Merchandising may query Trade through a read port for target resolution, but it
 must not own order state.
+
+## Ordering Resolution
+
+There may still be thin endpoint/query use cases that serve Ordering Detail,
+but they must not become new owners. Internal responsibility split should stay:
+
+1. Placement resolves external-context bindings
+2. backend traverses `Placement -> Offer -> Product`
+3. current Ordering read truth is returned to the page
+
+Ordering page entry should contain only backend-authoritative refs/ids from
+existing owners. It must not introduce a generic `resolveRef`, `orderingRef`,
+`orderingId`, or any other Ordering identity.
+
+There is no canonical `OrderingPageInput` domain model. Entry parameters are
+route/use-case-specific:
+
+- current MVP Placement entry may use `placementInstanceId + PR context id`
+- a future direct Offer entry may use `offerId`
+- a future direct Product entry may use `spuId` / `skuId`
+
+Those are transport/application parameters, not Ordering-owned identity. The
+Ordering model itself starts only after the backend has resolved current
+authoritative read truth from existing owners.
+
+Ordering must be read from the Order creation boundary backward.
+
+First question:
+
+> What does Trade need to create a valid Order?
+
+The answer is defined by Trade's `CreateOrderCommand`, not by an
+Ordering-owned schema. Ordering is the pre-create interaction surface that helps
+the user supply the variable parts of that command while the backend supplies
+all authoritative product, offer, pricing, policy, and context truth.
+
+So there are two different kinds of data:
+
+- authoritative read truth: current SPU/SKU, service policy, cancellation
+  policy, pricing policy, placement-bound values, and any locked context values
+- current order input: user intent and editable values that will be submitted
+  toward `CreateOrderCommand`
+
+The frontend may own current order input while the user is editing. It must not
+be the authority for anything the page displays as contract truth, and it must
+not be the authority for locked/bound fields at create time.
+
+Current Ordering read data can be composed from one API or several fine-grained
+atomic APIs. The design focus is authority and ownership, not whether transport
+is monolithic.
+
+Recommended current read model:
+
+```ts
+type OrderingReadModel = {
+  productType: ProductType;
+  spus: OrderingSpuProjection[];
+  input: OrderingInputState;
+};
+
+type OrderingEvaluation = {
+  availability: {
+    createOrderEnabled: boolean;
+    disabledReason?: string | null;
+  };
+  pricePreview: {
+    amountFen: number | null;
+    explanations: unknown[];
+  };
+};
+
+type OrderingSpuProjection = {
+  spuId: number;
+  name: string;
+  salesPolicy: SpuSalesPolicy;
+  servicePolicy: SpuServicePolicy;
+  sellingPoints: string[];
+  skuOptions: OrderingSkuProjection[];
+};
+
+type OrderingSkuProjection = {
+  skuId: number;
+  name: string;
+  facts: unknown;
+  selected: boolean;
+  selectable: boolean;
+};
+
+type OrderingInputState = {
+  /**
+   * Fields needed to complete Trade's CreateOrderCommand.
+   * Values for locked/bound fields are backend-authored display values and
+   * must be re-derived or revalidated by backend on evaluate/create.
+   */
+  fields: OrderingInputField[];
+};
+
+type OrderingInputField = {
+  key: string;
+  label: string;
+  valueKind: OrderingFieldValueKind;
+  required: boolean;
+  value: unknown | null;
+  editable: boolean;
+};
+
+```
+
+Important direction:
+
+- Ordering Detail should not receive frozen pre-order snapshots
+- frontend should not directly depend on `Offer` as its public contract
+- backend should resolve current Ordering read truth on every read/evaluate/create
+  from existing owner refs, currently often by traversing `Placement -> Offer
+  -> Product`
+- frontend should not run `Offer -> Ordering` adaptation logic
+- route/page-entry parameters should contain only existing owner refs/ids used
+  to obtain authoritative backend truth
+- current order input is derived from Trade's `CreateOrderCommand`: selected
+  item ids, quantities, and editable request fields
+- current order input may carry user-provided values, but it is not authority
+  for product, pricing, policy, cancellation, or locked context truth
+- locked/bound fields shown by Ordering Detail must be re-derived or revalidated
+  by backend during evaluation and order creation
+- Ordering must not be persisted and therefore must not grow an `orderingId`
+- do not introduce generic locator fields such as `resolveRef` or `orderingRef`
+  to stand in for multiple upstream owners
+- if an outer query/use case exists, it is only a coordinator; the real owner
+  logic remains split between Placement binding resolution and
+  Offer-selected-catalog ordering derivation
+- `OrderingEvaluation` is still Ordering-owned state. It should not be treated
+  as a sibling owner next to Ordering.
+- backend may expose one composed Ordering read API or multiple fine-grained
+  atomic read APIs; that is an implementation choice, not a new model owner
+- Ordering-side read/write should reuse existing domain names and ids:
+  - current SPU / SKU read projections for ordering truth
+  - `input` inside current Ordering read truth for fields required by
+    `CreateOrderCommand`, including backend-authored locked display values
+  - `OrderingEvaluation` for current computed state
+- Service explanation belongs to current SPU read truth and service policy.
+- Cancellation explanation belongs to the current cancellation-policy read
+  result.
+- Do not invent a generic `sellable` layer when SPU is already the sellable
+  product body in the catalog model.
+- Order creation command belongs to Trade / Order, not to Ordering.
+- Ordering only owns the latest pre-order read model plus current input and
+  evaluation state. Trade / Order owns the authoritative create-order command
+  shape and the eventual snapshot freezing.
+
+## Ordering Page Data Topology
+
+The current preferred page-data topology is:
+
+```mermaid
+flowchart LR
+  A["PR Context"] --> B["Placement Slot"]
+  B --> C["Placement Instance"]
+  C --> D["placementInstanceId + PR context id"]
+  D --> E["Backend resolves current Ordering truth"]
+  E --> F["Current Ordering read model(s)"]
+  F --> H["Ordering Detail initial render"]
+  H --> I["User edits order input"]
+  I --> J["OrderingEvaluation (availability + price preview)"]
+  I --> K["Trade / Order create-order command"]
+  J --> H
+```
+
+Interpretation:
+
+- Ordering page entry carries only existing owner refs/ids
+- Ordering has no canonical entry object; each entry route/use case uses its own
+  existing owner refs
+- Ordering model must not hard-code a specific predecessor such as Placement or
+  Offer
+- Ordering page consumes backend-resolved current read truth
+- user edits produce current `order input`, which is the editable/user-intent
+  subset of Trade's eventual `CreateOrderCommand`
+- `OrderingInputState` describes the fields needed for that command and may
+  display backend-authored locked values; those values are re-derived or
+  revalidated by backend during evaluate/create
+- `OrderingEvaluation` is the internal computed state for that current input
+- price preview and create-order availability are derived from `order input`
+  through the existing pricing / validation pipeline rather than from field
+  schema flags
+- How the user entered Ordering, including whether Placement was the entry, is a
+  route/use-case concern outside the Ordering model itself
+- create-order command shape is Order-owned and should be defined in the Trade
+  document, not here
 
 ## Read And Route Contract
 
@@ -474,14 +770,13 @@ The user flow is:
 2. PRPage requests the matching `BUTTON` Placement for the current PR data.
 3. If a matching Button Placement Instance exists, the Button Placement row is
    shown; otherwise it is hidden.
-4. Clicking the button follows the backend-authored target to Offer Detail or
+4. Clicking the button follows the backend-authored target to Ordering Detail or
    Order Detail.
-5. Offer Detail assembles Offer plus the needed Ordering surface(s) from the
-   Offer SPU list.
+5. Ordering Detail consumes backend-resolved current Ordering truth.
 
-User route:
+Current MVP user route:
 
-- `/offers/:offerId?context=pr&contextId=:prId`
+- `/ordering/from-placement?placementInstanceId=:placementInstanceId&context=pr&contextId=:prId`
 - `/orders/:orderId`
 
 There is no required user-facing `/placements/:placementId` page for Button

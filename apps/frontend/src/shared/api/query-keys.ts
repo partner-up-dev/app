@@ -51,6 +51,23 @@ export const queryKeys = {
     byNames: (namesCsv: string) => ["poi", "by-names", namesCsv] as const,
     applicationsMine: () => ["poi", "applications", "mine"] as const,
   },
+  commerce: {
+    placement: (contextId: number | null, type: "BUTTON") =>
+      ["commerce", "placement", contextId, type] as const,
+    rentalOrderingFromPlacement: (
+      placementInstanceId: number | null,
+      contextId: number | null,
+    ) =>
+      [
+        "commerce",
+        "ordering",
+        "from-placement",
+        placementInstanceId,
+        contextId,
+      ] as const,
+    orderDetail: (orderId: string | null) =>
+      ["commerce", "order", orderId] as const,
+  },
   admin: {
     anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,
     commerceProductsWorkspace: () =>

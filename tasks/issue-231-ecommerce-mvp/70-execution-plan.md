@@ -117,22 +117,32 @@ Verification:
 Goal: ship all user-facing frontend that the existing backend can already
 support, but only after user journeys are roughly confirmed.
 
+Status: complete for the Rental baseline. Full RideHailing remains deferred to
+Phase 5 and real payment remains deferred to Phase 4.
+
 Work:
 
-- Start Phase 3 by writing the Rental and RideHailing browser system scenario
-  tests first.
-- During this first scenario-writing step, use simple fulfillment/payment test
-  doubles where the real implementation is intentionally deferred.
+- Start Phase 3 by writing the Rental browser system scenario first.
+- During this first scenario-writing step, use browser-visible fake
+  fulfillment/payment actions where the real implementation is intentionally
+  deferred.
 - Button Placement inside PR Utility Actions.
-- Offer detail pages and ordering pages.
-- Rental and ride-hailing order detail foundations.
+- Rental Ordering Detail.
+- Rental Order Detail foundation.
+- Rental cancellation UI backed by the existing termination/Bill reconciliation
+  sequence.
+- Cancellation policy summary and price-detail affordance.
+- Non-READY and non-creator disabled Ordering states.
+- Existing-order target routing from PR Button Placement to Order Detail.
 - Add controllers/APIs on demand from concrete frontend needs instead of
   pre-building broad route surfaces.
+- Full RideHailing chain and RideHailing browser scenario completion are not
+  Phase 3 requirements.
 
 Verification:
 
-- Rental and RideHailing browser system scenarios should exist before the
-  corresponding UI implementation is considered complete.
+- Rental browser system scenario should pass before the Rental UI
+  implementation is considered complete.
 - Frontend unit tests for the shipped UI surfaces.
 - Browser scenario progress on non-payment/non-provider parts.
 

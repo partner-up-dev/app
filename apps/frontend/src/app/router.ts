@@ -18,6 +18,10 @@ const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
+const OrderingFromPlacementPage = () =>
+  import("@/pages/OrderingFromPlacementPage.vue");
+const CommerceOrderDetailPage = () =>
+  import("@/pages/CommerceOrderDetailPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
@@ -110,6 +114,22 @@ const routes: RouteRecordRaw[] = [
     meta: {
       wechatSharePolicy: "skip",
       wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
+    path: "/ordering/from-placement",
+    name: "ordering-from-placement",
+    component: OrderingFromPlacementPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/orders/:orderId",
+    name: "commerce-order-detail",
+    component: CommerceOrderDetailPage,
+    meta: {
+      wechatSharePolicy: "skip",
     },
   },
   {

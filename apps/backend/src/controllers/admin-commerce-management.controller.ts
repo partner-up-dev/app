@@ -270,7 +270,113 @@ const rentalBookingDecisionInputSchema = z.object({
 const toDate = (value: string | null | undefined): Date | null =>
   value ? new Date(value) : null;
 
-export const adminCommerceManagementRoute = app
+type JsonEndpoint<
+  Input,
+  Output,
+  Status extends number = 200,
+> = {
+  input: Input;
+  output: Output;
+  outputFormat: "json";
+  status: Status;
+};
+
+type EmptyInput = {};
+type NumericParam<Key extends string> = {
+  param: Record<Key, string>;
+};
+type UuidParam<Key extends string> = {
+  param: Record<Key, string>;
+};
+
+type AdminCommerceManagementSchema = {
+  "/commerce/products/workspace": {
+    $get: JsonEndpoint<
+      EmptyInput,
+      Awaited<ReturnType<typeof getAdminCommerceProductWorkspace>>
+    >;
+  };
+  "/commerce/products/spus": {
+    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createProductSpu>>>;
+  };
+  "/commerce/products/spus/:spuId": {
+    $patch: JsonEndpoint<
+      NumericParam<"spuId"> & { json: unknown },
+      Awaited<ReturnType<typeof updateAdminCommerceProductSpu>>
+    >;
+  };
+  "/commerce/products/skus": {
+    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createProductSku>>>;
+  };
+  "/commerce/products/skus/:skuId": {
+    $patch: JsonEndpoint<
+      NumericParam<"skuId"> & { json: unknown },
+      Awaited<ReturnType<typeof updateAdminCommerceProductSku>>
+    >;
+  };
+  "/commerce/products/skus/:skuId/cancellation-policy": {
+    $post: JsonEndpoint<NumericParam<"skuId"> & { json: unknown }, unknown>;
+  };
+  "/commerce/placement-offer/workspace": {
+    $get: JsonEndpoint<
+      EmptyInput,
+      Awaited<ReturnType<typeof getAdminCommercePlacementOfferWorkspace>>
+    >;
+  };
+  "/commerce/offers": {
+    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createOffer>>>;
+  };
+  "/commerce/offers/:offerId": {
+    $patch: JsonEndpoint<
+      NumericParam<"offerId"> & { json: unknown },
+      Awaited<ReturnType<typeof updateAdminCommerceOffer>>
+    >;
+  };
+  "/commerce/placements": {
+    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createPlacement>>>;
+  };
+  "/commerce/placements/:placementId": {
+    $patch: JsonEndpoint<
+      NumericParam<"placementId"> & { json: unknown },
+      Awaited<ReturnType<typeof updateAdminCommercePlacement>>
+    >;
+  };
+  "/commerce/orders-bills/workspace": {
+    $get: JsonEndpoint<
+      EmptyInput,
+      Awaited<ReturnType<typeof getAdminCommerceOrderBillWorkspace>>
+    >;
+  };
+  "/commerce/fulfillments/workspace": {
+    $get: JsonEndpoint<
+      EmptyInput,
+      Awaited<ReturnType<typeof getAdminCommerceFulfillmentWorkspace>>
+    >;
+  };
+  "/commerce/fulfillments/rental/:fulfillmentId/confirm-booking": {
+    $post: JsonEndpoint<
+      UuidParam<"fulfillmentId"> & { json: { bookingNote?: string | null } },
+      Awaited<ReturnType<typeof confirmRentalBooking>>
+    >;
+  };
+  "/commerce/fulfillments/rental/:fulfillmentId/reject-booking": {
+    $post: JsonEndpoint<
+      UuidParam<"fulfillmentId"> & { json: { bookingNote?: string | null } },
+      Awaited<ReturnType<typeof rejectRentalBooking>>
+    >;
+  };
+  "/commerce/fulfillments/rental/:fulfillmentId/entry-guidance": {
+    $post: JsonEndpoint<
+      UuidParam<"fulfillmentId"> & { json: z.infer<typeof recordEntryGuidanceInputSchema> },
+      Awaited<ReturnType<typeof recordRentalEntryGuidance>>
+    >;
+  };
+};
+
+export const adminCommerceManagementRoute: Hono<
+  AdminAuthEnv,
+  AdminCommerceManagementSchema
+> = app
   .use("*", adminAuthMiddleware)
   .get("/commerce/products/workspace", async (c) => {
     const result = await getAdminCommerceProductWorkspace();

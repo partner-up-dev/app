@@ -11,11 +11,15 @@ isolated Postgres state. Assertions must be black-box browser assertions:
 visible UI state and browser interactions only. Do not assert by probing API
 response bodies, database rows, repositories, or backend internals.
 
-Phase 3 should begin by writing the Rental and RideHailing browser scenario
-tests first, even before the corresponding baseline frontend UI is fully
-implemented. Where payment, manual fulfillment, or provider execution are not
-yet real, use deliberately simple test doubles or mock adapters and still keep
-the user path browser-visible.
+Phase 3 begins with the Rental browser scenario before the corresponding
+baseline frontend UI is considered complete. Where payment or manual
+fulfillment is not yet real, use deliberately simple browser-visible fake
+actions and still keep the user path black-box and user-visible.
+
+Full RideHailing browser scenario completion is deferred to the RideHailing
+phase. The RideHailing scenario remains documented as the later target because
+its topology affects current abstractions, but it is not a Phase 3 completion
+requirement.
 
 Restaurant group-buy coupon demand has been moved out of this issue. It should
 not have a system scenario in this task.
@@ -56,8 +60,8 @@ User-visible flow:
 
 1. Participant opens a matching "烹饪搭子" `/pr/:id`.
 2. PR page shows a 6C Button Placement inside Utility Actions.
-3. Participant opens `/offers/:offerId`.
-4. Offer Detail assembles Rental Ordering from the Offer SPU list.
+3. Participant opens Ordering Detail.
+4. Ordering Detail assembles Rental Ordering from the Offer SPU list.
 5. Before READY, create-order CTA is disabled.
 6. PR reaches READY through the existing PR lifecycle.
 7. PR creator submits selected zone, 3-hour time slot, contact, and real-name
@@ -84,8 +88,8 @@ sequenceDiagram
   U->>PR: Open matching cooking PR
   PR->>PL: Render Button Placement inside Utility Actions
   PL-->>PR: 6C reservation offer or existing order target
-  U->>OF: Open /offers/:offerId
-  OF->>RO: Assemble Rental Ordering from Offer SPU list
+  U->>RO: Open Ordering Detail from backend-authored Placement target
+  RO->>OF: Backend reads Offer and SPU/SKU truth for Rental Ordering
   RO-->>U: Create-order CTA disabled until READY
   U->>PR: Reach READY through existing lifecycle
   U->>RO: Submit zone/time/count/contact/real-name info
@@ -128,8 +132,8 @@ User-visible flow:
 
 1. Participant opens a matching route-aware or ride-relevant PR.
 2. PR page shows ride-hailing Button Placement inside Utility Actions.
-3. Participant opens `/offers/:offerId`.
-4. Offer Detail assembles Ride Hailing Ordering from the Offer SPU list.
+3. Participant opens Ordering Detail.
+4. Ordering Detail assembles Ride Hailing Ordering from the Offer SPU list.
 5. Ordering page shows route map, vehicle option, rider, time, estimate, and
    price detail affordance.
 6. Before READY, create-order CTA is disabled.
@@ -157,8 +161,8 @@ sequenceDiagram
   U->>PR: Open matching ride-relevant PR
   PR->>PL: Render Button Placement inside Utility Actions
   PL-->>PR: Ride-hailing offer or existing order target
-  U->>OF: Open /offers/:offerId
-  OF->>RH: Assemble Ride Hailing Ordering from Offer SPU list
+  U->>RH: Open Ordering Detail from backend-authored Placement target
+  RH->>OF: Backend reads Offer and SPU/SKU truth for RideHailing Ordering
   RH-->>U: Show map, vehicle, rider, time, estimate, price details
   RH-->>U: Create-order CTA disabled until READY
   U->>PR: Reach READY through existing lifecycle
@@ -180,8 +184,9 @@ sequenceDiagram
 - Button Placement is displayed inside PR Page Utility Actions.
 - Button Placement creative is owned by Placement.
 - Placement target is backend-authored.
-- Offer Detail assembles Ordering surface(s) from the Offer SPU list and each
-  SPU's sales policy.
+- Ordering Detail displays a backend-resolved read model assembled from
+  existing owner refs. Offer remains an upstream backend owner, not the public
+  pre-order page contract.
 - Different SKU types have different ordering pages, order models, and
   fulfillment mechanisms.
 - Non-active PR participants do not see PR-context placements. Active PR
@@ -193,11 +198,19 @@ sequenceDiagram
   partial order is left behind.
 - Browser assertions should use stable `data-testid` nodes for:
   - utility-action button placement
-  - offer detail root
-  - SKU-specific ordering root
+  - ordering root
+  - SKU-specific ordering controls
+  - locked ordering facts such as participant count and service time
+  - displayed product/service copy from SPU presentation
+  - price preview before and after SKU/zone selection changes
+  - cancellation-policy summary and price-detail affordance
   - order create action
   - order detail root
+  - frozen order item, participant count, and total price
+  - existing-order target routing from Button Placement back to Order Detail
   - bill/payment result affordance
+  - disabled create-order states for non-READY PR and non-creator viewer
+  - rental cancellation result projection
   - rental/ride-hailing order result root
 - System scenarios may use fake WeChat Pay and Rental Fulfillment
   manual-operation test doubles, but the user path must still interact through

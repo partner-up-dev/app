@@ -14,13 +14,12 @@ independent even when implementation ownership is grouped.
 
 - Type: Intent.
 - Active mode: Execute.
-- Current discussion scope: corrected Phase 1 completion and Phase 2 admin
-  implementation.
+- Current discussion scope: Phase 3 baseline frontend UI implementation.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
 - Implementation status: Phase 0 complete. Corrected Phase 1 complete.
-  Phase 2 is in progress.
+  Phase 2 complete. Phase 3 Rental baseline complete.
 - Production code and executable tests are now allowed because the user
   explicitly said to start.
 
@@ -141,8 +140,9 @@ independent even when implementation ownership is grouped.
   transitions have first-class authority equal to status query transitions, and
   both paths must be idempotent.
 - Placement target should be backend-authored, for example
-  `{ kind: "OFFER", offerId } | { kind: "ORDER", orderId }`, so the frontend
-  never infers whether an order already exists.
+  `{ kind: "ORDERING", placementInstanceId, context } | { kind: "ORDER", orderId }`,
+  so the frontend never infers whether an order already exists and does not
+  depend on Offer as the public pre-order contract.
 - Ride-hailing real provider fulfillment is out of scope for this task. This
   no longer means a pure placeholder boundary. The task now includes the
   minimum RideHailing Fulfillment execution truth required for usage-based
@@ -177,14 +177,59 @@ independent even when implementation ownership is grouped.
   231 implementation planning.
 - Baseline frontend discussion should now center on two user-visible chains:
   Rental and RideHailing from PR Page to Order completion/cancellation.
-- `PR Page -> Offer Detail -> Order Detail` is the preferred route spine for
-  MVP user journeys. PR Page is the entry surface, Offer Detail is the
+- `PR Page -> Ordering Detail -> Order Detail` is the preferred route spine
+  for MVP user journeys. PR Page is the entry surface, Ordering Detail is the
   pre-order assembly surface, and Order Detail is the long-lived post-create
   lifecycle surface.
-- Before baseline frontend UI implementation starts in earnest, Rental and
-  RideHailing browser system scenario tests should be discussed and written
-  first. Payment and fulfillment may initially use simple test doubles or mock
-  adapters inside those scenarios while the real integrations remain deferred.
+- `Offer` should not replace `Ordering`. Ordering is the more general frontend
+  and application contract. It may carry or depend on an Offer, but it should
+  remain a distinct concept from the selling offer itself.
+- PR should stay outside Ordering. Current preferred direction is:
+  page entry carries only refs/ids from existing owners; backend then resolves
+  current Ordering read truth from those refs, currently often by traversing
+  `Placement -> Offer -> Product`.
+- Placement must know which Ordering field keys are bindable/lockable for the
+  target selling flow, but it should not own full field schema or page layout.
+- Backend should complete the Ordering read-model resolution before the
+  frontend enters Ordering Detail.
+- Do not introduce a separate standalone Ordering Assembler owner or
+  `Offer*ContractSlice` middle object in the current scope.
+- Do not treat `Derived ordering definition` as a standalone model either. At
+  most it is discussion shorthand for the query-time field-definition fragment
+  already embedded inside the Ordering page payload.
+- The Ordering-side transport should stay narrow and readable:
+  route/use-case-specific existing-owner refs/id only + current Ordering read model +
+  `OrderingEvaluation`, where initial/default/locked input state lives inside
+  the current Ordering read model.
+- Ordering should be decoupled from Offer at the frontend/API contract level.
+  Offer remains an upstream backend owner in the internal resolution chain, not
+  the public pre-order contract for the page.
+- How the user entered Ordering is outside the Ordering model itself. The input
+  must not assume a specific predecessor such as Placement or Offer.
+- Ordering is not persisted and has no `orderingId`. Do not introduce
+  `resolveRef`, `orderingRef`, or any other generic Ordering locator to stand
+  in for existing upstream owners.
+- Create-order command shape belongs to Trade / Order, not to Ordering.
+- Ordering input should be derived backward from Trade's `CreateOrderCommand`:
+  selected item ids, quantities, and editable request fields are user input;
+  product, pricing, policy, cancellation, and locked context values are
+  backend-authoritative truth.
+- It is still acceptable for Trade's `CreateOrderCommand` to carry `offer_id`,
+  because that is a contract-source reference used by Trade to re-read and
+  freeze Offer truth; it does not make Ordering read contract Offer-coupled.
+- Reuse existing domain names where possible. Do not invent a generic
+  `sellable` layer when SPU is already the sellable product body in the catalog
+  model.
+- Field defaults and editability/locking should be controlled by upstream
+  metadata rather than by hard-coded per-page PR logic.
+- Current agreed invariant: PR-bound fields are locked, and this should be
+  enforced by Placement-owned binding metadata.
+- `OrderingAvailability` and price preview are Ordering-owned computed state
+  for current order input, not sibling boundaries next to Ordering.
+- Phase 3 baseline frontend starts with the Rental browser system scenario.
+  Payment and Rental Fulfillment may use simple browser-visible fake actions
+  while real payment integration remains deferred. Full RideHailing chain and
+  RideHailing browser scenario completion are not part of Phase 3.
 - Payment and cancellation should be expressed inside the Order Detail journey
   rather than by introducing separate user-facing payment-result or
   cancellation routes in MVP unless a gateway constraint later forces that.
@@ -423,7 +468,7 @@ the baseline for downstream Order / Bill / Fulfillment design.
 - 2026-05-28: Frontend-discussion focus narrowed to two baseline user-visible
   chains only: Rental and RideHailing from PR Page to Order
   completion/cancellation. Preferred route spine is now
-  `PR Page -> Offer Detail -> Order Detail`, with payment and cancellation
+  `PR Page -> Ordering Detail -> Order Detail`, with payment and cancellation
   staying inside the Order Detail journey rather than spawning extra user-facing
   routes by default.
 - 2026-05-28: Phase 0 started and completed. Stable ecommerce cross-unit
@@ -477,3 +522,34 @@ the baseline for downstream Order / Bill / Fulfillment design.
   targeted backend ecommerce unit tests still pass, backend typecheck remains
   blocked only by the pre-existing `waitlist.service.test.ts` error, and
   frontend build passes.
+- 2026-05-29: Phase 3 started with the Rental baseline user chain. Added
+  minimal public commerce APIs for PR Button Placement resolution, Rental
+  Ordering read/evaluate/create, Order Detail projection, browser-visible fake
+  payment, and fake Rental booking confirmation. Added PR utility placement
+  entry, Rental Ordering Detail, Rental Order Detail, and the
+  `commerce_rental_ordering_reaches_confirmed_fulfillment` system scenario.
+  Verification: frontend `vue-tsc` passes; targeted Rental system scenario
+  passes; backend typecheck remains blocked only by the pre-existing
+  `waitlist.service.test.ts` `orderIds` type error.
+- 2026-05-29: Strengthened the Rental system scenario from a pure happy-path
+  navigation check into a content-and-interaction scenario. It now verifies
+  Ordering product copy, locked participant count, two same-headcount zone/SKU
+  choices, price preview update when switching zone from CNY 20.00 to CNY
+  32.00, Order Detail frozen selected SKU, participant count, total price, bill
+  line count, payment status transition, and Rental fulfillment success copy.
+- 2026-05-29: Corrected two Phase 3 boundary leaks: Ordering read/evaluate no
+  longer performs the PR active-participant gate beyond UI reachability, and
+  PR READY / creator / duplicate active-order authority moved into a
+  PR-owned `attachOrderToPr` use case called inside the Trade order-creation
+  transaction. Trade still builds and freezes the order, but PR owns whether
+  the order may attach to the PR.
+- 2026-05-29: Completed the remaining Phase 3 Rental frontend baseline gates:
+  Ordering now shows cancellation-policy summary and a price-detail affordance;
+  Order Detail supports a browser-visible Rental cancellation sequence backed
+  by existing termination attempt and Bill reconciliation use cases; PR Button
+  Placement existing-order target is covered; non-READY and non-creator
+  Ordering states are browser-verified as disabled. The Rental system scenario
+  file now contains four browser scenarios covering completion, disabled
+  states, cancellation, and existing-order routing. Verification: backend
+  typecheck, frontend `vue-tsc`, backend Problem Details lint, and the targeted
+  Rental system scenarios all pass.

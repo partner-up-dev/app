@@ -8,7 +8,7 @@
    or is always an order section. Confirmed user-facing route families:
 
    - `/products/:productId`
-   - `/offers/:offerId`
+   - `/ordering/from-placement` for the current Placement-entry Rental flow
    - `/orders/:orderId`
 
    These are not nested under `/pr/:id/*`. Placement has an independent
@@ -23,7 +23,7 @@
 
    Recommended endpoint shape:
 
-   - `GET /api/placements?context=pr&contextId=:prId`
+   - `GET /api/commerce/placements?context=pr&contextId=:prId&type=BUTTON`
 
    Rejected as primary ownership shapes:
 
@@ -102,18 +102,18 @@
    - whether post-irreversible Rental requests should be modeled as explicit
      denial or routed to a separately typed after-sales/manual-adjustment path
 
-8. Overall implementation readiness
+8. Remaining implementation readiness
 
-   Current packet is strong enough on topology and ownership to start backend
-   domain work and Phase 2 admin/operator implementation. It is not yet strong
-   enough to code the whole issue straight through without additional design
-   decisions.
+   Current packet is strong enough for the Rental Phase 3 baseline already
+   started. It is not yet strong enough to code the whole issue straight
+   through without additional design decisions.
 
-   The main remaining pre-implementation gaps are:
+   The main remaining gaps are:
 
    - exact ride-hailing provider integration cut and live-tracking API shape
-   - user-journey confirmation for baseline frontend UI before frontend-heavy
-     implementation starts
+   - Rental cancellation result wording and state grouping
+   - exact real-payment return/polling UX once WeChat Pay is implemented
+   - exact RideHailing Ordering and Order Detail IA
 
 9. Admin implementation principles to keep stable during execution
 
@@ -192,8 +192,8 @@
 - Different SKU types select different ordering pages, order models,
   and fulfillment mechanisms.
 - One Offer may contain multiple SPUs, but all SPUs inside one Offer must share
-  the same product type / ordering family. Offer Detail assembles one ordering
-  root from the Offer SPU list and each SPU's sales policy.
+  the same product type / ordering family. Ordering Detail assembles one
+  ordering root from the Offer SPU list and each SPU's sales policy.
 - SKU owns a base pricing model. SPU owns product-native pricing policy.
   Offer's ordered rules are optional campaign/commercial overlays. SPU pricing
   policy and Offer pricing policy share one rule DSL, but SPU policy may target
@@ -246,3 +246,45 @@
   inside "订单" language and avoid exposing a separate proposal abstraction.
 - Implementation domain grouping should be Merchandising, Trade, Fulfillment,
   Bill, and Payment.
+- Frontend/application direction now prefers `Ordering Detail` over
+  `Offer Detail` as the durable pre-create page concept.
+- Current preferred dependency direction is:
+  `Placement` provides the ordering entry plus bindings, then backend resolves
+  one current Ordering read model by traversing `Placement -> Offer ->
+  Product`. No separate
+  standalone Ordering Assembler owner, persisted Offer-owned ordering-schema
+  object, or `Offer*ContractSlice` middle object is preferred for the current
+  scope.
+- The phrase `Derived ordering definition` should also not become a named
+  middle object. If retained at all, it only means the field-definition
+  fragment already embedded in the query-time Ordering page payload.
+- `OrderingAvailability` and price preview are Ordering-owned computed state
+  derived from current order input, not sibling boundaries next to Ordering.
+- The current preferred Ordering-side transport shape is:
+  route/use-case-specific existing-owner refs/id only + current Ordering read
+  model + `OrderingEvaluation`, with initial/default/locked input state living
+  inside the current Ordering read model. Keep it narrow, decouple the public
+  Ordering contract from Offer, and do not invent a generic `sellable` layer.
+- Entry route/use-case concerns are outside the Ordering model itself. The
+  page-entry input must not assume a specific predecessor such as Placement or
+  Offer.
+- Ordering is not persisted and has no `orderingId`; do not introduce
+  `resolveRef`, `orderingRef`, or any other generic Ordering locator.
+- Create-order command shape belongs to Trade / Order rather than Ordering.
+- Ordering input should be defined by reading backward from Trade's
+  `CreateOrderCommand`: frontend owns only selected ids, quantities, and
+  editable request values; backend remains authoritative for all display truth,
+  policy truth, pricing truth, and locked context values.
+- Phase 3 starts with Rental browser system scenario and Rental baseline UI.
+  Browser-visible fake payment and fake Rental booking confirmation are
+  acceptable until real Payment and fuller Rental Fulfillment operations are
+  implemented. Full RideHailing chain and RideHailing browser scenario
+  completion are deferred to the RideHailing phase.
+- Trade's `CreateOrderCommand` may still carry `offer_id` as contract-source
+  reference without making the Ordering read contract Offer-coupled.
+- Offer-to-Ordering conversion should happen on the backend before entering the
+  Ordering page. Ordering Detail should consume resolved Ordering data instead
+  of running `Offer -> Ordering` adaptation logic inside the page.
+- If Placement binds a field from PR context, that field is locked by
+  invariant. This should be expressed by Placement-owned binding metadata, not
+  by page-level hard-coded component logic.

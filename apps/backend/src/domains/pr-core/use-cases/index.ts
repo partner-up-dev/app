@@ -15,3 +15,4 @@ export { joinPR, joinPRAsUser } from "./join-pr";
 export { waitlistPRAsUser } from "./waitlist-pr";
 export { cancelWaitlistPRByUserId } from "./cancel-waitlist-pr";
 export { exitPR, exitPRByUserId } from "./exit-pr";
+export { attachOrderToPr } from "./attach-order-to-pr";

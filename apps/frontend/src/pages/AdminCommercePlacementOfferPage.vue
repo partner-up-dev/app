@@ -254,6 +254,11 @@ const selectedPlacement = computed(
     null,
 );
 
+const toDateInputValue = (value: string | Date | null | undefined): string => {
+  if (!value) return "";
+  return value instanceof Date ? value.toISOString() : value;
+};
+
 const offerForm = ref({
   productType: "RENTAL" as AdminOfferInput["productType"],
   status: "DRAFT" as AdminOfferInput["status"],
@@ -348,8 +353,8 @@ watch(
       status: offer.status,
       spuIdsCsv: offer.spuIds.join(","),
       termsVersion: offer.termsVersion,
-      startsAt: offer.startsAt ?? "",
-      endsAt: offer.endsAt ?? "",
+      startsAt: toDateInputValue(offer.startsAt),
+      endsAt: toDateInputValue(offer.endsAt),
       pricingRulesText: prettyJson(offer.pricingPolicy.rules),
     };
   },

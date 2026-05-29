@@ -5,10 +5,9 @@ import type { PRId } from "../../../entities/partner-request";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { createBillFromSeed } from "../../bill";
+import { attachOrderToPr } from "../../pr-core";
 import { materializeChargeLinesFromSplitRule } from "../../bill/services";
 import type {
   OrderItemSnapshot,
@@ -22,7 +21,6 @@ import { buildEqualRelativeSplitRule } from "../services";
 
 const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
 
-const partnerRequestRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 
 export interface CreateRentalOrderInput {
@@ -77,19 +75,6 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
     });
   }
 
-  const request = await partnerRequestRepo.findById(prId);
-  if (!request) {
-    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
-  }
-
-  if (request.status !== "READY") {
-    return throwHttpProblem({ status: 409, detail: "Order creation requires PR READY status" });
-  }
-
-  if (!request.createdBy || request.createdBy !== input.createdBy) {
-    return throwHttpProblem({ status: 403, detail: "Only the PR creator can create a Rental order" });
-  }
-
   const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
     prId,
   );
@@ -101,13 +86,6 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
   }
 
   const participants = buildOrderParticipants(activeParticipants, input.createdBy);
-  if (!participants.some((participant) => participant.userId === input.createdBy)) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "PR creator must still be an active participant before ordering",
-    });
-  }
-
   const splitRuleSnapshot =
     input.splitRuleSnapshot ??
     buildEqualRelativeSplitRule(participants.map((participant) => participant.userId));
@@ -117,19 +95,7 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
   });
 
   return db.transaction(async (tx) => {
-    const attachedOrderRepo = new PRAttachedOrderRepository(tx);
     const tradeOrderRepo = new TradeOrderRepository(tx);
-
-    const existingAttachment = await attachedOrderRepo.findActiveByPrAndOffer(
-      prId,
-      offerId,
-    );
-    if (existingAttachment) {
-      return throwHttpProblem({
-        status: 409,
-        detail: "An active order already exists for this PR and offer",
-      });
-    }
 
     const now = new Date();
     const unpaidWindowMinutes =
@@ -158,11 +124,15 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
       registrants: input.registrants,
     });
 
-    await attachedOrderRepo.create({
-      orderId: order.id,
-      prId,
-      offerId,
-    });
+    await attachOrderToPr(
+      {
+        orderId: order.id,
+        prId,
+        offerId,
+        orderCreatedBy: createdBy,
+      },
+      tx,
+    );
 
     const billResult = await createBillFromSeed(
       {

@@ -160,6 +160,7 @@
         <div class="utility-action-row">
           <PRBetaGroupAction :pr="prDetail" />
           <PRMessageThreadAction :pr="prDetail" />
+          <PRCommercePlacementAction :pr-id="prDetail.id" />
         </div>
 
         <PRShareAction
@@ -210,6 +211,7 @@ import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotif
 import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
+import PRCommercePlacementAction from "@/domains/commerce/ui/PRCommercePlacementAction.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
