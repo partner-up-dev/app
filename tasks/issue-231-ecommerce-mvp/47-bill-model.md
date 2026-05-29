@@ -253,10 +253,46 @@ This allows:
 - retry payments against the same charge line
 - multiple successful partial payments against one charge line if needed
 - multiple refund attempts against one refund line if needed
+- participant-owned payment where a user pays only their own BillLine; creator
+  paying for other participants is not part of issue 231
 
 If a future scope needs one PaymentTx to settle multiple BillLines in one
 operation, reintroduce an explicit allocation/application join model then. It
 is not required for the current issue.
+
+## Payment Boundary Correction
+
+Payment belongs to `BillLine`, not to the whole Bill.
+
+The user-facing consequence is:
+
+- `Bill Detail` is the canonical page for obligations and settlement state
+- `Payment Checkout` is scoped to one payable BillLine
+- Order Detail may link into Bill Detail, but should not own checkout internals
+- each participant pays their own charge line; creator paying for other
+  participants is intentionally not supported in issue 231
+
+The backend consequence is:
+
+- `PaymentTx.bill_line_id` is mandatory
+- `PaymentTx.bill_id` may remain denormalized for lookup, but must not be the
+  settlement target
+- successful PaymentTx rows are facts consumed by Bill settlement derivation
+- Payment does not mutate BillLine amount, label, or description
+- refund PaymentTx rows target `BillLine(kind=REFUND)` and may reference the
+  original successful charge PaymentTx needed by the provider refund API
+
+Do not add a separate `payment_provider_events` table in the current scope.
+The expected benefit is low for issue 231. Idempotency should be achieved by:
+
+- stable merchant order numbers / refund numbers
+- provider transaction ids where present
+- monotonic PaymentTx status transitions
+- verified callback/query handlers that safely no-op on repeated success
+
+If later audit, dispute, or fraud operations need full provider event history,
+add an append-only event table then. For Phase 4, store only compact provider
+snapshots on PaymentTx as needed for diagnosis and reconciliation.
 
 ## Exact Reconciliation Rule
 
@@ -428,10 +464,11 @@ Recommended Bill-domain services:
 4. PaymentTx charge attempts happen
 5. successful charge applications settle charge lines
 6. Bill becomes fully paid
-7. Fulfillment begins
-8. if later cancellation is allowed, upstream emits `BillTargetAmountSeed`
-9. Bill creates refund lines so the bill converges to the target total
-10. successful refund PaymentTx applications settle refund lines
+7. Bill notifies the source Rental Order that the prepaid Bill is fully settled
+8. Rental Order explicitly starts Rental Fulfillment
+9. if later cancellation is allowed, upstream emits `BillTargetAmountSeed`
+10. Bill creates refund lines so the bill converges to the target total
+11. successful refund PaymentTx applications settle refund lines
 
 ### Ride Hailing (Postpaid)
 
@@ -443,6 +480,9 @@ Recommended Bill-domain services:
 6. Bill is created with charge lines
 7. PaymentTx charge attempts happen
 8. successful charge applications settle charge lines
+
+RideHailing is a counterexample to a generic "Bill paid starts Fulfillment"
+rule: Fulfillment has already happened before final Bill payment.
 
 ## Current Scope Notes
 

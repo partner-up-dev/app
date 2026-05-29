@@ -14,7 +14,7 @@ independent even when implementation ownership is grouped.
 
 - Type: Intent.
 - Active mode: Execute.
-- Current discussion scope: Phase 3 baseline frontend UI implementation.
+- Current discussion scope: Phase 4 Payment implementation planning.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
@@ -64,6 +64,9 @@ independent even when implementation ownership is grouped.
 - `66-pr-ready-ordering-gate.md`: PR READY order attach gate and transactional
   invariant.
 - `70-execution-plan.md`: staged implementation plan after design approval.
+- `71-phase-4-payment-implementation-plan.md`: concrete Phase 4 Payment
+  implementation plan across data model, APIs, frontend, provider adapter,
+  settlement orchestration, refunds, and tests.
 - `sequence-diagram-rental.md`: user-provided rental end-to-end flow reference.
 - `sequence-diagram-ride-hailing.md`: user-provided ride-hailing end-to-end flow
   reference.
@@ -132,6 +135,13 @@ independent even when implementation ownership is grouped.
   coordination, that should be introduced as a separate Trade design slice.
 - Bill and Payment remain separate. Bill owns split obligations; Payment owns
   external money movement.
+- PaymentTx targets exactly one BillLine, not the Bill as a whole. Each
+  participant pays their own BillLine; creator paying for other participants is
+  out of scope for issue 231.
+- Current Phase 4 UI direction is `Order Detail -> Bill Detail -> Payment
+  Checkout`. Order Detail shows contract/service state and links to Bill
+  Detail; Bill Detail owns obligation visibility; Payment Checkout owns one
+  BillLine's provider-backed payment attempt.
 - Fulfillment exists only to own service-execution truth that cannot be reduced
   to Order, Bill, or Payment. Manual operator work alone does not justify a
   separate domain.
@@ -139,6 +149,29 @@ independent even when implementation ownership is grouped.
   backend gateway callbacks jointly drive the payment state machine. Callback
   transitions have first-class authority equal to status query transitions, and
   both paths must be idempotent.
+- Payment provider extensibility is modeled as provider type plus provider
+  instance. For WeChat Pay, an instance is uniquely identified by `mch_id +
+  app_id`. A server-owned `client_id -> provider_instance + channel` binding
+  chooses the payment channel. WeChat API execution mode such as JSAPI or H5
+  is provider-instance configuration, not PaymentTx channel. Native QR is out
+  of Phase 4 scope.
+- Payment provider credentials are modeled as credential sets. For the Phase 4
+  serverless MVP, WeChat Pay merchant private key PEM, APIv3 key, and verifier
+  material are stored directly in DB fields as a deliberate simplicity
+  compromise. This increases DB blast radius and must be bounded by strict
+  access control, redaction, and rotation discipline.
+- Phase 4 provider configuration should use config-driven registration: an
+  explicit backend command reads typed config and idempotently upserts provider
+  instance, credential set, and client bindings.
+- WeChat Pay integration should use a mature SDK behind
+  `WeChatPayProviderAdapter` rather than hand-writing the full signing,
+  verification, and decryption path. If the chosen SDK depends on axios, axios
+  must be pinned/overridden to a reviewed clean version and CI must reject known
+  malicious versions.
+- Do not introduce a separate `payment_provider_events` table in Phase 4 unless
+  audit/dispute requirements become concrete. Idempotency should be handled by
+  stable provider order/refund numbers, provider transaction ids, and monotonic
+  PaymentTx transitions.
 - Placement target should be backend-authored, for example
   `{ kind: "ORDERING", placementInstanceId, context } | { kind: "ORDER", orderId }`,
   so the frontend never infers whether an order already exists and does not
@@ -230,9 +263,9 @@ independent even when implementation ownership is grouped.
   Payment and Rental Fulfillment may use simple browser-visible fake actions
   while real payment integration remains deferred. Full RideHailing chain and
   RideHailing browser scenario completion are not part of Phase 3.
-- Payment and cancellation should be expressed inside the Order Detail journey
-  rather than by introducing separate user-facing payment-result or
-  cancellation routes in MVP unless a gateway constraint later forces that.
+- Cancellation should remain in the Order Detail journey. Payment should use
+  dedicated Bill Detail and Payment Checkout pages because the payment target is
+  a participant BillLine, not the whole Order or Bill.
 - Restaurant group-buy coupon business demand and its supporting functions are
   out of scope for this issue. Do not implement Voucher Entitlement,
   entitlement redemption, QR redemption, GoodsOrder, or `/entitlements/*` in
@@ -553,3 +586,58 @@ the baseline for downstream Order / Bill / Fulfillment design.
   states, cancellation, and existing-order routing. Verification: backend
   typecheck, frontend `vue-tsc`, backend Problem Details lint, and the targeted
   Rental system scenarios all pass.
+- 2026-05-29: Refined Phase 4 Payment topology before implementation:
+  PaymentTx remains BillLine-scoped, each participant pays their own line,
+  Bill Detail and Payment Checkout become dedicated user-facing pages, and
+  Rental Fulfillment should be started by explicit Trade/application-service
+  orchestration after prepaid Bill settlement rather than by modeling
+  Fulfillment as a generic listener. A separate provider-event table is not in
+  Phase 4 scope unless concrete audit/dispute requirements appear.
+- 2026-05-29: Expanded Phase 4 into a concrete implementation plan in
+  `71-phase-4-payment-implementation-plan.md`: PaymentTx persistence,
+  provider port and WeChat adapter, Bill Detail, Payment Checkout, callback/query
+  idempotency, explicit Trade settlement consequences, refund PaymentTx flow,
+  and multi-participant BillLine payment system scenarios.
+- 2026-05-29: Added provider-instance/client routing to the Phase 4 plan:
+  provider type is separate from provider instance, WeChat Pay instances are
+  keyed by `mch_id + app_id`, and `client_id` maps to provider instance plus
+  channel so the `web` client can route to WeChat Pay without changing Bill or
+  Order. WeChat API execution mode stays inside provider configuration.
+- 2026-05-29: Added provider credential configuration to the Phase 4 plan:
+  provider instances hold non-secret metadata, callback URLs include
+  `providerInstanceId` only as a routing hint, and key/certificate rotation
+  happens by activating a new credential set.
+- 2026-05-30: Clarified secret storage and config persistence: Phase 4 should
+  persist `PaymentProviderCredentialSet` from explicit registration config.
+- 2026-05-30: Adjusted credential storage for serverless deployment again:
+  Phase 4 accepts directly storing WeChat Pay private key PEM, APIv3 key, and
+  verifier material in DB credential-set fields as an MVP compromise. This
+  replaces the previous secret-ref/encrypted-DB plan and requires redaction,
+  restricted DB access, and rotation discipline. Also added a WeChat Pay SDK
+  spike: prefer a mature SDK behind the provider adapter, and if it brings
+  axios, pin/override axios to a reviewed clean version and block known
+  compromised versions in CI.
+- 2026-05-30: Added Phase 4 global review. The current plan is sufficient for
+  implementation after confirming first production `client_id`, WeChat Pay SDK
+  choice, merchant order/refund number format, payment expiration behavior,
+  callback failure handling, refund trigger timing, and credential readback
+  redaction.
+- 2026-05-30: Confirmed the current `apps/frontend` payment client id is `web`,
+  not `wechat_official_account_web`; Phase 4 implementation should route `web`
+  through the server-owned provider-instance/client-binding table.
+- 2026-05-30: Started Phase 4 implementation: added Payment provider
+  instance/credential/client-binding/PaymentTx persistence, BillLine-scoped
+  Payment Checkout, Bill Detail, fake WeChat Pay scenario adapter, WeChat Pay
+  APIv3 adapter boundary using `wechatpay-axios-plugin@0.9.6`, axios
+  `1.16.1` pin/override, and a payment supply-chain lint.
+- 2026-05-30: Completed the Phase 4 implementation slice: added WeChat payment
+  and refund callback routes, config-driven provider registration, PaymentTx
+  charge/refund convergence, BillLine-scoped Checkout client actions, direct
+  refund PaymentTx creation after Rental cancellation refund lines, and paid
+  cancellation browser coverage. Verification scope is recorded in the Phase 4
+  implementation plan.
+- 2026-05-30: Tightened Phase 4 after review: removed WeChat Pay Native support,
+  changed PaymentTx channel to `WECHAT_PAY` / `WECHAT_REFUND`, moved JSAPI/H5
+  into WeChat provider `chargeMode`, and corrected the settlement topology so
+  Payment convergence asks Bill to derive settlement, Bill notifies Order, and
+  Order starts Rental Fulfillment.

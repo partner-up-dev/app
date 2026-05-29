@@ -79,15 +79,14 @@
             支付状态：{{ paymentStatusLabel }}
           </p>
 
-          <Button
-            v-if="detail.order.status === 'OPEN' && detail.payment.status === 'UNPAID'"
+          <ActionLink
+            v-if="detail.bill"
+            :to="{ path: `/bills/${detail.bill.id}` }"
             size="lg"
-            :loading="paymentMutation.isPending.value"
-            data-testid="order-detail.mock-payment"
-            @click="simulatePayment"
+            data-testid="order-detail.bill-detail-link"
           >
-            模拟支付
-          </Button>
+            查看账单并支付
+          </ActionLink>
         </SurfaceCard>
 
         <SurfaceCard gap="md">
@@ -169,11 +168,11 @@ import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
+import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {
   useCancelRentalOrder,
   useCommerceOrderDetail,
   useMockRentalBookingConfirmation,
-  useMockRentalPayment,
 } from "@/domains/commerce/queries/useCommerce";
 
 const route = useRoute();
@@ -186,7 +185,6 @@ const orderId = computed(() => {
 
 const orderQuery = useCommerceOrderDetail(orderId);
 const cancelMutation = useCancelRentalOrder();
-const paymentMutation = useMockRentalPayment();
 const confirmationMutation = useMockRentalBookingConfirmation();
 
 const detail = computed(() => orderQuery.data.value ?? null);
@@ -195,9 +193,11 @@ const primaryItemName = computed(
   () => detail.value?.order.items[0]?.skuName ?? "订单项目",
 );
 
-const paymentStatusLabel = computed(() =>
-  detail.value?.payment.status === "PAID" ? "已支付" : "待支付",
-);
+const paymentStatusLabel = computed(() => {
+  if (detail.value?.payment.status === "PAID") return "已支付";
+  if (detail.value?.payment.status === "PARTIALLY_PAID") return "部分已支付";
+  return "待支付";
+});
 
 const billEffectiveTotalFen = computed(() => {
   const lines = detail.value?.bill?.lines ?? [];
@@ -287,11 +287,6 @@ const formatDateTime = (value: string | null): string => {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-};
-
-const simulatePayment = async (): Promise<void> => {
-  if (!orderId.value) return;
-  await paymentMutation.mutateAsync(orderId.value);
 };
 
 const cancelRentalOrder = async (): Promise<void> => {

@@ -137,7 +137,7 @@ It also needs Order-owned termination-attempt history, because coarse
 `Order.status` alone is not expressive enough for approved-versus-denied
 termination attempts.
 
-It should not duplicate BillShare settlement or Fulfillment result as the
+It should not duplicate BillLine settlement or Fulfillment result as the
 authoritative source of truth inside the Order aggregate.
 
 PR attachment relation should remain PR-owned rather than duplicated as an
@@ -408,7 +408,7 @@ Order should not freeze:
 
 - Placement creative
 - product presentation images/details by default
-- future BillShare settlement status
+- future BillLine settlement status
 - future Fulfillment result state
 
 ## Status Ownership

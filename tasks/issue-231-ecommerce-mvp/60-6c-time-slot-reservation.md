@@ -99,7 +99,7 @@ stateDiagram-v2
   AwaitingPayment --> PaymentPending: WeChat Pay prepay created
   PaymentPending --> Paid: verified callback or query sees success
   PaymentPending --> PaymentFailed: callback or query sees failure/closed/timeout
-  Paid --> AwaitingRentalFulfillmentBooking: platform accepts operation
+  Paid --> AwaitingRentalFulfillmentBooking: Bill notifies RentalOrder; RentalOrder starts Rental Fulfillment
   AwaitingRentalFulfillmentBooking --> ReservationConfirmed: staff records 6C confirmation
   AwaitingRentalFulfillmentBooking --> ReservationFailed: staff records 6C rejection/unavailable
   Paid --> CancelRequested: user cancels before staff accepts
@@ -123,7 +123,9 @@ sequenceDiagram
   actor U as User
   participant PR as PR Page
   participant PL as Placement
-  participant OF as Offer Route
+  participant OD as Order Detail
+  participant BD as Bill Detail
+  participant PC as Payment Checkout
   participant RO as RentalOrder
   participant BI as Bill
   participant PY as Payment
@@ -135,25 +137,30 @@ sequenceDiagram
   U->>PR: Open matching food/cooking PR
   PR->>PL: Read backend placement projection
   PL-->>PR: 6C reservation Button Placement inside Utility Actions
-  U->>OF: Open /offers/:offerId
-  OF-->>U: Render Rental Ordering component from Rental SKU
+  U->>RO: Open Ordering Detail
+  RO-->>U: Render Rental Ordering from backend-authored product/offer truth
   U->>RO: Select zone(s), 3-hour slot, participant count, contact, real-name info
   RO->>PR: Attach order to PR in same transaction
   PR-->>RO: Accept only if PR is READY; otherwise reject and roll back
-  RO->>BI: If accepted, create bill and bill shares
-  BI->>PY: Request payment for payable shares
-  PY->>WX: Create WeChat Pay APIv3 payment
-  WX-->>U: Payment invocation payload
+  RO->>BI: If accepted, create Bill and BillLines
+  RO-->>OD: Navigate to Order Detail
+  OD-->>U: Show contract/service summary and Bill Detail entry
+  U->>BD: Open Bill Detail
+  BD-->>U: Show participant BillLines and current user's payable line
+  U->>PC: Checkout current user's BillLine
+  PC->>PY: Create or reuse PaymentTx for BillLine
+  PY->>WX: Create WeChat Pay APIv3 JSAPI prepay
+  WX-->>PC: Payment invocation payload
   U->>WX: Pay in WeChat
   par WeChat callback path
     WX-->>PY: Verified payment callback can mark PaymentTx paid
   and Browser polling path
-    U->>PY: Browser polls payment/order state
+    PC->>PY: Browser polls PaymentTx / syncs pending provider state
     PY->>WX: Query payment order if local state is pending
   end
-  PY-->>BI: PaymentTx settled payable shares
-  BI-->>RO: Mark bill settled
-  RO-->>RF: Create manual 6C booking task
+  PY-->>BI: Successful PaymentTx settles one BillLine
+  BI-->>RO: Notify prepaid Bill is fully paid
+  RO->>RF: Explicitly create manual 6C booking task
   OP->>S6: Contact 6C with zone/time/count/contact/real-name info
   S6-->>OP: Reservation confirmed
   OP->>RF: Record reservation success and entry instructions
@@ -182,7 +189,9 @@ Browser-only assertions:
   creator after READY.
 - Backend supporting tests prove non-READY PR attachment rejection rolls back
   the order creation transaction.
-- Payment page enters WeChat Pay pending state.
+- Bill Detail shows participant BillLines and the current user's own payable
+  line.
+- Payment Checkout enters WeChat Pay pending state for exactly one BillLine.
 - Browser-visible payment state eventually reaches paid through either
   frontend polling or backend callback from a fake WeChat Pay adapter.
 - Operator-facing browser route can record 6C confirmation or rejection.

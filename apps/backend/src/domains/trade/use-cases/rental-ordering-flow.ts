@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillId } from "../../../entities/bill";
+import type { BillLineId } from "../../../entities/bill";
 import type { Offer, OfferId } from "../../../entities/offer";
 import type { PRId } from "../../../entities/partner-request";
 import type { ProductSku } from "../../../entities/product-sku";
@@ -18,9 +18,9 @@ import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrder
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
+import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { createRentalFulfillment } from "../../fulfillment";
 import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental-booking";
 import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
 import type {
@@ -32,6 +32,7 @@ import type {
 } from "../../merchandising";
 import { createRentalOrder } from "./create-rental-order";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
+import { deriveBillPaymentState } from "../../payment";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -45,6 +46,7 @@ const tradeOrderRepo = new TradeOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const rentalFulfillmentRepo = new RentalFulfillmentRepository();
+const paymentTxRepo = new PaymentTxRepository();
 
 type RentalOrderingFieldKind =
   | "POSITIVE_INT"
@@ -726,6 +728,14 @@ export async function getCommerceOrderDetail(input: {
 
   const bill = await billRepo.findBySourceOrderId(order.id);
   const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
+  const paymentTxs = bill
+    ? await paymentTxRepo.listByBillLineIds(
+        billLines.map((line) => line.id as BillLineId),
+      )
+    : [];
+  const paymentState = bill
+    ? deriveBillPaymentState({ lines: billLines, txs: paymentTxs })
+    : null;
   const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
 
   return {
@@ -764,7 +774,11 @@ export async function getCommerceOrderDetail(input: {
       latestAttempt: order.terminationAttempts.at(-1) ?? null,
     },
     payment: {
-      status: fulfillment ? "PAID" : "UNPAID",
+      status: paymentState?.allChargesPaid
+        ? "PAID"
+        : paymentState && paymentState.paidChargeFen > 0
+          ? "PARTIALLY_PAID"
+          : "UNPAID",
     },
     fulfillment: fulfillment
       ? {
@@ -818,28 +832,6 @@ export async function cancelRentalOrderFromOrderDetail(input: {
       reason: "用户取消订单",
     },
   });
-}
-
-export async function simulateRentalOrderPayment(input: {
-  orderId: string;
-  actorUserId: string;
-}): Promise<{
-  orderId: string;
-  fulfillmentId: string;
-}> {
-  const order = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
-  if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found" });
-  }
-  if (order.createdBy !== input.actorUserId) {
-    return throwHttpProblem({ status: 403, detail: "Only order creator can pay" });
-  }
-
-  const fulfillment = await createRentalFulfillment(order.id);
-  return {
-    orderId: order.id,
-    fulfillmentId: fulfillment.id,
-  };
 }
 
 export async function simulateRentalBookingConfirmation(input: {

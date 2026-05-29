@@ -150,17 +150,31 @@ Exit condition:
 Goal: integrate WeChat Pay APIv3 without changing Bill/Order/Fulfillment
 invariants.
 
+Detailed implementation plan:
+
+- `71-phase-4-payment-implementation-plan.md`
+
 Primary tests:
 
 - WeChat Pay APIv3 adapter contract tests with fake WeChat gateway
-- frontend-visible payment-result polling tests
+- provider-instance and client-binding routing tests
+- credential set persistence and redaction tests
+- config-driven provider registration idempotency tests
+- SDK dependency audit tests, including axios override / malicious-version
+  rejection if axios enters the tree
+- frontend-visible Bill Detail and Payment Checkout polling tests
 - callback transition and idempotency tests as a first-class state driver
 - backend scenario for repeated WeChat callback
 
 Exit condition:
 
-- PaymentTx records external money movement without corrupting BillShare
-  obligations.
+- PaymentTx records external money movement against exactly one BillLine without
+  corrupting BillLine obligations.
+- Current-user checkout pays only the current user's own BillLine; creator
+  paying for other participants is out of scope.
+- Rental Fulfillment starts only through explicit Trade/application-service
+  orchestration after the prepaid Bill is fully settled, not through a generic
+  Fulfillment listener.
 
 ## Slice 6: Product Fulfillment And Operations
 

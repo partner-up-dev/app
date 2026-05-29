@@ -1,8 +1,10 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
 import type { TradeOrderId } from "../../../entities/trade-order";
+import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { reconcileBillToTargetAmount } from "../../bill";
+import { createRefundPaymentTxForRefundLine } from "../../payment";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {
   approveTerminationAttempt,
@@ -45,8 +47,9 @@ export async function finalizeRentalOrderTermination(input: {
   const attempt = getTerminationAttempt(order, input.attemptId);
   const decidedAt = input.decidedAt ?? new Date().toISOString();
 
-  return db.transaction(async (tx) => {
+  const transactionResult = await db.transaction(async (tx) => {
     const tradeOrderRepo = new TradeOrderRepository(tx);
+    const rentalFulfillmentRepo = new RentalFulfillmentRepository(tx);
 
     if (input.decision.outcome === "DENIED") {
       const denied = denyTerminationAttempt(order, {
@@ -68,6 +71,7 @@ export async function finalizeRentalOrderTermination(input: {
         status: persisted.status,
         effectKind: "NONE" as const,
         effectAmountFen: 0,
+        refundLineIds: [] as string[],
       };
     }
 
@@ -99,6 +103,15 @@ export async function finalizeRentalOrderTermination(input: {
     if (!persisted) {
       return throwHttpProblem({ status: 500, detail: "Failed to persist approved rental termination" });
     }
+    const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id as TradeOrderId);
+    if (fulfillment) {
+      await rentalFulfillmentRepo.updateById(fulfillment.id, {
+        lifecycleStatus: "CANCELLED",
+        cancellationHandlingStatus: "HANDLED",
+        supplierCancellationOutcome: "BOOKING_CANCELLED",
+        cancellationNote: input.decision.reason ?? "Rental termination approved",
+      });
+    }
 
     return {
       orderId: persisted.id,
@@ -107,6 +120,19 @@ export async function finalizeRentalOrderTermination(input: {
         reconciliation.deltaFen > 0 ? ("POLICY_REFUND" as const) : ("NONE" as const),
       effectAmountFen: reconciliation.deltaFen,
       targetChargeTotalFen: targetAmountSeed.targetChargeTotalFen,
+      refundLineIds:
+        reconciliation.direction === "REFUND" ? reconciliation.createdLineIds : [],
     };
   });
+
+  const refunds = [];
+  for (const refundBillLineId of transactionResult.refundLineIds) {
+    refunds.push(await createRefundPaymentTxForRefundLine({ refundBillLineId }));
+  }
+
+  const { refundLineIds: _refundLineIds, ...result } = transactionResult;
+  return {
+    ...result,
+    refunds,
+  };
 }

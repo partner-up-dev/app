@@ -254,7 +254,7 @@ Cases:
 
 Path candidates:
 
-- `apps/backend/src/domains/bill/bill-share.test.ts`
+- `apps/backend/src/domains/bill/bill-line.test.ts`
 - `apps/backend/src/domains/payment/payment-tx.test.ts`
 
 Cases:
@@ -263,6 +263,8 @@ Cases:
 - One BillLine can be settled by M PaymentTx records.
 - Bill settlement status is derived from lines, not from one payment row.
 - PaymentTx failure does not mutate frozen bill obligations.
+- PaymentTx targets exactly one BillLine and does not support the creator
+  paying for other participants in issue 231.
 - WeChat Pay APIv3 query result or verified callback can advance a pending
   PaymentTx to paid. Both paths are first-class state transitions and must be
   idempotent.

@@ -13,7 +13,7 @@ capabilities, domains, contracts, and scenarios.
 | Admin merchandising operation | Admin CRUD for SPU/SKU, SPU sales/pricing policy, Offer SPU list, Placement Instance creative/matching, and SKU base cancellation policy | Merchandising plus Admin UI | `admin_merchandising_crud_loop` |
 | 6C cooking-school shared kitchen reservation | Time-slot resource modeling, zone-specific user pricing, real-name/contact collection, advance-booking rule, WeChat Pay, SKU base cancellation policy snapshot, manual 6C booking, cancellation/refund, entry by phone/real name | Merchandising, Trade, Bill, Payment, Fulfillment | `time_slot_resource_reservation_loop` |
 | Ride-hailing aggregation preparation | Quote/estimate, quote snapshot, order contract, bill/payment foundation | Merchandising, Trade, Bill, Payment | `ride_hailing_quote_order_loop` |
-| Bill splitting across active participants | Participant obligation calculation, BillShare lifecycle, multiple PaymentTx per share | Trade, Bill, Payment | Covered inside each paid loop |
+| Bill splitting across active participants | Participant BillLine obligation calculation and multiple PaymentTx attempts per line | Trade, Bill, Payment | Covered inside each paid loop |
 | Independent commerce surfaces | Standalone route families, typed RPC contracts, frontend domain ownership | Frontend route/domain modules plus backend controllers | Covered by all system scenarios |
 
 ## Derived Functional Blocks
@@ -60,7 +60,7 @@ obligations are not payment transactions.
 ### Payment
 
 Needed because external gateway money movement is a separate fact stream from
-BillShare obligations and Order/Fulfillment state.
+BillLine obligations and Order/Fulfillment state.
 
 ### Fulfillment
 

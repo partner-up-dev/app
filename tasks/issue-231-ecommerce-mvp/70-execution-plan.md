@@ -151,18 +151,47 @@ Verification:
 Goal: integrate WeChat Pay APIv3 after the payable user flows and bill
 foundation are already visible.
 
+Concrete plan:
+
+- See `71-phase-4-payment-implementation-plan.md`.
+
 Work:
 
+- Bill Detail page and APIs as the canonical obligation surface.
+- Payment Checkout page and APIs scoped to exactly one BillLine.
 - PaymentTx model completion and WeChat Pay adapter.
+- Payment provider instance and client binding registry:
+  `client_id -> provider_instance + channel`.
+- Payment provider credential sets:
+  DB stores WeChat private key PEM, APIv3 key, and verifier material directly
+  as a deliberate serverless MVP compromise.
+- Config-driven provider registration command:
+  typed config idempotently persists provider instance, credential set
+  and client bindings.
+- WeChat Pay SDK spike:
+  choose a mature SDK behind the adapter; if axios is introduced, pin and audit
+  it explicitly.
+- PaymentTx must target BillLine, not Bill. Creator paying for other
+  participants is out of scope.
 - Callback and polling state authority.
 - Idempotent callback/query handling.
-- User-facing payment result flow.
+- Payment success/failure/pending result inside Payment Checkout, with return
+  links to Bill Detail and Order Detail.
+- No separate `payment_provider_events` table unless later audit/dispute
+  requirements justify it; Phase 4 should keep provider snapshots compactly on
+  PaymentTx.
+- Trade/application service explicitly applies successful payment consequences
+  to the order flow. Fulfillment should not be modeled as passively listening
+  for Bill payment; RideHailing is post/usage-paid and already proves a generic
+  "Bill paid starts Fulfillment" rule is wrong.
 
 Verification:
 
-- Payment unit tests.
-- Backend scenario for repeated callback/query handling.
-- Browser scenario completion for the rental prepaid loop.
+- Backend typecheck, frontend typecheck, backend DB lint, backend lint, and
+  payment supply-chain lint.
+- Backend unit suite including Bill settlement coverage.
+- Browser scenario completion for the Rental prepaid loop and paid cancellation
+  refund loop through fake WeChat Pay.
 
 ## Phase 5: Ride Hailing
 

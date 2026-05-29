@@ -196,6 +196,13 @@ vi.mock("@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue", () =>
   },
 }));
 
+vi.mock("@/domains/commerce/ui/PRCommercePlacementAction.vue", () => ({
+  default: {
+    name: "PRCommercePlacementAction",
+    template: '<section data-testid="pr-detail.commerce-placement-action" />',
+  },
+}));
+
 vi.mock("@/domains/support/ui/sections/MiniumCommonFooter.vue", () => ({
   default: {
     name: "MiniumCommonFooter",

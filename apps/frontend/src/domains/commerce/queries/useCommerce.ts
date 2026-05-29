@@ -27,6 +27,20 @@ export type CommerceOrderDetailResponse = InferResponseType<
   CommerceApi["orders"][":orderId"]["$get"]
 >;
 
+export type BillDetailResponse = InferResponseType<
+  CommerceApi["bills"][":billId"]["$get"]
+>;
+
+export type PaymentCheckoutResponse = InferResponseType<
+  CommerceApi["bill-lines"][":billLineId"]["checkout"]["$get"]
+>;
+
+export type PaymentTxResponse = InferResponseType<
+  CommerceApi["payments"][":paymentTxId"]["$get"]
+>;
+
+export const FRONTEND_PAYMENT_CLIENT_ID = "web";
+
 const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise<T> => {
   if (!response.ok) {
     const payload = await readApiErrorPayload(response);
@@ -176,17 +190,77 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) =>
     enabled: () => orderId.value !== null,
   });
 
-export const useMockRentalPayment = () => {
+export const useBillDetail = (billId: Ref<string | null>) =>
+  useQuery<BillDetailResponse>({
+    queryKey: computed(() => queryKeys.commerce.billDetail(billId.value)),
+    queryFn: async () => {
+      if (billId.value === null) {
+        throw new Error("Missing bill id");
+      }
+
+      const response = await client.api.commerce.bills[":billId"].$get(
+        {
+          param: {
+            billId: billId.value,
+          },
+        },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<BillDetailResponse>(
+        response,
+        "Failed to load bill",
+      );
+    },
+    enabled: () => billId.value !== null,
+  });
+
+export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
+  useQuery<PaymentCheckoutResponse>({
+    queryKey: computed(() =>
+      queryKeys.commerce.paymentCheckout(billLineId.value),
+    ),
+    queryFn: async () => {
+      if (billLineId.value === null) {
+        throw new Error("Missing bill line id");
+      }
+
+      const response = await client.api.commerce["bill-lines"][
+        ":billLineId"
+      ].checkout.$get(
+        {
+          param: {
+            billLineId: billLineId.value,
+          },
+        },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<PaymentCheckoutResponse>(
+        response,
+        "Failed to load checkout",
+      );
+    },
+    enabled: () => billLineId.value !== null,
+  });
+
+export const useCreatePaymentForBillLine = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (orderId: string) => {
-      const response = await client.api.commerce.orders[":orderId"][
-        "mock-payment"
-      ].$post(
+    mutationFn: async (billLineId: string) => {
+      const response = await client.api.commerce["bill-lines"][":billLineId"]
+        .payments.$post(
         {
-          param: {
-            orderId,
+          param: { billLineId },
+          json: {
+            clientId: FRONTEND_PAYMENT_CLIENT_ID,
           },
         },
         {
@@ -197,13 +271,47 @@ export const useMockRentalPayment = () => {
       );
       return readJsonOrThrow<
         InferResponseType<
-          CommerceApi["orders"][":orderId"]["mock-payment"]["$post"]
+          CommerceApi["bill-lines"][":billLineId"]["payments"]["$post"]
         >
-      >(response, "Failed to simulate payment");
+      >(response, "Failed to create payment");
     },
-    onSuccess: (_, orderId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.commerce.orderDetail(orderId),
+        queryKey: ["commerce"],
+      });
+    },
+  });
+};
+
+export const useSyncPaymentTx = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (paymentTxId: string) => {
+      const response = await client.api.commerce.payments[":paymentTxId"].sync.$post(
+        {
+          param: {
+            paymentTxId,
+          },
+        },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<
+        InferResponseType<
+          CommerceApi["payments"][":paymentTxId"]["sync"]["$post"]
+        >
+      >(response, "Failed to sync payment");
+    },
+    onSuccess: (_, paymentTxId) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.commerce.paymentTx(paymentTxId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["commerce"],
       });
     },
   });

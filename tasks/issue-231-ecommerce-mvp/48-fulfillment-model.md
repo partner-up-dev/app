@@ -227,7 +227,9 @@ service delivery, that is the time to reconsider the cardinality.
 The two current families intentionally differ:
 
 - `RentalFulfillment` starts only after the prepaid Bill is fully settled,
-  because service execution should not begin before payment success
+  because service execution should not begin before payment success. This is
+  an explicit Trade/application-service command after Bill settlement is
+  confirmed, not a generic Fulfillment listener.
 - `RideHailingFulfillment` starts when the order is created, because service
   execution begins before the final bill is resolved
 
@@ -872,8 +874,9 @@ But the real business methods should stay family-specific. A single generic
 
 Recommended Fulfillment-side application services:
 
-- `CreateRentalFulfillmentOnBillPaidService`
+- `StartRentalFulfillmentAfterPrepaidBillSettledService`
   - create fulfillment when prepaid rental becomes executable
+  - invoked explicitly by the payment-settlement / Trade orchestration path
 - `HandleRentalFulfillmentOperatorActionService`
   - confirm / reject booking
   - record entry guidance
@@ -897,7 +900,8 @@ Fulfillment consumes:
 
 - `order_id`
 - family-specific execution request facts already frozen in Order
-- for Rental, the fact that prepaid Bill settlement is complete
+- for Rental, an explicit command from Trade/application service after prepaid
+  Bill settlement is complete
 - for RideHailing, provider-normalized execution events or operator/system
   execution signals
 

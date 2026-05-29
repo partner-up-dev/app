@@ -67,6 +67,12 @@ export const queryKeys = {
       ] as const,
     orderDetail: (orderId: string | null) =>
       ["commerce", "order", orderId] as const,
+    billDetail: (billId: string | null) =>
+      ["commerce", "bill", billId] as const,
+    paymentCheckout: (billLineId: string | null) =>
+      ["commerce", "bill-line", billLineId, "checkout"] as const,
+    paymentTx: (paymentTxId: string | null) =>
+      ["commerce", "payment", paymentTxId] as const,
   },
   admin: {
     anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,

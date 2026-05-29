@@ -44,10 +44,10 @@ flowchart LR
   RideOrder --> Bill
   Bill --> Payment
   Payment --> Bill
+  Bill --> RentalOrder
+  Bill --> RideOrder
   RentalOrder --> RentalFulfillment
   RideOrder --> RideFulfillment
-  Bill --> RentalFulfillment
-  Bill --> RideFulfillment
 ```
 
 ## Ownership Rules
@@ -149,8 +149,8 @@ functionality has been removed from this task.
 Owns:
 
 - Bill
-- BillShare
-- split obligations
+- BillLine
+- participant split obligations
 - derived bill settlement status
 - refund obligation records derived from SKU base cancellation policy snapshot
   and order state
@@ -173,7 +173,7 @@ Owns:
 
 Does not own:
 
-- BillShare obligation calculation
+- BillLine obligation calculation
 - Order pricing
 - Fulfillment result
 

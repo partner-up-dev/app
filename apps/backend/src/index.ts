@@ -31,6 +31,7 @@ import { adminAnchorManagementRoute } from "./controllers/admin-anchor-managemen
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
+import { paymentProviderRoute } from "./controllers/payment-provider.controller";
 import { jobRunner } from "./infra/jobs";
 import {
   JOURNEY_ID_HEADER,
@@ -195,6 +196,7 @@ export const routes = app
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
   .route("/api/commerce", commerceRoute)
+  .route("/api/payment-providers", paymentProviderRoute)
   .route("/api/admin", adminAnchorManagementRoute)
   .route("/api/admin", adminCommerceManagementRoute)
   .route("/api/admin", adminPoiRoute)

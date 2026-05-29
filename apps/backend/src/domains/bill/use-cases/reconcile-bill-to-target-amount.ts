@@ -17,6 +17,7 @@ export async function reconcileBillToTargetAmount(
   direction: "NONE" | "REFUND" | "CHARGE";
   deltaFen: number;
   createdLineCount: number;
+  createdLineIds: string[];
 }> {
   if (executor === db) {
     return db.transaction(async (tx) => reconcileBillToTargetAmount(seed, tx));
@@ -50,7 +51,15 @@ export async function reconcileBillToTargetAmount(
       direction: plan.direction,
       deltaFen: 0,
       createdLineCount: 0,
+      createdLineIds: [],
     };
+  }
+
+  const firstChargeLineByUserId = new Map<string, string>();
+  for (const line of lines) {
+    if (line.kind === "CHARGE" && !firstChargeLineByUserId.has(line.userId)) {
+      firstChargeLineByUserId.set(line.userId, line.id);
+    }
   }
 
   const newLines = plan.allocations.map(
@@ -66,6 +75,11 @@ export async function reconcileBillToTargetAmount(
             ? "Rental termination refund"
             : "Rental termination adjustment",
         description: `Termination attempt ${seed.sourceAttemptId} reconciliation`,
+        sourceLineId:
+          plan.direction === "REFUND"
+            ? (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["sourceLineId"]) ??
+              null
+            : null,
       }) satisfies NewBillLine,
   );
 
@@ -76,5 +90,6 @@ export async function reconcileBillToTargetAmount(
     direction: plan.direction,
     deltaFen: plan.deltaFen,
     createdLineCount: created.length,
+    createdLineIds: created.map((line) => line.id),
   };
 }

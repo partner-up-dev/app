@@ -30,3 +30,4 @@ export * from "./trade-order";
 export * from "./pr-attached-order";
 export * from "./bill";
 export * from "./rental-fulfillment";
+export * from "./payment";

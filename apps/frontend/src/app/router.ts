@@ -22,6 +22,10 @@ const OrderingFromPlacementPage = () =>
   import("@/pages/OrderingFromPlacementPage.vue");
 const CommerceOrderDetailPage = () =>
   import("@/pages/CommerceOrderDetailPage.vue");
+const CommerceBillDetailPage = () =>
+  import("@/pages/CommerceBillDetailPage.vue");
+const PaymentCheckoutPage = () =>
+  import("@/pages/PaymentCheckoutPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
@@ -128,6 +132,22 @@ const routes: RouteRecordRaw[] = [
     path: "/orders/:orderId",
     name: "commerce-order-detail",
     component: CommerceOrderDetailPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/bills/:billId",
+    name: "commerce-bill-detail",
+    component: CommerceBillDetailPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/bill-lines/:billLineId/checkout",
+    name: "payment-checkout",
+    component: PaymentCheckoutPage,
     meta: {
       wechatSharePolicy: "skip",
     },

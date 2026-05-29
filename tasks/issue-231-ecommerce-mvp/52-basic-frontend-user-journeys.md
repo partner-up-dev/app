@@ -134,11 +134,29 @@ Phase 3 concrete route:
 ### Order Detail
 
 - Is the durable page for all post-create states.
-- Should own post-create payment entry, fulfillment projection, bill result,
-  and cancellation entry.
-- Should not redirect users into separate routes just to view payment result,
-  cancellation result, or fulfillment result unless an external gateway forces
-  it.
+- Should own contract/service overview, fulfillment projection, cancellation
+  entry, and links into the current bill state.
+- Should not own checkout internals.
+- Should link to `Bill Detail` when the user needs to inspect obligations or
+  enter payment.
+
+### Bill Detail
+
+- Is the canonical user-facing page for Bill and BillLine truth.
+- Shows charge/refund lines, participant obligation ownership, and settlement
+  state derived from successful PaymentTx rows.
+- Exposes payment entry only for the current user's payable BillLines.
+- Does not allow the creator to pay for other participants.
+
+### Payment Checkout
+
+- Is scoped to exactly one BillLine.
+- Loads authoritative BillLine, Bill, Order summary, and current PaymentTx state
+  from backend refs.
+- Creates or reuses a provider-backed PaymentTx for the current user's own
+  payable BillLine.
+- Owns the WeChat JSAPI invocation and pending/success/failure checkout state.
+- Returns users back to Bill Detail or Order Detail after a terminal result.
 
 ## Rental Journey
 
@@ -155,9 +173,14 @@ Phase 3 concrete route:
 5. If PR is not `READY`, CTA stays disabled with explicit reason.
 6. If allowed, PR creator creates order from Ordering Detail.
 7. On success, frontend navigates to `Order Detail` immediately.
-8. `Order Detail` first shows payable state and payment CTA.
-9. After payment, the same `Order Detail` shifts to `待确认预订`.
-10. Later, the same `Order Detail` shows one of:
+8. `Order Detail` links to `Bill Detail` for the payable Bill.
+9. `Bill Detail` shows each participant's BillLine and exposes checkout only
+   for the current user's own unpaid charge line.
+10. `Payment Checkout` pays one BillLine through WeChat Pay.
+11. After all prepaid charge lines are settled, Bill notifies the source Order;
+    Rental Order explicitly starts Rental Fulfillment and `Order Detail` shifts
+    to `待确认预订`.
+12. Later, the same `Order Detail` shows one of:
     - `预约成功` with entry guidance
     - `预约失败` with consequence/refund result
     - `取消处理中`
@@ -176,9 +199,22 @@ Ordering Detail state:
 Order Detail state:
 
 - order summary
-- bill/payment panel
+- bill summary and link
 - fulfillment panel
 - cancellation panel
+
+Bill Detail state:
+
+- bill summary
+- participant BillLine list
+- current user's payable/refundable lines
+- PaymentTx settlement state per line
+
+Payment Checkout state:
+
+- one BillLine payment basis
+- provider prepay/pending state
+- payment success/failure state
 
 Recommended visible progression:
 
@@ -225,14 +261,14 @@ contract.
    - quote basis snapshot
    - ride execution status
    - cancellation entry when still available
-   - final bill/payment section only when final settlement is ready
+   - final bill link only when final settlement is ready
 9. During active ride, high-frequency live information should be fetched by a
    dedicated ride-tracking API rather than making the whole order projection
    high-frequency.
-10. After trip finish, the same `Order Detail` shows final bill and payment
-    action.
-11. After payment, the same `Order Detail` becomes the completed receipt-like
-    surface.
+10. After trip finish, the same `Order Detail` links to final `Bill Detail`.
+11. User pays their own final BillLine through `Payment Checkout`.
+12. After payment, the same `Order Detail` becomes the completed receipt-like
+    surface when fulfillment and bill settlement are both resolved.
 
 ### RideHailing Page-State Model
 
@@ -246,8 +282,13 @@ Order Detail state:
 
 - quote basis section
 - fulfillment section
-- bill/payment section
+- final bill link/summary section
 - cancellation section
+
+Bill Detail and Payment Checkout keep the same BillLine-scoped payment shape as
+Rental. The difference is only timing: Rental creates Bill before service
+execution; RideHailing creates the final Bill after execution-side final
+settlement input has been committed and priced.
 
 Recommended visible progression:
 

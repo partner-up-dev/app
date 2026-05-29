@@ -66,11 +66,15 @@ User-visible flow:
 6. PR reaches READY through the existing PR lifecycle.
 7. PR creator submits selected zone, 3-hour time slot, contact, and real-name
    fields.
-8. User invokes WeChat Pay APIv3 payment.
-9. Frontend polling and backend callback jointly drive payment state until paid
+8. User opens Bill Detail and sees participant BillLines.
+9. User opens Payment Checkout for their own payable BillLine.
+10. User invokes WeChat Pay APIv3 payment.
+11. Frontend polling and backend callback jointly drive PaymentTx state until paid
     or terminal failure.
-10. Operator-facing browser route records 6C booking success/failure.
-11. User-facing order route displays reservation success/failure and phone or
+12. Bill settlement notifies the source Rental Order; Rental Order then starts
+    Rental Fulfillment explicitly.
+13. Operator-facing browser route records 6C booking success/failure.
+14. User-facing order route displays reservation success/failure and phone or
     real-name entry guidance.
 
 ```mermaid
@@ -81,6 +85,8 @@ sequenceDiagram
   participant OF as Offer
   participant RO as RentalOrder
   participant BI as Bill
+  participant BD as Bill Detail
+  participant PC as Payment Checkout
   participant PY as Payment
   participant PA as WeChat Pay APIv3
   participant RF as RentalFulfillment
@@ -95,19 +101,22 @@ sequenceDiagram
   U->>RO: Submit zone/time/count/contact/real-name info
   RO->>PR: Attach order to PR in same transaction
   PR-->>RO: Accept only if PR is READY; otherwise reject and roll back
-  RO->>BI: If accepted, create Bill and BillShares
-  BI->>PY: Request payment for payable shares
-  PY->>PA: Create prepay
+  RO->>BI: If accepted, create Bill and BillLines
+  U->>BD: Open Bill Detail
+  BD-->>U: Show participant BillLines
+  U->>PC: Checkout current user's BillLine
+  PC->>PY: Create or reuse PaymentTx
+  PY->>PA: Create JSAPI prepay
   U->>PA: Pay in WeChat
   par WeChat callback path
     PA-->>PY: Verified payment callback can mark PaymentTx paid
   and Browser polling path
-    U->>PY: Browser polls payment/order state
+    PC->>PY: Browser polls PaymentTx / syncs provider state
     PY->>PA: Query WeChat Pay order if still pending
   end
-  PY-->>BI: PaymentTx settled payable shares
-  BI->>RO: Bill settled
-  RO->>RF: Create manual 6C booking task
+  PY-->>BI: PaymentTx settled one BillLine
+  BI->>RO: Notify prepaid Bill fully settled
+  RO->>RF: Explicitly create manual 6C booking task
   RF->>RF: Staff records 6C confirmation or failure
   RF-->>RO: Success with phone/real-name entry info or failure reason
   RO-->>U: Order detail shows result
@@ -208,7 +217,9 @@ sequenceDiagram
   - order detail root
   - frozen order item, participant count, and total price
   - existing-order target routing from Button Placement back to Order Detail
-  - bill/payment result affordance
+  - bill detail entry
+  - bill detail participant BillLines and current-user payable state
+  - payment checkout pending/success/failure state for one BillLine
   - disabled create-order states for non-READY PR and non-creator viewer
   - rental cancellation result projection
   - rental/ride-hailing order result root

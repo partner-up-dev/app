@@ -11,8 +11,15 @@ import {
   getRentalOrderingFromPlacement,
   resolveCommercePlacementForPr,
   simulateRentalBookingConfirmation,
-  simulateRentalOrderPayment,
 } from "../domains/trade";
+import {
+  createOrReusePaymentForBillLine,
+  getBillDetail,
+  getBillDetailByOrderId,
+  getPaymentCheckout,
+  getPaymentTxDetail,
+  syncPaymentTx,
+} from "../domains/payment";
 
 const app = new Hono<AuthEnv>();
 
@@ -30,6 +37,22 @@ const placementOrderingQuerySchema = z.object({
 
 const orderIdParamSchema = z.object({
   orderId: z.string().uuid(),
+});
+
+const billIdParamSchema = z.object({
+  billId: z.string().uuid(),
+});
+
+const billLineIdParamSchema = z.object({
+  billLineId: z.string().uuid(),
+});
+
+const paymentTxIdParamSchema = z.object({
+  paymentTxId: z.string().uuid(),
+});
+
+const createPaymentSchema = z.object({
+  clientId: z.string().trim().min(1).default("web"),
 });
 
 const registrantSchema = z.object({
@@ -124,6 +147,83 @@ export const commerceRoute = app
     });
     return c.json(result);
   })
+  .get(
+    "/orders/:orderId/bill",
+    zValidator("param", orderIdParamSchema),
+    async (c) => {
+      const { orderId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await getBillDetailByOrderId({
+        orderId,
+        viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
+  .get("/bills/:billId", zValidator("param", billIdParamSchema), async (c) => {
+    const { billId } = c.req.valid("param");
+    const auth = c.get("auth");
+    const result = await getBillDetail({
+      billId,
+      viewerUserId: auth.userId,
+    });
+    return c.json(result);
+  })
+  .get(
+    "/bill-lines/:billLineId/checkout",
+    zValidator("param", billLineIdParamSchema),
+    async (c) => {
+      const { billLineId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await getPaymentCheckout({
+        billLineId,
+        viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/bill-lines/:billLineId/payments",
+    zValidator("param", billLineIdParamSchema),
+    zValidator("json", createPaymentSchema),
+    async (c) => {
+      const { billLineId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const auth = c.get("auth");
+      const result = await createOrReusePaymentForBillLine({
+        billLineId,
+        viewerUserId: auth.userId,
+        clientId: payload.clientId,
+      });
+      return c.json(result);
+    },
+  )
+  .get(
+    "/payments/:paymentTxId",
+    zValidator("param", paymentTxIdParamSchema),
+    async (c) => {
+      const { paymentTxId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await getPaymentTxDetail({
+        paymentTxId,
+        viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/payments/:paymentTxId/sync",
+    zValidator("param", paymentTxIdParamSchema),
+    async (c) => {
+      const { paymentTxId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await syncPaymentTx({
+        paymentTxId,
+        viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
   .post(
     "/orders/:orderId/cancel-rental",
     zValidator("param", orderIdParamSchema),
@@ -131,19 +231,6 @@ export const commerceRoute = app
       const { orderId } = c.req.valid("param");
       const userId = requireAuthenticatedUserId(c);
       const result = await cancelRentalOrderFromOrderDetail({
-        orderId,
-        actorUserId: userId,
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/orders/:orderId/mock-payment",
-    zValidator("param", orderIdParamSchema),
-    async (c) => {
-      const { orderId } = c.req.valid("param");
-      const userId = requireAuthenticatedUserId(c);
-      const result = await simulateRentalOrderPayment({
         orderId,
         actorUserId: userId,
       });
