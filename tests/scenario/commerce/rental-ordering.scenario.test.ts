@@ -44,22 +44,12 @@ async function givenRentalOrderingPlacement() {
   await registerPaymentProviderInstance({
     providerType: "WECHAT_PAY",
     instanceKey: "system-fake-wechat-pay-web",
-    displayName: "System Fake WeChat Pay Web",
+    displayName: "System Fake WeChatPay Web",
     clientId: "web",
     config: {
       adapterMode: "FAKE_WECHAT_PAY",
       appId: "fake-web-appid",
       mchId: "fake-web-mchid",
-    },
-    credentialSet: {
-      merchantSerialNo: "fake-merchant-serial",
-      merchantPrivateKeyPem: "fake-private-key",
-      apiV3Key: "fake-api-v3-key",
-      verifier: {
-        mode: "WECHAT_PAY_PUBLIC_KEY",
-        publicKeyId: "fake-public-key-id",
-        publicKeyPem: "fake-public-key",
-      },
     },
   });
 
@@ -234,6 +224,19 @@ async function waitForBillSettlementStatus(
   }, expected);
 }
 
+async function waitForBillLineCount(page: Page, expected: number): Promise<void> {
+  await page.waitForFunction(
+    ({ testId, expectedCount }) =>
+      document.querySelectorAll(`[data-testid="${testId}"]`).length ===
+      expectedCount,
+    {
+      testId: "bill-detail.line",
+      expectedCount: expected,
+    },
+    { timeout: 10_000 },
+  );
+}
+
 async function waitForOrderDetailText(input: {
   page: Page;
   testId: string;
@@ -269,7 +272,7 @@ async function payFirstAvailableBillLine(input: {
     pattern: input.amountPattern,
     label: input.label,
   });
-  await input.page.getByTestId("payment-checkout.create-payment").click();
+  await input.page.getByTestId("payment-checkout.create-charge").click();
   await input.page.getByTestId("payment-checkout.fake-complete").click();
   await input.page.getByTestId("payment-checkout.success").waitFor({
     state: "visible",
@@ -431,7 +434,7 @@ scenario(
         state: "visible",
         timeout: 10_000,
       });
-      assert.equal(await page.getByTestId("bill-detail.line").count(), 2);
+      await waitForBillLineCount(page, 2);
       await page.getByTestId("bill-detail.pay-line").click();
       await page.getByTestId("payment-checkout.page").waitFor({
         state: "visible",
@@ -442,7 +445,7 @@ scenario(
         pattern: /16\.00/,
         label: "Creator bill line checkout amount",
       });
-      await page.getByTestId("payment-checkout.create-payment").click();
+      await page.getByTestId("payment-checkout.create-charge").click();
       await page.getByTestId("payment-checkout.fake-complete").click();
       await page.getByTestId("payment-checkout.success").waitFor({
         state: "visible",
@@ -488,7 +491,7 @@ scenario(
         pattern: /16\.00/,
         label: "Joiner bill line checkout amount",
       });
-      await page.getByTestId("payment-checkout.create-payment").click();
+      await page.getByTestId("payment-checkout.create-charge").click();
       await page.getByTestId("payment-checkout.fake-complete").click();
       await page.getByTestId("payment-checkout.success").waitFor({
         state: "visible",

@@ -148,7 +148,7 @@ Verification:
 
 ## Phase 4: Payment
 
-Goal: integrate WeChat Pay APIv3 after the payable user flows and bill
+Goal: integrate WeChatPay APIv3 after the payable user flows and bill
 foundation are already visible.
 
 Concrete plan:
@@ -159,16 +159,17 @@ Work:
 
 - Bill Detail page and APIs as the canonical obligation surface.
 - Payment Checkout page and APIs scoped to exactly one BillLine.
-- PaymentTx model completion and WeChat Pay adapter.
+- PaymentTx model completion and WeChatPay adapter.
 - Payment provider instance and client binding registry:
   `client_id -> provider_instance`.
-- Payment provider credential sets:
-  DB stores WeChat private key PEM, APIv3 key, and verifier material directly
-  as a deliberate serverless MVP compromise.
+- Payment provider instance config:
+  DB stores WeChatPay APIv3 key, merchant certificate material, and platform
+  certificates directly as a deliberate serverless MVP compromise. Missing
+  platform certificates are downloaded from WeChatPay and persisted.
 - Config-driven provider registration command:
-  typed config idempotently persists provider instance, credential set
-  and client bindings.
-- WeChat Pay SDK spike:
+  typed config idempotently persists one provider instance and its owning
+  `client_id`.
+- WeChatPay SDK spike:
   choose a mature SDK behind the adapter; if axios is introduced, pin and audit
   it explicitly.
 - PaymentTx must target BillLine, not Bill. Creator paying for other
@@ -191,7 +192,7 @@ Verification:
   payment supply-chain lint.
 - Backend unit suite including Bill settlement coverage.
 - Browser scenario completion for the Rental prepaid loop and paid cancellation
-  refund loop through fake WeChat Pay.
+  refund loop through fake WeChatPay.
 
 ## Phase 5: Ride Hailing
 

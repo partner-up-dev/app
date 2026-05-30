@@ -66,7 +66,7 @@ Business demand:
   real-name data.
 - Create-order CTA is enabled only when PR is READY and the current user is the
   PR creator.
-- RentalOrder is created and billed through WeChat Pay APIv3.
+- RentalOrder is created and billed through WeChatPay APIv3.
 - Frontend polling and backend WeChat callback jointly drive payment state.
 - Platform operator contacts 6C and records reservation success/failure.
 - Success displays entry instructions based on phone/real-name information.
@@ -265,7 +265,7 @@ Cases:
 - PaymentTx failure does not mutate frozen bill obligations.
 - PaymentTx targets exactly one BillLine and does not support the creator
   paying for other participants in issue 231.
-- WeChat Pay APIv3 query result or verified callback can advance a pending
+- WeChatPay APIv3 query result or verified callback can advance a pending
   PaymentTx to paid. Both paths are first-class state transitions and must be
   idempotent.
 
@@ -319,7 +319,7 @@ Cases:
 
 ## Deliberate Non-Goals For First System Scenarios
 
-- Non-WeChat payment gateways.
+- Non-WeChatPay payment gateways.
 - Restaurant group-buy coupon commercial loop.
 - Voucher Entitlement, entitlement redemption, QR redemption, and GoodsOrder.
 - Full ride-hailing dispatch/monitoring UX and provider settlement accounting.

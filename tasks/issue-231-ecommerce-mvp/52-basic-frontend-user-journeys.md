@@ -176,7 +176,7 @@ Phase 3 concrete route:
 8. `Order Detail` links to `Bill Detail` for the payable Bill.
 9. `Bill Detail` shows each participant's BillLine and exposes checkout only
    for the current user's own unpaid charge line.
-10. `Payment Checkout` pays one BillLine through WeChat Pay.
+10. `Payment Checkout` pays one BillLine through WeChatPay.
 11. After all prepaid charge lines are settled, Bill notifies the source Order;
     Rental Order explicitly starts Rental Fulfillment and `Order Detail` shifts
     to `待确认预订`.

@@ -112,7 +112,7 @@
 
    - exact ride-hailing provider integration cut and live-tracking API shape
    - Rental cancellation result wording and state grouping
-   - exact real-payment return/polling UX once WeChat Pay is implemented
+   - exact real-payment return/polling UX once WeChatPay is implemented
    - exact RideHailing Ordering and Order Detail IA
 
 9. Admin implementation principles to keep stable during execution
@@ -141,7 +141,7 @@
   projection in this task.
 - `/entitlements/*` is out of scope for issue 231.
 - `ecommerce` is an umbrella, not a single module bucket.
-- User payment provider is WeChat Pay APIv3.
+- User payment provider is WeChatPay APIv3.
 - Frontend polling and backend WeChat callback jointly drive payment state.
   Callback transitions are first-class state transitions, equal in authority to
   payment-status query transitions.

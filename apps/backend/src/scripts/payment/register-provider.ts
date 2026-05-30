@@ -2,18 +2,12 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { registerPaymentProviderInstance } from "../../domains/payment";
 
-const verifierSchema = z.discriminatedUnion("mode", [
-  z.object({
-    mode: z.literal("WECHAT_PAY_PUBLIC_KEY"),
-    publicKeyId: z.string().min(1),
-    publicKeyPem: z.string().min(1),
-  }),
-  z.object({
-    mode: z.literal("PLATFORM_CERTIFICATE"),
-    certificateSerialNo: z.string().min(1),
-    certificatePem: z.string().min(1),
-  }),
-]);
+const platformCertificateSchema = z.object({
+  serialNo: z.string().min(1),
+  certificatePem: z.string().min(1),
+  effectiveTime: z.string().min(1).nullable().optional(),
+  expireTime: z.string().min(1).nullable().optional(),
+});
 
 const providerConfigSchema = z.discriminatedUnion("adapterMode", [
   z.object({
@@ -21,9 +15,17 @@ const providerConfigSchema = z.discriminatedUnion("adapterMode", [
     appId: z.string().min(1),
     mchId: z.string().min(1),
     chargeMode: z.enum(["JSAPI", "H5"]),
-    notifyBaseUrl: z.string().url(),
-    paymentNotifyPath: z.string().min(1),
-    refundNotifyPath: z.string().min(1),
+    apiV3Key: z.string().min(1),
+    merchantCertificate: z.object({
+      serialNo: z.string().min(1),
+      privateKeyPem: z.string().min(1),
+      certificatePem: z.string().min(1).nullable().optional(),
+    }),
+    platformCertificates: z
+      .array(platformCertificateSchema)
+      .min(1)
+      .nullable()
+      .optional(),
   }),
   z.object({
     adapterMode: z.literal("FAKE_WECHAT_PAY"),
@@ -38,12 +40,6 @@ const registrationConfigSchema = z.object({
   displayName: z.string().min(1),
   clientId: z.string().min(1),
   config: providerConfigSchema,
-  credentialSet: z.object({
-    merchantSerialNo: z.string().min(1),
-    merchantPrivateKeyPem: z.string().min(1),
-    apiV3Key: z.string().min(1),
-    verifier: verifierSchema,
-  }),
 });
 
 const configPath = process.argv[2];
@@ -62,7 +58,6 @@ console.info(
   JSON.stringify(
     {
       providerInstanceId: result.providerInstanceId,
-      credentialSetId: result.credentialSetId,
     },
     null,
     2,

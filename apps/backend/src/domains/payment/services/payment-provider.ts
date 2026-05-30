@@ -1,9 +1,8 @@
+import { createPublicKey, type KeyObject } from "node:crypto";
 import { Aes, Formatter, Rsa, Wechatpay } from "wechatpay-axios-plugin";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  PaymentProviderCredentialSet,
-  PaymentProviderInstance,
-} from "../../../entities/payment";
+import { env } from "../../../lib/env";
+import type { PaymentProviderInstance } from "../../../entities/payment";
 import type {
   ChargePrepayResult,
   CreateChargePrepayInput,
@@ -17,9 +16,12 @@ import type {
   QueryChargeInput,
   QueryRefundInput,
   RawProviderNotification,
+  WeChatPayPlatformCertificate,
   WeChatPayProviderInstanceConfig,
-  WeChatPayVerifierConfig,
 } from "../model";
+import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
+
+const providerInstanceRepo = new PaymentProviderInstanceRepository();
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -66,36 +68,52 @@ const readOptionalStringField = (
   return typeof field === "string" && field.length > 0 ? field : null;
 };
 
-const isWechatApiV3Config = (
+const isWeChatPayApiV3Config = (
   config: PaymentProviderInstance["config"],
 ): config is WeChatPayProviderInstanceConfig =>
   config.adapterMode === "WECHAT_PAY_API_V3";
 
-export const isFakeWechatPayConfig = (
+export const isFakeWeChatPayConfig = (
   config: PaymentProviderInstance["config"],
 ): boolean => config.adapterMode === "FAKE_WECHAT_PAY";
 
-export const resolvePaymentNotifyUrl = (
-  providerInstance: PaymentProviderInstance,
-): string => {
-  const config = providerInstance.config;
-  if (config.adapterMode === "WECHAT_PAY_API_V3") {
-    return new URL(config.paymentNotifyPath, config.notifyBaseUrl).toString();
+const resolvePaymentNotifyBaseUrl = (): string => {
+  if (!env.PAYMENT_NOTIFY_BASE_URL) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "PAYMENT_NOTIFY_BASE_URL is required for WeChatPay notifications",
+    });
   }
-  return "https://example.invalid/fake-wechat/payment-notify";
+  return env.PAYMENT_NOTIFY_BASE_URL;
 };
 
-export const resolveRefundNotifyUrl = (
+export const resolveWeChatPayChargeNotifyUrl = (
   providerInstance: PaymentProviderInstance,
 ): string => {
-  const config = providerInstance.config;
-  if (config.adapterMode === "WECHAT_PAY_API_V3") {
-    return new URL(config.refundNotifyPath, config.notifyBaseUrl).toString();
+  if (!isWeChatPayApiV3Config(providerInstance.config)) {
+    return "https://example.invalid/fake-wechat-pay/charge-notify";
   }
-  return "https://example.invalid/fake-wechat/refund-notify";
+
+  return new URL(
+    `/api/payment/wechat-pay/${providerInstance.id}/notify/charge`,
+    resolvePaymentNotifyBaseUrl(),
+  ).toString();
 };
 
-const mapWechatTradeState = (
+export const resolveWeChatPayRefundNotifyUrl = (
+  providerInstance: PaymentProviderInstance,
+): string => {
+  if (!isWeChatPayApiV3Config(providerInstance.config)) {
+    return "https://example.invalid/fake-wechat-pay/refund-notify";
+  }
+
+  return new URL(
+    `/api/payment/wechat-pay/${providerInstance.id}/notify/refund`,
+    resolvePaymentNotifyBaseUrl(),
+  ).toString();
+};
+
+const mapWeChatPayTradeState = (
   state: string | undefined,
 ): NormalizedPaymentStatus => {
   if (state === "SUCCESS") return "SUCCEEDED";
@@ -104,7 +122,7 @@ const mapWechatTradeState = (
   return "PENDING";
 };
 
-const mapWechatRefundState = (
+const mapWeChatPayRefundState = (
   state: string | undefined,
 ): NormalizedPaymentStatus => {
   if (state === "SUCCESS") return "SUCCEEDED";
@@ -112,6 +130,12 @@ const mapWechatRefundState = (
   if (state === "ABNORMAL") return "FAILED";
   return "PENDING";
 };
+
+export class UnknownWeChatPayPlatformCertificateSerialError extends Error {
+  constructor(readonly serial: string) {
+    super(`Unknown WeChatPay platform certificate serial: ${serial}`);
+  }
+}
 
 export class FakeWeChatPayProviderAdapter implements PaymentProviderPort {
   async createChargePrepay(
@@ -122,7 +146,7 @@ export class FakeWeChatPayProviderAdapter implements PaymentProviderPort {
       providerStatus: "FAKE_AWAITING_CONFIRMATION",
       clientAction: {
         type: "FAKE_PROVIDER_ACTION",
-        message: "Scenario fake WeChat Pay action",
+        message: "Scenario fake WeChatPay action",
       },
       providerSnapshot: {
         adapter: "FAKE_WECHAT_PAY",
@@ -169,7 +193,7 @@ export class FakeWeChatPayProviderAdapter implements PaymentProviderPort {
     };
   }
 
-  async parsePaymentNotification(
+  async parseChargeNotification(
     input: RawProviderNotification,
   ): Promise<NormalizedChargeStatus & { merchantOrderNo: string }> {
     const body = parseJsonRecord(input.bodyText);
@@ -198,52 +222,169 @@ export class FakeWeChatPayProviderAdapter implements PaymentProviderPort {
   }
 }
 
-const buildCerts = (
-  verifier: WeChatPayVerifierConfig,
+const buildPlatformCertificateMap = (
+  certificates: WeChatPayPlatformCertificate[] | null | undefined,
 ): Record<string, string> => {
-  if (verifier.mode === "WECHAT_PAY_PUBLIC_KEY") {
-    return {
-      [verifier.publicKeyId]: verifier.publicKeyPem,
-    };
+  if (!certificates || certificates.length === 0) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "WeChatPay platform certificates are missing",
+    });
   }
 
+  return Object.fromEntries(
+    certificates.map((certificate) => [
+      certificate.serialNo,
+      certificate.certificatePem,
+    ]),
+  );
+};
+
+const findPlatformCertificatePem = (
+  certificates: WeChatPayPlatformCertificate[] | null | undefined,
+  serial: string,
+): string | null =>
+  certificates?.find((certificate) => certificate.serialNo === serial)
+    ?.certificatePem ?? null;
+
+const buildWeChatPayClient = (
+  config: WeChatPayProviderInstanceConfig,
+  platformCertificates: Record<string, string | KeyObject>,
+): Wechatpay =>
+  new Wechatpay({
+    mchid: config.mchId,
+    serial: config.merchantCertificate.serialNo,
+    privateKey: config.merchantCertificate.privateKeyPem,
+    certs: platformCertificates,
+    secret: config.apiV3Key,
+  });
+
+const readCertificateItems = (body: Record<string, unknown>): unknown[] => {
+  const data = body.data;
+  return Array.isArray(data) ? data : [];
+};
+
+const decryptPlatformCertificate = (input: {
+  item: unknown;
+  apiV3Key: string;
+}): WeChatPayPlatformCertificate => {
+  const item = input.item;
+  const encryptCertificate = readRecordField(item, "encrypt_certificate");
+  const ciphertext = readRequiredStringField(encryptCertificate, "ciphertext");
+  const nonce = readRequiredStringField(encryptCertificate, "nonce");
+  const associatedData =
+    readOptionalStringField(encryptCertificate, "associated_data") ?? "";
+
   return {
-    [verifier.certificateSerialNo]: verifier.certificatePem,
+    serialNo: readRequiredStringField(item, "serial_no"),
+    certificatePem: Aes.AesGcm.decrypt(
+      ciphertext,
+      input.apiV3Key,
+      nonce,
+      associatedData,
+    ),
+    effectiveTime: readOptionalStringField(item, "effective_time"),
+    expireTime: readOptionalStringField(item, "expire_time"),
   };
 };
 
-const resolveVerifierPublicKey = (
-  verifier: WeChatPayVerifierConfig,
-  serial: string,
-): string | null => {
-  if (verifier.mode === "WECHAT_PAY_PUBLIC_KEY") {
-    return verifier.publicKeyId === serial ? verifier.publicKeyPem : null;
+const downloadWeChatPayPlatformCertificates = async (
+  config: WeChatPayProviderInstanceConfig,
+): Promise<WeChatPayPlatformCertificate[]> => {
+  const downloaded: WeChatPayPlatformCertificate[] = [];
+  const wxpay = buildWeChatPayClient(config, {
+    bootstrap: createPublicKey(config.merchantCertificate.privateKeyPem),
+  });
+  const capturePlatformCertificates = (rawBody: unknown): unknown => {
+    if (typeof rawBody !== "string") return rawBody;
+    const body = parseJsonRecord(rawBody);
+    for (const item of readCertificateItems(body)) {
+      downloaded.push(
+        decryptPlatformCertificate({
+          item,
+          apiV3Key: config.apiV3Key,
+        }),
+      );
+    }
+    return rawBody;
+  };
+
+  await wxpay.chain("/v3/certificates").get({
+    // Bootstrap path: use the SDK for request signing, then decrypt the returned
+    // platform certificates before normal response verification is possible.
+    transformResponse: [capturePlatformCertificates],
+  });
+
+  if (downloaded.length === 0) {
+    return throwHttpProblem({
+      status: 502,
+      detail: "WeChatPay platform certificate download returned no certificates",
+    });
   }
-  return verifier.certificateSerialNo === serial ? verifier.certificatePem : null;
+
+  return downloaded;
+};
+
+export const refreshWeChatPayPlatformCertificates = async (
+  providerInstance: PaymentProviderInstance,
+): Promise<PaymentProviderInstance> => {
+  if (!isWeChatPayApiV3Config(providerInstance.config)) {
+    return providerInstance;
+  }
+
+  const platformCertificates = await downloadWeChatPayPlatformCertificates(
+    providerInstance.config,
+  );
+  const updated = await providerInstanceRepo.updateConfig({
+    id: providerInstance.id,
+    config: {
+      ...providerInstance.config,
+      platformCertificates,
+    },
+  });
+
+  if (!updated) {
+    return throwHttpProblem({
+      status: 404,
+      detail: "Payment provider instance not found while refreshing certificates",
+    });
+  }
+
+  return updated;
+};
+
+export const ensureWeChatPayPlatformCertificates = async (
+  providerInstance: PaymentProviderInstance,
+): Promise<PaymentProviderInstance> => {
+  if (!isWeChatPayApiV3Config(providerInstance.config)) {
+    return providerInstance;
+  }
+  if (
+    providerInstance.config.platformCertificates &&
+    providerInstance.config.platformCertificates.length > 0
+  ) {
+    return providerInstance;
+  }
+
+  return refreshWeChatPayPlatformCertificates(providerInstance);
 };
 
 export class WeChatPayProviderAdapter implements PaymentProviderPort {
   private readonly wxpay: Wechatpay;
   private readonly config: WeChatPayProviderInstanceConfig;
-  private readonly credential: PaymentProviderCredentialSet;
 
   constructor(input: {
     providerInstance: PaymentProviderInstance;
-    credentialSet: PaymentProviderCredentialSet;
   }) {
-    if (!isWechatApiV3Config(input.providerInstance.config)) {
-      throw new Error("WeChat Pay adapter requires APIv3 provider config");
+    if (!isWeChatPayApiV3Config(input.providerInstance.config)) {
+      throw new Error("WeChatPay adapter requires APIv3 provider config");
     }
 
     this.config = input.providerInstance.config;
-    this.credential = input.credentialSet;
-    this.wxpay = new Wechatpay({
-      mchid: this.config.mchId,
-      serial: input.credentialSet.merchantSerialNo,
-      privateKey: input.credentialSet.merchantPrivateKeyPem,
-      certs: buildCerts(input.credentialSet.verifier),
-      secret: input.credentialSet.apiV3Key,
-    });
+    this.wxpay = buildWeChatPayClient(
+      this.config,
+      buildPlatformCertificateMap(this.config.platformCertificates),
+    );
   }
 
   async createChargePrepay(
@@ -253,7 +394,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
       if (!input.payerOpenId) {
         return throwHttpProblem({
           status: 409,
-          detail: "WeChat JSAPI checkout requires a bound WeChat openid",
+          detail: "WeChatPay JSAPI checkout requires a bound WeChat openid",
         });
       }
 
@@ -313,7 +454,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
 
     return throwHttpProblem({
       status: 409,
-      detail: `Unsupported WeChat Pay charge mode: ${this.config.chargeMode}`,
+      detail: `Unsupported WeChatPay charge mode: ${this.config.chargeMode}`,
     });
   }
 
@@ -329,7 +470,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
       readOptionalStringField(response.data, "trade_state") ?? "UNKNOWN";
 
     return {
-      status: mapWechatTradeState(providerStatus),
+      status: mapWeChatPayTradeState(providerStatus),
       providerStatus,
       providerTransactionId: readOptionalStringField(
         response.data,
@@ -361,7 +502,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     const providerStatus =
       readOptionalStringField(response.data, "status") ?? "UNKNOWN";
     return {
-      status: mapWechatRefundState(providerStatus),
+      status: mapWeChatPayRefundState(providerStatus),
       providerStatus,
       providerRefundId: readOptionalStringField(response.data, "refund_id"),
       providerSnapshot: response.data,
@@ -377,7 +518,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
       readOptionalStringField(response.data, "status") ?? "UNKNOWN";
 
     return {
-      status: mapWechatRefundState(providerStatus),
+      status: mapWeChatPayRefundState(providerStatus),
       providerStatus,
       providerRefundId: readOptionalStringField(response.data, "refund_id"),
       providerSnapshot: response.data,
@@ -385,7 +526,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     };
   }
 
-  async parsePaymentNotification(
+  async parseChargeNotification(
     input: RawProviderNotification,
   ): Promise<NormalizedChargeStatus & { merchantOrderNo: string }> {
     const resource = this.decryptVerifiedResource(input);
@@ -397,7 +538,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
 
     return {
       merchantOrderNo,
-      status: mapWechatTradeState(providerStatus),
+      status: mapWeChatPayTradeState(providerStatus),
       providerStatus,
       providerTransactionId: readOptionalStringField(resource, "transaction_id"),
       providerSnapshot: resource,
@@ -417,7 +558,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
 
     return {
       merchantRefundNo,
-      status: mapWechatRefundState(providerStatus),
+      status: mapWeChatPayRefundState(providerStatus),
       providerStatus,
       providerRefundId: readOptionalStringField(resource, "refund_id"),
       providerSnapshot: resource,
@@ -428,12 +569,14 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
   private decryptVerifiedResource(
     input: RawProviderNotification,
   ): Record<string, unknown> {
-    const verifierPublicKey = resolveVerifierPublicKey(
-      this.credential.verifier,
+    const platformCertificatePem = findPlatformCertificatePem(
+      this.config.platformCertificates,
       input.headers.serial,
     );
-    if (!verifierPublicKey) {
-      throw new Error("WeChat Pay notification verifier serial is not trusted");
+    if (!platformCertificatePem) {
+      throw new UnknownWeChatPayPlatformCertificateSerialError(
+        input.headers.serial,
+      );
     }
 
     const verified = Rsa.verify(
@@ -443,10 +586,10 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
         input.bodyText,
       ),
       input.headers.signature,
-      verifierPublicKey,
+      platformCertificatePem,
     );
     if (!verified) {
-      throw new Error("WeChat Pay notification signature verification failed");
+      throw new Error("WeChatPay notification signature verification failed");
     }
 
     const body = parseJsonRecord(input.bodyText);
@@ -456,7 +599,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     const associatedData = readOptionalStringField(resource, "associated_data") ?? "";
     const plaintext = Aes.AesGcm.decrypt(
       ciphertext,
-      this.credential.apiV3Key,
+      this.config.apiV3Key,
       nonce,
       associatedData,
     );
@@ -475,7 +618,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
         nonceStr,
         packageValue,
       ),
-      this.credential.merchantPrivateKeyPem,
+      this.config.merchantCertificate.privateKeyPem,
     );
 
     return {
@@ -492,9 +635,8 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
 
 export function createPaymentProviderPort(input: {
   providerInstance: PaymentProviderInstance;
-  credentialSet: PaymentProviderCredentialSet;
 }): PaymentProviderPort {
-  if (isFakeWechatPayConfig(input.providerInstance.config)) {
+  if (isFakeWeChatPayConfig(input.providerInstance.config)) {
     return new FakeWeChatPayProviderAdapter();
   }
 

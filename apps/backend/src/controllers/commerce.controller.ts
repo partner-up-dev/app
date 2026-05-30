@@ -14,7 +14,7 @@ import {
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import {
-  createOrReusePaymentForBillLine,
+  createOrReuseChargeForBillLine,
   getBillDetail,
   getBillDetailByOrderId,
   getPaymentCheckout,
@@ -193,12 +193,12 @@ export const commerceRoute = app
     },
   )
   .post(
-    "/bill-lines/:billLineId/payments",
+    "/bill-lines/:billLineId/charges",
     zValidator("param", billLineIdParamSchema),
     async (c) => {
       const { billLineId } = c.req.valid("param");
       const auth = c.get("auth");
-      const result = await createOrReusePaymentForBillLine({
+      const result = await createOrReuseChargeForBillLine({
         billLineId,
         viewerUserId: auth.userId,
         clientId: readClientId(c.req.header(CLIENT_ID_HEADER)),

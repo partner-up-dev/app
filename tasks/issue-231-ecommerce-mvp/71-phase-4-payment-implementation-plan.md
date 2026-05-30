@@ -4,7 +4,7 @@
 
 Turn the Phase 4 Payment direction into an executable implementation plan.
 
-Phase 4 integrates WeChat Pay APIv3 only, while keeping the Payment domain
+Phase 4 integrates WeChatPay APIv3 only, while keeping the Payment domain
 provider-shaped so another provider can be added later without changing Bill,
 Order, or Fulfillment invariants.
 
@@ -19,7 +19,7 @@ Order, or Fulfillment invariants.
   consequences after payment settlement.
 - Fulfillment must not be modeled as a generic listener on Bill or Payment.
 - Do not add `payment_provider_events` in Phase 4.
-- WeChat Pay is the only real provider in Phase 4.
+- WeChatPay is the only real provider in Phase 4.
 - System tests must use a fake provider adapter, not real WeChat network calls.
 
 ## Target User Topology
@@ -123,7 +123,7 @@ type PaymentProviderInstance = {
 };
 ```
 
-For WeChat Pay, `instance_key` should be unique on `mchid + appid`. This is the
+For WeChatPay, `instance_key` should be unique on `mchid + appid`. This is the
 stable provider-instance identity; certificate serials and keys can rotate
 without changing the instance identity.
 
@@ -132,60 +132,36 @@ Each provider instance belongs to exactly one runtime `client_id`. The current
 WeChat appid/mchid/API mode, register a separate provider instance for that
 client instead of adding a binding table.
 
-`config` should contain non-secret provider metadata only. For WeChat Pay:
+`config` is the Phase 4 source of truth for provider execution material. This
+is a deliberate serverless MVP compromise, not the durable ideal. For
+WeChatPay:
 
 ```ts
 type WeChatPayProviderInstanceConfig = {
-  app_id: string;
-  mch_id: string;
-  charge_mode: "JSAPI" | "H5";
-  notify_base_url: string;
-  payment_notify_path: string;
-  refund_notify_path: string;
+  adapterMode: "WECHAT_PAY_API_V3";
+  appId: string;
+  mchId: string;
+  chargeMode: "JSAPI" | "H5";
+  apiV3Key: string;
+  merchantCertificate: {
+    serialNo: string;
+    privateKeyPem: string;
+    certificatePem?: string | null;
+  };
+  platformCertificates?: Array<{
+    serialNo: string;
+    certificatePem: string;
+    effectiveTime?: string | null;
+    expireTime?: string | null;
+  }> | null;
 };
 ```
 
-Do not store merchant private keys or APIv3 keys in this JSON column.
-
-Add `payment_provider_credential_sets`.
-
-Recommended fields:
-
-```ts
-type PaymentProviderCredentialSet = {
-  id: string;
-  provider_instance_id: string;
-  status: "ACTIVE" | "DISABLED" | "ROTATED_OUT";
-  merchant_serial_no: string;
-  merchant_private_key_pem: string;
-  api_v3_key: string;
-  verifier: unknown;
-  effective_from: string;
-  effective_to?: string | null;
-  created_at: string;
-  updated_at: string;
-};
-```
-
-For WeChat Pay, `verifier` should support either of these shapes:
-
-```ts
-type WeChatPayVerifierConfig =
-  | {
-      mode: "WECHAT_PAY_PUBLIC_KEY";
-      public_key_id: string;
-      public_key_pem: string;
-    }
-  | {
-      mode: "PLATFORM_CERTIFICATE";
-      certificate_serial_no: string;
-      certificate_pem: string;
-    };
-```
-
-The public key / certificate is not a customer secret in the same sense as the
-merchant private key, but it is security-critical verifier material. Store it in
-the same credential-set row so rotation stays explicit.
+When `platformCertificates` is null or empty, runtime code downloads WeChatPay
+platform certificates with the merchant credential, persists the refreshed
+instance config, and then verifies notifications with the persisted certificate
+set. Merchant private keys, APIv3 keys, and platform certificates are never
+returned by normal read APIs.
 
 `client_id` means the runtime client surface, not the end user.
 
@@ -201,8 +177,7 @@ The recommended admin/configuration behavior is a single registration command:
 RegisterPaymentProviderInstance(
   provider_type,
   client_id,
-  instance_config,
-  credential_set
+  instance_config
 )
 ```
 
@@ -220,8 +195,6 @@ Indexes and constraints:
 - index on `provider_instance_id`
 - unique index on `(provider_type, instance_key)` for provider instances
 - unique partial index on active `payment_provider_instances.client_id`
-- index on `payment_provider_credential_sets.provider_instance_id`
-- at most one active credential set per provider instance
 - unique index on `(provider_instance_id, merchant_order_no)` where not null
 - unique index on `(provider_instance_id, merchant_refund_no)` where not null
 - index on `(status, updated_at)` for pending reconciliation
@@ -277,7 +250,7 @@ type PaymentProviderPort = {
   queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus>;
   createRefund(input: CreateRefundInput): Promise<NormalizedRefundStatus>;
   queryRefund(input: QueryRefundInput): Promise<NormalizedRefundStatus>;
-  parsePaymentNotification(input: RawProviderNotification): Promise<NormalizedChargeStatus>;
+  parseChargeNotification(input: RawProviderNotification): Promise<NormalizedChargeStatus>;
   parseRefundNotification(input: RawProviderNotification): Promise<NormalizedRefundStatus>;
 };
 ```
@@ -318,8 +291,8 @@ Example provider-instance registrations:
 
 | client_id | provider_type | instance key | WeChat API |
 | --- | --- | --- | --- |
-| `web` | `WECHAT_PAY` | `mchid:appid(official account)` | provider config `charge_mode=JSAPI` |
-| `mobile_h5_web` | `WECHAT_PAY` | `mchid:appid(web/h5)` | provider config `charge_mode=H5` |
+| `web` | `WECHAT_PAY` | `mchid:appid(official account)` | provider config `chargeMode=JSAPI` |
+| `mobile_h5_web` | `WECHAT_PAY` | `mchid:appid(web/h5)` | provider config `chargeMode=H5` |
 
 This keeps WeChat API mode out of Bill, Order, and PaymentTx. Payment Checkout
 routes by provider instance; JSAPI/H5 are provider-instance execution
@@ -328,33 +301,32 @@ Phase 4 scope.
 
 ## Secret And Credential Configuration Slice
 
-Provider instances are business/runtime configuration. Provider credentials are
-security material. The preferred security posture would be an external secret
-manager or encrypted-at-application-boundary storage, but the Phase 4 MVP makes
-an explicit serverless simplicity tradeoff:
+Provider instances are business/runtime configuration and, for this serverless
+MVP, also carry the WeChatPay execution credential material. The preferred
+security posture would be an external secret manager or
+encrypted-at-application-boundary storage, but Phase 4 makes an explicit
+simplicity tradeoff:
 
-- store WeChat Pay merchant private key PEM and APIv3 key directly in the
-  database credential-set row
+- store WeChatPay merchant private key PEM and APIv3 key directly in
+  `payment_provider_instances.config`
+- store WeChatPay platform certificates in the same config row after explicit
+  registration or runtime certificate refresh
 - do not add a separate SecretResolver in Phase 4
 - rely on DB encryption-at-rest, strict database access control, and application
   redaction discipline
 - treat DB read access as payment-signing authority
-- frontend never receives provider credentials or raw verifier material
+- frontend never receives provider credential material
 - logs must never include credential values
 
 Recommended Phase 4 source of truth:
 
 - use config-driven registration
 - an operator/deploy script reads a typed config file or env-backed config
-- the script idempotently upserts:
-  - `payment_provider_instances`
-  - `payment_provider_credential_sets`
-- the application runtime reads active credential-set rows when calling the
-  provider adapter
-
-This means `PaymentProviderCredentialSet` is persisted from config and contains
-the raw WeChat credential material needed by PaymentTx creation, callback
-verification, query/refund reconciliation, and key rotation.
+- the script idempotently upserts `payment_provider_instances`
+- application runtime reads provider-instance config when calling the provider
+  adapter
+- if `platformCertificates` is absent, runtime downloads WeChatPay platform
+  certificates and persists the refreshed config before verifying callbacks
 
 This is a deliberate MVP compromise, not a durable ideal. The accepted risk is:
 
@@ -368,15 +340,15 @@ Do not mutate DB automatically on every app boot in Phase 4. Prefer an explicit
 registration command such as:
 
 ```text
-pnpm --filter @partner-up-dev/backend payment:register-provider ./secure/payment-provider.wechat.json
+pnpm --filter @partner-up-dev/backend payment:register-provider ./secure/payment-provider.wechat-pay.json
 ```
 
 The command should be idempotent and safe to re-run during deploy.
 
 Credential handling rules:
 
-- never commit real merchant private keys, APIv3 keys, platform certificates, or
-  public-key material into the repository
+- never commit real merchant private keys, APIv3 keys, or platform certificates
+  into the repository
 - never include credential values in application logs, problem details,
   telemetry, PaymentTx snapshots, or provider snapshots
 - registration command output must print only ids/fingerprints, never raw
@@ -399,19 +371,13 @@ Example registration payload:
     "appId": "wx123",
     "mchId": "1900000001",
     "chargeMode": "JSAPI",
-    "notifyBaseUrl": "https://api.partner-up.example",
-    "paymentNotifyPath": "/api/payment-providers/wechat/{providerInstanceId}/notify/payment",
-    "refundNotifyPath": "/api/payment-providers/wechat/{providerInstanceId}/notify/refund"
-  },
-  "credentialSet": {
-    "merchantSerialNo": "7777777777777777777777777777777777777777",
-    "merchantPrivateKeyPem": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----",
     "apiV3Key": "32-byte-api-v3-key",
-    "verifier": {
-      "mode": "WECHAT_PAY_PUBLIC_KEY",
-      "publicKeyId": "PUB_KEY_ID_00000000000000000000000000000000",
-      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\\n...\\n-----END PUBLIC KEY-----"
-    }
+    "merchantCertificate": {
+      "serialNo": "7777777777777777777777777777777777777777",
+      "privateKeyPem": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----",
+      "certificatePem": "-----BEGIN CERTIFICATE-----\\n...\\n-----END CERTIFICATE-----"
+    },
+    "platformCertificates": null
   }
 }
 ```
@@ -419,6 +385,10 @@ Example registration payload:
 Callback URL rule:
 
 - include `providerInstanceId` in the notify URL path as a selector
+- fixed charge callback path is
+  `/api/payment/wechat-pay/:providerInstanceId/notify/charge`
+- fixed refund callback path is
+  `/api/payment/wechat-pay/:providerInstanceId/notify/refund`
 - treat it only as a routing hint, not as trust proof
 - still verify WeChat signature before trusting the body
 - after decrypting/normalizing, resolve PaymentTx by
@@ -427,23 +397,12 @@ Callback URL rule:
 
 Credential rotation rule:
 
-- add a new credential set as `ACTIVE`
-- mark the previous active set `ROTATED_OUT`
-- keep rotated verifier material available while old callbacks may still arrive
-- provider calls load the active credential set for the frozen provider instance
-- existing pending PaymentTx rows should continue using their frozen
-  provider instance and the verifier registry for callback/query convergence
-
-This keeps rotation explicit without changing the stable provider instance
-identity.
-
-Why persist CredentialSet at all:
-
-- PaymentTx needs to freeze which provider instance was used when the provider
-  order was created
-- callbacks may arrive after a new key/certificate is activated
-- refunds and queries must still resolve the right provider configuration
-- operators need to know which credentials are active or rotated out
+- update the provider instance config through the registration command when the
+  merchant credential changes
+- PaymentTx freezes `providerInstanceId`, not a separate credential id
+- pending PaymentTx rows continue to resolve through the same provider instance
+- platform certificate refresh is safe to do at runtime because platform
+  certificates verify WeChatPay callbacks and are not frontend-visible
 
 Risk of persisting raw secrets:
 
@@ -452,11 +411,11 @@ chooses the simpler serverless path and accepts the increased blast radius. The
 implementation must make that risk explicit in comments, migration review, and
 deployment notes.
 
-## WeChat Pay Adapter Slice
+## WeChatPay Adapter Slice
 
 Implement `WeChatPayProviderAdapter`.
 
-The adapter should wrap a mature WeChat Pay APIv3 library where practical. Do
+The adapter should wrap a mature WeChatPay APIv3 library where practical. Do
 not hand-roll request signing, callback signature verification, resource
   decryption, or provider-specific request shapes unless a library gap is proven
 and isolated behind tests.
@@ -515,9 +474,9 @@ Required capabilities:
 Runtime configuration:
 
 - `WECHAT_PAY_ENABLED`
-- provider-instance config stores `app_id`, `mch_id`, and notify URL paths
-- credential set stores merchant serial number plus private key, APIv3 key, and
-  verifier material directly in DB fields
+- `PAYMENT_NOTIFY_BASE_URL`
+- provider-instance config stores `appId`, `mchId`, `chargeMode`, `apiV3Key`,
+  `merchantCertificate`, and optional `platformCertificates`
 
 Payer identity rule:
 
@@ -600,7 +559,7 @@ Local and scenario testing:
 - Apply normalized provider status idempotently.
 - If a CHARGE tx succeeds, call payment-settlement consequence service.
 
-`HandleWeChatPaymentNotificationService`
+`HandleWeChatPayChargeNotificationService`
 
 - Input: raw headers/body from unauthenticated provider callback route.
 - Verify signature and decrypt notification.
@@ -663,7 +622,7 @@ Authenticated user APIs:
   - Bill Detail projection
 - `GET /api/commerce/bill-lines/:billLineId/checkout`
   - Payment Checkout projection
-- `POST /api/commerce/bill-lines/:billLineId/payments`
+- `POST /api/commerce/bill-lines/:billLineId/charges`
   - create or reuse current-user charge PaymentTx using `x-client-id`
 - `GET /api/commerce/payments/:paymentTxId`
   - read PaymentTx projection
@@ -672,8 +631,8 @@ Authenticated user APIs:
 
 Unauthenticated provider callback APIs:
 
-- `POST /api/payment-providers/wechat/:providerInstanceId/notify/payment`
-- `POST /api/payment-providers/wechat/:providerInstanceId/notify/refund`
+- `POST /api/payment/wechat-pay/:providerInstanceId/notify/charge`
+- `POST /api/payment/wechat-pay/:providerInstanceId/notify/refund`
 
 Callback routes must not use user auth middleware. They must verify WeChat
 signature before trusting body contents.
@@ -753,7 +712,7 @@ Required black-box path:
 2. Creator lands on Order Detail and opens Bill Detail.
 3. Bill Detail shows two participant charge BillLines.
 4. Creator can pay only creator's own line.
-5. Creator completes fake WeChat checkout.
+5. Creator completes fake WeChatPay checkout.
 6. Bill Detail still shows Bill not fully paid because another participant line
    is unpaid.
 7. Joiner opens the same PR, follows existing-order target to Order Detail,
@@ -767,7 +726,7 @@ Cancellation/refund scenario:
 1. Create and fully pay Rental order with two participant lines.
 2. Creator requests cancellation.
 3. Cancellation creates refund BillLines with `refundOfBillLineId`.
-4. Refund PaymentTx is created through fake WeChat refund adapter.
+4. Refund PaymentTx is created through fake WeChatPay refund adapter.
 5. Bill Detail shows refund progress and then refunded status.
 
 Backend scenario tests:
@@ -797,9 +756,8 @@ Unit tests:
    summaries.
 3. Add Bill Detail backend projection and frontend page.
 4. Add Payment Checkout backend projection and frontend page.
-5. Add PaymentProviderInstance, credential set,
-   PaymentProviderPort, fake adapter, and WeChat adapter skeleton behind
-   configuration.
+5. Add PaymentProviderInstance, PaymentProviderPort, fake adapter, and WeChat
+   adapter skeleton behind configuration.
 6. Implement WeChat charge prepay for the first enabled client/provider and
    checkout polling/sync.
 7. Implement callback route and idempotent charge convergence.
@@ -817,15 +775,16 @@ Unit tests:
 - Bill Detail exists and is reachable from Order Detail.
 - Payment Checkout exists and is scoped to one BillLine.
 - A participant can pay only their own BillLine.
-- The first enabled WeChat Pay client/provider instance works behind provider
+- The first enabled WeChatPay client/provider instance works behind provider
   port.
 - Provider instance registry can route a client id to a
   WeChat provider instance.
-- Provider credential sets store the WeChat private key, APIv3 key, and verifier
-  material directly in DB fields as a deliberate serverless MVP compromise.
+- Provider instance config stores the WeChatPay private key, APIv3 key, and
+  platform certificates directly in DB as a deliberate serverless MVP
+  compromise.
 - Credential values are redacted from all normal reads, logs, problem details,
   PaymentTx snapshots, and provider snapshots.
-- WeChat Pay SDK dependency is selected through a spike and pinned exactly; if
+- WeChatPay SDK dependency is selected through a spike and pinned exactly; if
   axios is pulled in, known malicious versions are blocked by overrides/CI.
 - Fake provider enables deterministic system scenarios.
 - Payment callback and query paths are both idempotent.
@@ -840,7 +799,7 @@ Unit tests:
 
 Current design satisfies the main Phase 4 requirements:
 
-- WeChat Pay is the only real provider, but provider type and provider instance
+- WeChatPay is the only real provider, but provider type and provider instance
   stay explicit for future providers and future client surfaces.
 - Payment targets BillLine, not Bill or Order.
 - Each participant pays their own line; creator paying for other participants
@@ -853,10 +812,10 @@ Current design satisfies the main Phase 4 requirements:
 - Bill Detail and Payment Checkout are explicit pages instead of hiding
   BillLine-scoped payment inside Order Detail.
 - Provider-event history table is intentionally deferred.
-- Credential storage is simplified for serverless by storing raw WeChat
-  credential material in DB credential-set rows, with explicit redaction and
+- Credential storage is simplified for serverless by storing raw WeChatPay
+  credential material in provider-instance config, with explicit redaction and
   blast-radius guardrails.
-- A mature WeChat Pay SDK should be used behind the adapter; axios is accepted
+- A mature WeChatPay SDK should be used behind the adapter; axios is accepted
   only with exact pinning and supply-chain checks.
 
 Implementation can start with these confirmed decisions:
@@ -867,7 +826,7 @@ Implementation can start with these confirmed decisions:
   current repo already stores official-account `users.openId`.
   `mobile_h5_web` can be configured later as a separate client surface with
   `chargeMode=H5`.
-- WeChat Pay SDK choice is `wechatpay-axios-plugin@0.9.6`.
+- WeChatPay SDK choice is `wechatpay-axios-plugin@0.9.6`.
   It supports in-memory PEM/key material, JSAPI/H5/query/refund API
   surface, signing helpers, and APIv3 AES-GCM decrypt helpers. Because it uses
   axios, backend pins direct `axios@1.16.1`, root `pnpm.overrides` forces the
@@ -895,18 +854,17 @@ Implementation can start with these confirmed decisions:
 
 These are implementation details, not new domain abstractions. Phase 4
 implementation has started with PaymentTx/BillLine checkout, Bill Detail,
-Payment Checkout, fake WeChat scenario adapter, and a WeChat Pay APIv3 adapter
+Payment Checkout, fake WeChatPay scenario adapter, and a WeChatPay APIv3 adapter
 behind `PaymentProviderPort`.
 
 ## Implementation Progress
 
 Implemented on 2026-05-30:
 
-- Added Payment provider instance, credential set, and
-  BillLine-scoped PaymentTx persistence.
+- Added Payment provider instance and BillLine-scoped PaymentTx persistence.
 - Added explicit provider registration script:
   `pnpm --filter @partner-up-dev/backend payment:register-provider <config.json>`.
-- Added `PaymentProviderPort` with fake WeChat and WeChat Pay APIv3 adapters.
+- Added `PaymentProviderPort` with fake WeChatPay and WeChatPay APIv3 adapters.
 - Added charge creation/query, payment notification parsing, refund creation,
   refund query, and refund notification parsing behind the adapter boundary.
 - Added unauthenticated WeChat callback routes for payment and refund
@@ -934,16 +892,20 @@ Implemented on 2026-05-30:
 - Extended the Rental system scenario to cover BillLine-scoped payment,
   partial/full settlement, fulfillment start after all lines are paid, unpaid
   cancellation, and paid cancellation with successful fake refund PaymentTx.
-- Removed WeChat Pay Native from Phase 4, removed PaymentTx channel entirely,
+- Removed WeChatPay Native from Phase 4, removed PaymentTx channel entirely,
   modeled money direction as `PaymentTx.type`, and moved JSAPI/H5 to WeChat
   provider `chargeMode` plus backend-returned client actions.
 - Corrected settlement consequence topology: Bill settlement notifies Order;
   Order/Trade starts Rental Fulfillment.
 - Corrected the final Payment SSoT topology: removed
   `PaymentClientProviderBinding`, moved `clientId` onto
-  `PaymentProviderInstance`, removed `activeCredentialSetId`, removed
+  `PaymentProviderInstance`, removed the old active credential pointer, removed
   PaymentTx `billId` and source-payment links, and made BillLine
   `refundOfBillLineId` the single refund-to-charge-line relation.
+- Corrected WeChatPay credential topology: removed the separate credential
+  table; `PaymentProviderInstance.config` now stores `apiV3Key`,
+  `merchantCertificate`, and optional `platformCertificates`. Runtime code
+  downloads and persists platform certificates when they are absent.
 
 Verification completed on 2026-05-30:
 
@@ -960,7 +922,7 @@ Verification completed on 2026-05-30:
 
 - Payment Admin.
 - Creator pays for all participants.
-- Non-WeChat payment providers.
+- Non-WeChatPay payment providers.
 - Payment provider event history table.
 - Merchant settlement, deposits, and provider payout accounting.
 - Enabling extra client/provider instances beyond the first production client.

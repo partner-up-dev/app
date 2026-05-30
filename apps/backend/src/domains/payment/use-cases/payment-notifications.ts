@@ -1,15 +1,16 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
-  PaymentProviderCredentialSet,
   PaymentProviderInstance,
   PaymentProviderInstanceId,
   PaymentTx,
 } from "../../../entities/payment";
-import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import {
   createPaymentProviderPort,
+  ensureWeChatPayPlatformCertificates,
+  refreshWeChatPayPlatformCertificates,
+  UnknownWeChatPayPlatformCertificateSerialError,
 } from "../services";
 import type {
   NormalizedChargeStatus,
@@ -20,7 +21,6 @@ import type {
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 const providerRepo = new PaymentProviderInstanceRepository();
-const credentialRepo = new PaymentProviderCredentialSetRepository();
 const paymentTxRepo = new PaymentTxRepository();
 
 export type WeChatNotificationHeadersInput = {
@@ -47,7 +47,7 @@ const normalizeNotificationInput = (input: {
   if (!timestamp || !nonce || !signature || !serial) {
     return throwHttpProblem({
       status: 400,
-      detail: "Missing WeChat Pay notification signature headers",
+      detail: "Missing WeChatPay notification signature headers",
     });
   }
 
@@ -62,12 +62,9 @@ const normalizeNotificationInput = (input: {
   };
 };
 
-async function loadProviderAndCredentials(
+async function loadProviderInstance(
   providerInstanceId: string,
-): Promise<{
-  providerInstance: PaymentProviderInstance;
-  credentialSets: PaymentProviderCredentialSet[];
-}> {
+): Promise<PaymentProviderInstance> {
   const providerInstance = await providerRepo.findById(
     providerInstanceId as PaymentProviderInstanceId,
   );
@@ -78,67 +75,44 @@ async function loadProviderAndCredentials(
     });
   }
 
-  const credentialSets =
-    await credentialRepo.listVerifierUsableByProviderInstanceId(
-      providerInstance.id,
-    );
-  if (credentialSets.length === 0) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Payment provider credential set is missing",
-    });
-  }
-
-  return {
-    providerInstance,
-    credentialSets,
-  };
+  return ensureWeChatPayPlatformCertificates(providerInstance);
 }
 
-async function parseWithAvailableCredentials<T>(input: {
+async function parseWithProviderInstance<T>(input: {
   providerInstance: PaymentProviderInstance;
-  credentialSets: PaymentProviderCredentialSet[];
   notification: RawProviderNotification;
-  parse: (
-    credentialSet: PaymentProviderCredentialSet,
-  ) => Promise<T>;
+  parse: (providerInstance: PaymentProviderInstance) => Promise<T>;
 }): Promise<T> {
-  let lastError: unknown = null;
-  for (const credentialSet of input.credentialSets) {
-    try {
-      return await input.parse(credentialSet);
-    } catch (error) {
-      lastError = error;
+  try {
+    return await input.parse(input.providerInstance);
+  } catch (error) {
+    if (!(error instanceof UnknownWeChatPayPlatformCertificateSerialError)) {
+      throw error;
     }
   }
 
-  if (lastError instanceof Error) {
-    throw lastError;
-  }
-  throw new Error("Failed to parse payment provider notification");
+  const refreshedProviderInstance =
+    await refreshWeChatPayPlatformCertificates(input.providerInstance);
+  return input.parse(refreshedProviderInstance);
 }
 
-export async function handleWeChatPaymentNotification(input: {
+export async function handleWeChatPayChargeNotification(input: {
   providerInstanceId: string;
   headers: WeChatNotificationHeadersInput;
   bodyText: string;
 }): Promise<{ code: "SUCCESS"; message: string }> {
   const notification = normalizeNotificationInput(input);
-  const { providerInstance, credentialSets } = await loadProviderAndCredentials(
-    input.providerInstanceId,
-  );
+  const providerInstance = await loadProviderInstance(input.providerInstanceId);
 
-  const parsed = await parseWithAvailableCredentials<
+  const parsed = await parseWithProviderInstance<
     NormalizedChargeStatus & { merchantOrderNo: string }
   >({
     providerInstance,
-    credentialSets,
     notification,
-    parse: async (credentialSet) =>
+    parse: async (currentProviderInstance) =>
       createPaymentProviderPort({
-        providerInstance,
-        credentialSet,
-      }).parsePaymentNotification(notification),
+        providerInstance: currentProviderInstance,
+      }).parseChargeNotification(notification),
   });
 
   const tx = await paymentTxRepo.findByProviderMerchantOrder({
@@ -148,7 +122,7 @@ export async function handleWeChatPaymentNotification(input: {
   if (!tx || tx.type !== "CHARGE") {
     return throwHttpProblem({
       status: 404,
-      detail: "PaymentTx not found for WeChat payment notification",
+      detail: "PaymentTx not found for WeChatPay charge notification",
     });
   }
 
@@ -176,26 +150,22 @@ export async function handleWeChatPaymentNotification(input: {
   };
 }
 
-export async function handleWeChatRefundNotification(input: {
+export async function handleWeChatPayRefundNotification(input: {
   providerInstanceId: string;
   headers: WeChatNotificationHeadersInput;
   bodyText: string;
 }): Promise<{ code: "SUCCESS"; message: string }> {
   const notification = normalizeNotificationInput(input);
-  const { providerInstance, credentialSets } = await loadProviderAndCredentials(
-    input.providerInstanceId,
-  );
+  const providerInstance = await loadProviderInstance(input.providerInstanceId);
 
-  const parsed = await parseWithAvailableCredentials<
+  const parsed = await parseWithProviderInstance<
     NormalizedRefundStatus & { merchantRefundNo: string }
   >({
     providerInstance,
-    credentialSets,
     notification,
-    parse: async (credentialSet) =>
+    parse: async (currentProviderInstance) =>
       createPaymentProviderPort({
-        providerInstance,
-        credentialSet,
+        providerInstance: currentProviderInstance,
       }).parseRefundNotification(notification),
   });
 
@@ -206,7 +176,7 @@ export async function handleWeChatRefundNotification(input: {
   if (!tx || tx.type !== "REFUND") {
     return throwHttpProblem({
       status: 404,
-      detail: "PaymentTx not found for WeChat refund notification",
+      detail: "PaymentTx not found for WeChatPay refund notification",
     });
   }
 

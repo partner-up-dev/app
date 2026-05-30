@@ -31,7 +31,7 @@ flowchart LR
   end
 
   Bill["Bill\nBill and BillLine"]
-  Payment["Payment\nWeChat Pay APIv3 / PaymentTx"]
+  Payment["Payment\nWeChatPay APIv3 / PaymentTx"]
 
   subgraph Fulfillment["Fulfillment"]
     RentalFulfillment["Rental Fulfillment\nmanual 6C booking/result"]
@@ -166,7 +166,7 @@ Does not own:
 Owns:
 
 - PaymentTx
-- WeChat Pay APIv3 gateway port/adapter
+- WeChatPay APIv3 gateway port/adapter
 - payment callback signature verification and idempotency
 - gateway order query for payment status
 - state transitions from either callback or query result

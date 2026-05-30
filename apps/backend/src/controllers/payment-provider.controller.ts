@@ -3,8 +3,8 @@ import type { Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
-  handleWeChatPaymentNotification,
-  handleWeChatRefundNotification,
+  handleWeChatPayChargeNotification,
+  handleWeChatPayRefundNotification,
 } from "../domains/payment";
 
 const app = new Hono();
@@ -13,7 +13,7 @@ const providerInstanceParamSchema = z.object({
   providerInstanceId: z.string().uuid(),
 });
 
-const readWechatHeaders = (c: Context) => ({
+const readWeChatPayHeaders = (c: Context) => ({
   timestamp: c.req.header("Wechatpay-Timestamp") ?? null,
   nonce: c.req.header("Wechatpay-Nonce") ?? null,
   signature: c.req.header("Wechatpay-Signature") ?? null,
@@ -22,26 +22,26 @@ const readWechatHeaders = (c: Context) => ({
 
 export const paymentProviderRoute = app
   .post(
-    "/wechat/:providerInstanceId/notify/payment",
+    "/wechat-pay/:providerInstanceId/notify/charge",
     zValidator("param", providerInstanceParamSchema),
     async (c) => {
       const { providerInstanceId } = c.req.valid("param");
-      const result = await handleWeChatPaymentNotification({
+      const result = await handleWeChatPayChargeNotification({
         providerInstanceId,
-        headers: readWechatHeaders(c),
+        headers: readWeChatPayHeaders(c),
         bodyText: await c.req.text(),
       });
       return c.json(result);
     },
   )
   .post(
-    "/wechat/:providerInstanceId/notify/refund",
+    "/wechat-pay/:providerInstanceId/notify/refund",
     zValidator("param", providerInstanceParamSchema),
     async (c) => {
       const { providerInstanceId } = c.req.valid("param");
-      const result = await handleWeChatRefundNotification({
+      const result = await handleWeChatPayRefundNotification({
         providerInstanceId,
-        headers: readWechatHeaders(c),
+        headers: readWeChatPayHeaders(c),
         bodyText: await c.req.text(),
       });
       return c.json(result);

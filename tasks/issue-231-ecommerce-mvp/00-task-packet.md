@@ -145,25 +145,27 @@ independent even when implementation ownership is grouped.
 - Fulfillment exists only to own service-execution truth that cannot be reduced
   to Order, Bill, or Payment. Manual operator work alone does not justify a
   separate domain.
-- User payment integration target is WeChat Pay APIv3. Frontend polling and
+- User payment integration target is WeChatPay APIv3. Frontend polling and
   backend gateway callbacks jointly drive the payment state machine. Callback
   transitions have first-class authority equal to status query transitions, and
   both paths must be idempotent.
 - Payment provider extensibility is modeled as provider type plus provider
-  instance. For WeChat Pay, an instance is uniquely identified by `mch_id +
+  instance. For WeChatPay, an instance is uniquely identified by `mch_id +
   app_id`. A server-owned `client_id -> provider_instance` binding chooses the
   provider instance. WeChat API execution mode such as JSAPI or H5 is
   provider-instance configuration, not PaymentTx channel. Native QR is out of
   Phase 4 scope.
-- Payment provider credentials are modeled as credential sets. For the Phase 4
-  serverless MVP, WeChat Pay merchant private key PEM, APIv3 key, and verifier
-  material are stored directly in DB fields as a deliberate simplicity
-  compromise. This increases DB blast radius and must be bounded by strict
-  access control, redaction, and rotation discipline.
+- Payment provider credentials are stored directly inside the
+  `PaymentProviderInstance.config` row for the Phase 4 serverless MVP. A
+  WeChatPay provider instance config contains `apiV3Key`,
+  `merchantCertificate`, and optional `platformCertificates`; when platform
+  certificates are absent, the runtime downloads them from WeChatPay and
+  persists the refreshed config. This increases DB blast radius and must be
+  bounded by strict access control, redaction, and rotation discipline.
 - Phase 4 provider configuration should use config-driven registration: an
-  explicit backend command reads typed config and idempotently upserts provider
-  instance, credential set, and client bindings.
-- WeChat Pay integration should use a mature SDK behind
+  explicit backend command reads typed config and idempotently upserts a
+  provider instance with its owning `clientId`.
+- WeChatPay integration should use a mature SDK behind
   `WeChatPayProviderAdapter` rather than hand-writing the full signing,
   verification, and decryption path. If the chosen SDK depends on axios, axios
   must be pinned/overridden to a reviewed clean version and CI must reject known
@@ -599,26 +601,25 @@ the baseline for downstream Order / Bill / Fulfillment design.
   idempotency, explicit Trade settlement consequences, refund PaymentTx flow,
   and multi-participant BillLine payment system scenarios.
 - 2026-05-29: Added provider-instance/client routing to the Phase 4 plan:
-  provider type is separate from provider instance, WeChat Pay instances are
+  provider type is separate from provider instance, WeChatPay instances are
   keyed by `mch_id + app_id`, and `client_id` maps to provider instance so the
-  `web` client can route to WeChat Pay without changing Bill or Order. WeChat
+  `web` client can route to WeChatPay without changing Bill or Order. WeChat
   API execution mode stays inside provider configuration.
 - 2026-05-29: Added provider credential configuration to the Phase 4 plan:
-  provider instances hold non-secret metadata, callback URLs include
-  `providerInstanceId` only as a routing hint, and key/certificate rotation
-  happens by activating a new credential set.
-- 2026-05-30: Clarified secret storage and config persistence: Phase 4 should
-  persist `PaymentProviderCredentialSet` from explicit registration config.
-- 2026-05-30: Adjusted credential storage for serverless deployment again:
-  Phase 4 accepts directly storing WeChat Pay private key PEM, APIv3 key, and
-  verifier material in DB credential-set fields as an MVP compromise. This
-  replaces the previous secret-ref/encrypted-DB plan and requires redaction,
-  restricted DB access, and rotation discipline. Also added a WeChat Pay SDK
+  provider instances carry `clientId` and callback routes include
+  `providerInstanceId` only as a routing hint.
+- 2026-05-30: Clarified secret storage and config persistence: Phase 4 stores
+  WeChatPay `apiV3Key`, merchant certificate material, and platform
+  certificates directly in `PaymentProviderInstance.config` as a serverless MVP
+  compromise. If platform certificates are absent, runtime WeChatPay adapter
+  code downloads and persists them. This replaces the previous
+  secret-ref/encrypted-DB and separate credential-row plans and requires redaction,
+  restricted DB access, and rotation discipline. Also added a WeChatPay SDK
   spike: prefer a mature SDK behind the provider adapter, and if it brings
   axios, pin/override axios to a reviewed clean version and block known
   compromised versions in CI.
 - 2026-05-30: Added Phase 4 global review. The current plan is sufficient for
-  implementation after confirming first production `client_id`, WeChat Pay SDK
+  implementation after confirming first production `client_id`, WeChatPay SDK
   choice, merchant order/refund number format, payment expiration behavior,
   callback failure handling, refund trigger timing, and credential readback
   redaction.
@@ -627,16 +628,16 @@ the baseline for downstream Order / Bill / Fulfillment design.
   through the server-owned provider-instance/client-binding table.
 - 2026-05-30: Started Phase 4 implementation: added Payment provider
   instance/credential/client-binding/PaymentTx persistence, BillLine-scoped
-  Payment Checkout, Bill Detail, fake WeChat Pay scenario adapter, WeChat Pay
+  Payment Checkout, Bill Detail, fake WeChatPay scenario adapter, WeChatPay
   APIv3 adapter boundary using `wechatpay-axios-plugin@0.9.6`, axios
   `1.16.1` pin/override, and a payment supply-chain lint.
-- 2026-05-30: Completed the Phase 4 implementation slice: added WeChat payment
+- 2026-05-30: Completed the Phase 4 implementation slice: added WeChatPay charge
   and refund callback routes, config-driven provider registration, PaymentTx
   charge/refund convergence, BillLine-scoped Checkout client actions, direct
   refund PaymentTx creation after Rental cancellation refund lines, and paid
   cancellation browser coverage. Verification scope is recorded in the Phase 4
   implementation plan.
-- 2026-05-30: Tightened Phase 4 after review: removed WeChat Pay Native support,
+- 2026-05-30: Tightened Phase 4 after review: removed WeChatPay Native support,
   removed PaymentTx channel, modeled charge/refund through `PaymentTx.type`,
   moved JSAPI/H5 into WeChat provider `chargeMode`, and corrected the
   settlement topology so Payment convergence asks Bill to derive settlement,

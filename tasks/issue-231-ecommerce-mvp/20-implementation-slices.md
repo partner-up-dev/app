@@ -98,8 +98,8 @@ Supporting tests:
 - 6C zone line-item pricing, advance-booking, and resolved SKU + Offer
   cancellation policy tests
 - Trade rental order real-name/contact required-attribute tests
-- WeChat Pay APIv3 payment query tests
-- WeChat Pay APIv3 callback transition tests
+- WeChatPay APIv3 payment query tests
+- WeChatPay APIv3 callback transition tests
 - Rental Fulfillment manual booking and cancellation-buffer tests
 - Rental Fulfillment success/failure tests
 - frontend rental order form and result-route tests
@@ -107,7 +107,7 @@ Supporting tests:
 Exit condition:
 
 - A 6C Button Placement can lead to Offer Detail, Rental Ordering, RentalOrder,
-  Bill, WeChat payment, Rental Fulfillment manual booking/result, and
+  Bill, WeChatPay charge, Rental Fulfillment manual booking/result, and
   reservation result. Merchant deposit, supplier pricing, and
   inventory/capacity management are out of scope.
 
@@ -147,7 +147,7 @@ Exit condition:
 
 ## Slice 5: Payment Adapter Boundary
 
-Goal: integrate WeChat Pay APIv3 without changing Bill/Order/Fulfillment
+Goal: integrate WeChatPay APIv3 without changing Bill/Order/Fulfillment
 invariants.
 
 Detailed implementation plan:
@@ -156,9 +156,9 @@ Detailed implementation plan:
 
 Primary tests:
 
-- WeChat Pay APIv3 adapter contract tests with fake WeChat gateway
+- WeChatPay APIv3 adapter contract tests with fake WeChatPay gateway
 - provider-instance and client-binding routing tests
-- credential set persistence and redaction tests
+- provider-instance credential config persistence and redaction tests
 - config-driven provider registration idempotency tests
 - SDK dependency audit tests, including axios override / malicious-version
   rejection if axios enters the tree

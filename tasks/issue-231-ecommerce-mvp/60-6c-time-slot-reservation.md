@@ -96,7 +96,7 @@ stateDiagram-v2
   [*] --> OfferViewed
   OfferViewed --> OrderDrafted: user selects zone(s)/time/participants
   OrderDrafted --> AwaitingPayment: order submitted
-  AwaitingPayment --> PaymentPending: WeChat Pay prepay created
+  AwaitingPayment --> PaymentPending: WeChatPay prepay created
   PaymentPending --> Paid: verified callback or query sees success
   PaymentPending --> PaymentFailed: callback or query sees failure/closed/timeout
   Paid --> AwaitingRentalFulfillmentBooking: Bill notifies RentalOrder; RentalOrder starts Rental Fulfillment
@@ -129,7 +129,7 @@ sequenceDiagram
   participant RO as RentalOrder
   participant BI as Bill
   participant PY as Payment
-  participant WX as WeChat Pay APIv3
+  participant WX as WeChatPay APIv3
   participant OP as Platform Operator
   participant S6 as 6C Supplier
   participant RF as Rental Fulfillment
@@ -149,7 +149,7 @@ sequenceDiagram
   BD-->>U: Show participant BillLines and current user's payable line
   U->>PC: Checkout current user's BillLine
   PC->>PY: Create or reuse PaymentTx for BillLine
-  PY->>WX: Create WeChat Pay APIv3 JSAPI prepay
+  PY->>WX: Create WeChatPay APIv3 JSAPI prepay
   WX-->>PC: Payment invocation payload
   U->>WX: Pay in WeChat
   par WeChat callback path
@@ -191,9 +191,9 @@ Browser-only assertions:
   the order creation transaction.
 - Bill Detail shows participant BillLines and the current user's own payable
   line.
-- Payment Checkout enters WeChat Pay pending state for exactly one BillLine.
+- Payment Checkout enters WeChatPay pending state for exactly one BillLine.
 - Browser-visible payment state eventually reaches paid through either
-  frontend polling or backend callback from a fake WeChat Pay adapter.
+  frontend polling or backend callback from a fake WeChatPay adapter.
 - Operator-facing browser route can record 6C confirmation or rejection.
 - User-facing order route shows confirmed reservation and entry guidance.
 

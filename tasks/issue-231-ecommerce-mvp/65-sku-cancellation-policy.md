@@ -27,7 +27,7 @@ for this issue, including Voucher Entitlement, redemption, and GoodsOrder.
 - Trade snapshots the SKU cancellation policy onto the order at order
   creation/freeze time.
 - Bill computes customer refund obligations from the order's policy snapshot.
-- Payment records refund money movement through WeChat Pay APIv3 when a refund
+- Payment records refund money movement through WeChatPay APIv3 when a refund
   is executed.
 - Rental Fulfillment records cancellation handling where manual supplier
   contact is required.

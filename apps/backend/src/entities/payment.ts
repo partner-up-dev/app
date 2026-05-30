@@ -12,21 +12,16 @@ import { sql } from "drizzle-orm";
 import type { BillLineId } from "./bill";
 import { billLines } from "./bill";
 import type {
-  PaymentProviderCredentialSetStatus,
   PaymentProviderInstanceConfig,
   PaymentProviderInstanceStatus,
   PaymentProviderType,
   PaymentTxType,
   PaymentTxStatus,
-  WeChatPayVerifierConfig,
 } from "../domains/payment";
 import { users, type UserId } from "./user";
 
 export type PaymentProviderInstanceId = string & {
   readonly __brand: "PaymentProviderInstanceId";
-};
-export type PaymentProviderCredentialSetId = string & {
-  readonly __brand: "PaymentProviderCredentialSetId";
 };
 export type PaymentTxId = string & { readonly __brand: "PaymentTxId" };
 
@@ -61,44 +56,6 @@ export const paymentProviderInstances = pgTable(
       "payment_provider_instances_active_client_unique",
     )
       .on(table.clientId)
-      .where(sql`${table.status} = 'ACTIVE'`),
-  }),
-);
-
-export const paymentProviderCredentialSets = pgTable(
-  "payment_provider_credential_sets",
-  {
-    id: uuid("id")
-      .$type<PaymentProviderCredentialSetId>()
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    providerInstanceId: uuid("provider_instance_id")
-      .$type<PaymentProviderInstanceId>()
-      .notNull()
-      .references(() => paymentProviderInstances.id, { onDelete: "cascade" }),
-    status: text("status")
-      .$type<PaymentProviderCredentialSetStatus>()
-      .notNull()
-      .default("ACTIVE"),
-    merchantSerialNo: text("merchant_serial_no").notNull(),
-    merchantPrivateKeyPem: text("merchant_private_key_pem").notNull(),
-    apiV3Key: text("api_v3_key").notNull(),
-    verifier: jsonb("verifier").$type<WeChatPayVerifierConfig>().notNull(),
-    effectiveFrom: timestamp("effective_from", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    effectiveTo: timestamp("effective_to", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => ({
-    providerInstanceIdx: index(
-      "payment_provider_credential_sets_instance_idx",
-    ).on(table.providerInstanceId),
-    activeCredentialSetUnique: uniqueIndex(
-      "payment_provider_credential_sets_active_unique",
-    )
-      .on(table.providerInstanceId)
       .where(sql`${table.status} = 'ACTIVE'`),
   }),
 );
@@ -165,9 +122,5 @@ export type PaymentProviderInstance =
   typeof paymentProviderInstances.$inferSelect;
 export type NewPaymentProviderInstance =
   typeof paymentProviderInstances.$inferInsert;
-export type PaymentProviderCredentialSet =
-  typeof paymentProviderCredentialSets.$inferSelect;
-export type NewPaymentProviderCredentialSet =
-  typeof paymentProviderCredentialSets.$inferInsert;
 export type PaymentTx = typeof paymentTxs.$inferSelect;
 export type NewPaymentTx = typeof paymentTxs.$inferInsert;

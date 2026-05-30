@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
 import type {
-  PaymentProviderCredentialSet,
   PaymentProviderInstance,
   PaymentTx,
   PaymentTxId,
@@ -11,7 +10,6 @@ import type { TradeOrder } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
@@ -19,8 +17,9 @@ import { UserRepository } from "../../../repositories/UserRepository";
 import {
   createPaymentProviderPort,
   deriveBillPaymentState,
-  isFakeWechatPayConfig,
-  resolvePaymentNotifyUrl,
+  ensureWeChatPayPlatformCertificates,
+  isFakeWeChatPayConfig,
+  resolveWeChatPayChargeNotifyUrl,
 } from "../services";
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
@@ -28,7 +27,6 @@ const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const paymentTxRepo = new PaymentTxRepository();
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
-const credentialSetRepo = new PaymentProviderCredentialSetRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const userRepo = new UserRepository();
 
@@ -205,7 +203,6 @@ async function resolveProviderForClient(input: {
   clientId: string;
 }): Promise<{
   providerInstance: PaymentProviderInstance;
-  credentialSet: PaymentProviderCredentialSet;
 }> {
   const providerInstance = await providerInstanceRepo.findActiveByClientId(
     input.clientId,
@@ -216,19 +213,9 @@ async function resolveProviderForClient(input: {
       detail: `No active payment provider instance for client ${input.clientId}`,
     });
   }
-  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
-    providerInstance.id,
-  );
-  if (!credentialSet || credentialSet.status !== "ACTIVE") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Payment provider credential set is not active",
-    });
-  }
 
   return {
-    providerInstance,
-    credentialSet,
+    providerInstance: await ensureWeChatPayPlatformCertificates(providerInstance),
   };
 }
 
@@ -254,7 +241,7 @@ export async function getPaymentCheckout(input: {
   });
 }
 
-export async function createOrReusePaymentForBillLine(input: {
+export async function createOrReuseChargeForBillLine(input: {
   billLineId: string;
   viewerUserId: string | null;
   clientId: string;
@@ -283,14 +270,13 @@ export async function createOrReusePaymentForBillLine(input: {
   const provider = await resolveProviderForClient({ clientId: input.clientId });
   const port = createPaymentProviderPort({
     providerInstance: provider.providerInstance,
-    credentialSet: provider.credentialSet,
   });
   const user = await userRepo.findById(input.viewerUserId as UserId);
-  const requiresOpenId = !isFakeWechatPayConfig(provider.providerInstance.config);
+  const requiresOpenId = !isFakeWeChatPayConfig(provider.providerInstance.config);
   if (requiresOpenId && !user?.openId) {
     return throwHttpProblem({
       status: 409,
-      detail: "WeChat payment requires a bound WeChat openid",
+      detail: "WeChatPay charge requires a bound WeChat openid",
     });
   }
 
@@ -325,7 +311,7 @@ export async function createOrReusePaymentForBillLine(input: {
     currency: basis.line.currency,
     description: basis.line.label,
     payerOpenId: user?.openId ?? null,
-    notifyUrl: resolvePaymentNotifyUrl(provider.providerInstance),
+    notifyUrl: resolveWeChatPayChargeNotifyUrl(provider.providerInstance),
     expiresAt,
   });
 
@@ -400,19 +386,11 @@ export async function syncPaymentTx(input: {
   if (!providerInstance) {
     return throwHttpProblem({ status: 404, detail: "Payment provider not found" });
   }
-  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
-    providerInstance.id,
-  );
-  if (!credentialSet) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Payment provider credential set is missing",
-    });
-  }
 
+  const ensuredProviderInstance =
+    await ensureWeChatPayPlatformCertificates(providerInstance);
   const port = createPaymentProviderPort({
-    providerInstance,
-    credentialSet,
+    providerInstance: ensuredProviderInstance,
   });
   const normalized = await port.queryCharge({
     providerInstanceId: providerInstance.id,

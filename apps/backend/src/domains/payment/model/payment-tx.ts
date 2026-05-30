@@ -12,33 +12,27 @@ export type PaymentTxStatus =
 
 export type PaymentProviderInstanceStatus = "ACTIVE" | "DISABLED";
 
-export type PaymentProviderCredentialSetStatus =
-  | "ACTIVE"
-  | "DISABLED"
-  | "ROTATED_OUT";
-
-export type WeChatPayVerifierConfig =
-  | {
-      mode: "WECHAT_PAY_PUBLIC_KEY";
-      publicKeyId: string;
-      publicKeyPem: string;
-    }
-  | {
-      mode: "PLATFORM_CERTIFICATE";
-      certificateSerialNo: string;
-      certificatePem: string;
-    };
-
 export type WeChatPayChargeMode = "JSAPI" | "H5";
+
+export type WeChatPayPlatformCertificate = {
+  serialNo: string;
+  certificatePem: string;
+  effectiveTime?: string | null;
+  expireTime?: string | null;
+};
 
 export type WeChatPayProviderInstanceConfig = {
   adapterMode: "WECHAT_PAY_API_V3";
   appId: string;
   mchId: string;
   chargeMode: WeChatPayChargeMode;
-  notifyBaseUrl: string;
-  paymentNotifyPath: string;
-  refundNotifyPath: string;
+  apiV3Key: string;
+  merchantCertificate: {
+    serialNo: string;
+    privateKeyPem: string;
+    certificatePem?: string | null;
+  };
+  platformCertificates?: WeChatPayPlatformCertificate[] | null;
 };
 
 export type FakeWeChatPayProviderInstanceConfig = {
@@ -152,7 +146,7 @@ export type PaymentProviderPort = {
   queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus>;
   createRefund(input: CreateRefundInput): Promise<CreateRefundResult>;
   queryRefund(input: QueryRefundInput): Promise<NormalizedRefundStatus>;
-  parsePaymentNotification(
+  parseChargeNotification(
     input: RawProviderNotification,
   ): Promise<NormalizedChargeStatus & { merchantOrderNo: string }>;
   parseRefundNotification(

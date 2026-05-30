@@ -3,9 +3,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
   PaymentProviderInstanceConfig,
   PaymentProviderType,
-  WeChatPayVerifierConfig,
 } from "../model";
-import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 
 export type RegisterPaymentProviderInstanceInput = {
@@ -14,23 +12,41 @@ export type RegisterPaymentProviderInstanceInput = {
   displayName: string;
   clientId: string;
   config: PaymentProviderInstanceConfig;
-  credentialSet: {
-    merchantSerialNo: string;
-    merchantPrivateKeyPem: string;
-    apiV3Key: string;
-    verifier: WeChatPayVerifierConfig;
-  };
+};
+
+const isWeChatPayApiV3Config = (
+  config: PaymentProviderInstanceConfig,
+): config is Extract<
+  PaymentProviderInstanceConfig,
+  { adapterMode: "WECHAT_PAY_API_V3" }
+> => config.adapterMode === "WECHAT_PAY_API_V3";
+
+const mergeRegistrationConfig = (input: {
+  next: PaymentProviderInstanceConfig;
+  existing: PaymentProviderInstanceConfig | null;
+}): PaymentProviderInstanceConfig => {
+  if (
+    input.existing &&
+    isWeChatPayApiV3Config(input.existing) &&
+    isWeChatPayApiV3Config(input.next) &&
+    !Object.prototype.hasOwnProperty.call(input.next, "platformCertificates")
+  ) {
+    return {
+      ...input.next,
+      platformCertificates: input.existing.platformCertificates ?? null,
+    };
+  }
+
+  return input.next;
 };
 
 export async function registerPaymentProviderInstance(
   input: RegisterPaymentProviderInstanceInput,
 ): Promise<{
   providerInstanceId: string;
-  credentialSetId: string;
 }> {
   return db.transaction(async (tx) => {
     const providerRepo = new PaymentProviderInstanceRepository(tx);
-    const credentialRepo = new PaymentProviderCredentialSetRepository(tx);
 
     const existingProvider = await providerRepo.findByProviderTypeAndInstanceKey({
       providerType: input.providerType,
@@ -43,33 +59,35 @@ export async function registerPaymentProviderInstance(
       });
     }
 
-    const provider =
-      existingProvider ??
-      (await providerRepo.create({
-        providerType: input.providerType,
-        instanceKey: input.instanceKey,
-        status: "ACTIVE",
-        displayName: input.displayName,
-        clientId: input.clientId,
-        config: input.config,
-      }));
+    const config = mergeRegistrationConfig({
+      next: input.config,
+      existing: existingProvider?.config ?? null,
+    });
 
-    const activeCredential =
-      await credentialRepo.findActiveByProviderInstanceId(provider.id);
-    const credential =
-      activeCredential ??
-      (await credentialRepo.create({
-        providerInstanceId: provider.id,
-        status: "ACTIVE",
-        merchantSerialNo: input.credentialSet.merchantSerialNo,
-        merchantPrivateKeyPem: input.credentialSet.merchantPrivateKeyPem,
-        apiV3Key: input.credentialSet.apiV3Key,
-        verifier: input.credentialSet.verifier,
-      }));
+    const providerResult =
+      (existingProvider
+        ? await providerRepo.updateRegistration({
+            id: existingProvider.id,
+            displayName: input.displayName,
+            config,
+          })
+        : await providerRepo.create({
+            providerType: input.providerType,
+            instanceKey: input.instanceKey,
+            status: "ACTIVE",
+            displayName: input.displayName,
+            clientId: input.clientId,
+            config,
+          }));
+    if (!providerResult) {
+      return throwHttpProblem({
+        status: 404,
+        detail: "Payment provider instance was not found during registration",
+      });
+    }
 
     return {
-      providerInstanceId: provider.id,
-      credentialSetId: credential.id,
+      providerInstanceId: providerResult.id,
     };
   });
 }

@@ -68,7 +68,7 @@ User-visible flow:
    fields.
 8. User opens Bill Detail and sees participant BillLines.
 9. User opens Payment Checkout for their own payable BillLine.
-10. User invokes WeChat Pay APIv3 payment.
+10. User invokes WeChatPay APIv3 charge.
 11. Frontend polling and backend callback jointly drive PaymentTx state until paid
     or terminal failure.
 12. Bill settlement notifies the source Rental Order; Rental Order then starts
@@ -88,7 +88,7 @@ sequenceDiagram
   participant BD as Bill Detail
   participant PC as Payment Checkout
   participant PY as Payment
-  participant PA as WeChat Pay APIv3
+  participant PA as WeChatPay APIv3
   participant RF as RentalFulfillment
 
   U->>PR: Open matching cooking PR
@@ -112,7 +112,7 @@ sequenceDiagram
     PA-->>PY: Verified payment callback can mark PaymentTx paid
   and Browser polling path
     PC->>PY: Browser polls PaymentTx / syncs provider state
-    PY->>PA: Query WeChat Pay order if still pending
+    PY->>PA: Query WeChatPay order if still pending
   end
   PY-->>BI: PaymentTx settled one BillLine
   BI->>RO: Notify prepaid Bill fully settled
@@ -223,7 +223,7 @@ sequenceDiagram
   - disabled create-order states for non-READY PR and non-creator viewer
   - rental cancellation result projection
   - rental/ride-hailing order result root
-- System scenarios may use fake WeChat Pay and Rental Fulfillment
+- System scenarios may use fake WeChatPay and Rental Fulfillment
   manual-operation test doubles, but the user path must still interact through
   browser-visible surfaces.
   Full ride-hailing provider dispatch/monitoring UX is not part of this task

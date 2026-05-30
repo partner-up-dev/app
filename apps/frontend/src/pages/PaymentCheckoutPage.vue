@@ -63,11 +63,11 @@
           />
 
           <Button
-            v-if="canCreatePayment"
+            v-if="canCreateCharge"
             size="lg"
-            :loading="createPaymentMutation.isPending.value"
-            data-testid="payment-checkout.create-payment"
-            @click="createPayment"
+            :loading="createChargeMutation.isPending.value"
+            data-testid="payment-checkout.create-charge"
+            @click="createCharge"
           >
             发起微信支付
           </Button>
@@ -77,7 +77,7 @@
               v-if="activePaymentClientActionType === 'FAKE_PROVIDER_ACTION'"
               tone="info"
               title="测试支付"
-              message="当前 provider 是场景测试用 Fake WeChat Pay。"
+              message="当前 provider 是场景测试用 Fake WeChatPay。"
             />
             <Button
               v-if="activePaymentClientActionType === 'PAYMENT_REDIRECT' && redirectUrl"
@@ -124,7 +124,7 @@
           />
 
           <InlineNotice
-            v-if="createPaymentMutation.isError.value || syncMutation.isError.value"
+            v-if="createChargeMutation.isError.value || syncMutation.isError.value"
             tone="error"
             title="支付处理失败"
             :message="mutationErrorMessage"
@@ -163,7 +163,7 @@ import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {
-  useCreatePaymentForBillLine,
+  useCreateChargeForBillLine,
   usePaymentCheckout,
   useSyncPaymentTx,
 } from "@/domains/commerce/queries/useCommerce";
@@ -177,7 +177,7 @@ const billLineId = computed(() => {
 });
 
 const checkoutQuery = usePaymentCheckout(billLineId);
-const createPaymentMutation = useCreatePaymentForBillLine();
+const createChargeMutation = useCreateChargeForBillLine();
 const syncMutation = useSyncPaymentTx();
 const clientPaymentError = ref<string | null>(null);
 
@@ -225,13 +225,13 @@ declare global {
 }
 
 const checkout = computed(
-  () => createPaymentMutation.data.value ?? checkoutQuery.data.value ?? null,
+  () => createChargeMutation.data.value ?? checkoutQuery.data.value ?? null,
 );
 
 const activePayment = computed(
   () =>
     syncMutation.data.value ??
-    createPaymentMutation.data.value?.payment ??
+    createChargeMutation.data.value?.payment ??
     checkoutQuery.data.value?.payment ??
     null,
 );
@@ -278,7 +278,7 @@ const parsePaymentClientAction = (
   if (type === "FAKE_PROVIDER_ACTION") {
     return {
       type,
-      message: readString(value, "message") ?? "Fake WeChat Pay",
+      message: readString(value, "message") ?? "Fake WeChatPay",
     };
   }
 
@@ -299,7 +299,7 @@ const redirectUrl = computed(() =>
     : null,
 );
 
-const canCreatePayment = computed(
+const canCreateCharge = computed(
   () => checkout.value?.eligibility.payable === true && !activePayment.value,
 );
 
@@ -324,14 +324,14 @@ const checkoutErrorMessage = computed(() =>
 );
 
 const mutationErrorMessage = computed(() => {
-  const error = createPaymentMutation.error.value ?? syncMutation.error.value;
+  const error = createChargeMutation.error.value ?? syncMutation.error.value;
   return error instanceof Error ? error.message : "支付处理失败。";
 });
 
-const createPayment = async (): Promise<void> => {
+const createCharge = async (): Promise<void> => {
   if (!billLineId.value) return;
   clientPaymentError.value = null;
-  const result = await createPaymentMutation.mutateAsync(billLineId.value);
+  const result = await createChargeMutation.mutateAsync(billLineId.value);
   await runClientPaymentAction(result.payment?.clientAction);
 };
 

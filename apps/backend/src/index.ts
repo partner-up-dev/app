@@ -197,7 +197,7 @@ export const routes = app
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
   .route("/api/commerce", commerceRoute)
-  .route("/api/payment-providers", paymentProviderRoute)
+  .route("/api/payment", paymentProviderRoute)
   .route("/api/admin", adminAnchorManagementRoute)
   .route("/api/admin", adminCommerceManagementRoute)
   .route("/api/admin", adminPoiRoute)

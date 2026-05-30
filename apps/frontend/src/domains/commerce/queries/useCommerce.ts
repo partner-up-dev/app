@@ -248,13 +248,13 @@ export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
     enabled: () => billLineId.value !== null,
   });
 
-export const useCreatePaymentForBillLine = () => {
+export const useCreateChargeForBillLine = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (billLineId: string) => {
       const response = await client.api.commerce["bill-lines"][":billLineId"]
-        .payments.$post(
+        .charges.$post(
         {
           param: { billLineId },
         },
@@ -266,9 +266,9 @@ export const useCreatePaymentForBillLine = () => {
       );
       return readJsonOrThrow<
         InferResponseType<
-          CommerceApi["bill-lines"][":billLineId"]["payments"]["$post"]
+          CommerceApi["bill-lines"][":billLineId"]["charges"]["$post"]
         >
-      >(response, "Failed to create payment");
+      >(response, "Failed to create charge");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

@@ -6,7 +6,10 @@ import {
   type PaymentProviderInstance,
   type PaymentProviderInstanceId,
 } from "../entities/payment";
-import type { PaymentProviderType } from "../domains/payment";
+import type {
+  PaymentProviderInstanceConfig,
+  PaymentProviderType,
+} from "../domains/payment";
 import type { RepositoryExecutor } from "./_executor";
 
 export class PaymentProviderInstanceRepository {
@@ -58,6 +61,38 @@ export class PaymentProviderInstanceRepository {
         ),
       )
       .orderBy(asc(paymentProviderInstances.createdAt));
+    return result[0] ?? null;
+  }
+
+  async updateRegistration(input: {
+    id: PaymentProviderInstanceId;
+    displayName: string;
+    config: PaymentProviderInstanceConfig;
+  }): Promise<PaymentProviderInstance | null> {
+    const result = await this.executor
+      .update(paymentProviderInstances)
+      .set({
+        displayName: input.displayName,
+        config: input.config,
+        updatedAt: new Date(),
+      })
+      .where(eq(paymentProviderInstances.id, input.id))
+      .returning();
+    return result[0] ?? null;
+  }
+
+  async updateConfig(input: {
+    id: PaymentProviderInstanceId;
+    config: PaymentProviderInstanceConfig;
+  }): Promise<PaymentProviderInstance | null> {
+    const result = await this.executor
+      .update(paymentProviderInstances)
+      .set({
+        config: input.config,
+        updatedAt: new Date(),
+      })
+      .where(eq(paymentProviderInstances.id, input.id))
+      .returning();
     return result[0] ?? null;
   }
 }

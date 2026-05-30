@@ -59,6 +59,9 @@ const envSchema = z.object({
   // Optional exact OAuth callback URL registered in the WeChat official account console.
   WECHAT_OAUTH_CALLBACK_URL: optionalUrlFromEnv,
 
+  // Public backend origin used by payment providers for unauthenticated callbacks.
+  PAYMENT_NOTIFY_BASE_URL: optionalUrlFromEnv,
+
   // Access token (JWT-like HMAC token) config.
   AUTH_JWT_SECRET: z.string().min(16).default("dev-auth-secret-change-me"),
   AUTH_JWT_EXPIRES_SECONDS: z.coerce.number().int().positive().default(86_400),

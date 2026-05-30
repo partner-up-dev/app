@@ -1,25 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { BillLine, BillLineId } from "../../../entities/bill";
-import type {
-  PaymentProviderCredentialSet,
-  PaymentTx,
-  PaymentTxId,
-} from "../../../entities/payment";
+import type { PaymentTx, PaymentTxId } from "../../../entities/payment";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
-import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import {
   createPaymentProviderPort,
-  resolveRefundNotifyUrl,
+  ensureWeChatPayPlatformCertificates,
+  resolveWeChatPayRefundNotifyUrl,
 } from "../services";
 
 const billLineRepo = new BillLineRepository();
 const paymentTxRepo = new PaymentTxRepository();
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
-const credentialSetRepo = new PaymentProviderCredentialSetRepository();
 
 export type RefundPaymentTxResult =
   | {
@@ -60,32 +55,6 @@ const findSuccessfulOriginalCharge = async (
   );
 };
 
-const resolveCredentialSet = async (
-  originalCharge: PaymentTx,
-): Promise<PaymentProviderCredentialSet> => {
-  const providerInstance = await providerInstanceRepo.findById(
-    originalCharge.providerInstanceId,
-  );
-  if (!providerInstance || providerInstance.status !== "ACTIVE") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Original payment provider instance is not active",
-    });
-  }
-
-  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
-    providerInstance.id,
-  );
-  if (!credentialSet || credentialSet.status !== "ACTIVE") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Payment provider credential set is not active",
-    });
-  }
-
-  return credentialSet;
-};
-
 const createRefundTxForLine = async (input: {
   refundLine: BillLine;
   originalCharge: PaymentTx;
@@ -99,10 +68,10 @@ const createRefundTxForLine = async (input: {
       detail: "Original payment provider instance is not active",
     });
   }
-  const credentialSet = await resolveCredentialSet(input.originalCharge);
+  const ensuredProviderInstance =
+    await ensureWeChatPayPlatformCertificates(providerInstance);
   const port = createPaymentProviderPort({
-    providerInstance,
-    credentialSet,
+    providerInstance: ensuredProviderInstance,
   });
 
   const paymentTxId = randomUUID() as PaymentTxId;
@@ -129,7 +98,7 @@ const createRefundTxForLine = async (input: {
     refundAmountFen: input.refundLine.amountFen,
     currency: input.refundLine.currency,
     reason: input.refundLine.description ?? input.refundLine.label,
-    notifyUrl: resolveRefundNotifyUrl(providerInstance),
+    notifyUrl: resolveWeChatPayRefundNotifyUrl(ensuredProviderInstance),
   });
   const nextStatus = mapNormalizedStatusToTxStatus(refund.status);
   const now = new Date();
