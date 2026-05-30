@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import type { Page } from "playwright";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
+import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
 import { withScenarioPage } from "../_infra/browser/browser";
+import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
 import {
   expectBackendJsonResponse,
   requestBackendJson,
 } from "../_infra/http/backend";
 import { scenario } from "../_infra/scenario/scenario";
 import {
+  bindScenarioWeChatOpenId,
   configurePRStatus,
 } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import { givenPublishedPartnerRequest } from "../../../apps/backend/tests/pr-core/_kit/builders/partner-requests";
@@ -41,15 +44,21 @@ async function joinThroughBackend(input: {
 }
 
 async function givenRentalOrderingPlacement() {
+  const { fakeWeChatPay } = getScenarioEnvironment();
   await registerPaymentProviderInstance({
     providerType: "WECHAT_PAY",
-    instanceKey: "system-fake-wechat-pay-web",
-    displayName: "System Fake WeChatPay Web",
+    instanceKey: "system-fake-wechatpay-http-web",
+    displayName: "System Fake WeChatPay HTTP Web",
     clientId: "web",
     config: {
-      adapterMode: "FAKE_WECHAT_PAY",
-      appId: "fake-web-appid",
-      mchId: "fake-web-mchid",
+      adapterMode: "WECHAT_PAY_API_V3",
+      appId: fakeWeChatPay.appId,
+      mchId: fakeWeChatPay.mchId,
+      chargeMode: "JSAPI",
+      endpointBaseUrl: fakeWeChatPay.origin,
+      apiV3Key: fakeWeChatPay.apiV3Key,
+      merchantCertificate: fakeWeChatPay.merchantCertificate,
+      platformCertificates: null,
     },
   });
 
@@ -273,7 +282,6 @@ async function payFirstAvailableBillLine(input: {
     label: input.label,
   });
   await input.page.getByTestId("payment-checkout.create-charge").click();
-  await input.page.getByTestId("payment-checkout.fake-complete").click();
   await input.page.getByTestId("payment-checkout.success").waitFor({
     state: "visible",
     timeout: 10_000,
@@ -291,6 +299,14 @@ scenario(
   async (ctx) => {
     const creator = await givenUser("system-commerce-rental-creator");
     const joiner = await givenUser("system-commerce-rental-joiner");
+    await bindScenarioWeChatOpenId({
+      user: creator,
+      openId: "fake-openid-commerce-rental-creator",
+    });
+    await bindScenarioWeChatOpenId({
+      user: joiner,
+      openId: "fake-openid-commerce-rental-joiner",
+    });
     const pr = await givenPublishedPartnerRequest({
       creator,
       minPartners: 2,
@@ -311,6 +327,10 @@ scenario(
     await withScenarioPage(async (page) => {
       await installScenarioUserSession(page, creator);
       await installDeterministicShareSidecarStubs(page);
+      await installFakeWeChatPayBridge(
+        page,
+        getScenarioEnvironment().fakeWeChatPay.origin,
+      );
 
       await page.goto(`/pr/${pr.id}`);
       await page.getByTestId("pr-detail.commerce-placement.open").click();
@@ -446,7 +466,6 @@ scenario(
         label: "Creator bill line checkout amount",
       });
       await page.getByTestId("payment-checkout.create-charge").click();
-      await page.getByTestId("payment-checkout.fake-complete").click();
       await page.getByTestId("payment-checkout.success").waitFor({
         state: "visible",
         timeout: 10_000,
@@ -470,6 +489,10 @@ scenario(
     await withScenarioPage(async (page) => {
       await installScenarioUserSession(page, joiner);
       await installDeterministicShareSidecarStubs(page);
+      await installFakeWeChatPayBridge(
+        page,
+        getScenarioEnvironment().fakeWeChatPay.origin,
+      );
 
       await page.goto(orderPath);
       await page.getByTestId("order-detail.page").waitFor({
@@ -492,7 +515,6 @@ scenario(
         label: "Joiner bill line checkout amount",
       });
       await page.getByTestId("payment-checkout.create-charge").click();
-      await page.getByTestId("payment-checkout.fake-complete").click();
       await page.getByTestId("payment-checkout.success").waitFor({
         state: "visible",
         timeout: 10_000,
@@ -693,6 +715,14 @@ scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
 scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
   const creator = await givenUser("system-commerce-paid-cancel-creator");
   const joiner = await givenUser("system-commerce-paid-cancel-joiner");
+  await bindScenarioWeChatOpenId({
+    user: creator,
+    openId: "fake-openid-commerce-paid-cancel-creator",
+  });
+  await bindScenarioWeChatOpenId({
+    user: joiner,
+    openId: "fake-openid-commerce-paid-cancel-joiner",
+  });
   const pr = await givenPublishedPartnerRequest({
     creator,
     minPartners: 2,
@@ -711,6 +741,10 @@ scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
   await withScenarioPage(async (page) => {
     await installScenarioUserSession(page, creator);
     await installDeterministicShareSidecarStubs(page);
+    await installFakeWeChatPayBridge(
+      page,
+      getScenarioEnvironment().fakeWeChatPay.origin,
+    );
 
     await page.goto(`/pr/${pr.id}`);
     await page.getByTestId("pr-detail.commerce-placement.open").click();
@@ -750,6 +784,10 @@ scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
   await withScenarioPage(async (page) => {
     await installScenarioUserSession(page, joiner);
     await installDeterministicShareSidecarStubs(page);
+    await installFakeWeChatPayBridge(
+      page,
+      getScenarioEnvironment().fakeWeChatPay.origin,
+    );
 
     await page.goto(orderPath);
     await page.getByTestId("order-detail.page").waitFor({

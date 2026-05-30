@@ -73,12 +73,6 @@
           </Button>
 
           <template v-if="activePayment && activePayment.status !== 'SUCCEEDED'">
-            <InlineNotice
-              v-if="activePaymentClientActionType === 'FAKE_PROVIDER_ACTION'"
-              tone="info"
-              title="测试支付"
-              message="当前 provider 是场景测试用 Fake WeChatPay。"
-            />
             <Button
               v-if="activePaymentClientActionType === 'PAYMENT_REDIRECT' && redirectUrl"
               tone="secondary"
@@ -96,16 +90,7 @@
               继续微信支付
             </Button>
             <Button
-              v-if="activePaymentClientActionType === 'FAKE_PROVIDER_ACTION'"
-              tone="secondary"
-              :loading="syncMutation.isPending.value"
-              data-testid="payment-checkout.fake-complete"
-              @click="syncPayment"
-            >
-              完成模拟支付
-            </Button>
-            <Button
-              v-else
+              v-if="activePaymentClientActionType !== 'PAYMENT_REDIRECT'"
               tone="secondary"
               :loading="syncMutation.isPending.value"
               data-testid="payment-checkout.sync"
@@ -196,15 +181,9 @@ type PaymentRedirectClientAction = {
   url: string;
 };
 
-type FakeWeChatPayClientAction = {
-  type: "FAKE_PROVIDER_ACTION";
-  message: string;
-};
-
 type PaymentClientAction =
   | WeChatBridgeClientAction
-  | PaymentRedirectClientAction
-  | FakeWeChatPayClientAction;
+  | PaymentRedirectClientAction;
 
 type WeixinJSBridgeResponse = {
   err_msg?: string;
@@ -275,13 +254,6 @@ const parsePaymentClientAction = (
     return url ? { type, url } : null;
   }
 
-  if (type === "FAKE_PROVIDER_ACTION") {
-    return {
-      type,
-      message: readString(value, "message") ?? "Fake WeChatPay",
-    };
-  }
-
   return null;
 };
 
@@ -343,7 +315,7 @@ const syncPayment = async (): Promise<void> => {
 
 const runClientPaymentAction = async (value: unknown): Promise<void> => {
   const action = parsePaymentClientAction(value);
-  if (!action || action.type === "FAKE_PROVIDER_ACTION") {
+  if (!action) {
     return;
   }
 

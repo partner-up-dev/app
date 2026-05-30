@@ -73,10 +73,6 @@ const isWeChatPayApiV3Config = (
 ): config is WeChatPayProviderInstanceConfig =>
   config.adapterMode === "WECHAT_PAY_API_V3";
 
-export const isFakeWeChatPayConfig = (
-  config: PaymentProviderInstance["config"],
-): boolean => config.adapterMode === "FAKE_WECHAT_PAY";
-
 const resolvePaymentNotifyBaseUrl = (): string => {
   if (!env.PAYMENT_NOTIFY_BASE_URL) {
     return throwHttpProblem({
@@ -90,10 +86,6 @@ const resolvePaymentNotifyBaseUrl = (): string => {
 export const resolveWeChatPayChargeNotifyUrl = (
   providerInstance: PaymentProviderInstance,
 ): string => {
-  if (!isWeChatPayApiV3Config(providerInstance.config)) {
-    return "https://example.invalid/fake-wechat-pay/charge-notify";
-  }
-
   return new URL(
     `/api/payment/wechat-pay/${providerInstance.id}/notify/charge`,
     resolvePaymentNotifyBaseUrl(),
@@ -103,10 +95,6 @@ export const resolveWeChatPayChargeNotifyUrl = (
 export const resolveWeChatPayRefundNotifyUrl = (
   providerInstance: PaymentProviderInstance,
 ): string => {
-  if (!isWeChatPayApiV3Config(providerInstance.config)) {
-    return "https://example.invalid/fake-wechat-pay/refund-notify";
-  }
-
   return new URL(
     `/api/payment/wechat-pay/${providerInstance.id}/notify/refund`,
     resolvePaymentNotifyBaseUrl(),
@@ -134,91 +122,6 @@ const mapWeChatPayRefundState = (
 export class UnknownWeChatPayPlatformCertificateSerialError extends Error {
   constructor(readonly serial: string) {
     super(`Unknown WeChatPay platform certificate serial: ${serial}`);
-  }
-}
-
-export class FakeWeChatPayProviderAdapter implements PaymentProviderPort {
-  async createChargePrepay(
-    input: CreateChargePrepayInput,
-  ): Promise<ChargePrepayResult> {
-    return {
-      providerPrepayId: `fake-prepay-${input.merchantOrderNo}`,
-      providerStatus: "FAKE_AWAITING_CONFIRMATION",
-      clientAction: {
-        type: "FAKE_PROVIDER_ACTION",
-        message: "Scenario fake WeChatPay action",
-      },
-      providerSnapshot: {
-        adapter: "FAKE_WECHAT_PAY",
-        merchantOrderNo: input.merchantOrderNo,
-        amountFen: input.amountFen,
-      },
-    };
-  }
-
-  async queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus> {
-    return {
-      status: "SUCCEEDED",
-      providerStatus: "FAKE_SUCCESS",
-      providerTransactionId: `fake-transaction-${input.merchantOrderNo}`,
-      providerSnapshot: {
-        adapter: "FAKE_WECHAT_PAY",
-        merchantOrderNo: input.merchantOrderNo,
-      },
-    };
-  }
-
-  async createRefund(input: CreateRefundInput): Promise<CreateRefundResult> {
-    return {
-      status: "SUCCEEDED",
-      providerStatus: "FAKE_REFUND_SUCCESS",
-      providerRefundId: `fake-refund-${input.merchantRefundNo}`,
-      providerSnapshot: {
-        adapter: "FAKE_WECHAT_PAY",
-        merchantRefundNo: input.merchantRefundNo,
-        refundAmountFen: input.refundAmountFen,
-      },
-    };
-  }
-
-  async queryRefund(input: QueryRefundInput): Promise<NormalizedRefundStatus> {
-    return {
-      status: "SUCCEEDED",
-      providerStatus: "FAKE_REFUND_SUCCESS",
-      providerRefundId: `fake-refund-${input.merchantRefundNo}`,
-      providerSnapshot: {
-        adapter: "FAKE_WECHAT_PAY",
-        merchantRefundNo: input.merchantRefundNo,
-      },
-    };
-  }
-
-  async parseChargeNotification(
-    input: RawProviderNotification,
-  ): Promise<NormalizedChargeStatus & { merchantOrderNo: string }> {
-    const body = parseJsonRecord(input.bodyText);
-    const merchantOrderNo = readRequiredStringField(body, "merchantOrderNo");
-    return {
-      merchantOrderNo,
-      status: "SUCCEEDED",
-      providerStatus: "FAKE_SUCCESS",
-      providerTransactionId: readOptionalStringField(body, "providerTransactionId"),
-      providerSnapshot: body,
-    };
-  }
-
-  async parseRefundNotification(
-    input: RawProviderNotification,
-  ): Promise<NormalizedRefundStatus & { merchantRefundNo: string }> {
-    const body = parseJsonRecord(input.bodyText);
-    const merchantRefundNo = readRequiredStringField(body, "merchantRefundNo");
-    return {
-      merchantRefundNo,
-      status: "SUCCEEDED",
-      providerStatus: "FAKE_REFUND_SUCCESS",
-      providerRefundId: readOptionalStringField(body, "providerRefundId"),
-      providerSnapshot: body,
-    };
   }
 }
 
@@ -250,14 +153,49 @@ const findPlatformCertificatePem = (
 const buildWeChatPayClient = (
   config: WeChatPayProviderInstanceConfig,
   platformCertificates: Record<string, string | KeyObject>,
-): Wechatpay =>
-  new Wechatpay({
+): Wechatpay => {
+  assertEndpointBaseUrlAllowed(config.endpointBaseUrl ?? null);
+  return new Wechatpay({
+    ...(config.endpointBaseUrl ? { baseURL: config.endpointBaseUrl } : {}),
     mchid: config.mchId,
     serial: config.merchantCertificate.serialNo,
     privateKey: config.merchantCertificate.privateKeyPem,
     certs: platformCertificates,
     secret: config.apiV3Key,
   });
+};
+
+const isLocalEndpointHost = (hostname: string): boolean =>
+  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+
+const isOfficialWeChatPayEndpointHost = (hostname: string): boolean =>
+  hostname === "api.mch.weixin.qq.com";
+
+const assertEndpointBaseUrlAllowed = (endpointBaseUrl: string | null): void => {
+  if (!endpointBaseUrl) return;
+  const parsed = new URL(endpointBaseUrl);
+  const isAllowedProductionHost =
+    parsed.protocol === "https:" &&
+    isOfficialWeChatPayEndpointHost(parsed.hostname);
+  if (process.env.NODE_ENV === "production" && !isAllowedProductionHost) {
+    return throwHttpProblem({
+      status: 500,
+      detail:
+        "WeChatPay endpointBaseUrl must point to the official host in production",
+    });
+  }
+  if (
+    process.env.NODE_ENV !== "production" &&
+    !isLocalEndpointHost(parsed.hostname) &&
+    !isAllowedProductionHost
+  ) {
+    return throwHttpProblem({
+      status: 500,
+      detail:
+        "WeChatPay endpointBaseUrl must be localhost or the official host outside production",
+    });
+  }
+};
 
 const readCertificateItems = (body: Record<string, unknown>): unknown[] => {
   const data = body.data;
@@ -636,10 +574,6 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
 export function createPaymentProviderPort(input: {
   providerInstance: PaymentProviderInstance;
 }): PaymentProviderPort {
-  if (isFakeWeChatPayConfig(input.providerInstance.config)) {
-    return new FakeWeChatPayProviderAdapter();
-  }
-
   if (input.providerInstance.providerType === "WECHAT_PAY") {
     return new WeChatPayProviderAdapter(input);
   }

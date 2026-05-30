@@ -20,7 +20,8 @@ Order, or Fulfillment invariants.
 - Fulfillment must not be modeled as a generic listener on Bill or Payment.
 - Do not add `payment_provider_events` in Phase 4.
 - WeChatPay is the only real provider in Phase 4.
-- System tests must use a fake provider adapter, not real WeChat network calls.
+- System tests must use a fake WeChatPay HTTP gateway, not real WeChat network
+  calls and not an in-backend fake provider adapter.
 
 ## Target User Topology
 
@@ -501,9 +502,11 @@ WeChat channel correction:
 
 Local and scenario testing:
 
-- Add a fake provider adapter selected by test/runtime config.
-- Fake adapter returns deterministic `clientAction` and supports explicit
-  callback/query success transitions.
+- Use `packages/fake-wechatpay-server` as a fake WeChatPay APIv3 HTTP gateway.
+- Register a normal `WECHAT_PAY_API_V3` provider instance with
+  `endpointBaseUrl` pointing at that fake gateway in system scenarios.
+- Browser scenarios simulate `WeixinJSBridge` and call the fake gateway control
+  API to complete the external provider state.
 - Browser scenarios must not depend on public WeChat callbacks.
 
 ## Backend Application Services
@@ -694,7 +697,8 @@ Flow:
 5. Invoke the client action returned by backend:
    - `WeixinJSBridge` for Official Account web
    - redirect/open provider URL for H5-like flows
-   - fake provider action for deterministic scenarios
+   - browser-test WeixinJSBridge shim that completes the fake HTTP provider
+     state for deterministic scenarios
 6. Regardless of frontend callback result, poll/sync PaymentTx.
 7. On terminal success/failure/closed, show result and return links.
 
@@ -726,7 +730,8 @@ Cancellation/refund scenario:
 1. Create and fully pay Rental order with two participant lines.
 2. Creator requests cancellation.
 3. Cancellation creates refund BillLines with `refundOfBillLineId`.
-4. Refund PaymentTx is created through fake WeChatPay refund adapter.
+4. Refund PaymentTx is created through the real WeChatPay adapter pointed at
+   the fake HTTP gateway.
 5. Bill Detail shows refund progress and then refunded status.
 
 Backend scenario tests:
@@ -756,8 +761,8 @@ Unit tests:
    summaries.
 3. Add Bill Detail backend projection and frontend page.
 4. Add Payment Checkout backend projection and frontend page.
-5. Add PaymentProviderInstance, PaymentProviderPort, fake adapter, and WeChat
-   adapter skeleton behind configuration.
+5. Add PaymentProviderInstance, PaymentProviderPort, WeChat adapter skeleton,
+   and HTTP fake-gateway support through provider `endpointBaseUrl`.
 6. Implement WeChat charge prepay for the first enabled client/provider and
    checkout polling/sync.
 7. Implement callback route and idempotent charge convergence.
@@ -854,8 +859,8 @@ Implementation can start with these confirmed decisions:
 
 These are implementation details, not new domain abstractions. Phase 4
 implementation has started with PaymentTx/BillLine checkout, Bill Detail,
-Payment Checkout, fake WeChatPay scenario adapter, and a WeChatPay APIv3 adapter
-behind `PaymentProviderPort`.
+Payment Checkout, a WeChatPay APIv3 adapter behind `PaymentProviderPort`, and
+an external fake WeChatPay HTTP gateway for local/CI scenarios.
 
 ## Implementation Progress
 
@@ -864,7 +869,7 @@ Implemented on 2026-05-30:
 - Added Payment provider instance and BillLine-scoped PaymentTx persistence.
 - Added explicit provider registration script:
   `pnpm --filter @partner-up-dev/backend payment:register-provider <config.json>`.
-- Added `PaymentProviderPort` with fake WeChatPay and WeChatPay APIv3 adapters.
+- Added `PaymentProviderPort` with a WeChatPay APIv3 adapter.
 - Added charge creation/query, payment notification parsing, refund creation,
   refund query, and refund notification parsing behind the adapter boundary.
 - Added unauthenticated WeChat callback routes for payment and refund
@@ -874,8 +879,9 @@ Implemented on 2026-05-30:
 - Added `x-client-id` as an RPC-layer frontend header; checkout mutations do
   not carry client id in JSON payloads.
 - Payment Checkout invokes backend-returned client actions:
-  WeChat bridge through `WeixinJSBridge`, redirect URL for H5-like flows, and
-  fake provider action through scenario-only sync.
+  WeChat bridge through `WeixinJSBridge` and redirect URL for H5-like flows.
+  Deterministic browser scenarios shim `WeixinJSBridge` and complete the fake
+  HTTP provider state outside normal Payment domain code.
 - Removed user-facing mock payment from Order Detail; payment now flows through
   Bill Detail and Payment Checkout.
 - Added explicit settlement consequence topology: successful CHARGE PaymentTx
@@ -906,9 +912,15 @@ Implemented on 2026-05-30:
   table; `PaymentProviderInstance.config` now stores `apiV3Key`,
   `merchantCertificate`, and optional `platformCertificates`. Runtime code
   downloads and persists platform certificates when they are absent.
+- Implemented `packages/fake-wechatpay-server` from
+  `72-fake-wechatpay-http-server.md`, run real `WeChatPayProviderAdapter`
+  against it in CI/local scenarios, and removed the in-backend
+  `FakeWeChatPayProviderAdapter` / `FAKE_WECHAT_PAY` path.
 
 Verification completed on 2026-05-30:
 
+- `pnpm --filter @partner-up-dev/fake-wechatpay-server test`
+- `pnpm --filter @partner-up-dev/fake-wechatpay-server typecheck`
 - `pnpm --filter @partner-up-dev/backend typecheck`
 - `pnpm --filter @partner-up-dev/frontend exec vue-tsc --noEmit`
 - `pnpm test:unit:backend`

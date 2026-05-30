@@ -26,6 +26,7 @@ export type WeChatPayProviderInstanceConfig = {
   appId: string;
   mchId: string;
   chargeMode: WeChatPayChargeMode;
+  endpointBaseUrl?: string | null;
   apiV3Key: string;
   merchantCertificate: {
     serialNo: string;
@@ -35,15 +36,7 @@ export type WeChatPayProviderInstanceConfig = {
   platformCertificates?: WeChatPayPlatformCertificate[] | null;
 };
 
-export type FakeWeChatPayProviderInstanceConfig = {
-  adapterMode: "FAKE_WECHAT_PAY";
-  appId: string;
-  mchId: string;
-};
-
-export type PaymentProviderInstanceConfig =
-  | WeChatPayProviderInstanceConfig
-  | FakeWeChatPayProviderInstanceConfig;
+export type PaymentProviderInstanceConfig = WeChatPayProviderInstanceConfig;
 
 export type PaymentClientAction =
   | {
@@ -58,10 +51,6 @@ export type PaymentClientAction =
   | {
       type: "PAYMENT_REDIRECT";
       url: string;
-    }
-  | {
-      type: "FAKE_PROVIDER_ACTION";
-      message: string;
     };
 
 export type NormalizedPaymentStatus =

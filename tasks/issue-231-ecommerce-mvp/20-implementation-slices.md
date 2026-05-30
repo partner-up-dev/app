@@ -157,7 +157,7 @@ Detailed implementation plan:
 Primary tests:
 
 - WeChatPay APIv3 adapter contract tests with fake WeChatPay gateway
-- provider-instance and client-binding routing tests
+- provider-instance `clientId` routing tests
 - provider-instance credential config persistence and redaction tests
 - config-driven provider registration idempotency tests
 - SDK dependency audit tests, including axios override / malicious-version

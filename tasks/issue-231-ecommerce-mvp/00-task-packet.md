@@ -14,12 +14,13 @@ independent even when implementation ownership is grouped.
 
 - Type: Intent.
 - Active mode: Execute.
-- Current discussion scope: Phase 4 Payment implementation planning.
+- Current discussion scope: Phase 4 fake WeChatPay HTTP-boundary verification.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
 - Implementation status: Phase 0 complete. Corrected Phase 1 complete.
-  Phase 2 complete. Phase 3 Rental baseline complete.
+  Phase 2 complete. Phase 3 Rental baseline complete. Phase 4 Payment
+  implementation complete with HTTP-boundary fake WeChatPay verification.
 - Production code and executable tests are now allowed because the user
   explicitly said to start.
 
@@ -67,6 +68,9 @@ independent even when implementation ownership is grouped.
 - `71-phase-4-payment-implementation-plan.md`: concrete Phase 4 Payment
   implementation plan across data model, APIs, frontend, provider adapter,
   settlement orchestration, refunds, and tests.
+- `72-fake-wechatpay-http-server.md`: subtask packet for the reusable
+  HTTP-boundary fake WeChatPay server under
+  `packages/fake-wechatpay-server`.
 - `sequence-diagram-rental.md`: user-provided rental end-to-end flow reference.
 - `sequence-diagram-ride-hailing.md`: user-provided ride-hailing end-to-end flow
   reference.
@@ -151,10 +155,10 @@ independent even when implementation ownership is grouped.
   both paths must be idempotent.
 - Payment provider extensibility is modeled as provider type plus provider
   instance. For WeChatPay, an instance is uniquely identified by `mch_id +
-  app_id`. A server-owned `client_id -> provider_instance` binding chooses the
-  provider instance. WeChat API execution mode such as JSAPI or H5 is
-  provider-instance configuration, not PaymentTx channel. Native QR is out of
-  Phase 4 scope.
+  app_id`. Each active provider instance owns exactly one runtime `client_id`,
+  and Payment checkout resolves the active instance for that client id. WeChat
+  API execution mode such as JSAPI or H5 is provider-instance configuration,
+  not PaymentTx channel. Native QR is out of Phase 4 scope.
 - Payment provider credentials are stored directly inside the
   `PaymentProviderInstance.config` row for the Phase 4 serverless MVP. A
   WeChatPay provider instance config contains `apiV3Key`,
@@ -625,10 +629,10 @@ the baseline for downstream Order / Bill / Fulfillment design.
   redaction.
 - 2026-05-30: Confirmed the current `apps/frontend` payment client id is `web`,
   not `wechat_official_account_web`; Phase 4 implementation should route `web`
-  through the server-owned provider-instance/client-binding table.
+  by resolving the active `PaymentProviderInstance.clientId`.
 - 2026-05-30: Started Phase 4 implementation: added Payment provider
-  instance/credential/client-binding/PaymentTx persistence, BillLine-scoped
-  Payment Checkout, Bill Detail, fake WeChatPay scenario adapter, WeChatPay
+  instance/config/PaymentTx persistence, BillLine-scoped Payment Checkout,
+  Bill Detail, initial fake WeChatPay scenario support, WeChatPay
   APIv3 adapter boundary using `wechatpay-axios-plugin@0.9.6`, axios
   `1.16.1` pin/override, and a payment supply-chain lint.
 - 2026-05-30: Completed the Phase 4 implementation slice: added WeChatPay charge
@@ -648,3 +652,15 @@ the baseline for downstream Order / Bill / Fulfillment design.
   instances own exactly one runtime `clientId`; and the frontend sends client
   identity only as the RPC-layer `x-client-id` header (`web` for
   `apps/frontend`).
+- 2026-05-30: Added `packages/fake-wechatpay-server` as a standalone
+  HTTP-boundary fake WeChatPay APIv3 gateway for CI/local scenarios. System
+  scenarios now register a normal `WECHAT_PAY_API_V3` provider instance with
+  `endpointBaseUrl` pointed at the fake gateway, exercise the real
+  `WeChatPayProviderAdapter`, simulate `WeixinJSBridge` in the browser, and no
+  longer use the in-backend `FakeWeChatPayProviderAdapter` or
+  `FAKE_WECHAT_PAY` config mode.
+- 2026-05-30: Added package-level fake WeChatPay unit tests for Zod-validated
+  state transitions and crypto/header helpers. Verification passed:
+  fake package tests/typecheck, backend typecheck, frontend typecheck,
+  backend DB lint, backend unit tests, frontend unit tests, full lint,
+  payment supply-chain lint, and the Rental system scenario.

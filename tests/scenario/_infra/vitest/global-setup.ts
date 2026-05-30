@@ -2,6 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { TestProject } from "vitest/node";
 import {
+  startFakeWeChatPayServer,
+  type StartedFakeWeChatPayServer,
+} from "@partner-up-dev/fake-wechatpay-server";
+import {
   createScenarioDatabase,
   installScenarioDatabaseEnv,
   resetAndMigrateTestDatabase,
@@ -25,6 +29,7 @@ const repoRoot = path.resolve(
 
 let backendServer: StartedBackendServer | null = null;
 let database: ScenarioDatabaseHandle | null = null;
+let fakeWeChatPayServer: StartedFakeWeChatPayServer | null = null;
 let frontendServer: StartedFrontendServer | null = null;
 
 export async function setup(project: TestProject): Promise<void> {
@@ -36,9 +41,12 @@ export async function setup(project: TestProject): Promise<void> {
 
   process.env.PORT = String(backendPort);
   process.env.FRONTEND_URL = frontendBaseUrl;
+  process.env.PAYMENT_NOTIFY_BASE_URL = `http://127.0.0.1:${backendPort}`;
   process.env.VITE_BACKEND_PORT = String(backendPort);
   process.env.VITE_PORT = String(frontendPort);
   process.env.VITE_API_URL = frontendBaseUrl;
+
+  fakeWeChatPayServer = await startFakeWeChatPayServer();
 
   database = await createScenarioDatabase();
   const databaseUrl = installScenarioDatabaseEnv(database.databaseUrl);
@@ -53,6 +61,13 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide("systemScenarioEnvironment", {
     backendBaseUrl: backendServer.origin,
+    fakeWeChatPay: {
+      apiV3Key: fakeWeChatPayServer.fixture.apiV3Key,
+      appId: fakeWeChatPayServer.fixture.appId,
+      mchId: fakeWeChatPayServer.fixture.mchId,
+      merchantCertificate: fakeWeChatPayServer.fixture.merchantCertificate,
+      origin: fakeWeChatPayServer.origin,
+    },
     frontendBaseUrl: frontendServer.origin,
   });
 }
@@ -62,8 +77,10 @@ export async function teardown(): Promise<void> {
 
   await frontendServer?.close();
   await backendServer?.close();
+  await fakeWeChatPayServer?.close();
   frontendServer = null;
   backendServer = null;
+  fakeWeChatPayServer = null;
 
   try {
     const { closeDb } = await import("../../../../apps/backend/src/lib/db");
@@ -84,6 +101,17 @@ declare module "vitest" {
   export interface ProvidedContext {
     systemScenarioEnvironment: {
       backendBaseUrl: string;
+      fakeWeChatPay: {
+        origin: string;
+        appId: string;
+        mchId: string;
+        apiV3Key: string;
+        merchantCertificate: {
+          serialNo: string;
+          privateKeyPem: string;
+          certificatePem: string;
+        };
+      };
       frontendBaseUrl: string;
     };
   }

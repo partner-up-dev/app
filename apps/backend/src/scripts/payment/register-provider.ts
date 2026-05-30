@@ -9,30 +9,24 @@ const platformCertificateSchema = z.object({
   expireTime: z.string().min(1).nullable().optional(),
 });
 
-const providerConfigSchema = z.discriminatedUnion("adapterMode", [
-  z.object({
-    adapterMode: z.literal("WECHAT_PAY_API_V3"),
-    appId: z.string().min(1),
-    mchId: z.string().min(1),
-    chargeMode: z.enum(["JSAPI", "H5"]),
-    apiV3Key: z.string().min(1),
-    merchantCertificate: z.object({
-      serialNo: z.string().min(1),
-      privateKeyPem: z.string().min(1),
-      certificatePem: z.string().min(1).nullable().optional(),
-    }),
-    platformCertificates: z
-      .array(platformCertificateSchema)
-      .min(1)
-      .nullable()
-      .optional(),
+const providerConfigSchema = z.object({
+  adapterMode: z.literal("WECHAT_PAY_API_V3"),
+  appId: z.string().min(1),
+  mchId: z.string().min(1),
+  chargeMode: z.enum(["JSAPI", "H5"]),
+  endpointBaseUrl: z.string().url().nullable().optional(),
+  apiV3Key: z.string().min(1),
+  merchantCertificate: z.object({
+    serialNo: z.string().min(1),
+    privateKeyPem: z.string().min(1),
+    certificatePem: z.string().min(1).nullable().optional(),
   }),
-  z.object({
-    adapterMode: z.literal("FAKE_WECHAT_PAY"),
-    appId: z.string().min(1),
-    mchId: z.string().min(1),
-  }),
-]);
+  platformCertificates: z
+    .array(platformCertificateSchema)
+    .min(1)
+    .nullable()
+    .optional(),
+});
 
 const registrationConfigSchema = z.object({
   providerType: z.literal("WECHAT_PAY"),

@@ -18,7 +18,6 @@ import {
   createPaymentProviderPort,
   deriveBillPaymentState,
   ensureWeChatPayPlatformCertificates,
-  isFakeWeChatPayConfig,
   resolveWeChatPayChargeNotifyUrl,
 } from "../services";
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
@@ -272,7 +271,7 @@ export async function createOrReuseChargeForBillLine(input: {
     providerInstance: provider.providerInstance,
   });
   const user = await userRepo.findById(input.viewerUserId as UserId);
-  const requiresOpenId = !isFakeWeChatPayConfig(provider.providerInstance.config);
+  const requiresOpenId = provider.providerInstance.config.chargeMode === "JSAPI";
   if (requiresOpenId && !user?.openId) {
     return throwHttpProblem({
       status: 409,
