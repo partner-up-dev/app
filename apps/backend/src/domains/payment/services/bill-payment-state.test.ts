@@ -20,7 +20,7 @@ const billLine = (input: {
   userId: UserId;
   kind: BillLine["kind"];
   amountFen: number;
-  sourceLineId?: BillLineId | null;
+  refundOfBillLineId?: BillLineId | null;
 }): BillLine => ({
   id: input.id as BillLineId,
   billId,
@@ -30,7 +30,7 @@ const billLine = (input: {
   currency: "CNY",
   label: input.kind,
   description: null,
-  sourceLineId: input.sourceLineId ?? null,
+  refundOfBillLineId: input.refundOfBillLineId ?? null,
   createdAt: now,
 });
 
@@ -42,12 +42,10 @@ const paymentTx = (input: {
   amountFen: number;
 }): PaymentTx => ({
   id: input.id as PaymentTxId,
-  billId,
   billLineId: input.billLineId,
   type: input.type,
   providerInstanceId,
   clientId: "web",
-  sourcePaymentTxId: null,
   status: input.status,
   amountFen: input.amountFen,
   currency: "CNY",
@@ -115,7 +113,7 @@ describe("deriveBillPaymentState", () => {
       userId: userA,
       kind: "REFUND",
       amountFen: 1000,
-      sourceLineId: chargeLine.id,
+      refundOfBillLineId: chargeLine.id,
     });
 
     const result = deriveBillPaymentState({
@@ -157,7 +155,7 @@ describe("deriveBillPaymentState", () => {
       userId: userA,
       kind: "REFUND",
       amountFen: 500,
-      sourceLineId: chargeLine.id,
+      refundOfBillLineId: chargeLine.id,
     });
 
     const result = deriveBillPaymentState({

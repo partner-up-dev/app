@@ -1,5 +1,4 @@
 import {
-  type AnyPgColumn,
   index,
   integer,
   jsonb,
@@ -10,10 +9,9 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { BillId, BillLineId } from "./bill";
-import { bills, billLines } from "./bill";
+import type { BillLineId } from "./bill";
+import { billLines } from "./bill";
 import type {
-  PaymentClientProviderBindingStatus,
   PaymentProviderCredentialSetStatus,
   PaymentProviderInstanceConfig,
   PaymentProviderInstanceStatus,
@@ -29,9 +27,6 @@ export type PaymentProviderInstanceId = string & {
 };
 export type PaymentProviderCredentialSetId = string & {
   readonly __brand: "PaymentProviderCredentialSetId";
-};
-export type PaymentClientProviderBindingId = string & {
-  readonly __brand: "PaymentClientProviderBindingId";
 };
 export type PaymentTxId = string & { readonly __brand: "PaymentTxId" };
 
@@ -49,10 +44,8 @@ export const paymentProviderInstances = pgTable(
       .notNull()
       .default("ACTIVE"),
     displayName: text("display_name").notNull(),
+    clientId: text("client_id").notNull(),
     config: jsonb("config").$type<PaymentProviderInstanceConfig>().notNull(),
-    activeCredentialSetId: uuid("active_credential_set_id").$type<
-      PaymentProviderCredentialSetId | null
-    >(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -64,6 +57,11 @@ export const paymentProviderInstances = pgTable(
     providerInstanceUnique: uniqueIndex(
       "payment_provider_instances_type_key_unique",
     ).on(table.providerType, table.instanceKey),
+    activeClientUnique: uniqueIndex(
+      "payment_provider_instances_active_client_unique",
+    )
+      .on(table.clientId)
+      .where(sql`${table.status} = 'ACTIVE'`),
   }),
 );
 
@@ -105,38 +103,6 @@ export const paymentProviderCredentialSets = pgTable(
   }),
 );
 
-export const paymentClientProviderBindings = pgTable(
-  "payment_client_provider_bindings",
-  {
-    id: uuid("id")
-      .$type<PaymentClientProviderBindingId>()
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    clientId: text("client_id").notNull(),
-    providerInstanceId: uuid("provider_instance_id")
-      .$type<PaymentProviderInstanceId>()
-      .notNull()
-      .references(() => paymentProviderInstances.id, { onDelete: "cascade" }),
-    status: text("status")
-      .$type<PaymentClientProviderBindingStatus>()
-      .notNull()
-      .default("ACTIVE"),
-    priority: integer("priority").notNull().default(100),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => ({
-    clientStatusPriorityIdx: index(
-      "payment_client_provider_bindings_client_status_priority_idx",
-    ).on(table.clientId, table.status, table.priority),
-    activeClientProviderUnique: uniqueIndex(
-      "payment_client_provider_bindings_active_unique",
-    )
-      .on(table.clientId, table.providerInstanceId)
-      .where(sql`${table.status} = 'ACTIVE'`),
-  }),
-);
-
 export const paymentTxs = pgTable(
   "payment_txs",
   {
@@ -144,10 +110,6 @@ export const paymentTxs = pgTable(
       .$type<PaymentTxId>()
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    billId: uuid("bill_id")
-      .$type<BillId>()
-      .notNull()
-      .references(() => bills.id, { onDelete: "cascade" }),
     billLineId: uuid("bill_line_id")
       .$type<BillLineId>()
       .notNull()
@@ -158,9 +120,6 @@ export const paymentTxs = pgTable(
       .notNull()
       .references(() => paymentProviderInstances.id, { onDelete: "restrict" }),
     clientId: text("client_id"),
-    sourcePaymentTxId: uuid("source_payment_tx_id")
-      .$type<PaymentTxId | null>()
-      .references((): AnyPgColumn => paymentTxs.id, { onDelete: "restrict" }),
     status: text("status").$type<PaymentTxStatus>().notNull().default("INITIATED"),
     amountFen: integer("amount_fen").notNull(),
     currency: text("currency").$type<"CNY">().notNull().default("CNY"),
@@ -185,7 +144,6 @@ export const paymentTxs = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    billIdx: index("payment_txs_bill_idx").on(table.billId),
     billLineIdx: index("payment_txs_bill_line_idx").on(table.billLineId),
     providerInstanceIdx: index("payment_txs_provider_instance_idx").on(
       table.providerInstanceId,
@@ -196,9 +154,6 @@ export const paymentTxs = pgTable(
     providerRefundUnique: uniqueIndex("payment_txs_provider_refund_unique")
       .on(table.providerInstanceId, table.merchantRefundNo)
       .where(sql`${table.merchantRefundNo} is not null`),
-    sourcePaymentTxIdx: index("payment_txs_source_payment_tx_idx").on(
-      table.sourcePaymentTxId,
-    ),
     statusUpdatedAtIdx: index("payment_txs_status_updated_at_idx").on(
       table.status,
       table.updatedAt,
@@ -214,9 +169,5 @@ export type PaymentProviderCredentialSet =
   typeof paymentProviderCredentialSets.$inferSelect;
 export type NewPaymentProviderCredentialSet =
   typeof paymentProviderCredentialSets.$inferInsert;
-export type PaymentClientProviderBinding =
-  typeof paymentClientProviderBindings.$inferSelect;
-export type NewPaymentClientProviderBinding =
-  typeof paymentClientProviderBindings.$inferInsert;
 export type PaymentTx = typeof paymentTxs.$inferSelect;
 export type NewPaymentTx = typeof paymentTxs.$inferInsert;

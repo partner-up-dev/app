@@ -11,7 +11,6 @@ import type { TradeOrder } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentClientProviderBindingRepository } from "../../../repositories/PaymentClientProviderBindingRepository";
 import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
@@ -30,7 +29,6 @@ const billLineRepo = new BillLineRepository();
 const paymentTxRepo = new PaymentTxRepository();
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
 const credentialSetRepo = new PaymentProviderCredentialSetRepository();
-const bindingRepo = new PaymentClientProviderBindingRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const userRepo = new UserRepository();
 
@@ -64,7 +62,6 @@ export type PaymentCheckoutProjection = {
 
 export type PaymentTxProjection = {
   id: string;
-  billId: string;
   billLineId: string;
   type: "CHARGE" | "REFUND";
   status: string;
@@ -72,7 +69,6 @@ export type PaymentTxProjection = {
   currency: "CNY";
   clientId: string | null;
   providerInstanceId: string;
-  sourcePaymentTxId: string | null;
   providerStatus: string | null;
   clientAction: unknown;
   expiresAt: string | null;
@@ -83,7 +79,6 @@ export type PaymentTxProjection = {
 
 const toPaymentTxProjection = (tx: PaymentTx): PaymentTxProjection => ({
   id: tx.id,
-  billId: tx.billId,
   billLineId: tx.billLineId,
   type: tx.type,
   status: tx.status,
@@ -91,7 +86,6 @@ const toPaymentTxProjection = (tx: PaymentTx): PaymentTxProjection => ({
   currency: tx.currency,
   clientId: tx.clientId,
   providerInstanceId: tx.providerInstanceId,
-  sourcePaymentTxId: tx.sourcePaymentTxId,
   providerStatus: tx.providerStatus,
   clientAction: tx.clientAction,
   expiresAt: tx.expiresAt?.toISOString() ?? null,
@@ -213,25 +207,18 @@ async function resolveProviderForClient(input: {
   providerInstance: PaymentProviderInstance;
   credentialSet: PaymentProviderCredentialSet;
 }> {
-  const binding = await bindingRepo.findActiveByClientId(input.clientId);
-  if (!binding) {
-    return throwHttpProblem({
-      status: 409,
-      detail: `No active payment provider binding for client ${input.clientId}`,
-    });
-  }
-  const providerInstance = await providerInstanceRepo.findById(
-    binding.providerInstanceId,
+  const providerInstance = await providerInstanceRepo.findActiveByClientId(
+    input.clientId,
   );
-  if (!providerInstance || providerInstance.status !== "ACTIVE") {
+  if (!providerInstance) {
     return throwHttpProblem({
       status: 409,
-      detail: "Configured payment provider is not active",
+      detail: `No active payment provider instance for client ${input.clientId}`,
     });
   }
-  const credentialSet = providerInstance.activeCredentialSetId
-    ? await credentialSetRepo.findById(providerInstance.activeCredentialSetId)
-    : await credentialSetRepo.findActiveByProviderInstanceId(providerInstance.id);
+  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
+    providerInstance.id,
+  );
   if (!credentialSet || credentialSet.status !== "ACTIVE") {
     return throwHttpProblem({
       status: 409,
@@ -319,7 +306,6 @@ export async function createOrReusePaymentForBillLine(input: {
 
   const created = await paymentTxRepo.create({
     id: paymentTxId,
-    billId: basis.bill.id,
     billLineId: basis.line.id,
     type: "CHARGE",
     providerInstanceId: provider.providerInstance.id,
@@ -414,9 +400,9 @@ export async function syncPaymentTx(input: {
   if (!providerInstance) {
     return throwHttpProblem({ status: 404, detail: "Payment provider not found" });
   }
-  const credentialSet = providerInstance.activeCredentialSetId
-    ? await credentialSetRepo.findById(providerInstance.activeCredentialSetId)
-    : await credentialSetRepo.findActiveByProviderInstanceId(providerInstance.id);
+  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
+    providerInstance.id,
+  );
   if (!credentialSet) {
     return throwHttpProblem({
       status: 409,

@@ -36,6 +36,7 @@ const registrationConfigSchema = z.object({
   providerType: z.literal("WECHAT_PAY"),
   instanceKey: z.string().min(1),
   displayName: z.string().min(1),
+  clientId: z.string().min(1),
   config: providerConfigSchema,
   credentialSet: z.object({
     merchantSerialNo: z.string().min(1),
@@ -43,14 +44,6 @@ const registrationConfigSchema = z.object({
     apiV3Key: z.string().min(1),
     verifier: verifierSchema,
   }),
-  clientBindings: z
-    .array(
-      z.object({
-        clientId: z.string().min(1),
-        priority: z.number().int().positive().default(100),
-      }),
-    )
-    .min(1),
 });
 
 const configPath = process.argv[2];
@@ -70,7 +63,6 @@ console.info(
     {
       providerInstanceId: result.providerInstanceId,
       credentialSetId: result.credentialSetId,
-      clientBindingIds: result.clientBindingIds,
     },
     null,
     2,

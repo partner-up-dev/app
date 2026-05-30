@@ -1,9 +1,11 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { PaymentTxId } from "../../../entities/payment";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { applyBillSettlementToOrder } from "../../trade/use-cases/apply-bill-settlement-to-order";
 
 const paymentTxRepo = new PaymentTxRepository();
+const billLineRepo = new BillLineRepository();
 
 export async function applyPaymentSettlementConsequence(input: {
   paymentTxId: string;
@@ -23,5 +25,10 @@ export async function applyPaymentSettlementConsequence(input: {
     };
   }
 
-  return applyBillSettlementToOrder({ billId: paymentTx.billId });
+  const billLine = await billLineRepo.findById(paymentTx.billLineId);
+  if (!billLine) {
+    return throwHttpProblem({ status: 404, detail: "BillLine not found" });
+  }
+
+  return applyBillSettlementToOrder({ billId: billLine.billId });
 }

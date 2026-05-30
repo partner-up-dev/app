@@ -40,7 +40,7 @@ export async function reconcileBillToTargetAmount(
       amountFen: line.amountFen,
       label: line.label,
       description: line.description,
-      sourceLineId: line.sourceLineId,
+      refundOfBillLineId: line.refundOfBillLineId,
     })),
     targetChargeTotalFen: seed.targetChargeTotalFen,
   });
@@ -75,9 +75,9 @@ export async function reconcileBillToTargetAmount(
             ? "Rental termination refund"
             : "Rental termination adjustment",
         description: `Termination attempt ${seed.sourceAttemptId} reconciliation`,
-        sourceLineId:
+        refundOfBillLineId:
           plan.direction === "REFUND"
-            ? (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["sourceLineId"]) ??
+            ? (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["refundOfBillLineId"]) ??
               null
             : null,
       }) satisfies NewBillLine,

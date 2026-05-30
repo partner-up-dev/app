@@ -7,7 +7,7 @@ import {
   type PaymentTxId,
   type PaymentProviderInstanceId,
 } from "../entities/payment";
-import type { BillId, BillLineId } from "../entities/bill";
+import type { BillLineId } from "../entities/bill";
 import type { PaymentTxStatus, PaymentTxType } from "../domains/payment";
 import type { RepositoryExecutor } from "./_executor";
 
@@ -63,14 +63,6 @@ export class PaymentTxRepository {
         ),
       );
     return result[0] ?? null;
-  }
-
-  async listByBillId(billId: BillId): Promise<PaymentTx[]> {
-    return this.executor
-      .select()
-      .from(paymentTxs)
-      .where(eq(paymentTxs.billId, billId))
-      .orderBy(desc(paymentTxs.createdAt));
   }
 
   async listByBillLineIds(billLineIds: BillLineId[]): Promise<PaymentTx[]> {

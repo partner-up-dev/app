@@ -1,10 +1,10 @@
 import { db } from "../../../lib/db";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
   PaymentProviderInstanceConfig,
   PaymentProviderType,
   WeChatPayVerifierConfig,
 } from "../model";
-import { PaymentClientProviderBindingRepository } from "../../../repositories/PaymentClientProviderBindingRepository";
 import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 
@@ -12,6 +12,7 @@ export type RegisterPaymentProviderInstanceInput = {
   providerType: PaymentProviderType;
   instanceKey: string;
   displayName: string;
+  clientId: string;
   config: PaymentProviderInstanceConfig;
   credentialSet: {
     merchantSerialNo: string;
@@ -19,10 +20,6 @@ export type RegisterPaymentProviderInstanceInput = {
     apiV3Key: string;
     verifier: WeChatPayVerifierConfig;
   };
-  clientBindings: Array<{
-    clientId: string;
-    priority: number;
-  }>;
 };
 
 export async function registerPaymentProviderInstance(
@@ -30,17 +27,22 @@ export async function registerPaymentProviderInstance(
 ): Promise<{
   providerInstanceId: string;
   credentialSetId: string;
-  clientBindingIds: string[];
 }> {
   return db.transaction(async (tx) => {
     const providerRepo = new PaymentProviderInstanceRepository(tx);
     const credentialRepo = new PaymentProviderCredentialSetRepository(tx);
-    const bindingRepo = new PaymentClientProviderBindingRepository(tx);
 
     const existingProvider = await providerRepo.findByProviderTypeAndInstanceKey({
       providerType: input.providerType,
       instanceKey: input.instanceKey,
     });
+    if (existingProvider && existingProvider.clientId !== input.clientId) {
+      return throwHttpProblem({
+        status: 409,
+        detail: "Payment provider instance is already registered for another client",
+      });
+    }
+
     const provider =
       existingProvider ??
       (await providerRepo.create({
@@ -48,6 +50,7 @@ export async function registerPaymentProviderInstance(
         instanceKey: input.instanceKey,
         status: "ACTIVE",
         displayName: input.displayName,
+        clientId: input.clientId,
         config: input.config,
       }));
 
@@ -64,39 +67,9 @@ export async function registerPaymentProviderInstance(
         verifier: input.credentialSet.verifier,
       }));
 
-    if (provider.activeCredentialSetId !== credential.id) {
-      await providerRepo.setActiveCredentialSet({
-        providerInstanceId: provider.id,
-        credentialSetId: credential.id,
-      });
-    }
-
-    const clientBindingIds: string[] = [];
-    for (const binding of input.clientBindings) {
-      const existingBinding =
-        await bindingRepo.findActiveByClientProvider({
-          clientId: binding.clientId,
-          providerInstanceId: provider.id,
-        });
-
-      if (existingBinding) {
-        clientBindingIds.push(existingBinding.id);
-        continue;
-      }
-
-      const created = await bindingRepo.create({
-        clientId: binding.clientId,
-        providerInstanceId: provider.id,
-        status: "ACTIVE",
-        priority: binding.priority,
-      });
-      clientBindingIds.push(created.id);
-    }
-
     return {
       providerInstanceId: provider.id,
       credentialSetId: credential.id,
-      clientBindingIds,
     };
   });
 }

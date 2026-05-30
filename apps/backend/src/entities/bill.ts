@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   index,
   integer,
   pgTable,
@@ -60,12 +61,17 @@ export const billLines = pgTable(
     currency: text("currency").$type<"CNY">().notNull().default("CNY"),
     label: text("label").notNull(),
     description: text("description"),
-    sourceLineId: uuid("source_line_id").$type<BillLineId | null>(),
+    refundOfBillLineId: uuid("refund_of_bill_line_id")
+      .$type<BillLineId | null>()
+      .references((): AnyPgColumn => billLines.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     billKindIdx: index("bill_lines_bill_kind_idx").on(table.billId, table.kind),
     userIdx: index("bill_lines_user_idx").on(table.userId),
+    refundOfBillLineIdx: index("bill_lines_refund_of_bill_line_idx").on(
+      table.refundOfBillLineId,
+    ),
   }),
 );
 

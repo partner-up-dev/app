@@ -54,7 +54,7 @@ export type BillDetailProjection = {
     currency: "CNY";
     label: string;
     description: string | null;
-    sourceLineId: string | null;
+    refundOfBillLineId: string | null;
     settlementStatus: string;
     paidFen: number;
     refundedFen: number;
@@ -164,7 +164,7 @@ async function buildBillDetail(input: {
         currency: line.currency,
         label: line.label,
         description: line.description,
-        sourceLineId: line.sourceLineId,
+        refundOfBillLineId: line.refundOfBillLineId,
         settlementStatus: payment?.status ?? "UNPAID",
         paidFen: payment?.paidFen ?? 0,
         refundedFen: payment?.refundableFen ?? 0,

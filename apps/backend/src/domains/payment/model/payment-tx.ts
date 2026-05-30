@@ -17,8 +17,6 @@ export type PaymentProviderCredentialSetStatus =
   | "DISABLED"
   | "ROTATED_OUT";
 
-export type PaymentClientProviderBindingStatus = "ACTIVE" | "DISABLED";
-
 export type WeChatPayVerifierConfig =
   | {
       mode: "WECHAT_PAY_PUBLIC_KEY";

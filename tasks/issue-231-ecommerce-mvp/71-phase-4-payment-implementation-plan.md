@@ -79,12 +79,10 @@ type PaymentTxStatus =
 
 type PaymentTx = {
   id: string;
-  bill_id: string;
   bill_line_id: string;
   type: PaymentTxType;
   provider_instance_id: string;
   client_id?: string | null;
-  source_payment_tx_id?: string | null;
   status: PaymentTxStatus;
   amount_fen: number;
   currency: "CNY";
@@ -118,8 +116,8 @@ type PaymentProviderInstance = {
   instance_key: string;
   status: "ACTIVE" | "DISABLED";
   display_name: string;
+  client_id: string;
   config: unknown;
-  credential_set_id: string;
   created_at: string;
   updated_at: string;
 };
@@ -128,6 +126,11 @@ type PaymentProviderInstance = {
 For WeChat Pay, `instance_key` should be unique on `mchid + appid`. This is the
 stable provider-instance identity; certificate serials and keys can rotate
 without changing the instance identity.
+
+Each provider instance belongs to exactly one runtime `client_id`. The current
+`apps/frontend` client id is `web`. If a future client surface needs a different
+WeChat appid/mchid/API mode, register a separate provider instance for that
+client instead of adding a binding table.
 
 `config` should contain non-secret provider metadata only. For WeChat Pay:
 
@@ -184,24 +187,7 @@ The public key / certificate is not a customer secret in the same sense as the
 merchant private key, but it is security-critical verifier material. Store it in
 the same credential-set row so rotation stays explicit.
 
-Add `payment_client_provider_bindings`.
-
-Recommended fields:
-
-```ts
-type PaymentClientProviderBinding = {
-  id: string;
-  client_id: string;
-  provider_instance_id: string;
-  status: "ACTIVE" | "DISABLED";
-  priority: number;
-  created_at: string;
-  updated_at: string;
-};
-```
-
-`client_id` means the runtime client surface, not the end user. The current
-`apps/frontend` client id is `web`.
+`client_id` means the runtime client surface, not the end user.
 
 - `web`
 - `wechat_miniapp`
@@ -214,15 +200,15 @@ The recommended admin/configuration behavior is a single registration command:
 ```text
 RegisterPaymentProviderInstance(
   provider_type,
+  client_id,
   instance_config,
-  credential_set,
-  client_bindings[]
+  credential_set
 )
 ```
 
-That command creates or updates the provider instance and declares the client
-ids that can use it in the same operation. This avoids a half-configured
-provider instance that no client can route to.
+That command creates or reuses the provider instance and declares the owning
+client id in the same operation. This avoids a half-configured provider
+instance that no client can route to.
 
 For Phase 4, this should be a backend script/config command rather than a broad
 Payment Admin UI. Payment Admin remains deferred.
@@ -230,18 +216,17 @@ Payment Admin UI. Payment Admin remains deferred.
 Indexes and constraints:
 
 - primary key on `id`
-- index on `bill_id`
 - index on `bill_line_id`
 - index on `provider_instance_id`
 - unique index on `(provider_type, instance_key)` for provider instances
+- unique partial index on active `payment_provider_instances.client_id`
 - index on `payment_provider_credential_sets.provider_instance_id`
 - at most one active credential set per provider instance
-- unique index on `(client_id, provider_instance_id)` for active client
-  bindings
 - unique index on `(provider_instance_id, merchant_order_no)` where not null
 - unique index on `(provider_instance_id, merchant_refund_no)` where not null
 - index on `(status, updated_at)` for pending reconciliation
-- index on `source_payment_tx_id` for refund-to-charge traceability
+- index on `bill_lines.refund_of_bill_line_id` for refund-to-charge-line
+  traceability
 
 Do not use a DB constraint alone to express "only one active payment per
 BillLine". Keep that as service logic so retry behavior can remain explicit:
@@ -254,14 +239,15 @@ BillLine". Keep that as service logic so retry behavior can remain explicit:
 
 Refund preparation:
 
-- Phase 4 should set `BillLine.sourceLineId` for refund lines when possible.
+- Phase 4 should set `BillLine.refundOfBillLineId` for refund lines when
+  possible.
 - Refund PaymentTx targets the refund BillLine.
-- The refund flow uses `sourceLineId` to find the successful original charge
-  PaymentTx required by the provider refund API, then records that charge tx in
-  `PaymentTx.source_payment_tx_id`.
-- If a legacy refund line lacks `sourceLineId`, the refund service may fall
-  back to same-bill same-user successful charge PaymentTx lookup, but new
-  reconciliation should write the source line.
+- The refund flow uses `refundOfBillLineId` to find the successful original
+  charge PaymentTx required by the provider refund API.
+- PaymentTx does not also store refund-to-charge linkage. BillLine owns that
+  relation as the SSoT.
+- If a legacy refund line lacks `refundOfBillLineId`, reject provider refund
+  creation and leave it for manual remediation.
 
 ## Payment Provider Port
 
@@ -312,8 +298,7 @@ Provider selection happens before the provider adapter is called:
 
 ```text
 client_id
-  -> active payment_client_provider_bindings
-  -> provider_instance_id
+  -> active payment_provider_instances.client_id
   -> provider adapter method
 ```
 
@@ -321,14 +306,15 @@ Rules:
 
 - frontend passes `client_id` through the RPC-layer `x-client-id` header; query
   and mutation payloads must not carry it
-- backend validates `client_id` against server-owned client-provider bindings
+- backend validates `client_id` against server-owned active provider instances
 - `client_id` selects provider instance only
 - `client_id` never selects amount, BillLine, payer, or order truth
 - PaymentTx freezes `client_id` and `provider_instance_id`
-- if no active binding exists, checkout should fail with a configuration error
-- if multiple active bindings exist, choose the lowest `priority` value
+- if no active provider instance exists for the client, checkout should fail
+  with a configuration error
+- the DB must allow at most one active provider instance per client id
 
-Example bindings:
+Example provider-instance registrations:
 
 | client_id | provider_type | instance key | WeChat API |
 | --- | --- | --- | --- |
@@ -363,7 +349,6 @@ Recommended Phase 4 source of truth:
 - the script idempotently upserts:
   - `payment_provider_instances`
   - `payment_provider_credential_sets`
-  - `payment_client_provider_bindings`
 - the application runtime reads active credential-set rows when calling the
   provider adapter
 
@@ -408,6 +393,7 @@ Example registration payload:
   "providerType": "WECHAT_PAY",
   "instanceKey": "mch:1900000001:app:wx123",
   "displayName": "WeChat Official Account Pay",
+  "clientId": "web",
   "config": {
     "adapterMode": "WECHAT_PAY_API_V3",
     "appId": "wx123",
@@ -426,13 +412,7 @@ Example registration payload:
       "publicKeyId": "PUB_KEY_ID_00000000000000000000000000000000",
       "publicKeyPem": "-----BEGIN PUBLIC KEY-----\\n...\\n-----END PUBLIC KEY-----"
     }
-  },
-  "clientBindings": [
-    {
-      "clientId": "web",
-      "priority": 100
-    }
-  ]
+  }
 }
 ```
 
@@ -450,7 +430,7 @@ Credential rotation rule:
 - add a new credential set as `ACTIVE`
 - mark the previous active set `ROTATED_OUT`
 - keep rotated verifier material available while old callbacks may still arrive
-- new PaymentTx rows use the active credential set at creation time
+- provider calls load the active credential set for the frozen provider instance
 - existing pending PaymentTx rows should continue using their frozen
   provider instance and the verifier registry for callback/query convergence
 
@@ -459,8 +439,8 @@ identity.
 
 Why persist CredentialSet at all:
 
-- PaymentTx needs to freeze which provider instance and credential context was
-  used when the provider order was created
+- PaymentTx needs to freeze which provider instance was used when the provider
+  order was created
 - callbacks may arrive after a new key/certificate is activated
 - refunds and queries must still resolve the right provider configuration
 - operators need to know which credentials are active or rotated out
@@ -548,7 +528,7 @@ Payer identity rule:
   `web` checkout when `web` is mapped to a WeChat JSAPI provider instance.
 - If the selected provider instance appid differs from the appid that produced
   stored openids, checkout must fail clearly instead of attempting payment.
-- Mini Program payment may need a different appid/openid binding. If the repo
+- Mini Program payment may need a different appid/openid record. If the repo
   does not yet store miniapp openids, `wechat_miniapp` should remain
   configured-disabled.
 
@@ -655,7 +635,8 @@ not passively listen to payment.
 
 - Input: refund BillLine id.
 - Verify `BillLine.kind = REFUND`.
-- Resolve original successful charge PaymentTx through `sourceLineId`.
+- Resolve original successful charge PaymentTx through
+  `BillLine.refundOfBillLineId`.
 - Create or reuse refund PaymentTx.
 - Call WeChat refund API.
 - Store normalized refund status and provider snapshot.
@@ -785,7 +766,7 @@ Cancellation/refund scenario:
 
 1. Create and fully pay Rental order with two participant lines.
 2. Creator requests cancellation.
-3. Cancellation creates refund BillLines with `sourceLineId`.
+3. Cancellation creates refund BillLines with `refundOfBillLineId`.
 4. Refund PaymentTx is created through fake WeChat refund adapter.
 5. Bill Detail shows refund progress and then refunded status.
 
@@ -816,7 +797,7 @@ Unit tests:
    summaries.
 3. Add Bill Detail backend projection and frontend page.
 4. Add Payment Checkout backend projection and frontend page.
-5. Add PaymentProviderInstance, credential set, client binding registry,
+5. Add PaymentProviderInstance, credential set,
    PaymentProviderPort, fake adapter, and WeChat adapter skeleton behind
    configuration.
 6. Implement WeChat charge prepay for the first enabled client/provider and
@@ -836,9 +817,9 @@ Unit tests:
 - Bill Detail exists and is reachable from Order Detail.
 - Payment Checkout exists and is scoped to one BillLine.
 - A participant can pay only their own BillLine.
-- The first enabled WeChat Pay client/provider binding works behind provider
+- The first enabled WeChat Pay client/provider instance works behind provider
   port.
-- Provider instance and client binding registry can route a client id to a
+- Provider instance registry can route a client id to a
   WeChat provider instance.
 - Provider credential sets store the WeChat private key, APIv3 key, and verifier
   material directly in DB fields as a deliberate serverless MVP compromise.
@@ -859,8 +840,8 @@ Unit tests:
 
 Current design satisfies the main Phase 4 requirements:
 
-- WeChat Pay is the only real provider, but provider type / provider instance /
-  client binding are separated for future providers and future client surfaces.
+- WeChat Pay is the only real provider, but provider type and provider instance
+  stay explicit for future providers and future client surfaces.
 - Payment targets BillLine, not Bill or Order.
 - Each participant pays their own line; creator paying for other participants
   is intentionally out of scope.
@@ -921,7 +902,7 @@ behind `PaymentProviderPort`.
 
 Implemented on 2026-05-30:
 
-- Added Payment provider instance, credential set, client binding, and
+- Added Payment provider instance, credential set, and
   BillLine-scoped PaymentTx persistence.
 - Added explicit provider registration script:
   `pnpm --filter @partner-up-dev/backend payment:register-provider <config.json>`.
@@ -942,7 +923,7 @@ Implemented on 2026-05-30:
 - Added explicit settlement consequence topology: successful CHARGE PaymentTx
   asks Bill to re-derive settlement; Bill notifies Order/Trade; Order starts
   Rental Fulfillment only after all charge BillLines settle.
-- Rental cancellation now creates refund BillLines with `sourceLineId` and
+- Rental cancellation now creates refund BillLines with `refundOfBillLineId` and
   directly creates refund PaymentTx records for eligible successful original
   charges.
 - Paid Rental cancellation updates Rental Fulfillment to cancelled when a
@@ -958,6 +939,11 @@ Implemented on 2026-05-30:
   provider `chargeMode` plus backend-returned client actions.
 - Corrected settlement consequence topology: Bill settlement notifies Order;
   Order/Trade starts Rental Fulfillment.
+- Corrected the final Payment SSoT topology: removed
+  `PaymentClientProviderBinding`, moved `clientId` onto
+  `PaymentProviderInstance`, removed `activeCredentialSetId`, removed
+  PaymentTx `billId` and source-payment links, and made BillLine
+  `refundOfBillLineId` the single refund-to-charge-line relation.
 
 Verification completed on 2026-05-30:
 
@@ -977,5 +963,5 @@ Verification completed on 2026-05-30:
 - Non-WeChat payment providers.
 - Payment provider event history table.
 - Merchant settlement, deposits, and provider payout accounting.
-- Enabling extra client/provider bindings beyond the first production client.
+- Enabling extra client/provider instances beyond the first production client.
 - Offline/manual payment.

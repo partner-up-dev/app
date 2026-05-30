@@ -147,7 +147,7 @@ type BillLine = {
   currency: "CNY";
   label: string;
   description?: string | null;
-  source_line_id?: string | null;
+  refund_of_bill_line_id?: string | null;
 };
 
 type BillSeed = {

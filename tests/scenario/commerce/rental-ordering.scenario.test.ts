@@ -45,6 +45,7 @@ async function givenRentalOrderingPlacement() {
     providerType: "WECHAT_PAY",
     instanceKey: "system-fake-wechat-pay-web",
     displayName: "System Fake WeChat Pay Web",
+    clientId: "web",
     config: {
       adapterMode: "FAKE_WECHAT_PAY",
       appId: "fake-web-appid",
@@ -60,12 +61,6 @@ async function givenRentalOrderingPlacement() {
         publicKeyPem: "fake-public-key",
       },
     },
-    clientBindings: [
-      {
-        clientId: "web",
-        priority: 1,
-      },
-    ],
   });
 
   const spu = await createProductSpu({

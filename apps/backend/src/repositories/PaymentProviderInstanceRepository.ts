@@ -5,7 +5,6 @@ import {
   type NewPaymentProviderInstance,
   type PaymentProviderInstance,
   type PaymentProviderInstanceId,
-  type PaymentProviderCredentialSetId,
 } from "../entities/payment";
 import type { PaymentProviderType } from "../domains/payment";
 import type { RepositoryExecutor } from "./_executor";
@@ -48,18 +47,17 @@ export class PaymentProviderInstanceRepository {
     return result[0] ?? null;
   }
 
-  async setActiveCredentialSet(input: {
-    providerInstanceId: PaymentProviderInstanceId;
-    credentialSetId: PaymentProviderCredentialSetId;
-  }): Promise<PaymentProviderInstance | null> {
+  async findActiveByClientId(clientId: string): Promise<PaymentProviderInstance | null> {
     const result = await this.executor
-      .update(paymentProviderInstances)
-      .set({
-        activeCredentialSetId: input.credentialSetId,
-        updatedAt: new Date(),
-      })
-      .where(eq(paymentProviderInstances.id, input.providerInstanceId))
-      .returning();
+      .select()
+      .from(paymentProviderInstances)
+      .where(
+        and(
+          eq(paymentProviderInstances.clientId, clientId),
+          eq(paymentProviderInstances.status, "ACTIVE"),
+        ),
+      )
+      .orderBy(asc(paymentProviderInstances.createdAt));
     return result[0] ?? null;
   }
 }

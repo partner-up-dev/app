@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
+import type { BillLine, BillLineId } from "../../../entities/bill";
 import type {
   PaymentProviderCredentialSet,
   PaymentTx,
@@ -8,7 +8,6 @@ import type {
 } from "../../../entities/payment";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
-import { BillRepository } from "../../../repositories/BillRepository";
 import { PaymentProviderCredentialSetRepository } from "../../../repositories/PaymentProviderCredentialSetRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
@@ -18,7 +17,6 @@ import {
 } from "../services";
 
 const billLineRepo = new BillLineRepository();
-const billRepo = new BillRepository();
 const paymentTxRepo = new PaymentTxRepository();
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
 const credentialSetRepo = new PaymentProviderCredentialSetRepository();
@@ -34,7 +32,7 @@ export type RefundPaymentTxResult =
       created: false;
       reason:
         | "REFUND_ALREADY_EXISTS"
-        | "NO_SOURCE_CHARGE_LINE"
+        | "NO_REFUND_OF_CHARGE_LINE"
         | "NO_SUCCESSFUL_ORIGINAL_CHARGE";
       paymentTxId?: string;
     };
@@ -52,11 +50,11 @@ const mapNormalizedStatusToTxStatus = (
 };
 
 const findSuccessfulOriginalCharge = async (
-  sourceLineId: BillLineId,
+  chargeBillLineId: BillLineId,
 ): Promise<PaymentTx | null> => {
-  const sourceLineTxs = await paymentTxRepo.listByBillLineIds([sourceLineId]);
+  const chargeLineTxs = await paymentTxRepo.listByBillLineIds([chargeBillLineId]);
   return (
-    sourceLineTxs.find(
+    chargeLineTxs.find(
       (tx) => tx.type === "CHARGE" && tx.status === "SUCCEEDED",
     ) ?? null
   );
@@ -75,9 +73,9 @@ const resolveCredentialSet = async (
     });
   }
 
-  const credentialSet = providerInstance.activeCredentialSetId
-    ? await credentialSetRepo.findById(providerInstance.activeCredentialSetId)
-    : await credentialSetRepo.findActiveByProviderInstanceId(providerInstance.id);
+  const credentialSet = await credentialSetRepo.findActiveByProviderInstanceId(
+    providerInstance.id,
+  );
   if (!credentialSet || credentialSet.status !== "ACTIVE") {
     return throwHttpProblem({
       status: 409,
@@ -90,7 +88,6 @@ const resolveCredentialSet = async (
 
 const createRefundTxForLine = async (input: {
   refundLine: BillLine;
-  billId: BillId;
   originalCharge: PaymentTx;
 }): Promise<RefundPaymentTxResult> => {
   const providerInstance = await providerInstanceRepo.findById(
@@ -112,12 +109,10 @@ const createRefundTxForLine = async (input: {
   const merchantRefundNo = buildMerchantRefundNo(paymentTxId);
   const created = await paymentTxRepo.create({
     id: paymentTxId,
-    billId: input.billId,
     billLineId: input.refundLine.id,
     type: "REFUND",
     providerInstanceId: input.originalCharge.providerInstanceId,
     clientId: null,
-    sourcePaymentTxId: input.originalCharge.id,
     status: "INITIATED",
     amountFen: input.refundLine.amountFen,
     currency: input.refundLine.currency,
@@ -184,14 +179,16 @@ export async function createRefundPaymentTxForRefundLine(input: {
     };
   }
 
-  if (!refundLine.sourceLineId) {
+  if (!refundLine.refundOfBillLineId) {
     return {
       created: false,
-      reason: "NO_SOURCE_CHARGE_LINE",
+      reason: "NO_REFUND_OF_CHARGE_LINE",
     };
   }
 
-  const originalCharge = await findSuccessfulOriginalCharge(refundLine.sourceLineId);
+  const originalCharge = await findSuccessfulOriginalCharge(
+    refundLine.refundOfBillLineId,
+  );
   if (!originalCharge) {
     return {
       created: false,
@@ -205,14 +202,8 @@ export async function createRefundPaymentTxForRefundLine(input: {
     });
   }
 
-  const bill = await billRepo.findById(refundLine.billId as BillId);
-  if (!bill) {
-    return throwHttpProblem({ status: 404, detail: "Bill not found for refund line" });
-  }
-
   return createRefundTxForLine({
     refundLine,
-    billId: bill.id,
     originalCharge,
   });
 }

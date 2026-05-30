@@ -642,6 +642,8 @@ the baseline for downstream Order / Bill / Fulfillment design.
   settlement topology so Payment convergence asks Bill to derive settlement,
   Bill notifies Order, and Order starts Rental Fulfillment.
 - 2026-05-30: Corrected the Payment provider topology again: PaymentTx now
-  points to `PaymentProviderInstance`, refund txs point back to the source
-  charge tx through `sourcePaymentTxId`, and the frontend sends client identity
-  only as the RPC-layer `x-client-id` header (`web` for `apps/frontend`).
+  points to `PaymentProviderInstance` and exactly one BillLine; BillLine owns
+  refund-to-charge-line linkage through `refundOfBillLineId`; provider
+  instances own exactly one runtime `clientId`; and the frontend sends client
+  identity only as the RPC-layer `x-client-id` header (`web` for
+  `apps/frontend`).

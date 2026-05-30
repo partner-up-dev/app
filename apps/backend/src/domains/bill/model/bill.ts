@@ -9,7 +9,7 @@ export type BillLine = {
   amountFen: number;
   label: string;
   description?: string | null;
-  sourceLineId?: string | null;
+  refundOfBillLineId?: string | null;
 };
 
 export type Bill = {
