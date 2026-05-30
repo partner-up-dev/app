@@ -8,7 +8,7 @@ import {
   type PaymentProviderInstanceId,
 } from "../entities/payment";
 import type { BillId, BillLineId } from "../entities/bill";
-import type { PaymentDirection, PaymentTxStatus } from "../domains/payment";
+import type { PaymentTxStatus, PaymentTxType } from "../domains/payment";
 import type { RepositoryExecutor } from "./_executor";
 
 const ACTIVE_PAYMENT_STATUSES: PaymentTxStatus[] = [
@@ -84,7 +84,7 @@ export class PaymentTxRepository {
 
   async findActiveByBillLine(input: {
     billLineId: BillLineId;
-    direction: PaymentDirection;
+    type: PaymentTxType;
   }): Promise<PaymentTx | null> {
     const result = await this.executor
       .select()
@@ -92,7 +92,7 @@ export class PaymentTxRepository {
       .where(
         and(
           eq(paymentTxs.billLineId, input.billLineId),
-          eq(paymentTxs.direction, input.direction),
+          eq(paymentTxs.type, input.type),
           inArray(paymentTxs.status, ACTIVE_PAYMENT_STATUSES),
         ),
       )
@@ -102,7 +102,7 @@ export class PaymentTxRepository {
 
   async findLatestByBillLine(input: {
     billLineId: BillLineId;
-    direction: PaymentDirection;
+    type: PaymentTxType;
   }): Promise<PaymentTx | null> {
     const result = await this.executor
       .select()
@@ -110,7 +110,7 @@ export class PaymentTxRepository {
       .where(
         and(
           eq(paymentTxs.billLineId, input.billLineId),
-          eq(paymentTxs.direction, input.direction),
+          eq(paymentTxs.type, input.type),
         ),
       )
       .orderBy(desc(paymentTxs.createdAt));

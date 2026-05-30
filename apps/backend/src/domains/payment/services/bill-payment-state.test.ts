@@ -37,24 +37,23 @@ const billLine = (input: {
 const paymentTx = (input: {
   id: string;
   billLineId: BillLineId;
-  direction: PaymentTx["direction"];
+  type: PaymentTx["type"];
   status: PaymentTx["status"];
   amountFen: number;
 }): PaymentTx => ({
   id: input.id as PaymentTxId,
   billId,
   billLineId: input.billLineId,
-  direction: input.direction,
-  providerType: "WECHAT_PAY",
+  type: input.type,
   providerInstanceId,
   clientId: "web",
-  channel: input.direction === "CHARGE" ? "WECHAT_PAY" : "WECHAT_REFUND",
+  sourcePaymentTxId: null,
   status: input.status,
   amountFen: input.amountFen,
   currency: "CNY",
   requestedBy: userA,
-  merchantOrderNo: input.direction === "CHARGE" ? `order-${input.id}` : null,
-  merchantRefundNo: input.direction === "REFUND" ? `refund-${input.id}` : null,
+  merchantOrderNo: input.type === "CHARGE" ? `order-${input.id}` : null,
+  merchantRefundNo: input.type === "REFUND" ? `refund-${input.id}` : null,
   providerPrepayId: null,
   providerTransactionId: null,
   providerRefundId: null,
@@ -91,7 +90,7 @@ describe("deriveBillPaymentState", () => {
         paymentTx({
           id: "00000000-0000-0000-0000-000000000301",
           billLineId: creatorLine.id,
-          direction: "CHARGE",
+          type: "CHARGE",
           status: "SUCCEEDED",
           amountFen: 1000,
         }),
@@ -125,14 +124,14 @@ describe("deriveBillPaymentState", () => {
         paymentTx({
           id: "00000000-0000-0000-0000-000000000311",
           billLineId: chargeLine.id,
-          direction: "CHARGE",
+          type: "CHARGE",
           status: "SUCCEEDED",
           amountFen: 1000,
         }),
         paymentTx({
           id: "00000000-0000-0000-0000-000000000312",
           billLineId: refundLine.id,
-          direction: "REFUND",
+          type: "REFUND",
           status: "SUCCEEDED",
           amountFen: 1000,
         }),
@@ -167,14 +166,14 @@ describe("deriveBillPaymentState", () => {
         paymentTx({
           id: "00000000-0000-0000-0000-000000000321",
           billLineId: chargeLine.id,
-          direction: "CHARGE",
+          type: "CHARGE",
           status: "ACTION_REQUIRED",
           amountFen: 1000,
         }),
         paymentTx({
           id: "00000000-0000-0000-0000-000000000322",
           billLineId: refundLine.id,
-          direction: "REFUND",
+          type: "REFUND",
           status: "PROCESSING",
           amountFen: 500,
         }),

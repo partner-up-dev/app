@@ -249,13 +249,6 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
   async createChargePrepay(
     input: CreateChargePrepayInput,
   ): Promise<ChargePrepayResult> {
-    if (input.channel !== "WECHAT_PAY") {
-      return throwHttpProblem({
-        status: 409,
-        detail: `Unsupported charge channel: ${input.channel}`,
-      });
-    }
-
     if (this.config.chargeMode === "JSAPI") {
       if (!input.payerOpenId) {
         return throwHttpProblem({

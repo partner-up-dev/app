@@ -40,10 +40,10 @@ const toLinePaymentProjection = (
   const active = lineTxs.find((tx) => activeStatuses.has(tx.status)) ?? null;
   const latest = lineTxs[0] ?? null;
   const paidFen = successful
-    .filter((tx) => tx.direction === "CHARGE")
+    .filter((tx) => tx.type === "CHARGE")
     .reduce((sum, tx) => sum + tx.amountFen, 0);
   const refundedFen = successful
-    .filter((tx) => tx.direction === "REFUND")
+    .filter((tx) => tx.type === "REFUND")
     .reduce((sum, tx) => sum + tx.amountFen, 0);
 
   if (line.kind === "REFUND") {

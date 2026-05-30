@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   index,
   integer,
   jsonb,
@@ -12,13 +13,12 @@ import { sql } from "drizzle-orm";
 import type { BillId, BillLineId } from "./bill";
 import { bills, billLines } from "./bill";
 import type {
-  PaymentChannel,
   PaymentClientProviderBindingStatus,
-  PaymentDirection,
   PaymentProviderCredentialSetStatus,
   PaymentProviderInstanceConfig,
   PaymentProviderInstanceStatus,
   PaymentProviderType,
+  PaymentTxType,
   PaymentTxStatus,
   WeChatPayVerifierConfig,
 } from "../domains/payment";
@@ -53,10 +53,6 @@ export const paymentProviderInstances = pgTable(
     activeCredentialSetId: uuid("active_credential_set_id").$type<
       PaymentProviderCredentialSetId | null
     >(),
-    supportedChannels: text("supported_channels")
-      .array()
-      .$type<PaymentChannel[]>()
-      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -101,6 +97,11 @@ export const paymentProviderCredentialSets = pgTable(
     providerInstanceIdx: index(
       "payment_provider_credential_sets_instance_idx",
     ).on(table.providerInstanceId),
+    activeCredentialSetUnique: uniqueIndex(
+      "payment_provider_credential_sets_active_unique",
+    )
+      .on(table.providerInstanceId)
+      .where(sql`${table.status} = 'ACTIVE'`),
   }),
 );
 
@@ -116,7 +117,6 @@ export const paymentClientProviderBindings = pgTable(
       .$type<PaymentProviderInstanceId>()
       .notNull()
       .references(() => paymentProviderInstances.id, { onDelete: "cascade" }),
-    channel: text("channel").$type<PaymentChannel>().notNull(),
     status: text("status")
       .$type<PaymentClientProviderBindingStatus>()
       .notNull()
@@ -129,6 +129,11 @@ export const paymentClientProviderBindings = pgTable(
     clientStatusPriorityIdx: index(
       "payment_client_provider_bindings_client_status_priority_idx",
     ).on(table.clientId, table.status, table.priority),
+    activeClientProviderUnique: uniqueIndex(
+      "payment_client_provider_bindings_active_unique",
+    )
+      .on(table.clientId, table.providerInstanceId)
+      .where(sql`${table.status} = 'ACTIVE'`),
   }),
 );
 
@@ -147,14 +152,15 @@ export const paymentTxs = pgTable(
       .$type<BillLineId>()
       .notNull()
       .references(() => billLines.id, { onDelete: "cascade" }),
-    direction: text("direction").$type<PaymentDirection>().notNull(),
-    providerType: text("provider_type").$type<PaymentProviderType>().notNull(),
+    type: text("type").$type<PaymentTxType>().notNull(),
     providerInstanceId: uuid("provider_instance_id")
       .$type<PaymentProviderInstanceId>()
       .notNull()
       .references(() => paymentProviderInstances.id, { onDelete: "restrict" }),
-    clientId: text("client_id").notNull(),
-    channel: text("channel").$type<PaymentChannel>().notNull(),
+    clientId: text("client_id"),
+    sourcePaymentTxId: uuid("source_payment_tx_id")
+      .$type<PaymentTxId | null>()
+      .references((): AnyPgColumn => paymentTxs.id, { onDelete: "restrict" }),
     status: text("status").$type<PaymentTxStatus>().notNull().default("INITIATED"),
     amountFen: integer("amount_fen").notNull(),
     currency: text("currency").$type<"CNY">().notNull().default("CNY"),
@@ -183,6 +189,15 @@ export const paymentTxs = pgTable(
     billLineIdx: index("payment_txs_bill_line_idx").on(table.billLineId),
     providerInstanceIdx: index("payment_txs_provider_instance_idx").on(
       table.providerInstanceId,
+    ),
+    providerOrderUnique: uniqueIndex("payment_txs_provider_order_unique")
+      .on(table.providerInstanceId, table.merchantOrderNo)
+      .where(sql`${table.merchantOrderNo} is not null`),
+    providerRefundUnique: uniqueIndex("payment_txs_provider_refund_unique")
+      .on(table.providerInstanceId, table.merchantRefundNo)
+      .where(sql`${table.merchantRefundNo} is not null`),
+    sourcePaymentTxIdx: index("payment_txs_source_payment_tx_idx").on(
+      table.sourcePaymentTxId,
     ),
     statusUpdatedAtIdx: index("payment_txs_status_updated_at_idx").on(
       table.status,

@@ -67,8 +67,7 @@ Recommended fields:
 
 ```ts
 type PaymentProviderType = "WECHAT_PAY";
-type PaymentDirection = "CHARGE" | "REFUND";
-type PaymentChannel = "WECHAT_PAY" | "WECHAT_REFUND";
+type PaymentTxType = "CHARGE" | "REFUND";
 
 type PaymentTxStatus =
   | "INITIATED"
@@ -82,11 +81,10 @@ type PaymentTx = {
   id: string;
   bill_id: string;
   bill_line_id: string;
-  direction: PaymentDirection;
-  provider_type: PaymentProviderType;
+  type: PaymentTxType;
   provider_instance_id: string;
-  client_id: string;
-  channel: PaymentChannel;
+  client_id?: string | null;
+  source_payment_tx_id?: string | null;
   status: PaymentTxStatus;
   amount_fen: number;
   currency: "CNY";
@@ -122,7 +120,6 @@ type PaymentProviderInstance = {
   display_name: string;
   config: unknown;
   credential_set_id: string;
-  supported_channels: PaymentChannel[];
   created_at: string;
   updated_at: string;
 };
@@ -196,7 +193,6 @@ type PaymentClientProviderBinding = {
   id: string;
   client_id: string;
   provider_instance_id: string;
-  channel: PaymentChannel;
   status: "ACTIVE" | "DISABLED";
   priority: number;
   created_at: string;
@@ -240,11 +236,12 @@ Indexes and constraints:
 - unique index on `(provider_type, instance_key)` for provider instances
 - index on `payment_provider_credential_sets.provider_instance_id`
 - at most one active credential set per provider instance
-- unique index on `(client_id, provider_instance_id, channel)` for active
-  client bindings
+- unique index on `(client_id, provider_instance_id)` for active client
+  bindings
 - unique index on `(provider_instance_id, merchant_order_no)` where not null
 - unique index on `(provider_instance_id, merchant_refund_no)` where not null
 - index on `(status, updated_at)` for pending reconciliation
+- index on `source_payment_tx_id` for refund-to-charge traceability
 
 Do not use a DB constraint alone to express "only one active payment per
 BillLine". Keep that as service logic so retry behavior can remain explicit:
@@ -260,7 +257,8 @@ Refund preparation:
 - Phase 4 should set `BillLine.sourceLineId` for refund lines when possible.
 - Refund PaymentTx targets the refund BillLine.
 - The refund flow uses `sourceLineId` to find the successful original charge
-  PaymentTx required by the provider refund API.
+  PaymentTx required by the provider refund API, then records that charge tx in
+  `PaymentTx.source_payment_tx_id`.
 - If a legacy refund line lacks `sourceLineId`, the refund service may fall
   back to same-bill same-user successful charge PaymentTx lookup, but new
   reconciliation should write the source line.
@@ -272,7 +270,6 @@ Keep provider logic behind a Payment-domain port.
 ```ts
 type CreateChargePrepayInput = {
   providerInstanceId: string;
-  channel: PaymentChannel;
   merchantOrderNo: string;
   amountFen: number;
   currency: "CNY";
@@ -292,7 +289,6 @@ type ChargePrepayResult = {
 type PaymentProviderPort = {
   createChargePrepay(input: CreateChargePrepayInput): Promise<ChargePrepayResult>;
   queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus>;
-  closeCharge(input: CloseChargeInput): Promise<NormalizedCloseResult>;
   createRefund(input: CreateRefundInput): Promise<NormalizedRefundStatus>;
   queryRefund(input: QueryRefundInput): Promise<NormalizedRefundStatus>;
   parsePaymentNotification(input: RawProviderNotification): Promise<NormalizedChargeStatus>;
@@ -317,31 +313,32 @@ Provider selection happens before the provider adapter is called:
 ```text
 client_id
   -> active payment_client_provider_bindings
-  -> provider_instance_id + channel
+  -> provider_instance_id
   -> provider adapter method
 ```
 
 Rules:
 
-- frontend may supply or imply `client_id`, but backend must validate it against
-  a server-owned allowlist
-- `client_id` selects provider instance and channel only
+- frontend passes `client_id` through the RPC-layer `x-client-id` header; query
+  and mutation payloads must not carry it
+- backend validates `client_id` against server-owned client-provider bindings
+- `client_id` selects provider instance only
 - `client_id` never selects amount, BillLine, payer, or order truth
-- PaymentTx freezes `client_id`, `provider_instance_id`, and `channel`
+- PaymentTx freezes `client_id` and `provider_instance_id`
 - if no active binding exists, checkout should fail with a configuration error
 - if multiple active bindings exist, choose the lowest `priority` value
 
 Example bindings:
 
-| client_id | provider_type | instance key | channel | WeChat API |
-| --- | --- | --- | --- | --- |
-| `web` | `WECHAT_PAY` | `mchid:appid(official account)` | `WECHAT_PAY` | provider config `charge_mode=JSAPI` |
-| `mobile_h5_web` | `WECHAT_PAY` | `mchid:appid(web/h5)` | `WECHAT_PAY` | provider config `charge_mode=H5` |
+| client_id | provider_type | instance key | WeChat API |
+| --- | --- | --- | --- |
+| `web` | `WECHAT_PAY` | `mchid:appid(official account)` | provider config `charge_mode=JSAPI` |
+| `mobile_h5_web` | `WECHAT_PAY` | `mchid:appid(web/h5)` | provider config `charge_mode=H5` |
 
-This keeps WeChat API mode out of Bill, Order, and PaymentTx channel. Payment
-Checkout routes by payment channel; JSAPI/H5 are provider-instance execution
-configuration, not first-class commerce channels. Native QR is explicitly out
-of Phase 4 scope.
+This keeps WeChat API mode out of Bill, Order, and PaymentTx. Payment Checkout
+routes by provider instance; JSAPI/H5 are provider-instance execution
+configuration, not first-class commerce channels. Native QR is explicitly out of
+Phase 4 scope.
 
 ## Secret And Credential Configuration Slice
 
@@ -420,7 +417,6 @@ Example registration payload:
     "paymentNotifyPath": "/api/payment-providers/wechat/{providerInstanceId}/notify/payment",
     "refundNotifyPath": "/api/payment-providers/wechat/{providerInstanceId}/notify/refund"
   },
-  "supportedChannels": ["WECHAT_PAY", "WECHAT_REFUND"],
   "credentialSet": {
     "merchantSerialNo": "7777777777777777777777777777777777777777",
     "merchantPrivateKeyPem": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----",
@@ -434,7 +430,6 @@ Example registration payload:
   "clientBindings": [
     {
       "clientId": "web",
-      "channel": "WECHAT_PAY",
       "priority": 100
     }
   ]
@@ -483,7 +478,7 @@ Implement `WeChatPayProviderAdapter`.
 
 The adapter should wrap a mature WeChat Pay APIv3 library where practical. Do
 not hand-roll request signing, callback signature verification, resource
-decryption, or channel-specific request shapes unless a library gap is proven
+  decryption, or provider-specific request shapes unless a library gap is proven
 and isolated behind tests.
 
 Library selection rules:
@@ -527,7 +522,7 @@ Current repo note:
 Required capabilities:
 
 - APIv3 request signing.
-- channel-specific prepay creation.
+- provider-instance-specific prepay creation.
 - frontend invocation payload signing.
 - payment order query.
 - payment close.
@@ -607,8 +602,9 @@ Local and scenario testing:
 
 - Input: `billLineId`, `viewerUserId`, `clientId`.
 - Verify the same checkout constraints.
-- Resolve provider instance and channel from `clientId`.
-- Resolve payer identity required by the selected channel.
+- Resolve provider instance from `clientId`.
+- Resolve payer identity required by the selected provider instance / charge
+  mode.
 - Reuse active non-terminal PaymentTx when present.
 - Otherwise create PaymentTx with stable merchant order number.
 - Call selected provider adapter.
@@ -687,7 +683,7 @@ Authenticated user APIs:
 - `GET /api/commerce/bill-lines/:billLineId/checkout`
   - Payment Checkout projection
 - `POST /api/commerce/bill-lines/:billLineId/payments`
-  - create or reuse current-user charge PaymentTx using `clientId`
+  - create or reuse current-user charge PaymentTx using `x-client-id`
 - `GET /api/commerce/payments/:paymentTxId`
   - read PaymentTx projection
 - `POST /api/commerce/payments/:paymentTxId/sync`
@@ -753,8 +749,8 @@ Flow:
 
 1. Load checkout projection.
 2. User taps pay.
-3. Resolve or declare the current `clientId`.
-4. Create/reuse provider-backed PaymentTx for that `clientId`.
+3. Frontend RPC layer sends `x-client-id: web`.
+4. Create/reuse provider-backed PaymentTx for that client id.
 5. Invoke the client action returned by backend:
    - `WeixinJSBridge` for Official Account web
    - redirect/open provider URL for H5-like flows
@@ -808,7 +804,7 @@ Unit tests:
 
 - PaymentTx state machine terminal transitions
 - Bill settlement derivation from PaymentTx rows
-- client id routing to provider instance and channel
+- client id routing to provider instance
 - WeChat adapter request signing shape through fake clock/nonce inputs
 - WeChat notification parser with fixture headers/body
 - refund source-line lookup behavior
@@ -823,7 +819,7 @@ Unit tests:
 5. Add PaymentProviderInstance, credential set, client binding registry,
    PaymentProviderPort, fake adapter, and WeChat adapter skeleton behind
    configuration.
-6. Implement WeChat charge prepay for the first enabled client/channel and
+6. Implement WeChat charge prepay for the first enabled client/provider and
    checkout polling/sync.
 7. Implement callback route and idempotent charge convergence.
 8. Add explicit payment-settlement consequence orchestration for Rental
@@ -840,9 +836,10 @@ Unit tests:
 - Bill Detail exists and is reachable from Order Detail.
 - Payment Checkout exists and is scoped to one BillLine.
 - A participant can pay only their own BillLine.
-- The first enabled WeChat Pay client/channel works behind provider port.
+- The first enabled WeChat Pay client/provider binding works behind provider
+  port.
 - Provider instance and client binding registry can route a client id to a
-  WeChat provider instance and channel.
+  WeChat provider instance.
 - Provider credential sets store the WeChat private key, APIv3 key, and verifier
   material directly in DB fields as a deliberate serverless MVP compromise.
 - Credential values are redacted from all normal reads, logs, problem details,
@@ -863,8 +860,7 @@ Unit tests:
 Current design satisfies the main Phase 4 requirements:
 
 - WeChat Pay is the only real provider, but provider type / provider instance /
-  client binding / channel are separated for future providers and future client
-  surfaces.
+  client binding are separated for future providers and future client surfaces.
 - Payment targets BillLine, not Bill or Order.
 - Each participant pays their own line; creator paying for other participants
   is intentionally out of scope.
@@ -885,9 +881,9 @@ Current design satisfies the main Phase 4 requirements:
 Implementation can start with these confirmed decisions:
 
 - First production `client_id` is `web`, because the current `apps/frontend`
-  runtime client surface is `web`. It maps to `channel=WECHAT_PAY`; the WeChat
-  provider instance decides its API execution through `chargeMode=JSAPI`
-  because the current repo already stores official-account `users.openId`.
+  runtime client surface is `web`. It maps to a WeChat provider instance; that
+  instance decides its API execution through `chargeMode=JSAPI` because the
+  current repo already stores official-account `users.openId`.
   `mobile_h5_web` can be configured later as a separate client surface with
   `chargeMode=H5`.
 - WeChat Pay SDK choice is `wechatpay-axios-plugin@0.9.6`.
@@ -936,6 +932,8 @@ Implemented on 2026-05-30:
   notifications.
 - Added Bill Detail and Payment Checkout backend projections/APIs.
 - Added Bill Detail and Payment Checkout frontend pages.
+- Added `x-client-id` as an RPC-layer frontend header; checkout mutations do
+  not carry client id in JSON payloads.
 - Payment Checkout invokes backend-returned client actions:
   WeChat bridge through `WeixinJSBridge`, redirect URL for H5-like flows, and
   fake provider action through scenario-only sync.
@@ -955,9 +953,9 @@ Implemented on 2026-05-30:
 - Extended the Rental system scenario to cover BillLine-scoped payment,
   partial/full settlement, fulfillment start after all lines are paid, unpaid
   cancellation, and paid cancellation with successful fake refund PaymentTx.
-- Removed WeChat Pay Native from Phase 4, collapsed PaymentTx channel to
-  `WECHAT_PAY` / `WECHAT_REFUND`, and moved JSAPI/H5 to WeChat provider
-  `chargeMode` plus backend-returned client actions.
+- Removed WeChat Pay Native from Phase 4, removed PaymentTx channel entirely,
+  modeled money direction as `PaymentTx.type`, and moved JSAPI/H5 to WeChat
+  provider `chargeMode` plus backend-returned client actions.
 - Corrected settlement consequence topology: Bill settlement notifies Order;
   Order/Trade starts Rental Fulfillment.
 
@@ -979,5 +977,5 @@ Verification completed on 2026-05-30:
 - Non-WeChat payment providers.
 - Payment provider event history table.
 - Merchant settlement, deposits, and provider payout accounting.
-- Enabling extra client/channel bindings beyond the first production client.
+- Enabling extra client/provider bindings beyond the first production client.
 - Offline/manual payment.

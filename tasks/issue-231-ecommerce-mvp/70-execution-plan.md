@@ -161,7 +161,7 @@ Work:
 - Payment Checkout page and APIs scoped to exactly one BillLine.
 - PaymentTx model completion and WeChat Pay adapter.
 - Payment provider instance and client binding registry:
-  `client_id -> provider_instance + channel`.
+  `client_id -> provider_instance`.
 - Payment provider credential sets:
   DB stores WeChat private key PEM, APIv3 key, and verifier material directly
   as a deliberate serverless MVP compromise.

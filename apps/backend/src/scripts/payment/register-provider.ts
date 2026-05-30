@@ -2,8 +2,6 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { registerPaymentProviderInstance } from "../../domains/payment";
 
-const paymentChannelSchema = z.enum(["WECHAT_PAY", "WECHAT_REFUND"]);
-
 const verifierSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("WECHAT_PAY_PUBLIC_KEY"),
@@ -39,7 +37,6 @@ const registrationConfigSchema = z.object({
   instanceKey: z.string().min(1),
   displayName: z.string().min(1),
   config: providerConfigSchema,
-  supportedChannels: z.array(paymentChannelSchema).min(1),
   credentialSet: z.object({
     merchantSerialNo: z.string().min(1),
     merchantPrivateKeyPem: z.string().min(1),
@@ -50,7 +47,6 @@ const registrationConfigSchema = z.object({
     .array(
       z.object({
         clientId: z.string().min(1),
-        channel: paymentChannelSchema,
         priority: z.number().int().positive().default(100),
       }),
     )

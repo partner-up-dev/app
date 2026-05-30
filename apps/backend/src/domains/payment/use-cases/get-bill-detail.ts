@@ -16,12 +16,11 @@ const tradeOrderRepo = new TradeOrderRepository();
 
 type PaymentTxSummary = {
   id: string;
-  direction: "CHARGE" | "REFUND";
+  type: "CHARGE" | "REFUND";
   status: string;
   amountFen: number;
-  providerType: string;
-  channel: string;
-  clientId: string;
+  providerInstanceId: string;
+  clientId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -85,11 +84,10 @@ const toPaymentTxSummary = (tx: PaymentTx | null): PaymentTxSummary | null => {
   if (!tx) return null;
   return {
     id: tx.id,
-    direction: tx.direction,
+    type: tx.type,
     status: tx.status,
     amountFen: tx.amountFen,
-    providerType: tx.providerType,
-    channel: tx.channel,
+    providerInstanceId: tx.providerInstanceId,
     clientId: tx.clientId,
     createdAt: tx.createdAt.toISOString(),
     updatedAt: tx.updatedAt.toISOString(),

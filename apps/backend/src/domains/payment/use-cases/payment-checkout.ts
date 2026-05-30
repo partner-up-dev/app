@@ -66,14 +66,13 @@ export type PaymentTxProjection = {
   id: string;
   billId: string;
   billLineId: string;
-  direction: "CHARGE" | "REFUND";
+  type: "CHARGE" | "REFUND";
   status: string;
   amountFen: number;
   currency: "CNY";
-  clientId: string;
-  providerType: string;
+  clientId: string | null;
   providerInstanceId: string;
-  channel: string;
+  sourcePaymentTxId: string | null;
   providerStatus: string | null;
   clientAction: unknown;
   expiresAt: string | null;
@@ -86,14 +85,13 @@ const toPaymentTxProjection = (tx: PaymentTx): PaymentTxProjection => ({
   id: tx.id,
   billId: tx.billId,
   billLineId: tx.billLineId,
-  direction: tx.direction,
+  type: tx.type,
   status: tx.status,
   amountFen: tx.amountFen,
   currency: tx.currency,
   clientId: tx.clientId,
-  providerType: tx.providerType,
   providerInstanceId: tx.providerInstanceId,
-  channel: tx.channel,
+  sourcePaymentTxId: tx.sourcePaymentTxId,
   providerStatus: tx.providerStatus,
   clientAction: tx.clientAction,
   expiresAt: tx.expiresAt?.toISOString() ?? null,
@@ -147,11 +145,11 @@ async function resolveCheckoutBasis(input: {
   const lineState = paymentState.lines[0];
   const activePayment = await paymentTxRepo.findActiveByBillLine({
     billLineId: line.id,
-    direction: "CHARGE",
+    type: "CHARGE",
   });
   const latestPayment = await paymentTxRepo.findLatestByBillLine({
     billLineId: line.id,
-    direction: "CHARGE",
+    type: "CHARGE",
   });
 
   const disabledReason =
@@ -214,7 +212,6 @@ async function resolveProviderForClient(input: {
 }): Promise<{
   providerInstance: PaymentProviderInstance;
   credentialSet: PaymentProviderCredentialSet;
-  channel: PaymentTx["channel"];
 }> {
   const binding = await bindingRepo.findActiveByClientId(input.clientId);
   if (!binding) {
@@ -232,13 +229,6 @@ async function resolveProviderForClient(input: {
       detail: "Configured payment provider is not active",
     });
   }
-  if (!providerInstance.supportedChannels.includes(binding.channel)) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Configured payment channel is not supported by provider instance",
-    });
-  }
-
   const credentialSet = providerInstance.activeCredentialSetId
     ? await credentialSetRepo.findById(providerInstance.activeCredentialSetId)
     : await credentialSetRepo.findActiveByProviderInstanceId(providerInstance.id);
@@ -252,7 +242,6 @@ async function resolveProviderForClient(input: {
   return {
     providerInstance,
     credentialSet,
-    channel: binding.channel,
   };
 }
 
@@ -332,11 +321,9 @@ export async function createOrReusePaymentForBillLine(input: {
     id: paymentTxId,
     billId: basis.bill.id,
     billLineId: basis.line.id,
-    direction: "CHARGE",
-    providerType: provider.providerInstance.providerType,
+    type: "CHARGE",
     providerInstanceId: provider.providerInstance.id,
     clientId: input.clientId,
-    channel: provider.channel,
     status: "INITIATED",
     amountFen: basis.line.amountFen,
     currency: basis.line.currency,
@@ -347,7 +334,6 @@ export async function createOrReusePaymentForBillLine(input: {
 
   const prepay = await port.createChargePrepay({
     providerInstanceId: provider.providerInstance.id,
-    channel: provider.channel,
     merchantOrderNo,
     amountFen: basis.line.amountFen,
     currency: basis.line.currency,
@@ -395,6 +381,12 @@ export async function syncPaymentTx(input: {
   const tx = await paymentTxRepo.findById(input.paymentTxId as PaymentTxId);
   if (!tx) {
     return throwHttpProblem({ status: 404, detail: "PaymentTx not found" });
+  }
+  if (tx.type !== "CHARGE") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Only charge PaymentTx can be synced from checkout",
+    });
   }
 
   const basis = await resolveCheckoutBasis({

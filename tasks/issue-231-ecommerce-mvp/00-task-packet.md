@@ -151,10 +151,10 @@ independent even when implementation ownership is grouped.
   both paths must be idempotent.
 - Payment provider extensibility is modeled as provider type plus provider
   instance. For WeChat Pay, an instance is uniquely identified by `mch_id +
-  app_id`. A server-owned `client_id -> provider_instance + channel` binding
-  chooses the payment channel. WeChat API execution mode such as JSAPI or H5
-  is provider-instance configuration, not PaymentTx channel. Native QR is out
-  of Phase 4 scope.
+  app_id`. A server-owned `client_id -> provider_instance` binding chooses the
+  provider instance. WeChat API execution mode such as JSAPI or H5 is
+  provider-instance configuration, not PaymentTx channel. Native QR is out of
+  Phase 4 scope.
 - Payment provider credentials are modeled as credential sets. For the Phase 4
   serverless MVP, WeChat Pay merchant private key PEM, APIv3 key, and verifier
   material are stored directly in DB fields as a deliberate simplicity
@@ -600,9 +600,9 @@ the baseline for downstream Order / Bill / Fulfillment design.
   and multi-participant BillLine payment system scenarios.
 - 2026-05-29: Added provider-instance/client routing to the Phase 4 plan:
   provider type is separate from provider instance, WeChat Pay instances are
-  keyed by `mch_id + app_id`, and `client_id` maps to provider instance plus
-  channel so the `web` client can route to WeChat Pay without changing Bill or
-  Order. WeChat API execution mode stays inside provider configuration.
+  keyed by `mch_id + app_id`, and `client_id` maps to provider instance so the
+  `web` client can route to WeChat Pay without changing Bill or Order. WeChat
+  API execution mode stays inside provider configuration.
 - 2026-05-29: Added provider credential configuration to the Phase 4 plan:
   provider instances hold non-secret metadata, callback URLs include
   `providerInstanceId` only as a routing hint, and key/certificate rotation
@@ -637,7 +637,11 @@ the baseline for downstream Order / Bill / Fulfillment design.
   cancellation browser coverage. Verification scope is recorded in the Phase 4
   implementation plan.
 - 2026-05-30: Tightened Phase 4 after review: removed WeChat Pay Native support,
-  changed PaymentTx channel to `WECHAT_PAY` / `WECHAT_REFUND`, moved JSAPI/H5
-  into WeChat provider `chargeMode`, and corrected the settlement topology so
-  Payment convergence asks Bill to derive settlement, Bill notifies Order, and
-  Order starts Rental Fulfillment.
+  removed PaymentTx channel, modeled charge/refund through `PaymentTx.type`,
+  moved JSAPI/H5 into WeChat provider `chargeMode`, and corrected the
+  settlement topology so Payment convergence asks Bill to derive settlement,
+  Bill notifies Order, and Order starts Rental Fulfillment.
+- 2026-05-30: Corrected the Payment provider topology again: PaymentTx now
+  points to `PaymentProviderInstance`, refund txs point back to the source
+  charge tx through `sourcePaymentTxId`, and the frontend sends client identity
+  only as the RPC-layer `x-client-id` header (`web` for `apps/frontend`).

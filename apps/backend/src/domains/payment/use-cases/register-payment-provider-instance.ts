@@ -1,6 +1,5 @@
 import { db } from "../../../lib/db";
 import type {
-  PaymentChannel,
   PaymentProviderInstanceConfig,
   PaymentProviderType,
   WeChatPayVerifierConfig,
@@ -14,7 +13,6 @@ export type RegisterPaymentProviderInstanceInput = {
   instanceKey: string;
   displayName: string;
   config: PaymentProviderInstanceConfig;
-  supportedChannels: PaymentChannel[];
   credentialSet: {
     merchantSerialNo: string;
     merchantPrivateKeyPem: string;
@@ -23,7 +21,6 @@ export type RegisterPaymentProviderInstanceInput = {
   };
   clientBindings: Array<{
     clientId: string;
-    channel: PaymentChannel;
     priority: number;
   }>;
 };
@@ -52,7 +49,6 @@ export async function registerPaymentProviderInstance(
         status: "ACTIVE",
         displayName: input.displayName,
         config: input.config,
-        supportedChannels: input.supportedChannels,
       }));
 
     const activeCredential =
@@ -78,10 +74,9 @@ export async function registerPaymentProviderInstance(
     const clientBindingIds: string[] = [];
     for (const binding of input.clientBindings) {
       const existingBinding =
-        await bindingRepo.findActiveByClientProviderChannel({
+        await bindingRepo.findActiveByClientProvider({
           clientId: binding.clientId,
           providerInstanceId: provider.id,
-          channel: binding.channel,
         });
 
       if (existingBinding) {
@@ -92,7 +87,6 @@ export async function registerPaymentProviderInstance(
       const created = await bindingRepo.create({
         clientId: binding.clientId,
         providerInstanceId: provider.id,
-        channel: binding.channel,
         status: "ACTIVE",
         priority: binding.priority,
       });

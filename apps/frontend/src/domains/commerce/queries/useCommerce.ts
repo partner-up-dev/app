@@ -39,8 +39,6 @@ export type PaymentTxResponse = InferResponseType<
   CommerceApi["payments"][":paymentTxId"]["$get"]
 >;
 
-export const FRONTEND_PAYMENT_CLIENT_ID = "web";
-
 const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise<T> => {
   if (!response.ok) {
     const payload = await readApiErrorPayload(response);
@@ -259,9 +257,6 @@ export const useCreatePaymentForBillLine = () => {
         .payments.$post(
         {
           param: { billLineId },
-          json: {
-            clientId: FRONTEND_PAYMENT_CLIENT_ID,
-          },
         },
         {
           init: {

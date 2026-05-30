@@ -96,6 +96,7 @@ app.use(
       "Content-Type",
       "Authorization",
       JOURNEY_ID_HEADER,
+      "x-client-id",
     ],
     exposeHeaders: ["x-access-token"],
   }),

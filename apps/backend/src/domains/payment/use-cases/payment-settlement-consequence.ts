@@ -16,7 +16,7 @@ export async function applyPaymentSettlementConsequence(input: {
   if (!paymentTx) {
     return throwHttpProblem({ status: 404, detail: "PaymentTx not found" });
   }
-  if (paymentTx.direction !== "CHARGE" || paymentTx.status !== "SUCCEEDED") {
+  if (paymentTx.type !== "CHARGE" || paymentTx.status !== "SUCCEEDED") {
     return {
       applied: false,
       reason: "PaymentTx is not a successful charge",

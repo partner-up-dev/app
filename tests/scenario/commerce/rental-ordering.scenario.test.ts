@@ -50,7 +50,6 @@ async function givenRentalOrderingPlacement() {
       appId: "fake-web-appid",
       mchId: "fake-web-mchid",
     },
-    supportedChannels: ["WECHAT_PAY"],
     credentialSet: {
       merchantSerialNo: "fake-merchant-serial",
       merchantPrivateKeyPem: "fake-private-key",
@@ -64,7 +63,6 @@ async function givenRentalOrderingPlacement() {
     clientBindings: [
       {
         clientId: "web",
-        channel: "WECHAT_PAY",
         priority: 1,
       },
     ],

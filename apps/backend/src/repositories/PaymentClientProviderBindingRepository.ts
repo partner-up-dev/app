@@ -7,7 +7,6 @@ import {
   type PaymentClientProviderBindingId,
   type PaymentProviderInstanceId,
 } from "../entities/payment";
-import type { PaymentChannel } from "../domains/payment";
 import type { PaymentClientProviderBindingStatus } from "../domains/payment";
 import type { RepositoryExecutor } from "./_executor";
 
@@ -40,10 +39,9 @@ export class PaymentClientProviderBindingRepository {
     return result[0] ?? null;
   }
 
-  async findActiveByClientProviderChannel(input: {
+  async findActiveByClientProvider(input: {
     clientId: string;
     providerInstanceId: PaymentProviderInstanceId;
-    channel: PaymentChannel;
   }): Promise<PaymentClientProviderBinding | null> {
     const result = await this.executor
       .select()
@@ -55,7 +53,6 @@ export class PaymentClientProviderBindingRepository {
             paymentClientProviderBindings.providerInstanceId,
             input.providerInstanceId,
           ),
-          eq(paymentClientProviderBindings.channel, input.channel),
           eq(paymentClientProviderBindings.status, "ACTIVE"),
         ),
       );

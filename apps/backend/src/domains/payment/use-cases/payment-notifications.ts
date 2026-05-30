@@ -145,7 +145,7 @@ export async function handleWeChatPaymentNotification(input: {
     providerInstanceId: providerInstance.id,
     merchantOrderNo: parsed.merchantOrderNo,
   });
-  if (!tx || tx.direction !== "CHARGE") {
+  if (!tx || tx.type !== "CHARGE") {
     return throwHttpProblem({
       status: 404,
       detail: "PaymentTx not found for WeChat payment notification",
@@ -203,7 +203,7 @@ export async function handleWeChatRefundNotification(input: {
     providerInstanceId: providerInstance.id,
     merchantRefundNo: parsed.merchantRefundNo,
   });
-  if (!tx || tx.direction !== "REFUND") {
+  if (!tx || tx.type !== "REFUND") {
     return throwHttpProblem({
       status: 404,
       detail: "PaymentTx not found for WeChat refund notification",

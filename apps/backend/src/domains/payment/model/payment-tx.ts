@@ -1,8 +1,6 @@
 export type PaymentProviderType = "WECHAT_PAY";
 
-export type PaymentDirection = "CHARGE" | "REFUND";
-
-export type PaymentChannel = "WECHAT_PAY" | "WECHAT_REFUND";
+export type PaymentTxType = "CHARGE" | "REFUND";
 
 export type PaymentTxStatus =
   | "INITIATED"
@@ -109,7 +107,6 @@ export type CreateRefundResult = NormalizedRefundStatus;
 
 export type CreateChargePrepayInput = {
   providerInstanceId: string;
-  channel: PaymentChannel;
   merchantOrderNo: string;
   amountFen: number;
   currency: "CNY";

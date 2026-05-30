@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
 import { requireAuthenticatedUserId } from "./pr-controller.shared";
+import { throwHttpProblem } from "../lib/problem-details";
 import {
   cancelRentalOrderFromOrderDetail,
   createRentalOrderFromPlacement,
@@ -51,9 +52,7 @@ const paymentTxIdParamSchema = z.object({
   paymentTxId: z.string().uuid(),
 });
 
-const createPaymentSchema = z.object({
-  clientId: z.string().trim().min(1).default("web"),
-});
+const CLIENT_ID_HEADER = "x-client-id";
 
 const registrantSchema = z.object({
   fullName: z.string().trim().min(1),
@@ -82,6 +81,17 @@ const rentalOrderingCommandSchema = z.object({
     registrants: z.array(registrantSchema).min(1),
   }),
 });
+
+const readClientId = (headerValue: string | undefined): string => {
+  const clientId = headerValue?.trim();
+  if (!clientId) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Missing x-client-id header",
+    });
+  }
+  return clientId;
+};
 
 export const commerceRoute = app
   .use("*", authMiddleware)
@@ -185,15 +195,13 @@ export const commerceRoute = app
   .post(
     "/bill-lines/:billLineId/payments",
     zValidator("param", billLineIdParamSchema),
-    zValidator("json", createPaymentSchema),
     async (c) => {
       const { billLineId } = c.req.valid("param");
-      const payload = c.req.valid("json");
       const auth = c.get("auth");
       const result = await createOrReusePaymentForBillLine({
         billLineId,
         viewerUserId: auth.userId,
-        clientId: payload.clientId,
+        clientId: readClientId(c.req.header(CLIENT_ID_HEADER)),
       });
       return c.json(result);
     },

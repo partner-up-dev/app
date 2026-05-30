@@ -57,7 +57,7 @@ const findSuccessfulOriginalCharge = async (
   const sourceLineTxs = await paymentTxRepo.listByBillLineIds([sourceLineId]);
   return (
     sourceLineTxs.find(
-      (tx) => tx.direction === "CHARGE" && tx.status === "SUCCEEDED",
+      (tx) => tx.type === "CHARGE" && tx.status === "SUCCEEDED",
     ) ?? null
   );
 };
@@ -114,11 +114,10 @@ const createRefundTxForLine = async (input: {
     id: paymentTxId,
     billId: input.billId,
     billLineId: input.refundLine.id,
-    direction: "REFUND",
-    providerType: input.originalCharge.providerType,
+    type: "REFUND",
     providerInstanceId: input.originalCharge.providerInstanceId,
-    clientId: input.originalCharge.clientId,
-    channel: "WECHAT_REFUND",
+    clientId: null,
+    sourcePaymentTxId: input.originalCharge.id,
     status: "INITIATED",
     amountFen: input.refundLine.amountFen,
     currency: input.refundLine.currency,
@@ -175,7 +174,7 @@ export async function createRefundPaymentTxForRefundLine(input: {
 
   const existing = await paymentTxRepo.findLatestByBillLine({
     billLineId: refundLine.id,
-    direction: "REFUND",
+    type: "REFUND",
   });
   if (existing) {
     return {
