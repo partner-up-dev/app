@@ -132,21 +132,17 @@ export type AdminOfferInput = {
 };
 
 export type AdminPlacementInput = {
-  slotKey: "PR_UTILITY_ACTIONS_BUTTON";
   placementType: "BUTTON";
+  offerId: number;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
   matchingRule: unknown;
   priority: number;
   effectiveFrom?: string | null;
   effectiveTo?: string | null;
   creative: {
-    title: string;
-    subtitle?: string | null;
     ctaLabel: string;
+    description?: string | null;
   };
-  target:
-    | { kind: "OFFER"; offerId: number }
-    | { kind: "ORDER"; orderId: number };
   bindingRules: Array<{
     fieldKey: string;
     contextPath: string;

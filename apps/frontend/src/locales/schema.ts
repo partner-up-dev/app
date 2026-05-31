@@ -1610,11 +1610,9 @@ export interface MessageSchema {
     priorityLabel: string;
     placementEffectiveFromLabel: string;
     placementEffectiveToLabel: string;
-    creativeTitleLabel: string;
-    creativeSubtitleLabel: string;
+    offerIdLabel: string;
     ctaLabel: string;
-    targetKindLabel: string;
-    targetIdLabel: string;
+    creativeDescriptionLabel: string;
     matchingRuleLabel: string;
     matchingRuleHint: string;
     bindingRulesLabel: string;

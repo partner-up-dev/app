@@ -6,9 +6,9 @@ import { partnerRequests } from "../../../entities/partner-request";
 import { partners } from "../../../entities/partner";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
-import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function attachOrderToPr(
   input: {
@@ -19,7 +19,7 @@ export async function attachOrderToPr(
   },
   executor: RepositoryExecutor = db,
 ) {
-  const attachedOrderRepo = new PRAttachedOrderRepository(executor);
+  const tradeOrderRepo = new TradeOrderRepository(executor);
 
   const [request] = await executor
     .select()
@@ -61,20 +61,25 @@ export async function attachOrderToPr(
     });
   }
 
-  const existingAttachment = await attachedOrderRepo.findCurrentNonTerminalByPrAndOffer(
-    request.id,
-    input.offerId,
-  );
-  if (existingAttachment) {
+  const existingOrders = await tradeOrderRepo.listByIdsOfferAndStatuses({
+    ids: request.orders,
+    offerId: input.offerId,
+    statuses: ["INITIATING", "OPEN"],
+  });
+  if (existingOrders.length > 0) {
     return throwHttpProblem({
       status: 409,
       detail: "An active order already exists for this PR and offer",
     });
   }
 
-  return attachedOrderRepo.create({
-    orderId: input.orderId,
-    prId: request.id,
-    offerId: input.offerId,
-  });
+  const [updated] = await executor
+    .update(partnerRequests)
+    .set({
+      orders: sql`${partnerRequests.orders} || ARRAY[${input.orderId}::uuid]`,
+    })
+    .where(eq(partnerRequests.id, request.id))
+    .returning();
+
+  return updated;
 }

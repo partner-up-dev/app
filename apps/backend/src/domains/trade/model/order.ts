@@ -36,12 +36,6 @@ export type OrderParticipantSnapshot = {
   removedAt?: string | null;
 };
 
-export type OrderOfferSnapshot = {
-  offerId: number;
-  termsVersion: number;
-  productType: "RENTAL" | "RIDE_HAILING";
-};
-
 export type OrderItemSnapshot = {
   itemId: string;
   spuId: number;
@@ -139,11 +133,11 @@ export type SplitRuleSnapshot =
 export type TradeOrder = {
   id: string;
   family: OrderFamily;
+  offerId: number;
   createdBy: string;
   status: OrderStatus;
   participants: OrderParticipantSnapshot[];
   splitRuleSnapshot: SplitRuleSnapshot;
-  offerSnapshot: OrderOfferSnapshot;
   items: OrderItemSnapshot[];
   pricingSnapshot: OrderPricingSnapshot;
   timeout: OrderTimeout;

@@ -6,10 +6,11 @@ import { queryKeys } from "@/shared/api/query-keys";
 import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 
 type CommerceApi = typeof client.api.commerce;
+type PlacementApi = typeof client.api.placements;
 
-export type CommercePlacementResponse = InferResponseType<
-  CommerceApi["placements"]["$get"]
->;
+export type PlacementMatchResponse = InferResponseType<PlacementApi["$post"]>;
+export type PlacementInstanceProjection =
+  PlacementMatchResponse["placements"][number];
 
 export type OrderingFromPlacementResponse = InferResponseType<
   CommerceApi["ordering"]["from-placement"]["$get"]
@@ -65,24 +66,26 @@ const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise
   return (await response.json()) as T;
 };
 
-export const useCommercePlacement = (
-  contextId: Ref<number | null>,
+export const usePlacementMatch = (
+  matchingContext: Ref<unknown | null>,
   type: "BUTTON" = "BUTTON",
 ) =>
-  useQuery<CommercePlacementResponse>({
-    queryKey: computed(() => queryKeys.commerce.placement(contextId.value, type)),
+  useQuery<PlacementMatchResponse>({
+    queryKey: computed(() => [
+      "placements",
+      "match",
+      type,
+      matchingContext.value,
+    ]),
     queryFn: async () => {
-      if (contextId.value === null) {
-        throw new Error("Missing PR context id");
+      if (matchingContext.value === null) {
+        throw new Error("Missing placement matching context");
       }
 
-      const response = await client.api.commerce.placements.$get(
+      const response = await client.api.placements.$post(
         {
-          query: {
-            context: "pr",
-            contextId: String(contextId.value),
-            type,
-          },
+          query: { type },
+          json: { matchingContext: matchingContext.value },
         },
         {
           init: {
@@ -90,36 +93,55 @@ export const useCommercePlacement = (
           },
         },
       );
-      return readJsonOrThrow<CommercePlacementResponse>(
+      return readJsonOrThrow<PlacementMatchResponse>(
         response,
         "Failed to load placement",
       );
     },
-    enabled: () => contextId.value !== null,
+    enabled: () => matchingContext.value !== null,
   });
 
+export const resolvePlacementBindings = async (input: {
+  placementInstanceId: number;
+  matchingContext: unknown;
+}) => {
+  const response = await client.api.placements[":instanceId"].bindings.$post(
+    {
+      param: { instanceId: String(input.placementInstanceId) },
+      json: { matchingContext: input.matchingContext },
+    },
+    {
+      init: {
+        credentials: "include",
+      },
+    },
+  );
+  return readJsonOrThrow<
+    InferResponseType<PlacementApi[":instanceId"]["bindings"]["$post"]>
+  >(response, "Failed to resolve placement bindings");
+};
+
 export const useOrderingFromPlacement = (
-  placementInstanceId: Ref<number | null>,
-  contextId: Ref<number | null>,
+  offerId: Ref<number | null>,
+  prId: Ref<number | null>,
 ) =>
   useQuery<OrderingFromPlacementResponse>({
     queryKey: computed(() =>
       queryKeys.commerce.rentalOrderingFromPlacement(
-        placementInstanceId.value,
-        contextId.value,
+        offerId.value,
+        prId.value,
       ),
     ),
     queryFn: async () => {
-      if (placementInstanceId.value === null || contextId.value === null) {
+      if (offerId.value === null || prId.value === null) {
         throw new Error("Missing ordering entry ids");
       }
 
       const response = await client.api.commerce.ordering["from-placement"].$get(
         {
           query: {
-            placementInstanceId: String(placementInstanceId.value),
-            context: "pr",
-            contextId: String(contextId.value),
+            offerId: String(offerId.value),
+            prId: String(prId.value),
           },
         },
         {
@@ -133,7 +155,7 @@ export const useOrderingFromPlacement = (
         "Failed to load ordering",
       );
     },
-    enabled: () => placementInstanceId.value !== null && contextId.value !== null,
+    enabled: () => offerId.value !== null && prId.value !== null,
   });
 
 export const useRentalOrderingFromPlacement = useOrderingFromPlacement;

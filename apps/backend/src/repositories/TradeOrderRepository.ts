@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   tradeOrders,
@@ -6,6 +6,7 @@ import {
   type TradeOrder,
   type TradeOrderId,
 } from "../entities/trade-order";
+import type { OfferId } from "../entities/offer";
 import type {
   OrderStatus,
   OrderTerminationAttempt,
@@ -35,6 +36,34 @@ export class TradeOrderRepository {
     return this.executor
       .select()
       .from(tradeOrders)
+      .orderBy(desc(tradeOrders.createdAt));
+  }
+
+  async listByIds(ids: TradeOrderId[]): Promise<TradeOrder[]> {
+    if (ids.length === 0) return [];
+    return this.executor
+      .select()
+      .from(tradeOrders)
+      .where(inArray(tradeOrders.id, ids))
+      .orderBy(desc(tradeOrders.createdAt));
+  }
+
+  async listByIdsOfferAndStatuses(input: {
+    ids: TradeOrderId[];
+    offerId: OfferId;
+    statuses: OrderStatus[];
+  }): Promise<TradeOrder[]> {
+    if (input.ids.length === 0 || input.statuses.length === 0) return [];
+    return this.executor
+      .select()
+      .from(tradeOrders)
+      .where(
+        and(
+          inArray(tradeOrders.id, input.ids),
+          eq(tradeOrders.offerId, input.offerId),
+          inArray(tradeOrders.status, input.statuses),
+        ),
+      )
       .orderBy(desc(tradeOrders.createdAt));
   }
 

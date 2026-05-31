@@ -25,6 +25,7 @@ import {
   feedbackQuestionnaireInstances,
   type FeedbackQuestionnaireInstanceId,
 } from "./feedback-questionnaire";
+import type { TradeOrderId } from "./trade-order";
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const isoDateTimeSchema = z.string().datetime();
@@ -191,6 +192,11 @@ export const partnerRequests = pgTable("partner_requests", {
     .$type<PRJoinGateConfig>()
     .notNull()
     .default(sql`'[]'::jsonb`),
+  orders: uuid("orders")
+    .array()
+    .$type<TradeOrderId[]>()
+    .notNull()
+    .default(sql`ARRAY[]::uuid[]`),
   feedbackQuestionnaireInstanceId: bigint("feedback_questionnaire_instance_id", {
     mode: "number",
   })

@@ -69,10 +69,6 @@
                 <dd>{{ selectedRecord.fulfillment.supplierCancellationOutcome ?? "-" }}</dd>
               </div>
               <div>
-                <dt>{{ t("adminCommerceFulfillment.prLabel") }}</dt>
-                <dd>{{ selectedRecord.attachment ? `PR#${selectedRecord.attachment.prId}` : "-" }}</dd>
-              </div>
-              <div>
                 <dt>{{ t("adminCommerceFulfillment.billLabel") }}</dt>
                 <dd>{{ selectedRecord.bill?.id ?? "-" }}</dd>
               </div>

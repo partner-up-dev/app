@@ -160,7 +160,11 @@
         <div class="utility-action-row">
           <PRBetaGroupAction :pr="prDetail" />
           <PRMessageThreadAction :pr="prDetail" />
-          <PRCommercePlacementAction :pr-id="prDetail.id" />
+          <ButtonPlacement
+            v-if="canMountButtonPlacement && placementMatchingContext"
+            :matching-context="placementMatchingContext"
+            @placement-click="handlePlacementClick"
+          />
         </div>
 
         <PRShareAction
@@ -211,7 +215,7 @@ import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotif
 import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
-import PRCommercePlacementAction from "@/domains/commerce/ui/PRCommercePlacementAction.vue";
+import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
@@ -229,6 +233,12 @@ import {
   usePRPendingWeChatReplay,
 } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
+import { client } from "@/lib/rpc";
+import {
+  resolvePlacementBindings,
+  type PlacementInstanceProjection,
+} from "@/domains/commerce/queries/useCommerce";
+import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
 
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"
@@ -310,6 +320,39 @@ const showEventAssistedCreateHandoffNotice = computed(
     (prDetail.value?.partnerSection.viewer.isCreator ?? false) &&
     handoffEntry.value === "event_assisted_create",
 );
+const canMountButtonPlacement = computed(
+  () => prDetail.value?.partnerSection.viewer.isParticipant ?? false,
+);
+const placementMatchingContext = computed(() => {
+  const pr = prDetail.value;
+  if (!pr) return null;
+  const routePointCount = pr.core.route?.length ?? 0;
+  return {
+    kind: "PR",
+    prId: pr.id,
+    status: pr.status,
+    title: pr.title,
+    type: pr.core.type,
+    time: {
+      startAt: pr.core.time[0],
+      endAt: pr.core.time[1],
+      hasStart: pr.core.time[0] !== null,
+      hasEnd: pr.core.time[1] !== null,
+      hasConcreteTime: pr.core.time[0] !== null && pr.core.time[1] !== null,
+    },
+    location: pr.core.location,
+    hasLocation: (pr.core.location?.trim() ?? "").length > 0,
+    route: pr.core.route,
+    routePointCount,
+    hasRoute: routePointCount >= 2,
+    minPartners: pr.core.minPartners,
+    maxPartners: pr.core.maxPartners,
+    activeParticipantCount: pr.partnerSection.capacity.current,
+    budget: pr.core.budget,
+    preferences: pr.core.preferences,
+    notes: pr.core.notes,
+  };
+});
 
 const {
   editableFields,
@@ -419,6 +462,54 @@ const handleJoinSuccessClosed = async (): Promise<void> => {
       entry: "join",
     },
   });
+};
+
+const readJsonOrThrow = async <T>(response: Response): Promise<T> => {
+  if (!response.ok) {
+    throw new Error("Request failed");
+  }
+  return (await response.json()) as T;
+};
+
+const handlePlacementClick = async (
+  placement: PlacementInstanceProjection,
+): Promise<void> => {
+  const pr = prDetail.value;
+  const matchingContext = placementMatchingContext.value;
+  if (!pr || !matchingContext) return;
+
+  const orderResponse = await client.api.pr[":id"].orders.$get(
+    {
+      param: { id: String(pr.id) },
+      query: {
+        offerId: String(placement.offerId),
+        statusIn: ["INITIATING", "OPEN"],
+      },
+    },
+    { init: { credentials: "include" } },
+  );
+  const orderPayload = await readJsonOrThrow<{
+    orders: Array<{ id: string }>;
+  }>(orderResponse);
+  const existingOrder = orderPayload.orders[0];
+  if (existingOrder) {
+    await router.push({ path: `/orders/${existingOrder.id}` });
+    return;
+  }
+
+  const { bindings } = await resolvePlacementBindings({
+    placementInstanceId: placement.id,
+    matchingContext,
+  });
+  sessionStorage.setItem(
+    ORDERING_ENTRY_STORAGE_KEY,
+    JSON.stringify({
+      offerId: placement.offerId,
+      prId: pr.id,
+      bindings,
+    }),
+  );
+  await router.push({ path: "/order/new" });
 };
 
 const shouldHideFactsForHandoff = computed(() =>

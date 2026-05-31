@@ -42,7 +42,7 @@
             :active="selectedPlacementId === placement.id && !isCreatingPlacement"
             @click="selectPlacement(placement.id)"
           >
-            <span>#{{ placement.id }} · {{ placement.slotKey }}</span>
+            <span>#{{ placement.id }} · offer #{{ placement.offerId }}</span>
             <small>{{ placement.status }} · p{{ placement.priority }}</small>
           </ChoiceCard>
         </div>
@@ -154,13 +154,8 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.creativeTitleLabel") }}</span>
-                <input v-model="placementForm.creativeTitle" class="text-input" type="text" />
-              </label>
-
-              <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.creativeSubtitleLabel") }}</span>
-                <input v-model="placementForm.creativeSubtitle" class="text-input" type="text" />
+                <span class="field-label">{{ t("adminCommercePlacementOffer.offerIdLabel") }}</span>
+                <input v-model.number="placementForm.offerId" class="text-input" type="number" />
               </label>
 
               <label class="field">
@@ -169,16 +164,8 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.targetKindLabel") }}</span>
-                <select v-model="placementForm.targetKind" class="text-input">
-                  <option value="OFFER">OFFER</option>
-                  <option value="ORDER">ORDER</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.targetIdLabel") }}</span>
-                <input v-model.number="placementForm.targetId" class="text-input" type="number" />
+                <span class="field-label">{{ t("adminCommercePlacementOffer.creativeDescriptionLabel") }}</span>
+                <input v-model="placementForm.creativeDescription" class="text-input" type="text" />
               </label>
 
               <PlacementMatchingRulesEditor v-model="placementForm.matchingRule" />
@@ -345,11 +332,9 @@ type PlacementEditorForm = {
   priority: number;
   effectiveFrom: string;
   effectiveTo: string;
-  creativeTitle: string;
-  creativeSubtitle: string;
+  offerId: number;
   ctaLabel: string;
-  targetKind: "OFFER" | "ORDER";
-  targetId: number;
+  creativeDescription: string;
   matchingRule: JsonLogicRuleDraft;
   bindingRules: PlacementBindingRuleDraft[];
 };
@@ -405,22 +390,16 @@ const placementForm = ref<PlacementEditorForm>({
   priority: 0,
   effectiveFrom: "",
   effectiveTo: "",
-  creativeTitle: "",
-  creativeSubtitle: "",
+  offerId: 0,
   ctaLabel: "",
-  targetKind: "OFFER" as "OFFER" | "ORDER",
-  targetId: 0,
+  creativeDescription: "",
   matchingRule: createPlacementMatchingRuleDraft(),
   bindingRules: [],
 });
 
-const bindingRulesForTarget = (
-  targetKind: "OFFER" | "ORDER",
-  targetId: number,
-): PlacementBindingRuleDraft[] => {
-  if (targetKind !== "OFFER") return [];
+const bindingRulesForOfferId = (offerId: number): PlacementBindingRuleDraft[] => {
   return bindingRulesForOffer(
-    offers.value.find((offer) => offer.id === targetId) ?? null,
+    offers.value.find((offer) => offer.id === offerId) ?? null,
   );
 };
 
@@ -506,13 +485,13 @@ watch(
         priority: 0,
         effectiveFrom: "",
         effectiveTo: "",
-        creativeTitle: "",
-        creativeSubtitle: "",
+        offerId: selectedOfferId.value ?? offers.value[0]?.id ?? 0,
         ctaLabel: "",
-        targetKind: "OFFER",
-        targetId: 0,
+        creativeDescription: "",
         matchingRule: createPlacementMatchingRuleDraft(),
-        bindingRules: [],
+        bindingRules: bindingRulesForOfferId(
+          selectedOfferId.value ?? offers.value[0]?.id ?? 0,
+        ),
       };
       return;
     }
@@ -522,24 +501,14 @@ watch(
       priority: placement.priority,
       effectiveFrom: toDateInputValue(placement.effectiveFrom),
       effectiveTo: toDateInputValue(placement.effectiveTo),
-      creativeTitle: placement.creative.title,
-      creativeSubtitle: placement.creative.subtitle ?? "",
+      offerId: placement.offerId,
       ctaLabel: placement.creative.ctaLabel,
-      targetKind: placement.target.kind,
-      targetId:
-        placement.target.kind === "OFFER"
-          ? placement.target.offerId
-          : placement.target.orderId,
+      creativeDescription: placement.creative.description ?? "",
       matchingRule: toPlacementMatchingRuleDraft(placement.matchingRule),
       bindingRules:
         placement.bindingRules.length > 0
           ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
-          : bindingRulesForTarget(
-              placement.target.kind,
-              placement.target.kind === "OFFER"
-                ? placement.target.offerId
-                : placement.target.orderId,
-            ),
+          : bindingRulesForOfferId(placement.offerId),
     };
   },
   { immediate: true },
@@ -549,13 +518,12 @@ watch(
   () =>
     [
       isCreatingPlacement.value,
-      placementForm.value.targetKind,
-      placementForm.value.targetId,
+      placementForm.value.offerId,
       placementForm.value.bindingRules.length,
     ] as const,
-  ([creating, targetKind, targetId, bindingRuleCount]) => {
+  ([creating, offerId, bindingRuleCount]) => {
     if (!creating || bindingRuleCount > 0) return;
-    placementForm.value.bindingRules = bindingRulesForTarget(targetKind, targetId);
+    placementForm.value.bindingRules = bindingRulesForOfferId(offerId);
   },
 );
 
@@ -618,22 +586,17 @@ const buildOfferInput = (): AdminOfferInput => ({
 });
 
 const buildPlacementInput = (): AdminPlacementInput => ({
-  slotKey: "PR_UTILITY_ACTIONS_BUTTON",
   placementType: "BUTTON",
+  offerId: placementForm.value.offerId,
   status: placementForm.value.status,
   priority: placementForm.value.priority,
   effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
   effectiveTo: placementForm.value.effectiveTo.trim() || null,
   matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
   creative: {
-    title: placementForm.value.creativeTitle.trim(),
-    subtitle: placementForm.value.creativeSubtitle.trim() || null,
     ctaLabel: placementForm.value.ctaLabel.trim(),
+    description: placementForm.value.creativeDescription.trim() || null,
   },
-  target:
-    placementForm.value.targetKind === "OFFER"
-      ? { kind: "OFFER", offerId: placementForm.value.targetId }
-      : { kind: "ORDER", orderId: placementForm.value.targetId },
   bindingRules: placementForm.value.bindingRules.map((rule) => ({
     fieldKey: rule.fieldKey.trim(),
     contextPath: rule.contextPath.trim(),

@@ -7,7 +7,7 @@ import {
   type PlacementId,
 } from "../entities/placement";
 import type {
-  PlacementSlotKey,
+  PlacementType,
 } from "../domains/merchandising/model";
 import type { RepositoryExecutor } from "./_executor";
 
@@ -35,21 +35,21 @@ export class PlacementRepository {
       .select()
       .from(placements)
       .orderBy(
-        asc(placements.slotKey),
+        asc(placements.placementType),
         asc(placements.priority),
         desc(placements.createdAt),
       );
   }
 
-  async listActiveBySlotKey(input: {
-    slotKey: PlacementSlotKey;
+  async listActiveByType(input: {
+    placementType: PlacementType;
   }): Promise<Placement[]> {
     return this.executor
       .select()
       .from(placements)
       .where(
         and(
-          eq(placements.slotKey, input.slotKey),
+          eq(placements.placementType, input.placementType),
           eq(placements.status, "ACTIVE"),
           or(isNull(placements.effectiveFrom), lte(placements.effectiveFrom, new Date())),
           or(isNull(placements.effectiveTo), gt(placements.effectiveTo, new Date())),

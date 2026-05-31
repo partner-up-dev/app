@@ -14,8 +14,6 @@ import { BillRepository } from "../../../repositories/BillRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PartnerRepository, type ActiveParticipantSummary } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PlacementRepository } from "../../../repositories/PlacementRepository";
-import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RideHailingFulfillmentRepository } from "../../../repositories/RideHailingFulfillmentRepository";
@@ -24,7 +22,6 @@ import { RideHailingProviderInstanceRepository } from "../../../repositories/Rid
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import {
   buildPrPlacementRuleContextData,
-  isPlacementActiveAt,
   type PriceExplanation,
   type RideHailingSkuFacts,
   type SpuSalesPolicy,
@@ -46,7 +43,6 @@ import {
 import { createRideHailingOrderFoundation } from "./create-ride-hailing-order-foundation";
 
 const offerRepo = new OfferRepository();
-const placementRepo = new PlacementRepository();
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
 const productSpuRepo = new ProductSpuRepository();
@@ -55,7 +51,6 @@ const providerRepo = new RideHailingProviderInstanceRepository();
 const fulfillmentRepo = new RideHailingFulfillmentRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
-const attachedOrderRepo = new PRAttachedOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const pricingApplication = new PricingApplication();
@@ -96,6 +91,7 @@ export type RideHailingOrderingReadModel = {
   productType: "RIDE_HAILING";
   source: {
     placementInstanceId: number;
+    offerId: number;
     context: {
       kind: "PR";
       prId: number;
@@ -118,21 +114,24 @@ export type RideHailingOrderingReadModel = {
   }>;
 };
 
-export type RideHailingOrderingEvaluationInput = {
-  placementInstanceId: number;
-  context: {
-    kind: "PR";
-    prId: number;
-  };
-  selectedSkuId?: number | null;
+export type RideHailingOrderingItemInput = {
+  spuId?: number | null;
+  skuId: number;
+  quantity?: number | null;
+};
+
+export type RideHailingOrderingExtraProperties = {
   route: RideHailingRouteSnapshot;
   departureAt?: string | null;
-  riders: Array<{
-    userId: string;
-    displayName: string;
-    phoneMasked?: string | null;
-  }>;
+  riders: string[];
   contactPhone: string;
+};
+
+export type RideHailingOrderingEvaluationInput = {
+  offerId: number;
+  prId?: number | null;
+  items: RideHailingOrderingItemInput[];
+  productTypedExtraProperties: RideHailingOrderingExtraProperties;
 };
 
 export type RideHailingOrderingEvaluation = {
@@ -211,23 +210,13 @@ const toRider = (participant: ActiveParticipantSummary) => ({
 });
 
 async function resolveRidePlacementOffer(
-  placementInstanceId: number,
+  offerId: number,
 ): Promise<ResolvedRidePlacementOffer> {
-  const placement = await placementRepo.findById(placementInstanceId);
-  if (!placement) {
-    return throwHttpProblem({ status: 404, detail: "Placement not found" });
-  }
-  if (!isPlacementActiveAt(placement)) {
-    return throwHttpProblem({ status: 409, detail: "Placement is not active" });
-  }
-  if (placement.target.kind !== "OFFER") {
-    return throwHttpProblem({ status: 409, detail: "Placement does not target ordering" });
-  }
-  const offer = await offerRepo.findById(placement.target.offerId as OfferId);
+  const offer = await offerRepo.findById(offerId as OfferId);
   if (!offer || offer.productType !== "RIDE_HAILING" || !isActiveNow(offer)) {
     return throwHttpProblem({ status: 409, detail: "Offer is not available for RideHailing ordering" });
   }
-  return { placementId: placement.id, offer };
+  return { placementId: 0, offer };
 }
 
 async function resolveRidePrContext(prId: number): Promise<ResolvedRidePrContext> {
@@ -393,14 +382,10 @@ async function evaluateRideOptions(input: {
 }
 
 export async function getOrderingFromPlacement(input: {
-  placementInstanceId: number;
+  offerId: number;
   prId: number;
 }) {
-  const placement = await placementRepo.findById(input.placementInstanceId);
-  if (!placement || placement.target.kind !== "OFFER") {
-    return throwHttpProblem({ status: 404, detail: "Placement not found" });
-  }
-  const offer = await offerRepo.findById(placement.target.offerId as OfferId);
+  const offer = await offerRepo.findById(input.offerId as OfferId);
   if (!offer) return throwHttpProblem({ status: 404, detail: "Offer not found" });
   if (offer.productType === "RIDE_HAILING") {
     return getRideHailingOrderingFromPlacement(input);
@@ -410,10 +395,10 @@ export async function getOrderingFromPlacement(input: {
 }
 
 export async function getRideHailingOrderingFromPlacement(input: {
-  placementInstanceId: number;
+  offerId: number;
   prId: number;
 }): Promise<RideHailingOrderingReadModel> {
-  const placement = await resolveRidePlacementOffer(input.placementInstanceId);
+  const placement = await resolveRidePlacementOffer(input.offerId);
   const pr = await resolveRidePrContext(input.prId);
   const options = await evaluateRideOptions({
     offer: placement.offer,
@@ -426,7 +411,8 @@ export async function getRideHailingOrderingFromPlacement(input: {
   return {
     productType: "RIDE_HAILING",
     source: {
-      placementInstanceId: placement.placementId,
+      placementInstanceId: 0,
+      offerId: placement.offer.id,
       context: {
         kind: "PR",
         prId: pr.prId,
@@ -451,12 +437,15 @@ export async function getRideHailingOrderingFromPlacement(input: {
 export async function evaluateRideHailingOrdering(
   input: RideHailingOrderingEvaluationInput & { viewerUserId?: string | null },
 ): Promise<RideHailingOrderingEvaluation> {
-  const placement = await resolveRidePlacementOffer(input.placementInstanceId);
-  const pr = await resolveRidePrContext(input.context.prId);
+  const placement = await resolveRidePlacementOffer(input.offerId);
+  if (!input.prId) {
+    return throwHttpProblem({ status: 400, detail: "PR order requires prId" });
+  }
+  const pr = await resolveRidePrContext(input.prId);
   const options = await evaluateRideOptions({
     offer: placement.offer,
-    route: input.route,
-    selectedSkuId: input.selectedSkuId,
+    route: input.productTypedExtraProperties.route,
+    selectedSkuId: input.items[0]?.skuId ?? null,
   });
   const selectablePrices = options
     .map((option) => option.quoteAmountFen)
@@ -466,9 +455,9 @@ export async function evaluateRideHailingOrdering(
       ? "订单创建需要 PR 处于 READY 状态"
       : !input.viewerUserId || pr.createdBy !== input.viewerUserId
         ? "仅 PR 创建者可以创建订单"
-        : input.riders.length === 0
+        : input.productTypedExtraProperties.riders.length === 0
           ? "至少需要一名同乘人"
-          : input.contactPhone.trim().length === 0
+          : input.productTypedExtraProperties.contactPhone.trim().length === 0
             ? "请填写联系方式"
             : options.some((option) => option.selected && option.selectable)
               ? null
@@ -495,12 +484,15 @@ async function resolveSelectedRide(input: RideHailingOrderingEvaluationInput): P
   sku: RideSku;
   quote: RideQuoteOption;
 }> {
-  const placement = await resolveRidePlacementOffer(input.placementInstanceId);
-  const pr = await resolveRidePrContext(input.context.prId);
+  const placement = await resolveRidePlacementOffer(input.offerId);
+  if (!input.prId) {
+    return throwHttpProblem({ status: 400, detail: "PR order requires prId" });
+  }
+  const pr = await resolveRidePrContext(input.prId);
   const options = await evaluateRideOptions({
     offer: placement.offer,
-    route: input.route,
-    selectedSkuId: input.selectedSkuId,
+    route: input.productTypedExtraProperties.route,
+    selectedSkuId: input.items[0]?.skuId ?? null,
   });
   const quote = options.find((option) => option.selected && option.selectable);
   if (!quote || quote.quoteAmountFen === null) {
@@ -583,21 +575,17 @@ export async function createRideHailingOrderFromPlacement(
       {
         createdBy: input.createdBy,
         participants,
-        offerSnapshot: {
-          offerId: selected.placement.offer.id,
-          termsVersion: selected.placement.offer.termsVersion,
-          productType: "RIDE_HAILING",
-        },
+        offerId: selected.placement.offer.id as OfferId,
         items: [item],
         pricingSnapshot,
-        routeSnapshot: input.route,
-        departureAt: input.departureAt ?? null,
-        riders: input.riders.map((rider) => ({
-          userId: rider.userId,
-          displayName: rider.displayName,
-          phoneMasked: rider.phoneMasked ?? null,
-        })),
-        contactPhone: input.contactPhone,
+        routeSnapshot: input.productTypedExtraProperties.route,
+        departureAt: input.productTypedExtraProperties.departureAt ?? null,
+        riders: selected.pr.activeParticipants
+          .filter((participant) =>
+            input.productTypedExtraProperties.riders.includes(participant.userId),
+          )
+          .map(toRider),
+        contactPhone: input.productTypedExtraProperties.contactPhone,
         providerInstanceId: provider.id,
       },
       tx,
@@ -621,10 +609,10 @@ export async function createRideHailingOrderFromPlacement(
       params: {
         callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
         car_type: selected.sku.facts.providerVehicleTypeCode,
-        flat: input.route.origin.latitude,
-        flng: input.route.origin.longitude,
-        tlat: input.route.destination.latitude,
-        tlng: input.route.destination.longitude,
+        flat: input.productTypedExtraProperties.route.origin.latitude,
+        flng: input.productTypedExtraProperties.route.origin.longitude,
+        tlat: input.productTypedExtraProperties.route.destination.latitude,
+        tlng: input.productTypedExtraProperties.route.destination.longitude,
       },
     });
     const fulfillment = await fulfillmentRepo.findByOrderId(local.orderId as TradeOrderId);
@@ -649,7 +637,6 @@ export async function createRideHailingOrderFromPlacement(
       providerCreationStatus: "FAILED",
     });
     await tradeOrderRepo.updateStatus(local.orderId as TradeOrderId, "FAILED", new Date());
-    await attachedOrderRepo.detachByOrderId(local.orderId as TradeOrderId);
     return throwHttpProblem({
       status: 502,
       detail:

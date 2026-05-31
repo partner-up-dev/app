@@ -1,7 +1,6 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type {
-  OrderOfferSnapshot,
   OrderFamily,
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
@@ -11,6 +10,7 @@ import type {
   SplitRuleSnapshot,
   OrderItemSnapshot,
 } from "../domains/trade/model";
+import { offers, type OfferId } from "./offer";
 import { users, type UserId } from "./user";
 
 export type TradeOrderId = string & { readonly __brand: "TradeOrderId" };
@@ -23,6 +23,10 @@ export const tradeOrders = pgTable(
       .primaryKey()
       .default(sql`gen_random_uuid()`),
     family: text("family").$type<OrderFamily>().notNull(),
+    offerId: bigint("offer_id", { mode: "number" })
+      .$type<OfferId>()
+      .notNull()
+      .references(() => offers.id, { onDelete: "restrict" }),
     createdBy: uuid("created_by")
       .$type<UserId>()
       .notNull()
@@ -30,7 +34,6 @@ export const tradeOrders = pgTable(
     status: text("status").$type<OrderStatus>().notNull().default("OPEN"),
     participants: jsonb("participants").$type<OrderParticipantSnapshot[]>().notNull(),
     splitRuleSnapshot: jsonb("split_rule_snapshot").$type<SplitRuleSnapshot>().notNull(),
-    offerSnapshot: jsonb("offer_snapshot").$type<OrderOfferSnapshot>().notNull(),
     items: jsonb("items").$type<OrderItemSnapshot[]>().notNull(),
     pricingSnapshot: jsonb("pricing_snapshot").$type<OrderPricingSnapshot>().notNull(),
     timeout: jsonb("timeout").$type<OrderTimeout>().notNull(),
@@ -45,6 +48,10 @@ export const tradeOrders = pgTable(
   (table) => ({
     familyStatusIdx: index("trade_orders_family_status_idx").on(
       table.family,
+      table.status,
+    ),
+    offerStatusIdx: index("trade_orders_offer_status_idx").on(
+      table.offerId,
       table.status,
     ),
   }),

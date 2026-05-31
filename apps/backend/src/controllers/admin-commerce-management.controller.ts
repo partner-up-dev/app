@@ -233,28 +233,17 @@ const placementBindingRuleSchema = z.object({
 });
 
 const placementInputSchema = z.object({
-  slotKey: z.literal("PR_UTILITY_ACTIONS_BUTTON"),
   placementType: z.literal("BUTTON"),
+  offerId: z.number().int().positive(),
   status: placementStatusSchema,
   effectiveFrom: z.string().datetime({ offset: true }).nullable().optional(),
   effectiveTo: z.string().datetime({ offset: true }).nullable().optional(),
   matchingRule: z.unknown(),
   priority: z.number().int(),
   creative: z.object({
-    title: z.string().trim().min(1),
-    subtitle: z.string().trim().nullable().optional(),
     ctaLabel: z.string().trim().min(1),
+    description: z.string().trim().nullable().optional(),
   }),
-  target: z.union([
-    z.object({
-      kind: z.literal("OFFER"),
-      offerId: z.number().int().positive(),
-    }),
-    z.object({
-      kind: z.literal("ORDER"),
-      orderId: z.number().int().positive(),
-    }),
-  ]),
   bindingRules: z.array(placementBindingRuleSchema),
 });
 

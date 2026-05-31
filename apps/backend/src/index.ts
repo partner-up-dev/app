@@ -33,6 +33,7 @@ import { adminCommerceManagementRoute } from "./controllers/admin-commerce-manag
 import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
 import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
+import { placementRoute } from "./controllers/placement.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
 import {
   legacyRideHailingProviderRoute,
@@ -203,6 +204,7 @@ export const routes = app
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
   .route("/api/commerce", commerceRoute)
+  .route("/api/placements", placementRoute)
   .route("/api/payment", paymentProviderRoute)
   .route("/api/ride-hailing", rideHailingProviderRoute)
   .route("/api/v1/service_provider", legacyRideHailingProviderRoute)

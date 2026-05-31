@@ -143,13 +143,13 @@ The preferred baseline user-visible route spine is:
 
 Why this topology is durable:
 
-- `PR Page` is the contextual entry surface where Placement is rendered.
-- `Offer Detail` is the pre-order explanation and ordering-assembly surface.
+- `PR Page` is the contextual entry surface where Button Placement is rendered.
+- `/order/new` is the pre-order explanation and ordering-assembly surface.
 - `Order Detail` is the long-lived post-create lifecycle surface.
 
 This means:
 
-- before create, primary action belongs on `Offer Detail`
+- before create, primary action belongs on `/order/new`
 - after create, primary action belongs on `Order Detail`
 - payment, cancellation, fulfillment result, and final bill should stay inside
   `Order Detail` unless an external gateway constraint later forces a detour
@@ -158,22 +158,28 @@ This means:
 
 - Placement is backend-authored.
 - This task implements only `BUTTON` Placement.
-- Button Placement is rendered inside the PR Page Utility Actions row.
-- Placement target is backend-authored, for example:
-  - `{ kind: "OFFER", offerId }`
-  - `{ kind: "ORDER", orderId }`
-- Frontend must not infer whether an order already exists by itself.
+- Button Placement is rendered inside the PR Page Utility Actions row when the
+  PR Page determines the current user is an active participant.
+- PR Page builds `matchingContext` from PR Detail and calls
+  `POST /api/placements?type=BUTTON`.
+- `matchPlacementInstance(type, matchingContext)` is the Placement boundary.
+  Placement does not receive `userId`, `prId`, `contextType`, `slotKey`, or a
+  PR-specific roster.
+- A Placement Instance contains `offerId` and creative
+  `{ ctaLabel, description? }`. It does not contain a navigation target.
+- On click, PR Page checks existing PR-linked orders with explicit status enum
+  values, then either routes to Order Detail or resolves bindings with
+  `POST /api/placements/:instanceId/bindings` and opens `/order/new`.
 
 PR-context visibility rules:
 
-- active PR participants can see PR-attached order targets and PR-context
-  placements
-- non-active participants should not see PR-context placement projection
+- active PR participants can see PR-context Button Placements
+- non-active participants should not mount Button Placement
 
 ## PR-Attached Order Invariant
 
-PR-context order creation must be attached to the PR inside the same
-transaction.
+PR-context order creation must append the created order id into
+`partner_requests.orders` inside the same transaction.
 
 Rules:
 
@@ -182,6 +188,8 @@ Rules:
 - PR domain is the final authority on attachment acceptance
 - if PR domain rejects attachment, the whole order creation transaction must
   roll back
+- `pr_attached_orders` is retired; PR owns `orders uuid[]`
+- `trade_orders.offerId` is the order-offer identity
 
 Current issue-231 uniqueness constraint:
 
@@ -201,6 +209,18 @@ Pricing ownership:
 - `SPU PricingPolicy` is product-native price rule truth
 - `Offer PricingPolicy` is commercial overlay truth
 - concrete pricing execution belongs to Trade
+
+## Ordering Command Contract
+
+- `/order/new` receives transient `{ offerId, prId?, bindings }` from the
+  entry surface.
+- Order Content is selected from the Offer's SPU `productType`.
+- Bindings only prefill and lock client fields; they are not submitted as
+  authoritative server input.
+- Order Content exposes `items` and `productTypedExtraProperties`.
+- BottomActionBar creates the command:
+  `{ offerId, prId?, items, productTypedExtraProperties }`.
+- This command is not coupled to Placement or `matchingContext`.
 
 ## Rental Frontend Journey Contract
 

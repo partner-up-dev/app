@@ -196,9 +196,9 @@ vi.mock("@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue", () =>
   },
 }));
 
-vi.mock("@/domains/commerce/ui/PRCommercePlacementAction.vue", () => ({
+vi.mock("@/domains/commerce/ui/ButtonPlacement.vue", () => ({
   default: {
-    name: "PRCommercePlacementAction",
+    name: "ButtonPlacement",
     template: '<section data-testid="pr-detail.commerce-placement-action" />',
   },
 }));

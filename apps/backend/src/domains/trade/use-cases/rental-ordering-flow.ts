@@ -17,7 +17,6 @@ import {
   type ActiveParticipantSummary,
 } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
@@ -39,7 +38,6 @@ import type {
 } from "../../merchandising";
 import {
   buildPrPlacementRuleContextData,
-  isPlacementActiveAt,
   resolvePlacementBindings,
 } from "../../merchandising";
 import { createRentalOrder } from "./create-rental-order";
@@ -56,7 +54,6 @@ import {
 import { validateRentalServicePolicyAvailability } from "../services/rental-service-policy";
 
 const offerRepo = new OfferRepository();
-const placementRepo = new PlacementRepository();
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
 const productSpuRepo = new ProductSpuRepository();
@@ -113,6 +110,7 @@ export type RentalOrderingReadModel = {
   productType: "RENTAL";
   source: {
     placementInstanceId: number;
+    offerId: number;
     context: {
       kind: "PR";
       prId: number;
@@ -143,13 +141,10 @@ export type RentalOrderingRequestInput = {
 };
 
 export type RentalOrderingEvaluationInput = {
-  placementInstanceId: number;
-  context: {
-    kind: "PR";
-    prId: number;
-  };
+  offerId: number;
+  prId?: number | null;
   items: RentalOrderingItemInput[];
-  request: RentalOrderingRequestInput;
+  productTypedExtraProperties: RentalOrderingRequestInput;
 };
 
 export type RentalOrderingEvaluation = {
@@ -164,7 +159,6 @@ export type RentalOrderingEvaluation = {
 };
 
 type ResolvedPlacementOffer = {
-  placementId: number;
   offer: Offer;
   bindingRules: PlacementBindingRule[];
 };
@@ -267,12 +261,19 @@ async function resolvePrContext(input: {
   });
   let boundValues: RentalPlacementBindingValues;
   try {
-    boundValues = resolveRentalPlacementBindingValues(
-      resolvePlacementBindings({
-        context: prContext,
-        rules: input.bindingRules,
-      }),
-    );
+    boundValues =
+      input.bindingRules.length === 0
+        ? {
+            participantCount: activeParticipants.length,
+            serviceStartAt: toServiceTime(pr.time[0], "2031-01-01T10:00:00.000Z"),
+            serviceEndAt: toServiceTime(pr.time[1], "2031-01-01T12:00:00.000Z"),
+          }
+        : resolveRentalPlacementBindingValues(
+            resolvePlacementBindings({
+              context: prContext,
+              rules: input.bindingRules,
+            }),
+          );
   } catch (error) {
     return throwHttpProblem({
       status: 409,
@@ -298,23 +299,9 @@ async function resolvePrContext(input: {
 }
 
 async function resolvePlacementOffer(
-  placementInstanceId: number,
+  offerId: number,
 ): Promise<ResolvedPlacementOffer> {
-  const placement = await placementRepo.findById(placementInstanceId);
-  if (!placement) {
-    return throwHttpProblem({ status: 404, detail: "Placement not found" });
-  }
-  if (!isPlacementActiveAt(placement)) {
-    return throwHttpProblem({ status: 409, detail: "Placement is not active" });
-  }
-  if (placement.target.kind !== "OFFER") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Placement does not target ordering",
-    });
-  }
-
-  const offer = await offerRepo.findById(placement.target.offerId as OfferId);
+  const offer = await offerRepo.findById(offerId as OfferId);
   if (!offer) {
     return throwHttpProblem({ status: 404, detail: "Offer not found" });
   }
@@ -326,9 +313,8 @@ async function resolvePlacementOffer(
   }
 
   return {
-    placementId: placement.id,
     offer,
-    bindingRules: placement.bindingRules,
+    bindingRules: [],
   };
 }
 
@@ -388,9 +374,12 @@ async function listOfferRentalSpus(
 async function resolveSelection(
   input: RentalOrderingEvaluationInput,
 ): Promise<ResolvedOrderingSelection> {
-  const placement = await resolvePlacementOffer(input.placementInstanceId);
+  const placement = await resolvePlacementOffer(input.offerId);
+  if (!input.prId) {
+    return throwHttpProblem({ status: 400, detail: "PR order requires prId" });
+  }
   const pr = await resolvePrContext({
-    prId: input.context.prId,
+    prId: input.prId,
     bindingRules: placement.bindingRules,
   });
   const firstItem = input.items[0];
@@ -511,10 +500,10 @@ function validateRentalRequest(input: {
 }
 
 export async function getRentalOrderingFromPlacement(input: {
-  placementInstanceId: number;
+  offerId: number;
   prId: number;
 }): Promise<RentalOrderingReadModel> {
-  const placement = await resolvePlacementOffer(input.placementInstanceId);
+  const placement = await resolvePlacementOffer(input.offerId);
   const pr = await resolvePrContext({
     prId: input.prId,
     bindingRules: placement.bindingRules,
@@ -524,7 +513,8 @@ export async function getRentalOrderingFromPlacement(input: {
   return {
     productType: "RENTAL",
     source: {
-      placementInstanceId: placement.placementId,
+      placementInstanceId: 0,
+      offerId: placement.offer.id,
       context: {
         kind: "PR",
         prId: pr.prId,
@@ -585,7 +575,7 @@ export async function evaluateRentalOrdering(
 ): Promise<RentalOrderingEvaluation> {
   const selection = await resolveSelection(input);
   const validationError = validateRentalRequest({
-    request: input.request,
+    request: input.productTypedExtraProperties,
     pr: selection.pr,
     servicePolicy: selection.spu.servicePolicy,
     viewerUserId: input.viewerUserId ?? null,
@@ -601,7 +591,7 @@ export async function evaluateRentalOrdering(
       },
     ],
     orderContext: {
-      serviceTime: input.request.serviceStartAt,
+      serviceTime: input.productTypedExtraProperties.serviceStartAt,
     },
   });
 
@@ -627,7 +617,7 @@ export async function createRentalOrderFromPlacement(
 ) {
   const selection = await resolveSelection(input);
   const validationError = validateRentalRequest({
-    request: input.request,
+    request: input.productTypedExtraProperties,
     pr: selection.pr,
     servicePolicy: selection.spu.servicePolicy,
     viewerUserId: input.createdBy,
@@ -651,7 +641,7 @@ export async function createRentalOrderFromPlacement(
       },
     ],
     orderContext: {
-      serviceTime: input.request.serviceStartAt,
+      serviceTime: input.productTypedExtraProperties.serviceStartAt,
     },
   });
 
@@ -669,11 +659,7 @@ export async function createRentalOrderFromPlacement(
       {
         createdBy: input.createdBy,
         participants,
-        offerSnapshot: {
-          offerId: selection.placement.offer.id,
-          termsVersion: selection.placement.offer.termsVersion,
-          productType: "RENTAL",
-        },
+        offerId: selection.placement.offer.id as OfferId,
         items: [
           {
             itemId,
@@ -694,10 +680,10 @@ export async function createRentalOrderFromPlacement(
         serviceStartAt: selection.pr.serviceStartAt,
         serviceEndAt: selection.pr.serviceEndAt,
         participantCount: selection.pr.participantCount,
-        contactPhone: input.request.contactPhone,
-        registrants: input.request.registrants.map((registrant) => ({
+        contactPhone: input.productTypedExtraProperties.contactPhone,
+        registrants: input.productTypedExtraProperties.registrants.map((registrant) => ({
           name: registrant.fullName,
-          phone: input.request.contactPhone,
+          phone: input.productTypedExtraProperties.contactPhone,
           nationalIdMasked: registrant.nationalId ? "已填写" : null,
         })),
       },
@@ -769,7 +755,7 @@ export async function getCommerceOrderDetail(input: {
       family: order.family,
       status: order.status,
       createdBy: order.createdBy,
-      offerSnapshot: order.offerSnapshot,
+      offerId: order.offerId,
       items: order.items,
       pricingSnapshot: order.pricingSnapshot,
       terminationAttempts: order.terminationAttempts,

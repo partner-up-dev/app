@@ -1,5 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
+import type { OfferId } from "../../../entities/offer";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
@@ -9,7 +10,6 @@ import { createBillFromSeed } from "../../bill";
 import { materializeChargeLinesFromSplitRule } from "../../bill/services";
 import type {
   OrderItemSnapshot,
-  OrderOfferSnapshot,
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
   RentalRegistrant,
@@ -22,7 +22,7 @@ const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
 export interface CreateRentalOrderInput {
   createdBy: string;
   participants: OrderParticipantSnapshot[];
-  offerSnapshot: OrderOfferSnapshot;
+  offerId: OfferId;
   items: OrderItemSnapshot[];
   pricingSnapshot: OrderPricingSnapshot;
   selectedZoneCodes: string[];
@@ -98,10 +98,10 @@ export async function createRentalOrder(
 
   const order = await tradeOrderRepo.create({
     family: "RENTAL",
+    offerId: input.offerId,
     createdBy,
     participants: input.participants,
     splitRuleSnapshot,
-    offerSnapshot: input.offerSnapshot,
     items: input.items,
     pricingSnapshot: input.pricingSnapshot,
     timeout: {

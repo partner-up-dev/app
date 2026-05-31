@@ -5,8 +5,6 @@ import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import type {
   ButtonPlacementCreative,
   PlacementBindingRule,
-  PlacementSlotKey,
-  PlacementTarget,
   PlacementType,
 } from "../../merchandising";
 import {
@@ -20,15 +18,14 @@ const placementRepo = new PlacementRepository();
 
 export type UpdateAdminCommercePlacementInput = {
   placementId: PlacementId;
-  slotKey: PlacementSlotKey;
   placementType: PlacementType;
+  offerId: number;
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
   matchingRule: unknown;
   priority: number;
   effectiveFrom?: Date | null;
   effectiveTo?: Date | null;
   creative: ButtonPlacementCreative;
-  target: PlacementTarget;
   bindingRules: PlacementBindingRule[];
 };
 
@@ -47,33 +44,30 @@ export async function updateAdminCommercePlacement(
     });
   }
 
-  if (input.target.kind === "OFFER") {
-    const offer = await offerRepo.findById(input.target.offerId);
-    if (!offer) {
-      return throwHttpProblem({ status: 404, detail: "Offer not found" });
-    }
-    const bindingError = validatePlacementBindingRulesAgainstContract({
-      rules: input.bindingRules,
-      contract: resolvePlacementBindingContractForOffer(offer),
+  const offer = await offerRepo.findById(input.offerId);
+  if (!offer) {
+    return throwHttpProblem({ status: 404, detail: "Offer not found" });
+  }
+  const bindingError = validatePlacementBindingRulesAgainstContract({
+    rules: input.bindingRules,
+    contract: resolvePlacementBindingContractForOffer(offer),
+  });
+  if (bindingError) {
+    return throwHttpProblem({
+      status: 400,
+      detail: bindingError,
     });
-    if (bindingError) {
-      return throwHttpProblem({
-        status: 400,
-        detail: bindingError,
-      });
-    }
   }
 
   return placementRepo.updateById(input.placementId, {
-    slotKey: input.slotKey,
     placementType: input.placementType,
+    offerId: input.offerId,
     status: input.status,
     matchingRule: input.matchingRule,
     priority: input.priority,
     effectiveFrom: input.effectiveFrom ?? null,
     effectiveTo: input.effectiveTo ?? null,
     creative: input.creative,
-    target: input.target,
     bindingRules: input.bindingRules,
   });
 }

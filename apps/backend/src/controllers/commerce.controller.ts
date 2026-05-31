@@ -14,7 +14,6 @@ import {
   getOrderingFromPlacement,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
-import { resolveCommercePlacementForPr } from "../domains/merchandising";
 import {
   createOrReuseChargeForBillLine,
   getBillDetail,
@@ -26,16 +25,9 @@ import {
 
 const app = new Hono<AuthEnv>();
 
-const prPlacementQuerySchema = z.object({
-  context: z.literal("pr"),
-  contextId: z.coerce.number().int().positive(),
-  type: z.literal("BUTTON"),
-});
-
 const placementOrderingQuerySchema = z.object({
-  placementInstanceId: z.coerce.number().int().positive(),
-  context: z.literal("pr"),
-  contextId: z.coerce.number().int().positive(),
+  offerId: z.coerce.number().int().positive(),
+  prId: z.coerce.number().int().positive(),
 });
 
 const orderIdParamSchema = z.object({
@@ -62,11 +54,8 @@ const registrantSchema = z.object({
 });
 
 const rentalOrderingCommandSchema = z.object({
-  placementInstanceId: z.number().int().positive(),
-  context: z.object({
-    kind: z.literal("PR"),
-    prId: z.number().int().positive(),
-  }),
+  offerId: z.number().int().positive(),
+  prId: z.number().int().positive().nullable().optional(),
   items: z
     .array(
       z.object({
@@ -76,7 +65,7 @@ const rentalOrderingCommandSchema = z.object({
       }),
     )
     .min(1),
-  request: z.object({
+  productTypedExtraProperties: z.object({
     serviceStartAt: z.string().datetime({ offset: true }),
     serviceEndAt: z.string().datetime({ offset: true }),
     contactPhone: z.string().trim().min(1),
@@ -109,24 +98,23 @@ const rideHailingRouteSnapshotSchema = z.object({
 });
 
 const rideHailingOrderingCommandSchema = z.object({
-  placementInstanceId: z.number().int().positive(),
-  context: z.object({
-    kind: z.literal("PR"),
-    prId: z.number().int().positive(),
-  }),
-  selectedSkuId: z.number().int().positive().nullable().optional(),
-  route: rideHailingRouteSnapshotSchema,
-  departureAt: z.string().datetime({ offset: true }).nullable().optional(),
-  riders: z
+  offerId: z.number().int().positive(),
+  prId: z.number().int().positive().nullable().optional(),
+  items: z
     .array(
       z.object({
-        userId: z.string().uuid(),
-        displayName: z.string().trim().min(1),
-        phoneMasked: z.string().nullable().optional(),
+        spuId: z.number().int().positive().nullable().optional(),
+        skuId: z.number().int().positive(),
+        quantity: z.number().int().positive().nullable().optional(),
       }),
     )
     .min(1),
-  contactPhone: z.string().trim().min(1),
+  productTypedExtraProperties: z.object({
+    route: rideHailingRouteSnapshotSchema,
+    departureAt: z.string().datetime({ offset: true }).nullable().optional(),
+    riders: z.array(z.string().uuid()).min(1),
+    contactPhone: z.string().trim().min(1),
+  }),
 });
 
 const readClientId = (headerValue: string | undefined): string => {
@@ -142,23 +130,14 @@ const readClientId = (headerValue: string | undefined): string => {
 
 export const commerceRoute = app
   .use("*", authMiddleware)
-  .get("/placements", zValidator("query", prPlacementQuerySchema), async (c) => {
-    const query = c.req.valid("query");
-    const auth = c.get("auth");
-    const result = await resolveCommercePlacementForPr({
-      prId: query.contextId,
-      viewerUserId: auth.userId,
-    });
-    return c.json(result);
-  })
   .get(
     "/ordering/from-placement",
     zValidator("query", placementOrderingQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
       const result = await getOrderingFromPlacement({
-        placementInstanceId: query.placementInstanceId,
-        prId: query.contextId,
+        offerId: query.offerId,
+        prId: query.prId,
       });
       return c.json(result);
     },
@@ -170,10 +149,10 @@ export const commerceRoute = app
       const payload = c.req.valid("json");
       const auth = c.get("auth");
       const result = await evaluateRentalOrdering({
-        placementInstanceId: payload.placementInstanceId,
-        context: payload.context,
+        offerId: payload.offerId,
+        prId: payload.prId,
         items: payload.items,
-        request: payload.request,
+        productTypedExtraProperties: payload.productTypedExtraProperties,
         viewerUserId: auth.userId,
       });
       return c.json(result);
@@ -212,10 +191,10 @@ export const commerceRoute = app
       const payload = c.req.valid("json");
       const userId = requireAuthenticatedUserId(c);
       const result = await createRentalOrderFromPlacement({
-        placementInstanceId: payload.placementInstanceId,
-        context: payload.context,
+        offerId: payload.offerId,
+        prId: payload.prId,
         items: payload.items,
-        request: payload.request,
+        productTypedExtraProperties: payload.productTypedExtraProperties,
         createdBy: userId,
       });
       return c.json(result, 201);

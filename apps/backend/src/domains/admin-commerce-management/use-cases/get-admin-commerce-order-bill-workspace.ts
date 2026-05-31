@@ -1,19 +1,16 @@
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 
 const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
-const prAttachedOrderRepo = new PRAttachedOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 
 export async function getAdminCommerceOrderBillWorkspace() {
-  const [orders, attachments, bills] = await Promise.all([
+  const [orders, bills] = await Promise.all([
     tradeOrderRepo.listAll(),
-    prAttachedOrderRepo.listAll(),
     billRepo.listAll(),
   ]);
   const rentalOrders = await rentalOrderRepo.listByOrderIds(
@@ -22,9 +19,6 @@ export async function getAdminCommerceOrderBillWorkspace() {
       .map((order) => order.id),
   );
 
-  const attachmentByOrderId = new Map(
-    attachments.map((attachment) => [attachment.orderId, attachment]),
-  );
   const rentalOrderByOrderId = new Map(
     rentalOrders.map((rentalOrder) => [rentalOrder.orderId, rentalOrder]),
   );
@@ -43,7 +37,6 @@ export async function getAdminCommerceOrderBillWorkspace() {
       return {
         order,
         rentalOrder: rentalOrderByOrderId.get(order.id) ?? null,
-        attachment: attachmentByOrderId.get(order.id) ?? null,
         bill,
         billLines: bill ? billLinesByBillId.get(bill.id) ?? [] : [],
       };

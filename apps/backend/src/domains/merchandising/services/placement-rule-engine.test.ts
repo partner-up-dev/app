@@ -19,6 +19,7 @@ const prBase: PartnerRequest = {
   meetingPoint: null,
   minPartners: 2,
   notes: null,
+  orders: [],
   preferences: ["quiet"],
   route: null,
   status: "OPEN",

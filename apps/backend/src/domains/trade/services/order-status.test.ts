@@ -10,17 +10,13 @@ import {
 const buildOrder = (status: TradeOrder["status"]): TradeOrder => ({
   id: "order-1",
   family: "RIDE_HAILING",
+  offerId: 1,
   createdBy: "user-1",
   status,
   participants: [],
   splitRuleSnapshot: {
     type: "RELATIVE",
     shares: [],
-  },
-  offerSnapshot: {
-    offerId: 1,
-    termsVersion: 1,
-    productType: "RIDE_HAILING",
   },
   items: [],
   pricingSnapshot: {

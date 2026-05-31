@@ -17,7 +17,7 @@
             @click="selectedOrderIdRaw = record.order.id"
           >
             <span>{{ record.order.family }} · {{ record.order.status }}</span>
-            <small>{{ record.attachment ? `PR#${record.attachment.prId}` : t("adminCommerceOrderBill.unattachedLabel") }}</small>
+            <small>#{{ record.order.offerId }}</small>
           </ChoiceCard>
         </div>
       </AdminRailPanel>
@@ -54,11 +54,7 @@
               </div>
               <div>
                 <dt>{{ t("adminCommerceOrderBill.offerLabel") }}</dt>
-                <dd>#{{ selectedOrderRecord.order.offerSnapshot.offerId }}</dd>
-              </div>
-              <div>
-                <dt>{{ t("adminCommerceOrderBill.prLabel") }}</dt>
-                <dd>{{ selectedOrderRecord.attachment ? `PR#${selectedOrderRecord.attachment.prId}` : "-" }}</dd>
+                <dd>#{{ selectedOrderRecord.order.offerId }}</dd>
               </div>
             </dl>
           </BentoItem>

@@ -18,7 +18,7 @@ const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
-const OrderingFromPlacementPage = () =>
+const NewOrderPage = () =>
   import("@/pages/OrderingFromPlacementPage.vue");
 const CommerceOrderDetailPage = () =>
   import("@/pages/CommerceOrderDetailPage.vue");
@@ -125,9 +125,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/ordering/from-placement",
-    name: "ordering-from-placement",
-    component: OrderingFromPlacementPage,
+    path: "/order/new",
+    name: "order-new",
+    component: NewOrderPage,
     meta: {
       wechatSharePolicy: "skip",
     },

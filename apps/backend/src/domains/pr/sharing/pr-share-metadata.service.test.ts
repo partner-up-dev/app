@@ -28,6 +28,7 @@ const buildPublicPR = ({
   createdAt: new Date("2026-05-04T00:00:00.000Z"),
   preferences: [],
   notes: null,
+  orders: [],
   meetingPoint: null,
   joinGateConfig: [],
   feedbackQuestionnaireInstanceId: null,

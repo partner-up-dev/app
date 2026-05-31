@@ -12,15 +12,11 @@ import {
 const createOpenOrder = (): TradeOrder => ({
   id: "order-1",
   family: "RENTAL",
+  offerId: 1,
   createdBy: "user-1",
   status: "OPEN",
   participants: [],
   splitRuleSnapshot: { type: "RELATIVE", shares: [] },
-  offerSnapshot: {
-    offerId: 1,
-    termsVersion: 1,
-    productType: "RENTAL",
-  },
   items: [],
   pricingSnapshot: {
     currency: "CNY",

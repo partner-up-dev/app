@@ -8,7 +8,7 @@ import {
   createPlacement,
   createProductSku,
   createProductSpu,
-  resolveCommercePlacementForPr,
+  matchPlacementInstance,
 } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,
@@ -174,11 +174,7 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   const result = await createRentalOrder({
     createdBy: creator.user.id,
     participants,
-    offerSnapshot: {
-      offerId: offer.id,
-      termsVersion: offer.termsVersion,
-      productType: "RENTAL",
-    },
+    offerId: offer.id,
     items: [
       {
         itemId,
@@ -227,6 +223,7 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   const baseOrder = await tradeOrderRepo.findById(result.orderId);
   assert.ok(baseOrder, "Base trade order should be persisted");
   assert.equal(baseOrder.family, "RENTAL");
+  assert.equal(baseOrder.offerId, offer.id);
   assert.equal(baseOrder.createdBy, creator.user.id);
   assert.equal(hasOwnKey(baseOrder, "selectedZoneCodes"), false);
   assert.equal(hasOwnKey(baseOrder, "serviceStartAt"), false);
@@ -255,11 +252,7 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
   const orderResult = await createRentalOrder({
     createdBy: creator.user.id,
     participants,
-    offerSnapshot: {
-      offerId: offer.id,
-      termsVersion: offer.termsVersion,
-      productType: "RENTAL",
-    },
+    offerId: offer.id,
     items: [
       {
         itemId,
@@ -403,18 +396,13 @@ scenario(
     const prId = await givenRentalPr(creator);
     const { offer, sku, spu } = await givenRentalCatalog();
     const placement = await createPlacement({
-      slotKey: "PR_UTILITY_ACTIONS_BUTTON",
       placementType: "BUTTON",
+      offerId: offer.id,
       status: "ACTIVE",
       matchingRule: { "===": [{ var: "kind" }, "PR"] },
       priority: 10,
       creative: {
-        title: "预订场地",
         ctaLabel: "预订场地",
-      },
-      target: {
-        kind: "OFFER",
-        offerId: offer.id,
       },
       bindingRules: defaultRentalPlacementBindingRules(),
     });
@@ -428,11 +416,7 @@ scenario(
           {
             createdBy: creator.user.id,
             participants,
-            offerSnapshot: {
-              offerId: offer.id,
-              termsVersion: offer.termsVersion,
-              productType: "RENTAL",
-            },
+            offerId: offer.id,
             items: [
               {
                 itemId,
@@ -500,11 +484,11 @@ scenario(
       /An active order already exists for this PR and offer/,
     );
 
-    const orderProjection = await resolveCommercePlacementForPr({
-      prId,
-      viewerUserId: creator.user.id,
+    const orderProjection = await matchPlacementInstance({
+      type: "BUTTON",
+      matchingContext: { kind: "PR" },
     });
-    assert.equal(orderProjection.placement?.target.kind, "ORDER");
+    assert.equal(orderProjection.placements[0]?.offerId, offer.id);
 
     await tradeOrderRepo.updateStatus(
       firstOrder.orderId as TradeOrderId,
@@ -512,11 +496,11 @@ scenario(
       new Date(),
     );
 
-    const orderingProjection = await resolveCommercePlacementForPr({
-      prId,
-      viewerUserId: creator.user.id,
+    const orderingProjection = await matchPlacementInstance({
+      type: "BUTTON",
+      matchingContext: { kind: "PR" },
     });
-    assert.equal(orderingProjection.placement?.target.kind, "ORDERING");
+    assert.equal(orderingProjection.placements[0]?.offerId, offer.id);
 
     const secondOrder = await createOrder();
     ctx.record("secondOrderId", secondOrder.orderId);
@@ -525,8 +509,7 @@ scenario(
 );
 
 scenario("commerce_placement_resolution_does_not_filter_product_type", async () => {
-  const creator = await givenUser("placement-non-rental-offer-creator");
-  const prId = await givenRentalPr(creator);
+  await givenUser("placement-non-rental-offer-creator");
   const spu = await createProductSpu({
     name: "Scenario ride hailing service",
     productType: "RIDE_HAILING",
@@ -560,28 +543,23 @@ scenario("commerce_placement_resolution_does_not_filter_product_type", async () 
     termsVersion: 1,
   });
   await createPlacement({
-    slotKey: "PR_UTILITY_ACTIONS_BUTTON",
     placementType: "BUTTON",
+    offerId: offer.id,
     status: "ACTIVE",
     matchingRule: { "===": [{ var: "kind" }, "PR"] },
     priority: 10,
     creative: {
-      title: "叫车",
       ctaLabel: "叫车",
-    },
-    target: {
-      kind: "OFFER",
-      offerId: offer.id,
     },
     bindingRules: [],
   });
 
-  const projection = await resolveCommercePlacementForPr({
-    prId,
-    viewerUserId: creator.user.id,
+  const projection = await matchPlacementInstance({
+    type: "BUTTON",
+    matchingContext: { kind: "PR" },
   });
 
-  assert.equal(projection.placement?.target.kind, "ORDERING");
+  assert.equal(projection.placements[0]?.offerId, offer.id);
 });
 
 scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
@@ -595,11 +573,7 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
     createRentalOrder({
       createdBy: creator.user.id,
       participants,
-      offerSnapshot: {
-        offerId: offer.id,
-        termsVersion: offer.termsVersion,
-        productType: "RENTAL",
-      },
+      offerId: offer.id,
       items: [
         {
           itemId,

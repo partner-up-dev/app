@@ -245,8 +245,7 @@ async function givenRideHailingOrderingPlacement(): Promise<{
     ],
     creative: {
       ctaLabel: "叫曹操",
-      subtitle: "按当前路线预估网约车费用",
-      title: "曹操出行",
+      description: "按当前路线预估网约车费用",
     },
     matchingRule: {
       and: [
@@ -258,13 +257,9 @@ async function givenRideHailingOrderingPlacement(): Promise<{
       ],
     },
     placementType: "BUTTON",
+    offerId: offer.id,
     priority: 100,
-    slotKey: "PR_UTILITY_ACTIONS_BUTTON",
     status: "ACTIVE",
-    target: {
-      kind: "OFFER",
-      offerId: offer.id,
-    },
   });
 
   return {

@@ -27,6 +27,8 @@ import {
   waitlistPRByIdentity,
 } from "../domains/pr";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
+import { TradeOrderRepository } from "../repositories/TradeOrderRepository";
+import type { OfferId } from "../entities/offer";
 import {
   anchorUpdateContentSchema,
   createNaturalLanguagePRSchema,
@@ -52,6 +54,7 @@ import { z } from "zod";
 
 const app = new Hono<AuthEnv>();
 const prRepo = new PartnerRequestRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 const PR_MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (
   c,
@@ -111,6 +114,13 @@ const slotCheckInSchema = z.object({
 const joinGateParamSchema = z.object({
   id: z.coerce.number().int().positive(),
   gateKey: z.string().trim().min(1),
+});
+const prOrdersQuerySchema = z.object({
+  offerId: z.coerce.number().int().positive(),
+  statusIn: z.preprocess(
+    (value) => (Array.isArray(value) ? value : value ? [value] : []),
+    z.array(z.enum(["INITIATING", "OPEN", "CANCELLED", "FAILED", "EXPIRED", "COMPLETED"])).min(1),
+  ),
 });
 const resolveJoinGateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -223,6 +233,28 @@ export const partnerRequestRoute = app
       })),
     });
   })
+  .get(
+    "/:id/orders",
+    zValidator("param", prIdParamSchema),
+    zValidator("query", prOrdersQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const query = c.req.valid("query");
+      const pr = await getPROr404(id);
+      const orders = await tradeOrderRepo.listByIdsOfferAndStatuses({
+        ids: pr.orders,
+        offerId: query.offerId as OfferId,
+        statuses: query.statusIn,
+      });
+      return c.json({
+        orders: orders.map((order) => ({
+          id: order.id,
+          status: order.status,
+          offerId: order.offerId,
+        })),
+      });
+    },
+  )
   .post(
     "/:id/messages",
     zValidator("param", prIdParamSchema),

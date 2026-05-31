@@ -11,11 +11,11 @@ export function toTradeOrderModel(record: TradeOrderRecord): TradeOrder {
   return {
     id: record.id,
     family: record.family,
+    offerId: record.offerId,
     createdBy: record.createdBy,
     status: record.status,
     participants: record.participants,
     splitRuleSnapshot: record.splitRuleSnapshot,
-    offerSnapshot: record.offerSnapshot,
     items: record.items,
     pricingSnapshot: record.pricingSnapshot,
     timeout: record.timeout,

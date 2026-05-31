@@ -233,8 +233,8 @@ async function givenRentalOrderingPlacement() {
   });
 
   return createPlacement({
-    slotKey: "PR_UTILITY_ACTIONS_BUTTON",
     placementType: "BUTTON",
+    offerId: offer.id,
     status: "ACTIVE",
     matchingRule: {
       and: [
@@ -246,13 +246,8 @@ async function givenRentalOrderingPlacement() {
     },
     priority: 100,
     creative: {
-      title: "预订场地",
-      subtitle: "为当前 PR 锁定场地",
       ctaLabel: "预订场地",
-    },
-    target: {
-      kind: "OFFER",
-      offerId: offer.id,
+      description: "为当前 PR 锁定场地",
     },
     bindingRules: [
       {

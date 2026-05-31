@@ -370,7 +370,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRoute, useRouter, type LocationQueryValue } from "vue-router";
+import { useRouter } from "vue-router";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
@@ -389,36 +389,46 @@ import {
   type RideHailingOrderCreateInput,
   type RideHailingOrderingResponse,
 } from "@/domains/commerce/queries/useCommerce";
+import {
+  ORDERING_ENTRY_STORAGE_KEY,
+  type OrderingEntryPayload,
+} from "@/domains/commerce/model/ordering-entry-storage";
 
 type RentalSpu = RentalOrderingResponse["spus"][number];
 type RentalSku = RentalSpu["skuOptions"][number];
 type RideSpu = RideHailingOrderingResponse["spus"][number];
 type RideQuoteOption = RideSpu["skuOptions"][number];
 
-const route = useRoute();
 const router = useRouter();
-
-const parsePositiveQueryInt = (
-  value: LocationQueryValue | LocationQueryValue[],
-): number | null => {
-  if (Array.isArray(value)) return parsePositiveQueryInt(value[0] ?? null);
-  if (typeof value !== "string") return null;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return parsed;
+const readOrderingEntry = (): OrderingEntryPayload | null => {
+  const raw = sessionStorage.getItem(ORDERING_ENTRY_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<OrderingEntryPayload>;
+    if (typeof parsed.offerId !== "number") return null;
+    return {
+      offerId: parsed.offerId,
+      prId: typeof parsed.prId === "number" ? parsed.prId : undefined,
+      bindings:
+        typeof parsed.bindings === "object" && parsed.bindings !== null
+          ? parsed.bindings
+          : {},
+    };
+  } catch {
+    return null;
+  }
 };
 
-const placementInstanceId = computed(() =>
-  parsePositiveQueryInt(route.query.placementInstanceId),
-);
-const contextId = computed(() => parsePositiveQueryInt(route.query.contextId));
+const orderingEntry = ref<OrderingEntryPayload | null>(readOrderingEntry());
+const offerId = computed(() => orderingEntry.value?.offerId ?? null);
+const prId = computed(() => orderingEntry.value?.prId ?? null);
 const missingInput = computed(
-  () => placementInstanceId.value === null || contextId.value === null,
+  () => offerId.value === null || prId.value === null,
 );
 
 const orderingQuery = useOrderingFromPlacement(
-  placementInstanceId,
-  contextId,
+  offerId,
+  prId,
 );
 const evaluateMutation = useEvaluateRentalOrdering();
 const createOrderMutation = useCreateRentalOrder();
@@ -497,8 +507,8 @@ const orderInput = computed<RentalOrderCreateInput | null>(() => {
   }
 
   return {
-    placementInstanceId: rentalOrdering.value.source.placementInstanceId,
-    context: rentalOrdering.value.source.context,
+    offerId: rentalOrdering.value.source.offerId,
+    prId: orderingEntry.value?.prId ?? null,
     items: [
       {
         spuId: selectedSpu.value.spuId,
@@ -506,7 +516,7 @@ const orderInput = computed<RentalOrderCreateInput | null>(() => {
         quantity: 1,
       },
     ],
-    request: {
+    productTypedExtraProperties: {
       serviceStartAt: serviceStartAt.value,
       serviceEndAt: serviceEndAt.value,
       contactPhone: phone,
@@ -545,17 +555,20 @@ const rideOrderInput = computed<RideHailingOrderCreateInput | null>(() => {
   const phone = rideContactPhone.value.trim();
   if (!phone || rideRiders.value.length === 0) return null;
   return {
-    placementInstanceId: rideOrdering.value.source.placementInstanceId,
-    context: rideOrdering.value.source.context,
-    selectedSkuId: selectedRideSkuId.value,
-    route: rideOrdering.value.route,
-    departureAt: rideOrdering.value.departureAt,
-    riders: rideRiders.value.map((rider) => ({
-      userId: rider.userId,
-      displayName: rider.displayName,
-      phoneMasked: rider.phoneMasked,
-    })),
-    contactPhone: phone,
+    offerId: rideOrdering.value.source.offerId,
+    prId: orderingEntry.value?.prId ?? null,
+    items: [
+      {
+        skuId: selectedRideSkuId.value,
+        quantity: 1,
+      },
+    ],
+    productTypedExtraProperties: {
+      route: rideOrdering.value.route,
+      departureAt: rideOrdering.value.departureAt,
+      riders: rideRiders.value.map((rider) => rider.userId),
+      contactPhone: phone,
+    },
   };
 });
 
@@ -643,7 +656,7 @@ const createRideOrderErrorMessage = computed(() =>
 );
 
 const backFallbackTo = computed(() =>
-  contextId.value ? { path: `/pr/${contextId.value}` } : { path: "/" },
+  orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
 
 const formatFen = (amountFen: number | null | undefined): string => {

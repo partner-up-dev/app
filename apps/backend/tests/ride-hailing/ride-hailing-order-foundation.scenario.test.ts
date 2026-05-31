@@ -17,7 +17,6 @@ import type { PRId } from "../../src/entities/partner-request";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
-import { PRAttachedOrderRepository } from "../../src/repositories/PRAttachedOrderRepository";
 import { RideHailingFulfillmentRepository } from "../../src/repositories/RideHailingFulfillmentRepository";
 import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../src/repositories/RideHailingProviderInstanceRepository";
@@ -25,7 +24,6 @@ import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepositor
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
-const attachedOrderRepo = new PRAttachedOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const rideFulfillmentRepo = new RideHailingFulfillmentRepository();
@@ -138,11 +136,7 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
       {
         createdBy: creator.user.id,
         participants,
-        offerSnapshot: {
-          offerId: offer.id,
-          termsVersion: offer.termsVersion,
-          productType: "RIDE_HAILING",
-        },
+        offerId: offer.id,
         items: [
           {
             itemId,
@@ -237,6 +231,7 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   const baseOrder = await tradeOrderRepo.findById(result.orderId);
   assert.ok(baseOrder, "Base trade order should be persisted");
   assert.equal(baseOrder.family, "RIDE_HAILING");
+  assert.equal(baseOrder.offerId, offer.id);
   assert.equal(baseOrder.status, "INITIATING");
   assert.equal(hasOwnKey(baseOrder, "routeSnapshot"), false);
   assert.equal(hasOwnKey(baseOrder, "providerCreationStatus"), false);
@@ -272,8 +267,7 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   assert.equal(hasOwnKey(fulfillment, "cancellationSideEffectResult"), false);
   assert.equal(hasOwnKey(fulfillment, "feeConfirmSideEffectResult"), false);
 
-  const attachment = await attachedOrderRepo.findByOrderId(result.orderId);
-  assert.ok(attachment, "PR attachment should exist while order is initiating");
-  assert.equal(attachment.prId, prId);
-  assert.equal(attachment.offerId, offer.id);
+  const pr = await partnerRequestRepo.findById(prId);
+  assert.ok(pr, "PR should still exist");
+  assert.deepEqual(pr.orders, [result.orderId]);
 });

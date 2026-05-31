@@ -1,5 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
+import type { OfferId } from "../../../entities/offer";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { UserId } from "../../../entities/user";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
@@ -8,7 +9,6 @@ import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { createRideHailingFulfillment } from "../../fulfillment";
 import type {
   OrderItemSnapshot,
-  OrderOfferSnapshot,
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
   RideHailingRiderSnapshot,
@@ -22,7 +22,7 @@ const DEFAULT_INITIATING_WINDOW_MINUTES = 30;
 export interface CreateRideHailingOrderFoundationInput {
   createdBy: string;
   participants: OrderParticipantSnapshot[];
-  offerSnapshot: OrderOfferSnapshot;
+  offerId: OfferId;
   items: OrderItemSnapshot[];
   pricingSnapshot: OrderPricingSnapshot;
   routeSnapshot: RideHailingRouteSnapshot;
@@ -47,13 +47,6 @@ export async function createRideHailingOrderFoundation(
   }
 
   const createdBy = input.createdBy as UserId;
-
-  if (input.offerSnapshot.productType !== "RIDE_HAILING") {
-    return throwHttpProblem({
-      status: 400,
-      detail: "RideHailing order requires RideHailing offer snapshot",
-    });
-  }
 
   if (input.items.length === 0) {
     return throwHttpProblem({
@@ -98,11 +91,11 @@ export async function createRideHailingOrderFoundation(
 
   const order = await tradeOrderRepo.create({
     family: "RIDE_HAILING",
+    offerId: input.offerId,
     createdBy,
     status: "INITIATING",
     participants: input.participants,
     splitRuleSnapshot,
-    offerSnapshot: input.offerSnapshot,
     items: input.items,
     pricingSnapshot: input.pricingSnapshot,
     timeout: {

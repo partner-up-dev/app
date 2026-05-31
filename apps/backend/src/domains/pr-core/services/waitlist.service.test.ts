@@ -18,6 +18,7 @@ const buildRequest = (
   budget: null,
   preferences: [],
   notes: null,
+  orders: [],
   meetingPoint: null,
   joinGateConfig: [],
   confirmationEnabled: false,

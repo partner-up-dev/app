@@ -33,6 +33,7 @@ const buildPublicPR = (
     createdAt: now,
     preferences: [],
     notes: null,
+    orders: [],
     meetingPoint: null,
     joinGateConfig: [],
     feedbackQuestionnaireInstanceId: null,
