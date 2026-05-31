@@ -12,6 +12,21 @@ export type BillLine = {
   refundOfBillLineId?: string | null;
 };
 
+export type BillLineSettlementStatus =
+  | "UNPAID"
+  | "ACTION_REQUIRED"
+  | "PROCESSING"
+  | "PAID"
+  | "FAILED"
+  | "REFUND_PENDING"
+  | "REFUNDED";
+
+export type BillLineSettlementProjection = {
+  billLineId: string;
+  status: BillLineSettlementStatus;
+  paidFen: number;
+};
+
 export type Bill = {
   id: string;
   status: BillStatus;

@@ -1,9 +1,10 @@
-import type { BillLine } from "../model";
+import type { BillLine, BillLineSettlementProjection } from "../model";
 import { deriveBillTargetDelta, getBillChargeTotal, getBillRefundTotal } from "./bill-totals";
 
 type ReconcileAllocation = {
   userId: string;
   amountFen: number;
+  refundOfBillLineId?: string | null;
 };
 
 function groupChargeTotalsByUser(lines: BillLine[]): ReconcileAllocation[] {
@@ -16,6 +17,49 @@ function groupChargeTotalsByUser(lines: BillLine[]): ReconcileAllocation[] {
   return Array.from(totals.entries())
     .map(([userId, amountFen]) => ({ userId, amountFen }))
     .sort((left, right) => left.userId.localeCompare(right.userId));
+}
+
+function groupPaidChargeBasis(
+  lines: BillLine[],
+  settlements: BillLineSettlementProjection[],
+): ReconcileAllocation[] {
+  const settlementByLineId = new Map(
+    settlements.map((settlement) => [settlement.billLineId, settlement]),
+  );
+  const refundTotalsByChargeLineId = new Map<string, number>();
+  for (const line of lines) {
+    if (line.kind !== "REFUND" || !line.refundOfBillLineId) continue;
+    refundTotalsByChargeLineId.set(
+      line.refundOfBillLineId,
+      (refundTotalsByChargeLineId.get(line.refundOfBillLineId) ?? 0) +
+        line.amountFen,
+    );
+  }
+
+  return lines
+    .filter((line) => line.kind === "CHARGE")
+    .map((line) => {
+      const paidFen = Math.min(
+        settlementByLineId.get(line.id)?.paidFen ?? 0,
+        line.amountFen,
+      );
+      return {
+        userId: line.userId,
+        amountFen: Math.max(
+          0,
+          paidFen - (refundTotalsByChargeLineId.get(line.id) ?? 0),
+        ),
+        refundOfBillLineId: line.id,
+      };
+    })
+    .filter((share) => share.amountFen > 0)
+    .sort((left, right) => {
+      const userOrder = left.userId.localeCompare(right.userId);
+      if (userOrder !== 0) return userOrder;
+      return (left.refundOfBillLineId ?? "").localeCompare(
+        right.refundOfBillLineId ?? "",
+      );
+    });
 }
 
 function allocateByBaseShares(
@@ -42,6 +86,7 @@ function allocateByBaseShares(
     return {
       userId: share.userId,
       amountFen,
+      refundOfBillLineId: share.refundOfBillLineId,
       remainder,
     };
   });
@@ -62,14 +107,25 @@ function allocateByBaseShares(
   }
 
   return provisional
-    .map(({ userId, amountFen }) => ({ userId, amountFen }))
+    .map(({ userId, amountFen, refundOfBillLineId }) => ({
+      userId,
+      amountFen,
+      refundOfBillLineId,
+    }))
     .filter((share) => share.amountFen > 0)
-    .sort((left, right) => left.userId.localeCompare(right.userId));
+    .sort((left, right) => {
+      const userOrder = left.userId.localeCompare(right.userId);
+      if (userOrder !== 0) return userOrder;
+      return (left.refundOfBillLineId ?? "").localeCompare(
+        right.refundOfBillLineId ?? "",
+      );
+    });
 }
 
 export function deriveBillReconcilePlan(input: {
   lines: BillLine[];
   targetChargeTotalFen: number;
+  lineSettlements: BillLineSettlementProjection[];
 }): {
   direction: "NONE" | "REFUND" | "CHARGE";
   deltaFen: number;
@@ -89,6 +145,41 @@ export function deriveBillReconcilePlan(input: {
       direction: "NONE",
       deltaFen: 0,
       allocations: [],
+    };
+  }
+
+  if (delta.direction === "REFUND") {
+    const paidChargeBasis = groupPaidChargeBasis(
+      input.lines,
+      input.lineSettlements,
+    );
+    const paidChargeTotalFen = paidChargeBasis.reduce(
+      (sum, share) => sum + share.amountFen,
+      0,
+    );
+    const unattributedRefundTotalFen = getBillRefundTotal({
+      id: "bill",
+      status: "ACTIVE",
+      currency: "CNY",
+      lines: input.lines.filter((line) => !line.refundOfBillLineId),
+    });
+    const boundedDeltaFen = Math.min(
+      delta.deltaFen,
+      Math.max(0, paidChargeTotalFen - unattributedRefundTotalFen),
+    );
+
+    if (boundedDeltaFen === 0) {
+      return {
+        direction: "NONE",
+        deltaFen: 0,
+        allocations: [],
+      };
+    }
+
+    return {
+      direction: "REFUND",
+      deltaFen: boundedDeltaFen,
+      allocations: allocateByBaseShares(paidChargeBasis, boundedDeltaFen),
     };
   }
 

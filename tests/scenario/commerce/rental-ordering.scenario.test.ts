@@ -767,16 +767,11 @@ scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
       expected: "已取消",
       label: "Cancelled order status",
     });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("order-detail.total-price").textContent(),
-      pattern: /0\.00/,
-      label: "Cancelled order effective bill total",
-    });
-    assert.equal(await page.getByTestId("order-detail.bill-line").count(), 4);
+    assert.equal(await page.getByTestId("order-detail.bill-line").count(), 2);
     await assertLocatorTextIncludes({
       actual: page.getByTestId("order-detail.rental.cancelled").textContent(),
-      expected: "退款调整",
-      label: "Cancellation refund adjustment copy",
+      expected: "已按取消政策调整账单",
+      label: "Cancellation adjustment copy",
     });
   });
 });

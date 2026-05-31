@@ -61,7 +61,14 @@ authority boundaries and lifecycle guarantees.
   - Placement create/update accepts and validates binding rules;
   - Rental Ordering derives locked PR fields from binding rules;
   - Placement Admin exposes visual binding-rule row editing.
-- P1-3 through P1-5 are still plan-only.
+- P1-3 implementation complete:
+  - added Bill-owned `BillLineSettlementProjection`;
+  - Rental termination finalization derives settled BillLine basis through the
+    Payment state projection before reconciliation;
+  - Bill reconciliation bounds REFUND allocations by paid CHARGE BillLine
+    basis;
+  - unpaid cancellation no longer creates REFUND BillLines.
+- P1-4 through P1-5 are still plan-only.
 
 ## Verification So Far
 
@@ -91,3 +98,8 @@ P1-2 implementation verification:
 - `pnpm lint:backend`
 - `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
 - `pnpm --dir apps/backend test:unit -- --run apps/backend/src/domains/merchandising/services/placement-binding.test.ts apps/backend/src/domains/trade/services/pricing-application.test.ts`
+
+P1-3 implementation verification:
+
+- `pnpm test:unit:backend -- src/domains/bill/services/reconcile-lines.test.ts src/domains/payment/services/bill-payment-state.test.ts`
+- `pnpm --filter backend typecheck`

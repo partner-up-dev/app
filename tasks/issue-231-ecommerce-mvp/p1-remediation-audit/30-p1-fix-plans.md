@@ -150,6 +150,8 @@ To:
 
 ## P1-3: Unpaid Cancellation Creates Refund Lines
 
+Status: implemented.
+
 ### Goal
 
 Make Bill reconciliation refund only settled customer-paid basis.
@@ -158,6 +160,7 @@ Make Bill reconciliation refund only settled customer-paid basis.
 
 - `apps/backend/src/domains/trade/use-cases/finalize-rental-order-termination.ts`
 - `apps/backend/src/domains/bill/use-cases/reconcile-bill-to-target-amount.ts`
+- `apps/backend/src/domains/bill/model/bill.ts`
 - `apps/backend/src/domains/payment/services/bill-payment-state.ts`
 - `tests/scenario/commerce/rental-ordering.scenario.test.ts`
 - backend unit tests for Bill reconciliation / Rental cancellation pricing
@@ -171,23 +174,31 @@ From:
 
 To:
 
-- Cancellation derives paid basis first. If paid charge is zero, no refund line
-  is created.
+- Cancellation derives `BillLineSettlementProjection` first. If paid charge is
+  zero, no refund line is created.
 
 ### Implementation Steps
 
 1. Load BillLines and successful charge PaymentTxs during termination
    finalization.
+   Done in Trade orchestration, before Bill reconciliation is called.
 2. Derive paid charge total per participant or per charge line, using existing
    BillLine-scoped PaymentTx authority.
+   Done by reusing `deriveBillPaymentState` as the source for
+   `BillLineSettlementProjection`.
 3. Pass paid basis into Bill reconciliation.
+   Done through `lineSettlements`.
 4. Update reconciliation rule:
    - unpaid order: mark target state without refund lines;
    - partially paid order: refund only paid amount above target;
    - fully paid order: existing refund behavior bounded by paid amount.
+   Done for REFUND allocations; this change intentionally does not add a new
+   waived/voided charge BillLine kind.
 5. Update unpaid cancellation scenario expectation from extra refund lines to
    no refund lines.
+   Done.
 6. Add backend unit tests for unpaid, partial paid, and fully paid cancellation.
+   Done at Bill reconciliation level.
 
 ### Invariants
 

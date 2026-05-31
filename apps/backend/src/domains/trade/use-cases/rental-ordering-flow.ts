@@ -26,6 +26,7 @@ import { finalizeRentalOrderTermination } from "./finalize-rental-order-terminat
 import type {
   FixedTotalPricingModel,
   PlacementBindingRule,
+  PriceExplanation,
   ProductPresentation,
   RentalSkuFacts,
   SpuSalesPolicy,

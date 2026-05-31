@@ -7,10 +7,13 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
 import type { BillTargetAmountSeed } from "../../trade";
+import type { BillLineSettlementProjection } from "../model";
 import { deriveBillReconcilePlan } from "../services";
 
 export async function reconcileBillToTargetAmount(
-  seed: BillTargetAmountSeed,
+  seed: BillTargetAmountSeed & {
+    lineSettlements: BillLineSettlementProjection[];
+  },
   executor: RepositoryExecutor = db,
 ): Promise<{
   billId: string;
@@ -43,6 +46,7 @@ export async function reconcileBillToTargetAmount(
       refundOfBillLineId: line.refundOfBillLineId,
     })),
     targetChargeTotalFen: seed.targetChargeTotalFen,
+    lineSettlements: seed.lineSettlements,
   });
 
   if (plan.direction === "NONE") {
@@ -77,7 +81,8 @@ export async function reconcileBillToTargetAmount(
         description: `Termination attempt ${seed.sourceAttemptId} reconciliation`,
         refundOfBillLineId:
           plan.direction === "REFUND"
-            ? (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["refundOfBillLineId"]) ??
+            ? (allocation.refundOfBillLineId as NewBillLine["refundOfBillLineId"]) ??
+              (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["refundOfBillLineId"]) ??
               null
             : null,
       }) satisfies NewBillLine,

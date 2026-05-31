@@ -1,11 +1,18 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
+import type { BillLineId } from "../../../entities/bill";
 import type { TradeOrderId } from "../../../entities/trade-order";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
+import { BillRepository } from "../../../repositories/BillRepository";
+import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { reconcileBillToTargetAmount } from "../../bill";
-import { createRefundPaymentTxForRefundLine } from "../../payment";
+import {
+  createRefundPaymentTxForRefundLine,
+  deriveBillPaymentState,
+} from "../../payment";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {
   approveTerminationAttempt,
@@ -59,6 +66,9 @@ export async function finalizeRentalOrderTermination(input: {
 
   const transactionResult = await db.transaction(async (tx) => {
     const tradeOrderRepo = new TradeOrderRepository(tx);
+    const billRepo = new BillRepository(tx);
+    const billLineRepo = new BillLineRepository(tx);
+    const paymentTxRepo = new PaymentTxRepository(tx);
     const rentalFulfillmentRepo = new RentalFulfillmentRepository(tx);
 
     if (input.decision.outcome === "DENIED") {
@@ -89,7 +99,25 @@ export async function finalizeRentalOrderTermination(input: {
       order,
       attempt,
     });
-    const reconciliation = await reconcileBillToTargetAmount(targetAmountSeed, tx);
+    const bill = await billRepo.findBySourceOrderId(order.id as TradeOrderId);
+    if (!bill) {
+      return throwHttpProblem({ status: 404, detail: "Bill not found for rental termination" });
+    }
+    const billLines = await billLineRepo.listByBillId(bill.id);
+    const paymentTxs = await paymentTxRepo.listByBillLineIds(
+      billLines.map((line) => line.id as BillLineId),
+    );
+    const paymentState = deriveBillPaymentState({
+      lines: billLines,
+      txs: paymentTxs,
+    });
+    const reconciliation = await reconcileBillToTargetAmount(
+      {
+        ...targetAmountSeed,
+        lineSettlements: paymentState.lines,
+      },
+      tx,
+    );
     if (reconciliation.direction === "CHARGE") {
       return throwHttpProblem({
         status: 500,
