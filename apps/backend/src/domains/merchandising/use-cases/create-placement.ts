@@ -2,12 +2,17 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import type {
+  PlacementBindingRule,
   ButtonPlacementCreative,
   PlacementSlotKey,
   PlacementTarget,
   PlacementType,
 } from "../model";
-import { isPlacementMatchingRuleJson } from "../services";
+import {
+  validatePlacementBindingRules,
+  isPlacementMatchingRuleJson,
+} from "../services";
+import { defaultPrRentalPlacementBindingRules } from "../model";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -20,6 +25,7 @@ export interface CreatePlacementInput {
   priority?: number;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;
+  bindingRules?: PlacementBindingRule[];
 }
 
 export async function createPlacement(input: CreatePlacementInput) {
@@ -37,6 +43,15 @@ export async function createPlacement(input: CreatePlacementInput) {
     }
   }
 
+  const bindingRules = input.bindingRules ?? defaultPrRentalPlacementBindingRules;
+  const bindingError = validatePlacementBindingRules(bindingRules);
+  if (bindingError) {
+    return throwHttpProblem({
+      status: 400,
+      detail: bindingError,
+    });
+  }
+
   return placementRepo.create({
     slotKey: input.slotKey,
     placementType: input.placementType ?? "BUTTON",
@@ -45,5 +60,6 @@ export async function createPlacement(input: CreatePlacementInput) {
     priority: input.priority ?? 0,
     creative: input.creative,
     target: input.target,
+    bindingRules,
   });
 }

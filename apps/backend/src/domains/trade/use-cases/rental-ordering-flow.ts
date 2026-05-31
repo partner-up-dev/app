@@ -25,9 +25,14 @@ import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental
 import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
 import type {
   FixedTotalPricingModel,
+  PlacementBindingRule,
   ProductPresentation,
   RentalSkuFacts,
   SpuSalesPolicy,
+} from "../../merchandising";
+import {
+  buildPrPlacementRuleContextData,
+  resolvePrRentalPlacementBindings,
 } from "../../merchandising";
 import { createRentalOrder } from "./create-rental-order";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
@@ -145,6 +150,7 @@ export type RentalOrderingEvaluation = {
 type ResolvedPlacementOffer = {
   placementId: number;
   offer: Offer;
+  bindingRules: PlacementBindingRule[];
 };
 
 type ResolvedPrContext = {
@@ -196,8 +202,11 @@ const toServiceTime = (
   return new Date(value).toISOString();
 };
 
-async function resolvePrContext(prId: number): Promise<ResolvedPrContext> {
-  const pr = await partnerRequestRepo.findById(prId as PRId);
+async function resolvePrContext(input: {
+  prId: number;
+  bindingRules: PlacementBindingRule[];
+}): Promise<ResolvedPrContext> {
+  const pr = await partnerRequestRepo.findById(input.prId as PRId);
   if (!pr) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
@@ -205,15 +214,36 @@ async function resolvePrContext(prId: number): Promise<ResolvedPrContext> {
   const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
     pr.id,
   );
-  const [startAt, endAt] = pr.time;
+  const prContext = buildPrPlacementRuleContextData({
+    activeParticipantCount: activeParticipants.length,
+    pr,
+  });
+  let boundValues: ReturnType<typeof resolvePrRentalPlacementBindings>;
+  try {
+    boundValues = resolvePrRentalPlacementBindings({
+      context: prContext,
+      rules: input.bindingRules,
+    });
+  } catch (error) {
+    return throwHttpProblem({
+      status: 409,
+      detail: error instanceof Error ? error.message : "Placement binding failed",
+    });
+  }
 
   return {
     prId: pr.id,
     createdBy: pr.createdBy,
     status: pr.status,
-    serviceStartAt: toServiceTime(startAt, "2031-01-01T10:00:00.000Z"),
-    serviceEndAt: toServiceTime(endAt, "2031-01-01T12:00:00.000Z"),
-    participantCount: activeParticipants.length,
+    serviceStartAt: toServiceTime(
+      boundValues.serviceStartAt,
+      "2031-01-01T10:00:00.000Z",
+    ),
+    serviceEndAt: toServiceTime(
+      boundValues.serviceEndAt,
+      "2031-01-01T12:00:00.000Z",
+    ),
+    participantCount: boundValues.participantCount,
   };
 }
 
@@ -248,6 +278,7 @@ async function resolvePlacementOffer(
   return {
     placementId: placement.id,
     offer,
+    bindingRules: placement.bindingRules,
   };
 }
 
@@ -308,7 +339,10 @@ async function resolveSelection(
   input: RentalOrderingEvaluationInput,
 ): Promise<ResolvedOrderingSelection> {
   const placement = await resolvePlacementOffer(input.placementInstanceId);
-  const pr = await resolvePrContext(input.context.prId);
+  const pr = await resolvePrContext({
+    prId: input.context.prId,
+    bindingRules: placement.bindingRules,
+  });
   const firstItem = input.items[0];
   if (!firstItem) {
     return throwHttpProblem({ status: 400, detail: "Rental order requires one selected SKU" });
@@ -422,7 +456,10 @@ export async function getRentalOrderingFromPlacement(input: {
   prId: number;
 }): Promise<RentalOrderingReadModel> {
   const placement = await resolvePlacementOffer(input.placementInstanceId);
-  const pr = await resolvePrContext(input.prId);
+  const pr = await resolvePrContext({
+    prId: input.prId,
+    bindingRules: placement.bindingRules,
+  });
   const spus = await listOfferRentalSpus(placement.offer, pr.participantCount);
 
   return {

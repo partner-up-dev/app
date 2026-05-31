@@ -137,6 +137,11 @@ export type AdminPlacementInput = {
   target:
     | { kind: "OFFER"; offerId: number }
     | { kind: "ORDER"; orderId: number };
+  bindingRules: Array<{
+    fieldKey: "participantCount" | "serviceStartAt" | "serviceEndAt";
+    contextPath: "activeParticipantCount" | "time.startAt" | "time.endAt";
+    lock: true;
+  }>;
 };
 
 export const useAdminCommerceProductWorkspace = (

@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import { bigserial, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import type {
   ButtonPlacementCreative,
+  PlacementBindingRule,
   PlacementMatchingRuleJson,
   PlacementSlotKey,
   PlacementTarget,
@@ -20,6 +22,26 @@ export const placements = pgTable(
     priority: integer("priority").notNull().default(0),
     creative: jsonb("creative").$type<ButtonPlacementCreative>().notNull(),
     target: jsonb("target").$type<PlacementTarget>().notNull(),
+    bindingRules: jsonb("binding_rules")
+      .$type<PlacementBindingRule[]>()
+      .notNull()
+      .default(sql`'[
+        {
+          "fieldKey": "participantCount",
+          "contextPath": "activeParticipantCount",
+          "lock": true
+        },
+        {
+          "fieldKey": "serviceStartAt",
+          "contextPath": "time.startAt",
+          "lock": true
+        },
+        {
+          "fieldKey": "serviceEndAt",
+          "contextPath": "time.endAt",
+          "lock": true
+        }
+      ]'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

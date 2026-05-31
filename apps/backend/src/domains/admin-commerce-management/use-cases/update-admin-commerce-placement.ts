@@ -4,11 +4,15 @@ import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import type {
   ButtonPlacementCreative,
+  PlacementBindingRule,
   PlacementSlotKey,
   PlacementTarget,
   PlacementType,
 } from "../../merchandising";
-import { isPlacementMatchingRuleJson } from "../../merchandising";
+import {
+  isPlacementMatchingRuleJson,
+  validatePlacementBindingRules,
+} from "../../merchandising";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -22,6 +26,7 @@ export type UpdateAdminCommercePlacementInput = {
   priority: number;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;
+  bindingRules: PlacementBindingRule[];
 };
 
 export async function updateAdminCommercePlacement(
@@ -46,6 +51,14 @@ export async function updateAdminCommercePlacement(
     }
   }
 
+  const bindingError = validatePlacementBindingRules(input.bindingRules);
+  if (bindingError) {
+    return throwHttpProblem({
+      status: 400,
+      detail: bindingError,
+    });
+  }
+
   return placementRepo.updateById(input.placementId, {
     slotKey: input.slotKey,
     placementType: input.placementType,
@@ -54,5 +67,6 @@ export async function updateAdminCommercePlacement(
     priority: input.priority,
     creative: input.creative,
     target: input.target,
+    bindingRules: input.bindingRules,
   });
 }

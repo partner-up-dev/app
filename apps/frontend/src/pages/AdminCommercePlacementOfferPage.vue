@@ -176,6 +176,68 @@
                 <textarea v-model="placementForm.matchingRuleText" class="json-textarea" rows="8"></textarea>
               </label>
 
+              <section class="binding-editor">
+                <div class="binding-editor__header">
+                  <span class="field-label">{{ t("adminCommercePlacementOffer.bindingRulesLabel") }}</span>
+                  <Button
+                    appearance="pill"
+                    tone="outline"
+                    size="sm"
+                    type="button"
+                    @click="addBindingRule"
+                  >
+                    {{ t("adminCommercePlacementOffer.addBindingRuleAction") }}
+                  </Button>
+                </div>
+
+                <div
+                  v-for="rule in placementForm.bindingRules"
+                  :key="rule.id"
+                  class="binding-row"
+                >
+                  <label class="field">
+                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingFieldLabel") }}</span>
+                    <select v-model="rule.fieldKey" class="text-input">
+                      <option
+                        v-for="option in bindingFieldOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingSourceLabel") }}</span>
+                    <select v-model="rule.contextPath" class="text-input">
+                      <option
+                        v-for="option in contextPathOptionsForField(rule.fieldKey)"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <div class="binding-row__lock">
+                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingLockLabel") }}</span>
+                    <span class="binding-row__lock-value">true</span>
+                  </div>
+
+                  <Button
+                    appearance="pill"
+                    tone="outline"
+                    size="sm"
+                    type="button"
+                    @click="removeBindingRule(rule.id)"
+                  >
+                    {{ t("adminCommercePlacementOffer.removeBindingRuleAction") }}
+                  </Button>
+                </div>
+              </section>
+
               <div class="inline-actions">
                 <Button size="sm" type="button" :disabled="isSavingPlacement" @click="handleSavePlacement">
                   {{ isSavingPlacement ? t("adminCommercePlacementOffer.savingAction") : t("adminCommercePlacementOffer.savePlacementAction") }}
@@ -276,6 +338,40 @@ type OfferEditorForm = {
   pricingRules: PricingRuleDraft[];
 };
 
+type PlacementBindingRuleInput = AdminPlacementInput["bindingRules"][number];
+type PlacementBindingFieldKey = PlacementBindingRuleInput["fieldKey"];
+type PlacementBindingContextPath = PlacementBindingRuleInput["contextPath"];
+type PlacementBindingRuleDraft = PlacementBindingRuleInput & {
+  id: string;
+};
+
+let bindingRuleIdSequence = 0;
+
+const createBindingRuleDraft = (
+  input: PlacementBindingRuleInput,
+): PlacementBindingRuleDraft => ({
+  ...input,
+  id: `binding-${++bindingRuleIdSequence}`,
+});
+
+const defaultPlacementBindingRules = (): PlacementBindingRuleDraft[] => [
+  createBindingRuleDraft({
+    fieldKey: "participantCount",
+    contextPath: "activeParticipantCount",
+    lock: true,
+  }),
+  createBindingRuleDraft({
+    fieldKey: "serviceStartAt",
+    contextPath: "time.startAt",
+    lock: true,
+  }),
+  createBindingRuleDraft({
+    fieldKey: "serviceEndAt",
+    contextPath: "time.endAt",
+    lock: true,
+  }),
+];
+
 const emptyOfferForm = (): OfferEditorForm => ({
   productType: "RENTAL",
   status: "DRAFT",
@@ -297,7 +393,54 @@ const placementForm = ref({
   targetKind: "OFFER" as "OFFER" | "ORDER",
   targetId: 0,
   matchingRuleText: "{}",
+  bindingRules: defaultPlacementBindingRules(),
 });
+
+const bindingFieldOptions = computed<
+  Array<{ value: PlacementBindingFieldKey; label: string }>
+>(() => [
+  {
+    value: "participantCount",
+    label: t("adminCommercePlacementOffer.participantCountBindingLabel"),
+  },
+  {
+    value: "serviceStartAt",
+    label: t("adminCommercePlacementOffer.serviceStartAtBindingLabel"),
+  },
+  {
+    value: "serviceEndAt",
+    label: t("adminCommercePlacementOffer.serviceEndAtBindingLabel"),
+  },
+]);
+
+const contextPathOptionsByField = computed<
+  Record<
+    PlacementBindingFieldKey,
+    Array<{ value: PlacementBindingContextPath; label: string }>
+  >
+>(() => ({
+  participantCount: [
+    {
+      value: "activeParticipantCount",
+      label: t("adminCommercePlacementOffer.activeParticipantCountSourceLabel"),
+    },
+  ],
+  serviceStartAt: [
+    {
+      value: "time.startAt",
+      label: t("adminCommercePlacementOffer.timeStartSourceLabel"),
+    },
+  ],
+  serviceEndAt: [
+    {
+      value: "time.endAt",
+      label: t("adminCommercePlacementOffer.timeEndSourceLabel"),
+    },
+  ],
+}));
+
+const contextPathOptionsForField = (fieldKey: PlacementBindingFieldKey) =>
+  contextPathOptionsByField.value[fieldKey];
 
 const isSavingOffer = computed(
   () => createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
@@ -385,6 +528,7 @@ watch(
         targetKind: "OFFER",
         targetId: 0,
         matchingRuleText: "{}",
+        bindingRules: defaultPlacementBindingRules(),
       };
       return;
     }
@@ -401,9 +545,26 @@ watch(
           ? placement.target.offerId
           : placement.target.orderId,
       matchingRuleText: prettyJson(placement.matchingRule),
+      bindingRules:
+        placement.bindingRules.length > 0
+          ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
+          : defaultPlacementBindingRules(),
     };
   },
   { immediate: true },
+);
+
+watch(
+  () =>
+    placementForm.value.bindingRules.map((rule) => `${rule.id}:${rule.fieldKey}`),
+  () => {
+    for (const rule of placementForm.value.bindingRules) {
+      const allowed = contextPathOptionsForField(rule.fieldKey);
+      if (!allowed.some((option) => option.value === rule.contextPath)) {
+        rule.contextPath = allowed[0]!.value;
+      }
+    }
+  },
 );
 
 const prepareNewOffer = () => {
@@ -422,6 +583,22 @@ const selectOffer = (offerId: number) => {
 const selectPlacement = (placementId: number) => {
   selectedPlacementIdRaw.value = String(placementId);
   isCreatingPlacement.value = false;
+};
+
+const addBindingRule = () => {
+  placementForm.value.bindingRules.push(
+    createBindingRuleDraft({
+      fieldKey: "participantCount",
+      contextPath: "activeParticipantCount",
+      lock: true,
+    }),
+  );
+};
+
+const removeBindingRule = (id: string) => {
+  placementForm.value.bindingRules = placementForm.value.bindingRules.filter(
+    (rule) => rule.id !== id,
+  );
 };
 
 const buildPricingRuleLabels = (): PricingRuleBuildLabels => ({
@@ -466,6 +643,11 @@ const buildPlacementInput = (): AdminPlacementInput => ({
     placementForm.value.targetKind === "OFFER"
       ? { kind: "OFFER", offerId: placementForm.value.targetId }
       : { kind: "ORDER", orderId: placementForm.value.targetId },
+  bindingRules: placementForm.value.bindingRules.map((rule) => ({
+    fieldKey: rule.fieldKey,
+    contextPath: rule.contextPath,
+    lock: true,
+  })),
 });
 
 const handleSaveOffer = async () => {
@@ -571,5 +753,47 @@ small {
 .inline-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.binding-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.binding-editor__header,
+.binding-row {
+  display: flex;
+  gap: var(--sys-spacing-small);
+}
+
+.binding-editor__header {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.binding-row {
+  align-items: end;
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-medium);
+}
+
+.binding-row > .field {
+  flex: 1;
+}
+
+.binding-row__lock {
+  display: flex;
+  min-width: 5rem;
+  flex-direction: column;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.binding-row__lock-value {
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-medium);
+  color: var(--sys-color-on-surface-variant);
 }
 </style>

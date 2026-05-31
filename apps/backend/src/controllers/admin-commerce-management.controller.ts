@@ -214,6 +214,12 @@ const offerInputSchema = z.object({
   endsAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
+const placementBindingRuleSchema = z.object({
+  fieldKey: z.enum(["participantCount", "serviceStartAt", "serviceEndAt"]),
+  contextPath: z.enum(["activeParticipantCount", "time.startAt", "time.endAt"]),
+  lock: z.literal(true),
+});
+
 const placementInputSchema = z.object({
   slotKey: z.literal("PR_UTILITY_ACTIONS_BUTTON"),
   placementType: z.literal("BUTTON"),
@@ -235,6 +241,7 @@ const placementInputSchema = z.object({
       orderId: z.number().int().positive(),
     }),
   ]),
+  bindingRules: z.array(placementBindingRuleSchema),
 });
 
 const fulfillmentIdParamSchema = z.object({

@@ -1578,6 +1578,18 @@ export interface MessageSchema {
     targetKindLabel: string;
     targetIdLabel: string;
     matchingRuleLabel: string;
+    bindingRulesLabel: string;
+    addBindingRuleAction: string;
+    removeBindingRuleAction: string;
+    bindingFieldLabel: string;
+    bindingSourceLabel: string;
+    bindingLockLabel: string;
+    participantCountBindingLabel: string;
+    serviceStartAtBindingLabel: string;
+    serviceEndAtBindingLabel: string;
+    activeParticipantCountSourceLabel: string;
+    timeStartSourceLabel: string;
+    timeEndSourceLabel: string;
     savePlacementAction: string;
     savingAction: string;
   };
