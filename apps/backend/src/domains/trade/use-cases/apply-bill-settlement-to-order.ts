@@ -40,6 +40,15 @@ export async function applyBillSettlementToOrder(input: {
   if (!order) {
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
+  const hasPendingTerminationAttempt = order.terminationAttempts.some(
+    (attempt) => attempt.status === "PENDING",
+  );
+  if (order.status !== "OPEN" || hasPendingTerminationAttempt) {
+    return {
+      applied: false,
+      reason: "Order is not eligible for prepaid settlement consequence",
+    };
+  }
 
   if (order.family === "RENTAL") {
     const fulfillment = await createRentalFulfillment(order.id);

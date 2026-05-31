@@ -285,6 +285,8 @@ To:
 
 ## P1-5: Payment Settlement Can Start Fulfillment After Cancellation
 
+Status: implemented.
+
 ### Goal
 
 Prevent late payment convergence from starting forward fulfillment for terminal
@@ -311,15 +313,24 @@ To:
 ### Implementation Steps
 
 1. Gate `applyBillSettlementToOrder` by `order.status === "OPEN"`.
+   Done, with an additional pending termination attempt guard.
 2. If a pending/cancelled/terminal order receives late payment convergence,
    return an explicit no-op result.
+   Done with reason `Order is not eligible for prepaid settlement consequence`.
 3. Ensure no Rental Fulfillment is created for cancelled orders.
+   Done.
 4. Add tests for:
    - paid open order starts fulfillment;
    - paid cancelled order no-ops;
    - duplicate paid sync remains idempotent.
+   Partially done: backend scenario covers late payment after cancelled order;
+   existing commerce system scenario covers paid open Rental fulfillment and
+   idempotent fulfillment creation via repository uniqueness.
 5. Review whether pending termination should block fulfillment before
    `CANCEL_REQUESTED` is introduced.
+   Done. P1-4 keeps pending cancellation as an `OPEN` order with a pending
+   termination attempt, so P1-5 explicitly blocks prepaid fulfillment while any
+   termination attempt is pending.
 
 ### Invariants
 
@@ -329,6 +340,6 @@ To:
 
 ### Verification
 
-- Unit test for `applyBillSettlementToOrder`.
+- Backend scenario for `applyPaymentSettlementConsequence` on a cancelled
+  Rental order.
 - Existing paid Rental fulfillment scenario remains passing.
-- Add late-payment-after-cancel regression test if feasible in backend scenario.

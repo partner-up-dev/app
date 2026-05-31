@@ -54,7 +54,6 @@ authority boundaries and lifecycle guarantees.
   - Rental evaluate/create now reuse its `OrderPricingSnapshot`;
   - SPU pricing rules and Offer SKU/SPU/ORDER pricing rules execute through
     the same service.
-- P1-2 through P1-5 are still plan-only.
 - P1-2 implementation complete:
   - added `placements.binding_rules`;
   - added Placement binding validation/resolution service;
@@ -77,7 +76,15 @@ authority boundaries and lifecycle guarantees.
   - Fulfillment Admin exposes approve/deny cancellation actions;
   - Admin approval/denial finalizes the Trade termination attempt and updates
     Fulfillment cancellation state.
-- P1-5 is still plan-only.
+- P1-5 implementation complete:
+  - payment settlement consequence now no-ops unless the source order is
+    `OPEN` and has no pending termination attempt;
+  - late successful CHARGE convergence on a cancelled Rental order no longer
+    creates Rental Fulfillment;
+  - late successful CHARGE convergence while cancellation is pending also
+    no-ops;
+  - open paid Rental fulfillment behavior remains covered by the existing
+    commerce scenario.
 
 ## Verification So Far
 
@@ -119,4 +126,11 @@ P1-4 implementation verification:
 - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
 - `pnpm lint:backend`
 - `pnpm test:unit:backend -- src/domains/trade/services/order-termination.test.ts src/domains/fulfillment/services/fulfillment-lifecycle.test.ts`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+P1-5 implementation verification:
+
+- `pnpm --filter backend typecheck`
+- `pnpm lint:backend`
+- `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
 - `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
