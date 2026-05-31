@@ -32,8 +32,14 @@
 - Durable owner: ecommerce Merchandising admin surface.
 - Frontend surfaces:
   - `apps/frontend/src/pages/AdminCommerceProductPage.vue`
+  - `apps/frontend/src/domains/admin-commerce/model/product-management/*`
+  - `apps/frontend/src/domains/admin-commerce/ui/product-management/*`
   - `apps/frontend/src/locales/zh-CN.jsonc`
   - `apps/frontend/src/locales/schema.ts`
+- Component split ownership:
+  - Page/View owns containers and layout placement only.
+  - Product-management content owns its own data access, draft state, business logic, validation, mutation orchestration, and editor UI.
+  - Shared context owns only cross-content coordination state, such as selected SPU/SKU, creation mode, workspace query identity, and shared error aggregation.
 - Existing contracts to preserve:
   - Backend admin commerce request payload shape.
   - Product type must match service policy type.
@@ -43,10 +49,16 @@
 
 ## Verification
 
-- `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --filter @partner-up-dev/frontend build` passed after the visual editor implementation.
+- `pnpm --filter @partner-up-dev/frontend build` passed after the product-management component split.
 - Targeted source scan passed:
   - `rg -n "json-textarea|parseJsonText|prettyJson|salesPolicyText|servicePolicyText|pricingRulesText|presentationText|factsText|tiersText|pricingModelText|JSON\\.parse|JSON\\.stringify" apps\\frontend\\src\\pages\\AdminCommerceProductPage.vue`
   - no matches.
+- Component split source scan passed:
+  - `rg -n "defineComponent|json-textarea|parseJsonText|prettyJson|salesPolicyText|servicePolicyText|pricingRulesText|presentationText|factsText|tiersText|pricingModelText|JSON\\.parse|JSON\\.stringify" apps\\frontend\\src\\pages\\AdminCommerceProductPage.vue apps\\frontend\\src\\domains\\admin-commerce\\ui\\product-management apps\\frontend\\src\\domains\\admin-commerce\\model\\product-management`
+  - no matches.
+- `apps/frontend/src/pages/AdminCommerceProductPage.vue` is now 103 lines and owns only the admin page/container assembly for the product-management surface.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` exited 0. It reported existing findings in `src/shared/ui/forms/MultiStopToggle.vue`; none were in the product-management files touched by this task.
 - Browser smoke check:
   - Vite frontend served at `http://127.0.0.1:5173/`.
   - Playwright opened `/admin/commerce/products` with a seeded admin localStorage session.
