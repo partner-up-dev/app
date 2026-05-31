@@ -191,6 +191,19 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
+    id: "ride-hailing",
+    labelKey: "adminCommon.navRideHailingGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "ride-hailing-provider-instances",
+        labelKey: "adminCommon.navRideHailingProviderInstances",
+        subtitleKey: "adminCommon.navRideHailingProviderInstancesSubtitle",
+        routeName: "admin-ride-hailing",
+      },
+    ],
+  },
+  {
     id: "feedback-questionnaires",
     labelKey: "adminCommon.navFeedbackQuestionnairesGroup",
     requiredRoles: ["service"],

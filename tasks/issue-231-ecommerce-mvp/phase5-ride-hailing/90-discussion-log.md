@@ -123,3 +123,24 @@
     passed with 2 tests;
   - backend typecheck, frontend build, and the catalog contract backend unit
     test passed.
+- User clarified the next RideHailing Admin slice:
+  - add a dedicated `/admin/ride-hailing` admin route for RideHailing provider
+    instance configuration;
+  - keep SKU editor manually editing `rideHailingProviderInstanceId` for now;
+  - do not introduce a provider instance selector in SKU editor in this slice.
+- Implemented the RideHailing Admin provider-instance slice:
+  - added `admin-ride-hailing-management` backend controller/use cases for
+    listing, creating, and updating provider instances;
+  - returned sanitized provider config with no cleartext `signKey`;
+  - preserved existing `signKey` when editing an instance with a blank secret;
+  - added frontend `/admin/ride-hailing`, admin navigation entry, query
+    composable, and provider-instance edit form;
+  - kept SKU editor unchanged.
+- Verification:
+  - `pnpm --filter @partner-up-dev/backend typecheck` passed;
+  - `pnpm --filter @partner-up-dev/frontend build` passed;
+  - `pnpm lint:backend` passed;
+  - `pnpm exec vitest run --project backend-scenario apps\backend\tests\ride-hailing\admin-ride-hailing-provider-instance.scenario.test.ts`
+    passed with 1 test;
+  - `pnpm exec vitest run --project system-scenario tests\scenario\commerce\ride-hailing-ordering.scenario.test.ts`
+    passed with 2 tests.

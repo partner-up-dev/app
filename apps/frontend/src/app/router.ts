@@ -42,6 +42,8 @@ const AdminCommerceOrderBillPage = () =>
   import("@/pages/AdminCommerceOrderBillPage.vue");
 const AdminCommerceFulfillmentPage = () =>
   import("@/pages/AdminCommerceFulfillmentPage.vue");
+const AdminRideHailingPage = () =>
+  import("@/pages/AdminRideHailingPage.vue");
 const AdminFeedbackQuestionnairesPage = () =>
   import("@/pages/AdminFeedbackQuestionnairesPage.vue");
 const ContactAuthorPage = () => import("@/pages/ContactAuthorPage.vue");
@@ -295,6 +297,15 @@ const routes: RouteRecordRaw[] = [
     path: "/admin/commerce/fulfillments",
     name: "admin-commerce-fulfillments",
     component: AdminCommerceFulfillmentPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/ride-hailing",
+    name: "admin-ride-hailing",
+    component: AdminRideHailingPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["service"],

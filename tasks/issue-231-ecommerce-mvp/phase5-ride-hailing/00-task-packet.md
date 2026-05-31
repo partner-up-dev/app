@@ -40,6 +40,8 @@ must live in focused sibling files rather than continuing as a monofile.
     product/SKU setup, UI path, and stable test id contract.
 - `60-implementation-plan.md`
   - Ordered implementation slices and their exit criteria.
+- `65-admin-provider-instance.md`
+  - RideHailing Admin surface for configuring provider instances.
 - `90-discussion-log.md`
   - Chronological discussion log and decision history.
 
@@ -145,6 +147,11 @@ Hypothesis:
   `feeConfirm`.
 - RideHailing SKU facts now carry `rideHailingProviderInstanceId` and
   `providerVehicleTypeCode` without duplicating product/SKU type in facts.
+- RideHailing Provider Instance needs a dedicated admin surface at
+  `/admin/ride-hailing`; it is implemented with sanitized provider config
+  responses and blank-sign-key preservation on update. In the current cut, SKU
+  editor still manually edits `rideHailingProviderInstanceId`; it does not yet
+  select from provider instances.
 - RideHailing Order Detail projects live provider state from the provider query
   boundary and keeps dispatch/cancellation/fee-confirm side-effect results out
   of RideHailingFulfillment persistence.

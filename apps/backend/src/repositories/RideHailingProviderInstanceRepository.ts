@@ -8,6 +8,7 @@ import {
 import { db } from "../lib/db";
 import type {
   RideHailingProviderInstanceConfig,
+  RideHailingProviderInstanceStatus,
   RideHailingProviderType,
 } from "../domains/ride-hailing/model";
 import type { RepositoryExecutor } from "./_executor";
@@ -23,6 +24,17 @@ export class RideHailingProviderInstanceRepository {
       .values(data)
       .returning();
     return result[0]!;
+  }
+
+  async listAll(): Promise<RideHailingProviderInstance[]> {
+    return this.executor
+      .select()
+      .from(rideHailingProviderInstances)
+      .orderBy(
+        asc(rideHailingProviderInstances.providerType),
+        asc(rideHailingProviderInstances.instanceKey),
+        asc(rideHailingProviderInstances.createdAt),
+      );
   }
 
   async findById(
@@ -80,6 +92,29 @@ export class RideHailingProviderInstanceRepository {
     const result = await this.executor
       .update(rideHailingProviderInstances)
       .set({
+        displayName: input.displayName,
+        config: input.config,
+        updatedAt: new Date(),
+      })
+      .where(eq(rideHailingProviderInstances.id, input.id))
+      .returning();
+    return result[0] ?? null;
+  }
+
+  async updateAdminConfiguration(input: {
+    id: RideHailingProviderInstanceId;
+    providerType: RideHailingProviderType;
+    instanceKey: string;
+    status: RideHailingProviderInstanceStatus;
+    displayName: string;
+    config: RideHailingProviderInstanceConfig;
+  }): Promise<RideHailingProviderInstance | null> {
+    const result = await this.executor
+      .update(rideHailingProviderInstances)
+      .set({
+        providerType: input.providerType,
+        instanceKey: input.instanceKey,
+        status: input.status,
         displayName: input.displayName,
         config: input.config,
         updatedAt: new Date(),
