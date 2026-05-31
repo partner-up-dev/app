@@ -1166,6 +1166,9 @@ export interface MessageSchema {
     navCommerceOrdersBillsSubtitle: string;
     navCommerceFulfillments: string;
     navCommerceFulfillmentsSubtitle: string;
+    navPaymentGroup: string;
+    navPaymentProviderInstances: string;
+    navPaymentProviderInstancesSubtitle: string;
     navRideHailingGroup: string;
     navRideHailingProviderInstances: string;
     navRideHailingProviderInstancesSubtitle: string;

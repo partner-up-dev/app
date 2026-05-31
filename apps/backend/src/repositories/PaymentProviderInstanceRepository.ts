@@ -8,6 +8,7 @@ import {
 } from "../entities/payment";
 import type {
   PaymentProviderInstanceConfig,
+  PaymentProviderInstanceStatus,
   PaymentProviderType,
 } from "../domains/payment/model";
 import type { RepositoryExecutor } from "./_executor";
@@ -21,6 +22,18 @@ export class PaymentProviderInstanceRepository {
       .values(data)
       .returning();
     return result[0]!;
+  }
+
+  async listAll(): Promise<PaymentProviderInstance[]> {
+    return this.executor
+      .select()
+      .from(paymentProviderInstances)
+      .orderBy(
+        asc(paymentProviderInstances.providerType),
+        asc(paymentProviderInstances.clientId),
+        asc(paymentProviderInstances.instanceKey),
+        asc(paymentProviderInstances.createdAt),
+      );
   }
 
   async findById(
@@ -88,6 +101,31 @@ export class PaymentProviderInstanceRepository {
     const result = await this.executor
       .update(paymentProviderInstances)
       .set({
+        config: input.config,
+        updatedAt: new Date(),
+      })
+      .where(eq(paymentProviderInstances.id, input.id))
+      .returning();
+    return result[0] ?? null;
+  }
+
+  async updateAdminConfiguration(input: {
+    id: PaymentProviderInstanceId;
+    providerType: PaymentProviderType;
+    instanceKey: string;
+    status: PaymentProviderInstanceStatus;
+    displayName: string;
+    clientId: string;
+    config: PaymentProviderInstanceConfig;
+  }): Promise<PaymentProviderInstance | null> {
+    const result = await this.executor
+      .update(paymentProviderInstances)
+      .set({
+        providerType: input.providerType,
+        instanceKey: input.instanceKey,
+        status: input.status,
+        displayName: input.displayName,
+        clientId: input.clientId,
         config: input.config,
         updatedAt: new Date(),
       })

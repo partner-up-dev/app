@@ -30,6 +30,7 @@ import { metaRoute } from "./controllers/meta.controller";
 import { adminAnchorManagementRoute } from "./controllers/admin-anchor-management.controller";
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
+import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
 import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
@@ -207,6 +208,7 @@ export const routes = app
   .route("/api/v1/service_provider", legacyRideHailingProviderRoute)
   .route("/api/admin", adminAnchorManagementRoute)
   .route("/api/admin", adminCommerceManagementRoute)
+  .route("/api/admin", adminPaymentManagementRoute)
   .route("/api/admin", adminRideHailingManagementRoute)
   .route("/api/admin", adminPoiRoute)
   .route("/internal/maintenance", internalMaintenanceRoute);

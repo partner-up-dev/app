@@ -191,6 +191,19 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     ],
   },
   {
+    id: "payment",
+    labelKey: "adminCommon.navPaymentGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "payment-provider-instances",
+        labelKey: "adminCommon.navPaymentProviderInstances",
+        subtitleKey: "adminCommon.navPaymentProviderInstancesSubtitle",
+        routeName: "admin-payment",
+      },
+    ],
+  },
+  {
     id: "ride-hailing",
     labelKey: "adminCommon.navRideHailingGroup",
     requiredRoles: ["service"],
