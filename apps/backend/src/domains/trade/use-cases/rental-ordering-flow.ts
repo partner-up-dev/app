@@ -25,7 +25,6 @@ import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental
 import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
 import type {
   FixedTotalPricingModel,
-  PriceExplanation,
   ProductPresentation,
   RentalSkuFacts,
   SpuSalesPolicy,
@@ -33,6 +32,7 @@ import type {
 import { createRentalOrder } from "./create-rental-order";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
 import { deriveBillPaymentState } from "../../payment";
+import { PricingApplication } from "../services";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -47,6 +47,7 @@ const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const rentalFulfillmentRepo = new RentalFulfillmentRepository();
 const paymentTxRepo = new PaymentTxRepository();
+const pricingApplication = new PricingApplication();
 
 type RentalOrderingFieldKind =
   | "POSITIVE_INT"
@@ -161,7 +162,6 @@ type ResolvedOrderingSelection = {
   spu: ProductSpu;
   sku: ProductSku & { facts: RentalSkuFacts; pricingModel: FixedTotalPricingModel };
   quantity: number;
-  amountFen: number;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -360,7 +360,6 @@ async function resolveSelection(
       pricingModel: sku.pricingModel,
     },
     quantity,
-    amountFen: sku.pricingModel.amountFen,
   };
 }
 
@@ -381,22 +380,6 @@ async function buildCancellationPolicySnapshot(sku: ProductSku) {
     basis: policy.basis,
     operatorBufferMinutes: policy.operatorBufferMinutes,
     tiers: policy.tiers,
-  };
-}
-
-function buildBasePriceExplanation(input: {
-  skuId: number;
-  skuName: string;
-  amountFen: number;
-}): PriceExplanation {
-  return {
-    phase: "SKU_BASE",
-    sourceType: "PRICING_MODEL",
-    sourceId: `sku:${input.skuId}`,
-    label: input.skuName,
-    description: "固定总价",
-    deltaFen: input.amountFen,
-    resultAmountFen: input.amountFen,
   };
 }
 
@@ -510,10 +493,19 @@ export async function evaluateRentalOrdering(
     pr: selection.pr,
     viewerUserId: input.viewerUserId ?? null,
   });
-  const explanation = buildBasePriceExplanation({
-    skuId: selection.sku.id,
-    skuName: selection.sku.name,
-    amountFen: selection.amountFen,
+  const pricingSnapshot = pricingApplication.resolve({
+    offer: selection.placement.offer,
+    items: [
+      {
+        itemId: "preview",
+        spu: selection.spu,
+        sku: selection.sku,
+        quantity: selection.quantity,
+      },
+    ],
+    orderContext: {
+      serviceTime: input.request.serviceStartAt,
+    },
   });
 
   return {
@@ -522,8 +514,11 @@ export async function evaluateRentalOrdering(
       disabledReason: validationError,
     },
     pricePreview: {
-      amountFen: selection.amountFen,
-      explanations: [explanation],
+      amountFen: pricingSnapshot.totalFen,
+      explanations: [
+        ...pricingSnapshot.itemBreakdowns.flatMap((item) => item.explanations),
+        ...pricingSnapshot.orderLevelExplanations,
+      ],
     },
   };
 }
@@ -547,10 +542,19 @@ export async function createRentalOrderFromPlacement(
   const cancellationPolicySnapshot = await buildCancellationPolicySnapshot(
     selection.sku,
   );
-  const explanation = buildBasePriceExplanation({
-    skuId: selection.sku.id,
-    skuName: selection.sku.name,
-    amountFen: selection.amountFen,
+  const pricingSnapshot = pricingApplication.resolve({
+    offer: selection.placement.offer,
+    items: [
+      {
+        itemId,
+        spu: selection.spu,
+        sku: selection.sku,
+        quantity: selection.quantity,
+      },
+    ],
+    orderContext: {
+      serviceTime: input.request.serviceStartAt,
+    },
   });
 
   return createRentalOrder({
@@ -576,19 +580,7 @@ export async function createRentalOrderFromPlacement(
         cancellationPolicySnapshot,
       },
     ],
-    pricingSnapshot: {
-      currency: "CNY",
-      itemBreakdowns: [
-        {
-          itemId,
-          resolvedAmountFen: selection.amountFen,
-          explanations: [explanation],
-        },
-      ],
-      orderLevelExplanations: [],
-      subtotalFen: selection.amountFen,
-      totalFen: selection.amountFen,
-    },
+    pricingSnapshot,
     selectedZoneCodes: [selection.sku.facts.zoneCode],
     serviceStartAt: selection.pr.serviceStartAt,
     serviceEndAt: selection.pr.serviceEndAt,
