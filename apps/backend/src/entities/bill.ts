@@ -9,7 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { BillLineKind, BillStatus } from "../domains/bill";
+import type { BillLineKind, BillStatus } from "../domains/bill/model";
 import { tradeOrders, type TradeOrderId } from "./trade-order";
 import { users, type UserId } from "./user";
 

@@ -349,7 +349,7 @@ This task implements only Button-type Placement Instance:
 
 ```ts
 type PlacementType = "BUTTON" | "BANNER";
-type PlacementSlotKey = "PR_UTILITY_ACTION_BUTTON";
+type PlacementSlotKey = "PR_UTILITY_ACTIONS_BUTTON";
 type PlacementStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
 
 type PlacementInstance = {
@@ -417,25 +417,29 @@ or whether to route to Offer or Order.
 - `PlacementInstance` is one configured merchandising record competing for that
   slot
 
-Button Placement is a UI rendering type, not a separate placement selection
-model. The selection flow is still: query suitable Placement Instances by PR
-data, then render the selected instance only when its type is `BUTTON` and its
-creative payload is valid for the PR Page Utility Actions Button Placement row.
+Button Placement is a UI rendering type, not a separate matching-rule model.
+The selection flow is still: query suitable Placement Instances by slot and
+requested `placementType`, evaluate their `matchingRule` against the read
+path's normalized context, then render the selected instance using its
+placement-type-specific projection.
 
 ## Placement Matching Rule
 
-Placement Matching Rule is a persisted JSON rule evaluated by a rule engine.
-Its only output is display or do-not-display for one Placement Instance and one
-PR data input.
+Placement Matching Rule is a persisted JSON rule evaluated by a rule engine on
+every placement read path that uses PlacementInstance selection. It is not tied
+to `placementType` and not tied to PR context. Its only output is display or
+do-not-display for one Placement Instance and one normalized context input.
 
 ```ts
-type PlacementMatchingRuleJson = unknown; // validated JsonLogic-compatible JSON
+type PlacementMatchingRuleJson = RulesLogic; // validated JsonLogic-compatible JSON
 
-type PRContextData = {
-  // Plain PR data for the rule engine. This is not a rich domain model and
-  // carries no behavior, ecommerce purpose, or invariants.
-  // It should use existing PR fields such as type, time, location,
-  // route, minPartners, maxPartners, and active participant count.
+type PlacementRuleContextData = unknown;
+
+type PrPlacementRuleContextData = {
+  // Plain PR-derived data for the rule engine. This is a context adapter DTO,
+  // not a rich domain model and not part of the generic rule engine.
+  // It should use existing PR fields such as type, time, location, route,
+  // minPartners, maxPartners, and active participant count.
 };
 ```
 
@@ -499,6 +503,23 @@ The implementation should hide the concrete library behind a small
 `PlacementRuleEngine` port so the persisted rule format and test fixtures are
 controlled by Merchandising rather than by PRPage.
 
+Current implementation:
+
+- `Placement.matchingRule` is persisted as JSONLogic-compatible JSON and
+  validated on create/update.
+- The rule engine is generic: `doesPlacementRuleMatch(rule, context)` does not
+  know PR, Button, or any placement type.
+- PR context construction is a separate adapter:
+  `buildPrPlacementRuleContextData`.
+- PR Button Placement resolution is Merchandising-owned. It loads active
+  instances for `PR_UTILITY_ACTIONS_BUTTON` and requested placement type
+  `BUTTON`, builds a narrow PR context DTO, filters candidates through the
+  generic rule engine, then resolves the selected placement's Offer target into
+  either an Ordering target or an existing Order target.
+- The Trade / Rental ordering flow no longer owns placement matching. Trade
+  still owns ordering evaluation, order creation, order detail, and PR attach
+  transactional effects.
+
 SPU pricing policy and Offer pricing policy may reuse the same rule DSL style,
 but each owner must validate a different legal target set. The shared DSL does
 not imply shared authority.
@@ -522,12 +543,13 @@ Resolution order:
 
 1. Check whether the viewer is an active participant of the PR context. If not,
    return no placement.
-2. Load active Placement Instance candidates. Placement calculation is not
-   surface-based.
-3. Evaluate each candidate's matching rule through the rule engine with PR
-   Context data.
-4. Keep only the candidate whose type is renderable by the current UI slot
-   (`BUTTON` for PR Page Utility Actions in this task).
+2. Load active Placement Instance candidates by slot plus requested
+   `placementType`. Placement matching itself is not surface-based, but
+   placement type affects the candidate query because the caller is asking for
+   one renderable projection family.
+3. Evaluate each candidate's matching rule through the generic rule engine with
+   the PR context adapter data.
+4. Discard candidates whose target cannot be resolved for this read path.
 5. Resolve the target Offer internally from the selected Placement Instance,
    then ask Trade whether an active order already exists for that
    `(offerId, prId)` pair.
@@ -745,7 +767,7 @@ type PlacementSelectionProjection = {
 
 type PlacementProjection = {
   id: string;
-  slotKey: "PR_UTILITY_ACTION_BUTTON";
+  slotKey: "PR_UTILITY_ACTIONS_BUTTON";
   type: "BUTTON";
   creative: ButtonPlacementCreative;
   target: PlacementTarget;

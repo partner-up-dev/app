@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { TradeOrder } from "../model";
+import type { RentalOrder } from "../model";
 import {
   buildRentalBillTargetAmountSeed,
   resolveRentalTerminationPolicy,
 } from "./rental-termination-pricing";
 
-function buildRentalOrder(): TradeOrder {
+function buildRentalOrder(): RentalOrder {
   return {
     id: "order-1",
     family: "RENTAL",

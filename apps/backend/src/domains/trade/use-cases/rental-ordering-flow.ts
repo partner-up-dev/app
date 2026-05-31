@@ -14,9 +14,9 @@ import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
-import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
@@ -41,8 +41,8 @@ const partnerRequestRepo = new PartnerRequestRepository();
 const productSpuRepo = new ProductSpuRepository();
 const productSkuRepo = new ProductSkuRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
-const attachedOrderRepo = new PRAttachedOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
+const rentalOrderRepo = new RentalOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const rentalFulfillmentRepo = new RentalFulfillmentRepository();
@@ -140,38 +140,6 @@ export type RentalOrderingEvaluation = {
     explanations: PriceExplanation[];
   };
 };
-
-export type CommercePlacementProjection =
-  | {
-      placement: {
-        id: number;
-        slotKey: "PR_UTILITY_ACTIONS_BUTTON";
-        type: "BUTTON";
-        creative: {
-          title: string;
-          subtitle?: string | null;
-          ctaLabel: string;
-        };
-        target:
-          | {
-              kind: "ORDER";
-              orderId: string;
-              href: string;
-            }
-          | {
-              kind: "ORDERING";
-              placementInstanceId: number;
-              context: {
-                kind: "PR";
-                prId: number;
-              };
-              href: string;
-            };
-      };
-    }
-  | {
-      placement: null;
-    };
 
 type ResolvedPlacementOffer = {
   placementId: number;
@@ -466,79 +434,6 @@ function validateRentalRequest(input: {
   return null;
 }
 
-export async function resolveCommercePlacementForPr(input: {
-  prId: number;
-  viewerUserId: string | null;
-}): Promise<CommercePlacementProjection> {
-  if (!input.viewerUserId) return { placement: null };
-
-  const pr = await partnerRequestRepo.findById(input.prId as PRId);
-  if (!pr) return { placement: null };
-
-  const participant = await partnerRepo.findActiveByPrIdAndUserId(
-    pr.id,
-    input.viewerUserId as UserId,
-  );
-  if (!participant) return { placement: null };
-
-  const placements = await placementRepo.listAll();
-  for (const placement of placements) {
-    if (
-      placement.status !== "ACTIVE" ||
-      placement.slotKey !== "PR_UTILITY_ACTIONS_BUTTON" ||
-      placement.placementType !== "BUTTON" ||
-      placement.target.kind !== "OFFER"
-    ) {
-      continue;
-    }
-
-    const offer = await offerRepo.findById(placement.target.offerId as OfferId);
-    if (!offer || offer.productType !== "RENTAL" || !isActiveNow(offer)) {
-      continue;
-    }
-
-    const existing = await attachedOrderRepo.findActiveByPrAndOffer(
-      pr.id,
-      offer.id,
-    );
-    if (existing) {
-      return {
-        placement: {
-          id: placement.id,
-          slotKey: placement.slotKey,
-          type: placement.placementType,
-          creative: placement.creative,
-          target: {
-            kind: "ORDER",
-            orderId: existing.orderId,
-            href: `/orders/${existing.orderId}`,
-          },
-        },
-      };
-    }
-
-    return {
-      placement: {
-        id: placement.id,
-        slotKey: placement.slotKey,
-        type: placement.placementType,
-        creative: placement.creative,
-        target: {
-          kind: "ORDERING",
-          placementInstanceId: placement.id,
-          context: {
-            kind: "PR",
-            prId: pr.id,
-          },
-          href: `/ordering/from-placement?placementInstanceId=${placement.id}&context=pr&contextId=${pr.id}`,
-        },
-      },
-    };
-  }
-
-  return { placement: null };
-}
-
 export async function getRentalOrderingFromPlacement(input: {
   placementInstanceId: number;
   prId: number;
@@ -737,6 +632,16 @@ export async function getCommerceOrderDetail(input: {
     ? deriveBillPaymentState({ lines: billLines, txs: paymentTxs })
     : null;
   const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
+  const rentalOrder =
+    order.family === "RENTAL"
+      ? await rentalOrderRepo.findByOrderId(order.id)
+      : null;
+  if (order.family === "RENTAL" && !rentalOrder) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "Rental order facts are missing",
+    });
+  }
 
   return {
     order: {
@@ -748,11 +653,11 @@ export async function getCommerceOrderDetail(input: {
       items: order.items,
       pricingSnapshot: order.pricingSnapshot,
       terminationAttempts: order.terminationAttempts,
-      serviceStartAt: order.serviceStartAt?.toISOString() ?? null,
-      serviceEndAt: order.serviceEndAt?.toISOString() ?? null,
-      participantCount: order.participantCount,
-      contactPhone: order.contactPhone,
-      registrants: order.registrants,
+      serviceStartAt: rentalOrder?.serviceStartAt.toISOString() ?? null,
+      serviceEndAt: rentalOrder?.serviceEndAt.toISOString() ?? null,
+      participantCount: rentalOrder?.participantCount ?? null,
+      contactPhone: rentalOrder?.contactPhone ?? null,
+      registrants: rentalOrder?.registrants ?? [],
     },
     bill: bill
       ? {

@@ -8,7 +8,7 @@ import {
   type PaymentProviderInstanceId,
 } from "../entities/payment";
 import type { BillLineId } from "../entities/bill";
-import type { PaymentTxStatus, PaymentTxType } from "../domains/payment";
+import type { PaymentTxStatus, PaymentTxType } from "../domains/payment/model";
 import type { RepositoryExecutor } from "./_executor";
 
 const ACTIVE_PAYMENT_STATUSES: PaymentTxStatus[] = [

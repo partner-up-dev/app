@@ -1,17 +1,16 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type {
   OrderOfferSnapshot,
+  OrderFamily,
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
   OrderStatus,
   OrderTerminationAttempt,
   OrderTimeout,
-  RentalRegistrant,
   SplitRuleSnapshot,
-  TradeOrder as TradeOrderModel,
   OrderItemSnapshot,
-} from "../domains/trade";
+} from "../domains/trade/model";
 import { users, type UserId } from "./user";
 
 export type TradeOrderId = string & { readonly __brand: "TradeOrderId" };
@@ -23,7 +22,7 @@ export const tradeOrders = pgTable(
       .$type<TradeOrderId>()
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    family: text("family").$type<TradeOrderModel["family"]>().notNull(),
+    family: text("family").$type<OrderFamily>().notNull(),
     createdBy: uuid("created_by")
       .$type<UserId>()
       .notNull()
@@ -39,18 +38,6 @@ export const tradeOrders = pgTable(
       .$type<OrderTerminationAttempt[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
-    selectedZoneCodes: text("selected_zone_codes")
-      .array()
-      .notNull()
-      .default(sql`ARRAY[]::text[]`),
-    serviceStartAt: timestamp("service_start_at", { withTimezone: true }),
-    serviceEndAt: timestamp("service_end_at", { withTimezone: true }),
-    participantCount: integer("participant_count"),
-    contactPhone: text("contact_phone"),
-    registrants: jsonb("registrants")
-      .$type<RentalRegistrant[]>()
-      .notNull()
-      .default(sql`'[]'::jsonb`),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -60,7 +47,6 @@ export const tradeOrders = pgTable(
       table.family,
       table.status,
     ),
-    serviceStartIdx: index("trade_orders_service_start_idx").on(table.serviceStartAt),
   }),
 );
 

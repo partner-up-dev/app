@@ -1,5 +1,11 @@
 import { bigserial, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import type { ButtonPlacementCreative, PlacementSlotKey, PlacementTarget, PlacementType } from "../domains/merchandising";
+import type {
+  ButtonPlacementCreative,
+  PlacementMatchingRuleJson,
+  PlacementSlotKey,
+  PlacementTarget,
+  PlacementType,
+} from "../domains/merchandising/model";
 
 export type PlacementStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
 
@@ -10,7 +16,7 @@ export const placements = pgTable(
     status: text("status").$type<PlacementStatus>().notNull().default("DRAFT"),
     slotKey: text("slot_key").$type<PlacementSlotKey>().notNull(),
     placementType: text("placement_type").$type<PlacementType>().notNull(),
-    matchingRule: jsonb("matching_rule").$type<unknown>().notNull(),
+    matchingRule: jsonb("matching_rule").$type<PlacementMatchingRuleJson>().notNull(),
     priority: integer("priority").notNull().default(0),
     creative: jsonb("creative").$type<ButtonPlacementCreative>().notNull(),
     target: jsonb("target").$type<PlacementTarget>().notNull(),

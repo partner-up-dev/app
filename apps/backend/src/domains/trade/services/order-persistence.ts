@@ -1,8 +1,9 @@
+import type { RentalOrder as RentalOrderRecord } from "../../../entities/rental-order";
 import type { TradeOrder as TradeOrderRecord } from "../../../entities/trade-order";
-import type { TradeOrder } from "../model";
+import type { RentalOrder, TradeOrder } from "../model";
 
-function toIsoString(value: Date | null): string | null {
-  return value ? value.toISOString() : null;
+function toIsoString(value: Date): string {
+  return value.toISOString();
 }
 
 export function toTradeOrderModel(record: TradeOrderRecord): TradeOrder {
@@ -18,11 +19,28 @@ export function toTradeOrderModel(record: TradeOrderRecord): TradeOrder {
     pricingSnapshot: record.pricingSnapshot,
     timeout: record.timeout,
     terminationAttempts: record.terminationAttempts,
-    selectedZoneCodes: record.selectedZoneCodes,
-    serviceStartAt: toIsoString(record.serviceStartAt),
-    serviceEndAt: toIsoString(record.serviceEndAt),
-    participantCount: record.participantCount,
-    contactPhone: record.contactPhone,
-    registrants: record.registrants,
+  };
+}
+
+export function toRentalOrderModel(
+  orderRecord: TradeOrderRecord,
+  rentalRecord: RentalOrderRecord,
+): RentalOrder {
+  if (orderRecord.family !== "RENTAL") {
+    throw new Error("Rental order model requires a Rental base order");
+  }
+  if (orderRecord.id !== rentalRecord.orderId) {
+    throw new Error("Rental order facts do not match base order");
+  }
+
+  return {
+    ...toTradeOrderModel(orderRecord),
+    family: "RENTAL",
+    selectedZoneCodes: rentalRecord.selectedZoneCodes,
+    serviceStartAt: toIsoString(rentalRecord.serviceStartAt),
+    serviceEndAt: toIsoString(rentalRecord.serviceEndAt),
+    participantCount: rentalRecord.participantCount,
+    contactPhone: rentalRecord.contactPhone,
+    registrants: rentalRecord.registrants,
   };
 }

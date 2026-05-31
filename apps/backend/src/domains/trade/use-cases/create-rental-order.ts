@@ -5,6 +5,7 @@ import type { PRId } from "../../../entities/partner-request";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { createBillFromSeed } from "../../bill";
 import { attachOrderToPr } from "../../pr-core";
@@ -96,6 +97,7 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
 
   return db.transaction(async (tx) => {
     const tradeOrderRepo = new TradeOrderRepository(tx);
+    const rentalOrderRepo = new RentalOrderRepository(tx);
 
     const now = new Date();
     const unpaidWindowMinutes =
@@ -116,6 +118,10 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
         unpaidExpiresAt,
         defaultWindowMinutes: unpaidWindowMinutes,
       },
+    });
+
+    await rentalOrderRepo.create({
+      orderId: order.id,
       selectedZoneCodes: input.selectedZoneCodes,
       serviceStartAt: new Date(input.serviceStartAt),
       serviceEndAt: new Date(input.serviceEndAt),

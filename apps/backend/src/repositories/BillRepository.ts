@@ -7,7 +7,7 @@ import {
   type NewBill,
 } from "../entities/bill";
 import type { TradeOrderId } from "../entities/trade-order";
-import type { BillStatus } from "../domains/bill";
+import type { BillStatus } from "../domains/bill/model";
 import type { RepositoryExecutor } from "./_executor";
 
 export class BillRepository {

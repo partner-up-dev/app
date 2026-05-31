@@ -7,6 +7,7 @@ import type {
   PlacementTarget,
   PlacementType,
 } from "../model";
+import { isPlacementMatchingRuleJson } from "../services";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -22,6 +23,13 @@ export interface CreatePlacementInput {
 }
 
 export async function createPlacement(input: CreatePlacementInput) {
+  if (!isPlacementMatchingRuleJson(input.matchingRule)) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Placement matchingRule must be a JSONLogic rule",
+    });
+  }
+
   if (input.target.kind === "OFFER") {
     const offer = await offerRepo.findById(input.target.offerId);
     if (!offer) {

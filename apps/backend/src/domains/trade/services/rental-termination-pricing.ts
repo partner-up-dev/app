@@ -5,7 +5,7 @@ import type {
   OrderItemPricingSnapshot,
   OrderItemSnapshot,
   OrderTerminationAttempt,
-  TradeOrder,
+  RentalOrder,
 } from "../model";
 
 type RentalTerminationPolicyResolution = {
@@ -50,7 +50,7 @@ function selectCancellationTier(
 }
 
 function getItemPricingBreakdown(
-  order: TradeOrder,
+  order: RentalOrder,
   itemId: string,
 ): OrderItemPricingSnapshot {
   const breakdown = order.pricingSnapshot.itemBreakdowns.find(
@@ -72,17 +72,9 @@ function getCancellationPolicySnapshot(
 }
 
 export function resolveRentalTerminationPolicy(
-  order: TradeOrder,
+  order: RentalOrder,
   attempt: Pick<OrderTerminationAttempt, "attemptId" | "requestedAt">,
 ): RentalTerminationPolicyResolution {
-  if (order.family !== "RENTAL") {
-    throw new Error("Rental termination pricing requires a Rental order");
-  }
-
-  if (!order.serviceStartAt) {
-    throw new Error("Rental order requires serviceStartAt");
-  }
-
   const minutesBeforeStart = getMinutesBeforeStart(
     attempt.requestedAt,
     order.serviceStartAt,
@@ -117,7 +109,7 @@ export function resolveRentalTerminationPolicy(
 }
 
 export function buildRentalBillTargetAmountSeed(input: {
-  order: TradeOrder;
+  order: RentalOrder;
   attempt: Pick<OrderTerminationAttempt, "attemptId" | "requestedAt">;
 }): BillTargetAmountSeed {
   const resolution = resolveRentalTerminationPolicy(input.order, input.attempt);

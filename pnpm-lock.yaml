@@ -72,6 +72,9 @@ importers:
       hono:
         specifier: ^4.6.0
         version: 4.11.5
+      json-logic-js:
+        specifier: 2.0.5
+        version: 2.0.5
       postgres:
         specifier: ^3.4.0
         version: 3.4.8
@@ -91,6 +94,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
+      '@types/json-logic-js':
+        specifier: 2.0.8
+        version: 2.0.8
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.7
@@ -1340,6 +1346,9 @@ packages:
     resolution: {integrity: sha512-BJpVf+FIN9UERmzhbtUgpXj6XBZpG67FMgBLLoj9HZKd9XifcCpSV+UnFcwTZfEyun4U/KmCrrVOG7829L589w==}
     deprecated: This is a stub types definition. html2canvas provides its own type definitions, so you do not need this installed.
 
+  '@types/json-logic-js@2.0.8':
+    resolution: {integrity: sha512-WgNsDPuTPKYXl0Jh0IfoCoJoAGGYZt5qzpmjuLSEg7r0cKp/kWtWp0HAsVepyPSPyXiHo6uXp/B/kW/2J1fa2Q==}
+
   '@types/node@22.19.7':
     resolution: {integrity: sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==}
 
@@ -2039,6 +2048,9 @@ packages:
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
+
+  json-logic-js@2.0.5:
+    resolution: {integrity: sha512-rTT2+lqcuUmj4DgWfmzupZqQDA64AdmYqizzMPWj3DxGdfFNsxPpcNVSaTj4l8W2tG/+hg7/mQhxjU3aPacO6g==}
 
   json-schema@0.4.0:
     resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
@@ -3429,6 +3441,8 @@ snapshots:
     dependencies:
       html2canvas: 1.4.1
 
+  '@types/json-logic-js@2.0.8': {}
+
   '@types/node@22.19.7':
     dependencies:
       undici-types: 6.21.0
@@ -4215,6 +4229,8 @@ snapshots:
   jiti@2.7.0: {}
 
   joycon@3.1.1: {}
+
+  json-logic-js@2.0.5: {}
 
   json-schema@0.4.0: {}
 

@@ -9,7 +9,7 @@ import {
 import type {
   OrderStatus,
   OrderTerminationAttempt,
-} from "../domains/trade";
+} from "../domains/trade/model";
 import type { RepositoryExecutor } from "./_executor";
 
 export class TradeOrderRepository {

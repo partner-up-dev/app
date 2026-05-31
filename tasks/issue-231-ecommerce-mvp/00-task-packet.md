@@ -14,13 +14,17 @@ independent even when implementation ownership is grouped.
 
 - Type: Intent.
 - Active mode: Execute.
-- Current discussion scope: Phase 4 fake WeChatPay HTTP-boundary verification.
+- Current discussion scope: PlacementInstance `matchingRule` runtime
+  connection, placement-type-aware instance query, and Rental system-scenario
+  boundary cleanup.
 - TDD means Technical Design Document in this packet. Test-driven development
   remains useful later, but executable tests should wait until product and
   technical contracts are stable enough.
 - Implementation status: Phase 0 complete. Corrected Phase 1 complete.
   Phase 2 complete. Phase 3 Rental baseline complete. Phase 4 Payment
   implementation complete with HTTP-boundary fake WeChatPay verification.
+  Placement matching rules are now runtime JSONLogic rules evaluated by
+  Merchandising before a selected PlacementInstance is projected.
 - Production code and executable tests are now allowed because the user
   explicitly said to start.
 
@@ -125,6 +129,11 @@ independent even when implementation ownership is grouped.
 - Placement has typed instances. This task implements only Button Placement.
   The Button Placement is rendered inside the PR Page Utility Actions region.
   The former below-Utility-Actions placement card is out of scope for now.
+- Placement `matchingRule` is not decorative seed data and is not tied to a
+  placement type. A placement read path first queries active instances for the
+  requested slot plus `placementType`, then evaluates the stored JSONLogic rule
+  against that path's normalized context DTO, and only then returns a
+  backend-authored target.
 - Placement owns type-specific creative payloads. Product Catalog owns SPU/SKU
   sales and product-native pricing policy. Offer owns an SPU list and optional
   campaign/commercial overlay policy; it does not own campaign copy/media.
@@ -664,3 +673,11 @@ the baseline for downstream Order / Bill / Fulfillment design.
   fake package tests/typecheck, backend typecheck, frontend typecheck,
   backend DB lint, backend unit tests, frontend unit tests, full lint,
   payment supply-chain lint, and the Rental system scenario.
+- 2026-05-31: Connected persisted PlacementInstance `matchingRule` JSONLogic to
+  runtime placement selection. The PR Button placement read path moved from the
+  Rental Trade use case into Merchandising, queries active placement candidates
+  by slot plus placement type, evaluates the generic rule engine against a PR
+  context adapter DTO, validates matching rules on create/update, and keeps
+  existing-order routing backend-authored. The Rental browser system scenario
+  now seeds PR state directly through database/repository builders instead of
+  using PR APIs, preserving the black-box browser assertion boundary.

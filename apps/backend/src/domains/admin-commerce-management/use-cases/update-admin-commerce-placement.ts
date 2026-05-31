@@ -8,6 +8,7 @@ import type {
   PlacementTarget,
   PlacementType,
 } from "../../merchandising";
+import { isPlacementMatchingRuleJson } from "../../merchandising";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -29,6 +30,13 @@ export async function updateAdminCommercePlacement(
   const placement = await placementRepo.findById(input.placementId);
   if (!placement) {
     return throwHttpProblem({ status: 404, detail: "Placement not found" });
+  }
+
+  if (!isPlacementMatchingRuleJson(input.matchingRule)) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Placement matchingRule must be a JSONLogic rule",
+    });
   }
 
   if (input.target.kind === "OFFER") {

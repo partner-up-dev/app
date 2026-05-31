@@ -17,7 +17,7 @@ import type {
   PaymentProviderType,
   PaymentTxType,
   PaymentTxStatus,
-} from "../domains/payment";
+} from "../domains/payment/model";
 import { users, type UserId } from "./user";
 
 export type PaymentProviderInstanceId = string & {

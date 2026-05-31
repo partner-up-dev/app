@@ -8,7 +8,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import type { CatalogStatus, PricingModel, SkuFacts } from "../domains/merchandising";
+import type { CatalogStatus, PricingModel, SkuFacts } from "../domains/merchandising/model";
 import { productSpus, type ProductSpuId } from "./product-spu";
 
 export type SkuCancellationPolicyRef = {

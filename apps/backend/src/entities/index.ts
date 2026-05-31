@@ -27,6 +27,7 @@ export * from "./sku-cancellation-policy";
 export * from "./offer";
 export * from "./placement";
 export * from "./trade-order";
+export * from "./rental-order";
 export * from "./pr-attached-order";
 export * from "./bill";
 export * from "./rental-fulfillment";

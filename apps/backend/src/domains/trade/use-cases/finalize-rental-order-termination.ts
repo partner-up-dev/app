@@ -2,6 +2,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { reconcileBillToTargetAmount } from "../../bill";
 import { createRefundPaymentTxForRefundLine } from "../../payment";
@@ -10,7 +11,7 @@ import {
   approveTerminationAttempt,
   buildRentalBillTargetAmountSeed,
   denyTerminationAttempt,
-  toTradeOrderModel,
+  toRentalOrderModel,
 } from "../services";
 
 function getTerminationAttempt(
@@ -38,11 +39,20 @@ export async function finalizeRentalOrderTermination(input: {
   if (!orderRecord) {
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
-  const order = toTradeOrderModel(orderRecord);
 
-  if (order.family !== "RENTAL") {
+  if (orderRecord.family !== "RENTAL") {
     return throwHttpProblem({ status: 409, detail: "Only Rental orders use this termination flow" });
   }
+  const rentalOrderRecord = await new RentalOrderRepository().findByOrderId(
+    orderRecord.id,
+  );
+  if (!rentalOrderRecord) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "Rental order facts are missing",
+    });
+  }
+  const order = toRentalOrderModel(orderRecord, rentalOrderRecord);
 
   const attempt = getTerminationAttempt(order, input.attemptId);
   const decidedAt = input.decidedAt ?? new Date().toISOString();

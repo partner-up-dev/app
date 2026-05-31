@@ -1,6 +1,10 @@
+import type { RulesLogic } from "json-logic-js";
+
 export type PlacementType = "BUTTON";
 
 export type PlacementSlotKey = "PR_UTILITY_ACTIONS_BUTTON";
+
+export type PlacementMatchingRuleJson = RulesLogic;
 
 export type PlacementTarget =
   | {
@@ -22,7 +26,7 @@ export type PlacementInstance = {
   id: number;
   slotKey: PlacementSlotKey;
   placementType: PlacementType;
-  matchingRule: unknown;
+  matchingRule: PlacementMatchingRuleJson;
   priority: number;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;

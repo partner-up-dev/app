@@ -13,7 +13,7 @@ import type {
   RentalBookingStatus,
   RentalCancellationHandlingStatus,
   RentalSupplierCancellationOutcome,
-} from "../domains/fulfillment";
+} from "../domains/fulfillment/model";
 import { tradeOrders, type TradeOrderId } from "./trade-order";
 
 export type RentalFulfillmentId = string & { readonly __brand: "RentalFulfillmentId" };

@@ -9,7 +9,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { ProductType, PricingRule } from "../domains/merchandising";
+import type { ProductType, PricingRule } from "../domains/merchandising/model";
 
 export type OfferStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
 

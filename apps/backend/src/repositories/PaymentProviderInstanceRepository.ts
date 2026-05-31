@@ -9,7 +9,7 @@ import {
 import type {
   PaymentProviderInstanceConfig,
   PaymentProviderType,
-} from "../domains/payment";
+} from "../domains/payment/model";
 import type { RepositoryExecutor } from "./_executor";
 
 export class PaymentProviderInstanceRepository {

@@ -5,17 +5,15 @@ import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-s
 import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
 import { withScenarioPage } from "../_infra/browser/browser";
 import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
-import {
-  expectBackendJsonResponse,
-  requestBackendJson,
-} from "../_infra/http/backend";
 import { scenario } from "../_infra/scenario/scenario";
 import {
   bindScenarioWeChatOpenId,
   configurePRStatus,
 } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
-import { givenPublishedPartnerRequest } from "../../../apps/backend/tests/pr-core/_kit/builders/partner-requests";
-import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+import {
+  givenUser,
+  type ScenarioUser,
+} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
 import {
   createOffer,
   createPlacement,
@@ -24,23 +22,59 @@ import {
   createSkuCancellationPolicy,
 } from "../../../apps/backend/src/domains/merchandising";
 import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
+import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
 
-type PRActionResponse = {
-  status: string;
+const partnerRepo = new PartnerRepository();
+const partnerRequestRepo = new PartnerRequestRepository();
+
+type ScenarioPartnerRequest = {
+  id: number;
 };
 
-async function joinThroughBackend(input: {
-  prId: number;
-  token: string;
-}): Promise<PRActionResponse> {
-  return expectBackendJsonResponse<PRActionResponse>(
-    await requestBackendJson(`/api/pr/${input.prId}/join`, {
-      method: "POST",
-      token: input.token,
-      body: {},
-    }),
-    200,
-  );
+async function givenCommerceRentalPr(input: {
+  creator: ScenarioUser;
+  minPartners: number;
+  maxPartners: number | null;
+  title: string;
+}): Promise<ScenarioPartnerRequest> {
+  const pr = await partnerRequestRepo.create({
+    budget: null,
+    createdBy: input.creator.user.id,
+    joinGateConfig: [],
+    location: "Scenario Court",
+    maxPartners: input.maxPartners,
+    meetingPoint: null,
+    minPartners: input.minPartners,
+    notes: null,
+    preferences: [],
+    status: "OPEN",
+    time: ["2031-01-01T10:00:00.000Z", "2031-01-01T12:00:00.000Z"],
+    title: input.title,
+    type: "badminton",
+  });
+  if (!pr) {
+    throw new Error("Failed to create commerce rental scenario PR");
+  }
+
+  await partnerRepo.createSlot({
+    prId: pr.id,
+    status: "JOINED",
+    userId: input.creator.user.id,
+  });
+
+  return { id: pr.id };
+}
+
+async function addJoinedParticipant(input: {
+  pr: ScenarioPartnerRequest;
+  user: ScenarioUser;
+}): Promise<void> {
+  await partnerRepo.createSlot({
+    prId: input.pr.id,
+    status: "JOINED",
+    userId: input.user.user.id,
+  });
 }
 
 async function givenRentalOrderingPlacement() {
@@ -178,8 +212,12 @@ async function givenRentalOrderingPlacement() {
     placementType: "BUTTON",
     status: "ACTIVE",
     matchingRule: {
-      context: "PR",
-      scenario: "system-rental-ordering",
+      and: [
+        { "===": [{ var: "kind" }, "PR"] },
+        { "===": [{ var: "type" }, "badminton"] },
+        { "===": [{ var: "activeParticipantCount" }, 2] },
+        { var: "time.hasConcreteTime" },
+      ],
     },
     priority: 100,
     creative: {
@@ -307,13 +345,13 @@ scenario(
       user: joiner,
       openId: "fake-openid-commerce-rental-joiner",
     });
-    const pr = await givenPublishedPartnerRequest({
+    const pr = await givenCommerceRentalPr({
       creator,
       minPartners: 2,
       maxPartners: null,
       title: "System commerce rental partner request",
     });
-    await joinThroughBackend({ prId: pr.id, token: joiner.token });
+    await addJoinedParticipant({ pr, user: joiner });
     await configurePRStatus({ pr, status: "READY" });
     const placement = await givenRentalOrderingPlacement();
 
@@ -580,16 +618,47 @@ scenario(
   },
 );
 
+scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
+  const creator = await givenUser("system-commerce-placement-mismatch-creator");
+  const pr = await givenCommerceRentalPr({
+    creator,
+    minPartners: 2,
+    maxPartners: null,
+    title: "System commerce placement mismatch PR",
+  });
+  const placement = await givenRentalOrderingPlacement();
+
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByText("System commerce placement mismatch PR").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await page.waitForLoadState("networkidle");
+    assert.equal(
+      await page.getByTestId("pr-detail.commerce-placement.open").count(),
+      0,
+      "PR Button Placement must not render when matchingRule returns false",
+    );
+  });
+});
+
 scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
   const creator = await givenUser("system-commerce-non-ready-creator");
   const joiner = await givenUser("system-commerce-non-ready-joiner");
-  const pr = await givenPublishedPartnerRequest({
+  const pr = await givenCommerceRentalPr({
     creator,
     minPartners: 2,
     maxPartners: null,
     title: "System commerce non ready rental PR",
   });
-  await joinThroughBackend({ prId: pr.id, token: joiner.token });
+  await addJoinedParticipant({ pr, user: joiner });
   const placement = await givenRentalOrderingPlacement();
 
   ctx.record("prId", pr.id);
@@ -617,13 +686,13 @@ scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
 scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
   const creator = await givenUser("system-commerce-non-creator-creator");
   const joiner = await givenUser("system-commerce-non-creator-joiner");
-  const pr = await givenPublishedPartnerRequest({
+  const pr = await givenCommerceRentalPr({
     creator,
     minPartners: 2,
     maxPartners: null,
     title: "System commerce non creator rental PR",
   });
-  await joinThroughBackend({ prId: pr.id, token: joiner.token });
+  await addJoinedParticipant({ pr, user: joiner });
   await configurePRStatus({ pr, status: "READY" });
   const placement = await givenRentalOrderingPlacement();
 
@@ -652,13 +721,13 @@ scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
 scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
   const creator = await givenUser("system-commerce-cancel-creator");
   const joiner = await givenUser("system-commerce-cancel-joiner");
-  const pr = await givenPublishedPartnerRequest({
+  const pr = await givenCommerceRentalPr({
     creator,
     minPartners: 2,
     maxPartners: null,
     title: "System commerce cancellation rental PR",
   });
-  await joinThroughBackend({ prId: pr.id, token: joiner.token });
+  await addJoinedParticipant({ pr, user: joiner });
   await configurePRStatus({ pr, status: "READY" });
   const placement = await givenRentalOrderingPlacement();
 
@@ -723,13 +792,13 @@ scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
     user: joiner,
     openId: "fake-openid-commerce-paid-cancel-joiner",
   });
-  const pr = await givenPublishedPartnerRequest({
+  const pr = await givenCommerceRentalPr({
     creator,
     minPartners: 2,
     maxPartners: null,
     title: "System commerce paid cancellation rental PR",
   });
-  await joinThroughBackend({ prId: pr.id, token: joiner.token });
+  await addJoinedParticipant({ pr, user: joiner });
   await configurePRStatus({ pr, status: "READY" });
   const placement = await givenRentalOrderingPlacement();
 

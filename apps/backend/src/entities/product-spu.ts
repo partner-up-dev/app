@@ -14,7 +14,7 @@ import type {
   ProductType,
   ServicePolicy,
   SpuSalesPolicy,
-} from "../domains/merchandising";
+} from "../domains/merchandising/model";
 
 export const productSpus = pgTable(
   "product_spus",

@@ -153,10 +153,14 @@ export type TradeOrder = {
   pricingSnapshot: OrderPricingSnapshot;
   timeout: OrderTimeout;
   terminationAttempts: OrderTerminationAttempt[];
-  selectedZoneCodes?: string[];
-  serviceStartAt?: string | null;
-  serviceEndAt?: string | null;
-  participantCount?: number | null;
-  contactPhone?: string | null;
-  registrants?: RentalRegistrant[];
+};
+
+export type RentalOrder = Omit<TradeOrder, "family"> & {
+  family: "RENTAL";
+  selectedZoneCodes: string[];
+  serviceStartAt: string;
+  serviceEndAt: string;
+  participantCount: number;
+  contactPhone: string;
+  registrants: RentalRegistrant[];
 };
