@@ -3,6 +3,7 @@ import type { PriceExplanation } from "../../merchandising";
 export type OrderFamily = "RENTAL" | "RIDE_HAILING";
 
 export type OrderStatus =
+  | "INITIATING"
   | "OPEN"
   | "CANCELLED"
   | "FAILED"
@@ -72,12 +73,6 @@ export type OrderPricingSnapshot = {
 export type OrderTimeout = {
   unpaidExpiresAt: string;
   defaultWindowMinutes: number;
-};
-
-export type RentalRegistrant = {
-  name: string;
-  phone?: string | null;
-  nationalIdMasked?: string | null;
 };
 
 export type CancellationTierSnapshot = {
@@ -153,14 +148,4 @@ export type TradeOrder = {
   pricingSnapshot: OrderPricingSnapshot;
   timeout: OrderTimeout;
   terminationAttempts: OrderTerminationAttempt[];
-};
-
-export type RentalOrder = Omit<TradeOrder, "family"> & {
-  family: "RENTAL";
-  selectedZoneCodes: string[];
-  serviceStartAt: string;
-  serviceEndAt: string;
-  participantCount: number;
-  contactPhone: string;
-  registrants: RentalRegistrant[];
 };

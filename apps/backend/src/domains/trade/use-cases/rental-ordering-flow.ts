@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { BillLineId } from "../../../entities/bill";
 import type { Offer, OfferId } from "../../../entities/offer";
@@ -11,7 +12,10 @@ import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import {
+  PartnerRepository,
+  type ActiveParticipantSummary,
+} from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
@@ -23,6 +27,7 @@ import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancel
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental-booking";
 import { requestRentalCancellationHandling } from "../../fulfillment";
+import { attachOrderToPr } from "../../pr-core";
 import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
 import type {
   FixedTotalPricingModel,
@@ -34,17 +39,20 @@ import type {
 } from "../../merchandising";
 import {
   buildPrPlacementRuleContextData,
-  resolvePrRentalPlacementBindings,
+  isPlacementActiveAt,
+  resolvePlacementBindings,
 } from "../../merchandising";
 import { createRentalOrder } from "./create-rental-order";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
 import { deriveBillPaymentState } from "../../payment";
 import {
   canRequestOrderTermination,
+  buildOrderParticipantsFromContext,
   PricingApplication,
   resolveRentalTerminationPolicy,
   toRentalOrderModel,
 } from "../services";
+import { validateRentalServicePolicyAvailability } from "../services/rental-service-policy";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -167,6 +175,13 @@ type ResolvedPrContext = {
   serviceStartAt: string;
   serviceEndAt: string;
   participantCount: number;
+  activeParticipants: ActiveParticipantSummary[];
+};
+
+type RentalPlacementBindingValues = {
+  participantCount: number;
+  serviceStartAt: string;
+  serviceEndAt: string;
 };
 
 type ResolvedOrderingSelection = {
@@ -209,6 +224,30 @@ const toServiceTime = (
   return new Date(value).toISOString();
 };
 
+function resolveRentalPlacementBindingValues(
+  bindings: Record<string, unknown>,
+): RentalPlacementBindingValues {
+  const participantCount = bindings.participantCount;
+  const serviceStartAt = bindings.serviceStartAt;
+  const serviceEndAt = bindings.serviceEndAt;
+
+  if (typeof participantCount !== "number") {
+    throw new Error("Rental ordering binding participantCount must resolve to a number");
+  }
+  if (typeof serviceStartAt !== "string") {
+    throw new Error("Rental ordering binding serviceStartAt must resolve to a string");
+  }
+  if (typeof serviceEndAt !== "string") {
+    throw new Error("Rental ordering binding serviceEndAt must resolve to a string");
+  }
+
+  return {
+    participantCount,
+    serviceStartAt: new Date(serviceStartAt).toISOString(),
+    serviceEndAt: new Date(serviceEndAt).toISOString(),
+  };
+}
+
 async function resolvePrContext(input: {
   prId: number;
   bindingRules: PlacementBindingRule[];
@@ -225,12 +264,14 @@ async function resolvePrContext(input: {
     activeParticipantCount: activeParticipants.length,
     pr,
   });
-  let boundValues: ReturnType<typeof resolvePrRentalPlacementBindings>;
+  let boundValues: RentalPlacementBindingValues;
   try {
-    boundValues = resolvePrRentalPlacementBindings({
-      context: prContext,
-      rules: input.bindingRules,
-    });
+    boundValues = resolveRentalPlacementBindingValues(
+      resolvePlacementBindings({
+        context: prContext,
+        rules: input.bindingRules,
+      }),
+    );
   } catch (error) {
     return throwHttpProblem({
       status: 409,
@@ -251,6 +292,7 @@ async function resolvePrContext(input: {
       "2031-01-01T12:00:00.000Z",
     ),
     participantCount: boundValues.participantCount,
+    activeParticipants,
   };
 }
 
@@ -261,7 +303,7 @@ async function resolvePlacementOffer(
   if (!placement) {
     return throwHttpProblem({ status: 404, detail: "Placement not found" });
   }
-  if (placement.status !== "ACTIVE") {
+  if (!isPlacementActiveAt(placement)) {
     return throwHttpProblem({ status: 409, detail: "Placement is not active" });
   }
   if (placement.target.kind !== "OFFER") {
@@ -427,6 +469,7 @@ async function buildCancellationPolicySnapshot(sku: ProductSku) {
 function validateRentalRequest(input: {
   request: RentalOrderingRequestInput;
   pr: ResolvedPrContext;
+  servicePolicy: ProductSpu["servicePolicy"];
   viewerUserId?: string | null;
 }): string | null {
   if (input.pr.status !== "READY") {
@@ -446,6 +489,14 @@ function validateRentalRequest(input: {
     new Date(input.request.serviceEndAt).toISOString() !== input.pr.serviceEndAt
   ) {
     return "预约时间需要匹配当前 PR 时间";
+  }
+  if (input.servicePolicy.type === "RENTAL") {
+    const servicePolicyError = validateRentalServicePolicyAvailability({
+      servicePolicy: input.servicePolicy,
+      serviceStartAt: input.pr.serviceStartAt,
+      serviceEndAt: input.pr.serviceEndAt,
+    });
+    if (servicePolicyError) return servicePolicyError;
   }
   if (
     input.request.registrants.some(
@@ -535,6 +586,7 @@ export async function evaluateRentalOrdering(
   const validationError = validateRentalRequest({
     request: input.request,
     pr: selection.pr,
+    servicePolicy: selection.spu.servicePolicy,
     viewerUserId: input.viewerUserId ?? null,
   });
   const pricingSnapshot = pricingApplication.resolve({
@@ -576,6 +628,7 @@ export async function createRentalOrderFromPlacement(
   const validationError = validateRentalRequest({
     request: input.request,
     pr: selection.pr,
+    servicePolicy: selection.spu.servicePolicy,
     viewerUserId: input.createdBy,
   });
   if (validationError) {
@@ -601,40 +654,66 @@ export async function createRentalOrderFromPlacement(
     },
   });
 
-  return createRentalOrder({
-    prId: selection.pr.prId,
-    createdBy: input.createdBy,
-    offerSnapshot: {
-      offerId: selection.placement.offer.id,
-      termsVersion: selection.placement.offer.termsVersion,
-      productType: "RENTAL",
-    },
-    items: [
-      {
-        itemId,
-        spuId: selection.spu.id,
-        spuVersion: selection.spu.version,
-        spuName: selection.spu.name,
-        skuId: selection.sku.id,
-        skuVersion: selection.sku.version,
-        skuName: selection.sku.name,
-        quantity: selection.quantity,
-        skuFactsSnapshot: selection.sku.facts,
-        pricingModelSnapshot: selection.sku.pricingModel,
-        cancellationPolicySnapshot,
-      },
-    ],
-    pricingSnapshot,
-    selectedZoneCodes: [selection.sku.facts.zoneCode],
-    serviceStartAt: selection.pr.serviceStartAt,
-    serviceEndAt: selection.pr.serviceEndAt,
-    participantCount: selection.pr.participantCount,
-    contactPhone: input.request.contactPhone,
-    registrants: input.request.registrants.map((registrant) => ({
-      name: registrant.fullName,
-      phone: input.request.contactPhone,
-      nationalIdMasked: registrant.nationalId ? "已填写" : null,
+  const participants = buildOrderParticipantsFromContext({
+    participants: selection.pr.activeParticipants.map((participant) => ({
+      participantId: String(participant.partnerId),
+      userId: participant.userId,
+      joinedVia: "PR_ACTIVE_PARTICIPANT",
     })),
+    createdBy: input.createdBy,
+  });
+
+  return db.transaction(async (tx) => {
+    const result = await createRentalOrder(
+      {
+        createdBy: input.createdBy,
+        participants,
+        offerSnapshot: {
+          offerId: selection.placement.offer.id,
+          termsVersion: selection.placement.offer.termsVersion,
+          productType: "RENTAL",
+        },
+        items: [
+          {
+            itemId,
+            spuId: selection.spu.id,
+            spuVersion: selection.spu.version,
+            spuName: selection.spu.name,
+            skuId: selection.sku.id,
+            skuVersion: selection.sku.version,
+            skuName: selection.sku.name,
+            quantity: selection.quantity,
+            skuFactsSnapshot: selection.sku.facts,
+            pricingModelSnapshot: selection.sku.pricingModel,
+            cancellationPolicySnapshot,
+          },
+        ],
+        pricingSnapshot,
+        selectedZoneCodes: [selection.sku.facts.zoneCode],
+        serviceStartAt: selection.pr.serviceStartAt,
+        serviceEndAt: selection.pr.serviceEndAt,
+        participantCount: selection.pr.participantCount,
+        contactPhone: input.request.contactPhone,
+        registrants: input.request.registrants.map((registrant) => ({
+          name: registrant.fullName,
+          phone: input.request.contactPhone,
+          nationalIdMasked: registrant.nationalId ? "已填写" : null,
+        })),
+      },
+      tx,
+    );
+
+    await attachOrderToPr(
+      {
+        orderId: result.orderId as TradeOrderId,
+        prId: selection.pr.prId,
+        offerId: selection.placement.offer.id as OfferId,
+        orderCreatedBy: input.createdBy as UserId,
+      },
+      tx,
+    );
+
+    return result;
   });
 }
 

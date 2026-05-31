@@ -61,7 +61,7 @@ export async function attachOrderToPr(
     });
   }
 
-  const existingAttachment = await attachedOrderRepo.findActiveByPrAndOffer(
+  const existingAttachment = await attachedOrderRepo.findCurrentNonTerminalByPrAndOffer(
     request.id,
     input.offerId,
   );

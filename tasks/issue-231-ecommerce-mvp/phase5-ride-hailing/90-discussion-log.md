@@ -66,3 +66,42 @@
   `/api/v1/service_provider/caocao/callback/order`; it resolves the first active
   Caocao provider instance by stable ordering and reuses the same callback
   verification path as the formal provider-instance route.
+- User noticed the plan missed RideHailing Order Detail Page content.
+  Referenced uniapp `detail.vue`, `detail.scss`, `detail.ts`,
+  `driverInfoDisplay`, and `CancelOrder`; added a dedicated Order Detail Content
+  IA and planned slice.
+- User corrected RideHailingFulfillment persistence ownership: dispatch state,
+  cancellation side-effect result, and fee-confirm side-effect result must be
+  owned by RideHailingOrder, not RideHailingFulfillment. Updated topology and
+  implementation plan accordingly.
+- User clarified the boundary: base TradeOrder owns generic commercial contract
+  snapshots only, not RideHailing-specific estimate semantics. Raw Caocao
+  estimate response is not persisted; RideHailing quote interpretation belongs
+  to Product/PricingApplication, which may depend on RideHailing
+  Fulfillment/provider collaboration for live estimate input.
+- User clarified quote provider selection: RideHailing SKU carries a provider
+  instance fact. In the current TS/JSON facts style this is
+  `rideHailingProviderInstanceId`; Fulfillment/provider boundary must use that
+  SKU-declared instance and must not choose a default provider instance.
+- User clarified Phase 5 acceptance: a RideHailing system scenario test must
+  pass through the real UI, verifying rendered content rather than directly
+  operating/asserting backend APIs.
+- User corrected RideHailing SKU facts: no generic `vehicleClass` is needed.
+  Ordering displays vehicle options as `<providerName><carType>` from provider
+  instance plus provider car type mapping.
+- User corrected SKU facts topology: SKU/product type does not belong inside
+  facts. Existing `facts.type` is historical duplication and should be removed
+  as part of the RideHailing SKU facts work, with facts interpreted through
+  parent SPU/Offer `productType`.
+- Slice 3 implementation completed the local RideHailing foundation:
+  `TradeOrder(INITIATING)`, typed `ride_hailing_orders`, provider-binding
+  `ride_hailing_fulfillments`, repositories, migration, and a local foundation
+  use case.
+- User paused after a report that the Trade model and typed RideHailing order
+  schema were accumulating too many family facts. Slice 3 was corrected to keep
+  the base Trade model generic, split typed order models into family files, and
+  shrink `ride_hailing_orders` to foundation fields only.
+- User corrected Placement / Offer / Ordering topology: Placement stores an
+  Offer target and resolves only to generic `ORDERING` or `ORDER`; it does not
+  know concrete product or RideHailing Ordering. RideHailing Ordering is chosen
+  later from the resolved Offer/SPU `productType`.

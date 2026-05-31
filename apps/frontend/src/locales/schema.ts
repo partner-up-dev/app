@@ -1455,6 +1455,9 @@ export interface MessageSchema {
     quantityRangeError: string;
     servicePolicyLabel: string;
     serviceRentalLeadTimeLabel: string;
+    serviceRentalWeekdaysLabel: string;
+    serviceRentalStartTimeLabel: string;
+    serviceRentalEndTimeLabel: string;
     requiresContactPhoneLabel: string;
     requiresRealNameLabel: string;
     requiresNationalIdLabel: string;
@@ -1572,6 +1575,8 @@ export interface MessageSchema {
     editPlacementTitle: string;
     placementHint: string;
     priorityLabel: string;
+    placementEffectiveFromLabel: string;
+    placementEffectiveToLabel: string;
     creativeTitleLabel: string;
     creativeSubtitleLabel: string;
     ctaLabel: string;

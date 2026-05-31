@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   placements,
@@ -8,7 +8,6 @@ import {
 } from "../entities/placement";
 import type {
   PlacementSlotKey,
-  PlacementType,
 } from "../domains/merchandising/model";
 import type { RepositoryExecutor } from "./_executor";
 
@@ -42,9 +41,8 @@ export class PlacementRepository {
       );
   }
 
-  async listActiveBySlotKeyAndType(input: {
+  async listActiveBySlotKey(input: {
     slotKey: PlacementSlotKey;
-    placementType: PlacementType;
   }): Promise<Placement[]> {
     return this.executor
       .select()
@@ -52,8 +50,9 @@ export class PlacementRepository {
       .where(
         and(
           eq(placements.slotKey, input.slotKey),
-          eq(placements.placementType, input.placementType),
           eq(placements.status, "ACTIVE"),
+          or(isNull(placements.effectiveFrom), lte(placements.effectiveFrom, new Date())),
+          or(isNull(placements.effectiveTo), gt(placements.effectiveTo, new Date())),
         ),
       )
       .orderBy(desc(placements.priority), desc(placements.createdAt));

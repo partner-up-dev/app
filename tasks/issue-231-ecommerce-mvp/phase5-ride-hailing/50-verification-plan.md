@@ -11,6 +11,8 @@ Date: 2026-05-31
 - Adapter request serialization.
 - Provider error mapping.
 - Quote expiry/revalidation.
+- Quote/evaluate uses each SKU's `rideHailingProviderInstanceId` fact and does
+  not fall back to a default provider instance.
 - Caocao status/event to normalized order/fulfillment outcome mapping.
 - Provider callback idempotency using existing durable owner fields, without a
   first-cut provider-event table.
@@ -30,6 +32,11 @@ Date: 2026-05-31
 
 ## Scenario / Frontend
 
+- RideHailing system scenario is the Phase 5 acceptance gate.
+- The scenario must use the real frontend and browser interactions for the
+  user-visible path.
+- Assertions must be on rendered UI content/state, not direct backend API
+  responses.
 - PR placement -> RideHailing Ordering Content.
 - Route editor map shows route points and planned driving route.
 - Route point callout edit opens route point editor when enabled.
@@ -39,8 +46,14 @@ Date: 2026-05-31
 - Vehicle quote cards render and allow selection.
 - Order creation is disabled/enabled by the parent route/page affordance, not by
   the Ordering Content component itself.
-- Order Detail later shows fulfillment states, final Bill Detail, and Payment
-  Checkout.
+- Order Detail map-first content shows route, live/navigation state, driver
+  info, passengers, selected ride type from base order generic item/pricing
+  snapshot before acceptance, route summary, and status actions.
+- Order Detail links to Bill Detail / Payment Checkout when bill/payment state
+  exists; Payment Checkout itself remains outside the Order Detail content.
+- Order Detail cancellation drawer shows availability, cancel fee, reason
+  choices, detail input, disabled state, and success/error result once the
+  cancellation use case exists.
 
 ## Guardrails
 
@@ -78,6 +91,21 @@ Recorded on 2026-05-31 for the RideHailing provider instance foundation:
   passed with 9 tests.
 - `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
   passed.
+
+Shrink correction rerun on 2026-05-31:
+
+- `pnpm --filter @partner-up-dev/backend typecheck` passed.
+- `pnpm db:lint` passed.
+- `pnpm exec vitest run --project backend-unit apps/backend/src/domains/trade/services/order-status.test.ts apps/backend/src/domains/fulfillment/services/fulfillment-lifecycle.test.ts`
+  passed with 10 tests.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/ride-hailing-order-foundation.scenario.test.ts`
+  passed and asserts future execution/cancellation/settlement fields are not
+  present on the foundation tables.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+  passed with 5 tests.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
+  passed.
+- `pnpm lint:backend` passed.
 - `pnpm db:lint` passed.
 - `pnpm lint:backend` passed.
 - final `pnpm --filter @partner-up-dev/backend typecheck` passed.
@@ -88,5 +116,22 @@ Alias follow-up on 2026-05-31:
 - `pnpm lint:backend` passed.
 - `pnpm exec vitest run --project backend-unit apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
   passed with 9 tests.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
+  passed.
+
+## Slice 3 Verification Evidence
+
+Recorded on 2026-05-31 for the RideHailing local order and provider-binding
+fulfillment foundation:
+
+- `pnpm --filter @partner-up-dev/backend typecheck` passed.
+- `pnpm exec vitest run --project backend-unit apps/backend/src/domains/trade/services/order-status.test.ts apps/backend/src/domains/fulfillment/services/fulfillment-lifecycle.test.ts`
+  passed with 10 tests.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/ride-hailing-order-foundation.scenario.test.ts`
+  passed.
+- `pnpm db:lint` passed.
+- `pnpm lint:backend` passed.
+- `pnpm exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+  passed with 3 tests.
 - `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
   passed.

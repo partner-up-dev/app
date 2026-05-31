@@ -1,11 +1,9 @@
-import { sql } from "drizzle-orm";
 import {
   bigint,
   index,
   pgTable,
   timestamp,
   uuid,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { partnerRequests, type PRId } from "./partner-request";
 import { offers, type OfferId } from "./offer";
@@ -30,10 +28,10 @@ export const prAttachedOrders = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    prOfferUnique: uniqueIndex("pr_attached_orders_pr_offer_unique").on(
+    prOfferIdx: index("pr_attached_orders_pr_offer_idx").on(
       table.prId,
       table.offerId,
-    ).where(sql`${table.detachedAt} is null`),
+    ),
     prIdx: index("pr_attached_orders_pr_idx").on(table.prId),
   }),
 );

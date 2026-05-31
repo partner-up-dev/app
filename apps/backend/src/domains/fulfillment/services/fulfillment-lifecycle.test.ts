@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import { deriveRentalLifecycleStatus } from "../model/rental-fulfillment";
-import { deriveRideLifecycleStatus } from "../model/ride-hailing-fulfillment";
+import { hasRideHailingProviderOrderReference } from "../model/ride-hailing-fulfillment";
+import { resolveOrderPrepaidSettlementFulfillmentConsequence } from "./prepaid-settlement-consequence";
 
 describe("rental fulfillment lifecycle", () => {
   it("keeps booking-pending rental fulfillment in pending lifecycle", () => {
@@ -54,48 +55,43 @@ describe("rental fulfillment lifecycle", () => {
   });
 });
 
-describe("ride-hailing fulfillment lifecycle", () => {
-  it("keeps pre-trip phases in pending lifecycle", () => {
+describe("ride-hailing fulfillment provider binding", () => {
+  it("does not require a provider order reference while initiating", () => {
     assert.equal(
-      deriveRideLifecycleStatus({
-        ridePhase: "DRIVER_ARRIVING",
+      hasRideHailingProviderOrderReference({
+        providerOrderId: null,
       }),
-      "PENDING",
+      false,
     );
   });
 
-  it("treats in-trip ride as active lifecycle", () => {
+  it("recognizes the provider order reference once established", () => {
     assert.equal(
-      deriveRideLifecycleStatus({
-        ridePhase: "IN_TRIP",
+      hasRideHailingProviderOrderReference({
+        providerOrderId: "CC123456",
       }),
-      "ACTIVE",
+      true,
+    );
+  });
+});
+
+describe("order prepaid settlement fulfillment consequence", () => {
+  it("routes Rental prepaid settlement to Rental fulfillment creation", () => {
+    assert.deepEqual(
+      resolveOrderPrepaidSettlementFulfillmentConsequence("RENTAL"),
+      {
+        kind: "CREATE_RENTAL_FULFILLMENT",
+      },
     );
   });
 
-  it("requires final settlement input commit before completed lifecycle", () => {
-    assert.equal(
-      deriveRideLifecycleStatus({
-        ridePhase: "TRIP_FINISHED_AS_PLANNED",
-      }),
-      "ACTIVE",
-    );
-
-    assert.equal(
-      deriveRideLifecycleStatus({
-        ridePhase: "TRIP_FINISHED_AS_PLANNED",
-        finalSettlementInputCommittedAt: "2026-05-28T10:01:00.000Z",
-      }),
-      "COMPLETED",
-    );
-  });
-
-  it("treats pre-trip abort as cancelled lifecycle", () => {
-    assert.equal(
-      deriveRideLifecycleStatus({
-        ridePhase: "ABORTED_BEFORE_TRIP",
-      }),
-      "CANCELLED",
+  it("does not start RideHailing fulfillment from prepaid bill settlement", () => {
+    assert.deepEqual(
+      resolveOrderPrepaidSettlementFulfillmentConsequence("RIDE_HAILING"),
+      {
+        kind: "NONE",
+        reason: "Order family has no prepaid settlement consequence",
+      },
     );
   });
 });

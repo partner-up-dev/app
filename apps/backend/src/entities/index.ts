@@ -33,3 +33,5 @@ export * from "./bill";
 export * from "./rental-fulfillment";
 export * from "./payment";
 export * from "./ride-hailing-provider";
+export * from "./ride-hailing-order";
+export * from "./ride-hailing-fulfillment";

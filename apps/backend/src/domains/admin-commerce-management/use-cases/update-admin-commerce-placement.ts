@@ -11,7 +11,8 @@ import type {
 } from "../../merchandising";
 import {
   isPlacementMatchingRuleJson,
-  validatePlacementBindingRules,
+  resolvePlacementBindingContractForOffer,
+  validatePlacementBindingRulesAgainstContract,
 } from "../../merchandising";
 
 const offerRepo = new OfferRepository();
@@ -24,6 +25,8 @@ export type UpdateAdminCommercePlacementInput = {
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
   matchingRule: unknown;
   priority: number;
+  effectiveFrom?: Date | null;
+  effectiveTo?: Date | null;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;
   bindingRules: PlacementBindingRule[];
@@ -49,14 +52,16 @@ export async function updateAdminCommercePlacement(
     if (!offer) {
       return throwHttpProblem({ status: 404, detail: "Offer not found" });
     }
-  }
-
-  const bindingError = validatePlacementBindingRules(input.bindingRules);
-  if (bindingError) {
-    return throwHttpProblem({
-      status: 400,
-      detail: bindingError,
+    const bindingError = validatePlacementBindingRulesAgainstContract({
+      rules: input.bindingRules,
+      contract: resolvePlacementBindingContractForOffer(offer),
     });
+    if (bindingError) {
+      return throwHttpProblem({
+        status: 400,
+        detail: bindingError,
+      });
+    }
   }
 
   return placementRepo.updateById(input.placementId, {
@@ -65,6 +70,8 @@ export async function updateAdminCommercePlacement(
     status: input.status,
     matchingRule: input.matchingRule,
     priority: input.priority,
+    effectiveFrom: input.effectiveFrom ?? null,
+    effectiveTo: input.effectiveTo ?? null,
     creative: input.creative,
     target: input.target,
     bindingRules: input.bindingRules,

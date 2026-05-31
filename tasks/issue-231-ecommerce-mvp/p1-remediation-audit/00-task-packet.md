@@ -27,6 +27,13 @@ authority boundaries and lifecycle guarantees.
 - `20-diagnosis.md`: accepted P1 findings and supporting evidence.
 - `30-p1-fix-plans.md`: separate repair plan for each accepted P1 issue.
 - `40-module-topology.md`: current and target topology for the audited modules.
+- `50-p2-fix-plans.md`: follow-up P2 repair plans after P1 closure.
+- `60-placement-rental-decoupling.md`: over-coupling diagnosis and repair
+  target for generic Placement binding.
+- `70-fulfillment-decoupling.md`: repair target for settlement-driven
+  fulfillment family dispatch.
+- `80-order-creation-context-decoupling.md`: repair target for removing direct
+  PR context access from Trade order creation.
 
 ## Guardrails Touched
 
@@ -85,6 +92,68 @@ authority boundaries and lifecycle guarantees.
     no-ops;
   - open paid Rental fulfillment behavior remains covered by the existing
     commerce scenario.
+- P2-1 implementation complete:
+  - Rental `servicePolicy` now carries optional service-window fields:
+    weekdays, daily start time, and daily end time;
+  - Product Admin can edit and persist the Rental service window;
+  - Rental Ordering evaluate/create validates the PR-bound service time against
+    Product lead-time and service-window policy.
+- P2-3 implementation complete:
+  - Placement now has nullable `effectiveFrom` / `effectiveTo` fields;
+  - Placement candidate lookup and direct ordering entry reject future/expired
+    active windows;
+  - Placement Admin can edit the active window.
+- P2-5 implementation complete:
+  - PR attachment no longer uses non-detached attachment as the uniqueness
+    authority;
+  - attachment lookup now resolves the current non-terminal Trade Order for
+    `(prId, offerId)`;
+  - open orders still block duplicates, while terminal orders allow a new order
+    without detaching historical attachment rows.
+- Placement/Rental decoupling started after user approval:
+  - current diagnosis: Placement runtime and binding model still contain
+    Rental-specific field enums and ProductType filtering;
+  - target: generic Placement binding rules with Rental-specific requirements
+    enforced by Offer/Product-derived definition-time contract and Rental
+    Ordering consumption.
+- Placement/Rental decoupling implementation complete:
+  - `PlacementBindingRule` is now a generic `fieldKey <- contextPath` mapping;
+  - Placement binding execution no longer knows PR or Rental fields;
+  - Rental required binding fields are enforced through the target Offer's
+    definition-time binding contract and consumed inside Rental Ordering;
+  - PR placement resolution queries candidates by `slotKey` only and no longer
+    filters matched Offers by ProductType.
+- Fulfillment decoupling started after user approval:
+  - current diagnosis: Trade settlement convergence directly hardcodes Rental
+    Fulfillment creation;
+  - target: Trade decides settlement eligibility, Fulfillment owns
+    family-specific settlement consequence dispatch.
+- Fulfillment decoupling implementation complete:
+  - Trade Bill settlement convergence no longer imports Rental Fulfillment
+    creation directly;
+  - Fulfillment owns the prepaid-settlement family consequence dispatcher;
+  - Rental still starts Rental Fulfillment after prepaid Bill settlement;
+  - RideHailing currently no-ops for prepaid-settlement fulfillment consequence
+    because its fulfillment is created during order initiation.
+- Order creation context decoupling started after user correction:
+  - current diagnosis: Trade order creation still reads PR participants and
+    attaches orders to PR directly;
+  - target: Trade order creation receives a resolved Order context
+    (`participants`, snapshots, family facts) and no longer knows PR context;
+  - PR + Offer non-terminal order attachment remains in PR/ordering
+    orchestration, not in base order creation;
+  - user rejected the earlier claim that merging Fulfillment attributes into
+    Order is inherently a boundary problem; this must be re-evaluated under the
+    `order base + typed order` model after this slice.
+- Order creation context decoupling implementation complete:
+  - Rental and RideHailing order creation now receive participant snapshots
+    instead of `prId`;
+  - Trade order creation no longer imports PR identifiers, `PartnerRepository`,
+    or `attachOrderToPr`;
+  - PR-aware ordering flow wraps Trade order creation and PR attachment in one
+    transaction;
+  - BillLine descriptions no longer embed PR-specific wording inside Trade
+    order creation.
 
 ## Verification So Far
 
@@ -134,3 +203,38 @@ P1-5 implementation verification:
 - `pnpm lint:backend`
 - `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
 - `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+P2-1/P2-3/P2-5 implementation verification:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`
+- `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/domains/trade/services/rental-service-policy.test.ts apps/backend/src/domains/merchandising/services/placement-selection.test.ts`
+- `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+- `pnpm lint:backend`
+- `pnpm --filter @partner-up-dev/backend db:lint`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+Placement/Rental decoupling verification:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`
+- `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/domains/merchandising/services/placement-binding.test.ts apps/backend/src/domains/merchandising/services/placement-selection.test.ts apps/backend/src/domains/trade/services/rental-service-policy.test.ts`
+- `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+- `pnpm lint:backend`
+- `pnpm --filter @partner-up-dev/backend db:lint`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+Fulfillment decoupling verification:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`
+- `pnpm --dir . exec vitest run --project backend-unit apps/backend/src/domains/fulfillment/services/fulfillment-lifecycle.test.ts`
+- `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+- `pnpm lint:backend`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+Order creation context decoupling verification:
+
+- `pnpm --filter @partner-up-dev/backend typecheck`
+- `pnpm --dir . exec vitest run --project backend-scenario apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts apps/backend/tests/ride-hailing/ride-hailing-order-foundation.scenario.test.ts`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+- `pnpm lint:backend`

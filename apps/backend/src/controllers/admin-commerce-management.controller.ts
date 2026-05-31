@@ -102,10 +102,21 @@ const salesPolicySchema = z.object({
   ]),
 });
 
+const timeOfDaySchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+const rentalServiceWindowSchema = z.object({
+  weekdays: z.array(z.number().int().min(0).max(6)).min(1),
+  startTime: timeOfDaySchema,
+  endTime: timeOfDaySchema,
+});
+
 const servicePolicySchema = z.union([
   z.object({
     type: z.literal("RENTAL"),
     bookingLeadTimeMinutes: z.number().int().nonnegative(),
+    serviceWindow: rentalServiceWindowSchema.optional(),
     requiresContactPhone: z.boolean(),
     requiresRealName: z.boolean(),
     requiresNationalId: z.boolean(),
@@ -216,8 +227,8 @@ const offerInputSchema = z.object({
 });
 
 const placementBindingRuleSchema = z.object({
-  fieldKey: z.enum(["participantCount", "serviceStartAt", "serviceEndAt"]),
-  contextPath: z.enum(["activeParticipantCount", "time.startAt", "time.endAt"]),
+  fieldKey: z.string().trim().min(1),
+  contextPath: z.string().trim().min(1),
   lock: z.literal(true),
 });
 
@@ -225,6 +236,8 @@ const placementInputSchema = z.object({
   slotKey: z.literal("PR_UTILITY_ACTIONS_BUTTON"),
   placementType: z.literal("BUTTON"),
   status: placementStatusSchema,
+  effectiveFrom: z.string().datetime({ offset: true }).nullable().optional(),
+  effectiveTo: z.string().datetime({ offset: true }).nullable().optional(),
   matchingRule: z.unknown(),
   priority: z.number().int(),
   creative: z.object({
@@ -518,7 +531,11 @@ export const adminCommerceManagementRoute: Hono<
     zValidator("json", placementInputSchema),
     async (c) => {
       const payload = c.req.valid("json");
-      const result = await createPlacement(payload as CreatePlacementInput);
+      const result = await createPlacement({
+        ...payload,
+        effectiveFrom: toDate(payload.effectiveFrom),
+        effectiveTo: toDate(payload.effectiveTo),
+      } as CreatePlacementInput);
       return c.json(result);
     },
   )
@@ -532,6 +549,8 @@ export const adminCommerceManagementRoute: Hono<
       const result = await updateAdminCommercePlacement({
         placementId,
         ...payload,
+        effectiveFrom: toDate(payload.effectiveFrom),
+        effectiveTo: toDate(payload.effectiveTo),
       } as Parameters<typeof updateAdminCommercePlacement>[0]);
       return c.json(result);
     },

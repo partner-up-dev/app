@@ -1,106 +1,81 @@
-import type {
-  PlacementBindingContextPath,
-  PlacementBindingFieldKey,
-  PlacementBindingRule,
-} from "../model";
-import type { PrPlacementRuleContextData } from "./placement-pr-context";
+import type { PlacementBindingRule } from "../model";
 
-export type ResolvedPlacementBindingValues = {
-  participantCount: number;
-  serviceStartAt: string;
-  serviceEndAt: string;
-};
-
-const allowedContextPathByFieldKey: Record<
-  PlacementBindingFieldKey,
-  readonly PlacementBindingContextPath[]
-> = {
-  participantCount: ["activeParticipantCount"],
-  serviceStartAt: ["time.startAt"],
-  serviceEndAt: ["time.endAt"],
+export type PlacementBindingContract = {
+  requiredFieldKeys: string[];
 };
 
 export function validatePlacementBindingRules(
   rules: readonly PlacementBindingRule[],
 ): string | null {
-  const seenFieldKeys = new Set<PlacementBindingFieldKey>();
+  const seenFieldKeys = new Set<string>();
 
   for (const rule of rules) {
     if (rule.lock !== true) {
       return "Placement binding rules must always lock bound fields";
     }
 
+    if (rule.fieldKey.trim().length === 0) {
+      return "Placement binding fieldKey is required";
+    }
+    if (rule.contextPath.trim().length === 0) {
+      return "Placement binding contextPath is required";
+    }
+
     if (seenFieldKeys.has(rule.fieldKey)) {
       return `Duplicate Placement binding field: ${rule.fieldKey}`;
     }
     seenFieldKeys.add(rule.fieldKey);
+  }
 
-    if (!allowedContextPathByFieldKey[rule.fieldKey].includes(rule.contextPath)) {
-      return `Placement binding field ${rule.fieldKey} cannot bind from ${rule.contextPath}`;
+  return null;
+}
+
+export function validatePlacementBindingRulesAgainstContract(input: {
+  rules: readonly PlacementBindingRule[];
+  contract: PlacementBindingContract;
+}): string | null {
+  const genericError = validatePlacementBindingRules(input.rules);
+  if (genericError) return genericError;
+
+  const fieldKeys = new Set(input.rules.map((rule) => rule.fieldKey));
+  for (const requiredFieldKey of input.contract.requiredFieldKeys) {
+    if (!fieldKeys.has(requiredFieldKey)) {
+      return `Placement binding rules must bind required field: ${requiredFieldKey}`;
     }
   }
 
   return null;
 }
 
-function readContextPath(
-  context: PrPlacementRuleContextData,
-  path: PlacementBindingContextPath,
-): unknown {
-  if (path === "activeParticipantCount") return context.activeParticipantCount;
-  if (path === "time.startAt") return context.time.startAt;
-  if (path === "time.endAt") return context.time.endAt;
-
-  return null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function resolvePrRentalPlacementBindings(input: {
-  context: PrPlacementRuleContextData;
+function readContextPath(context: unknown, path: string): unknown {
+  const segments = path.split(".").filter((segment) => segment.length > 0);
+  let cursor: unknown = context;
+  for (const segment of segments) {
+    if (!isRecord(cursor)) return undefined;
+    cursor = cursor[segment];
+  }
+  return cursor;
+}
+
+export function resolvePlacementBindings(input: {
+  context: unknown;
   rules: readonly PlacementBindingRule[];
-}): ResolvedPlacementBindingValues {
+}): Record<string, unknown> {
   const validationError = validatePlacementBindingRules(input.rules);
   if (validationError) {
     throw new Error(validationError);
   }
 
-  const values: Partial<ResolvedPlacementBindingValues> = {};
+  const values: Record<string, unknown> = {};
 
   for (const rule of input.rules) {
     const value = readContextPath(input.context, rule.contextPath);
-
-    if (rule.fieldKey === "participantCount") {
-      if (typeof value !== "number") {
-        throw new Error("Placement binding participantCount must resolve to a number");
-      }
-      values.participantCount = value;
-    }
-
-    if (rule.fieldKey === "serviceStartAt") {
-      if (typeof value !== "string") {
-        throw new Error("Placement binding serviceStartAt must resolve to a string");
-      }
-      values.serviceStartAt = new Date(value).toISOString();
-    }
-
-    if (rule.fieldKey === "serviceEndAt") {
-      if (typeof value !== "string") {
-        throw new Error("Placement binding serviceEndAt must resolve to a string");
-      }
-      values.serviceEndAt = new Date(value).toISOString();
-    }
+    values[rule.fieldKey] = value;
   }
 
-  if (
-    typeof values.participantCount !== "number" ||
-    typeof values.serviceStartAt !== "string" ||
-    typeof values.serviceEndAt !== "string"
-  ) {
-    throw new Error("Placement binding rules must bind participant count and service time");
-  }
-
-  return {
-    participantCount: values.participantCount,
-    serviceStartAt: values.serviceStartAt,
-    serviceEndAt: values.serviceEndAt,
-  };
+  return values;
 }

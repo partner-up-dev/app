@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, notInArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   prAttachedOrders,
@@ -7,8 +7,16 @@ import {
 } from "../entities/pr-attached-order";
 import type { PRId } from "../entities/partner-request";
 import type { OfferId } from "../entities/offer";
-import type { TradeOrderId } from "../entities/trade-order";
+import { tradeOrders, type TradeOrderId } from "../entities/trade-order";
+import type { OrderStatus } from "../domains/trade/model";
 import type { RepositoryExecutor } from "./_executor";
+
+const TERMINAL_ORDER_STATUSES: OrderStatus[] = [
+  "CANCELLED",
+  "FAILED",
+  "EXPIRED",
+  "COMPLETED",
+];
 
 export class PRAttachedOrderRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
@@ -44,6 +52,26 @@ export class PRAttachedOrderRepository {
         ),
       );
     return result[0] ?? null;
+  }
+
+  async findCurrentNonTerminalByPrAndOffer(
+    prId: PRId,
+    offerId: OfferId,
+  ): Promise<PRAttachedOrder | null> {
+    const result = await this.executor
+      .select({ attachment: prAttachedOrders })
+      .from(prAttachedOrders)
+      .innerJoin(tradeOrders, eq(tradeOrders.id, prAttachedOrders.orderId))
+      .where(
+        and(
+          eq(prAttachedOrders.prId, prId),
+          eq(prAttachedOrders.offerId, offerId),
+          isNull(prAttachedOrders.detachedAt),
+          notInArray(tradeOrders.status, TERMINAL_ORDER_STATUSES),
+        ),
+      )
+      .orderBy(desc(prAttachedOrders.createdAt));
+    return result[0]?.attachment ?? null;
   }
 
   async listAll(): Promise<PRAttachedOrder[]> {

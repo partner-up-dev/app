@@ -144,6 +144,16 @@
               </label>
 
               <label class="field">
+                <span class="field-label">{{ t("adminCommercePlacementOffer.placementEffectiveFromLabel") }}</span>
+                <input v-model="placementForm.effectiveFrom" class="text-input" type="text" />
+              </label>
+
+              <label class="field">
+                <span class="field-label">{{ t("adminCommercePlacementOffer.placementEffectiveToLabel") }}</span>
+                <input v-model="placementForm.effectiveTo" class="text-input" type="text" />
+              </label>
+
+              <label class="field">
                 <span class="field-label">{{ t("adminCommercePlacementOffer.creativeTitleLabel") }}</span>
                 <input v-model="placementForm.creativeTitle" class="text-input" type="text" />
               </label>
@@ -197,28 +207,12 @@
                 >
                   <label class="field">
                     <span class="field-label">{{ t("adminCommercePlacementOffer.bindingFieldLabel") }}</span>
-                    <select v-model="rule.fieldKey" class="text-input">
-                      <option
-                        v-for="option in bindingFieldOptions"
-                        :key="option.value"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </option>
-                    </select>
+                    <input v-model="rule.fieldKey" class="text-input" type="text" />
                   </label>
 
                   <label class="field">
                     <span class="field-label">{{ t("adminCommercePlacementOffer.bindingSourceLabel") }}</span>
-                    <select v-model="rule.contextPath" class="text-input">
-                      <option
-                        v-for="option in contextPathOptionsForField(rule.fieldKey)"
-                        :key="option.value"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </option>
-                    </select>
+                    <input v-model="rule.contextPath" class="text-input" type="text" />
                   </label>
 
                   <div class="binding-row__lock">
@@ -339,10 +333,22 @@ type OfferEditorForm = {
 };
 
 type PlacementBindingRuleInput = AdminPlacementInput["bindingRules"][number];
-type PlacementBindingFieldKey = PlacementBindingRuleInput["fieldKey"];
-type PlacementBindingContextPath = PlacementBindingRuleInput["contextPath"];
 type PlacementBindingRuleDraft = PlacementBindingRuleInput & {
   id: string;
+};
+
+type PlacementEditorForm = {
+  status: AdminPlacementInput["status"];
+  priority: number;
+  effectiveFrom: string;
+  effectiveTo: string;
+  creativeTitle: string;
+  creativeSubtitle: string;
+  ctaLabel: string;
+  targetKind: "OFFER" | "ORDER";
+  targetId: number;
+  matchingRuleText: string;
+  bindingRules: PlacementBindingRuleDraft[];
 };
 
 let bindingRuleIdSequence = 0;
@@ -372,6 +378,13 @@ const defaultPlacementBindingRules = (): PlacementBindingRuleDraft[] => [
   }),
 ];
 
+const bindingRulesForOffer = (
+  offer: NonNullable<typeof selectedOffer.value> | null,
+): PlacementBindingRuleDraft[] => {
+  if (offer?.productType !== "RENTAL") return [];
+  return defaultPlacementBindingRules();
+};
+
 const emptyOfferForm = (): OfferEditorForm => ({
   productType: "RENTAL",
   status: "DRAFT",
@@ -384,63 +397,29 @@ const emptyOfferForm = (): OfferEditorForm => ({
 
 const offerForm = ref<OfferEditorForm>(emptyOfferForm());
 
-const placementForm = ref({
-  status: "DRAFT" as AdminPlacementInput["status"],
+const placementForm = ref<PlacementEditorForm>({
+  status: "DRAFT",
   priority: 0,
+  effectiveFrom: "",
+  effectiveTo: "",
   creativeTitle: "",
   creativeSubtitle: "",
   ctaLabel: "",
   targetKind: "OFFER" as "OFFER" | "ORDER",
   targetId: 0,
   matchingRuleText: "{}",
-  bindingRules: defaultPlacementBindingRules(),
+  bindingRules: [],
 });
 
-const bindingFieldOptions = computed<
-  Array<{ value: PlacementBindingFieldKey; label: string }>
->(() => [
-  {
-    value: "participantCount",
-    label: t("adminCommercePlacementOffer.participantCountBindingLabel"),
-  },
-  {
-    value: "serviceStartAt",
-    label: t("adminCommercePlacementOffer.serviceStartAtBindingLabel"),
-  },
-  {
-    value: "serviceEndAt",
-    label: t("adminCommercePlacementOffer.serviceEndAtBindingLabel"),
-  },
-]);
-
-const contextPathOptionsByField = computed<
-  Record<
-    PlacementBindingFieldKey,
-    Array<{ value: PlacementBindingContextPath; label: string }>
-  >
->(() => ({
-  participantCount: [
-    {
-      value: "activeParticipantCount",
-      label: t("adminCommercePlacementOffer.activeParticipantCountSourceLabel"),
-    },
-  ],
-  serviceStartAt: [
-    {
-      value: "time.startAt",
-      label: t("adminCommercePlacementOffer.timeStartSourceLabel"),
-    },
-  ],
-  serviceEndAt: [
-    {
-      value: "time.endAt",
-      label: t("adminCommercePlacementOffer.timeEndSourceLabel"),
-    },
-  ],
-}));
-
-const contextPathOptionsForField = (fieldKey: PlacementBindingFieldKey) =>
-  contextPathOptionsByField.value[fieldKey];
+const bindingRulesForTarget = (
+  targetKind: "OFFER" | "ORDER",
+  targetId: number,
+): PlacementBindingRuleDraft[] => {
+  if (targetKind !== "OFFER") return [];
+  return bindingRulesForOffer(
+    offers.value.find((offer) => offer.id === targetId) ?? null,
+  );
+};
 
 const isSavingOffer = computed(
   () => createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
@@ -522,13 +501,15 @@ watch(
       placementForm.value = {
         status: "DRAFT",
         priority: 0,
+        effectiveFrom: "",
+        effectiveTo: "",
         creativeTitle: "",
         creativeSubtitle: "",
         ctaLabel: "",
         targetKind: "OFFER",
         targetId: 0,
         matchingRuleText: "{}",
-        bindingRules: defaultPlacementBindingRules(),
+        bindingRules: [],
       };
       return;
     }
@@ -536,6 +517,8 @@ watch(
     placementForm.value = {
       status: placement.status,
       priority: placement.priority,
+      effectiveFrom: toDateInputValue(placement.effectiveFrom),
+      effectiveTo: toDateInputValue(placement.effectiveTo),
       creativeTitle: placement.creative.title,
       creativeSubtitle: placement.creative.subtitle ?? "",
       ctaLabel: placement.creative.ctaLabel,
@@ -548,7 +531,12 @@ watch(
       bindingRules:
         placement.bindingRules.length > 0
           ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
-          : defaultPlacementBindingRules(),
+          : bindingRulesForTarget(
+              placement.target.kind,
+              placement.target.kind === "OFFER"
+                ? placement.target.offerId
+                : placement.target.orderId,
+            ),
     };
   },
   { immediate: true },
@@ -556,14 +544,15 @@ watch(
 
 watch(
   () =>
-    placementForm.value.bindingRules.map((rule) => `${rule.id}:${rule.fieldKey}`),
-  () => {
-    for (const rule of placementForm.value.bindingRules) {
-      const allowed = contextPathOptionsForField(rule.fieldKey);
-      if (!allowed.some((option) => option.value === rule.contextPath)) {
-        rule.contextPath = allowed[0]!.value;
-      }
-    }
+    [
+      isCreatingPlacement.value,
+      placementForm.value.targetKind,
+      placementForm.value.targetId,
+      placementForm.value.bindingRules.length,
+    ] as const,
+  ([creating, targetKind, targetId, bindingRuleCount]) => {
+    if (!creating || bindingRuleCount > 0) return;
+    placementForm.value.bindingRules = bindingRulesForTarget(targetKind, targetId);
   },
 );
 
@@ -588,8 +577,8 @@ const selectPlacement = (placementId: number) => {
 const addBindingRule = () => {
   placementForm.value.bindingRules.push(
     createBindingRuleDraft({
-      fieldKey: "participantCount",
-      contextPath: "activeParticipantCount",
+      fieldKey: "",
+      contextPath: "",
       lock: true,
     }),
   );
@@ -630,6 +619,8 @@ const buildPlacementInput = (): AdminPlacementInput => ({
   placementType: "BUTTON",
   status: placementForm.value.status,
   priority: placementForm.value.priority,
+  effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
+  effectiveTo: placementForm.value.effectiveTo.trim() || null,
   matchingRule: parseJsonText(
     placementForm.value.matchingRuleText,
     t("adminCommercePlacementOffer.matchingRuleLabel"),
@@ -644,8 +635,8 @@ const buildPlacementInput = (): AdminPlacementInput => ({
       ? { kind: "OFFER", offerId: placementForm.value.targetId }
       : { kind: "ORDER", orderId: placementForm.value.targetId },
   bindingRules: placementForm.value.bindingRules.map((rule) => ({
-    fieldKey: rule.fieldKey,
-    contextPath: rule.contextPath,
+    fieldKey: rule.fieldKey.trim(),
+    contextPath: rule.contextPath.trim(),
     lock: true,
   })),
 });

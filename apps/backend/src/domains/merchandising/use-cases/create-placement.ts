@@ -9,10 +9,10 @@ import type {
   PlacementType,
 } from "../model";
 import {
-  validatePlacementBindingRules,
   isPlacementMatchingRuleJson,
+  resolvePlacementBindingContractForOffer,
+  validatePlacementBindingRulesAgainstContract,
 } from "../services";
-import { defaultPrRentalPlacementBindingRules } from "../model";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -23,6 +23,8 @@ export interface CreatePlacementInput {
   status?: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
   matchingRule: unknown;
   priority?: number;
+  effectiveFrom?: Date | null;
+  effectiveTo?: Date | null;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;
   bindingRules?: PlacementBindingRule[];
@@ -36,20 +38,22 @@ export async function createPlacement(input: CreatePlacementInput) {
     });
   }
 
+  const bindingRules = input.bindingRules ?? [];
   if (input.target.kind === "OFFER") {
     const offer = await offerRepo.findById(input.target.offerId);
     if (!offer) {
       return throwHttpProblem({ status: 404, detail: "Offer not found" });
     }
-  }
-
-  const bindingRules = input.bindingRules ?? defaultPrRentalPlacementBindingRules;
-  const bindingError = validatePlacementBindingRules(bindingRules);
-  if (bindingError) {
-    return throwHttpProblem({
-      status: 400,
-      detail: bindingError,
+    const bindingError = validatePlacementBindingRulesAgainstContract({
+      rules: bindingRules,
+      contract: resolvePlacementBindingContractForOffer(offer),
     });
+    if (bindingError) {
+      return throwHttpProblem({
+        status: 400,
+        detail: bindingError,
+      });
+    }
   }
 
   return placementRepo.create({
@@ -58,6 +62,8 @@ export async function createPlacement(input: CreatePlacementInput) {
     status: input.status ?? "DRAFT",
     matchingRule: input.matchingRule,
     priority: input.priority ?? 0,
+    effectiveFrom: input.effectiveFrom ?? null,
+    effectiveTo: input.effectiveTo ?? null,
     creative: input.creative,
     target: input.target,
     bindingRules,

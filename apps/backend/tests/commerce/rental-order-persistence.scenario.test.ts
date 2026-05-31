@@ -2,16 +2,24 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
+import { db } from "../../src/lib/db";
 import {
   createOffer,
+  createPlacement,
   createProductSku,
   createProductSpu,
+  resolveCommercePlacementForPr,
 } from "../../src/domains/merchandising";
-import { createRentalOrder } from "../../src/domains/trade";
+import {
+  buildOrderParticipantsFromContext,
+  createRentalOrder,
+} from "../../src/domains/trade";
 import {
   applyPaymentSettlementConsequence,
   registerPaymentProviderInstance,
 } from "../../src/domains/payment";
+import { attachOrderToPr } from "../../src/domains/pr-core";
+import type { OfferId } from "../../src/entities/offer";
 import type { BillId } from "../../src/entities/bill";
 import type {
   PaymentProviderInstanceId,
@@ -41,6 +49,24 @@ const serviceEndAt = "2031-02-01T12:00:00.000Z";
 const hasOwnKey = (value: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(value, key);
 
+const defaultRentalPlacementBindingRules = () => [
+  {
+    fieldKey: "participantCount",
+    contextPath: "activeParticipantCount",
+    lock: true as const,
+  },
+  {
+    fieldKey: "serviceStartAt",
+    contextPath: "time.startAt",
+    lock: true as const,
+  },
+  {
+    fieldKey: "serviceEndAt",
+    contextPath: "time.endAt",
+    lock: true as const,
+  },
+];
+
 async function givenRentalPr(creator: ScenarioUser): Promise<PRId> {
   const pr = await partnerRequestRepo.create({
     budget: null,
@@ -65,6 +91,21 @@ async function givenRentalPr(creator: ScenarioUser): Promise<PRId> {
   });
 
   return pr.id;
+}
+
+async function listPrOrderParticipants(prId: PRId, createdBy: string) {
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
+    prId,
+  );
+
+  return buildOrderParticipantsFromContext({
+    participants: activeParticipants.map((participant) => ({
+      participantId: String(participant.partnerId),
+      userId: participant.userId,
+      joinedVia: "PR_ACTIVE_PARTICIPANT",
+    })),
+    createdBy,
+  });
 }
 
 async function givenRentalCatalog() {
@@ -128,10 +169,11 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   const prId = await givenRentalPr(creator);
   const { offer, sku, spu } = await givenRentalCatalog();
   const itemId = randomUUID();
+  const participants = await listPrOrderParticipants(prId, creator.user.id);
 
   const result = await createRentalOrder({
-    prId,
     createdBy: creator.user.id,
+    participants,
     offerSnapshot: {
       offerId: offer.id,
       termsVersion: offer.termsVersion,
@@ -208,10 +250,11 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
   const prId = await givenRentalPr(creator);
   const { offer, sku, spu } = await givenRentalCatalog();
   const itemId = randomUUID();
+  const participants = await listPrOrderParticipants(prId, creator.user.id);
 
   const orderResult = await createRentalOrder({
-    prId,
     createdBy: creator.user.id,
+    participants,
     offerSnapshot: {
       offerId: offer.id,
       termsVersion: offer.termsVersion,
@@ -353,19 +396,208 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
   );
 });
 
+scenario(
+  "commerce_pr_offer_allows_new_order_after_terminal_order",
+  async (ctx) => {
+    const creator = await givenUser("rental-terminal-order-reorder");
+    const prId = await givenRentalPr(creator);
+    const { offer, sku, spu } = await givenRentalCatalog();
+    const placement = await createPlacement({
+      slotKey: "PR_UTILITY_ACTIONS_BUTTON",
+      placementType: "BUTTON",
+      status: "ACTIVE",
+      matchingRule: { "===": [{ var: "kind" }, "PR"] },
+      priority: 10,
+      creative: {
+        title: "预订场地",
+        ctaLabel: "预订场地",
+      },
+      target: {
+        kind: "OFFER",
+        offerId: offer.id,
+      },
+      bindingRules: defaultRentalPlacementBindingRules(),
+    });
+
+    const createOrder = async () => {
+      const itemId = randomUUID();
+      const participants = await listPrOrderParticipants(prId, creator.user.id);
+
+      return db.transaction(async (tx) => {
+        const result = await createRentalOrder(
+          {
+            createdBy: creator.user.id,
+            participants,
+            offerSnapshot: {
+              offerId: offer.id,
+              termsVersion: offer.termsVersion,
+              productType: "RENTAL",
+            },
+            items: [
+              {
+                itemId,
+                spuId: spu.id,
+                spuVersion: spu.version,
+                spuName: spu.name,
+                skuId: sku.id,
+                skuVersion: sku.version,
+                skuName: sku.name,
+                quantity: 1,
+                skuFactsSnapshot: sku.facts,
+                pricingModelSnapshot: sku.pricingModel,
+                cancellationPolicySnapshot: null,
+              },
+            ],
+            pricingSnapshot: {
+              currency: "CNY",
+              itemBreakdowns: [
+                {
+                  itemId,
+                  resolvedAmountFen: 1200,
+                  explanations: [],
+                },
+              ],
+              orderLevelExplanations: [],
+              subtotalFen: 1200,
+              totalFen: 1200,
+            },
+            selectedZoneCodes: ["TYPED_RENTAL_REORDER"],
+            serviceStartAt,
+            serviceEndAt,
+            participantCount: 1,
+            contactPhone: "13800138003",
+            registrants: [
+              {
+                name: "赵六",
+                phone: "13800138003",
+                nationalIdMasked: null,
+              },
+            ],
+          },
+          tx,
+        );
+
+        await attachOrderToPr(
+          {
+            orderId: result.orderId as TradeOrderId,
+            prId,
+            offerId: offer.id as OfferId,
+            orderCreatedBy: creator.user.id,
+          },
+          tx,
+        );
+
+        return result;
+      });
+    };
+
+    const firstOrder = await createOrder();
+    ctx.record("firstOrderId", firstOrder.orderId);
+    ctx.record("placementId", placement.id);
+
+    await assert.rejects(
+      () => createOrder(),
+      /An active order already exists for this PR and offer/,
+    );
+
+    const orderProjection = await resolveCommercePlacementForPr({
+      prId,
+      viewerUserId: creator.user.id,
+    });
+    assert.equal(orderProjection.placement?.target.kind, "ORDER");
+
+    await tradeOrderRepo.updateStatus(
+      firstOrder.orderId as TradeOrderId,
+      "CANCELLED",
+      new Date(),
+    );
+
+    const orderingProjection = await resolveCommercePlacementForPr({
+      prId,
+      viewerUserId: creator.user.id,
+    });
+    assert.equal(orderingProjection.placement?.target.kind, "ORDERING");
+
+    const secondOrder = await createOrder();
+    ctx.record("secondOrderId", secondOrder.orderId);
+    assert.notEqual(secondOrder.orderId, firstOrder.orderId);
+  },
+);
+
+scenario("commerce_placement_resolution_does_not_filter_product_type", async () => {
+  const creator = await givenUser("placement-non-rental-offer-creator");
+  const prId = await givenRentalPr(creator);
+  const spu = await createProductSpu({
+    name: "Scenario ride hailing service",
+    productType: "RIDE_HAILING",
+    status: "ACTIVE",
+    salesPolicy: {
+      skuSelectionPolicy: {
+        type: "EXACTLY_ONE",
+      },
+      quantityPolicy: {
+        type: "FIXED",
+        quantity: 1,
+      },
+    },
+    servicePolicy: {
+      type: "RIDE_HAILING",
+    },
+    pricingRules: [],
+    presentation: {
+      heroImageAssetIds: [],
+      detailImageAssetIds: [],
+      sellingPoints: [],
+      parameterGroups: [],
+      noticeBlocks: [],
+    },
+  });
+  const offer = await createOffer({
+    productType: "RIDE_HAILING",
+    spuIds: [spu.id],
+    status: "ACTIVE",
+    pricingRules: [],
+    termsVersion: 1,
+  });
+  await createPlacement({
+    slotKey: "PR_UTILITY_ACTIONS_BUTTON",
+    placementType: "BUTTON",
+    status: "ACTIVE",
+    matchingRule: { "===": [{ var: "kind" }, "PR"] },
+    priority: 10,
+    creative: {
+      title: "叫车",
+      ctaLabel: "叫车",
+    },
+    target: {
+      kind: "OFFER",
+      offerId: offer.id,
+    },
+    bindingRules: [],
+  });
+
+  const projection = await resolveCommercePlacementForPr({
+    prId,
+    viewerUserId: creator.user.id,
+  });
+
+  assert.equal(projection.placement?.target.kind, "ORDERING");
+});
+
 scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
   const creator = await givenUser("rental-typed-order-rollback");
   const prId = await givenRentalPr(creator);
-  const { sku, spu } = await givenRentalCatalog();
+  const { offer, sku, spu } = await givenRentalCatalog();
   const itemId = randomUUID();
+  const participants = await listPrOrderParticipants(prId, creator.user.id);
 
   await assert.rejects(() =>
     createRentalOrder({
-      prId,
       createdBy: creator.user.id,
+      participants,
       offerSnapshot: {
-        offerId: 9_999_999,
-        termsVersion: 1,
+        offerId: offer.id,
+        termsVersion: offer.termsVersion,
         productType: "RENTAL",
       },
       items: [
@@ -397,7 +629,7 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
         totalFen: 1200,
       },
       selectedZoneCodes: ["TYPED_RENTAL_ROLLBACK"],
-      serviceStartAt,
+      serviceStartAt: "not-a-date",
       serviceEndAt,
       participantCount: 1,
       contactPhone: "13800138001",

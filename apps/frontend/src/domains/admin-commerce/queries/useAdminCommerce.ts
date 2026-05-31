@@ -47,6 +47,11 @@ export type AdminProductSpuInput = {
     | {
         type: "RENTAL";
         bookingLeadTimeMinutes: number;
+        serviceWindow?: {
+          weekdays: number[];
+          startTime: string;
+          endTime: string;
+        };
         requiresContactPhone: boolean;
         requiresRealName: boolean;
         requiresNationalId: boolean;
@@ -129,6 +134,8 @@ export type AdminPlacementInput = {
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
   matchingRule: unknown;
   priority: number;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
   creative: {
     title: string;
     subtitle?: string | null;
@@ -138,8 +145,8 @@ export type AdminPlacementInput = {
     | { kind: "OFFER"; offerId: number }
     | { kind: "ORDER"; orderId: number };
   bindingRules: Array<{
-    fieldKey: "participantCount" | "serviceStartAt" | "serviceEndAt";
-    contextPath: "activeParticipantCount" | "time.startAt" | "time.endAt";
+    fieldKey: string;
+    contextPath: string;
     lock: true;
   }>;
 };

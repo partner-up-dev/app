@@ -8,9 +8,9 @@ import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import { PRAttachedOrderRepository } from "../../../repositories/PRAttachedOrderRepository";
 import {
   buildPrPlacementRuleContextData,
+  isPlacementActiveAt,
   listMatchingPlacementCandidates,
 } from "../services";
-import type { PlacementType } from "../model";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -62,7 +62,6 @@ const isActiveNow = (
 
 export async function resolveCommercePlacementForPr(input: {
   prId: number;
-  placementType: PlacementType;
   viewerUserId: string | null;
 }): Promise<CommercePlacementProjection> {
   if (!input.viewerUserId) return { placement: null };
@@ -84,8 +83,7 @@ export async function resolveCommercePlacementForPr(input: {
     activeParticipantCount: activeParticipants.length,
     pr,
   });
-  const placementCandidates = await placementRepo.listActiveBySlotKeyAndType({
-    placementType: input.placementType,
+  const placementCandidates = await placementRepo.listActiveBySlotKey({
     slotKey: "PR_UTILITY_ACTIONS_BUTTON",
   });
   const matchingPlacements = listMatchingPlacementCandidates({
@@ -97,13 +95,16 @@ export async function resolveCommercePlacementForPr(input: {
     if (placement.target.kind !== "OFFER") {
       continue;
     }
-
-    const offer = await offerRepo.findById(placement.target.offerId as OfferId);
-    if (!offer || offer.productType !== "RENTAL" || !isActiveNow(offer)) {
+    if (!isPlacementActiveAt(placement)) {
       continue;
     }
 
-    const existing = await attachedOrderRepo.findActiveByPrAndOffer(
+    const offer = await offerRepo.findById(placement.target.offerId as OfferId);
+    if (!offer || !isActiveNow(offer)) {
+      continue;
+    }
+
+    const existing = await attachedOrderRepo.findCurrentNonTerminalByPrAndOffer(
       pr.id,
       offer.id,
     );

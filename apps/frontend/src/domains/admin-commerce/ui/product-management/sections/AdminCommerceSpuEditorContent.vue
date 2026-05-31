@@ -69,6 +69,30 @@
             min="0"
           />
         </label>
+        <label class="pm-field">
+          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalWeekdaysLabel") }}</span>
+          <input
+            v-model="spuForm.rentalServiceWeekdaysCsv"
+            class="pm-field-input"
+            type="text"
+          />
+        </label>
+        <label class="pm-field">
+          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalStartTimeLabel") }}</span>
+          <input
+            v-model="spuForm.rentalServiceStartTime"
+            class="pm-field-input"
+            type="time"
+          />
+        </label>
+        <label class="pm-field">
+          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalEndTimeLabel") }}</span>
+          <input
+            v-model="spuForm.rentalServiceEndTime"
+            class="pm-field-input"
+            type="time"
+          />
+        </label>
         <div class="pm-toggle-grid pm-field--full">
           <ToggleSwitch
             v-model="spuForm.rentalRequiresContactPhone"
@@ -312,6 +336,9 @@ const buildLabels = (): SpuBuildLabels => ({
   minQuantityLabel: t("adminCommerceProducts.minQuantityLabel"),
   maxQuantityLabel: t("adminCommerceProducts.maxQuantityLabel"),
   serviceRentalLeadTimeLabel: t("adminCommerceProducts.serviceRentalLeadTimeLabel"),
+  serviceRentalWeekdaysLabel: t("adminCommerceProducts.serviceRentalWeekdaysLabel"),
+  serviceRentalStartTimeLabel: t("adminCommerceProducts.serviceRentalStartTimeLabel"),
+  serviceRentalEndTimeLabel: t("adminCommerceProducts.serviceRentalEndTimeLabel"),
   pricingRuleIdLabel: t("adminCommerceProducts.pricingRuleIdLabel"),
   targetIdLabel: t("adminCommerceProducts.targetIdLabel"),
   amountFenLabel: t("adminCommerceProducts.amountFenLabel"),

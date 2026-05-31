@@ -254,6 +254,23 @@ async function givenRentalOrderingPlacement() {
       kind: "OFFER",
       offerId: offer.id,
     },
+    bindingRules: [
+      {
+        fieldKey: "participantCount",
+        contextPath: "activeParticipantCount",
+        lock: true,
+      },
+      {
+        fieldKey: "serviceStartAt",
+        contextPath: "time.startAt",
+        lock: true,
+      },
+      {
+        fieldKey: "serviceEndAt",
+        contextPath: "time.endAt",
+        lock: true,
+      },
+    ],
   });
 }
 
@@ -661,10 +678,14 @@ scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
     await installDeterministicShareSidecarStubs(page);
 
     await page.goto(`/pr/${pr.id}`);
-    await page.getByText("System commerce placement mismatch PR").waitFor({
+    await page
+      .getByRole("heading", {
+        name: "System commerce placement mismatch PR",
+      })
+      .waitFor({
       state: "visible",
       timeout: 10_000,
-    });
+      });
     await page.waitForLoadState("networkidle");
     assert.equal(
       await page.getByTestId("pr-detail.commerce-placement.open").count(),

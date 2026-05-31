@@ -74,12 +74,18 @@ Each vehicle option is a card.
 
 Card layout follows the uniapp `RideTypeDisplay` direction:
 
-- left side: provider, vehicle type, vehicle image;
+- left side: vehicle display label `<providerName><carType>` and vehicle image;
 - right side: estimated price, fare tag, selection affordance.
 
 Behavior:
 
 - list Caocao-backed vehicle/SKU quote options;
+- each SKU quote option is backed by the SKU-declared
+  `rideHailingProviderInstanceId` fact;
+- each quote request maps the SKU to the provider-specific
+  `providerVehicleTypeCode`;
+- vehicle title is rendered from provider instance name plus provider car type,
+  not from a generic vehicle class;
 - default selected option is the cheapest currently selectable quote;
 - quote loading, expiry, and refresh state belong to the quote-card area.
 

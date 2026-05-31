@@ -55,8 +55,11 @@ Base `trade_orders` should not own:
 - rental registrants;
 - ride route;
 - ride departure time;
-- ride quote;
 - ride execution state.
+
+Base `trade_orders` should continue to own generic item snapshots and pricing
+snapshots for all order families, including RideHailing. It should not own raw
+provider estimate response semantics.
 
 ## Rental Typed Order Scope
 
@@ -84,11 +87,15 @@ Expected facts:
 - route snapshot;
 - departure time;
 - rider/contact facts;
-- selected vehicle SKU;
-- quote snapshot;
-- order-facing ride execution state;
-- final settlement input;
-- final pricing resolution reference.
+- provider creation status for the local provider-order creation boundary.
+
+Do not pre-create execution, driver assignment, cancellation side-effect,
+fee-confirm, final settlement, or final pricing fields in the foundation
+schema. Add them only with the sequence that first writes them.
+
+Selected SKU/item and pricing contract snapshots remain generic base order
+facts. RideHailing provider estimate interpretation belongs upstream to
+Product/PricingApplication, not to `ride_hailing_orders`.
 
 ## Migration Strategy
 

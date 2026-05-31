@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import type { PlacementSelectionCandidate } from "./placement-selection";
-import { listMatchingPlacementCandidates } from "./placement-selection";
+import {
+  isPlacementActiveAt,
+  listMatchingPlacementCandidates,
+} from "./placement-selection";
 import type { PrPlacementRuleContextData } from "./placement-pr-context";
 
 const prContext: PrPlacementRuleContextData = {
@@ -55,5 +58,42 @@ describe("listMatchingPlacementCandidates", () => {
         context: prContext,
       }).map((candidate) => candidate.id),
     ).toEqual([3, 2]);
+  });
+});
+
+describe("isPlacementActiveAt", () => {
+  test("honors nullable, future, and expired active windows", () => {
+    const now = new Date("2031-01-01T10:00:00.000Z");
+
+    expect(
+      isPlacementActiveAt(
+        {
+          status: "ACTIVE",
+          effectiveFrom: null,
+          effectiveTo: null,
+        },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isPlacementActiveAt(
+        {
+          status: "ACTIVE",
+          effectiveFrom: new Date("2031-01-01T11:00:00.000Z"),
+          effectiveTo: null,
+        },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isPlacementActiveAt(
+        {
+          status: "ACTIVE",
+          effectiveFrom: null,
+          effectiveTo: new Date("2031-01-01T10:00:00.000Z"),
+        },
+        now,
+      ),
+    ).toBe(false);
   });
 });

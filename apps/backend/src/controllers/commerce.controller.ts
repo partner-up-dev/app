@@ -99,7 +99,6 @@ export const commerceRoute = app
     const query = c.req.valid("query");
     const auth = c.get("auth");
     const result = await resolveCommercePlacementForPr({
-      placementType: query.type,
       prId: query.contextId,
       viewerUserId: auth.userId,
     });

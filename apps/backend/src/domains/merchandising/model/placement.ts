@@ -22,39 +22,11 @@ export type ButtonPlacementCreative = {
   ctaLabel: string;
 };
 
-export type PlacementBindingFieldKey =
-  | "participantCount"
-  | "serviceStartAt"
-  | "serviceEndAt";
-
-export type PlacementBindingContextPath =
-  | "activeParticipantCount"
-  | "time.startAt"
-  | "time.endAt";
-
 export type PlacementBindingRule = {
-  fieldKey: PlacementBindingFieldKey;
-  contextPath: PlacementBindingContextPath;
+  fieldKey: string;
+  contextPath: string;
   lock: true;
 };
-
-export const defaultPrRentalPlacementBindingRules: PlacementBindingRule[] = [
-  {
-    fieldKey: "participantCount",
-    contextPath: "activeParticipantCount",
-    lock: true,
-  },
-  {
-    fieldKey: "serviceStartAt",
-    contextPath: "time.startAt",
-    lock: true,
-  },
-  {
-    fieldKey: "serviceEndAt",
-    contextPath: "time.endAt",
-    lock: true,
-  },
-];
 
 export type PlacementInstance = {
   id: number;
@@ -62,6 +34,8 @@ export type PlacementInstance = {
   placementType: PlacementType;
   matchingRule: PlacementMatchingRuleJson;
   priority: number;
+  effectiveFrom?: Date | null;
+  effectiveTo?: Date | null;
   creative: ButtonPlacementCreative;
   target: PlacementTarget;
   bindingRules: PlacementBindingRule[];

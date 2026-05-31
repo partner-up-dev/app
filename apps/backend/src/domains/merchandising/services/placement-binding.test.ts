@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  resolvePrRentalPlacementBindings,
+  resolvePlacementBindings,
+  validatePlacementBindingRulesAgainstContract,
   validatePlacementBindingRules,
 } from "./placement-binding";
 import type { PrPlacementRuleContextData } from "./placement-pr-context";
@@ -32,9 +33,9 @@ const context: PrPlacementRuleContextData = {
 };
 
 describe("placement binding rules", () => {
-  it("resolves PR values for Rental ordering locked fields", () => {
+  it("resolves generic context paths into bound fields", () => {
     expect(
-      resolvePrRentalPlacementBindings({
+      resolvePlacementBindings({
         context,
         rules: [
           {
@@ -61,22 +62,28 @@ describe("placement binding rules", () => {
     });
   });
 
-  it("rejects mismatched field and context path", () => {
+  it("accepts generic field and context paths", () => {
     expect(
       validatePlacementBindingRules([
         {
-          fieldKey: "participantCount",
-          contextPath: "time.startAt",
+          fieldKey: "originName",
+          contextPath: "route.0.name",
           lock: true,
         },
       ]),
-    ).toBe("Placement binding field participantCount cannot bind from time.startAt");
+    ).toBeNull();
   });
 
-  it("requires all current Rental locked fields", () => {
-    expect(() =>
-      resolvePrRentalPlacementBindings({
-        context,
+  it("validates required fields against a definition-time contract", () => {
+    expect(
+      validatePlacementBindingRulesAgainstContract({
+        contract: {
+          requiredFieldKeys: [
+            "participantCount",
+            "serviceStartAt",
+            "serviceEndAt",
+          ],
+        },
         rules: [
           {
             fieldKey: "participantCount",
@@ -85,6 +92,6 @@ describe("placement binding rules", () => {
           },
         ],
       }),
-    ).toThrow("Placement binding rules must bind participant count and service time");
+    ).toBe("Placement binding rules must bind required field: serviceStartAt");
   });
 });

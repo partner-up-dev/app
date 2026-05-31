@@ -23,6 +23,11 @@ export type QuantityPolicy =
 export type RentalServicePolicy = {
   type: "RENTAL";
   bookingLeadTimeMinutes: number;
+  serviceWindow?: {
+    weekdays: number[];
+    startTime: string;
+    endTime: string;
+  };
   requiresContactPhone: boolean;
   requiresRealName: boolean;
   requiresNationalId: boolean;

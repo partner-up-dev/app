@@ -4,7 +4,7 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { createRentalFulfillment } from "../../fulfillment";
+import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
 import { deriveBillPaymentState } from "../../payment/services";
 
 const billRepo = new BillRepository();
@@ -50,17 +50,8 @@ export async function applyBillSettlementToOrder(input: {
     };
   }
 
-  if (order.family === "RENTAL") {
-    const fulfillment = await createRentalFulfillment(order.id);
-    return {
-      applied: true,
-      reason: "Order started Rental fulfillment after prepaid bill settlement",
-      fulfillmentId: fulfillment.id,
-    };
-  }
-
-  return {
-    applied: false,
-    reason: "Order family has no prepaid settlement consequence",
-  };
+  return applyOrderPrepaidSettlementFulfillmentConsequence({
+    orderId: order.id,
+    family: order.family,
+  });
 }

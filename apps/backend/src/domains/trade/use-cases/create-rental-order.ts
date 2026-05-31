@@ -1,14 +1,11 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
-import type { OfferId } from "../../../entities/offer";
-import type { PRId } from "../../../entities/partner-request";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { createBillFromSeed } from "../../bill";
-import { attachOrderToPr } from "../../pr-core";
 import { materializeChargeLinesFromSplitRule } from "../../bill/services";
 import type {
   OrderItemSnapshot,
@@ -18,15 +15,13 @@ import type {
   RentalRegistrant,
   SplitRuleSnapshot,
 } from "../model";
-import { buildEqualRelativeSplitRule } from "../services";
+import { buildEqualRelativeSplitRule, validateOrderParticipants } from "../services";
 
 const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
 
-const partnerRepo = new PartnerRepository();
-
 export interface CreateRentalOrderInput {
-  prId: number;
   createdBy: string;
+  participants: OrderParticipantSnapshot[];
   offerSnapshot: OrderOfferSnapshot;
   items: OrderItemSnapshot[];
   pricingSnapshot: OrderPricingSnapshot;
@@ -40,26 +35,20 @@ export interface CreateRentalOrderInput {
   unpaidWindowMinutes?: number;
 }
 
-function buildOrderParticipants(
-  activeParticipants: Awaited<
-    ReturnType<PartnerRepository["listActiveParticipantSummariesByPrId"]>
-  >,
-  createdBy: string,
-): OrderParticipantSnapshot[] {
-  return activeParticipants.map((participant) => ({
-    participantId: String(participant.partnerId),
-    userId: participant.userId,
-    role: participant.userId === createdBy ? "CREATOR" : "PARTICIPANT",
-    joinedVia: "PR_ACTIVE_PARTICIPANT",
-    joinedAt: null,
-    removedAt: null,
-  }));
-}
+export type CreateRentalOrderResult = {
+  orderId: string;
+  billId: string;
+};
 
-export async function createRentalOrder(input: CreateRentalOrderInput) {
-  const prId = input.prId as PRId;
+export async function createRentalOrder(
+  input: CreateRentalOrderInput,
+  executor: RepositoryExecutor = db,
+): Promise<CreateRentalOrderResult> {
+  if (executor === db) {
+    return db.transaction(async (tx) => createRentalOrder(input, tx));
+  }
+
   const createdBy = input.createdBy as UserId;
-  const offerId = input.offerSnapshot.offerId as OfferId;
 
   if (input.items.length === 0) {
     return throwHttpProblem({ status: 400, detail: "Rental order requires at least one item" });
@@ -76,87 +65,77 @@ export async function createRentalOrder(input: CreateRentalOrderInput) {
     });
   }
 
-  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
-    prId,
-  );
-  if (activeParticipants.length === 0) {
+  const participantError = validateOrderParticipants({
+    participants: input.participants,
+    createdBy: input.createdBy,
+  });
+  if (participantError) {
     return throwHttpProblem({
       status: 409,
-      detail: "Rental order requires at least one active PR participant",
+      detail: participantError,
     });
   }
 
-  const participants = buildOrderParticipants(activeParticipants, input.createdBy);
   const splitRuleSnapshot =
     input.splitRuleSnapshot ??
-    buildEqualRelativeSplitRule(participants.map((participant) => participant.userId));
+    buildEqualRelativeSplitRule(
+      input.participants.map((participant) => participant.userId),
+    );
   const chargeLines = materializeChargeLinesFromSplitRule({
     totalFen: input.pricingSnapshot.totalFen,
     splitRule: splitRuleSnapshot,
   });
 
-  return db.transaction(async (tx) => {
-    const tradeOrderRepo = new TradeOrderRepository(tx);
-    const rentalOrderRepo = new RentalOrderRepository(tx);
+  const tradeOrderRepo = new TradeOrderRepository(executor);
+  const rentalOrderRepo = new RentalOrderRepository(executor);
 
-    const now = new Date();
-    const unpaidWindowMinutes =
-      input.unpaidWindowMinutes ?? DEFAULT_UNPAID_WINDOW_MINUTES;
-    const unpaidExpiresAt = new Date(
-      now.getTime() + unpaidWindowMinutes * 60 * 1000,
-    ).toISOString();
+  const now = new Date();
+  const unpaidWindowMinutes =
+    input.unpaidWindowMinutes ?? DEFAULT_UNPAID_WINDOW_MINUTES;
+  const unpaidExpiresAt = new Date(
+    now.getTime() + unpaidWindowMinutes * 60 * 1000,
+  ).toISOString();
 
-    const order = await tradeOrderRepo.create({
-      family: "RENTAL",
-      createdBy,
-      participants,
-      splitRuleSnapshot,
-      offerSnapshot: input.offerSnapshot,
-      items: input.items,
-      pricingSnapshot: input.pricingSnapshot,
-      timeout: {
-        unpaidExpiresAt,
-        defaultWindowMinutes: unpaidWindowMinutes,
-      },
-    });
-
-    await rentalOrderRepo.create({
-      orderId: order.id,
-      selectedZoneCodes: input.selectedZoneCodes,
-      serviceStartAt: new Date(input.serviceStartAt),
-      serviceEndAt: new Date(input.serviceEndAt),
-      participantCount: input.participantCount,
-      contactPhone: input.contactPhone,
-      registrants: input.registrants,
-    });
-
-    await attachOrderToPr(
-      {
-        orderId: order.id,
-        prId,
-        offerId,
-        orderCreatedBy: createdBy,
-      },
-      tx,
-    );
-
-    const billResult = await createBillFromSeed(
-      {
-        sourceOrderId: order.id as TradeOrderId,
-        currency: input.pricingSnapshot.currency,
-        chargeLines: chargeLines.map((line) => ({
-          userId: line.userId,
-          amountFen: line.amountFen,
-          label: "Rental order charge",
-          description: `PR #${input.prId} rental order share`,
-        })),
-      },
-      tx,
-    );
-
-    return {
-      orderId: order.id,
-      billId: billResult.billId,
-    };
+  const order = await tradeOrderRepo.create({
+    family: "RENTAL",
+    createdBy,
+    participants: input.participants,
+    splitRuleSnapshot,
+    offerSnapshot: input.offerSnapshot,
+    items: input.items,
+    pricingSnapshot: input.pricingSnapshot,
+    timeout: {
+      unpaidExpiresAt,
+      defaultWindowMinutes: unpaidWindowMinutes,
+    },
   });
+
+  await rentalOrderRepo.create({
+    orderId: order.id,
+    selectedZoneCodes: input.selectedZoneCodes,
+    serviceStartAt: new Date(input.serviceStartAt),
+    serviceEndAt: new Date(input.serviceEndAt),
+    participantCount: input.participantCount,
+    contactPhone: input.contactPhone,
+    registrants: input.registrants,
+  });
+
+  const billResult = await createBillFromSeed(
+    {
+      sourceOrderId: order.id as TradeOrderId,
+      currency: input.pricingSnapshot.currency,
+      chargeLines: chargeLines.map((line) => ({
+        userId: line.userId,
+        amountFen: line.amountFen,
+        label: "Rental order charge",
+        description: "Rental order share",
+      })),
+    },
+    executor,
+  );
+
+  return {
+    orderId: order.id,
+    billId: billResult.billId,
+  };
 }

@@ -57,6 +57,9 @@ export type SpuEditorForm = {
   userSelectedMin: NumberInput;
   userSelectedMax: NumberInput;
   rentalBookingLeadTimeMinutes: NumberInput;
+  rentalServiceWeekdaysCsv: string;
+  rentalServiceStartTime: string;
+  rentalServiceEndTime: string;
   rentalRequiresContactPhone: boolean;
   rentalRequiresRealName: boolean;
   rentalRequiresNationalId: boolean;
@@ -75,6 +78,9 @@ export type SpuBuildLabels = PricingRuleBuildLabels & {
   minQuantityLabel: string;
   maxQuantityLabel: string;
   serviceRentalLeadTimeLabel: string;
+  serviceRentalWeekdaysLabel: string;
+  serviceRentalStartTimeLabel: string;
+  serviceRentalEndTimeLabel: string;
   factsLabel: string;
   factKeyLabel: string;
 };
@@ -82,6 +88,11 @@ export type SpuBuildLabels = PricingRuleBuildLabels & {
 export const defaultRentalServicePolicy = (): RentalServicePolicy => ({
   type: "RENTAL",
   bookingLeadTimeMinutes: 1440,
+  serviceWindow: {
+    weekdays: [0, 1, 2, 3, 4, 5, 6],
+    startTime: "00:00",
+    endTime: "23:59",
+  },
   requiresContactPhone: true,
   requiresRealName: true,
   requiresNationalId: false,
@@ -178,6 +189,10 @@ export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
     userSelectedMin: quantityPolicy.type === "USER_SELECTED" ? quantityPolicy.min : 1,
     userSelectedMax: quantityPolicy.type === "USER_SELECTED" ? quantityPolicy.max : 1,
     rentalBookingLeadTimeMinutes: rentalPolicy.bookingLeadTimeMinutes,
+    rentalServiceWeekdaysCsv:
+      rentalPolicy.serviceWindow?.weekdays.join(",") ?? "0,1,2,3,4,5,6",
+    rentalServiceStartTime: rentalPolicy.serviceWindow?.startTime ?? "00:00",
+    rentalServiceEndTime: rentalPolicy.serviceWindow?.endTime ?? "23:59",
     rentalRequiresContactPhone: rentalPolicy.requiresContactPhone,
     rentalRequiresRealName: rentalPolicy.requiresRealName,
     rentalRequiresNationalId: rentalPolicy.requiresNationalId,
@@ -212,6 +227,29 @@ const buildQuantityPolicy = (
   };
 };
 
+const parseWeekdays = (value: string, label: string): number[] => {
+  const weekdays = value
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item));
+  const unique = [...new Set(weekdays)];
+  if (
+    unique.length === 0 ||
+    unique.some((weekday) => !Number.isInteger(weekday) || weekday < 0 || weekday > 6)
+  ) {
+    throw new Error(`${label} 必须是 0-6 的英文逗号分隔数字`);
+  }
+  return unique;
+};
+
+const assertTimeOfDay = (value: string, label: string): string => {
+  const normalized = value.trim();
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(normalized)) {
+    throw new Error(`${label} 必须是 HH:mm`);
+  }
+  return normalized;
+};
+
 const buildServicePolicy = (
   form: SpuEditorForm,
   labels: SpuBuildLabels,
@@ -226,6 +264,20 @@ const buildServicePolicy = (
       labels.serviceRentalLeadTimeLabel,
       { min: 0 },
     ),
+    serviceWindow: {
+      weekdays: parseWeekdays(
+        form.rentalServiceWeekdaysCsv,
+        labels.serviceRentalWeekdaysLabel,
+      ),
+      startTime: assertTimeOfDay(
+        form.rentalServiceStartTime,
+        labels.serviceRentalStartTimeLabel,
+      ),
+      endTime: assertTimeOfDay(
+        form.rentalServiceEndTime,
+        labels.serviceRentalEndTimeLabel,
+      ),
+    },
     requiresContactPhone: form.rentalRequiresContactPhone,
     requiresRealName: form.rentalRequiresRealName,
     requiresNationalId: form.rentalRequiresNationalId,

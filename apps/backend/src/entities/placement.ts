@@ -20,6 +20,8 @@ export const placements = pgTable(
     placementType: text("placement_type").$type<PlacementType>().notNull(),
     matchingRule: jsonb("matching_rule").$type<PlacementMatchingRuleJson>().notNull(),
     priority: integer("priority").notNull().default(0),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }),
+    effectiveTo: timestamp("effective_to", { withTimezone: true }),
     creative: jsonb("creative").$type<ButtonPlacementCreative>().notNull(),
     target: jsonb("target").$type<PlacementTarget>().notNull(),
     bindingRules: jsonb("binding_rules")
