@@ -32,6 +32,10 @@ import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
+import {
+  legacyRideHailingProviderRoute,
+  rideHailingProviderRoute,
+} from "./controllers/ride-hailing-provider.controller";
 import { jobRunner } from "./infra/jobs";
 import {
   JOURNEY_ID_HEADER,
@@ -198,6 +202,8 @@ export const routes = app
   .route("/api/pois", poiRoute)
   .route("/api/commerce", commerceRoute)
   .route("/api/payment", paymentProviderRoute)
+  .route("/api/ride-hailing", rideHailingProviderRoute)
+  .route("/api/v1/service_provider", legacyRideHailingProviderRoute)
   .route("/api/admin", adminAnchorManagementRoute)
   .route("/api/admin", adminCommerceManagementRoute)
   .route("/api/admin", adminPoiRoute)

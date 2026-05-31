@@ -25,7 +25,8 @@
     "db:seed": "tsx src/scripts/db/seed.ts",
     "db:next-migration": "tsx src/scripts/db/next-migration.ts",
     "db:studio": "drizzle-kit studio",
-    "payment:register-provider": "tsx src/scripts/payment/register-provider.ts"
+    "payment:register-provider": "tsx src/scripts/payment/register-provider.ts",
+    "ride-hailing:register-provider": "tsx src/scripts/ride-hailing/register-provider.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",

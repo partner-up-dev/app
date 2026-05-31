@@ -1,0 +1,123 @@
+import { z } from "zod";
+
+export type RideHailingProviderType = "CAOCAO";
+
+export type RideHailingProviderInstanceStatus = "ACTIVE" | "DISABLED";
+
+export const caocaoProviderInstanceConfigSchema = z.object({
+  adapterMode: z.literal("CAOCAO_OPEN_API"),
+  caocaoClientId: z.string().min(1),
+  signKey: z.string().min(1),
+  endpointBaseUrl: z.string().url(),
+  callbackBaseUrl: z.string().url().nullable().optional(),
+  requestTimeoutMs: z.number().int().positive().nullable().optional(),
+});
+
+export type CaocaoProviderInstanceConfig = z.infer<
+  typeof caocaoProviderInstanceConfigSchema
+>;
+
+export type RideHailingProviderInstanceConfig = CaocaoProviderInstanceConfig;
+
+export type RideHailingProviderRegisterInput = {
+  providerType: RideHailingProviderType;
+  instanceKey: string;
+  displayName: string;
+  config: RideHailingProviderInstanceConfig;
+};
+
+export type CaocaoSignedParams = Record<string, string>;
+
+export type CaocaoRawResponse<TData = unknown> = {
+  code: number;
+  success?: boolean | null;
+  msg?: string | null;
+  data?: TData | null;
+};
+
+export type CaocaoOrderStatusCallbackEvent =
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 9
+  | 11
+  | 12
+  | 13
+  | 20
+  | 21
+  | 22
+  | 23
+  | 24
+  | 25
+  | 26
+  | 27
+  | 40
+  | 41
+  | 42
+  | 43
+  | 44
+  | 45
+  | 46
+  | 47
+  | 48;
+
+export type CaocaoOrderStatusCallback = {
+  providerType: "CAOCAO";
+  providerOrderId: string;
+  externalOrderId: string;
+  localOrderId: string | null;
+  event: CaocaoOrderStatusCallbackEvent;
+  timestampMs: number;
+  raw: Record<string, string>;
+};
+
+export type RideHailingProviderEstimateInput = {
+  params: Record<string, string | number | boolean | null | undefined>;
+};
+
+export type RideHailingProviderCreateRideInput = {
+  orderId: string;
+  params: Record<string, string | number | boolean | null | undefined>;
+};
+
+export type RideHailingProviderCancelInput = {
+  providerOrderId: string;
+  cancelCode: string | number;
+  cancelReason: string;
+  whoCancel?: string | number | null;
+};
+
+export type RideHailingProviderConfirmFeeInput = {
+  providerOrderId: string;
+  allowanceAmountFen?: number | null;
+  caocaoAllowanceAmountFen?: number | null;
+};
+
+export type RideHailingProviderPort = {
+  buildExternalOrderId(orderId: string): string;
+  parseExternalOrderId(externalOrderId: string): string | null;
+  estimate(input: RideHailingProviderEstimateInput): Promise<unknown>;
+  createRide(input: RideHailingProviderCreateRideInput): Promise<{
+    providerOrderId: string;
+    externalOrderId: string;
+    providerSnapshot: unknown;
+  }>;
+  queryOrderDetail(input: { providerOrderId: string }): Promise<unknown>;
+  cancelRide(input: RideHailingProviderCancelInput): Promise<{
+    providerOrderId: string;
+    cancelFeeFen: number;
+    providerSnapshot: unknown;
+  }>;
+  queryCancelFee(input: { providerOrderId: string }): Promise<{
+    providerOrderId: string;
+    cancelFeeFen: number;
+    providerSnapshot: unknown;
+  }>;
+  confirmFee(input: RideHailingProviderConfirmFeeInput): Promise<void>;
+  parseOrderStatusCallback(
+    form: Record<string, string>,
+  ): CaocaoOrderStatusCallback;
+};
