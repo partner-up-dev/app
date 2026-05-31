@@ -61,6 +61,14 @@
                 <dd>{{ selectedRecord.fulfillment.bookingStatus }}</dd>
               </div>
               <div>
+                <dt>{{ t("adminCommerceFulfillment.cancellationHandlingLabel") }}</dt>
+                <dd>{{ selectedRecord.fulfillment.cancellationHandlingStatus }}</dd>
+              </div>
+              <div>
+                <dt>{{ t("adminCommerceFulfillment.cancellationOutcomeLabel") }}</dt>
+                <dd>{{ selectedRecord.fulfillment.supplierCancellationOutcome ?? "-" }}</dd>
+              </div>
+              <div>
                 <dt>{{ t("adminCommerceFulfillment.prLabel") }}</dt>
                 <dd>{{ selectedRecord.attachment ? `PR#${selectedRecord.attachment.prId}` : "-" }}</dd>
               </div>
@@ -95,6 +103,45 @@
                   @click="handleRejectBooking"
                 >
                   {{ isRejecting ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.rejectBookingAction") }}
+                </Button>
+              </div>
+            </div>
+          </BentoItem>
+
+          <BentoItem :title="t('adminCommerceFulfillment.cancellationOpsTitle')" span="full">
+            <div class="form-stack">
+              <div
+                class="status-strip"
+                :class="{ 'status-strip--active': canResolveCancellation }"
+                data-testid="admin-fulfillment.cancellation-gate"
+              >
+                <strong>{{ cancellationGateLabel }}</strong>
+                <span>{{ pendingCancellationAttempt?.attemptId ?? "-" }}</span>
+              </div>
+              <label class="field">
+                <span class="field-label">{{ t("adminCommerceFulfillment.cancellationNoteLabel") }}</span>
+                <textarea v-model="cancellationNote" class="text-area" rows="4"></textarea>
+              </label>
+              <div class="inline-actions">
+                <Button
+                  appearance="pill"
+                  tone="danger"
+                  size="sm"
+                  type="button"
+                  :disabled="!canResolveCancellation || isApprovingCancellation"
+                  data-testid="admin-fulfillment.approve-cancellation"
+                  @click="handleApproveCancellation"
+                >
+                  {{ isApprovingCancellation ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.approveCancellationAction") }}
+                </Button>
+                <Button
+                  size="sm"
+                  type="button"
+                  :disabled="!canResolveCancellation || isDenyingCancellation"
+                  data-testid="admin-fulfillment.deny-cancellation"
+                  @click="handleDenyCancellation"
+                >
+                  {{ isDenyingCancellation ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.denyCancellationAction") }}
                 </Button>
               </div>
             </div>
@@ -146,8 +193,10 @@ import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationP
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import {
+  useApproveRentalFulfillmentCancellation,
   useAdminCommerceFulfillmentWorkspace,
   useConfirmRentalFulfillmentBooking,
+  useDenyRentalFulfillmentCancellation,
   useRecordRentalFulfillmentEntryGuidance,
   useRejectRentalFulfillmentBooking,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
@@ -163,10 +212,13 @@ const { isAdmin, logout } = useAdminAccess();
 const workspaceQuery = useAdminCommerceFulfillmentWorkspace(isAdmin);
 const confirmMutation = useConfirmRentalFulfillmentBooking();
 const rejectMutation = useRejectRentalFulfillmentBooking();
+const approveCancellationMutation = useApproveRentalFulfillmentCancellation();
+const denyCancellationMutation = useDenyRentalFulfillmentCancellation();
 const guidanceMutation = useRecordRentalFulfillmentEntryGuidance();
 
 const selectedFulfillmentIdRaw = ref("");
 const bookingNote = ref("");
+const cancellationNote = ref("");
 const entryGuidance = ref({
   entryByPhone: "",
   entryByRealName: "",
@@ -185,13 +237,39 @@ const selectedRecord = computed(
 
 const isConfirming = computed(() => confirmMutation.isPending.value);
 const isRejecting = computed(() => rejectMutation.isPending.value);
+const isApprovingCancellation = computed(
+  () => approveCancellationMutation.isPending.value,
+);
+const isDenyingCancellation = computed(
+  () => denyCancellationMutation.isPending.value,
+);
 const isSavingGuidance = computed(() => guidanceMutation.isPending.value);
+const pendingCancellationAttempt = computed(
+  () =>
+    selectedRecord.value?.order?.terminationAttempts.find(
+      (attempt) =>
+        attempt.status === "PENDING" &&
+        attempt.resolutionPath === "RENTAL_FULFILLMENT",
+    ) ?? null,
+);
+const canResolveCancellation = computed(
+  () =>
+    selectedRecord.value?.fulfillment.cancellationHandlingStatus === "REQUESTED" &&
+    pendingCancellationAttempt.value !== null,
+);
+const cancellationGateLabel = computed(() =>
+  canResolveCancellation.value
+    ? t("adminCommerceFulfillment.cancellationPendingLabel")
+    : t("adminCommerceFulfillment.cancellationNoPendingLabel"),
+);
 
 const pageErrorMessage = computed(
   () =>
     localErrorMessage.value ||
     confirmMutation.error.value?.message ||
     rejectMutation.error.value?.message ||
+    approveCancellationMutation.error.value?.message ||
+    denyCancellationMutation.error.value?.message ||
     guidanceMutation.error.value?.message ||
     null,
 );
@@ -214,6 +292,7 @@ watch(
   selectedRecord,
   (record) => {
     bookingNote.value = record?.fulfillment.bookingNote ?? "";
+    cancellationNote.value = record?.fulfillment.cancellationNote ?? "";
     entryGuidance.value = {
       entryByPhone: record?.fulfillment.entryGuidance?.entryByPhone ?? "",
       entryByRealName: record?.fulfillment.entryGuidance?.entryByRealName ?? "",
@@ -251,6 +330,34 @@ const handleRejectBooking = async () => {
   }
 };
 
+const handleApproveCancellation = async () => {
+  localErrorMessage.value = null;
+  try {
+    if (!selectedRecord.value) return;
+    await approveCancellationMutation.mutateAsync({
+      fulfillmentId: selectedRecord.value.fulfillment.id,
+      reason: cancellationNote.value.trim() || null,
+    });
+  } catch (error) {
+    localErrorMessage.value =
+      error instanceof Error ? error.message : t("common.operationFailed");
+  }
+};
+
+const handleDenyCancellation = async () => {
+  localErrorMessage.value = null;
+  try {
+    if (!selectedRecord.value) return;
+    await denyCancellationMutation.mutateAsync({
+      fulfillmentId: selectedRecord.value.fulfillment.id,
+      reason: cancellationNote.value.trim() || null,
+    });
+  } catch (error) {
+    localErrorMessage.value =
+      error instanceof Error ? error.message : t("common.operationFailed");
+  }
+};
+
 const handleSaveGuidance = async () => {
   localErrorMessage.value = null;
   try {
@@ -273,6 +380,8 @@ const clearErrors = () => {
   localErrorMessage.value = null;
   confirmMutation.reset();
   rejectMutation.reset();
+  approveCancellationMutation.reset();
+  denyCancellationMutation.reset();
   guidanceMutation.reset();
 };
 </script>
@@ -318,6 +427,21 @@ small {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
+}
+
+.status-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sys-spacing-small);
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-medium);
+  color: var(--sys-color-on-surface-variant);
+}
+
+.status-strip--active {
+  border-color: var(--sys-color-primary);
+  color: var(--sys-color-on-surface);
 }
 
 .text-input,

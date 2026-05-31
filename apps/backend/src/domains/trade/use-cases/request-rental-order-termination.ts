@@ -2,6 +2,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import type { OrderTerminationResolutionPath } from "../model";
 import {
   appendTerminationAttempt,
   markTerminationAttemptResolving,
@@ -18,6 +19,7 @@ export async function requestRentalOrderTermination(input: {
   orderId: string;
   requestedBy: string;
   requestedAt?: string;
+  resolutionPath?: OrderTerminationResolutionPath;
 }) {
   const orderRecord = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
   if (!orderRecord) {
@@ -39,7 +41,7 @@ export async function requestRentalOrderTermination(input: {
   const resolving = markTerminationAttemptResolving(
     appended,
     attemptId,
-    "RENTAL_FULFILLMENT",
+    input.resolutionPath ?? "TRADE_LOCAL",
   );
 
   const persisted = await tradeOrderRepo.applyTerminationState({

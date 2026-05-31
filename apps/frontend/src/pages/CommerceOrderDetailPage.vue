@@ -118,6 +118,14 @@
           </Button>
 
           <InlineNotice
+            v-if="isCancellationPending"
+            tone="info"
+            title="取消处理中"
+            message="取消请求已提交，等待履约方处理。"
+            data-testid="order-detail.rental.cancellation-pending"
+          />
+
+          <InlineNotice
             v-if="detail.order.status === 'CANCELLED'"
             tone="success"
             title="订单已取消"
@@ -247,7 +255,7 @@ const cancellationPolicySummary = computed(() => {
 });
 
 const cancellationResultMessage = computed(() => {
-  const latest = detail.value?.cancellation.latestAttempt;
+  const latest = latestCancellationAttempt.value;
   if (!latest || latest.status !== "APPROVED") {
     return "订单已经取消。";
   }
@@ -256,6 +264,13 @@ const cancellationResultMessage = computed(() => {
   }
   return "已按取消政策调整账单。";
 });
+
+const latestCancellationAttempt = computed(
+  () => detail.value?.cancellation.latestAttempt ?? null,
+);
+const isCancellationPending = computed(
+  () => latestCancellationAttempt.value?.status === "PENDING",
+);
 
 const backFallbackTo = computed(() => ({ path: "/" }));
 

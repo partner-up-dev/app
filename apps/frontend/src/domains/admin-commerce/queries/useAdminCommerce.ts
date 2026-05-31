@@ -505,6 +505,72 @@ export const useRejectRentalFulfillmentBooking = () => {
   });
 };
 
+export const useApproveRentalFulfillmentCancellation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      fulfillmentId,
+      reason,
+    }: {
+      fulfillmentId: string;
+      reason: string | null;
+    }) => {
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[
+        ":fulfillmentId"
+      ]["approve-cancellation"].$post({
+        param: { fulfillmentId },
+        json: { reason },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "确认取消失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.commerceFulfillmentWorkspace(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.commerceOrderBillWorkspace(),
+      });
+    },
+  });
+};
+
+export const useDenyRentalFulfillmentCancellation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      fulfillmentId,
+      reason,
+    }: {
+      fulfillmentId: string;
+      reason: string | null;
+    }) => {
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[
+        ":fulfillmentId"
+      ]["deny-cancellation"].$post({
+        param: { fulfillmentId },
+        json: { reason },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "拒绝取消失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.commerceFulfillmentWorkspace(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.commerceOrderBillWorkspace(),
+      });
+    },
+  });
+};
+
 export const useRecordRentalFulfillmentEntryGuidance = () => {
   const queryClient = useQueryClient();
 

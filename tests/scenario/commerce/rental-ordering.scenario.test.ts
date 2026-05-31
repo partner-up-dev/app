@@ -11,6 +11,7 @@ import {
   configurePRStatus,
 } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import {
+  givenAdminUser,
   givenUser,
   type ScenarioUser,
 } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
@@ -27,6 +28,30 @@ import { PartnerRequestRepository } from "../../../apps/backend/src/repositories
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
+
+async function installScenarioAdminSession(
+  page: Page,
+  user: ScenarioUser,
+): Promise<void> {
+  await page.addInitScript(
+    (session) => {
+      window.localStorage.setItem("partner_up_admin_user_id", session.userId);
+      window.localStorage.setItem(
+        "partner_up_admin_access_token",
+        session.token,
+      );
+      window.localStorage.setItem("partner_up_admin_session_role", "service");
+      window.localStorage.setItem(
+        "partner_up_admin_session_roles",
+        JSON.stringify(["service"]),
+      );
+    },
+    {
+      token: user.token,
+      userId: user.user.id,
+    },
+  );
+}
 
 type ScenarioPartnerRequest = {
   id: number;
@@ -176,7 +201,7 @@ async function givenRentalOrderingPlacement() {
         fromMinutesBeforeStart: 0,
         untilMinutesBeforeStart: null,
         refundPercent: 100,
-        requiresOperatorHandling: false,
+        requiresOperatorHandling: true,
         visibleLabel: "开始前可退",
       },
     ],
@@ -193,7 +218,7 @@ async function givenRentalOrderingPlacement() {
         fromMinutesBeforeStart: 0,
         untilMinutesBeforeStart: null,
         refundPercent: 100,
-        requiresOperatorHandling: false,
+        requiresOperatorHandling: true,
         visibleLabel: "开始前可退",
       },
     ],
@@ -777,6 +802,7 @@ scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
 });
 
 scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
+  const admin = await givenAdminUser("system-commerce-paid-cancel-admin");
   const creator = await givenUser("system-commerce-paid-cancel-creator");
   const joiner = await givenUser("system-commerce-paid-cancel-joiner");
   await bindScenarioWeChatOpenId({
@@ -886,6 +912,43 @@ scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
       expected: "等待场地方确认预订",
     });
     await page.getByTestId("order-detail.cancel-rental").click();
+    await page.getByTestId("order-detail.rental.cancellation-pending").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+  });
+
+  await withScenarioPage(async (page) => {
+    await installScenarioAdminSession(page, admin);
+
+    await page.goto("/admin/commerce/fulfillments");
+    await page.getByTestId("admin-fulfillment.cancellation-gate").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("admin-fulfillment.cancellation-gate").textContent(),
+      expected: "待处理取消请求",
+      label: "Fulfillment admin cancellation gate",
+    });
+    await page.getByTestId("admin-fulfillment.approve-cancellation").click();
+    await page.waitForFunction(() => {
+      const gate = document.querySelector(
+        '[data-testid="admin-fulfillment.cancellation-gate"]',
+      )?.textContent;
+      return gate?.includes("暂无待处理取消请求");
+    });
+  });
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(orderPath);
+    await page.getByTestId("order-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
     await page.getByTestId("order-detail.rental.cancelled").waitFor({
       state: "visible",
       timeout: 10_000,

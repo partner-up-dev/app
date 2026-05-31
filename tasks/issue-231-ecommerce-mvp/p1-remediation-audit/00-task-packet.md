@@ -68,7 +68,16 @@ authority boundaries and lifecycle guarantees.
   - Bill reconciliation bounds REFUND allocations by paid CHARGE BillLine
     basis;
   - unpaid cancellation no longer creates REFUND BillLines.
-- P1-4 through P1-5 are still plan-only.
+- P1-4 implementation complete:
+  - user cancellation now chooses `TRADE_LOCAL` or `RENTAL_FULFILLMENT`
+    resolution based on the frozen cancellation tier and whether a Rental
+    Fulfillment exists;
+  - Fulfillment-gated cancellations remain pending and mark the Rental
+    Fulfillment cancellation handling as `REQUESTED`;
+  - Fulfillment Admin exposes approve/deny cancellation actions;
+  - Admin approval/denial finalizes the Trade termination attempt and updates
+    Fulfillment cancellation state.
+- P1-5 is still plan-only.
 
 ## Verification So Far
 
@@ -103,3 +112,11 @@ P1-3 implementation verification:
 
 - `pnpm test:unit:backend -- src/domains/bill/services/reconcile-lines.test.ts src/domains/payment/services/bill-payment-state.test.ts`
 - `pnpm --filter backend typecheck`
+
+P1-4 implementation verification:
+
+- `pnpm --filter backend typecheck`
+- `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+- `pnpm lint:backend`
+- `pnpm test:unit:backend -- src/domains/trade/services/order-termination.test.ts src/domains/fulfillment/services/fulfillment-lifecycle.test.ts`
+- `pnpm --dir . exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`

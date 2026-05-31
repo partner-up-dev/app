@@ -13,6 +13,7 @@ import {
   createRefundPaymentTxForRefundLine,
   deriveBillPaymentState,
 } from "../../payment";
+import { deriveRentalLifecycleStatus } from "../../fulfillment";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {
   approveTerminationAttempt,
@@ -84,6 +85,22 @@ export async function finalizeRentalOrderTermination(input: {
       });
       if (!persisted) {
         return throwHttpProblem({ status: 500, detail: "Failed to persist denied rental termination" });
+      }
+      const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id as TradeOrderId);
+      if (fulfillment) {
+        await rentalFulfillmentRepo.updateById(fulfillment.id, {
+          lifecycleStatus: deriveRentalLifecycleStatus({
+            bookingStatus: fulfillment.bookingStatus,
+            cancellationHandling: {
+              status: "HANDLED",
+              supplierOutcome: "BOOKING_REMAINS",
+            },
+            serviceEndedAt: fulfillment.serviceEndedAt?.toISOString() ?? null,
+          }),
+          cancellationHandlingStatus: "HANDLED",
+          supplierCancellationOutcome: "BOOKING_REMAINS",
+          cancellationNote: input.decision.reason ?? "Rental termination denied",
+        });
       }
 
       return {

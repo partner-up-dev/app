@@ -215,6 +215,8 @@ To:
 
 ## P1-4: Rental Cancellation Is Not Fulfillment-Gated
 
+Status: implemented.
+
 ### Goal
 
 Respect Fulfillment authority when cancellation requires supplier/operator
@@ -247,15 +249,26 @@ To:
 
 1. Add cancellation decision classifier using frozen cancellation policy,
    current time, and current Rental Fulfillment state.
+   Done in the Order Detail cancellation use case.
 2. For no-handling paths, keep immediate approval.
+   Done through `TRADE_LOCAL`.
 3. For handling-required paths, create pending termination attempt and expose
    operator action on Rental Fulfillment Ops.
+   Done through `RENTAL_FULFILLMENT` plus Fulfillment Admin actions.
 4. Add Fulfillment use case returning normalized
    `FulfillmentTerminationDecision`.
+   Implemented as Admin Fulfillment cancellation resolution that passes
+   normalized approve/deny decisions into Trade finalization.
 5. Wire operator approve/deny into Trade finalization.
+   Done.
 6. Reflect pending/denied/approved state in Order Detail projection.
+   Done for pending and cancelled states; denied state remains visible through
+   the latest termination attempt.
 7. Add tests for immediate local cancel, pending operator cancel, denied cancel,
    and approved operator cancel.
+   Partially done: scenario covers unpaid local cancellation and paid
+   Fulfillment Admin approved cancellation; unit coverage keeps termination
+   approve/deny semantics. A dedicated denied browser scenario remains optional.
 
 ### Invariants
 

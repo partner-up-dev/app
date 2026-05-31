@@ -22,6 +22,7 @@ import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental-booking";
+import { requestRentalCancellationHandling } from "../../fulfillment";
 import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
 import type {
   FixedTotalPricingModel,
@@ -38,7 +39,12 @@ import {
 import { createRentalOrder } from "./create-rental-order";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
 import { deriveBillPaymentState } from "../../payment";
-import { PricingApplication } from "../services";
+import {
+  canRequestOrderTermination,
+  PricingApplication,
+  resolveRentalTerminationPolicy,
+  toRentalOrderModel,
+} from "../services";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
@@ -705,7 +711,10 @@ export async function getCommerceOrderDetail(input: {
       }
       : null,
     cancellation: {
-      canRequest: order.status === "OPEN",
+      canRequest: canRequestOrderTermination({
+        status: order.status,
+        terminationAttempts: order.terminationAttempts,
+      }),
       latestAttempt: order.terminationAttempts.at(-1) ?? null,
     },
     payment: {
@@ -754,10 +763,47 @@ export async function cancelRentalOrderFromOrderDetail(input: {
     });
   }
 
+  const rentalOrderRecord = await rentalOrderRepo.findByOrderId(order.id);
+  if (!rentalOrderRecord) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "Rental order facts are missing",
+    });
+  }
+  const rentalOrder = toRentalOrderModel(order, rentalOrderRecord);
+  const requestedAt = new Date().toISOString();
+  const policyResolution = resolveRentalTerminationPolicy(rentalOrder, {
+    attemptId: "preview",
+    requestedAt,
+  });
+  const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
+  const requiresFulfillmentGate =
+    policyResolution.requiresOperatorHandling && fulfillment !== null;
+
   const requested = await requestRentalOrderTermination({
     orderId: input.orderId,
     requestedBy: input.actorUserId,
+    requestedAt,
+    resolutionPath: requiresFulfillmentGate
+      ? "RENTAL_FULFILLMENT"
+      : "TRADE_LOCAL",
   });
+
+  if (requiresFulfillmentGate) {
+    await requestRentalCancellationHandling({
+      fulfillmentId: fulfillment.id,
+      cancellationNote: "用户取消订单，等待履约处理",
+    });
+
+    return {
+      orderId: input.orderId,
+      attemptId: requested.attemptId,
+      status: order.status,
+      effectKind: "NONE" as const,
+      effectAmountFen: 0,
+      refunds: [],
+    };
+  }
 
   return finalizeRentalOrderTermination({
     orderId: input.orderId,

@@ -22,6 +22,7 @@ import {
   getAdminCommerceOrderBillWorkspace,
   getAdminCommercePlacementOfferWorkspace,
   getAdminCommerceProductWorkspace,
+  resolveAdminRentalFulfillmentCancellation,
   saveAdminCommerceSkuCancellationPolicy,
   updateAdminCommerceOffer,
   updateAdminCommercePlacement,
@@ -274,6 +275,10 @@ const rentalBookingDecisionInputSchema = z.object({
   bookingNote: z.string().trim().nullable().optional(),
 });
 
+const rentalCancellationDecisionInputSchema = z.object({
+  reason: z.string().trim().nullable().optional(),
+});
+
 const toDate = (value: string | null | undefined): Date | null =>
   value ? new Date(value) : null;
 
@@ -370,6 +375,18 @@ type AdminCommerceManagementSchema = {
     $post: JsonEndpoint<
       UuidParam<"fulfillmentId"> & { json: { bookingNote?: string | null } },
       Awaited<ReturnType<typeof rejectRentalBooking>>
+    >;
+  };
+  "/commerce/fulfillments/rental/:fulfillmentId/approve-cancellation": {
+    $post: JsonEndpoint<
+      UuidParam<"fulfillmentId"> & { json: z.infer<typeof rentalCancellationDecisionInputSchema> },
+      Awaited<ReturnType<typeof resolveAdminRentalFulfillmentCancellation>>
+    >;
+  };
+  "/commerce/fulfillments/rental/:fulfillmentId/deny-cancellation": {
+    $post: JsonEndpoint<
+      UuidParam<"fulfillmentId"> & { json: z.infer<typeof rentalCancellationDecisionInputSchema> },
+      Awaited<ReturnType<typeof resolveAdminRentalFulfillmentCancellation>>
     >;
   };
   "/commerce/fulfillments/rental/:fulfillmentId/entry-guidance": {
@@ -551,6 +568,36 @@ export const adminCommerceManagementRoute: Hono<
       const result = await rejectRentalBooking({
         fulfillmentId,
         bookingNote: payload.bookingNote ?? null,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/commerce/fulfillments/rental/:fulfillmentId/approve-cancellation",
+    zValidator("param", fulfillmentIdParamSchema),
+    zValidator("json", rentalCancellationDecisionInputSchema),
+    async (c) => {
+      const { fulfillmentId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const result = await resolveAdminRentalFulfillmentCancellation({
+        fulfillmentId,
+        outcome: "APPROVED",
+        reason: payload.reason ?? null,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/commerce/fulfillments/rental/:fulfillmentId/deny-cancellation",
+    zValidator("param", fulfillmentIdParamSchema),
+    zValidator("json", rentalCancellationDecisionInputSchema),
+    async (c) => {
+      const { fulfillmentId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const result = await resolveAdminRentalFulfillmentCancellation({
+        fulfillmentId,
+        outcome: "DENIED",
+        reason: payload.reason ?? null,
       });
       return c.json(result);
     },

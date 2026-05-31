@@ -7,3 +7,4 @@ export * from "./use-cases/update-admin-commerce-offer";
 export * from "./use-cases/update-admin-commerce-placement";
 export * from "./use-cases/get-admin-commerce-order-bill-workspace";
 export * from "./use-cases/get-admin-commerce-fulfillment-workspace";
+export * from "./use-cases/resolve-admin-rental-fulfillment-cancellation";
