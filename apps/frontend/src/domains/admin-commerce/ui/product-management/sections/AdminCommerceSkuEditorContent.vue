@@ -45,8 +45,12 @@
       </div>
       <div v-else class="pm-grid">
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.vehicleClassLabel") }}</span>
-          <input v-model="skuForm.rideVehicleClass" class="pm-field-input" type="text" />
+          <span class="pm-field-label">{{ t("adminCommerceProducts.rideProviderInstanceIdLabel") }}</span>
+          <input v-model="skuForm.rideProviderInstanceId" class="pm-field-input" type="text" />
+        </label>
+        <label class="pm-field">
+          <span class="pm-field-label">{{ t("adminCommerceProducts.providerVehicleTypeCodeLabel") }}</span>
+          <input v-model="skuForm.rideProviderVehicleTypeCode" class="pm-field-input" type="text" />
         </label>
       </div>
     </section>

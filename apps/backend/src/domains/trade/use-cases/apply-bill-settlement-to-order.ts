@@ -6,6 +6,7 @@ import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
 import { deriveBillPaymentState } from "../../payment/services";
+import { confirmRideHailingProviderFeeAfterPayment } from "./ride-hailing-ordering-flow";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
@@ -48,6 +49,12 @@ export async function applyBillSettlementToOrder(input: {
       applied: false,
       reason: "Order is not eligible for prepaid settlement consequence",
     };
+  }
+
+  if (order.family === "RIDE_HAILING") {
+    return confirmRideHailingProviderFeeAfterPayment({
+      orderId: order.id,
+    });
   }
 
   return applyOrderPrepaidSettlementFulfillmentConsequence({

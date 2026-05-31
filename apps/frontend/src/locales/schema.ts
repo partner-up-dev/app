@@ -1529,6 +1529,8 @@ export interface MessageSchema {
     participantCountLabel: string;
     durationMinutesLabel: string;
     vehicleClassLabel: string;
+    rideProviderInstanceIdLabel: string;
+    providerVehicleTypeCodeLabel: string;
     pricingModelLabel: string;
     pricingModelTypeLabel: string;
     pricingModelFixed: string;

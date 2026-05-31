@@ -54,8 +54,8 @@ export type RentalSkuFacts = {
 };
 
 export type RideHailingSkuFacts = {
-  type: "RIDE_HAILING";
-  vehicleClass: string;
+  rideHailingProviderInstanceId: string;
+  providerVehicleTypeCode: string;
 };
 
 export type SkuFacts = RentalSkuFacts | RideHailingSkuFacts;

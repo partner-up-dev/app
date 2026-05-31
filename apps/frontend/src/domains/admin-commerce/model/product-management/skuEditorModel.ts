@@ -15,7 +15,8 @@ export type SkuEditorForm = {
   rentalZoneCode: string;
   rentalParticipantCount: NumberInput;
   rentalDurationMinutes: NumberInput;
-  rideVehicleClass: string;
+  rideProviderInstanceId: string;
+  rideProviderVehicleTypeCode: string;
   pricingModelType: SkuPricingModel["type"];
   fixedAmountFen: NumberInput;
   dynamicPricingModel: Extract<SkuPricingModel, { type: "DYNAMIC_QUOTE" }> | null;
@@ -33,6 +34,17 @@ const isDynamicQuotePricingModel = (
   value: SkuPricingModel,
 ): value is Extract<SkuPricingModel, { type: "DYNAMIC_QUOTE" }> =>
   value.type === "DYNAMIC_QUOTE";
+
+const isRentalSkuFacts = (
+  value: SkuFacts,
+): value is Extract<SkuFacts, { type: "RENTAL" }> =>
+  "type" in value && value.type === "RENTAL";
+
+const isRideHailingSkuFacts = (
+  value: SkuFacts,
+): value is Exclude<SkuFacts, { type: "RENTAL" }> =>
+  "rideHailingProviderInstanceId" in value &&
+  "providerVehicleTypeCode" in value;
 
 export const emptySkuInput = (): Omit<AdminProductSkuInput, "spuId"> => ({
   name: "",
@@ -59,10 +71,19 @@ export const toSkuForm = (
     name: input.name,
     status: input.status,
     sortOrder: input.sortOrder,
-    rentalZoneCode: input.facts.type === "RENTAL" ? input.facts.zoneCode : "",
-    rentalParticipantCount: input.facts.type === "RENTAL" ? input.facts.participantCount : 2,
-    rentalDurationMinutes: input.facts.type === "RENTAL" ? input.facts.durationMinutes : 180,
-    rideVehicleClass: input.facts.type === "RIDE_HAILING" ? input.facts.vehicleClass : "",
+    rentalZoneCode: isRentalSkuFacts(input.facts) ? input.facts.zoneCode : "",
+    rentalParticipantCount: isRentalSkuFacts(input.facts)
+      ? input.facts.participantCount
+      : 2,
+    rentalDurationMinutes: isRentalSkuFacts(input.facts)
+      ? input.facts.durationMinutes
+      : 180,
+    rideProviderInstanceId: isRideHailingSkuFacts(input.facts)
+      ? input.facts.rideHailingProviderInstanceId
+      : "",
+    rideProviderVehicleTypeCode: isRideHailingSkuFacts(input.facts)
+      ? input.facts.providerVehicleTypeCode
+      : "",
     pricingModelType: pricingModel.type,
     fixedAmountFen: pricingModel.type === "FIXED_TOTAL" ? pricingModel.amountFen : 0,
     dynamicPricingModel: isDynamicQuotePricingModel(pricingModel) ? pricingModel : null,
@@ -76,8 +97,8 @@ const buildSkuFacts = (
 ): SkuFacts => {
   if (productType === "RIDE_HAILING") {
     return {
-      type: "RIDE_HAILING",
-      vehicleClass: form.rideVehicleClass.trim(),
+      rideHailingProviderInstanceId: form.rideProviderInstanceId.trim(),
+      providerVehicleTypeCode: form.rideProviderVehicleTypeCode.trim(),
     };
   }
   return {

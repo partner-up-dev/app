@@ -43,6 +43,7 @@ import {
   resolvePlacementBindings,
 } from "../../merchandising";
 import { createRentalOrder } from "./create-rental-order";
+import { buildRideHailingDetailProjection } from "./ride-hailing-ordering-flow";
 import { requestRentalOrderTermination } from "./request-rental-order-termination";
 import { deriveBillPaymentState } from "../../payment";
 import {
@@ -736,6 +737,10 @@ export async function getCommerceOrderDetail(input: {
     return throwHttpProblem({ status: 403, detail: "Order is not accessible" });
   }
 
+  const rideHailingDetail =
+    order.family === "RIDE_HAILING"
+      ? await buildRideHailingDetailProjection({ order })
+      : null;
   const bill = await billRepo.findBySourceOrderId(order.id);
   const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
   const paymentTxs = bill
@@ -774,6 +779,7 @@ export async function getCommerceOrderDetail(input: {
       contactPhone: rentalOrder?.contactPhone ?? null,
       registrants: rentalOrder?.registrants ?? [],
     },
+    rideHailing: rideHailingDetail,
     bill: bill
       ? {
           id: bill.id,

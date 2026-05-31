@@ -26,8 +26,23 @@ function assertSkuFactsMatchProductType(
   productType: ProductType,
   facts: SkuFacts,
 ): void {
-  if (productType !== facts.type) {
-    throw new Error("SKU facts type must match SPU productType");
+  if (productType === "RENTAL") {
+    if ("type" in facts && facts.type === "RENTAL") return;
+    throw new Error("Rental SKU facts must match SPU productType");
+  }
+
+  if (productType === "RIDE_HAILING") {
+    if (
+      "rideHailingProviderInstanceId" in facts &&
+      typeof facts.rideHailingProviderInstanceId === "string" &&
+      facts.rideHailingProviderInstanceId.length > 0 &&
+      "providerVehicleTypeCode" in facts &&
+      typeof facts.providerVehicleTypeCode === "string" &&
+      facts.providerVehicleTypeCode.length > 0
+    ) {
+      return;
+    }
+    throw new Error("RideHailing SKU facts require provider instance and vehicle mapping");
   }
 }
 

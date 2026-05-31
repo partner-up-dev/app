@@ -36,4 +36,19 @@ export class RideHailingOrderRepository {
       .from(rideHailingOrders)
       .where(inArray(rideHailingOrders.orderId, orderIds));
   }
+
+  async updateByOrderId(
+    orderId: TradeOrderId,
+    data: Partial<NewRideHailingOrder>,
+  ): Promise<RideHailingOrder | null> {
+    const result = await this.executor
+      .update(rideHailingOrders)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(rideHailingOrders.orderId, orderId))
+      .returning();
+    return result[0] ?? null;
+  }
 }

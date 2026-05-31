@@ -94,7 +94,10 @@ export type AdminProductSkuInput = {
         participantCount: number;
         durationMinutes: number;
       }
-    | { type: "RIDE_HAILING"; vehicleClass: string };
+    | {
+        rideHailingProviderInstanceId: string;
+        providerVehicleTypeCode: string;
+      };
   pricingModel:
     | { type: "FIXED_TOTAL"; amountFen: number }
     | { type: "DYNAMIC_QUOTE"; calculatorSpec: unknown };

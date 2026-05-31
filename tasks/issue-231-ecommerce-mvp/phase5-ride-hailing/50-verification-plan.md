@@ -135,3 +135,31 @@ fulfillment foundation:
   passed with 3 tests.
 - `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
   passed.
+
+## RideHailing System Scenario Evidence
+
+Recorded on 2026-05-31 for the provider-backed RideHailing Ordering to
+Fulfillment path:
+
+- `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  passed with 2 tests.
+- The passing scenario covers:
+  - PR placement to generic Ordering route;
+  - RideHailing Ordering rendered content and drawers;
+  - provider-backed SKU quote cards using each SKU's
+    `rideHailingProviderInstanceId`;
+  - provider-backed create order success;
+  - provider create hard failure without leaving an apparently successful open
+    order, followed by retry availability;
+  - RideHailing Order Detail route, passenger, selected vehicle, driver,
+    vehicle, and provider status content;
+  - final Bill creation from provider detail;
+  - Payment Checkout through the real frontend;
+  - payment settlement consequence calling Caocao `feeConfirm`.
+
+Final guardrail rerun on 2026-05-31:
+
+- `pnpm --filter @partner-up-dev/backend typecheck` passed.
+- `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm exec vitest run --project backend-unit apps/backend/src/domains/merchandising/services/catalog-contract.test.ts`
+  passed with 5 tests.

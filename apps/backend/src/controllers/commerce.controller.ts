@@ -7,9 +7,11 @@ import { throwHttpProblem } from "../lib/problem-details";
 import {
   cancelRentalOrderFromOrderDetail,
   createRentalOrderFromPlacement,
+  createRideHailingOrderFromPlacement,
   evaluateRentalOrdering,
+  evaluateRideHailingOrdering,
   getCommerceOrderDetail,
-  getRentalOrderingFromPlacement,
+  getOrderingFromPlacement,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import { resolveCommercePlacementForPr } from "../domains/merchandising";
@@ -82,6 +84,51 @@ const rentalOrderingCommandSchema = z.object({
   }),
 });
 
+const rideHailingPlaceSnapshotSchema = z.object({
+  name: z.string().trim().min(1),
+  address: z.string().trim().nullable().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
+const rideHailingRouteSnapshotSchema = z.object({
+  origin: rideHailingPlaceSnapshotSchema,
+  waypoints: z.array(rideHailingPlaceSnapshotSchema),
+  destination: rideHailingPlaceSnapshotSchema,
+  drivingPlan: z
+    .object({
+      distanceMeters: z.number().int().nonnegative().nullable().optional(),
+      durationSeconds: z.number().int().nonnegative().nullable().optional(),
+      polyline: z
+        .array(z.object({ latitude: z.number(), longitude: z.number() }))
+        .nullable()
+        .optional(),
+    })
+    .nullable()
+    .optional(),
+});
+
+const rideHailingOrderingCommandSchema = z.object({
+  placementInstanceId: z.number().int().positive(),
+  context: z.object({
+    kind: z.literal("PR"),
+    prId: z.number().int().positive(),
+  }),
+  selectedSkuId: z.number().int().positive().nullable().optional(),
+  route: rideHailingRouteSnapshotSchema,
+  departureAt: z.string().datetime({ offset: true }).nullable().optional(),
+  riders: z
+    .array(
+      z.object({
+        userId: z.string().uuid(),
+        displayName: z.string().trim().min(1),
+        phoneMasked: z.string().nullable().optional(),
+      }),
+    )
+    .min(1),
+  contactPhone: z.string().trim().min(1),
+});
+
 const readClientId = (headerValue: string | undefined): string => {
   const clientId = headerValue?.trim();
   if (!clientId) {
@@ -109,7 +156,7 @@ export const commerceRoute = app
     zValidator("query", placementOrderingQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
-      const result = await getRentalOrderingFromPlacement({
+      const result = await getOrderingFromPlacement({
         placementInstanceId: query.placementInstanceId,
         prId: query.contextId,
       });
@@ -130,6 +177,32 @@ export const commerceRoute = app
         viewerUserId: auth.userId,
       });
       return c.json(result);
+    },
+  )
+  .post(
+    "/ordering/ride-hailing/evaluate",
+    zValidator("json", rideHailingOrderingCommandSchema),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const auth = c.get("auth");
+      const result = await evaluateRideHailingOrdering({
+        ...payload,
+        viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/orders/ride-hailing",
+    zValidator("json", rideHailingOrderingCommandSchema),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const userId = requireAuthenticatedUserId(c);
+      const result = await createRideHailingOrderFromPlacement({
+        ...payload,
+        createdBy: userId,
+      });
+      return c.json(result, 201);
     },
   )
   .post(

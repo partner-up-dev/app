@@ -168,8 +168,8 @@ const skuFactsSchema = z.union([
     durationMinutes: z.number().int().positive(),
   }),
   z.object({
-    type: z.literal("RIDE_HAILING"),
-    vehicleClass: z.string().trim().min(1),
+    rideHailingProviderInstanceId: z.string().trim().min(1),
+    providerVehicleTypeCode: z.string().trim().min(1),
   }),
 ]);
 

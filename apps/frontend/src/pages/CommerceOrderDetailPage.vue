@@ -50,13 +50,85 @@
             <div>
               <span>参与人数</span>
               <strong data-testid="order-detail.participant-count">
-                {{ detail.order.participantCount ?? 0 }} 人
+                {{ participantCountLabel }}
               </strong>
             </div>
           </div>
         </SurfaceCard>
 
-        <SurfaceCard gap="md">
+        <template v-if="rideHailingDetail">
+          <section
+            class="order-detail-page__ride"
+            data-testid="order-detail.ride-hailing.page"
+          >
+            <div
+              class="order-detail-page__ride-map"
+              data-testid="order-detail.ride-hailing.route-map"
+            >
+              <div class="order-detail-page__ride-polyline"></div>
+              <div class="order-detail-page__ride-callout order-detail-page__ride-callout--origin">
+                {{ rideHailingDetail.route.origin.name }}
+              </div>
+              <div class="order-detail-page__ride-callout order-detail-page__ride-callout--destination">
+                {{ rideHailingDetail.route.destination.name }}
+              </div>
+            </div>
+
+            <SurfaceCard gap="md">
+              <div class="order-detail-page__section-heading">
+                <p class="order-detail-page__eyebrow">Ride</p>
+                <h2 data-testid="order-detail.ride-hailing.status">
+                  {{ rideStatusLabel }}
+                </h2>
+              </div>
+
+              <div class="order-detail-page__facts">
+                <div>
+                  <span>车型</span>
+                  <strong data-testid="order-detail.ride-hailing.selected-vehicle">
+                    {{ rideHailingDetail.selectedVehicleName }}
+                  </strong>
+                </div>
+                <div>
+                  <span>路线</span>
+                  <strong data-testid="order-detail.ride-hailing.route-summary">
+                    {{ rideRouteSummary }}
+                  </strong>
+                </div>
+                <div>
+                  <span>乘客</span>
+                  <strong data-testid="order-detail.ride-hailing.passengers">
+                    {{ ridePassengersLabel }}
+                  </strong>
+                </div>
+                <div v-if="rideHailingDetail.live?.driver">
+                  <span>司机</span>
+                  <strong data-testid="order-detail.ride-hailing.driver">
+                    {{ rideDriverLabel }}
+                  </strong>
+                </div>
+                <div v-if="rideHailingDetail.live?.vehicle">
+                  <span>车辆</span>
+                  <strong data-testid="order-detail.ride-hailing.vehicle">
+                    {{ rideVehicleLabel }}
+                  </strong>
+                </div>
+              </div>
+
+              <ActionLink
+                v-if="detail.bill"
+                :to="{ path: `/bills/${detail.bill.id}` }"
+                size="lg"
+                data-testid="order-detail.ride-hailing.bill-detail-link"
+              >
+                查看账单并支付
+              </ActionLink>
+            </SurfaceCard>
+          </section>
+        </template>
+
+        <template v-else>
+          <SurfaceCard gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Bill</p>
             <h2 data-testid="order-detail.total-price">
@@ -87,9 +159,9 @@
           >
             查看账单并支付
           </ActionLink>
-        </SurfaceCard>
+          </SurfaceCard>
 
-        <SurfaceCard gap="md">
+          <SurfaceCard gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Cancellation</p>
             <h2>取消政策</h2>
@@ -132,9 +204,9 @@
             :message="cancellationResultMessage"
             data-testid="order-detail.rental.cancelled"
           />
-        </SurfaceCard>
+          </SurfaceCard>
 
-        <SurfaceCard gap="md">
+          <SurfaceCard gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Fulfillment</p>
             <h2>场地预订</h2>
@@ -162,14 +234,15 @@
             message="场地履约已经进入已确认状态。"
             data-testid="order-detail.rental.booking-confirmed"
           />
-        </SurfaceCard>
+          </SurfaceCard>
+        </template>
       </template>
     </div>
   </FullScreenPageScaffold>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
@@ -196,6 +269,7 @@ const cancelMutation = useCancelRentalOrder();
 const confirmationMutation = useMockRentalBookingConfirmation();
 
 const detail = computed(() => orderQuery.data.value ?? null);
+const rideHailingDetail = computed(() => detail.value?.rideHailing ?? null);
 
 const primaryItemName = computed(
   () => detail.value?.order.items[0]?.skuName ?? "订单项目",
@@ -219,8 +293,17 @@ const billEffectiveTotalFen = computed(() => {
 
 const orderStatusLabel = computed(() => {
   if (detail.value?.order.status === "CANCELLED") return "已取消";
+  if (detail.value?.order.status === "FAILED") return "创建失败";
+  if (detail.value?.order.status === "INITIATING") return "正在创建";
   if (detail.value?.order.status === "OPEN") return "进行中";
   return detail.value?.order.status ?? "未知";
+});
+
+const participantCountLabel = computed(() => {
+  if (rideHailingDetail.value) {
+    return `${rideHailingDetail.value.riders.length} 人`;
+  }
+  return `${detail.value?.order.participantCount ?? 0} 人`;
 });
 
 const fulfillmentStatusLabel = computed(() => {
@@ -275,9 +358,48 @@ const isCancellationPending = computed(
 const backFallbackTo = computed(() => ({ path: "/" }));
 
 const serviceWindowLabel = computed(() => {
+  if (rideHailingDetail.value) {
+    return rideHailingDetail.value.departureAt
+      ? `${formatDateTime(rideHailingDetail.value.departureAt)} 出发`
+      : "现在出发";
+  }
   const start = detail.value?.order.serviceStartAt ?? null;
   const end = detail.value?.order.serviceEndAt ?? null;
   return `${formatDateTime(start)} - ${formatDateTime(end)}`;
+});
+
+const rideStatusLabel = computed(() => {
+  const ride = rideHailingDetail.value;
+  if (!ride) return "未知状态";
+  if (ride.live?.statusLabel) return ride.live.statusLabel;
+  if (ride.providerCreationStatus === "FAILED") return "呼叫失败";
+  if (ride.providerCreationStatus === "SUCCEEDED") return "正在呼叫";
+  return "正在创建";
+});
+
+const rideRouteSummary = computed(() => {
+  const route = rideHailingDetail.value?.route;
+  if (!route) return "路线待确认";
+  const waypoints = route.waypoints.map((point) => point.name);
+  return [route.origin.name, ...waypoints, route.destination.name].join(" → ");
+});
+
+const ridePassengersLabel = computed(() => {
+  const riders = rideHailingDetail.value?.riders ?? [];
+  if (riders.length === 0) return "同乘人待确认";
+  return `同乘人：${riders.map((rider) => rider.displayName).join("、")}`;
+});
+
+const rideDriverLabel = computed(() => {
+  const driver = rideHailingDetail.value?.live?.driver;
+  if (!driver) return "";
+  return [driver.driverName, driver.driverPhone].filter(Boolean).join(" ");
+});
+
+const rideVehicleLabel = computed(() => {
+  const vehicle = rideHailingDetail.value?.live?.vehicle;
+  if (!vehicle) return "";
+  return [vehicle.plate, vehicle.color, vehicle.brand].filter(Boolean).join(" ");
 });
 
 const orderErrorMessage = computed(() =>
@@ -313,6 +435,21 @@ const simulateBookingConfirmation = async (): Promise<void> => {
   if (!orderId.value) return;
   await confirmationMutation.mutateAsync(orderId.value);
 };
+
+let ridePollingTimer: number | undefined;
+
+onMounted(() => {
+  ridePollingTimer = window.setInterval(() => {
+    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill) return;
+    void orderQuery.refetch();
+  }, 1500);
+});
+
+onUnmounted(() => {
+  if (ridePollingTimer !== undefined) {
+    window.clearInterval(ridePollingTimer);
+  }
+});
 </script>
 
 <style scoped lang="scss">
@@ -384,6 +521,58 @@ const simulateBookingConfirmation = async (): Promise<void> => {
     color: var(--sys-color-on-surface);
     text-align: right;
   }
+}
+
+.order-detail-page__ride {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-medium);
+}
+
+.order-detail-page__ride-map {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+  border-radius: var(--sys-radius-medium);
+  background:
+    linear-gradient(135deg, rgb(226 236 229 / 0.95), rgb(223 232 241 / 0.96)),
+    repeating-linear-gradient(
+      45deg,
+      rgb(255 255 255 / 0.36) 0,
+      rgb(255 255 255 / 0.36) 0.5rem,
+      transparent 0.5rem,
+      transparent 2rem
+    );
+}
+
+.order-detail-page__ride-polyline {
+  position: absolute;
+  inset: 27% 18% 30% 18%;
+  border-bottom: 0.28rem solid var(--sys-color-primary);
+  border-left: 0.28rem solid var(--sys-color-primary);
+  border-radius: 0 0 0 5rem;
+}
+
+.order-detail-page__ride-callout {
+  position: absolute;
+  max-width: min(74%, 18rem);
+  min-height: 2.5rem;
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
+  background: var(--sys-color-surface);
+  color: var(--sys-color-on-surface);
+  box-shadow: var(--sys-elevation-level2);
+}
+
+.order-detail-page__ride-callout--origin {
+  top: 16%;
+  left: 10%;
+}
+
+.order-detail-page__ride-callout--destination {
+  right: 10%;
+  bottom: 15%;
 }
 
 .order-detail-page__policy {

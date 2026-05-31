@@ -900,6 +900,8 @@
     "participantCountLabel": "适配人数",
     "durationMinutesLabel": "时长（分钟）",
     "vehicleClassLabel": "车型",
+    "rideProviderInstanceIdLabel": "网约车服务商实例 ID",
+    "providerVehicleTypeCodeLabel": "服务商车型编码",
     "pricingModelLabel": "Pricing Model",
     "pricingModelTypeLabel": "价格模型类型",
     "pricingModelFixed": "固定总价",

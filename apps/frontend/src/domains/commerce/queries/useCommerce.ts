@@ -11,8 +11,18 @@ export type CommercePlacementResponse = InferResponseType<
   CommerceApi["placements"]["$get"]
 >;
 
-export type RentalOrderingResponse = InferResponseType<
+export type OrderingFromPlacementResponse = InferResponseType<
   CommerceApi["ordering"]["from-placement"]["$get"]
+>;
+
+export type RentalOrderingResponse = Extract<
+  OrderingFromPlacementResponse,
+  { productType: "RENTAL" }
+>;
+
+export type RideHailingOrderingResponse = Extract<
+  OrderingFromPlacementResponse,
+  { productType: "RIDE_HAILING" }
 >;
 
 export type RentalOrderingEvaluationInput = Parameters<
@@ -21,6 +31,14 @@ export type RentalOrderingEvaluationInput = Parameters<
 
 export type RentalOrderCreateInput = Parameters<
   CommerceApi["orders"]["rental"]["$post"]
+>[0]["json"];
+
+export type RideHailingOrderingEvaluationInput = Parameters<
+  CommerceApi["ordering"]["ride-hailing"]["evaluate"]["$post"]
+>[0]["json"];
+
+export type RideHailingOrderCreateInput = Parameters<
+  CommerceApi["orders"]["ride-hailing"]["$post"]
 >[0]["json"];
 
 export type CommerceOrderDetailResponse = InferResponseType<
@@ -80,11 +98,11 @@ export const useCommercePlacement = (
     enabled: () => contextId.value !== null,
   });
 
-export const useRentalOrderingFromPlacement = (
+export const useOrderingFromPlacement = (
   placementInstanceId: Ref<number | null>,
   contextId: Ref<number | null>,
 ) =>
-  useQuery<RentalOrderingResponse>({
+  useQuery<OrderingFromPlacementResponse>({
     queryKey: computed(() =>
       queryKeys.commerce.rentalOrderingFromPlacement(
         placementInstanceId.value,
@@ -110,13 +128,15 @@ export const useRentalOrderingFromPlacement = (
           },
         },
       );
-      return readJsonOrThrow<RentalOrderingResponse>(
+      return readJsonOrThrow<OrderingFromPlacementResponse>(
         response,
         "Failed to load ordering",
       );
     },
     enabled: () => placementInstanceId.value !== null && contextId.value !== null,
   });
+
+export const useRentalOrderingFromPlacement = useOrderingFromPlacement;
 
 export const useEvaluateRentalOrdering = () =>
   useMutation({
@@ -132,6 +152,25 @@ export const useEvaluateRentalOrdering = () =>
       return readJsonOrThrow<
         InferResponseType<CommerceApi["ordering"]["rental"]["evaluate"]["$post"]>
       >(response, "Failed to evaluate ordering");
+    },
+  });
+
+export const useEvaluateRideHailingOrdering = () =>
+  useMutation({
+    mutationFn: async (input: RideHailingOrderingEvaluationInput) => {
+      const response = await client.api.commerce.ordering["ride-hailing"].evaluate.$post(
+        { json: input },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<
+        InferResponseType<
+          CommerceApi["ordering"]["ride-hailing"]["evaluate"]["$post"]
+        >
+      >(response, "Failed to evaluate ride-hailing ordering");
     },
   });
 
@@ -151,6 +190,31 @@ export const useCreateRentalOrder = () => {
       return readJsonOrThrow<
         InferResponseType<CommerceApi["orders"]["rental"]["$post"]>
       >(response, "Failed to create rental order");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["commerce"],
+      });
+    },
+  });
+};
+
+export const useCreateRideHailingOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: RideHailingOrderCreateInput) => {
+      const response = await client.api.commerce.orders["ride-hailing"].$post(
+        { json: input },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<
+        InferResponseType<CommerceApi["orders"]["ride-hailing"]["$post"]>
+      >(response, "Failed to create ride-hailing order");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -214,6 +278,7 @@ export const useBillDetail = (billId: Ref<string | null>) =>
       );
     },
     enabled: () => billId.value !== null,
+    refetchOnMount: "always",
   });
 
 export const usePaymentCheckout = (billLineId: Ref<string | null>) =>

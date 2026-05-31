@@ -63,9 +63,12 @@ describe("catalog contract guards", () => {
     expect(() =>
       assertProductSkuContract({
         spu: { productType: "RENTAL" },
-        facts: { type: "RIDE_HAILING", vehicleClass: "STANDARD" },
+        facts: {
+          rideHailingProviderInstanceId: "caocao-main",
+          providerVehicleTypeCode: "EXPRESS",
+        },
       }),
-    ).toThrow("SKU facts type must match SPU productType");
+    ).toThrow("Rental SKU facts must match SPU productType");
   });
 
   it("rejects mixed product types inside one offer", () => {

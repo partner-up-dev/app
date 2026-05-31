@@ -6,6 +6,10 @@ import {
   type StartedFakeWeChatPayServer,
 } from "@partner-up-dev/fake-wechatpay-server";
 import {
+  startFakeCaocaoServer,
+  type StartedFakeCaocaoServer,
+} from "../../../../packages/fake-caocao-server/src/index";
+import {
   createScenarioDatabase,
   installScenarioDatabaseEnv,
   resetAndMigrateTestDatabase,
@@ -29,6 +33,7 @@ const repoRoot = path.resolve(
 
 let backendServer: StartedBackendServer | null = null;
 let database: ScenarioDatabaseHandle | null = null;
+let fakeCaocaoServer: StartedFakeCaocaoServer | null = null;
 let fakeWeChatPayServer: StartedFakeWeChatPayServer | null = null;
 let frontendServer: StartedFrontendServer | null = null;
 
@@ -47,6 +52,7 @@ export async function setup(project: TestProject): Promise<void> {
   process.env.VITE_API_URL = frontendBaseUrl;
 
   fakeWeChatPayServer = await startFakeWeChatPayServer();
+  fakeCaocaoServer = await startFakeCaocaoServer();
 
   database = await createScenarioDatabase();
   const databaseUrl = installScenarioDatabaseEnv(database.databaseUrl);
@@ -61,6 +67,11 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide("systemScenarioEnvironment", {
     backendBaseUrl: backendServer.origin,
+    fakeCaocao: {
+      clientId: fakeCaocaoServer.fixture.clientId,
+      origin: fakeCaocaoServer.origin,
+      signKey: fakeCaocaoServer.fixture.signKey,
+    },
     fakeWeChatPay: {
       apiV3Key: fakeWeChatPayServer.fixture.apiV3Key,
       appId: fakeWeChatPayServer.fixture.appId,
@@ -77,9 +88,11 @@ export async function teardown(): Promise<void> {
 
   await frontendServer?.close();
   await backendServer?.close();
+  await fakeCaocaoServer?.close();
   await fakeWeChatPayServer?.close();
   frontendServer = null;
   backendServer = null;
+  fakeCaocaoServer = null;
   fakeWeChatPayServer = null;
 
   try {
@@ -101,6 +114,11 @@ declare module "vitest" {
   export interface ProvidedContext {
     systemScenarioEnvironment: {
       backendBaseUrl: string;
+      fakeCaocao: {
+        origin: string;
+        clientId: string;
+        signKey: string;
+      };
       fakeWeChatPay: {
         origin: string;
         appId: string;

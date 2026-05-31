@@ -192,19 +192,33 @@ function applyRules(input: {
   return state;
 }
 
-function buildSkuBaseState(item: PricingItemInput): PricingState {
-  const amountFen = resolvePricingModelAmount(item.sku.pricingModel);
+function buildSkuBaseState(input: {
+  item: PricingItemInput;
+  quoteTotalFen?: number | null;
+}): PricingState {
+  let amountFen: number;
+  if (input.item.sku.pricingModel.type === "DYNAMIC_QUOTE") {
+    if (input.quoteTotalFen === null || input.quoteTotalFen === undefined) {
+      throw new Error("Dynamic quote pricing requires a resolved quote input");
+    }
+    amountFen = input.quoteTotalFen;
+  } else {
+    amountFen = resolvePricingModelAmount(input.item.sku.pricingModel);
+  }
 
   return {
-    pricingModel: item.sku.pricingModel,
+    pricingModel: input.item.sku.pricingModel,
     amountFen,
     explanations: [
       {
         phase: "SKU_BASE",
         sourceType: "PRICING_MODEL",
-        sourceId: `sku:${item.sku.id}`,
-        label: item.sku.name,
-        description: "固定总价",
+        sourceId: `sku:${input.item.sku.id}`,
+        label: input.item.sku.name,
+        description:
+          input.item.sku.pricingModel.type === "DYNAMIC_QUOTE"
+            ? "实时预估价"
+            : "固定总价",
         deltaFen: amountFen,
         resultAmountFen: amountFen,
       },
@@ -222,7 +236,10 @@ export class PricingApplication {
     const itemBreakdowns: OrderItemPricingSnapshot[] = [];
 
     for (const item of input.items) {
-      const baseState = buildSkuBaseState(item);
+      const baseState = buildSkuBaseState({
+        item,
+        quoteTotalFen: input.orderContext?.quoteTotalFen ?? null,
+      });
       const spuState = applyRules({
         phase: "SPU_POLICY",
         rules: item.spu.pricingPolicy.rules,

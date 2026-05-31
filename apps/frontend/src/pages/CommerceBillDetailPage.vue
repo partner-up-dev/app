@@ -23,7 +23,10 @@
         :message="billErrorMessage"
       />
 
-      <div v-else-if="billQuery.isPending.value" class="bill-detail-page__loading">
+      <div
+        v-else-if="billQuery.isPending.value || billQuery.isFetching.value"
+        class="bill-detail-page__loading"
+      >
         正在加载账单...
       </div>
 

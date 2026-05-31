@@ -105,3 +105,21 @@
   Offer target and resolves only to generic `ORDERING` or `ORDER`; it does not
   know concrete product or RideHailing Ordering. RideHailing Ordering is chosen
   later from the resolved Offer/SPU `productType`.
+- Implemented the system-scenario-driven RideHailing end-to-end slice:
+  - generic Ordering dispatch now chooses RideHailing from Offer product type;
+  - RideHailing SKU facts now use `rideHailingProviderInstanceId` and
+    `providerVehicleTypeCode` without `facts.type`;
+  - Ordering UI renders route map/callouts, departure/riders/contact drawers,
+    provider-backed quote cards, and price range;
+  - provider-backed create order promotes to `OPEN` only after Caocao create
+    succeeds, and hard failure marks the local order failed and detaches the PR
+    order attachment for retry;
+  - Order Detail renders map-first RideHailing content using typed order facts
+    plus live provider detail, not fulfillment-owned dispatch snapshots;
+  - final provider fare creates the Bill, Payment Checkout settles it, and the
+    payment settlement consequence calls Caocao `feeConfirm`.
+- Verification on 2026-05-31:
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    passed with 2 tests;
+  - backend typecheck, frontend build, and the catalog contract backend unit
+    test passed.

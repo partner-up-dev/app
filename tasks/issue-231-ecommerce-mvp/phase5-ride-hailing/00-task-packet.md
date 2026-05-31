@@ -26,10 +26,18 @@ must live in focused sibling files rather than continuing as a monofile.
     callback route foundation.
 - `30-fulfillment-provider-topology.md`
   - RideHailingFulfillment provider collaboration topology and SSoT boundary.
+- `35-order-fulfillment-foundation.md`
+  - Slice 3 local RideHailing order and provider-binding fulfillment
+    persistence implementation.
 - `40-ordering-content-ia.md`
   - RideHailing Ordering Content information architecture.
+- `45-order-detail-content-ia.md`
+  - RideHailing Order Detail map-first live fulfillment content IA.
 - `50-verification-plan.md`
   - Unit, scenario, and guardrail verification plan.
+- `55-system-scenario-test-plan.md`
+  - Full RideHailing system scenario acceptance boundary, fake Caocao fixture,
+    product/SKU setup, UI path, and stable test id contract.
 - `60-implementation-plan.md`
   - Ordered implementation slices and their exit criteria.
 - `90-discussion-log.md`
@@ -80,16 +88,40 @@ Hypothesis:
   RideHailing-specific facts directly onto base `TradeOrder`.
 - Migrating existing Rental-specific fields out of base `trade_orders` is a
   mandatory RideHailing prerequisite, not optional technical debt.
-- Specialized RideHailingOrder creation creates
-  `RideHailingFulfillment(INITIATING)`; this is not base Order behavior.
+- Specialized RideHailingOrder creation creates a provider-binding
+  RideHailingFulfillment foundation; this is not base Order behavior. The
+  initiating state is represented by base `TradeOrder.status = INITIATING` and
+  typed RideHailingOrder provider-creation state, not by fulfillment owning
+  dispatch state.
 - Do not introduce separate provider-order-attempt or provider-event-inbox
   tables in the first cut unless a non-audit need is proven.
-- RideHailingOrder owns order-facing execution projection. Fulfillment must not
-  duplicate long-lived driver assignment or execution projection in a way that
-  creates SSoT drift.
+- RideHailing Fulfillment must not duplicate long-lived driver assignment,
+  execution projection, dispatch state, or provider side-effect results in a way
+  that creates SSoT drift.
+- Future order-facing execution/cancellation/settlement facts must be added to
+  the typed RideHailing order only in the slice that first writes and verifies
+  that sequence; Slice 3 must not pre-create them.
+- Base TradeOrder owns only generic commercial contract snapshots, such as item
+  snapshot and pricing snapshot. It does not own raw Caocao estimate semantics.
+- Product/PricingApplication owns RideHailing quote interpretation. It may
+  depend on RideHailing Fulfillment/provider to obtain live provider estimates,
+  but the raw estimate response is not an order fact and is not persisted in the
+  first cut.
+- RideHailing SKU carries ride-hailing-specific facts such as
+  `rideHailingProviderInstanceId`; the SKU facts JSON must not duplicate SKU or
+  product type. Provider estimate must use the provider instance declared by the
+  SKU. Fulfillment/provider boundary validates and resolves that instance, it
+  does not choose a default provider instance by itself.
+- Phase 5 acceptance is a RideHailing system scenario test passing through the
+  real frontend. The scenario must operate the UI and assert rendered content,
+  not directly drive or assert backend APIs for the acceptance path.
 - RideHailing Ordering Content excludes Context Header, PR source/back link,
   READY/creator eligibility, Price Detail footer, Bottom Action Bar, and create
   CTA.
+- RideHailing Order Detail is a map-first live fulfillment surface, not a
+  Rental-style generic detail card stack.
+- RideHailing Order Detail links to Bill/Payment surfaces but does not embed
+  Payment Checkout inside the order detail content.
 
 ## Current Implementation Status
 
@@ -102,14 +134,28 @@ Hypothesis:
 - Slice 2 is implemented: durable Caocao provider instance storage, adapter,
   registration script, provider registry, and callback route skeleton are in
   place. Verification is recorded in `25-provider-instance-foundation.md`.
+- Slice 3 is implemented: local RideHailing base order + typed order +
+  provider-binding fulfillment persistence is in place. Verification is
+  recorded in `35-order-fulfillment-foundation.md`.
+- RideHailing end-to-end system scenario is implemented and passing for the
+  provider-backed happy path and provider-create-failure retry path. The
+  implemented path covers PR placement, RideHailing Ordering UI, SKU/provider
+  quote evaluation, provider-backed order creation, RideHailing Order Detail,
+  provider detail progression, final Bill, Payment Checkout, and Caocao
+  `feeConfirm`.
+- RideHailing SKU facts now carry `rideHailingProviderInstanceId` and
+  `providerVehicleTypeCode` without duplicating product/SKU type in facts.
+- RideHailing Order Detail projects live provider state from the provider query
+  boundary and keeps dispatch/cancellation/fee-confirm side-effect results out
+  of RideHailingFulfillment persistence.
 
 ## Open Handshake Items
 
-- Exact parent route/page composition around RideHailing Ordering Content after
-  the content IA is confirmed.
-- Whether first-cut route editing supports waypoints beyond display, or only
-  displays existing waypoints while permitting origin/destination edits.
-- Fake Caocao HTTP server package shape for scenario tests.
+- First-cut route editing remains a display-oriented map/callout shell. Full
+  route point mutation is still deferred.
+- Provider callback-driven state convergence beyond the fake/provider-detail
+  polling path remains a later hardening slice.
+- Full provider cancellation and cancellation-fee UX remains deferred.
 
 ## Working Rule
 

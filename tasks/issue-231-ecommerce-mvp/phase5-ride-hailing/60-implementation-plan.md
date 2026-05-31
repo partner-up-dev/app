@@ -116,17 +116,24 @@ Work:
 - Add `OrderStatus.INITIATING`.
 - Do not extend base `TradeOrder` with RideHailing-specific facts.
 - Add `ride_hailing_orders` entity/model keyed by base order id:
-  route, departure time, rider/contact facts, selected vehicle SKU, quote
-  snapshot, order-facing ride execution state, final settlement input, and final
-  pricing references as needed.
+  route snapshot, departure time, riders, contact phone, and provider creation
+  status.
 - Keep base `trade_orders` limited to cross-family contract state.
+- Keep generic item/pricing contract snapshots on base `trade_orders`, not on
+  `ride_hailing_orders`.
+- Keep raw Caocao estimate response out of order persistence. RideHailing
+  estimate data is provider input consumed by Product/PricingApplication.
+- Do not pre-create future execution/cancellation/settlement fields in Slice 3.
+  Driver assignment, dispatch state, provider side-effect results, final
+  settlement input, and final pricing references must be added only by the slice
+  that first writes and tests that sequence.
 - Add `ride_hailing_fulfillments` entity, migration, repository, and use-case
   shell.
-- Keep Fulfillment provider-side:
-  provider instance id, external order id, provider order no, dispatch state,
-  cancellation side-effect result, fee-confirm side-effect result.
-- Avoid duplicating order-facing driver assignment or execution projections in
-  Fulfillment.
+- Keep Fulfillment provider-side limited to provider binding
+  identity/reference: provider instance id, external order id, provider order no
+  / execution ref.
+- Avoid duplicating order-facing driver assignment, execution projection,
+  dispatch state, or provider side-effect outcomes in Fulfillment.
 
 Exit criteria:
 
@@ -142,23 +149,51 @@ Goal:
 
 Work:
 
-- Extend placement/order target resolution so ride-hailing placements route to
-  RideHailing Ordering when no active PR-attached order exists.
+- Remove the current Rental-only assumption from generic placement target
+  resolution:
+  - stored Placement target remains `OFFER`;
+  - resolved navigation target remains generic `ORDERING` when no current
+    PR-attached non-terminal order exists;
+  - resolved navigation target is `ORDER` when one exists for `(pr_id,
+    offer_id)`;
+  - concrete Ordering content family is selected later from the resolved
+    Offer/SPU `productType`.
 - Add RideHailing Ordering read use case:
   route field metadata, editable/locked state, rider/contact defaults, vehicle
   SKU options, and provider availability.
+- Refactor `SkuFacts` away from the historical `facts.type` discriminator:
+  facts schema is selected by parent SPU/Offer `productType`, not duplicated in
+  the facts JSON.
+- Define `RideHailingSkuFacts` with:
+  - `rideHailingProviderInstanceId`;
+  - `providerVehicleTypeCode`.
+- Validate RideHailing SKU facts shape in catalog contract guardrails using the
+  parent SPU `productType`.
 - Add RideHailing quote/evaluate use case:
-  call Caocao estimate through `RideHailingProviderPort`;
-  normalize vehicle quote options;
-  return quote expiry state.
+  - read each candidate SKU's `rideHailingProviderInstanceId`;
+  - obtain live Caocao estimate through RideHailing Fulfillment/provider
+    collaboration using the SKU-declared provider instance;
+  - feed the provider estimate input into Product/PricingApplication;
+  - normalize vehicle quote options into generic item/pricing application output;
+  - return quote expiry state without persisting raw provider estimate response;
+  - disable only the affected SKU when its declared provider instance is
+    inactive or incompatible.
 - Ensure backend revalidates upstream Offer/SPU/SKU/Placement truth and does not
   trust frontend-submitted pricing truth.
 
 Exit criteria:
 
-- Backend tests cover placement -> ride ordering read, quote evaluation, quote
-  expiry, and disabled reasons.
+- Backend tests cover generic placement target resolution for a RideHailing
+  Offer, RideHailing Ordering read, quote evaluation, quote expiry, and
+  disabled reasons.
 - No provider order creation yet.
+
+Status on 2026-05-31:
+
+- Implemented as part of the system-scenario-driven slice. Generic
+  `from-placement` dispatch now resolves RideHailing Ordering from the target
+  Offer product type. RideHailing quote evaluation uses the SKU-declared
+  `rideHailingProviderInstanceId` and `providerVehicleTypeCode`.
 
 ## Slice 5: RideHailing Ordering Content Frontend
 
@@ -191,6 +226,13 @@ Exit criteria:
 - Browser check verifies map/callout layout does not overlap or break on mobile
   and desktop.
 
+Status on 2026-05-31:
+
+- Implemented in the existing Ordering page as the first-cut RideHailing
+  content branch. The system scenario verifies route map/callouts, departure,
+  riders, contact drawers, vehicle quote cards, selection, price range, and
+  create affordance through the real browser.
+
 ## Slice 6: Provider-Backed Create Ride Order
 
 Goal:
@@ -206,16 +248,18 @@ Work:
   - create base `TradeOrder(INITIATING)`;
   - create typed `RideHailingOrder`;
   - attach PR offer slot;
-  - create `RideHailingFulfillment(INITIATING)`;
+  - create a provider-binding `RideHailingFulfillment` foundation while base
+    order remains `INITIATING`;
   - call Caocao `orderCarV2`;
   - promote to `OPEN` only after provider execution ref exists.
 - Handle provider hard failure:
-  - fulfillment dispatch state -> `FAILED`;
-  - order -> `FAILED`;
+  - RideHailingOrder provider creation status -> `FAILED`;
+  - base order -> `FAILED`;
   - detach PR attachment;
   - no Bill.
 - Handle provider timeout/unknown:
-  - keep order `INITIATING`;
+  - RideHailingOrder provider creation status -> `UNKNOWN`;
+  - keep base order `INITIATING`;
   - expose reconciliation-safe state.
 
 Exit criteria:
@@ -223,6 +267,13 @@ Exit criteria:
 - Backend tests cover success, hard failure, timeout/unknown, duplicate active
   order prevention, and retry after failed/detached creation.
 - Frontend can navigate to Order Detail only after successful create/call.
+
+Status on 2026-05-31:
+
+- Implemented for success and provider hard failure. On hard failure the typed
+  RideHailing order is marked failed, the base order is failed, the PR
+  attachment is detached, and the UI remains retryable without an open order.
+  Timeout/unknown reconciliation remains deferred.
 
 ## Slice 7: Provider Callback, Detail Query, And Ride State Application
 
@@ -238,7 +289,8 @@ Work:
 - Treat callback as a trigger:
   query provider detail before order-facing terminal/billing mutations.
 - Map provider statuses into RideHailingOrder execution state and
-  Fulfillment provider binding/dispatch state.
+  update Fulfillment provider binding/reference only when a provider execution
+  ref is learned.
 - Make transitions idempotent without a first-cut provider-event table.
 
 Exit criteria:
@@ -246,7 +298,61 @@ Exit criteria:
 - Backend unit tests cover valid callback, invalid signature, duplicate
   callback, out-of-order callback, and detail-query-driven mutation.
 
-## Slice 8: Cancellation And Abort Fee
+## Slice 8: RideHailing Order Detail Backend And Frontend Content
+
+Goal:
+
+- Implement the map-first RideHailing Order Detail experience using the uniapp
+  detail page as the UI reference.
+
+Work:
+
+- Add RideHailing Order Detail backend read use case:
+  - base order;
+  - typed RideHailingOrder;
+  - provider/fulfillment binding;
+  - bill/payment summary;
+  - PR attachment/detail link;
+  - cancellation capability flags.
+- Add live navigation/detail read use case where needed:
+  - route;
+  - planned route;
+  - driven polyline;
+  - driver/car position;
+  - status-aware refresh metadata.
+- Add RideHailing Order Detail frontend page/content:
+  - live route map as the dominant surface;
+  - bottom/side detail panel;
+  - status title and status description;
+  - primary action row and more menu;
+  - driver and vehicle info after provider acceptance;
+  - selected ride type cards from base order generic item/pricing snapshot
+    before provider acceptance;
+  - passenger avatars/copy;
+  - display-only route summary;
+  - optional preferences section.
+- Add Bill Detail / PR Detail links where corresponding state exists.
+- Add cancellation drawer shell behind backend capability flags; full provider
+  cancellation mutation lands in the cancellation slice.
+- Keep route editing, departure editing, rider/contact editing, and vehicle
+  reselection out of Order Detail.
+
+Exit criteria:
+
+- Backend tests cover the Order Detail read model and authority boundaries.
+- Frontend unit/component tests cover map/detail panel state rendering, primary
+  actions, driver/vehicle state, pre-acceptance ride type display, passengers,
+  and route summary.
+- Browser check verifies the map + panel composition on mobile and desktop,
+  including non-overlap and usable scrolling.
+
+Status on 2026-05-31:
+
+- Implemented first-cut Order Detail projection and UI branch. Live driver,
+  vehicle, and status are read from the provider detail boundary rather than
+  persisted on RideHailingFulfillment.
+
+## Slice 9: Cancellation And Abort Fee
 
 Goal:
 
@@ -258,6 +364,8 @@ Work:
 - If no provider execution exists, cancel locally.
 - If provider execution exists but actual trip usage has not started, ask
   Fulfillment/provider for cancel or cancel-fee result.
+- Persist cancel / cancel-fee result on RideHailingOrder, not on
+  RideHailingFulfillment.
 - Map provider result to termination attempt:
   no fee, fee, denied.
 - Emit abort-fee Bill seed only after provider-approved fee result.
@@ -268,7 +376,7 @@ Exit criteria:
 - Backend tests cover local void, approved no fee, approved with fee, denied,
   and in-trip cancellation denial.
 
-## Slice 9: Final Settlement, Bill, Payment, Fee Confirm
+## Slice 10: Final Settlement, Bill, Payment, Fee Confirm
 
 Goal:
 
@@ -283,6 +391,8 @@ Work:
 - Reuse existing Bill Detail and Payment Checkout.
 - After relevant local Payment settlement, call Caocao `feeConfirm` through
   Fulfillment/provider port.
+- Persist fee-confirm result on RideHailingOrder, not on
+  RideHailingFulfillment.
 
 Exit criteria:
 
@@ -290,22 +400,34 @@ Exit criteria:
   feeConfirm.
 - Existing Rental prepaid billing remains unchanged.
 
-## Slice 10: Scenario Tests And Fake Caocao Server
+Status on 2026-05-31:
+
+- Implemented first-cut final settlement: provider detail returning final fare
+  creates the final Bill. Existing Payment Checkout is reused, and the payment
+  settlement consequence calls Caocao `feeConfirm` through the provider port.
+
+## Slice 11: Scenario Tests And Fake Caocao Server
 
 Goal:
 
-- Prove the full user-visible and provider-boundary loop.
+- Prove the full user-visible and provider-boundary loop. This is the Phase 5
+  acceptance gate.
+- Detailed scenario design is recorded in `55-system-scenario-test-plan.md`.
 
 Work:
 
 - Add fake Caocao HTTP server/package or scenario fixture according to Slice 0.
 - Register a normal `CAOCAO_OPEN_API` provider instance pointing at the fake.
+- Configure RideHailing SKUs with `rideHailingProviderInstanceId` pointing
+  at the fake provider instance.
 - Scenario path:
   - PR placement;
   - RideHailing Ordering Content;
   - quote;
   - create/call;
+  - RideHailing Order Detail;
   - provider callback/detail;
+  - live map/detail state;
   - final settlement;
   - Bill Detail;
   - Payment Checkout;
@@ -314,11 +436,18 @@ Work:
 
 Exit criteria:
 
-- Targeted ride-hailing scenario passes through real frontend, backend HTTP,
-  provider adapter, fake provider HTTP boundary, isolated database, Bill, and
-  Payment.
+- Targeted RideHailing system scenario passes through real frontend, backend
+  HTTP, provider adapter, fake provider HTTP boundary, isolated database, Bill,
+  and Payment.
+- The scenario operates the UI and asserts rendered content/state. It must not
+  directly operate or assert backend APIs for the acceptance path.
 
-## Slice 11: Guardrail Sweep And Documentation Promotion
+Status on 2026-05-31:
+
+- Implemented. The targeted RideHailing system scenario passes with the happy
+  path and provider-create-failure retry path.
+
+## Slice 12: Guardrail Sweep And Documentation Promotion
 
 Goal:
 
