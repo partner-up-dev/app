@@ -109,10 +109,10 @@
                 <input v-model="offerForm.endsAt" class="text-input" type="text" />
               </label>
 
-              <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.pricingRulesLabel") }}</span>
-                <textarea v-model="offerForm.pricingRulesText" class="json-textarea" rows="10"></textarea>
-              </label>
+              <PricingRulesEditor
+                v-model="offerForm.pricingRules"
+                :title="t('adminCommercePlacementOffer.pricingRulesLabel')"
+              />
 
               <div class="inline-actions">
                 <Button size="sm" type="button" :disabled="isSavingOffer" @click="handleSaveOffer">
@@ -204,6 +204,12 @@ import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationP
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import {
+  buildPricingRules,
+  toPricingRuleDrafts,
+  type PricingRuleBuildLabels,
+  type PricingRuleDraft,
+} from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
+import {
   type AdminOfferInput,
   type AdminPlacementInput,
   useAdminCommercePlacementOfferWorkspace,
@@ -213,6 +219,7 @@ import {
   useUpdateAdminPlacement,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { parseJsonText, prettyJson } from "@/domains/admin-commerce/editor-json";
+import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -259,15 +266,27 @@ const toDateInputValue = (value: string | Date | null | undefined): string => {
   return value instanceof Date ? value.toISOString() : value;
 };
 
-const offerForm = ref({
-  productType: "RENTAL" as AdminOfferInput["productType"],
-  status: "DRAFT" as AdminOfferInput["status"],
+type OfferEditorForm = {
+  productType: AdminOfferInput["productType"];
+  status: AdminOfferInput["status"];
+  spuIdsCsv: string;
+  termsVersion: number;
+  startsAt: string;
+  endsAt: string;
+  pricingRules: PricingRuleDraft[];
+};
+
+const emptyOfferForm = (): OfferEditorForm => ({
+  productType: "RENTAL",
+  status: "DRAFT",
   spuIdsCsv: "",
   termsVersion: 1,
   startsAt: "",
   endsAt: "",
-  pricingRulesText: "[]",
+  pricingRules: [],
 });
+
+const offerForm = ref<OfferEditorForm>(emptyOfferForm());
 
 const placementForm = ref({
   status: "DRAFT" as AdminPlacementInput["status"],
@@ -336,15 +355,7 @@ watch(
   [selectedOffer, isCreatingOffer],
   ([offer, creating]) => {
     if (creating || !offer) {
-      offerForm.value = {
-        productType: "RENTAL",
-        status: "DRAFT",
-        spuIdsCsv: "",
-        termsVersion: 1,
-        startsAt: "",
-        endsAt: "",
-        pricingRulesText: "[]",
-      };
+      offerForm.value = emptyOfferForm();
       return;
     }
 
@@ -355,7 +366,7 @@ watch(
       termsVersion: offer.termsVersion,
       startsAt: toDateInputValue(offer.startsAt),
       endsAt: toDateInputValue(offer.endsAt),
-      pricingRulesText: prettyJson(offer.pricingPolicy.rules),
+      pricingRules: toPricingRuleDrafts(offer.pricingPolicy.rules),
     };
   },
   { immediate: true },
@@ -413,6 +424,14 @@ const selectPlacement = (placementId: number) => {
   isCreatingPlacement.value = false;
 };
 
+const buildPricingRuleLabels = (): PricingRuleBuildLabels => ({
+  pricingRuleIdLabel: t("adminCommerceProducts.pricingRuleIdLabel"),
+  targetIdLabel: t("adminCommerceProducts.targetIdLabel"),
+  amountFenLabel: t("adminCommerceProducts.amountFenLabel"),
+  ratioBpsLabel: t("adminCommerceProducts.ratioBpsLabel"),
+  resetAmountFenLabel: t("adminCommerceProducts.resetAmountFenLabel"),
+});
+
 const buildOfferInput = (): AdminOfferInput => ({
   productType: offerForm.value.productType,
   status: offerForm.value.status,
@@ -423,9 +442,9 @@ const buildOfferInput = (): AdminOfferInput => ({
   termsVersion: offerForm.value.termsVersion,
   startsAt: offerForm.value.startsAt.trim() || null,
   endsAt: offerForm.value.endsAt.trim() || null,
-  pricingRules: parseJsonText(
-    offerForm.value.pricingRulesText,
-    t("adminCommercePlacementOffer.pricingRulesLabel"),
+  pricingRules: buildPricingRules(
+    offerForm.value.pricingRules,
+    buildPricingRuleLabels(),
   ),
 });
 

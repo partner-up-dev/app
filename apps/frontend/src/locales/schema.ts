@@ -1477,7 +1477,11 @@ export interface MessageSchema {
     amountFenLabel: string;
     ratioBpsLabel: string;
     resetAmountFenLabel: string;
-    targetSkuIdLabel: string;
+    targetLevelLabel: string;
+    targetLevelSku: string;
+    targetLevelSpu: string;
+    targetLevelOrder: string;
+    targetIdLabel: string;
     continueRuleLabel: string;
     presentationLabel: string;
     heroImageAssetsLabel: string;

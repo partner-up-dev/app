@@ -1,17 +1,18 @@
 import type { AdminProductSpuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import {
   createDraftId,
-  isRecord,
   parseIntegerField,
-  parseOptionalPositiveInteger,
   type NumberInput,
 } from "@/domains/admin-commerce/model/product-management/shared";
+import {
+  buildPricingRules,
+  toPricingRuleDrafts,
+  type PricingRuleBuildLabels,
+  type PricingRuleDraft,
+} from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
 
 type RentalServicePolicy = Extract<AdminProductSpuInput["servicePolicy"], { type: "RENTAL" }>;
 type QuantityPolicyType = AdminProductSpuInput["salesPolicy"]["quantityPolicy"]["type"];
-type SpuPricingRule = AdminProductSpuInput["pricingRules"][number];
-type PricingRuleConditionMode = "ALWAYS" | "PRESERVE";
-type ResetPricingModelMode = "FIXED_TOTAL" | "PRESERVE";
 
 export type FactValueKind = "string" | "number" | "boolean" | "null" | "preserve";
 
@@ -47,23 +48,6 @@ export type FactEntryDraft = {
   originalValue: unknown;
 };
 
-export type PricingRuleDraft = {
-  draftId: string;
-  id: NumberInput;
-  label: string;
-  description: string;
-  conditionMode: PricingRuleConditionMode;
-  conditionRule: unknown;
-  actionType: SpuPricingRule["action"]["type"];
-  amountFen: NumberInput;
-  ratioBps: NumberInput;
-  resetPricingModelMode: ResetPricingModelMode;
-  resetAmountFen: NumberInput;
-  resetPricingModel: unknown;
-  targetSkuIdText: string;
-  continue: boolean;
-};
-
 export type SpuEditorForm = {
   name: string;
   productType: AdminProductSpuInput["productType"];
@@ -85,17 +69,12 @@ export type SpuEditorForm = {
   facts: FactEntryDraft[];
 };
 
-export type SpuBuildLabels = {
+export type SpuBuildLabels = PricingRuleBuildLabels & {
   quantityRangeError: string;
   fixedQuantityLabel: string;
   minQuantityLabel: string;
   maxQuantityLabel: string;
   serviceRentalLeadTimeLabel: string;
-  pricingRuleIdLabel: string;
-  targetSkuIdLabel: string;
-  amountFenLabel: string;
-  ratioBpsLabel: string;
-  resetAmountFenLabel: string;
   factsLabel: string;
   factKeyLabel: string;
 };
@@ -127,13 +106,6 @@ export const emptySpuInput = (): AdminProductSpuInput => ({
   },
   facts: {},
 });
-
-const isFixedTotalPricingModel = (
-  value: unknown,
-): value is { type: "FIXED_TOTAL"; amountFen: number } =>
-  isRecord(value) &&
-  value.type === "FIXED_TOTAL" &&
-  typeof value.amountFen === "number";
 
 const toStringItems = (values: string[], prefix: string): EditableStringItem[] =>
   values.map((value) => ({ id: createDraftId(prefix), value }));
@@ -189,36 +161,6 @@ const toNoticeBlocks = (
     title: block.title,
     content: block.content,
   }));
-
-const toPricingRuleDrafts = (rules: SpuPricingRule[]): PricingRuleDraft[] =>
-  rules.map((rule) => {
-    const resetPricingModel =
-      rule.action.type === "RESET" ? rule.action.payload.pricingModel : null;
-    const fixedResetModel = isFixedTotalPricingModel(resetPricingModel)
-      ? resetPricingModel
-      : null;
-    const targetSkuId =
-      rule.target.level === "SKU" && typeof rule.target.skuId === "number"
-        ? String(rule.target.skuId)
-        : "";
-
-    return {
-      draftId: createDraftId("pricing-rule"),
-      id: rule.id,
-      label: rule.label,
-      description: rule.description,
-      conditionMode: rule.conditionRule === null ? "ALWAYS" : "PRESERVE",
-      conditionRule: rule.conditionRule,
-      actionType: rule.action.type,
-      amountFen: rule.action.type === "MINUS" ? rule.action.payload.amountFen : 0,
-      ratioBps: rule.action.type === "RATIO" ? rule.action.payload.ratioBps : 10000,
-      resetPricingModelMode: fixedResetModel ? "FIXED_TOTAL" : "PRESERVE",
-      resetAmountFen: fixedResetModel?.amountFen ?? 0,
-      resetPricingModel,
-      targetSkuIdText: targetSkuId,
-      continue: rule.continue,
-    };
-  });
 
 export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
   const quantityPolicy = input.salesPolicy.quantityPolicy;
@@ -322,64 +264,6 @@ const buildFactsRecord = (
   return record;
 };
 
-const buildPricingRules = (
-  form: SpuEditorForm,
-  labels: SpuBuildLabels,
-): AdminProductSpuInput["pricingRules"] =>
-  form.pricingRules.map((rule) => {
-    const id = parseIntegerField(rule.id, labels.pricingRuleIdLabel);
-    const skuId = parseOptionalPositiveInteger(
-      rule.targetSkuIdText,
-      labels.targetSkuIdLabel,
-    );
-    const target: SpuPricingRule["target"] =
-      skuId === undefined ? { level: "SKU" } : { level: "SKU", skuId };
-
-    let action: SpuPricingRule["action"];
-    if (rule.actionType === "MINUS") {
-      action = {
-        type: "MINUS",
-        payload: {
-          amountFen: parseIntegerField(rule.amountFen, labels.amountFenLabel),
-        },
-      };
-    } else if (rule.actionType === "RATIO") {
-      action = {
-        type: "RATIO",
-        payload: {
-          ratioBps: parseIntegerField(rule.ratioBps, labels.ratioBpsLabel, { min: 0 }),
-        },
-      };
-    } else {
-      action = {
-        type: "RESET",
-        payload: {
-          pricingModel:
-            rule.resetPricingModelMode === "PRESERVE" && rule.resetPricingModel !== null
-              ? rule.resetPricingModel
-              : {
-                  type: "FIXED_TOTAL",
-                  amountFen: parseIntegerField(
-                    rule.resetAmountFen,
-                    labels.resetAmountFenLabel,
-                    { min: 0 },
-                  ),
-                },
-        },
-      };
-    }
-
-    return {
-      id,
-      label: rule.label.trim(),
-      description: rule.description.trim(),
-      conditionRule: rule.conditionMode === "ALWAYS" ? null : rule.conditionRule,
-      action,
-      target,
-      continue: rule.continue,
-    };
-  });
-
 const buildPresentation = (
   form: SpuEditorForm,
 ): AdminProductSpuInput["presentation"] => ({
@@ -417,36 +301,10 @@ export const buildSpuInput = (
     quantityPolicy: buildQuantityPolicy(form, labels),
   },
   servicePolicy: buildServicePolicy(form, labels),
-  pricingRules: buildPricingRules(form, labels),
+  pricingRules: buildPricingRules(form.pricingRules, labels),
   presentation: buildPresentation(form),
   facts: buildFactsRecord(form.facts, labels),
 });
-
-export const createPricingRuleDraft = (
-  existingRules: readonly PricingRuleDraft[],
-): PricingRuleDraft => {
-  const nextId =
-    existingRules.reduce((max, rule) => {
-      const parsed = typeof rule.id === "number" ? rule.id : Number(rule.id);
-      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
-    }, 0) + 1;
-  return {
-    draftId: createDraftId("pricing-rule"),
-    id: nextId,
-    label: "",
-    description: "",
-    conditionMode: "ALWAYS",
-    conditionRule: null,
-    actionType: "MINUS",
-    amountFen: 0,
-    ratioBps: 10000,
-    resetPricingModelMode: "FIXED_TOTAL",
-    resetAmountFen: 0,
-    resetPricingModel: null,
-    targetSkuIdText: "",
-    continue: true,
-  };
-};
 
 export const createParameterGroupDraft = (): ProductParameterGroupDraft => ({
   id: createDraftId("parameter-group"),
