@@ -39,18 +39,11 @@
           <span class="pm-field-label">{{ t("adminCommerceProducts.pricingRuleDescriptionLabel") }}</span>
           <input v-model="rule.description" class="pm-field-input" type="text" />
         </label>
-        <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.pricingRuleConditionLabel") }}</span>
-          <select v-model="rule.conditionMode" class="pm-field-input">
-            <option value="ALWAYS">{{ t("adminCommerceProducts.pricingRuleConditionAlways") }}</option>
-            <option value="PRESERVE" :disabled="rule.conditionRule === null">
-              {{ t("adminCommerceProducts.pricingRuleConditionCustom") }}
-            </option>
-          </select>
-        </label>
-        <p v-if="rule.conditionMode === 'PRESERVE'" class="pm-hint pm-field--full">
-          {{ t("adminCommerceProducts.pricingRuleCustomConditionHint") }}
-        </p>
+        <PricingConditionRuleEditor
+          v-model="rule.conditionDraft"
+          class="pm-field--full"
+          :target-level="rule.targetLevel"
+        />
         <label class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.pricingRuleActionLabel") }}</span>
           <select v-model="rule.actionType" class="pm-field-input">
@@ -112,6 +105,7 @@ import {
   createPricingRuleDraft,
   type PricingRuleDraft,
 } from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
+import PricingConditionRuleEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingConditionRuleEditor.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";

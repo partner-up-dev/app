@@ -1470,9 +1470,7 @@ export interface MessageSchema {
     pricingRuleLabelLabel: string;
     pricingRuleDescriptionLabel: string;
     pricingRuleConditionLabel: string;
-    pricingRuleConditionAlways: string;
-    pricingRuleConditionCustom: string;
-    pricingRuleCustomConditionHint: string;
+    pricingRuleConditionHint: string;
     pricingRuleActionLabel: string;
     pricingRuleActionMinus: string;
     pricingRuleActionRatio: string;
@@ -1554,6 +1552,33 @@ export interface MessageSchema {
     savePolicyAction: string;
     savingAction: string;
   };
+  adminCommerceJsonLogic: {
+    modeAria: string;
+    modeAlways: string;
+    modeAll: string;
+    modeAny: string;
+    modeCustom: string;
+    customPreservedHint: string;
+    customJsonLabel: string;
+    conditionsTitle: string;
+    emptyConditions: string;
+    addConditionAction: string;
+    removeConditionAction: string;
+    fieldLabel: string;
+    operatorLabel: string;
+    valueLabel: string;
+    operator: {
+      EQUALS: string;
+      NOT_EQUALS: string;
+      GREATER_THAN: string;
+      GREATER_THAN_OR_EQUALS: string;
+      LESS_THAN: string;
+      LESS_THAN_OR_EQUALS: string;
+      IS_TRUE: string;
+      IS_FALSE: string;
+      CONTAINS: string;
+    };
+  };
   adminCommercePlacementOffer: {
     offersTitle: string;
     placementsTitle: string;
@@ -1585,6 +1610,7 @@ export interface MessageSchema {
     targetKindLabel: string;
     targetIdLabel: string;
     matchingRuleLabel: string;
+    matchingRuleHint: string;
     bindingRulesLabel: string;
     addBindingRuleAction: string;
     removeBindingRuleAction: string;

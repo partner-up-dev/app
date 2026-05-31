@@ -1,5 +1,12 @@
 import type { AdminProductSpuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import {
+  buildJsonLogicRule,
+  toJsonLogicRuleDraft,
+  type JsonLogicFieldOption,
+  type JsonLogicRuleBuildLabels,
+  type JsonLogicRuleDraft,
+} from "@/domains/admin-commerce/model/json-logic/jsonLogicRuleEditorModel";
+import {
   createDraftId,
   isRecord,
   parseIntegerField,
@@ -10,7 +17,6 @@ import {
 export type CommercePricingRule = AdminProductSpuInput["pricingRules"][number];
 export type CommercePricingRules = AdminProductSpuInput["pricingRules"];
 export type PricingRuleTargetLevel = CommercePricingRule["target"]["level"];
-type PricingRuleConditionMode = "ALWAYS" | "PRESERVE";
 type ResetPricingModelMode = "FIXED_TOTAL" | "PRESERVE";
 
 export type PricingRuleDraft = {
@@ -18,8 +24,7 @@ export type PricingRuleDraft = {
   id: NumberInput;
   label: string;
   description: string;
-  conditionMode: PricingRuleConditionMode;
-  conditionRule: unknown;
+  conditionDraft: JsonLogicRuleDraft;
   actionType: CommercePricingRule["action"]["type"];
   amountFen: NumberInput;
   ratioBps: NumberInput;
@@ -71,8 +76,7 @@ export const toPricingRuleDrafts = (
       id: rule.id,
       label: rule.label,
       description: rule.description,
-      conditionMode: rule.conditionRule === null ? "ALWAYS" : "PRESERVE",
-      conditionRule: rule.conditionRule,
+      conditionDraft: toPricingConditionRuleDraft(rule.conditionRule),
       actionType: rule.action.type,
       amountFen: rule.action.type === "MINUS" ? rule.action.payload.amountFen : 0,
       ratioBps: rule.action.type === "RATIO" ? rule.action.payload.ratioBps : 10000,
@@ -155,7 +159,10 @@ export const buildPricingRules = (
       id,
       label: rule.label.trim(),
       description: rule.description.trim(),
-      conditionRule: rule.conditionMode === "ALWAYS" ? null : rule.conditionRule,
+      conditionRule: buildPricingConditionRule(
+        rule.conditionDraft,
+        rule.targetLevel,
+      ),
       action,
       target: buildPricingRuleTarget(rule, labels),
       continue: rule.continue,
@@ -175,8 +182,7 @@ export const createPricingRuleDraft = (
     id: nextId,
     label: "",
     description: "",
-    conditionMode: "ALWAYS",
-    conditionRule: null,
+    conditionDraft: createPricingConditionRuleDraft(),
     actionType: "MINUS",
     amountFen: 0,
     ratioBps: 10000,
@@ -188,3 +194,102 @@ export const createPricingRuleDraft = (
     continue: true,
   };
 };
+
+const commonPricingConditionFields = [
+  {
+    path: "target.level",
+    label: "目标层级",
+    valueKind: "string",
+    valueOptions: [
+      { value: "SKU", label: "SKU" },
+      { value: "SPU", label: "SPU" },
+      { value: "ORDER", label: "ORDER" },
+    ],
+  },
+  {
+    path: "amountFen",
+    label: "当前金额",
+    valueKind: "number",
+  },
+  {
+    path: "pricingModel.type",
+    label: "价格模型类型",
+    valueKind: "string",
+    valueOptions: [
+      { value: "FIXED_TOTAL", label: "FIXED_TOTAL" },
+      { value: "DYNAMIC_QUOTE", label: "DYNAMIC_QUOTE" },
+    ],
+  },
+] satisfies readonly JsonLogicFieldOption[];
+
+const itemPricingConditionFields = [
+  {
+    path: "sku.id",
+    label: "SKU ID",
+    valueKind: "number",
+  },
+  {
+    path: "spu.id",
+    label: "SPU ID",
+    valueKind: "number",
+  },
+  {
+    path: "spu.skuSelectionPolicy.type",
+    label: "SKU 选择策略",
+    valueKind: "string",
+    valueOptions: [{ value: "EXACTLY_ONE", label: "EXACTLY_ONE" }],
+  },
+  {
+    path: "spu.quantityPolicy.type",
+    label: "数量策略",
+    valueKind: "string",
+    valueOptions: [
+      { value: "FIXED", label: "FIXED" },
+      { value: "PER_PARTICIPANT", label: "PER_PARTICIPANT" },
+      { value: "USER_SELECTED", label: "USER_SELECTED" },
+    ],
+  },
+] satisfies readonly JsonLogicFieldOption[];
+
+const orderPricingConditionFields = [
+  {
+    path: "order.serviceTime",
+    label: "服务时间",
+    valueKind: "string",
+  },
+  {
+    path: "order.quoteTotalFen",
+    label: "报价总额",
+    valueKind: "number",
+  },
+] satisfies readonly JsonLogicFieldOption[];
+
+export const getPricingConditionRuleFields = (
+  targetLevel: PricingRuleTargetLevel,
+): readonly JsonLogicFieldOption[] =>
+  targetLevel === "ORDER"
+    ? [...commonPricingConditionFields, ...orderPricingConditionFields]
+    : [
+        ...commonPricingConditionFields,
+        ...itemPricingConditionFields,
+        ...orderPricingConditionFields,
+      ];
+
+export const createPricingConditionRuleDraft = (): JsonLogicRuleDraft =>
+  toJsonLogicRuleDraft(null, getPricingConditionRuleFields("SKU"));
+
+export const toPricingConditionRuleDraft = (
+  rule: unknown,
+): JsonLogicRuleDraft =>
+  toJsonLogicRuleDraft(rule, getPricingConditionRuleFields("SKU"));
+
+export const buildPricingConditionRule = (
+  draft: JsonLogicRuleDraft,
+  targetLevel: PricingRuleTargetLevel,
+  labels?: Partial<JsonLogicRuleBuildLabels>,
+): unknown =>
+  buildJsonLogicRule(draft, {
+    fields: getPricingConditionRuleFields(targetLevel),
+    alwaysRule: null,
+    labels,
+  });

@@ -181,10 +181,7 @@
                 <input v-model.number="placementForm.targetId" class="text-input" type="number" />
               </label>
 
-              <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.matchingRuleLabel") }}</span>
-                <textarea v-model="placementForm.matchingRuleText" class="json-textarea" rows="8"></textarea>
-              </label>
+              <PlacementMatchingRulesEditor v-model="placementForm.matchingRule" />
 
               <section class="binding-editor">
                 <div class="binding-editor__header">
@@ -260,6 +257,12 @@ import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationP
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import {
+  buildPlacementMatchingRule,
+  createPlacementMatchingRuleDraft,
+  toPlacementMatchingRuleDraft,
+} from "@/domains/admin-commerce/model/placement-matching-rules/placementMatchingRuleEditorModel";
+import type { JsonLogicRuleDraft } from "@/domains/admin-commerce/model/json-logic/jsonLogicRuleEditorModel";
+import {
   buildPricingRules,
   toPricingRuleDrafts,
   type PricingRuleBuildLabels,
@@ -274,7 +277,7 @@ import {
   useUpdateAdminOffer,
   useUpdateAdminPlacement,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
-import { parseJsonText, prettyJson } from "@/domains/admin-commerce/editor-json";
+import PlacementMatchingRulesEditor from "@/domains/admin-commerce/ui/placement-matching-rules/PlacementMatchingRulesEditor.vue";
 import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
@@ -347,7 +350,7 @@ type PlacementEditorForm = {
   ctaLabel: string;
   targetKind: "OFFER" | "ORDER";
   targetId: number;
-  matchingRuleText: string;
+  matchingRule: JsonLogicRuleDraft;
   bindingRules: PlacementBindingRuleDraft[];
 };
 
@@ -407,7 +410,7 @@ const placementForm = ref<PlacementEditorForm>({
   ctaLabel: "",
   targetKind: "OFFER" as "OFFER" | "ORDER",
   targetId: 0,
-  matchingRuleText: "{}",
+  matchingRule: createPlacementMatchingRuleDraft(),
   bindingRules: [],
 });
 
@@ -508,7 +511,7 @@ watch(
         ctaLabel: "",
         targetKind: "OFFER",
         targetId: 0,
-        matchingRuleText: "{}",
+        matchingRule: createPlacementMatchingRuleDraft(),
         bindingRules: [],
       };
       return;
@@ -527,7 +530,7 @@ watch(
         placement.target.kind === "OFFER"
           ? placement.target.offerId
           : placement.target.orderId,
-      matchingRuleText: prettyJson(placement.matchingRule),
+      matchingRule: toPlacementMatchingRuleDraft(placement.matchingRule),
       bindingRules:
         placement.bindingRules.length > 0
           ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
@@ -621,10 +624,7 @@ const buildPlacementInput = (): AdminPlacementInput => ({
   priority: placementForm.value.priority,
   effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
   effectiveTo: placementForm.value.effectiveTo.trim() || null,
-  matchingRule: parseJsonText(
-    placementForm.value.matchingRuleText,
-    t("adminCommercePlacementOffer.matchingRuleLabel"),
-  ),
+  matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
   creative: {
     title: placementForm.value.creativeTitle.trim(),
     subtitle: placementForm.value.creativeSubtitle.trim() || null,
@@ -725,8 +725,7 @@ small {
   color: var(--sys-color-on-surface-variant);
 }
 
-.text-input,
-.json-textarea {
+.text-input {
   width: 100%;
   min-width: 0;
   padding: var(--sys-spacing-small);
@@ -734,11 +733,6 @@ small {
   border-radius: var(--sys-radius-medium);
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
-}
-
-.json-textarea {
-  min-height: 8rem;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
 .inline-actions {
