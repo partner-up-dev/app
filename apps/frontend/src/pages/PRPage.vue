@@ -235,7 +235,7 @@ import {
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
 import { client } from "@/lib/rpc";
 import {
-  resolvePlacementBindings,
+  resolvePlacementOrderingEntry,
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
 import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
@@ -497,17 +497,13 @@ const handlePlacementClick = async (
     return;
   }
 
-  const { bindings } = await resolvePlacementBindings({
+  const orderingEntry = await resolvePlacementOrderingEntry({
     placementInstanceId: placement.id,
     matchingContext,
   });
   sessionStorage.setItem(
     ORDERING_ENTRY_STORAGE_KEY,
-    JSON.stringify({
-      offerId: placement.offerId,
-      prId: pr.id,
-      bindings,
-    }),
+    JSON.stringify(orderingEntry),
   );
   await router.push({ path: "/order/new" });
 };

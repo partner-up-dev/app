@@ -12,34 +12,16 @@ export type PlacementMatchResponse = InferResponseType<PlacementApi["$post"]>;
 export type PlacementInstanceProjection =
   PlacementMatchResponse["placements"][number];
 
-export type OrderingFromPlacementResponse = InferResponseType<
-  CommerceApi["ordering"]["from-placement"]["$get"]
+export type OrderingEntryResponse = InferResponseType<
+  PlacementApi[":instanceId"]["ordering-entry"]["$post"]
 >;
 
-export type RentalOrderingResponse = Extract<
-  OrderingFromPlacementResponse,
-  { productType: "RENTAL" }
->;
-
-export type RideHailingOrderingResponse = Extract<
-  OrderingFromPlacementResponse,
-  { productType: "RIDE_HAILING" }
->;
-
-export type RentalOrderingEvaluationInput = Parameters<
-  CommerceApi["ordering"]["rental"]["evaluate"]["$post"]
+export type OrderingEvaluationInput = Parameters<
+  CommerceApi["ordering"]["evaluate"]["$post"]
 >[0]["json"];
 
-export type RentalOrderCreateInput = Parameters<
-  CommerceApi["orders"]["rental"]["$post"]
->[0]["json"];
-
-export type RideHailingOrderingEvaluationInput = Parameters<
-  CommerceApi["ordering"]["ride-hailing"]["evaluate"]["$post"]
->[0]["json"];
-
-export type RideHailingOrderCreateInput = Parameters<
-  CommerceApi["orders"]["ride-hailing"]["$post"]
+export type CreateOrderInput = Parameters<
+  CommerceApi["orders"]["$post"]
 >[0]["json"];
 
 export type CommerceOrderDetailResponse = InferResponseType<
@@ -121,49 +103,33 @@ export const resolvePlacementBindings = async (input: {
   >(response, "Failed to resolve placement bindings");
 };
 
-export const useOrderingFromPlacement = (
-  offerId: Ref<number | null>,
-  prId: Ref<number | null>,
-) =>
-  useQuery<OrderingFromPlacementResponse>({
-    queryKey: computed(() =>
-      queryKeys.commerce.rentalOrderingFromPlacement(
-        offerId.value,
-        prId.value,
-      ),
-    ),
-    queryFn: async () => {
-      if (offerId.value === null || prId.value === null) {
-        throw new Error("Missing ordering entry ids");
-      }
-
-      const response = await client.api.commerce.ordering["from-placement"].$get(
-        {
-          query: {
-            offerId: String(offerId.value),
-            prId: String(prId.value),
-          },
-        },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<OrderingFromPlacementResponse>(
-        response,
-        "Failed to load ordering",
-      );
+export const resolvePlacementOrderingEntry = async (input: {
+  placementInstanceId: number;
+  matchingContext: unknown;
+}) => {
+  const response = await client.api.placements[":instanceId"][
+    "ordering-entry"
+  ].$post(
+    {
+      param: { instanceId: String(input.placementInstanceId) },
+      json: { matchingContext: input.matchingContext },
     },
-    enabled: () => offerId.value !== null && prId.value !== null,
-  });
+    {
+      init: {
+        credentials: "include",
+      },
+    },
+  );
+  return readJsonOrThrow<OrderingEntryResponse>(
+    response,
+    "Failed to resolve ordering entry",
+  );
+};
 
-export const useRentalOrderingFromPlacement = useOrderingFromPlacement;
-
-export const useEvaluateRentalOrdering = () =>
+export const useEvaluateOrdering = () =>
   useMutation({
-    mutationFn: async (input: RentalOrderingEvaluationInput) => {
-      const response = await client.api.commerce.ordering.rental.evaluate.$post(
+    mutationFn: async (input: OrderingEvaluationInput) => {
+      const response = await client.api.commerce.ordering.evaluate.$post(
         { json: input },
         {
           init: {
@@ -172,36 +138,17 @@ export const useEvaluateRentalOrdering = () =>
         },
       );
       return readJsonOrThrow<
-        InferResponseType<CommerceApi["ordering"]["rental"]["evaluate"]["$post"]>
+        InferResponseType<CommerceApi["ordering"]["evaluate"]["$post"]>
       >(response, "Failed to evaluate ordering");
     },
   });
 
-export const useEvaluateRideHailingOrdering = () =>
-  useMutation({
-    mutationFn: async (input: RideHailingOrderingEvaluationInput) => {
-      const response = await client.api.commerce.ordering["ride-hailing"].evaluate.$post(
-        { json: input },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<
-        InferResponseType<
-          CommerceApi["ordering"]["ride-hailing"]["evaluate"]["$post"]
-        >
-      >(response, "Failed to evaluate ride-hailing ordering");
-    },
-  });
-
-export const useCreateRentalOrder = () => {
+export const useCreateOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: RentalOrderCreateInput) => {
-      const response = await client.api.commerce.orders.rental.$post(
+    mutationFn: async (input: CreateOrderInput) => {
+      const response = await client.api.commerce.orders.$post(
         { json: input },
         {
           init: {
@@ -209,34 +156,10 @@ export const useCreateRentalOrder = () => {
           },
         },
       );
-      return readJsonOrThrow<
-        InferResponseType<CommerceApi["orders"]["rental"]["$post"]>
-      >(response, "Failed to create rental order");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["commerce"],
-      });
-    },
-  });
-};
-
-export const useCreateRideHailingOrder = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: RideHailingOrderCreateInput) => {
-      const response = await client.api.commerce.orders["ride-hailing"].$post(
-        { json: input },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
+      return readJsonOrThrow<InferResponseType<CommerceApi["orders"]["$post"]>>(
+        response,
+        "Failed to create order",
       );
-      return readJsonOrThrow<
-        InferResponseType<CommerceApi["orders"]["ride-hailing"]["$post"]>
-      >(response, "Failed to create ride-hailing order");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

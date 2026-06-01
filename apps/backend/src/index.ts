@@ -343,6 +343,10 @@ export type {
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireTemplateId,
 } from "./entities/feedback-questionnaire";
+export type {
+  OrderingEntryPayload,
+  OrderingOfferDetail,
+} from "./domains/merchandising";
 export { PR_MESSAGE_BODY_MAX_LENGTH } from "./entities/pr-message";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
 export {

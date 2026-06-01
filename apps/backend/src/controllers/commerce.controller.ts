@@ -6,12 +6,9 @@ import { requireAuthenticatedUserId } from "./pr-controller.shared";
 import { throwHttpProblem } from "../lib/problem-details";
 import {
   cancelRentalOrderFromOrderDetail,
-  createRentalOrderCommand,
-  createRideHailingOrderCommand,
-  evaluateRentalOrdering,
-  evaluateRideHailingOrdering,
+  createOrderCommand,
+  evaluateOrdering,
   getCommerceOrderDetail,
-  getOrderingFromPlacement,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import {
@@ -24,11 +21,6 @@ import {
 } from "../domains/payment";
 
 const app = new Hono<AuthEnv>();
-
-const placementOrderingQuerySchema = z.object({
-  offerId: z.coerce.number().int().positive(),
-  prId: z.coerce.number().int().positive(),
-});
 
 const orderIdParamSchema = z.object({
   orderId: z.string().uuid(),
@@ -121,6 +113,26 @@ const rideHailingOrderingCommandSchema = z.object({
   }),
 });
 
+const genericCreateOrderCommandSchema = z.object({
+  source: z.object({
+    offerId: z.number().int().positive(),
+  }),
+  prId: z.number().int().positive().nullable().optional(),
+  participants: z.array(orderParticipantSchema).min(1),
+  items: z
+    .array(
+      z.object({
+        skuId: z.number().int().positive(),
+        quantity: z.number().int().positive().nullable().optional(),
+      }),
+    )
+    .min(1),
+  productTypedExtraProperties: z.union([
+    rentalOrderingCommandSchema.shape.extraProperties,
+    rideHailingOrderingCommandSchema.shape.extraProperties,
+  ]),
+});
+
 const readClientId = (headerValue: string | undefined): string => {
   const clientId = headerValue?.trim();
   if (!clientId) {
@@ -149,35 +161,16 @@ type UuidParam<Key extends string> = {
 };
 
 type CommerceRouteSchema = {
-  "/ordering/from-placement": {
-    $get: JsonEndpoint<
-      { query: { offerId: string; prId: string } },
-      Awaited<ReturnType<typeof getOrderingFromPlacement>>
+  "/ordering/evaluate": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof genericCreateOrderCommandSchema> },
+      Awaited<ReturnType<typeof evaluateOrdering>>
     >;
   };
-  "/ordering/rental/evaluate": {
+  "/orders": {
     $post: JsonEndpoint<
-      { json: z.infer<typeof rentalOrderingCommandSchema> },
-      Awaited<ReturnType<typeof evaluateRentalOrdering>>
-    >;
-  };
-  "/ordering/ride-hailing/evaluate": {
-    $post: JsonEndpoint<
-      { json: z.infer<typeof rideHailingOrderingCommandSchema> },
-      Awaited<ReturnType<typeof evaluateRideHailingOrdering>>
-    >;
-  };
-  "/orders/ride-hailing": {
-    $post: JsonEndpoint<
-      { json: z.infer<typeof rideHailingOrderingCommandSchema> },
-      Awaited<ReturnType<typeof createRideHailingOrderCommand>>,
-      201
-    >;
-  };
-  "/orders/rental": {
-    $post: JsonEndpoint<
-      { json: z.infer<typeof rentalOrderingCommandSchema> },
-      Awaited<ReturnType<typeof createRentalOrderCommand>>,
+      { json: z.infer<typeof genericCreateOrderCommandSchema> },
+      Awaited<ReturnType<typeof createOrderCommand>>,
       201
     >;
   };
@@ -236,42 +229,13 @@ type CommerceRouteSchema = {
 
 export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .use("*", authMiddleware)
-  .get(
-    "/ordering/from-placement",
-    zValidator("query", placementOrderingQuerySchema),
-    async (c) => {
-      const query = c.req.valid("query");
-      const result = await getOrderingFromPlacement({
-        offerId: query.offerId,
-        prId: query.prId,
-      });
-      return c.json(result);
-    },
-  )
   .post(
-    "/ordering/rental/evaluate",
-    zValidator("json", rentalOrderingCommandSchema),
+    "/ordering/evaluate",
+    zValidator("json", genericCreateOrderCommandSchema),
     async (c) => {
       const payload = c.req.valid("json");
       const auth = c.get("auth");
-      const result = await evaluateRentalOrdering({
-        offerId: payload.offerId,
-        prId: payload.prId,
-        participants: payload.participants,
-        items: payload.items,
-        extraProperties: payload.extraProperties,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/ordering/ride-hailing/evaluate",
-    zValidator("json", rideHailingOrderingCommandSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const auth = c.get("auth");
-      const result = await evaluateRideHailingOrdering({
+      const result = await evaluateOrdering({
         ...payload,
         viewerUserId: auth.userId,
       });
@@ -279,30 +243,13 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     },
   )
   .post(
-    "/orders/ride-hailing",
-    zValidator("json", rideHailingOrderingCommandSchema),
+    "/orders",
+    zValidator("json", genericCreateOrderCommandSchema),
     async (c) => {
       const payload = c.req.valid("json");
       const userId = requireAuthenticatedUserId(c);
-      const result = await createRideHailingOrderCommand({
+      const result = await createOrderCommand({
         ...payload,
-        createdBy: userId,
-      });
-      return c.json(result, 201);
-    },
-  )
-  .post(
-    "/orders/rental",
-    zValidator("json", rentalOrderingCommandSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const userId = requireAuthenticatedUserId(c);
-      const result = await createRentalOrderCommand({
-        offerId: payload.offerId,
-        prId: payload.prId,
-        participants: payload.participants,
-        items: payload.items,
-        extraProperties: payload.extraProperties,
         createdBy: userId,
       });
       return c.json(result, 201);
