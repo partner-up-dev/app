@@ -111,11 +111,6 @@
       <p v-else class="pm-hint">{{ t("adminCommerceProducts.rideHailingServicePolicyHint") }}</p>
     </section>
 
-    <PricingRulesEditor
-      v-model="spuForm.pricingRules"
-      :title="t('adminCommerceProducts.pricingPolicyLabel')"
-    />
-
     <section class="pm-editor-section">
       <h3 class="pm-section-title">{{ t("adminCommerceProducts.presentationLabel") }}</h3>
       <StringListEditor
@@ -287,7 +282,6 @@ import {
   useUpdateAdminProductSpu,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
-import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
 import FactEntryEditor from "@/domains/admin-commerce/ui/product-management/composites/FactEntryEditor.vue";
 import StringListEditor from "@/domains/admin-commerce/ui/product-management/composites/StringListEditor.vue";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -315,7 +309,6 @@ const resolveSelectedSpuInput = (
   status: product.spu.status,
   salesPolicy: product.spu.salesPolicy,
   servicePolicy: product.spu.servicePolicy,
-  pricingRules: product.spu.pricingPolicy.rules,
   presentation: product.spu.presentation,
   facts: product.spu.facts,
 });
@@ -339,11 +332,6 @@ const buildLabels = (): SpuBuildLabels => ({
   serviceRentalWeekdaysLabel: t("adminCommerceProducts.serviceRentalWeekdaysLabel"),
   serviceRentalStartTimeLabel: t("adminCommerceProducts.serviceRentalStartTimeLabel"),
   serviceRentalEndTimeLabel: t("adminCommerceProducts.serviceRentalEndTimeLabel"),
-  pricingRuleIdLabel: t("adminCommerceProducts.pricingRuleIdLabel"),
-  targetIdLabel: t("adminCommerceProducts.targetIdLabel"),
-  amountFenLabel: t("adminCommerceProducts.amountFenLabel"),
-  ratioBpsLabel: t("adminCommerceProducts.ratioBpsLabel"),
-  resetAmountFenLabel: t("adminCommerceProducts.resetAmountFenLabel"),
   factsLabel: t("adminCommerceProducts.factsLabel"),
   factKeyLabel: t("adminCommerceProducts.factKeyLabel"),
 });

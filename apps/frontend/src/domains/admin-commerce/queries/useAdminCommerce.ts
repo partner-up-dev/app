@@ -57,21 +57,6 @@ export type AdminProductSpuInput = {
         requiresNationalId: boolean;
       }
     | { type: "RIDE_HAILING" };
-  pricingRules: Array<{
-    id: number;
-    label: string;
-    description: string;
-    conditionRule: unknown;
-    action:
-      | { type: "RESET"; payload: { pricingModel: unknown } }
-      | { type: "MINUS"; payload: { amountFen: number } }
-      | { type: "RATIO"; payload: { ratioBps: number } };
-    target:
-      | { level: "SKU"; skuId?: number }
-      | { level: "SPU"; spuId?: number }
-      | { level: "ORDER" };
-    continue: boolean;
-  }>;
   presentation: {
     heroImageAssetIds: string[];
     detailImageAssetIds: string[];
@@ -125,7 +110,21 @@ export type AdminOfferInput = {
   productType: "RENTAL" | "RIDE_HAILING";
   spuIds: number[];
   status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
-  pricingRules: AdminProductSpuInput["pricingRules"];
+  pricingRules: Array<{
+    id: number;
+    label: string;
+    description: string;
+    conditionRule: unknown;
+    action:
+      | { type: "RESET"; payload: { pricingModel: unknown } }
+      | { type: "MINUS"; payload: { amountFen: number } }
+      | { type: "RATIO"; payload: { ratioBps: number } };
+    target:
+      | { level: "SKU"; skuId?: number }
+      | { level: "SPU"; spuId?: number }
+      | { level: "ORDER" };
+    continue: boolean;
+  }>;
   termsVersion: number;
   startsAt?: string | null;
   endsAt?: string | null;

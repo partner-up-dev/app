@@ -1468,7 +1468,6 @@ export interface MessageSchema {
     requiresRealNameLabel: string;
     requiresNationalIdLabel: string;
     rideHailingServicePolicyHint: string;
-    pricingPolicyLabel: string;
     emptyPricingRules: string;
     pricingRuleAddAction: string;
     pricingRuleTitle: string;
@@ -1641,7 +1640,6 @@ export interface MessageSchema {
     statusLabel: string;
     offerLabel: string;
     prLabel: string;
-    pricingSnapshotTitle: string;
     participantsTitle: string;
     terminationAttemptsTitle: string;
     billTitle: string;

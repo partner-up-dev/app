@@ -59,10 +59,6 @@
             </dl>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceOrderBill.pricingSnapshotTitle')" span="full">
-            <pre class="json-pre">{{ prettyJson(selectedOrderRecord.order.pricingSnapshot) }}</pre>
-          </BentoItem>
-
           <BentoItem :title="t('adminCommerceOrderBill.participantsTitle')" span="full">
             <pre class="json-pre">{{ prettyJson(selectedOrderRecord.order.participants) }}</pre>
           </BentoItem>

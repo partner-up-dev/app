@@ -509,14 +509,16 @@ const orderInput = computed<RentalOrderCreateInput | null>(() => {
   return {
     offerId: rentalOrdering.value.source.offerId,
     prId: orderingEntry.value?.prId ?? null,
+    participants: rentalOrdering.value.participants.map((participant) => ({
+      userId: participant.userId,
+    })),
     items: [
       {
-        spuId: selectedSpu.value.spuId,
         skuId: selectedSku.value.skuId,
         quantity: 1,
       },
     ],
-    productTypedExtraProperties: {
+    extraProperties: {
       serviceStartAt: serviceStartAt.value,
       serviceEndAt: serviceEndAt.value,
       contactPhone: phone,
@@ -557,13 +559,16 @@ const rideOrderInput = computed<RideHailingOrderCreateInput | null>(() => {
   return {
     offerId: rideOrdering.value.source.offerId,
     prId: orderingEntry.value?.prId ?? null,
+    participants: rideRiders.value.map((rider) => ({
+      userId: rider.userId,
+    })),
     items: [
       {
         skuId: selectedRideSkuId.value,
         quantity: 1,
       },
     ],
-    productTypedExtraProperties: {
+    extraProperties: {
       route: rideOrdering.value.route,
       departureAt: rideOrdering.value.departureAt,
       riders: rideRiders.value.map((rider) => rider.userId),

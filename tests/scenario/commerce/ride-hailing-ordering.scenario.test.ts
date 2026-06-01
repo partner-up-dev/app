@@ -179,7 +179,6 @@ async function givenRideHailingOrderingPlacement(): Promise<{
 
   const spu = await createProductSpu({
     name: "系统曹操出行",
-    pricingRules: [],
     productType: "RIDE_HAILING",
     presentation: {
       detailImageAssetIds: [],

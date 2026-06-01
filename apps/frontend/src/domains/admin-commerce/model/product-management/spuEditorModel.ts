@@ -4,12 +4,6 @@ import {
   parseIntegerField,
   type NumberInput,
 } from "@/domains/admin-commerce/model/product-management/shared";
-import {
-  buildPricingRules,
-  toPricingRuleDrafts,
-  type PricingRuleBuildLabels,
-  type PricingRuleDraft,
-} from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
 
 type RentalServicePolicy = Extract<AdminProductSpuInput["servicePolicy"], { type: "RENTAL" }>;
 type QuantityPolicyType = AdminProductSpuInput["salesPolicy"]["quantityPolicy"]["type"];
@@ -63,7 +57,6 @@ export type SpuEditorForm = {
   rentalRequiresContactPhone: boolean;
   rentalRequiresRealName: boolean;
   rentalRequiresNationalId: boolean;
-  pricingRules: PricingRuleDraft[];
   heroImageAssetIds: EditableStringItem[];
   detailImageAssetIds: EditableStringItem[];
   sellingPoints: EditableStringItem[];
@@ -72,7 +65,7 @@ export type SpuEditorForm = {
   facts: FactEntryDraft[];
 };
 
-export type SpuBuildLabels = PricingRuleBuildLabels & {
+export type SpuBuildLabels = {
   quantityRangeError: string;
   fixedQuantityLabel: string;
   minQuantityLabel: string;
@@ -107,7 +100,6 @@ export const emptySpuInput = (): AdminProductSpuInput => ({
     quantityPolicy: { type: "FIXED", quantity: 1 },
   },
   servicePolicy: defaultRentalServicePolicy(),
-  pricingRules: [],
   presentation: {
     heroImageAssetIds: [],
     detailImageAssetIds: [],
@@ -196,7 +188,6 @@ export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
     rentalRequiresContactPhone: rentalPolicy.requiresContactPhone,
     rentalRequiresRealName: rentalPolicy.requiresRealName,
     rentalRequiresNationalId: rentalPolicy.requiresNationalId,
-    pricingRules: toPricingRuleDrafts(input.pricingRules),
     heroImageAssetIds: toStringItems(input.presentation.heroImageAssetIds, "hero-image"),
     detailImageAssetIds: toStringItems(input.presentation.detailImageAssetIds, "detail-image"),
     sellingPoints: toStringItems(input.presentation.sellingPoints, "selling-point"),
@@ -353,7 +344,6 @@ export const buildSpuInput = (
     quantityPolicy: buildQuantityPolicy(form, labels),
   },
   servicePolicy: buildServicePolicy(form, labels),
-  pricingRules: buildPricingRules(form.pricingRules, labels),
   presentation: buildPresentation(form),
   facts: buildFactsRecord(form.facts, labels),
 });

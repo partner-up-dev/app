@@ -141,7 +141,6 @@ async function givenRentalOrderingPlacement() {
       requiresRealName: true,
       requiresNationalId: false,
     },
-    pricingRules: [],
     presentation: {
       heroImageAssetIds: [],
       detailImageAssetIds: [],

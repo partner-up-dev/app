@@ -101,13 +101,13 @@
                     {{ ridePassengersLabel }}
                   </strong>
                 </div>
-                <div v-if="rideHailingDetail.live?.driver">
+                <div v-if="rideHailingDetail.driver || rideHailingDetail.live?.driver">
                   <span>司机</span>
                   <strong data-testid="order-detail.ride-hailing.driver">
                     {{ rideDriverLabel }}
                   </strong>
                 </div>
-                <div v-if="rideHailingDetail.live?.vehicle">
+                <div v-if="rideHailingDetail.vehicle || rideHailingDetail.live?.vehicle">
                   <span>车辆</span>
                   <strong data-testid="order-detail.ride-hailing.vehicle">
                     {{ rideVehicleLabel }}
@@ -272,7 +272,7 @@ const detail = computed(() => orderQuery.data.value ?? null);
 const rideHailingDetail = computed(() => detail.value?.rideHailing ?? null);
 
 const primaryItemName = computed(
-  () => detail.value?.order.items[0]?.skuName ?? "订单项目",
+  () => detail.value?.order.items[0]?.sku.name ?? "订单项目",
 );
 
 const paymentStatusLabel = computed(() => {
@@ -284,7 +284,7 @@ const paymentStatusLabel = computed(() => {
 const billEffectiveTotalFen = computed(() => {
   const lines = detail.value?.bill?.lines ?? [];
   if (lines.length === 0) {
-    return detail.value?.order.pricingSnapshot.totalFen ?? null;
+    return null;
   }
   return lines.reduce((sum, line) => {
     return sum + (line.kind === "CHARGE" ? line.amountFen : -line.amountFen);
@@ -328,9 +328,9 @@ const canConfirmRentalBooking = computed(
 const cancellationPolicySummary = computed(() => {
   const items = detail.value?.order.items ?? [];
   return items.flatMap((item) =>
-    (item.cancellationPolicySnapshot?.tiers ?? []).map(
+    (item.sku.cancellationPolicySnapshot?.tiers ?? []).map(
       (tier) =>
-        `${item.skuName}：${tier.visibleLabel}，退款 ${tier.refundPercent}%${
+        `${item.sku.name}：${tier.visibleLabel}，退款 ${tier.refundPercent}%${
           tier.requiresOperatorHandling ? "，需人工处理" : ""
         }`,
     ),
@@ -372,8 +372,13 @@ const rideStatusLabel = computed(() => {
   const ride = rideHailingDetail.value;
   if (!ride) return "未知状态";
   if (ride.live?.statusLabel) return ride.live.statusLabel;
-  if (ride.providerCreationStatus === "FAILED") return "呼叫失败";
-  if (ride.providerCreationStatus === "SUCCEEDED") return "正在呼叫";
+  if (detail.value?.order.status === "FAILED") return "呼叫失败";
+  if (ride.executionPhase === "FINISHED") return "待支付";
+  if (ride.executionPhase === "CANCELLED") return "已取消";
+  if (ride.executionPhase === "FAILED") return "呼叫失败";
+  if (ride.executionPhase === "IN_TRIP") return "行程中";
+  if (ride.executionPhase === "ACCEPTED") return "已接单";
+  if (ride.executionPhase === "DISPATCHING") return "正在呼叫";
   return "正在创建";
 });
 
@@ -391,13 +396,15 @@ const ridePassengersLabel = computed(() => {
 });
 
 const rideDriverLabel = computed(() => {
-  const driver = rideHailingDetail.value?.live?.driver;
+  const driver =
+    rideHailingDetail.value?.driver ?? rideHailingDetail.value?.live?.driver;
   if (!driver) return "";
   return [driver.driverName, driver.driverPhone].filter(Boolean).join(" ");
 });
 
 const rideVehicleLabel = computed(() => {
-  const vehicle = rideHailingDetail.value?.live?.vehicle;
+  const vehicle =
+    rideHailingDetail.value?.vehicle ?? rideHailingDetail.value?.live?.vehicle;
   if (!vehicle) return "";
   return [vehicle.plate, vehicle.color, vehicle.brand].filter(Boolean).join(" ");
 });

@@ -1,4 +1,4 @@
-import type { AdminProductSpuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
+import type { AdminOfferInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import {
   buildJsonLogicRule,
   toJsonLogicRuleDraft,
@@ -14,8 +14,8 @@ import {
   type NumberInput,
 } from "@/domains/admin-commerce/model/product-management/shared";
 
-export type CommercePricingRule = AdminProductSpuInput["pricingRules"][number];
-export type CommercePricingRules = AdminProductSpuInput["pricingRules"];
+export type CommercePricingRule = AdminOfferInput["pricingRules"][number];
+export type CommercePricingRules = AdminOfferInput["pricingRules"];
 export type PricingRuleTargetLevel = CommercePricingRule["target"]["level"];
 type ResetPricingModelMode = "FIXED_TOTAL" | "PRESERVE";
 

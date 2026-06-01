@@ -26,6 +26,7 @@ export type FakeCaocaoOrderPhase =
 export type FakeCaocaoOrderState = {
   providerOrderId: string;
   externalOrderId: string;
+  callbackUrl: string | null;
   carType: string;
   phase: FakeCaocaoOrderPhase;
   queryCount: number;
@@ -121,6 +122,7 @@ export class FakeCaocaoState {
   createOrder(input: {
     externalOrderId: string;
     carType: string;
+    callbackUrl?: string | null;
   }): FakeCaocaoOrderState {
     const existing = [...this.orders.values()].find(
       (order) => order.externalOrderId === input.externalOrderId,
@@ -131,6 +133,7 @@ export class FakeCaocaoState {
     const timestamp = nowIso();
     const order: FakeCaocaoOrderState = {
       cancelFeeFen: 0,
+      callbackUrl: input.callbackUrl ?? null,
       carType: estimate.carType,
       createdAt: timestamp,
       externalOrderId: input.externalOrderId,

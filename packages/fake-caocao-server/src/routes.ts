@@ -152,9 +152,9 @@ const driverSnapshot = (): FakeCaocaoDriverSnapshot => ({
 
 const phaseEvent = (phase: FakeCaocaoOrderState["phase"]): number => {
   if (phase === "ACCEPTED") return 20;
-  if (phase === "IN_TRIP") return 40;
-  if (phase === "FINISHED") return 45;
-  if (phase === "CANCELLED") return 13;
+  if (phase === "IN_TRIP") return 23;
+  if (phase === "FINISHED") return 25;
+  if (phase === "CANCELLED") return 40;
   return 1;
 };
 
@@ -190,11 +190,31 @@ const buildCallbackForm = (input: {
   order: FakeCaocaoOrderState;
   event: number;
 }): URLSearchParams => {
+  const driver =
+    input.order.phase === "ACCEPTED" ||
+    input.order.phase === "IN_TRIP" ||
+    input.order.phase === "FINISHED"
+      ? driverSnapshot()
+      : null;
   const unsigned: FakeCaocaoSignedParams = {
     event: String(input.event),
     ext_order_id: input.order.externalOrderId,
     order_id: input.order.providerOrderId,
     timestamp: String(Date.now()),
+    ...(driver
+      ? {
+          car_no: driver.vehiclePlate,
+          driver_name: driver.driverName,
+          driver_phone: driver.driverPhone,
+          vehicle_brand: driver.vehicleBrand,
+          vehicle_color: driver.vehicleColor,
+        }
+      : {}),
+    ...(input.order.phase === "FINISHED"
+      ? {
+          final_amount_fen: String(input.order.finalAmountFen),
+        }
+      : {}),
   };
   return new URLSearchParams({
     ...unsigned,
@@ -303,15 +323,20 @@ export async function handleFakeCaocaoRequest(
       const carType =
         readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ??
         "EXPRESS";
-      const order = input.state.createOrder({ carType, externalOrderId });
+      const callbackUrl = readFirstParam(params, [
+        "callback_url",
+        "callbackUrl",
+        "notify_url",
+        "notifyUrl",
+        "order_status_callback_url",
+      ]);
+      const order = input.state.createOrder({
+        callbackUrl,
+        carType,
+        externalOrderId,
+      });
       maybePostCreateCallback({
-        callbackUrl: readFirstParam(params, [
-          "callback_url",
-          "callbackUrl",
-          "notify_url",
-          "notifyUrl",
-          "order_status_callback_url",
-        ]),
+        callbackUrl,
         fixture: input.fixture,
         order,
       });
@@ -332,6 +357,14 @@ export async function handleFakeCaocaoRequest(
       const order = providerOrderId
         ? input.state.advanceOrderDetail(providerOrderId)
         : null;
+      if (order?.callbackUrl) {
+        postCallback({
+          callbackUrl: order.callbackUrl,
+          event: phaseEvent(order.phase),
+          fixture: input.fixture,
+          order,
+        }).catch(() => undefined);
+      }
       sendJson(
         res,
         200,

@@ -17,7 +17,7 @@
             @click="selectedFulfillmentIdRaw = record.fulfillment.id"
           >
             <span>{{ record.fulfillment.bookingStatus }}</span>
-            <small>{{ record.fulfillment.lifecycleStatus }}</small>
+            <small>{{ record.fulfillment.cancellationHandlingStatus }}</small>
           </ChoiceCard>
         </div>
       </AdminRailPanel>
@@ -51,10 +51,6 @@
               <div>
                 <dt>{{ t("adminCommerceFulfillment.orderIdLabel") }}</dt>
                 <dd>{{ selectedRecord.order?.id ?? "-" }}</dd>
-              </div>
-              <div>
-                <dt>{{ t("adminCommerceFulfillment.lifecycleLabel") }}</dt>
-                <dd>{{ selectedRecord.fulfillment.lifecycleStatus }}</dd>
               </div>
               <div>
                 <dt>{{ t("adminCommerceFulfillment.bookingLabel") }}</dt>
