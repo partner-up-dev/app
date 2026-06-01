@@ -2,6 +2,8 @@ import type { PRId } from "@partner-up-dev/backend";
 
 export const prCreatePath = (): string => "/pr/new";
 export const prDetailPath = (id: PRId): string => `/pr/${id}`;
+export const prPairingCodePath = (id: PRId): string =>
+  `/pr/${id}/pairing-code`;
 export const prMessagesPath = (id: PRId): string => `/pr/${id}/messages`;
 export const prPartnerProfilePath = (
   id: PRId,

@@ -17,6 +17,7 @@ const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
+const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
 const NewOrderPage = () =>
   import("@/pages/OrderingFromPlacementPage.vue");
@@ -97,6 +98,15 @@ const routes: RouteRecordRaw[] = [
     component: PRPage,
     meta: {
       wechatSharePolicy: "route",
+    },
+  },
+  {
+    path: "/pr/:id/pairing-code",
+    name: "pr-pairing-code",
+    component: PRPairingCodePage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
     },
   },
   {

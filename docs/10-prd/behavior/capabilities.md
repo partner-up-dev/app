@@ -20,6 +20,7 @@
 - submit PR check-in feedback when the attendance module is active
 - submit a mounted post-event feedback questionnaire when the PR carries one
 - progress status based on partner thresholds and time windows
+- use a four-digit PR pairing code during the `READY` phase so active participants can visually find each other at the offline venue
 
 ## 3. Event-Context Collaboration
 

@@ -145,6 +145,8 @@
         :pr="prDetail"
       />
 
+      <PRPairingCodeAction :pr="prDetail" />
+
       <PRCheckInFeedbackActions :pr="prDetail" />
 
       <PRJoinAction
@@ -213,6 +215,7 @@ import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 import PRMessageThreadAction from "@/domains/pr/ui/sections/PRMessageThreadAction.vue";
 import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue";
 import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
+import PRPairingCodeAction from "@/domains/pr/ui/sections/PRPairingCodeAction.vue";
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";

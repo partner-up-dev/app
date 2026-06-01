@@ -434,6 +434,14 @@
       "hint": "和当前参与者围绕本次活动做异步沟通。",
       "action": "留言"
     },
+    "pairingCodeEntry": {
+      "action": "配对码 {code}"
+    },
+    "pairingCodePage": {
+      "title": "搭子配对码",
+      "backToDetail": "返回搭子请求",
+      "unavailable": "当前不能查看搭子配对码"
+    },
     "messagePage": {
       "title": "留言",
       "subtitle": "留言是非即时的，您发送的留言会被通知给本搭子请求内的搭子。",

@@ -4,17 +4,25 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, nextTick, type App } from "vue";
 import type { PRRoute, PRStatus } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
+import { derivePRPairingCode } from "@/domains/pr/model/pr-pairing-code";
 import PRPage from "./PRPage.vue";
 
 const testState = vi.hoisted(() => ({
   detail: undefined as PRDetailView | undefined,
   routeQuery: {} as Record<string, unknown>,
+  routerPush: vi.fn(),
+  routerReplace: vi.fn(),
   refetch: vi.fn(),
 }));
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (key === "prPage.pairingCodeEntry.action") {
+        return `配对码 ${String(params?.code ?? "")}`;
+      }
+      return key;
+    },
   }),
 }));
 
@@ -29,8 +37,8 @@ vi.mock("vue-router", () => ({
   }),
   useRouter: () => ({
     back: vi.fn(),
-    replace: vi.fn(),
-    push: vi.fn(),
+    replace: testState.routerReplace,
+    push: testState.routerPush,
   }),
 }));
 
@@ -387,6 +395,52 @@ describe("PRPage display status", () => {
   });
 });
 
+describe("PRPage pairing code action", () => {
+  test("shows the code for READY active participants and opens the full-screen page", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "READY",
+        isCreator: false,
+        isParticipant: true,
+      }),
+    );
+    const button = host.querySelector<HTMLButtonElement>(
+      '[data-testid="pr-detail.pairing-code.open"]',
+    );
+
+    expect(button).not.toBeNull();
+    expect(button?.textContent).toContain(derivePRPairingCode(123));
+
+    button?.click();
+
+    expect(testState.routerPush).toHaveBeenCalledWith("/pr/123/pairing-code");
+  });
+
+  test("hides the code when the viewer is not an active participant", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "READY",
+        isCreator: false,
+        isParticipant: false,
+      }),
+    );
+
+    expect(hasTestId(host, "pr-detail.pairing-code.open")).toBe(false);
+  });
+
+  test("hides the code before READY", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: false,
+        isParticipant: true,
+      }),
+    );
+
+    expect(hasTestId(host, "pr-detail.pairing-code.open")).toBe(false);
+  });
+});
+
 const mountPage = async (detail: PRDetailView): Promise<HTMLElement> => {
   testState.detail = detail;
   const host = document.createElement("div");
@@ -404,6 +458,7 @@ const hasTestId = (host: HTMLElement, testId: string): boolean =>
 const buildPRDetail = ({
   status,
   isCreator,
+  isParticipant = false,
   title = "周末徒步",
   location = "西湖",
   route = null,
@@ -415,6 +470,7 @@ const buildPRDetail = ({
 }: {
   status: PRStatus;
   isCreator: boolean;
+  isParticipant?: boolean;
   title?: string;
   location?: string | null;
   route?: PRRoute | null;
@@ -447,7 +503,7 @@ const buildPRDetail = ({
     partnerSection: {
       viewer: {
         isCreator,
-        isParticipant: false,
+        isParticipant,
         isWaitlisted: false,
         canJoin: false,
         canWaitlist: false,
