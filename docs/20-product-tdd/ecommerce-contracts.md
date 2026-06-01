@@ -41,7 +41,7 @@ Frontend should reflect the same coarse grouping on admin navigation:
 - `Trade`
 - `Payment`
 
-`Rental Fulfillment Ops` belongs under `Trade`-adjacent operator work rather
+Rental execution operations belong under `Trade`-adjacent operator work rather
 than under Merchandising configuration.
 
 ## Authoritative Owners
@@ -54,7 +54,8 @@ Owns:
 - Offer
 - Placement
 - SKU base pricing model and quote-calculation DSL
-- SPU pricing policy and Offer pricing policy truth
+- SPU listing / metadata / service policy truth
+- Offer pricing policy truth
 - SKU base cancellation policy truth
 
 Does not own:
@@ -206,9 +207,13 @@ Current issue-231 uniqueness constraint:
 Pricing ownership:
 
 - `PricingModel` is SKU-owned base pricing truth
-- `SPU PricingPolicy` is product-native price rule truth
+- `SPU` owns listing, metadata, sales policy, service policy, and presentation
+  truth; it does not own runtime pricing rules
 - `Offer PricingPolicy` is commercial overlay truth
 - concrete pricing execution belongs to Trade
+- persisted `trade_orders.items` are SKU snapshots plus quantity, including
+  SKU facts, SKU pricing model, and SKU cancellation policy snapshot; SPU
+  fields are not copied into order items
 
 ## Ordering Command Contract
 
@@ -217,10 +222,16 @@ Pricing ownership:
 - Order Content is selected from the Offer's SPU `productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
-- Order Content exposes `items` and `productTypedExtraProperties`.
+- Order Content exposes selected SKU `items`, user-editable participants, and
+  family `extraProperties`.
 - BottomActionBar creates the command:
-  `{ offerId, prId?, items, productTypedExtraProperties }`.
+  `{ offerId, prId?, participants, items, extraProperties }`.
 - This command is not coupled to Placement or `matchingContext`.
+- command `items` are `{ skuId, quantity }`; backend resolves SKU -> SPU and
+  verifies the SKU belongs to the Offer.
+- for PR-scoped orders, order row creation and `attachOrderToPr` are one
+  transaction. PR authority validates attachability; Order does not own PR
+  status as a separate proactive validation rule.
 
 ## Rental Frontend Journey Contract
 
@@ -263,14 +274,19 @@ Rental:
 
 - prepaid
 - Bill exists before execution begins
-- Fulfillment result arrives after payment
+- Rental execution state is stored on `rental_orders`
+- booking state becomes actionable after prepaid settlement
 
 RideHailing:
 
 - usage-based final settlement
 - Order is created from quote snapshot
-- final Bill is created only after RideHailing Fulfillment commits final
-  settlement input and Trade resolves final pricing
+- provider binding and execution phase are stored on `ride_hailing_orders`
+- provider adapter computes external order id dynamically; it is not persisted
+- provider callback updates execution phase, driver / vehicle snapshots, and
+  committed final settlement input
+- final Bill is created only after provider final settlement input is
+  committed, not lazily from Order Detail reads
 
 ## Termination Contract
 
@@ -279,8 +295,9 @@ operation.
 
 Topology:
 
-- Fulfillment is authoritative on service-side termination admissibility
-- Order translates fulfillment-side reality into buyer-side equivalent total
+- family typed Order state is authoritative on service-side termination
+  admissibility
+- Order translates service-side reality into buyer-side equivalent total
 - Bill materializes the delta needed to converge to that target total
 
 Current stable shapes:
