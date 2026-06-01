@@ -10,6 +10,9 @@
 - Introduce generic `matchPlacementInstance(type, matchingContext)`.
 - Add `POST /api/placements?type=BUTTON`.
 - Add `POST /api/placements/:instanceId/bindings`.
+- Add `POST /api/placements/:instanceId/ordering-entry` to assemble
+  `OrderingEntryPayload` from resolved bindings plus Offer-owned
+  `OrderingOfferDetail`.
 - Remove PR-specific `resolveCommercePlacementForPr`.
 
 ## Slice 2: PR Page Button Placement Mount
@@ -20,8 +23,8 @@
 - Build `matchingContext` from PR Detail only.
 - Keep `prId` outside `ButtonPlacement`.
 - On click, PR Page checks existing PR orders with explicit `statusIn` values.
-- If no requested-status order exists, resolve bindings and store
-  `{ offerId, prId?, bindings }` for `/order/new`.
+- If no requested-status order exists, resolve Ordering entry and store
+  `{ source: { offerId }, offerDetail, prId?, bindings }` for `/order/new`.
 
 ## Slice 3: PR Orders Ownership
 
@@ -37,17 +40,16 @@
 
 - Add `/order/new`.
 - Retire `/ordering/from-placement` after compatibility migration.
-- Load Offer by `offerId`.
-- Select Order Content by Offer SPU `productType`.
-- Pass only `offerId + bindings` to Order Content.
+- Select Order Content by `offerDetail.productType`.
+- Pass only `{ source, offerDetail, bindings }` to Order Content.
 - Do not pass `prId` to Order Content.
-- Order Content exposes `items + productTypedExtraProperties`.
+- Order Content exposes `participants + items + productTypedExtraProperties`.
 - BottomActionBar owns evaluate/create actions.
 
 ## Slice 5: Command Shape
 
 - Replace `placementInstanceId + context + request` inputs with
-  `{ offerId, prId?, items, productTypedExtraProperties }`.
+  `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
 - Remove `bindings` from evaluate/create payloads.
 - Rename product-family request payloads to
   `ProductTypedOrderingExtraProperties`.

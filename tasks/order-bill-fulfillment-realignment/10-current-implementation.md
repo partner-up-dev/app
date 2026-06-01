@@ -6,27 +6,24 @@ Updated after the execution slice.
 
 Current backend exposes:
 
-- `GET /api/commerce/ordering/from-placement`
-- `POST /api/commerce/ordering/rental/evaluate`
-- `POST /api/commerce/ordering/ride-hailing/evaluate`
-- `POST /api/commerce/orders/rental`
-- `POST /api/commerce/orders/ride-hailing`
+- `POST /api/commerce/ordering/evaluate`
+- `POST /api/commerce/orders`
 
-The create routes now call Order-owned command use cases:
+The create route now calls the Order-owned generic command use case:
 
-- `createRentalOrderCommand`
-- `createRideHailingOrderCommand`
+- `createOrderCommand`
 
 Command payload uses:
 
-- `offerId`
+- `source.offerId`
 - optional `prId`
 - user-editable `participants`
 - selected SKU `items` as `{ skuId, quantity }`
-- family `extraProperties`
+- `productTypedExtraProperties`
 
-Placement remains an entry and prefill surface. It is not part of the create
-command identity.
+Placement remains an entry and prefill surface. It assembles
+`OrderingEntryPayload` through `POST /api/placements/:instanceId/ordering-entry`
+but is not part of the create command identity.
 
 ## PR Attachment Boundary
 
@@ -58,14 +55,15 @@ Rental execution fields live on `rental_orders`.
 RideHailing write path:
 
 1. resolve Offer and selected ride SKU
-2. create local `trade_orders` in `INITIATING`
-3. create `ride_hailing_orders` with provider instance binding and
+2. open a transaction and create local `trade_orders` in `INITIATING`
+3. attach order to PR when `prId` exists
+4. create `ride_hailing_orders` with provider instance binding and
    `executionPhase = INITIATING`
-4. attach order to PR in the same local transaction
-5. call provider `createRide`
+5. call provider `createRide` inside the create-order transaction
 6. on provider success, persist `providerOrderId`, set execution phase to
    `DISPATCHING`, and open the base Order
-7. on provider hard failure, fail the base Order
+7. on provider hard failure, roll back the local base order, typed order, and
+   PR attachment
 
 Provider callback path:
 
@@ -78,9 +76,10 @@ Provider callback path:
 6. when final amount is present, commit final settlement input and create the
    final Bill
 
-`ride_hailing_fulfillments`, `providerCreationStatus`,
-`providerExecutionRef`, and persisted provider external order id have been
-removed from target code and migration cleanup.
+`ride_hailing_fulfillments`, `providerCreationStatus`, and
+`providerExecutionRef` have been removed from target code and migration cleanup.
+The provider external order id is stored on `ride_hailing_orders` when the
+provider create call succeeds.
 
 ## Bill Timing
 

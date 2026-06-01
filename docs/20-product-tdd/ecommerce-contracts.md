@@ -169,8 +169,13 @@ This means:
 - A Placement Instance contains `offerId` and creative
   `{ ctaLabel, description? }`. It does not contain a navigation target.
 - On click, PR Page checks existing PR-linked orders with explicit status enum
-  values, then either routes to Order Detail or resolves bindings with
-  `POST /api/placements/:instanceId/bindings` and opens `/order/new`.
+  values, then either routes to Order Detail or resolves an Ordering entry with
+  `POST /api/placements/:instanceId/ordering-entry` and opens `/order/new`.
+- Ordering entry resolution is a Placement boundary operation that calls the
+  Offer domain for an `OrderingOfferDetail` projection, resolves bindings, and
+  assembles `OrderingEntryPayload`.
+- Placement does not own Offer facts, price evaluation, order lifecycle,
+  fulfillment, or product-specific Ordering Content layout.
 
 PR-context visibility rules:
 
@@ -217,21 +222,39 @@ Pricing ownership:
 
 ## Ordering Command Contract
 
-- `/order/new` receives transient `{ offerId, prId?, bindings }` from the
-  entry surface.
-- Order Content is selected from the Offer's SPU `productType`.
+- `/order/new` receives transient `OrderingEntryPayload` from the entry surface:
+  `{ source: { offerId }, offerDetail, prId?, bindings }`.
+- `source.offerId` is the commercial source reference. It is not enough by
+  itself to render Ordering Content.
+- `offerDetail` is an Offer-owned ordering projection containing the product
+  type, SPU/SKU ids, display facts, base SKU pricing models, cancellation
+  policy summaries, and Offer pricing policy needed to assemble an order draft.
+- Ordering Content is selected from `offerDetail.productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
-- Order Content exposes selected SKU `items`, user-editable participants, and
-  family `extraProperties`.
-- BottomActionBar creates the command:
-  `{ offerId, prId?, participants, items, extraProperties }`.
+- Ordering Content receives `{ source, offerDetail, bindings }` and emits only
+  `participants`, selected SKU `items`, and
+  `productTypedExtraProperties`.
+- Ordering Content does not receive `prId`, does not know Placement, and does
+  not evaluate or submit orders.
+- BottomActionBar creates both evaluation and creation commands:
+  `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
 - This command is not coupled to Placement or `matchingContext`.
 - command `items` are `{ skuId, quantity }`; backend resolves SKU -> SPU and
   verifies the SKU belongs to the Offer.
+- Ordering evaluation uses the same command shape through
+  `POST /api/commerce/ordering/evaluate`. It returns price total/range/detail
+  and `actions.create_order` in the action-preflight shape.
+- Ordering creation uses `POST /api/commerce/orders`. It re-reads
+  authoritative Offer/SPU/SKU truth and performs the transactional validations
+  again.
 - for PR-scoped orders, order row creation and `attachOrderToPr` are one
   transaction. PR authority validates attachability; Order does not own PR
   status as a separate proactive validation rule.
+- Trade Order Base orchestrates base `trade_orders`, optional PR attachment,
+  and product-typed `create -> init` steps. Product-typed order code owns its
+  own order or fulfillment management, but it does not attach PR or coordinate
+  the base trade order.
 
 ## Rental Frontend Journey Contract
 
@@ -282,7 +305,8 @@ RideHailing:
 - usage-based final settlement
 - Order is created from quote snapshot
 - provider binding and execution phase are stored on `ride_hailing_orders`
-- provider adapter computes external order id dynamically; it is not persisted
+- provider adapter computes external order id dynamically; the provider-side
+  order id returned by create is stored on `ride_hailing_orders`
 - provider callback updates execution phase, driver / vehicle snapshots, and
   committed final settlement input
 - final Bill is created only after provider final settlement input is

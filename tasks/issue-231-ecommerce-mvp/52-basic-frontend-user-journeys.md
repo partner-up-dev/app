@@ -123,13 +123,14 @@ Current design direction:
 
 Phase 3 concrete route:
 
-- Current implemented entry is `/ordering/from-placement`.
-- That route is an entry-specific Rental surface, not a persisted Ordering
-  object and not a generic Ordering locator.
-- Its query params are existing owner ids needed to fetch backend truth:
-  `placementInstanceId` and PR context id.
-- The page displays only backend-read product, locked PR-context, and price
-  truth, then submits only user-selected item ids plus editable request fields.
+- Current implemented entry is `/order/new`.
+- The entry is backed by transient `OrderingEntryPayload`, assembled by
+  Placement from resolved bindings plus Offer-owned `OrderingOfferDetail`.
+- `/order/new` is not a persisted Ordering object and not a generic Ordering
+  locator.
+- The page displays product-specific Ordering Content, evaluates the current
+  command with generic Ordering evaluation, and submits through generic
+  CreateOrder.
 
 ### Order Detail
 

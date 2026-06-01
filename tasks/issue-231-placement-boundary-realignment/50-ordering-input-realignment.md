@@ -21,7 +21,9 @@ This keeps Ordering coupled to:
 
 Ordering should start from a resolved Ordering entry payload:
 
-- `offerId`: source commercial offer.
+- `source.offerId`: source commercial offer.
+- `offerDetail`: Offer-owned ordering projection for SPU/SKU/display/policy
+  data needed by concrete Ordering Content.
 - `prId?`: optional order association reference when the entry came from a PR.
 - `bindings`: locked defaults/resolved context values used only to prefill
   Content state.
@@ -46,13 +48,13 @@ Preferred transport:
 1. On Button Placement click, resolve:
    - matched Placement Instance with `offerId`;
    - PR existing non-terminal order by `prId + offerId + statusIn`;
-   - Placement bindings via `POST /api/placements/:instanceId/bindings`.
+   - Ordering entry via `POST /api/placements/:instanceId/ordering-entry`.
 2. If no existing order exists, write an `OrderingEntryPayload` to
    `sessionStorage`.
 3. Navigate to `/order/new` with a short `history.state` or route state key that
    identifies the stored entry.
-4. New order page reads the entry, removes or expires it after use, loads the
-   Offer, and selects the concrete Order Content component from product type.
+4. New order page reads the entry and selects the concrete Order Content
+   component from `offerDetail.productType`.
 
 Use `sessionStorage` rather than durable `localStorage` by default because this
 payload is transient, may contain route/contact-like context, and should not
@@ -66,7 +68,10 @@ Draft:
 
 ```ts
 type OrderingEntryPayload = {
-  offerId: number;
+  source: {
+    offerId: number;
+  };
+  offerDetail: OrderingOfferDetail;
   prId?: number;
   bindings: Record<string, unknown>;
 };
@@ -80,11 +85,10 @@ There is no generic `OrderingReadModel`.
 
 The `/order/new` page should:
 
-1. read `offerId + prId? + bindings` from transient frontend state;
-2. load the Offer;
-3. select the concrete Ordering Content component from the Offer's SPU
-   `productType`;
-4. pass `offerId` and `bindings` to that Content component;
+1. read `OrderingEntryPayload` from transient frontend state;
+2. select the concrete Ordering Content component from `offerDetail.productType`;
+3. pass `{ source, offerDetail, bindings }` to that Content component;
+4. keep `prId` at page level for create-order association only;
 5. read `items` and `productTypedExtraProperties` exposed by the Content
    component.
 
@@ -106,8 +110,11 @@ It should carry:
 
 ```ts
 type OrderingEvaluationInput = {
-  offerId: number;
+  source: {
+    offerId: number;
+  };
   prId?: number;
+  participants: OrderParticipantInput[];
   items: OrderItemInput[];
   productTypedExtraProperties: ProductFamilyOrderingExtraProperties;
 };
