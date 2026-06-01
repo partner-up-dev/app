@@ -1,4 +1,4 @@
-import type { PriceExplanation } from "../../merchandising";
+import type { PriceExplanation, PricingModel, SkuFacts } from "../../merchandising";
 
 export type OrderFamily = "RENTAL" | "RIDE_HAILING";
 
@@ -38,16 +38,15 @@ export type OrderParticipantSnapshot = {
 
 export type OrderItemSnapshot = {
   itemId: string;
-  spuId: number;
-  spuVersion: number;
-  spuName: string;
-  skuId: number;
-  skuVersion: number;
-  skuName: string;
+  sku: {
+    id: number;
+    version: number;
+    name: string;
+    factsSnapshot: SkuFacts;
+    pricingModelSnapshot: PricingModel;
+    cancellationPolicySnapshot?: CancellationPolicySnapshot | null;
+  };
   quantity: number;
-  skuFactsSnapshot: unknown;
-  pricingModelSnapshot: unknown;
-  cancellationPolicySnapshot?: CancellationPolicySnapshot | null;
 };
 
 export type OrderItemPricingSnapshot = {
@@ -139,7 +138,6 @@ export type TradeOrder = {
   participants: OrderParticipantSnapshot[];
   splitRuleSnapshot: SplitRuleSnapshot;
   items: OrderItemSnapshot[];
-  pricingSnapshot: OrderPricingSnapshot;
   timeout: OrderTimeout;
   terminationAttempts: OrderTerminationAttempt[];
 };

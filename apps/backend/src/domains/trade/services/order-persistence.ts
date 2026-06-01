@@ -17,7 +17,6 @@ export function toTradeOrderModel(record: TradeOrderRecord): TradeOrder {
     participants: record.participants,
     splitRuleSnapshot: record.splitRuleSnapshot,
     items: record.items,
-    pricingSnapshot: record.pricingSnapshot,
     timeout: record.timeout,
     terminationAttempts: record.terminationAttempts,
   };
@@ -37,12 +36,17 @@ export function toRentalOrderModel(
   return {
     ...toTradeOrderModel(orderRecord),
     family: "RENTAL",
-    selectedZoneCodes: rentalRecord.selectedZoneCodes,
     serviceStartAt: toIsoString(rentalRecord.serviceStartAt),
     serviceEndAt: toIsoString(rentalRecord.serviceEndAt),
-    participantCount: rentalRecord.participantCount,
     contactPhone: rentalRecord.contactPhone,
     registrants: rentalRecord.registrants,
+    bookingStatus: rentalRecord.bookingStatus,
+    cancellationHandlingStatus: rentalRecord.cancellationHandlingStatus,
+    supplierCancellationOutcome: rentalRecord.supplierCancellationOutcome,
+    entryGuidance: rentalRecord.entryGuidance,
+    bookingNote: rentalRecord.bookingNote,
+    cancellationNote: rentalRecord.cancellationNote,
+    serviceEndedAt: rentalRecord.serviceEndedAt?.toISOString() ?? null,
   };
 }
 
@@ -64,6 +68,11 @@ export function toRideHailingOrderModel(
     departureAt: rideRecord.departureAt?.toISOString() ?? null,
     riders: rideRecord.riders,
     contactPhone: rideRecord.contactPhone,
-    providerCreationStatus: rideRecord.providerCreationStatus,
+    providerInstanceId: rideRecord.providerInstanceId,
+    providerOrderId: rideRecord.providerOrderId,
+    executionPhase: rideRecord.executionPhase,
+    driverSnapshot: rideRecord.driverSnapshot,
+    vehicleSnapshot: rideRecord.vehicleSnapshot,
+    finalSettlementInput: rideRecord.finalSettlementInput,
   };
 }

@@ -6,8 +6,7 @@ import type { Offer, OfferId } from "../../../entities/offer";
 import type { PRId } from "../../../entities/partner-request";
 import type { ProductSku } from "../../../entities/product-sku";
 import type { ProductSpu } from "../../../entities/product-spu";
-import type { RentalFulfillmentId } from "../../../entities/rental-fulfillment";
-import type { TradeOrderId } from "../../../entities/trade-order";
+import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
@@ -20,7 +19,6 @@ import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRe
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
-import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
@@ -47,11 +45,18 @@ import { deriveBillPaymentState } from "../../payment";
 import {
   canRequestOrderTermination,
   buildOrderParticipantsFromContext,
+  getOrderItemSkuName,
   PricingApplication,
   resolveRentalTerminationPolicy,
   toRentalOrderModel,
 } from "../services";
 import { validateRentalServicePolicyAvailability } from "../services/rental-service-policy";
+import type {
+  OrderItemSnapshot,
+  OrderTerminationAttempt,
+  RentalRegistrant,
+} from "../model";
+import type { RideHailingOrderDetailProjection } from "./ride-hailing-ordering-flow";
 
 const offerRepo = new OfferRepository();
 const partnerRepo = new PartnerRepository();
@@ -63,7 +68,6 @@ const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
-const rentalFulfillmentRepo = new RentalFulfillmentRepository();
 const paymentTxRepo = new PaymentTxRepository();
 const pricingApplication = new PricingApplication();
 
@@ -117,13 +121,16 @@ export type RentalOrderingReadModel = {
     };
   };
   spus: RentalOrderingSpuProjection[];
+  participants: Array<{
+    userId: string;
+    displayName: string;
+  }>;
   input: {
     fields: RentalOrderingInputField[];
   };
 };
 
 export type RentalOrderingItemInput = {
-  spuId: number;
   skuId: number;
   quantity?: number | null;
 };
@@ -143,8 +150,9 @@ export type RentalOrderingRequestInput = {
 export type RentalOrderingEvaluationInput = {
   offerId: number;
   prId?: number | null;
+  participants: Array<{ userId: string }>;
   items: RentalOrderingItemInput[];
-  productTypedExtraProperties: RentalOrderingRequestInput;
+  extraProperties: RentalOrderingRequestInput;
 };
 
 export type RentalOrderingEvaluation = {
@@ -156,6 +164,50 @@ export type RentalOrderingEvaluation = {
     amountFen: number | null;
     explanations: PriceExplanation[];
   };
+};
+
+export type CommerceOrderDetailProjection = {
+  order: {
+    id: string;
+    family: TradeOrder["family"];
+    status: TradeOrder["status"];
+    createdBy: string;
+    offerId: number;
+    items: OrderItemSnapshot[];
+    terminationAttempts: OrderTerminationAttempt[];
+    serviceStartAt: string | null;
+    serviceEndAt: string | null;
+    participantCount: number;
+    contactPhone: string | null;
+    registrants: RentalRegistrant[];
+  };
+  rideHailing: RideHailingOrderDetailProjection | null;
+  bill: {
+    id: string;
+    status: string;
+    currency: "CNY";
+    lines: Array<{
+      id: string;
+      userId: string;
+      kind: "CHARGE" | "REFUND";
+      amountFen: number;
+      label: string;
+      description: string | null;
+    }>;
+  } | null;
+  cancellation: {
+    canRequest: boolean;
+    latestAttempt: OrderTerminationAttempt | null;
+  };
+  payment: {
+    status: "PAID" | "PARTIALLY_PAID" | "UNPAID";
+  };
+  fulfillment: {
+    id: string;
+    bookingStatus: string;
+    entryGuidance: unknown;
+    bookingNote: string | null;
+  } | null;
 };
 
 type ResolvedPlacementOffer = {
@@ -387,7 +439,11 @@ async function resolveSelection(
     return throwHttpProblem({ status: 400, detail: "Rental order requires one selected SKU" });
   }
 
-  const spu = await productSpuRepo.findById(firstItem.spuId);
+  const sku = await productSkuRepo.findById(firstItem.skuId);
+  if (!sku || sku.status !== "ACTIVE") {
+    return throwHttpProblem({ status: 404, detail: "Rental SKU not found" });
+  }
+  const spu = await productSpuRepo.findById(sku.spuId);
   if (!spu || spu.status !== "ACTIVE" || spu.productType !== "RENTAL") {
     return throwHttpProblem({ status: 404, detail: "Rental SPU not found" });
   }
@@ -398,10 +454,6 @@ async function resolveSelection(
     });
   }
 
-  const sku = await productSkuRepo.findById(firstItem.skuId);
-  if (!sku || sku.status !== "ACTIVE" || sku.spuId !== spu.id) {
-    return throwHttpProblem({ status: 404, detail: "Rental SKU not found" });
-  }
   if (!isRentalSkuFacts(sku.facts) || !isFixedTotalPricingModel(sku.pricingModel)) {
     return throwHttpProblem({
       status: 409,
@@ -460,14 +512,7 @@ function validateRentalRequest(input: {
   request: RentalOrderingRequestInput;
   pr: ResolvedPrContext;
   servicePolicy: ProductSpu["servicePolicy"];
-  viewerUserId?: string | null;
 }): string | null {
-  if (input.pr.status !== "READY") {
-    return "订单创建需要 PR 处于 READY 状态";
-  }
-  if (!input.viewerUserId || input.pr.createdBy !== input.viewerUserId) {
-    return "仅 PR 创建者可以创建订单";
-  }
   if (input.request.contactPhone.trim().length === 0) {
     return "请填写联系人电话";
   }
@@ -521,6 +566,10 @@ export async function getRentalOrderingFromPlacement(input: {
       },
     },
     spus,
+    participants: pr.activeParticipants.map((participant) => ({
+      userId: participant.userId,
+      displayName: participant.nickname ?? "参与者",
+    })),
     input: {
       fields: [
         {
@@ -574,11 +623,16 @@ export async function evaluateRentalOrdering(
   },
 ): Promise<RentalOrderingEvaluation> {
   const selection = await resolveSelection(input);
+  const prAttachPrecheckError =
+    selection.pr.status !== "READY"
+      ? "订单创建需要 PR 处于 READY 状态"
+      : !input.viewerUserId || selection.pr.createdBy !== input.viewerUserId
+        ? "仅 PR 创建者可以创建订单"
+        : null;
   const validationError = validateRentalRequest({
-    request: input.productTypedExtraProperties,
+    request: input.extraProperties,
     pr: selection.pr,
     servicePolicy: selection.spu.servicePolicy,
-    viewerUserId: input.viewerUserId ?? null,
   });
   const pricingSnapshot = pricingApplication.resolve({
     offer: selection.placement.offer,
@@ -591,14 +645,14 @@ export async function evaluateRentalOrdering(
       },
     ],
     orderContext: {
-      serviceTime: input.productTypedExtraProperties.serviceStartAt,
+      serviceTime: input.extraProperties.serviceStartAt,
     },
   });
 
   return {
     availability: {
-      createOrderEnabled: validationError === null,
-      disabledReason: validationError,
+      createOrderEnabled: prAttachPrecheckError === null && validationError === null,
+      disabledReason: prAttachPrecheckError ?? validationError,
     },
     pricePreview: {
       amountFen: pricingSnapshot.totalFen,
@@ -610,17 +664,16 @@ export async function evaluateRentalOrdering(
   };
 }
 
-export async function createRentalOrderFromPlacement(
+export async function createRentalOrderCommand(
   input: RentalOrderingEvaluationInput & {
     createdBy: string;
   },
 ) {
   const selection = await resolveSelection(input);
   const validationError = validateRentalRequest({
-    request: input.productTypedExtraProperties,
+    request: input.extraProperties,
     pr: selection.pr,
     servicePolicy: selection.spu.servicePolicy,
-    viewerUserId: input.createdBy,
   });
   if (validationError) {
     return throwHttpProblem({ status: 409, detail: validationError });
@@ -641,15 +694,15 @@ export async function createRentalOrderFromPlacement(
       },
     ],
     orderContext: {
-      serviceTime: input.productTypedExtraProperties.serviceStartAt,
+      serviceTime: input.extraProperties.serviceStartAt,
     },
   });
 
   const participants = buildOrderParticipantsFromContext({
-    participants: selection.pr.activeParticipants.map((participant) => ({
-      participantId: String(participant.partnerId),
+    participants: input.participants.map((participant) => ({
+      participantId: participant.userId,
       userId: participant.userId,
-      joinedVia: "PR_ACTIVE_PARTICIPANT",
+      joinedVia: "API",
     })),
     createdBy: input.createdBy,
   });
@@ -663,27 +716,24 @@ export async function createRentalOrderFromPlacement(
         items: [
           {
             itemId,
-            spuId: selection.spu.id,
-            spuVersion: selection.spu.version,
-            spuName: selection.spu.name,
-            skuId: selection.sku.id,
-            skuVersion: selection.sku.version,
-            skuName: selection.sku.name,
+            sku: {
+              id: selection.sku.id,
+              version: selection.sku.version,
+              name: selection.sku.name,
+              factsSnapshot: selection.sku.facts,
+              pricingModelSnapshot: selection.sku.pricingModel,
+              cancellationPolicySnapshot,
+            },
             quantity: selection.quantity,
-            skuFactsSnapshot: selection.sku.facts,
-            pricingModelSnapshot: selection.sku.pricingModel,
-            cancellationPolicySnapshot,
           },
         ],
         pricingSnapshot,
-        selectedZoneCodes: [selection.sku.facts.zoneCode],
         serviceStartAt: selection.pr.serviceStartAt,
         serviceEndAt: selection.pr.serviceEndAt,
-        participantCount: selection.pr.participantCount,
-        contactPhone: input.productTypedExtraProperties.contactPhone,
-        registrants: input.productTypedExtraProperties.registrants.map((registrant) => ({
+        contactPhone: input.extraProperties.contactPhone,
+        registrants: input.extraProperties.registrants.map((registrant) => ({
           name: registrant.fullName,
-          phone: input.productTypedExtraProperties.contactPhone,
+          phone: input.extraProperties.contactPhone,
           nationalIdMasked: registrant.nationalId ? "已填写" : null,
         })),
       },
@@ -707,7 +757,7 @@ export async function createRentalOrderFromPlacement(
 export async function getCommerceOrderDetail(input: {
   orderId: string;
   viewerUserId: string | null;
-}) {
+}): Promise<CommerceOrderDetailProjection> {
   if (!input.viewerUserId) {
     return throwHttpProblem({ status: 401, detail: "Authentication required" });
   }
@@ -737,7 +787,6 @@ export async function getCommerceOrderDetail(input: {
   const paymentState = bill
     ? deriveBillPaymentState({ lines: billLines, txs: paymentTxs })
     : null;
-  const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
   const rentalOrder =
     order.family === "RENTAL"
       ? await rentalOrderRepo.findByOrderId(order.id)
@@ -757,11 +806,10 @@ export async function getCommerceOrderDetail(input: {
       createdBy: order.createdBy,
       offerId: order.offerId,
       items: order.items,
-      pricingSnapshot: order.pricingSnapshot,
       terminationAttempts: order.terminationAttempts,
       serviceStartAt: rentalOrder?.serviceStartAt.toISOString() ?? null,
       serviceEndAt: rentalOrder?.serviceEndAt.toISOString() ?? null,
-      participantCount: rentalOrder?.participantCount ?? null,
+      participantCount: order.participants.length,
       contactPhone: rentalOrder?.contactPhone ?? null,
       registrants: rentalOrder?.registrants ?? [],
     },
@@ -795,13 +843,12 @@ export async function getCommerceOrderDetail(input: {
           ? "PARTIALLY_PAID"
           : "UNPAID",
     },
-    fulfillment: fulfillment
+    fulfillment: rentalOrder
       ? {
-          id: fulfillment.id,
-          lifecycleStatus: fulfillment.lifecycleStatus,
-          bookingStatus: fulfillment.bookingStatus,
-          entryGuidance: fulfillment.entryGuidance,
-          bookingNote: fulfillment.bookingNote,
+          id: rentalOrder.orderId,
+          bookingStatus: rentalOrder.bookingStatus,
+          entryGuidance: rentalOrder.entryGuidance,
+          bookingNote: rentalOrder.bookingNote,
         }
       : null,
   };
@@ -847,9 +894,17 @@ export async function cancelRentalOrderFromOrderDetail(input: {
     attemptId: "preview",
     requestedAt,
   });
-  const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
+  const bill = await billRepo.findBySourceOrderId(order.id);
+  const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
+  const paymentTxs = await paymentTxRepo.listByBillLineIds(
+    billLines.map((line) => line.id as BillLineId),
+  );
+  const paymentState = deriveBillPaymentState({
+    lines: billLines,
+    txs: paymentTxs,
+  });
   const requiresFulfillmentGate =
-    policyResolution.requiresOperatorHandling && fulfillment !== null;
+    policyResolution.requiresOperatorHandling && paymentState.paidChargeFen > 0;
 
   const requested = await requestRentalOrderTermination({
     orderId: input.orderId,
@@ -862,7 +917,7 @@ export async function cancelRentalOrderFromOrderDetail(input: {
 
   if (requiresFulfillmentGate) {
     await requestRentalCancellationHandling({
-      fulfillmentId: fulfillment.id,
+      fulfillmentId: rentalOrderRecord.orderId,
       cancellationNote: "用户取消订单，等待履约处理",
     });
 
@@ -901,16 +956,16 @@ export async function simulateRentalBookingConfirmation(input: {
     });
   }
 
-  const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id);
-  if (!fulfillment) {
+  const rentalOrder = await rentalOrderRepo.findByOrderId(order.id);
+  if (!rentalOrder) {
     return throwHttpProblem({
       status: 409,
-      detail: "Rental fulfillment has not been created",
+      detail: "Rental order facts are missing",
     });
   }
 
   return confirmRentalBooking({
-    fulfillmentId: fulfillment.id as RentalFulfillmentId,
+    fulfillmentId: rentalOrder.orderId,
     bookingNote: "Phase 3 fake rental booking confirmation",
   });
 }

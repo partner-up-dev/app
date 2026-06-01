@@ -6,8 +6,8 @@ import { requireAuthenticatedUserId } from "./pr-controller.shared";
 import { throwHttpProblem } from "../lib/problem-details";
 import {
   cancelRentalOrderFromOrderDetail,
-  createRentalOrderFromPlacement,
-  createRideHailingOrderFromPlacement,
+  createRentalOrderCommand,
+  createRideHailingOrderCommand,
   evaluateRentalOrdering,
   evaluateRideHailingOrdering,
   getCommerceOrderDetail,
@@ -53,19 +53,23 @@ const registrantSchema = z.object({
   nationalId: z.string().trim().nullable().optional(),
 });
 
+const orderParticipantSchema = z.object({
+  userId: z.string().uuid(),
+});
+
 const rentalOrderingCommandSchema = z.object({
   offerId: z.number().int().positive(),
   prId: z.number().int().positive().nullable().optional(),
+  participants: z.array(orderParticipantSchema).min(1),
   items: z
     .array(
       z.object({
-        spuId: z.number().int().positive(),
         skuId: z.number().int().positive(),
         quantity: z.number().int().positive().nullable().optional(),
       }),
     )
     .min(1),
-  productTypedExtraProperties: z.object({
+  extraProperties: z.object({
     serviceStartAt: z.string().datetime({ offset: true }),
     serviceEndAt: z.string().datetime({ offset: true }),
     contactPhone: z.string().trim().min(1),
@@ -100,16 +104,16 @@ const rideHailingRouteSnapshotSchema = z.object({
 const rideHailingOrderingCommandSchema = z.object({
   offerId: z.number().int().positive(),
   prId: z.number().int().positive().nullable().optional(),
+  participants: z.array(orderParticipantSchema).min(1),
   items: z
     .array(
       z.object({
-        spuId: z.number().int().positive().nullable().optional(),
         skuId: z.number().int().positive(),
         quantity: z.number().int().positive().nullable().optional(),
       }),
     )
     .min(1),
-  productTypedExtraProperties: z.object({
+  extraProperties: z.object({
     route: rideHailingRouteSnapshotSchema,
     departureAt: z.string().datetime({ offset: true }).nullable().optional(),
     riders: z.array(z.string().uuid()).min(1),
@@ -128,7 +132,109 @@ const readClientId = (headerValue: string | undefined): string => {
   return clientId;
 };
 
-export const commerceRoute = app
+type JsonEndpoint<
+  Input,
+  Output,
+  Status extends number = 200,
+> = {
+  input: Input;
+  output: Output;
+  outputFormat: "json";
+  status: Status;
+};
+
+type EmptyInput = {};
+type UuidParam<Key extends string> = {
+  param: Record<Key, string>;
+};
+
+type CommerceRouteSchema = {
+  "/ordering/from-placement": {
+    $get: JsonEndpoint<
+      { query: { offerId: string; prId: string } },
+      Awaited<ReturnType<typeof getOrderingFromPlacement>>
+    >;
+  };
+  "/ordering/rental/evaluate": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof rentalOrderingCommandSchema> },
+      Awaited<ReturnType<typeof evaluateRentalOrdering>>
+    >;
+  };
+  "/ordering/ride-hailing/evaluate": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof rideHailingOrderingCommandSchema> },
+      Awaited<ReturnType<typeof evaluateRideHailingOrdering>>
+    >;
+  };
+  "/orders/ride-hailing": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof rideHailingOrderingCommandSchema> },
+      Awaited<ReturnType<typeof createRideHailingOrderCommand>>,
+      201
+    >;
+  };
+  "/orders/rental": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof rentalOrderingCommandSchema> },
+      Awaited<ReturnType<typeof createRentalOrderCommand>>,
+      201
+    >;
+  };
+  "/orders/:orderId": {
+    $get: JsonEndpoint<
+      UuidParam<"orderId">,
+      Awaited<ReturnType<typeof getCommerceOrderDetail>>
+    >;
+  };
+  "/orders/:orderId/bill": {
+    $get: JsonEndpoint<
+      UuidParam<"orderId">,
+      Awaited<ReturnType<typeof getBillDetailByOrderId>>
+    >;
+  };
+  "/bills/:billId": {
+    $get: JsonEndpoint<UuidParam<"billId">, Awaited<ReturnType<typeof getBillDetail>>>;
+  };
+  "/bill-lines/:billLineId/checkout": {
+    $get: JsonEndpoint<
+      UuidParam<"billLineId">,
+      Awaited<ReturnType<typeof getPaymentCheckout>>
+    >;
+  };
+  "/bill-lines/:billLineId/charges": {
+    $post: JsonEndpoint<
+      UuidParam<"billLineId"> & EmptyInput,
+      Awaited<ReturnType<typeof createOrReuseChargeForBillLine>>
+    >;
+  };
+  "/payments/:paymentTxId": {
+    $get: JsonEndpoint<
+      UuidParam<"paymentTxId">,
+      Awaited<ReturnType<typeof getPaymentTxDetail>>
+    >;
+  };
+  "/payments/:paymentTxId/sync": {
+    $post: JsonEndpoint<
+      UuidParam<"paymentTxId"> & EmptyInput,
+      Awaited<ReturnType<typeof syncPaymentTx>>
+    >;
+  };
+  "/orders/:orderId/cancel-rental": {
+    $post: JsonEndpoint<
+      UuidParam<"orderId"> & EmptyInput,
+      Awaited<ReturnType<typeof cancelRentalOrderFromOrderDetail>>
+    >;
+  };
+  "/orders/:orderId/mock-rental-booking-confirmation": {
+    $post: JsonEndpoint<
+      UuidParam<"orderId"> & EmptyInput,
+      Awaited<ReturnType<typeof simulateRentalBookingConfirmation>>
+    >;
+  };
+};
+
+export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .use("*", authMiddleware)
   .get(
     "/ordering/from-placement",
@@ -151,8 +257,9 @@ export const commerceRoute = app
       const result = await evaluateRentalOrdering({
         offerId: payload.offerId,
         prId: payload.prId,
+        participants: payload.participants,
         items: payload.items,
-        productTypedExtraProperties: payload.productTypedExtraProperties,
+        extraProperties: payload.extraProperties,
         viewerUserId: auth.userId,
       });
       return c.json(result);
@@ -177,7 +284,7 @@ export const commerceRoute = app
     async (c) => {
       const payload = c.req.valid("json");
       const userId = requireAuthenticatedUserId(c);
-      const result = await createRideHailingOrderFromPlacement({
+      const result = await createRideHailingOrderCommand({
         ...payload,
         createdBy: userId,
       });
@@ -190,11 +297,12 @@ export const commerceRoute = app
     async (c) => {
       const payload = c.req.valid("json");
       const userId = requireAuthenticatedUserId(c);
-      const result = await createRentalOrderFromPlacement({
+      const result = await createRentalOrderCommand({
         offerId: payload.offerId,
         prId: payload.prId,
+        participants: payload.participants,
         items: payload.items,
-        productTypedExtraProperties: payload.productTypedExtraProperties,
+        extraProperties: payload.extraProperties,
         createdBy: userId,
       });
       return c.json(result, 201);

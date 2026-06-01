@@ -25,10 +25,8 @@ export interface CreateRentalOrderInput {
   offerId: OfferId;
   items: OrderItemSnapshot[];
   pricingSnapshot: OrderPricingSnapshot;
-  selectedZoneCodes: string[];
   serviceStartAt: string;
   serviceEndAt: string;
-  participantCount: number;
   contactPhone: string;
   registrants: RentalRegistrant[];
   splitRuleSnapshot?: SplitRuleSnapshot;
@@ -54,14 +52,14 @@ export async function createRentalOrder(
     return throwHttpProblem({ status: 400, detail: "Rental order requires at least one item" });
   }
 
-  if (input.participantCount <= 0) {
-    return throwHttpProblem({ status: 400, detail: "Participant count must be positive" });
+  if (input.participants.length === 0) {
+    return throwHttpProblem({ status: 400, detail: "Rental order requires at least one participant" });
   }
 
-  if (input.registrants.length !== input.participantCount) {
+  if (input.registrants.length !== input.participants.length) {
     return throwHttpProblem({
       status: 400,
-      detail: "Registrant count must match participant count",
+      detail: "Registrant count must match order participants",
     });
   }
 
@@ -103,7 +101,6 @@ export async function createRentalOrder(
     participants: input.participants,
     splitRuleSnapshot,
     items: input.items,
-    pricingSnapshot: input.pricingSnapshot,
     timeout: {
       unpaidExpiresAt,
       defaultWindowMinutes: unpaidWindowMinutes,
@@ -112,10 +109,8 @@ export async function createRentalOrder(
 
   await rentalOrderRepo.create({
     orderId: order.id,
-    selectedZoneCodes: input.selectedZoneCodes,
     serviceStartAt: new Date(input.serviceStartAt),
     serviceEndAt: new Date(input.serviceEndAt),
-    participantCount: input.participantCount,
     contactPhone: input.contactPhone,
     registrants: input.registrants,
   });

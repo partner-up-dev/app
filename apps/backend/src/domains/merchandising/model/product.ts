@@ -85,9 +85,6 @@ export type ProductSpu = {
   productType: ProductType;
   salesPolicy: SpuSalesPolicy;
   servicePolicy: ServicePolicy;
-  pricingPolicy: {
-    rules: PricingRule[];
-  };
   presentation: ProductPresentation;
   facts: Record<string, unknown>;
 };

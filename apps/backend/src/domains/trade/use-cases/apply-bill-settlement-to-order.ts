@@ -18,7 +18,7 @@ export async function applyBillSettlementToOrder(input: {
 }): Promise<{
   applied: boolean;
   reason: string;
-  fulfillmentId?: string;
+  rentalOrderId?: string;
 }> {
   const bill = await billRepo.findById(input.billId as BillId);
   if (!bill) {

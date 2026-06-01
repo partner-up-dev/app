@@ -240,37 +240,10 @@ export class PricingApplication {
         item,
         quoteTotalFen: input.orderContext?.quoteTotalFen ?? null,
       });
-      const spuState = applyRules({
-        phase: "SPU_POLICY",
-        rules: item.spu.pricingPolicy.rules,
-        state: baseState,
-        targetData: {
-          target: {
-            level: "SKU",
-            skuId: item.sku.id,
-          },
-          sku: {
-            id: item.sku.id,
-            facts: item.sku.facts,
-          },
-          spu: {
-            id: item.spu.id,
-            facts: item.spu.facts,
-            skuSelectionPolicy: item.spu.salesPolicy.skuSelectionPolicy,
-            quantityPolicy: item.spu.salesPolicy.quantityPolicy,
-          },
-          order: {
-            selectedSkuIds,
-            serviceTime: input.orderContext?.serviceTime ?? null,
-            quoteTotalFen: input.orderContext?.quoteTotalFen ?? null,
-          },
-        },
-      });
-
       const offerSkuState = applyRules({
         phase: "OFFER_POLICY",
         rules: input.offer.pricingPolicy.rules,
-        state: spuState,
+        state: baseState,
         targetData: {
           target: {
             level: "SKU",

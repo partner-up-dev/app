@@ -1,10 +1,10 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { RentalFulfillmentId } from "../../../entities/rental-fulfillment";
-import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
+import type { TradeOrderId } from "../../../entities/trade-order";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { finalizeRentalOrderTermination } from "../../trade";
 
-const rentalFulfillmentRepo = new RentalFulfillmentRepository();
+const rentalOrderRepo = new RentalOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
 export async function resolveAdminRentalFulfillmentCancellation(input: {
@@ -12,22 +12,22 @@ export async function resolveAdminRentalFulfillmentCancellation(input: {
   outcome: "APPROVED" | "DENIED";
   reason?: string | null;
 }) {
-  const fulfillment = await rentalFulfillmentRepo.findById(
-    input.fulfillmentId as RentalFulfillmentId,
+  const rentalOrder = await rentalOrderRepo.findByOrderId(
+    input.fulfillmentId as TradeOrderId,
   );
-  if (!fulfillment) {
-    return throwHttpProblem({ status: 404, detail: "Rental fulfillment not found" });
+  if (!rentalOrder) {
+    return throwHttpProblem({ status: 404, detail: "Rental order not found" });
   }
-  if (fulfillment.cancellationHandlingStatus !== "REQUESTED") {
+  if (rentalOrder.cancellationHandlingStatus !== "REQUESTED") {
     return throwHttpProblem({
       status: 409,
-      detail: "Rental fulfillment has no pending cancellation request",
+      detail: "Rental order has no pending cancellation request",
     });
   }
 
-  const order = await tradeOrderRepo.findById(fulfillment.orderId);
+  const order = await tradeOrderRepo.findById(rentalOrder.orderId);
   if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found for fulfillment" });
+    return throwHttpProblem({ status: 404, detail: "Order not found for Rental order" });
   }
   const attempt = [...order.terminationAttempts]
     .reverse()
@@ -39,7 +39,7 @@ export async function resolveAdminRentalFulfillmentCancellation(input: {
   if (!attempt) {
     return throwHttpProblem({
       status: 409,
-      detail: "Order has no pending Rental fulfillment termination attempt",
+      detail: "Order has no pending Rental operator termination attempt",
     });
   }
 

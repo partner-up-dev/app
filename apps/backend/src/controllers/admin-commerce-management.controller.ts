@@ -179,7 +179,6 @@ const productSpuInputSchema = z.object({
   status: catalogStatusSchema,
   salesPolicy: salesPolicySchema,
   servicePolicy: servicePolicySchema,
-  pricingRules: z.array(pricingRuleSchema),
   presentation: presentationSchema,
   facts: z.record(z.string(), z.unknown()),
 });

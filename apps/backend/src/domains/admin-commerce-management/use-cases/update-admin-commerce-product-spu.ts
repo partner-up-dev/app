@@ -3,7 +3,6 @@ import type { ProductSpuId } from "../../../entities/product-spu";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import type {
   CatalogStatus,
-  PricingRule,
   ProductPresentation,
   ProductType,
   ServicePolicy,
@@ -20,7 +19,6 @@ export type UpdateAdminCommerceProductSpuInput = {
   status: CatalogStatus;
   salesPolicy: SpuSalesPolicy;
   servicePolicy: ServicePolicy;
-  pricingRules: PricingRule[];
   presentation: ProductPresentation;
   facts: Record<string, unknown>;
 };
@@ -36,7 +34,6 @@ export async function updateAdminCommerceProductSpu(
   assertProductSpuContract({
     productType: input.productType,
     servicePolicy: input.servicePolicy,
-    pricingRules: input.pricingRules,
   });
 
   return productSpuRepo.updateById(input.spuId, {
@@ -45,7 +42,6 @@ export async function updateAdminCommerceProductSpu(
     status: input.status,
     salesPolicy: input.salesPolicy,
     servicePolicy: input.servicePolicy,
-    pricingPolicy: { rules: input.pricingRules },
     presentation: input.presentation,
     facts: input.facts,
     version: spu.version + 1,

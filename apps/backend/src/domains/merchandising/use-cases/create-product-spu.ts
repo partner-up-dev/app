@@ -1,7 +1,6 @@
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import type {
   CatalogStatus,
-  PricingRule,
   ProductPresentation,
   ProductType,
   ServicePolicy,
@@ -17,7 +16,6 @@ export interface CreateProductSpuInput {
   status?: CatalogStatus;
   salesPolicy: SpuSalesPolicy;
   servicePolicy: ServicePolicy;
-  pricingRules?: PricingRule[];
   presentation: ProductPresentation;
   facts?: Record<string, unknown>;
 }
@@ -26,7 +24,6 @@ export async function createProductSpu(input: CreateProductSpuInput) {
   assertProductSpuContract({
     productType: input.productType,
     servicePolicy: input.servicePolicy,
-    pricingRules: input.pricingRules ?? [],
   });
 
   return productSpuRepo.create({
@@ -35,7 +32,6 @@ export async function createProductSpu(input: CreateProductSpuInput) {
     status: input.status ?? "DRAFT",
     salesPolicy: input.salesPolicy,
     servicePolicy: input.servicePolicy,
-    pricingPolicy: { rules: input.pricingRules ?? [] },
     presentation: input.presentation,
     facts: input.facts ?? {},
   });

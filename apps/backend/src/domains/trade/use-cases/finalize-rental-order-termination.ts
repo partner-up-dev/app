@@ -5,7 +5,6 @@ import type { TradeOrderId } from "../../../entities/trade-order";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
-import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { reconcileBillToTargetAmount } from "../../bill";
@@ -13,7 +12,6 @@ import {
   createRefundPaymentTxForRefundLine,
   deriveBillPaymentState,
 } from "../../payment";
-import { deriveRentalLifecycleStatus } from "../../fulfillment";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {
   approveTerminationAttempt,
@@ -70,7 +68,7 @@ export async function finalizeRentalOrderTermination(input: {
     const billRepo = new BillRepository(tx);
     const billLineRepo = new BillLineRepository(tx);
     const paymentTxRepo = new PaymentTxRepository(tx);
-    const rentalFulfillmentRepo = new RentalFulfillmentRepository(tx);
+    const rentalOrderRepo = new RentalOrderRepository(tx);
 
     if (input.decision.outcome === "DENIED") {
       const denied = denyTerminationAttempt(order, {
@@ -86,17 +84,9 @@ export async function finalizeRentalOrderTermination(input: {
       if (!persisted) {
         return throwHttpProblem({ status: 500, detail: "Failed to persist denied rental termination" });
       }
-      const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id as TradeOrderId);
-      if (fulfillment) {
-        await rentalFulfillmentRepo.updateById(fulfillment.id, {
-          lifecycleStatus: deriveRentalLifecycleStatus({
-            bookingStatus: fulfillment.bookingStatus,
-            cancellationHandling: {
-              status: "HANDLED",
-              supplierOutcome: "BOOKING_REMAINS",
-            },
-            serviceEndedAt: fulfillment.serviceEndedAt?.toISOString() ?? null,
-          }),
+      const rentalOrder = await rentalOrderRepo.findByOrderId(order.id as TradeOrderId);
+      if (rentalOrder) {
+        await rentalOrderRepo.updateByOrderId(rentalOrder.orderId, {
           cancellationHandlingStatus: "HANDLED",
           supplierCancellationOutcome: "BOOKING_REMAINS",
           cancellationNote: input.decision.reason ?? "Rental termination denied",
@@ -158,10 +148,9 @@ export async function finalizeRentalOrderTermination(input: {
     if (!persisted) {
       return throwHttpProblem({ status: 500, detail: "Failed to persist approved rental termination" });
     }
-    const fulfillment = await rentalFulfillmentRepo.findByOrderId(order.id as TradeOrderId);
-    if (fulfillment) {
-      await rentalFulfillmentRepo.updateById(fulfillment.id, {
-        lifecycleStatus: "CANCELLED",
+    const rentalOrder = await rentalOrderRepo.findByOrderId(order.id as TradeOrderId);
+    if (rentalOrder) {
+      await rentalOrderRepo.updateByOrderId(rentalOrder.orderId, {
         cancellationHandlingStatus: "HANDLED",
         supplierCancellationOutcome: "BOOKING_CANCELLED",
         cancellationNote: input.decision.reason ?? "Rental termination approved",

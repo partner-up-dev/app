@@ -30,9 +30,6 @@ function buildSpu(overrides: Partial<ProductSpu> = {}): ProductSpu {
       requiresRealName: true,
       requiresNationalId: false,
     },
-    pricingPolicy: {
-      rules: [],
-    },
     presentation: {
       heroImageAssetIds: [],
       detailImageAssetIds: [],
@@ -168,21 +165,8 @@ describe("PricingApplication", () => {
     ]);
   });
 
-  it("applies SPU and Offer rules in order", () => {
-    const spu = buildSpu({
-      pricingPolicy: {
-        rules: [
-          minusRule({
-            id: 1,
-            target: {
-              level: "SKU",
-              skuId: 10,
-            },
-            amountFen: 1000,
-          }),
-        ],
-      },
-    });
+  it("applies Offer rules over SKU base amount", () => {
+    const spu = buildSpu();
     const offer = buildOffer({
       pricingPolicy: {
         rules: [
@@ -210,10 +194,9 @@ describe("PricingApplication", () => {
       ],
     });
 
-    expect(result.totalFen).toBe(4000);
+    expect(result.totalFen).toBe(4800);
     expect(result.itemBreakdowns[0]?.explanations.map((item) => item.phase)).toEqual([
       "SKU_BASE",
-      "SPU_POLICY",
       "OFFER_POLICY",
     ]);
   });

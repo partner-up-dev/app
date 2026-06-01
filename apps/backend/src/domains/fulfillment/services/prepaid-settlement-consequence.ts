@@ -2,7 +2,7 @@ import type { TradeOrder } from "../../../entities/trade-order";
 
 export type OrderPrepaidSettlementFulfillmentConsequence =
   | {
-      kind: "CREATE_RENTAL_FULFILLMENT";
+      kind: "ACTIVATE_RENTAL_BOOKING";
     }
   | {
       kind: "NONE";
@@ -14,7 +14,7 @@ export function resolveOrderPrepaidSettlementFulfillmentConsequence(
 ): OrderPrepaidSettlementFulfillmentConsequence {
   if (family === "RENTAL") {
     return {
-      kind: "CREATE_RENTAL_FULFILLMENT",
+      kind: "ACTIVATE_RENTAL_BOOKING",
     };
   }
 

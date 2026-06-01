@@ -2,11 +2,14 @@ import type {
   BillTargetAmountSeed,
   CancellationPolicySnapshot,
   CancellationTierSnapshot,
-  OrderItemPricingSnapshot,
-  OrderItemSnapshot,
   OrderTerminationAttempt,
   RentalOrder,
 } from "../model";
+import {
+  getOrderItemCancellationPolicy,
+  getOrderItemPricingAmountFen,
+  getOrderItemsTotalFen,
+} from "./order-items";
 
 type RentalTerminationPolicyResolution = {
   targetChargeTotalFen: number;
@@ -49,28 +52,6 @@ function selectCancellationTier(
   return matched;
 }
 
-function getItemPricingBreakdown(
-  order: RentalOrder,
-  itemId: string,
-): OrderItemPricingSnapshot {
-  const breakdown = order.pricingSnapshot.itemBreakdowns.find(
-    (item) => item.itemId === itemId,
-  );
-  if (!breakdown) {
-    throw new Error(`Pricing breakdown missing for item ${itemId}`);
-  }
-  return breakdown;
-}
-
-function getCancellationPolicySnapshot(
-  item: OrderItemSnapshot,
-): CancellationPolicySnapshot {
-  if (!item.cancellationPolicySnapshot) {
-    throw new Error(`Cancellation policy snapshot missing for item ${item.itemId}`);
-  }
-  return item.cancellationPolicySnapshot;
-}
-
 export function resolveRentalTerminationPolicy(
   order: RentalOrder,
   attempt: Pick<OrderTerminationAttempt, "attemptId" | "requestedAt">,
@@ -81,7 +62,7 @@ export function resolveRentalTerminationPolicy(
   );
 
   const selectedTiers = order.items.map((item) => {
-    const policy = getCancellationPolicySnapshot(item);
+    const policy = getOrderItemCancellationPolicy(item);
     return {
       itemId: item.itemId,
       tier: selectCancellationTier(policy, minutesBeforeStart),
@@ -93,14 +74,13 @@ export function resolveRentalTerminationPolicy(
     if (!tier) {
       throw new Error(`Selected tier missing for item ${item.itemId}`);
     }
-    const breakdown = getItemPricingBreakdown(order, item.itemId);
     const retainedRatio = 100 - tier.tier.refundPercent;
-    return sum + Math.round((breakdown.resolvedAmountFen * retainedRatio) / 100);
+    return sum + Math.round((getOrderItemPricingAmountFen(item) * retainedRatio) / 100);
   }, 0);
 
   return {
     targetChargeTotalFen,
-    refundDeltaFen: order.pricingSnapshot.totalFen - targetChargeTotalFen,
+    refundDeltaFen: getOrderItemsTotalFen(order.items) - targetChargeTotalFen,
     selectedTiers,
     requiresOperatorHandling: selectedTiers.some(
       (selected) => selected.tier.requiresOperatorHandling,
@@ -117,7 +97,7 @@ export function buildRentalBillTargetAmountSeed(input: {
   return {
     sourceOrderId: input.order.id,
     sourceAttemptId: input.attempt.attemptId,
-    currency: input.order.pricingSnapshot.currency,
+    currency: "CNY",
     targetChargeTotalFen: resolution.targetChargeTotalFen,
   };
 }

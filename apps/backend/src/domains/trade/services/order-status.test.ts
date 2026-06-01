@@ -19,13 +19,6 @@ const buildOrder = (status: TradeOrder["status"]): TradeOrder => ({
     shares: [],
   },
   items: [],
-  pricingSnapshot: {
-    currency: "CNY",
-    itemBreakdowns: [],
-    orderLevelExplanations: [],
-    subtotalFen: 0,
-    totalFen: 0,
-  },
   timeout: {
     unpaidExpiresAt: "2031-01-01T00:30:00.000Z",
     defaultWindowMinutes: 30,

@@ -12,7 +12,7 @@ export async function applyPaymentSettlementConsequence(input: {
 }): Promise<{
   applied: boolean;
   reason: string;
-  fulfillmentId?: string;
+  rentalOrderId?: string;
 }> {
   const paymentTx = await paymentTxRepo.findById(input.paymentTxId as PaymentTxId);
   if (!paymentTx) {

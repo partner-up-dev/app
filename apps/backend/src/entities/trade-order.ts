@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import type {
   OrderFamily,
   OrderParticipantSnapshot,
-  OrderPricingSnapshot,
   OrderStatus,
   OrderTerminationAttempt,
   OrderTimeout,
@@ -35,7 +34,6 @@ export const tradeOrders = pgTable(
     participants: jsonb("participants").$type<OrderParticipantSnapshot[]>().notNull(),
     splitRuleSnapshot: jsonb("split_rule_snapshot").$type<SplitRuleSnapshot>().notNull(),
     items: jsonb("items").$type<OrderItemSnapshot[]>().notNull(),
-    pricingSnapshot: jsonb("pricing_snapshot").$type<OrderPricingSnapshot>().notNull(),
     timeout: jsonb("timeout").$type<OrderTimeout>().notNull(),
     terminationAttempts: jsonb("termination_attempts")
       .$type<OrderTerminationAttempt[]>()

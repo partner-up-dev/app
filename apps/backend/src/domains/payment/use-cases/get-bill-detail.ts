@@ -8,6 +8,7 @@ import { BillRepository } from "../../../repositories/BillRepository";
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { deriveBillPaymentState } from "../services";
+import { getOrderItemSkuName } from "../../trade";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
@@ -142,7 +143,7 @@ async function buildBillDetail(input: {
       id: order.id,
       family: order.family,
       status: order.status,
-      itemName: order.items[0]?.skuName ?? "订单项目",
+      itemName: order.items[0] ? getOrderItemSkuName(order.items[0]) : "订单项目",
     },
     viewer: {
       userId: input.viewerUserId,

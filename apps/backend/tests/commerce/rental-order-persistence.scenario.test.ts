@@ -26,12 +26,12 @@ import type {
   PaymentTxId,
 } from "../../src/entities/payment";
 import type { PRId } from "../../src/entities/partner-request";
+import type { ProductSku } from "../../src/entities/product-sku";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
 import { PaymentTxRepository } from "../../src/repositories/PaymentTxRepository";
-import { RentalFulfillmentRepository } from "../../src/repositories/RentalFulfillmentRepository";
 import { RentalOrderRepository } from "../../src/repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 
@@ -41,7 +41,6 @@ const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billLineRepo = new BillLineRepository();
 const paymentTxRepo = new PaymentTxRepository();
-const rentalFulfillmentRepo = new RentalFulfillmentRepository();
 
 const serviceStartAt = "2031-02-01T10:00:00.000Z";
 const serviceEndAt = "2031-02-01T12:00:00.000Z";
@@ -66,6 +65,22 @@ const defaultRentalPlacementBindingRules = () => [
     lock: true as const,
   },
 ];
+
+const buildRentalOrderItem = (input: {
+  itemId: string;
+  sku: ProductSku;
+}) => ({
+  itemId: input.itemId,
+  sku: {
+    id: input.sku.id,
+    version: input.sku.version,
+    name: input.sku.name,
+    factsSnapshot: input.sku.facts,
+    pricingModelSnapshot: input.sku.pricingModel,
+    cancellationPolicySnapshot: null,
+  },
+  quantity: 1,
+});
 
 async function givenRentalPr(creator: ScenarioUser): Promise<PRId> {
   const pr = await partnerRequestRepo.create({
@@ -129,7 +144,6 @@ async function givenRentalCatalog() {
       requiresRealName: true,
       requiresNationalId: false,
     },
-    pricingRules: [],
     presentation: {
       heroImageAssetIds: [],
       detailImageAssetIds: [],
@@ -167,7 +181,7 @@ async function givenRentalCatalog() {
 scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   const creator = await givenUser("rental-typed-order-creator");
   const prId = await givenRentalPr(creator);
-  const { offer, sku, spu } = await givenRentalCatalog();
+  const { offer, sku } = await givenRentalCatalog();
   const itemId = randomUUID();
   const participants = await listPrOrderParticipants(prId, creator.user.id);
 
@@ -175,21 +189,7 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
     createdBy: creator.user.id,
     participants,
     offerId: offer.id,
-    items: [
-      {
-        itemId,
-        spuId: spu.id,
-        spuVersion: spu.version,
-        spuName: spu.name,
-        skuId: sku.id,
-        skuVersion: sku.version,
-        skuName: sku.name,
-        quantity: 1,
-        skuFactsSnapshot: sku.facts,
-        pricingModelSnapshot: sku.pricingModel,
-        cancellationPolicySnapshot: null,
-      },
-    ],
+    items: [buildRentalOrderItem({ itemId, sku })],
     pricingSnapshot: {
       currency: "CNY",
       itemBreakdowns: [
@@ -203,10 +203,8 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
       subtotalFen: 1200,
       totalFen: 1200,
     },
-    selectedZoneCodes: ["TYPED_RENTAL_ZONE"],
     serviceStartAt,
     serviceEndAt,
-    participantCount: 1,
     contactPhone: "13800138000",
     registrants: [
       {
@@ -234,18 +232,18 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
 
   const typedOrder = await rentalOrderRepo.findByOrderId(result.orderId);
   assert.ok(typedOrder, "Rental typed order should be persisted");
-  assert.deepEqual(typedOrder.selectedZoneCodes, ["TYPED_RENTAL_ZONE"]);
   assert.equal(typedOrder.serviceStartAt.toISOString(), serviceStartAt);
   assert.equal(typedOrder.serviceEndAt.toISOString(), serviceEndAt);
-  assert.equal(typedOrder.participantCount, 1);
   assert.equal(typedOrder.contactPhone, "13800138000");
   assert.equal(typedOrder.registrants[0]?.name, "张三");
+  assert.equal(typedOrder.bookingStatus, "PENDING_BOOKING");
+  assert.equal(typedOrder.cancellationHandlingStatus, "NONE");
 });
 
 scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async (ctx) => {
   const creator = await givenUser("rental-late-payment-cancelled");
   const prId = await givenRentalPr(creator);
-  const { offer, sku, spu } = await givenRentalCatalog();
+  const { offer, sku } = await givenRentalCatalog();
   const itemId = randomUUID();
   const participants = await listPrOrderParticipants(prId, creator.user.id);
 
@@ -253,21 +251,7 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     createdBy: creator.user.id,
     participants,
     offerId: offer.id,
-    items: [
-      {
-        itemId,
-        spuId: spu.id,
-        spuVersion: spu.version,
-        spuName: spu.name,
-        skuId: sku.id,
-        skuVersion: sku.version,
-        skuName: sku.name,
-        quantity: 1,
-        skuFactsSnapshot: sku.facts,
-        pricingModelSnapshot: sku.pricingModel,
-        cancellationPolicySnapshot: null,
-      },
-    ],
+    items: [buildRentalOrderItem({ itemId, sku })],
     pricingSnapshot: {
       currency: "CNY",
       itemBreakdowns: [
@@ -281,10 +265,8 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
       subtotalFen: 1200,
       totalFen: 1200,
     },
-    selectedZoneCodes: ["TYPED_RENTAL_LATE_PAYMENT"],
     serviceStartAt,
     serviceEndAt,
-    participantCount: 1,
     contactPhone: "13800138002",
     registrants: [
       {
@@ -365,8 +347,9 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     reason: "Order is not eligible for prepaid settlement consequence",
   });
   assert.equal(
-    await rentalFulfillmentRepo.findByOrderId(orderResult.orderId as TradeOrderId),
-    null,
+    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))
+      ?.bookingStatus,
+    "PENDING_BOOKING",
   );
 
   await tradeOrderRepo.updateStatus(
@@ -384,8 +367,9 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     reason: "Order is not eligible for prepaid settlement consequence",
   });
   assert.equal(
-    await rentalFulfillmentRepo.findByOrderId(orderResult.orderId as TradeOrderId),
-    null,
+    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))
+      ?.bookingStatus,
+    "PENDING_BOOKING",
   );
 });
 
@@ -417,21 +401,7 @@ scenario(
             createdBy: creator.user.id,
             participants,
             offerId: offer.id,
-            items: [
-              {
-                itemId,
-                spuId: spu.id,
-                spuVersion: spu.version,
-                spuName: spu.name,
-                skuId: sku.id,
-                skuVersion: sku.version,
-                skuName: sku.name,
-                quantity: 1,
-                skuFactsSnapshot: sku.facts,
-                pricingModelSnapshot: sku.pricingModel,
-                cancellationPolicySnapshot: null,
-              },
-            ],
+            items: [buildRentalOrderItem({ itemId, sku })],
             pricingSnapshot: {
               currency: "CNY",
               itemBreakdowns: [
@@ -445,10 +415,8 @@ scenario(
               subtotalFen: 1200,
               totalFen: 1200,
             },
-            selectedZoneCodes: ["TYPED_RENTAL_REORDER"],
             serviceStartAt,
             serviceEndAt,
-            participantCount: 1,
             contactPhone: "13800138003",
             registrants: [
               {
@@ -526,7 +494,6 @@ scenario("commerce_placement_resolution_does_not_filter_product_type", async () 
     servicePolicy: {
       type: "RIDE_HAILING",
     },
-    pricingRules: [],
     presentation: {
       heroImageAssetIds: [],
       detailImageAssetIds: [],
@@ -574,21 +541,7 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
       createdBy: creator.user.id,
       participants,
       offerId: offer.id,
-      items: [
-        {
-          itemId,
-          spuId: spu.id,
-          spuVersion: spu.version,
-          spuName: spu.name,
-          skuId: sku.id,
-          skuVersion: sku.version,
-          skuName: sku.name,
-          quantity: 1,
-          skuFactsSnapshot: sku.facts,
-          pricingModelSnapshot: sku.pricingModel,
-          cancellationPolicySnapshot: null,
-        },
-      ],
+      items: [buildRentalOrderItem({ itemId, sku })],
       pricingSnapshot: {
         currency: "CNY",
         itemBreakdowns: [
@@ -602,10 +555,8 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
         subtotalFen: 1200,
         totalFen: 1200,
       },
-      selectedZoneCodes: ["TYPED_RENTAL_ROLLBACK"],
       serviceStartAt: "not-a-date",
       serviceEndAt,
-      participantCount: 1,
       contactPhone: "13800138001",
       registrants: [
         {

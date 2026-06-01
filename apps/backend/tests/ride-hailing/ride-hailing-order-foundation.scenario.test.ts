@@ -17,7 +17,6 @@ import type { PRId } from "../../src/entities/partner-request";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
-import { RideHailingFulfillmentRepository } from "../../src/repositories/RideHailingFulfillmentRepository";
 import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../src/repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
@@ -26,7 +25,6 @@ const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
-const rideFulfillmentRepo = new RideHailingFulfillmentRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 
 const hasOwnKey = (value: object, key: string): boolean =>
@@ -90,7 +88,6 @@ async function givenRideHailingOffer() {
     servicePolicy: {
       type: "RIDE_HAILING",
     },
-    pricingRules: [],
     presentation: {
       heroImageAssetIds: [],
       detailImageAssetIds: [],
@@ -140,21 +137,21 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
         items: [
           {
             itemId,
-            spuId: spu.id,
-            spuVersion: spu.version,
-            spuName: spu.name,
-            skuId: 901001,
-            skuVersion: 1,
-            skuName: "Scenario Caocao Express",
+            sku: {
+              id: 901001,
+              version: 1,
+              name: "Scenario Caocao Express",
+              factsSnapshot: {
+                rideHailingProviderInstanceId: provider.id,
+                providerVehicleTypeCode: "1",
+              },
+              pricingModelSnapshot: {
+                type: "DYNAMIC_QUOTE",
+                calculatorSpec: {},
+              },
+              cancellationPolicySnapshot: null,
+            },
             quantity: 1,
-            skuFactsSnapshot: {
-              rideHailingProviderInstanceId: provider.id,
-              providerVehicleTypeCode: "1",
-            },
-            pricingModelSnapshot: {
-              type: "DYNAMIC_PROVIDER_ESTIMATE",
-            },
-            cancellationPolicySnapshot: null,
           },
         ],
         pricingSnapshot: {
@@ -247,25 +244,16 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   assert.equal(typedOrder.departureAt, null);
   assert.equal(typedOrder.riders[0]?.userId, creator.user.id);
   assert.equal(typedOrder.contactPhone, "13800138000");
-  assert.equal(typedOrder.providerCreationStatus, "PENDING");
+  assert.equal(typedOrder.providerInstanceId, provider.id);
+  assert.equal(typedOrder.providerOrderId, null);
+  assert.equal(hasOwnKey(typedOrder, "providerCreationStatus"), false);
   assert.equal(hasOwnKey(typedOrder, "executionProjection"), false);
   assert.equal(hasOwnKey(typedOrder, "dispatchState"), false);
   assert.equal(hasOwnKey(typedOrder, "driverAssignmentSnapshot"), false);
   assert.equal(hasOwnKey(typedOrder, "cancellationSideEffectResult"), false);
   assert.equal(hasOwnKey(typedOrder, "feeConfirmSideEffectResult"), false);
-  assert.equal(hasOwnKey(typedOrder, "finalSettlementInput"), false);
+  assert.equal(typedOrder.finalSettlementInput, null);
   assert.equal(hasOwnKey(typedOrder, "finalPricingReference"), false);
-
-  const fulfillment = await rideFulfillmentRepo.findByOrderId(result.orderId);
-  assert.ok(fulfillment, "RideHailing fulfillment should be persisted");
-  assert.equal(fulfillment.lifecycleStatus, "PENDING");
-  assert.equal(fulfillment.providerInstanceId, provider.id);
-  assert.equal(fulfillment.providerType, "CAOCAO");
-  assert.equal(fulfillment.externalOrderId, null);
-  assert.equal(fulfillment.providerOrderId, null);
-  assert.equal(hasOwnKey(fulfillment, "dispatchState"), false);
-  assert.equal(hasOwnKey(fulfillment, "cancellationSideEffectResult"), false);
-  assert.equal(hasOwnKey(fulfillment, "feeConfirmSideEffectResult"), false);
 
   const pr = await partnerRequestRepo.findById(prId);
   assert.ok(pr, "PR should still exist");

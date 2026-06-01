@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import {
   rentalOrders,
   type NewRentalOrder,
@@ -30,5 +30,36 @@ export class RentalOrderRepository {
       .select()
       .from(rentalOrders)
       .where(inArray(rentalOrders.orderId, orderIds));
+  }
+
+  async listAll(): Promise<RentalOrder[]> {
+    return this.executor
+      .select()
+      .from(rentalOrders)
+      .orderBy(desc(rentalOrders.createdAt));
+  }
+
+  async updateByOrderId(
+    orderId: TradeOrderId,
+    data: Pick<
+      Partial<NewRentalOrder>,
+      | "bookingStatus"
+      | "cancellationHandlingStatus"
+      | "supplierCancellationOutcome"
+      | "entryGuidance"
+      | "bookingNote"
+      | "cancellationNote"
+      | "serviceEndedAt"
+    >,
+  ): Promise<RentalOrder | null> {
+    const result = await this.executor
+      .update(rentalOrders)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(rentalOrders.orderId, orderId))
+      .returning();
+    return result[0] ?? null;
   }
 }

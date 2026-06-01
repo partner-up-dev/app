@@ -1,5 +1,4 @@
 import type {
-  PricingRule,
   ProductSku,
   ProductSpu,
   ProductType,
@@ -13,12 +12,6 @@ function assertProductTypeMatchesServicePolicy(
 ): void {
   if (productType !== servicePolicy.type) {
     throw new Error("SPU productType must match servicePolicy.type");
-  }
-}
-
-function assertSpuPricingPolicyTargets(rules: PricingRule[]): void {
-  if (rules.some((rule) => rule.target.level !== "SKU")) {
-    throw new Error("SPU pricing policy may target SKU only");
   }
 }
 
@@ -49,13 +42,11 @@ function assertSkuFactsMatchProductType(
 export function assertProductSpuContract(input: {
   productType: ProductType;
   servicePolicy: ServicePolicy;
-  pricingRules: PricingRule[];
 }): void {
   assertProductTypeMatchesServicePolicy(
     input.productType,
     input.servicePolicy,
   );
-  assertSpuPricingPolicyTargets(input.pricingRules);
 }
 
 export function assertProductSkuContract(input: {

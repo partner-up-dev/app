@@ -1,8 +1,8 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { RentalFulfillmentId } from "../../../entities/rental-fulfillment";
-import { RentalFulfillmentRepository } from "../../../repositories/RentalFulfillmentRepository";
+import type { TradeOrderId } from "../../../entities/trade-order";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 
-const rentalFulfillmentRepo = new RentalFulfillmentRepository();
+const rentalOrderRepo = new RentalOrderRepository();
 
 export async function recordRentalEntryGuidance(input: {
   fulfillmentId: string;
@@ -10,14 +10,14 @@ export async function recordRentalEntryGuidance(input: {
   entryByRealName?: string | null;
   note?: string | null;
 }) {
-  const fulfillment = await rentalFulfillmentRepo.findById(
-    input.fulfillmentId as RentalFulfillmentId,
+  const rentalOrder = await rentalOrderRepo.findByOrderId(
+    input.fulfillmentId as TradeOrderId,
   );
-  if (!fulfillment) {
-    return throwHttpProblem({ status: 404, detail: "Rental fulfillment not found" });
+  if (!rentalOrder) {
+    return throwHttpProblem({ status: 404, detail: "Rental order not found" });
   }
 
-  return rentalFulfillmentRepo.updateById(fulfillment.id, {
+  return rentalOrderRepo.updateByOrderId(rentalOrder.orderId, {
     entryGuidance: {
       entryByPhone: input.entryByPhone ?? null,
       entryByRealName: input.entryByRealName ?? null,

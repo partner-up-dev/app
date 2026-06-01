@@ -14,6 +14,7 @@ import { PaymentProviderInstanceRepository } from "../../../repositories/Payment
 import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
+import { getOrderItemSkuName } from "../../trade";
 import {
   createPaymentProviderPort,
   deriveBillPaymentState,
@@ -189,7 +190,9 @@ const buildCheckoutProjection = (input: {
     id: input.order.id,
     family: input.order.family,
     status: input.order.status,
-    itemName: input.order.items[0]?.skuName ?? "订单项目",
+    itemName: input.order.items[0]
+      ? getOrderItemSkuName(input.order.items[0])
+      : "订单项目",
   },
   eligibility: {
     payable: input.disabledReason === null,

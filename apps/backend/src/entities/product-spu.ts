@@ -9,7 +9,6 @@ import {
 } from "drizzle-orm/pg-core";
 import type {
   CatalogStatus,
-  PricingRule,
   ProductPresentation,
   ProductType,
   ServicePolicy,
@@ -26,9 +25,6 @@ export const productSpus = pgTable(
     productType: text("product_type").$type<ProductType>().notNull(),
     salesPolicy: jsonb("sales_policy").$type<SpuSalesPolicy>().notNull(),
     servicePolicy: jsonb("service_policy").$type<ServicePolicy>().notNull(),
-    pricingPolicy: jsonb("pricing_policy")
-      .$type<{ rules: PricingRule[] }>()
-      .notNull(),
     presentation: jsonb("presentation").$type<ProductPresentation>().notNull(),
     facts: jsonb("facts").$type<Record<string, unknown>>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

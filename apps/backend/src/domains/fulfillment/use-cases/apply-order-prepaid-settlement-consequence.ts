@@ -1,11 +1,13 @@
 import type { TradeOrder } from "../../../entities/trade-order";
+import type { TradeOrderId } from "../../../entities/trade-order";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { resolveOrderPrepaidSettlementFulfillmentConsequence } from "../services/prepaid-settlement-consequence";
-import { createRentalFulfillment } from "./create-rental-fulfillment";
 
 export type OrderPrepaidSettlementFulfillmentResult = {
   applied: boolean;
   reason: string;
-  fulfillmentId?: string;
+  rentalOrderId?: string;
 };
 
 export async function applyOrderPrepaidSettlementFulfillmentConsequence(input: {
@@ -23,10 +25,16 @@ export async function applyOrderPrepaidSettlementFulfillmentConsequence(input: {
     };
   }
 
-  const fulfillment = await createRentalFulfillment(input.orderId);
+  const rentalOrder = await new RentalOrderRepository().findByOrderId(
+    input.orderId as TradeOrderId,
+  );
+  if (!rentalOrder) {
+    return throwHttpProblem({ status: 404, detail: "Rental order not found" });
+  }
+
   return {
     applied: true,
-    reason: "Order started Rental fulfillment after prepaid bill settlement",
-    fulfillmentId: fulfillment.id,
+    reason: "Order activated Rental booking state after prepaid bill settlement",
+    rentalOrderId: rentalOrder.orderId,
   };
 }

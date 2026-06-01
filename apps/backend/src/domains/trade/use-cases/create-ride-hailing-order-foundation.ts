@@ -6,7 +6,6 @@ import type { UserId } from "../../../entities/user";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
-import { createRideHailingFulfillment } from "../../fulfillment";
 import type {
   OrderItemSnapshot,
   OrderParticipantSnapshot,
@@ -97,7 +96,6 @@ export async function createRideHailingOrderFoundation(
     participants: input.participants,
     splitRuleSnapshot,
     items: input.items,
-    pricingSnapshot: input.pricingSnapshot,
     timeout: {
       unpaidExpiresAt: initiatingExpiresAt,
       defaultWindowMinutes: initiatingWindowMinutes,
@@ -110,17 +108,9 @@ export async function createRideHailingOrderFoundation(
     departureAt: input.departureAt ? new Date(input.departureAt) : null,
     riders: input.riders,
     contactPhone: input.contactPhone,
-    providerCreationStatus: "PENDING",
+    providerInstanceId: input.providerInstanceId as RideHailingProviderInstanceId,
+    executionPhase: "INITIATING",
   });
-
-  await createRideHailingFulfillment(
-    {
-      orderId: order.id,
-      providerInstanceId:
-        input.providerInstanceId as RideHailingProviderInstanceId,
-    },
-    executor,
-  );
 
   return {
     orderId: order.id,

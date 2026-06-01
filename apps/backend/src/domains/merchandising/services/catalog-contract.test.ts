@@ -18,45 +18,19 @@ describe("catalog contract guards", () => {
           requiresRealName: true,
           requiresNationalId: false,
         },
-        pricingRules: [
-          {
-            id: 1,
-            label: "minus",
-            description: "minus",
-            conditionRule: null,
-            action: { type: "MINUS", payload: { amountFen: 100 } },
-            target: { level: "SKU" },
-            continue: false,
-          },
-        ],
       }),
     ).not.toThrow();
   });
 
-  it("rejects SPU pricing rules that target non-SKU levels", () => {
+  it("rejects SPU service policy mismatches", () => {
     expect(() =>
       assertProductSpuContract({
         productType: "RENTAL",
         servicePolicy: {
-          type: "RENTAL",
-          bookingLeadTimeMinutes: 1440,
-          requiresContactPhone: true,
-          requiresRealName: true,
-          requiresNationalId: false,
+          type: "RIDE_HAILING",
         },
-        pricingRules: [
-          {
-            id: 1,
-            label: "bad",
-            description: "bad",
-            conditionRule: null,
-            action: { type: "MINUS", payload: { amountFen: 100 } },
-            target: { level: "ORDER" },
-            continue: false,
-          },
-        ],
       }),
-    ).toThrow("SPU pricing policy may target SKU only");
+    ).toThrow("SPU productType must match servicePolicy.type");
   });
 
   it("rejects SKU facts that do not match SPU product type", () => {
