@@ -6,7 +6,6 @@ create table "product_spus" (
   "product_type" text not null,
   "sales_policy" jsonb not null,
   "service_policy" jsonb not null,
-  "pricing_policy" jsonb not null,
   "presentation" jsonb not null,
   "facts" jsonb not null,
   "created_at" timestamptz not null default now(),
@@ -67,37 +66,52 @@ create index "offers_product_type_status_idx"
 create table "placements" (
   "id" bigserial primary key,
   "status" text not null default 'DRAFT',
-  "slot_key" text not null,
   "placement_type" text not null,
+  "offer_id" bigint not null references "offers"("id") on delete restrict,
   "matching_rule" jsonb not null,
   "priority" integer not null default 0,
+  "effective_from" timestamptz,
+  "effective_to" timestamptz,
   "creative" jsonb not null,
-  "target" jsonb not null,
+  "binding_rules" jsonb not null default
+    '[
+      {
+        "fieldKey": "participantCount",
+        "contextPath": "activeParticipantCount",
+        "lock": true
+      },
+      {
+        "fieldKey": "serviceStartAt",
+        "contextPath": "time.startAt",
+        "lock": true
+      },
+      {
+        "fieldKey": "serviceEndAt",
+        "contextPath": "time.endAt",
+        "lock": true
+      }
+    ]'::jsonb,
   "created_at" timestamptz not null default now(),
   "updated_at" timestamptz not null default now()
 );
 
-create index "placements_slot_status_priority_idx"
-  on "placements" ("slot_key", "status", "priority");
+create index "placements_type_status_priority_idx"
+  on "placements" ("placement_type", "status", "priority");
+
+alter table "partner_requests"
+  add column "orders" uuid[] not null default ARRAY[]::uuid[];
 
 create table "trade_orders" (
   "id" uuid primary key default gen_random_uuid(),
   "family" text not null,
+  "offer_id" bigint not null references "offers"("id") on delete restrict,
   "created_by" uuid not null references "users"("id") on delete restrict,
   "status" text not null default 'OPEN',
   "participants" jsonb not null,
   "split_rule_snapshot" jsonb not null,
-  "offer_snapshot" jsonb not null,
   "items" jsonb not null,
-  "pricing_snapshot" jsonb not null,
   "timeout" jsonb not null,
   "termination_attempts" jsonb not null default '[]'::jsonb,
-  "selected_zone_codes" text[] not null default ARRAY[]::text[],
-  "service_start_at" timestamptz,
-  "service_end_at" timestamptz,
-  "participant_count" integer,
-  "contact_phone" text,
-  "registrants" jsonb not null default '[]'::jsonb,
   "closed_at" timestamptz,
   "created_at" timestamptz not null default now(),
   "updated_at" timestamptz not null default now()
@@ -106,23 +120,28 @@ create table "trade_orders" (
 create index "trade_orders_family_status_idx"
   on "trade_orders" ("family", "status");
 
-create index "trade_orders_service_start_idx"
-  on "trade_orders" ("service_start_at");
+create index "trade_orders_offer_status_idx"
+  on "trade_orders" ("offer_id", "status");
 
-create table "pr_attached_orders" (
-  "order_id" uuid primary key references "trade_orders"("id") on delete cascade,
-  "pr_id" bigint not null references "partner_requests"("id") on delete cascade,
-  "offer_id" bigint not null references "offers"("id") on delete restrict,
-  "detached_at" timestamptz,
-  "created_at" timestamptz not null default now()
+create table "rental_orders" (
+  "order_id" uuid primary key references "trade_orders" ("id") on delete cascade,
+  "service_start_at" timestamptz not null,
+  "service_end_at" timestamptz not null,
+  "contact_phone" text not null,
+  "registrants" jsonb not null default '[]'::jsonb,
+  "booking_status" text not null default 'PENDING_BOOKING',
+  "cancellation_handling_status" text not null default 'NONE',
+  "supplier_cancellation_outcome" text default null,
+  "entry_guidance" jsonb default null,
+  "booking_note" text,
+  "cancellation_note" text,
+  "service_ended_at" timestamptz,
+  "created_at" timestamptz not null default now(),
+  "updated_at" timestamptz not null default now()
 );
 
-create unique index "pr_attached_orders_pr_offer_unique"
-  on "pr_attached_orders" ("pr_id", "offer_id")
-  where "detached_at" is null;
-
-create index "pr_attached_orders_pr_idx"
-  on "pr_attached_orders" ("pr_id");
+create index "rental_orders_service_start_idx"
+  on "rental_orders" ("service_start_at");
 
 create table "bills" (
   "id" uuid primary key default gen_random_uuid(),
@@ -149,7 +168,7 @@ create table "bill_lines" (
   "currency" text not null default 'CNY',
   "label" text not null,
   "description" text,
-  "source_line_id" uuid,
+  "refund_of_bill_line_id" uuid references "bill_lines"("id") on delete restrict,
   "created_at" timestamptz not null default now()
 );
 
@@ -159,24 +178,5 @@ create index "bill_lines_bill_kind_idx"
 create index "bill_lines_user_idx"
   on "bill_lines" ("user_id");
 
-create table "rental_fulfillments" (
-  "id" uuid primary key default gen_random_uuid(),
-  "order_id" uuid not null references "trade_orders"("id") on delete cascade,
-  "lifecycle_status" text not null default 'PENDING',
-  "booking_status" text not null default 'PENDING_BOOKING',
-  "cancellation_handling_status" text not null default 'NONE',
-  "supplier_cancellation_outcome" text default null,
-  "entry_guidance" jsonb default null,
-  "booking_note" text,
-  "cancellation_note" text,
-  "irreversible_boundary_at" timestamptz,
-  "service_ended_at" timestamptz,
-  "created_at" timestamptz not null default now(),
-  "updated_at" timestamptz not null default now()
-);
-
-create unique index "rental_fulfillments_order_unique"
-  on "rental_fulfillments" ("order_id");
-
-create index "rental_fulfillments_lifecycle_booking_idx"
-  on "rental_fulfillments" ("lifecycle_status", "booking_status");
+create index "bill_lines_refund_of_bill_line_idx"
+  on "bill_lines" ("refund_of_bill_line_id");
