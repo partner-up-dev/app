@@ -12,19 +12,26 @@
       data-testid="pr-detail.pairing-code.open"
       @click="handleOpenPairingCode"
     >
+      <template #leading>
+        <span
+          class="primary-action__color"
+          data-testid="pr-detail.pairing-code.color"
+          :style="pairingColorStyle"
+        ></span>
+      </template>
       {{ t("prPage.pairingCodeEntry.action", { code: pairingCode }) }}
     </Button>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type CSSProperties } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import {
   canShowPRPairingCode,
-  derivePRPairingCode,
+  derivePRPairingIdentity,
 } from "@/domains/pr/model/pr-pairing-code";
 import { prPairingCodePath } from "@/domains/pr/routing/routes";
 import Button from "@/shared/ui/actions/Button.vue";
@@ -37,7 +44,11 @@ const router = useRouter();
 const { t } = useI18n();
 
 const showPairingCodeAction = computed(() => canShowPRPairingCode(props.pr));
-const pairingCode = computed(() => derivePRPairingCode(props.pr.id));
+const pairingIdentity = computed(() => derivePRPairingIdentity(props.pr.id));
+const pairingCode = computed(() => pairingIdentity.value.code);
+const pairingColorStyle = computed<CSSProperties>(() => ({
+  backgroundColor: pairingIdentity.value.backgroundColor,
+}));
 
 const handleOpenPairingCode = (): void => {
   if (!showPairingCodeAction.value) return;
@@ -53,5 +64,12 @@ const handleOpenPairingCode = (): void => {
 
 .primary-action__button {
   width: 100%;
+}
+
+.primary-action__color {
+  width: 1em;
+  height: 1em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
 }
 </style>

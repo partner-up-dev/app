@@ -4,6 +4,7 @@
     class="pairing-code-page"
     data-page="pr-pairing-code"
     :aria-label="t('prPage.pairingCodePage.title')"
+    :style="pairingPageStyle"
   >
     <button
       class="pairing-code-page__back"
@@ -44,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type CSSProperties } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
@@ -54,7 +55,7 @@ import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import {
   canShowPRPairingCode,
-  derivePRPairingCode,
+  derivePRPairingIdentity,
 } from "@/domains/pr/model/pr-pairing-code";
 
 const router = useRouter();
@@ -67,9 +68,18 @@ const showPairingCode = computed(() => {
   const pr = prDetail.value;
   return pr ? canShowPRPairingCode(pr) : false;
 });
-const pairingCode = computed(() => {
+const pairingIdentity = computed(() => {
   const pr = prDetail.value;
-  return pr ? derivePRPairingCode(pr.id) : "";
+  return pr ? derivePRPairingIdentity(pr.id) : null;
+});
+const pairingCode = computed(() => pairingIdentity.value?.code ?? "");
+const pairingPageStyle = computed<CSSProperties>(() => {
+  const identity = pairingIdentity.value;
+  if (!identity) return {};
+  return {
+    backgroundColor: identity.backgroundColor,
+    color: identity.foregroundColor,
+  };
 });
 
 const hasRouterBackEntry = (): boolean => {
@@ -104,8 +114,6 @@ const handleBack = async (): Promise<void> => {
     max(var(--sys-spacing-medium), env(safe-area-inset-right))
     max(var(--sys-spacing-medium), env(safe-area-inset-bottom))
     max(var(--sys-spacing-medium), env(safe-area-inset-left));
-  background: var(--sys-color-primary);
-  color: var(--sys-color-on-primary);
   overflow: hidden;
 }
 
@@ -127,7 +135,7 @@ const handleBack = async (): Promise<void> => {
   border: 1px solid currentColor;
   border-radius: 999px;
   background: transparent;
-  color: var(--sys-color-on-primary);
+  color: inherit;
   cursor: pointer;
 }
 

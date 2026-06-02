@@ -3,6 +3,7 @@ import type { PRDetailView } from "@/domains/pr/model/types";
 import {
   canShowPRPairingCode,
   derivePRPairingCode,
+  derivePRPairingIdentity,
 } from "@/domains/pr/model/pr-pairing-code";
 
 describe("PR pairing code", () => {
@@ -13,6 +14,23 @@ describe("PR pairing code", () => {
     expect(firstCode).toBe(secondCode);
     expect(firstCode).toMatch(/^\d{4}$/);
     expect(derivePRPairingCode(124)).not.toBe(firstCode);
+  });
+
+  test("derives a stable visual identity with a color per code", () => {
+    const firstIdentity = derivePRPairingIdentity(123);
+    const secondIdentity = derivePRPairingIdentity(123);
+    const otherIdentity = derivePRPairingIdentity(124);
+
+    expect(firstIdentity).toEqual(secondIdentity);
+    expect(firstIdentity.code).toMatch(/^\d{4}$/);
+    expect(firstIdentity.backgroundColor).toMatch(
+      /^hsl\(\d+\.\d{3}, \d+%, \d+%\)$/,
+    );
+    expect(firstIdentity.foregroundColor).toMatch(/^#[0-9a-f]{6}$/);
+    expect(otherIdentity.code).not.toBe(firstIdentity.code);
+    expect(otherIdentity.backgroundColor).not.toBe(
+      firstIdentity.backgroundColor,
+    );
   });
 
   test("is visible only for READY active participants", () => {

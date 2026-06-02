@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, nextTick, type App } from "vue";
 import type { PRRoute, PRStatus } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import { derivePRPairingCode } from "@/domains/pr/model/pr-pairing-code";
+import { derivePRPairingIdentity } from "@/domains/pr/model/pr-pairing-code";
 import PRPage from "./PRPage.vue";
 
 const testState = vi.hoisted(() => ({
@@ -404,12 +404,19 @@ describe("PRPage pairing code action", () => {
         isParticipant: true,
       }),
     );
+    const pairingIdentity = derivePRPairingIdentity(123);
     const button = host.querySelector<HTMLButtonElement>(
       '[data-testid="pr-detail.pairing-code.open"]',
     );
+    const colorSwatch = host.querySelector<HTMLElement>(
+      '[data-testid="pr-detail.pairing-code.color"]',
+    );
 
     expect(button).not.toBeNull();
-    expect(button?.textContent).toContain(derivePRPairingCode(123));
+    expect(button?.textContent).toContain(pairingIdentity.code);
+    expect(colorSwatch?.style.backgroundColor).toBe(
+      pairingIdentity.backgroundColor,
+    );
 
     button?.click();
 

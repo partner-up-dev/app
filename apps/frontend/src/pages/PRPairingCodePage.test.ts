@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, nextTick, ref, type App } from "vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import { derivePRPairingCode } from "@/domains/pr/model/pr-pairing-code";
+import { derivePRPairingIdentity } from "@/domains/pr/model/pr-pairing-code";
 import PRPairingCodePage from "./PRPairingCodePage.vue";
 
 const testState = vi.hoisted(() => ({
@@ -66,14 +66,20 @@ afterEach(() => {
 
 describe("PRPairingCodePage", () => {
   test("renders the full-screen pairing code for READY active participants", async () => {
+    const pairingIdentity = derivePRPairingIdentity(123);
     const host = await mountPage(
       buildPRDetail({ status: "READY", isParticipant: true }),
     );
+    const page = host.querySelector<HTMLElement>(
+      '[data-page="pr-pairing-code"]',
+    );
 
     expect(getByTestId(host, "pr-pairing-code.code")?.textContent).toContain(
-      derivePRPairingCode(123),
+      pairingIdentity.code,
     );
-    expect(host.querySelector('[data-page="pr-pairing-code"]')).not.toBeNull();
+    expect(page).not.toBeNull();
+    expect(page?.style.backgroundColor).toBe(pairingIdentity.backgroundColor);
+    expect(page?.style.color).toBe(pairingIdentity.foregroundColor);
   });
 
   test("does not reveal the code to non-participants", async () => {
