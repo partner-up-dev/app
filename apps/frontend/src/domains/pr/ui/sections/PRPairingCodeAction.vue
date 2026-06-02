@@ -1,20 +1,20 @@
 <template>
   <section
     v-if="showPairingCodeAction"
-    class="primary-action"
+    class="utility-action-cell"
     data-region="pairing-code-action"
     data-testid="pr-detail.pairing-code-action"
   >
     <Button
-      class="primary-action__button"
-      tone="primary"
+      tone="outline"
+      block
       type="button"
       data-testid="pr-detail.pairing-code.open"
       @click="handleOpenPairingCode"
     >
       <template #leading>
         <span
-          class="primary-action__color"
+          class="pairing-code-color"
           data-testid="pr-detail.pairing-code.color"
           :style="pairingColorStyle"
         ></span>
@@ -57,16 +57,12 @@ const handleOpenPairingCode = (): void => {
 </script>
 
 <style lang="scss" scoped>
-.primary-action {
+.utility-action-cell {
   display: flex;
-  margin-top: var(--sys-spacing-large);
+  flex-direction: column;
 }
 
-.primary-action__button {
-  width: 100%;
-}
-
-.primary-action__color {
+.pairing-code-color {
   width: 1em;
   height: 1em;
   border: 1px solid currentColor;

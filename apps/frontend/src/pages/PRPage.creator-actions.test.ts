@@ -417,6 +417,7 @@ describe("PRPage pairing code action", () => {
     expect(colorSwatch?.style.backgroundColor).toBe(
       pairingIdentity.backgroundColor,
     );
+    expect(button?.closest('[data-region="utility"]')).not.toBeNull();
 
     button?.click();
 

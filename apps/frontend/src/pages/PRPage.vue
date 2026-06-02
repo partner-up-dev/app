@@ -145,8 +145,6 @@
         :pr="prDetail"
       />
 
-      <PRPairingCodeAction :pr="prDetail" />
-
       <PRCheckInFeedbackActions :pr="prDetail" />
 
       <PRJoinAction
@@ -162,6 +160,7 @@
         <div class="utility-action-row">
           <PRBetaGroupAction :pr="prDetail" />
           <PRMessageThreadAction :pr="prDetail" />
+          <PRPairingCodeAction :pr="prDetail" />
           <ButtonPlacement
             v-if="canMountButtonPlacement && placementMatchingContext"
             :matching-context="placementMatchingContext"
