@@ -749,6 +749,10 @@
     "meetingPointTitle": "碰头地点设置",
     "poiLabel": "POI",
     "poiPlaceholder": "请选择 POI",
+    "createPoiTitle": "创建新 POI",
+    "editPoiTitle": "当前 POI 基本信息",
+    "currentPoiFallback": "未选择 POI",
+    "currentPoiMeta": "#{id} · {name} · {status}",
     "newPoiLabel": "新建 POI",
     "newPoiPlaceholder": "输入 POI 名称",
     "fullAddressLabel": "完整地址",
@@ -770,6 +774,7 @@
     "uploadingImage": "上传中...",
     "manualUrlPlaceholder": "粘贴图片 URL",
     "addUrlAction": "添加 URL",
+    "copyUrlAction": "复制 URL",
     "savePoiAction": "保存 POI",
     "savingPoi": "保存中...",
     "reviewStatusLabel": "审核状态",
@@ -1091,7 +1096,7 @@
     "passwordPlaceholder": "输入 admin 密码",
     "loggingIn": "登录中...",
     "loginAction": "登录",
-    "seedHint": "本地 seed 默认 admin：00000000-0000-0000-0000-000000000001 / 0000"
+    "seedHint": "本地 seed 默认 admin：00000000-0000-0000-0000-000000000001 / admin123"
   },
   "adminAnchorEvents": {
     "title": "活动管理",

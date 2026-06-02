@@ -1369,6 +1369,10 @@ export interface MessageSchema {
     meetingPointTitle: string;
     poiLabel: string;
     poiPlaceholder: string;
+    createPoiTitle: string;
+    editPoiTitle: string;
+    currentPoiFallback: string;
+    currentPoiMeta: string;
     newPoiLabel: string;
     newPoiPlaceholder: string;
     fullAddressLabel: string;
@@ -1390,6 +1394,7 @@ export interface MessageSchema {
     uploadingImage: string;
     manualUrlPlaceholder: string;
     addUrlAction: string;
+    copyUrlAction: string;
     savePoiAction: string;
     savingPoi: string;
     reviewStatusLabel: string;
