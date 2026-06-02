@@ -6,13 +6,19 @@
           {{ t("anchorEvent.formMode.timeTitle") }}
         </h2>
 
-        <MultiStopToggle
-          v-model="activeMode"
-          :options="timeModeOptions"
-          :aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
-          size="sm"
-          data-testid="anchor-event-form-mode.time-mode-toggle"
-        />
+        <div class="form-mode-time-control__mode-switcher">
+          <span class="form-mode-time-control__mode-label">
+            {{ activeModeLabel }}
+          </span>
+
+          <MultiStopToggle
+            v-model="activeMode"
+            :options="timeModeOptions"
+            :aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
+            size="sm"
+            data-testid="anchor-event-form-mode.time-mode-toggle"
+          />
+        </div>
       </div>
 
       <p class="form-mode-time-control__duration">
@@ -85,6 +91,7 @@ import {
 
 type StartOption = AnchorEventFormModeResponse["startOptions"][number];
 type StartOptionGroup = ReturnType<typeof buildStartOptionsByDate>[number];
+type TimeModeOption = MultiStopToggleOption & { value: FormModeTimeMode };
 
 const props = defineProps<{
   modelValue: FormModeTimeSelection | null;
@@ -99,7 +106,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const timeModeOptions: readonly MultiStopToggleOption[] = [
+const timeModeOptions: readonly TimeModeOption[] = [
   { value: "NORMAL", label: "普通" },
   { value: "ADVANCED", label: "高级" },
   { value: "FUZZY", label: "模糊" },
@@ -189,6 +196,12 @@ const timeWheelModelValue = computed(() =>
 
 const durationLabel = computed(() =>
   formatFormModeDurationLabel(props.durationMinutes),
+);
+
+const activeModeLabel = computed(
+  () =>
+    timeModeOptions.find((option) => option.value === activeMode.value)
+      ?.label ?? "",
 );
 
 const selectedStartOptionDescription = computed(() => {
@@ -456,6 +469,19 @@ watch(
 .form-mode-time-control__duration {
   margin: 0;
   color: var(--sys-color-on-surface-variant);
+  @include mx.pu-font(label-large);
+}
+
+.form-mode-time-control__mode-switcher {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.form-mode-time-control__mode-label {
+  color: var(--sys-color-on-surface-variant);
+  white-space: nowrap;
   @include mx.pu-font(label-large);
 }
 
