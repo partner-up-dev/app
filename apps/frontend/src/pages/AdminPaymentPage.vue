@@ -70,16 +70,6 @@
                 </label>
 
                 <label class="field">
-                  <span class="field-label">Instance Key</span>
-                  <input
-                    v-model="form.instanceKey"
-                    class="text-input"
-                    type="text"
-                    autocomplete="off"
-                  />
-                </label>
-
-                <label class="field">
                   <span class="field-label">Display Name</span>
                   <input
                     v-model="form.displayName"
@@ -114,6 +104,7 @@
                     class="text-input"
                     type="text"
                     autocomplete="off"
+                    :disabled="!isCreateMode"
                   />
                 </label>
 
@@ -124,8 +115,14 @@
                     class="text-input"
                     type="text"
                     autocomplete="off"
+                    :disabled="!isCreateMode"
                   />
                 </label>
+
+                <div class="field">
+                  <span class="field-label">Instance Key</span>
+                  <output class="read-only-output">{{ derivedInstanceKey }}</output>
+                </div>
 
                 <label class="field field--wide">
                   <span class="field-label">Endpoint Base URL</span>
@@ -207,6 +204,10 @@
                 <dd>{{ selectedProvider?.clientId ?? "-" }}</dd>
               </div>
               <div>
+                <dt>Instance Key</dt>
+                <dd class="breakable">{{ selectedProvider?.instanceKey ?? "-" }}</dd>
+              </div>
+              <div>
                 <dt>API v3 Key</dt>
                 <dd>{{ apiV3KeyStateLabel }}</dd>
               </div>
@@ -275,7 +276,6 @@ type ProviderInstance =
 
 type ProviderForm = {
   providerType: "WECHAT_PAY";
-  instanceKey: string;
   displayName: string;
   status: "ACTIVE" | "DISABLED";
   clientId: string;
@@ -321,6 +321,12 @@ const isSaving = computed(
 const formTitle = computed(() =>
   isCreateMode.value ? "新建 Payment Provider Instance" : "编辑 Payment Provider Instance",
 );
+const derivedInstanceKey = computed(() => {
+  const mchId = form.value.mchId.trim();
+  const appId = form.value.appId.trim();
+  if (!mchId || !appId) return "-";
+  return `mch:${mchId}:app:${appId}`;
+});
 const secretPlaceholder = computed(() =>
   isCreateMode.value ? "新建实例必填" : "留空则保留",
 );
@@ -360,7 +366,6 @@ const pageErrorMessage = computed(
 function createBlankForm(): ProviderForm {
   return {
     providerType: "WECHAT_PAY",
-    instanceKey: "",
     displayName: "",
     status: "ACTIVE",
     clientId: "web",
@@ -378,7 +383,6 @@ function createBlankForm(): ProviderForm {
 function formFromProvider(provider: ProviderInstance): ProviderForm {
   return {
     providerType: provider.providerType,
-    instanceKey: provider.instanceKey,
     displayName: provider.displayName,
     status: provider.status,
     clientId: provider.clientId,
@@ -414,7 +418,6 @@ const buildInput = (): AdminPaymentProviderInstanceInput => {
 
   return {
     providerType: form.value.providerType,
-    instanceKey: form.value.instanceKey.trim(),
     displayName: form.value.displayName.trim(),
     status: form.value.status,
     clientId: form.value.clientId.trim(),
@@ -572,7 +575,8 @@ small,
 }
 
 .text-input,
-.text-area {
+.text-area,
+.read-only-output {
   width: 100%;
   min-width: 0;
   padding: var(--sys-spacing-small);
@@ -580,6 +584,16 @@ small,
   border-radius: var(--sys-radius-medium);
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
+}
+
+.text-input:disabled {
+  color: var(--sys-color-on-surface-variant);
+}
+
+.read-only-output {
+  display: block;
+  overflow-wrap: anywhere;
+  background: var(--sys-color-surface-container);
 }
 
 .text-area {

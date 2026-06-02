@@ -36,7 +36,6 @@ const providerInstanceIdParamSchema = z.object({
 
 const adminPaymentProviderInstanceInputSchema = z.object({
   providerType: z.literal("WECHAT_PAY"),
-  instanceKey: z.string().trim().min(1),
   displayName: z.string().trim().min(1),
   status: z.enum(["ACTIVE", "DISABLED"]),
   clientId: z.string().trim().min(1),

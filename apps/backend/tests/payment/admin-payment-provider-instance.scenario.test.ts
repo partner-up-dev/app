@@ -49,22 +49,25 @@ type AdminPaymentProviderWorkspaceResponse = {
   providerInstances: AdminPaymentProviderInstanceResponse[];
 };
 
+const deriveInstanceKey = (input: { appId: string; mchId: string }): string =>
+  `mch:${input.mchId}:app:${input.appId}`;
+
 const buildProviderPayload = (input: {
-  instanceKey: string;
   clientId: string;
+  appId?: string;
+  mchId?: string;
   apiV3Key: string | null;
   privateKeyPem: string | null;
   certificatePem: string | null;
 }) => ({
   providerType: "WECHAT_PAY",
-  instanceKey: input.instanceKey,
   displayName: "Scenario WeChatPay Admin",
   status: "ACTIVE",
   clientId: input.clientId,
   config: {
     adapterMode: "WECHAT_PAY_API_V3",
-    appId: "wx-scenario-admin",
-    mchId: "1900000001",
+    appId: input.appId ?? "wx-scenario-admin",
+    mchId: input.mchId ?? "1900000001",
     chargeMode: "JSAPI",
     endpointBaseUrl: "https://api.mch.weixin.qq.com",
     apiV3Key: input.apiV3Key,
@@ -80,8 +83,10 @@ scenario(
   "admin_payment_provider_instance_create_list_update_preserves_secrets",
   async () => {
     const admin = await givenAdminUser("payment-provider-admin");
-    const instanceKey = `scenario-wechatpay-admin-${randomUUID()}`;
     const clientId = `web-${randomUUID()}`;
+    const appId = `wx-scenario-admin-${randomUUID()}`;
+    const mchId = `1900000001-${randomUUID()}`;
+    const instanceKey = deriveInstanceKey({ appId, mchId });
 
     const createResponse = await requestJson(
       "/api/admin/payment/provider-instances",
@@ -89,8 +94,9 @@ scenario(
         method: "POST",
         token: admin.token,
         body: buildProviderPayload({
-          instanceKey,
           clientId,
+          appId,
+          mchId,
           apiV3Key: "0123456789abcdef0123456789abcdef",
           privateKeyPem: "scenario-private-key",
           certificatePem: "scenario-merchant-certificate",
@@ -174,8 +180,9 @@ scenario(
         token: admin.token,
         body: {
           ...buildProviderPayload({
-            instanceKey,
             clientId,
+            appId,
+            mchId,
             apiV3Key: "",
             privateKeyPem: "",
             certificatePem: "",
@@ -184,13 +191,13 @@ scenario(
           status: "DISABLED",
           config: {
             ...buildProviderPayload({
-              instanceKey,
               clientId,
+              appId,
+              mchId,
               apiV3Key: "",
               privateKeyPem: "",
               certificatePem: "",
             }).config,
-            appId: "wx-scenario-admin-updated",
           },
         },
       },
@@ -203,7 +210,8 @@ scenario(
 
     assert.equal(updated.displayName, "Scenario WeChatPay Admin Updated");
     assert.equal(updated.status, "DISABLED");
-    assert.equal(updated.config.appId, "wx-scenario-admin-updated");
+    assert.equal(updated.instanceKey, instanceKey);
+    assert.equal(updated.config.appId, appId);
     assert.equal(updated.config.platformCertificates.count, 1);
     assert.equal("apiV3Key" in updated.config, false);
 
@@ -228,6 +236,26 @@ scenario(
       storedAfterUpdate.config.platformCertificates?.[0]?.certificatePem,
       "scenario-platform-certificate",
     );
+
+    const identityChangeResponse = await requestJson(
+      `/api/admin/payment/provider-instances/${created.id}`,
+      {
+        method: "PATCH",
+        token: admin.token,
+        body: {
+          ...buildProviderPayload({
+            clientId,
+            appId: "wx-scenario-admin-replacement",
+            mchId,
+            apiV3Key: "",
+            privateKeyPem: "",
+            certificatePem: "",
+          }),
+          status: "DISABLED",
+        },
+      },
+    );
+    await expectJsonResponse(identityChangeResponse, 422);
   },
 );
 
@@ -243,8 +271,9 @@ scenario(
         method: "POST",
         token: admin.token,
         body: buildProviderPayload({
-          instanceKey: `scenario-wechatpay-admin-${randomUUID()}`,
           clientId,
+          appId: `wx-scenario-admin-${randomUUID()}`,
+          mchId: `1900000001-${randomUUID()}`,
           apiV3Key: "0123456789abcdef0123456789abcdef",
           privateKeyPem: "scenario-private-key",
           certificatePem: null,
@@ -262,8 +291,9 @@ scenario(
         method: "POST",
         token: admin.token,
         body: buildProviderPayload({
-          instanceKey: `scenario-wechatpay-admin-${randomUUID()}`,
           clientId,
+          appId: `wx-scenario-admin-${randomUUID()}`,
+          mchId: `1900000001-${randomUUID()}`,
           apiV3Key: "0123456789abcdef0123456789abcdef",
           privateKeyPem: "scenario-private-key",
           certificatePem: null,

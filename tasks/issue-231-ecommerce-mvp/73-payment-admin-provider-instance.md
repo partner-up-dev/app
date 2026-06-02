@@ -16,6 +16,10 @@ while preserving Payment-specific credential redaction rules.
 - `payment_provider_instances` remains the provider execution configuration
   source of truth.
 - WeChatPay APIv3 is the only in-scope Payment provider.
+- Admin mutations derive `instanceKey` from WeChatPay `mchId + appId`; admins
+  do not manually author the provider instance key.
+- Existing provider instance `appId` and `mchId` are identity fields and are
+  not editable through the Admin update flow.
 - Admin read APIs must not return credential material in cleartext.
 - Updating an existing provider instance may leave credential inputs blank to
   preserve stored values.
@@ -59,6 +63,9 @@ Implemented on 2026-05-31:
 - Existing provider update preserves stored credential values when the admin
   submits blank credential inputs.
 - Existing `platformCertificates` are preserved across admin updates.
+- Payment Provider Instance Admin derives `instanceKey` as
+  `mch:{mchId}:app:{appId}` and rejects update attempts that change the
+  existing instance `appId` or `mchId`.
 
 Checks:
 

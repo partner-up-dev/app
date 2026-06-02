@@ -19,7 +19,6 @@ const providerRepo = new PaymentProviderInstanceRepository();
 
 export type AdminPaymentProviderInstanceInput = {
   providerType: PaymentProviderType;
-  instanceKey: string;
   displayName: string;
   status: PaymentProviderInstanceStatus;
   clientId: string;
@@ -36,6 +35,19 @@ export type AdminPaymentProviderInstanceInput = {
       certificatePem?: string | null;
     };
   };
+};
+
+const derivePaymentProviderInstanceKey = (
+  input: AdminPaymentProviderInstanceInput,
+): string => {
+  if (input.providerType === "WECHAT_PAY") {
+    return `mch:${input.config.mchId.trim()}:app:${input.config.appId.trim()}`;
+  }
+
+  return throwHttpProblem({
+    status: 422,
+    detail: "Unsupported payment provider type",
+  });
 };
 
 const normalizeOptionalString = (
@@ -138,12 +150,29 @@ const assertActiveClientAvailable = async (input: {
   }
 };
 
+const assertProviderIdentityUnchanged = (input: {
+  existingProviderInstance: PaymentProviderInstance;
+  payload: AdminPaymentProviderInstanceInput;
+}): void => {
+  const existingConfig = input.existingProviderInstance.config;
+  if (
+    existingConfig.appId !== input.payload.config.appId ||
+    existingConfig.mchId !== input.payload.config.mchId
+  ) {
+    return throwHttpProblem({
+      status: 422,
+      detail: "Payment provider instance appId and mchId cannot be changed",
+    });
+  }
+};
+
 export async function createAdminPaymentProviderInstance(
   input: AdminPaymentProviderInstanceInput,
 ): Promise<AdminPaymentProviderInstanceView> {
+  const instanceKey = derivePaymentProviderInstanceKey(input);
   await assertUniqueInstanceKey({
     providerType: input.providerType,
-    instanceKey: input.instanceKey,
+    instanceKey,
   });
   await assertActiveClientAvailable({
     status: input.status,
@@ -152,7 +181,7 @@ export async function createAdminPaymentProviderInstance(
 
   const created = await providerRepo.create({
     providerType: input.providerType,
-    instanceKey: input.instanceKey,
+    instanceKey,
     status: input.status,
     displayName: input.displayName,
     clientId: input.clientId,
@@ -174,9 +203,15 @@ export async function updateAdminPaymentProviderInstance(input: {
     });
   }
 
+  assertProviderIdentityUnchanged({
+    existingProviderInstance: existing,
+    payload: input.payload,
+  });
+
+  const instanceKey = derivePaymentProviderInstanceKey(input.payload);
   await assertUniqueInstanceKey({
     providerType: input.payload.providerType,
-    instanceKey: input.payload.instanceKey,
+    instanceKey,
     currentProviderInstanceId: existing.id,
   });
   await assertActiveClientAvailable({
@@ -188,7 +223,7 @@ export async function updateAdminPaymentProviderInstance(input: {
   const updated = await providerRepo.updateAdminConfiguration({
     id: existing.id,
     providerType: input.payload.providerType,
-    instanceKey: input.payload.instanceKey,
+    instanceKey,
     status: input.payload.status,
     displayName: input.payload.displayName,
     clientId: input.payload.clientId,

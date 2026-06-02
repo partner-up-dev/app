@@ -22,7 +22,6 @@ export type AdminPaymentProviderWorkspaceResponse = InferResponseType<
 
 export type AdminPaymentProviderInstanceInput = {
   providerType: "WECHAT_PAY";
-  instanceKey: string;
   displayName: string;
   status: "ACTIVE" | "DISABLED";
   clientId: string;
