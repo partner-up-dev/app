@@ -42,6 +42,12 @@ type ProblemDetailsResponse = {
 
 const toUserEditableFields = ({ type: _type, ...fields }: ScenarioFields) => fields;
 
+const buildPastTimeWindow = (): [string, string] => {
+  const startAt = new Date(Date.now() - 60 * 60 * 1000);
+  const endAt = new Date(Date.now() + 60 * 60 * 1000);
+  return [startAt.toISOString(), endAt.toISOString()];
+};
+
 scenario("anonymous_uuid_restores_session", async (ctx) => {
   const anonymous = await givenAnonymousUser("session-restore");
   ctx.record("anonymousUserId", anonymous.user.id);
@@ -117,6 +123,44 @@ scenario("authenticated_user_publish_claims_creatorless_draft", async (ctx) => {
     .where(eq(partnerRequests.id, pr.id));
   assert.equal(stored?.createdBy, publisher.user.id);
   assert.equal(stored?.status, "OPEN");
+});
+
+scenario("authenticated_publish_rejects_draft_with_past_start_time", async (ctx) => {
+  const draftAuthor = await givenAnonymousUser("past-draft-author");
+  const publisher = await givenUser("past-draft-publisher");
+  const pr = await givenDraftPR({
+    creator: draftAuthor,
+    title: "Scenario past draft publish",
+  });
+  const db = getTestDb();
+  const pastTimeWindow = buildPastTimeWindow();
+  await db
+    .update(partnerRequests)
+    .set({ time: pastTimeWindow })
+    .where(eq(partnerRequests.id, pr.id));
+  ctx.record("prId", pr.id);
+
+  const response = await requestJson(`/api/pr/${pr.id}/publish`, {
+    method: "POST",
+    token: publisher.token,
+  });
+
+  assert.match(
+    response.headers.get("content-type") ?? "",
+    /^application\/problem\+json/,
+  );
+  const body = await expectJsonResponse<ProblemDetailsResponse>(response, 400);
+  assert.equal(body.code, "PR_START_TIME_PASSED");
+
+  const [stored] = await db
+    .select({
+      createdBy: partnerRequests.createdBy,
+      status: partnerRequests.status,
+    })
+    .from(partnerRequests)
+    .where(eq(partnerRequests.id, pr.id));
+  assert.equal(stored?.createdBy, null);
+  assert.equal(stored?.status, "DRAFT");
 });
 
 scenario("authenticated_user_can_edit_creatorless_draft_content", async (ctx) => {

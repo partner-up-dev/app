@@ -29,6 +29,10 @@ export {
   type TimeWindow,
 } from "../../pr-core/services/time-window.service";
 export {
+  PR_START_TIME_PASSED_CODE,
+  assertPRStartTimeHasNotPassed,
+} from "../../pr-core/services/pr-time-window-guard.service";
+export {
   isActiveVisiblePRStatus,
   readVisiblePartnerRequestsByType,
   readPartnerRequestById,
