@@ -5,7 +5,19 @@
         title="确认预订"
         subtitle="确认内容后创建订单"
         :back-fallback-to="backFallbackTo"
-      />
+      >
+        <template #top-actions>
+          <ActionLink
+            :to="{ name: 'contact-support' }"
+            appearance="pill"
+            tone="outline"
+            size="sm"
+            data-testid="ordering.contact-support.open"
+          >
+            客服
+          </ActionLink>
+        </template>
+      </PageHeader>
     </template>
 
     <div class="ordering-page__body">
@@ -126,6 +138,7 @@ import { useRouter } from "vue-router";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
+import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import RentalOrderingContent from "@/domains/commerce/ui/ordering/RentalOrderingContent.vue";
 import RideHailingOrderingContent, {
