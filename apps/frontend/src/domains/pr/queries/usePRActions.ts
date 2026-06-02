@@ -35,6 +35,7 @@ type PRCheckInInput = PRActionInput;
 type PRUpdateContentInput = {
   id: PRId;
   fields: PRUserUpdateContentFields;
+  allowRelease?: boolean;
 };
 
 type PRUpdateStatusInput = {
@@ -381,10 +382,10 @@ export const useUpdatePRContent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, fields }: PRUpdateContentInput) => {
+    mutationFn: async ({ id, fields, allowRelease }: PRUpdateContentInput) => {
       const res = await client.api.pr[":id"].content.$patch({
         param: { id: id.toString() },
-        json: { fields },
+        json: { fields, allowRelease },
       });
 
       if (!res.ok) {

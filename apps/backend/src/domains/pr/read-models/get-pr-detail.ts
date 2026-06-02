@@ -27,6 +27,10 @@ import {
 } from "../sharing/pr-share-metadata.service";
 import { toPublicPR } from "./public-pr-view.service";
 import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
+import {
+  buildPREditCapability,
+  type PREditCapability,
+} from "../../pr-core/services/pr-edit-capability.service";
 
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -94,6 +98,7 @@ export type PRDetail = {
         };
   } | null;
   partnerSection: PartnerSectionView;
+  editCapability: PREditCapability;
 };
 
 const resolveMeetingPointProjection = (
@@ -264,5 +269,6 @@ export async function getPRDetailView(
       participationFrequencyLimited:
         participationFrequencyEvaluation.allowed === false,
     }),
+    editCapability: buildPREditCapability(request, viewerUserId),
   };
 }

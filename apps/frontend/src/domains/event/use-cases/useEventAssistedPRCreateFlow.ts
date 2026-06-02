@@ -331,6 +331,7 @@ export const useEventAssistedPRCreateFlow = (
       const created = await createEventAssistedPRMutation.mutateAsync({
         eventId: currentEvent.id,
         handoff: pending.handoff,
+        allowEditAfterReady: pending.allowEditAfterReady ?? null,
         fields: {
           title: undefined,
           type: pending.fields.type,

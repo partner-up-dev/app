@@ -6,6 +6,7 @@ import {
   createStructuredPRSchema,
   partnerRequestFieldsObjectSchema,
   partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
   prStatusManualSchema,
 } from "../entities/partner-request";
 import { prMessageBodySchema } from "../entities/pr-message";
@@ -27,6 +28,8 @@ import {
 const oauthService = new WeChatOAuthService();
 const userRepo = new UserRepository();
 const WECHAT_OAUTH_NOT_CONFIGURED_CODE = "WECHAT_OAUTH_NOT_CONFIGURED";
+
+export { prAllowEditAfterReadySchema };
 
 const readBoundOpenId = async (c: Context<AuthEnv>): Promise<string | null> => {
   const userId = getAuthenticatedUserId(c);
@@ -68,6 +71,7 @@ export const userUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
 export const updateContentSchema = z
   .object({
     fields: userUpdateContentFieldsSchema,
+    allowRelease: z.boolean().optional(),
   })
   .strict();
 

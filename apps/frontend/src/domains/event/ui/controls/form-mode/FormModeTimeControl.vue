@@ -268,7 +268,7 @@ const emitFuzzySelection = () => {
     selectedFuzzyDateValue.value,
     selectedFuzzyTimePreset.value,
   );
-  const fallbackStartAt = timeWindows[0]?.startAt ?? null;
+  const fuzzyTimeWindow = timeWindows[0] ?? null;
   emit("update:modelValue", {
     mode: "FUZZY",
     label: formatFormModeFuzzySelectionLabel(
@@ -276,10 +276,7 @@ const emitFuzzySelection = () => {
       selectedFuzzyTimePreset.value,
     ),
     timeWindows,
-    createTimeWindow:
-      fallbackStartAt === null
-        ? null
-        : buildFormModeCreateTimeWindow(fallbackStartAt, props.durationMinutes),
+    createTimeWindow: fuzzyTimeWindow,
   });
 };
 

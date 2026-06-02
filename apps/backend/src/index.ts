@@ -293,6 +293,7 @@ export type {
   PRId,
   PRRoute,
   PRRoutePoint,
+  PRAllowEditAfterReady,
   WeekdayLabel,
 } from "./entities/partner-request";
 export type {

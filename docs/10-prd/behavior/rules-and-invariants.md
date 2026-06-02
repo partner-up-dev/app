@@ -41,10 +41,10 @@
 - A valid `/e/:eventId?mode=` value is explicit route state and owns the current landing mode. Without valid route mode, the same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
 - If `/e/:eventId` cannot obtain its landing mode decision in time, it should still enter a usable `LIST` fallback experience.
 - Form Mode recommendation and candidate ordering are backend-authored even though the user chooses location, start time, and preferences on the page.
-- Form Mode may accept a fuzzy time preference as recommendation input by converting it in the frontend into concrete PR start-time match windows. These windows match candidate `PR.time_window[0]` only, are not constrained by the Anchor Event's configured time pool, and are not persisted as PR facts.
+- Form Mode may accept a fuzzy time preference as recommendation input by converting it in the frontend into concrete PR start-time match windows. The fuzzy time choices include part-of-day windows and an all-day option for one selected product-local date. These windows match candidate `PR.time_window[0]` only, are not constrained by the Anchor Event's configured time pool, and are not persisted as PR facts.
 - Form Mode fuzzy date choices cover today plus the next 6 product-local days as individual dates; aggregate choices such as weekend or any day are not part of the first contract.
 - Form Mode directly creates an event-assisted PR when recommendation returns no matched PR and no ordered candidates; the created PR detail page should show a created-request notice.
-- Event-assisted PR creation from Form Mode still creates a `PR` with one resolved `time_window`; fuzzy time preferences must be resolved to a concrete time before creation.
+- Event-assisted PR creation from Form Mode still creates a `PR` with one resolved `time_window`. In fuzzy mode, that resolved window is the selected fuzzy activity window itself, such as a product-local all-day or part-of-day window, and the created PR may materialize the same range into `allowEditAfterReady.timeWindow` so the creator can narrow it after `READY`.
 - Form Mode bootstrap may preselect location and start time from the nearest joinable PR in the current Anchor Event context when that PR's start time is inside the event `earliestLeadMinutes` boundary.
 - Anchor Event owns the event-specific preset preference tag pool, its moderation state, and which published tags later visitors may see in Form Mode.
 - Anchor Event start rules may own optional description copy. Generated time windows inherit the first non-empty matching start-rule description by configured start-rule order, and that copy remains presentation context rather than a persisted PR fact.
@@ -62,6 +62,8 @@
 - The durable `PartnerRequest` status set is `DRAFT`, `OPEN`, `READY`, `ACTIVE`, `CLOSED`, and `EXPIRED`.
 - `FULL` is a user-visible derived capacity state, not a durable `PartnerRequest.status`: an `OPEN` PR with `maxPartners` present and current active participants greater than or equal to `maxPartners` is presented as full.
 - `READY` means the collaboration object is formed and roster-locked; joining, waitlisting, and exiting are no longer allowed, and progression toward `ACTIVE` may still continue.
+- `READY` locks roster admission, not every PR fact. A PR may carry PR-owned `allowEditAfterReady` policy that lets the creator keep editing explicitly listed core fields after `READY`; fields absent from that policy remain locked.
+- READY-after edits are creator-only. When a time edit would conflict with current participants' other active PR commitments, the default outcome is a 409 conflict. If the creator explicitly confirms with `allowRelease`, the backend may release the conflicted participants with a stable `releaseReason`, as long as the remaining active participants still satisfy `minPartners`.
 - `PartnerRequest` state is jointly shaped by partner thresholds, time windows, confirmation windows, and context-specific rules.
 - When a PR reaches its close time, it expires only when current active participants are fewer than `minPartners`.
 - When a PR reaches its close time with current active participants greater than or equal to `minPartners`, it closes automatically.
@@ -92,6 +94,7 @@
 
 ### Status Semantics
 
+- Updating activity-core fields such as PR time, location, or route should notify current active participants through a core-field-change notification path. Time-conflict releases caused by such edits remain participant releases and must carry release reason context.
 | Status            | Meaning                                           | Join Semantics                              |
 | ----------------- | ------------------------------------------------- | ------------------------------------------- |
 | `DRAFT`           | unpublished draft held by the creator             | not joinable                                |

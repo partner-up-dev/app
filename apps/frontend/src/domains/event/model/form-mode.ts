@@ -40,7 +40,8 @@ export type FormModeFuzzyTimePreset =
   | "AFTERNOON"
   | "DUSK"
   | "NIGHT"
-  | "LATE_NIGHT";
+  | "LATE_NIGHT"
+  | "ALL_DAY";
 
 export type FormModeTimeSelection =
   {
@@ -207,6 +208,7 @@ export const buildFormModeFuzzyTimeOptions = (): FormModeFuzzyTimeOption[] => [
   { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
   { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
   { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
+  { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "23:59" },
 ];
 
 const buildProductLocalIso = (dateKey: string, timeKey: string): string | null => {

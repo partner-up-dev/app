@@ -43,6 +43,7 @@ describe("event-assisted PR create query", () => {
       fields,
       createSource: "EVENT_ASSISTED",
       anchorEventId: 42,
+      allowEditAfterReady: null,
     });
     expect(body).not.toHaveProperty("routePoolEntryId");
     expect(body).not.toHaveProperty("correlationId");

@@ -5,6 +5,7 @@ import type {
 } from "../../../entities";
 import type {
   PartnerRequestFields,
+  PRAllowEditAfterReady,
   PRStatus,
 } from "../../../entities/partner-request";
 import { initializeSlotsForPR } from "../services/slot-management.service";
@@ -53,6 +54,7 @@ type StructuredCreateOptions = {
   confirmationStartOffsetMinutes?: number | null;
   confirmationEndOffsetMinutes?: number | null;
   joinLockOffsetMinutes?: number | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
 };
 
 const resolvePartnerBounds = (
@@ -136,6 +138,7 @@ export async function createPRFromStructured(
     confirmationStartOffsetMinutes: options.confirmationStartOffsetMinutes,
     confirmationEndOffsetMinutes: options.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: options.joinLockOffsetMinutes,
+    allowEditAfterReady: options.allowEditAfterReady ?? null,
   });
 
   await initializeSlotsForPR(

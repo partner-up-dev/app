@@ -225,7 +225,10 @@ import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import PRRosterItem from "@/domains/pr/ui/primitives/PRRosterItem.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import Chip from "@/shared/ui/display/Chip.vue";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import {
+  formatFriendlyTimeWindowLabel,
+  formatLocalDateTimeValue,
+} from "@/shared/datetime/formatLocalDateTime";
 
 type PartnerSectionView = PRPartnerSectionView;
 
@@ -336,10 +339,10 @@ const formatDateTime = (value: string | null): string =>
   formatLocalDateTimeValue(value) ?? t("prPage.partnerSection.notSet");
 
 const formatWindow = (start: string | null, end: string | null): string => {
-  const startLabel = formatLocalDateTimeValue(start);
-  const endLabel = formatLocalDateTimeValue(end);
-  if (startLabel && endLabel) return `${startLabel} - ${endLabel}`;
-  return startLabel ?? endLabel ?? t("prPage.partnerSection.notSet");
+  return formatFriendlyTimeWindowLabel(
+    [start, end],
+    t("prPage.partnerSection.notSet"),
+  );
 };
 
 const partnerProfilePath = (partnerId: number): string =>

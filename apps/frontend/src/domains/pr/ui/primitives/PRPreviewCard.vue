@@ -56,7 +56,7 @@ import { prDetailPath } from "@/domains/pr/routing/routes";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import { buildRouteSummary } from "@/domains/route/model/route";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
 const props = withDefaults(
   defineProps<{
@@ -118,8 +118,7 @@ const timeLabelText = computed(() => {
     return explicit;
   }
 
-  const startAt = prDetail.value?.core.time[0] ?? null;
-  return formatLocalDateTimeValue(startAt);
+  return formatFriendlyTimeWindowLabel(prDetail.value?.core.time ?? [null, null]);
 });
 
 const resolvedPartnerCountLabel = computed(() => {

@@ -4,7 +4,7 @@
 
 Persisted in Postgres via backend entities and repositories:
 
-- `PartnerRequest` as the single durable PR record, including PR-level place facts (`location` or `PR.route`), PR-level meeting-point override configuration, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
+- `PartnerRequest` as the single durable PR record, including PR-level place facts (`location` or `PR.route`), PR-level meeting-point override configuration, PR-level post-ready edit policy, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
 - partner slots and participation state
 - PR messages and per-user PR message inbox state
 - users, including `users.phone_number`, user notification options, and user reliability
@@ -57,6 +57,7 @@ The backend is authoritative for:
 
 - PartnerRequest and partner-slot state
 - persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, PR detail/share display-title derivation, and canonical share metadata derivation
+- PR edit capability, including which fields are editable in each status and any `allowEditAfterReady` constraints
 - PR feedback questionnaire instance pointers
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution

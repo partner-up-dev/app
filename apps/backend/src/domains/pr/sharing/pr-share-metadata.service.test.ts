@@ -30,6 +30,7 @@ const buildPublicPR = ({
   notes: null,
   orders: [],
   meetingPoint: null,
+  allowEditAfterReady: null,
   joinGateConfig: [],
   feedbackQuestionnaireInstanceId: null,
   createdBy: null,

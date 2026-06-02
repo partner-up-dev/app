@@ -44,6 +44,7 @@
 4. The same user should keep a stable landing mode for the same event until the operator applies a new landing revision for that event.
 5. If the landing mode cannot be resolved in time, `/e/:eventId` still enters a usable `LIST` fallback experience.
 6. In `FORM` mode, the user selects one place option, one start time, and optional preferences before the system reveals candidate `PR`s. Location-pool events present POI/location choices; route-pool events present route choices with route geometry. When the selected start time inherits event-authored time-window description copy from its start rule, the time control surfaces that copy under the picker.
+6.1. When the user selects a fuzzy Form Mode time such as all-day or a part of day, fallback PR creation uses that fuzzy window as the PR's initial time window and may keep the same range as the creator's READY-after narrowing policy.
 7. Form Mode preferences come from the event-specific preset tag pool plus the current visitor's session-local custom labels; the same derived category is mutually exclusive while uncategorized labels can coexist.
 8. Form Mode submission stays inside `/e/:eventId`; the route-level state machine keeps the selected location, start time, and preference labels through recommendation and result handling.
 8.1. If the desired location is absent, the Form Mode location control provides a location-application entry. The application creates a pending `POI` with the submitted name and image, independent of any one Anchor Event.
@@ -62,6 +63,7 @@
 21. The current Anchor Event and downstream PR detail surfaces may also expose other active Anchor Events as a secondary browsing path, so the user can pivot without leaving the event-context collaboration journey entirely.
 22. The user may then join or continue browsing other visible PRs in that event context.
 23. The resulting PR may continue through timing and reliability loops such as confirmation, reminders, attendance follow-up, event beta-group follow-up, and mounted post-event feedback when the corresponding modules are active.
+24. If a PR carries READY-after edit policy, its creator can use PR Editor after `READY` to adjust only those fields. If a time adjustment conflicts with participants, the editor asks for explicit confirmation before the backend releases conflicted participants with a release reason.
 
 ## 4.1 Submit And Review A POI Location Application
 

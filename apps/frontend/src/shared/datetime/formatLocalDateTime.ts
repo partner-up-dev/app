@@ -110,3 +110,69 @@ export const formatLocalDateTimeWindowLabel = (
   }
   return `${startText} - ${end}`;
 };
+
+const normalizeToDate = (value: DateLike): Date | null => {
+  const normalized = normalizeDateLike(value);
+  return normalized instanceof Date ? normalized : null;
+};
+
+const isStartOfLocalDay = (date: Date): boolean =>
+  date.getHours() === 0 && date.getMinutes() === 0;
+
+const isEndOfLocalDay = (date: Date): boolean =>
+  date.getHours() === 23 && date.getMinutes() === 59;
+
+const addLocalDays = (date: Date, days: number): Date => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const isSameLocalDate = (left: Date, right: Date): boolean =>
+  left.getFullYear() === right.getFullYear() &&
+  left.getMonth() === right.getMonth() &&
+  left.getDate() === right.getDate();
+
+const formatLocalDate = (date: Date): string =>
+  formatLocalDateTime(date, { includeTime: false });
+
+const formatLocalTime = (date: Date): string =>
+  formatLocalDateTime(date, { includeDate: false });
+
+const resolveFullDayEndDate = (start: Date, end: Date): Date | null => {
+  if (!isStartOfLocalDay(start)) return null;
+  if (isEndOfLocalDay(end)) return end;
+  if (
+    isStartOfLocalDay(end) &&
+    end.getTime() > start.getTime() &&
+    isSameLocalDate(addLocalDays(start, 1), end)
+  ) {
+    return start;
+  }
+  return null;
+};
+
+export const formatFriendlyTimeWindowLabel = (
+  timeWindow: TimeWindow,
+  unknownLabel = "",
+): string => {
+  const start = normalizeToDate(timeWindow[0]);
+  const end = normalizeToDate(timeWindow[1]);
+  if (!start && !end) return unknownLabel;
+  if (!start || !end) {
+    return formatLocalDateTimeValue(timeWindow[0] ?? timeWindow[1]) ?? unknownLabel;
+  }
+
+  const fullDayEndDate = resolveFullDayEndDate(start, end);
+  if (fullDayEndDate) {
+    const startDate = formatLocalDate(start);
+    const endDate = formatLocalDate(fullDayEndDate);
+    return startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+  }
+
+  if (isSameLocalDate(start, end)) {
+    return `${formatLocalDate(start)} ${formatLocalTime(start)} - ${formatLocalTime(end)}`;
+  }
+
+  return `${formatLocalDateTime(start)} - ${formatLocalDateTime(end)}`;
+};

@@ -17,6 +17,7 @@ const prBase: PartnerRequest = {
   location: "Scenario Court",
   maxPartners: null,
   meetingPoint: null,
+  allowEditAfterReady: null,
   minPartners: 2,
   notes: null,
   orders: [],

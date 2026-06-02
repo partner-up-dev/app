@@ -45,6 +45,7 @@ import {
   resolveAvatarUrl,
   tryReadAuthenticatedOpenId,
   partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
   updateContentSchema,
   updateStatusSchema,
 } from "./pr-controller.shared";
@@ -85,6 +86,7 @@ const createStructuredPRCommandSchema = z.union([
     createSource: z.literal("EVENT_ASSISTED"),
     anchorEventId: z.coerce.number().int().positive().optional(),
     routePoolEntryId: z.string().trim().min(1).max(120).optional(),
+    allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   }),
   z.object({
     fields: partnerRequestFieldsSchema,
@@ -161,6 +163,10 @@ export const partnerRequestRoute = app
         createSource,
         anchorEventId:
           createSource === "EVENT_ASSISTED" ? command.anchorEventId : undefined,
+        allowEditAfterReady:
+          createSource === "EVENT_ASSISTED"
+            ? command.allowEditAfterReady ?? null
+            : null,
       });
 
       await recordUserTelemetryEventForRequest(c, {
@@ -398,6 +404,10 @@ export const partnerRequestRoute = app
         id,
         fields,
         creatorAuth.actorUserId,
+        {
+          allowRelease:
+            "allowRelease" in payload && payload.allowRelease === true,
+        },
       );
       return c.json(result);
     },

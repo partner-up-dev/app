@@ -29,7 +29,7 @@ export const usePRCreatorActions = ({
   const showEditContentAction = computed(() => {
     const detail = pr.value;
     if (!detail || !isCreator.value) return false;
-    return detail.status === "DRAFT" || detail.status === "OPEN";
+    return detail.editCapability.canEdit;
   });
 
   const showModifyStatusAction = computed(() => isCreator.value);
@@ -80,15 +80,17 @@ export const usePRCreatorActions = ({
   const updateStatusError = computed(() => updateStatusMutation.error.value);
   const hasUpdateStatusError = computed(() => Boolean(updateStatusError.value));
 
-  const submitContentUpdate = async ({
-    fields,
-  }: PartnerRequestFormInput): Promise<void> => {
+  const submitContentUpdate = async (
+    { fields }: PartnerRequestFormInput,
+    options: { allowRelease?: boolean } = {},
+  ): Promise<void> => {
     const prId = id.value;
     if (prId === null) return;
 
     await updateContentMutation.mutateAsync({
       id: prId,
       fields: toUserUpdatePRContentFields(fields),
+      allowRelease: options.allowRelease,
     });
   };
 

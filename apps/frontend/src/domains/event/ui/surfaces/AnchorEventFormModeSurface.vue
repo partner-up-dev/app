@@ -930,6 +930,7 @@ const createEventAssistedPR = async (
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       fields,
+      allowEditAfterReady: buildEditableAfterReadyPolicy(),
       routePoolEntryId:
         place.kind === "route" ? place.routePoolEntryId : null,
       handoff:
@@ -1101,6 +1102,22 @@ const resolveSelectedTimeWindow = (): [string | null, string | null] => {
   return [createTimeWindow.startAt, createTimeWindow.endAt];
 };
 
+const buildEditableAfterReadyPolicy = () => {
+  const selection = selectedTimeSelection.value;
+  const timeWindow = resolveSelectedTimeWindow();
+  if (
+    selection?.mode !== "FUZZY" ||
+    !isValidFormModeDateTime(timeWindow[0]) ||
+    !isValidFormModeDateTime(timeWindow[1])
+  ) {
+    return null;
+  }
+
+  return {
+    timeWindow: [timeWindow[0], timeWindow[1]] as [string, string],
+  };
+};
+
 const buildCreateFields = (): PartnerRequestFields | null => {
   const timeWindow = resolveSelectedTimeWindow();
   const place = selectedPlace.value;
@@ -1235,6 +1252,7 @@ const attemptPendingCreateReplay = async () => {
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       handoff: pending.handoff,
+      allowEditAfterReady: pending.allowEditAfterReady ?? null,
       fields: {
         title: undefined,
         type: pending.fields.type,

@@ -61,6 +61,19 @@ export type PRRoutePoint = z.infer<typeof prRoutePointSchema>;
 export const prRouteSchema = z.array(prRoutePointSchema).min(2);
 export type PRRoute = z.infer<typeof prRouteSchema>;
 
+export const prAllowEditAfterReadySchema = z
+  .object({
+    timeWindow: z
+      .tuple([isoDateOrDateTimeSchema, isoDateOrDateTimeSchema])
+      .optional(),
+    location: z.literal(true).optional(),
+    route: z.literal(true).optional(),
+  })
+  .strict();
+export type PRAllowEditAfterReady = z.infer<
+  typeof prAllowEditAfterReadySchema
+>;
+
 // Partner request fields (from LLM / client edits)
 export const partnerRequestFieldsObjectSchema = z.object({
   title: z.string().optional(),
@@ -186,6 +199,9 @@ export const partnerRequests = pgTable("partner_requests", {
   meetingPoint: jsonb("meeting_point")
     .$type<MeetingPointConfig | null>()
     .default(null),
+  allowEditAfterReady: jsonb("allow_edit_after_ready")
+    .$type<PRAllowEditAfterReady | null>()
+    .default(null),
   joinGateConfig: jsonb("join_gate_config")
     .$type<PRJoinGateConfig>()
     .notNull()
@@ -222,6 +238,7 @@ export const insertPartnerRequestSchema = createInsertSchema(partnerRequests, {
   visibilityStatus: visibilityStatusSchema,
   route: prRouteSchema.nullable().optional(),
   meetingPoint: meetingPointConfigSchema.nullable().optional(),
+  allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   joinGateConfig: prJoinGateConfigSchema.optional(),
 });
 
@@ -234,6 +251,7 @@ export const selectPartnerRequestSchema = createSelectSchema(partnerRequests, {
   visibilityStatus: visibilityStatusSchema,
   route: prRouteSchema.nullable(),
   meetingPoint: meetingPointConfigSchema.nullable(),
+  allowEditAfterReady: prAllowEditAfterReadySchema.nullable(),
   joinGateConfig: prJoinGateConfigSchema,
 });
 

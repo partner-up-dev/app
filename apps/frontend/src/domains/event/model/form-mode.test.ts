@@ -74,6 +74,7 @@ describe("form mode time options", () => {
       { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
       { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
       { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
+      { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "23:59" },
     ]);
   });
 
@@ -100,5 +101,21 @@ describe("form mode time options", () => {
         new Date("2026-05-19T01:00:00.000Z"),
       ),
     ).toBe("明天傍晚");
+  });
+
+  test("buildFormModeFuzzyTimeWindows emits an all-day product-local interval", () => {
+    expect(buildFormModeFuzzyTimeWindows("2026-05-20", "ALL_DAY")).toEqual([
+      {
+        startAt: "2026-05-19T16:00:00.000Z",
+        endAt: "2026-05-20T15:59:00.000Z",
+      },
+    ]);
+    expect(
+      formatFormModeFuzzySelectionLabel(
+        "2026-05-20",
+        "ALL_DAY",
+        new Date("2026-05-19T01:00:00.000Z"),
+      ),
+    ).toBe("明天全天");
   });
 });

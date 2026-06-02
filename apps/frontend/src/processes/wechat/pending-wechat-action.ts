@@ -1,4 +1,4 @@
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady, PRRoute } from "@partner-up-dev/backend";
 
 const PENDING_WECHAT_ACTION_STORAGE_KEY = "partner_up_pending_wechat_action";
 const PENDING_WECHAT_ACTION_TTL_MS = 10 * 60 * 1000;
@@ -39,6 +39,7 @@ type PendingAnchorCreateAction = PendingActionBase & {
   eventId: number;
   handoff?: PendingAnchorCreateHandoff;
   routePoolEntryId?: string | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
   fields: {
     type: string;
     time: [string | null, string | null];
@@ -84,6 +85,7 @@ type NewPendingWeChatAction =
       eventId: number;
       handoff?: PendingAnchorCreateHandoff;
       routePoolEntryId?: string | null;
+      allowEditAfterReady?: PRAllowEditAfterReady | null;
       fields: {
         type: string;
         time: [string | null, string | null];
@@ -130,6 +132,23 @@ const isPRRoutePoint = (value: unknown): value is PRRoute[number] => {
 
 const isPRRoute = (value: unknown): value is PRRoute =>
   Array.isArray(value) && value.length >= 2 && value.every(isPRRoutePoint);
+
+const isEditableAfterReady = (
+  value: unknown,
+): value is PRAllowEditAfterReady | null | undefined => {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "object") return false;
+  const policy = value as Partial<PRAllowEditAfterReady>;
+  return (
+    policy.location === undefined &&
+    policy.route === undefined &&
+    (policy.timeWindow === undefined ||
+      (Array.isArray(policy.timeWindow) &&
+        policy.timeWindow.length === 2 &&
+        typeof policy.timeWindow[0] === "string" &&
+        typeof policy.timeWindow[1] === "string"))
+  );
+};
 
 const isRecent = (createdAt: number): boolean =>
   Date.now() - createdAt <= PENDING_WECHAT_ACTION_TTL_MS;
@@ -185,6 +204,7 @@ const isPendingWeChatAction = (
         anchorCandidate.routePoolEntryId === null ||
         (typeof anchorCandidate.routePoolEntryId === "string" &&
           anchorCandidate.routePoolEntryId.trim().length > 0)) &&
+      isEditableAfterReady(anchorCandidate.allowEditAfterReady) &&
       Array.isArray(fields.preferences) &&
       fields.preferences.every((entry) => typeof entry === "string") &&
       (fields.minPartners === null || isPositiveInteger(fields.minPartners)) &&
