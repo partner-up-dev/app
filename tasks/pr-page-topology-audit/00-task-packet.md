@@ -45,4 +45,5 @@ Hypothesis:
 - Contextual actions refactor slice: `72-contextual-actions-refactor-slice.md`
 - Utility actions refactor slice: `73-utility-actions-refactor-slice.md`
 - Join / waitlist flow follow-up: `74-join-waitlist-flow-follow-up.md`
+- Primary stack layout slice: `75-primary-stack-layout-slice.md`
 - Discussion log: `90-discussion-log.md`

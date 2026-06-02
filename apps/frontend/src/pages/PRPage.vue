@@ -136,25 +136,27 @@
         <PRFactsCard :pr-id="prDetail.id" @ready="handleFactsCardReady" />
       </div>
 
-      <PRWaitlistActions
-        :pr="prDetail"
-        :join-entry-context="joinEntryContext"
-      />
+      <div class="primary-stack" data-region="primary-actions">
+        <PRWaitlistActions
+          :pr="prDetail"
+          :join-entry-context="joinEntryContext"
+        />
 
-      <PRConfirmationAction
-        :pr="prDetail"
-      />
+        <PRConfirmationAction
+          :pr="prDetail"
+        />
 
-      <PRCheckInFeedbackActions :pr="prDetail" />
+        <PRCheckInFeedbackActions :pr="prDetail" />
 
-      <PRJoinAction
-        :pr="prDetail"
-        :event-id="joinEntryContext.routeEventId"
-        :entry-surface="joinEntryContext.joinEntrySurface"
-        @success-closed="handleJoinSuccessClosed"
-      />
+        <PRJoinAction
+          :pr="prDetail"
+          :event-id="joinEntryContext.routeEventId"
+          :entry-surface="joinEntryContext.joinEntrySurface"
+          @success-closed="handleJoinSuccessClosed"
+        />
 
-      <PRExitAction :pr="prDetail" />
+        <PRExitAction :pr="prDetail" />
+      </div>
 
       <div class="utility-stack" data-region="utility">
         <div class="utility-action-row">
@@ -595,6 +597,17 @@ usePRPendingWeChatReplay({
 
 .facts-card--handoff-hidden {
   visibility: hidden;
+}
+
+.primary-stack {
+  margin-top: var(--sys-spacing-large);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.primary-stack:empty {
+  display: none;
 }
 
 .utility-stack {

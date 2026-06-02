@@ -1,13 +1,13 @@
 <template>
   <section
     v-if="showConfirmAction || primaryActionError"
-    class="contextual-area"
+    class="action-section"
     data-region="confirmation-action"
     data-testid="pr-detail.confirmation-action"
   >
-    <div v-if="showConfirmAction" class="primary-action">
+    <div v-if="showConfirmAction" class="action-group">
       <Button
-        class="primary-action__button"
+        class="action-group__button"
         tone="primary"
         :disabled="!viewer.canConfirm"
         :loading="attendanceActions.confirmPending.value"
@@ -115,20 +115,19 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.contextual-area {
-  margin-top: var(--sys-spacing-large);
+.action-section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action {
+.action-group {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action__button {
+.action-group__button {
   max-width: 100%;
 }
 

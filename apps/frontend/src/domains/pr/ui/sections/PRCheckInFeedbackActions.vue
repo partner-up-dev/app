@@ -1,13 +1,13 @@
 <template>
   <section
     v-if="showActionArea"
-    class="contextual-area"
+    class="action-section"
     data-region="check-in-feedback-actions"
     data-testid="pr-detail.check-in-feedback-actions"
   >
-    <div v-if="showCheckInAction" class="primary-action">
+    <div v-if="showCheckInAction" class="action-group">
       <Button
-        class="primary-action__button"
+        class="action-group__button"
         tone="primary"
         :disabled="!viewer.canCheckIn"
         :loading="attendanceActions.checkInPending.value"
@@ -26,9 +26,9 @@
       </p>
     </div>
 
-    <div v-if="showFeedbackRetryAction" class="primary-action">
+    <div v-if="showFeedbackRetryAction" class="action-group">
       <Button
-        class="primary-action__button"
+        class="action-group__button"
         tone="primary"
         block
         data-testid="pr-detail.feedback.open"
@@ -164,20 +164,19 @@ const submitFeedbackQuestionnaire = async (
 </script>
 
 <style lang="scss" scoped>
-.contextual-area {
-  margin-top: var(--sys-spacing-large);
+.action-section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action {
+.action-group {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action__button {
+.action-group__button {
   max-width: 100%;
 }
 

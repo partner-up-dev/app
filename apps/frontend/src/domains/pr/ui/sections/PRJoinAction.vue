@@ -13,7 +13,7 @@
 
   <section
     v-else-if="showActionArea"
-    class="contextual-area"
+    class="action-section"
     data-region="join-action"
     data-testid="pr-detail.join-action"
   >
@@ -29,9 +29,9 @@
       :message="joinBlockedMessage"
     />
 
-    <div v-if="showJoinAction" class="primary-action">
+    <div v-if="showJoinAction" class="action-group">
       <Button
-        class="primary-action__button"
+        class="action-group__button"
         tone="primary"
         :disabled="openDisabled"
         :loading="flowPending"
@@ -393,20 +393,19 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.contextual-area {
-  margin-top: var(--sys-spacing-large);
+.action-section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action {
+.action-group {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action__button {
+.action-group__button {
   max-width: 100%;
 }
 

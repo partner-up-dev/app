@@ -1,7 +1,7 @@
 <template>
   <section
     v-if="showActionArea"
-    class="contextual-area"
+    class="action-section"
     data-region="waitlist-actions"
     data-testid="pr-detail.waitlist-actions"
   >
@@ -18,9 +18,9 @@
       data-testid="pr-detail.waitlist.notice"
     />
 
-    <div v-if="showWaitlistAction" class="primary-action">
+    <div v-if="showWaitlistAction" class="action-group">
       <Button
-        class="primary-action__button"
+        class="action-group__button"
         tone="primary"
         :disabled="openDisabled"
         :loading="flowPending"
@@ -41,7 +41,7 @@
       </p>
     </div>
 
-    <div v-if="showCancelWaitlistAction" class="secondary-action">
+    <div v-if="showCancelWaitlistAction" class="action-group">
       <Button
         tone="surface"
         :loading="cancelWaitlistMutation.isPending.value"
@@ -404,21 +404,19 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.contextual-area {
-  margin-top: var(--sys-spacing-large);
+.action-section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action,
-.secondary-action {
+.action-group {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.primary-action__button {
+.action-group__button {
   max-width: 100%;
 }
 

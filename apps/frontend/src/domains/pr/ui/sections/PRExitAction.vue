@@ -1,11 +1,11 @@
 <template>
   <section
     v-if="showExitAction"
-    class="contextual-area"
+    class="action-section"
     data-region="exit-action"
     data-testid="pr-detail.exit-action"
   >
-    <div class="secondary-danger-action">
+    <div class="action-group">
       <Button
         tone="danger"
         :disabled="!viewer.canExit"
@@ -117,14 +117,13 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.contextual-area {
-  margin-top: var(--sys-spacing-large);
+.action-section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.secondary-danger-action {
+.action-group {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
