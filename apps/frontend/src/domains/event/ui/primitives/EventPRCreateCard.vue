@@ -18,7 +18,11 @@
         <AnchorEventAssistedPRTimeWindowInlineEditor
           :anchor-event-id="eventId"
           :model-value="timeWindow"
+          :allow-edit-after-ready="allowEditAfterReady"
           @update:model-value="emit('update:timeWindow', $event)"
+          @update:allow-edit-after-ready="
+            emit('update:allowEditAfterReady', $event)
+          "
         />
 
         <AnchorEventInlinePlaceSelector
@@ -52,6 +56,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
@@ -72,6 +77,7 @@ const props = withDefaults(
     eventId: number;
     eventTitle: string;
     timeWindow: TimeWindow | null;
+    allowEditAfterReady?: PRAllowEditAfterReady | null;
     placeOptions: readonly AnchorEventPlaceOption[];
     placeLabel?: string;
     placePlaceholder?: string;
@@ -83,6 +89,7 @@ const props = withDefaults(
   }>(),
   {
     title: undefined,
+    allowEditAfterReady: null,
     placeLabel: undefined,
     placePlaceholder: undefined,
     pending: false,
@@ -96,6 +103,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   create: [place: AnchorEventSelectedPlace | null];
   "update:timeWindow": [value: TimeWindow | null];
+  "update:allowEditAfterReady": [value: PRAllowEditAfterReady | null];
 }>();
 
 const { t } = useI18n();

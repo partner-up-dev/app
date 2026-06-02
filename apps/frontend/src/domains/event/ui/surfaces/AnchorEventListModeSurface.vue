@@ -74,6 +74,7 @@
           :event-id="eventIdValue"
           :event-title="eventTitle"
           :time-window="selectedCreateTimeWindow"
+          :allow-edit-after-ready="selectedCreateAllowEditAfterReady"
           :place-options="createTimeWindowPlaceOptions"
           :place-label="createTimeWindowPlaceLabel"
           :place-placeholder="createTimeWindowPlacePlaceholder"
@@ -83,6 +84,9 @@
           :disabled="isCreateDisabled"
           :error-message="resolvedCreateActionErrorMessage"
           @update:time-window="selectedCreateTimeWindow = $event"
+          @update:allow-edit-after-ready="
+            selectedCreateAllowEditAfterReady = $event
+          "
           @create="handleCreateInList"
           data-region="create-pr"
         />
@@ -108,6 +112,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import EventPRCreateCard from "@/domains/event/ui/primitives/EventPRCreateCard.vue";
@@ -188,6 +193,8 @@ const { t } = useI18n();
 const eventId = computed<number | null>(() => props.eventId);
 const eventIdValue = computed(() => props.eventId);
 const selectedCreateTimeWindow = ref<TimeWindow | null>(null);
+const selectedCreateAllowEditAfterReady =
+  ref<PRAllowEditAfterReady | null>(null);
 const selectedDateKey = ref<string | null>(null);
 const activeListTelemetryContextKey = ref<string | null>(null);
 const trackedListTelemetryKeys = ref<Set<string>>(new Set());
@@ -726,6 +733,7 @@ const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
   });
   await createEventAssistedPR({
     targetTimeWindow: selectedCreateTimeWindow.value,
+    allowEditAfterReady: selectedCreateAllowEditAfterReady.value,
     place,
     entrySurface: "list_mode",
   });

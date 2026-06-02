@@ -1,97 +1,77 @@
 <template>
-  <section class="form-mode-time-control">
-    <div class="form-mode-time-control__header">
-      <div class="form-mode-time-control__title-row">
-        <h2 class="form-mode-time-control__title">
-          {{ t("anchorEvent.formMode.timeTitle") }}
-        </h2>
-
-        <div class="form-mode-time-control__mode-switcher">
-          <span class="form-mode-time-control__mode-label">
-            {{ activeModeLabel }}
-          </span>
-
-          <MultiStopToggle
-            v-model="activeMode"
-            :options="timeModeOptions"
-            :aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
-            size="sm"
-            data-testid="anchor-event-form-mode.time-mode-toggle"
-          />
-        </div>
-      </div>
-
-      <p class="form-mode-time-control__duration">
-        {{ durationLabel }}
-      </p>
-    </div>
-
-    <div class="time-wheel">
-      <WheelPicker
-        :model-value="dateWheelModelValue"
-        :options="dateWheelOptions"
-        :item-height="42"
-        :visible-count="3"
-        :aria-label="t('anchorEvent.formMode.dateWheelAriaLabel')"
-        :empty-label="t('anchorEvent.formMode.timePlaceholder')"
-        data-testid="anchor-event-form-mode.time-date-wheel"
-        @update:model-value="handleDateWheelUpdate"
-      />
-
-      <WheelPicker
-        :model-value="timeWheelModelValue"
-        :options="timeWheelOptions"
-        :item-height="42"
-        :visible-count="3"
-        :aria-label="t('anchorEvent.formMode.timeWheelAriaLabel')"
-        :empty-label="t('anchorEvent.formMode.timePlaceholder')"
-        data-testid="anchor-event-form-mode.time-time-wheel"
-        @update:model-value="handleTimeWheelUpdate"
-      />
-    </div>
-
-    <p
-      v-if="selectedStartOptionDescription"
-      class="form-mode-time-control__description"
+  <PRTimeWindowEditor
+    class="form-mode-time-control"
+    :model-value="editorTimeWindow"
+    :allow-edit-after-ready="editorAllowEditAfterReady"
+    :preset-options="presetOptions"
+    :duration-minutes="durationMinutes"
+    :earliest-lead-minutes="earliestLeadMinutes"
+    :label="t('anchorEvent.formMode.timeTitle')"
+    :mode-toggle-aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
+    :date-picker-aria-label="t('anchorEvent.formMode.dateWheelAriaLabel')"
+    :time-picker-aria-label="t('anchorEvent.formMode.timeWheelAriaLabel')"
+    :empty-label="t('anchorEvent.formMode.timePlaceholder')"
+    test-id-prefix="anchor-event-form-mode.time"
+    @update:model-value="handleEditorTimeWindowUpdate"
+    @update:allow-edit-after-ready="handleEditorAllowEditAfterReadyUpdate"
+  >
+    <template
+      #date-picker="{ modelValue, options, updateModelValue, ariaLabel, emptyLabel, testId }"
     >
-      {{ selectedStartOptionDescription }}
-    </p>
-  </section>
+      <WheelPicker
+        :model-value="modelValue"
+        :options="options"
+        :item-height="42"
+        :visible-count="3"
+        :aria-label="ariaLabel"
+        :empty-label="emptyLabel"
+        :data-testid="testId"
+        @update:model-value="updateModelValue"
+      />
+    </template>
+
+    <template
+      #time-picker="{ modelValue, options, updateModelValue, ariaLabel, emptyLabel, testId }"
+    >
+      <WheelPicker
+        :model-value="modelValue"
+        :options="options"
+        :item-height="42"
+        :visible-count="3"
+        :aria-label="ariaLabel"
+        :empty-label="emptyLabel"
+        :data-testid="testId"
+        @update:model-value="updateModelValue"
+      />
+    </template>
+  </PRTimeWindowEditor>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import WheelPicker from "@/shared/ui/forms/WheelPicker.vue";
+import PRTimeWindowEditor from "@/domains/event/ui/controls/PRTimeWindowEditor.vue";
 import type { AnchorEventFormModeResponse } from "@/domains/event/model/types";
-import WheelPicker, {
-  type WheelPickerValue,
-} from "@/shared/ui/forms/WheelPicker.vue";
-import MultiStopToggle, {
-  type MultiStopToggleOption,
-} from "@/shared/ui/forms/MultiStopToggle.vue";
+import type { TimeWindow } from "@/domains/event/model/time-window-view";
 import {
-  buildAdvancedModeStartOptions,
-  buildFormModeCreateTimeWindow,
-  buildFormModeFuzzyDateOptions,
-  buildFormModeFuzzyTimeWindows,
-  buildFormModeFuzzyTimeOptions,
-  buildFormModeDateKey,
   buildFormModePointTimeWindows,
-  buildStartOptionsByDate,
-  formatFormModeFuzzySelectionLabel,
-  formatFormModeDurationLabel,
   formatFormModeDateLabel,
+  formatFormModeFuzzySelectionLabel,
   formatFormModeTimeLabel,
-  type FormModeFuzzyTimePreset,
-  type FormModeTimeMode,
   type FormModeTimeSelection,
   isValidFormModeDateTime,
-  shouldAutoOpenAdvancedFormModeTime,
 } from "@/domains/event/model/form-mode";
+import {
+  findFuzzyPresetForTimeWindow,
+  isCompleteTimeWindow,
+  timeWindowsEqual,
+  type PRTimeWindowPresetOption,
+} from "@/domains/event/model/pr-time-window-editor";
+import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
 type StartOption = AnchorEventFormModeResponse["startOptions"][number];
-type StartOptionGroup = ReturnType<typeof buildStartOptionsByDate>[number];
-type TimeModeOption = MultiStopToggleOption & { value: FormModeTimeMode };
 
 const props = defineProps<{
   modelValue: FormModeTimeSelection | null;
@@ -102,333 +82,137 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:modelValue": [value: FormModeTimeSelection | null];
+  "update:allowEditAfterReady": [value: PRAllowEditAfterReady | null];
 }>();
 
 const { t } = useI18n();
+const editorTimeWindow = ref<TimeWindow | null>(null);
+const editorAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
 
-const timeModeOptions: readonly TimeModeOption[] = [
-  { value: "NORMAL", label: "普通" },
-  { value: "ADVANCED", label: "高级" },
-  { value: "FUZZY", label: "模糊" },
-];
-const selectedDateKey = ref<string | null>(null);
-const activeMode = ref<FormModeTimeMode>("NORMAL");
-const selectedFuzzyDateValue = ref<string | null>(null);
-const selectedFuzzyTimePreset = ref<FormModeFuzzyTimePreset | null>(null);
-
-const defaultStartOptionGroups = computed(() =>
-  buildStartOptionsByDate(props.startOptions),
+const presetOptions = computed<PRTimeWindowPresetOption[]>(() =>
+  props.startOptions
+    .filter(
+      (option) =>
+        isValidFormModeDateTime(option.startAt) &&
+        isValidFormModeDateTime(option.endAt),
+    )
+    .map((option) => ({
+      key: option.key,
+      startAt: option.startAt,
+      endAt: option.endAt,
+      description: option.description ?? null,
+    })),
 );
 
-const advancedStartOptionGroups = computed(() =>
-  buildStartOptionsByDate(
-    buildAdvancedModeStartOptions(props.earliestLeadMinutes),
-  ),
-);
-
-const shouldAutoOpenAdvancedMode = computed(() =>
-  shouldAutoOpenAdvancedFormModeTime(
-    props.startOptions,
-    props.earliestLeadMinutes,
-  ),
-);
-
-const activeStartOptionGroups = computed(() =>
-  activeMode.value === "ADVANCED"
-    ? advancedStartOptionGroups.value
-    : defaultStartOptionGroups.value,
-);
-
-const activeTimeOptions = computed<StartOption[]>(() => {
-  const group = activeStartOptionGroups.value.find(
-    (item) => item.dateKey === selectedDateKey.value,
-  );
-  return (group?.options ?? []) as StartOption[];
-});
-
-const dateWheelOptions = computed(() =>
-  activeMode.value === "FUZZY"
-    ? fuzzyDateOptions.value.map((option) => ({
-        label: option.label,
-        value: option.value,
-      }))
-    : activeStartOptionGroups.value.map((group) => ({
-        label: group.dateLabel,
-        value: group.dateKey,
-      })),
-);
-
-const timeWheelOptions = computed(() =>
-  activeMode.value === "FUZZY"
-    ? fuzzyTimeOptions.value.map((option) => ({
-        label: option.label,
-        value: option.value,
-      }))
-    : activeTimeOptions.value.map((option) => ({
-        label: formatFormModeTimeLabel(option.startAt),
-        value: option.startAt,
-      })),
-);
-
-const fuzzyDateOptions = computed(() =>
-  buildFormModeFuzzyDateOptions(),
-);
-
-const fuzzyTimeOptions = computed(() => buildFormModeFuzzyTimeOptions());
-
-const exactModelStartAt = computed(() =>
-  props.modelValue?.mode !== "FUZZY"
-    ? props.modelValue?.createTimeWindow?.startAt ?? null
-    : null,
-);
-
-const dateWheelModelValue = computed(() =>
-  activeMode.value === "FUZZY"
-    ? selectedFuzzyDateValue.value
-    : selectedDateKey.value,
-);
-
-const timeWheelModelValue = computed(() =>
-  activeMode.value === "FUZZY"
-    ? selectedFuzzyTimePreset.value
-    : exactModelStartAt.value,
-);
-
-const durationLabel = computed(() =>
-  formatFormModeDurationLabel(props.durationMinutes),
-);
-
-const activeModeLabel = computed(
-  () =>
-    timeModeOptions.find((option) => option.value === activeMode.value)
-      ?.label ?? "",
-);
-
-const selectedStartOptionDescription = computed(() => {
-  if (!exactModelStartAt.value) {
-    return "";
-  }
-
-  const option = props.startOptions.find(
-    (startOption) => startOption.startAt === exactModelStartAt.value,
-  );
-  return option?.description?.trim() ?? "";
-});
-
-const handleDateWheelUpdate = (value: WheelPickerValue) => {
-  if (activeMode.value === "FUZZY") {
-    selectedFuzzyDateValue.value = String(value);
-    return;
-  }
-  selectedDateKey.value = String(value);
-};
-
-const handleTimeWheelUpdate = (value: WheelPickerValue) => {
-  if (activeMode.value === "FUZZY") {
-    selectedFuzzyTimePreset.value = String(value) as FormModeFuzzyTimePreset;
-    emitFuzzySelection();
-    return;
-  }
-
-  const nextValue = String(value);
-  emitExactSelection(nextValue);
-};
-
-const emitExactSelection = (startAt: string | null) => {
-  if (!startAt || !isValidFormModeDateTime(startAt)) {
-    emit("update:modelValue", null);
-    return;
-  }
-  const sourceMode = activeMode.value === "ADVANCED" ? "ADVANCED" : "NORMAL";
-  const matchingPreset = props.startOptions.find(
-    (option) => option.startAt === startAt,
-  );
-  const createTimeWindow =
-    sourceMode === "NORMAL" && matchingPreset
-      ? {
-          startAt: matchingPreset.startAt,
-          endAt: matchingPreset.endAt,
-        }
-      : buildFormModeCreateTimeWindow(startAt, props.durationMinutes);
-
-  emit("update:modelValue", {
-    mode: sourceMode,
-    label: `${formatFormModeDateLabel(startAt)} ${formatFormModeTimeLabel(startAt)}`,
-    timeWindows: buildFormModePointTimeWindows(startAt),
-    createTimeWindow,
-  });
-};
-
-const emitFuzzySelection = () => {
-  if (!selectedFuzzyDateValue.value || !selectedFuzzyTimePreset.value) {
-    emit("update:modelValue", null);
-    return;
-  }
-  const timeWindows = buildFormModeFuzzyTimeWindows(
-    selectedFuzzyDateValue.value,
-    selectedFuzzyTimePreset.value,
-  );
-  const fuzzyTimeWindow = timeWindows[0] ?? null;
-  emit("update:modelValue", {
-    mode: "FUZZY",
-    label: formatFormModeFuzzySelectionLabel(
-      selectedFuzzyDateValue.value,
-      selectedFuzzyTimePreset.value,
-    ),
-    timeWindows,
-    createTimeWindow: fuzzyTimeWindow,
-  });
-};
-
-const findGroupForStartAt = (
-  groups: readonly StartOptionGroup[],
-  startAt: string,
-): StartOptionGroup | null =>
-  groups.find((group) =>
-    group.options.some((option) => option.startAt === startAt),
-  ) ?? null;
-
-const resolveDateKey = (value: string): string | null => {
-  if (!isValidFormModeDateTime(value)) {
+const findMatchingPreset = (timeWindow: TimeWindow | null): StartOption | null => {
+  if (!isCompleteTimeWindow(timeWindow)) {
     return null;
   }
-  return buildFormModeDateKey(value);
+  return (
+    props.startOptions.find(
+      (option) =>
+        option.startAt === timeWindow[0] && option.endAt === timeWindow[1],
+    ) ?? null
+  );
+};
+
+const buildSelectionLabel = (
+  timeWindow: TimeWindow,
+  allowEditAfterReady: PRAllowEditAfterReady | null,
+): string => {
+  if (allowEditAfterReady?.timeWindow) {
+    const fuzzyPreset = findFuzzyPresetForTimeWindow(timeWindow);
+    if (fuzzyPreset) {
+      return formatFormModeFuzzySelectionLabel(
+        fuzzyPreset.dateValue,
+        fuzzyPreset.timePreset,
+      );
+    }
+    return formatFriendlyTimeWindowLabel(timeWindow);
+  }
+
+  const startAt = timeWindow[0];
+  return isValidFormModeDateTime(startAt)
+    ? `${formatFormModeDateLabel(startAt)} ${formatFormModeTimeLabel(startAt)}`
+    : "";
+};
+
+const buildSelectionFromEditorState = (
+  timeWindow: TimeWindow | null,
+  allowEditAfterReady: PRAllowEditAfterReady | null,
+): FormModeTimeSelection | null => {
+  if (!isCompleteTimeWindow(timeWindow)) {
+    return null;
+  }
+
+  if (allowEditAfterReady?.timeWindow) {
+    return {
+      mode: "FUZZY",
+      label: buildSelectionLabel(timeWindow, allowEditAfterReady),
+      timeWindows: [{ startAt: timeWindow[0], endAt: timeWindow[1] }],
+      createTimeWindow: { startAt: timeWindow[0], endAt: timeWindow[1] },
+    };
+  }
+
+  const matchingPreset = findMatchingPreset(timeWindow);
+  const mode = matchingPreset ? "NORMAL" : "ADVANCED";
+  return {
+    mode,
+    label: buildSelectionLabel(timeWindow, null),
+    timeWindows: buildFormModePointTimeWindows(timeWindow[0]),
+    createTimeWindow: {
+      startAt: timeWindow[0],
+      endAt: timeWindow[1],
+    },
+  };
+};
+
+const emitSelection = () => {
+  emit(
+    "update:modelValue",
+    buildSelectionFromEditorState(
+      editorTimeWindow.value,
+      editorAllowEditAfterReady.value,
+    ),
+  );
+};
+
+const handleEditorTimeWindowUpdate = (value: TimeWindow | null) => {
+  editorTimeWindow.value = value;
+  emitSelection();
+};
+
+const handleEditorAllowEditAfterReadyUpdate = (
+  value: PRAllowEditAfterReady | null,
+) => {
+  editorAllowEditAfterReady.value = value;
+  emit("update:allowEditAfterReady", value);
+  emitSelection();
 };
 
 watch(
-  shouldAutoOpenAdvancedMode,
-  (shouldOpen) => {
-    if (shouldOpen && activeMode.value === "NORMAL") {
-      activeMode.value = "ADVANCED";
-    }
-  },
-  { immediate: true },
-);
-
-watch(
-  [() => props.modelValue, defaultStartOptionGroups, advancedStartOptionGroups],
-  ([modelValue, defaultGroups, advancedGroups]) => {
-    if (!modelValue) {
-      return;
-    }
-    activeMode.value = modelValue.mode;
-    if (modelValue.mode === "FUZZY") {
-      return;
+  () => props.modelValue,
+  (selection) => {
+    const nextTimeWindow: TimeWindow | null = selection?.createTimeWindow
+      ? [
+          selection.createTimeWindow.startAt,
+          selection.createTimeWindow.endAt,
+        ]
+      : null;
+    if (!timeWindowsEqual(editorTimeWindow.value, nextTimeWindow)) {
+      editorTimeWindow.value = nextTimeWindow;
     }
 
-    const modelStartAt = modelValue.createTimeWindow?.startAt ?? null;
-    if (!isValidFormModeDateTime(modelStartAt)) {
-      emit("update:modelValue", null);
-      return;
-    }
-
-    const activeGroup = findGroupForStartAt(
-      activeStartOptionGroups.value,
-      modelStartAt,
-    );
-    if (activeGroup) {
-      selectedDateKey.value = activeGroup.dateKey;
-      return;
-    }
-
-    const defaultGroup = findGroupForStartAt(defaultGroups, modelStartAt);
-    if (defaultGroup) {
-      activeMode.value = "NORMAL";
-      selectedDateKey.value = defaultGroup.dateKey;
-      return;
-    }
-
-    const advancedGroup = findGroupForStartAt(advancedGroups, modelStartAt);
-    if (advancedGroup) {
-      activeMode.value = "ADVANCED";
-      selectedDateKey.value = advancedGroup.dateKey;
-      return;
-    }
-
-    const modelDateKey = resolveDateKey(modelStartAt);
-    const advancedDateGroup =
-      modelDateKey === null
-        ? null
-        : (advancedGroups.find((group) => group.dateKey === modelDateKey) ??
-          null);
-    if (advancedDateGroup) {
-      activeMode.value = "ADVANCED";
-      selectedDateKey.value = advancedDateGroup.dateKey;
-    }
-  },
-  { immediate: true },
-);
-
-watch(
-  activeStartOptionGroups,
-  (groups) => {
-    if (activeMode.value === "FUZZY") {
-      return;
-    }
+    const nextAllowEditAfterReady: PRAllowEditAfterReady | null =
+      selection?.mode === "FUZZY" && isCompleteTimeWindow(nextTimeWindow)
+        ? { timeWindow: [nextTimeWindow[0], nextTimeWindow[1]] }
+        : null;
     if (
-      selectedDateKey.value &&
-      groups.some((group) => group.dateKey === selectedDateKey.value)
+      JSON.stringify(editorAllowEditAfterReady.value) !==
+      JSON.stringify(nextAllowEditAfterReady)
     ) {
-      return;
+      editorAllowEditAfterReady.value = nextAllowEditAfterReady;
     }
-    selectedDateKey.value = groups[0]?.dateKey ?? null;
-  },
-  { immediate: true },
-);
-
-watch(
-  [activeTimeOptions, selectedDateKey],
-  ([options]) => {
-    if (activeMode.value === "FUZZY") {
-      return;
-    }
-    if (
-      exactModelStartAt.value &&
-      options.some((option) => option.startAt === exactModelStartAt.value)
-    ) {
-      return;
-    }
-    emitExactSelection(options[0]?.startAt ?? null);
-  },
-  { immediate: true },
-);
-
-watch(
-  fuzzyDateOptions,
-  (options) => {
-    if (
-      selectedFuzzyDateValue.value &&
-      options.some((option) => option.value === selectedFuzzyDateValue.value)
-    ) {
-      return;
-    }
-    selectedFuzzyDateValue.value = options[0]?.value ?? null;
-  },
-  { immediate: true },
-);
-
-watch(
-  fuzzyTimeOptions,
-  (options) => {
-    if (
-      selectedFuzzyTimePreset.value &&
-      options.some((option) => option.value === selectedFuzzyTimePreset.value)
-    ) {
-      return;
-    }
-    selectedFuzzyTimePreset.value = options[0]?.value ?? null;
-  },
-  { immediate: true },
-);
-
-watch(
-  [activeMode, selectedFuzzyDateValue, selectedFuzzyTimePreset],
-  () => {
-    if (activeMode.value === "FUZZY") {
-      emitFuzzySelection();
-      return;
-    }
-    emitExactSelection(activeTimeOptions.value[0]?.startAt ?? exactModelStartAt.value);
   },
   { immediate: true },
 );
@@ -438,66 +222,25 @@ watch(
 .form-mode-time-control {
   display: flex;
   flex-direction: column;
-}
 
-.form-mode-time-control__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
-  color: var(--sys-color-on-surface-variant);
-}
+  :deep(.pr-time-window-editor__label) {
+    color: var(--sys-color-on-surface);
+    @include mx.pu-font(title-medium);
+  }
 
-.form-mode-time-control__title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sys-spacing-small);
-  flex-wrap: nowrap;
-}
+  :deep(.pr-time-window-editor__mode-label) {
+    @include mx.pu-font(label-large);
+  }
 
-.form-mode-time-control__title {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  color: var(--sys-color-on-surface);
-  @include mx.pu-font(title-medium);
-}
+  :deep(.pr-time-window-editor__field-label) {
+    display: none;
+  }
 
-.form-mode-time-control__duration {
-  margin: 0;
-  color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-large);
-}
-
-.form-mode-time-control__mode-switcher {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.form-mode-time-control__mode-label {
-  color: var(--sys-color-on-surface-variant);
-  white-space: nowrap;
-  @include mx.pu-font(label-large);
-}
-
-.time-wheel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sys-spacing-xsmall);
-}
-
-.form-mode-time-control__description {
-  margin: var(--sys-spacing-xsmall) 0 0;
-  color: var(--sys-color-secondary);
-  text-align: center;
-  @include mx.pu-font(label-large);
-}
-
-@media (max-width: 720px) {
-  .form-mode-time-control__title-row {
-    gap: var(--sys-spacing-xsmall);
+  :deep(.pr-time-window-editor__hint) {
+    margin: var(--sys-spacing-xsmall) 0 0;
+    color: var(--sys-color-secondary);
+    text-align: center;
+    @include mx.pu-font(label-large);
   }
 }
 </style>

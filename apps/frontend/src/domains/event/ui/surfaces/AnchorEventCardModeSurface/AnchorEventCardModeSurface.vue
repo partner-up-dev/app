@@ -160,7 +160,11 @@
         <AnchorEventAssistedPRTimeWindowInlineEditor
           :anchor-event-id="eventIdValue"
           :model-value="resolvedCardCreateTimeWindow"
+          :allow-edit-after-ready="resolvedCardCreateAllowEditAfterReady"
           @update:model-value="handleCardCreateTimeWindowChange"
+          @update:allow-edit-after-ready="
+            handleCardCreateAllowEditAfterReadyChange
+          "
         />
 
         <AnchorEventInlinePlaceSelector
@@ -249,6 +253,7 @@ import {
   resolveTimeWindowStartTimestamp,
   type TimeWindow,
 } from "@/domains/event/model/time-window-view";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { useEventAssistedPRCreateFlow } from "@/domains/event/use-cases/useEventAssistedPRCreateFlow";
 import { useReducedMotion } from "@/shared/motion/useReducedMotion";
 import {
@@ -287,6 +292,8 @@ const processedCardKeys = ref<string[]>([]);
 const internalCardActionError = ref<string | null>(null);
 const internalIsCardRouting = ref(false);
 const internalCardCreateTimeWindow = ref<TimeWindow | null>(null);
+const internalCardCreateAllowEditAfterReady =
+  ref<PRAllowEditAfterReady | null>(null);
 const internalCardCreatePlaceId = ref<string | null>(null);
 const internalDragHintToken = ref(0);
 let internalCardDragHintTimerId: number | null = null;
@@ -565,6 +572,11 @@ const resolvedCardCreateTimeWindow = computed(() =>
   isControlled.value
     ? props.cardCreateTimeWindow
     : internalCardCreateTimeWindow.value,
+);
+const resolvedCardCreateAllowEditAfterReady = computed(() =>
+  isControlled.value
+    ? props.cardCreateAllowEditAfterReady
+    : internalCardCreateAllowEditAfterReady.value,
 );
 const resolvedCardCreatePlaceId = computed(() =>
   isControlled.value ? props.cardCreatePlaceId : internalCardCreatePlaceId.value,
@@ -902,6 +914,7 @@ const emitCreateFromCardEmpty = () => {
 
   void createEventAssistedPR({
     targetTimeWindow: resolvedCardCreateTimeWindow.value,
+    allowEditAfterReady: resolvedCardCreateAllowEditAfterReady.value,
     place: resolvedCardCreateSelectedPlace.value,
     entrySurface: "card_rich",
   });
@@ -913,6 +926,16 @@ const handleCardCreateTimeWindowChange = (nextValue: TimeWindow | null) => {
     return;
   }
   internalCardCreateTimeWindow.value = nextValue;
+};
+
+const handleCardCreateAllowEditAfterReadyChange = (
+  nextValue: PRAllowEditAfterReady | null,
+) => {
+  if (isControlled.value) {
+    emit("update:cardCreateAllowEditAfterReady", nextValue);
+    return;
+  }
+  internalCardCreateAllowEditAfterReady.value = nextValue;
 };
 
 const handleCardCreatePlaceChange = (value: string | null) => {

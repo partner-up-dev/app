@@ -1,7 +1,10 @@
 import { computed, onMounted, ref, watch, type Ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import type { AnchorEventSelectedPlace } from "@/domains/event/model/place-options";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";
@@ -19,6 +22,7 @@ import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 
 type EventAssistedPRCreateInput = {
   targetTimeWindow: TimeWindow | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
   place: AnchorEventSelectedPlace | null;
   entrySurface?: "form_mode" | "card_rich" | "list_mode";
 };
@@ -202,6 +206,7 @@ export const useEventAssistedPRCreateFlow = (
 
   const createEventAssistedPR = async ({
     targetTimeWindow,
+    allowEditAfterReady,
     place,
     entrySurface,
   }: EventAssistedPRCreateInput) => {
@@ -229,6 +234,7 @@ export const useEventAssistedPRCreateFlow = (
       const created = await createEventAssistedPRMutation.mutateAsync({
         eventId: currentEvent.id,
         fields,
+        allowEditAfterReady: allowEditAfterReady ?? null,
         routePoolEntryId:
           place?.kind === "route" ? place.routePoolEntryId : null,
       });

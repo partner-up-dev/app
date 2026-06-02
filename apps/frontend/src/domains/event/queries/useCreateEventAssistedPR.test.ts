@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import { buildEventAssistedPRCreateBody } from "./useCreateEventAssistedPR";
 
 const fields: PartnerRequestFields = {
@@ -47,5 +50,24 @@ describe("event-assisted PR create query", () => {
     });
     expect(body).not.toHaveProperty("routePoolEntryId");
     expect(body).not.toHaveProperty("correlationId");
+  });
+
+  test("buildEventAssistedPRCreateBody carries fuzzy ready-edit policy", () => {
+    const allowEditAfterReady: PRAllowEditAfterReady = {
+      timeWindow: [
+        "2038-01-01T16:00:00.000Z",
+        "2038-01-02T15:59:00.000Z",
+      ],
+    };
+
+    expect(
+      buildEventAssistedPRCreateBody({
+        eventId: 42,
+        fields,
+        allowEditAfterReady,
+      }),
+    ).toMatchObject({
+      allowEditAfterReady,
+    });
   });
 });

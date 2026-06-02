@@ -1,4 +1,5 @@
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import type {
   AnchorEventPlaceOption,
 } from "@/domains/event/model/place-options";
@@ -39,6 +40,7 @@ export type AnchorEventCardModeSurfaceProps = {
   createActionErrorMessage?: string | null;
   isCreatePending?: boolean;
   canUserCreatePR?: boolean;
+  cardCreateAllowEditAfterReady?: PRAllowEditAfterReady | null;
   eventId: number;
   eventTitle?: string;
   eventBetaGroupQrCode?: string | null;
@@ -57,6 +59,7 @@ type AnchorEventCardModeSurfaceDefaults = {
   createActionErrorMessage: null;
   isCreatePending: boolean;
   canUserCreatePR: boolean;
+  cardCreateAllowEditAfterReady: null;
   eventTitle: string;
   eventBetaGroupQrCode: null;
 };
@@ -74,6 +77,7 @@ export const anchorEventCardModeSurfaceDefaults: AnchorEventCardModeSurfaceDefau
   createActionErrorMessage: null,
   isCreatePending: false,
   canUserCreatePR: true,
+  cardCreateAllowEditAfterReady: null,
   eventTitle: "",
   eventBetaGroupQrCode: null,
 };
@@ -83,6 +87,9 @@ export type AnchorEventCardModeSurfaceEmits = {
   "skip-active-card": [];
   "view-active-card-detail": [];
   "update:cardCreateTimeWindow": [value: TimeWindow | null];
+  "update:cardCreateAllowEditAfterReady": [
+    value: PRAllowEditAfterReady | null,
+  ];
   "update:cardCreatePlaceId": [value: string | null];
   "create-from-card-empty": [];
   "card-stage-active-change": [isActive: boolean];

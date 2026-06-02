@@ -38,6 +38,7 @@
 
         <FormModeTimeControl
           v-model="selectedTimeSelection"
+          v-model:allow-edit-after-ready="selectedAllowEditAfterReady"
           :start-options="selectedPlaceStartOptions"
           :duration-minutes="formModeData.event.durationMinutes"
           :earliest-lead-minutes="formModeData.event.earliestLeadMinutes"
@@ -102,7 +103,10 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
@@ -169,6 +173,7 @@ const matchedPRHandoff = useMatchedPRHandoff();
 
 const selectedPlaceId = ref<string | null>(null);
 const selectedTimeSelection = ref<FormModeTimeSelection | null>(null);
+const selectedAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
 const selectedPreferences = ref<string[]>([]);
 const noMatchRecommendationResult =
   ref<AnchorEventFormModeRecommendationResponse | null>(null);
@@ -930,7 +935,7 @@ const createEventAssistedPR = async (
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       fields,
-      allowEditAfterReady: buildEditableAfterReadyPolicy(),
+      allowEditAfterReady: selectedAllowEditAfterReady.value,
       routePoolEntryId:
         place.kind === "route" ? place.routePoolEntryId : null,
       handoff:
@@ -1100,22 +1105,6 @@ const resolveSelectedTimeWindow = (): [string | null, string | null] => {
   }
 
   return [createTimeWindow.startAt, createTimeWindow.endAt];
-};
-
-const buildEditableAfterReadyPolicy = () => {
-  const selection = selectedTimeSelection.value;
-  const timeWindow = resolveSelectedTimeWindow();
-  if (
-    selection?.mode !== "FUZZY" ||
-    !isValidFormModeDateTime(timeWindow[0]) ||
-    !isValidFormModeDateTime(timeWindow[1])
-  ) {
-    return null;
-  }
-
-  return {
-    timeWindow: [timeWindow[0], timeWindow[1]] as [string, string],
-  };
 };
 
 const buildCreateFields = (): PartnerRequestFields | null => {

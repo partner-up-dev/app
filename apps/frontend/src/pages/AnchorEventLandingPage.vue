@@ -63,6 +63,7 @@
         :card-action-error="cardActionError"
         :drag-hint-token="0"
         :card-create-time-window="cardCreateTimeWindow"
+        :card-create-allow-edit-after-ready="cardCreateAllowEditAfterReady"
         :card-create-place-id="cardCreatePlaceId"
         :card-create-place-options="cardCreatePlaceOptions"
         :card-create-place-label="cardCreatePlaceLabel"
@@ -77,6 +78,9 @@
         @skip-active-card="handleSkipActiveCard"
         @view-active-card-detail="handleViewActiveCardDetail"
         @update:card-create-time-window="cardCreateTimeWindow = $event"
+        @update:card-create-allow-edit-after-ready="
+          cardCreateAllowEditAfterReady = $event
+        "
         @update:card-create-place-id="cardCreatePlaceId = $event"
         @create-from-card-empty="handleCreateFromCardEmpty"
       />
@@ -134,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -545,6 +550,7 @@ const upcomingSortedCreateTimeWindows = computed(() =>
 const canUserCreatePR = computed(() => detail.value?.canUserCreatePR === true);
 
 const cardCreateTimeWindow = ref<TimeWindow | null>(null);
+const cardCreateAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
 const cardCreatePlaceId = ref<string | null>(null);
 
 const timeWindowsEqual = (
@@ -569,6 +575,7 @@ watch(
   (timeWindows) => {
     if (timeWindows.length === 0) {
       cardCreateTimeWindow.value = null;
+      cardCreateAllowEditAfterReady.value = null;
       return;
     }
 
@@ -580,6 +587,7 @@ watch(
     }
 
     cardCreateTimeWindow.value = resolveFirstCreatableTimeWindow();
+    cardCreateAllowEditAfterReady.value = null;
   },
   { immediate: true },
 );
@@ -919,9 +927,11 @@ const buildEventAssistedCreateTarget = (
 
 const createEventAssistedPR = async ({
   targetTimeWindow,
+  allowEditAfterReady,
   place,
 }: {
   targetTimeWindow: TimeWindow | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
   place: AnchorEventSelectedPlace | null;
 }) => {
   if (!canUserCreatePR.value) {
@@ -950,6 +960,7 @@ const createEventAssistedPR = async ({
       eventId: event.id,
       fields,
       routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+      allowEditAfterReady: allowEditAfterReady ?? null,
     });
     trackEvent("pr_commitment_result", {
       ...funnelPayload,
@@ -1031,6 +1042,7 @@ const attemptPendingCreateReplay = async () => {
         notes: null,
       },
       routePoolEntryId: pending.routePoolEntryId ?? null,
+      allowEditAfterReady: pending.allowEditAfterReady ?? null,
     });
     await router.push(
       buildEventAssistedCreateTarget(
@@ -1089,6 +1101,7 @@ const handleCreateFromCardEmpty = async () => {
 
   await createEventAssistedPR({
     targetTimeWindow,
+    allowEditAfterReady: cardCreateAllowEditAfterReady.value,
     place,
   });
 };
