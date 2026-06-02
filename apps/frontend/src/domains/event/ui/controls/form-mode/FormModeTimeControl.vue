@@ -12,6 +12,9 @@
     :time-picker-aria-label="t('anchorEvent.formMode.timeWheelAriaLabel')"
     :empty-label="t('anchorEvent.formMode.timePlaceholder')"
     test-id-prefix="anchor-event-form-mode.time"
+    mode-toggle-test-id="anchor-event-form-mode.time-mode-toggle"
+    date-picker-test-id="anchor-event-form-mode.time-date-wheel"
+    time-picker-test-id="anchor-event-form-mode.time-time-wheel"
     @update:model-value="handleEditorTimeWindowUpdate"
     @update:allow-edit-after-ready="handleEditorAllowEditAfterReadyUpdate"
   >

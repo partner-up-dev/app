@@ -34,8 +34,10 @@ import {
 import { attachOrderToPr } from "../../pr-core";
 import type {
   OrderItemSnapshot,
+  OrderParticipantSnapshot,
   OrderPricingSnapshot,
   OrderStatus,
+  RentalRegistrant,
   RideHailingRiderSnapshot,
   RideHailingRouteSnapshot,
 } from "../model";
@@ -96,6 +98,31 @@ export type CreateOrderCommandInput = {
   participants: OrderParticipantInput[];
   items: OrderItemInput[];
   productTypedExtraProperties: ProductTypedExtraProperties;
+};
+
+export type CreateRentalOrderInput = {
+  createdBy: string;
+  offerId: number;
+  participants: OrderParticipantSnapshot[];
+  items: OrderItemSnapshot[];
+  pricingSnapshot: OrderPricingSnapshot;
+  serviceStartAt: string;
+  serviceEndAt: string;
+  contactPhone: string;
+  registrants: RentalRegistrant[];
+};
+
+export type CreateRideHailingOrderFoundationInput = {
+  createdBy: string;
+  offerId: number;
+  participants: OrderParticipantSnapshot[];
+  items: OrderItemSnapshot[];
+  pricingSnapshot: OrderPricingSnapshot;
+  routeSnapshot: RideHailingRouteSnapshot;
+  departureAt?: string | null;
+  riders: RideHailingRiderSnapshot[];
+  contactPhone: string;
+  providerInstanceId: RideHailingProviderInstanceId;
 };
 
 export type OrderingActionProblem = {
@@ -357,7 +384,7 @@ async function validatePrAttachmentForEvaluation(input: {
     return actionProblem({
       code: "PR_ORDER_CREATOR_REQUIRED",
       title: "暂不能创建订单",
-      detail: "仅 PR 创建者可以为该 PR 创建订单。",
+      detail: "仅 PR 创建者可以创建订单。",
     });
   }
   return null;
@@ -628,6 +655,122 @@ async function attachPrIfPresent(input: {
       orderCreatedBy: input.createdBy as UserId,
     },
     input.executor,
+  );
+}
+
+async function createRentalOrderInExecutor(
+  input: CreateRentalOrderInput,
+  executor: RepositoryExecutor,
+) {
+  const offer = await resolveOffer(input.offerId);
+  if (offer.productType !== "RENTAL") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Offer is not a Rental offer",
+    });
+  }
+
+  const base = await createBaseOrder({
+    executor,
+    offer,
+    createdBy: input.createdBy,
+    participants: input.participants,
+    items: input.items,
+    unpaidWindowMinutes: DEFAULT_UNPAID_WINDOW_MINUTES,
+  });
+
+  const rentalOrderRepo = new RentalOrderRepository(executor);
+  await rentalOrderRepo.create({
+    orderId: base.order.id,
+    serviceStartAt: new Date(input.serviceStartAt),
+    serviceEndAt: new Date(input.serviceEndAt),
+    contactPhone: input.contactPhone,
+    registrants: input.registrants,
+  });
+
+  const chargeLines = materializeChargeLinesFromSplitRule({
+    totalFen: input.pricingSnapshot.totalFen,
+    splitRule: base.splitRuleSnapshot,
+  });
+  const billResult = await createBillFromSeed(
+    {
+      sourceOrderId: base.order.id,
+      currency: input.pricingSnapshot.currency,
+      chargeLines: chargeLines.map((line) => ({
+        userId: line.userId,
+        amountFen: line.amountFen,
+        label: "Rental order charge",
+        description: "Rental order share",
+      })),
+    },
+    executor,
+  );
+
+  return {
+    orderId: base.order.id,
+    billId: billResult.billId,
+  };
+}
+
+export async function createRentalOrder(
+  input: CreateRentalOrderInput,
+  executor?: RepositoryExecutor,
+) {
+  if (executor) {
+    return createRentalOrderInExecutor(input, executor);
+  }
+
+  return db.transaction(async (tx) => createRentalOrderInExecutor(input, tx));
+}
+
+async function createRideHailingOrderFoundationInExecutor(
+  input: CreateRideHailingOrderFoundationInput,
+  executor: RepositoryExecutor,
+) {
+  const offer = await resolveOffer(input.offerId);
+  if (offer.productType !== "RIDE_HAILING") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Offer is not a RideHailing offer",
+    });
+  }
+
+  const base = await createBaseOrder({
+    executor,
+    offer,
+    status: "INITIATING",
+    createdBy: input.createdBy,
+    participants: input.participants,
+    items: input.items,
+    unpaidWindowMinutes: DEFAULT_INITIATING_WINDOW_MINUTES,
+  });
+
+  const rideRepo = new RideHailingOrderRepository(executor);
+  await rideRepo.create({
+    orderId: base.order.id,
+    routeSnapshot: input.routeSnapshot,
+    departureAt: input.departureAt ? new Date(input.departureAt) : null,
+    riders: input.riders,
+    contactPhone: input.contactPhone,
+    providerInstanceId: input.providerInstanceId,
+    executionPhase: "INITIATING",
+  });
+
+  return {
+    orderId: base.order.id,
+  };
+}
+
+export async function createRideHailingOrderFoundation(
+  input: CreateRideHailingOrderFoundationInput,
+  executor?: RepositoryExecutor,
+) {
+  if (executor) {
+    return createRideHailingOrderFoundationInExecutor(input, executor);
+  }
+
+  return db.transaction(async (tx) =>
+    createRideHailingOrderFoundationInExecutor(input, tx),
   );
 }
 

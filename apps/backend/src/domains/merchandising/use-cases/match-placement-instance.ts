@@ -215,6 +215,11 @@ export async function resolvePlacementOrderingEntry(input: {
     prId === undefined
       ? []
       : await partnerRepo.listActiveParticipantSummariesByPrId(prId as PRId);
+  const viewerParticipant = input.viewerUserId
+    ? (activeParticipants.find(
+        (participant) => participant.userId === input.viewerUserId,
+      ) ?? null)
+    : null;
   if (
     prId !== undefined &&
     (!input.viewerUserId ||
@@ -238,13 +243,16 @@ export async function resolvePlacementOrderingEntry(input: {
     offerDetail,
     ...(prId === undefined ? {} : { prId }),
     bindings: {
+      ...bindings,
       ...(typeof activeParticipantCount === "number"
         ? { participantCount: activeParticipantCount }
         : {}),
       ...(startAt ? { serviceStartAt: startAt, departureAt: startAt } : {}),
       ...(endAt ? { serviceEndAt: endAt } : {}),
       ...(routeSnapshot ? { route: routeSnapshot } : {}),
-      ...bindings,
+      ...(viewerParticipant?.phoneNumber?.trim()
+        ? { contactPhone: viewerParticipant.phoneNumber.trim() }
+        : {}),
       ...(activeParticipants.length === 0
         ? {}
         : {

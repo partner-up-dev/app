@@ -31,13 +31,14 @@
       <RentalOrderingContent
         v-else-if="rentalOrdering && orderingContentInput"
         :input="orderingContentInput"
-        @update:output="contentOutput = $event"
+        @update:output="handleRentalOutputUpdate"
       />
 
       <RideHailingOrderingContent
         v-else-if="rideOrdering && orderingContentInput"
         :input="orderingContentInput"
         :evaluated-options="rideEvaluatedOptions"
+        @evaluation-output-change="evaluationContentOutput = $event"
         @update:output="contentOutput = $event"
       />
     </div>
@@ -203,6 +204,7 @@ const orderingPageTestId = computed(() =>
 );
 
 const contentOutput = ref<OrderingContentOutput | null>(null);
+const evaluationContentOutput = ref<OrderingContentOutput | null>(null);
 const priceDetailOpen = ref(false);
 
 const orderingContentInput = computed<OrderingContentInput | null>(() => {
@@ -215,9 +217,10 @@ const orderingContentInput = computed<OrderingContentInput | null>(() => {
   };
 });
 
-const createOrderInput = computed<CreateOrderInput | null>(() => {
+const buildOrderInput = (
+  output: OrderingContentOutput | null,
+): CreateOrderInput | null => {
   const entry = orderingEntry.value;
-  const output = contentOutput.value;
   if (!entry || !output) return null;
   return {
     source: entry.source,
@@ -226,7 +229,15 @@ const createOrderInput = computed<CreateOrderInput | null>(() => {
     items: output.items,
     productTypedExtraProperties: output.productTypedExtraProperties,
   };
-});
+};
+
+const createOrderInput = computed<CreateOrderInput | null>(() =>
+  buildOrderInput(contentOutput.value),
+);
+
+const evaluationOrderInput = computed<CreateOrderInput | null>(() =>
+  buildOrderInput(evaluationContentOutput.value),
+);
 
 const rideEvaluatedOptions = computed<RideVehicleOption[]>(
   () => evaluateMutation.data.value?.rideHailing?.options ?? [],
@@ -289,6 +300,11 @@ const backFallbackTo = computed(() =>
   orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
 
+const handleRentalOutputUpdate = (next: OrderingContentOutput | null): void => {
+  contentOutput.value = next;
+  evaluationContentOutput.value = next;
+};
+
 const formatFen = (amountFen: number | null | undefined): string => {
   if (typeof amountFen !== "number") return "待确认";
   return new Intl.NumberFormat("zh-CN", {
@@ -301,13 +317,14 @@ watch(
   () => orderingEntry.value?.offerDetail.productType,
   () => {
     contentOutput.value = null;
+    evaluationContentOutput.value = null;
     priceDetailOpen.value = false;
     evaluateMutation.reset();
   },
 );
 
 watch(
-  createOrderInput,
+  evaluationOrderInput,
   (next) => {
     if (!next) return;
     evaluateMutation.mutate(next);

@@ -552,7 +552,12 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
             kind: "route",
             routePoolEntryId: "south-to-pazhou",
           },
-          startAt: timeWindow[0],
+          timeWindows: [
+            {
+              startAt: timeWindow[0],
+              endAt: timeWindow[1],
+            },
+          ],
           preferences: ["路线池"],
         },
       }),

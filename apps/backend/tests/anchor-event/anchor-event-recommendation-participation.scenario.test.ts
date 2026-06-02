@@ -71,7 +71,12 @@ scenario(
               kind: "location",
               locationId: event.locationId,
             },
-            startAt: event.timeWindow[0],
+            timeWindows: [
+              {
+                startAt: event.timeWindow[0],
+                endAt: event.timeWindow[1],
+              },
+            ],
             preferences: [],
           },
         }),

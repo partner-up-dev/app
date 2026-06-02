@@ -543,6 +543,28 @@ const buildPRDetail = ({
         eventStartAt: null,
       },
     },
+    editCapability:
+      status === "DRAFT" || status === "OPEN"
+        ? {
+            canEdit: true,
+            editableFields: [
+              "title",
+              "time",
+              "location",
+              "route",
+              "minPartners",
+              "maxPartners",
+              "preferences",
+              "notes",
+              "meetingPoint",
+            ],
+            constraints: {},
+          }
+        : {
+            canEdit: false,
+            editableFields: [],
+            constraints: {},
+          },
     feedbackQuestionnaire: null,
     anchorEventContext:
       anchorEventTitle === null

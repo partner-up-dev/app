@@ -133,6 +133,18 @@ const genericCreateOrderCommandSchema = z.object({
   ]),
 });
 
+const rideHailingEvaluationExtraPropertiesSchema =
+  rideHailingOrderingCommandSchema.shape.extraProperties.extend({
+    contactPhone: z.string().trim(),
+  });
+
+const genericEvaluateOrderingCommandSchema = genericCreateOrderCommandSchema.extend({
+  productTypedExtraProperties: z.union([
+    rentalOrderingCommandSchema.shape.extraProperties,
+    rideHailingEvaluationExtraPropertiesSchema,
+  ]),
+});
+
 const readClientId = (headerValue: string | undefined): string => {
   const clientId = headerValue?.trim();
   if (!clientId) {
@@ -163,7 +175,7 @@ type UuidParam<Key extends string> = {
 type CommerceRouteSchema = {
   "/ordering/evaluate": {
     $post: JsonEndpoint<
-      { json: z.infer<typeof genericCreateOrderCommandSchema> },
+      { json: z.infer<typeof genericEvaluateOrderingCommandSchema> },
       Awaited<ReturnType<typeof evaluateOrdering>>
     >;
   };
@@ -231,7 +243,7 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .use("*", authMiddleware)
   .post(
     "/ordering/evaluate",
-    zValidator("json", genericCreateOrderCommandSchema),
+    zValidator("json", genericEvaluateOrderingCommandSchema),
     async (c) => {
       const payload = c.req.valid("json");
       const auth = c.get("auth");

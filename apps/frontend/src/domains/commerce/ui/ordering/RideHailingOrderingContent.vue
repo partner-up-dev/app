@@ -144,6 +144,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:output": [value: OrderingContentOutput | null];
+  "evaluation-output-change": [value: OrderingContentOutput | null];
 }>();
 
 const selectedRideSkuId = ref<number | null>(null);
@@ -182,6 +183,11 @@ const rideDepartureAt = computed(() => {
   return typeof value === "string" ? value : null;
 });
 
+const boundContactPhone = computed(() => {
+  const value = bindingValue("contactPhone");
+  return typeof value === "string" ? value.trim() : "";
+});
+
 const rideRiders = computed<BoundOrderParticipant[]>(() =>
   readBoundOrderParticipants(props.input.bindings),
 );
@@ -214,12 +220,12 @@ const rideDepartureLabel = computed(() => {
   return `${formatTime(departureAt)}出发`;
 });
 
-const output = computed<OrderingContentOutput | null>(() => {
+const evaluationOutput = computed<OrderingContentOutput | null>(() => {
   if (!rideOffer.value || selectedRideSkuId.value === null || !rideRoute.value) {
     return null;
   }
   const phone = rideContactPhone.value.trim();
-  if (!phone || rideRiders.value.length === 0) return null;
+  if (rideRiders.value.length === 0) return null;
   return {
     participants: rideRiders.value.map((rider) => ({
       userId: rider.userId,
@@ -237,6 +243,18 @@ const output = computed<OrderingContentOutput | null>(() => {
       contactPhone: phone,
     },
   };
+});
+
+const output = computed<OrderingContentOutput | null>(() => {
+  const next = evaluationOutput.value;
+  if (!next) return null;
+  if (
+    "contactPhone" in next.productTypedExtraProperties &&
+    next.productTypedExtraProperties.contactPhone.trim().length > 0
+  ) {
+    return next;
+  }
+  return null;
 });
 
 const formatFen = (amountFen: number | null | undefined): string => {
@@ -257,6 +275,10 @@ const formatTime = (value: string): string =>
 watch(
   rideQuoteOptions,
   (next) => {
+    const currentOption = next.find(
+      (option) => option.skuId === selectedRideSkuId.value,
+    );
+    if (currentOption?.selectable) return;
     const defaultOption =
       next.find((option) => option.selected && option.selectable) ??
       next.find((option) => option.selectable) ??
@@ -270,6 +292,21 @@ watch(output, (next) => emit("update:output", next), {
   immediate: true,
   deep: true,
 });
+
+watch(evaluationOutput, (next) => emit("evaluation-output-change", next), {
+  immediate: true,
+  deep: true,
+});
+
+watch(
+  boundContactPhone,
+  (next) => {
+    if (rideContactPhone.value.trim().length === 0) {
+      rideContactPhone.value = next;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="scss">

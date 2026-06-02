@@ -37,6 +37,11 @@ jobs:
 
     env:
       SCENARIO_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      VITE_WECHAT_ABILITY_MOCKING_ENABLED: "true"
+      VITE_WECHAT_MINIPROGRAM_WEBVIEW_MOCKING_ENABLED: "false"
+      WECHAT_ABILITY_MOCKING_ENABLED: "true"
+      WECHAT_OFFICIAL_ACCOUNT_APP_ID: wx-scenario-mock
+      WECHAT_OFFICIAL_ACCOUNT_APP_SECRET: scenario-wechat-secret
 
     steps:
       - name: Checkout

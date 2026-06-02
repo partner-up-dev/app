@@ -49,7 +49,7 @@ const placement = computed(() => placementQuery.data.value?.placements[0] ?? nul
 
 .button-placement__description {
   margin: 0;
-  color: var(--sys-color-text-secondary);
+  color: var(--sys-color-on-surface-variant);
   font-size: var(--sys-font-size-small);
   line-height: 1.4;
 }

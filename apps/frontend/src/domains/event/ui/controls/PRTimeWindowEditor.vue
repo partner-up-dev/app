@@ -9,7 +9,7 @@
           :options="timeModeOptions"
           :aria-label="modeToggleAriaLabel"
           size="sm"
-          :data-testid="`${testIdPrefix}.mode-toggle`"
+          :data-testid="modeToggleTestId"
         />
       </div>
     </div>
@@ -22,7 +22,7 @@
         :update-model-value="handleDatePickerUpdate"
         :aria-label="datePickerAriaLabel"
         :empty-label="emptyLabel"
-        :test-id="`${testIdPrefix}.date`"
+        :test-id="datePickerTestId"
       >
         <label class="pr-time-window-editor__field">
           <span class="pr-time-window-editor__field-label">
@@ -31,7 +31,7 @@
           <select
             class="pr-time-window-editor__select"
             :value="datePickerModelValue ?? ''"
-            :data-testid="`${testIdPrefix}.date`"
+            :data-testid="datePickerTestId"
             @change="handleNativeDateChange"
           >
             <option v-if="datePickerOptions.length === 0" value="">
@@ -55,7 +55,7 @@
         :update-model-value="handleTimePickerUpdate"
         :aria-label="timePickerAriaLabel"
         :empty-label="emptyLabel"
-        :test-id="`${testIdPrefix}.time`"
+        :test-id="timePickerTestId"
       >
         <label class="pr-time-window-editor__field">
           <span class="pr-time-window-editor__field-label">
@@ -64,7 +64,7 @@
           <select
             class="pr-time-window-editor__select"
             :value="timePickerModelValue ?? ''"
-            :data-testid="`${testIdPrefix}.time`"
+            :data-testid="timePickerTestId"
             @change="handleNativeTimeChange"
           >
             <option v-if="timePickerOptions.length === 0" value="">
@@ -93,7 +93,7 @@
         min="5"
         step="5"
         inputmode="numeric"
-        :data-testid="`${testIdPrefix}.duration`"
+        :data-testid="durationInputTestId"
       />
     </label>
 
@@ -154,6 +154,10 @@ const props = withDefaults(
     durationMinutesLabel?: string;
     emptyLabel?: string;
     testIdPrefix?: string;
+    modeToggleTestId?: string | null;
+    datePickerTestId?: string | null;
+    timePickerTestId?: string | null;
+    durationInputTestId?: string | null;
   }>(),
   {
     allowEditAfterReady: null,
@@ -164,6 +168,10 @@ const props = withDefaults(
     durationMinutesLabel: "持续分钟",
     emptyLabel: "暂无可选时间",
     testIdPrefix: "pr-time-window-editor",
+    modeToggleTestId: null,
+    datePickerTestId: null,
+    timePickerTestId: null,
+    durationInputTestId: null,
   },
 );
 
@@ -184,6 +192,19 @@ const selectedTimeValue = ref<string | null>(null);
 const selectedFuzzyDateValue = ref<string | null>(null);
 const selectedFuzzyTimePreset = ref<FormModeFuzzyTimePreset | null>(null);
 const customDurationMinutes = ref(DEFAULT_CUSTOM_DURATION_MINUTES);
+
+const modeToggleTestId = computed(
+  () => props.modeToggleTestId ?? `${props.testIdPrefix}.mode-toggle`,
+);
+const datePickerTestId = computed(
+  () => props.datePickerTestId ?? `${props.testIdPrefix}.date`,
+);
+const timePickerTestId = computed(
+  () => props.timePickerTestId ?? `${props.testIdPrefix}.time`,
+);
+const durationInputTestId = computed(
+  () => props.durationInputTestId ?? `${props.testIdPrefix}.duration`,
+);
 
 const normalGroups = computed(() => buildStartOptionsByDate(props.presetOptions));
 const advancedOptions = computed(() =>
