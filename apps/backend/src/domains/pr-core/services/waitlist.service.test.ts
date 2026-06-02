@@ -20,6 +20,7 @@ const buildRequest = (
   notes: null,
   orders: [],
   meetingPoint: null,
+  allowEditAfterReady: null,
   joinGateConfig: [],
   confirmationEnabled: false,
   confirmationStartOffsetMinutes: null,
@@ -34,7 +35,7 @@ const buildRequest = (
 });
 
 describe("isWaitlistOpenForRequest", () => {
-  it("opens waitlist for READY even when the roster is below max", async () => {
+  it("keeps waitlist closed for READY even when the roster is below max", async () => {
     process.env.DATABASE_URL ??= "postgres://test:test@localhost:5432/test";
     const { isWaitlistOpenForRequest } = await import("./waitlist.service");
 
@@ -43,7 +44,7 @@ describe("isWaitlistOpenForRequest", () => {
         request: buildRequest({ status: "READY", maxPartners: 4 }),
         activeCount: 2,
       }),
-      true,
+      false,
     );
   });
 

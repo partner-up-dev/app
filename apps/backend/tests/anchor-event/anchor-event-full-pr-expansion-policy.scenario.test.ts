@@ -34,14 +34,14 @@ scenario(
       title: "System full expansion disabled source PR",
       minPartners: 1,
       maxPartners: 2,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
 
     ctx.record("eventId", event.id);
     ctx.record("sourcePrId", pr.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     const prs = await listEventTimeWindowPRs({
       type: event.type,
@@ -71,14 +71,14 @@ scenario(
       title: "System full expansion enabled source PR",
       minPartners: 1,
       maxPartners: 2,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
 
     ctx.record("eventId", event.id);
     ctx.record("sourcePrId", pr.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     const prs = await listEventTimeWindowPRs({
       type: event.type,

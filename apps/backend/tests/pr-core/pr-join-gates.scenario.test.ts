@@ -98,7 +98,7 @@ scenario("join_notice_gate_blocks_join_until_viewer_accepts", async (ctx) => {
   assert.equal(acceptances[0]?.gateKey, "scenario-join-notice");
 
   const joined = await joinPartnerRequest({ pr, user: joiner });
-  assert.equal(joined.status, "READY");
+  assert.equal(joined.status, "OPEN");
   await expectActiveParticipantCount(pr, 2);
 
   await exitPR({ pr, user: joiner });

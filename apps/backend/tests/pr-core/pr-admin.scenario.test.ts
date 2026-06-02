@@ -18,7 +18,7 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Scenario delete target",
     });
 
@@ -91,7 +91,7 @@ scenario("admin_pr_create_and_edit_allow_admin_only_event_type", async (ctx) => 
     creator,
     minPartners: 1,
     maxPartners: 2,
-    expectedCreatedStatus: "READY",
+    expectedCreatedStatus: "OPEN",
     title: "Scenario admin editable source",
   });
   const editResponse = await requestJson(`/api/admin/prs/${editable.id}/content`, {
@@ -136,7 +136,7 @@ scenario("admin_pr_content_edit_can_reclassify_type", async (ctx) => {
     creator,
     minPartners: 1,
     maxPartners: 2,
-    expectedCreatedStatus: "READY",
+    expectedCreatedStatus: "OPEN",
     title: "Scenario admin type reclassify source",
   });
   const nextType = "scenario-admin-reclassified-type";

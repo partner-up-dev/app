@@ -22,7 +22,7 @@ import {
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { operationLogService } from "../../../infra/operation-log";
-import { expandFullPR } from "../../anchor-event";
+import { expandFullCapacityPR } from "../../anchor-event";
 import {
   scheduleWeChatActivityStartReminderJobForParticipant,
   scheduleWeChatNewPartnerNotificationsForJoin,
@@ -138,7 +138,7 @@ export async function joinPRAsUser(
     afterRecalculate.maxPartners !== null &&
     activeCountAfterJoin >= afterRecalculate.maxPartners
   ) {
-    await expandFullPR(id);
+    await expandFullCapacityPR(id);
   }
 
   operationLogService.log({

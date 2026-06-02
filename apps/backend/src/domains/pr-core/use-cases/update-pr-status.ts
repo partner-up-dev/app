@@ -39,11 +39,12 @@ export async function updatePRStatus(
   if (
     status === "ACTIVE" &&
     currentStatus !== "ACTIVE" &&
+    currentStatus !== "OPEN" &&
     currentStatus !== "READY"
   ) {
     return throwHttpProblem({
       status: 400,
-      detail: "Cannot set ACTIVE - only READY can become ACTIVE",
+      detail: "Cannot set ACTIVE - only OPEN or READY can become ACTIVE",
     });
   }
 

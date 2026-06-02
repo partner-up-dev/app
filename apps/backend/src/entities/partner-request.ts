@@ -98,8 +98,6 @@ export const prStatusSchema = z.enum([
   "DRAFT",
   "OPEN",
   "READY",
-  "FULL",
-  "LOCKED_TO_START",
   "ACTIVE",
   "CLOSED",
   "EXPIRED",

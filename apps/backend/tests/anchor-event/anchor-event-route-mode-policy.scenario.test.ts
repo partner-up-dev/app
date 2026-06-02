@@ -147,7 +147,7 @@ scenario("anchor_event_full_expansion_ignores_route_mode_source_pr", async (ctx)
   ctx.record("routePrId", routePr.id);
 
   const joined = await joinPartnerRequest({ pr: routePr, user: joiner });
-  assert.equal(joined.status, "FULL");
+  assert.equal(joined.status, "OPEN");
 
   const prs = await prRepo.findByTypeAndTime(event.type, event.timeWindow);
   assert.equal(prs.length, 1);

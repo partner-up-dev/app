@@ -70,7 +70,7 @@ async function givenLimitedEventPRs(input: {
         timeWindow,
         minPartners: 1,
         maxPartners: input.maxPartnersByIndex?.get(index) ?? null,
-        expectedStatus: "READY",
+        expectedStatus: "OPEN",
       }),
     ),
   );
@@ -231,7 +231,7 @@ scenario(
       timeWindow: firstWindow,
       minPartners: 1,
       maxPartners: null,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
     const secondPr = await givenAnchorEventVisiblePR({
       creator,
@@ -240,7 +240,7 @@ scenario(
       timeWindow: secondWindow,
       minPartners: 1,
       maxPartners: null,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
 
     ctx.record("eventId", event.id);

@@ -25,12 +25,12 @@ export function isExitAllowedStatus(status: string): boolean {
 
 /** Statuses where partner count changes recompute the status. */
 export function shouldRecalculateCapacityStatus(status: string): boolean {
-  return status === "OPEN" || status === "FULL";
+  return status === "OPEN";
 }
 
 /** Statuses eligible for automatic activation. */
 export function isActivatableStatus(status: string): boolean {
-  return status === "READY" || status === "FULL" || status === "LOCKED_TO_START";
+  return status === "OPEN" || status === "READY";
 }
 
 /** Statuses eligible for close-time finalization. */
@@ -38,8 +38,6 @@ export function isExpirableStatus(status: string): boolean {
   return (
     status === "OPEN" ||
     status === "READY" ||
-    status === "FULL" ||
-    status === "LOCKED_TO_START" ||
     status === "ACTIVE"
   );
 }
@@ -65,14 +63,14 @@ export function deriveStatusFromPartnerCount(
 
 /**
  * Converts internal DB status to the public status seen by clients.
- * READY / FULL within the active window are presented as ACTIVE.
+ * OPEN / READY within the active window are presented as ACTIVE.
  */
 export function toPublicStatus(
   rawStatus: string,
   timeWindow: TimeWindow,
 ): PRStatus {
   if (
-    (rawStatus === "READY" || rawStatus === "FULL") &&
+    (rawStatus === "OPEN" || rawStatus === "READY") &&
     isWithinActiveWindow(timeWindow)
   ) {
     return "ACTIVE";
@@ -82,8 +80,6 @@ export function toPublicStatus(
     rawStatus === "DRAFT" ||
     rawStatus === "OPEN" ||
     rawStatus === "READY" ||
-    rawStatus === "FULL" ||
-    rawStatus === "LOCKED_TO_START" ||
     rawStatus === "ACTIVE" ||
     rawStatus === "CLOSED" ||
     rawStatus === "EXPIRED"

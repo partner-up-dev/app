@@ -127,8 +127,6 @@ const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
 
 const FORMED_STATUSES = new Set<PRStatus>([
   "READY",
-  "FULL",
-  "LOCKED_TO_START",
   "ACTIVE",
   "CLOSED",
 ]);
@@ -136,8 +134,6 @@ const FORMED_STATUSES = new Set<PRStatus>([
 const ACTIVE_OR_OPEN_STATUSES = new Set<PRStatus>([
   "OPEN",
   "READY",
-  "FULL",
-  "LOCKED_TO_START",
   "ACTIVE",
 ]);
 

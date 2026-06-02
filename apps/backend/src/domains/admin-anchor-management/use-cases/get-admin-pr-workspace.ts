@@ -2,6 +2,7 @@ import type {
   AnchorEventPrCreationPolicy,
   AnchorEventRoutePool,
   PartnerRequest,
+  PRStatus,
   PRJoinGateConfig,
   PRRoute,
 } from "../../../entities";
@@ -35,7 +36,7 @@ export type AdminPRWorkspaceSummary = {
   route: PRRoute | null;
   placeDisplayName: string | null;
   time: [string | null, string | null];
-  status: string;
+  status: PRStatus;
   visibilityStatus: string;
   minPartners: number | null;
   maxPartners: number | null;

@@ -208,7 +208,7 @@ scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ct
     pr: source,
     user: sourceJoiner,
   });
-  assert.equal(joined.status, "FULL");
+  assert.equal(joined.status, "OPEN");
 
   await bindScenarioWeChatOpenId({
     user: candidate,

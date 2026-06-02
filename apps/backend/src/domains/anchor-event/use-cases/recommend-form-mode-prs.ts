@@ -26,7 +26,7 @@ const anchorEventRepo = new AnchorEventRepository();
 const eventContextRepo = new AnchorEventPRContextRepository();
 const partnerRepo = new PartnerRepository();
 
-const RECOMMENDABLE_PR_STATUSES = new Set<PRStatus>(["OPEN", "READY"]);
+const RECOMMENDABLE_PR_STATUSES = new Set(["OPEN"]);
 const MAX_ORDERED_CANDIDATE_COUNT = 6;
 
 export type AnchorEventFormModeRecommendationPlaceSelection =

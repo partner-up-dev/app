@@ -33,7 +33,7 @@ export type PRSearchResponse = {
       preferences: string[];
       notes: string | null;
       time: [string | null, string | null];
-      status: "OPEN" | "READY";
+      status: "OPEN";
       minPartners: number | null;
       maxPartners: number | null;
       partnerCount: number;
@@ -173,7 +173,7 @@ export async function searchPRs(input: {
 
   const results = records
     .flatMap((record) => {
-      if (record.status !== "OPEN" && record.status !== "READY") {
+      if (record.status !== "OPEN") {
         return [];
       }
 

@@ -38,7 +38,6 @@
     "open": "找人中",
     "ready": "已成团",
     "full": "已满人",
-    "lockedToStart": "待开始锁定",
     "active": "进行中",
     "closed": "已结束",
     "expired": "已过期"
@@ -666,8 +665,6 @@
       "DRAFT": "草稿",
       "OPEN": "开放",
       "READY": "已达最低人数",
-      "FULL": "满员",
-      "LOCKED_TO_START": "临近开始锁定",
       "ACTIVE": "进行中",
       "CLOSED": "已关闭",
       "EXPIRED": "已过期"
@@ -1981,8 +1978,6 @@
     "DRAFT": "草稿",
     "OPEN": "招募中",
     "READY": "已成团",
-    "FULL": "已满员",
-    "LOCKED_TO_START": "待开始锁定",
     "ACTIVE": "进行中",
     "CLOSED": "已结束",
     "EXPIRED": "已过期"

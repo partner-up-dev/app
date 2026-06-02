@@ -1,5 +1,7 @@
 import type { PRStatus } from "@partner-up-dev/backend";
 
+export type PRDisplayStatus = PRStatus | "FULL";
+
 type PRCapacitySnapshot = {
   current: number;
   max: number | null;
@@ -8,7 +10,7 @@ type PRCapacitySnapshot = {
 export const resolvePRDisplayStatus = (
   status: PRStatus,
   capacity: PRCapacitySnapshot | null | undefined,
-): PRStatus => {
+): PRDisplayStatus => {
   if (
     status === "OPEN" &&
     capacity?.max !== null &&

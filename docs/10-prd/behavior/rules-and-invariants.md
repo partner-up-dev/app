@@ -52,21 +52,22 @@
 - A published POI does not appear in an Anchor Event Form Mode unless that Anchor Event's location pool references the POI name.
 - The Anchor Event landing page shows discoverable PRs whose `PR.type` resolves to that Anchor Event, grouped by each PR's own resolved time window.
 - Event-page discovery reads root PR facts by Anchor Event context resolution and PR-owned time/place facts rather than by durable PR-side event linkage.
-- Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches `FULL`.
+- Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches full capacity while still in `OPEN`.
 - Anchor Event may own a participation frequency limit. When configured as `X`, a user with a current active participation in that event must wait through the next `X` complete PRs in event time-window order before joining or waitlisting another PR in the same event; the following PR is eligible. Only current `JOINED`, `CONFIRMED`, and `ATTENDED` slots count as limiting history. `PENDING`, `EXITED`, `RELEASED`, and `CANCELLED` slots do not count as limiting history.
 
 ## 3. Lifecycle And Participation Rules
 
-- The visible `PartnerRequest` status set is `DRAFT`, `OPEN`, `READY`, `FULL`, `LOCKED_TO_START`, `ACTIVE`, `CLOSED`, and `EXPIRED`.
-- `LOCKED_TO_START` means the collaboration object has entered the pre-start lock window; joining is no longer allowed, and progression toward `ACTIVE` may still continue.
+- The durable `PartnerRequest` status set is `DRAFT`, `OPEN`, `READY`, `ACTIVE`, `CLOSED`, and `EXPIRED`.
+- `FULL` is a user-visible derived capacity state, not a durable `PartnerRequest.status`: an `OPEN` PR with `maxPartners` present and current active participants greater than or equal to `maxPartners` is presented as full.
+- `READY` means the collaboration object is formed and roster-locked; joining, waitlisting, and exiting are no longer allowed, and progression toward `ACTIVE` may still continue.
 - `PartnerRequest` state is jointly shaped by partner thresholds, time windows, confirmation windows, and context-specific rules.
 - When a PR reaches its close time, it expires only when current active participants are fewer than `minPartners`.
-- When an `ACTIVE` PR reaches its close time with current active participants greater than or equal to `minPartners`, it closes automatically.
+- When a PR reaches its close time with current active participants greater than or equal to `minPartners`, it closes automatically.
 - `PartnerRequest.minPartners` must be an integer and `>= 1`. If `maxPartners` is present, it must satisfy both `maxPartners >= 2` and `maxPartners >= minPartners`.
 - Auto-created paths must fall back to `2` when a valid `minPartners` is unavailable. Manual input paths must reject empty value, `0`, `maxPartners = 1`, and invalid bounds.
 - If the user already joined a non-terminal PR whose time window conflicts with the target PR, the system must reject new join actions and any creation or publish action that would claim a slot.
 - `PR` supports `join` and `exit`.
-- A `FULL` PR may accept waitlist entries while it remains before the join-lock boundary. `LOCKED_TO_START` keeps the admission surface closed.
+- A full-capacity `OPEN` PR may accept waitlist entries while it remains before the join-lock boundary. `READY` keeps the admission surface closed.
 - Waitlist submission is subject to Anchor Event participation frequency limits when the target PR belongs to an event with that policy.
 - Waitlist entries are stored as `Partner.status = PENDING`. Cancelled waitlist entries are stored as `Partner.status = CANCELLED` and no longer hold queue position.
 - Pending users are not current active participants, cannot see PR messages, and do not count toward active capacity.
@@ -92,10 +93,8 @@
 | Status            | Meaning                                           | Join Semantics                              |
 | ----------------- | ------------------------------------------------- | ------------------------------------------- |
 | `DRAFT`           | unpublished draft held by the creator             | not joinable                                |
-| `OPEN`            | published and not yet formed                      | joinable                                    |
-| `READY`           | minimum viable group reached and waiting to start | joinable until blocked by other rules       |
-| `FULL`            | maximum partner count reached                     | not joinable; waitlistable before join lock |
-| `LOCKED_TO_START` | pre-start lock window                             | not joinable and not waitlistable           |
+| `OPEN`            | published and still admitting participants        | joinable while below capacity; full-capacity `OPEN` may be waitlistable before join lock |
+| `READY`           | formed and roster-locked                          | not joinable, not exitable, and not waitlistable |
 | `ACTIVE`          | in progress                                       | normally no longer accepts new joins        |
 | `CLOSED`          | successfully concluded after active execution     | not joinable                                |
 | `EXPIRED`         | ended because the close boundary arrived before minimum viable participation was met | not joinable                                |

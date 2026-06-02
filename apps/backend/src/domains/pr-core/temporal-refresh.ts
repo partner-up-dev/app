@@ -121,12 +121,10 @@ async function expireIfNeeded(
   ).length;
   const minPartners = request.minPartners ?? 1;
 
-  if (request.status === "ACTIVE" && activeCount >= minPartners) {
+  if (activeCount >= minPartners) {
     const closed = await prRepo.updateStatus(request.id, "CLOSED");
     return closed ?? request;
   }
-
-  if (activeCount >= minPartners) return request;
 
   const updated = await prRepo.updateStatus(request.id, "EXPIRED");
   return updated ?? request;

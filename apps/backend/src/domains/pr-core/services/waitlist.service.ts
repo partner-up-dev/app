@@ -41,18 +41,11 @@ export const isWaitlistOpenForRequest = (input: {
   request: PartnerRequest;
   activeCount: number;
 }): boolean => {
-  if (input.request.status === "READY") {
-    return true;
-  }
-
   const maxPartners = input.request.maxPartners;
   if (maxPartners === null) {
     return false;
   }
-  const isAtCapacity =
-    input.request.status === "FULL" ||
-    input.activeCount >= maxPartners;
-  if (!isAtCapacity) {
+  if (input.request.status !== "OPEN") {
     return false;
   }
   if (input.activeCount < maxPartners) {

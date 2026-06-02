@@ -35,6 +35,7 @@ const buildPublicPR = (
     notes: null,
     orders: [],
     meetingPoint: null,
+    allowEditAfterReady: null,
     joinGateConfig: [],
     feedbackQuestionnaireInstanceId: null,
     createdBy: null,
@@ -75,7 +76,7 @@ const buildActiveParticipant = (
 });
 
 describe("buildPRPartnerSection", () => {
-  it("treats READY as roster-locked while allowing waitlist for non-participants", () => {
+  it("treats READY as roster-locked for non-participants", () => {
     const participant = buildActiveParticipant("JOINED");
     const view = buildPRPartnerSection({
       publicPR: buildPublicPR({
@@ -92,7 +93,8 @@ describe("buildPRPartnerSection", () => {
     assert.equal(view.capacity.readiness, "READY");
     assert.equal(view.viewer.canJoin, false);
     assert.equal(view.viewer.joinBlockedReason, "NOT_JOINABLE_STATUS");
-    assert.equal(view.viewer.canWaitlist, true);
+    assert.equal(view.viewer.canWaitlist, false);
+    assert.equal(view.viewer.waitlistBlockedReason, "NOT_JOINABLE_STATUS");
   });
 
   it("blocks participant exit from READY", () => {

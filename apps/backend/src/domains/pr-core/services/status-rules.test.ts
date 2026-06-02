@@ -18,7 +18,7 @@ describe("PR status rules", () => {
     assert.equal(isExitAllowedStatus("ACTIVE"), false);
   });
 
-  it("does not derive durable READY or FULL from partner count", () => {
+  it("does not derive durable formed or full status from partner count", () => {
     assert.equal(deriveStatusFromPartnerCount(1, 1, 2), "OPEN");
     assert.equal(deriveStatusFromPartnerCount(2, 1, 2), "OPEN");
   });

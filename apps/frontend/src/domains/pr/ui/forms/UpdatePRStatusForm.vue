@@ -73,13 +73,13 @@ defineExpose({
 <style lang="scss" scoped>
 .status-form {
   display: flex;
+  flex-direction: column;
   gap: var(--sys-spacing-small);
   margin-bottom: var(--sys-spacing-medium);
 }
 
 .status-option {
   @include mx.pu-font(label-large);
-  flex: 1;
   justify-content: center;
   min-width: 0;
 }

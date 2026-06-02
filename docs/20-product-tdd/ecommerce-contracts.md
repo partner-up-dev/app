@@ -189,7 +189,7 @@ PR-context order creation must append the created order id into
 
 Rules:
 
-- order creation is allowed only when PR is `READY`
+- order creation is allowed only when PR is `READY`; `READY` is the roster-locked formed state
 - order creation is allowed only for the PR creator
 - PR domain is the final authority on attachment acceptance
 - if PR domain rejects attachment, the whole order creation transaction must

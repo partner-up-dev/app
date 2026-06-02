@@ -360,16 +360,16 @@ export function buildPRPartnerSection(params: {
   let canWaitlist = false;
   let waitlistBlockedReason: PartnerSectionActionBlockedReason = "NONE";
   const waitlistOpen =
-    publicPR.status === "READY" ||
-    publicPR.status === "FULL" ||
-    (publicPR.maxPartners !== null && current >= publicPR.maxPartners);
+    publicPR.status === "OPEN" &&
+    publicPR.maxPartners !== null &&
+    current >= publicPR.maxPartners;
   if (base.viewer.isParticipant) {
     waitlistBlockedReason = "ALREADY_JOINED";
   } else if (base.viewer.isWaitlisted) {
     waitlistBlockedReason = "ALREADY_WAITLISTED";
   } else if (!waitlistOpen) {
     waitlistBlockedReason = "NOT_JOINABLE_STATUS";
-  } else if (publicPR.status !== "READY" && joinLocked) {
+  } else if (joinLocked) {
     waitlistBlockedReason = "JOIN_LOCKED";
   } else if (participationFrequencyLimited) {
     waitlistBlockedReason = "PARTICIPATION_FREQUENCY_LIMITED";

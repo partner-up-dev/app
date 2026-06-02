@@ -734,8 +734,6 @@ export interface MessageSchema {
     DRAFT: string;
     OPEN: string;
     READY: string;
-    FULL: string;
-    LOCKED_TO_START: string;
     ACTIVE: string;
     CLOSED: string;
     EXPIRED: string;
@@ -1276,8 +1274,6 @@ export interface MessageSchema {
       DRAFT: string;
       OPEN: string;
       READY: string;
-      FULL: string;
-      LOCKED_TO_START: string;
       ACTIVE: string;
       CLOSED: string;
       EXPIRED: string;
