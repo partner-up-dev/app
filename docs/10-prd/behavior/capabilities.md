@@ -21,6 +21,7 @@
 - submit a mounted post-event feedback questionnaire when the PR carries one
 - progress status based on partner thresholds and time windows
 - use a color-coded four-digit PR pairing identity during the `READY` phase so active participants can visually find each other at the offline venue
+- enter a Study Sprint Pomodoro room from `STUDY_SPRINT` PRs so current active participants can focus remotely with independent timers and shared room visibility
 
 ## 3. Event-Context Collaboration
 

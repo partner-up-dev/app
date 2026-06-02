@@ -17,6 +17,8 @@ const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
+const StudySprintPomodoroPage = () =>
+  import("@/pages/StudySprintPomodoroPage.vue");
 const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
 const NewOrderPage = () =>
@@ -98,6 +100,14 @@ const routes: RouteRecordRaw[] = [
     component: PRPage,
     meta: {
       wechatSharePolicy: "route",
+    },
+  },
+  {
+    path: "/pr/:id/study-sprint",
+    name: "pr-study-sprint",
+    component: StudySprintPomodoroPage,
+    meta: {
+      wechatSharePolicy: "skip",
     },
   },
   {

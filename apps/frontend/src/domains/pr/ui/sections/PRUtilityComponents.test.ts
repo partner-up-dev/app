@@ -9,6 +9,7 @@ import PRMessageThreadAction from "./PRMessageThreadAction.vue";
 import PRNotificationSubscriptionsSection from "./PRNotificationSubscriptionsSection.vue";
 import PRPageEventPlazaEntry from "./PRPageEventPlazaEntry.vue";
 import PRShareAction from "./PRShareAction.vue";
+import PRStudySprintPomodoroAction from "./PRStudySprintPomodoroAction.vue";
 
 const testState = vi.hoisted(() => ({
   routerPush: vi.fn(),
@@ -193,6 +194,77 @@ describe("PR utility components", () => {
     expect(hasTestId(host, "pr-detail.notification-subscriptions")).toBe(true);
     expect(hasTestId(host, "notification-panel")).toBe(true);
   });
+
+  test("study sprint pomodoro action renders for active study sprint participants and routes with duration", async () => {
+    const host = await mountComponent(PRStudySprintPomodoroAction, {
+      pr: buildPRDetail({
+        type: "STUDY_SPRINT",
+        status: "ACTIVE",
+        time: ["2026-06-02T10:00:00.000Z", "2026-06-02T10:45:00.000Z"],
+        viewer: {
+          isParticipant: true,
+        },
+      }),
+    });
+
+    const action = getByTestId(host, "pr-detail.study-sprint-pomodoro.open");
+    expect(action.textContent).toContain("开始一起专注45分钟");
+    action.click();
+
+    expect(testState.routerPush).toHaveBeenCalledWith({
+      name: "pr-study-sprint",
+      params: {
+        id: "123",
+      },
+      query: {
+        duration: "45",
+      },
+    });
+  });
+
+  test("study sprint pomodoro action is disabled before active status", async () => {
+    const host = await mountComponent(PRStudySprintPomodoroAction, {
+      pr: buildPRDetail({
+        type: "STUDY_SPRINT",
+        status: "READY",
+        viewer: {
+          isParticipant: true,
+        },
+      }),
+    });
+
+    const action = getByTestId(host, "pr-detail.study-sprint-pomodoro.open");
+    expect(action.hasAttribute("disabled")).toBe(true);
+    expect(
+      hasTestId(host, "pr-detail.study-sprint-pomodoro.disabled-hint"),
+    ).toBe(true);
+  });
+
+  test("study sprint pomodoro action hides for non-participants and other PR types", async () => {
+    const nonParticipantHost = await mountComponent(PRStudySprintPomodoroAction, {
+      pr: buildPRDetail({
+        type: "STUDY_SPRINT",
+        viewer: {
+          isParticipant: false,
+        },
+      }),
+    });
+    const otherTypeHost = await mountComponent(PRStudySprintPomodoroAction, {
+      pr: buildPRDetail({
+        type: "徒步",
+        viewer: {
+          isParticipant: true,
+        },
+      }),
+    });
+
+    expect(
+      hasTestId(nonParticipantHost, "pr-detail.study-sprint-pomodoro.open"),
+    ).toBe(false);
+    expect(
+      hasTestId(otherTypeHost, "pr-detail.study-sprint-pomodoro.open"),
+    ).toBe(false);
+  });
 });
 
 const mountComponent = async (
@@ -230,21 +302,27 @@ const buildPRDetail = ({
   betaGroupQrCode = null,
   reminderSupported = false,
   reminderVisible = false,
+  status = "OPEN",
+  time = [null, null],
+  type = "徒步",
   viewer = {},
 }: {
   betaGroupQrCode?: string | null;
   reminderSupported?: boolean;
   reminderVisible?: boolean;
+  status?: PRDetailView["status"];
+  time?: PRDetailView["core"]["time"];
+  type?: string;
   viewer?: ViewerOverride;
 }): PRDetailView =>
   ({
     id: 123,
     title: "周末徒步",
-    status: "OPEN",
+    status,
     createdBy: 10,
     core: {
-      type: "徒步",
-      time: [null, null],
+      type,
+      time,
       location: "西湖",
       route: null,
       placeDisplayName: "西湖",

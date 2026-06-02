@@ -23,6 +23,7 @@ Persisted in Postgres via backend entities and repositories:
   `ride_hailing_orders`
 - ecommerce bill truth, including Bill, BillLine, and settlement derivation
 - ecommerce payment truth, including PaymentTx and gateway-facing payment state
+- Study Sprint Pomodoro room, participant session, event ledger, and session aggregate state
 
 This is the source of truth for product behavior.
 
@@ -62,6 +63,7 @@ The backend is authoritative for:
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution
 - PR message visibility, read-marker progression, and notification wave gating
+- Study Sprint Pomodoro eligibility, room snapshot visibility, participant session persistence, event ledger writes, and aggregate focus-state projection
 - identity binding, session verification, and role semantics
 - confirmed WeChat official-account follow state derived from official-account follower-list sync
 - event, time-pool, POI, and admin-managed configuration state
@@ -82,6 +84,7 @@ The backend is authoritative for:
 The frontend is authoritative for:
 
 - route composition and page assembly
+- Study Sprint Pomodoro first-use guidance, local timer display, polling cadence, and lifecycle-event submission
 - UI-specific interaction state
 - route editor draft interaction state, map provider rendering state, marker/polyline presentation state, and viewport fitting behavior
 - browser-side storage and pending-action continuity

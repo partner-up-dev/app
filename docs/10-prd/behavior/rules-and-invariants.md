@@ -87,6 +87,9 @@
 - PR participation gating for mounted feedback is owned by PR integration. The feedback submission command validates questionnaire answers against the mounted instance and stores responses in the feedback capability.
 - PR messages are visible only to current active participants; users who exit or are released must no longer see that PR's message thread.
 - Only current active participants may view the thread or act on read markers and participant posting, while operators may inject system messages through admin tooling without becoming participants themselves.
+- Study Sprint Pomodoro rooms are visible only to current active participants of an `ACTIVE` `STUDY_SPRINT` PR.
+- Study Sprint Pomodoro timers are participant-owned and independent. Completing a timer does not exit the participant from the room and does not mutate PR participation state.
+- Study Sprint Pomodoro aggregates are accountability summaries only. They must not update personal reputation, user reliability, PR punishment, reminders, or participant status in MVP.
 - PR detail keeps notification-subscription management visible as a persistent section when reminder registration is relevant for that PR.
 - The participant roster is opened from the facts-card participant row, and each participant badge remains a read-only navigation entry into that participant's profile page.
 - PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. Route-mode PRs carry `location = null`, so the backend returns only PR-specific meeting-point guidance; automatic Anchor Event and POI fallbacks resolve to empty. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible for location-mode PRs.

@@ -63,6 +63,9 @@ export const queryKeys = {
     paymentTx: (paymentTxId: string | null) =>
       ["commerce", "payment", paymentTxId] as const,
   },
+  studySprint: {
+    room: (prId: PRId | null) => ["study-sprint", "room", prId] as const,
+  },
   admin: {
     anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,
     commerceProductsWorkspace: () =>

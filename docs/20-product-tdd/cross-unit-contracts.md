@@ -86,6 +86,7 @@ Stable user-facing route families that materially affect coordination include:
 - `/pr/new`
 - `/pr/:id`
 - `/pr/:id/messages`
+- `/pr/:id/study-sprint`
 - `/pr/:id/partners/:partnerId`
 - `/events`
 - `/events/search`
@@ -135,6 +136,7 @@ Important coordination note:
 - Route-mode PRs use compact route summary `route[0].name~route[-1].name` as the backend-derived place display name. Each endpoint is truncated independently so the joined summary stays within 16 characters.
 - PR creation resolves event-owned defaults by PR type when that type maps to an Anchor Event. The created PR receives materialized PR-owned state for event-owned default notes when the create payload has no notes, confirmation enablement and timing defaults, join gates, and feedback questionnaire instance pointer. This materialization rule applies to public structured create, event-assisted create, admin create, and system auto-expansion. Later Anchor Event default edits affect future PRs only.
 - `/pr/:id` remains the primary PR detail route for read, join, exit, confirm, check-in, and share; it keeps the persistent notification-subscriptions section mounted there when reminder registration is relevant for that PR and links into adjacent PR sub-routes instead of absorbing all secondary actions inline. PR-level confirmation enablement gates confirm action availability, confirmation reminders, confirmation-window auto-confirm, confirmation-deadline slot release, and the dedicated confirmation follow-up in the join-success sequence. Join lock, check-in, and the persistent notification-subscriptions section keep their own eligibility rules.
+- `/pr/:id/study-sprint` is the Study Sprint Pomodoro room route for current active participants of `ACTIVE` `STUDY_SPRINT` PRs. PR detail exposes its entry in Utility Actions with copy `开始一起专注<duration>分钟`, using PR time-window-derived duration and a 30-minute fallback. The backend Study Sprint contract owns room/session/event persistence and participant-only snapshot reads under `/api/study-sprint/*`; frontend owns route placement, first-use guidance, local timer display, polling cadence, and event submission.
 - `GET /api/pr/mine/created` and `GET /api/pr/mine/joined` return id-only PR list items. They express membership in the viewer's created and joined PR collections. Preview rendering of title, status, location, time, and participant count reads `GET /api/pr/:id`.
 - PR preview surfaces across `/pr/mine`, Anchor Event list mode, Form Mode candidate results, and event-scoped PR search should pass PR identity plus caller context into the PR-domain preview component. The PR-domain preview component owns its PR detail query, keeping canonical PR facts aligned with `GET /api/pr/:id`.
 - `GET /api/pr/:id` returns `core.location`, `core.route`, and `core.placeDisplayName`. Location-mode PRs return `route: null`; route-mode PRs return `location: null` and expose the compact route summary as `core.placeDisplayName`.

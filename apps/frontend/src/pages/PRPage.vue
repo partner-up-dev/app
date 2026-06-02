@@ -183,6 +183,7 @@
           <PRBetaGroupAction :pr="prDetail" />
           <PRMessageThreadAction :pr="prDetail" />
           <PRPairingCodeAction :pr="prDetail" />
+          <PRStudySprintPomodoroAction :pr="prDetail" />
           <ButtonPlacement
             v-if="canMountButtonPlacement && placementMatchingContext"
             :matching-context="placementMatchingContext"
@@ -239,6 +240,7 @@ import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotif
 import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
 import PRPairingCodeAction from "@/domains/pr/ui/sections/PRPairingCodeAction.vue";
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
+import PRStudySprintPomodoroAction from "@/domains/pr/ui/sections/PRStudySprintPomodoroAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
