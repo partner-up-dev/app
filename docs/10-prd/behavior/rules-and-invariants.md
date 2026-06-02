@@ -94,10 +94,10 @@
 - The participant roster is opened from the facts-card participant row, and each participant badge remains a read-only navigation entry into that participant's profile page.
 - PR detail resolves meeting-point guidance by fallback order: PR-specific configuration, Anchor Event location-specific configuration, Anchor Event default configuration, then POI configuration. Route-mode PRs carry `location = null`, so the backend returns only PR-specific meeting-point guidance; automatic Anchor Event and POI fallbacks resolve to empty. The resolved guidance is redacted from non-participant PR detail viewers after the PR becomes `ACTIVE`; the primary location remains visible for location-mode PRs.
 - Updating meeting-point guidance keeps PR status, participation, and confirmation state stable while notifying current active participants through the dedicated meeting-point update notification path.
+- Updating activity-core fields such as PR time, location, or route should notify current active participants through a core-field-change notification path. Time-conflict releases caused by such edits remain participant releases and must carry release reason context.
 
 ### Status Semantics
 
-- Updating activity-core fields such as PR time, location, or route should notify current active participants through a core-field-change notification path. Time-conflict releases caused by such edits remain participant releases and must carry release reason context.
 | Status            | Meaning                                           | Join Semantics                              |
 | ----------------- | ------------------------------------------------- | ------------------------------------------- |
 | `DRAFT`           | unpublished draft held by the creator             | not joinable                                |

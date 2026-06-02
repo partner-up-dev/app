@@ -293,9 +293,9 @@ export type {
   PRStatus,
   PRStatusManual,
   PRId,
+  PRAllowEditAfterReady,
   PRRoute,
   PRRoutePoint,
-  PRAllowEditAfterReady,
   WeekdayLabel,
 } from "./entities/partner-request";
 export type {

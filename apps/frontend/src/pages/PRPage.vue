@@ -221,8 +221,8 @@ import Button from "@/shared/ui/actions/Button.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
+import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
 import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
@@ -244,9 +244,9 @@ import PRStudySprintPomodoroAction from "@/domains/pr/ui/sections/PRStudySprintP
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
 import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
+import PRPostReadyEditor from "@/domains/pr/ui/forms/PRPostReadyEditor.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
-import PRPostReadyEditor from "@/domains/pr/ui/forms/PRPostReadyEditor.vue";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
@@ -281,16 +281,16 @@ const prDetail = computed(() => data.value);
 const pendingReplayRegistry = providePRPendingReplayRegistry();
 const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
-const updateStatusFormRef =
-  ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
 const postReadyEditorRef =
   ref<InstanceType<typeof PRPostReadyEditor> | null>(null);
+const updateStatusFormRef =
+  ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
 const showEditContentModal = ref(false);
 const showModifyStatusModal = ref(false);
-const matchedPRHandoff = useMatchedPRHandoff();
-const prReadyForPendingReplay = computed(
 const showReleaseConfirmDialog = ref(false);
 const pendingReleasePayload = ref<PartnerRequestFormInput | null>(null);
+const matchedPRHandoff = useMatchedPRHandoff();
+const prReadyForPendingReplay = computed(
   () =>
     id.value !== null && prDetail.value !== undefined && prDetail.value !== null,
 );
@@ -312,9 +312,9 @@ const updateStatusInitialStatus = computed<PRStatusManual>(() => {
   }
   return "OPEN";
 });
+const isPostReadyEditMode = computed(() => prDetail.value?.status === "READY");
 const supportsEventContextFeatures = computed(
   () => prDetail.value?.partnerSection.reminder.supported ?? false,
-const isPostReadyEditMode = computed(() => prDetail.value?.status === "READY");
 );
 const routeEventId = computed(() => {
   const routeEventIdRaw = route.query.fromEvent;
@@ -454,18 +454,18 @@ const openEditContentModal = () => {
 
 const closeEditContentModal = () => {
   showEditContentModal.value = false;
-  resetContentUpdate();
-};
   showReleaseConfirmDialog.value = false;
   pendingReleasePayload.value = null;
+  resetContentUpdate();
+};
 
 const submitEditContentForm = () => {
-  editContentFormRef.value?.submitForm();
-};
   if (isPostReadyEditMode.value) {
     postReadyEditorRef.value?.submitForm();
     return;
   }
+  editContentFormRef.value?.submitForm();
+};
 
 const handleEditContentSubmit = async (
   payload: PartnerRequestFormInput,

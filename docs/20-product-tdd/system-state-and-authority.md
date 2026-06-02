@@ -57,8 +57,8 @@ slots.
 The backend is authoritative for:
 
 - PartnerRequest and partner-slot state
-- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, PR detail/share display-title derivation, and canonical share metadata derivation
 - PR edit capability, including which fields are editable in each status and any `allowEditAfterReady` constraints
+- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, PR detail/share display-title derivation, and canonical share metadata derivation
 - PR feedback questionnaire instance pointers
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution
