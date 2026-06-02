@@ -31,10 +31,12 @@ export type CreateEventAssistedPRError = ApiError & {
 };
 
 export const buildEventAssistedPRCreateBody = (input: {
+  eventId: number;
   fields: PartnerRequestFields;
 }) => ({
   fields: input.fields,
   createSource: "EVENT_ASSISTED" as const,
+  anchorEventId: input.eventId,
 });
 
 export const useCreateEventAssistedPR = () => {
@@ -49,6 +51,7 @@ export const useCreateEventAssistedPR = () => {
       const response = await client.api.pr.new.form.$post(
         {
           json: buildEventAssistedPRCreateBody({
+            eventId,
             fields,
           }),
         },

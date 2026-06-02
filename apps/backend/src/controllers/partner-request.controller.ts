@@ -159,6 +159,8 @@ export const partnerRequestRoute = app
       const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
       const result = await createPRFromStructured(fields, creatorIdentity, {
         createSource,
+        anchorEventId:
+          createSource === "EVENT_ASSISTED" ? command.anchorEventId : undefined,
       });
 
       await recordUserTelemetryEventForRequest(c, {

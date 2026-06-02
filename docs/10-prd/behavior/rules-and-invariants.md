@@ -32,7 +32,9 @@
 - PR existence does not depend on Anchor Event identity or time-pool selection.
 - Natural-language creation may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`. Existing PR types have priority over Anchor Event types when both sources offer a candidate.
 - User-created PR from Anchor Event context submits the unified PR create command. Unified PR creation owns creation policy, POI availability, creator publish identity, and creator time-window conflict checks.
+- User-created and system-expanded PR creation must go through the unified PR create command, and that command rejects a `PR.time_window[0]` that has already passed. Admin PR creation remains a separate operator authority.
 - Publishing a `DRAFT` PR requires an authenticated account.
+- Publishing a `DRAFT` PR also rejects a `PR.time_window[0]` that has already passed.
 - Direct creation of an `OPEN` PR, including event-assisted create, requires an authenticated account.
 - `/e/:eventId` is the canonical Anchor Event landing entry for List, Card, and Form browsing. `/events/:eventId` is a compatibility entry that forwards to the same landing route.
 - `/e/:eventId` landing mode supports `FORM`, `CARD_RICH`, and `LIST`. `LIST` uses the same Anchor Event list browsing semantics as the previous `/events/:eventId` list view.

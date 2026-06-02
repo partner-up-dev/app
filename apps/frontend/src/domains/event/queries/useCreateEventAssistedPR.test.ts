@@ -35,14 +35,15 @@ const fields: PartnerRequestFields = {
 describe("event-assisted PR create query", () => {
   test("buildEventAssistedPRCreateBody submits only the unified structured create command", () => {
     const body = buildEventAssistedPRCreateBody({
+      eventId: 42,
       fields,
     });
 
     expect(body).toEqual({
       fields,
       createSource: "EVENT_ASSISTED",
+      anchorEventId: 42,
     });
-    expect(body).not.toHaveProperty("anchorEventId");
     expect(body).not.toHaveProperty("routePoolEntryId");
     expect(body).not.toHaveProperty("correlationId");
   });

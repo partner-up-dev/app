@@ -463,18 +463,24 @@ const createActionErrorMessage = computed(() => {
     return null;
   }
 
+  return resolveCreateErrorMessage(error);
+});
+
+const resolveCreateErrorMessage = (error: CreateEventAssistedPRError): string => {
   switch (error.code) {
     case "ANCHOR_EVENT_NOT_FOUND":
       return t("anchorEvent.createCard.errors.eventUnavailable");
     case "ANCHOR_EVENT_USER_PR_CREATION_DISABLED":
       return t("anchorEvent.createCard.errors.userCreationDisabled");
+    case "PR_START_TIME_PASSED":
+      return t("anchorEvent.createCard.errors.timeWindowAlreadyPassed");
     case "AUTHENTICATED_REQUIRED":
     case "WECHAT_AUTH_REQUIRED":
       return t("anchorEvent.createCard.errors.wechatAuthRequired");
     default:
       return error.message || t("anchorEvent.createCard.errors.createFailed");
   }
-});
+};
 
 const canUserCreatePR = computed(
   () => formModeData.value?.event.canUserCreatePR === true,
@@ -975,8 +981,10 @@ const createEventAssistedPR = async (
     );
     if (trigger === "auto_no_candidates") {
       selectionErrorMessage.value =
-        error instanceof Error
-          ? error.message
+        isCreateEventAssistedPRError(error)
+          ? resolveCreateErrorMessage(error)
+          : error instanceof Error
+            ? error.message
           : t("anchorEvent.createCard.errors.createFailed");
     }
     return false;
@@ -1171,6 +1179,10 @@ const isWeChatAuthBlockingError = (
     WECHAT_AUTH_BLOCKING_CODES.has(apiError.code)
   );
 };
+
+const isCreateEventAssistedPRError = (
+  error: unknown,
+): error is CreateEventAssistedPRError => error instanceof Error;
 
 const attemptPendingCreateReplay = async () => {
   if (pendingCreateReplayRunning.value) {
