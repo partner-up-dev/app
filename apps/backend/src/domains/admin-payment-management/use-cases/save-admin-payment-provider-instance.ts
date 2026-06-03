@@ -14,6 +14,7 @@ import {
   toAdminPaymentProviderInstanceView,
   type AdminPaymentProviderInstanceView,
 } from "./provider-instance-view";
+import { normalizeAndValidateWeChatPayProviderConfig } from "../../payment/services/wechatpay-config-validation";
 
 const providerRepo = new PaymentProviderInstanceRepository();
 
@@ -79,7 +80,7 @@ const buildConfig = (input: {
   const existingConfig = input.existingProviderInstance?.config ?? null;
   const merchantCertificate = input.payload.config.merchantCertificate;
 
-  return {
+  return normalizeAndValidateWeChatPayProviderConfig({
     adapterMode: input.payload.config.adapterMode,
     appId: input.payload.config.appId,
     mchId: input.payload.config.mchId,
@@ -103,7 +104,7 @@ const buildConfig = (input: {
         null,
     },
     platformCertificates: existingConfig?.platformCertificates ?? null,
-  };
+  });
 };
 
 const assertUniqueInstanceKey = async (input: {

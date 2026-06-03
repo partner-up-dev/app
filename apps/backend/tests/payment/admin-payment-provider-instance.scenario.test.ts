@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
@@ -52,6 +52,28 @@ type AdminPaymentProviderWorkspaceResponse = {
 const deriveInstanceKey = (input: { appId: string; mchId: string }): string =>
   `mch:${input.mchId}:app:${input.appId}`;
 
+const generateRsaPemPair = (): {
+  privateKeyPem: string;
+  publicKeyPem: string;
+} => {
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: {
+      format: "pem",
+      type: "pkcs8",
+    },
+    publicKeyEncoding: {
+      format: "pem",
+      type: "spki",
+    },
+  });
+
+  return {
+    privateKeyPem: privateKey,
+    publicKeyPem: publicKey,
+  };
+};
+
 const buildProviderPayload = (input: {
   clientId: string;
   appId?: string;
@@ -87,6 +109,7 @@ scenario(
     const appId = `wx-scenario-admin-${randomUUID()}`;
     const mchId = `1900000001-${randomUUID()}`;
     const instanceKey = deriveInstanceKey({ appId, mchId });
+    const merchantCertificate = generateRsaPemPair();
 
     const createResponse = await requestJson(
       "/api/admin/payment/provider-instances",
@@ -98,8 +121,8 @@ scenario(
           appId,
           mchId,
           apiV3Key: "0123456789abcdef0123456789abcdef",
-          privateKeyPem: "scenario-private-key",
-          certificatePem: "scenario-merchant-certificate",
+          privateKeyPem: merchantCertificate.privateKeyPem,
+          certificatePem: merchantCertificate.publicKeyPem,
         }),
       },
     );
@@ -131,6 +154,7 @@ scenario(
       created.id as PaymentProviderInstanceId,
     );
     assert.ok(storedAfterCreate);
+    const platformCertificate = generateRsaPemPair();
     await providerRepo.updateConfig({
       id: storedAfterCreate.id,
       config: {
@@ -138,7 +162,7 @@ scenario(
         platformCertificates: [
           {
             serialNo: "scenario-platform-serial",
-            certificatePem: "scenario-platform-certificate",
+            certificatePem: platformCertificate.publicKeyPem,
             effectiveTime: "2026-01-01T00:00:00Z",
             expireTime: "2027-01-01T00:00:00Z",
           },
@@ -225,16 +249,16 @@ scenario(
     );
     assert.equal(
       storedAfterUpdate.config.merchantCertificate.privateKeyPem,
-      "scenario-private-key",
+      merchantCertificate.privateKeyPem.trim(),
     );
     assert.equal(
       storedAfterUpdate.config.merchantCertificate.certificatePem,
-      "scenario-merchant-certificate",
+      merchantCertificate.publicKeyPem.trim(),
     );
     assert.equal(storedAfterUpdate.config.platformCertificates?.length, 1);
     assert.equal(
       storedAfterUpdate.config.platformCertificates?.[0]?.certificatePem,
-      "scenario-platform-certificate",
+      platformCertificate.publicKeyPem.trim(),
     );
 
     const identityChangeResponse = await requestJson(
@@ -264,6 +288,8 @@ scenario(
   async () => {
     const admin = await givenAdminUser("payment-provider-admin-conflict");
     const clientId = `web-${randomUUID()}`;
+    const firstCertificate = generateRsaPemPair();
+    const duplicateCertificate = generateRsaPemPair();
 
     const firstResponse = await requestJson(
       "/api/admin/payment/provider-instances",
@@ -275,7 +301,7 @@ scenario(
           appId: `wx-scenario-admin-${randomUUID()}`,
           mchId: `1900000001-${randomUUID()}`,
           apiV3Key: "0123456789abcdef0123456789abcdef",
-          privateKeyPem: "scenario-private-key",
+          privateKeyPem: firstCertificate.privateKeyPem,
           certificatePem: null,
         }),
       },
@@ -295,12 +321,37 @@ scenario(
           appId: `wx-scenario-admin-${randomUUID()}`,
           mchId: `1900000001-${randomUUID()}`,
           apiV3Key: "0123456789abcdef0123456789abcdef",
-          privateKeyPem: "scenario-private-key",
+          privateKeyPem: duplicateCertificate.privateKeyPem,
           certificatePem: null,
         }),
       },
     );
 
     await expectJsonResponse(duplicateResponse, 409);
+  },
+);
+
+scenario(
+  "admin_payment_provider_instance_rejects_invalid_wechatpay_private_key",
+  async () => {
+    const admin = await givenAdminUser("payment-provider-admin-invalid-key");
+
+    const response = await requestJson(
+      "/api/admin/payment/provider-instances",
+      {
+        method: "POST",
+        token: admin.token,
+        body: buildProviderPayload({
+          clientId: `web-${randomUUID()}`,
+          appId: `wx-scenario-admin-${randomUUID()}`,
+          mchId: `1900000001-${randomUUID()}`,
+          apiV3Key: "0123456789abcdef0123456789abcdef",
+          privateKeyPem: "not-a-private-key",
+          certificatePem: null,
+        }),
+      },
+    );
+
+    await expectJsonResponse(response, 422);
   },
 );

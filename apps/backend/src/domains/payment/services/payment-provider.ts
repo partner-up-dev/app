@@ -1,6 +1,9 @@
-import { createPublicKey, type KeyObject } from "node:crypto";
+import { type KeyObject } from "node:crypto";
 import { Aes, Formatter, Rsa, Wechatpay } from "wechatpay-axios-plugin";
-import { throwHttpProblem } from "../../../lib/problem-details";
+import {
+  ProblemDetailsError,
+  throwHttpProblem,
+} from "../../../lib/problem-details";
 import { env } from "../../../lib/env";
 import type { PaymentProviderInstance } from "../../../entities/payment";
 import type {
@@ -20,6 +23,7 @@ import type {
   WeChatPayProviderInstanceConfig,
 } from "../model";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
+import { normalizeAndValidateWeChatPayProviderConfig } from "./wechatpay-config-validation";
 
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
 
@@ -165,6 +169,23 @@ const buildWeChatPayClient = (
   });
 };
 
+const normalizeRuntimeWeChatPayProviderConfig = (
+  config: WeChatPayProviderInstanceConfig,
+): WeChatPayProviderInstanceConfig => {
+  try {
+    return normalizeAndValidateWeChatPayProviderConfig(config);
+  } catch (error) {
+    if (error instanceof ProblemDetailsError) {
+      return throwHttpProblem({
+        status: 500,
+        detail: "WeChatPay provider credential configuration is invalid",
+        code: "WECHAT_PAY_PROVIDER_CONFIG_INVALID",
+      });
+    }
+    throw error;
+  }
+};
+
 const isLocalEndpointHost = (hostname: string): boolean =>
   hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
@@ -227,11 +248,12 @@ const decryptPlatformCertificate = (input: {
 };
 
 const downloadWeChatPayPlatformCertificates = async (
-  config: WeChatPayProviderInstanceConfig,
+  rawConfig: WeChatPayProviderInstanceConfig,
 ): Promise<WeChatPayPlatformCertificate[]> => {
   const downloaded: WeChatPayPlatformCertificate[] = [];
+  const config = normalizeRuntimeWeChatPayProviderConfig(rawConfig);
   const wxpay = buildWeChatPayClient(config, {
-    bootstrap: createPublicKey(config.merchantCertificate.privateKeyPem),
+    bootstrap: "",
   });
   const capturePlatformCertificates = (rawBody: unknown): unknown => {
     if (typeof rawBody !== "string") return rawBody;
@@ -247,11 +269,27 @@ const downloadWeChatPayPlatformCertificates = async (
     return rawBody;
   };
 
-  await wxpay.chain("/v3/certificates").get({
-    // Bootstrap path: use the SDK for request signing, then decrypt the returned
-    // platform certificates before normal response verification is possible.
-    transformResponse: [capturePlatformCertificates],
-  });
+  try {
+    await wxpay.chain("/v3/certificates").get({
+      // Bootstrap path: use the SDK for request signing, then decrypt the
+      // returned platform certificates before normal response verification is
+      // possible.
+      transformResponse: [capturePlatformCertificates],
+    });
+  } catch (error) {
+    if (error instanceof ProblemDetailsError) {
+      return throwHttpProblem({
+        status: 500,
+        detail: "WeChatPay provider credential configuration is invalid",
+        code: "WECHAT_PAY_PROVIDER_CONFIG_INVALID",
+      });
+    }
+    return throwHttpProblem({
+      status: 502,
+      detail: "WeChatPay platform certificate download failed",
+      code: "WECHAT_PAY_PLATFORM_CERTIFICATE_DOWNLOAD_FAILED",
+    });
+  }
 
   if (downloaded.length === 0) {
     return throwHttpProblem({
@@ -270,13 +308,12 @@ export const refreshWeChatPayPlatformCertificates = async (
     return providerInstance;
   }
 
-  const platformCertificates = await downloadWeChatPayPlatformCertificates(
-    providerInstance.config,
-  );
+  const config = normalizeRuntimeWeChatPayProviderConfig(providerInstance.config);
+  const platformCertificates = await downloadWeChatPayPlatformCertificates(config);
   const updated = await providerInstanceRepo.updateConfig({
     id: providerInstance.id,
     config: {
-      ...providerInstance.config,
+      ...config,
       platformCertificates,
     },
   });
@@ -318,7 +355,9 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
       throw new Error("WeChatPay adapter requires APIv3 provider config");
     }
 
-    this.config = input.providerInstance.config;
+    this.config = normalizeRuntimeWeChatPayProviderConfig(
+      input.providerInstance.config,
+    );
     this.wxpay = buildWeChatPayClient(
       this.config,
       buildPlatformCertificateMap(this.config.platformCertificates),

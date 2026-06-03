@@ -4,6 +4,7 @@ import type {
   PaymentProviderInstanceConfig,
   PaymentProviderType,
 } from "../model";
+import { normalizeAndValidateWeChatPayProviderConfig } from "../services/wechatpay-config-validation";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 
 export type RegisterPaymentProviderInstanceInput = {
@@ -63,13 +64,16 @@ export async function registerPaymentProviderInstance(
       next: input.config,
       existing: existingProvider?.config ?? null,
     });
+    const validatedConfig = isWeChatPayApiV3Config(config)
+      ? normalizeAndValidateWeChatPayProviderConfig(config)
+      : config;
 
     const providerResult =
       (existingProvider
         ? await providerRepo.updateRegistration({
             id: existingProvider.id,
             displayName: input.displayName,
-            config,
+            config: validatedConfig,
           })
         : await providerRepo.create({
             providerType: input.providerType,
@@ -77,7 +81,7 @@ export async function registerPaymentProviderInstance(
             status: "ACTIVE",
             displayName: input.displayName,
             clientId: input.clientId,
-            config,
+            config: validatedConfig,
           }));
     if (!providerResult) {
       return throwHttpProblem({

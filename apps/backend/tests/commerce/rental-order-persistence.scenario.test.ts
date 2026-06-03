@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
 import { db } from "../../src/lib/db";
@@ -41,6 +41,22 @@ const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billLineRepo = new BillLineRepository();
 const paymentTxRepo = new PaymentTxRepository();
+
+const generateRsaPrivateKeyPem = (): string => {
+  const { privateKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: {
+      format: "pem",
+      type: "pkcs8",
+    },
+    publicKeyEncoding: {
+      format: "pem",
+      type: "spki",
+    },
+  });
+
+  return privateKey;
+};
 
 const serviceStartAt = "2031-02-01T10:00:00.000Z";
 const serviceEndAt = "2031-02-01T12:00:00.000Z";
@@ -296,7 +312,7 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
       apiV3Key: "0123456789abcdef0123456789abcdef",
       merchantCertificate: {
         serialNo: "late-payment-serial",
-        privateKeyPem: "late-payment-private-key",
+        privateKeyPem: generateRsaPrivateKeyPem(),
         certificatePem: null,
       },
     },
