@@ -33,7 +33,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.eventIdLabel')" for-id="analytics-event-id">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.eventIdLabel')"
+          for-id="analytics-event-id"
+        >
           <input
             id="analytics-event-id"
             v-model="draftEventId"
@@ -44,7 +48,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.sourceSpmLabel')" for-id="analytics-spm">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.sourceSpmLabel')"
+          for-id="analytics-spm"
+        >
           <input
             id="analytics-spm"
             v-model="draftSpm"
@@ -54,7 +62,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.sourceQrLabel')" for-id="analytics-source-qr">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.sourceQrLabel')"
+          for-id="analytics-source-qr"
+        >
           <input
             id="analytics-source-qr"
             v-model="draftSourceQr"
@@ -65,6 +77,7 @@
         </FormField>
 
         <FormField
+          v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.assignmentRevisionLabel')"
           for-id="analytics-assignment-revision"
         >
@@ -77,7 +90,11 @@
           />
         </FormField>
 
-        <FormField :label="t('adminAnalytics.renderedModeLabel')" for-id="analytics-mode">
+        <FormField
+          v-if="showsAnchorEventFilters"
+          :label="t('adminAnalytics.renderedModeLabel')"
+          for-id="analytics-mode"
+        >
           <select
             id="analytics-mode"
             v-model="draftRenderedMode"
@@ -146,19 +163,23 @@
     <template #main>
       <div class="analytics-dashboard" data-testid="admin-analytics.dashboard">
         <LoadingIndicator
-          v-if="analyticsQuery.isLoading.value"
+          v-if="isInitialLoading"
           :message="t('adminAnalytics.loading')"
         />
         <InlineNotice
-          v-else-if="analyticsQuery.error.value"
+          v-else-if="dashboardError"
           tone="error"
           :title="t('adminAnalytics.loadFailedTitle')"
-          :message="analyticsQuery.error.value.message"
+          :message="dashboardError.message"
           data-testid="admin-analytics.error"
         />
 
-        <template v-else-if="dashboard">
-          <section class="kpi-strip" data-testid="admin-analytics.summary">
+        <template v-else-if="hasDashboardData">
+          <section
+            v-if="showsAnchorEventDashboard && dashboard"
+            class="kpi-strip"
+            data-testid="admin-analytics.summary"
+          >
             <article
               v-for="item in summaryItems"
               :key="item.key"
@@ -172,6 +193,421 @@
             </article>
           </section>
 
+          <section
+            v-if="showsOverviewDashboard && biOverview"
+            class="analytics-panel"
+            data-testid="admin-analytics.bi-overview"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.biOverviewTitle") }}</h2>
+                <p>{{ t("adminAnalytics.biOverviewSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div
+                v-for="item in biOverviewItems"
+                :key="item.key"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+                <span>{{ item.detail }}</span>
+              </div>
+            </dl>
+
+            <div class="analytics-lower-grid">
+              <div class="analytics-table-wrap">
+                <table class="analytics-table analytics-table--compact">
+                  <thead>
+                    <tr>
+                      <th>{{ t("adminAnalytics.retentionDateColumn") }}</th>
+                      <th>{{ t("adminAnalytics.activeUsersColumn") }}</th>
+                      <th>{{ t("adminAnalytics.retention3DayColumn") }}</th>
+                      <th>{{ t("adminAnalytics.retention5DayColumn") }}</th>
+                      <th>{{ t("adminAnalytics.retention7DayColumn") }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in visibleRetentionRows"
+                      :key="row.cohortDate"
+                    >
+                      <td>{{ row.cohortDate }}</td>
+                      <td>{{ formatCount(row.activeUsers) }}</td>
+                      <td>{{ formatRate(row.retentionRate3Days) }}</td>
+                      <td>{{ formatRate(row.retentionRate5Days) }}</td>
+                      <td>{{ formatRate(row.retentionRate7Days) }}</td>
+                    </tr>
+                    <tr v-if="visibleRetentionRows.length === 0">
+                      <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="analytics-table-wrap">
+                <table class="analytics-table analytics-table--compact">
+                  <thead>
+                    <tr>
+                      <th>{{ t("adminAnalytics.statusColumn") }}</th>
+                      <th>{{ t("adminAnalytics.prCountColumn") }}</th>
+                      <th>{{ t("adminAnalytics.shareColumn") }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in biOverview.prLifecycle.statusRows"
+                      :key="row.status"
+                    >
+                      <td>{{ formatPRStatus(row.status) }}</td>
+                      <td>{{ formatCount(row.count) }}</td>
+                      <td>{{ formatRate(row.share) }}</td>
+                    </tr>
+                    <tr v-if="biOverview.prLifecycle.statusRows.length === 0">
+                      <td colspan="3">{{ t("adminAnalytics.emptyTable") }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="analytics-lower-grid">
+              <div class="analytics-table-wrap">
+                <table class="analytics-table analytics-table--compact">
+                  <thead>
+                    <tr>
+                      <th>{{ t("adminAnalytics.transitionColumn") }}</th>
+                      <th>{{ t("adminAnalytics.usersColumn") }}</th>
+                      <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="row in visibleTransitionRows"
+                      :key="`${row.fromActivityType}:${row.toActivityType}`"
+                    >
+                      <td>
+                        {{ formatActivityType(row.fromActivityType) }}
+                        ->
+                        {{ formatActivityType(row.toActivityType) }}
+                      </td>
+                      <td>{{ formatCount(row.userCount) }}</td>
+                      <td>{{ formatCount(row.transitionCount) }}</td>
+                    </tr>
+                    <tr v-if="visibleTransitionRows.length === 0">
+                      <td colspan="3">{{ t("adminAnalytics.emptyTable") }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <dl class="nudge-summary-grid nudge-summary-grid--compact">
+                <div>
+                  <dt>{{ t("adminAnalytics.userPRAnyUsersMetric") }}</dt>
+                  <dd>{{ formatCount(biOverview.userPRCounts.usersWithAnyPR) }}</dd>
+                  <span>{{ t("adminAnalytics.userPRAnyUsersDetail") }}</span>
+                </div>
+                <div>
+                  <dt>{{ t("adminAnalytics.userPRJoinedMetric") }}</dt>
+                  <dd>{{ formatCount(biOverview.userPRCounts.joinedPRs) }}</dd>
+                  <span>
+                    {{
+                      t("adminAnalytics.userPRJoinedDetail", {
+                        users: formatCount(biOverview.userPRCounts.participantUsers),
+                      })
+                    }}
+                  </span>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <section
+            v-if="showsPRFunnelDashboard && prCreateFunnel"
+            class="analytics-panel"
+            data-testid="admin-analytics.pr-create-funnel"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.prCreateFunnelTitle") }}</h2>
+                <p>{{ t("adminAnalytics.prCreateFunnelSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div
+                v-for="item in prCreateSummaryItems"
+                :key="item.key"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+                <span>{{ item.detail }}</span>
+              </div>
+            </dl>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.funnelStepColumn") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                    <th>{{ t("adminAnalytics.previousRateLabel") }}</th>
+                    <th>{{ t("adminAnalytics.startRateLabel") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="step in prCreateFunnel.steps"
+                    :key="step.stepKey"
+                  >
+                    <td>
+                      <strong>{{ step.label }}</strong>
+                      <span class="analytics-table__hint">
+                        {{ step.behavior }}
+                      </span>
+                    </td>
+                    <td>{{ formatCount(step.journeyCount) }}</td>
+                    <td>{{ formatCount(step.eventCount) }}</td>
+                    <td>{{ formatNullableRate(step.conversionFromPrevious) }}</td>
+                    <td>{{ formatRate(step.conversionFromStart) }}</td>
+                  </tr>
+                  <tr v-if="prCreateFunnel.steps.length === 0">
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table analytics-table--compact">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.prCreatePathColumn") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in prCreateFunnel.paths"
+                    :key="row.creationPath"
+                  >
+                    <td>{{ formatCreatePath(row.creationPath) }}</td>
+                    <td>{{ formatCount(row.journeyCount) }}</td>
+                    <td>{{ formatCount(row.eventCount) }}</td>
+                  </tr>
+                  <tr v-if="prCreateFunnel.paths.length === 0">
+                    <td colspan="3">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="projection-footnote">
+              {{
+                t("adminAnalytics.prCreateProjectionContextDetail", {
+                  events: formatCount(prCreateFunnel.context.eventCount),
+                  route: formatCount(prCreateFunnel.context.routeContextUnknownEvents),
+                  auth: formatCount(prCreateFunnel.context.authContextUnknownEvents),
+                  authenticated: formatCount(prCreateFunnel.identity.authenticatedJourneys),
+                  unknown: formatCount(prCreateFunnel.identity.unknownSessionJourneys),
+                })
+              }}
+            </p>
+          </section>
+
+          <section
+            v-if="showsPRFunnelDashboard && prJoinFunnel"
+            class="analytics-panel"
+            data-testid="admin-analytics.pr-join-funnel"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.prJoinFunnelTitle") }}</h2>
+                <p>{{ t("adminAnalytics.prJoinFunnelSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div
+                v-for="item in prJoinSummaryItems"
+                :key="item.key"
+              >
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+                <span>{{ item.detail }}</span>
+              </div>
+            </dl>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.funnelStepColumn") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                    <th>{{ t("adminAnalytics.previousRateLabel") }}</th>
+                    <th>{{ t("adminAnalytics.startRateLabel") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="step in prJoinFunnel.steps"
+                    :key="step.stepKey"
+                  >
+                    <td>
+                      <strong>{{ step.label }}</strong>
+                      <span class="analytics-table__hint">
+                        {{ step.behavior }}
+                      </span>
+                    </td>
+                    <td>{{ formatCount(step.journeyCount) }}</td>
+                    <td>{{ formatCount(step.eventCount) }}</td>
+                    <td>{{ formatNullableRate(step.conversionFromPrevious) }}</td>
+                    <td>{{ formatRate(step.conversionFromStart) }}</td>
+                  </tr>
+                  <tr v-if="prJoinFunnel.steps.length === 0">
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="projection-footnote">
+              {{
+                t("adminAnalytics.prJoinProjectionContextDetail", {
+                  events: formatCount(prJoinFunnel.context.eventCount),
+                  route: formatCount(prJoinFunnel.context.routeContextUnknownEvents),
+                  auth: formatCount(prJoinFunnel.context.authContextUnknownEvents),
+                  authenticated: formatCount(prJoinFunnel.identity.authenticatedJourneys),
+                  unknown: formatCount(prJoinFunnel.identity.unknownSessionJourneys),
+                })
+              }}
+            </p>
+          </section>
+
+          <section
+            v-if="showsOfficialAccountDashboard && dashboard"
+            class="analytics-panel"
+            data-testid="admin-analytics.official-account-nudge"
+          >
+            <div class="analytics-panel__header">
+              <div>
+                <h2>{{ t("adminAnalytics.officialAccountNudgeTitle") }}</h2>
+                <p>{{ t("adminAnalytics.officialAccountNudgeSubtitle") }}</p>
+              </div>
+            </div>
+
+            <dl class="nudge-summary-grid">
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeShownJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.shownJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.shownEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeFollowClickJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.followClickJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.followClickEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeFollowClickRateMetric") }}</dt>
+                <dd>
+                  {{
+                    formatRate(
+                      dashboard.officialAccountFollowNudge.followClickRate,
+                    )
+                  }}
+                </dd>
+                <span>{{ t("adminAnalytics.nudgeFollowClickRateDetail") }}</span>
+              </div>
+              <div>
+                <dt>{{ t("adminAnalytics.nudgeDismissJourneysMetric") }}</dt>
+                <dd>
+                  {{
+                    formatCount(
+                      dashboard.officialAccountFollowNudge.dismissJourneys,
+                    )
+                  }}
+                </dd>
+                <span>
+                  {{
+                    t("adminAnalytics.nudgeEventsDetail", {
+                      count: formatCount(
+                        dashboard.officialAccountFollowNudge.dismissEvents,
+                      ),
+                    })
+                  }}
+                </span>
+              </div>
+            </dl>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.nudgeSourceColumn") }}</th>
+                    <th>{{ t("adminAnalytics.nudgeShownJourneysColumn") }}</th>
+                    <th>
+                      {{ t("adminAnalytics.nudgeFollowClickJourneysColumn") }}
+                    </th>
+                    <th>{{ t("adminAnalytics.nudgeDismissJourneysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.nudgeFollowClickRateColumn") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in dashboard.officialAccountFollowNudge.sources"
+                    :key="row.source"
+                  >
+                    <td>{{ formatNudgeSource(row.source) }}</td>
+                    <td>{{ formatCount(row.shownJourneys) }}</td>
+                    <td>{{ formatCount(row.followClickJourneys) }}</td>
+                    <td>{{ formatCount(row.dismissJourneys) }}</td>
+                    <td>{{ formatRate(row.followClickRate) }}</td>
+                  </tr>
+                  <tr
+                    v-if="
+                      dashboard.officialAccountFollowNudge.sources.length === 0
+                    "
+                  >
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <template v-if="showsAnchorEventDashboard && dashboard">
           <section class="analytics-panel" data-testid="admin-analytics.modes">
             <div class="analytics-panel__header">
               <div>
@@ -387,6 +823,7 @@
               </table>
             </div>
           </section>
+          </template>
         </template>
       </div>
     </template>
@@ -396,14 +833,21 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import type { AnchorEventAnalyticsRenderedMode } from "@partner-up-dev/backend";
 import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import {
   useAdminAnchorEventFunnelAnalytics,
+  useAdminBIOverviewAnalytics,
+  useAdminPRCreateFunnelAnalytics,
+  useAdminPRJoinFunnelAnalytics,
+  type AdminBIOverviewResponse,
   type AdminAnalyticsFunnelQuery,
   type AdminAnalyticsFunnelResponse,
+  type AdminPRCreateFunnelResponse,
+  type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
 import Button from "@/shared/ui/actions/Button.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
@@ -414,6 +858,19 @@ type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];
 type OutcomeBreakdownRow = AdminAnalyticsFunnelResponse["outcomes"][number];
 type FailureBreakdownRow = AdminAnalyticsFunnelResponse["failures"][number];
+type OfficialAccountFollowNudgeSourceRow =
+  AdminAnalyticsFunnelResponse["officialAccountFollowNudge"]["sources"][number];
+type BIOverviewRetentionRow = AdminBIOverviewResponse["retention"]["rows"][number];
+type BIOverviewStatusRow =
+  AdminBIOverviewResponse["prLifecycle"]["statusRows"][number];
+type PRCreateFunnelSummary = AdminPRCreateFunnelResponse["summary"];
+type PRCreatePath = AdminPRCreateFunnelResponse["paths"][number]["creationPath"];
+type PRJoinFunnelSummary = AdminPRJoinFunnelResponse["summary"];
+type AnalyticsDashboardKind =
+  | "overview"
+  | "pr-funnels"
+  | "anchor-events"
+  | "official-account";
 
 const modeOptions: AnchorEventAnalyticsRenderedMode[] = [
   "FORM",
@@ -428,7 +885,43 @@ const MODE_LABELS: Record<AnchorEventAnalyticsRenderedMode, string> = {
 };
 
 const { t } = useI18n();
+const route = useRoute();
 const { logout } = useAdminAccess();
+
+const activeDashboard = computed<AnalyticsDashboardKind>(() => {
+  switch (route.name) {
+    case "admin-analytics-pr-funnels":
+      return "pr-funnels";
+    case "admin-analytics-anchor-events":
+      return "anchor-events";
+    case "admin-analytics-official-account":
+      return "official-account";
+    case "admin-analytics-overview":
+    default:
+      return "overview";
+  }
+});
+
+const showsOverviewDashboard = computed(
+  () => activeDashboard.value === "overview",
+);
+const showsPRFunnelDashboard = computed(
+  () => activeDashboard.value === "pr-funnels",
+);
+const showsAnchorEventDashboard = computed(
+  () => activeDashboard.value === "anchor-events",
+);
+const showsOfficialAccountDashboard = computed(
+  () => activeDashboard.value === "official-account",
+);
+const showsAnchorEventFilters = computed(
+  () =>
+    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
+);
+const loadsAnchorEventAnalytics = computed(
+  () =>
+    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
+);
 
 const toLocalInputValue = (date: Date): string => {
   const offsetMs = date.getTimezoneOffset() * 60 * 1_000;
@@ -467,10 +960,54 @@ const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
   endAt: parseLocalInputValue(defaultRange.endAt)?.toISOString(),
 });
 
-const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery);
+const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery, {
+  enabled: loadsAnchorEventAnalytics,
+});
+const biOverviewQuery = useAdminBIOverviewAnalytics(appliedQuery, {
+  enabled: showsOverviewDashboard,
+});
+const prCreateFunnelQuery = useAdminPRCreateFunnelAnalytics(appliedQuery, {
+  enabled: showsPRFunnelDashboard,
+});
+const prJoinFunnelQuery = useAdminPRJoinFunnelAnalytics(appliedQuery, {
+  enabled: showsPRFunnelDashboard,
+});
 const dashboard = computed(() => analyticsQuery.data.value ?? null);
+const biOverview = computed(() => biOverviewQuery.data.value ?? null);
+const prCreateFunnel = computed(() => prCreateFunnelQuery.data.value ?? null);
+const prJoinFunnel = computed(() => prJoinFunnelQuery.data.value ?? null);
+const isInitialLoading = computed(
+  () =>
+    (loadsAnchorEventAnalytics.value && analyticsQuery.isLoading.value) ||
+    (showsOverviewDashboard.value && biOverviewQuery.isLoading.value) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnelQuery.isLoading.value ||
+        prJoinFunnelQuery.isLoading.value)),
+);
+const dashboardError = computed(
+  () =>
+    (loadsAnchorEventAnalytics.value ? analyticsQuery.error.value : null) ??
+    (showsOverviewDashboard.value ? biOverviewQuery.error.value : null) ??
+    (showsPRFunnelDashboard.value
+      ? prCreateFunnelQuery.error.value ?? prJoinFunnelQuery.error.value
+      : null) ??
+    null,
+);
+const hasDashboardData = computed(
+  () =>
+    (showsOverviewDashboard.value && biOverview.value !== null) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnel.value !== null || prJoinFunnel.value !== null)) ||
+    (loadsAnchorEventAnalytics.value && dashboard.value !== null),
+);
 const isDashboardRefreshing = computed(
-  () => refreshPending.value || analyticsQuery.isFetching.value,
+  () =>
+    refreshPending.value ||
+    (loadsAnchorEventAnalytics.value && analyticsQuery.isFetching.value) ||
+    (showsOverviewDashboard.value && biOverviewQuery.isFetching.value) ||
+    (showsPRFunnelDashboard.value &&
+      (prCreateFunnelQuery.isFetching.value ||
+        prJoinFunnelQuery.isFetching.value)),
 );
 
 const numberFormatter = new Intl.NumberFormat("zh-CN");
@@ -496,6 +1033,14 @@ const formatCommitmentType = (
 ): string => t(`adminAnalytics.commitmentType.${type}`);
 const formatActionResult = (result: OutcomeBreakdownRow["actionResult"]): string =>
   t(`adminAnalytics.actionResult.${result}`);
+const formatNudgeSource = (
+  source: OfficialAccountFollowNudgeSourceRow["source"],
+): string => t(`adminAnalytics.officialAccountNudgeSource.${source}`);
+const formatPRStatus = (status: BIOverviewStatusRow["status"]): string =>
+  t(`adminAnalytics.prStatus.${status}`);
+const formatCreatePath = (path: PRCreatePath): string =>
+  t(`adminAnalytics.prCreatePath.${path}`);
+const formatActivityType = (activityType: string): string => activityType;
 
 const formatBarWidth = (rate: number): string =>
   `${Math.max(0, Math.min(100, rate * 100)).toFixed(2)}%`;
@@ -558,6 +1103,145 @@ const summaryItems = computed(() => {
   ];
 });
 
+const latestRetentionRow = computed<BIOverviewRetentionRow | null>(() => {
+  const rows = biOverview.value?.retention.rows ?? [];
+  return rows[rows.length - 1] ?? null;
+});
+
+const visibleRetentionRows = computed(() =>
+  (biOverview.value?.retention.rows ?? []).slice(-7),
+);
+
+const visibleTransitionRows = computed(() =>
+  (biOverview.value?.anchorEventTransitions ?? []).slice(0, 8),
+);
+
+const biOverviewItems = computed(() => {
+  const overview = biOverview.value;
+  if (!overview) return [];
+  const latestRetention = latestRetentionRow.value;
+  return [
+    {
+      key: "retention",
+      label: t("adminAnalytics.biRetentionMetric"),
+      value: latestRetention
+        ? formatRate(latestRetention.retentionRate7Days)
+        : formatRate(0),
+      detail: latestRetention
+        ? t("adminAnalytics.biRetentionDetail", {
+            date: latestRetention.cohortDate,
+            active: formatCount(latestRetention.activeUsers),
+          })
+        : t("adminAnalytics.emptyTable"),
+    },
+    {
+      key: "viewOther",
+      label: t("adminAnalytics.biViewOtherMetric"),
+      value: formatRate(
+        overview.viewOtherActivities.journeyConversionRate,
+      ),
+      detail: t("adminAnalytics.biViewOtherDetail", {
+        clicks: formatCount(overview.viewOtherActivities.clickJourneys),
+      }),
+    },
+    {
+      key: "createdPRs",
+      label: t("adminAnalytics.biCreatedPRMetric"),
+      value: formatCount(overview.userPRCounts.createdPRs),
+      detail: t("adminAnalytics.biCreatedPRDetail", {
+        users: formatCount(overview.userPRCounts.creatorUsers),
+      }),
+    },
+    {
+      key: "lifecycle",
+      label: t("adminAnalytics.biLifecycleMetric"),
+      value: formatCount(overview.prLifecycle.formedPRs),
+      detail: t("adminAnalytics.biLifecycleDetail", {
+        closed: formatCount(
+          overview.prLifecycle.timeWindowEndAtCohort.closedPRs,
+        ),
+        expired: formatCount(
+          overview.prLifecycle.timeWindowEndAtCohort.expiredPRs,
+        ),
+      }),
+    },
+  ];
+});
+
+const prJoinSummaryItems = computed(() => {
+  const summary = prJoinFunnel.value?.summary;
+  if (!summary) return [];
+  const items: Array<{
+    key: keyof PRJoinFunnelSummary;
+    label: string;
+    value: string;
+    detail: string;
+  }> = [
+    {
+      key: "impressionJourneys",
+      label: t("adminAnalytics.prJoinImpressionMetric"),
+      value: formatCount(summary.impressionJourneys),
+      detail: t("adminAnalytics.prJoinImpressionDetail"),
+    },
+    {
+      key: "clickJourneys",
+      label: t("adminAnalytics.prJoinClickMetric"),
+      value: formatCount(summary.clickJourneys),
+      detail: t("adminAnalytics.prJoinClickDetail"),
+    },
+    {
+      key: "backendJoinedJourneys",
+      label: t("adminAnalytics.prJoinBackendJoinedMetric"),
+      value: formatCount(summary.backendJoinedJourneys),
+      detail: t("adminAnalytics.prJoinBackendJoinedDetail"),
+    },
+    {
+      key: "clickToBackendJoinRate",
+      label: t("adminAnalytics.prJoinClickToBackendRateMetric"),
+      value: formatRate(summary.clickToBackendJoinRate),
+      detail: t("adminAnalytics.prJoinClickToBackendRateDetail"),
+    },
+  ];
+  return items;
+});
+
+const prCreateSummaryItems = computed(() => {
+  const summary = prCreateFunnel.value?.summary;
+  if (!summary) return [];
+  const items: Array<{
+    key: keyof PRCreateFunnelSummary;
+    label: string;
+    value: string;
+    detail: string;
+  }> = [
+    {
+      key: "entryJourneys",
+      label: t("adminAnalytics.prCreateEntryMetric"),
+      value: formatCount(summary.entryJourneys),
+      detail: t("adminAnalytics.prCreateEntryDetail"),
+    },
+    {
+      key: "frontendSuccessJourneys",
+      label: t("adminAnalytics.prCreateFrontendSuccessMetric"),
+      value: formatCount(summary.frontendSuccessJourneys),
+      detail: t("adminAnalytics.prCreateFrontendSuccessDetail"),
+    },
+    {
+      key: "backendCreatedJourneys",
+      label: t("adminAnalytics.prCreateBackendCreatedMetric"),
+      value: formatCount(summary.backendCreatedJourneys),
+      detail: t("adminAnalytics.prCreateBackendCreatedDetail"),
+    },
+    {
+      key: "entryToBackendCreatedRate",
+      label: t("adminAnalytics.prCreateEntryToBackendRateMetric"),
+      value: formatRate(summary.entryToBackendCreatedRate),
+      detail: t("adminAnalytics.prCreateEntryToBackendRateDetail"),
+    },
+  ];
+  return items;
+});
+
 const visibleFunnels = computed(() => {
   const funnels = dashboard.value?.funnels ?? [];
   if (!focusedMode.value) return funnels;
@@ -565,9 +1249,17 @@ const visibleFunnels = computed(() => {
 });
 
 const activeFilterSummary = computed(() => {
-  const filters = dashboard.value?.filters ?? appliedQuery.value;
+  const filters = showsAnchorEventFilters.value
+    ? dashboard.value?.filters ?? appliedQuery.value
+    : appliedQuery.value;
   const start = filters.startAt ? dateTimeFormatter.format(new Date(filters.startAt)) : "-";
   const end = filters.endAt ? dateTimeFormatter.format(new Date(filters.endAt)) : "-";
+  if (!showsAnchorEventFilters.value) {
+    return t("adminAnalytics.activeTimeFilterSummary", {
+      start,
+      end,
+    });
+  }
   return t("adminAnalytics.activeFilterSummary", {
     start,
     end,
@@ -594,7 +1286,7 @@ const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
     return null;
   }
 
-  const eventId = parseEventId();
+  const eventId = showsAnchorEventFilters.value ? parseEventId() : null;
   if (Number.isNaN(eventId)) {
     filterError.value = t("adminAnalytics.invalidEventId");
     return null;
@@ -605,10 +1297,16 @@ const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString(),
     eventId,
-    spm: draftSpm.value.trim() || null,
-    sourceQr: draftSourceQr.value.trim() || null,
-    assignmentRevision: draftAssignmentRevision.value.trim() || null,
-    renderedMode: draftRenderedMode.value || null,
+    spm: showsAnchorEventFilters.value ? draftSpm.value.trim() || null : null,
+    sourceQr: showsAnchorEventFilters.value
+      ? draftSourceQr.value.trim() || null
+      : null,
+    assignmentRevision: showsAnchorEventFilters.value
+      ? draftAssignmentRevision.value.trim() || null
+      : null,
+    renderedMode: showsAnchorEventFilters.value
+      ? draftRenderedMode.value || null
+      : null,
   };
 };
 
@@ -639,7 +1337,17 @@ const resetFilters = (): void => {
 const refreshDashboard = async (): Promise<void> => {
   refreshPending.value = true;
   try {
-    await analyticsQuery.refetch();
+    const refetches: Array<Promise<unknown>> = [];
+    if (loadsAnchorEventAnalytics.value) {
+      refetches.push(analyticsQuery.refetch());
+    }
+    if (showsOverviewDashboard.value) {
+      refetches.push(biOverviewQuery.refetch());
+    }
+    if (showsPRFunnelDashboard.value) {
+      refetches.push(prCreateFunnelQuery.refetch(), prJoinFunnelQuery.refetch());
+    }
+    await Promise.all(refetches);
   } finally {
     refreshPending.value = false;
   }
@@ -678,6 +1386,8 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-steps,
 .funnel-step__main,
 .funnel-step__metrics,
+.nudge-summary-grid,
+.nudge-summary-grid > div,
 .kpi-card {
   min-width: 0;
 }
@@ -691,6 +1401,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-steps,
 .funnel-step__main,
 .funnel-step__metrics,
+.nudge-summary-grid > div,
 .kpi-card {
   display: flex;
   flex-direction: column;
@@ -717,6 +1428,9 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-step p,
 .funnel-step__metrics dt,
 .funnel-step__metrics dd,
+.nudge-summary-grid dt,
+.nudge-summary-grid dd,
+.nudge-summary-grid span,
 .kpi-card__label,
 .kpi-card__detail {
   margin: 0;
@@ -754,9 +1468,12 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .analytics-panel p,
+.projection-footnote,
 .funnel-panel__header span,
 .funnel-step p,
 .funnel-step__metrics dt,
+.nudge-summary-grid dt,
+.nudge-summary-grid span,
 .kpi-card__detail {
   color: var(--sys-color-on-surface-variant);
 }
@@ -820,6 +1537,40 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   @include mx.pu-font(body-medium);
 }
 
+.projection-footnote {
+  @include mx.pu-font(body-small);
+}
+
+.nudge-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sys-spacing-small);
+  padding: 0;
+  margin: 0;
+}
+
+.nudge-summary-grid > div {
+  gap: var(--sys-spacing-xsmall);
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface-container);
+}
+
+.nudge-summary-grid--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nudge-summary-grid dt,
+.nudge-summary-grid span {
+  @include mx.pu-font(label-small);
+}
+
+.nudge-summary-grid dd {
+  @include mx.pu-font(title-large);
+  color: var(--sys-color-on-surface);
+}
+
 .analytics-table-wrap {
   min-width: 0;
   overflow-x: auto;
@@ -829,6 +1580,10 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
+}
+
+.analytics-table--compact {
+  min-width: 420px;
 }
 
 .analytics-table th,
@@ -857,6 +1612,13 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .analytics-table tbody tr[tabindex] {
   cursor: pointer;
+}
+
+.analytics-table__hint {
+  @include mx.pu-font(body-small);
+  display: block;
+  margin-top: var(--sys-spacing-xxsmall);
+  color: var(--sys-color-on-surface-variant);
 }
 
 .funnel-grid {
@@ -970,6 +1732,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 @media (max-width: 1180px) {
   .kpi-strip,
   .funnel-grid,
+  .nudge-summary-grid,
   .analytics-lower-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -978,6 +1741,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 @media (max-width: 760px) {
   .kpi-strip,
   .funnel-grid,
+  .nudge-summary-grid,
   .analytics-lower-grid {
     grid-template-columns: minmax(0, 1fr);
   }

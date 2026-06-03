@@ -1,0 +1,178 @@
+import { randomUUID } from "node:crypto";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import type { BillLine, BillLineId } from "../../../entities/bill";
+import type { PaymentTx, PaymentTxId } from "../../../entities/payment";
+import type { UserId } from "../../../entities/user";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
+import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
+import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
+import {
+  createPaymentProviderPort,
+  ensureWeChatPayPlatformCertificates,
+  resolveWeChatPayRefundNotifyUrl,
+} from "../services";
+
+const billLineRepo = new BillLineRepository();
+const paymentTxRepo = new PaymentTxRepository();
+const providerInstanceRepo = new PaymentProviderInstanceRepository();
+
+export type RefundPaymentTxResult =
+  | {
+      created: true;
+      paymentTxId: string;
+      status: PaymentTx["status"];
+      providerStatus: string | null;
+    }
+  | {
+      created: false;
+      reason:
+        | "REFUND_ALREADY_EXISTS"
+        | "NO_REFUND_OF_CHARGE_LINE"
+        | "NO_SUCCESSFUL_ORIGINAL_CHARGE";
+      paymentTxId?: string;
+    };
+
+const buildMerchantRefundNo = (paymentTxId: string): string =>
+  `PUR${paymentTxId.replaceAll("-", "").slice(0, 29)}`;
+
+const mapNormalizedStatusToTxStatus = (
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CLOSED",
+): PaymentTx["status"] => {
+  if (status === "SUCCEEDED") return "SUCCEEDED";
+  if (status === "FAILED") return "FAILED";
+  if (status === "CLOSED") return "CLOSED";
+  return "PROCESSING";
+};
+
+const findSuccessfulOriginalCharge = async (
+  chargeBillLineId: BillLineId,
+): Promise<PaymentTx | null> => {
+  const chargeLineTxs = await paymentTxRepo.listByBillLineIds([chargeBillLineId]);
+  return (
+    chargeLineTxs.find(
+      (tx) => tx.type === "CHARGE" && tx.status === "SUCCEEDED",
+    ) ?? null
+  );
+};
+
+const createRefundTxForLine = async (input: {
+  refundLine: BillLine;
+  originalCharge: PaymentTx;
+}): Promise<RefundPaymentTxResult> => {
+  const providerInstance = await providerInstanceRepo.findById(
+    input.originalCharge.providerInstanceId,
+  );
+  if (!providerInstance || providerInstance.status !== "ACTIVE") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Original payment provider instance is not active",
+    });
+  }
+  const ensuredProviderInstance =
+    await ensureWeChatPayPlatformCertificates(providerInstance);
+  const port = createPaymentProviderPort({
+    providerInstance: ensuredProviderInstance,
+  });
+
+  const paymentTxId = randomUUID() as PaymentTxId;
+  const merchantRefundNo = buildMerchantRefundNo(paymentTxId);
+  const created = await paymentTxRepo.create({
+    id: paymentTxId,
+    billLineId: input.refundLine.id,
+    type: "REFUND",
+    providerInstanceId: input.originalCharge.providerInstanceId,
+    clientId: null,
+    status: "INITIATED",
+    amountFen: input.refundLine.amountFen,
+    currency: input.refundLine.currency,
+    requestedBy: input.refundLine.userId as UserId,
+    merchantRefundNo,
+  });
+
+  const refund = await port.createRefund({
+    providerInstanceId: providerInstance.id,
+    merchantRefundNo,
+    originalMerchantOrderNo: input.originalCharge.merchantOrderNo ?? "",
+    originalProviderTransactionId: input.originalCharge.providerTransactionId,
+    originalAmountFen: input.originalCharge.amountFen,
+    refundAmountFen: input.refundLine.amountFen,
+    currency: input.refundLine.currency,
+    reason: input.refundLine.description ?? input.refundLine.label,
+    notifyUrl: resolveWeChatPayRefundNotifyUrl(ensuredProviderInstance),
+  });
+  const nextStatus = mapNormalizedStatusToTxStatus(refund.status);
+  const now = new Date();
+  const updated = await paymentTxRepo.convergeRefundStatus({
+    id: created.id,
+    status: nextStatus,
+    providerStatus: refund.providerStatus,
+    providerRefundId: refund.providerRefundId ?? null,
+    providerSnapshot: refund.providerSnapshot,
+    failureCode: refund.failureCode ?? null,
+    failureMessage: refund.failureMessage ?? null,
+    succeededAt: nextStatus === "SUCCEEDED" ? now : null,
+    closedAt: nextStatus === "CLOSED" ? now : null,
+  });
+
+  return {
+    created: true,
+    paymentTxId: (updated ?? created).id,
+    status: (updated ?? created).status,
+    providerStatus: (updated ?? created).providerStatus,
+  };
+};
+
+export async function createRefundPaymentTxForRefundLine(input: {
+  refundBillLineId: string;
+}): Promise<RefundPaymentTxResult> {
+  const refundLine = await billLineRepo.findById(input.refundBillLineId as BillLineId);
+  if (!refundLine) {
+    return throwHttpProblem({ status: 404, detail: "Refund BillLine not found" });
+  }
+  if (refundLine.kind !== "REFUND") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Only REFUND BillLine can create refund PaymentTx",
+    });
+  }
+
+  const existing = await paymentTxRepo.findLatestByBillLine({
+    billLineId: refundLine.id,
+    type: "REFUND",
+  });
+  if (existing) {
+    return {
+      created: false,
+      reason: "REFUND_ALREADY_EXISTS",
+      paymentTxId: existing.id,
+    };
+  }
+
+  if (!refundLine.refundOfBillLineId) {
+    return {
+      created: false,
+      reason: "NO_REFUND_OF_CHARGE_LINE",
+    };
+  }
+
+  const originalCharge = await findSuccessfulOriginalCharge(
+    refundLine.refundOfBillLineId,
+  );
+  if (!originalCharge) {
+    return {
+      created: false,
+      reason: "NO_SUCCESSFUL_ORIGINAL_CHARGE",
+    };
+  }
+  if (!originalCharge.merchantOrderNo && !originalCharge.providerTransactionId) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Original charge has no provider reference for refund",
+    });
+  }
+
+  return createRefundTxForLine({
+    refundLine,
+    originalCharge,
+  });
+}

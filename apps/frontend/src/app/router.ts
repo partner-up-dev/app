@@ -12,24 +12,45 @@ const HomePage = () => import("@/pages/HomePage.vue");
 const MePage = () => import("@/pages/MePage.vue");
 const LocationApplicationPage = () =>
   import("@/pages/LocationApplicationPage.vue");
+const LocationPickerPage = () => import("@/pages/LocationPickerPage.vue");
+const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
+const StudySprintPomodoroPage = () =>
+  import("@/pages/StudySprintPomodoroPage.vue");
+const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
+const NewOrderPage = () =>
+  import("@/pages/OrderingFromPlacementPage.vue");
+const CommerceOrderDetailPage = () =>
+  import("@/pages/CommerceOrderDetailPage.vue");
+const CommerceBillDetailPage = () =>
+  import("@/pages/CommerceBillDetailPage.vue");
+const PaymentCheckoutPage = () =>
+  import("@/pages/PaymentCheckoutPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
-const PRBookingSupportPage = () =>
-  import("@/pages/PRBookingSupportPage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
 const BIEntryPage = () => import("@/pages/BIEntryPage.vue");
 const AdminAnchorEventPage = () =>
   import("@/pages/AdminAnchorEventPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
-const AdminBookingSupportPage = () =>
-  import("@/pages/AdminBookingSupportPage.vue");
-const AdminBookingExecutionPage = () =>
-  import("@/pages/AdminBookingExecutionPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
+const AdminCommerceProductPage = () =>
+  import("@/pages/AdminCommerceProductPage.vue");
+const AdminCommerceOfferPage = () =>
+  import("@/pages/AdminCommerceOfferPage.vue");
+const AdminCommercePlacementPage = () =>
+  import("@/pages/AdminCommercePlacementPage.vue");
+const AdminCommerceOrderBillPage = () =>
+  import("@/pages/AdminCommerceOrderBillPage.vue");
+const AdminCommerceFulfillmentPage = () =>
+  import("@/pages/AdminCommerceFulfillmentPage.vue");
+const AdminPaymentPage = () =>
+  import("@/pages/AdminPaymentPage.vue");
+const AdminRideHailingPage = () =>
+  import("@/pages/AdminRideHailingPage.vue");
 const AdminFeedbackQuestionnairesPage = () =>
   import("@/pages/AdminFeedbackQuestionnairesPage.vue");
 const ContactAuthorPage = () => import("@/pages/ContactAuthorPage.vue");
@@ -37,7 +58,6 @@ const ContactSupportPage = () => import("@/pages/ContactSupportPage.vue");
 const AboutPage = () => import("@/pages/AboutPage.vue");
 const EventPlazaPage = () => import("@/pages/EventPlazaPage.vue");
 const EventPRSearchPage = () => import("@/pages/EventPRSearchPage.vue");
-const AnchorEventPage = () => import("@/pages/AnchorEventPage.vue");
 const AnchorEventLandingPage = () => import("@/pages/AnchorEventLandingPage.vue");
 const WeChatOAuthCallbackPage = () =>
   import("@/pages/WeChatOAuthCallbackPage.vue");
@@ -85,6 +105,23 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/pr/:id/study-sprint",
+    name: "pr-study-sprint",
+    component: StudySprintPomodoroPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/pr/:id/pairing-code",
+    name: "pr-pairing-code",
+    component: PRPairingCodePage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
     path: "/pr/new",
     name: "pr-create",
     component: PRCreatePage,
@@ -110,12 +147,35 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/pr/:id/booking-support",
-    name: "pr-booking-support",
-    component: PRBookingSupportPage,
+    path: "/order/new",
+    name: "order-new",
+    component: NewOrderPage,
     meta: {
       wechatSharePolicy: "skip",
-      wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
+    path: "/orders/:orderId",
+    name: "commerce-order-detail",
+    component: CommerceOrderDetailPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/bills/:billId",
+    name: "commerce-bill-detail",
+    component: CommerceBillDetailPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/bill-lines/:billLineId/checkout",
+    name: "payment-checkout",
+    component: PaymentCheckoutPage,
+    meta: {
+      wechatSharePolicy: "skip",
     },
   },
   {
@@ -136,8 +196,62 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/routes/apply",
+    name: "anchor-event-route-apply",
+    component: RouteApplicationPage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
+    path: "/locations/pick",
+    name: "location-picker",
+    component: LocationPickerPage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
+    },
+  },
+  {
     path: "/admin/analytics",
     name: "admin-analytics",
+    redirect: { name: "admin-analytics-overview" },
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/overview",
+    name: "admin-analytics-overview",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/pr-funnels",
+    name: "admin-analytics-pr-funnels",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/anchor-events",
+    name: "admin-analytics-anchor-events",
+    component: AdminAnalyticsPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["analytics"],
+    },
+  },
+  {
+    path: "/admin/analytics/official-account",
+    name: "admin-analytics-official-account",
     component: AdminAnalyticsPage,
     meta: {
       wechatSharePolicy: "route",
@@ -168,27 +282,76 @@ const routes: RouteRecordRaw[] = [
     redirect: { name: "admin-pr" },
   },
   {
-    path: "/admin/booking-support",
-    name: "admin-booking-support",
-    component: AdminBookingSupportPage,
-    meta: {
-      wechatSharePolicy: "route",
-      requiredRoles: ["service"],
-    },
-  },
-  {
-    path: "/admin/booking-execution",
-    name: "admin-booking-execution",
-    component: AdminBookingExecutionPage,
-    meta: {
-      wechatSharePolicy: "route",
-      requiredRoles: ["service"],
-    },
-  },
-  {
     path: "/admin/pois",
     name: "admin-pois",
     component: AdminPoisPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/products",
+    name: "admin-commerce-products",
+    component: AdminCommerceProductPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/offers",
+    name: "admin-commerce-offers",
+    component: AdminCommerceOfferPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/placements",
+    name: "admin-commerce-placements",
+    component: AdminCommercePlacementPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/placement-offer",
+    redirect: { name: "admin-commerce-placements" },
+  },
+  {
+    path: "/admin/commerce/orders-bills",
+    name: "admin-commerce-orders-bills",
+    component: AdminCommerceOrderBillPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/fulfillments",
+    name: "admin-commerce-fulfillments",
+    component: AdminCommerceFulfillmentPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/payment",
+    name: "admin-payment",
+    component: AdminPaymentPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/ride-hailing",
+    name: "admin-ride-hailing",
+    component: AdminRideHailingPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["service"],
@@ -246,7 +409,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/events/:eventId",
     name: "anchor-event",
-    component: AnchorEventPage,
+    redirect: (to) => ({
+      name: "anchor-event-landing",
+      params: to.params,
+      query: to.query,
+      hash: to.hash,
+    }),
     meta: {
       wechatSharePolicy: "skip",
       wechatAutoLoginPolicy: "skip",

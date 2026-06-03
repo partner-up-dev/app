@@ -18,6 +18,14 @@ export class AnchorEventRepository {
     return await db.select().from(anchorEvents).orderBy(desc(anchorEvents.createdAt));
   }
 
+  async listDistinctTypes(): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ type: anchorEvents.type })
+      .from(anchorEvents)
+      .orderBy(anchorEvents.type);
+    return rows.map((row) => row.type);
+  }
+
   async findById(id: AnchorEventId): Promise<AnchorEvent | null> {
     const result = await db
       .select()
@@ -76,6 +84,7 @@ export class AnchorEventRepository {
         | "type"
         | "description"
         | "locationPool"
+        | "routePool"
         | "timePoolConfig"
         | "defaultMinPartners"
         | "defaultMaxPartners"

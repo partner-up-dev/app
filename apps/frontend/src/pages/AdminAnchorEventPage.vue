@@ -68,6 +68,15 @@
             @save="handleSaveAnchorEventLocations"
           />
 
+          <AnchorEventRouteApplicationsSection
+            v-if="activeAdminSection === 'anchor-event-route-applications'"
+            :applications="routeApplications"
+            :selected-event-id="selectedEventId"
+            :disabled="isRouteApplicationReviewPending"
+            @accept="handleAcceptRouteApplication"
+            @reject="handleRejectRouteApplication"
+          />
+
           <AnchorEventTimeSection
             v-if="activeAdminSection === 'anchor-event-time'"
             v-model="eventForm"
@@ -120,13 +129,17 @@ import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import AnchorEventBasicSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventBasicSection.vue";
 import AnchorEventLocationsSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventLocationsSection.vue";
 import AnchorEventOtherSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventOtherSection.vue";
+import AnchorEventRouteApplicationsSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventRouteApplicationsSection.vue";
 import AnchorEventTagsSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventTagsSection.vue";
 import AnchorEventTimeSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventTimeSection.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNavigationSection";
 import {
+  type AcceptAdminRouteApplicationInput,
   type AdminAnchorEventWorkspaceResponse,
+  useAcceptAdminRouteApplication,
   useAdminAnchorEventWorkspace,
+  useRejectAdminRouteApplication,
 } from "@/domains/admin/queries/useAdminAnchorEvents";
 import { useCreateAnchorEvent } from "@/domains/admin/use-cases/anchor-event/useCreateAnchorEvent";
 import {
@@ -159,7 +172,9 @@ const emptyEventForm = (): EventForm => ({
   title: "",
   type: "",
   description: "",
+  placePoolMode: "location",
   locationPoolText: "",
+  routePool: [],
   meetingPointDescription: "",
   meetingPointImageUrl: "",
   locationMeetingPoints: {},
@@ -196,7 +211,9 @@ const toEventForm = (event: EventRecord): EventForm => ({
   title: event.title,
   type: event.type,
   description: event.description ?? "",
+  placePoolMode: event.routePool.length > 0 ? "route" : "location",
   locationPoolText: event.locationPool.join("\n"),
+  routePool: event.routePool,
   meetingPointDescription: event.meetingPoint?.description ?? "",
   meetingPointImageUrl: event.meetingPoint?.imageUrl ?? "",
   locationMeetingPoints: toEditableLocationMeetingPoints(
@@ -247,6 +264,7 @@ const { isAdmin, logout } = useAdminAccess();
 const activeAdminSection = useAdminNavigationSection("anchor-event-basic", [
   "anchor-event-basic",
   "anchor-event-locations",
+  "anchor-event-route-applications",
   "anchor-event-time",
   "anchor-event-tags",
   "anchor-event-other",
@@ -257,6 +275,8 @@ const updateBasicUseCase = useUpdateAnchorEventBasic();
 const updateLocationsUseCase = useUpdateAnchorEventLocations();
 const updateOtherSettingsUseCase = useUpdateAnchorEventOtherSettings();
 const updateTimePolicyUseCase = useUpdateAnchorEventTimePolicy();
+const acceptRouteApplicationMutation = useAcceptAdminRouteApplication();
+const rejectRouteApplicationMutation = useRejectAdminRouteApplication();
 
 const selectedEventIdRaw = ref("");
 const isCreatingEvent = ref(false);
@@ -270,6 +290,9 @@ const workspace = computed<Workspace | null>(
 const events = computed<EventRecord[]>(() => workspace.value?.events ?? []);
 const feedbackQuestionnaireTemplates = computed(
   () => workspace.value?.feedbackQuestionnaireTemplates ?? [],
+);
+const routeApplications = computed(
+  () => workspace.value?.routeApplications ?? [],
 );
 
 const selectedEventId = computed<number | null>(() => {
@@ -361,6 +384,11 @@ const isSavingAnchorEvent = computed(
     updateOtherSettingsUseCase.isPending.value ||
     updateTimePolicyUseCase.isPending.value,
 );
+const isRouteApplicationReviewPending = computed(
+  () =>
+    acceptRouteApplicationMutation.isPending.value ||
+    rejectRouteApplicationMutation.isPending.value,
+);
 
 const isCreateAnchorEventDisabled = computed(
   () =>
@@ -416,6 +444,8 @@ const mutationErrorMessage = computed(
     updateLocationsUseCase.error.value?.message ||
     updateOtherSettingsUseCase.error.value?.message ||
     updateTimePolicyUseCase.error.value?.message ||
+    acceptRouteApplicationMutation.error.value?.message ||
+    rejectRouteApplicationMutation.error.value?.message ||
     null,
 );
 
@@ -466,6 +496,8 @@ const resetMutationErrors = () => {
   updateLocationsUseCase.reset();
   updateOtherSettingsUseCase.reset();
   updateTimePolicyUseCase.reset();
+  acceptRouteApplicationMutation.reset();
+  rejectRouteApplicationMutation.reset();
 };
 
 const handleCreateAnchorEvent = async () => {
@@ -565,6 +597,27 @@ const handleSaveAnchorEventOtherSettings = async () => {
       draft: eventForm.value,
     });
     selectedEventIdRaw.value = String(result.id);
+  } catch {
+    // Mutation state already drives page-level feedback.
+  }
+};
+
+const handleAcceptRouteApplication = async (
+  payload: AcceptAdminRouteApplicationInput,
+) => {
+  try {
+    await acceptRouteApplicationMutation.mutateAsync(payload);
+  } catch {
+    // Mutation state already drives page-level feedback.
+  }
+};
+
+const handleRejectRouteApplication = async (payload: {
+  applicationId: number;
+  rejectReason: string | null;
+}) => {
+  try {
+    await rejectRouteApplicationMutation.mutateAsync(payload);
   } catch {
     // Mutation state already drives page-level feedback.
   }

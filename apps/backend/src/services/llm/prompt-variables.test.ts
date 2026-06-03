@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { PartnerRequestFields } from "../../entities/partner-request";
 import {
+  buildPartnerRequestParsePromptVariablesJson,
   buildXhsPosterHtmlPromptVariablesJson,
   buildXiaohongshuCaptionPromptVariablesJson,
 } from "./prompt-variables";
@@ -17,6 +18,17 @@ type SharePromptVariables = {
   };
 };
 
+type PartnerRequestParsePromptVariables = {
+  nowIso: string;
+  nowWeekday: string | null;
+  typeSelection: {
+    priority: string[];
+    existingPRTypes: string[];
+    anchorEventTypes: string[];
+  };
+  userInput: string;
+};
+
 const buildPR = (
   time: PartnerRequestFields["time"],
 ): PartnerRequestFields => ({
@@ -24,6 +36,7 @@ const buildPR = (
   type: "badminton",
   time,
   location: "Jing'an Sports Center",
+  route: null,
   minPartners: 4,
   maxPartners: 8,
   partners: [1, 2],
@@ -34,6 +47,11 @@ const buildPR = (
 
 const parseVariables = (json: string): SharePromptVariables =>
   JSON.parse(json) as SharePromptVariables;
+
+const parsePRParseVariables = (
+  json: string,
+): PartnerRequestParsePromptVariables =>
+  JSON.parse(json) as PartnerRequestParsePromptVariables;
 
 test("XHS prompt variables expose UTC instants as product local time", () => {
   const variables = parseVariables(
@@ -70,4 +88,27 @@ test("XHS prompt variables preserve product-local date-time strings", () => {
 
   assert.equal(variables.context.time.start, "2026-05-04 14:00");
   assert.equal(variables.context.time.end, "2026-05-04 16:30");
+});
+
+test("PR parse prompt variables expose type selection priority", () => {
+  const variables = parsePRParseVariables(
+    buildPartnerRequestParsePromptVariablesJson(
+      "  找羽毛球搭子  ",
+      "2026-05-17T04:00:00.000Z",
+      "Sunday",
+      {
+        existingPRTypes: ["羽毛球搭子"],
+        anchorEventTypes: ["飞盘活动"],
+      },
+    ),
+  );
+
+  assert.deepEqual(variables.typeSelection.priority, [
+    "existingPRTypes",
+    "anchorEventTypes",
+    "newTypeWhenNoCandidateFits",
+  ]);
+  assert.deepEqual(variables.typeSelection.existingPRTypes, ["羽毛球搭子"]);
+  assert.deepEqual(variables.typeSelection.anchorEventTypes, ["飞盘活动"]);
+  assert.equal(variables.userInput, "找羽毛球搭子");
 });

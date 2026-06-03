@@ -8,7 +8,6 @@ import type {
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
-import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
 export type CreatePRResult = {
   id: PRId;
@@ -20,13 +19,11 @@ type CreatePRFromNaturalLanguageInput = {
   rawText: string;
   nowIso: string;
   nowWeekday: WeekdayLabel;
-  correlationId?: string;
 };
 
 type CreatePRFromStructuredInput = {
   fields: PartnerRequestFields;
   createSource?: "FORM";
-  correlationId?: string;
 };
 
 const readErrorMessage = async (
@@ -50,11 +47,6 @@ export const useCreatePRFromNaturalLanguage = () => {
       const res = await client.api.pr.new.nl.$post(
         {
           json: input,
-        },
-        {
-          init: {
-            headers: buildCorrelationHeaders(input.correlationId),
-          },
         },
       );
 
@@ -80,12 +72,6 @@ export const useCreatePRFromStructured = () => {
           json: {
             fields: input.fields,
             createSource: input.createSource,
-            correlationId: input.correlationId,
-          },
-        },
-        {
-          init: {
-            headers: buildCorrelationHeaders(input.correlationId),
           },
         },
       );

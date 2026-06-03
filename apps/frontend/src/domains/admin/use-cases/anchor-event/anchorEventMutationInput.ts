@@ -3,6 +3,11 @@ import type {
   AdminAnchorEventWorkspaceResponse,
   AdminAnchorTimePoolConfigInput,
 } from "@/domains/admin/queries/useAdminAnchorEvents";
+import type { AnchorEventRoutePool } from "@partner-up-dev/backend";
+import {
+  getRouteValidationIssue,
+  normalizeRouteForSubmit,
+} from "@/domains/route/model/route";
 import type {
   AnchorEventEditorForm,
   EditableMeetingPointForm,
@@ -29,7 +34,9 @@ export type AnchorEventBasicDraft = {
 };
 
 export type AnchorEventLocationsDraft = {
+  placePoolMode: AnchorEventEditorForm["placePoolMode"];
   locationPoolText: string;
+  routePool: AnchorEventRoutePool;
   meetingPointDescription: string;
   meetingPointImageUrl: string;
   locationMeetingPoints: Record<string, EditableMeetingPointForm>;
@@ -202,6 +209,7 @@ export const toAnchorEventMutationInput = (
   type: event.type,
   description: event.description ?? null,
   locationPool: event.locationPool,
+  routePool: event.routePool,
   meetingPoint: event.meetingPoint ?? null,
   locationMeetingPoints: event.locationMeetingPoints,
   joinGateConfig: event.joinGateConfig,
@@ -229,23 +237,59 @@ export const toAnchorEventMutationInput = (
   ...patch,
 });
 
+export const normalizeRoutePoolForSubmit = (
+  routePool: AnchorEventRoutePool,
+): AnchorEventRoutePool => {
+  const seen = new Set<string>();
+  const result: AnchorEventRoutePool = [];
+
+  for (const entry of routePool) {
+    const id = entry.id.trim();
+    if (!id || seen.has(id)) {
+      continue;
+    }
+
+    const route = normalizeRouteForSubmit(entry.route);
+    if (!route || getRouteValidationIssue(route) !== null) {
+      continue;
+    }
+
+    seen.add(id);
+    result.push({
+      id,
+      route,
+    });
+  }
+
+  return result;
+};
+
 export const buildAnchorEventMutationInputFromEditorDraft = (
   draft: AnchorEventEditorForm,
 ): AdminAnchorEventInput => {
-  const locationPool = normalizeLines(draft.locationPoolText);
+  const locationPool =
+    draft.placePoolMode === "location" ? normalizeLines(draft.locationPoolText) : [];
+  const routePool =
+    draft.placePoolMode === "route"
+      ? normalizeRoutePoolForSubmit(draft.routePool)
+      : [];
   return {
     title: draft.title.trim(),
     type: draft.type.trim(),
     description: draft.description.trim() || null,
     locationPool,
+    routePool,
     meetingPoint: buildMeetingPointInput(
       draft.meetingPointDescription,
       draft.meetingPointImageUrl,
     ),
-    locationMeetingPoints: buildLocationMeetingPointsInput(
-      locationPool,
-      draft.locationMeetingPoints,
-    ),
+    locationMeetingPoints:
+      draft.placePoolMode === "location"
+        ? buildLocationMeetingPointsInput(
+            locationPool,
+            draft.locationMeetingPoints,
+          )
+        : {},
     joinGateConfig: draft.joinGateConfig,
     participationFrequencyLimit: draft.participationFrequencyLimit,
     feedbackQuestionnaireTemplateId: draft.feedbackQuestionnaireTemplateId,

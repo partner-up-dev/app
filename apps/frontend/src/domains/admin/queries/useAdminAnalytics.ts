@@ -7,9 +7,19 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 type AnalyticsApi = typeof adminClient.api.analytics;
 type AnchorEventFunnelRoute = AnalyticsApi["anchor-event-funnel"];
+type BIOverviewRoute = AnalyticsApi["overview"];
+type PRCreateFunnelRoute = AnalyticsApi["pr-create-funnel"];
+type PRJoinFunnelRoute = AnalyticsApi["pr-join-funnel"];
 
 export type AdminAnalyticsFunnelResponse = InferResponseType<
   AnchorEventFunnelRoute["$get"]
+>;
+export type AdminBIOverviewResponse = InferResponseType<BIOverviewRoute["$get"]>;
+export type AdminPRJoinFunnelResponse = InferResponseType<
+  PRJoinFunnelRoute["$get"]
+>;
+export type AdminPRCreateFunnelResponse = InferResponseType<
+  PRCreateFunnelRoute["$get"]
 >;
 
 export type AdminAnalyticsFunnelQuery = {
@@ -22,13 +32,24 @@ export type AdminAnalyticsFunnelQuery = {
   renderedMode?: AnchorEventAnalyticsRenderedMode | null;
 };
 
+type AdminAnalyticsQueryOptions = {
+  enabled?: MaybeRef<boolean>;
+};
+
+const resolveEnabled = (
+  options: AdminAnalyticsQueryOptions | undefined,
+) => computed(() => options?.enabled === undefined || unref(options.enabled));
+
 const readErrorMessage = async (
   response: Response,
   fallback: string,
 ): Promise<string> => {
   try {
-    const payload = (await response.json()) as { error?: string };
-    return payload.error || fallback;
+    const payload = (await response.json()) as {
+      detail?: string;
+      error?: string;
+    };
+    return payload.error || payload.detail || fallback;
   } catch {
     return fallback;
   }
@@ -46,12 +67,21 @@ const normalizeQuery = (
   renderedMode: input.renderedMode ?? null,
 });
 
+const normalizePRFunnelQuery = (
+  input: AdminAnalyticsFunnelQuery,
+): Pick<AdminAnalyticsFunnelQuery, "startAt" | "endAt"> => ({
+  startAt: input.startAt,
+  endAt: input.endAt,
+});
+
 export const useAdminAnchorEventFunnelAnalytics = (
   input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
 ) => {
   const normalizedQuery = computed(() => normalizeQuery(unref(input)));
 
   return useQuery<AdminAnalyticsFunnelResponse>({
+    enabled: resolveEnabled(options),
     queryKey: computed(() =>
       queryKeys.admin.anchorEventFunnelAnalytics(normalizedQuery.value),
     ),
@@ -73,6 +103,91 @@ export const useAdminAnchorEventFunnelAnalytics = (
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取 BI 看板数据失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminBIOverviewAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
+) => {
+  const normalizedQuery = computed(() => normalizePRFunnelQuery(unref(input)));
+
+  return useQuery<AdminBIOverviewResponse>({
+    enabled: resolveEnabled(options),
+    queryKey: computed(() =>
+      queryKeys.admin.biOverviewAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics.overview.$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 BI 总览失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminPRJoinFunnelAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
+) => {
+  const normalizedQuery = computed(() =>
+    normalizePRFunnelQuery(unref(input)),
+  );
+
+  return useQuery<AdminPRJoinFunnelResponse>({
+    enabled: resolveEnabled(options),
+    queryKey: computed(() =>
+      queryKeys.admin.prJoinFunnelAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics["pr-join-funnel"].$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 PR 加入漏斗失败"));
+      }
+      return await res.json();
+    },
+  });
+};
+
+export const useAdminPRCreateFunnelAnalytics = (
+  input: MaybeRef<AdminAnalyticsFunnelQuery>,
+  options?: AdminAnalyticsQueryOptions,
+) => {
+  const normalizedQuery = computed(() =>
+    normalizePRFunnelQuery(unref(input)),
+  );
+
+  return useQuery<AdminPRCreateFunnelResponse>({
+    enabled: resolveEnabled(options),
+    queryKey: computed(() =>
+      queryKeys.admin.prCreateFunnelAnalytics(normalizedQuery.value),
+    ),
+    queryFn: async () => {
+      const query = normalizedQuery.value;
+      const res = await adminClient.api.analytics["pr-create-funnel"].$get({
+        query: {
+          startAt: query.startAt,
+          endAt: query.endAt,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取 PR 创建漏斗失败"));
       }
       return await res.json();
     },

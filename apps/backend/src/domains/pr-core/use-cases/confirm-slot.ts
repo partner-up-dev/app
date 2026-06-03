@@ -13,7 +13,6 @@ import {
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { operationLogService } from "../../../infra/operation-log";
-import { syncAnchorBookingTriggeredState } from "../services/anchor-booking-trigger.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -45,7 +44,6 @@ export async function confirmSlot(id: PRId, openId: string): Promise<PublicPR> {
   if (slot.status === "JOINED") {
     await partnerRepo.markConfirmed(slot.id);
     await userReliabilityRepo.applyDelta(user.id, { confirmed: 1 });
-    await syncAnchorBookingTriggeredState(id);
 
     operationLogService.log({
       actorId: user.id,

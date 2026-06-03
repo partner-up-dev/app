@@ -2,6 +2,22 @@ import { inject } from "vitest";
 
 export type SystemScenarioEnvironment = {
   backendBaseUrl: string;
+  fakeCaocao: {
+    origin: string;
+    clientId: string;
+    signKey: string;
+  };
+  fakeWeChatPay: {
+    origin: string;
+    appId: string;
+    mchId: string;
+    apiV3Key: string;
+    merchantCertificate: {
+      serialNo: string;
+      privateKeyPem: string;
+      certificatePem: string;
+    };
+  };
   frontendBaseUrl: string;
 };
 

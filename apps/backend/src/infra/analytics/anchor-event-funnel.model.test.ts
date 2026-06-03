@@ -5,6 +5,7 @@ import {
   resolveAnchorEventFunnelFilters,
   type AnchorEventFunnelEventRow,
   type AnchorEventFunnelSegmentRow,
+  type OfficialAccountFollowNudgeEventRow,
 } from "./anchor-event-funnel.model";
 
 const filters = resolveAnchorEventFunnelFilters({
@@ -18,28 +19,40 @@ const buildEvent = (
   properties: Record<string, unknown> = {},
 ): AnchorEventFunnelEventRow => ({
   eventName,
-  appJourneyId: segment.appJourneyId,
+  journeyId: segment.journeyId,
   segmentId: segment.segmentId,
   renderedMode: segment.renderedMode,
   properties,
 });
 
+const buildOfficialAccountFollowNudgeEvent = (
+  journeyId: string,
+  eventName: OfficialAccountFollowNudgeEventRow["eventName"],
+  source: string | null,
+  action: string | null = null,
+): OfficialAccountFollowNudgeEventRow => ({
+  eventName,
+  journeyId,
+  source,
+  action,
+});
+
 test("buildAnchorEventFunnelResponseFromRows aggregates Anchor Event funnel cohorts", () => {
   const formSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-form",
-    appJourneyId: "journey-form",
+    journeyId: "journey-form",
     renderedMode: "FORM",
     startSpm: "campaign.alpha",
   };
   const cardSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-card",
-    appJourneyId: "journey-card",
+    journeyId: "journey-card",
     renderedMode: "CARD_RICH",
     startSpm: "campaign.alpha",
   };
   const listSegment: AnchorEventFunnelSegmentRow = {
     segmentId: "segment-list",
-    appJourneyId: "journey-list",
+    journeyId: "journey-list",
     renderedMode: "LIST",
     startSpm: null,
   };
@@ -217,5 +230,135 @@ test("resolveAnchorEventFunnelFilters applies the seven day default window", () 
     sourceQr: null,
     assignmentRevision: null,
     renderedMode: "FORM",
+  });
+});
+
+test("buildAnchorEventFunnelResponseFromRows keeps repeated landing contexts separate within one journey", () => {
+  const formSegment: AnchorEventFunnelSegmentRow = {
+    segmentId: "landing-form-event",
+    journeyId: "journey-reused",
+    renderedMode: "FORM",
+    startSpm: "campaign.alpha",
+  };
+  const cardSegment: AnchorEventFunnelSegmentRow = {
+    segmentId: "landing-card-event",
+    journeyId: "journey-reused",
+    renderedMode: "CARD_RICH",
+    startSpm: "campaign.alpha",
+  };
+
+  const response = buildAnchorEventFunnelResponseFromRows(
+    filters,
+    [formSegment, cardSegment],
+    [
+      buildEvent(formSegment, "anchor_event.landing.viewed"),
+      buildEvent(formSegment, "anchor_event.form.started"),
+      buildEvent(cardSegment, "anchor_event.landing.viewed"),
+      buildEvent(cardSegment, "anchor_event.card.seen"),
+    ],
+  );
+
+  const formMode = response.modes.find((mode) => mode.renderedMode === "FORM");
+  const cardMode = response.modes.find(
+    (mode) => mode.renderedMode === "CARD_RICH",
+  );
+  const formFunnel = response.funnels.find(
+    (funnel) => funnel.renderedMode === "FORM",
+  );
+  const cardFunnel = response.funnels.find(
+    (funnel) => funnel.renderedMode === "CARD_RICH",
+  );
+
+  assert.equal(response.summary.journeys, 1);
+  assert.equal(formMode?.prExposureJourneys, 0);
+  assert.equal(cardMode?.prExposureJourneys, 1);
+  assert.equal(
+    formFunnel?.steps.find((step) => step.stepKey === "form_started")
+      ?.eventCount,
+    1,
+  );
+  assert.equal(
+    cardFunnel?.steps.find((step) => step.stepKey === "card_seen")?.eventCount,
+    1,
+  );
+});
+
+test("buildAnchorEventFunnelResponseFromRows aggregates official account Nudge follow clicks", () => {
+  const response = buildAnchorEventFunnelResponseFromRows(filters, [], [], [
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-home-follow",
+      "official.account.follow.nudge.shown",
+      "home",
+    ),
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-home-follow",
+      "official.account.follow.nudge.action.click",
+      "home",
+      "complete",
+    ),
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-anchor-dismiss",
+      "official.account.follow.nudge.shown",
+      "anchor_event",
+    ),
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-anchor-dismiss",
+      "official.account.follow.nudge.action.click",
+      "anchor_event",
+      "dismiss",
+    ),
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-waitlist-follow",
+      "official.account.follow.nudge.shown",
+      "pr_waitlist_result",
+    ),
+    buildOfficialAccountFollowNudgeEvent(
+      "journey-waitlist-follow",
+      "official.account.follow.nudge.action.click",
+      "pr_waitlist_result",
+      "complete",
+    ),
+  ]);
+
+  assert.deepEqual(response.officialAccountFollowNudge, {
+    shownJourneys: 3,
+    followClickJourneys: 2,
+    dismissJourneys: 1,
+    shownEvents: 3,
+    followClickEvents: 2,
+    dismissEvents: 1,
+    followClickRate: 2 / 3,
+    sources: [
+      {
+        source: "anchor_event",
+        shownJourneys: 1,
+        followClickJourneys: 0,
+        dismissJourneys: 1,
+        shownEvents: 1,
+        followClickEvents: 0,
+        dismissEvents: 1,
+        followClickRate: 0,
+      },
+      {
+        source: "home",
+        shownJourneys: 1,
+        followClickJourneys: 1,
+        dismissJourneys: 0,
+        shownEvents: 1,
+        followClickEvents: 1,
+        dismissEvents: 0,
+        followClickRate: 1,
+      },
+      {
+        source: "pr_waitlist_result",
+        shownJourneys: 1,
+        followClickJourneys: 1,
+        dismissJourneys: 0,
+        shownEvents: 1,
+        followClickEvents: 1,
+        dismissEvents: 0,
+        followClickRate: 1,
+      },
+    ],
   });
 });

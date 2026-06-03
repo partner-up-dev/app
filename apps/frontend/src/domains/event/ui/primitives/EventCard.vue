@@ -110,7 +110,10 @@ const rootProps = computed<Record<string, unknown>>(() =>
   isSelectMode.value
     ? {}
     : {
-        to: { name: "anchor-event", params: { eventId: props.event.id } },
+        to: {
+          name: "anchor-event-landing",
+          params: { eventId: props.event.id },
+        },
       },
 );
 

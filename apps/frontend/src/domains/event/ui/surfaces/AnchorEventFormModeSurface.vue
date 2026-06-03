@@ -28,16 +28,18 @@
       />
 
       <div v-else class="form-mode-selection">
-        <FormModeLocationControl
-          v-model="selectedLocationId"
-          :locations="formModeData.locations"
+        <AnchorEventCarouselPlaceSelector
+          v-model="selectedPlaceId"
+          :place-selector="formModeData.placeSelector"
           @update:model-value="trackFormStarted('location')"
           @create-location="handleCreateLocationApplication"
+          @create-route="handleCreateRouteApplication"
         />
 
         <FormModeTimeControl
-          v-model="selectedStartAt"
-          :start-options="selectedLocationStartOptions"
+          v-model="selectedTimeSelection"
+          v-model:allow-edit-after-ready="selectedAllowEditAfterReady"
+          :start-options="selectedPlaceStartOptions"
           :duration-minutes="formModeData.event.durationMinutes"
           :earliest-lead-minutes="formModeData.event.earliestLeadMinutes"
           @update:model-value="trackFormStarted('time')"
@@ -101,32 +103,48 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { useAnchorEventFormModeData } from "@/domains/event/queries/useAnchorEventFormModeData";
-import { useAnchorEventFormModeRecommendation } from "@/domains/event/queries/useAnchorEventFormModeRecommendation";
+import {
+  useAnchorEventFormModeRecommendation,
+  type AnchorEventFormModeRecommendationPlaceInput,
+} from "@/domains/event/queries/useAnchorEventFormModeRecommendation";
 import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
 } from "@/domains/event/queries/useCreateEventAssistedPR";
-import FormModeLocationControl from "@/domains/event/ui/controls/form-mode/FormModeLocationControl.vue";
+import AnchorEventCarouselPlaceSelector from "@/domains/event/ui/controls/form-mode/AnchorEventCarouselPlaceSelector.vue";
 import FormModeTimeControl from "@/domains/event/ui/controls/form-mode/FormModeTimeControl.vue";
 import FormModePreferenceControl from "@/domains/event/ui/controls/form-mode/FormModePreferenceControl.vue";
 import FormModeNoMatchResult from "@/domains/event/ui/composites/FormModeNoMatchResult.vue";
 import FormModeLongPressButton from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import type { LongPressOriginRect } from "@/domains/event/ui/primitives/FormModeLongPressButton.vue";
 import {
+  buildFormModeCreateTimeWindow,
+  buildFormModePointTimeWindows,
   formatFormModeDateLabel,
   formatFormModeTimeLabel,
+  type FormModeTimeSelection,
   isValidFormModeDateTime,
   pickStableGalleryImage,
 } from "@/domains/event/model/form-mode";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
+import {
+  buildFormModePlaceOptions,
+  buildLocationPlaceOptionId,
+  findAnchorEventPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import {
   clearPendingWeChatAction,
@@ -153,8 +171,9 @@ const recommendationMutation = useAnchorEventFormModeRecommendation();
 const createMutation = useCreateEventAssistedPR();
 const matchedPRHandoff = useMatchedPRHandoff();
 
-const selectedLocationId = ref<string | null>(null);
-const selectedStartAt = ref<string | null>(null);
+const selectedPlaceId = ref<string | null>(null);
+const selectedTimeSelection = ref<FormModeTimeSelection | null>(null);
+const selectedAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
 const selectedPreferences = ref<string[]>([]);
 const noMatchRecommendationResult =
   ref<AnchorEventFormModeRecommendationResponse | null>(null);
@@ -188,31 +207,79 @@ const armFormStartTracking = (): void => {
   }, 0);
 };
 
-const selectedLocationStartOptions = computed(() => {
+const placeOptions = computed<AnchorEventPlaceOption[]>(() => {
   const data = formModeData.value;
   if (!data) {
     return [];
   }
 
-  const selectedLocation = data.locations.find(
-    (location) => location.id === selectedLocationId.value,
+  return buildFormModePlaceOptions({
+    placeSelector: data.placeSelector,
+    locations: data.locations,
+    routes: data.routes,
+  });
+});
+
+const selectedPlaceOption = computed(() =>
+  findAnchorEventPlaceOption(placeOptions.value, selectedPlaceId.value),
+);
+
+const selectedPlace = computed<AnchorEventSelectedPlace | null>(() =>
+  toAnchorEventSelectedPlace(selectedPlaceOption.value),
+);
+const selectedLocationId = computed(() =>
+  selectedPlace.value?.kind === "location" ? selectedPlace.value.locationId : null,
+);
+const selectedRoutePoolEntryId = computed(() =>
+  selectedPlace.value?.kind === "route" ? selectedPlace.value.routePoolEntryId : null,
+);
+
+const selectedStartAt = computed(() => {
+  return selectedTimeSelection.value?.createTimeWindow?.startAt ?? null;
+});
+
+const hasValidTimeSelection = computed(() => {
+  const selection = selectedTimeSelection.value;
+  if (!selection) {
+    return false;
+  }
+  return (
+    selection.timeWindows.length > 0 &&
+    selection.timeWindows.every(
+      (timeWindow) =>
+        isValidFormModeDateTime(timeWindow.startAt) &&
+        isValidFormModeDateTime(timeWindow.endAt),
+    ) &&
+    isValidFormModeDateTime(selection.createTimeWindow?.startAt)
   );
-  if (!selectedLocation) {
+});
+
+const selectedPlaceStartOptions = computed(() => {
+  const data = formModeData.value;
+  if (!data) {
+    return [];
+  }
+
+  const selected = selectedPlaceOption.value;
+  if (!selected) {
     return data.startOptions;
   }
 
-  const availableStartKeys = new Set(selectedLocation.availableStartKeys);
+  const availableStartKeys = new Set(selected.availableStartKeys ?? []);
   return data.startOptions.filter((option) => availableStartKeys.has(option.key));
 });
 
-const selectedLocationLabel = computed(() => {
-  const selected = formModeData.value?.locations.find(
-    (location) => location.id === selectedLocationId.value,
-  );
-  return selected?.id ?? t("anchorEvent.formMode.locationPlaceholder");
-});
+const selectedPlaceLabel = computed(
+  () =>
+    selectedPlaceOption.value?.label ??
+    t(formModeData.value?.placeSelector.placeholderKey ?? "anchorEvent.placeSelector.emptyPlaceholder"),
+);
 
 const selectedTimeLabel = computed(() => {
+  const label = selectedTimeSelection.value?.label.trim();
+  if (label) {
+    return label;
+  }
   if (!isValidFormModeDateTime(selectedStartAt.value)) {
     return t("anchorEvent.formMode.timePlaceholder");
   }
@@ -222,12 +289,19 @@ const selectedTimeLabel = computed(() => {
 });
 
 const primaryCtaLabel = computed(() => {
-  if (!selectedStartAt.value || !selectedLocationId.value) {
+  if (!selectedStartAt.value || !selectedPlace.value) {
     return t("anchorEvent.formMode.primaryCtaFallback");
+  }
+  if (selectedPlace.value.kind === "route") {
+    return t("anchorEvent.formMode.primaryRouteCta", {
+      time: selectedTimeLabel.value,
+      place: selectedPlaceLabel.value,
+      eventTitle: formModeData.value?.event.title ?? "",
+    });
   }
   return t("anchorEvent.formMode.primaryCta", {
     time: selectedTimeLabel.value,
-    location: selectedLocationLabel.value,
+    location: selectedPlaceLabel.value,
     eventTitle: formModeData.value?.event.title ?? "",
   });
 });
@@ -241,9 +315,8 @@ const recommendationSubmissionPending = computed(
 
 const canSubmitRecommendation = computed(() =>
   Boolean(
-    selectedLocationId.value &&
-      selectedStartAt.value &&
-      isValidFormModeDateTime(selectedStartAt.value) &&
+    selectedPlace.value &&
+      hasValidTimeSelection.value &&
       !recommendationSubmissionPending.value,
   ),
 );
@@ -251,9 +324,8 @@ const canSubmitRecommendation = computed(() =>
 const canCreateFallback = computed(() =>
   Boolean(
     canUserCreatePR.value &&
-    selectedLocationId.value &&
-      selectedStartAt.value &&
-      isValidFormModeDateTime(selectedStartAt.value) &&
+    selectedPlace.value &&
+      hasValidTimeSelection.value &&
       formModeData.value,
   ),
 );
@@ -396,18 +468,24 @@ const createActionErrorMessage = computed(() => {
     return null;
   }
 
+  return resolveCreateErrorMessage(error);
+});
+
+const resolveCreateErrorMessage = (error: CreateEventAssistedPRError): string => {
   switch (error.code) {
     case "ANCHOR_EVENT_NOT_FOUND":
       return t("anchorEvent.createCard.errors.eventUnavailable");
     case "ANCHOR_EVENT_USER_PR_CREATION_DISABLED":
       return t("anchorEvent.createCard.errors.userCreationDisabled");
+    case "PR_START_TIME_PASSED":
+      return t("anchorEvent.createCard.errors.timeWindowAlreadyPassed");
     case "AUTHENTICATED_REQUIRED":
     case "WECHAT_AUTH_REQUIRED":
       return t("anchorEvent.createCard.errors.wechatAuthRequired");
     default:
       return error.message || t("anchorEvent.createCard.errors.createFailed");
   }
-});
+};
 
 const canUserCreatePR = computed(
   () => formModeData.value?.event.canUserCreatePR === true,
@@ -423,6 +501,11 @@ watch(
     defaultSelectionAppliedEventId.value = data.event.id;
     hasTrackedFormStart.value = false;
     formStartTrackingArmed.value = false;
+    if (data.placeSelector.kind === "route") {
+      armFormStartTracking();
+      return;
+    }
+
     const defaultSelection = data.defaultSelection;
     if (!defaultSelection) {
       armFormStartTracking();
@@ -436,8 +519,26 @@ watch(
       return;
     }
 
-    selectedLocationId.value = defaultSelection.locationId;
-    selectedStartAt.value = defaultSelection.startAt;
+    selectedPlaceId.value = buildLocationPlaceOptionId(defaultSelection.locationId);
+    const defaultStartOption = data.startOptions.find(
+      (option) => option.startAt === defaultSelection.startAt,
+    );
+    selectedTimeSelection.value = {
+      mode: "NORMAL",
+      label: `${formatFormModeDateLabel(defaultSelection.startAt)} ${formatFormModeTimeLabel(
+        defaultSelection.startAt,
+      )}`,
+      timeWindows: buildFormModePointTimeWindows(defaultSelection.startAt),
+      createTimeWindow: defaultStartOption
+        ? {
+            startAt: defaultStartOption.startAt,
+            endAt: defaultStartOption.endAt,
+          }
+        : buildFormModeCreateTimeWindow(
+            defaultSelection.startAt,
+            data.event.durationMinutes,
+          ),
+    };
     armFormStartTracking();
   },
   { immediate: true },
@@ -468,7 +569,7 @@ defineExpose({
   returnToSelection,
 });
 
-watch([selectedLocationId, selectedStartAt, selectedPreferences], () => {
+watch([selectedPlaceId, selectedTimeSelection, selectedPreferences], () => {
   returnToSelection();
 });
 
@@ -482,12 +583,12 @@ watch(
 
 const handleViewAllSessions = async () => {
   await router.push({
-    name: "anchor-event",
+    name: "anchor-event-landing",
     params: {
       eventId: props.eventId.toString(),
     },
     query: {
-      mode: "LIST",
+      mode: "list",
     },
   });
 };
@@ -495,6 +596,15 @@ const handleViewAllSessions = async () => {
 const handleCreateLocationApplication = async () => {
   await router.push({
     name: "poi-location-apply",
+    query: {
+      fromEvent: props.eventId.toString(),
+    },
+  });
+};
+
+const handleCreateRouteApplication = async () => {
+  await router.push({
+    name: "anchor-event-route-apply",
     query: {
       fromEvent: props.eventId.toString(),
     },
@@ -526,20 +636,57 @@ const buildFormFunnelPayload = () => ({
 });
 
 const buildSelectedConditionPayload = () => {
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  if (!place || !isValidFormModeDateTime(startAt)) {
     return null;
   }
 
   return {
     ...buildFormFunnelPayload(),
-    locationId,
-    locationType: resolveFormModeLocationType(locationId),
+    locationId: place.kind === "location" ? place.locationId : null,
+    routePoolEntryId:
+      place.kind === "route" ? place.routePoolEntryId : null,
+    placeKind: place.kind,
+    locationType:
+      place.kind === "location"
+        ? resolveFormModeLocationType(place.locationId)
+        : undefined,
     startAt,
     timeType: resolveFormModeTimeType(startAt),
     preferenceCount: selectedPreferences.value.length,
   };
+};
+
+const buildRecommendationPlaceInput = (
+  place: AnchorEventSelectedPlace,
+): AnchorEventFormModeRecommendationPlaceInput =>
+  place.kind === "route"
+    ? {
+        kind: "route",
+        routePoolEntryId: place.routePoolEntryId,
+      }
+    : {
+        kind: "location",
+        locationId: place.locationId,
+      };
+
+const buildRecommendationTimeWindows = () => {
+  const selection = selectedTimeSelection.value;
+  if (!selection) {
+    return null;
+  }
+  if (
+    selection.timeWindows.length === 0 ||
+    !selection.timeWindows.every(
+      (timeWindow) =>
+        isValidFormModeDateTime(timeWindow.startAt) &&
+        isValidFormModeDateTime(timeWindow.endAt),
+    )
+  ) {
+    return null;
+  }
+  return selection.timeWindows.map((timeWindow) => ({ ...timeWindow }));
 };
 
 const resolveFormModeLocationType = (
@@ -554,7 +701,9 @@ const resolveFormModeLocationType = (
 const resolveFormModeTimeType = (
   startAt: string,
 ): "preset" | "user_submitted" =>
-  isAdvancedStartValue(startAt) ? "user_submitted" : "preset";
+  selectedTimeSelection.value?.mode === "FUZZY" || !isAdvancedStartValue(startAt)
+    ? "preset"
+    : "user_submitted";
 
 const trackFormStarted = (
   trigger: "location" | "time" | "preference" | "primary_cta",
@@ -575,6 +724,8 @@ const trackFormStarted = (
       formModeData.value.defaultSelection !== null &&
       formModeData.value.defaultSelection !== undefined,
     locationId: selectedLocationId.value ?? undefined,
+    routePoolEntryId: selectedRoutePoolEntryId.value ?? undefined,
+    placeKind: selectedPlace.value?.kind,
     locationType:
       selectedLocationId.value === null
         ? undefined
@@ -593,22 +744,17 @@ const trackFormStarted = (
 const trackRecommendationExposure = (
   result: AnchorEventFormModeRecommendationResponse,
 ) => {
-  const locationId = selectedLocationId.value;
-  const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (!selectedConditionPayload) {
     return;
   }
 
   trackEvent("anchor_event_form_recommendation_impression", {
-    eventId: props.eventId,
-    activityType: resolveFormModeActivityType(),
+    ...selectedConditionPayload,
     hasMatchedRecommendation: Boolean(result.matchedRecommendation),
     candidateCount:
       result.orderedCandidates.length + (result.matchedRecommendation ? 1 : 0),
-    advancedMode: isAdvancedStartValue(startAt),
-    locationId,
-    startAt,
-    preferenceCount: selectedPreferences.value.length,
+    advancedMode: isAdvancedStartValue(selectedConditionPayload.startAt),
   });
 };
 
@@ -650,24 +796,15 @@ const trackRecommendationResult = (
     outcome?: "matched" | "no_match";
     matchedPrId?: number | null;
     candidateCount?: number;
-    correlationId?: string;
   },
 ): void => {
-  const locationId = selectedLocationId.value;
-  const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (!selectedConditionPayload) {
     return;
   }
 
   trackEvent("anchor_event_recommendation_result", {
-    eventId: props.eventId,
-    activityType: resolveFormModeActivityType(),
-    locationId,
-    locationType: resolveFormModeLocationType(locationId),
-    startAt,
-    timeType: resolveFormModeTimeType(startAt),
-    preferenceCount: selectedPreferences.value.length,
-    correlationId: payload.correlationId,
+    ...selectedConditionPayload,
     ...payload,
   });
 
@@ -677,16 +814,10 @@ const trackRecommendationResult = (
     typeof payload.candidateCount === "number"
   ) {
     trackEvent("anchor_event_recommendation_returned", {
-      ...buildFormFunnelPayload(),
-      locationId,
-      locationType: resolveFormModeLocationType(locationId),
-      startAt,
-      timeType: resolveFormModeTimeType(startAt),
-      preferenceCount: selectedPreferences.value.length,
+      ...selectedConditionPayload,
       outcome: payload.outcome,
       matchedPrId: payload.matchedPrId,
       candidateCount: payload.candidateCount,
-      correlationId: payload.correlationId,
     });
   }
 };
@@ -697,10 +828,9 @@ const trackEventAssistedCreateResult = (
     failureCode?: string;
     failureReason?: string;
     prId?: number;
-    correlationId?: string;
   },
   source: {
-    locationId: string;
+    place: AnchorEventSelectedPlace;
     startAt: string;
     preferenceCount: number;
   },
@@ -709,15 +839,21 @@ const trackEventAssistedCreateResult = (
     eventId: props.eventId,
     prId: payload.prId,
     activityType: resolveFormModeActivityType(),
-    locationId: source.locationId,
-    locationType: resolveFormModeLocationType(source.locationId),
+    locationId:
+      source.place.kind === "location" ? source.place.locationId : null,
+    routePoolEntryId:
+      source.place.kind === "route" ? source.place.routePoolEntryId : null,
+    placeKind: source.place.kind,
+    locationType:
+      source.place.kind === "location"
+        ? resolveFormModeLocationType(source.place.locationId)
+        : undefined,
     startAt: source.startAt,
     timeType: resolveFormModeTimeType(source.startAt),
     preferenceCount: source.preferenceCount,
     actionResult: payload.actionResult,
     failureCode: payload.failureCode,
     failureReason: payload.failureReason,
-    correlationId: payload.correlationId,
   });
   trackEvent("pr_commitment_result", {
     ...buildFormFunnelPayload(),
@@ -727,7 +863,6 @@ const trackEventAssistedCreateResult = (
     actionResult: payload.actionResult,
     failureCode: payload.failureCode,
     failureReason: payload.failureReason,
-    correlationId: payload.correlationId,
   });
 };
 
@@ -754,9 +889,9 @@ const createEventAssistedPR = async (
     return false;
   }
 
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  if (!place || !isValidFormModeDateTime(startAt)) {
     return false;
   }
 
@@ -770,20 +905,21 @@ const createEventAssistedPR = async (
     return false;
   }
 
-  const correlationId = createCommandCorrelationId();
   if (trigger === "manual_fallback") {
     trackEvent("anchor_event_form_create_fallback_click", {
       eventId: props.eventId,
       activityType: resolveFormModeActivityType(),
-      locationId,
+      locationId: place.kind === "location" ? place.locationId : null,
+      routePoolEntryId:
+        place.kind === "route" ? place.routePoolEntryId : null,
+      placeKind: place.kind,
       startAt,
       preferenceCount: selectedPreferences.value.length,
-      correlationId,
     });
   }
 
   const createTelemetrySource = {
-    locationId,
+    place,
     startAt,
     preferenceCount: selectedPreferences.value.length,
   };
@@ -792,7 +928,6 @@ const createEventAssistedPR = async (
     trackEvent("anchor_event_assisted_create_started", {
       ...selectedConditionPayload,
       trigger,
-      correlationId,
     });
   }
 
@@ -800,7 +935,9 @@ const createEventAssistedPR = async (
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       fields,
-      correlationId,
+      allowEditAfterReady: selectedAllowEditAfterReady.value,
+      routePoolEntryId:
+        place.kind === "route" ? place.routePoolEntryId : null,
       handoff:
         trigger === "auto_no_candidates" ? "event_assisted_create" : undefined,
     });
@@ -809,7 +946,6 @@ const createEventAssistedPR = async (
       {
         actionResult: "success",
         prId: created.id,
-        correlationId,
       },
       createTelemetrySource,
     );
@@ -818,7 +954,6 @@ const createEventAssistedPR = async (
       prId: created.id,
       entrySurface: "form_mode",
       entryType: "create_handoff",
-      correlationId,
     });
     await router.push(
       buildEventAssistedCreateTarget(created.canonicalPath, trigger),
@@ -833,7 +968,6 @@ const createEventAssistedPR = async (
             "EVENT_ASSISTED_CREATE_BLOCKED",
             t("anchorEvent.createCard.errors.wechatAuthRequired"),
           ),
-          correlationId,
         },
         createTelemetrySource,
       );
@@ -848,14 +982,15 @@ const createEventAssistedPR = async (
             ? error.message
             : t("anchorEvent.createCard.errors.createFailed"),
         ),
-        correlationId,
       },
       createTelemetrySource,
     );
     if (trigger === "auto_no_candidates") {
       selectionErrorMessage.value =
-        error instanceof Error
-          ? error.message
+        isCreateEventAssistedPRError(error)
+          ? resolveCreateErrorMessage(error)
+          : error instanceof Error
+            ? error.message
           : t("anchorEvent.createCard.errors.createFailed");
     }
     return false;
@@ -863,31 +998,30 @@ const createEventAssistedPR = async (
 };
 
 const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
-  const locationId = selectedLocationId.value;
+  const place = selectedPlace.value;
   const startAt = selectedStartAt.value;
-  if (!locationId || !isValidFormModeDateTime(startAt)) {
+  const timeWindows = buildRecommendationTimeWindows();
+  if (!place || !isValidFormModeDateTime(startAt) || !timeWindows) {
     return;
   }
 
   trackFormStarted("primary_cta");
   returnToSelection();
-  const splashFill = startJoinSplash(originRect);
-  const recommendationCorrelationId = createCommandCorrelationId();
   const selectedConditionPayload = buildSelectedConditionPayload();
-  if (selectedConditionPayload) {
-    trackEvent("anchor_event_recommendation_requested", {
-      ...selectedConditionPayload,
-      correlationId: recommendationCorrelationId,
-    });
+  if (!selectedConditionPayload) {
+    return;
   }
+  const splashFill = startJoinSplash(originRect);
+  trackEvent("anchor_event_recommendation_requested", {
+    ...selectedConditionPayload,
+  });
 
   try {
     const result = await recommendationMutation.mutateAsync({
       eventId: props.eventId,
-      locationId,
-      startAt,
+      place: buildRecommendationPlaceInput(place),
+      timeWindows,
       preferences: [...selectedPreferences.value],
-      correlationId: recommendationCorrelationId,
     });
     trackRecommendationExposure(result);
 
@@ -898,7 +1032,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
       matchedPrId: matchedPRId,
       candidateCount:
         result.orderedCandidates.length + (matchedPRId === null ? 0 : 1),
-      correlationId: recommendationCorrelationId,
     });
 
     if (matchedPRId !== null) {
@@ -908,7 +1041,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         targetPrId: matchedPRId,
         candidateRank: 1,
         entrySurface: "form_mode_matched",
-        correlationId: recommendationCorrelationId,
       });
       trackEvent("pr_entry_reached", {
         ...buildFormFunnelPayload(),
@@ -916,7 +1048,6 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         entrySurface: "form_mode_matched",
         entryType: "detail",
         candidateRank: 1,
-        correlationId: recommendationCorrelationId,
       });
       await splashFill;
       await waitForJoinSplashFallback(140);
@@ -958,42 +1089,28 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         ...resolveTelemetryFailurePayload(
           error,
           "ANCHOR_EVENT_RECOMMENDATION_FAILED",
-          selectionErrorMessage.value,
-        ),
-        correlationId: recommendationCorrelationId,
-      },
-    );
+        selectionErrorMessage.value,
+      ),
+    },
+  );
     await splashFill;
     await drainJoinSplash();
   }
 };
 
 const resolveSelectedTimeWindow = (): [string | null, string | null] => {
-  if (!isValidFormModeDateTime(selectedStartAt.value)) {
+  const createTimeWindow = selectedTimeSelection.value?.createTimeWindow ?? null;
+  if (!isValidFormModeDateTime(createTimeWindow?.startAt)) {
     return [null, null];
   }
 
-  const defaultOption = formModeData.value?.startOptions.find(
-    (option) => option.startAt === selectedStartAt.value,
-  );
-  if (defaultOption) {
-    return [defaultOption.startAt, defaultOption.endAt];
-  }
-
-  const durationMinutes = formModeData.value?.event.durationMinutes ?? null;
-  if (durationMinutes === null) {
-    return [selectedStartAt.value, null];
-  }
-
-  const endAt = new Date(
-    new Date(selectedStartAt.value).getTime() + durationMinutes * 60 * 1000,
-  ).toISOString();
-  return [selectedStartAt.value, endAt];
+  return [createTimeWindow.startAt, createTimeWindow.endAt];
 };
 
 const buildCreateFields = (): PartnerRequestFields | null => {
   const timeWindow = resolveSelectedTimeWindow();
-  if (!selectedLocationId.value || !timeWindow[0] || !timeWindow[1]) {
+  const place = selectedPlace.value;
+  if (!place || !timeWindow[0]) {
     return null;
   }
   if (!formModeData.value) {
@@ -1004,7 +1121,8 @@ const buildCreateFields = (): PartnerRequestFields | null => {
     title: undefined,
     type: formModeData.value.event.type,
     time: timeWindow,
-    location: selectedLocationId.value,
+    location: place.kind === "location" ? place.locationId : null,
+    route: place.kind === "route" ? place.route : null,
     minPartners: formModeData.value.event.defaultMinPartners ?? 2,
     maxPartners: formModeData.value.event.defaultMaxPartners ?? null,
     partners: [],
@@ -1068,6 +1186,10 @@ const isWeChatAuthBlockingError = (
   );
 };
 
+const isCreateEventAssistedPRError = (
+  error: unknown,
+): error is CreateEventAssistedPRError => error instanceof Error;
+
 const attemptPendingCreateReplay = async () => {
   if (pendingCreateReplayRunning.value) {
     return;
@@ -1100,22 +1222,32 @@ const attemptPendingCreateReplay = async () => {
   const pendingCreateTelemetrySource =
     typeof pendingStartAt === "string" && isValidFormModeDateTime(pendingStartAt)
       ? {
-          locationId: pending.fields.location,
+          place:
+            pending.fields.route !== null
+              ? ({
+                  kind: "route",
+                  routePoolEntryId: pending.routePoolEntryId ?? "",
+                  route: pending.fields.route,
+                } satisfies AnchorEventSelectedPlace)
+              : ({
+                  kind: "location",
+                  locationId: pending.fields.location ?? "",
+                } satisfies AnchorEventSelectedPlace),
           startAt: pendingStartAt,
           preferenceCount: pending.fields.preferences.length,
         }
       : null;
-  const correlationId = createCommandCorrelationId();
   try {
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
       handoff: pending.handoff,
-      correlationId,
+      allowEditAfterReady: pending.allowEditAfterReady ?? null,
       fields: {
         title: undefined,
         type: pending.fields.type,
         time: pending.fields.time,
         location: pending.fields.location,
+        route: pending.fields.route,
         minPartners: pending.fields.minPartners,
         maxPartners: pending.fields.maxPartners,
         partners: [],
@@ -1123,13 +1255,13 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
+      routePoolEntryId: pending.routePoolEntryId ?? null,
     });
     if (pendingCreateTelemetrySource) {
       trackEventAssistedCreateResult(
         {
           actionResult: "success",
           prId: created.id,
-          correlationId,
         },
         pendingCreateTelemetrySource,
       );
@@ -1153,7 +1285,6 @@ const attemptPendingCreateReplay = async () => {
               ? error.message
               : t("anchorEvent.createCard.errors.createFailed"),
           ),
-          correlationId,
         },
         pendingCreateTelemetrySource,
       );

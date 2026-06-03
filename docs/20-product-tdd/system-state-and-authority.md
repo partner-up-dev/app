@@ -4,15 +4,26 @@
 
 Persisted in Postgres via backend entities and repositories:
 
-- `PartnerRequest` as the single durable PR record, including PR-level meeting-point override configuration, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
+- `PartnerRequest` as the single durable PR record, including PR-level place facts (`location` or `PR.route`), PR-level meeting-point override configuration, PR-level post-ready edit policy, PR-level join-gate configuration, and PR-level mounted feedback questionnaire instance pointer
 - partner slots and participation state
 - PR messages and per-user PR message inbox state
 - users, including `users.phone_number`, user notification options, and user reliability
 - `users.wechat_official_account_followed_at` as the positive marker that the backend has confirmed a user follows the WeChat official account
-- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, support resources, booking-resource join-gate templates, booking-contact resolution derived from users and active participants, join-notice acceptances, and booking execution records
+- anchor events, event-specific beta-group QR codes, landing rollout config, event-owned preset preference tags and moderation state, event-owned default PR notes, event-owned join-gate templates, event-owned feedback questionnaire template pointers, unified event location pools, event-owned route pools, event-owned meeting-point defaults and location-specific meeting-point overrides, type-derived Anchor Event PR context, time-pool strategy state, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, and join-notice acceptances
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
 - config, operation logs, domain events, outbox events, jobs, notification opportunities, notification waves, and notification deliveries
-- analytics aggregate tables
+- analytics aggregate / projection tables, including user telemetry enrichment and BI facts
+- ecommerce merchandising truth, including Product Catalog (`SPU` / `SKU`),
+  Offer, Placement Instance, Offer pricing rules, SKU pricing models, SKU
+  facts, and SKU base cancellation policy
+- ecommerce trade truth, including Order, order snapshots, PR-attached order
+  relation, and order termination attempts
+- ecommerce family execution truth, including Rental execution fields on
+  `rental_orders` and RideHailing provider binding / execution fields on
+  `ride_hailing_orders`
+- ecommerce bill truth, including Bill, BillLine, and settlement derivation
+- ecommerce payment truth, including PaymentTx and gateway-facing payment state
+- Study Sprint Pomodoro room, participant session, event ledger, and session aggregate state
 
 This is the source of truth for product behavior.
 
@@ -29,7 +40,7 @@ These shape runtime behavior but remain backend-owned.
 - TanStack Query caches of backend data
 - route-local UI state
 - local message composer drafts and thread expansion/collapse state
-- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, bookmark-page nudge cooldown, official-account follow prompt cooldown, anchor-event landing mode stability, analytics session id, and `spm`
+- local and session storage for session tokens, anonymous user id, admin tokens, pending WeChat actions, official-account follow prompt cooldown, anchor-event landing mode stability, user telemetry `journey_id`, and `spm`
 - active route-share session state, currently selected share descriptor, and replay bookkeeping for WeChat/browser share flows
 
 This state improves UX and continuity but does not define product truth.
@@ -46,28 +57,36 @@ slots.
 The backend is authoritative for:
 
 - PartnerRequest and partner-slot state
+- PR edit capability, including which fields are editable in each status and any `allowEditAfterReady` constraints
+- persisted `PR.route`, route schema validation, location/route mutual exclusion, canonical route display label, PR detail/share display-title derivation, and canonical share metadata derivation
 - PR feedback questionnaire instance pointers
 - feedback questionnaire templates, instances, and responses
 - PR detail meeting-point fallback resolution
 - PR message visibility, read-marker progression, and notification wave gating
+- Study Sprint Pomodoro eligibility, room snapshot visibility, participant session persistence, event ledger writes, and aggregate focus-state projection
 - identity binding, session verification, and role semantics
 - confirmed WeChat official-account follow state derived from official-account follower-list sync
-- event, time-pool, POI, booking-support, and admin-managed configuration state
+- event, time-pool, POI, and admin-managed configuration state
 - POI submission status, submitter linkage, reviewer linkage, and rejection reason
 - `POI.id` is the durable integer identity; `POI.name` is the business location label used when matching `PR.location` and Anchor Event location-pool entries to POI-owned data.
-- PR join-gate configuration, join-gate projection, booking-contact resolution from active participant `users.phone_number`, and join-notice acceptance resolution
+- PR join-gate configuration, join-gate projection, and join-notice acceptance resolution
 - PR feedback questionnaire projection, including mounted instance and current viewer response state
+- ecommerce merchandising configuration and placement matching outcome
+- ecommerce order, family execution, bill, and payment persisted lifecycle truth
 - notification scheduling and dispatch for meeting-point update notifications
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
-- event-owned preference-tag pool, moderation state, default PR notes for future materialization, landing recommendation, and type-derived Anchor Event PR context
+- event-owned preference-tag pool, moderation state, default PR notes for future materialization, route pool, landing recommendation, and type-derived Anchor Event PR context
 - event-owned feedback questionnaire template pointer used for future PR materialization
-- event-specific beta-group QR codes; generic config must not be the owner for activity-specific beta-group entry
+- event-specific beta-group QR codes; generic config must not be the owner for Anchor Event beta-group entry
 - domain events, notifications, analytics persistence, and operation logs
+- user telemetry storage, event registry acceptance, telemetry enrichment, and BI projections
 
 The frontend is authoritative for:
 
 - route composition and page assembly
+- Study Sprint Pomodoro first-use guidance, local timer display, polling cadence, and lifecycle-event submission
 - UI-specific interaction state
+- route editor draft interaction state, map provider rendering state, marker/polyline presentation state, and viewport fitting behavior
 - browser-side storage and pending-action continuity
 - capability detection and fallback UX
 - client-side caching and invalidation strategy

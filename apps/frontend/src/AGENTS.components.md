@@ -116,6 +116,7 @@ Prohibited:
 - `shared/ui/actions/ActionLink.vue`: Shared action-looking link primitive for `<RouterLink>` and external `<a>` CTAs. Use `primary-outline` for primary-color outlined actions and `secondary` for secondary-family actions.
 - `shared/ui/actions/FeedbackButton.vue`: Shared transient feedback action button. Use `state="pending|success|error"` for short-lived action results instead of page-local `.success` / `.error` button treatments.
 - `shared/ui/containers/SurfaceCard.vue`: Standard card shell for reusable section, inset, and outline surfaces. Use it instead of re-declaring card shells in pages when the wrapper itself is a reusable primitive.
+- `shared/ui/containers/ExpandableCard.vue`: Collapsible card shell. Use `keep-content-mounted` only when collapsed content owns expensive local state or setup work; use `expanded-reset-key` with `default-expanded` when a parent needs to reset expansion without remounting the card.
 - `shared/ui/containers/ChoiceCard.vue`: Selectable card primitive for button-like choices and RouterLink navigation choices. Use it for repeated default/active selectable card shells without embedding domain semantics.
 - `shared/ui/layout/FullScreenPageScaffold.vue`: Viewport-height page scaffold with `header`, content, and `footer` regions. Use it when the main content should absorb remaining height and manage its own inner scrolling.
 - `shared/ui/layout/FooterRevealPageScaffold.vue`: Viewport-first page scaffold with `header`, content, and `footer` regions where `header + content` fill the first screen and the footer appears only after continued page scroll.
@@ -124,6 +125,8 @@ Prohibited:
 - `shared/ui/forms/ToggleSwitch.vue`: Shared labeled boolean switch primitive with `v-model` and switch semantics. Keep domain copy and workflow behavior in the consuming component.
 - `shared/ui/forms/WheelPicker.vue`: Shared finite vertical option picker for single-value choices. Use `modelValue`, `options`, `itemHeight`, `visibleCount`, and `tone`/`variant` values `surface`, `outline`, `primary`, `secondary`, `tertiary`; `teritary` is accepted as a compatibility alias.
 - `shared/ui/forms/ProductLocalDateCalendarPicker.vue`: Product-local date-key calendar grid for visible-window multi-select flows. Keep search policy such as defaults, fallback, and allowed-date derivation in the owning page or domain component.
+- `shared/ui/controls/SegmentedControl.vue`: Generic mutually exclusive segmented control for local mode selection. Keep domain copy and mode semantics in the consuming component; use option-level `testId` when route/scenario coverage needs stable interactive nodes.
+- `shared/map/Map.vue`: Generic Tencent LBS-backed map wrapper with typed marker, polyline, active-geometry, and viewport padding props. Keep domain-specific projection in the consuming domain.
 - `shared/ui/display/InfoRow.vue`: Generic label/value row with inline or stacked layout. Use it for neutral metadata presentation, not domain-specific timeline or status logic.
 - `shared/ui/display/InfoRowAction.vue`: Generic label row with a trailing inline button. Use it when metadata should keep InfoRow visual rhythm while only the right-side affordance is clickable.
 - `shared/ui/display/Cell.vue`: Generic single-line cell for title/value rows with an optional suffix icon or suffix slot. Use it for compact settings/list rows that need a Wot-style cell treatment without domain-specific behavior. Pass `border` to show the bottom divider.
@@ -137,7 +140,11 @@ Prohibited:
 - `domains/event/ui/composites/AnchorEventRadioCardCarousel.vue`: Event-domain carousel selector that centers and enlarges the selected Anchor Event card while keeping event-card content reuse local to the event domain.
 - `domains/pr/ui/primitives/PRPreviewCard.vue`: PR-domain preview card for PR list rows and search results. Accepts `prId`, owns the PR detail query, and supports route override, cover image, contextual time label, and an `actions` slot. Keep canonical PR facts inside the owned detail query; keep call-site props limited to caller context.
 - `domains/pr/ui/forms/DateTimeRangePicker.vue`: Standalone time-window picker for start/end date-time.
-- `domains/pr/ui/forms/PRForm.vue`: Structured PR create/edit form using `src/lib/validation`.
+- `domains/pr/ui/forms/PREditor.vue`: Unified structured PR create/edit editor using `src/lib/validation`; pass `prId` only for edit mode.
+- `domains/route/ui/RouteEditor.vue`: Generic route editor with compact route rows, waypoint add/remove, map preview toggle, and `LocationPicker` handoff for point selection.
+- `domains/route/ui/RouteMap.vue`: Generic route display wrapper over `shared/map/Map.vue`; consuming domains own payload conversion and planned polyline sourcing.
+- `domains/route/ui/RoutePointList.vue`: Generic compact/detail ordered route-point list with role dots; consuming domains choose whether to show addresses.
+- `domains/location/ui/LocationPickerPanel.vue`: Generic Tencent `componentPicker`-backed location picker that returns `PickedLocation`; consuming domains map the picked location into their own payload shape.
 - `domains/share/ui/composites/PRShareCarousel.vue`: Share-method carousel host.
 - `domains/share/ui/methods/as-link/ShareAsLink.vue`: Link-sharing method UI.
 - `domains/share/ui/methods/xhs/ShareToXiaohongshu.vue`: Xiaohongshu sharing method UI.

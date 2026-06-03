@@ -138,3 +138,49 @@ test("sendWaitlistPromotedNotification maps waitlist fields to subscription keyw
     },
   });
 });
+
+test("sendPRReadyNotification maps ready fields to subscription keywords", async () => {
+  const { WeChatSubscriptionMessageService } = await import(
+    "./WeChatSubscriptionMessageService"
+  );
+  const service = new WeChatSubscriptionMessageService();
+  type CapturedMessage = {
+    kind: string;
+    openId: string;
+    page: string | null;
+    data: Record<string, { value: string }>;
+  };
+  let captured: CapturedMessage | null = null;
+
+  (
+    service as unknown as {
+      sendSubscribeMessage: (
+        input: CapturedMessage,
+      ) => Promise<string | number | null>;
+    }
+  ).sendSubscribeMessage = async (input) => {
+    captured = input;
+    return null;
+  };
+
+  await service.sendPRReadyNotification({
+    openId: "openid-ready",
+    title: "周五羽球搭子",
+    type: "羽毛球",
+    status: "已就绪",
+    remark: "已成团，可下单；不可直接加入退出",
+    page: "/pr/231",
+  });
+
+  assert.deepEqual(captured, {
+    kind: "PR_READY",
+    openId: "openid-ready",
+    page: "/pr/231",
+    data: {
+      thing1: { value: "周五羽球搭子" },
+      thing2: { value: "羽毛球" },
+      phrase6: { value: "已就绪" },
+      thing4: { value: "已成团，可下单；不可直接加入退出" },
+    },
+  });
+});

@@ -39,7 +39,7 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: null,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Scenario temporal auto close",
     });
 

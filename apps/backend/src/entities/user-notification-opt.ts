@@ -12,9 +12,9 @@ import { users, type UserId } from "./user";
 export const wechatNotificationKindSchema = z.enum([
   "REMINDER_CONFIRMATION",
   "ACTIVITY_START_REMINDER",
-  "BOOKING_RESULT",
   "NEW_PARTNER",
   "MEETING_POINT_UPDATED",
+  "PR_READY",
   "WAITLIST_PROMOTED",
   "WAITLIST_ALTERNATIVE_AVAILABLE",
   "PR_MESSAGE",
@@ -48,15 +48,6 @@ export const userNotificationOpts = pgTable("user_notification_opts", {
   )
     .notNull()
     .default(0),
-  wechatBookingResultOptIn: boolean("wechat_booking_result_opt_in")
-    .notNull()
-    .default(false),
-  wechatBookingResultOptInAt: timestamp("wechat_booking_result_opt_in_at"),
-  wechatBookingResultRemainingCount: integer(
-    "wechat_booking_result_remaining_count",
-  )
-    .notNull()
-    .default(0),
   wechatNewPartnerOptIn: boolean("wechat_new_partner_opt_in")
     .notNull()
     .default(false),
@@ -73,6 +64,13 @@ export const userNotificationOpts = pgTable("user_notification_opts", {
   wechatMeetingPointUpdatedRemainingCount: integer(
     "wechat_meeting_point_updated_remaining_count",
   )
+    .notNull()
+    .default(0),
+  wechatPrReadyOptIn: boolean("wechat_pr_ready_opt_in")
+    .notNull()
+    .default(false),
+  wechatPrReadyOptInAt: timestamp("wechat_pr_ready_opt_in_at"),
+  wechatPrReadyRemainingCount: integer("wechat_pr_ready_remaining_count")
     .notNull()
     .default(0),
   wechatWaitlistPromotedOptIn: boolean("wechat_waitlist_promoted_opt_in")

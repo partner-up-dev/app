@@ -10,6 +10,11 @@ type ConsumeWeChatOAuthHandoffOptions = {
   signal?: AbortSignal;
 };
 
+export type ConsumeWeChatOAuthHandoffResult = {
+  consumed: boolean;
+  traceId?: string;
+};
+
 const resolveCurrentUrl = (): URL | null => {
   if (typeof window === "undefined") return null;
 
@@ -43,10 +48,10 @@ export const hasPendingWeChatOAuthHandoff = (): boolean => {
 
 export const consumeWeChatOAuthHandoff = async (
   options: ConsumeWeChatOAuthHandoffOptions = {},
-): Promise<boolean> => {
+): Promise<ConsumeWeChatOAuthHandoffResult> => {
   const url = resolveCurrentUrl();
   const handoff = url?.searchParams.get(WECHAT_OAUTH_HANDOFF_QUERY_PARAM);
-  if (!handoff) return false;
+  if (!handoff) return { consumed: false };
 
   const res = await client.api.wechat.oauth.handoff.$get(
     {
@@ -61,17 +66,20 @@ export const consumeWeChatOAuthHandoff = async (
   );
 
   if (!res.ok) {
-    return false;
+    return { consumed: false };
   }
 
   const payload = await res.json();
   if (!payload.ok) {
-    return false;
+    return { consumed: false };
   }
 
   const userSessionStore = useUserSessionStore();
   userSessionStore.applyAuthSession(payload.auth);
   clearWeChatOAuthHandoffFromAddressBar();
   clearWeChatOAuthLoginPending();
-  return true;
+  return {
+    consumed: true,
+    traceId: payload.traceId ?? undefined,
+  };
 };

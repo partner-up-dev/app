@@ -6,7 +6,7 @@
     <template v-else-if="prDetail">
       <h2 class="facts-title">活动信息</h2>
 
-      <section class="facts-entry">
+      <section v-if="showLocationSection" class="facts-entry">
         <Button
           v-if="interactive && locationGalleryAvailable"
           class="facts-entry-button"
@@ -31,15 +31,58 @@
         </Button>
 
         <InfoRow v-else :label="t('prCard.location')">
-          {{ prDetail.core.location ?? t("prPage.partnerSection.notSet") }}
+          <span class="facts-inline-value">
+            <span>{{ locationDisplayText }}</span>
+            <span v-if="locationEditableAfterReady" class="facts-editable-mark">
+              可调整
+            </span>
+          </span>
         </InfoRow>
 
         <p
           v-if="interactive && locationGalleryAvailable"
           class="facts-entry__value"
         >
-          {{ prDetail.core.location ?? t("prPage.partnerSection.notSet") }}
+          <span class="facts-inline-value">
+            <span>{{ locationDisplayText }}</span>
+            <span v-if="locationEditableAfterReady" class="facts-editable-mark">
+              可调整
+            </span>
+          </span>
         </p>
+      </section>
+
+      <section
+        v-if="routeAvailable"
+        class="facts-entry"
+        data-testid="pr-detail.route"
+      >
+        <InfoRowAction
+          v-if="interactive"
+          :label="t('prCard.route')"
+          :value="t('prCard.viewRouteMap')"
+          :aria-label="
+            t('prCard.viewRouteMapAria', {
+              route: routeDisplayText,
+            })
+          "
+          @click="showRouteMapModal = true"
+        />
+
+        <InfoRow v-else :label="t('prCard.route')">
+          <span class="facts-inline-value">
+            <span>{{ routeDisplayText }}</span>
+            <span v-if="routeEditableAfterReady" class="facts-editable-mark">
+              可调整
+            </span>
+          </span>
+        </InfoRow>
+
+        <RoutePointList
+          class="facts-route-list"
+          :route="prRoute"
+          variant="compact"
+        />
       </section>
 
       <section
@@ -88,7 +131,14 @@
       </section>
 
       <InfoRow :label="t('prCard.time')">
-        {{ localizedTimeText }}
+        <span class="facts-inline-value">
+          <span data-testid="pr-detail.facts.time-value">
+            {{ localizedTimeText }}
+          </span>
+          <span v-if="timeEditableAfterReady" class="facts-editable-mark">
+            可调整
+          </span>
+        </span>
       </InfoRow>
 
       <InfoRow
@@ -175,6 +225,14 @@
     :title="t('prCard.meetingPointImageTitle')"
     @close="showMeetingPointGalleryModal = false"
   />
+
+  <PRRouteMapModal
+    v-if="interactive"
+    :open="showRouteMapModal"
+    :route="prRoute"
+    :title="t('prCard.routeMapTitle')"
+    @close="showRouteMapModal = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -191,12 +249,15 @@ import Button from "@/shared/ui/actions/Button.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
+import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
 import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRLocationGallery } from "@/domains/pr/use-cases/usePRLocationGallery";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
+import { buildRouteEndpointLabel } from "@/domains/route/model/route";
+import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
 type RosterPreviewItem = PRPartnerSectionView["roster"][number];
 
@@ -225,9 +286,13 @@ const { data, isLoading, error } = usePRDetail(prId);
 const prDetail = computed(() => data.value);
 const showLocationGalleryModal = ref(false);
 const showMeetingPointGalleryModal = ref(false);
+const showRouteMapModal = ref(false);
 const showRosterModal = ref(false);
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const FACTS_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s(.+)$/;
+
+const normalizeDisplayText = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim() ?? "";
+  return normalized.length > 0 ? normalized : null;
+};
 
 const { locationId, locationGallery } = usePRLocationGallery(
   computed(() => prDetail.value?.core.location ?? null),
@@ -240,6 +305,28 @@ watch(locationId, () => {
 const locationGalleryAvailable = computed(
   () => locationGallery.value.length > 0,
 );
+
+const prRoute = computed(() => prDetail.value?.core.route ?? null);
+const routeAvailable = computed(() => (prRoute.value?.length ?? 0) >= 2);
+const locationDisplayName = computed(() =>
+  normalizeDisplayText(prDetail.value?.core.location),
+);
+const locationDisplayText = computed(
+  () => locationDisplayName.value ?? t("prPage.partnerSection.notSet"),
+);
+const showLocationSection = computed(
+  () => locationDisplayName.value !== null || !routeAvailable.value,
+);
+const routeDisplayText = computed(
+  () =>
+    buildRouteEndpointLabel(prRoute.value) ??
+    normalizeDisplayText(prDetail.value?.core.placeDisplayName) ??
+    t("prPage.partnerSection.notSet"),
+);
+
+watch(prRoute, () => {
+  showRouteMapModal.value = false;
+});
 
 const meetingPointDescription = computed(() => {
   const description =
@@ -272,100 +359,25 @@ const hasPreferences = computed(
   () => (prDetail.value?.core.preferences.length ?? 0) > 0,
 );
 
-const extractFactsTimeDatePart = (formatted: string | null): string | null => {
-  if (!formatted) {
-    return null;
-  }
-
-  const matched = formatted.match(FACTS_TIME_PATTERN);
-  if (!matched) {
-    return null;
-  }
-
-  return `${matched[1]}-${matched[2]}-${matched[3]}`;
-};
-
-const resolveRelativeDayLabelByDate = (
-  year: number,
-  month: number,
-  day: number,
-): "今天" | "明天" | "后天" | null => {
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day)
-  ) {
-    return null;
-  }
-
-  const today = new Date();
-  const todayStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-  const targetStart = new Date(year, month - 1, day);
-  if (Number.isNaN(targetStart.getTime())) {
-    return null;
-  }
-
-  const diffDays = Math.round(
-    (targetStart.getTime() - todayStart.getTime()) / DAY_IN_MS,
-  );
-  if (diffDays === 0) {
-    return "今天";
-  }
-
-  if (diffDays === 1) {
-    return "明天";
-  }
-
-  if (diffDays === 2) {
-    return "后天";
-  }
-
-  return null;
-};
-
-const formatFactsTimePoint = (
-  formatted: string | null,
-  includeRelativeDayLabel: boolean,
-): string | null => {
-  if (!formatted || !includeRelativeDayLabel) {
-    return formatted;
-  }
-
-  const matched = formatted.match(FACTS_TIME_PATTERN);
-  if (!matched) {
-    return formatted;
-  }
-
-  const year = Number(matched[1]);
-  const month = Number(matched[2]);
-  const day = Number(matched[3]);
-  const timePart = matched[4];
-  const relativeDayLabel = resolveRelativeDayLabelByDate(year, month, day);
-  if (!relativeDayLabel) {
-    return formatted;
-  }
-
-  const datePart = `${matched[1]}-${matched[2]}-${matched[3]}`;
-  return `${datePart} (${relativeDayLabel}) ${timePart}`;
-};
-
 const localizedTimeText = computed(() => {
-  const [startRaw, endRaw] = prDetail.value?.core.time ?? [null, null];
-  const startBase = formatLocalDateTimeValue(startRaw);
-  const endBase = formatLocalDateTimeValue(endRaw);
-  const sameDay =
-    extractFactsTimeDatePart(startBase) !== null &&
-    extractFactsTimeDatePart(startBase) === extractFactsTimeDatePart(endBase);
-  const start = formatFactsTimePoint(startBase, true);
-  const end = formatFactsTimePoint(endBase, !sameDay);
-
-  if (start && end) return `${start} - ${end}`;
-  return start ?? end ?? t("prPage.partnerSection.notSet");
+  return formatFriendlyTimeWindowLabel(
+    prDetail.value?.core.time ?? [null, null],
+    t("prPage.partnerSection.notSet"),
+  );
 });
+
+const timeEditableAfterReady = computed(() =>
+  prDetail.value?.editPostReadyCapability.editableFields.includes("time") ??
+  false,
+);
+const locationEditableAfterReady = computed(() =>
+  prDetail.value?.editPostReadyCapability.editableFields.includes("location") ??
+  false,
+);
+const routeEditableAfterReady = computed(() =>
+  prDetail.value?.editPostReadyCapability.editableFields.includes("route") ??
+  false,
+);
 
 const participantCountText = computed(() => {
   if (!prDetail.value) return "";
@@ -442,6 +454,10 @@ watch(
   display: flex;
 }
 
+.facts-route-list {
+  padding-top: calc(var(--sys-spacing-xsmall) / 2);
+}
+
 .facts-entry-button {
   padding: 0 !important;
   border: none;
@@ -485,6 +501,24 @@ watch(
 
 .facts-empty {
   @include mx.pu-font(body-small);
+  color: var(--sys-color-on-surface-variant);
+}
+
+.facts-inline-value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.facts-editable-mark {
+  @include mx.pu-font(label-small);
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 var(--sys-spacing-xsmall);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface-variant);
   color: var(--sys-color-on-surface-variant);
 }
 

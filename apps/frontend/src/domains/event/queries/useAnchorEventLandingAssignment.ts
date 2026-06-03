@@ -24,6 +24,9 @@ export type AnchorEventLandingAssignmentResponse = InferResponseType<
 
 export const useAnchorEventLandingAssignment = (
   eventId: Ref<number | null>,
+  options?: {
+    enabled?: Ref<boolean>;
+  },
 ) =>
   useQuery<AnchorEventLandingAssignmentResponse>({
     queryKey: computed(() => queryKeys.anchorEvent.landingAssignment(eventId.value)),
@@ -71,5 +74,5 @@ export const useAnchorEventLandingAssignment = (
         }
       }
     },
-    enabled: () => eventId.value !== null,
+    enabled: () => eventId.value !== null && (options?.enabled?.value ?? true),
   });

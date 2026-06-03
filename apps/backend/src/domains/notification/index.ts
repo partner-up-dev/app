@@ -1,8 +1,8 @@
 export {
   ACTIVITY_START_REMINDER_NOTIFICATION_KIND,
-  BOOKING_RESULT_NOTIFICATION_KIND,
   MEETING_POINT_UPDATED_NOTIFICATION_KIND,
   NEW_PARTNER_NOTIFICATION_KIND,
+  PR_READY_NOTIFICATION_KIND,
   PR_MESSAGE_NOTIFICATION_KIND,
   REMINDER_CONFIRMATION_NOTIFICATION_KIND,
   WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND,
@@ -42,20 +42,6 @@ export {
   type PRMessageNotificationJobPayload,
   type PRMessageNotificationScheduler,
 } from "./model/pr-message-notification";
-export {
-  bookingResultNotificationJobPayloadSchema,
-  buildBookingResultDedupeKey,
-  clearBookingResultNotificationCredits,
-  consumeBookingResultNotificationCredit,
-  createBookingResultNotificationSummary,
-  persistBookingResultNotificationSummary,
-  prepareBookingResultNotificationDispatch,
-  recordBookingResultNotificationDelivery,
-  resolveBookingResultStatusLabel,
-  type BookingResultDispatchPreparation,
-  type BookingResultNotificationJobPayload,
-  type BookingResultNotificationSummary,
-} from "./services/booking-result-dispatch.service";
 export {
   activityStartReminderNotificationJobPayloadSchema,
   buildActivityStartReminderDedupeKey,
@@ -108,6 +94,18 @@ export {
   type MeetingPointUpdatedDispatchPreparation,
   type MeetingPointUpdatedNotificationJobPayload,
 } from "./services/meeting-point-updated-dispatch.service";
+export {
+  buildPRReadyDedupeKey,
+  buildPRReadyDedupePrefixForUser,
+  clearPRReadyNotificationCredits,
+  collectPRReadyNotificationRecipients,
+  consumePRReadyNotificationCredit,
+  preparePRReadyNotificationDispatch,
+  prReadyNotificationJobPayloadSchema,
+  recordPRReadyNotificationDelivery,
+  type PRReadyDispatchPreparation,
+  type PRReadyNotificationJobPayload,
+} from "./services/pr-ready-dispatch.service";
 export {
   buildWaitlistPromotedDedupeKey,
   buildWaitlistPromotedDedupePrefixForUser,

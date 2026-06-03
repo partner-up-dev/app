@@ -157,60 +157,35 @@
         class="card-empty__create"
         data-region="create-pr"
       >
-        <label
-          v-if="resolvedCardCreateTimeWindowOptions.length > 0"
-          class="card-empty__field"
-        >
-          <span class="card-empty__label">{{
-            t("anchorEvent.card.batchLabel")
-          }}</span>
-          <select
-            :value="resolvedCardCreateTimeWindowKey ?? ''"
-            class="card-empty__input"
-            @change="handleCardCreateTimeWindowChange"
-          >
-            <option
-              v-for="option in resolvedCardCreateTimeWindowOptions"
-              :key="option.key"
-              :value="option.key"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventAssistedPRTimeWindowInlineEditor
+          :anchor-event-id="eventIdValue"
+          :model-value="resolvedCardCreateTimeWindow"
+          :allow-edit-after-ready="resolvedCardCreateAllowEditAfterReady"
+          @update:model-value="handleCardCreateTimeWindowChange"
+          @update:allow-edit-after-ready="
+            handleCardCreateAllowEditAfterReadyChange
+          "
+        />
 
-        <label
-          v-if="resolvedCardCreateTimeWindowOptions.length > 0"
-          class="card-empty__field"
-        >
-          <span class="card-empty__label">{{
-            t("anchorEvent.createCard.locationLabel")
-          }}</span>
-          <select
-            :value="resolvedCardCreateLocationId"
-            class="card-empty__input"
-            @change="handleCardCreateLocationChange"
-          >
-            <option
-              v-for="option in resolvedCardCreateLocationOptions"
-              :key="option.locationId"
-              :value="option.locationId"
-              :disabled="option.disabled"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventInlinePlaceSelector
+          v-if="resolvedCardCreatePlaceOptions.length > 0"
+          :model-value="resolvedCardCreatePlaceId"
+          :options="resolvedCardCreatePlaceOptions"
+          :label="resolvedCardCreatePlaceLabel"
+          :placeholder="resolvedCardCreatePlacePlaceholder"
+          @update:model-value="handleCardCreatePlaceChange"
+        />
 
-        <p v-if="resolvedCreateActionErrorMessage" class="card-empty__error">
-          {{ resolvedCreateActionErrorMessage }}
+        <p v-if="resolvedCardCreateErrorMessage" class="card-empty__error">
+          {{ resolvedCardCreateErrorMessage }}
         </p>
 
         <Button
           type="button"
           appearance="pill"
           size="sm"
-          :disabled="resolvedIsCreatePending"
+          data-testid="anchor-event-card-mode.empty-create"
+          :disabled="isCardCreateDisabled"
           @click="emitCreateFromCardEmpty"
         >
           {{
@@ -229,6 +204,7 @@
     </div>
 
     <AnchorEventBetaGroupCard
+      v-if="resolvedEventBetaGroupQrCode !== null"
       :event-id="eventIdValue"
       :event-title="resolvedEventTitle"
       :qr-code-url="resolvedEventBetaGroupQrCode"
@@ -239,12 +215,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onUnmounted, ref, watch } from "vue";
+import {
+  computed,
+  onActivated,
+  onDeactivated,
+  onUnmounted,
+  ref,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import AnchorEventDemandCard from "@/domains/event/ui/primitives/AnchorEventDemandCard.vue";
 import AnchorEventBetaGroupCard from "@/domains/event/ui/primitives/AnchorEventBetaGroupCard.vue";
 import OtherAnchorEventsSection from "@/domains/event/ui/sections/OtherAnchorEventsSection.vue";
+import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
+import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
@@ -253,12 +238,22 @@ import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
 } from "@/domains/event/model/poi-gallery";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  findAnchorEventPlaceOption,
+  getExclusiveCreateTimeWindowLocationOptions,
+  getFirstEnabledPlaceOption,
+  hasEnabledCreateTimeWindowPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+} from "@/domains/event/model/place-options";
 import { usePoisByIds } from "@/shared/poi/queries/usePoisByIds";
 import {
-  formatTimeWindowOptionLabel,
   hasTimeWindowStarted,
   resolveTimeWindowStartTimestamp,
+  type TimeWindow,
 } from "@/domains/event/model/time-window-view";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { useEventAssistedPRCreateFlow } from "@/domains/event/use-cases/useEventAssistedPRCreateFlow";
 import { useReducedMotion } from "@/shared/motion/useReducedMotion";
 import {
@@ -275,11 +270,7 @@ import {
   anchorEventCardModeSurfaceDefaults,
   type AnchorEventCardModeSurfaceEmits,
   type AnchorEventCardModeSurfaceProps,
-  type CardCreateLocationOption,
-  type CardTimeWindowOption,
-  type CreateTimeWindowEntry,
   type FrontDemandCardHandle,
-  type LocationOption,
 } from "./AnchorEventCardModeSurface";
 
 const props = withDefaults(
@@ -300,8 +291,10 @@ const hasConsumedDragHintWindow = ref(false);
 const processedCardKeys = ref<string[]>([]);
 const internalCardActionError = ref<string | null>(null);
 const internalIsCardRouting = ref(false);
-const internalCardCreateTimeWindowKey = ref<string | null>(null);
-const internalCardCreateLocationId = ref("");
+const internalCardCreateTimeWindow = ref<TimeWindow | null>(null);
+const internalCardCreateAllowEditAfterReady =
+  ref<PRAllowEditAfterReady | null>(null);
+const internalCardCreatePlaceId = ref<string | null>(null);
 const internalDragHintToken = ref(0);
 let internalCardDragHintTimerId: number | null = null;
 
@@ -339,25 +332,6 @@ const isError = computed(
     (isDetailError.value || isDemandCardsError.value),
 );
 
-watch(
-  detail,
-  (event) => {
-    if (isControlled.value) {
-      return;
-    }
-    emit(
-      "header-context",
-      event
-        ? {
-            title: event.title,
-            subtitle: event.description ?? null,
-          }
-        : null,
-    );
-  },
-  { immediate: true },
-);
-
 const sortedCreateTimeWindows = computed(() => {
   const timeWindows = detail.value?.createTimeWindows ?? [];
   return [...timeWindows].sort((left, right) => {
@@ -382,6 +356,24 @@ const allPoiIdsCsv = computed(() => {
       uniqueLocationIds.add(location);
     }
   }
+  for (const entry of sortedCreateTimeWindows.value) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
+  for (const option of detail.value?.placeSelector.options ?? []) {
+    if (option.kind !== "location") {
+      continue;
+    }
+
+    const locationId = option.locationId.trim();
+    if (locationId.length > 0) {
+      uniqueLocationIds.add(locationId);
+    }
+  }
 
   if (uniqueLocationIds.size === 0) {
     return null;
@@ -392,6 +384,9 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -479,32 +474,21 @@ const cardEmptySubtitle = computed(() =>
     : t("anchorEvent.card.emptySubtitle"),
 );
 
-const formatCreateTimeWindowOptionLabel = (
-  entry: CreateTimeWindowEntry,
-  index: number,
-): string =>
-  formatTimeWindowOptionLabel(
-    entry.timeWindow,
-    index,
-    t("anchorEvent.batchLabel"),
-    entry.description,
-  );
+const timeWindowsEqual = (
+  left: TimeWindow | null | undefined,
+  right: TimeWindow | null | undefined,
+): boolean =>
+  (left?.[0] ?? null) === (right?.[0] ?? null) &&
+  (left?.[1] ?? null) === (right?.[1] ?? null);
 
-const internalCardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() =>
-  upcomingSortedCreateTimeWindows.value.map((entry, index) => ({
-    key: entry.key,
-    label: formatCreateTimeWindowOptionLabel(entry, index),
-  })),
-);
-
-const resolveFirstCreatableTimeWindowKey = (): string | null => {
+const resolveFirstCreatableTimeWindow = (): TimeWindow | null => {
   for (const entry of upcomingSortedCreateTimeWindows.value) {
-    if (entry.locationOptions.some((option) => !option.disabled)) {
-      return entry.key;
+    if (hasEnabledCreateTimeWindowPlaceOption(entry)) {
+      return entry.timeWindow;
     }
   }
 
-  return upcomingSortedCreateTimeWindows.value[0]?.key ?? null;
+  return upcomingSortedCreateTimeWindows.value[0]?.timeWindow ?? null;
 };
 
 watch(
@@ -515,114 +499,144 @@ watch(
     }
 
     if (timeWindows.length === 0) {
-      internalCardCreateTimeWindowKey.value = null;
+      internalCardCreateTimeWindow.value = null;
       return;
     }
 
     const current = timeWindows.find(
-      (entry) => entry.key === internalCardCreateTimeWindowKey.value,
+      (entry) => timeWindowsEqual(entry.timeWindow, internalCardCreateTimeWindow.value),
     );
     if (current) {
       return;
     }
 
-    internalCardCreateTimeWindowKey.value = resolveFirstCreatableTimeWindowKey();
+    internalCardCreateTimeWindow.value = resolveFirstCreatableTimeWindow();
   },
   { immediate: true },
 );
 
 const selectedInternalCardCreateTimeWindow = computed(() => {
-  const key = internalCardCreateTimeWindowKey.value;
-  if (key === null) {
+  const timeWindow = internalCardCreateTimeWindow.value;
+  if (timeWindow === null) {
     return null;
   }
 
   return (
-    upcomingSortedCreateTimeWindows.value.find((entry) => entry.key === key) ??
+    upcomingSortedCreateTimeWindows.value.find((entry) =>
+      timeWindowsEqual(entry.timeWindow, timeWindow),
+    ) ??
     null
   );
 });
 
-const internalCardCreateLocationOptions = computed<LocationOption[]>(() => {
-  return selectedInternalCardCreateTimeWindow.value?.locationOptions ?? [];
-});
+const internalCardCreatePlaceSelector = computed(
+  () =>
+    selectedInternalCardCreateTimeWindow.value?.placeSelector ??
+    detail.value?.placeSelector ??
+    null,
+);
 
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
-
-const internalCardCreateLocationOptionViewModels = computed<
-  CardCreateLocationOption[]
->(() =>
-  internalCardCreateLocationOptions.value.map((option) => ({
-    locationId: option.locationId,
-    label: formatLocationOptionLabel(option),
-    disabled: option.disabled,
-  })),
+const internalCardCreatePlaceOptions = computed<AnchorEventPlaceOption[]>(() =>
+  buildCreateTimeWindowPlaceOptions({
+    placeSelector: internalCardCreatePlaceSelector.value,
+    locationOptions:
+      selectedInternalCardCreateTimeWindow.value?.locationOptions ?? [],
+    routeOptions: selectedInternalCardCreateTimeWindow.value?.routeOptions ?? [],
+    poiByName: poiByName.value,
+  }),
 );
 
 watch(
-  internalCardCreateLocationOptions,
+  internalCardCreatePlaceOptions,
   (options) => {
     if (isControlled.value) {
       return;
     }
 
     if (
-      internalCardCreateLocationId.value.length > 0 &&
+      internalCardCreatePlaceId.value !== null &&
       options.some(
         (option) =>
-          option.locationId === internalCardCreateLocationId.value &&
-          !option.disabled,
+          option.id === internalCardCreatePlaceId.value && !option.disabled,
       )
     ) {
       return;
     }
 
-    const firstAvailable = options.find((option) => !option.disabled);
-    internalCardCreateLocationId.value = firstAvailable?.locationId ?? "";
+    internalCardCreatePlaceId.value = getFirstEnabledPlaceOption(options)?.id ?? null;
   },
   { immediate: true, deep: true },
 );
 
-const resolvedCardCreateTimeWindowOptions = computed(() =>
+const resolvedCardCreateTimeWindow = computed(() =>
   isControlled.value
-    ? props.cardCreateTimeWindowOptions
-    : internalCardCreateTimeWindowOptions.value,
+    ? props.cardCreateTimeWindow
+    : internalCardCreateTimeWindow.value,
 );
-const resolvedCardCreateTimeWindowKey = computed(() =>
+const resolvedCardCreateAllowEditAfterReady = computed(() =>
   isControlled.value
-    ? props.cardCreateTimeWindowKey
-    : internalCardCreateTimeWindowKey.value,
+    ? props.cardCreateAllowEditAfterReady
+    : internalCardCreateAllowEditAfterReady.value,
 );
-const resolvedCardCreateLocationId = computed(() =>
-  isControlled.value
-    ? props.cardCreateLocationId
-    : internalCardCreateLocationId.value,
+const resolvedCardCreatePlaceId = computed(() =>
+  isControlled.value ? props.cardCreatePlaceId : internalCardCreatePlaceId.value,
 );
-const resolvedCardCreateLocationOptions = computed(() =>
+const resolvedCardCreatePlaceOptions = computed(() =>
   isControlled.value
-    ? props.cardCreateLocationOptions
-    : internalCardCreateLocationOptionViewModels.value,
+    ? props.cardCreatePlaceOptions
+    : internalCardCreatePlaceOptions.value,
+);
+const internalCardCreatePlaceLabel = computed(() =>
+  t(
+    internalCardCreatePlaceSelector.value?.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const internalCardCreatePlacePlaceholder = computed(() =>
+  t(
+    internalCardCreatePlaceSelector.value?.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
+);
+const resolvedCardCreatePlaceLabel = computed(() =>
+  isControlled.value
+    ? (props.cardCreatePlaceLabel ?? t("anchorEvent.placeSelector.locationLabel"))
+    : internalCardCreatePlaceLabel.value,
+);
+const resolvedCardCreatePlacePlaceholder = computed(() =>
+  isControlled.value
+    ? (props.cardCreatePlacePlaceholder ??
+      t("anchorEvent.placeSelector.locationPlaceholder"))
+    : internalCardCreatePlacePlaceholder.value,
+);
+const resolvedCardCreateSelectedPlace = computed(() =>
+  toAnchorEventSelectedPlace(
+    findAnchorEventPlaceOption(
+      resolvedCardCreatePlaceOptions.value,
+      resolvedCardCreatePlaceId.value,
+    ),
+  ),
+);
+const cardCreateValidationMessage = computed(() => {
+  const timeWindow = resolvedCardCreateTimeWindow.value;
+  if (
+    (timeWindow?.[0] ?? null) === null ||
+    (timeWindow?.[1] ?? null) === null
+  ) {
+    return t("anchorEvent.createCard.errors.missingTimeWindow");
+  }
+
+  if (resolvedCardCreateSelectedPlace.value === null) {
+    return t("anchorEvent.createCard.errors.missingPlace");
+  }
+
+  return null;
+});
+const resolvedCardCreateErrorMessage = computed(
+  () => resolvedCreateActionErrorMessage.value ?? cardCreateValidationMessage.value,
+);
+const isCardCreateDisabled = computed(
+  () => resolvedIsCreatePending.value || cardCreateValidationMessage.value !== null,
 );
 
 const syncCardOverflowGuard = (enabled: boolean) => {
@@ -889,6 +903,9 @@ const emitCreateFromCardEmpty = () => {
   if (!resolvedCanUserCreatePR.value) {
     return;
   }
+  if (cardCreateValidationMessage.value !== null) {
+    return;
+  }
 
   if (isControlled.value) {
     emit("create-from-card-empty");
@@ -896,47 +913,37 @@ const emitCreateFromCardEmpty = () => {
   }
 
   void createEventAssistedPR({
-    targetTimeWindow:
-      selectedInternalCardCreateTimeWindow.value?.timeWindow ?? null,
-    locationId: internalCardCreateLocationId.value || null,
+    targetTimeWindow: resolvedCardCreateTimeWindow.value,
+    allowEditAfterReady: resolvedCardCreateAllowEditAfterReady.value,
+    place: resolvedCardCreateSelectedPlace.value,
     entrySurface: "card_rich",
   });
 };
 
-const handleCardCreateTimeWindowChange = (event: Event) => {
-  const select = event.target;
-  if (!(select instanceof HTMLSelectElement)) {
-    return;
-  }
-
-  const nextValue = select.value.trim();
-  if (nextValue.length === 0) {
-    if (isControlled.value) {
-      emit("update:cardCreateTimeWindowKey", null);
-      return;
-    }
-    internalCardCreateTimeWindowKey.value = null;
-    return;
-  }
-
+const handleCardCreateTimeWindowChange = (nextValue: TimeWindow | null) => {
   if (isControlled.value) {
-    emit("update:cardCreateTimeWindowKey", nextValue);
+    emit("update:cardCreateTimeWindow", nextValue);
     return;
   }
-  internalCardCreateTimeWindowKey.value = nextValue;
+  internalCardCreateTimeWindow.value = nextValue;
 };
 
-const handleCardCreateLocationChange = (event: Event) => {
-  const select = event.target;
-  if (!(select instanceof HTMLSelectElement)) {
-    return;
-  }
-
+const handleCardCreateAllowEditAfterReadyChange = (
+  nextValue: PRAllowEditAfterReady | null,
+) => {
   if (isControlled.value) {
-    emit("update:cardCreateLocationId", select.value);
+    emit("update:cardCreateAllowEditAfterReady", nextValue);
     return;
   }
-  internalCardCreateLocationId.value = select.value;
+  internalCardCreateAllowEditAfterReady.value = nextValue;
+};
+
+const handleCardCreatePlaceChange = (value: string | null) => {
+  if (isControlled.value) {
+    emit("update:cardCreatePlaceId", value);
+    return;
+  }
+  internalCardCreatePlaceId.value = value;
 };
 
 watch(

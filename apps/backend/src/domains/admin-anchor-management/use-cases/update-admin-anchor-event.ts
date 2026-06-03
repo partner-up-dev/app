@@ -7,6 +7,7 @@ import type {
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
+  AnchorEventRoutePool,
   AnchorEventStatus,
   AnchorEventTimePoolConfig,
   LocationEntry,
@@ -27,6 +28,7 @@ import {
   scheduleMeetingPointNotificationsForChangedRequests,
   validateAnchorParticipationPolicyOffsets,
 } from "../../pr/services";
+import { assertAnchorEventPlacePoolValid } from "../../anchor-event/services/place-pool";
 
 const anchorEventRepo = new AnchorEventRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -36,6 +38,7 @@ export interface UpdateAdminAnchorEventInput {
   type: string;
   description: string | null;
   locationPool: LocationEntry[];
+  routePool: AnchorEventRoutePool;
   timePoolConfig: AnchorEventTimePoolConfig;
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
@@ -72,6 +75,10 @@ export async function updateAdminAnchorEvent(
     confirmationEndOffsetMinutes: input.defaultConfirmationEndOffsetMinutes,
     joinLockOffsetMinutes: input.defaultJoinLockOffsetMinutes,
   });
+  assertAnchorEventPlacePoolValid({
+    locationPool: input.locationPool,
+    routePool: input.routePool,
+  });
 
   const current = await anchorEventRepo.findById(eventId);
   if (!current) {
@@ -105,6 +112,7 @@ export async function updateAdminAnchorEvent(
     type: input.type,
     description: input.description,
     locationPool: input.locationPool,
+    routePool: input.routePool,
     timePoolConfig: normalizeAnchorEventTimePoolConfig(input.timePoolConfig),
     defaultMinPartners: input.defaultMinPartners,
     defaultMaxPartners: input.defaultMaxPartners,

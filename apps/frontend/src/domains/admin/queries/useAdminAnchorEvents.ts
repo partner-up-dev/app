@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, unref, type MaybeRef } from "vue";
 import type {
+  AnchorEventRoutePool,
   AnchorEventParticipationFrequencyLimit,
+  PRRoute,
   PRJoinGateConfig,
 } from "@partner-up-dev/backend";
 import { adminClient } from "@/lib/admin-rpc";
@@ -12,18 +14,24 @@ type AdminApi = typeof adminClient.api.admin;
 type AnchorEventsRoute = AdminApi["anchor-events"];
 type AnchorEventWorkspaceRoute = AnchorEventsRoute["workspace"];
 type AnchorEventRoute = AnchorEventsRoute[":eventId"];
+type RouteApplicationRoute = AdminApi["route-applications"][":applicationId"];
 
 const readErrorMessage = async (
   response: Response,
   fallback: string,
 ): Promise<string> => {
-  const payload = (await response.json()) as { error?: string };
-  return payload.error || fallback;
+  const payload = (await response.json()) as {
+    detail?: string;
+    error?: string;
+  };
+  return payload.detail || payload.error || fallback;
 };
 
 export type AdminAnchorEventWorkspaceResponse = InferResponseType<
   AnchorEventWorkspaceRoute["$get"]
 >;
+export type AdminRouteApplication =
+  AdminAnchorEventWorkspaceResponse["routeApplications"][number];
 
 export type CreateAdminAnchorEventResponse = InferResponseType<
   AnchorEventsRoute["$post"]
@@ -31,6 +39,16 @@ export type CreateAdminAnchorEventResponse = InferResponseType<
 
 export type UpdateAdminAnchorEventResponse = InferResponseType<
   AnchorEventRoute["$patch"]
+>;
+export type AcceptAdminRouteApplicationResponse = InferResponseType<
+  RouteApplicationRoute["accept"]["$post"]
+>;
+export type AcceptAdminRouteApplicationInput = {
+  applicationId: number;
+  route: PRRoute;
+};
+export type RejectAdminRouteApplicationResponse = InferResponseType<
+  RouteApplicationRoute["reject"]["$post"]
 >;
 
 export type AdminAnchorRecurringStartRuleInput = {
@@ -66,6 +84,7 @@ export type AdminAnchorEventInput = {
   type: string;
   description: string | null;
   locationPool: string[];
+  routePool: AnchorEventRoutePool;
   meetingPoint?: MeetingPointInput | null;
   locationMeetingPoints?: Record<string, MeetingPointInput>;
   joinGateConfig: PRJoinGateConfig;
@@ -155,6 +174,62 @@ export const useUpdateAdminAnchorEvent = () => {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
+      });
+    },
+  });
+};
+
+export const useAcceptAdminRouteApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    AcceptAdminRouteApplicationResponse,
+    Error,
+    AcceptAdminRouteApplicationInput
+  >({
+    mutationFn: async ({ applicationId, route }) => {
+      const res = await adminClient.api.admin["route-applications"][
+        ":applicationId"
+      ].accept.$post({
+        param: { applicationId: applicationId.toString() },
+        json: { route },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "通过路线申请失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.anchorEventWorkspace(),
+      });
+    },
+  });
+};
+
+export const useRejectAdminRouteApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    RejectAdminRouteApplicationResponse,
+    Error,
+    { applicationId: number; rejectReason: string | null }
+  >({
+    mutationFn: async ({ applicationId, rejectReason }) => {
+      const res = await adminClient.api.admin["route-applications"][
+        ":applicationId"
+      ].reject.$post({
+        param: { applicationId: applicationId.toString() },
+        json: { rejectReason },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "驳回路线申请失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.anchorEventWorkspace(),
       });
     },
   });

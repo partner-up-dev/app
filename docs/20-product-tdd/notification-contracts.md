@@ -33,7 +33,6 @@ One-shot notifications represent a single opportunity created from a business co
 
 - `REMINDER_CONFIRMATION`
 - `ACTIVITY_START_REMINDER`
-- `BOOKING_RESULT`
 - `NEW_PARTNER`
 - `MEETING_POINT_UPDATED`
 - `WAITLIST_PROMOTED`
@@ -49,7 +48,7 @@ The `MEETING_POINT_UPDATED` policy creates one-shot notifications to current act
 
 The `WAITLIST_PROMOTED` policy creates one one-shot notification for the user whose pending waitlist slot has just become active. Dispatch revalidates that the recipient is still active, still owns the promoted active partner slot, and still has enabled quota for this notification kind.
 
-The `WAITLIST_ALTERNATIVE_AVAILABLE` policy creates one one-shot notification for a user who opted in from a source pending waitlist slot when another visible same-type and same-location PR has joinable capacity. Dispatch revalidates recipient activity, bound openId, enabled quota, source pending slot ownership and opt-in, source/candidate type-location match, candidate PR availability, and recipient time-window compatibility.
+The `WAITLIST_ALTERNATIVE_AVAILABLE` policy creates one one-shot notification for a user who opted in from a source pending waitlist slot when another visible same-type and same-location PR has joinable capacity. Dispatch revalidates recipient activity, bound openId, enabled quota, source pending slot ownership and opt-in, source/candidate type-location match, candidate PR availability, and recipient time-window compatibility. Route-mode PRs carry no location, so this policy has no route-mode match until a route-specific matcher exists.
 
 When `WAITLIST_ALTERNATIVE_AVAILABLE` quota turns positive, backend rescans that user's opted-in pending source waitlist slots so existing alternatives can be scheduled after the post-waitlist subscription prompt.
 
@@ -61,14 +60,13 @@ Business domains emit business events such as:
 - `partner.joined`
 - explicit waitlist promotion scheduling from PR participation logic
 - exact same-type and same-location alternative PR availability from PR waitlist and candidate-availability logic
-- booking execution submission through the admin booking execution flow
 
 `domains/notification` evaluates those facts or the scheduling input, creates `notification_opportunities` / `notification_waves`, and emits notification-owned events:
 
 - `notification.wave_opened`
 - `notification.opportunity_created`
 
-This keeps PR, Booking Support, and future domains coupled to business events and read models, while notification owns attention policy.
+This keeps PR and future domains coupled to business events and read models, while notification owns attention policy.
 
 ## Dispatch Contract
 
@@ -132,6 +130,6 @@ Backend owns:
 - unread-wave reset rules
 - delivery result persistence
 
-Frontend renders notification subscription management and prompts users after successful PR join when reminder registration is relevant for that PR, then relies on backend responses and durable state for delivery-adjacent truth.
+Frontend renders notification subscription management and prompts users after successful PR join when reminder registration is relevant for that PR. When PR confirmation is enabled, the join-success sequence places `REMINDER_CONFIRMATION` inside a dedicated confirmation follow-up and keeps the general recommendation follow-up focused on other PR reminders. Frontend then relies on backend responses and durable state for delivery-adjacent truth.
 
 Frontend also prompts after successful waitlist entry for the focused `WAITLIST_PROMOTED` notification kind, and includes `WAITLIST_ALTERNATIVE_AVAILABLE` when the waitlist entry selected cross-PR alternative reminders.

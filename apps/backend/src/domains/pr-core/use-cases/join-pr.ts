@@ -22,46 +22,23 @@ import {
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { operationLogService } from "../../../infra/operation-log";
-import { expandFullPR } from "../../anchor-event";
+import { expandFullCapacityPR } from "../../anchor-event";
 import {
   scheduleWeChatActivityStartReminderJobForParticipant,
   scheduleWeChatNewPartnerNotificationsForJoin,
   scheduleWeChatReminderJobsForParticipant,
 } from "../../../infra/notifications";
-import { syncAnchorBookingTriggeredState } from "../services/anchor-booking-trigger.service";
-import { UserRepository } from "../../../repositories/UserRepository";
-import {
-  isBookingContactRequiredForPR,
-  normalizeMainlandChinaMobilePhone,
-} from "../../pr-booking-support";
-import {
-  assertPRJoinGatesResolvedForUser,
-  BOOKING_CONTACT_PHONE_INVALID_CODE,
-} from "../services/join-gates.service";
+import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
 import { closeAlternativeWaitlistSourcesAfterJoin } from "../services/waitlist-alternative-reminder.service";
 import { assertAnchorEventParticipationFrequencyLimitAllows } from "../services/anchor-participation-frequency-limit.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 const userReliabilityRepo = new UserReliabilityRepository();
-const userRepo = new UserRepository();
-
-const throwCodedHttpException = (
-  status: 400 | 401 | 403 | 404 | 409 | 500,
-  message: string,
-  code: string,
-): never => {
-  return throwHttpProblem({ status, detail: message, code });
-};
-
-type JoinPRAsUserOptions = {
-  bookingContactPhone?: string | null;
-};
 
 export async function joinPRAsUser(
   id: PRId,
   user: Pick<User, "id" | "status">,
-  options: JoinPRAsUserOptions = {},
 ): Promise<PublicPR> {
   const request = await prRepo.findById(id);
   if (!request) {
@@ -72,7 +49,6 @@ export async function joinPRAsUser(
   const hasConfirmationPolicy = hasEnabledConfirmationPolicy(refreshedRequest);
 
   let targetStatus: Extract<PartnerStatus, "JOINED" | "CONFIRMED"> = "JOINED";
-  const bookingContactRequired = await isBookingContactRequiredForPR(id);
 
   if (hasParticipationPolicy) {
     const policy = resolveAnchorParticipationPolicy(
@@ -121,22 +97,6 @@ export async function joinPRAsUser(
 
   const activeCount = await countActivePartnersForPR(id);
 
-  if (bookingContactRequired) {
-    const phone = options.bookingContactPhone?.trim() ?? "";
-    if (phone) {
-      const normalizedPhone = normalizeMainlandChinaMobilePhone(phone);
-      if (!normalizedPhone) {
-        return throwCodedHttpException(
-          400,
-          "Phone must match mainland China mobile format (11 digits, starts with 1)",
-          BOOKING_CONTACT_PHONE_INVALID_CODE,
-        );
-      }
-
-      await userRepo.updatePhoneNumber(user.id, normalizedPhone.phoneE164);
-    }
-  }
-
   await assertPRJoinGatesResolvedForUser({
     prId: id,
     userId: user.id,
@@ -170,14 +130,15 @@ export async function joinPRAsUser(
   });
 
   await recalculatePRStatus(id);
-  await syncAnchorBookingTriggeredState(id);
 
   const afterRecalculate = await prRepo.findById(id);
+  const activeCountAfterJoin = await countActivePartnersForPR(id);
   if (
     afterRecalculate &&
-    afterRecalculate.status === "FULL"
+    afterRecalculate.maxPartners !== null &&
+    activeCountAfterJoin >= afterRecalculate.maxPartners
   ) {
-    await expandFullPR(id);
+    await expandFullCapacityPR(id);
   }
 
   operationLogService.log({
@@ -213,8 +174,7 @@ export async function joinPRAsUser(
 export async function joinPR(
   id: PRId,
   openId: string,
-  options: JoinPRAsUserOptions = {},
 ): Promise<PublicPR> {
   const user = await resolveUserByOpenId(openId);
-  return joinPRAsUser(id, user, options);
+  return joinPRAsUser(id, user);
 }

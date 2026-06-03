@@ -4,39 +4,15 @@
       <AdminNavigationPanel show-logout @logout="logout" />
     </template>
 
-    <template #actions>
-      <template v-if="activeAdminSection === 'poi-basic'">
-        <Button
-          appearance="pill"
-          tone="outline"
-          size="sm"
-          type="button"
-          :disabled="isCreatingPoi || !canCreatePoi"
-          @click="handleCreatePoi"
-        >
-          {{
-            isCreatingPoi
-              ? t("adminPois.creatingPoi")
-              : t("adminPois.createPoiAction")
-          }}
-        </Button>
-
-        <Button
-          appearance="pill"
-          size="sm"
-          type="button"
-          :disabled="selectedPoiId === null || isSavingPoi"
-          @click="handleSavePoi"
-        >
-          {{
-            isSavingPoi ? t("adminPois.savingPoi") : t("adminPois.savePoiAction")
-          }}
-        </Button>
-      </template>
-    </template>
-
     <template #rail>
-      <PoiSelectorRail v-model="selectedPoiIdRaw" :pois="pois" />
+      <PoiSelectorRail
+        v-model="selectedPoiIdRaw"
+        v-model:new-poi-name="newPoiName"
+        :pois="pois"
+        :can-create-poi="canCreatePoi"
+        :is-creating-poi="isCreatingPoi"
+        @create-poi="handleCreatePoi"
+      />
     </template>
 
     <template #main>
@@ -54,7 +30,6 @@
         <template v-else>
           <PoiBasicSection
             v-if="activeAdminSection === 'poi-basic'"
-            v-model:new-poi-name="newPoiName"
             v-model:manual-gallery-url="manualGalleryUrl"
             v-model:is-uploading-gallery-image="isUploadingGalleryImage"
             v-model:selected-poi-full-address="selectedPoiFullAddress"
@@ -63,14 +38,22 @@
             v-model:selected-poi-meeting-point-image-url="selectedPoiMeetingPointImageUrl"
             :selected-poi-id="selectedPoiId"
             :selected-poi-gallery="selectedPoiGallery"
+            :selected-poi-coordinate-text="selectedPoiCoordinateText"
+            :selected-poi-has-coordinate="selectedPoiHasCoordinate"
+            :selected-poi-picker-location="selectedPoiPickerLocation"
             :selected-poi-availability-rules="selectedPoiAvailabilityRules"
+            :selected-poi="selectedPoi"
             :weekday-options="weekdayOptions"
+            :is-saving-poi="isSavingPoi"
             @add-manual-url="handleAddManualUrl"
             @gallery-uploaded="handleGalleryUploaded"
             @remove-gallery-image="handleRemoveGalleryImage"
+            @pick-location="handlePickPoiLocation"
+            @clear-coordinates="handleClearPoiCoordinates"
             @add-availability-rule="handleAddAvailabilityRule"
             @remove-availability-rule="handleRemoveAvailabilityRule"
             @mark-dirty="markSelectedPoiDirty"
+            @save-poi="handleSavePoi"
           />
 
           <PoiReviewSection
@@ -104,7 +87,6 @@ import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNav
 import { useAdminPoiManagementWorkspace } from "@/domains/admin/use-cases/poi/useAdminPoiManagementWorkspace";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -124,6 +106,9 @@ const {
   isUploadingGalleryImage,
   selectedPoiGallery,
   selectedPoiFullAddress,
+  selectedPoiCoordinateText,
+  selectedPoiHasCoordinate,
+  selectedPoiPickerLocation,
   selectedPoiCapText,
   selectedPoiMeetingPointDescription,
   selectedPoiMeetingPointImageUrl,
@@ -132,6 +117,8 @@ const {
   handleAddManualUrl,
   handleGalleryUploaded,
   handleRemoveGalleryImage,
+  handlePickPoiLocation,
+  handleClearPoiCoordinates,
   handleAddAvailabilityRule,
   handleRemoveAvailabilityRule,
   weekdayOptions,

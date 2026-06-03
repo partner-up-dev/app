@@ -30,14 +30,14 @@
             :interactive="false"
           />
 
-          <PRJoinFlow
+          <PRJoinAction
             v-if="handoff.state.phase === 'PREVIEW' && handoff.state.prId !== null"
             :pr-id="handoff.state.prId"
             :event-id="handoff.state.eventId"
             entry-surface="form_mode_matched"
             @success-closed="handleJoinSuccessClosed"
           >
-            <template #default="{ open, pending, disabled, joined, errorMessage }">
+            <template #trigger="{ open, pending, disabled, joined, errorMessage }">
               <div class="matched-pr-handoff__actions">
                 <Button
                   type="button"
@@ -71,7 +71,7 @@
                 {{ errorMessage }}
               </p>
             </template>
-          </PRJoinFlow>
+          </PRJoinAction>
         </div>
       </div>
     </div>
@@ -84,7 +84,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
-import PRJoinFlow from "@/domains/pr/ui/composites/PRJoinFlow.vue";
+import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { trackEvent } from "@/shared/telemetry/track";
 import LiquidWaveSplash from "@/processes/route-handoff/LiquidWaveSplash.vue";

@@ -57,6 +57,10 @@ const componentContractPaths = [
     type: "file",
     path: path.join(srcRoot, "shared", "ui", "forms", "ToggleSwitch.vue"),
   },
+  {
+    type: "file",
+    path: path.join(srcRoot, "shared", "ui", "forms", "MultiStopToggle.vue"),
+  },
 ];
 
 const rules = [

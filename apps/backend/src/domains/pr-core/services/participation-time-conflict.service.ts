@@ -15,21 +15,19 @@ const JOIN_TIME_WINDOW_CONFLICT_MESSAGE =
 const isTimeConflictRelevantStatus = (status: string): boolean =>
   status === "OPEN" ||
   status === "READY" ||
-  status === "FULL" ||
-  status === "LOCKED_TO_START" ||
   status === "ACTIVE";
 
-export async function assertNoUserTimeWindowConflict(params: {
+export async function findUserTimeWindowConflict(params: {
   userId: UserId;
   targetTimeWindow: TimeWindow;
   excludePrId?: PRId | null;
-}): Promise<void> {
+}): Promise<PRId | null> {
   const slots = await partnerRepo.findActiveByUserId(params.userId);
   const joinedPrIds = Array.from(
     new Set(slots.map((slot) => slot.prId)),
   ).filter((prId) => (params.excludePrId ? prId !== params.excludePrId : true));
 
-  if (joinedPrIds.length === 0) return;
+  if (joinedPrIds.length === 0) return null;
 
   const joinedRequests = await prRepo.findByIds(joinedPrIds);
   const conflicted = joinedRequests.find((joinedRequest) => {
@@ -38,6 +36,16 @@ export async function assertNoUserTimeWindowConflict(params: {
     }
     return doTimeWindowsOverlap(params.targetTimeWindow, joinedRequest.time);
   });
+
+  return conflicted?.id ?? null;
+}
+
+export async function assertNoUserTimeWindowConflict(params: {
+  userId: UserId;
+  targetTimeWindow: TimeWindow;
+  excludePrId?: PRId | null;
+}): Promise<void> {
+  const conflicted = await findUserTimeWindowConflict(params);
   if (!conflicted) return;
 
   return throwHttpProblem({

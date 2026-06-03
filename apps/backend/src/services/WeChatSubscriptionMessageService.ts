@@ -33,12 +33,12 @@ const CONFIG_KEY_CONFIRMATION_REMINDER_TEMPLATE_ID =
   "wechat.submsg_confirmation_reminder_template_id";
 const CONFIG_KEY_ACTIVITY_START_REMINDER_TEMPLATE_ID =
   "wechat.submsg_activity_start_reminder_template_id";
-const CONFIG_KEY_BOOKING_RESULT_TEMPLATE_ID =
-  "wechat.submsg_booking_result_template_id";
 const CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID =
   "wechat.submsg_new_partner_template_id";
 const CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID =
   "wechat.submsg_meeting_point_updated_template_id";
+const CONFIG_KEY_PR_READY_TEMPLATE_ID =
+  "wechat.submsg_pr_ready_template_id";
 const CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID =
   "wechat.submsg_waitlist_promoted_template_id";
 const CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID =
@@ -47,9 +47,9 @@ const CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID =
 type SubscriptionTemplateKind =
   | "REMINDER_CONFIRMATION"
   | "ACTIVITY_START_REMINDER"
-  | "BOOKING_RESULT"
   | "NEW_PARTNER"
   | "MEETING_POINT_UPDATED"
+  | "PR_READY"
   | "WAITLIST_PROMOTED"
   | "PR_MESSAGE";
 
@@ -58,12 +58,12 @@ const resolveTemplateConfigKey = (kind: SubscriptionTemplateKind): string =>
     ? CONFIG_KEY_CONFIRMATION_REMINDER_TEMPLATE_ID
     : kind === "ACTIVITY_START_REMINDER"
       ? CONFIG_KEY_ACTIVITY_START_REMINDER_TEMPLATE_ID
-      : kind === "BOOKING_RESULT"
-        ? CONFIG_KEY_BOOKING_RESULT_TEMPLATE_ID
-        : kind === "NEW_PARTNER"
-          ? CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID
-          : kind === "MEETING_POINT_UPDATED"
-            ? CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID
+      : kind === "NEW_PARTNER"
+        ? CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID
+        : kind === "MEETING_POINT_UPDATED"
+          ? CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID
+          : kind === "PR_READY"
+            ? CONFIG_KEY_PR_READY_TEMPLATE_ID
             : kind === "WAITLIST_PROMOTED"
               ? CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID
               : CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID;
@@ -107,16 +107,6 @@ export interface SendActivityStartReminderParams {
   page: string | null;
 }
 
-export interface SendBookingResultNotificationParams {
-  openId: string;
-  bookingItem: string;
-  statusLabel: string;
-  activityTime: string;
-  address: string;
-  bookingDetail: string;
-  page: string | null;
-}
-
 export interface SendPRMessageNotificationParams {
   openId: string;
   threadTitle: string;
@@ -143,6 +133,15 @@ export interface SendWaitlistPromotedNotificationParams {
   page: string | null;
 }
 
+export interface SendPRReadyNotificationParams {
+  openId: string;
+  title: string;
+  type: string;
+  status: string;
+  remark: string;
+  page: string | null;
+}
+
 const clipText = (value: string, max: number): string =>
   value.trim().slice(0, max);
 
@@ -163,10 +162,6 @@ export class WeChatSubscriptionMessageService {
     return this.isConfigured("ACTIVITY_START_REMINDER");
   }
 
-  async isBookingResultConfigured(): Promise<boolean> {
-    return this.isConfigured("BOOKING_RESULT");
-  }
-
   async isNewPartnerConfigured(): Promise<boolean> {
     return this.isConfigured("NEW_PARTNER");
   }
@@ -177,6 +172,10 @@ export class WeChatSubscriptionMessageService {
 
   async isWaitlistPromotedConfigured(): Promise<boolean> {
     return this.isConfigured("WAITLIST_PROMOTED");
+  }
+
+  async isPRReadyConfigured(): Promise<boolean> {
+    return this.isConfigured("PR_READY");
   }
 
   async isPRMessageConfigured(): Promise<boolean> {
@@ -191,10 +190,6 @@ export class WeChatSubscriptionMessageService {
     return this.resolveTemplateId("ACTIVITY_START_REMINDER");
   }
 
-  async getBookingResultTemplateId(): Promise<string | null> {
-    return this.resolveTemplateId("BOOKING_RESULT");
-  }
-
   async getNewPartnerTemplateId(): Promise<string | null> {
     return this.resolveTemplateId("NEW_PARTNER");
   }
@@ -205,6 +200,10 @@ export class WeChatSubscriptionMessageService {
 
   async getWaitlistPromotedTemplateId(): Promise<string | null> {
     return this.resolveTemplateId("WAITLIST_PROMOTED");
+  }
+
+  async getPRReadyTemplateId(): Promise<string | null> {
+    return this.resolveTemplateId("PR_READY");
   }
 
   async getPRMessageTemplateId(): Promise<string | null> {
@@ -364,23 +363,6 @@ export class WeChatSubscriptionMessageService {
     });
   }
 
-  async sendBookingResultNotification(
-    params: SendBookingResultNotificationParams,
-  ): Promise<string | number | null> {
-    return this.sendSubscribeMessage({
-      kind: "BOOKING_RESULT",
-      openId: params.openId,
-      page: params.page,
-      data: {
-        thing2: { value: clipText(params.bookingItem, 20) },
-        phrase33: { value: clipText(params.statusLabel, 20) },
-        time24: { value: clipText(params.activityTime, 32) },
-        thing35: { value: clipText(params.address, 20) },
-        thing8: { value: clipText(params.bookingDetail, 20) },
-      },
-    });
-  }
-
   async sendNewPartnerNotification(
     params: SendNewPartnerNotificationParams,
   ): Promise<string | number | null> {
@@ -439,6 +421,22 @@ export class WeChatSubscriptionMessageService {
       data: {
         thing1: { value: clipText(params.title, 20) },
         phrase3: { value: clipText(params.status, 20) },
+        thing4: { value: clipText(params.remark, 20) },
+      },
+    });
+  }
+
+  async sendPRReadyNotification(
+    params: SendPRReadyNotificationParams,
+  ): Promise<string | number | null> {
+    return this.sendSubscribeMessage({
+      kind: "PR_READY",
+      openId: params.openId,
+      page: params.page,
+      data: {
+        thing1: { value: clipText(params.title, 20) },
+        thing2: { value: clipText(params.type, 20) },
+        phrase6: { value: clipText(params.status, 20) },
         thing4: { value: clipText(params.remark, 20) },
       },
     });

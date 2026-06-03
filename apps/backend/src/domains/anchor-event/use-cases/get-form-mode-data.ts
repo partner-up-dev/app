@@ -6,6 +6,7 @@ import {
   type AnchorEventPRContextRecord,
 } from "../../../repositories/AnchorEventPRContextRepository";
 import {
+  type AnchorEventRoutePool,
   type AnchorEvent,
   type AnchorEventId,
   type AnchorEventPrCreationPolicy,
@@ -16,7 +17,16 @@ import {
   isTimeWindowAvailableByPoiRules,
 } from "../../pr/services";
 import { isAnchorEventFormModeStartSelectable } from "../services/form-mode";
-import { resolvePublicEventLocationPool } from "../services/event-scope";
+import {
+  buildAnchorEventPlaceSelectorView,
+  toAnchorEventLocationPlaceOptionView,
+  toAnchorEventRoutePlaceOptionView,
+  type AnchorEventPlaceSelectorView,
+} from "../services/place-selector";
+import {
+  resolveEventRoutePool,
+  resolvePublicEventLocationPool,
+} from "../services/event-scope";
 import { listAnchorEventTimeWindowDetails } from "../services/time-window-pool";
 import { findPoisByNames } from "../../poi";
 
@@ -116,6 +126,12 @@ export interface AnchorEventFormModeData {
     gallery: string[];
     availableStartKeys: string[];
   }>;
+  routes: Array<{
+    id: string;
+    route: AnchorEventRoutePool[number]["route"];
+    availableStartKeys: string[];
+  }>;
+  placeSelector: AnchorEventPlaceSelectorView;
   startOptions: Array<{
     key: string;
     startAt: string;
@@ -143,6 +159,7 @@ export async function getAnchorEventFormModeData(
   }
 
   const locationIds = await resolveLocationIds(event);
+  const routePool = resolveEventRoutePool(event);
   const [pois, tags, visiblePrRecords] = await Promise.all([
     findPoisByNames(locationIds),
     preferenceTagRepo.findByAnchorEventIdAndStatuses(eventId, ["PUBLISHED"]),
@@ -150,7 +167,6 @@ export async function getAnchorEventFormModeData(
   ]);
 
   const now = new Date();
-  const poiById = new Map(pois.map((poi) => [poi.name, poi.gallery]));
   const poiRecordById = new Map(pois.map((poi) => [poi.name, poi]));
   const startOptions = listAnchorEventTimeWindowDetails(event)
     .filter((detail) => !hasTimeWindowStarted(detail.timeWindow, now))
@@ -174,6 +190,38 @@ export async function getAnchorEventFormModeData(
       [option.startAt, option.endAt] as [string | null, string | null],
     ]),
   );
+  const locationPlaceOptions = locationIds.map((id) => {
+    const poi = poiRecordById.get(id) ?? null;
+    const availableStartKeys = startOptions
+      .filter((option) => {
+        const timeWindow = startOptionByKey.get(option.key);
+        return (
+          !poi ||
+          poi.availabilityRules.length === 0 ||
+          (timeWindow !== undefined &&
+            isTimeWindowAvailableByPoiRules(poi.availabilityRules, timeWindow))
+        );
+      })
+      .map((option) => option.key);
+
+    return toAnchorEventLocationPlaceOptionView({
+      locationId: id,
+      poi,
+      availableStartKeys,
+      remainingQuota: null,
+      disabled: false,
+      disabledReason: "NONE",
+    });
+  });
+  const routePlaceOptions = routePool.map((entry) =>
+    toAnchorEventRoutePlaceOptionView({
+      routePoolEntryId: entry.id,
+      route: entry.route,
+      availableStartKeys: startOptions.map((option) => option.key),
+      disabled: false,
+      disabledReason: "NONE",
+    }),
+  );
 
   return {
     event: {
@@ -188,22 +236,20 @@ export async function getAnchorEventFormModeData(
       prCreationPolicy: event.prCreationPolicy,
       canUserCreatePR: canUserCreatePRForAnchorEvent(event),
     },
-    locations: locationIds.map((id) => ({
-      id,
-      gallery: [...(poiById.get(id) ?? [])],
-      availableStartKeys: startOptions
-        .filter((option) => {
-          const poi = poiRecordById.get(id) ?? null;
-          const timeWindow = startOptionByKey.get(option.key);
-          return (
-            !poi ||
-            poi.availabilityRules.length === 0 ||
-            (timeWindow !== undefined &&
-              isTimeWindowAvailableByPoiRules(poi.availabilityRules, timeWindow))
-          );
-        })
-        .map((option) => option.key),
+    locations: locationPlaceOptions.map((option) => ({
+      id: option.locationId,
+      gallery: [...option.gallery],
+      availableStartKeys: [...(option.availableStartKeys ?? [])],
     })),
+    routes: routePlaceOptions.map((option) => ({
+      id: option.routePoolEntryId,
+      route: option.route,
+      availableStartKeys: [...(option.availableStartKeys ?? [])],
+    })),
+    placeSelector: buildAnchorEventPlaceSelectorView({
+      locationOptions: locationPlaceOptions,
+      routeOptions: routePlaceOptions,
+    }),
     startOptions,
     presetTags: tags.map((tag) => ({
       id: tag.id,

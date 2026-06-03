@@ -3,7 +3,6 @@ import { z } from "zod";
 export const prJoinGateSourceSchema = z.enum([
   "PR",
   "ANCHOR_EVENT",
-  "PR_SUPPORT_RESOURCE",
 ]);
 export type PRJoinGateSource = z.infer<typeof prJoinGateSourceSchema>;
 
@@ -22,18 +21,8 @@ export type PRJoinNoticeGateConfig = z.infer<
   typeof prJoinNoticeGateConfigSchema
 >;
 
-export const prBookingContactGateConfigSchema = prJoinGateBaseSchema.extend({
-  kind: z.literal("BOOKING_CONTACT"),
-  source: z.enum(["PR", "PR_SUPPORT_RESOURCE"]),
-  prompt: z.string().trim().min(1).max(1000),
-});
-export type PRBookingContactGateConfig = z.infer<
-  typeof prBookingContactGateConfigSchema
->;
-
 export const prJoinGateConfigItemSchema = z.discriminatedUnion("kind", [
   prJoinNoticeGateConfigSchema,
-  prBookingContactGateConfigSchema,
 ]);
 export type PRJoinGateConfigItem = z.infer<
   typeof prJoinGateConfigItemSchema

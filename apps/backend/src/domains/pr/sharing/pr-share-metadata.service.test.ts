@@ -16,6 +16,7 @@ const buildPublicPR = ({
   type: "羽毛球",
   time: [null, null],
   location: "天河体育中心",
+  route: null,
   status: "OPEN",
   visibilityStatus: "VISIBLE",
   confirmationStartOffsetMinutes: null,
@@ -27,7 +28,9 @@ const buildPublicPR = ({
   createdAt: new Date("2026-05-04T00:00:00.000Z"),
   preferences: [],
   notes: null,
+  orders: [],
   meetingPoint: null,
+  allowEditAfterReady: null,
   joinGateConfig: [],
   feedbackQuestionnaireInstanceId: null,
   createdBy: null,
@@ -55,7 +58,7 @@ test("buildPRCanonicalShareMetadata uses explicit title first", async () => {
   assert.equal(metadata.title, "周末羽毛球");
 });
 
-test("buildPRCanonicalShareMetadata falls back to location before type", async () => {
+test("buildPRCanonicalShareMetadata falls back to anchor event title before type and place", async () => {
   const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
   const metadata = buildPRCanonicalShareMetadata(
     buildPublicPR({
@@ -63,22 +66,148 @@ test("buildPRCanonicalShareMetadata falls back to location before type", async (
       location: "  万胜围  ",
       type: "羽毛球",
     }),
+    { anchorEventTitle: "城市羽毛球局" },
   );
 
-  assert.equal(metadata.title, "万胜围");
+  assert.equal(metadata.title, "城市羽毛球局");
 });
 
-test("buildPRCanonicalShareMetadata falls back to type when location is empty", async () => {
+test("buildPRCanonicalShareMetadata falls back to type before route and location", async () => {
   const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
   const metadata = buildPRCanonicalShareMetadata(
     buildPublicPR({
       title: undefined,
-      location: "   ",
-      type: "羽毛球",
+      location: "万胜围",
+      route: [
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.1, 113.2],
+          name: "广州南站",
+          full_address: null,
+        },
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.2, 113.3],
+          name: "天河体育中心",
+          full_address: null,
+        },
+      ],
+      type: "通勤拼车",
     }),
   );
 
-  assert.equal(metadata.title, "羽毛球");
+  assert.equal(metadata.title, "通勤拼车");
+});
+
+test("buildPRCanonicalShareMetadata includes route in revision", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const base = buildPublicPR({
+    title: undefined,
+    location: null,
+    type: "通勤拼车",
+  });
+  const left = buildPRCanonicalShareMetadata({
+    ...base,
+    route: [
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.1, 113.2],
+        name: "广州南站",
+        full_address: null,
+      },
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.2, 113.3],
+        name: "天河体育中心",
+        full_address: null,
+      },
+    ],
+  });
+  const right = buildPRCanonicalShareMetadata({
+    ...base,
+    route: [
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.1, 113.2],
+        name: "广州南站",
+        full_address: null,
+      },
+      {
+        wgs84: null,
+        bd09: null,
+        gcj02: [23.3, 113.4],
+        name: "琶洲会展中心",
+        full_address: null,
+      },
+    ],
+  });
+
+  assert.notEqual(left.revision, right.revision);
+});
+
+test("buildPRCanonicalShareMetadata includes anchor event title in revision", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const base = buildPublicPR({
+    title: undefined,
+    location: "天河体育中心",
+    type: "羽毛球",
+  });
+  const left = buildPRCanonicalShareMetadata(base, {
+    anchorEventTitle: "城市羽毛球局",
+  });
+  const right = buildPRCanonicalShareMetadata(base, {
+    anchorEventTitle: "周末羽毛球局",
+  });
+
+  assert.notEqual(left.revision, right.revision);
+});
+
+test("buildPRCanonicalShareMetadata falls back to route when type and location are empty", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const metadata = buildPRCanonicalShareMetadata(
+    buildPublicPR({
+      title: undefined,
+      location: "  ",
+      route: [
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.1, 113.2],
+          name: "广州南站",
+          full_address: null,
+        },
+        {
+          wgs84: null,
+          bd09: null,
+          gcj02: [23.2, 113.3],
+          name: "天河体育中心",
+          full_address: null,
+        },
+      ],
+      type: "   ",
+    }),
+  );
+
+  assert.equal(metadata.title, "广州南站~天河体育中心");
+});
+
+test("buildPRCanonicalShareMetadata falls back to location when type and route are empty", async () => {
+  const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
+  const metadata = buildPRCanonicalShareMetadata(
+    buildPublicPR({
+      title: undefined,
+      location: "  万胜围  ",
+      route: null,
+      type: "   ",
+    }),
+  );
+
+  assert.equal(metadata.title, "万胜围");
 });
 
 test("buildPRCanonicalShareMetadata uses generic PR title as final fallback", async () => {

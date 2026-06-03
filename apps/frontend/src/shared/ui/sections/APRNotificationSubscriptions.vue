@@ -113,9 +113,9 @@ const props = withDefaults(
       [
         "REMINDER_CONFIRMATION",
         "ACTIVITY_START_REMINDER",
-        "BOOKING_RESULT",
         "NEW_PARTNER",
         "MEETING_POINT_UPDATED",
+        "PR_READY",
         "WAITLIST_PROMOTED",
         "WAITLIST_ALTERNATIVE_AVAILABLE",
         "PR_MESSAGE",

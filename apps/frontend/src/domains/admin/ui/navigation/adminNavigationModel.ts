@@ -42,6 +42,14 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         hash: sectionHash("anchor-event-locations"),
       },
       {
+        id: "anchor-event-route-applications",
+        labelKey: "adminCommon.navAnchorEventRouteApplications",
+        subtitleKey: "adminCommon.navAnchorEventRouteApplicationsSubtitle",
+        routeName: "admin-anchor-events",
+        sectionId: "anchor-event-route-applications",
+        hash: sectionHash("anchor-event-route-applications"),
+      },
+      {
         id: "anchor-event-time",
         labelKey: "adminCommon.navAnchorEventTime",
         subtitleKey: "adminCommon.navAnchorEventTimeSubtitle",
@@ -96,29 +104,28 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
     requiredRoles: ["analytics"],
     items: [
       {
-        id: "analytics-dashboard",
-        labelKey: "adminCommon.navAnalytics",
-        subtitleKey: "adminCommon.navAnalyticsSubtitle",
-        routeName: "admin-analytics",
-      },
-    ],
-  },
-  {
-    id: "support-resources",
-    labelKey: "adminCommon.navSupportResourcesGroup",
-    requiredRoles: ["service"],
-    items: [
-      {
-        id: "support-resource-config",
-        labelKey: "adminCommon.navSupportResourceConfig",
-        subtitleKey: "adminCommon.navSupportResourceConfigSubtitle",
-        routeName: "admin-booking-support",
+        id: "analytics-overview",
+        labelKey: "adminCommon.navAnalyticsOverview",
+        subtitleKey: "adminCommon.navAnalyticsOverviewSubtitle",
+        routeName: "admin-analytics-overview",
       },
       {
-        id: "support-resource-execution",
-        labelKey: "adminCommon.navSupportResourceExecution",
-        subtitleKey: "adminCommon.navSupportResourceExecutionSubtitle",
-        routeName: "admin-booking-execution",
+        id: "analytics-pr-funnels",
+        labelKey: "adminCommon.navAnalyticsPRFunnels",
+        subtitleKey: "adminCommon.navAnalyticsPRFunnelsSubtitle",
+        routeName: "admin-analytics-pr-funnels",
+      },
+      {
+        id: "analytics-anchor-events",
+        labelKey: "adminCommon.navAnalyticsAnchorEvents",
+        subtitleKey: "adminCommon.navAnalyticsAnchorEventsSubtitle",
+        routeName: "admin-analytics-anchor-events",
+      },
+      {
+        id: "analytics-official-account",
+        labelKey: "adminCommon.navAnalyticsOfficialAccount",
+        subtitleKey: "adminCommon.navAnalyticsOfficialAccountSubtitle",
+        routeName: "admin-analytics-official-account",
       },
     ],
   },
@@ -142,6 +149,76 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         routeName: "admin-pois",
         sectionId: "poi-review",
         hash: sectionHash("poi-review"),
+      },
+    ],
+  },
+  {
+    id: "commerce-merchandising",
+    labelKey: "adminCommon.navCommerceMerchandisingGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-products",
+        labelKey: "adminCommon.navCommerceProducts",
+        subtitleKey: "adminCommon.navCommerceProductsSubtitle",
+        routeName: "admin-commerce-products",
+      },
+      {
+        id: "commerce-offers",
+        labelKey: "adminCommon.navCommerceOffers",
+        subtitleKey: "adminCommon.navCommerceOffersSubtitle",
+        routeName: "admin-commerce-offers",
+      },
+      {
+        id: "commerce-placements",
+        labelKey: "adminCommon.navCommercePlacements",
+        subtitleKey: "adminCommon.navCommercePlacementsSubtitle",
+        routeName: "admin-commerce-placements",
+      },
+    ],
+  },
+  {
+    id: "commerce-trade",
+    labelKey: "adminCommon.navCommerceTradeGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "commerce-orders-bills",
+        labelKey: "adminCommon.navCommerceOrdersBills",
+        subtitleKey: "adminCommon.navCommerceOrdersBillsSubtitle",
+        routeName: "admin-commerce-orders-bills",
+      },
+      {
+        id: "commerce-fulfillments",
+        labelKey: "adminCommon.navCommerceFulfillments",
+        subtitleKey: "adminCommon.navCommerceFulfillmentsSubtitle",
+        routeName: "admin-commerce-fulfillments",
+      },
+    ],
+  },
+  {
+    id: "payment",
+    labelKey: "adminCommon.navPaymentGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "payment-provider-instances",
+        labelKey: "adminCommon.navPaymentProviderInstances",
+        subtitleKey: "adminCommon.navPaymentProviderInstancesSubtitle",
+        routeName: "admin-payment",
+      },
+    ],
+  },
+  {
+    id: "ride-hailing",
+    labelKey: "adminCommon.navRideHailingGroup",
+    requiredRoles: ["service"],
+    items: [
+      {
+        id: "ride-hailing-provider-instances",
+        labelKey: "adminCommon.navRideHailingProviderInstances",
+        subtitleKey: "adminCommon.navRideHailingProviderInstancesSubtitle",
+        routeName: "admin-ride-hailing",
       },
     ],
   },

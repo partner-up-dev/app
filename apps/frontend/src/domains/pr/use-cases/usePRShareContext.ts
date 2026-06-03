@@ -35,6 +35,7 @@ export const usePRShareContext = ({ id, pr }: UsePRShareContextOptions) => {
       type: pr.value.core.type,
       time: pr.value.core.time,
       location: pr.value.core.location,
+      route: pr.value.core.route,
       minPartners: pr.value.core.minPartners,
       maxPartners: pr.value.core.maxPartners,
       partners: pr.value.core.partners,

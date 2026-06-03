@@ -12,9 +12,7 @@ import {
   createPRMessage,
   exitPRByUserId,
   getPRDetail,
-  getPRBookingSupport,
   getPRPartnerProfile,
-  getReimbursementStatus,
   getMyCreatedPRs,
   getMyJoinedPRs,
   getPRJoinGateProjection,
@@ -28,33 +26,36 @@ import {
   updatePRStatus,
   waitlistPRByIdentity,
 } from "../domains/pr";
-import { createEventAssistedPR } from "../domains/anchor-event";
-import { updatePRBookingContactPhone } from "../domains/pr-booking-support";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
+import { TradeOrderRepository } from "../repositories/TradeOrderRepository";
+import type { OfferId } from "../entities/offer";
 import {
   anchorUpdateContentSchema,
   createNaturalLanguagePRSchema,
   getSessionUserId,
-  issueAuthPayload,
+  issueResponseAuth,
   prMessageCreateSchema,
   prMessageReadMarkerSchema,
   prIdParamSchema,
   prPartnerProfileParamSchema,
+  requireAuthenticatedOpenId,
   requireAuthenticatedCreatorIdentity,
-  requireAnchorAuthenticatedIdentity,
   requireAuthenticatedUserId,
   requireSessionUserId,
   resolveAvatarUrl,
   tryReadAuthenticatedOpenId,
   partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
   updateContentSchema,
   updateStatusSchema,
 } from "./pr-controller.shared";
+import { recordUserTelemetryEventForRequest } from "../infra/telemetry";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
 const app = new Hono<AuthEnv>();
 const prRepo = new PartnerRequestRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 const PR_MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (
   c,
@@ -67,7 +68,6 @@ const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (
   await next();
 };
 const isoDateSearchParamSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const correlationIdSchema = z.string().trim().min(1).max(128).optional();
 const eventPRSearchQuerySchema = z.object({
   eventId: z.coerce.number().int().positive(),
   date: z.preprocess((value) => {
@@ -84,19 +84,16 @@ const createStructuredPRCommandSchema = z.union([
   z.object({
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("EVENT_ASSISTED"),
-    anchorEventId: z.coerce.number().int().positive(),
-    correlationId: correlationIdSchema,
+    anchorEventId: z.coerce.number().int().positive().optional(),
+    routePoolEntryId: z.string().trim().min(1).max(120).optional(),
+    allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   }),
   z.object({
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("FORM").optional(),
-    correlationId: correlationIdSchema,
   }),
 ]);
 const nlWordCountCommandSchema = createNaturalLanguagePRSchema
-  .extend({
-    correlationId: correlationIdSchema,
-  })
   .refine(
     ({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50,
     { message: "Natural language input must be 50 words or fewer" },
@@ -106,15 +103,11 @@ const canonicalUpdateContentSchema = z.union([
   anchorUpdateContentSchema,
 ]);
 const anchorJoinSchema = z
-  .object({
-    bookingContactPhone: z.string().trim().min(1).optional(),
-    correlationId: correlationIdSchema,
-  })
+  .object({})
   .default({});
 const waitlistCommandSchema = z
   .object({
     alternativePrReminderOptIn: z.boolean().optional(),
-    correlationId: correlationIdSchema,
   })
   .default({});
 const slotCheckInSchema = z.object({
@@ -124,21 +117,20 @@ const joinGateParamSchema = z.object({
   id: z.coerce.number().int().positive(),
   gateKey: z.string().trim().min(1),
 });
+const prOrdersQuerySchema = z.object({
+  offerId: z.coerce.number().int().positive(),
+  statusIn: z.preprocess(
+    (value) => (Array.isArray(value) ? value : value ? [value] : []),
+    z.array(z.enum(["INITIATING", "OPEN", "CANCELLED", "FAILED", "EXPIRED", "COMPLETED"])).min(1),
+  ),
+});
 const resolveJoinGateSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("JOIN_NOTICE"),
     version: z.string().trim().min(1),
     accepted: z.literal(true),
   }),
-  z.object({
-    kind: z.literal("BOOKING_CONTACT"),
-    version: z.string().trim().min(1),
-    phone: z.string().trim().min(1).optional(),
-  }),
 ]);
-const updateBookingContactPhoneSchema = z.object({
-  phone: z.string().trim().min(1),
-});
 
 const getPROr404 = async (id: number) => {
   const request = await prRepo.findById(id);
@@ -166,28 +158,25 @@ export const partnerRequestRoute = app
       const command = c.req.valid("json");
       const { fields, createSource } = command;
 
-      const creatorIdentity =
-        createSource === "EVENT_ASSISTED"
-          ? await (async () => {
-              const identity = await requireAnchorAuthenticatedIdentity(c);
-              return {
-                authenticatedUserId: identity.userId,
-                anonymousUserId: null,
-                oauthOpenId: identity.openId,
-              };
-            })()
-          : await requireAuthenticatedCreatorIdentity(c);
+      const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
+      const result = await createPRFromStructured(fields, creatorIdentity, {
+        createSource,
+        anchorEventId:
+          createSource === "EVENT_ASSISTED" ? command.anchorEventId : undefined,
+        allowEditAfterReady:
+          createSource === "EVENT_ASSISTED"
+            ? command.allowEditAfterReady ?? null
+            : null,
+      });
 
-      const result =
-        createSource === "EVENT_ASSISTED"
-          ? await createEventAssistedPR({
-              anchorEventId: command.anchorEventId,
-              fields,
-              creatorIdentity,
-            })
-          : await createPRFromStructured(fields, creatorIdentity, {
-              createSource,
-            });
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.created",
+        payload: {
+          pr_id: result.id,
+          creation_path: createSource === "EVENT_ASSISTED" ? "event_assisted" : "form",
+          status: result.status,
+        },
+      });
 
       return c.json(result, 201);
     },
@@ -202,6 +191,15 @@ export const partnerRequestRoute = app
       creatorIdentity,
     );
 
+    await recordUserTelemetryEventForRequest(c, {
+      eventName: "pr.created",
+      payload: {
+        pr_id: result.id,
+        creation_path: "natural_language",
+        status: result.status,
+      },
+    });
+
     return c.json(result, 201);
   })
   .post("/:id/publish", zValidator("param", prIdParamSchema), async (c) => {
@@ -209,12 +207,11 @@ export const partnerRequestRoute = app
     await getPROr404(id);
     const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
     const result = await publishPR(id, creatorIdentity);
-    const auth = await issueAuthPayload(c, result.createdBy);
+    await issueResponseAuth(c, result.createdBy);
 
     return c.json({
       id: result.pr.id,
       pr: result.pr,
-      auth,
     });
   })
   .get("/mine/created", async (c) => {
@@ -244,6 +241,28 @@ export const partnerRequestRoute = app
       })),
     });
   })
+  .get(
+    "/:id/orders",
+    zValidator("param", prIdParamSchema),
+    zValidator("query", prOrdersQuerySchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const query = c.req.valid("query");
+      const pr = await getPROr404(id);
+      const orders = await tradeOrderRepo.listByIdsOfferAndStatuses({
+        ids: pr.orders,
+        offerId: query.offerId as OfferId,
+        statuses: query.statusIn,
+      });
+      return c.json({
+        orders: orders.map((order) => ({
+          id: order.id,
+          status: order.status,
+          offerId: order.offerId,
+        })),
+      });
+    },
+  )
   .post(
     "/:id/messages",
     zValidator("param", prIdParamSchema),
@@ -291,44 +310,6 @@ export const partnerRequestRoute = app
       return c.json(result);
     },
   )
-  .get(
-    "/:id/booking-support",
-    zValidator("param", prIdParamSchema),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      await getPROr404(id);
-      const result = await getPRBookingSupport(id, getSessionUserId(c));
-      return c.json(result);
-    },
-  )
-  .put(
-    "/:id/booking-contact/phone",
-    zValidator("param", prIdParamSchema),
-    zValidator("json", updateBookingContactPhoneSchema),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      const { phone } = c.req.valid("json");
-      await getPROr404(id);
-      const userId = requireAuthenticatedUserId(c);
-      const result = await updatePRBookingContactPhone({
-        prId: id,
-        userId,
-        phone,
-      });
-      return c.json(result);
-    },
-  )
-  .get(
-    "/:id/reimbursement/status",
-    zValidator("param", prIdParamSchema),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      await getPROr404(id);
-      const userId = requireSessionUserId(c);
-      const result = await getReimbursementStatus(id, userId);
-      return c.json(result);
-    },
-  )
   .get("/:id/join-gates", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
     await getPROr404(id);
@@ -355,11 +336,8 @@ export const partnerRequestRoute = app
         viewerUserId: participant.user.id,
         payload,
       });
-      const auth = await issueAuthPayload(c, participant.user.id);
-      return c.json({
-        ...result,
-        auth,
-      });
+      await issueResponseAuth(c, participant.user.id);
+      return c.json(result);
     },
   )
   .patch(
@@ -382,11 +360,19 @@ export const partnerRequestRoute = app
         return throwHttpProblem({ status: 400, detail: "Use publish endpoint to publish DRAFT partner request" });
       }
 
+      const fromStatus = creatorAuth.request.status;
       const result = await updatePRStatus(id, status, creatorAuth.actorUserId);
-      return c.json({
-        ...result,
-        auth: null,
-      });
+      if (status === "CLOSED") {
+        await recordUserTelemetryEventForRequest(c, {
+          eventName: "pr.closed",
+          payload: {
+            pr_id: id,
+            from_status: fromStatus,
+            to_status: status,
+          },
+        });
+      }
+      return c.json(result);
     },
   )
   .patch(
@@ -418,11 +404,12 @@ export const partnerRequestRoute = app
         id,
         fields,
         creatorAuth.actorUserId,
+        {
+          allowRelease:
+            "allowRelease" in payload && payload.allowRelease === true,
+        },
       );
-      return c.json({
-        ...result,
-        auth: null,
-      });
+      return c.json(result);
     },
   )
   .post(
@@ -432,16 +419,17 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       await getPROr404(id);
-      const { bookingContactPhone } = c.req.valid("json");
       const participantIdentity = await requireAuthenticatedCreatorIdentity(c);
-      const result = await joinPRByIdentity(id, participantIdentity, {
-        bookingContactPhone: bookingContactPhone ?? null,
+      const result = await joinPRByIdentity(id, participantIdentity);
+      await issueResponseAuth(c, result.userId);
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.joined",
+        payload: {
+          pr_id: id,
+          result_status: "success",
+        },
       });
-      const auth = await issueAuthPayload(c, result.userId);
-      return c.json({
-        ...result.pr,
-        auth,
-      });
+      return c.json(result.pr);
     },
   )
   .post(
@@ -456,11 +444,17 @@ export const partnerRequestRoute = app
       const result = await waitlistPRByIdentity(id, participantIdentity, {
         alternativePrReminderOptIn: payload.alternativePrReminderOptIn === true,
       });
-      const auth = await issueAuthPayload(c, result.userId);
-      return c.json({
-        ...result.pr,
-        auth,
+      await issueResponseAuth(c, result.userId);
+      await recordUserTelemetryEventForRequest(c, {
+        eventName: "pr.waitlisted",
+        payload: {
+          pr_id: id,
+          result_status: "success",
+          alternative_pr_reminder_opt_in:
+            payload.alternativePrReminderOptIn === true,
+        },
       });
+      return c.json(result.pr);
     },
   )
   .post(
@@ -484,7 +478,7 @@ export const partnerRequestRoute = app
   .post("/:id/confirm", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
     await getPROr404(id);
-    const { openId } = await requireAnchorAuthenticatedIdentity(c);
+    const openId = await requireAuthenticatedOpenId(c);
     const result = await confirmSlot(id, openId);
     return c.json(result);
   })
@@ -495,7 +489,7 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       await getPROr404(id);
-      const { openId } = await requireAnchorAuthenticatedIdentity(c);
+      const openId = await requireAuthenticatedOpenId(c);
       const { didAttend } = c.req.valid("json");
       if (didAttend === false) {
         return throwHttpProblem({ status: 400, detail: "didAttend=false is no longer supported" });

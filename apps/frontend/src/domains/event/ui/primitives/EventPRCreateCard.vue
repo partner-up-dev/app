@@ -4,7 +4,6 @@
     :class="{ 'create-card-shell--flash': autoExpandHighlightActive }"
   >
     <ExpandableCard
-      :key="expandableCardKey"
       :title="title ?? t('anchorEvent.createCard.title')"
       :subtitle="
         t('anchorEvent.createCard.subtitle', {
@@ -12,45 +11,26 @@
         })
       "
       :default-expanded="expandableDefaultExpanded"
+      :expanded-reset-key="expandableCardResetKey"
+      keep-content-mounted
     >
       <div class="create-card">
-        <label v-if="timeWindowOptions.length > 0" class="create-card__field">
-          <span class="create-card__label">{{
-            t("anchorEvent.card.batchLabel")
-          }}</span>
-          <select
-            :value="selectedTimeWindowKey ?? ''"
-            class="create-card__input"
-            @change="handleTimeWindowChange"
-          >
-            <option
-              v-for="option in timeWindowOptions"
-              :key="option.key"
-              :value="option.key"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventAssistedPRTimeWindowInlineEditor
+          :anchor-event-id="eventId"
+          :model-value="timeWindow"
+          :allow-edit-after-ready="allowEditAfterReady"
+          @update:model-value="emit('update:timeWindow', $event)"
+          @update:allow-edit-after-ready="
+            emit('update:allowEditAfterReady', $event)
+          "
+        />
 
-        <label class="create-card__field">
-          <span class="create-card__label">{{
-            t("anchorEvent.createCard.locationLabel")
-          }}</span>
-          <select v-model="selectedLocationId" class="create-card__input">
-            <option value="">
-              {{ t("anchorEvent.createCard.locationPlaceholder") }}
-            </option>
-            <option
-              v-for="option in locationOptions"
-              :key="option.locationId"
-              :value="option.locationId"
-              :disabled="option.disabled"
-            >
-              {{ formatLocationOptionLabel(option) }}
-            </option>
-          </select>
-        </label>
+        <AnchorEventInlinePlaceSelector
+          v-model="selectedPlaceId"
+          :options="placeOptions"
+          :label="placeLabel"
+          :placeholder="placePlaceholder"
+        />
 
         <p v-if="errorMessage" class="create-card__error">{{ errorMessage }}</p>
 
@@ -58,7 +38,8 @@
           type="button"
           appearance="pill"
           size="sm"
-          :disabled="pending"
+          data-testid="anchor-event.create-card.create"
+          :disabled="isCreateDisabled"
           @click="emitCreate"
         >
           {{
@@ -73,45 +54,46 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import { useReducedMotion } from "@/shared/motion/useReducedMotion";
-
-type LocationOption = {
-  locationId: string;
-  remainingQuota: number | null;
-  disabled: boolean;
-  disabledReason: "NONE" | "MAX_REACHED" | "TIME_UNAVAILABLE";
-};
-
-type TimeWindowOption = {
-  key: string;
-  label: string;
-};
-
-const AUTO_EXPAND_DELAY_MS = 1000;
-const AUTO_EXPAND_FLASH_DURATION_MS = 900;
+import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
+import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
+import type { TimeWindow } from "@/domains/event/model/time-window-view";
+import {
+  findAnchorEventPlaceOption,
+  getFirstEnabledPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
+import { useExpandableCardAttention } from "./useExpandableCardAttention";
 
 const props = withDefaults(
   defineProps<{
     title?: string;
-    timeWindowLabel: string;
+    eventId: number;
     eventTitle: string;
-    timeWindowOptions?: TimeWindowOption[];
-    selectedTimeWindowKey?: string | null;
-    locationOptions: LocationOption[];
+    timeWindow: TimeWindow | null;
+    allowEditAfterReady?: PRAllowEditAfterReady | null;
+    placeOptions: readonly AnchorEventPlaceOption[];
+    placeLabel?: string;
+    placePlaceholder?: string;
     pending?: boolean;
+    disabled?: boolean;
     errorMessage?: string | null;
     defaultExpanded?: boolean;
     autoExpandContextKey?: string | number | null;
   }>(),
   {
     title: undefined,
-    timeWindowOptions: () => [],
-    selectedTimeWindowKey: null,
+    allowEditAfterReady: null,
+    placeLabel: undefined,
+    placePlaceholder: undefined,
     pending: false,
+    disabled: false,
     errorMessage: null,
     defaultExpanded: false,
     autoExpandContextKey: null,
@@ -119,102 +101,44 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  create: [locationId: string | null];
-  "update:selectedTimeWindowKey": [value: string | null];
+  create: [place: AnchorEventSelectedPlace | null];
+  "update:timeWindow": [value: TimeWindow | null];
+  "update:allowEditAfterReady": [value: PRAllowEditAfterReady | null];
 }>();
 
 const { t } = useI18n();
-const { prefersReducedMotion } = useReducedMotion();
+const placeLabel = computed(
+  () => props.placeLabel ?? t("anchorEvent.placeSelector.locationLabel"),
+);
+const placePlaceholder = computed(
+  () =>
+    props.placePlaceholder ?? t("anchorEvent.placeSelector.locationPlaceholder"),
+);
 
-const selectedLocationId = ref("");
-const expandableDefaultExpanded = ref(props.defaultExpanded);
-const expandableCardVersion = ref(0);
-const autoExpandHighlightActive = ref(false);
-let autoExpandTimerId: number | null = null;
-let autoExpandHighlightTimerId: number | null = null;
-let autoExpandHighlightAnimationFrameId: number | null = null;
-
-const selectFirstAvailable = () => {
-  const firstAvailable = props.locationOptions.find(
-    (option) => !option.disabled,
-  );
-  selectedLocationId.value = firstAvailable?.locationId ?? "";
-};
-
-const expandableCardKey = computed(() => {
-  const contextKey = props.autoExpandContextKey ?? "default";
-  const expandedState = expandableDefaultExpanded.value
-    ? "expanded"
-    : "collapsed";
-  return `${contextKey}:${expandedState}:${expandableCardVersion.value}`;
+const selectedPlaceId = ref<string | null>(null);
+const isCreateDisabled = computed(
+  () => props.pending || props.disabled || selectedPlaceId.value === null,
+);
+const {
+  autoExpandHighlightActive,
+  expandableCardResetKey,
+  expandableDefaultExpanded,
+} = useExpandableCardAttention({
+  defaultExpanded: toRef(props, "defaultExpanded"),
+  autoExpandContextKey: toRef(props, "autoExpandContextKey"),
 });
 
-const clearAutoExpandTimer = () => {
-  if (typeof window === "undefined" || autoExpandTimerId === null) {
-    return;
-  }
-
-  window.clearTimeout(autoExpandTimerId);
-  autoExpandTimerId = null;
-};
-
-const clearAutoExpandHighlightTimer = () => {
-  if (typeof window === "undefined" || autoExpandHighlightTimerId === null) {
-    return;
-  }
-
-  window.clearTimeout(autoExpandHighlightTimerId);
-  autoExpandHighlightTimerId = null;
-};
-
-const clearAutoExpandHighlightAnimationFrame = () => {
-  if (
-    typeof window === "undefined" ||
-    autoExpandHighlightAnimationFrameId === null
-  ) {
-    return;
-  }
-
-  window.cancelAnimationFrame(autoExpandHighlightAnimationFrameId);
-  autoExpandHighlightAnimationFrameId = null;
-};
-
-const resetAutoExpandAttention = () => {
-  clearAutoExpandHighlightTimer();
-  clearAutoExpandHighlightAnimationFrame();
-  autoExpandHighlightActive.value = false;
-};
-
-const remountExpandableCard = (expanded: boolean) => {
-  expandableDefaultExpanded.value = expanded;
-  expandableCardVersion.value += 1;
-};
-
-const triggerAutoExpandHighlight = () => {
-  resetAutoExpandAttention();
-
-  if (prefersReducedMotion.value || typeof window === "undefined") {
-    return;
-  }
-
-  autoExpandHighlightAnimationFrameId = window.requestAnimationFrame(() => {
-    autoExpandHighlightAnimationFrameId = null;
-    autoExpandHighlightActive.value = true;
-    autoExpandHighlightTimerId = window.setTimeout(() => {
-      autoExpandHighlightTimerId = null;
-      autoExpandHighlightActive.value = false;
-    }, AUTO_EXPAND_FLASH_DURATION_MS);
-  });
+const selectFirstAvailable = () => {
+  selectedPlaceId.value = getFirstEnabledPlaceOption(props.placeOptions)?.id ?? null;
 };
 
 watch(
-  () => props.locationOptions,
+  () => props.placeOptions,
   () => {
     if (
-      selectedLocationId.value.length > 0 &&
-      props.locationOptions.some(
-        (option) =>
-          option.locationId === selectedLocationId.value && !option.disabled,
+      selectedPlaceId.value !== null &&
+      props.placeOptions.some(
+        (option) => option.id === selectedPlaceId.value && !option.disabled,
       )
     ) {
       return;
@@ -224,93 +148,17 @@ watch(
   { immediate: true, deep: true },
 );
 
-watch(
-  [() => props.autoExpandContextKey, () => props.defaultExpanded],
-  ([contextKey, shouldAutoExpand], previousValues) => {
-    clearAutoExpandTimer();
-    resetAutoExpandAttention();
-
-    const previousContextKey = previousValues?.[0];
-    const isFirstSync = previousValues === undefined;
-    const contextChanged = !isFirstSync && contextKey !== previousContextKey;
-
-    if (!contextChanged) {
-      remountExpandableCard(shouldAutoExpand);
-      return;
-    }
-
-    remountExpandableCard(false);
-
-    if (!shouldAutoExpand) {
-      return;
-    }
-
-    if (typeof window === "undefined") {
-      remountExpandableCard(true);
-      return;
-    }
-
-    autoExpandTimerId = window.setTimeout(() => {
-      autoExpandTimerId = null;
-      remountExpandableCard(true);
-      triggerAutoExpandHighlight();
-    }, AUTO_EXPAND_DELAY_MS);
-  },
-  { immediate: true },
-);
-
-watch(prefersReducedMotion, (reduced) => {
-  if (!reduced) {
-    return;
-  }
-
-  resetAutoExpandAttention();
-});
-
-onUnmounted(() => {
-  clearAutoExpandTimer();
-  resetAutoExpandAttention();
-});
-
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
-
-const handleTimeWindowChange = (event: Event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLSelectElement)) {
-    return;
-  }
-
-  const normalized = target.value.trim();
-  if (normalized.length === 0) {
-    emit("update:selectedTimeWindowKey", null);
-    return;
-  }
-
-  emit("update:selectedTimeWindowKey", normalized);
-};
-
 const emitCreate = () => {
-  const normalized = selectedLocationId.value.trim();
-  emit("create", normalized.length > 0 ? normalized : null);
+  if (isCreateDisabled.value) {
+    return;
+  }
+
+  emit(
+    "create",
+    toAnchorEventSelectedPlace(
+      findAnchorEventPlaceOption(props.placeOptions, selectedPlaceId.value),
+    ),
+  );
 };
 </script>
 

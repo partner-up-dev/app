@@ -1,13 +1,16 @@
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import type {
   AnchorEventId,
   TimeWindowEntry,
 } from "../../../entities/anchor-event";
 import type { PartnerRequest } from "../../../entities/partner-request";
+import type { UserId } from "../../../entities/user";
 import { readVisiblePartnerRequestsByType } from "../../pr/services";
 import { isJoinableStatus } from "../../pr/services";
 
 const eventRepo = new AnchorEventRepository();
+const partnerRepo = new PartnerRepository();
 
 const trimNullable = (value: string | null | undefined): string | null => {
   if (typeof value !== "string") {
@@ -175,20 +178,40 @@ const buildCandidateGroup = ({
   candidates: [],
 });
 
+const findActivePartnerPrIdsByUser = async (
+  userId: UserId | null | undefined,
+): Promise<Set<number>> => {
+  if (!userId) {
+    return new Set<number>();
+  }
+
+  const slots = await partnerRepo.findActiveByUserId(userId);
+  return new Set(slots.map((slot) => slot.prId));
+};
+
 const groupJoinableCandidates = async (
-  eventId: AnchorEventId,
+  input: {
+    eventId: AnchorEventId;
+    viewerUserId?: UserId | null;
+  },
 ): Promise<CandidateGroup[]> => {
-  const event = await eventRepo.findById(eventId);
+  const event = await eventRepo.findById(input.eventId);
 
   if (!event) {
     return [];
   }
 
   const groupMap = new Map<string, CandidateGroup>();
-  const records = await readVisiblePartnerRequestsByType(event.type);
+  const [records, activePartnerPrIds] = await Promise.all([
+    readVisiblePartnerRequestsByType(event.type),
+    findActivePartnerPrIdsByUser(input.viewerUserId),
+  ]);
 
   for (const record of records) {
     if (!isJoinableStatus(record.status)) {
+      continue;
+    }
+    if (activePartnerPrIds.has(record.id)) {
       continue;
     }
 
@@ -250,10 +273,14 @@ const materializeDemandCardSummary = (
   };
 };
 
-export const listDemandCards = async (
-  eventId: AnchorEventId,
-): Promise<DemandCardSummary[]> => {
-  const groups = await groupJoinableCandidates(eventId);
+export const listDemandCards = async ({
+  eventId,
+  viewerUserId,
+}: {
+  eventId: AnchorEventId;
+  viewerUserId?: UserId | null;
+}): Promise<DemandCardSummary[]> => {
+  const groups = await groupJoinableCandidates({ eventId, viewerUserId });
   return groups
     .map(materializeDemandCardSummary)
     .filter((card): card is DemandCardSummary => card !== null)
@@ -263,11 +290,13 @@ export const listDemandCards = async (
 export const listJoinableDemandCardCandidates = async ({
   eventId,
   cardKey,
+  viewerUserId,
 }: {
   eventId: AnchorEventId;
   cardKey: string;
+  viewerUserId?: UserId | null;
 }): Promise<DemandCardCandidate[]> => {
-  const groups = await groupJoinableCandidates(eventId);
+  const groups = await groupJoinableCandidates({ eventId, viewerUserId });
   const matched = groups.find((group) => group.cardKey === cardKey);
   if (!matched) {
     return [];

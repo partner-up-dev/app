@@ -79,7 +79,9 @@
                   :active="!isCreatingPR && selectedPRId === pr.prId"
                   @click="selectExistingPR(pr.prId)"
                 >
-                  <span>{{ pr.title || pr.location || `#${pr.prId}` }}</span>
+                  <span>
+                    {{ pr.title || pr.placeDisplayName || `#${pr.prId}` }}
+                  </span>
                   <small>#{{ pr.prId }} / {{ pr.status }}</small>
                   <small>{{ formatWindow(pr.time) }}</small>
                 </ChoiceCard>
@@ -127,14 +129,17 @@
                 </label>
               </div>
 
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prLocationLabel") }}</span>
-                <input
-                  v-model="prForm.location"
-                  class="field-input"
-                  list="admin-pr-form-location-options"
-                />
-              </label>
+              <PRPlaceModeField
+                v-model="prPlaceValue"
+                :label="t('partnerRequestForm.placeMode')"
+                :aria-label="t('partnerRequestForm.placeModeAria')"
+                :location-label="t('adminPR.prLocationLabel')"
+                :location-placeholder="t('partnerRequestForm.locationPlaceholder')"
+                location-options-list-id="admin-pr-form-location-options"
+                :location-error="locationValidationMessage ?? undefined"
+                :route-error="routeValidationMessage ?? undefined"
+                test-id-prefix="admin-pr.form.place"
+              />
 
               <label class="field">
                 <span class="field-label">
@@ -189,7 +194,6 @@
                 :title="t('adminPR.participationPolicyTitle')"
                 :description="t('adminPR.participationPolicyDescription')"
                 :event-start-at="resolvedTimeWindow[0]"
-                :booking-deadline-at="selectedPR?.effectiveBookingDeadlineAt ?? null"
                 :validation-message="policyValidationMessage"
               />
 
@@ -339,8 +343,8 @@
                     Boolean(prBoundsValidationMessage) ||
                     Boolean(timeValidationMessage) ||
                     Boolean(policyValidationMessage) ||
-                    prForm.type.trim().length === 0 ||
-                    prForm.location.trim().length === 0
+                    Boolean(prPlaceValidationMessage) ||
+                    prForm.type.trim().length === 0
                   "
                   @click="handleSavePR"
                 >
@@ -422,6 +426,11 @@ import {
   useDeleteAdminPR,
 } from "@/domains/admin/queries/useAdminPRManagement";
 import { validateManualPartnerBounds } from "@/lib/validation";
+import {
+  clonePRRoute,
+  getPRRouteValidationIssue,
+  type PRPlaceMode,
+} from "@/domains/pr/model/pr-route";
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
@@ -429,7 +438,10 @@ import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
-import type { PRJoinGateConfig } from "@partner-up-dev/backend";
+import PRPlaceModeField, {
+  type PRPlaceModeFieldValue,
+} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
 
 type PRForm = {
   title: string;
@@ -437,6 +449,7 @@ type PRForm = {
   startAt: string;
   endAt: string;
   location: string;
+  route: PRRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   confirmationStartOffsetMinutes: number;
@@ -463,6 +476,7 @@ const emptyPRForm = (): PRForm => ({
   startAt: "",
   endAt: "",
   location: "",
+  route: null,
   minPartners: null,
   maxPartners: null,
   confirmationStartOffsetMinutes: DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
@@ -499,6 +513,7 @@ const toPRForm = (pr: AdminPRRecord): PRForm => ({
   startAt: toLocalDateTimeInput(pr.time[0]),
   endAt: toLocalDateTimeInput(pr.time[1]),
   location: pr.location ?? "",
+  route: clonePRRoute(pr.route),
   minPartners: pr.minPartners,
   maxPartners: pr.maxPartners,
   confirmationStartOffsetMinutes: pr.confirmationStartOffsetMinutes,
@@ -560,10 +575,59 @@ const pendingDeletePR = computed<AdminPRRecord | null>(
 const pendingDeletePRLabel = computed(() => {
   const pr = pendingDeletePR.value;
   if (pr) {
-    return pr.title || pr.location || `#${pr.prId}`;
+    return pr.title || pr.placeDisplayName || `#${pr.prId}`;
   }
   return pendingDeletePRId.value === null ? "" : `#${pendingDeletePRId.value}`;
 });
+
+const prPlaceMode = computed<PRPlaceMode>(() =>
+  prForm.value.route ? "route" : "location",
+);
+
+const prPlaceValue = computed<PRPlaceModeFieldValue>({
+  get: () => ({
+    location: prForm.value.location.trim() || null,
+    route: prForm.value.route,
+  }),
+  set: (value) => {
+    prForm.value = {
+      ...prForm.value,
+      location: value.location ?? "",
+      route: clonePRRoute(value.route),
+    };
+  },
+});
+
+const locationValidationMessage = computed(() => {
+  if (prPlaceMode.value !== "location") {
+    return null;
+  }
+  return prForm.value.location.trim().length === 0
+    ? t("adminPR.prLocationRequiredValidation")
+    : null;
+});
+
+const routeValidationMessage = computed(() => {
+  if (prPlaceMode.value !== "route") {
+    return null;
+  }
+
+  const issue = getPRRouteValidationIssue(prForm.value.route);
+  if (issue === "min-points") {
+    return t("validation.routeMinPoints");
+  }
+  if (issue === "name-required") {
+    return t("validation.routePointNameRequired");
+  }
+  if (issue === "coordinate-required") {
+    return t("validation.routePointCoordinateRequired");
+  }
+  return null;
+});
+
+const prPlaceValidationMessage = computed(
+  () => locationValidationMessage.value ?? routeValidationMessage.value,
+);
 
 const matchedTypeOption = computed(
   () =>
@@ -808,6 +872,7 @@ const handleSavePR = async () => {
   if (
     prBoundsValidationMessage.value ||
     timeValidationMessage.value ||
+    prPlaceValidationMessage.value ||
     policyValidationMessage.value
   ) {
     return;

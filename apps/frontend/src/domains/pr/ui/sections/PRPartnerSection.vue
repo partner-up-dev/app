@@ -174,14 +174,6 @@
             formatDateTime(section.timeline.joinLockAt)
           }}</span>
         </div>
-        <div class="partner-section__timeline-item">
-          <span class="partner-section__timeline-label">{{
-            t("prPage.partnerSection.timelineBookingDeadline")
-          }}</span>
-          <span class="partner-section__timeline-value">{{
-            formatDateTime(section.timeline.bookingDeadlineAt)
-          }}</span>
-        </div>
       </div>
     </section>
 
@@ -233,7 +225,10 @@ import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import PRRosterItem from "@/domains/pr/ui/primitives/PRRosterItem.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import Chip from "@/shared/ui/display/Chip.vue";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import {
+  formatFriendlyTimeWindowLabel,
+  formatLocalDateTimeValue,
+} from "@/shared/datetime/formatLocalDateTime";
 
 type PartnerSectionView = PRPartnerSectionView;
 
@@ -344,10 +339,10 @@ const formatDateTime = (value: string | null): string =>
   formatLocalDateTimeValue(value) ?? t("prPage.partnerSection.notSet");
 
 const formatWindow = (start: string | null, end: string | null): string => {
-  const startLabel = formatLocalDateTimeValue(start);
-  const endLabel = formatLocalDateTimeValue(end);
-  if (startLabel && endLabel) return `${startLabel} - ${endLabel}`;
-  return startLabel ?? endLabel ?? t("prPage.partnerSection.notSet");
+  return formatFriendlyTimeWindowLabel(
+    [start, end],
+    t("prPage.partnerSection.notSet"),
+  );
 };
 
 const partnerProfilePath = (partnerId: number): string =>
@@ -413,15 +408,11 @@ function blockedReasonText(
       return t("prPage.partnerSection.blockedJoinLocked");
     case "EVENT_STARTED":
       return t("prPage.partnerSection.blockedEventStarted");
-    case "BOOKING_LOCKED":
-      return t("prPage.partnerSection.blockedBookingLocked");
     case "OUTSIDE_CONFIRM_WINDOW":
       return t(
         "prPage.partnerSection.blockedConfirmWindow",
         confirmWindowText.value,
       );
-    case "BOOKING_CONTACT_REQUIRED":
-      return t("prPage.partnerSection.blockedBookingContactRequired");
     case "ALREADY_CONFIRMED":
       return t("prPage.partnerSection.blockedAlreadyConfirmed");
     case "ALREADY_JOINED":

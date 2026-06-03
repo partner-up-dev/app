@@ -20,6 +20,7 @@ const buildPublicPR = (
     type: "餐饮试吃",
     time: ["2020-01-01T12:00:00.000Z", "2020-01-01T13:00:00.000Z"],
     location: "Test POI",
+    route: null,
     status: "ACTIVE",
     visibilityStatus: "VISIBLE",
     confirmationEnabled: true,
@@ -32,7 +33,9 @@ const buildPublicPR = (
     createdAt: now,
     preferences: [],
     notes: null,
+    orders: [],
     meetingPoint: null,
+    allowEditAfterReady: null,
     joinGateConfig: [],
     feedbackQuestionnaireInstanceId: null,
     createdBy: null,
@@ -73,6 +76,40 @@ const buildActiveParticipant = (
 });
 
 describe("buildPRPartnerSection", () => {
+  it("treats READY as roster-locked for non-participants", () => {
+    const participant = buildActiveParticipant("JOINED");
+    const view = buildPRPartnerSection({
+      publicPR: buildPublicPR({
+        status: "READY",
+        partners: [1],
+        myPartnerId: null,
+        maxPartners: 4,
+      }),
+      activeParticipants: [participant],
+      rosterParticipants: [participant],
+      viewerUserId: "22222222-2222-4222-8222-222222222222" as UserId,
+    });
+
+    assert.equal(view.capacity.readiness, "READY");
+    assert.equal(view.viewer.canJoin, false);
+    assert.equal(view.viewer.joinBlockedReason, "NOT_JOINABLE_STATUS");
+    assert.equal(view.viewer.canWaitlist, false);
+    assert.equal(view.viewer.waitlistBlockedReason, "NOT_JOINABLE_STATUS");
+  });
+
+  it("blocks participant exit from READY", () => {
+    const participant = buildActiveParticipant("JOINED");
+    const view = buildPRPartnerSection({
+      publicPR: buildPublicPR({ status: "READY" }),
+      activeParticipants: [participant],
+      rosterParticipants: [participant],
+      viewerUserId,
+    });
+
+    assert.equal(view.viewer.canExit, false);
+    assert.equal(view.viewer.exitBlockedReason, "NOT_JOINABLE_STATUS");
+  });
+
   it("does not allow an attended participant to check in again", () => {
     const participant = buildActiveParticipant("ATTENDED");
     const view = buildPRPartnerSection({

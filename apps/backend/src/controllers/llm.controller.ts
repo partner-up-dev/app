@@ -31,6 +31,7 @@ export const llmRoute = app.post(
       type: pr.type,
       time: pr.time,
       location: pr.location,
+      route: pr.route,
       minPartners: pr.minPartners,
       maxPartners: pr.maxPartners,
       partners: pr.partners,

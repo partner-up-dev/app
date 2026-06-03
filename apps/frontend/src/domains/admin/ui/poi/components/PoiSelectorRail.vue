@@ -15,6 +15,34 @@
         </option>
       </select>
     </label>
+
+    <div class="divider" aria-hidden="true" />
+
+    <section class="create-poi">
+      <h3 class="create-poi__title">{{ t("adminPois.createPoiTitle") }}</h3>
+      <label class="field">
+        <span class="field-label">{{ t("adminPois.newPoiLabel") }}</span>
+        <input
+          v-model="newPoiName"
+          class="field-input"
+          :placeholder="t('adminPois.newPoiPlaceholder')"
+        />
+      </label>
+      <Button
+        appearance="pill"
+        tone="outline"
+        size="sm"
+        type="button"
+        :disabled="isCreatingPoi || !canCreatePoi"
+        @click="emit('create-poi')"
+      >
+        {{
+          isCreatingPoi
+            ? t("adminPois.creatingPoi")
+            : t("adminPois.createPoiAction")
+        }}
+      </Button>
+    </section>
   </AdminRailPanel>
 </template>
 
@@ -22,6 +50,7 @@
 import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
+import Button from "@/shared/ui/actions/Button.vue";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];
@@ -29,12 +58,16 @@ type PoiStatus = PoiRecord["status"];
 defineProps<{
   modelValue: string;
   pois: PoiRecord[];
+  canCreatePoi: boolean;
+  isCreatingPoi: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
+  "create-poi": [];
 }>();
 
+const newPoiName = defineModel<string>("newPoiName", { required: true });
 const { t } = useI18n();
 
 const statusLabel = (status: PoiStatus): string => {
@@ -60,6 +93,23 @@ const statusLabel = (status: PoiStatus): string => {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
+}
+
+.divider {
+  height: 1px;
+  background: var(--sys-color-outline-variant);
+}
+
+.create-poi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.create-poi__title {
+  @include mx.pu-font(title-small);
+  margin: 0;
+  color: var(--sys-color-on-surface);
 }
 
 .field-label {

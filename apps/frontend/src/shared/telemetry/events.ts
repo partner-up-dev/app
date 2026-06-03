@@ -50,8 +50,9 @@ export type TelemetryEventName =
   | "home_event_highlight_click"
   | "home_event_plaza_entry_click"
   | "home_create_entry_click"
-  | "home_bookmark_nudge_shown"
-  | "home_bookmark_action_click"
+  | "official_account_follow_nudge_shown"
+  | "official_account_follow_nudge_action_click"
+  | "wechat_oauth_trace"
   | "anchor_event_form_impression"
   | "anchor_event_form_started"
   | "anchor_event_form_recommendation_impression"
@@ -71,13 +72,10 @@ type AnalyticsContextPayload = {
   actorId?: string;
   spm?: string;
   sourceQr?: string;
-  correlationId?: string;
-  requestId?: string;
   traceId?: string;
   eventIdRef?: number;
   prIdRef?: number;
   cardKey?: string;
-  segmentKey?: string;
 };
 
 type AnchorEventFunnelContextPayload = AnalyticsContextPayload & {
@@ -88,10 +86,23 @@ type AnchorEventFunnelContextPayload = AnalyticsContextPayload & {
   isTimeoutFallback?: boolean;
 };
 
+type AnchorEventPlaceTelemetryPayload = {
+  locationId?: string | null;
+  routePoolEntryId?: string | null;
+  placeKind?: "location" | "route" | null;
+  locationType?: "preset" | "user_submitted";
+};
+
 type PRContextPayload = AnalyticsContextPayload & {
   prId?: number;
   prKind?: PRKind;
 };
+
+type OfficialAccountFollowPromptSource =
+  | "home"
+  | "anchor_event"
+  | "pr_join_result"
+  | "pr_waitlist_result";
 
 type ShareContextPayload = AnalyticsContextPayload & {
   prId?: number;
@@ -132,22 +143,18 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_landing_viewed: AnchorEventFunnelContextPayload;
   anchor_event_recommendation_requested: AnchorEventFunnelContextPayload & {
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_recommendation_returned: AnchorEventFunnelContextPayload & {
     outcome: "matched" | "no_match";
     matchedPrId?: number | null;
     candidateCount: number;
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_candidate_engaged: AnchorEventFunnelContextPayload & {
     action: "detail" | "join" | "waitlist";
     targetPrId: number;
@@ -156,12 +163,10 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_assisted_create_started: AnchorEventFunnelContextPayload & {
     trigger: "manual_fallback" | "auto_no_candidates";
-    locationId: string;
-    locationType: "preset" | "user_submitted";
     startAt: string;
     timeType: "preset" | "user_submitted";
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_card_stack_loaded: AnchorEventFunnelContextPayload & {
     cardCount: number;
   };
@@ -178,7 +183,9 @@ export type TelemetryPayloadMap = {
     rank: number;
   };
   anchor_event_card_empty_create_started: AnchorEventFunnelContextPayload & {
-    locationId: string;
+    locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
   };
   anchor_event_list_loaded: AnchorEventFunnelContextPayload & {
@@ -207,6 +214,8 @@ export type TelemetryPayloadMap = {
   anchor_event_list_create_started: AnchorEventFunnelContextPayload & {
     dateKey?: string | null;
     locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
   };
   pr_entry_reached: AnchorEventFunnelContextPayload & {
@@ -328,14 +337,31 @@ export type TelemetryPayloadMap = {
     source: "hero_secondary" | "fallback_section";
     target: "pr-create";
   };
-  home_bookmark_nudge_shown: PRContextPayload & {
-    triggerDepthPercent: number;
-    triggerMode: "time" | "bottom";
-    environment: "wechat" | "browser";
+  official_account_follow_nudge_shown: PRContextPayload & {
+    source: OfficialAccountFollowPromptSource;
   };
-  home_bookmark_action_click: PRContextPayload & {
-    action: "open_web_page_qr" | "open_official_account_qr" | "dismiss";
-    environment: "wechat" | "browser";
+  official_account_follow_nudge_action_click: PRContextPayload & {
+    source: OfficialAccountFollowPromptSource;
+    action: "dismiss" | "complete";
+  };
+  wechat_oauth_trace: AnalyticsContextPayload & {
+    flow: "login" | "bind";
+    phase:
+      | "login_requested"
+      | "redirect_scheduled"
+      | "bind_requested"
+      | "bind_authorize_received"
+      | "bind_fallback_login"
+      | "handoff_started"
+      | "handoff_slow"
+      | "handoff_completed"
+      | "handoff_failed"
+      | "handoff_abandoned";
+    sinceStartMs: number;
+    durationMs?: number;
+    attempt?: number;
+    result?: "success" | "failure" | "slow" | "abandoned";
+    failureReason?: string;
   };
   anchor_event_form_impression: AnalyticsContextPayload & {
     eventId: number;
@@ -345,6 +371,8 @@ export type TelemetryPayloadMap = {
     trigger: "location" | "time" | "preference" | "primary_cta";
     hasDefaultSelection: boolean;
     locationId?: string;
+    routePoolEntryId?: string;
+    placeKind?: "location" | "route";
     locationType?: "preset" | "user_submitted";
     startAt?: string;
     timeType?: "preset" | "user_submitted";
@@ -355,22 +383,19 @@ export type TelemetryPayloadMap = {
     hasMatchedRecommendation: boolean;
     candidateCount: number;
     advancedMode: boolean;
-    locationId: string;
     startAt: string;
     preferenceCount: number;
-  };
+  } & AnchorEventPlaceTelemetryPayload;
   anchor_event_recommendation_result: AnalyticsContextPayload &
     ResultTelemetryPayload & {
       eventId: number;
-      locationId: string;
-      locationType: "preset" | "user_submitted";
       startAt: string;
       timeType: "preset" | "user_submitted";
       preferenceCount: number;
       outcome?: "matched" | "no_match";
       matchedPrId?: number | null;
       candidateCount?: number;
-    };
+    } & AnchorEventPlaceTelemetryPayload;
   anchor_event_form_result_action_click: AnalyticsContextPayload & {
     eventId: number;
     action:
@@ -383,7 +408,9 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_form_create_fallback_click: AnalyticsContextPayload & {
     eventId: number;
-    locationId: string;
+    locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
     startAt: string;
     preferenceCount: number;
   };
@@ -392,8 +419,10 @@ export type TelemetryPayloadMap = {
       eventId: number;
       prId?: number;
       activityType?: string;
-      locationId: string;
-      locationType: "preset" | "user_submitted";
+      locationId?: string | null;
+      routePoolEntryId?: string | null;
+      placeKind?: "location" | "route";
+      locationType?: "preset" | "user_submitted";
       startAt: string;
       timeType: "preset" | "user_submitted";
       preferenceCount: number;
@@ -441,6 +470,8 @@ export type TelemetryPayloadMap = {
     actionType:
       | "SHARE_METHOD_SWITCH"
       | "SHARE_LINK_TRIGGER"
+      | "JOIN_BETA_GROUP"
+      | "EVENT_PLAZA_ENTRY"
       | "CREATOR_EDIT_CONTENT"
       | "CREATOR_MODIFY_STATUS";
     methodId?: string;

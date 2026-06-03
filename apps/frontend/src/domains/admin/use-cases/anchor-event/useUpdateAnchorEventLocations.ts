@@ -5,6 +5,7 @@ import {
   buildLocationMeetingPointsInput,
   buildMeetingPointInput,
   normalizeLines,
+  normalizeRoutePoolForSubmit,
   toAnchorEventMutationInput,
 } from "@/domains/admin/use-cases/anchor-event/anchorEventMutationInput";
 
@@ -18,19 +19,30 @@ export const useUpdateAnchorEventLocations = () => {
     event: AdminAnchorEventRecord;
     draft: AnchorEventLocationsDraft;
   }) => {
-    const locationPool = normalizeLines(draft.locationPoolText);
+    const locationPool =
+      draft.placePoolMode === "location"
+        ? normalizeLines(draft.locationPoolText)
+        : [];
+    const routePool =
+      draft.placePoolMode === "route"
+        ? normalizeRoutePoolForSubmit(draft.routePool)
+        : [];
     return await mutation.mutateAsync({
       eventId: event.id,
       input: toAnchorEventMutationInput(event, {
         locationPool,
+        routePool,
         meetingPoint: buildMeetingPointInput(
           draft.meetingPointDescription,
           draft.meetingPointImageUrl,
         ),
-        locationMeetingPoints: buildLocationMeetingPointsInput(
-          locationPool,
-          draft.locationMeetingPoints,
-        ),
+        locationMeetingPoints:
+          draft.placePoolMode === "location"
+            ? buildLocationMeetingPointsInput(
+                locationPool,
+                draft.locationMeetingPoints,
+              )
+            : {},
       }),
     });
   };

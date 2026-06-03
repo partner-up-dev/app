@@ -1,22 +1,29 @@
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import type {
+  AnchorEventRoutePool,
   MeetingPointConfig,
   MeetingPointConfigMap,
   PRJoinGateConfig,
+  PRRoute,
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
   FeedbackQuestionnaireTemplate,
   FeedbackQuestionnaireTemplateId,
 } from "../../../entities";
+import { normalizeAnchorEventRoutePool } from "../../../entities";
 import type { AnchorEventPRContextRecord } from "../../../repositories/AnchorEventPRContextRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import {
   countActivePartnersForPR,
   readAnchorEventPRContextRecordsByEventTimeWindow,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
-import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 import { listAnchorEventTimeWindowDetails } from "../../anchor-event/services/time-window-pool";
+import {
+  listAdminAnchorEventRouteApplications,
+  type AnchorEventRouteApplicationView,
+} from "../../anchor-event-route-application";
 
 const anchorEventRepo = new AnchorEventRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -26,6 +33,8 @@ type AdminPRSummary = {
   title: string | null;
   type: string;
   location: string | null;
+  route: PRRoute | null;
+  placeDisplayName: string | null;
   time: [string | null, string | null];
   status: string;
   visibilityStatus: string;
@@ -40,8 +49,6 @@ type AdminPRSummary = {
   confirmationStartOffsetMinutes: number;
   confirmationEndOffsetMinutes: number;
   joinLockOffsetMinutes: number;
-  bookingTriggeredAt: string | null;
-  effectiveBookingDeadlineAt: string | null;
   createdAt: string;
 };
 
@@ -58,6 +65,7 @@ export type AdminAnchorEventSummary = {
   type: string;
   description: string | null;
   locationPool: string[];
+  routePool: AnchorEventRoutePool;
   timePoolConfig: {
     durationMinutes: number | null;
     earliestLeadMinutes: number | null;
@@ -102,6 +110,7 @@ export type AdminAnchorEventSummary = {
 
 export interface AdminAnchorEventWorkspace {
   events: AdminAnchorEventSummary[];
+  routeApplications: AnchorEventRouteApplicationView[];
   feedbackQuestionnaireTemplates: Array<{
     id: FeedbackQuestionnaireTemplate["id"];
     key: string;
@@ -117,6 +126,8 @@ const toAdminPRSummary = async (
   title: record.root.title,
   type: record.root.type,
   location: record.root.location,
+  route: record.root.route,
+  placeDisplayName: resolvePRPlaceDisplayName(record.root),
   time: record.root.time,
   status: record.root.status,
   visibilityStatus: record.anchor.visibilityStatus,
@@ -131,9 +142,6 @@ const toAdminPRSummary = async (
   confirmationStartOffsetMinutes: record.anchor.confirmationStartOffsetMinutes,
   confirmationEndOffsetMinutes: record.anchor.confirmationEndOffsetMinutes,
   joinLockOffsetMinutes: record.anchor.joinLockOffsetMinutes,
-  bookingTriggeredAt: record.anchor.bookingTriggeredAt?.toISOString() ?? null,
-  effectiveBookingDeadlineAt:
-    (await getEffectiveBookingDeadline(record.root.id))?.toISOString() ?? null,
   createdAt: record.root.createdAt.toISOString(),
 });
 
@@ -176,6 +184,7 @@ export async function getAdminAnchorEventWorkspace(): Promise<AdminAnchorEventWo
         locationPool: Array.isArray(event.locationPool)
           ? [...event.locationPool]
           : [],
+        routePool: normalizeAnchorEventRoutePool(event.routePool),
         timePoolConfig: event.timePoolConfig,
         defaultMinPartners: event.defaultMinPartners ?? null,
         defaultMaxPartners: event.defaultMaxPartners ?? null,
@@ -206,9 +215,11 @@ export async function getAdminAnchorEventWorkspace(): Promise<AdminAnchorEventWo
   );
 
   const templates = await feedbackRepo.listTemplates();
+  const routeApplications = await listAdminAnchorEventRouteApplications();
 
   return {
     events: eventSummaries,
+    routeApplications,
     feedbackQuestionnaireTemplates: templates.map((template) => ({
       id: template.id,
       key: template.key,

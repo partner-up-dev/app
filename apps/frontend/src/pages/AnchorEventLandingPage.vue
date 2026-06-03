@@ -1,6 +1,9 @@
 <template>
   <FooterRevealPageScaffold
-    class="anchor-event-landing-page"
+    :class="[
+      'anchor-event-landing-page',
+      { 'anchor-event-landing-page--card-rich': resolvedMode === 'CARD_RICH' },
+    ]"
     data-page="event-landing"
     data-testid="anchor-event-landing.page"
     :content-placement="pageStatePlacement"
@@ -16,11 +19,11 @@
       >
         <template #top-actions>
           <Button
-            v-if="resolvedMode === 'FORM'"
             appearance="pill"
             tone="outline"
             size="sm"
             type="button"
+            data-testid="anchor-event-landing.other-events.open"
             @click="showOtherEventsDrawer = true"
           >
             {{ t("anchorEvent.otherEvents.action") }}
@@ -52,17 +55,19 @@
       :event-id="eventId"
     />
 
-    <template v-else-if="detail">
+    <template v-else-if="resolvedMode === 'CARD_RICH' && detail">
       <AnchorEventCardModeSurface
         :active-demand-card="activeDemandCard"
         :stack-preview-cards="stackPreviewCards"
         :is-card-routing="isCardRouting"
         :card-action-error="cardActionError"
         :drag-hint-token="0"
-        :card-create-time-window-options="cardCreateTimeWindowOptions"
-        :card-create-time-window-key="cardCreateTimeWindowKey"
-        :card-create-location-id="cardCreateLocationId"
-        :card-create-location-options="cardCreateLocationOptionViewModels"
+        :card-create-time-window="cardCreateTimeWindow"
+        :card-create-allow-edit-after-ready="cardCreateAllowEditAfterReady"
+        :card-create-place-id="cardCreatePlaceId"
+        :card-create-place-options="cardCreatePlaceOptions"
+        :card-create-place-label="cardCreatePlaceLabel"
+        :card-create-place-placeholder="cardCreatePlacePlaceholder"
         :create-action-error-message="createActionErrorMessage"
         :is-create-pending="isCreatePending"
         :can-user-create-p-r="detail.canUserCreatePR"
@@ -72,14 +77,33 @@
         @consume-drag-hint-window="noop"
         @skip-active-card="handleSkipActiveCard"
         @view-active-card-detail="handleViewActiveCardDetail"
-        @update:card-create-time-window-key="cardCreateTimeWindowKey = $event"
-        @update:card-create-location-id="cardCreateLocationId = $event"
+        @update:card-create-time-window="cardCreateTimeWindow = $event"
+        @update:card-create-allow-edit-after-ready="
+          cardCreateAllowEditAfterReady = $event
+        "
+        @update:card-create-place-id="cardCreatePlaceId = $event"
         @create-from-card-empty="handleCreateFromCardEmpty"
       />
     </template>
 
     <template #footer>
-      <FullCommonFooter />
+      <div class="anchor-event-landing-page__footer">
+        <div
+          v-if="detail && resolvedMode !== null"
+          class="anchor-event-landing-page__mode-switch-shell"
+          data-testid="anchor-event-landing.mode-switch"
+        >
+          <SegmentedControl
+            class="anchor-event-landing-page__mode-switch"
+            block
+            :model-value="resolvedMode"
+            :options="modeOptions"
+            :aria-label="t('anchorEvent.viewMode.ariaLabel')"
+            @update:model-value="handleModeControlChange"
+          />
+        </div>
+        <FullCommonFooter data-region="footer" />
+      </div>
     </template>
   </FooterRevealPageScaffold>
 
@@ -106,13 +130,15 @@
     />
   </BottomDrawer>
 
-  <BookmarkPageNudge
-    :open="bookmarkPageNudgePrompt.isVisible.value"
-    @acknowledge="bookmarkPageNudgePrompt.acknowledgePrompt"
+  <OfficialAccountFollowNudge
+    :open="officialAccountFollowPrompt.isVisible.value"
+    @dismiss="officialAccountFollowPrompt.dismissPrompt"
+    @complete="officialAccountFollowPrompt.markPromptCompleted"
   />
 </template>
 
 <script setup lang="ts">
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -122,7 +148,7 @@ import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffol
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
 import AnchorEventFormModeSurface from "@/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue";
 import AnchorEventListModeSurface from "@/domains/event/ui/surfaces/AnchorEventListModeSurface.vue";
-import BookmarkPageNudge from "@/domains/marketing/ui/BookmarkPageNudge.vue";
+import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
@@ -138,7 +164,16 @@ import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
 } from "@/domains/event/model/poi-gallery";
-import { formatTimeWindowOptionLabel } from "@/domains/event/model/time-window-view";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  findAnchorEventPlaceOption,
+  getExclusiveCreateTimeWindowLocationOptions,
+  getFirstEnabledPlaceOption,
+  hasEnabledCreateTimeWindowPlaceOption,
+  toAnchorEventSelectedPlace,
+  type AnchorEventPlaceOption,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import type { ApiError } from "@/shared/api/error";
 import {
@@ -148,34 +183,25 @@ import {
 import Button from "@/shared/ui/actions/Button.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import SegmentedControl, {
+  type SegmentedControlOption,
+  type SegmentedControlValue,
+} from "@/shared/ui/controls/SegmentedControl.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
-import { useBookmarkPageNudgePrompt } from "@/domains/marketing/use-cases/useBookmarkPageNudgePrompt";
+import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 import {
   buildAnchorEventFunnelPayload,
-  ensureAnchorEventLandingSegment,
   type AnchorEventFunnelContext,
 } from "@/domains/event/telemetry/anchor-event-funnel";
+import {
+  normalizeAnchorEventLandingMode,
+  type AnchorEventLandingMode,
+} from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
-type LocationOption =
-  AnchorEventDetailResponse["createTimeWindows"][number]["locationOptions"][number];
-type CreateTimeWindowEntry =
-  AnchorEventDetailResponse["createTimeWindows"][number];
 
-type CardTimeWindowOption = {
-  key: string;
-  label: string;
-};
-
-type CardCreateLocationOptionViewModel = {
-  locationId: string;
-  label: string;
-  disabled: boolean;
-};
 type FormModeResultState = "selection" | "no-match";
 type FormModeSurfaceExposed = {
   returnToSelection: () => void;
@@ -190,10 +216,43 @@ const { t } = useI18n();
 const showOtherEventsDrawer = ref(false);
 const formModeSurfaceRef = ref<FormModeSurfaceExposed | null>(null);
 const formModeResultState = ref<FormModeResultState>("selection");
-const bookmarkPageNudgePrompt = useBookmarkPageNudgePrompt("anchor_event");
-const BOOKMARK_PAGE_NUDGE_DELAY_MS = 3000;
+const lastTrackedLandingKey = ref<string | null>(null);
+const activeCardTelemetryContextKey = ref<string | null>(null);
+const trackedCardStackKeys = ref<Set<string>>(new Set());
+const trackedCardSeenKeys = ref<Set<string>>(new Set());
+const officialAccountFollowPrompt =
+  useOfficialAccountFollowPrompt("anchor_event");
+const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
 
 const noop = () => undefined;
+
+const modeOptions = computed<SegmentedControlOption[]>(() => [
+  {
+    value: "LIST",
+    label: t("anchorEvent.viewMode.list"),
+    icon: "i-mdi:view-list",
+    testId: "anchor-event-landing.mode.list",
+  },
+  {
+    value: "CARD_RICH",
+    label: t("anchorEvent.viewMode.card"),
+    icon: "i-mdi:cards-outline",
+    testId: "anchor-event-landing.mode.card",
+  },
+  {
+    value: "FORM",
+    label: t("anchorEvent.viewMode.form"),
+    icon: "i-mdi:form-select",
+    testId: "anchor-event-landing.mode.form",
+  },
+]);
+
+const toModeQueryValue = (mode: AnchorEventLandingMode): string => {
+  if (mode === "CARD_RICH") {
+    return "card";
+  }
+  return mode.toLowerCase();
+};
 
 const eventId = computed(() => {
   const raw = route.params.eventId;
@@ -201,8 +260,9 @@ const eventId = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 });
 
-const { assignmentQuery, resolvedMode, isTimeoutFallback } =
-  useResolvedAnchorEventLandingMode(eventId);
+const requestedMode = computed(() => route.query.mode);
+const { assignmentQuery, resolvedMode, setResolvedMode, isTimeoutFallback } =
+  useResolvedAnchorEventLandingMode(eventId, requestedMode);
 const { data: detail, isLoading: isDetailLoading, isError: isDetailError } =
   useAnchorEventDetail(eventId);
 const otherEventsQuery = useAnchorEvents();
@@ -248,6 +308,36 @@ const buildCurrentFunnelPayload = () => {
         activityType: event.type,
       }
     : null;
+};
+
+const buildFunnelContextKey = (context: AnchorEventFunnelContext): string =>
+  [
+    context.eventId,
+    context.renderedMode,
+    context.assignedMode ?? "none",
+    context.assignmentRevision ?? "none",
+  ].join(":");
+
+const claimTelemetryKey = (store: Set<string>, key: string): boolean => {
+  if (store.has(key)) return false;
+  store.add(key);
+  return true;
+};
+
+const claimLatestTelemetryKey = (
+  latestKey: { value: string | null },
+  key: string,
+): boolean => {
+  if (latestKey.value === key) return false;
+  latestKey.value = key;
+  return true;
+};
+
+const ensureCardTelemetryContext = (contextKey: string): void => {
+  if (activeCardTelemetryContextKey.value === contextKey) return;
+  activeCardTelemetryContextKey.value = contextKey;
+  trackedCardStackKeys.value = new Set();
+  trackedCardSeenKeys.value = new Set();
 };
 
 const {
@@ -330,6 +420,26 @@ const handleLandingBack = async () => {
   await router.replace(backFallbackTo);
 };
 
+const handleModeControlChange = (value: SegmentedControlValue) => {
+  const mode = normalizeAnchorEventLandingMode(value);
+  const resolvedEventId = eventId.value;
+  if (mode === null || resolvedEventId === null) {
+    return;
+  }
+
+  setResolvedMode(mode);
+  void router.replace({
+    name: "anchor-event-landing",
+    params: {
+      eventId: resolvedEventId.toString(),
+    },
+    query: {
+      ...route.query,
+      mode: toModeQueryValue(mode),
+    },
+  });
+};
+
 watch([eventId, resolvedMode], () => {
   formModeResultState.value = "selection";
 });
@@ -338,12 +448,12 @@ watch(
   funnelContext,
   (context) => {
     if (!context) return;
+    const contextKey = buildFunnelContextKey(context);
 
-    const segment = ensureAnchorEventLandingSegment(context);
     if (
-      !claimUserTelemetrySegmentDedupeKey(
-        "anchor_event.landing.viewed",
-        segment.id,
+      !claimLatestTelemetryKey(
+        lastTrackedLandingKey,
+        `anchor_event.landing.viewed:${contextKey}`,
       )
     ) {
       return;
@@ -439,118 +549,62 @@ const upcomingSortedCreateTimeWindows = computed(() =>
 );
 const canUserCreatePR = computed(() => detail.value?.canUserCreatePR === true);
 
-const cardCreateTimeWindowKey = ref<string | null>(null);
-const cardCreateLocationId = ref("");
+const cardCreateTimeWindow = ref<TimeWindow | null>(null);
+const cardCreateAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
+const cardCreatePlaceId = ref<string | null>(null);
 
-const cardCreateTimeWindowOptions = computed<CardTimeWindowOption[]>(() =>
-  upcomingSortedCreateTimeWindows.value.map((entry, index) => ({
-    key: entry.key,
-    label: formatTimeWindowOptionLabel(
-      entry.timeWindow,
-      index,
-      t("anchorEvent.batchLabel"),
-      entry.description,
-    ),
-  })),
-);
+const timeWindowsEqual = (
+  left: TimeWindow | null | undefined,
+  right: TimeWindow | null | undefined,
+): boolean =>
+  (left?.[0] ?? null) === (right?.[0] ?? null) &&
+  (left?.[1] ?? null) === (right?.[1] ?? null);
 
-const resolveFirstCreatableTimeWindowKey = (): string | null => {
+const resolveFirstCreatableTimeWindow = (): TimeWindow | null => {
   for (const entry of upcomingSortedCreateTimeWindows.value) {
-    if (entry.locationOptions.some((option) => !option.disabled)) {
-      return entry.key;
+    if (hasEnabledCreateTimeWindowPlaceOption(entry)) {
+      return entry.timeWindow;
     }
   }
 
-  return upcomingSortedCreateTimeWindows.value[0]?.key ?? null;
+  return upcomingSortedCreateTimeWindows.value[0]?.timeWindow ?? null;
 };
 
 watch(
   upcomingSortedCreateTimeWindows,
   (timeWindows) => {
     if (timeWindows.length === 0) {
-      cardCreateTimeWindowKey.value = null;
+      cardCreateTimeWindow.value = null;
+      cardCreateAllowEditAfterReady.value = null;
       return;
     }
 
     const current = timeWindows.find(
-      (entry) => entry.key === cardCreateTimeWindowKey.value,
+      (entry) => timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
     );
     if (current) {
       return;
     }
 
-    cardCreateTimeWindowKey.value = resolveFirstCreatableTimeWindowKey();
+    cardCreateTimeWindow.value = resolveFirstCreatableTimeWindow();
+    cardCreateAllowEditAfterReady.value = null;
   },
   { immediate: true },
 );
 
 const selectedCardCreateTimeWindow = computed(() => {
-  const key = cardCreateTimeWindowKey.value;
-  if (key === null) {
+  const timeWindow = cardCreateTimeWindow.value;
+  if (timeWindow === null) {
     return null;
   }
 
   return (
-    upcomingSortedCreateTimeWindows.value.find((entry) => entry.key === key) ??
+    upcomingSortedCreateTimeWindows.value.find((entry) =>
+      timeWindowsEqual(entry.timeWindow, timeWindow),
+    ) ??
     null
   );
 });
-
-const cardCreateLocationOptions = computed<LocationOption[]>(() => {
-  return selectedCardCreateTimeWindow.value?.locationOptions ?? [];
-});
-
-const formatLocationOptionLabel = (option: LocationOption): string => {
-  if (option.disabled && option.disabledReason === "TIME_UNAVAILABLE") {
-    return t("anchorEvent.createCard.optionTimeUnavailable", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.disabled && option.disabledReason === "MAX_REACHED") {
-    return t("anchorEvent.createCard.optionMaxReached", {
-      locationId: option.locationId,
-    });
-  }
-
-  if (option.remainingQuota === null) {
-    return option.locationId;
-  }
-
-  return t("anchorEvent.createCard.optionRemaining", {
-    locationId: option.locationId,
-    count: option.remainingQuota,
-  });
-};
-
-const cardCreateLocationOptionViewModels = computed<
-  CardCreateLocationOptionViewModel[]
->(() =>
-  cardCreateLocationOptions.value.map((option) => ({
-    locationId: option.locationId,
-    label: formatLocationOptionLabel(option),
-    disabled: option.disabled,
-  })),
-);
-
-watch(
-  cardCreateLocationOptions,
-  (options) => {
-    if (
-      cardCreateLocationId.value.length > 0 &&
-      options.some(
-        (option) =>
-          option.locationId === cardCreateLocationId.value && !option.disabled,
-      )
-    ) {
-      return;
-    }
-
-    const firstAvailable = options.find((option) => !option.disabled);
-    cardCreateLocationId.value = firstAvailable?.locationId ?? "";
-  },
-  { immediate: true, deep: true },
-);
 
 const allPoiIdsCsv = computed(() => {
   const uniqueLocationIds = new Set<string>();
@@ -559,6 +613,24 @@ const allPoiIdsCsv = computed(() => {
     const location = card.displayLocationName?.trim() ?? "";
     if (location.length > 0) {
       uniqueLocationIds.add(location);
+    }
+  }
+  for (const entry of detail.value?.createTimeWindows ?? []) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
+  for (const option of detail.value?.placeSelector.options ?? []) {
+    if (option.kind !== "location") {
+      continue;
+    }
+
+    const locationId = option.locationId.trim();
+    if (locationId.length > 0) {
+      uniqueLocationIds.add(locationId);
     }
   }
 
@@ -571,6 +643,54 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
+
+const activeCardCreatePlaceSelector = computed(
+  () =>
+    selectedCardCreateTimeWindow.value?.placeSelector ??
+    detail.value?.placeSelector ??
+    null,
+);
+
+const cardCreatePlaceOptions = computed<AnchorEventPlaceOption[]>(() =>
+  buildCreateTimeWindowPlaceOptions({
+    placeSelector: activeCardCreatePlaceSelector.value,
+    locationOptions: selectedCardCreateTimeWindow.value?.locationOptions ?? [],
+    routeOptions: selectedCardCreateTimeWindow.value?.routeOptions ?? [],
+    poiByName: poiByName.value,
+  }),
+);
+const cardCreatePlaceLabel = computed(() =>
+  t(
+    activeCardCreatePlaceSelector.value?.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const cardCreatePlacePlaceholder = computed(() =>
+  t(
+    activeCardCreatePlaceSelector.value?.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
+);
+
+watch(
+  cardCreatePlaceOptions,
+  (options) => {
+    if (
+      cardCreatePlaceId.value !== null &&
+      options.some(
+        (option) => option.id === cardCreatePlaceId.value && !option.disabled,
+      )
+    ) {
+      return;
+    }
+
+    cardCreatePlaceId.value = getFirstEnabledPlaceOption(options)?.id ?? null;
+  },
+  { immediate: true, deep: true },
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -628,8 +748,13 @@ watch(
     ) {
       return;
     }
+    const contextKey = buildFunnelContextKey(context);
+    ensureCardTelemetryContext(contextKey);
     if (
-      !claimUserTelemetrySegmentDedupeKey("anchor_event.card_stack.loaded")
+      !claimTelemetryKey(
+        trackedCardStackKeys.value,
+        `anchor_event.card_stack.loaded:${contextKey}:${cards.length}`,
+      )
     ) {
       return;
     }
@@ -646,9 +771,12 @@ watch(
   [funnelContext, activeDemandCard],
   ([context, card]) => {
     if (!context || context.renderedMode !== "CARD_RICH" || !card) return;
+    const contextKey = buildFunnelContextKey(context);
+    ensureCardTelemetryContext(contextKey);
     if (
-      !claimUserTelemetrySegmentDedupeKey(
-        `anchor_event.card.seen:${card.cardKey}`,
+      !claimTelemetryKey(
+        trackedCardSeenKeys.value,
+        `anchor_event.card.seen:${contextKey}:${card.cardKey}`,
       )
     ) {
       return;
@@ -753,18 +881,17 @@ const isWeChatAuthBlockingError = (
 
 const buildEventAssistedFields = ({
   targetTimeWindow,
-  locationId,
+  place,
 }: {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  place: AnchorEventSelectedPlace | null;
 }) => {
   const event = detail.value;
   if (!event) {
     throw new Error(t("common.operationFailed"));
   }
 
-  const normalizedLocation = locationId?.trim() ?? "";
-  if (!targetTimeWindow || normalizedLocation.length === 0) {
+  if (!targetTimeWindow || !place) {
     throw new Error(t("common.operationFailed"));
   }
 
@@ -772,7 +899,8 @@ const buildEventAssistedFields = ({
     title: undefined,
     type: event.type,
     time: targetTimeWindow,
-    location: normalizedLocation,
+    location: place.kind === "location" ? place.locationId : null,
+    route: place.kind === "route" ? place.route : null,
     minPartners: event.defaultMinPartners ?? 2,
     maxPartners: event.defaultMaxPartners ?? null,
     partners: [],
@@ -799,10 +927,12 @@ const buildEventAssistedCreateTarget = (
 
 const createEventAssistedPR = async ({
   targetTimeWindow,
-  locationId,
+  allowEditAfterReady,
+  place,
 }: {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
+  place: AnchorEventSelectedPlace | null;
 }) => {
   if (!canUserCreatePR.value) {
     return;
@@ -817,9 +947,8 @@ const createEventAssistedPR = async ({
 
   const fields = buildEventAssistedFields({
     targetTimeWindow,
-    locationId,
+    place,
   });
-  const correlationId = createCommandCorrelationId();
   const funnelPayload =
     buildCurrentFunnelPayload() ?? {
       eventId: event.id,
@@ -830,7 +959,8 @@ const createEventAssistedPR = async ({
     const created = await createEventAssistedPRMutation.mutateAsync({
       eventId: event.id,
       fields,
-      correlationId,
+      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+      allowEditAfterReady: allowEditAfterReady ?? null,
     });
     trackEvent("pr_commitment_result", {
       ...funnelPayload,
@@ -838,14 +968,12 @@ const createEventAssistedPR = async ({
       actionResult: "success",
       prId: created.id,
       entrySurface: "card_rich",
-      correlationId,
     });
     trackEvent("pr_entry_reached", {
       ...funnelPayload,
       prId: created.id,
       entrySurface: "card_rich",
       entryType: "create_handoff",
-      correlationId,
     });
     await router.push(buildEventAssistedCreateTarget(created.canonicalPath, event.id));
   } catch (error) {
@@ -859,7 +987,6 @@ const createEventAssistedPR = async ({
         ),
         commitmentType: "create",
         entrySurface: "card_rich",
-        correlationId,
       });
       return;
     }
@@ -874,7 +1001,6 @@ const createEventAssistedPR = async ({
       ),
       commitmentType: "create",
       entrySurface: "card_rich",
-      correlationId,
     });
     throw error;
   }
@@ -907,6 +1033,7 @@ const attemptPendingCreateReplay = async () => {
         type: pending.fields.type,
         time: pending.fields.time,
         location: pending.fields.location,
+        route: pending.fields.route,
         minPartners: pending.fields.minPartners,
         maxPartners: pending.fields.maxPartners,
         partners: [],
@@ -914,6 +1041,8 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
+      routePoolEntryId: pending.routePoolEntryId ?? null,
+      allowEditAfterReady: pending.allowEditAfterReady ?? null,
     });
     await router.push(
       buildEventAssistedCreateTarget(
@@ -942,7 +1071,9 @@ watch(
 
 onMounted(() => {
   void attemptPendingCreateReplay();
-  bookmarkPageNudgePrompt.requestPromptAfterDelay(BOOKMARK_PAGE_NUDGE_DELAY_MS);
+  officialAccountFollowPrompt.requestPromptAfterDelay(
+    OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS,
+  );
 });
 
 const handleCreateFromCardEmpty = async () => {
@@ -950,19 +1081,28 @@ const handleCreateFromCardEmpty = async () => {
     return;
   }
 
-  const selectedTimeWindow = selectedCardCreateTimeWindow.value;
+  const place = toAnchorEventSelectedPlace(
+    findAnchorEventPlaceOption(cardCreatePlaceOptions.value, cardCreatePlaceId.value),
+  );
+  const targetTimeWindow = cardCreateTimeWindow.value;
+  if (!targetTimeWindow?.[0] || !targetTimeWindow?.[1] || !place) {
+    return;
+  }
   const funnelPayload = buildCurrentFunnelPayload();
   if (funnelPayload) {
     trackEvent("anchor_event_card_empty_create_started", {
       ...funnelPayload,
-      locationId: cardCreateLocationId.value,
-      timeWindowStart: selectedTimeWindow?.timeWindow[0] ?? null,
+      locationId: place?.kind === "location" ? place.locationId : null,
+      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+      placeKind: place?.kind ?? null,
+      timeWindowStart: targetTimeWindow[0],
     });
   }
 
   await createEventAssistedPR({
-    targetTimeWindow: selectedTimeWindow?.timeWindow ?? null,
-    locationId: cardCreateLocationId.value || null,
+    targetTimeWindow,
+    allowEditAfterReady: cardCreateAllowEditAfterReady.value,
+    place,
   });
 };
 
@@ -985,10 +1125,53 @@ const handleSelectOtherEvent = async (nextEventId: number | null) => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  isolation: isolate;
+}
+
+.anchor-event-landing-page :deep(.footer-reveal-page-scaffold__viewport) {
+  position: relative;
+  z-index: 1;
+}
+
+.anchor-event-landing-page :deep(.footer-reveal-page-scaffold__footer) {
+  position: relative;
+  z-index: 30;
+}
+
+.anchor-event-landing-page--card-rich
+  :deep(.footer-reveal-page-scaffold__viewport) {
+  height: var(--footer-reveal-first-screen-height);
+  overflow: hidden;
 }
 
 .anchor-event-landing-page__header {
   flex-shrink: 0;
+}
+
+.anchor-event-landing-page__footer {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--sys-color-surface-container);
+}
+
+.anchor-event-landing-page__mode-switch-shell {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  min-width: 0;
+  padding-top: var(--sys-spacing-medium);
+  padding-left: var(--full-common-footer-padding-inline-start, 0);
+  padding-right: var(--full-common-footer-padding-inline-end, 0);
+  background: var(--sys-color-surface-container);
+}
+
+.anchor-event-landing-page__mode-switch {
+  width: 100%;
+  max-width: var(--dcs-layout-page-max-width);
+  margin-inline: auto;
 }
 
 .loading-state,

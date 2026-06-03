@@ -6,11 +6,15 @@ import {
   anchorEventFullPrExpansionPolicySchema,
   anchorEventParticipationFrequencyLimitSchema,
   anchorEventPrCreationPolicySchema,
+  anchorEventRoutePoolSchema,
   anchorEventTimePoolConfigSchema,
   meetingPointConfigMapSchema,
   meetingPointConfigSchema,
+  normalizeAnchorEventRoutePool,
   normalizeLocationPool,
   prJoinGateConfigSchema,
+  prRouteSchema,
+  type PRRoute,
   prStatusManualSchema,
   visibilityStatusSchema,
 } from "../entities";
@@ -48,6 +52,10 @@ import {
   listAdminFeedbackQuestionnaireTemplates,
   updateAdminFeedbackQuestionnaireTemplate,
 } from "../domains/feedback-questionnaire";
+import {
+  acceptAdminAnchorEventRouteApplication,
+  rejectAdminAnchorEventRouteApplication,
+} from "../domains/anchor-event-route-application";
 import { prMessageCreateSchema } from "./pr-controller.shared";
 import { anchorEventLandingConfigSchema } from "../domains/anchor-event/landing-config";
 
@@ -71,6 +79,9 @@ const preferenceTagIdParamSchema = z.object({
   eventId: z.coerce.number().int().positive(),
   tagId: z.coerce.number().int().positive(),
 });
+const routeApplicationIdParamSchema = z.object({
+  applicationId: z.coerce.number().int().positive(),
+});
 const partnerIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
   partnerId: z.coerce.number().int().positive(),
@@ -86,6 +97,7 @@ const adminAnchorEventInputSchema = z.object({
   type: z.string().trim().min(1),
   description: z.string().trim().nullable(),
   locationPool: z.array(z.string().trim().min(1)),
+  routePool: anchorEventRoutePoolSchema.default([]),
   timePoolConfig: anchorEventTimePoolConfigSchema,
   defaultMinPartners: z.number().int().nonnegative().nullable(),
   defaultMaxPartners: z.number().int().nonnegative().nullable(),
@@ -111,7 +123,8 @@ const adminCreatePRInputSchema = z.object({
   timeWindow: timeWindowSchema,
   title: z.string().trim().nullable(),
   type: z.string().trim().min(1),
-  location: z.string().trim().min(1),
+  location: z.string().trim().nullable(),
+  route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
   maxPartners: z.number().int().nonnegative().nullable(),
   preferences: z.array(z.string().trim()),
@@ -129,6 +142,7 @@ const adminUpdatePRContentSchema = z.object({
   type: z.string().trim().min(1),
   timeWindow: timeWindowSchema,
   location: z.string().trim().nullable(),
+  route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
   maxPartners: z.number().int().nonnegative().nullable(),
   preferences: z.array(z.string().trim()),
@@ -171,6 +185,12 @@ const adminPreferenceTagsReplaceSchema = z.object({
 const adminManualReleaseSchema = z.object({
   reason: z.string().trim().min(1),
 });
+const adminRouteApplicationAcceptSchema = z.object({
+  route: prRouteSchema.optional(),
+});
+const adminRouteApplicationRejectSchema = z.object({
+  rejectReason: z.string().trim().nullable().optional(),
+});
 
 export const adminAnchorManagementRoute = app
   .use("*", adminAuthMiddleware)
@@ -178,6 +198,38 @@ export const adminAnchorManagementRoute = app
     const result = await getAdminAnchorEventWorkspace();
     return c.json(result);
   })
+  .post(
+    "/route-applications/:applicationId/accept",
+    zValidator("param", routeApplicationIdParamSchema),
+    zValidator("json", adminRouteApplicationAcceptSchema),
+    async (c) => {
+      const { applicationId } = c.req.valid("param");
+      const { route } = c.req.valid("json") as { route?: PRRoute };
+      const auth = c.get("auth");
+      const result = await acceptAdminAnchorEventRouteApplication({
+        applicationId,
+        reviewedByUserId: auth.userId ?? null,
+        route,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/route-applications/:applicationId/reject",
+    zValidator("param", routeApplicationIdParamSchema),
+    zValidator("json", adminRouteApplicationRejectSchema),
+    async (c) => {
+      const { applicationId } = c.req.valid("param");
+      const { rejectReason } = c.req.valid("json");
+      const auth = c.get("auth");
+      const result = await rejectAdminAnchorEventRouteApplication({
+        applicationId,
+        reviewedByUserId: auth.userId ?? null,
+        rejectReason: rejectReason ?? null,
+      });
+      return c.json(result);
+    },
+  )
   .get(
     "/events/:eventId/landing-config",
     zValidator("param", eventIdParamSchema),
@@ -282,6 +334,7 @@ export const adminAnchorManagementRoute = app
         ...payload,
         description: payload.description || null,
         locationPool: normalizeLocationPool(payload.locationPool),
+        routePool: normalizeAnchorEventRoutePool(payload.routePool),
         defaultPrNotes: payload.defaultPrNotes || null,
         coverImage: payload.coverImage || null,
         betaGroupQrCode: payload.betaGroupQrCode || null,
@@ -300,6 +353,7 @@ export const adminAnchorManagementRoute = app
         ...payload,
         description: payload.description || null,
         locationPool: normalizeLocationPool(payload.locationPool),
+        routePool: normalizeAnchorEventRoutePool(payload.routePool),
         defaultPrNotes: payload.defaultPrNotes || null,
         coverImage: payload.coverImage || null,
         betaGroupQrCode: payload.betaGroupQrCode || null,
@@ -315,6 +369,7 @@ export const adminAnchorManagementRoute = app
       const result = await createAdminPR(payload.timeWindow, {
         ...payload,
         title: payload.title || null,
+        location: payload.location || null,
         notes: payload.notes || null,
       });
       return c.json(result);

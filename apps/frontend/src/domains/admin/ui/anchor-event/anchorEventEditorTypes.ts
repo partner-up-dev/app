@@ -1,5 +1,6 @@
 import type {
   AnchorEventParticipationFrequencyLimit,
+  AnchorEventRoutePool,
   PRJoinGateConfig,
 } from "@partner-up-dev/backend";
 
@@ -12,7 +13,9 @@ export type AnchorEventEditorForm = {
   title: string;
   type: string;
   description: string;
+  placePoolMode: "location" | "route";
   locationPoolText: string;
+  routePool: AnchorEventRoutePool;
   meetingPointDescription: string;
   meetingPointImageUrl: string;
   locationMeetingPoints: Record<string, EditableMeetingPointForm>;

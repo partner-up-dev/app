@@ -39,14 +39,14 @@ export const isWeChatSubscriptionNotificationConfigured = async (
   if (kind === "ACTIVITY_START_REMINDER") {
     return service.isActivityStartReminderConfigured();
   }
-  if (kind === "BOOKING_RESULT") {
-    return service.isBookingResultConfigured();
-  }
   if (kind === "NEW_PARTNER") {
     return service.isNewPartnerConfigured();
   }
   if (kind === "MEETING_POINT_UPDATED") {
     return service.isMeetingPointUpdatedConfigured();
+  }
+  if (kind === "PR_READY") {
+    return service.isPRReadyConfigured();
   }
   if (kind === "WAITLIST_PROMOTED") {
     return service.isWaitlistPromotedConfigured();
@@ -96,18 +96,6 @@ const send = async (
     });
   }
 
-  if (message.kind === "BOOKING_RESULT") {
-    return service.sendBookingResultNotification({
-      openId: message.openId,
-      bookingItem: message.bookingItem,
-      statusLabel: message.statusLabel,
-      activityTime: message.activityTime,
-      address: message.address,
-      bookingDetail: message.bookingDetail,
-      page: message.page,
-    });
-  }
-
   if (message.kind === "NEW_PARTNER") {
     return service.sendNewPartnerNotification({
       openId: message.openId,
@@ -126,6 +114,17 @@ const send = async (
       operatorName: message.operatorName,
       updatedAt: message.updatedAt,
       meetingPointDescription: message.meetingPointDescription,
+      page: message.page,
+    });
+  }
+
+  if (message.kind === "PR_READY") {
+    return service.sendPRReadyNotification({
+      openId: message.openId,
+      title: message.title,
+      type: message.type,
+      status: message.status,
+      remark: message.remark,
       page: message.page,
     });
   }

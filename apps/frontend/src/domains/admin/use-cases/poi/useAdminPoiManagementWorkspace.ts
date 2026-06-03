@@ -8,6 +8,7 @@ import {
   useAdminPoiEditor,
   weekdayOptions,
 } from "@/domains/admin/use-cases/poi/useAdminPoiEditor";
+import type { PickedLocation } from "@/domains/location/model/location-picker";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 
@@ -195,6 +196,14 @@ export const useAdminPoiManagementWorkspace = (
     }
   };
 
+  const handlePickPoiLocation = (location: PickedLocation) => {
+    poiEditor.setSelectedPoiLocation(location);
+  };
+
+  const handleClearPoiCoordinates = () => {
+    poiEditor.clearSelectedPoiCoordinates();
+  };
+
   return {
     poisQuery,
     selectedPoiIdRaw,
@@ -207,6 +216,9 @@ export const useAdminPoiManagementWorkspace = (
     isUploadingGalleryImage: poiEditor.isUploadingGalleryImage,
     selectedPoiGallery: poiEditor.selectedPoiGallery,
     selectedPoiFullAddress: poiEditor.selectedPoiFullAddress,
+    selectedPoiCoordinateText: poiEditor.selectedPoiCoordinateText,
+    selectedPoiHasCoordinate: poiEditor.selectedPoiHasCoordinate,
+    selectedPoiPickerLocation: poiEditor.selectedPoiPickerLocation,
     selectedPoiCapText: poiEditor.selectedPoiCapText,
     selectedPoiMeetingPointDescription:
       poiEditor.selectedPoiMeetingPointDescription,
@@ -216,6 +228,8 @@ export const useAdminPoiManagementWorkspace = (
     handleAddManualUrl: poiEditor.handleAddManualUrl,
     handleGalleryUploaded: poiEditor.handleGalleryUploaded,
     handleRemoveGalleryImage: poiEditor.handleRemoveGalleryImage,
+    handlePickPoiLocation,
+    handleClearPoiCoordinates,
     handleAddAvailabilityRule: poiEditor.handleAddAvailabilityRule,
     handleRemoveAvailabilityRule: poiEditor.handleRemoveAvailabilityRule,
     weekdayOptions,

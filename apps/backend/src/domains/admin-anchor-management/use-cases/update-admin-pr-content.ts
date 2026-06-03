@@ -3,7 +3,7 @@ import { updatePRContent } from "../../pr";
 import { type TimeWindowEntry } from "../../../entities/anchor-event";
 import { validateAnchorParticipationPolicyOffsets } from "../../pr/services";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type { PRId, PRJoinGateConfig } from "../../../entities";
+import type { PRId, PRJoinGateConfig, PRRoute } from "../../../entities";
 import type { MeetingPointConfig } from "../../../entities";
 
 const prRepo = new PartnerRequestRepository();
@@ -13,6 +13,7 @@ export interface UpdateAdminPRContentInput {
   type: string;
   timeWindow: TimeWindowEntry;
   location: string | null;
+  route: PRRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   preferences: string[];
@@ -65,6 +66,7 @@ export async function updateAdminPRContent(
       type: input.type,
       time: input.timeWindow,
       location: input.location,
+      route: input.route,
       minPartners: input.minPartners,
       maxPartners: input.maxPartners,
       partners: [],

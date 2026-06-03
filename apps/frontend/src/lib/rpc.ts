@@ -13,8 +13,12 @@ import {
 import { API_URL } from "@/shared/api/base-url";
 import { readApiErrorPayload } from "@/shared/api/error";
 import { handleAuthenticatedRequiredResponse } from "@/shared/api/auth-required-policy";
+import { resolveCurrentJourneyId } from "@/shared/telemetry/journey";
 
 const ACCESS_TOKEN_HEADER = "x-access-token";
+const JOURNEY_ID_HEADER = "x-journey-id";
+const CLIENT_ID_HEADER = "x-client-id";
+const FRONTEND_CLIENT_ID = "web";
 
 export { API_URL };
 
@@ -23,6 +27,13 @@ export const authFetch: typeof fetch = async (input, init) => {
   const token = getStoredAccessToken();
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+  const journeyId = resolveCurrentJourneyId();
+  if (journeyId && !headers.has(JOURNEY_ID_HEADER)) {
+    headers.set(JOURNEY_ID_HEADER, journeyId);
+  }
+  if (!headers.has(CLIENT_ID_HEADER)) {
+    headers.set(CLIENT_ID_HEADER, FRONTEND_CLIENT_ID);
   }
 
   const response = await fetch(input, {

@@ -23,7 +23,6 @@ import {
 } from "./anchor-participation-policy.service";
 import { assertPRJoinGatesResolvedForUser } from "./join-gates.service";
 import { recalculatePRStatus } from "./slot-management.service";
-import { syncAnchorBookingTriggeredState } from "./anchor-booking-trigger.service";
 
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
@@ -42,13 +41,14 @@ export const isWaitlistOpenForRequest = (input: {
   request: PartnerRequest;
   activeCount: number;
 }): boolean => {
-  if (input.request.status !== "FULL") {
+  const maxPartners = input.request.maxPartners;
+  if (maxPartners === null) {
     return false;
   }
-  if (input.request.maxPartners === null) {
+  if (input.request.status !== "OPEN") {
     return false;
   }
-  if (input.activeCount < input.request.maxPartners) {
+  if (input.activeCount < maxPartners) {
     return false;
   }
   if (!hasAnchorParticipationPolicy(input.request)) {
@@ -60,11 +60,7 @@ export const isWaitlistOpenForRequest = (input: {
 };
 
 const isPromotionAllowed = (request: PartnerRequest): boolean => {
-  if (
-    request.status !== "OPEN" &&
-    request.status !== "READY" &&
-    request.status !== "FULL"
-  ) {
+  if (request.status !== "OPEN") {
     return false;
   }
   if (!hasAnchorParticipationPolicy(request)) {
@@ -100,7 +96,6 @@ const applyPromotedPartnerSideEffects = async (input: {
   });
 
   await recalculatePRStatus(input.request.id);
-  await syncAnchorBookingTriggeredState(input.request.id);
 
   const latest = await prRepo.findById(input.request.id);
   if (!latest) {

@@ -14,11 +14,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import type { PRStatus } from "@partner-up-dev/backend";
+import type { PRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 
 const props = withDefaults(
   defineProps<{
-    status: PRStatus;
+    status: PRDisplayStatus;
     size?: "sm" | "md";
     appearance?: "rounded" | "pill";
   }>(),
@@ -35,7 +35,6 @@ const statusText = computed(() => {
     OPEN: t("status.open"),
     READY: t("status.ready"),
     FULL: t("status.full"),
-    LOCKED_TO_START: t("status.lockedToStart"),
     ACTIVE: t("status.active"),
     CLOSED: t("status.closed"),
     EXPIRED: t("status.expired"),
@@ -90,11 +89,6 @@ const statusText = computed(() => {
   }
 
   &.active {
-    background: var(--sys-color-tertiary-container);
-    color: var(--sys-color-on-tertiary-container);
-  }
-
-  &.locked_to_start {
     background: var(--sys-color-secondary-container);
     color: var(--sys-color-on-secondary-container);
   }

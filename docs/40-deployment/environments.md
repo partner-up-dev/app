@@ -44,12 +44,11 @@ Current runtime facts:
 ## WeChat Notification Template Sources
 
 Subscription-message template ids for confirmation-reminder / activity-start-reminder /
-booking-result / new-partner / meeting-point-updated / waitlist-promoted / pr-message
+new-partner / meeting-point-updated / waitlist-promoted / pr-message
 are supplied only through backend `config` rows:
 
 - `wechat.submsg_confirmation_reminder_template_id`
 - `wechat.submsg_activity_start_reminder_template_id`
-- `wechat.submsg_booking_result_template_id`
 - `wechat.submsg_new_partner_template_id`
 - `wechat.submsg_meeting_point_updated_template_id`
 - `wechat.submsg_waitlist_promoted_template_id`
@@ -97,6 +96,7 @@ Required GitHub Environment variables:
 - `ALIYUN_FC_OSS_BUCKET_PATH`
 - `ALIYUN_FC_PATH`
 - `FRONTEND_URL`
+- `PAYMENT_NOTIFY_BASE_URL`
 
 Optional GitHub Environment variables that are passed to backend runtime when
 configured:
@@ -107,6 +107,11 @@ configured:
 `AUTH_JWT_SECRET` must be at least 32 characters for staging and production
 deploys. Optional runtime env vars may be left empty; backend startup treats
 empty optional values as absent.
+
+`PAYMENT_NOTIFY_BASE_URL` must be the public HTTPS backend API origin that
+WeChatPay can reach for unauthenticated payment callbacks. Do not point it at
+the frontend origin unless that origin also routes `/api/payment/*` to the
+backend.
 
 ## Environment Split
 

@@ -183,10 +183,16 @@ export const prepareWaitlistAlternativeAvailableNotificationDispatch = async (
       errorMessage: "Alternative partner request is missing",
     };
   }
+  const sourceType = normalizeText(sourceRequest.type);
+  const sourceLocation = normalizeText(sourceRequest.location);
+  const candidateType = normalizeText(candidate.type);
+  const candidateLocation = normalizeText(candidate.location);
   if (
     candidate.id === sourceRequest.id ||
-    normalizeText(candidate.type) !== normalizeText(sourceRequest.type) ||
-    normalizeText(candidate.location) !== normalizeText(sourceRequest.location)
+    !sourceType ||
+    !sourceLocation ||
+    candidateType !== sourceType ||
+    candidateLocation !== sourceLocation
   ) {
     return {
       status: "SKIPPED",

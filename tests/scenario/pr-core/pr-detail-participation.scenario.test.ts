@@ -17,7 +17,6 @@ import {
 } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import {
   probeLatestPartnerSlot,
-  probeUserPhone,
 } from "../../../apps/backend/tests/pr-core/_kit/probes/system-state";
 import { givenPublishedPartnerRequest } from "../../../apps/backend/tests/pr-core/_kit/builders/partner-requests";
 import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
@@ -58,7 +57,7 @@ async function exitThroughBackend(input: {
 }
 
 scenario(
-  "pr_detail_join_with_booking_contact_gate_reaches_participant_state",
+  "pr_detail_join_with_join_notice_gate_reaches_participant_state",
   async (ctx) => {
     const creator = await givenUser("system-gated-join-creator");
     const joiner = await givenUser("system-gated-joiner");
@@ -73,12 +72,12 @@ scenario(
       pr,
       config: [
         {
-          kind: "BOOKING_CONTACT",
-          key: "system-booking-contact",
+          kind: "JOIN_NOTICE",
+          key: "system-join-notice",
           version: "1",
-          title: "预订联系人",
+          title: "加入须知",
           source: "PR",
-          prompt: "请留下用于预订沟通的手机号。",
+          body: "请确认你会按时参加。",
         },
       ],
     });
@@ -93,9 +92,17 @@ scenario(
       await page.goto(`/pr/${pr.id}`);
       await page.getByTestId("pr-detail.join.open").click();
       await page
-        .getByTestId("pr-detail.join-gate.booking-contact.input")
-        .fill("13800138000");
-      await page.getByTestId("pr-detail.join-gate.booking-contact.submit").click();
+        .getByTestId("pr-detail.join-gate.join-notice.accept")
+        .click();
+      await page
+        .getByTestId("pr-detail.join-success.confirmation-followup")
+        .waitFor({
+          state: "visible",
+          timeout: 10_000,
+        });
+      await page
+        .getByTestId("pr-detail.join-success.confirmation-followup.done")
+        .click();
       await page.getByTestId("pr-detail.join-success.subscriptions").waitFor({
         state: "visible",
         timeout: 10_000,
@@ -110,9 +117,6 @@ scenario(
 
     const slot = await probeLatestPartnerSlot({ pr, user: joiner });
     assert.equal(slot?.status, "JOINED");
-
-    const phone = await probeUserPhone(joiner);
-    assert.equal(phone?.phoneNumber, "+8613800138000");
   },
 );
 
@@ -347,15 +351,15 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "System scenario waitlist partner request",
     });
 
-    const full = await joinThroughBackend({
+    const joined = await joinThroughBackend({
       prId: pr.id,
       token: activeJoiner.token,
     });
-    assert.equal(full.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     ctx.record("prId", pr.id);
     ctx.record("activeJoinerUserId", activeJoiner.user.id);

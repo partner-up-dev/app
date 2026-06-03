@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, unref, type MaybeRef } from "vue";
-import type { PRJoinGateConfig } from "@partner-up-dev/backend";
+import type {
+  PRJoinGateConfig,
+  PRRoute as PartnerRequestRoute,
+} from "@partner-up-dev/backend";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
 type AdminApi = typeof adminClient.api.admin;
 type PRWorkspaceRoute = AdminApi["pr"]["workspace"];
 type PRsRoute = AdminApi["prs"];
-type PRRoute = PRsRoute[":id"];
+type AdminPRRoute = PRsRoute[":id"];
 type PRFeedbackQuestionnaireInstanceRoute =
-  PRRoute["feedback-questionnaire-instance"];
+  AdminPRRoute["feedback-questionnaire-instance"];
 type PRFeedbackQuestionnaireInstanceFromTemplateRoute =
   PRFeedbackQuestionnaireInstanceRoute["from-template"];
-type PRMessagesRoute = PRRoute["messages"];
+type PRMessagesRoute = AdminPRRoute["messages"];
 type PRMessageRoute = PRMessagesRoute[":messageId"];
 
 const readErrorMessage = async (
@@ -30,18 +33,18 @@ export type AdminPRWorkspaceResponse = InferResponseType<
 
 export type CreateAdminPRResponse = InferResponseType<PRsRoute["$post"]>;
 
-export type DeleteAdminPRResponse = InferResponseType<PRRoute["$delete"]>;
+export type DeleteAdminPRResponse = InferResponseType<AdminPRRoute["$delete"]>;
 
 export type UpdateAdminPRContentResponse = InferResponseType<
-  PRRoute["content"]["$patch"]
+  AdminPRRoute["content"]["$patch"]
 >;
 
 export type UpdateAdminPRStatusResponse = InferResponseType<
-  PRRoute["status"]["$patch"]
+  AdminPRRoute["status"]["$patch"]
 >;
 
 export type UpdateAdminPRVisibilityResponse = InferResponseType<
-  PRRoute["visibility"]["$patch"]
+  AdminPRRoute["visibility"]["$patch"]
 >;
 
 export type UpdateAdminPRFeedbackQuestionnaireInstanceResponse =
@@ -51,7 +54,7 @@ export type MaterializeAdminPRFeedbackQuestionnaireInstanceResponse =
   InferResponseType<PRFeedbackQuestionnaireInstanceFromTemplateRoute["$post"]>;
 
 export type CreateAdminPRMessageResponse = InferResponseType<
-  PRRoute["messages"]["$post"]
+  AdminPRRoute["messages"]["$post"]
 >;
 export type AdminPRMessagesResponse = InferResponseType<PRMessagesRoute["$get"]>;
 export type UpdateAdminPRMessageResponse = InferResponseType<
@@ -65,7 +68,8 @@ export type AdminCreatePRInput = {
   timeWindow: [string | null, string | null];
   title: string | null;
   type: string;
-  location: string;
+  location: string | null;
+  route: PartnerRequestRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   preferences: string[];
@@ -86,6 +90,7 @@ export type AdminUpdatePRContentInput = {
   type: string;
   timeWindow: [string | null, string | null];
   location: string | null;
+  route: PartnerRequestRoute | null;
   minPartners: number | null;
   maxPartners: number | null;
   preferences: string[];

@@ -3,20 +3,17 @@ import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRe
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { initializeSlotsForPR } from "../../pr/services";
 import type { PRId } from "../../../entities/partner-request";
-import { operationLogService } from "../../../infra/operation-log";
 import { resolvePublicEventLocationPool } from "../services/event-scope";
 import {
   isActiveVisiblePRStatus,
   readVisibleAnchorEventPRContextRecordsByEventTimeWindow,
   readVisibleAnchorEventPRContextRecordsByEventTimeWindowAndLocation,
 } from "../../pr/services";
-import { normalizeAutomaticPartnerBounds } from "../../pr/services";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../../pr-core/services/waitlist-alternative-reminder.service";
-import { materializeEventDefaultsForPR } from "../../pr/services";
 import { findPoisByNames } from "../../poi";
 import { eventOwnsTimeWindow } from "../services/time-window-pool";
+import { createPRFromStructured } from "../../pr/model/pr";
 
 const prRepo = new PartnerRequestRepository();
 const anchorEventRepo = new AnchorEventRepository();
@@ -38,16 +35,20 @@ const findNextAvailableLocation = (
 };
 
 /**
- * Phase 2: when a PR becomes FULL, auto-create a new PR under
+ * Phase 2: when an OPEN PR reaches full capacity, auto-create a new PR under
  * the same event time window, using a different location in the same
  * event location pool.
  */
-export async function expandFullPR(prId: PRId): Promise<void> {
+export async function expandFullCapacityPR(prId: PRId): Promise<void> {
   const request = await prRepo.findById(prId);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
-  if (request.status !== "FULL") {
+  if (request.maxPartners === null) {
+    return;
+  }
+  const sourceActiveCount = await partnerRepo.countActiveByPrId(prId);
+  if (sourceActiveCount < request.maxPartners) {
     return;
   }
 
@@ -72,6 +73,10 @@ export async function expandFullPR(prId: PRId): Promise<void> {
     fullPR.anchor.timeWindow,
   );
   const locationPool = await resolvePublicEventLocationPool(event);
+  const sourceLocation = fullPR.root.location?.trim() ?? "";
+  if (!sourceLocation || !locationPool.includes(sourceLocation)) {
+    return;
+  }
   const pois = await findPoisByNames(locationPool);
   const perTimeWindowCapByLocation = new Map(
     pois.map((poi) => [poi.name, poi.perTimeWindowCap]),
@@ -113,55 +118,48 @@ export async function expandFullPR(prId: PRId): Promise<void> {
   if (capAtTarget !== null && activeAtTarget >= capAtTarget) {
     return;
   }
-  const partnerBounds = normalizeAutomaticPartnerBounds(
-    fullPR.root.minPartners,
-    fullPR.root.maxPartners,
-    0,
-  );
-
-  const createdRoot = await prRepo.create({
-    title: fullPR.root.title,
+  const created = await createPRFromStructured({
+    title: fullPR.root.title ?? undefined,
     type: fullPR.root.type,
     time: fullPR.root.time,
     location: targetLocation,
-    status: "OPEN",
-    visibilityStatus: "VISIBLE",
-    minPartners: partnerBounds.minPartners,
-    maxPartners: partnerBounds.maxPartners,
+    route: null,
+    minPartners: fullPR.root.minPartners,
+    maxPartners: fullPR.root.maxPartners,
+    partners: [],
+    budget: fullPR.root.budget,
     preferences: fullPR.root.preferences,
     notes: null,
+    meetingPoint: fullPR.root.meetingPoint,
+  }, {
+    authenticatedUserId: null,
+    anonymousUserId: null,
+    oauthOpenId: null,
+  }, {
+    anchorEventId: fullPR.anchor.anchorEventId,
+    createSource: "AUTO_EXPANSION",
+    partnerBoundsMode: "automatic",
+    publicationMode: "create-open",
+    bypassUserCreationPolicyGuard: true,
     joinGateConfig: [],
     confirmationEnabled: fullPR.root.confirmationEnabled,
     confirmationStartOffsetMinutes:
       fullPR.root.confirmationStartOffsetMinutes,
     confirmationEndOffsetMinutes: fullPR.root.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: fullPR.root.joinLockOffsetMinutes,
-  });
-
-  await initializeSlotsForPR(createdRoot.id, null);
-  await materializeEventDefaultsForPR({
-    prId: createdRoot.id,
-    anchorEventId: fullPR.anchor.anchorEventId,
-    type: createdRoot.type,
-    location: createdRoot.location,
-    timeWindow: createdRoot.time,
-    prNotes: createdRoot.notes,
-  });
-
-  const activeCount = await partnerRepo.countActiveByPrId(prId);
-
-  operationLogService.log({
-    actorId: null,
-    action: "pr.auto_create",
-    aggregateType: "partner_request",
-    aggregateId: String(createdRoot.id),
-    detail: {
-      sourcePrId: prId,
-      timeWindow: fullPR.anchor.timeWindow,
-      location: createdRoot.location,
-      activeCountAtSource: activeCount,
+    operationLog: {
+      detail: {
+        sourcePrId: prId,
+        location: targetLocation,
+        activeCountAtSource: sourceActiveCount,
+      },
     },
   });
+
+  const createdRoot = await prRepo.findById(created.id);
+  if (!createdRoot) {
+    return throwHttpProblem({ status: 500, detail: "Failed to reload expanded partner request" });
+  }
 
   await scheduleAlternativeWaitlistNotificationsForCandidate(createdRoot);
 }

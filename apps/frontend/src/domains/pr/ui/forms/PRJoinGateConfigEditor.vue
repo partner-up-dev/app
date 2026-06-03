@@ -17,16 +17,6 @@
         >
           添加 Join Notice
         </Button>
-        <Button
-          v-if="allowBookingContact"
-          appearance="pill"
-          tone="outline"
-          size="sm"
-          type="button"
-          @click="addBookingContact"
-        >
-          添加手机号门槛
-        </Button>
       </div>
     </div>
 
@@ -85,14 +75,6 @@
             @input="updateJoinNoticeBody(index, $event)"
           ></textarea>
         </label>
-        <label v-else class="field field--full">
-          <span class="field-label">手机号收集说明</span>
-          <textarea
-            class="field-input field-textarea"
-            :value="gate.prompt"
-            @input="updateBookingContactPrompt(index, $event)"
-          ></textarea>
-        </label>
       </div>
     </article>
   </section>
@@ -101,7 +83,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type {
-  PRBookingContactGateConfig,
   PRJoinGateConfig,
   PRJoinGateConfigItem,
   PRJoinGateSource,
@@ -109,16 +90,10 @@ import type {
 } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
 
-const props = withDefaults(
-  defineProps<{
-    modelValue: PRJoinGateConfig;
-    source: PRJoinGateSource;
-    allowBookingContact?: boolean;
-  }>(),
-  {
-    allowBookingContact: true,
-  },
-);
+const props = defineProps<{
+  modelValue: PRJoinGateConfig;
+  source: PRJoinGateSource;
+}>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: PRJoinGateConfig];
@@ -133,30 +108,16 @@ const readInputValue = (event: Event): string => {
   return target?.value ?? "";
 };
 
-const resolveBookingContactSource = (): PRBookingContactGateConfig["source"] =>
-  props.source === "PR_SUPPORT_RESOURCE" ? "PR_SUPPORT_RESOURCE" : "PR";
-
 const normalizeGateSource = (
   gate: PRJoinGateConfigItem,
 ): PRJoinGateConfigItem => {
-  if (gate.kind === "JOIN_NOTICE") {
-    return {
-      kind: "JOIN_NOTICE",
-      key: gate.key,
-      version: gate.version,
-      title: gate.title,
-      source: props.source,
-      body: gate.body,
-    };
-  }
-
   return {
-    kind: "BOOKING_CONTACT",
+    kind: "JOIN_NOTICE",
     key: gate.key,
     version: gate.version,
     title: gate.title,
-    source: resolveBookingContactSource(),
-    prompt: gate.prompt,
+    source: props.source,
+    body: gate.body,
   };
 };
 
@@ -206,15 +167,6 @@ const updateJoinNoticeBody = (index: number, event: Event): void => {
   });
 };
 
-const updateBookingContactPrompt = (index: number, event: Event): void => {
-  const gate = normalizedGates.value[index];
-  if (!gate || gate.kind !== "BOOKING_CONTACT") return;
-  updateGateAt(index, {
-    ...gate,
-    prompt: readInputValue(event),
-  });
-};
-
 const addJoinNotice = (): void => {
   const sequence = normalizedGates.value.length + 1;
   const gate: PRJoinNoticeGateConfig = {
@@ -224,18 +176,6 @@ const addJoinNotice = (): void => {
     title: `加入须知 ${sequence}`,
     source: props.source,
     body: "",
-  };
-  commit([...normalizedGates.value, gate]);
-};
-
-const addBookingContact = (): void => {
-  const gate: PRBookingContactGateConfig = {
-    kind: "BOOKING_CONTACT",
-    key: `booking-contact-${Date.now()}`,
-    version: "1",
-    title: "预订联系人手机号",
-    source: resolveBookingContactSource(),
-    prompt: "请填写用于场地预订沟通的手机号。",
   };
   commit([...normalizedGates.value, gate]);
 };

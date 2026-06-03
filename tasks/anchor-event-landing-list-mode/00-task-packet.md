@@ -35,7 +35,7 @@
 - Invariants Check:
   - backend remains authoritative for landing assignment truth
   - localStorage stabilization remains keyed by `eventId + assignmentRevision`
-  - timeout fallback remains `FORM`
+  - issue 227 moves timeout fallback from `FORM` to `LIST`
   - old saved configs parse with `LIST: 0`
   - `/events/:eventId` still defaults missing/invalid `mode` query to list
 - Verification Result:

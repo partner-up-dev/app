@@ -34,8 +34,6 @@
         <option value="OPEN">OPEN</option>
         <option value="READY">READY</option>
         <option value="ACTIVE">ACTIVE</option>
-        <option value="FULL">FULL</option>
-        <option value="LOCKED_TO_START">LOCKED_TO_START</option>
         <option value="CLOSED">CLOSED</option>
         <option value="EXPIRED">EXPIRED</option>
       </select>

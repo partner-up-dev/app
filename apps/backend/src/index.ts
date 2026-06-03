@@ -28,19 +28,32 @@ import { internalMaintenanceRoute } from "./controllers/internal-maintenance.con
 import { poiRoute } from "./controllers/poi.controller";
 import { metaRoute } from "./controllers/meta.controller";
 import { adminAnchorManagementRoute } from "./controllers/admin-anchor-management.controller";
-import { adminBookingExecutionRoute } from "./controllers/admin-booking-execution.controller";
-import { adminBookingSupportRoute } from "./controllers/admin-booking-support.controller";
 import { adminPoiRoute } from "./controllers/admin-poi.controller";
+import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
+import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
+import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
+import { commerceRoute } from "./controllers/commerce.controller";
+import { placementRoute } from "./controllers/placement.controller";
+import { studySprintRoute } from "./controllers/study-sprint.controller";
+import { paymentProviderRoute } from "./controllers/payment-provider.controller";
+import {
+  legacyRideHailingProviderRoute,
+  rideHailingProviderRoute,
+} from "./controllers/ride-hailing-provider.controller";
 import { jobRunner } from "./infra/jobs";
+import {
+  JOURNEY_ID_HEADER,
+  journeyContextMiddleware,
+} from "./infra/telemetry";
 import {
   bootstrapOfficialAccountFollowSyncJob,
   registerOfficialAccountFollowSyncJobs,
 } from "./infra/marketing";
 import {
   registerWeChatActivityStartReminderJobs,
-  registerWeChatBookingResultJobs,
   registerWeChatMeetingPointUpdatedJobs,
   registerWeChatNewPartnerJobs,
+  registerWeChatPRReadyJobs,
   registerWeChatPRMessageJobs,
   registerWeChatReminderJobs,
   registerWeChatWaitlistAlternativeAvailableJobs,
@@ -63,9 +76,9 @@ export const app = new Hono();
 registerWeChatReminderJobs();
 registerWeChatActivityStartReminderJobs();
 registerWeChatNewPartnerJobs();
-registerWeChatBookingResultJobs();
 registerWeChatPRMessageJobs();
 registerWeChatMeetingPointUpdatedJobs();
+registerWeChatPRReadyJobs();
 registerWeChatWaitlistPromotedJobs();
 registerWeChatWaitlistAlternativeAvailableJobs();
 registerOfficialAccountFollowSyncJobs();
@@ -87,10 +100,16 @@ app.use(
   cors({
     origin: (origin) => origin ?? "*",
     credentials: true,
-    allowHeaders: ["Content-Type", "Authorization", "x-correlation-id"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      JOURNEY_ID_HEADER,
+      "x-client-id",
+    ],
     exposeHeaders: ["x-access-token"],
   }),
 );
+app.use("*", journeyContextMiddleware);
 app.use("*", async (c, next) => {
   try {
     await next();
@@ -185,9 +204,16 @@ export const routes = app
   .route("/api/analytics", analyticsRoute)
   .route("/api/telemetry", telemetryRoute)
   .route("/api/pois", poiRoute)
+  .route("/api/commerce", commerceRoute)
+  .route("/api/placements", placementRoute)
+  .route("/api/study-sprint", studySprintRoute)
+  .route("/api/payment", paymentProviderRoute)
+  .route("/api/ride-hailing", rideHailingProviderRoute)
+  .route("/api/v1/service_provider", legacyRideHailingProviderRoute)
   .route("/api/admin", adminAnchorManagementRoute)
-  .route("/api/admin", adminBookingExecutionRoute)
-  .route("/api/admin", adminBookingSupportRoute)
+  .route("/api/admin", adminCommerceManagementRoute)
+  .route("/api/admin", adminPaymentManagementRoute)
+  .route("/api/admin", adminRideHailingManagementRoute)
   .route("/api/admin", adminPoiRoute)
   .route("/internal/maintenance", internalMaintenanceRoute);
 
@@ -263,27 +289,31 @@ const runRequestTailMaintenance = async (): Promise<void> => {
 export type {
   PartnerRequestFields,
   CreatePRStructuredStatus,
+  CoordinatePair,
   PRStatus,
   PRStatusManual,
   PRId,
+  PRAllowEditAfterReady,
+  PRRoute,
+  PRRoutePoint,
   WeekdayLabel,
 } from "./entities/partner-request";
 export type {
   PartnerId,
   PartnerStatus,
   PartnerPaymentStatus,
-  ReimbursementStatus,
 } from "./entities/partner";
 export type { UserId, UserRole, UserStatus, UserSex } from "./entities/user";
 export type {
   AnchorEventId,
   AnchorEventParticipationFrequencyLimit,
+  AnchorEventRoutePool,
+  AnchorEventRoutePoolEntry,
   AnchorEventStatus,
   LocationEntry,
   TimeWindowEntry,
 } from "./entities/anchor-event";
 export type {
-  PRBookingContactGateConfig,
   PRJoinGateConfig,
   PRJoinGateConfigItem,
   PRJoinGateSource,
@@ -298,6 +328,7 @@ export type {
   CreateTimeWindowDetail,
   EventPRSummary,
 } from "./domains/anchor-event";
+export type { AnchorEventRouteApplicationView } from "./domains/anchor-event-route-application";
 export type {
   AnchorEventAnalyticsRenderedMode,
   AnchorEventFunnelResponse,
@@ -315,6 +346,10 @@ export type {
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireTemplateId,
 } from "./entities/feedback-questionnaire";
+export type {
+  OrderingEntryPayload,
+  OrderingOfferDetail,
+} from "./domains/merchandising";
 export { PR_MESSAGE_BODY_MAX_LENGTH } from "./entities/pr-message";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
 export {

@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import {
+  config,
   type MeetingPointConfig,
   partnerRequests,
+  type PRAllowEditAfterReady,
   type PRStatus,
   users,
   type PRJoinGateConfig,
@@ -11,6 +13,9 @@ import type { FeedbackQuestionnaireInstanceId } from "../../../../src/entities/f
 import { getTestDb } from "../../../_infra/probes/sql-probe";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
 import type { ScenarioUser } from "../builders/users";
+
+const CONFIRMATION_REMINDER_TEMPLATE_CONFIG_KEY =
+  "wechat.submsg_confirmation_reminder_template_id";
 
 export async function configureJoinGate(input: {
   pr: ScenarioPartnerRequest;
@@ -29,6 +34,16 @@ export async function configurePRStatus(input: {
   await getTestDb()
     .update(partnerRequests)
     .set({ status: input.status })
+    .where(eq(partnerRequests.id, input.pr.id));
+}
+
+export async function configurePRPostReadyEditPolicy(input: {
+  pr: ScenarioPartnerRequest;
+  allowEditAfterReady: PRAllowEditAfterReady | null;
+}): Promise<void> {
+  await getTestDb()
+    .update(partnerRequests)
+    .set({ allowEditAfterReady: input.allowEditAfterReady })
     .where(eq(partnerRequests.id, input.pr.id));
 }
 
@@ -138,6 +153,21 @@ export async function bindScenarioWeChatOpenId(input: {
     .update(users)
     .set({ openId: input.openId })
     .where(eq(users.id, input.user.user.id));
+}
+
+export async function configureScenarioConfirmationReminderTemplate(): Promise<void> {
+  await getTestDb()
+    .insert(config)
+    .values({
+      key: CONFIRMATION_REMINDER_TEMPLATE_CONFIG_KEY,
+      value: "scenario-confirmation-reminder-template",
+    })
+    .onConflictDoUpdate({
+      target: config.key,
+      set: {
+        value: "scenario-confirmation-reminder-template",
+      },
+    });
 }
 
 export async function configureScenarioUserPhone(input: {

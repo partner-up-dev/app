@@ -5,6 +5,7 @@ import {
 } from "../../../_infra/http/backend-app";
 import type {
   PartnerRequestFields,
+  PRAllowEditAfterReady,
   PRId,
   PRStatus,
 } from "../../../../src/entities/partner-request";
@@ -30,6 +31,13 @@ export type GivenPublishedPartnerRequestInput = {
   title?: string;
 };
 
+export type GivenPersistedPartnerRequestInput = {
+  creator: ScenarioUser;
+  fields: PartnerRequestFields;
+  status: PRStatus;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
+};
+
 const defaultTimeWindow = (): [string, string] => [
   "2030-01-01T10:00:00.000Z",
   "2030-01-01T12:00:00.000Z",
@@ -52,6 +60,7 @@ export function buildScenarioFields(title: string): PartnerRequestFields {
       `2031-01-${day}T${endHour}:00:00.000Z`,
     ],
     location: `Scenario Court ${sequence}`,
+    route: null,
     minPartners: 2,
     maxPartners: null,
     partners: [],
@@ -86,6 +95,31 @@ export async function givenDraftPR(input: {
   return { id: request.id };
 }
 
+export async function givenPersistedPartnerRequest(
+  input: GivenPersistedPartnerRequestInput,
+): Promise<ScenarioPartnerRequest> {
+  const request = await prRepo.create({
+    title: input.fields.title,
+    type: input.fields.type,
+    time: input.fields.time,
+    location: input.fields.location,
+    route: input.fields.route,
+    minPartners: input.fields.minPartners,
+    maxPartners: input.fields.maxPartners,
+    budget: input.fields.budget,
+    preferences: input.fields.preferences,
+    notes: input.fields.notes,
+    meetingPoint: input.fields.meetingPoint ?? null,
+    joinGateConfig: [],
+    status: input.status,
+    createdBy: input.creator.user.id,
+    allowEditAfterReady: input.allowEditAfterReady ?? null,
+  });
+  await initializeSlotsForPR(request.id, null);
+
+  return { id: request.id };
+}
+
 export async function givenPublishedPartnerRequest(
   input: GivenPublishedPartnerRequestInput,
 ): Promise<ScenarioPartnerRequest> {
@@ -94,6 +128,7 @@ export async function givenPublishedPartnerRequest(
     type: "badminton",
     time: defaultTimeWindow(),
     location: "Scenario Court",
+    route: null,
     minPartners: input.minPartners,
     maxPartners: input.maxPartners ?? null,
     partners: [],

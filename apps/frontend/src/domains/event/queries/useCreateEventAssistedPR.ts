@@ -1,6 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 import {
@@ -14,13 +17,13 @@ import {
   isWeChatAuthRequiredError,
 } from "@/processes/wechat/auth-error";
 import { setPendingWeChatAction } from "@/processes/wechat/pending-wechat-action";
-import { buildCorrelationHeaders } from "@/shared/telemetry/correlation";
 
 type CreateEventAssistedPRInput = {
   eventId: number;
   fields: PartnerRequestFields;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
+  routePoolEntryId?: string | null;
   handoff?: "event_assisted_create";
-  correlationId?: string;
 };
 
 export type CreateEventAssistedPRResponse = InferResponseType<
@@ -31,6 +34,17 @@ export type CreateEventAssistedPRError = ApiError & {
   status?: number;
 };
 
+export const buildEventAssistedPRCreateBody = (input: {
+  eventId: number;
+  fields: PartnerRequestFields;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
+}) => ({
+  fields: input.fields,
+  createSource: "EVENT_ASSISTED" as const,
+  anchorEventId: input.eventId,
+  allowEditAfterReady: input.allowEditAfterReady ?? null,
+});
+
 export const useCreateEventAssistedPR = () => {
   const queryClient = useQueryClient();
 
@@ -39,20 +53,18 @@ export const useCreateEventAssistedPR = () => {
     CreateEventAssistedPRError,
     CreateEventAssistedPRInput
   >({
-    mutationFn: async ({ eventId, fields, handoff, correlationId }) => {
+    mutationFn: async ({ eventId, fields, allowEditAfterReady, handoff }) => {
       const response = await client.api.pr.new.form.$post(
         {
-          json: {
+          json: buildEventAssistedPRCreateBody({
+            eventId,
             fields,
-            createSource: "EVENT_ASSISTED",
-            anchorEventId: eventId,
-            correlationId,
-          },
+            allowEditAfterReady,
+          }),
         },
         {
           init: {
             credentials: "include",
-            headers: buildCorrelationHeaders(correlationId),
           },
         },
       );
@@ -67,10 +79,12 @@ export const useCreateEventAssistedPR = () => {
             kind: "EVENT_ASSISTED_PR_CREATE",
             eventId,
             handoff,
+            allowEditAfterReady,
             fields: {
               type: fields.type,
               time: fields.time,
-              location: fields.location ?? "",
+              location: fields.location ?? null,
+              route: fields.route ?? null,
               minPartners: fields.minPartners,
               maxPartners: fields.maxPartners,
               preferences: [...fields.preferences],

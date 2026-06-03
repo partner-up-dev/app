@@ -4,13 +4,10 @@ import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 import { useExitPR, useJoinPR } from "@/domains/pr/queries/usePRActions";
 import type { ApiError } from "@/shared/api/error";
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
-const BOOKING_CONTACT_PHONE_REQUIRED_CODE = "BOOKING_CONTACT_PHONE_REQUIRED";
-const BOOKING_CONTACT_PHONE_INVALID_CODE = "BOOKING_CONTACT_PHONE_INVALID";
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const AUTHENTICATED_REQUIRED_CODE = "AUTHENTICATED_REQUIRED";
 const WECHAT_AUTH_REQUIRED_CODE = "WECHAT_AUTH_REQUIRED";
@@ -76,12 +73,6 @@ export const useSharedPRActions = ({
     if (error.code === JOIN_TIME_WINDOW_CONFLICT_CODE) {
       return t("prPage.partnerSection.blockedTimeWindowConflict");
     }
-    if (error.code === BOOKING_CONTACT_PHONE_REQUIRED_CODE) {
-      return t("prPage.bookingContact.ownerVerifyBeforeJoin");
-    }
-    if (error.code === BOOKING_CONTACT_PHONE_INVALID_CODE) {
-      return t("prPage.bookingContact.verifyFailed");
-    }
     if (error.code === PR_JOIN_GATE_UNRESOLVED_CODE) {
       return "请先完成加入前置项";
     }
@@ -102,17 +93,14 @@ export const useSharedPRActions = ({
   const handleJoin = async () => {
     if (id.value === null) return;
 
-    const correlationId = createCommandCorrelationId();
     try {
       const result = await joinMutation.mutateAsync({
         id: id.value,
-        correlationId,
       });
       trackEvent("pr_join_result", {
         prId: id.value,
         ...analyticsPRContext.value,
         actionResult: "success",
-        correlationId,
       });
       onActionSuccess?.();
       return result;
@@ -125,7 +113,6 @@ export const useSharedPRActions = ({
           "PR_JOIN_FAILED",
           t("errors.joinRequestFailed"),
         ),
-        correlationId,
       });
       return null;
     }

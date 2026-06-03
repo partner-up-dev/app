@@ -28,16 +28,6 @@ export type WeChatSubscriptionChannelMessage =
       page: string | null;
     }
   | {
-      kind: "BOOKING_RESULT";
-      openId: string;
-      bookingItem: string;
-      statusLabel: string;
-      activityTime: string;
-      address: string;
-      bookingDetail: string;
-      page: string | null;
-    }
-  | {
       kind: "NEW_PARTNER";
       openId: string;
       applicantName: string;
@@ -53,6 +43,15 @@ export type WeChatSubscriptionChannelMessage =
       operatorName: string;
       updatedAt: string;
       meetingPointDescription: string;
+      page: string | null;
+    }
+  | {
+      kind: "PR_READY";
+      openId: string;
+      title: string;
+      type: string;
+      status: string;
+      remark: string;
       page: string | null;
     }
   | {

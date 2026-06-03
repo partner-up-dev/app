@@ -16,6 +16,7 @@ import { assertNoUserTimeWindowConflict } from "../services/participation-time-c
 import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
 import { operationLogService } from "../../../infra/operation-log";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { assertPRStartTimeHasNotPassed } from "../services/pr-time-window-guard.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -87,7 +88,6 @@ export async function publishPR(
   } else {
     const creator = await resolvePublishedCreator(creatorIdentity);
     creatorUserId = creator.user.id;
-    await prRepo.setCreatedBy(id, creatorUserId);
   }
 
   await assertNoUserTimeWindowConflict({
@@ -95,10 +95,15 @@ export async function publishPR(
     targetTimeWindow: request.time,
     excludePrId: id,
   });
+  assertPRStartTimeHasNotPassed(request.time);
   await assertPRTimeWindowAvailableAtLocation({
     location: request.location,
     timeWindow: request.time,
   });
+
+  if (!request.createdBy) {
+    await prRepo.setCreatedBy(id, creatorUserId);
+  }
 
   const updated = await prRepo.updateStatus(id, "OPEN");
   if (!updated) {

@@ -19,20 +19,20 @@
 - `operation_logs` records domain action audit trail
 - `jobs` records persisted scheduling semantics, including bucket resolution and early/late tolerance units
 - `notification_deliveries` records notification send outcomes
-- `telemetry_events` records raw product telemetry from frontend/backend sources
-- `user_telemetry_journeys`, `user_telemetry_segments`, and `user_telemetry_events` record user-behavior telemetry for product funnel analysis
-- `/api/telemetry/user/events` ingests batched user telemetry events with app journey, business segment, typed subject, source, and correlation fields
-- `/api/analytics/*` exposes read/export-oriented product analytics derived from telemetry and business-state tables
-- `/api/analytics/anchor-event-funnel` exposes the BI v1 aggregate for Anchor Event -> PR conversion, split by `FORM`, `CARD_RICH`, and `LIST` landing modes
+- `user_telemetry_events` and `user_telemetry_rejected_events` record governed user-behavior telemetry and ingest validation failures
+- `/api/telemetry/user/events` ingests batched registry-governed user telemetry events with mandatory `journey_id`, optional `trace_id`, attributes, and payload
+- `/api/analytics/*` exposes read-oriented product analytics derived from `user_telemetry_*` projections and business-state tables
+- `/api/analytics/anchor-event-funnel` exposes the BI v1 aggregate for Anchor Event -> PR conversion, split by `FORM`, `CARD_RICH`, and `LIST` landing modes, plus official-account follow Nudge button-click metrics
 - `/admin/analytics` is the BI dashboard route and requires the `analytics` role
 - `/bi?code=...` is the lightweight BI entry route for the seeded analytics user
 
 ### Correlation Boundary
 
 - User-behavior telemetry and program-internal telemetry are separate signal families.
-- User-behavior telemetry carries `correlation_id`, `request_id`, and `trace_id` fields so later analysis can join frontend behavior to backend execution evidence.
-- Program-internal behavior collection is a future track and should preserve OTLP-compatible trace/log/metric correlation.
-- Frontend correlated JSON commands must keep `content-type: application/json` while adding `x-correlation-id`, so backend JSON validators continue to parse command bodies.
+- User-behavior telemetry keeps optional `trace_id` so behavior events can join with program behavior collection / software observability.
+- User-behavior telemetry does not carry `correlation_id`, `cause_event_id`, `source`, `authority`, anonymous id, or authenticated user hash on ordinary behavior events.
+- Program-internal behavior collection should preserve OTLP-compatible trace/log/metric correlation.
+- User command requests carry `x-journey-id` so backend command owners can emit user-result events in the same journey.
 
 ## What To Watch
 

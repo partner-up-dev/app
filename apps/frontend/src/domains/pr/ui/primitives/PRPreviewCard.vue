@@ -31,8 +31,8 @@
           <span v-if="timeLabelText" class="pr-preview-card__time">
             🕒 {{ timeLabelText }}
           </span>
-          <span v-if="resolvedLocationLabel" class="pr-preview-card__location">
-            📍 {{ resolvedLocationLabel }}
+          <span v-if="resolvedPlaceLabel" class="pr-preview-card__location">
+            {{ resolvedPlaceIcon }} {{ resolvedPlaceLabel }}
           </span>
           <span v-if="resolvedPartnerCountLabel" class="pr-preview-card__partners">
             👥 {{ resolvedPartnerCountLabel }}
@@ -53,8 +53,10 @@ import { computed, useSlots } from "vue";
 import { RouterLink } from "vue-router";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { prDetailPath } from "@/domains/pr/routing/routes";
+import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import { buildRouteSummary } from "@/domains/route/model/route";
+import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
 const props = withDefaults(
   defineProps<{
@@ -93,10 +95,21 @@ const prTitle = computed(() => {
   );
 });
 
-const resolvedStatus = computed(() => prDetail.value?.status ?? null);
+const resolvedStatus = computed(() => {
+  const detail = prDetail.value;
+  if (!detail) return null;
+  return resolvePRDisplayStatus(detail.status, detail.partnerSection.capacity);
+});
 
-const resolvedLocationLabel = computed(
-  () => normalizeLabel(prDetail.value?.core.location),
+const resolvedPlaceLabel = computed(
+  () =>
+    normalizeLabel(prDetail.value?.core.placeDisplayName) ??
+    buildRouteSummary(prDetail.value?.core.route) ??
+    normalizeLabel(prDetail.value?.core.location),
+);
+
+const resolvedPlaceIcon = computed(
+  () => ((prDetail.value?.core.route?.length ?? 0) >= 2 ? "🧭" : "📍"),
 );
 
 const timeLabelText = computed(() => {
@@ -105,8 +118,7 @@ const timeLabelText = computed(() => {
     return explicit;
   }
 
-  const startAt = prDetail.value?.core.time[0] ?? null;
-  return formatLocalDateTimeValue(startAt);
+  return formatFriendlyTimeWindowLabel(prDetail.value?.core.time ?? [null, null]);
 });
 
 const resolvedPartnerCountLabel = computed(() => {

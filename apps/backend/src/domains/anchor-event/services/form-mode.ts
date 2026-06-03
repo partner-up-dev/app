@@ -8,6 +8,7 @@ import {
   DEFAULT_AUTOMATIC_MIN_PARTNERS,
   MIN_MANUAL_PARTNERS,
 } from "../../pr-core/services/partner-bounds.service";
+import type { CoordinatePair, PRRoute } from "../../../entities/partner-request";
 
 const MINUTE_MS = 60 * 1000;
 const MATCHED_START_TOLERANCE_MINUTES = 5;
@@ -26,12 +27,9 @@ const parseTimestamp = (value: string): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const resolveDurationMinutes = (event: AnchorEvent): number => {
-  const durationMinutes = event.timePoolConfig.durationMinutes;
-  if (durationMinutes === null) {
-    return throwHttpProblem({ status: 409, detail: "Anchor event duration is not configured" });
-  }
-  return durationMinutes;
+export type AnchorEventFormModeTimeWindow = {
+  startAt: string;
+  endAt: string;
 };
 
 export const buildAnchorEventFormModeTimeWindow = (
@@ -44,21 +42,25 @@ export const buildAnchorEventFormModeTimeWindow = (
     return throwHttpProblem({ status: 400, detail: "Invalid startAt" });
   }
 
-  const durationMinutes = resolveDurationMinutes(event);
-  const endAt = new Date(startAt.getTime() + durationMinutes * MINUTE_MS);
-  if (endAt.getTime() <= now.getTime()) {
+  if (startAt.getTime() <= now.getTime()) {
     return throwHttpProblem({ status: 400, detail: "Selected start time has already passed" });
   }
 
+  const durationMinutes = event.timePoolConfig.durationMinutes;
+  const endAt =
+    durationMinutes === null
+      ? null
+      : new Date(startAt.getTime() + durationMinutes * MINUTE_MS);
   const earliestLeadMinutes = event.timePoolConfig.earliestLeadMinutes;
+  const boundaryAt = endAt ?? startAt;
   if (
     earliestLeadMinutes !== null &&
-    endAt.getTime() > now.getTime() + earliestLeadMinutes * MINUTE_MS
+    boundaryAt.getTime() > now.getTime() + earliestLeadMinutes * MINUTE_MS
   ) {
     return throwHttpProblem({ status: 400, detail: "Selected start time is outside the event lead-time boundary" });
   }
 
-  return [startAt.toISOString(), endAt.toISOString()];
+  return [startAt.toISOString(), endAt?.toISOString() ?? null];
 };
 
 export const isAnchorEventFormModeStartSelectable = (
@@ -117,8 +119,42 @@ const buildCategoryMap = (preferences: readonly string[]): Map<string, string> =
   return map;
 };
 
+const areCoordinatePairsEqual = (
+  left: CoordinatePair | null,
+  right: CoordinatePair | null,
+): boolean => {
+  if (left === null || right === null) {
+    return left === right;
+  }
+
+  return left[0] === right[0] && left[1] === right[1];
+};
+
+const areRoutesEqual = (
+  left: PRRoute | null | undefined,
+  right: PRRoute | null | undefined,
+): boolean => {
+  if (!left || !right || left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((leftPoint, index) => {
+    const rightPoint = right[index];
+    return (
+      rightPoint !== undefined &&
+      leftPoint.name === rightPoint.name &&
+      leftPoint.full_address === rightPoint.full_address &&
+      areCoordinatePairsEqual(leftPoint.wgs84, rightPoint.wgs84) &&
+      areCoordinatePairsEqual(leftPoint.bd09, rightPoint.bd09) &&
+      areCoordinatePairsEqual(leftPoint.gcj02, rightPoint.gcj02)
+    );
+  });
+};
+
 export type AnchorEventRecommendationMatch = {
+  exactPlace: boolean;
   exactLocation: boolean;
+  exactRoute: boolean;
   startDeltaMinutes: number | null;
   startWithinTolerance: boolean;
   exactTagMatches: string[];
@@ -130,7 +166,7 @@ export type AnchorEventRecommendationMatch = {
 export const isAnchorEventMatchedRecommendation = (
   match: AnchorEventRecommendationMatch,
 ): boolean =>
-  match.exactLocation &&
+  match.exactPlace &&
   match.startWithinTolerance &&
   match.conflictingTagMatches.length === 0;
 
@@ -145,6 +181,55 @@ const buildStartTimeScore = (startDeltaMinutes: number | null): number => {
     return NEAR_TIME_MISMATCH_SCORE;
   }
   return FAR_TIME_MISMATCH_SCORE;
+};
+
+const candidateStartMatchesWindow = (
+  candidateStart: Date,
+  window: AnchorEventFormModeTimeWindow,
+): boolean => {
+  const windowStart = parseTimestamp(window.startAt);
+  const windowEnd = parseTimestamp(window.endAt);
+  if (!windowStart || !windowEnd) {
+    return false;
+  }
+
+  if (windowStart.getTime() === windowEnd.getTime()) {
+    return candidateStart.getTime() === windowStart.getTime();
+  }
+
+  return (
+    candidateStart.getTime() >= windowStart.getTime() &&
+    candidateStart.getTime() < windowEnd.getTime()
+  );
+};
+
+const buildStartDeltaToTimeWindows = (
+  candidateStart: Date | null,
+  windows: readonly AnchorEventFormModeTimeWindow[],
+): number | null => {
+  if (!candidateStart || windows.length === 0) {
+    return null;
+  }
+
+  const distances = windows.flatMap((window) => {
+    const windowStart = parseTimestamp(window.startAt);
+    const windowEnd = parseTimestamp(window.endAt);
+    if (!windowStart || !windowEnd) {
+      return [];
+    }
+    if (candidateStartMatchesWindow(candidateStart, window)) {
+      return [0];
+    }
+    return [
+      Math.abs(candidateStart.getTime() - windowStart.getTime()),
+      Math.abs(candidateStart.getTime() - windowEnd.getTime()),
+    ];
+  });
+
+  const minDistance = Math.min(...distances);
+  return Number.isFinite(minDistance)
+    ? Math.round(minDistance / MINUTE_MS)
+    : null;
 };
 
 const buildGroupMomentumScore = (input: {
@@ -172,23 +257,22 @@ const buildGroupMomentumScore = (input: {
 };
 
 export const buildAnchorEventRecommendationMatch = (input: {
-  requestedLocationId: string;
-  requestedStartAtIso: string;
+  requestedLocationId?: string | null;
+  requestedRoute?: PRRoute | null;
+  requestedTimeWindows: readonly AnchorEventFormModeTimeWindow[];
   requestedPreferences: string[];
   candidateLocationId: string | null;
+  candidateRoute?: PRRoute | null;
   candidateTimeWindow: TimeWindowEntry;
   candidatePreferences: string[];
   candidateMinPartners: number | null;
   activePartnerCount: number;
 }): AnchorEventRecommendationMatch => {
-  const requestedStart = parseTimestamp(input.requestedStartAtIso);
   const candidateStart = parseTimestamp(input.candidateTimeWindow[0] ?? "");
-  const startDeltaMinutes =
-    requestedStart && candidateStart
-      ? Math.round(
-          Math.abs(candidateStart.getTime() - requestedStart.getTime()) / MINUTE_MS,
-        )
-      : null;
+  const startDeltaMinutes = buildStartDeltaToTimeWindows(
+    candidateStart,
+    input.requestedTimeWindows,
+  );
 
   const exactRequestedPreferences = buildExactMatchKeySet(
     input.requestedPreferences,
@@ -216,13 +300,19 @@ export const buildAnchorEventRecommendationMatch = (input: {
     }
   }
 
+  const requestedLocationId = input.requestedLocationId?.trim() ?? "";
   const exactLocation =
-    (input.candidateLocationId?.trim() ?? "") === input.requestedLocationId.trim();
+    requestedLocationId.length > 0 &&
+    (input.candidateLocationId?.trim() ?? "") === requestedLocationId;
+  const exactRoute = areRoutesEqual(input.requestedRoute, input.candidateRoute);
+  const exactPlace = input.requestedRoute ? exactRoute : exactLocation;
 
   const startWithinTolerance =
-    startDeltaMinutes !== null &&
-    startDeltaMinutes <= MATCHED_START_TOLERANCE_MINUTES;
-  const locationScore = exactLocation ? EXACT_LOCATION_SCORE : LOCATION_MISMATCH_SCORE;
+    candidateStart !== null &&
+    input.requestedTimeWindows.some((timeWindow) =>
+      candidateStartMatchesWindow(candidateStart, timeWindow),
+    );
+  const locationScore = exactPlace ? EXACT_LOCATION_SCORE : LOCATION_MISMATCH_SCORE;
   const timeScore = buildStartTimeScore(startDeltaMinutes);
   const preferenceScore =
     Math.min(exactTagMatches.length, EXACT_TAG_SCORE_CAP) -
@@ -237,7 +327,9 @@ export const buildAnchorEventRecommendationMatch = (input: {
   const score = locationScore + timeScore + preferenceScore + groupMomentumScore;
 
   return {
+    exactPlace,
     exactLocation,
+    exactRoute,
     startDeltaMinutes,
     startWithinTolerance,
     exactTagMatches,

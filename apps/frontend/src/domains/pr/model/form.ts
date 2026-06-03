@@ -1,4 +1,5 @@
 import type { PRFormFields } from "@/domains/pr/model/types";
+import { clonePRRoute } from "@/domains/pr/model/pr-route";
 
 export const clonePRFields = (
   fields: PRFormFields,
@@ -7,6 +8,7 @@ export const clonePRFields = (
   type: fields.type,
   time: [fields.time[0], fields.time[1]],
   location: fields.location,
+  route: clonePRRoute(fields.route),
   minPartners: fields.minPartners,
   maxPartners: fields.maxPartners,
   partners: [...fields.partners],

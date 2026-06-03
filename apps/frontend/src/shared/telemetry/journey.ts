@@ -3,10 +3,7 @@ import { createUuid } from "@/shared/telemetry/uuid";
 
 const ANONYMOUS_ID_STORAGE_KEY = "__partner_up_telemetry_anonymous_id__";
 const APP_JOURNEY_STORAGE_KEY = "__partner_up_telemetry_app_journey__";
-const ACTIVE_SEGMENT_STORAGE_KEY = "__partner_up_telemetry_active_segment__";
-const SEGMENT_DEDUPE_STORAGE_KEY = "__partner_up_telemetry_segment_dedupe__";
 const APP_JOURNEY_INACTIVITY_TIMEOUT_MS = 30 * 60 * 1_000;
-const MAX_DEDUPE_KEYS_PER_SEGMENT = 500;
 
 export type UserTelemetryJourney = {
   id: string;
@@ -37,26 +34,9 @@ export type UserTelemetryJourneyContext = {
   nowIso?: string;
 };
 
-export type UserTelemetrySegment = {
-  id: string;
-  segmentKind: string;
-  startedAt: string;
-  endedAt?: string;
-  eventId?: number;
-  prId?: number;
-  assignedMode?: string;
-  renderedMode?: string;
-  assignmentRevision?: string;
-  segmentStartRoute?: string;
-  segmentStartSpm?: string;
-  segmentStartSourceQr?: string;
-};
-
-export type StartUserTelemetrySegmentInput = Omit<
-  UserTelemetrySegment,
-  "id" | "startedAt" | "endedAt"
-> & {
-  startedAt?: string;
+export type EnsuredUserTelemetryJourney = {
+  journey: UserTelemetryJourney;
+  started: boolean;
 };
 
 export const createTelemetryId = (): string => {
@@ -215,9 +195,9 @@ const isExpiredJourney = (
     : nowMs - lastSeenMs > APP_JOURNEY_INACTIVITY_TIMEOUT_MS;
 };
 
-export const ensureAppJourney = (
+export const ensureAppJourneyWithState = (
   context: UserTelemetryJourneyContext,
-): UserTelemetryJourney => {
+): EnsuredUserTelemetryJourney => {
   const nowIso = context.nowIso ?? new Date().toISOString();
   const nowMs = Date.parse(nowIso);
   const anonymousId = resolveAnonymousId();
@@ -232,7 +212,10 @@ export const ensureAppJourney = (
       currentSourceQr: context.sourceQr ?? stored.currentSourceQr,
     };
     persistJourney(updated);
-    return updated;
+    return {
+      journey: updated,
+      started: false,
+    };
   }
 
   const created: UserTelemetryJourney = {
@@ -252,174 +235,15 @@ export const ensureAppJourney = (
     entryKind: context.entryKind ?? resolveEntryKind(context.routePath),
   };
   persistJourney(created);
-  return created;
-};
-
-const parseStoredSegment = (
-  record: Record<string, unknown>,
-): UserTelemetrySegment | null => {
-  const id = readString(record, "id");
-  const segmentKind = readString(record, "segmentKind");
-  const startedAt = readString(record, "startedAt");
-
-  if (!id || !segmentKind || !startedAt) {
-    return null;
-  }
-
   return {
-    id,
-    segmentKind,
-    startedAt,
-    endedAt: readString(record, "endedAt"),
-    eventId: readNumber(record, "eventId"),
-    prId: readNumber(record, "prId"),
-    assignedMode: readString(record, "assignedMode"),
-    renderedMode: readString(record, "renderedMode"),
-    assignmentRevision: readString(record, "assignmentRevision"),
-    segmentStartRoute: readString(record, "segmentStartRoute"),
-    segmentStartSpm: readString(record, "segmentStartSpm"),
-    segmentStartSourceQr: readString(record, "segmentStartSourceQr"),
+    journey: created,
+    started: true,
   };
 };
 
-export const getActiveUserTelemetrySegment =
-  (): UserTelemetrySegment | null => {
-  if (typeof window === "undefined") return null;
+export const ensureAppJourney = (
+  context: UserTelemetryJourneyContext,
+): UserTelemetryJourney => ensureAppJourneyWithState(context).journey;
 
-  try {
-    const record = readJsonRecord(
-      window.sessionStorage,
-      ACTIVE_SEGMENT_STORAGE_KEY,
-    );
-    return record ? parseStoredSegment(record) : null;
-  } catch {
-    return null;
-  }
-};
-
-export const startUserTelemetrySegment = (
-  input: StartUserTelemetrySegmentInput,
-): UserTelemetrySegment => {
-  const segment: UserTelemetrySegment = {
-    ...input,
-    id: createTelemetryId(),
-    startedAt: input.startedAt ?? new Date().toISOString(),
-  };
-
-  if (typeof window !== "undefined") {
-    try {
-      writeJson(window.sessionStorage, ACTIVE_SEGMENT_STORAGE_KEY, segment);
-    } catch {
-      // Ignore sessionStorage write errors.
-    }
-  }
-
-  return segment;
-};
-
-const isSameSegmentIdentity = (
-  segment: UserTelemetrySegment,
-  input: StartUserTelemetrySegmentInput,
-): boolean => {
-  return (
-    segment.segmentKind === input.segmentKind &&
-    segment.eventId === input.eventId &&
-    segment.prId === input.prId &&
-    segment.assignedMode === input.assignedMode &&
-    segment.renderedMode === input.renderedMode &&
-    segment.assignmentRevision === input.assignmentRevision
-  );
-};
-
-export const ensureUserTelemetrySegment = (
-  input: StartUserTelemetrySegmentInput,
-): UserTelemetrySegment => {
-  const active = getActiveUserTelemetrySegment();
-  if (active && isSameSegmentIdentity(active, input)) {
-    return active;
-  }
-
-  return startUserTelemetrySegment(input);
-};
-
-export const endActiveUserTelemetrySegment = (
-  endedAt = new Date().toISOString(),
-): UserTelemetrySegment | null => {
-  const active = getActiveUserTelemetrySegment();
-  if (!active) return null;
-
-  const ended: UserTelemetrySegment = {
-    ...active,
-    endedAt,
-  };
-
-  if (typeof window !== "undefined") {
-    try {
-      writeJson(window.sessionStorage, ACTIVE_SEGMENT_STORAGE_KEY, ended);
-    } catch {
-      // Ignore sessionStorage write errors.
-    }
-  }
-
-  return ended;
-};
-
-export const clearActiveUserTelemetrySegment = (): void => {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.sessionStorage.removeItem(ACTIVE_SEGMENT_STORAGE_KEY);
-  } catch {
-    // Ignore sessionStorage write errors.
-  }
-};
-
-const readSegmentDedupeStore = (): Record<string, string[]> => {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const record = readJsonRecord(
-      window.sessionStorage,
-      SEGMENT_DEDUPE_STORAGE_KEY,
-    );
-    if (!record) return {};
-
-    const store: Record<string, string[]> = {};
-    for (const [segmentId, keys] of Object.entries(record)) {
-      if (!Array.isArray(keys)) continue;
-      store[segmentId] = keys.filter(
-        (key): key is string => typeof key === "string",
-      );
-    }
-    return store;
-  } catch {
-    return {};
-  }
-};
-
-const writeSegmentDedupeStore = (store: Record<string, string[]>): void => {
-  if (typeof window === "undefined") return;
-
-  try {
-    writeJson(window.sessionStorage, SEGMENT_DEDUPE_STORAGE_KEY, store);
-  } catch {
-    // Ignore sessionStorage write errors.
-  }
-};
-
-export const claimUserTelemetrySegmentDedupeKey = (
-  key: string,
-  segmentId = getActiveUserTelemetrySegment()?.id ?? null,
-): boolean => {
-  if (!segmentId) return true;
-
-  const store = readSegmentDedupeStore();
-  const keys = store[segmentId] ?? [];
-  if (keys.includes(key)) {
-    return false;
-  }
-
-  store[segmentId] = [...keys, key].slice(-MAX_DEDUPE_KEYS_PER_SEGMENT);
-  writeSegmentDedupeStore(store);
-  return true;
-};
+export const resolveCurrentJourneyId = (): string | null =>
+  readStoredJourney()?.id ?? null;

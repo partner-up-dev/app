@@ -71,24 +71,32 @@
         <EventPRCreateCard
           v-if="canUserCreatePR"
           :title="createCardTitle"
-          :time-window-label="createCardSubtitleTimeLabel"
+          :event-id="eventIdValue"
           :event-title="eventTitle"
-          :time-window-options="createTimeWindowOptions"
-          :selected-time-window-key="selectedTimeWindowKey"
-          :location-options="createTimeWindowLocationOptions"
+          :time-window="selectedCreateTimeWindow"
+          :allow-edit-after-ready="selectedCreateAllowEditAfterReady"
+          :place-options="createTimeWindowPlaceOptions"
+          :place-label="createTimeWindowPlaceLabel"
+          :place-placeholder="createTimeWindowPlacePlaceholder"
           :default-expanded="shouldAutoExpandCreateCard"
           :auto-expand-context-key="createCardAutoExpandContextKey"
           :pending="isCreatePending"
-          :error-message="createActionErrorMessage"
-          @update:selected-time-window-key="handleSelectedTimeWindowChange"
+          :disabled="isCreateDisabled"
+          :error-message="resolvedCreateActionErrorMessage"
+          @update:time-window="selectedCreateTimeWindow = $event"
+          @update:allow-edit-after-ready="
+            selectedCreateAllowEditAfterReady = $event
+          "
           @create="handleCreateInList"
           data-region="create-pr"
         />
         <AnchorEventBetaGroupCard
+          v-if="eventBetaGroupQrCode !== null"
           :event-id="eventIdValue"
           :event-title="eventTitle"
           :qr-code-url="eventBetaGroupQrCode"
-          :default-expanded="false"
+          :default-expanded="shouldAutoExpandBetaGroupCard"
+          :auto-expand-context-key="betaGroupCardAutoExpandContextKey"
           variant="list"
         />
         <OtherAnchorEventsSection
@@ -104,6 +112,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import EventPRCreateCard from "@/domains/event/ui/primitives/EventPRCreateCard.vue";
@@ -114,12 +123,12 @@ import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import {
   formatDateKeyLabel,
   formatTimeWindowLabel,
-  formatTimeWindowOptionLabel,
   formatTimeWindowTimeLabel,
   hasTimeWindowStarted,
   isEndedTimeWindow,
   resolveTimeWindowDateKey,
   resolveTimeWindowStartTimestamp,
+  type TimeWindow,
 } from "@/domains/event/model/time-window-view";
 import { usePoisByIds } from "@/shared/poi/queries/usePoisByIds";
 import {
@@ -132,8 +141,12 @@ import {
   isProductLocalDateKey,
   type ProductLocalDateKey,
 } from "@/shared/datetime/productLocalDate";
+import {
+  buildCreateTimeWindowPlaceOptions,
+  getExclusiveCreateTimeWindowLocationOptions,
+  type AnchorEventSelectedPlace,
+} from "@/domains/event/model/place-options";
 import { trackEvent } from "@/shared/telemetry/track";
-import { claimUserTelemetrySegmentDedupeKey } from "@/shared/telemetry/journey";
 
 type DateTabItem = {
   key: string;
@@ -170,28 +183,21 @@ type VisiblePRItem = {
 
 type CreateTimeWindowChoice = {
   entry: CreateTimeWindow;
-  optionLabel: string;
-  subtitleLabel: string;
 };
 
 const props = defineProps<{
   eventId: number;
 }>();
 
-const emit = defineEmits<{
-  "header-context": [
-    context: {
-      title: string;
-      subtitle: string | null;
-    } | null,
-  ];
-}>();
-
 const { t } = useI18n();
 const eventId = computed<number | null>(() => props.eventId);
 const eventIdValue = computed(() => props.eventId);
-const selectedTimeWindowKey = ref<string | null>(null);
+const selectedCreateTimeWindow = ref<TimeWindow | null>(null);
+const selectedCreateAllowEditAfterReady =
+  ref<PRAllowEditAfterReady | null>(null);
 const selectedDateKey = ref<string | null>(null);
+const activeListTelemetryContextKey = ref<string | null>(null);
+const trackedListTelemetryKeys = ref<Set<string>>(new Set());
 
 const {
   data: detail,
@@ -205,22 +211,6 @@ const {
   isCreatePending,
 } = useEventAssistedPRCreateFlow(eventDetail);
 
-watch(
-  detail,
-  (event) => {
-    emit(
-      "header-context",
-      event
-        ? {
-            title: event.title,
-            subtitle: event.description ?? null,
-          }
-        : null,
-    );
-  },
-  { immediate: true },
-);
-
 const eventTitle = computed(() => detail.value?.title ?? "");
 const eventBetaGroupQrCode = computed(() => detail.value?.betaGroupQrCode ?? null);
 const hasBrowseTimeWindows = computed(
@@ -233,6 +223,19 @@ const buildListFunnelPayload = () => ({
   eventId: props.eventId,
   activityType: detail.value?.type,
 });
+
+const claimListTelemetryKey = (key: string): boolean => {
+  if (trackedListTelemetryKeys.value.has(key)) return false;
+  trackedListTelemetryKeys.value.add(key);
+  return true;
+};
+
+const ensureListTelemetryContext = (): void => {
+  const contextKey = props.eventId.toString();
+  if (activeListTelemetryContextKey.value === contextKey) return;
+  activeListTelemetryContextKey.value = contextKey;
+  trackedListTelemetryKeys.value = new Set();
+};
 
 const buildPrDetailRoute = (prId: number): string =>
   `/pr/${prId}?fromEvent=${props.eventId}`;
@@ -263,17 +266,6 @@ const upcomingSortedCreateTimeWindows = computed(() =>
     (entry) => !hasTimeWindowStarted(entry.timeWindow),
   ),
 );
-
-const formatCreateTimeWindowOptionLabel = (
-  entry: CreateTimeWindow,
-  index: number,
-): string =>
-  formatTimeWindowOptionLabel(
-    entry.timeWindow,
-    index,
-    t("anchorEvent.batchLabel"),
-    entry.description,
-  );
 
 const isExpiredDateGroupKey = (
   groupKey: string,
@@ -354,14 +346,8 @@ const dateTabs = computed<DateTabItem[]>(() =>
 );
 
 const createTimeWindowChoices = computed<CreateTimeWindowChoice[]>(() =>
-  upcomingSortedCreateTimeWindows.value.map((entry, index) => ({
+  upcomingSortedCreateTimeWindows.value.map((entry) => ({
     entry,
-    optionLabel: formatCreateTimeWindowOptionLabel(entry, index),
-    subtitleLabel: formatTimeWindowLabel(
-      entry.timeWindow,
-      index,
-      t("anchorEvent.batchLabel"),
-    ),
   })),
 );
 
@@ -426,6 +412,24 @@ const allPoiIdsCsv = computed(() => {
       }
     }
   }
+  for (const entry of sortedCreateTimeWindows.value) {
+    for (const option of getExclusiveCreateTimeWindowLocationOptions(entry)) {
+      const locationId = option.locationId.trim();
+      if (locationId.length > 0) {
+        uniqueLocationIds.add(locationId);
+      }
+    }
+  }
+  for (const option of detail.value?.placeSelector.options ?? []) {
+    if (option.kind !== "location") {
+      continue;
+    }
+
+    const locationId = option.locationId.trim();
+    if (locationId.length > 0) {
+      uniqueLocationIds.add(locationId);
+    }
+  }
 
   if (uniqueLocationIds.size === 0) {
     return null;
@@ -436,6 +440,9 @@ const allPoiIdsCsv = computed(() => {
 
 const { data: eventPois } = usePoisByIds(allPoiIdsCsv);
 const poiGalleryById = computed(() => toPoiGalleryMap(eventPois.value ?? []));
+const poiByName = computed(
+  () => new Map((eventPois.value ?? []).map((poi) => [poi.name, poi])),
+);
 
 const resolveCoverImage = (location: string | null): string | null => {
   if (!location) {
@@ -509,13 +516,26 @@ watch(
   [detail, dateGroups],
   ([event]) => {
     if (!event) return;
-    if (!claimUserTelemetrySegmentDedupeKey("anchor_event.list.loaded")) {
+    ensureListTelemetryContext();
+    const counts = listLoadedCounts.value;
+    if (
+      !claimListTelemetryKey(
+        [
+          "anchor_event.list.loaded",
+          props.eventId,
+          counts.dateCount,
+          counts.visiblePrCount,
+          counts.currentFuturePrCount,
+          counts.expiredPrCount,
+        ].join(":"),
+      )
+    ) {
       return;
     }
 
     trackEvent("anchor_event_list_loaded", {
       ...buildListFunnelPayload(),
-      ...listLoadedCounts.value,
+      ...counts,
     });
   },
   { immediate: true },
@@ -524,10 +544,11 @@ watch(
 watch(
   visiblePRItems,
   (items) => {
+    ensureListTelemetryContext();
     for (const item of items) {
       if (
-        !claimUserTelemetrySegmentDedupeKey(
-          `anchor_event.pr_row.seen:${item.pr.id}`,
+        !claimListTelemetryKey(
+          `anchor_event.pr_row.seen:${props.eventId}:${item.dateKey}:${item.timeWindowKey}:${item.pr.id}`,
         )
       ) {
         continue;
@@ -547,122 +568,78 @@ watch(
 );
 
 const isJoinablePR = (pr: AnchorEventTimeWindowPR): boolean =>
-  pr.status === "OPEN" || pr.status === "READY";
+  pr.status === "OPEN";
 
 const timeWindowHasJoinablePR = (entry: AnchorEventTimeWindow): boolean =>
   entry.prs.some(isJoinablePR);
 
-const hasJoinablePRAtBrowseTimeWindowKey = (
-  group: DateGroup | null,
-  timeWindowKey: string,
-): boolean => {
-  const browseTimeWindow = group?.timeWindows.find(
-    ({ entry }) => entry.key === timeWindowKey,
-  )?.entry;
-  if (!browseTimeWindow) {
-    return false;
-  }
-
-  return timeWindowHasJoinablePR(browseTimeWindow);
-};
-
-const resolveDefaultCreateTimeWindowKey = (
-  group: DateGroup | null,
-  createTimeWindowChoices: CreateTimeWindowChoice[],
-): string | null => {
-  if (createTimeWindowChoices.length === 0) {
-    return null;
-  }
-
-  const firstCreatableTimeWindowWithoutAvailablePR = createTimeWindowChoices.find(
-    ({ entry }) =>
-      entry.locationOptions.some((option) => !option.disabled) &&
-      !hasJoinablePRAtBrowseTimeWindowKey(group, entry.key),
-  );
-  if (firstCreatableTimeWindowWithoutAvailablePR) {
-    return firstCreatableTimeWindowWithoutAvailablePR.entry.key;
-  }
-
-  const firstCreatableTimeWindow = createTimeWindowChoices.find(({ entry }) =>
-    entry.locationOptions.some((option) => !option.disabled),
-  );
-  if (firstCreatableTimeWindow) {
-    return firstCreatableTimeWindow.entry.key;
-  }
-
-  return createTimeWindowChoices[0]?.entry.key ?? null;
-};
-
-watch(
-  [selectedDateGroup, createTimeWindowChoices],
-  ([group, createTimeWindowChoices]) => {
-    const currentTimeWindowKey = selectedTimeWindowKey.value;
-    if (
-      currentTimeWindowKey !== null &&
-      createTimeWindowChoices.some(({ entry }) => entry.key === currentTimeWindowKey)
-    ) {
-      return;
-    }
-
-    const preferredTimeWindowKey = resolveDefaultCreateTimeWindowKey(
-      group,
-      createTimeWindowChoices,
-    );
-    if (
-      preferredTimeWindowKey !== null &&
-      createTimeWindowChoices.some(({ entry }) => entry.key === preferredTimeWindowKey)
-    ) {
-      selectedTimeWindowKey.value = preferredTimeWindowKey;
-      return;
-    }
-
-    selectedTimeWindowKey.value = createTimeWindowChoices[0]?.entry.key ?? null;
-  },
-  { immediate: true, deep: true },
-);
-
-const timeWindowLabelByKey = computed(() => {
-  const map = new Map<string, string>();
-  for (const timeWindowChoice of createTimeWindowChoices.value) {
-    map.set(timeWindowChoice.entry.key, timeWindowChoice.subtitleLabel);
-  }
-  return map;
-});
-
-const createTimeWindowOptions = computed(() =>
-  createTimeWindowChoices.value.map(({ entry, optionLabel }) => ({
-    key: entry.key,
-    label: optionLabel,
-  })),
-);
+const timeWindowsEqual = (
+  left: TimeWindow | null | undefined,
+  right: TimeWindow | null | undefined,
+): boolean =>
+  (left?.[0] ?? null) === (right?.[0] ?? null) &&
+  (left?.[1] ?? null) === (right?.[1] ?? null);
 
 const selectedTimeWindowEntry = computed(() => {
-  if (selectedTimeWindowKey.value === null) {
+  if (selectedCreateTimeWindow.value === null) {
     return null;
   }
 
   return (
     createTimeWindowChoices.value.find(
-      ({ entry }) => entry.key === selectedTimeWindowKey.value,
+      ({ entry }) => timeWindowsEqual(entry.timeWindow, selectedCreateTimeWindow.value),
     )?.entry ?? null
   );
 });
 
-const createTimeWindowLabel = computed(() => {
-  const targetTimeWindowKey = selectedTimeWindowEntry.value?.key ?? null;
-  if (targetTimeWindowKey === null) {
-    return "";
+const activeCreatePlaceSelector = computed(
+  () => selectedTimeWindowEntry.value?.placeSelector ?? detail.value?.placeSelector ?? null,
+);
+
+const createTimeWindowPlaceOptions = computed(() =>
+  buildCreateTimeWindowPlaceOptions({
+    placeSelector: activeCreatePlaceSelector.value,
+    locationOptions: selectedTimeWindowEntry.value?.locationOptions ?? [],
+    routeOptions: selectedTimeWindowEntry.value?.routeOptions ?? [],
+    poiByName: poiByName.value,
+  }),
+);
+const createTimeWindowPlaceLabel = computed(() =>
+  t(
+    activeCreatePlaceSelector.value?.labelKey ??
+      "anchorEvent.placeSelector.locationLabel",
+  ),
+);
+const createTimeWindowPlacePlaceholder = computed(() =>
+  t(
+    activeCreatePlaceSelector.value?.placeholderKey ??
+      "anchorEvent.placeSelector.locationPlaceholder",
+  ),
+);
+
+const hasCompleteCreateTimeWindow = computed(
+  () =>
+    selectedCreateTimeWindow.value !== null &&
+    selectedCreateTimeWindow.value[0] !== null &&
+    selectedCreateTimeWindow.value[1] !== null,
+);
+
+const createCardValidationMessage = computed(() => {
+  if (!hasCompleteCreateTimeWindow.value) {
+    return t("anchorEvent.createCard.errors.missingTimeWindow");
   }
 
-  return timeWindowLabelByKey.value.get(targetTimeWindowKey) ?? "";
-});
+  if (!createTimeWindowPlaceOptions.value.some((option) => !option.disabled)) {
+    return t("anchorEvent.createCard.errors.missingPlace");
+  }
 
-const createCardSubtitleTimeLabel = computed(() => {
-  return createTimeWindowLabel.value;
+  return null;
 });
-
-const createTimeWindowLocationOptions = computed(
-  () => selectedTimeWindowEntry.value?.locationOptions ?? [],
+const resolvedCreateActionErrorMessage = computed(
+  () => createActionErrorMessage.value ?? createCardValidationMessage.value,
+);
+const isCreateDisabled = computed(
+  () => isCreatePending.value || createCardValidationMessage.value !== null,
 );
 
 const hasJoinablePRInSelectedDate = computed(() => {
@@ -683,21 +660,31 @@ const createCardTitle = computed(() => {
 });
 
 const shouldAutoExpandCreateCard = computed(() => {
-  if (createTimeWindowChoices.value.length === 0) {
+  if (
+    createTimeWindowChoices.value.length === 0 &&
+    createTimeWindowPlaceOptions.value.length === 0
+  ) {
     return false;
   }
 
   return canUserCreatePR.value && !hasJoinablePRInSelectedDate.value;
 });
 
-const createCardAutoExpandContextKey = computed(
+const shouldAutoExpandBetaGroupCard = computed(
   () =>
-    `${selectedDateKey.value ?? "none"}:${selectedTimeWindowKey.value ?? "none"}`,
+    detail.value?.prCreationPolicy === "ADMIN_ONLY" &&
+    eventBetaGroupQrCode.value !== null &&
+    !hasJoinablePRInSelectedDate.value,
 );
 
-const handleSelectedTimeWindowChange = (key: string | null) => {
-  selectedTimeWindowKey.value = key;
-};
+const createCardAutoExpandContextKey = computed(
+  () => `${eventIdValue.value}:${selectedDateKey.value ?? "none"}`,
+);
+
+const betaGroupCardAutoExpandContextKey = computed(
+  () =>
+    `${selectedDateKey.value ?? "none"}:${eventBetaGroupQrCode.value ?? "none"}`,
+);
 
 const handleDateTabChange = (value: string | number) => {
   const dateKey = String(value);
@@ -728,20 +715,26 @@ const trackListPrRowAction = (item: VisiblePRItem): void => {
   });
 };
 
-const handleCreateInList = async (locationId: string | null) => {
+const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
   if (!canUserCreatePR.value) {
+    return;
+  }
+  if (createCardValidationMessage.value !== null) {
     return;
   }
 
   trackEvent("anchor_event_list_create_started", {
     ...buildListFunnelPayload(),
     dateKey: selectedDateKey.value,
-    locationId,
-    timeWindowStart: selectedTimeWindowEntry.value?.timeWindow[0] ?? null,
+    locationId: place?.kind === "location" ? place.locationId : null,
+    routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
+    placeKind: place?.kind ?? null,
+    timeWindowStart: selectedCreateTimeWindow.value?.[0] ?? null,
   });
   await createEventAssistedPR({
-    targetTimeWindow: selectedTimeWindowEntry.value?.timeWindow ?? null,
-    locationId,
+    targetTimeWindow: selectedCreateTimeWindow.value,
+    allowEditAfterReady: selectedCreateAllowEditAfterReady.value,
+    place,
     entrySurface: "list_mode",
   });
 };

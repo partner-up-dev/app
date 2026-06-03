@@ -1,4 +1,9 @@
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type {
+  AnchorEventPlaceOption,
+} from "@/domains/event/model/place-options";
+import type { TimeWindow } from "@/domains/event/model/time-window-view";
 
 export type DemandCardViewModel = {
   cardKey: string;
@@ -8,17 +13,6 @@ export type DemandCardViewModel = {
   notes: string | null;
   detailPrId: number | null;
   coverImage: string | null;
-};
-
-export type CardTimeWindowOption = {
-  key: string;
-  label: string;
-};
-
-export type CardCreateLocationOption = {
-  locationId: string;
-  label: string;
-  disabled: boolean;
 };
 
 export type LocationOption =
@@ -38,13 +32,15 @@ export type AnchorEventCardModeSurfaceProps = {
   isCardRouting?: boolean;
   cardActionError?: string | null;
   dragHintToken?: number;
-  cardCreateTimeWindowOptions?: CardTimeWindowOption[];
-  cardCreateTimeWindowKey?: string | null;
-  cardCreateLocationId?: string;
-  cardCreateLocationOptions?: CardCreateLocationOption[];
+  cardCreateTimeWindow?: TimeWindow | null;
+  cardCreatePlaceId?: string | null;
+  cardCreatePlaceOptions?: AnchorEventPlaceOption[];
+  cardCreatePlaceLabel?: string;
+  cardCreatePlacePlaceholder?: string;
   createActionErrorMessage?: string | null;
   isCreatePending?: boolean;
   canUserCreatePR?: boolean;
+  cardCreateAllowEditAfterReady?: PRAllowEditAfterReady | null;
   eventId: number;
   eventTitle?: string;
   eventBetaGroupQrCode?: string | null;
@@ -55,13 +51,15 @@ type AnchorEventCardModeSurfaceDefaults = {
   isCardRouting: boolean;
   cardActionError: null;
   dragHintToken: number;
-  cardCreateTimeWindowOptions: () => CardTimeWindowOption[];
-  cardCreateTimeWindowKey: null;
-  cardCreateLocationId: string;
-  cardCreateLocationOptions: () => CardCreateLocationOption[];
+  cardCreateTimeWindow: null;
+  cardCreatePlaceId: null;
+  cardCreatePlaceOptions: () => AnchorEventPlaceOption[];
+  cardCreatePlaceLabel: undefined;
+  cardCreatePlacePlaceholder: undefined;
   createActionErrorMessage: null;
   isCreatePending: boolean;
   canUserCreatePR: boolean;
+  cardCreateAllowEditAfterReady: null;
   eventTitle: string;
   eventBetaGroupQrCode: null;
 };
@@ -71,30 +69,29 @@ export const anchorEventCardModeSurfaceDefaults: AnchorEventCardModeSurfaceDefau
   isCardRouting: false,
   cardActionError: null,
   dragHintToken: 0,
-  cardCreateTimeWindowOptions: () => [],
-  cardCreateTimeWindowKey: null,
-  cardCreateLocationId: "",
-  cardCreateLocationOptions: () => [],
+  cardCreateTimeWindow: null,
+  cardCreatePlaceId: null,
+  cardCreatePlaceOptions: () => [],
+  cardCreatePlaceLabel: undefined,
+  cardCreatePlacePlaceholder: undefined,
   createActionErrorMessage: null,
   isCreatePending: false,
   canUserCreatePR: true,
+  cardCreateAllowEditAfterReady: null,
   eventTitle: "",
   eventBetaGroupQrCode: null,
 };
-
-export type AnchorEventCardModeHeaderContext = {
-  title: string;
-  subtitle: string | null;
-} | null;
 
 export type AnchorEventCardModeSurfaceEmits = {
   "consume-drag-hint-window": [];
   "skip-active-card": [];
   "view-active-card-detail": [];
-  "update:cardCreateTimeWindowKey": [value: string | null];
-  "update:cardCreateLocationId": [value: string];
+  "update:cardCreateTimeWindow": [value: TimeWindow | null];
+  "update:cardCreateAllowEditAfterReady": [
+    value: PRAllowEditAfterReady | null,
+  ];
+  "update:cardCreatePlaceId": [value: string | null];
   "create-from-card-empty": [];
-  "header-context": [context: AnchorEventCardModeHeaderContext];
   "card-stage-active-change": [isActive: boolean];
 };
 

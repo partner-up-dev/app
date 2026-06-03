@@ -21,7 +21,7 @@ These contexts share durable PR semantics while allowing different entry surface
 
 ## 3. Preserve Room for Operations and Configuration
 
-The current version already includes management capabilities, POI semantics, booking support, subsidy-related support, and notification configuration.
+The current version already includes management capabilities, POI semantics, and notification configuration.
 
 This means product documentation must preserve not only user-facing behavior, but also the boundary that makes the service operable, configurable, and extensible during cold start.
 

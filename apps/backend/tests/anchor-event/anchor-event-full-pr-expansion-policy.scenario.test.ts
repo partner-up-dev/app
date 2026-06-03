@@ -34,14 +34,14 @@ scenario(
       title: "System full expansion disabled source PR",
       minPartners: 1,
       maxPartners: 2,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
 
     ctx.record("eventId", event.id);
     ctx.record("sourcePrId", pr.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     const prs = await listEventTimeWindowPRs({
       type: event.type,
@@ -71,24 +71,37 @@ scenario(
       title: "System full expansion enabled source PR",
       minPartners: 1,
       maxPartners: 2,
-      expectedStatus: "READY",
+      expectedStatus: "OPEN",
     });
 
     ctx.record("eventId", event.id);
     ctx.record("sourcePrId", pr.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     const prs = await listEventTimeWindowPRs({
       type: event.type,
       timeWindow: event.timeWindow,
     });
+    const source = prs.find((candidate) => candidate.id === pr.id);
     const sibling = prs.find((candidate) => candidate.id !== pr.id);
     assert.equal(prs.length, 2);
+    assert.ok(source, "Expected source PR after enabled full expansion");
     assert.ok(sibling, "Expected a sibling PR after enabled full expansion");
     assert.equal(sibling.status, "OPEN");
+    assert.equal(sibling.createdBy, null);
     assert.equal(sibling.type, event.type);
     assert.deepEqual(sibling.time, event.timeWindow);
+    assert.equal(sibling.confirmationEnabled, source.confirmationEnabled);
+    assert.equal(
+      sibling.confirmationStartOffsetMinutes,
+      source.confirmationStartOffsetMinutes,
+    );
+    assert.equal(
+      sibling.confirmationEndOffsetMinutes,
+      source.confirmationEndOffsetMinutes,
+    );
+    assert.equal(sibling.joinLockOffsetMinutes, source.joinLockOffsetMinutes);
   },
 );

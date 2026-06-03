@@ -51,7 +51,7 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
     });
 
     ctx.record("prId", pr.id);
@@ -59,12 +59,12 @@ scenario(
     ctx.record("secondCandidateUserId", secondCandidate.user.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
-    await expectPartnerRequestStatus(pr, "FULL");
+    assert.equal(joined.status, "OPEN");
+    await expectPartnerRequestStatus(pr, "OPEN");
     await expectActiveParticipantCount(pr, 2);
 
     const firstWaitlist = await waitlistPR({ pr, user: firstCandidate });
-    assert.equal(firstWaitlist.status, "FULL");
+    assert.equal(firstWaitlist.status, "OPEN");
 
     const secondWaitlist = await waitlistPR({ pr, user: secondCandidate });
     assert.equal(secondWaitlist.isViewerWaitlisted, true);
@@ -78,7 +78,7 @@ scenario(
 
     await exitPR({ pr, user: joiner });
 
-    await expectPartnerRequestStatus(pr, "FULL");
+    await expectPartnerRequestStatus(pr, "OPEN");
     await expectActiveParticipantCount(pr, 2);
     await expectActiveParticipantsInclude(pr, [
       creator.user.id,
@@ -119,7 +119,7 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
     });
 
     ctx.record("prId", pr.id);
@@ -128,8 +128,8 @@ scenario(
     ctx.record("thirdCandidateUserId", thirdCandidate.user.id);
 
     const joined = await joinPartnerRequest({ pr, user: joiner });
-    assert.equal(joined.status, "FULL");
-    await expectPartnerRequestStatus(pr, "FULL");
+    assert.equal(joined.status, "OPEN");
+    await expectPartnerRequestStatus(pr, "OPEN");
     await expectActiveParticipantCount(pr, 2);
 
     await waitlistPR({ pr, user: firstCandidate });
@@ -145,7 +145,7 @@ scenario(
       pr,
       user: firstCandidate,
     });
-    assert.equal(cancelResult.status, "FULL");
+    assert.equal(cancelResult.status, "OPEN");
 
     const firstAfterCancel = await getWaitlistDetail({
       pr,
@@ -173,7 +173,7 @@ scenario(
 
     await exitPR({ pr, user: joiner });
 
-    await expectPartnerRequestStatus(pr, "FULL");
+    await expectPartnerRequestStatus(pr, "OPEN");
     await expectActiveParticipantCount(pr, 2);
     await expectActiveParticipantsInclude(pr, [
       creator.user.id,
@@ -218,14 +218,14 @@ scenario(
       creator: sourceCreator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Cross alternative source",
     });
     const alternativePr = await givenPublishedPartnerRequest({
       creator: alternativeCreator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Cross alternative candidate",
     });
 
@@ -237,7 +237,7 @@ scenario(
       pr: sourcePr,
       user: sourceJoiner,
     });
-    assert.equal(joined.status, "FULL");
+    assert.equal(joined.status, "OPEN");
 
     await bindScenarioWeChatOpenId({
       user: candidate,
@@ -316,14 +316,14 @@ scenario(
       creator: sourceCreator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Cross alternative no opt source",
     });
     const alternativePr = await givenPublishedPartnerRequest({
       creator: alternativeCreator,
       minPartners: 1,
       maxPartners: 2,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Cross alternative no opt candidate",
     });
 

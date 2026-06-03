@@ -10,7 +10,7 @@ const publicConfigParamSchema = z.object({
   key: z.enum([
     "author_wechat_qr_code",
     "home_page_wechat_qr_code",
-    "wecom_staff_link",
+    "ordering_reservation_qr_code",
     "wecom_service_qr_code",
     "wecom_support_link_wechat_in",
     "wecom_support_link_wechat_out",

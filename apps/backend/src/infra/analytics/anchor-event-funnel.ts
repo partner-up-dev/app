@@ -1,8 +1,20 @@
-import { sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  isNotNull,
+  lt,
+  type SQL,
+} from "drizzle-orm";
+import {
+  factAnchorEventFunnelEvents,
+  factAnchorEventFunnelSegments,
+  factOfficialAccountFollowNudgeEvents,
+} from "../../entities";
 import { db } from "../../lib/db";
 import {
   ANCHOR_EVENT_ANALYTICS_RENDERED_MODES,
-  ANCHOR_EVENT_FUNNEL_EVENT_NAMES,
   buildAnchorEventFunnelResponseFromRows,
   resolveAnchorEventFunnelFilters,
   type AnchorEventAnalyticsRenderedMode,
@@ -10,91 +22,211 @@ import {
   type AnchorEventFunnelQueryInput,
   type AnchorEventFunnelResponse,
   type AnchorEventFunnelSegmentRow,
+  type OfficialAccountFollowNudgeEventRow,
 } from "./anchor-event-funnel.model";
 
-interface SegmentQueryRow extends Record<string, unknown> {
-  segment_id: string;
-  app_journey_id: string;
-  rendered_mode: string | null;
-  start_spm: string | null;
-}
+type AnchorEventFunnelSegmentViewRow = {
+  segmentId: string | null;
+  journeyId: string;
+  renderedMode: string | null;
+  startSpm: string | null;
+};
 
-interface EventQueryRow extends Record<string, unknown> {
-  event_name: string;
-  app_journey_id: string;
-  segment_id: string | null;
-  rendered_mode: string | null;
-  properties: unknown;
-}
+type AnchorEventFunnelEventViewRow = {
+  eventName: string;
+  journeyId: string;
+  segmentId: string | null;
+  renderedMode: string | null;
+  payload: unknown;
+};
 
-const buildSegmentWhere = (
+type OfficialAccountFollowNudgeViewRow = {
+  eventName: string;
+  journeyId: string;
+  source: string | null;
+  action: string | null;
+};
+
+const combineConditions = (conditions: SQL[]): SQL => {
+  const result = and(...conditions);
+  if (!result) {
+    throw new Error("Expected at least one analytics query condition");
+  }
+  return result;
+};
+
+const toSegmentRow = (
+  row: AnchorEventFunnelSegmentViewRow,
+): AnchorEventFunnelSegmentRow | null => {
+  if (!row.segmentId) return null;
+  return {
+    segmentId: row.segmentId,
+    journeyId: row.journeyId,
+    renderedMode: row.renderedMode,
+    startSpm: row.startSpm,
+  };
+};
+
+const toEventRow = (
+  row: AnchorEventFunnelEventViewRow,
+): AnchorEventFunnelEventRow | null => {
+  if (!row.segmentId) return null;
+  return {
+    eventName: row.eventName,
+    journeyId: row.journeyId,
+    segmentId: row.segmentId,
+    renderedMode: row.renderedMode,
+    properties: row.payload,
+  };
+};
+
+const toOfficialAccountFollowNudgeRow = (
+  row: OfficialAccountFollowNudgeViewRow,
+): OfficialAccountFollowNudgeEventRow => ({
+  eventName: row.eventName,
+  journeyId: row.journeyId,
+  source: row.source,
+  action: row.action,
+});
+
+const compact = <T>(values: readonly (T | null)[]): T[] =>
+  values.filter((value): value is T => value !== null);
+
+const buildSegmentConditions = (
   input: AnchorEventFunnelQueryInput,
   startAtIso: string,
   endAtIso: string,
-): SQL => {
-  const filters: SQL[] = [
-    sql`s.segment_kind = 'anchor_event_landing'`,
-    sql`s.started_at >= ${startAtIso}::timestamp`,
-    sql`s.started_at < ${endAtIso}::timestamp`,
+): SQL[] => {
+  const conditions: SQL[] = [
+    isNotNull(factAnchorEventFunnelSegments.segmentId),
+    gte(
+      factAnchorEventFunnelSegments.contextOccurredAt,
+      new Date(startAtIso),
+    ),
+    lt(factAnchorEventFunnelSegments.contextOccurredAt, new Date(endAtIso)),
   ];
 
   if (input.eventId !== undefined) {
-    filters.push(sql`s.event_id = ${input.eventId}`);
+    conditions.push(eq(factAnchorEventFunnelSegments.anchorEventId, input.eventId));
   }
   if (input.spm !== undefined) {
-    filters.push(sql`j.start_spm = ${input.spm}`);
+    conditions.push(eq(factAnchorEventFunnelSegments.startSpm, input.spm));
   }
   if (input.sourceQr !== undefined) {
-    filters.push(sql`j.start_source_qr = ${input.sourceQr}`);
+    conditions.push(eq(factAnchorEventFunnelSegments.sourceQr, input.sourceQr));
   }
   if (input.assignmentRevision !== undefined) {
-    filters.push(sql`s.assignment_revision = ${input.assignmentRevision}`);
+    conditions.push(
+      eq(
+        factAnchorEventFunnelSegments.assignmentRevision,
+        input.assignmentRevision,
+      ),
+    );
   }
   if (input.renderedMode !== undefined) {
-    filters.push(sql`s.rendered_mode = ${input.renderedMode}`);
+    conditions.push(eq(factAnchorEventFunnelSegments.renderedMode, input.renderedMode));
   }
 
-  return sql.join(filters, sql` and `);
+  return conditions;
 };
 
-const toSegmentRow = (row: SegmentQueryRow): AnchorEventFunnelSegmentRow => ({
-  segmentId: row.segment_id,
-  appJourneyId: row.app_journey_id,
-  renderedMode: row.rendered_mode,
-  startSpm: row.start_spm,
-});
+const buildEventConditions = (
+  input: AnchorEventFunnelQueryInput,
+  startAtIso: string,
+  endAtIso: string,
+): SQL[] => {
+  const conditions: SQL[] = [
+    isNotNull(factAnchorEventFunnelEvents.segmentId),
+    gte(factAnchorEventFunnelEvents.contextOccurredAt, new Date(startAtIso)),
+    lt(factAnchorEventFunnelEvents.contextOccurredAt, new Date(endAtIso)),
+  ];
 
-const toEventRow = (row: EventQueryRow): AnchorEventFunnelEventRow => ({
-  eventName: row.event_name,
-  appJourneyId: row.app_journey_id,
-  segmentId: row.segment_id,
-  renderedMode: row.rendered_mode,
-  properties: row.properties,
-});
+  if (input.eventId !== undefined) {
+    conditions.push(eq(factAnchorEventFunnelEvents.anchorEventId, input.eventId));
+  }
+  if (input.spm !== undefined) {
+    conditions.push(eq(factAnchorEventFunnelEvents.startSpm, input.spm));
+  }
+  if (input.sourceQr !== undefined) {
+    conditions.push(eq(factAnchorEventFunnelEvents.sourceQr, input.sourceQr));
+  }
+  if (input.assignmentRevision !== undefined) {
+    conditions.push(
+      eq(
+        factAnchorEventFunnelEvents.assignmentRevision,
+        input.assignmentRevision,
+      ),
+    );
+  }
+  if (input.renderedMode !== undefined) {
+    conditions.push(eq(factAnchorEventFunnelEvents.renderedMode, input.renderedMode));
+  }
 
-const eventNameSqlList = (): SQL =>
-  sql.join(
-    ANCHOR_EVENT_FUNNEL_EVENT_NAMES.map((eventName) => sql`${eventName}`),
-    sql`, `,
-  );
+  return conditions;
+};
+
+const buildOfficialAccountFollowNudgeConditions = (
+  input: AnchorEventFunnelQueryInput,
+  startAtIso: string,
+  endAtIso: string,
+): SQL[] => {
+  const conditions: SQL[] = [
+    gte(factOfficialAccountFollowNudgeEvents.occurredAt, new Date(startAtIso)),
+    lt(factOfficialAccountFollowNudgeEvents.occurredAt, new Date(endAtIso)),
+  ];
+
+  if (input.eventId !== undefined) {
+    conditions.push(
+      eq(factOfficialAccountFollowNudgeEvents.anchorEventId, input.eventId),
+    );
+  }
+  if (input.spm !== undefined) {
+    conditions.push(eq(factOfficialAccountFollowNudgeEvents.spm, input.spm));
+  }
+  if (input.sourceQr !== undefined) {
+    conditions.push(
+      eq(factOfficialAccountFollowNudgeEvents.sourceQr, input.sourceQr),
+    );
+  }
+  if (input.assignmentRevision !== undefined) {
+    conditions.push(
+      eq(
+        factOfficialAccountFollowNudgeEvents.assignmentRevision,
+        input.assignmentRevision,
+      ),
+    );
+  }
+  if (input.renderedMode !== undefined) {
+    conditions.push(
+      eq(factOfficialAccountFollowNudgeEvents.renderedMode, input.renderedMode),
+    );
+  }
+
+  return conditions;
+};
 
 const fetchSegmentRows = async (
   input: AnchorEventFunnelQueryInput,
   startAtIso: string,
   endAtIso: string,
 ): Promise<AnchorEventFunnelSegmentRow[]> => {
-  const where = buildSegmentWhere(input, startAtIso, endAtIso);
-  const rows = await db.execute<SegmentQueryRow>(sql`
-    select
-      s.id::text as segment_id,
-      s.app_journey_id::text as app_journey_id,
-      s.rendered_mode,
-      j.start_spm
-    from user_telemetry_segments s
-    inner join user_telemetry_journeys j on j.id = s.app_journey_id
-    where ${where}
-  `);
-  return rows.map(toSegmentRow);
+  const rows = await db
+    .select({
+      segmentId: factAnchorEventFunnelSegments.segmentId,
+      journeyId: factAnchorEventFunnelSegments.journeyId,
+      renderedMode: factAnchorEventFunnelSegments.renderedMode,
+      startSpm: factAnchorEventFunnelSegments.startSpm,
+    })
+    .from(factAnchorEventFunnelSegments)
+    .where(
+      combineConditions(buildSegmentConditions(input, startAtIso, endAtIso)),
+    )
+    .orderBy(
+      asc(factAnchorEventFunnelSegments.contextOccurredAt),
+      asc(factAnchorEventFunnelSegments.segmentId),
+    );
+
+  return compact(rows.map(toSegmentRow));
 };
 
 const fetchEventRows = async (
@@ -102,27 +234,49 @@ const fetchEventRows = async (
   startAtIso: string,
   endAtIso: string,
 ): Promise<AnchorEventFunnelEventRow[]> => {
-  const where = buildSegmentWhere(input, startAtIso, endAtIso);
-  const rows = await db.execute<EventQueryRow>(sql`
-    with base_segments as (
-      select
-        s.id as segment_id,
-        s.rendered_mode
-      from user_telemetry_segments s
-      inner join user_telemetry_journeys j on j.id = s.app_journey_id
-      where ${where}
+  const rows = await db
+    .select({
+      eventName: factAnchorEventFunnelEvents.eventName,
+      journeyId: factAnchorEventFunnelEvents.journeyId,
+      segmentId: factAnchorEventFunnelEvents.segmentId,
+      renderedMode: factAnchorEventFunnelEvents.renderedMode,
+      payload: factAnchorEventFunnelEvents.payload,
+    })
+    .from(factAnchorEventFunnelEvents)
+    .where(combineConditions(buildEventConditions(input, startAtIso, endAtIso)))
+    .orderBy(
+      asc(factAnchorEventFunnelEvents.contextOccurredAt),
+      asc(factAnchorEventFunnelEvents.occurredAt),
+      asc(factAnchorEventFunnelEvents.eventId),
+    );
+
+  return compact(rows.map(toEventRow));
+};
+
+const fetchOfficialAccountFollowNudgeRows = async (
+  input: AnchorEventFunnelQueryInput,
+  startAtIso: string,
+  endAtIso: string,
+): Promise<OfficialAccountFollowNudgeEventRow[]> => {
+  const rows = await db
+    .select({
+      eventName: factOfficialAccountFollowNudgeEvents.eventName,
+      journeyId: factOfficialAccountFollowNudgeEvents.journeyId,
+      source: factOfficialAccountFollowNudgeEvents.source,
+      action: factOfficialAccountFollowNudgeEvents.action,
+    })
+    .from(factOfficialAccountFollowNudgeEvents)
+    .where(
+      combineConditions(
+        buildOfficialAccountFollowNudgeConditions(input, startAtIso, endAtIso),
+      ),
     )
-    select
-      e.event_name,
-      e.app_journey_id::text as app_journey_id,
-      e.segment_id::text as segment_id,
-      base_segments.rendered_mode,
-      e.properties
-    from user_telemetry_events e
-    inner join base_segments on base_segments.segment_id = e.segment_id
-    where e.event_name in (${eventNameSqlList()})
-  `);
-  return rows.map(toEventRow);
+    .orderBy(
+      asc(factOfficialAccountFollowNudgeEvents.occurredAt),
+      asc(factOfficialAccountFollowNudgeEvents.eventId),
+    );
+
+  return rows.map(toOfficialAccountFollowNudgeRow);
 };
 
 export async function getAnchorEventFunnelAnalytics(
@@ -136,12 +290,23 @@ export async function getAnchorEventFunnelAnalytics(
     assignmentRevision: filters.assignmentRevision ?? undefined,
     renderedMode: filters.renderedMode ?? undefined,
   };
-  const [segmentRows, eventRows] = await Promise.all([
-    fetchSegmentRows(queryInput, filters.startAt, filters.endAt),
-    fetchEventRows(queryInput, filters.startAt, filters.endAt),
-  ]);
+  const [segmentRows, eventRows, officialAccountFollowNudgeRows] =
+    await Promise.all([
+      fetchSegmentRows(queryInput, filters.startAt, filters.endAt),
+      fetchEventRows(queryInput, filters.startAt, filters.endAt),
+      fetchOfficialAccountFollowNudgeRows(
+        queryInput,
+        filters.startAt,
+        filters.endAt,
+      ),
+    ]);
 
-  return buildAnchorEventFunnelResponseFromRows(filters, segmentRows, eventRows);
+  return buildAnchorEventFunnelResponseFromRows(
+    filters,
+    segmentRows,
+    eventRows,
+    officialAccountFollowNudgeRows,
+  );
 }
 
 export type {

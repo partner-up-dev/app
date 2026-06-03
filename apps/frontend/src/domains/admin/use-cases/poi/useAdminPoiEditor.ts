@@ -1,4 +1,5 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
+import type { PickedLocation } from "@/domains/location/model/location-picker";
 import type {
   AdminPoiAvailabilityRulesInput,
   AdminPoisResponse,
@@ -60,6 +61,17 @@ const normalizeNullablePositiveInteger = (value: unknown): number | null => {
   const parsed =
     typeof value === "number" ? value : Number(String(value).trim());
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const formatPoiCoordinate = (
+  coordinate: PoiCoordinateInput,
+  label: string,
+): string | null => {
+  if (!coordinate) {
+    return null;
+  }
+  const [lat, lng] = coordinate;
+  return `${label} ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 };
 
 const toDatetimeLocalValue = (isoValue: string): string => {
@@ -208,6 +220,12 @@ export const useAdminPoiEditor = ({
     return poiGalleryById.value[poiId] ?? [];
   });
 
+  const selectedPoiRecord = computed<PoiRecord | null>(() => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return null;
+    return pois.value.find((poi) => poi.id === poiId) ?? null;
+  });
+
   const selectedPoiCap = computed<number | null>(() => {
     const poiId = selectedPoiId.value;
     if (!poiId) return null;
@@ -237,6 +255,42 @@ export const useAdminPoiEditor = ({
     set: (value) => {
       setSelectedPoiCap(normalizeNullablePositiveInteger(value));
     },
+  });
+
+  const selectedPoiGcj02 = computed<PoiCoordinateInput>(() => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return null;
+    return poiGcj02ById.value[poiId] ?? null;
+  });
+
+  const selectedPoiCoordinateText = computed<string>(() => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return "";
+
+    return (
+      formatPoiCoordinate(poiGcj02ById.value[poiId] ?? null, "GCJ-02") ??
+      formatPoiCoordinate(poiWgs84ById.value[poiId] ?? null, "WGS-84") ??
+      formatPoiCoordinate(poiBd09ById.value[poiId] ?? null, "BD-09") ??
+      ""
+    );
+  });
+
+  const selectedPoiHasCoordinate = computed<boolean>(
+    () => selectedPoiCoordinateText.value.length > 0,
+  );
+
+  const selectedPoiPickerLocation = computed<PickedLocation | null>(() => {
+    const coordinate = selectedPoiGcj02.value;
+    if (!coordinate) {
+      return null;
+    }
+
+    return {
+      name: selectedPoiRecord.value?.name ?? "POI",
+      address: selectedPoiFullAddress.value || null,
+      cityName: null,
+      gcj02: [coordinate[0], coordinate[1]],
+    };
   });
 
   const selectedPoiMeetingPoint = computed<PoiMeetingPointInput | null>(() => {
@@ -312,6 +366,48 @@ export const useAdminPoiEditor = ({
     if (options?.markDirty ?? true) {
       markSelectedPoiDirty();
     }
+  };
+
+  const setSelectedPoiLocation = (location: PickedLocation) => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return;
+
+    poiFullAddressById.value = {
+      ...poiFullAddressById.value,
+      [poiId]: location.address?.trim() || null,
+    };
+    poiGcj02ById.value = {
+      ...poiGcj02ById.value,
+      [poiId]: [location.gcj02[0], location.gcj02[1]],
+    };
+    poiWgs84ById.value = {
+      ...poiWgs84ById.value,
+      [poiId]: null,
+    };
+    poiBd09ById.value = {
+      ...poiBd09ById.value,
+      [poiId]: null,
+    };
+    markSelectedPoiDirty();
+  };
+
+  const clearSelectedPoiCoordinates = () => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return;
+
+    poiGcj02ById.value = {
+      ...poiGcj02ById.value,
+      [poiId]: null,
+    };
+    poiWgs84ById.value = {
+      ...poiWgs84ById.value,
+      [poiId]: null,
+    };
+    poiBd09ById.value = {
+      ...poiBd09ById.value,
+      [poiId]: null,
+    };
+    markSelectedPoiDirty();
   };
 
   const setSelectedPoiMeetingPoint = (
@@ -512,6 +608,9 @@ export const useAdminPoiEditor = ({
     isUploadingGalleryImage,
     selectedPoiGallery,
     selectedPoiFullAddress,
+    selectedPoiCoordinateText,
+    selectedPoiHasCoordinate,
+    selectedPoiPickerLocation,
     selectedPoiCapText,
     selectedPoiMeetingPoint,
     selectedPoiMeetingPointDescription,
@@ -521,6 +620,8 @@ export const useAdminPoiEditor = ({
     handleAddManualUrl,
     handleGalleryUploaded,
     handleRemoveGalleryImage,
+    setSelectedPoiLocation,
+    clearSelectedPoiCoordinates,
     handleAddAvailabilityRule,
     handleRemoveAvailabilityRule,
     buildSelectedPoiInput,

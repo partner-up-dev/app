@@ -70,7 +70,9 @@ export const useAdminPRWorkspaceSelection = ({
       }
       if (
         normalizedLocation &&
-        !(pr.location ?? "").toLowerCase().includes(normalizedLocation)
+        !(pr.placeDisplayName ?? pr.location ?? "")
+          .toLowerCase()
+          .includes(normalizedLocation)
       ) {
         return false;
       }

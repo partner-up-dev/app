@@ -52,7 +52,7 @@ test("legacy two-mode landing config normalizes LIST to zero", () => {
   assert.equal(assignAnchorEventLandingModeFromConfig(config, 0.95), "CARD_RICH");
 });
 
-test("all-zero landing override resolves to FORM fallback", () => {
+test("all-zero landing override resolves to LIST fallback", () => {
   const config = normalizeAnchorEventLandingConfig({
     variantRatioOverride: {
       FORM: 0,
@@ -62,7 +62,7 @@ test("all-zero landing override resolves to FORM fallback", () => {
     assignmentRevision: 1,
   });
 
-  assert.equal(assignAnchorEventLandingModeFromConfig(config, 0.95), "FORM");
+  assert.equal(assignAnchorEventLandingModeFromConfig(config, 0.95), "LIST");
 });
 
 test("landing assignment clamps random one to the last positive mode", () => {

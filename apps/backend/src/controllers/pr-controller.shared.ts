@@ -4,11 +4,13 @@ import type { Context } from "hono";
 import {
   createNaturalLanguagePRSchema,
   createStructuredPRSchema,
+  partnerRequestFieldsObjectSchema,
   partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
   prStatusManualSchema,
 } from "../entities/partner-request";
 import { prMessageBodySchema } from "../entities/pr-message";
-import { hasUserRole, type UserId, type UserRole } from "../entities/user";
+import { hasUserRole, type UserId } from "../entities/user";
 import { WeChatOAuthService } from "../services/WeChatOAuthService";
 import { issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
 import type { AuthEnv } from "../auth/middleware";
@@ -26,6 +28,8 @@ import {
 const oauthService = new WeChatOAuthService();
 const userRepo = new UserRepository();
 const WECHAT_OAUTH_NOT_CONFIGURED_CODE = "WECHAT_OAUTH_NOT_CONFIGURED";
+
+export { prAllowEditAfterReadySchema };
 
 const readBoundOpenId = async (c: Context<AuthEnv>): Promise<string | null> => {
   const userId = getAuthenticatedUserId(c);
@@ -58,7 +62,7 @@ export const updateStatusSchema = z.object({
   status: prStatusManualSchema,
 });
 
-export const userUpdateContentFieldsSchema = partnerRequestFieldsSchema
+export const userUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
   .omit({
     type: true,
   })
@@ -67,10 +71,11 @@ export const userUpdateContentFieldsSchema = partnerRequestFieldsSchema
 export const updateContentSchema = z
   .object({
     fields: userUpdateContentFieldsSchema,
+    allowRelease: z.boolean().optional(),
   })
   .strict();
 
-export const anchorUpdateContentFieldsSchema = partnerRequestFieldsSchema
+export const anchorUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
   .omit({
     type: true,
     time: true,
@@ -157,65 +162,6 @@ export const tryReadAuthenticatedOpenId = async (
   return readBoundOpenId(c);
 };
 
-type AnchorAuthenticatedIdentity = {
-  userId: UserId;
-  openId: string;
-};
-
-export const tryReadAnchorAuthenticatedIdentity = async (
-  c: Context<AuthEnv>,
-): Promise<AnchorAuthenticatedIdentity | null> => {
-  const userId = getAuthenticatedUserId(c);
-  if (!userId) {
-    return null;
-  }
-
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
-    return null;
-  }
-
-  if (!user.openId) {
-    return null;
-  }
-
-  return {
-    userId,
-    openId: user.openId,
-  };
-};
-
-export const requireAnchorAuthenticatedIdentity = async (
-  c: Context<AuthEnv>,
-): Promise<AnchorAuthenticatedIdentity> => {
-  const userId = getAuthenticatedUserId(c);
-  if (!userId) {
-    return throwAuthenticatedRequired();
-  }
-
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
-    return throwCodedHttpException(
-      401,
-      "Invalid authenticated WeChat user",
-      AUTHENTICATED_REQUIRED_CODE,
-    );
-  }
-
-  if (!user.openId) {
-    return throwCodedHttpException(
-      401,
-      "Current account is not bound to WeChat",
-      AUTHENTICATED_REQUIRED_CODE,
-    );
-  }
-
-  return {
-    userId: user.id,
-    openId: user.openId,
-  };
-};
-
 export const getAuthenticatedUserId = (c: Context<AuthEnv>): UserId | null => {
   const auth = c.get("auth");
   if (!auth.roles.includes("authenticated") || !auth.userId) {
@@ -274,15 +220,10 @@ export const requireAuthenticatedCreatorIdentity = async (
   };
 };
 
-export const issueAuthPayload = async (
+export const issueResponseAuth = async (
   c: Context<AuthEnv>,
   userId: UserId,
-): Promise<{
-  role: UserRole;
-  roles: UserRole[];
-  userId: UserId;
-  accessToken: string;
-}> => {
+): Promise<void> => {
   const user = await userRepo.findById(userId);
   if (!user || user.status !== "ACTIVE") {
     return throwHttpProblem({ status: 401, detail: "Invalid session user" });
@@ -292,13 +233,6 @@ export const issueAuthPayload = async (
     ? issueAnonymousAuth(user.id)
     : issueAuthForUser(user);
   c.set("auth", auth);
-
-  return {
-    role: auth.role,
-    roles: auth.roles,
-    userId: user.id,
-    accessToken: auth.token,
-  };
 };
 
 export {

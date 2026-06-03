@@ -79,6 +79,15 @@ const expectListMode = async (page: Page, prTitle: string): Promise<void> => {
 };
 
 const closeJoinSuccessPrompt = async (page: Page): Promise<void> => {
+  await page
+    .getByTestId("pr-detail.join-success.confirmation-followup")
+    .waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+  await page
+    .getByTestId("pr-detail.join-success.confirmation-followup.done")
+    .click();
   await page.getByTestId("pr-detail.join-success.subscriptions").waitFor({
     state: "visible",
     timeout: 10_000,

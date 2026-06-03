@@ -1,7 +1,10 @@
 import type {
   AnchorEventPrCreationPolicy,
+  AnchorEventRoutePool,
   PartnerRequest,
+  PRStatus,
   PRJoinGateConfig,
+  PRRoute,
 } from "../../../entities";
 import type { MeetingPointConfig } from "../../../entities";
 import type {
@@ -9,7 +12,7 @@ import type {
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireTemplate,
 } from "../../../entities";
-import { normalizeLocationPool } from "../../../entities";
+import { normalizeAnchorEventRoutePool, normalizeLocationPool } from "../../../entities";
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -18,8 +21,8 @@ import {
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
+  resolvePRPlaceDisplayName,
 } from "../../pr/services";
-import { getEffectiveBookingDeadline } from "../../pr-booking-support";
 
 const anchorEventRepo = new AnchorEventRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -30,8 +33,10 @@ export type AdminPRWorkspaceSummary = {
   title: string | null;
   type: string;
   location: string | null;
+  route: PRRoute | null;
+  placeDisplayName: string | null;
   time: [string | null, string | null];
-  status: string;
+  status: PRStatus;
   visibilityStatus: string;
   minPartners: number | null;
   maxPartners: number | null;
@@ -45,7 +50,6 @@ export type AdminPRWorkspaceSummary = {
   confirmationStartOffsetMinutes: number;
   confirmationEndOffsetMinutes: number;
   joinLockOffsetMinutes: number;
-  effectiveBookingDeadlineAt: string | null;
   createdAt: string;
 };
 
@@ -53,6 +57,7 @@ export type AdminPRTypeOption = {
   type: string;
   eventTitle: string;
   locationOptions: string[];
+  routeOptions: AnchorEventRoutePool;
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
   defaultConfirmationEnabled: boolean;
@@ -87,6 +92,8 @@ const toAdminPRWorkspaceSummary = async (
   title: root.title,
   type: root.type,
   location: root.location,
+  route: root.route,
+  placeDisplayName: resolvePRPlaceDisplayName(root),
   time: root.time,
   status: root.status,
   visibilityStatus: root.visibilityStatus,
@@ -107,8 +114,6 @@ const toAdminPRWorkspaceSummary = async (
     root.confirmationEndOffsetMinutes ?? DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   joinLockOffsetMinutes:
     root.joinLockOffsetMinutes ?? DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-  effectiveBookingDeadlineAt:
-    (await getEffectiveBookingDeadline(root.id))?.toISOString() ?? null,
   createdAt: root.createdAt.toISOString(),
 });
 
@@ -132,6 +137,7 @@ export async function getAdminPRWorkspace(): Promise<AdminPRWorkspace> {
       type: event.type,
       eventTitle: event.title,
       locationOptions: normalizeLocationPool(event.locationPool),
+      routeOptions: normalizeAnchorEventRoutePool(event.routePool),
       defaultMinPartners: event.defaultMinPartners ?? null,
       defaultMaxPartners: event.defaultMaxPartners ?? null,
       defaultConfirmationEnabled: event.defaultConfirmationEnabled,

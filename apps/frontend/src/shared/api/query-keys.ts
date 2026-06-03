@@ -6,12 +6,8 @@ export const queryKeys = {
     search: (eventId: number | null, dates: string[]) =>
       ["partner-request", "search", eventId, ...dates] as const,
     messages: (id: PRId | null) => ["partner-request", "messages", id] as const,
-    bookingSupport: (id: PRId | null) =>
-      ["partner-request", "booking-support", id] as const,
     joinGates: (id: PRId | null) =>
       ["partner-request", "join-gates", id] as const,
-    reimbursementStatus: (id: PRId | null) =>
-      ["partner-request", "reimbursement-status", id] as const,
     mineCreated: () => ["partner-request", "mine", "created"] as const,
     mineJoined: () => ["partner-request", "mine", "joined"] as const,
     partnerProfile: (prId: PRId | null, partnerId: number | null) =>
@@ -29,6 +25,8 @@ export const queryKeys = {
       ["anchor-event", "detail", eventId] as const,
     formMode: (eventId: number | null) =>
       ["anchor-event", "form-mode", eventId] as const,
+    routeApplicationsMine: () =>
+      ["anchor-event", "route-applications", "mine"] as const,
     landingAssignment: (eventId: number | null) =>
       ["anchor-event", "landing-assignment", eventId] as const,
     demandCards: (eventId: number | null) =>
@@ -53,8 +51,35 @@ export const queryKeys = {
     byNames: (namesCsv: string) => ["poi", "by-names", namesCsv] as const,
     applicationsMine: () => ["poi", "applications", "mine"] as const,
   },
+  commerce: {
+    placement: (contextId: number | null, type: "BUTTON") =>
+      ["commerce", "placement", contextId, type] as const,
+    orderDetail: (orderId: string | null) =>
+      ["commerce", "order", orderId] as const,
+    billDetail: (billId: string | null) =>
+      ["commerce", "bill", billId] as const,
+    paymentCheckout: (billLineId: string | null) =>
+      ["commerce", "bill-line", billLineId, "checkout"] as const,
+    paymentTx: (paymentTxId: string | null) =>
+      ["commerce", "payment", paymentTxId] as const,
+  },
+  studySprint: {
+    room: (prId: PRId | null) => ["study-sprint", "room", prId] as const,
+  },
   admin: {
     anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,
+    commerceProductsWorkspace: () =>
+      ["admin", "commerce", "products", "workspace"] as const,
+    commercePlacementOfferWorkspace: () =>
+      ["admin", "commerce", "placement-offer", "workspace"] as const,
+    commerceOrderBillWorkspace: () =>
+      ["admin", "commerce", "orders-bills", "workspace"] as const,
+    commerceFulfillmentWorkspace: () =>
+      ["admin", "commerce", "fulfillments", "workspace"] as const,
+    paymentProviderInstances: () =>
+      ["admin", "payment", "provider-instances"] as const,
+    rideHailingProviderInstances: () =>
+      ["admin", "ride-hailing", "provider-instances"] as const,
     anchorEventLandingConfig: (eventId: number | null) =>
       ["admin", "anchor-events", "landing-config", eventId] as const,
     anchorEventPreferenceTags: (eventId: number | null) =>
@@ -65,10 +90,6 @@ export const queryKeys = {
       ["admin", "pois", "by-names", namesCsv] as const,
     feedbackQuestionnaireTemplates: () =>
       ["admin", "feedback-questionnaires", "templates"] as const,
-    bookingSupport: (eventId: number | null) =>
-      ["admin", "booking-support", eventId] as const,
-    bookingExecutionWorkspace: () =>
-      ["admin", "booking-execution", "workspace"] as const,
     prWorkspace: () => ["admin", "pr-workspace"] as const,
     prMessages: (id: PRId | null) =>
       ["admin", "pr", "messages", id] as const,
@@ -81,6 +102,18 @@ export const queryKeys = {
       assignmentRevision?: string | null;
       renderedMode?: string | null;
     }) => ["admin", "analytics", "anchor-event-funnel", filters] as const,
+    biOverviewAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "overview", filters] as const,
+    prJoinFunnelAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "pr-join-funnel", filters] as const,
+    prCreateFunnelAnalytics: (filters: {
+      startAt?: string;
+      endAt?: string;
+    }) => ["admin", "analytics", "pr-create-funnel", filters] as const,
   },
   wechat: {
     notificationSubscriptions: () =>

@@ -22,7 +22,6 @@ export type AnchorEventPRContext = {
   confirmationStartOffsetMinutes: number;
   confirmationEndOffsetMinutes: number;
   joinLockOffsetMinutes: number;
-  bookingTriggeredAt: Date | null;
   autoHideAt: Date | null;
   confirmationEnabled: boolean;
 };
@@ -54,7 +53,6 @@ const buildAnchorContext = (
       DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
     joinLockOffsetMinutes:
       root.joinLockOffsetMinutes ?? DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-    bookingTriggeredAt: null,
     autoHideAt: null,
     confirmationEnabled: root.confirmationEnabled,
   };
@@ -235,10 +233,4 @@ export class AnchorEventPRContextRepository {
     return this.findByPrId(prId);
   }
 
-  async updateBookingTriggeredAt(
-    prId: PRId,
-    _bookingTriggeredAt: Date | null,
-  ): Promise<AnchorEventPRContext | null> {
-    return this.findByPrId(prId);
-  }
 }

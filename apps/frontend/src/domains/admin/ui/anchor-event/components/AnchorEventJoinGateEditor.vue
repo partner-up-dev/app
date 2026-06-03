@@ -2,7 +2,6 @@
   <PRJoinGateConfigEditor
     v-model="form.joinGateConfig"
     source="ANCHOR_EVENT"
-    :allow-booking-contact="false"
   />
 </template>
 

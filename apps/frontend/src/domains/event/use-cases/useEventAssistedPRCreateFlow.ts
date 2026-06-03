@@ -1,8 +1,12 @@
 import { computed, onMounted, ref, watch, type Ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+} from "@partner-up-dev/backend";
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
+import type { AnchorEventSelectedPlace } from "@/domains/event/model/place-options";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";
 import {
   useCreateEventAssistedPR,
@@ -15,15 +19,16 @@ import {
 } from "@/processes/wechat/pending-wechat-action";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { createCommandCorrelationId } from "@/shared/telemetry/correlation";
 
 type EventAssistedPRCreateInput = {
   targetTimeWindow: TimeWindow | null;
-  locationId: string | null;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
+  place: AnchorEventSelectedPlace | null;
   entrySurface?: "form_mode" | "card_rich" | "list_mode";
 };
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
+const PR_START_TIME_PASSED_CODE = "PR_START_TIME_PASSED";
 const WECHAT_AUTH_BLOCKING_CODES = new Set([
   "AUTHENTICATED_REQUIRED",
   "WECHAT_AUTH_REQUIRED",
@@ -65,6 +70,8 @@ export const useEventAssistedPRCreateFlow = (
       switch (createAnchorError.code) {
         case JOIN_TIME_WINDOW_CONFLICT_CODE:
           return t("anchorEvent.createCard.errors.timeWindowConflict");
+        case PR_START_TIME_PASSED_CODE:
+          return t("anchorEvent.createCard.errors.timeWindowAlreadyPassed");
         case "AUTHENTICATED_REQUIRED":
         case "WECHAT_AUTH_REQUIRED":
           return t("anchorEvent.createCard.errors.wechatAuthRequired");
@@ -86,15 +93,14 @@ export const useEventAssistedPRCreateFlow = (
 
   const buildEventAssistedFields = ({
     targetTimeWindow,
-    locationId,
+    place,
   }: EventAssistedPRCreateInput): PartnerRequestFields => {
     const currentEvent = event.value;
     if (!currentEvent) {
       throw new Error(t("common.operationFailed"));
     }
 
-    const normalizedLocation = locationId?.trim() ?? "";
-    if (!targetTimeWindow || normalizedLocation.length === 0) {
+    if (!targetTimeWindow || !place) {
       throw new Error(t("common.operationFailed"));
     }
 
@@ -102,7 +108,8 @@ export const useEventAssistedPRCreateFlow = (
       title: undefined,
       type: currentEvent.type,
       time: targetTimeWindow,
-      location: normalizedLocation,
+      location: place.kind === "location" ? place.locationId : null,
+      route: place.kind === "route" ? place.route : null,
       minPartners: currentEvent.defaultMinPartners ?? 2,
       maxPartners: currentEvent.defaultMaxPartners ?? null,
       partners: [],
@@ -153,7 +160,7 @@ export const useEventAssistedPRCreateFlow = (
   const trackCreateResult = (
     eventValue: AnchorEventDetailResponse,
     source: {
-      locationId: string;
+      place: AnchorEventSelectedPlace;
       startAt: string;
       preferenceCount: number;
     },
@@ -162,7 +169,6 @@ export const useEventAssistedPRCreateFlow = (
       failureCode?: string;
       failureReason?: string;
       prId?: number;
-      correlationId?: string;
       entrySurface?: "form_mode" | "card_rich" | "list_mode";
     },
   ): void => {
@@ -170,15 +176,21 @@ export const useEventAssistedPRCreateFlow = (
       eventId: eventValue.id,
       activityType: eventValue.type,
       prId: payload.prId,
-      locationId: source.locationId,
-      locationType: resolveLocationType(eventValue, source.locationId),
+      locationId:
+        source.place.kind === "location" ? source.place.locationId : null,
+      routePoolEntryId:
+        source.place.kind === "route" ? source.place.routePoolEntryId : null,
+      placeKind: source.place.kind,
+      locationType:
+        source.place.kind === "location"
+          ? resolveLocationType(eventValue, source.place.locationId)
+          : undefined,
       startAt: source.startAt,
       timeType: resolveTimeType(eventValue, source.startAt),
       preferenceCount: source.preferenceCount,
       actionResult: payload.actionResult,
       failureCode: payload.failureCode,
       failureReason: payload.failureReason,
-      correlationId: payload.correlationId,
     });
     trackEvent("pr_commitment_result", {
       eventId: eventValue.id,
@@ -189,13 +201,13 @@ export const useEventAssistedPRCreateFlow = (
       actionResult: payload.actionResult,
       failureCode: payload.failureCode,
       failureReason: payload.failureReason,
-      correlationId: payload.correlationId,
     });
   };
 
   const createEventAssistedPR = async ({
     targetTimeWindow,
-    locationId,
+    allowEditAfterReady,
+    place,
     entrySurface,
   }: EventAssistedPRCreateInput) => {
     createEventAssistedPRMutation.reset();
@@ -205,28 +217,30 @@ export const useEventAssistedPRCreateFlow = (
     if (!currentEvent || !canUserCreatePR.value) {
       return;
     }
+    if (!place) {
+      return;
+    }
 
     const fields = buildEventAssistedFields({
       targetTimeWindow,
-      locationId,
+      place,
     });
     const createTelemetrySource = {
-      locationId: fields.location ?? "",
+      place,
       startAt: fields.time[0] ?? "",
       preferenceCount: fields.preferences.length,
     };
-    const correlationId = createCommandCorrelationId();
-
     try {
       const created = await createEventAssistedPRMutation.mutateAsync({
         eventId: currentEvent.id,
         fields,
-        correlationId,
+        allowEditAfterReady: allowEditAfterReady ?? null,
+        routePoolEntryId:
+          place?.kind === "route" ? place.routePoolEntryId : null,
       });
       trackCreateResult(currentEvent, createTelemetrySource, {
         actionResult: "success",
         prId: created.id,
-        correlationId,
         entrySurface,
       });
       if (entrySurface) {
@@ -236,7 +250,6 @@ export const useEventAssistedPRCreateFlow = (
           prId: created.id,
           entrySurface,
           entryType: "create_handoff",
-          correlationId,
         });
       }
       await router.push(
@@ -253,7 +266,6 @@ export const useEventAssistedPRCreateFlow = (
               "EVENT_ASSISTED_CREATE_BLOCKED",
               t("anchorEvent.createCard.errors.wechatAuthRequired"),
             ),
-            correlationId,
             entrySurface,
           },
         );
@@ -270,7 +282,6 @@ export const useEventAssistedPRCreateFlow = (
               ? error.message
               : t("anchorEvent.createCard.errors.createFailed"),
           ),
-          correlationId,
           entrySurface,
         },
       );
@@ -307,22 +318,32 @@ export const useEventAssistedPRCreateFlow = (
     const pendingCreateTelemetrySource =
       typeof pending.fields.time[0] === "string"
         ? {
-            locationId: pending.fields.location,
+            place:
+              pending.fields.route !== null
+                ? ({
+                    kind: "route",
+                    routePoolEntryId: pending.routePoolEntryId ?? "",
+                    route: pending.fields.route,
+                  } satisfies AnchorEventSelectedPlace)
+                : ({
+                    kind: "location",
+                    locationId: pending.fields.location ?? "",
+                  } satisfies AnchorEventSelectedPlace),
             startAt: pending.fields.time[0],
             preferenceCount: pending.fields.preferences.length,
           }
         : null;
-    const correlationId = createCommandCorrelationId();
     try {
       const created = await createEventAssistedPRMutation.mutateAsync({
         eventId: currentEvent.id,
         handoff: pending.handoff,
-        correlationId,
+        allowEditAfterReady: pending.allowEditAfterReady ?? null,
         fields: {
           title: undefined,
           type: pending.fields.type,
           time: pending.fields.time,
           location: pending.fields.location,
+          route: pending.fields.route,
           minPartners: pending.fields.minPartners,
           maxPartners: pending.fields.maxPartners,
           partners: [],
@@ -330,12 +351,12 @@ export const useEventAssistedPRCreateFlow = (
           preferences: pending.fields.preferences,
           notes: null,
         },
+        routePoolEntryId: pending.routePoolEntryId ?? null,
       });
       if (pendingCreateTelemetrySource) {
         trackCreateResult(currentEvent, pendingCreateTelemetrySource, {
           actionResult: "success",
           prId: created.id,
-          correlationId,
         });
       }
       await router.push(
@@ -358,7 +379,6 @@ export const useEventAssistedPRCreateFlow = (
                 ? error.message
                 : t("common.operationFailed"),
             ),
-            correlationId,
           },
         );
       }

@@ -1,16 +1,12 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRRoute, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
 import { resolveUserByOpenId } from "../../user";
-import { PRSupportResourceRepository } from "../../../repositories/PRSupportResourceRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
-import {
-  buildBookingSupportPreview,
-  getEffectiveBookingDeadline,
-  resolveBookingContactState,
-} from "../../pr-booking-support";
+import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
+import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
 import {
   buildPRPartnerSection,
   type PartnerSectionView,
@@ -30,10 +26,18 @@ import {
   type PRCanonicalShareMetadata,
 } from "../sharing/pr-share-metadata.service";
 import { toPublicPR } from "./public-pr-view.service";
+import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
+import {
+  buildPREditCapability,
+  buildPREditPostReadyCapability,
+  type PREditCapability,
+  type PREditPostReadyCapability,
+} from "../../pr-core/services/pr-edit-capability.service";
 
-const prSupportRepo = new PRSupportResourceRepository();
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
+const anchorEventRepo = new AnchorEventRepository();
+const anchorEventContextRepo = new AnchorEventPRContextRepository();
 
 export type PRMeetingPointVisibility =
   | "VISIBLE"
@@ -49,6 +53,8 @@ export type PRDetail = {
     type: string;
     time: [string | null, string | null];
     location: string | null;
+    route: PRRoute | null;
+    placeDisplayName: string | null;
     minPartners: number | null;
     maxPartners: number | null;
     partners: number[];
@@ -59,6 +65,11 @@ export type PRDetail = {
     meetingPoint: EffectiveMeetingPoint | null;
     meetingPointVisibility: PRMeetingPointVisibility;
   };
+  anchorEventContext: {
+    id: number;
+    title: string;
+    betaGroupQrCode: string | null;
+  } | null;
   share: {
     canonical: PRCanonicalShareMetadata;
     xiaohongshuPoster?: {
@@ -72,14 +83,6 @@ export type PRDetail = {
       posterUrl: string;
       createdAt: string;
     } | null;
-  };
-  bookingSupport: {
-    available: boolean;
-    overview: {
-      headline: string | null;
-      highlights: string[];
-      effectiveBookingDeadlineAt: string | null;
-    };
   };
   feedbackQuestionnaire: {
     instanceId: number;
@@ -97,6 +100,8 @@ export type PRDetail = {
         };
   } | null;
   partnerSection: PartnerSectionView;
+  editCapability: PREditCapability;
+  editPostReadyCapability: PREditPostReadyCapability;
 };
 
 const resolveMeetingPointProjection = (
@@ -120,6 +125,26 @@ const resolveMeetingPointProjection = (
   return {
     meetingPoint,
     meetingPointVisibility: "VISIBLE",
+  };
+};
+
+const resolveAnchorEventContextProjection = async (
+  prId: number,
+): Promise<PRDetail["anchorEventContext"]> => {
+  const context = await anchorEventContextRepo.findByPrId(prId);
+  if (!context) {
+    return null;
+  }
+
+  const event = await anchorEventRepo.findById(context.anchorEventId);
+  if (!event) {
+    return null;
+  }
+
+  return {
+    id: event.id,
+    title: event.title,
+    betaGroupQrCode: event.betaGroupQrCode,
   };
 };
 
@@ -149,15 +174,10 @@ export async function getPRDetailView(
     publicPR,
     effectiveMeetingPoint,
   );
-  const canonicalShare = buildPRCanonicalShareMetadata(publicPR);
-  const supportResources = await prSupportRepo.findByPrId(id);
-  const bookingSupportPreview = buildBookingSupportPreview(supportResources);
-  const bookingDeadlineAt = await getEffectiveBookingDeadline(id);
-  const bookingContact = await resolveBookingContactState({
-    prId: id,
-    viewerUserId,
-    supportResources,
-    effectiveBookingDeadlineAt: bookingDeadlineAt,
+  const anchorEventContext =
+    await resolveAnchorEventContextProjection(publicPR.id);
+  const canonicalShare = buildPRCanonicalShareMetadata(publicPR, {
+    anchorEventTitle: anchorEventContext?.title ?? null,
   });
   const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
     id,
@@ -197,6 +217,8 @@ export async function getPRDetailView(
       type: publicPR.type,
       time: publicPR.time,
       location: publicPR.location,
+      route: publicPR.route,
+      placeDisplayName: resolvePRPlaceDisplayName(publicPR),
       minPartners: publicPR.minPartners,
       maxPartners: publicPR.maxPartners,
       partners: publicPR.partners,
@@ -207,6 +229,7 @@ export async function getPRDetailView(
       meetingPoint: meetingPointProjection.meetingPoint,
       meetingPointVisibility: meetingPointProjection.meetingPointVisibility,
     },
+    anchorEventContext,
     share: {
       canonical: canonicalShare,
       xiaohongshuPoster: publicPR.xiaohongshuPoster
@@ -221,15 +244,6 @@ export async function getPRDetailView(
             createdAt: publicPR.wechatThumbnail.createdAt,
           }
         : null,
-    },
-    bookingSupport: {
-      available: supportResources.length > 0,
-      overview: {
-        headline: bookingSupportPreview.headline,
-        highlights: bookingSupportPreview.highlights,
-        effectiveBookingDeadlineAt:
-          bookingSupportPreview.effectiveBookingDeadlineAt,
-      },
     },
     feedbackQuestionnaire: feedbackInstance
       ? {
@@ -255,10 +269,12 @@ export async function getPRDetailView(
       rosterParticipants,
       viewerUserId,
       policy,
-      bookingDeadlineAt,
-      bookingContact,
       participationFrequencyLimited:
         participationFrequencyEvaluation.allowed === false,
     }),
+    editCapability: buildPREditCapability(request, viewerUserId),
+    editPostReadyCapability: buildPREditPostReadyCapability(
+      request.allowEditAfterReady,
+    ),
   };
 }

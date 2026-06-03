@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { env } from "../../../lib/env";
 import type { PublicPR } from "../read-models/public-pr-view.service";
+import { buildPRRouteSummary } from "../../pr-core/services/pr-place-mode.service";
 
 export type PRCanonicalShareMetadata = {
   title: string;
@@ -8,6 +9,10 @@ export type PRCanonicalShareMetadata = {
   canonicalPath: string;
   defaultImagePath: string;
   revision: string;
+};
+
+export type PRCanonicalShareMetadataInput = {
+  anchorEventTitle?: string | null;
 };
 
 const DEFAULT_SHARE_IMAGE_PATH = "/share-logo.png";
@@ -34,20 +39,33 @@ const joinSummaryParts = (parts: Array<string | null | undefined>): string =>
 
 const resolveCanonicalPath = (pr: Pick<PublicPR, "id">): string => `/pr/${pr.id}`;
 
-const resolveTitle = (pr: PublicPR): string => {
+const resolveTitle = (
+  pr: PublicPR,
+  input: PRCanonicalShareMetadataInput = {},
+): string => {
   const explicitTitle = normalizeWhitespace(pr.title);
   if (explicitTitle.length > 0) {
     return explicitTitle;
   }
 
-  const location = normalizeWhitespace(pr.location);
-  if (location.length > 0) {
-    return location;
+  const anchorEventTitle = normalizeWhitespace(input.anchorEventTitle);
+  if (anchorEventTitle.length > 0) {
+    return anchorEventTitle;
   }
 
   const type = normalizeWhitespace(pr.type);
   if (type.length > 0) {
     return type;
+  }
+
+  const routeSummary = buildPRRouteSummary(pr.route);
+  if (routeSummary) {
+    return routeSummary;
+  }
+
+  const location = normalizeWhitespace(pr.location);
+  if (location.length > 0) {
+    return location;
   }
 
   return "搭子请求";
@@ -56,6 +74,7 @@ const resolveTitle = (pr: PublicPR): string => {
 const resolveDescription = (pr: PublicPR): string => {
   const summary = joinSummaryParts([
     pr.type,
+    buildPRRouteSummary(pr.route),
     pr.location,
     pr.budget,
     ...pr.preferences.slice(0, 2),
@@ -68,14 +87,19 @@ const resolveDescription = (pr: PublicPR): string => {
   return "查看搭子请求";
 };
 
-const buildRevision = (pr: PublicPR): string => {
+const buildRevision = (
+  pr: PublicPR,
+  input: PRCanonicalShareMetadataInput = {},
+): string => {
   const revisionSource = JSON.stringify({
     id: pr.id,
     status: pr.status,
     title: pr.title ?? null,
+    anchorEventTitle: normalizeWhitespace(input.anchorEventTitle) || null,
     type: pr.type,
     time: pr.time,
     location: pr.location,
+    route: pr.route,
     minPartners: pr.minPartners,
     maxPartners: pr.maxPartners,
     budget: pr.budget,
@@ -103,10 +127,11 @@ const resolveDefaultImagePath = (): string => {
 
 export const buildPRCanonicalShareMetadata = (
   pr: PublicPR,
+  input: PRCanonicalShareMetadataInput = {},
 ): PRCanonicalShareMetadata => ({
-  title: resolveTitle(pr),
+  title: resolveTitle(pr, input),
   description: resolveDescription(pr),
   canonicalPath: resolveCanonicalPath(pr),
   defaultImagePath: resolveDefaultImagePath(),
-  revision: buildRevision(pr),
+  revision: buildRevision(pr, input),
 });

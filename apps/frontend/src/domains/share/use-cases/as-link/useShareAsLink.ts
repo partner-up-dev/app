@@ -20,19 +20,6 @@ type UseShareAsLinkOptions = {
   getShareButtonText: () => string;
 };
 
-const isShareAbortError = (error: unknown): boolean => {
-  if (error instanceof DOMException) {
-    return error.name === "AbortError";
-  }
-
-  return Boolean(
-    typeof error === "object" &&
-      error !== null &&
-      "name" in error &&
-      error.name === "AbortError",
-  );
-};
-
 const resolvePRIdFromShareUrl = (url: string): number | undefined => {
   try {
     const parsed = new URL(url);
@@ -85,25 +72,6 @@ export const useShareAsLink = ({
     }, 2000);
   };
 
-  const getShareData = (): ShareData => {
-    const title = typeof document === "undefined" ? undefined : document.title;
-    return {
-      title,
-      url: normalizedUrl.value,
-    };
-  };
-
-  const tryNativeShare = async (): Promise<boolean> => {
-    if (
-      typeof navigator === "undefined" ||
-      typeof navigator.share !== "function"
-    ) {
-      return false;
-    }
-    await navigator.share(getShareData());
-    return true;
-  };
-
   const handleShare = async (): Promise<void> => {
     if (shareState.value === "sharing") return;
 
@@ -116,31 +84,6 @@ export const useShareAsLink = ({
         prId,
         actionType: "SHARE_LINK_TRIGGER",
       });
-    }
-
-    try {
-      const didShare = await tryNativeShare();
-      if (didShare) {
-        trackEvent("share_link_native_success", {
-          url: normalizedUrl.value,
-          spm: shareSpm.value,
-          ...analyticsContext,
-        });
-        flashState("shared");
-        return;
-      }
-    } catch (error) {
-      if (isShareAbortError(error)) {
-        shareState.value = "idle";
-        return;
-      }
-      trackEvent("share_link_failed", {
-        url: normalizedUrl.value,
-        stage: "native",
-        spm: shareSpm.value,
-        ...analyticsContext,
-      });
-      console.error("Native share failed, fallback to copy:", error);
     }
 
     try {

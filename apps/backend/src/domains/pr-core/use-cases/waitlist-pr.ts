@@ -76,7 +76,7 @@ export async function waitlistPRAsUser(
       activeCount,
     })
   ) {
-    return throwHttpProblem({ status: 400, detail: "Cannot waitlist - partner request is not full" });
+    return throwHttpProblem({ status: 400, detail: "Cannot waitlist - partner request is not at waitlistable capacity" });
   }
 
   const latestHistoricalSlot =

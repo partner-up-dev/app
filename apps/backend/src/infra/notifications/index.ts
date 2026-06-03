@@ -1,11 +1,4 @@
 export {
-  registerWeChatBookingResultJobs,
-  scheduleWeChatBookingResultNotifications,
-  resolveBookingResultStatusLabel,
-} from "./wechat-booking-result";
-export type { BookingResultNotificationSummary } from "./wechat-booking-result";
-
-export {
   registerWeChatActivityStartReminderJobs,
   scheduleWeChatActivityStartReminderJobForParticipant,
   cancelWeChatActivityStartReminderJobsForParticipant,
@@ -36,6 +29,12 @@ export {
   scheduleWeChatMeetingPointUpdatedNotifications,
   cancelWeChatMeetingPointUpdatedJobsForUser,
 } from "./wechat-meeting-point-updated";
+
+export {
+  registerWeChatPRReadyJobs,
+  scheduleWeChatPRReadyNotifications,
+  cancelWeChatPRReadyJobsForUser,
+} from "./wechat-pr-ready";
 
 export {
   registerWeChatWaitlistPromotedJobs,

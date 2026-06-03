@@ -43,7 +43,7 @@ scenario(
       creator,
       minPartners: 1,
       maxPartners: null,
-      expectedCreatedStatus: "READY",
+      expectedCreatedStatus: "OPEN",
       title: "Scenario private meeting point",
     });
 

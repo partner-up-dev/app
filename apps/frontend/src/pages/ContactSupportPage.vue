@@ -8,25 +8,6 @@
       class="contact-actions"
       :aria-label="t('contactSupportPage.actionsTitle')"
     >
-      <div class="contact-card contact-card--staff">
-        <Chip tone="primary" size="lg">
-          {{ t("contactSupportPage.staffBadge") }}
-        </Chip>
-        <div class="contact-copy">
-          <h2>{{ t("contactSupportPage.staffTitle") }}</h2>
-          <p>{{ t("contactSupportPage.staffDescription") }}</p>
-        </div>
-
-        <SupportContactAction
-          class="contact-action"
-          :href="staffLink"
-          :qr-entry="usesMiniProgramQrEntry"
-          @open-qr="staffQrModalOpen = true"
-        >
-          {{ t("contactSupportPage.staffAction") }}
-        </SupportContactAction>
-      </div>
-
       <div class="contact-card contact-card--support">
         <Chip tone="secondary" size="lg">
           {{ t("contactSupportPage.supportBadge") }}
@@ -77,16 +58,6 @@
     </nav>
 
     <SupportContactQrModal
-      :open="staffQrModalOpen"
-      :title="t('contactSupportPage.staffQrModalTitle')"
-      :description="t('contactSupportPage.staffQrModalDescription')"
-      :target-url="staffLink"
-      :qr-alt="t('contactSupportPage.staffQrAlt')"
-      :missing-text="t('contactSupportPage.staffQrMissing')"
-      @close="staffQrModalOpen = false"
-    />
-
-    <SupportContactQrModal
       :open="supportQrModalOpen"
       :title="t('contactSupportPage.supportQrModalTitle')"
       :description="t('contactSupportPage.supportQrModalDescription')"
@@ -116,11 +87,9 @@ const DEFAULT_SUPPORT_LINK_WECHAT_IN =
   "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
 const DEFAULT_SUPPORT_LINK_WECHAT_OUT =
   "https://work.weixin.qq.com/nl/act/p/4030a5b69149404d";
-const DEFAULT_STAFF_LINK = "https://work.weixin.qq.com/ca/cawcdeaeb65ab3d47f";
 
 const { t } = useI18n();
 const { isMiniProgramWebView } = useWeChatMiniProgramWebView();
-const staffQrModalOpen = ref(false);
 const supportQrModalOpen = ref(false);
 
 const supportLinkWechatInQuery = usePublicConfig(
@@ -129,7 +98,6 @@ const supportLinkWechatInQuery = usePublicConfig(
 const supportLinkWechatOutQuery = usePublicConfig(
   PUBLIC_CONFIG_KEYS.wecomSupportLinkWechatOut,
 );
-const staffLinkQuery = usePublicConfig(PUBLIC_CONFIG_KEYS.wecomStaffLink);
 
 const normalizeHttpUrl = (value: string | null | undefined): string | null => {
   if (!value) return null;
@@ -184,17 +152,6 @@ const supportLink = computed(() =>
   isWeChatBrowser() ? supportLinkWechatIn.value : supportLinkWechatOut.value,
 );
 
-const staffLink = computed(() => {
-  if (staffLinkQuery.isLoading.value || staffLinkQuery.error.value) {
-    return DEFAULT_STAFF_LINK;
-  }
-
-  return resolveSupportLink(
-    staffLinkQuery.data.value?.value,
-    DEFAULT_STAFF_LINK,
-  );
-});
-
 const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
 
 </script>
@@ -216,11 +173,8 @@ const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
   background: var(--sys-color-surface);
 }
 
-.contact-card--staff {
-  border-color: var(--sys-color-primary);
-}
-
 .contact-card--support {
+  grid-column: 1 / -1;
   align-content: space-between;
   border-color: var(--sys-color-secondary);
 }

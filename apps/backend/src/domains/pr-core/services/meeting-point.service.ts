@@ -48,18 +48,19 @@ export const resolveEffectiveMeetingPoint = async (
   }
 
   const location = normalizeLocation(request.location);
+  if (location === null) {
+    return null;
+  }
+
   const event = await anchorEventRepo.findOneByType(request.type);
   if (event) {
     const locationMeetingPoints = normalizeMeetingPointConfigMap(
       event.locationMeetingPoints,
     );
-    const eventLocationMeetingPoint =
-      location === null
-        ? null
-        : withSource(
-            "ANCHOR_EVENT_LOCATION",
-            locationMeetingPoints[location] ?? null,
-          );
+    const eventLocationMeetingPoint = withSource(
+      "ANCHOR_EVENT_LOCATION",
+      locationMeetingPoints[location] ?? null,
+    );
     if (eventLocationMeetingPoint) {
       return eventLocationMeetingPoint;
     }
@@ -71,10 +72,6 @@ export const resolveEffectiveMeetingPoint = async (
     if (eventMeetingPoint) {
       return eventMeetingPoint;
     }
-  }
-
-  if (location === null) {
-    return null;
   }
 
   const poi = await resolvePublishedPoiByLocation(location);

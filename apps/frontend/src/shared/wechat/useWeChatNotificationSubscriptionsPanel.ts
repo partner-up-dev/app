@@ -16,9 +16,9 @@ import { useWeChatShare } from "@/shared/wechat/useWeChatShare";
 export type WeChatNotificationKind =
   | "REMINDER_CONFIRMATION"
   | "ACTIVITY_START_REMINDER"
-  | "BOOKING_RESULT"
   | "NEW_PARTNER"
   | "MEETING_POINT_UPDATED"
+  | "PR_READY"
   | "WAITLIST_PROMOTED"
   | "WAITLIST_ALTERNATIVE_AVAILABLE"
   | "PR_MESSAGE";
@@ -303,9 +303,6 @@ export const useWeChatNotificationSubscriptionsPanel = ({
         "prPage.notificationSubscriptions.items.ACTIVITY_START_REMINDER.title",
       );
     }
-    if (kind === "BOOKING_RESULT") {
-      return t("prPage.notificationSubscriptions.items.BOOKING_RESULT.title");
-    }
     if (kind === "NEW_PARTNER") {
       return t("prPage.notificationSubscriptions.items.NEW_PARTNER.title");
     }
@@ -313,6 +310,9 @@ export const useWeChatNotificationSubscriptionsPanel = ({
       return t(
         "prPage.notificationSubscriptions.items.MEETING_POINT_UPDATED.title",
       );
+    }
+    if (kind === "PR_READY") {
+      return t("prPage.notificationSubscriptions.items.PR_READY.title");
     }
     if (kind === "WAITLIST_PROMOTED") {
       return t(
@@ -338,11 +338,6 @@ export const useWeChatNotificationSubscriptionsPanel = ({
         "prPage.notificationSubscriptions.items.ACTIVITY_START_REMINDER.enabledHint",
       );
     }
-    if (kind === "BOOKING_RESULT") {
-      return t(
-        "prPage.notificationSubscriptions.items.BOOKING_RESULT.enabledHint",
-      );
-    }
     if (kind === "NEW_PARTNER") {
       return t(
         "prPage.notificationSubscriptions.items.NEW_PARTNER.enabledHint",
@@ -352,6 +347,9 @@ export const useWeChatNotificationSubscriptionsPanel = ({
       return t(
         "prPage.notificationSubscriptions.items.MEETING_POINT_UPDATED.enabledHint",
       );
+    }
+    if (kind === "PR_READY") {
+      return t("prPage.notificationSubscriptions.items.PR_READY.enabledHint");
     }
     if (kind === "WAITLIST_PROMOTED") {
       return t(
@@ -377,11 +375,6 @@ export const useWeChatNotificationSubscriptionsPanel = ({
         "prPage.notificationSubscriptions.items.ACTIVITY_START_REMINDER.disabledHint",
       );
     }
-    if (kind === "BOOKING_RESULT") {
-      return t(
-        "prPage.notificationSubscriptions.items.BOOKING_RESULT.disabledHint",
-      );
-    }
     if (kind === "NEW_PARTNER") {
       return t(
         "prPage.notificationSubscriptions.items.NEW_PARTNER.disabledHint",
@@ -391,6 +384,9 @@ export const useWeChatNotificationSubscriptionsPanel = ({
       return t(
         "prPage.notificationSubscriptions.items.MEETING_POINT_UPDATED.disabledHint",
       );
+    }
+    if (kind === "PR_READY") {
+      return t("prPage.notificationSubscriptions.items.PR_READY.disabledHint");
     }
     if (kind === "WAITLIST_PROMOTED") {
       return t(
@@ -448,6 +444,10 @@ export const useWeChatNotificationSubscriptionsPanel = ({
           description = t(
             "prPage.notificationSubscriptions.items.MEETING_POINT_UPDATED.unconfiguredHint",
           );
+        } else if (kind === "PR_READY") {
+          description = t(
+            "prPage.notificationSubscriptions.items.PR_READY.unconfiguredHint",
+          );
         } else if (kind === "WAITLIST_PROMOTED") {
           description = t(
             "prPage.notificationSubscriptions.items.WAITLIST_PROMOTED.unconfiguredHint",
@@ -466,10 +466,6 @@ export const useWeChatNotificationSubscriptionsPanel = ({
           );
         } else if (kind === "REMINDER_CONFIRMATION") {
           description = t("prPage.wechatReminder.unconfiguredHint");
-        } else {
-          description = t(
-            "prPage.notificationSubscriptions.items.BOOKING_RESULT.unconfiguredHint",
-          );
         }
       } else if (!authenticated) {
         description = t("prPage.wechatReminder.loginHint");

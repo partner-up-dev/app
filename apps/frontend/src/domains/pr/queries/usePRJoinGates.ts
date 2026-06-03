@@ -26,17 +26,11 @@ export type ResolvePRJoinGateResponse = InferResponseType<
 export type ResolvePRJoinGateInput = {
   id: PRId;
   gateKey: string;
-  payload:
-    | {
-        kind: "JOIN_NOTICE";
-        version: string;
-        accepted: true;
-      }
-    | {
-        kind: "BOOKING_CONTACT";
-        version: string;
-        phone?: string;
-      };
+  payload: {
+    kind: "JOIN_NOTICE";
+    version: string;
+    accepted: true;
+  };
 };
 
 const readErrorMessage = async (

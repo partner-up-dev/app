@@ -8,14 +8,18 @@ import {
 import {
   ANCHOR_EVENT_ANALYTICS_RENDERED_MODES,
   getAnchorEventFunnelAnalytics,
-  getColdStartAnalyticsSummary,
+  getBIOverviewAnalytics,
+  getPRCreateFunnelAnalytics,
+  getPRJoinFunnelAnalytics,
 } from "../infra/analytics";
 
 const app = new Hono<AdminAuthEnv>();
 
-const coldStartSummaryQuerySchema = z.object({
-  startAt: z.string().datetime().optional(),
-  endAt: z.string().datetime().optional(),
+const instantDateTimeSchema = z.string().datetime({ offset: true });
+
+const analyticsDateRangeQuerySchema = z.object({
+  startAt: instantDateTimeSchema.optional(),
+  endAt: instantDateTimeSchema.optional(),
 });
 
 const optionalFilterString = (maxLength = 256) =>
@@ -23,8 +27,8 @@ const optionalFilterString = (maxLength = 256) =>
 
 const anchorEventFunnelQuerySchema = z
   .object({
-    startAt: z.string().datetime().optional(),
-    endAt: z.string().datetime().optional(),
+    startAt: instantDateTimeSchema.optional(),
+    endAt: instantDateTimeSchema.optional(),
     eventId: z.coerce.number().int().positive().optional(),
     spm: optionalFilterString(),
     sourceQr: optionalFilterString(),
@@ -51,6 +55,18 @@ const parseOptionalDate = (value: string | undefined): Date | undefined =>
 export const analyticsRoute = app
   .use("*", analyticsAuthMiddleware)
   .get(
+    "/overview",
+    zValidator("query", analyticsDateRangeQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      const result = await getBIOverviewAnalytics({
+        startAt: parseOptionalDate(query.startAt),
+        endAt: parseOptionalDate(query.endAt),
+      });
+      return c.json(result);
+    },
+  )
+  .get(
     "/anchor-event-funnel",
     zValidator("query", anchorEventFunnelQuerySchema),
     async (c) => {
@@ -68,11 +84,23 @@ export const analyticsRoute = app
     },
   )
   .get(
-    "/cold-start/summary",
-    zValidator("query", coldStartSummaryQuerySchema),
+    "/pr-create-funnel",
+    zValidator("query", analyticsDateRangeQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
-      const result = await getColdStartAnalyticsSummary({
+      const result = await getPRCreateFunnelAnalytics({
+        startAt: parseOptionalDate(query.startAt),
+        endAt: parseOptionalDate(query.endAt),
+      });
+      return c.json(result);
+    },
+  )
+  .get(
+    "/pr-join-funnel",
+    zValidator("query", analyticsDateRangeQuerySchema),
+    async (c) => {
+      const query = c.req.valid("query");
+      const result = await getPRJoinFunnelAnalytics({
         startAt: parseOptionalDate(query.startAt),
         endAt: parseOptionalDate(query.endAt),
       });

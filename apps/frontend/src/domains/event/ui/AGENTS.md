@@ -53,7 +53,7 @@ base PR pool
 
 Rules:
 
-- The base PR pool comes from this Anchor Event's visible PR contexts and joinable PR status.
+- The base PR pool comes from this Anchor Event's visible PR contexts and joinable PR status, excluding PRs where the current viewer is already an active partner.
 - A matched recommendation requires exact location, start time within a 5-minute tolerance, and no same-category preference conflict.
 - Score is used to choose the best matched PR when multiple matches exist.
 - Ordered candidates are returned only when the matched pool is empty.

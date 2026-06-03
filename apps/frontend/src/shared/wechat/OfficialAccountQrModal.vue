@@ -1,22 +1,22 @@
 <template>
   <Modal
     :open="open"
-    :title="t('home.bookmarkNudge.followQrModalTitle')"
+    :title="t('officialAccountFollow.modalTitle')"
     max-width="420px"
     @close="emit('close')"
   >
     <div class="official-account-modal-body">
       <p class="official-account-modal-description">
-        {{ t("home.bookmarkNudge.followQrModalDescription") }}
+        {{ t("officialAccountFollow.modalDescription") }}
       </p>
       <img
         v-if="officialAccountQrCodeUrl"
         :src="officialAccountQrCodeUrl"
-        :alt="t('home.bookmarkNudge.followQrModalQrAlt')"
+        :alt="t('officialAccountFollow.qrAlt')"
         class="official-account-qr-image"
       />
       <p v-else class="official-account-qr-empty">
-        {{ t("home.bookmarkNudge.followQrModalQrMissing") }}
+        {{ t("officialAccountFollow.qrMissing") }}
       </p>
     </div>
   </Modal>

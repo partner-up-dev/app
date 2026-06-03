@@ -21,5 +21,5 @@
 ## Current Scope Constraints
 
 - The current product experience is single-language and `zh-CN` only.
-- Booking-result notifications remain constrained by WeChat environment, operator execution, and user subscription quota.
+- WeChat notifications remain constrained by WeChat environment and user subscription quota.
 - Xiaohongshu currently supports generated captions and posters, but not in-platform direct publish.

@@ -5,6 +5,11 @@
   "engines": {
     "node": ">=22 <23"
   },
+  "pnpm": {
+    "overrides": {
+      "axios": "1.16.1"
+    }
+  },
   "scripts": {
     "dev": "pnpm --filter @partner-up-dev/frontend dev & pnpm --filter @partner-up-dev/backend dev",
     "dev:portless": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/portless.ps1",
@@ -15,8 +20,9 @@
     "build:frontend": "pnpm --filter @partner-up-dev/frontend build",
     "build:backend": "pnpm --filter @partner-up-dev/backend build",
     "build": "pnpm --filter @partner-up-dev/backend build && pnpm --filter @partner-up-dev/frontend build",
-    "lint": "pnpm lint:backend",
+    "lint": "pnpm lint:backend && pnpm lint:payment-supply-chain",
     "lint:backend": "pnpm --filter @partner-up-dev/backend lint",
+    "lint:payment-supply-chain": "node ./scripts/check-payment-supply-chain.mjs",
     "test": "pnpm test:unit && pnpm test:scenario:all",
     "test:unit": "vitest run --project backend-unit --project frontend-unit",
     "test:unit:backend": "vitest run --project backend-unit",
@@ -34,10 +40,14 @@
   },
   "devDependencies": {
     "@hono/node-server": "^1.19.9",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "happy-dom": "^20.9.0",
+    "@partner-up-dev/fake-wechatpay-server": "workspace:*",
     "playwright": "^1.59.1",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3",
     "vite": "^6.4.1",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "vue": "^3.5.27"
   }
 }
