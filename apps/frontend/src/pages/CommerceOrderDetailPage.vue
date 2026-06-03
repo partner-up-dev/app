@@ -5,7 +5,19 @@
         title="订单详情"
         subtitle="查看支付、账单和预约进度"
         :back-fallback-to="backFallbackTo"
-      />
+      >
+        <template #top-actions>
+          <ActionLink
+            :to="{ name: 'contact-support' }"
+            appearance="pill"
+            tone="outline"
+            size="sm"
+            data-testid="order-detail.contact-support.open"
+          >
+            客服
+          </ActionLink>
+        </template>
+      </PageHeader>
     </template>
 
     <div class="order-detail-page__body">
