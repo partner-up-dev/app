@@ -5,7 +5,14 @@
     </template>
 
     <template #rail>
-      <PoiSelectorRail v-model="selectedPoiIdRaw" :pois="pois" />
+      <PoiSelectorRail
+        v-model="selectedPoiIdRaw"
+        v-model:new-poi-name="newPoiName"
+        :pois="pois"
+        :can-create-poi="canCreatePoi"
+        :is-creating-poi="isCreatingPoi"
+        @create-poi="handleCreatePoi"
+      />
     </template>
 
     <template #main>
@@ -23,7 +30,6 @@
         <template v-else>
           <PoiBasicSection
             v-if="activeAdminSection === 'poi-basic'"
-            v-model:new-poi-name="newPoiName"
             v-model:manual-gallery-url="manualGalleryUrl"
             v-model:is-uploading-gallery-image="isUploadingGalleryImage"
             v-model:selected-poi-full-address="selectedPoiFullAddress"
@@ -38,8 +44,6 @@
             :selected-poi-availability-rules="selectedPoiAvailabilityRules"
             :selected-poi="selectedPoi"
             :weekday-options="weekdayOptions"
-            :can-create-poi="canCreatePoi"
-            :is-creating-poi="isCreatingPoi"
             :is-saving-poi="isSavingPoi"
             @add-manual-url="handleAddManualUrl"
             @gallery-uploaded="handleGalleryUploaded"
@@ -49,7 +53,6 @@
             @add-availability-rule="handleAddAvailabilityRule"
             @remove-availability-rule="handleRemoveAvailabilityRule"
             @mark-dirty="markSelectedPoiDirty"
-            @create-poi="handleCreatePoi"
             @save-poi="handleSavePoi"
           />
 

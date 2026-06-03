@@ -1,36 +1,6 @@
 <template>
   <BentoLayout>
     <BentoItem
-      :title="t('adminPois.createPoiTitle')"
-      span="full"
-    >
-      <div class="create-poi-row">
-        <label class="field">
-          <span class="field-label">{{ t("adminPois.newPoiLabel") }}</span>
-          <input
-            v-model="newPoiName"
-            class="field-input"
-            :placeholder="t('adminPois.newPoiPlaceholder')"
-          />
-        </label>
-        <Button
-          appearance="pill"
-          tone="outline"
-          size="sm"
-          type="button"
-          :disabled="isCreatingPoi || !canCreatePoi"
-          @click="emit('create-poi')"
-        >
-          {{
-            isCreatingPoi
-              ? t("adminPois.creatingPoi")
-              : t("adminPois.createPoiAction")
-          }}
-        </Button>
-      </div>
-    </BentoItem>
-
-    <BentoItem
       id="poi-basic"
       :title="t('adminPois.editPoiTitle')"
       span="full"
@@ -425,8 +395,6 @@ const props = defineProps<{
   selectedPoiHasCoordinate: boolean;
   selectedPoiPickerLocation: PickedLocation | null;
   selectedPoiAvailabilityRules: EditableAvailabilityRule[];
-  canCreatePoi: boolean;
-  isCreatingPoi: boolean;
   isSavingPoi: boolean;
   weekdayOptions: readonly {
     readonly value: number;
@@ -443,11 +411,9 @@ const emit = defineEmits<{
   "add-availability-rule": [];
   "remove-availability-rule": [index: number];
   "mark-dirty": [];
-  "create-poi": [];
   "save-poi": [];
 }>();
 
-const newPoiName = defineModel<string>("newPoiName", { required: true });
 const manualGalleryUrl = defineModel<string>("manualGalleryUrl", {
   required: true,
 });
@@ -529,13 +495,6 @@ const handleLocationPicked = (location: PickedLocation) => {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
-}
-
-.create-poi-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--sys-spacing-small);
-  align-items: end;
 }
 
 .field--full {
@@ -671,7 +630,6 @@ const handleLocationPicked = (location: PickedLocation) => {
 
 @media (max-width: 720px) {
   .grid,
-  .create-poi-row,
   .manual-url-row,
   .coordinate-field__header {
     grid-template-columns: 1fr;
