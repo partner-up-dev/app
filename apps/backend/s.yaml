@@ -74,6 +74,7 @@ resources:
         LLM_BASE_URL: ${env('LLM_BASE_URL', '')}
         LLM_DEFAULT_MODEL: ${env('LLM_DEFAULT_MODEL', '')}
         FRONTEND_URL: ${env('FRONTEND_URL')}
+        PAYMENT_NOTIFY_BASE_URL: ${env('PAYMENT_NOTIFY_BASE_URL')}
         AUTH_JWT_SECRET: ${env('AUTH_JWT_SECRET')}
         WECOM_TOKEN: ${env('WECOM_TOKEN', '')}
         WECOM_ENCODING_AES_KEY: ${env('WECOM_ENCODING_AES_KEY', '')}

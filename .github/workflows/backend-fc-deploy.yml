@@ -62,6 +62,7 @@ jobs:
       LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
       LLM_DEFAULT_MODEL: ${{ vars.LLM_DEFAULT_MODEL }}
       FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+      PAYMENT_NOTIFY_BASE_URL: ${{ vars.PAYMENT_NOTIFY_BASE_URL }}
       AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
       WECOM_TOKEN: ${{ secrets.WECOM_TOKEN }}
       WECOM_ENCODING_AES_KEY: ${{ secrets.WECOM_ENCODING_AES_KEY }}
