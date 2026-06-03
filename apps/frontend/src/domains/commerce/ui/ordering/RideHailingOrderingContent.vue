@@ -1,113 +1,53 @@
 <template>
   <template v-if="rideOffer">
-    <section class="ride-content__map" data-testid="ordering.ride-hailing.route-map">
-      <div
-        class="ride-content__polyline"
-        data-testid="ordering.ride-hailing.route-polyline"
-      ></div>
-      <button
-        type="button"
-        class="ride-content__route-callout ride-content__route-callout--origin"
-        data-testid="ordering.ride-hailing.route-point.origin"
-      >
-        {{ rideRoute?.origin.name ?? "起点" }}
-        <span class="i-mdi-chevron-right"></span>
-      </button>
-      <button
-        type="button"
-        class="ride-content__route-callout ride-content__route-callout--destination"
-        data-testid="ordering.ride-hailing.route-point.destination"
-      >
-        {{ rideRoute?.destination.name ?? "终点" }}
-        <span class="i-mdi-chevron-right"></span>
-      </button>
-    </section>
+    <div class="ride-content">
+      <RouteMap
+        class="ride-content__route-map"
+        data-testid="ordering.ride-hailing.route-map"
+        :route="routeForMap"
+        :planned-polyline="plannedPolyline"
+        :fit-padding="routeMapFitPadding"
+        :interactive="false"
+        variant="immersive"
+        hide-bottom-attribution
+      />
 
-    <SurfaceCard gap="sm">
-      <div class="ride-content__row">
-        <button
-          type="button"
-          data-testid="ordering.ride-hailing.departure-time"
-          @click="activeDrawer = 'departure'"
-        >
-          {{ rideDepartureLabel }}
-          <span class="i-mdi-chevron-right"></span>
-        </button>
-        <button
-          type="button"
-          data-testid="ordering.ride-hailing.riders"
-          @click="activeDrawer = 'riders'"
-        >
-          同乘人
-          <span class="i-mdi-chevron-right"></span>
-        </button>
-        <button
-          type="button"
-          data-testid="ordering.ride-hailing.contact"
-          @click="activeDrawer = 'contact'"
-        >
-          联系方式
-          <span class="i-mdi-chevron-right"></span>
-        </button>
-      </div>
-    </SurfaceCard>
+      <div class="ride-content__sheet" data-testid="ordering.ride-hailing.bottom-sheet">
+        <div class="ride-content__handle" aria-hidden="true"></div>
 
-    <div
-      v-if="activeDrawer === 'departure'"
-      class="ride-content__drawer"
-      data-testid="ordering.ride-hailing.departure-drawer"
-    >
-      <strong>{{ rideDepartureLabel }}</strong>
-    </div>
-    <div
-      v-if="activeDrawer === 'riders'"
-      class="ride-content__drawer"
-      data-testid="ordering.ride-hailing.riders-drawer"
-    >
-      <div
-        v-for="rider in rideRiders"
-        :key="rider.userId"
-      >
-        {{ rider.displayName }}
-      </div>
-    </div>
-    <div
-      v-if="activeDrawer === 'contact'"
-      class="ride-content__drawer"
-      data-testid="ordering.ride-hailing.contact-drawer"
-    >
-      <input v-model.trim="rideContactPhone" class="ride-content__input" />
-    </div>
-
-    <div class="ride-content__vehicles">
-      <ChoiceCard
-        v-for="option in rideQuoteOptions"
-        :key="option.skuId"
-        :active="option.skuId === selectedRideSkuId"
-        :disabled="!option.selectable"
-        data-testid="ordering.ride-hailing.vehicle-card"
-        @click="selectedRideSkuId = option.skuId"
-      >
-        <div class="ride-content__card">
+        <div class="ride-content__passengers" data-testid="ordering.ride-hailing.riders">
           <div>
-            <strong>{{ option.displayName }}</strong>
-            <span>{{ option.disabledReason ?? "实时预估" }}</span>
-            <i
-              v-if="option.skuId === selectedRideSkuId"
-              data-testid="ordering.ride-hailing.vehicle-card.selected"
-            ></i>
+            <span>同乘人</span>
+            <strong>{{ riderSummary }}</strong>
           </div>
-          <b>{{ formatFen(option.quoteAmountFen) }}</b>
+          <small data-testid="ordering.ride-hailing.departure-time">
+            {{ rideDepartureLabel }}
+          </small>
         </div>
-      </ChoiceCard>
+
+        <div class="ride-content__vehicles">
+          <RideHailingSkuCard
+            v-for="option in rideQuoteOptions"
+            :key="option.skuId"
+            :display-name="option.displayName"
+            :price-label="formatFen(option.quoteAmountFen)"
+            :selectable="option.selectable"
+            :selected="option.skuId === selectedRideSkuId"
+            :disabled-reason="option.disabledReason"
+            @select="selectedRideSkuId = option.skuId"
+          />
+        </div>
+      </div>
     </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import RouteMap from "@/domains/route/ui/RouteMap.vue";
+import type { Route, RoutePoint } from "@/domains/route/model/route";
+import type { MapCoordinate, MapFitPadding } from "@/shared/map/types";
+import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 import type {
   BoundOrderParticipant,
   OrderingContentInput,
@@ -148,7 +88,6 @@ const emit = defineEmits<{
 }>();
 
 const selectedRideSkuId = ref<number | null>(null);
-const activeDrawer = ref<"departure" | "riders" | "contact" | null>(null);
 const rideContactPhone = ref("");
 
 const rideOffer = computed<RideOffer | null>(() =>
@@ -191,6 +130,100 @@ const boundContactPhone = computed(() => {
 const rideRiders = computed<BoundOrderParticipant[]>(() =>
   readBoundOrderParticipants(props.input.bindings),
 );
+
+const riderSummary = computed(() => {
+  if (rideRiders.value.length === 0) return "待确认";
+  return rideRiders.value.map((rider) => rider.displayName).join("、");
+});
+
+const toRoutePoint = (place: unknown): RoutePoint | null => {
+  if (typeof place !== "object" || place === null || Array.isArray(place)) {
+    return null;
+  }
+  const record = place as Record<string, unknown>;
+  const name = typeof record.name === "string" ? record.name : "";
+  const fullAddress =
+    typeof record.full_address === "string"
+      ? record.full_address
+      : typeof record.address === "string"
+        ? record.address
+        : null;
+
+  if (
+    typeof record.latitude === "number" &&
+    typeof record.longitude === "number"
+  ) {
+    return {
+      name,
+      full_address: fullAddress,
+      gcj02: [record.latitude, record.longitude],
+      bd09: null,
+      wgs84: null,
+    };
+  }
+
+  const gcj02 = Array.isArray(record.gcj02) ? record.gcj02 : null;
+  if (typeof gcj02?.[0] === "number" && typeof gcj02[1] === "number") {
+    return {
+      name,
+      full_address: fullAddress,
+      gcj02: [gcj02[0], gcj02[1]],
+      bd09: null,
+      wgs84: null,
+    };
+  }
+
+  return null;
+};
+
+const routeForMap = computed<Route | null>(() => {
+  const route = rideRoute.value;
+  if (!route) return null;
+  const record = route as Record<string, unknown>;
+  const origin = toRoutePoint(record.origin);
+  const destination = toRoutePoint(record.destination);
+  if (!origin || !destination) return null;
+  const waypoints = Array.isArray(record.waypoints)
+    ? record.waypoints.flatMap((point) => {
+        const routePoint = toRoutePoint(point);
+        return routePoint ? [routePoint] : [];
+      })
+    : [];
+  return [origin, ...waypoints, destination];
+});
+
+const plannedPolyline = computed<MapCoordinate[] | null>(() => {
+  const route = rideRoute.value as Record<string, unknown> | null;
+  const drivingPlan =
+    typeof route?.drivingPlan === "object" && route.drivingPlan !== null
+      ? (route.drivingPlan as Record<string, unknown>)
+      : null;
+  const rawPolyline = Array.isArray(drivingPlan?.polyline)
+    ? drivingPlan.polyline
+    : null;
+  const polyline =
+    rawPolyline?.flatMap((point): MapCoordinate[] => {
+      if (typeof point !== "object" || point === null || Array.isArray(point)) {
+        return [];
+      }
+      const record = point as Record<string, unknown>;
+      if (
+        typeof record.latitude === "number" &&
+        typeof record.longitude === "number"
+      ) {
+        return [{ lat: record.latitude, lng: record.longitude }];
+      }
+      return [];
+    }) ?? [];
+  return polyline.length >= 2 ? polyline : null;
+});
+
+const routeMapFitPadding: MapFitPadding = {
+  top: 48,
+  right: 32,
+  bottom: 260,
+  left: 32,
+};
 
 const rideBaseOptions = computed<RideVehicleOption[]>(() =>
   rideOffer.value?.spus.flatMap((spu) =>
@@ -310,148 +343,85 @@ watch(
 </script>
 
 <style scoped lang="scss">
-.ride-content__map {
+.ride-content {
   position: relative;
-  min-height: 18rem;
-  overflow: hidden;
-  border-radius: var(--sys-radius-medium);
-  background:
-    linear-gradient(135deg, rgb(229 236 226 / 0.9), rgb(225 233 241 / 0.95)),
-    repeating-linear-gradient(
-      45deg,
-      rgb(255 255 255 / 0.34) 0,
-      rgb(255 255 255 / 0.34) 0.5rem,
-      transparent 0.5rem,
-      transparent 2rem
-    );
+  width: 100%;
+  min-height: 0;
 }
 
-.ride-content__polyline {
+.ride-content,
+.ride-content__route-map {
+  height: 100%;
+}
+
+.ride-content__route-map :deep(.route-map),
+.ride-content__route-map :deep(.map-shell) {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.ride-content__route-map {
+  pointer-events: none;
+}
+
+.ride-content__sheet {
   position: absolute;
-  inset: 26% 18% 30% 18%;
-  border-bottom: 0.28rem solid var(--sys-color-primary);
-  border-left: 0.28rem solid var(--sys-color-primary);
-  border-radius: 0 0 0 5rem;
-}
-
-.ride-content__route-callout {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  max-width: min(72%, 18rem);
-  min-height: 2.75rem;
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  padding: 0 var(--sys-spacing-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-  box-shadow: var(--sys-elevation-level2);
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-
-  span {
-    flex: 0 0 auto;
-    margin-left: var(--sys-spacing-xsmall);
-  }
-}
-
-.ride-content__route-callout--origin {
-  top: 16%;
-  left: 10%;
-}
-
-.ride-content__route-callout--destination {
-  right: 10%;
-  bottom: 15%;
-}
-
-.ride-content__row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sys-spacing-small);
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: var(--sys-size-large);
-    min-width: 0;
-    border: none;
-    border-radius: var(--sys-radius-small);
-    padding: 0 var(--sys-spacing-small);
-    background: var(--sys-color-surface-container-high);
-    color: var(--sys-color-on-surface);
-    cursor: pointer;
-    font: inherit;
-  }
-}
-
-.ride-content__drawer {
-  position: sticky;
+  right: 0;
   bottom: 0;
-  z-index: 2;
+  left: 0;
+  z-index: 20;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
-  padding: var(--sys-spacing-medium);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-medium) var(--sys-radius-medium) 0 0;
+  max-height: 55%;
+  padding: 0 var(--sys-spacing-medium) var(--sys-spacing-medium);
+  border-radius: var(--sys-radius-large) var(--sys-radius-large) 0 0;
   background: var(--sys-color-surface);
   box-shadow: var(--sys-elevation-level3);
 }
 
-.ride-content__input {
-  width: 100%;
-  min-height: var(--sys-size-large);
-  border: 1px solid var(--sys-color-outline);
-  border-radius: var(--sys-radius-small);
-  padding: 0 var(--sys-spacing-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-  font: inherit;
+.ride-content__handle {
+  width: 2rem;
+  height: 0.25rem;
+  margin: var(--sys-spacing-small) auto 0;
+  border-radius: 999px;
+  background: var(--sys-color-on-surface-variant);
+}
+
+.ride-content__passengers {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sys-spacing-medium);
+  min-width: 0;
+
+  div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--sys-spacing-xxsmall);
+  }
+
+  span,
+  small {
+    @include mx.pu-font(label-medium);
+    color: var(--sys-color-on-surface-variant);
+  }
+
+  strong {
+    @include mx.pu-font(body-medium);
+    overflow-wrap: anywhere;
+  }
 }
 
 .ride-content__vehicles {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
-}
-
-.ride-content__card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--sys-spacing-medium);
-  align-items: center;
-  width: 100%;
-
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
-    min-width: 0;
-  }
-
-  span {
-    color: var(--sys-color-on-surface-variant);
-  }
-
-  i {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 999px;
-    background: var(--sys-color-primary);
-  }
-
-  b {
-    color: var(--sys-color-primary);
-    white-space: nowrap;
-  }
-}
-
-@media (max-width: 42rem) {
-  .ride-content__row {
-    grid-template-columns: 1fr;
-  }
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: var(--sys-spacing-xxsmall);
 }
 </style>

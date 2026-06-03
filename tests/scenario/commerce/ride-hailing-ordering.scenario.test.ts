@@ -305,21 +305,9 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
-  await page.getByTestId("ordering.ride-hailing.route-polyline").waitFor({
+  await page.getByTestId("ordering.ride-hailing.bottom-sheet").waitFor({
     state: "visible",
     timeout: 10_000,
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("ordering.ride-hailing.route-point.origin").textContent(),
-    expected: "杭州东站",
-    label: "RideHailing origin callout",
-  });
-  await assertLocatorTextIncludes({
-    actual: page
-      .getByTestId("ordering.ride-hailing.route-point.destination")
-      .textContent(),
-    expected: "灵隐寺",
-    label: "RideHailing destination callout",
   });
   await assertLocatorTextMatches({
     actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
@@ -331,34 +319,10 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
     expected: "同乘人",
     label: "RideHailing riders row",
   });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("ordering.ride-hailing.contact").textContent(),
-    expected: "联系方式",
-    label: "RideHailing contact row",
-  });
-}
-
-async function assertRideHailingDrawers(page: Page): Promise<void> {
-  await page.getByTestId("ordering.ride-hailing.departure-time").click();
-  await page.getByTestId("ordering.ride-hailing.departure-drawer").waitFor({
+  await page.getByTestId("ordering.ride-hailing.price-detail.toggle").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  await page.keyboard.press("Escape");
-
-  await page.getByTestId("ordering.ride-hailing.riders").click();
-  await page.getByTestId("ordering.ride-hailing.riders-drawer").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await page.keyboard.press("Escape");
-
-  await page.getByTestId("ordering.ride-hailing.contact").click();
-  await page.getByTestId("ordering.ride-hailing.contact-drawer").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await page.keyboard.press("Escape");
 }
 
 async function selectPremierVehicle(page: Page): Promise<void> {
@@ -379,7 +343,7 @@ async function selectPremierVehicle(page: Page): Promise<void> {
   await assertLocatorTextMatches({
     actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
     label: "RideHailing price range",
-    pattern: /36\.00.*52\.00|52\.00.*36\.00/,
+    pattern: /￥36\.00~52\.00/,
   });
   await vehicleCards.filter({ hasText: "系统曹操专车" }).click();
   await page.getByTestId("ordering.ride-hailing.vehicle-card.selected").waitFor({
@@ -481,7 +445,6 @@ scenario(
 
       await openRideHailingOrderingFromPr({ page, prId: pr.id });
       await assertRideHailingOrderingContent(page);
-      await assertRideHailingDrawers(page);
       await selectPremierVehicle(page);
 
       await page.getByTestId("ordering.ride-hailing.create-order").click();

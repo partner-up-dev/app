@@ -1,16 +1,37 @@
 <template>
   <template v-if="rentalOffer">
-    <SurfaceCard gap="md">
-      <div class="ordering-content__section-heading">
-        <p class="ordering-content__eyebrow">场地服务</p>
-        <h2 data-testid="ordering.rental.product-name">
-          {{ primarySpu?.name ?? "可预订场地" }}
-        </h2>
+    <div class="rental-ordering">
+      <SpuCard
+        :title="primarySpu?.name ?? '可预订场地'"
+        :description="spuDescription"
+        :thumbnail-src="spuThumbnailSrc"
+        data-testid="ordering.rental.product-summary"
+      />
+
+      <div class="rental-ordering__service">
+        <div>
+          <span>服务时间</span>
+          <strong>
+            <span data-testid="ordering.rental.service-start">
+              {{ formatDateTime(serviceStartAt) }}
+            </span>
+            <span aria-hidden="true"> - </span>
+            <span data-testid="ordering.rental.service-end">
+              {{ formatDateTime(serviceEndAt) }}
+            </span>
+          </strong>
+        </div>
+        <div>
+          <span>人数</span>
+          <strong data-testid="ordering.rental.participant-count">
+            {{ participantCount }} 人
+          </strong>
+        </div>
       </div>
 
       <ul
         v-if="primarySpu?.presentation.sellingPoints.length"
-        class="ordering-content__selling-points"
+        class="rental-ordering__selling-points"
       >
         <li
           v-for="point in primarySpu.presentation.sellingPoints"
@@ -19,145 +40,114 @@
           {{ point }}
         </li>
       </ul>
-    </SurfaceCard>
 
-    <SurfaceCard gap="md">
-      <div class="ordering-content__section-heading">
-        <p class="ordering-content__eyebrow">已从 PR 锁定</p>
-        <h2>服务时间与人数</h2>
-      </div>
-
-      <div class="ordering-content__facts">
-        <div>
-          <span>人数</span>
-          <strong data-testid="ordering.rental.participant-count">
-            {{ participantCount }} 人
-          </strong>
-        </div>
-        <div>
-          <span>开始</span>
-          <strong data-testid="ordering.rental.service-start">
-            {{ formatDateTime(serviceStartAt) }}
-          </strong>
-        </div>
-        <div>
-          <span>结束</span>
-          <strong data-testid="ordering.rental.service-end">
-            {{ formatDateTime(serviceEndAt) }}
-          </strong>
-        </div>
-      </div>
-    </SurfaceCard>
-
-    <SurfaceCard gap="md">
-      <div class="ordering-content__section-heading">
-        <p class="ordering-content__eyebrow">选择 SKU</p>
-        <h2>可预订规格</h2>
-      </div>
-
-      <div class="ordering-content__sku-list">
-        <ChoiceCard
-          v-for="sku in selectableSkus"
-          :key="sku.skuId"
-          :active="sku.skuId === selectedSkuId"
-          data-testid="ordering.rental.sku-option"
-          @click="selectedSkuId = sku.skuId"
-        >
-          <div class="ordering-content__sku-card">
-            <div>
+      <div class="rental-ordering__section">
+        <h2>商品配置</h2>
+        <div class="rental-ordering__sku-list">
+          <button
+            v-for="sku in selectableSkus"
+            :key="sku.skuId"
+            type="button"
+            class="rental-ordering__sku-row"
+            :class="{ 'is-selected': sku.skuId === selectedSkuId }"
+            data-testid="ordering.rental.sku-option"
+            @click="selectedSkuId = sku.skuId"
+          >
+            <span class="rental-ordering__sku-check">
+              <span
+                v-if="sku.skuId === selectedSkuId"
+                class="i-mdi-check"
+                aria-hidden="true"
+              ></span>
+            </span>
+            <span class="rental-ordering__sku-main">
               <strong>{{ sku.name }}</strong>
-              <span>
+              <small>
                 {{ rentalSkuParticipantCount(sku) }} 人 ·
                 {{ Math.round(rentalSkuDurationMinutes(sku) / 60) }} 小时
-              </span>
-            </div>
+              </small>
+            </span>
             <b>{{ formatFen(rentalSkuAmountFen(sku)) }}</b>
-          </div>
-        </ChoiceCard>
+          </button>
+        </div>
       </div>
 
-      <div
-        class="ordering-content__policy"
-        data-testid="ordering.rental.cancellation-policy"
-      >
-        <strong>取消政策</strong>
-        <p v-if="selectedCancellationSummary.length === 0">
-          暂无可展示的取消政策。
-        </p>
-        <p
-          v-for="summary in selectedCancellationSummary"
-          :key="`${summary.visibleLabel}-${summary.refundPercent}`"
-        >
-          {{ summary.visibleLabel }} · 退款 {{ summary.refundPercent }}%
-          <span v-if="summary.requiresOperatorHandling"> · 需人工处理</span>
-        </p>
-      </div>
-    </SurfaceCard>
-
-    <SurfaceCard gap="md">
-      <div class="ordering-content__section-heading">
-        <p class="ordering-content__eyebrow">登记信息</p>
-        <h2>联系人与入场人</h2>
-      </div>
-
-      <FormField
-        label="联系人电话"
-        for-id="rental-contact-phone"
-        required
-      >
-        <input
-          id="rental-contact-phone"
-          v-model.trim="contactPhone"
-          class="ordering-content__input"
-          inputmode="tel"
-          autocomplete="tel"
-          data-testid="ordering.rental.contact-phone"
-          placeholder="请输入联系人手机号"
-        />
-      </FormField>
-
-      <div class="ordering-content__registrants">
+      <div class="rental-ordering__section">
+        <h2>联系方式</h2>
         <FormField
-          v-for="(_, index) in registrantNames"
-          :key="index"
-          :label="`入场人 ${index + 1}`"
-          :for-id="`rental-registrant-${index}`"
+          label="联系人电话"
+          for-id="rental-contact-phone"
           required
         >
           <input
-            :id="`rental-registrant-${index}`"
-            v-model.trim="registrantNames[index]"
-            class="ordering-content__input"
-            autocomplete="name"
-            :data-testid="`ordering.rental.registrant-name.${index}`"
-            placeholder="请输入真实姓名"
+            id="rental-contact-phone"
+            v-model.trim="contactPhone"
+            class="rental-ordering__input"
+            inputmode="tel"
+            autocomplete="tel"
+            data-testid="ordering.rental.contact-phone"
+            placeholder="请输入联系人手机号"
           />
         </FormField>
       </div>
-    </SurfaceCard>
 
-    <SurfaceCard
-      v-if="primarySpu?.presentation.noticeBlocks.length"
-      gap="sm"
-      tone="outline"
-    >
-      <div
-        v-for="notice in primarySpu.presentation.noticeBlocks"
-        :key="notice.title"
-        class="ordering-content__notice-block"
-      >
-        <strong>{{ notice.title }}</strong>
-        <p>{{ notice.content }}</p>
+      <div class="rental-ordering__section">
+        <h2>参与者身份信息</h2>
+        <div class="rental-ordering__registrants">
+          <FormField
+            v-for="(_, index) in registrantNames"
+            :key="index"
+            :label="`入场人 ${index + 1}`"
+            :for-id="`rental-registrant-${index}`"
+            required
+          >
+            <input
+              :id="`rental-registrant-${index}`"
+              v-model.trim="registrantNames[index]"
+              class="rental-ordering__input"
+              autocomplete="name"
+              :data-testid="`ordering.rental.registrant-name.${index}`"
+              placeholder="请输入真实姓名"
+            />
+          </FormField>
+        </div>
       </div>
-    </SurfaceCard>
+
+      <div class="rental-ordering__section rental-ordering__section--subtle">
+        <div
+          class="rental-ordering__policy"
+          data-testid="ordering.rental.cancellation-policy"
+        >
+          <strong>取消政策</strong>
+          <p v-if="selectedCancellationSummary.length === 0">
+            暂无可展示的取消政策。
+          </p>
+          <p
+            v-for="summary in selectedCancellationSummary"
+            :key="`${summary.visibleLabel}-${summary.refundPercent}`"
+          >
+            {{ summary.visibleLabel }} · 退款 {{ summary.refundPercent }}%
+            <span v-if="summary.requiresOperatorHandling"> · 需人工处理</span>
+          </p>
+        </div>
+
+        <div
+          v-for="notice in primarySpu?.presentation.noticeBlocks ?? []"
+          :key="notice.title"
+          class="rental-ordering__notice-block"
+        >
+          <strong>{{ notice.title }}</strong>
+          <p>{{ notice.content }}</p>
+        </div>
+      </div>
+    </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
+import SpuCard from "./SpuCard.vue";
 import type {
   OrderingContentInput,
   OrderingContentOutput,
@@ -262,6 +252,19 @@ const primarySpu = computed(
   () => selectedSpu.value ?? rentalOffer.value?.spus[0] ?? null,
 );
 
+const spuDescription = computed(() =>
+  primarySpu.value?.presentation.sellingPoints.slice(0, 2).join(" · ") ?? null,
+);
+
+const spuThumbnailSrc = computed(() => {
+  const presentation = primarySpu.value?.presentation;
+  return (
+    presentation?.heroImageAssetIds[0] ??
+    presentation?.detailImageAssetIds[0] ??
+    null
+  );
+});
+
 const selectedCancellationSummary = computed(
   () => selectedSku.value?.cancellationPolicySummary ?? [],
 );
@@ -355,50 +358,35 @@ watch(output, (next) => emit("update:output", next), {
 </script>
 
 <style scoped lang="scss">
-.ordering-content__section-heading {
+.rental-ordering {
   display: flex;
+  width: 100%;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
-
-  h2,
-  p {
-    margin: 0;
-  }
-
-  h2 {
-    @include mx.pu-font(title-large);
-    color: var(--sys-color-on-surface);
-  }
+  gap: var(--sys-spacing-medium);
+  padding: var(--sys-spacing-small) 0 var(--sys-spacing-large);
 }
 
-.ordering-content__eyebrow {
-  @include mx.pu-font(label-medium);
-  color: var(--sys-color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.ordering-content__selling-points {
+.rental-ordering__selling-points {
   display: grid;
-  gap: var(--sys-spacing-xsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
   margin: 0;
-  padding-left: var(--sys-spacing-medium);
+  padding-left: var(--sys-spacing-large);
   color: var(--sys-color-on-surface-variant);
 }
 
-.ordering-content__facts {
+.rental-ordering__service {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sys-spacing-small);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sys-spacing-medium);
+  padding: var(--sys-spacing-small) 0;
+  border-top: 1px solid var(--sys-color-outline-variant);
+  border-bottom: 1px solid var(--sys-color-outline-variant);
 
   div {
     display: flex;
     flex-direction: column;
     gap: var(--sys-spacing-xxsmall);
     min-width: 0;
-    padding: var(--sys-spacing-small);
-    border-radius: var(--sys-radius-small);
-    background: var(--sys-color-surface-container-high);
   }
 
   span {
@@ -412,42 +400,54 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.ordering-content__sku-list,
-.ordering-content__registrants {
+.rental-ordering__section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
+  padding-top: var(--sys-spacing-small);
+
+  h2 {
+    @include mx.pu-font(title-small);
+    margin: 0;
+    color: var(--sys-color-on-surface);
+  }
 }
 
-.ordering-content__policy {
+.rental-ordering__section--subtle {
+  gap: var(--sys-spacing-medium);
+}
+
+.rental-ordering__sku-list,
+.rental-ordering__registrants {
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
-  padding: var(--sys-spacing-small);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface-container-high);
-
-  p {
-    margin: 0;
-    color: var(--sys-color-on-surface-variant);
-  }
+  gap: var(--sys-spacing-xsmall);
 }
 
-.ordering-content__sku-card {
-  display: flex;
+.rental-ordering__sku-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--sys-spacing-small);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sys-spacing-medium);
   width: 100%;
+  min-width: 0;
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  padding: var(--sys-spacing-small);
+  background: var(--sys-color-surface-container-low);
+  color: var(--sys-color-on-surface);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+  &.is-selected {
+    border-color: var(--sys-color-primary);
+    background: color-mix(in srgb, var(--sys-color-primary) 10%, var(--sys-color-surface));
   }
 
-  span {
-    color: var(--sys-color-on-surface-variant);
+  &:focus-visible {
+    outline: 2px solid var(--sys-color-primary);
+    outline-offset: 2px;
   }
 
   b {
@@ -456,7 +456,36 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.ordering-content__input {
+.rental-ordering__sku-check {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid var(--sys-color-outline);
+  border-radius: 999px;
+  color: var(--sys-color-primary);
+
+  span {
+    @include mx.pu-icon(small);
+  }
+}
+
+.rental-ordering__sku-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sys-spacing-xxsmall);
+
+  strong {
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
+.rental-ordering__input {
   width: 100%;
   min-height: var(--sys-size-large);
   border: 1px solid var(--sys-color-outline);
@@ -472,10 +501,13 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.ordering-content__notice-block {
+.rental-ordering__policy,
+.rental-ordering__notice-block {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xxsmall);
+  padding-top: var(--sys-spacing-small);
+  border-top: 1px solid var(--sys-color-outline-variant);
 
   p {
     margin: 0;
@@ -484,7 +516,7 @@ watch(output, (next) => emit("update:output", next), {
 }
 
 @media (max-width: 42rem) {
-  .ordering-content__facts {
+  .rental-ordering__service {
     grid-template-columns: 1fr;
   }
 }

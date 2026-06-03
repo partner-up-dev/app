@@ -1,5 +1,5 @@
 <template>
-  <header class="page-header">
+  <header class="page-header" :class="`page-header--${variant}`">
     <div class="page-header__top">
       <button
         v-if="showBack"
@@ -32,11 +32,13 @@ const props = withDefaults(
   defineProps<{
     title: string;
     subtitle?: string;
+    variant?: "default" | "small";
     showBack?: boolean;
     backLabel?: string;
     backFallbackTo?: RouteLocationRaw;
   }>(),
   {
+    variant: "default",
     showBack: true,
   },
 );
@@ -92,6 +94,10 @@ async function handleBack(): Promise<void> {
   margin-bottom: var(--sys-spacing-medium);
 }
 
+.page-header--small {
+  margin-bottom: var(--sys-spacing-small);
+}
+
 .page-header__top {
   display: flex;
   align-items: center;
@@ -136,10 +142,19 @@ async function handleBack(): Promise<void> {
   overflow-wrap: anywhere;
 }
 
+.page-header--small .page-header__title {
+  @include mx.pu-font(title-large);
+  -webkit-line-clamp: 1;
+}
+
 .page-header__subtitle {
   @include mx.pu-font(body-medium);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
+}
+
+.page-header--small .page-header__subtitle {
+  @include mx.pu-font(label-medium);
 }
 
 .page-header__meta {

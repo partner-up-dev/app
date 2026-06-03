@@ -28,6 +28,8 @@ import { PartnerRequestRepository } from "../../../apps/backend/src/repositories
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
+const rentalHeroImageSrc =
+  "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%3E%3Crect%20width='120'%20height='120'%20fill='%2396d945'/%3E%3Cpath%20d='M24%2084h72M32%2036h56v36H32z'%20stroke='%2326381c'%20stroke-width='8'%20fill='none'/%3E%3C/svg%3E";
 
 async function installScenarioAdminSession(
   page: Page,
@@ -142,7 +144,7 @@ async function givenRentalOrderingPlacement() {
       requiresNationalId: false,
     },
     presentation: {
-      heroImageAssetIds: [],
+      heroImageAssetIds: [rentalHeroImageSrc],
       detailImageAssetIds: [],
       sellingPoints: ["适合 2 人烘焙体验", "含基础工具与清洁"],
       parameterGroups: [],
@@ -416,10 +418,18 @@ scenario(
         state: "visible",
         timeout: 10_000,
       });
-      await page.getByText("适合 2 人烘焙体验").waitFor({
-        state: "visible",
-        timeout: 10_000,
+      await assertLocatorTextIncludes({
+        actual: page.getByTestId("ordering.rental.product-summary").textContent(),
+        expected: "适合 2 人烘焙体验",
+        label: "Ordering rental product summary",
       });
+      await page
+        .getByTestId("ordering.rental.product-summary")
+        .locator("img")
+        .waitFor({
+          state: "visible",
+          timeout: 10_000,
+        });
       await assertLocatorTextIncludes({
         actual: page.getByTestId("ordering.rental.participant-count").textContent(),
         expected: "2 人",
@@ -455,10 +465,19 @@ scenario(
         label: "Default selected SKU price",
       });
       await page.getByTestId("ordering.rental.price-detail.toggle").click();
+      await page.getByTestId("ordering.rental.price-detail").waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
       await assertLocatorTextIncludes({
         actual: page.getByTestId("ordering.rental.price-detail").textContent(),
         expected: "固定总价",
         label: "Ordering price detail explanation",
+      });
+      await page.keyboard.press("Escape");
+      await page.getByTestId("ordering.rental.price-detail").waitFor({
+        state: "hidden",
+        timeout: 10_000,
       });
 
       await skuOptions.filter({ hasText: "烘焙区 B" }).click();
