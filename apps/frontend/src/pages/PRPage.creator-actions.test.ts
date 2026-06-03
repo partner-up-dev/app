@@ -74,6 +74,24 @@ vi.mock("@/domains/pr/queries/usePRActions", () => {
   };
 });
 
+vi.mock("@/domains/pr/queries/usePRCreate", () => ({
+  useCreatePRFromStructured: () => ({
+    isPending: { value: false },
+    error: { value: null },
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
+vi.mock("@/domains/pr/queries/usePRPublish", () => ({
+  usePublishPR: () => ({
+    isPending: { value: false },
+    error: { value: null },
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 vi.mock("@/domains/pr/routing/usePRRouteId", async () => {
   const { computed } = await vi.importActual<typeof import("vue")>("vue");
 
@@ -122,6 +140,12 @@ vi.mock("@/processes/route-handoff/useMatchedPRHandoff", () => ({
 
 vi.mock("@/shared/telemetry/track", () => ({
   trackEvent: vi.fn(),
+}));
+
+vi.mock("@/shared/auth/useUserSessionStore", () => ({
+  useUserSessionStore: () => ({
+    isAuthenticated: true,
+  }),
 }));
 
 vi.mock("@/domains/pr/ui/composites/PRFactsCard.vue", () => ({
@@ -325,6 +349,29 @@ describe("PRPage creator action visibility", () => {
   );
 });
 
+describe("PRPage edit content editor", () => {
+  test("shows time editor for OPEN event-context PR when edit capability includes time", async () => {
+    const host = await mountPage(
+      buildPRDetail({
+        status: "OPEN",
+        isCreator: true,
+        reminderSupported: true,
+      }),
+    );
+
+    host
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="pr-detail.creator.edit-content"]',
+      )
+      ?.click();
+    await nextTick();
+    await nextTick();
+
+    expect(hasTestId(document.body, "pr-editor.form.start-date")).toBe(true);
+    expect(hasTestId(document.body, "pr-editor.form.end-date")).toBe(true);
+  });
+});
+
 describe("PRPage display title", () => {
   test("uses backend canonical title when anchor event title wins fallback", async () => {
     const host = await mountPage(
@@ -491,6 +538,7 @@ const buildPRDetail = ({
   capacityCurrent = 0,
   capacityMax = null,
   allowPostReadyTimeEdit = false,
+  reminderSupported = false,
 }: {
   status: PRStatus;
   isCreator: boolean;
@@ -504,6 +552,7 @@ const buildPRDetail = ({
   capacityCurrent?: number;
   capacityMax?: number | null;
   allowPostReadyTimeEdit?: boolean;
+  reminderSupported?: boolean;
 }): PRDetailView =>
   ({
     id: 123,
@@ -545,7 +594,7 @@ const buildPRDetail = ({
         exitBlockedReason: null,
       },
       reminder: {
-        supported: false,
+        supported: reminderSupported,
       },
       confirmation: {
         enabled: false,

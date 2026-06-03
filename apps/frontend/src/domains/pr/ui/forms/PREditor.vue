@@ -319,17 +319,9 @@ const editableFields = computed(() => {
   return new Set(capability?.canEdit ? capability.editableFields : []);
 });
 
-const supportsEventContextFeatures = computed(
-  () => prDetail.value?.partnerSection.reminder.supported ?? false,
-);
-
 const canEditTitle = computed(() => editableFields.value.has("title"));
 const canEditType = computed(() => editableFields.value.has("type"));
-const canEditTime = computed(
-  () =>
-    editableFields.value.has("time") &&
-    (isCreateEditor.value || !supportsEventContextFeatures.value),
-);
+const canEditTime = computed(() => editableFields.value.has("time"));
 const canEditPlace = computed(
   () =>
     editableFields.value.has("location") || editableFields.value.has("route"),
@@ -340,11 +332,7 @@ const canEditMinPartners = computed(() =>
 const canEditMaxPartners = computed(() =>
   editableFields.value.has("maxPartners"),
 );
-const canEditBudget = computed(
-  () =>
-    editableFields.value.has("budget") &&
-    (isCreateEditor.value || !supportsEventContextFeatures.value),
-);
+const canEditBudget = computed(() => editableFields.value.has("budget"));
 const canEditPreferences = computed(() =>
   editableFields.value.has("preferences"),
 );
