@@ -39,8 +39,10 @@ const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
 const AdminCommerceProductPage = () =>
   import("@/pages/AdminCommerceProductPage.vue");
-const AdminCommercePlacementOfferPage = () =>
-  import("@/pages/AdminCommercePlacementOfferPage.vue");
+const AdminCommerceOfferPage = () =>
+  import("@/pages/AdminCommerceOfferPage.vue");
+const AdminCommercePlacementPage = () =>
+  import("@/pages/AdminCommercePlacementPage.vue");
 const AdminCommerceOrderBillPage = () =>
   import("@/pages/AdminCommerceOrderBillPage.vue");
 const AdminCommerceFulfillmentPage = () =>
@@ -298,13 +300,26 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/admin/commerce/placement-offer",
-    name: "admin-commerce-placement-offer",
-    component: AdminCommercePlacementOfferPage,
+    path: "/admin/commerce/offers",
+    name: "admin-commerce-offers",
+    component: AdminCommerceOfferPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["service"],
     },
+  },
+  {
+    path: "/admin/commerce/placements",
+    name: "admin-commerce-placements",
+    component: AdminCommercePlacementPage,
+    meta: {
+      wechatSharePolicy: "route",
+      requiredRoles: ["service"],
+    },
+  },
+  {
+    path: "/admin/commerce/placement-offer",
+    redirect: { name: "admin-commerce-placements" },
   },
   {
     path: "/admin/commerce/orders-bills",

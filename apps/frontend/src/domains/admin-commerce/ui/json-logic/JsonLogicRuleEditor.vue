@@ -54,7 +54,15 @@
       >
         <label class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceJsonLogic.fieldLabel") }}</span>
+          <input
+            v-if="props.allowCustomFields"
+            v-model="condition.fieldPath"
+            class="pm-field-input"
+            type="text"
+            @change="normalizeCondition(condition)"
+          />
           <select
+            v-else
             v-model="condition.fieldPath"
             class="pm-field-input"
             @change="normalizeCondition(condition)"
@@ -88,7 +96,7 @@
         >
           <span class="pm-field-label">{{ t("adminCommerceJsonLogic.valueLabel") }}</span>
           <select
-            v-if="valueFieldForCondition(condition)?.valueOptions?.length"
+            v-if="!props.forceValueInput && valueFieldForCondition(condition)?.valueOptions?.length"
             v-model="condition.valueText"
             class="pm-field-input"
           >
@@ -129,6 +137,7 @@
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
+  createCustomJsonLogicField,
   createJsonLogicConditionDraft,
   findJsonLogicField,
   getJsonLogicOperatorsForField,
@@ -148,11 +157,19 @@ import SegmentedControl, {
 } from "@/shared/ui/controls/SegmentedControl.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
 
-const props = defineProps<{
-  fields: readonly JsonLogicFieldOption[];
-  title?: string;
-  description?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    fields: readonly JsonLogicFieldOption[];
+    title?: string;
+    description?: string;
+    allowCustomFields?: boolean;
+    forceValueInput?: boolean;
+  }>(),
+  {
+    allowCustomFields: false,
+    forceValueInput: false,
+  },
+);
 
 const rule = defineModel<JsonLogicRuleDraft>({ required: true });
 const { t } = useI18n();
@@ -190,7 +207,9 @@ const updateMode = (value: SegmentedControlValue) => {
 const normalizeCondition = (condition: JsonLogicConditionDraft) => {
   Object.assign(
     condition,
-    normalizeJsonLogicConditionDraft(condition, props.fields),
+    normalizeJsonLogicConditionDraft(condition, props.fields, {
+      allowCustomFields: props.allowCustomFields,
+    }),
   );
 };
 
@@ -210,15 +229,27 @@ const removeCondition = (draftId: string) => {
 const operatorsForCondition = (
   condition: JsonLogicConditionDraft,
 ): readonly JsonLogicOperator[] => {
-  const field = findJsonLogicField(props.fields, condition.fieldPath);
+  const field = fieldForCondition(condition);
   return field ? getJsonLogicOperatorsForField(field) : [];
+};
+
+const fieldForCondition = (
+  condition: JsonLogicConditionDraft,
+): JsonLogicFieldOption | null => {
+  const field = findJsonLogicField(props.fields, condition.fieldPath);
+  if (field) return field;
+
+  const trimmedPath = condition.fieldPath.trim();
+  return props.allowCustomFields && trimmedPath.length > 0
+    ? createCustomJsonLogicField(trimmedPath)
+    : null;
 };
 
 const valueFieldForCondition = (
   condition: JsonLogicConditionDraft,
 ): JsonLogicFieldOption | null => {
   if (!operatorNeedsJsonLogicValue(condition.operator)) return null;
-  return findJsonLogicField(props.fields, condition.fieldPath);
+  return fieldForCondition(condition);
 };
 
 const operatorLabel = (operator: JsonLogicOperator): string =>
@@ -227,7 +258,9 @@ const operatorLabel = (operator: JsonLogicOperator): string =>
 watch(
   () => props.fields,
   (fields) => {
-    rule.value = normalizeJsonLogicRuleDraft(rule.value, fields);
+    rule.value = normalizeJsonLogicRuleDraft(rule.value, fields, {
+      allowCustomFields: props.allowCustomFields,
+    });
   },
   { immediate: true },
 );

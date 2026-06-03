@@ -1157,8 +1157,10 @@ export interface MessageSchema {
     navCommerceMerchandisingGroup: string;
     navCommerceProducts: string;
     navCommerceProductsSubtitle: string;
-    navCommercePlacementOffer: string;
-    navCommercePlacementOfferSubtitle: string;
+    navCommerceOffers: string;
+    navCommerceOffersSubtitle: string;
+    navCommercePlacements: string;
+    navCommercePlacementsSubtitle: string;
     navCommerceTradeGroup: string;
     navCommerceOrdersBills: string;
     navCommerceOrdersBillsSubtitle: string;
@@ -1590,6 +1592,7 @@ export interface MessageSchema {
     placementsTitle: string;
     emptyOffers: string;
     emptyPlacements: string;
+    emptyOfferHint: string;
     newOfferAction: string;
     newPlacementAction: string;
     createOfferTitle: string;

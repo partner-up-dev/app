@@ -72,12 +72,16 @@ export const placementMatchingRuleFields = [
 ] satisfies readonly JsonLogicFieldOption[];
 
 export const createPlacementMatchingRuleDraft = (): JsonLogicRuleDraft =>
-  toJsonLogicRuleDraft(true, placementMatchingRuleFields);
+  toJsonLogicRuleDraft(true, placementMatchingRuleFields, {
+    allowCustomFields: true,
+  });
 
 export const toPlacementMatchingRuleDraft = (
   rule: unknown,
 ): JsonLogicRuleDraft =>
-  toJsonLogicRuleDraft(rule, placementMatchingRuleFields);
+  toJsonLogicRuleDraft(rule, placementMatchingRuleFields, {
+    allowCustomFields: true,
+  });
 
 export const buildPlacementMatchingRule = (
   draft: JsonLogicRuleDraft,
@@ -86,5 +90,6 @@ export const buildPlacementMatchingRule = (
   buildJsonLogicRule(draft, {
     fields: placementMatchingRuleFields,
     alwaysRule: true,
+    allowCustomFields: true,
     labels,
   });

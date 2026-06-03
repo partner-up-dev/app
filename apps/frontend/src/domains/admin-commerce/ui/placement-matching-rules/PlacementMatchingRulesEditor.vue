@@ -4,6 +4,8 @@
     :fields="placementMatchingRuleFields"
     :title="t('adminCommercePlacementOffer.matchingRuleLabel')"
     :description="t('adminCommercePlacementOffer.matchingRuleHint')"
+    allow-custom-fields
+    force-value-input
   />
 </template>
 

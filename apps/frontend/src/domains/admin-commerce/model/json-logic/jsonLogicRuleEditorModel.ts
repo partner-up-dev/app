@@ -50,6 +50,10 @@ export type JsonLogicRuleBuildLabels = {
   customRuleLabel: string;
 };
 
+export type JsonLogicRuleParseOptions = {
+  allowCustomFields?: boolean;
+};
+
 const defaultLabels: JsonLogicRuleBuildLabels = {
   fieldLabel: "字段",
   valueLabel: "值",
@@ -85,6 +89,30 @@ export const findJsonLogicField = (
   path: string,
 ): JsonLogicFieldOption | null =>
   fields.find((field) => field.path === path) ?? null;
+
+export const createCustomJsonLogicField = (
+  path: string,
+): JsonLogicFieldOption => ({
+  path,
+  label: path,
+  valueKind: "string",
+});
+
+const resolveJsonLogicField = (
+  fields: readonly JsonLogicFieldOption[],
+  path: string,
+  options?: JsonLogicRuleParseOptions,
+): JsonLogicFieldOption | null => {
+  const field = findJsonLogicField(fields, path);
+  if (field) return field;
+
+  const trimmedPath = path.trim();
+  if (options?.allowCustomFields && trimmedPath.length > 0) {
+    return createCustomJsonLogicField(trimmedPath);
+  }
+
+  return null;
+};
 
 export const operatorNeedsJsonLogicValue = (
   operator: JsonLogicOperator,
@@ -131,8 +159,10 @@ export const createJsonLogicRuleDraft = (
 export const normalizeJsonLogicConditionDraft = (
   condition: JsonLogicConditionDraft,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft => {
-  const field = findJsonLogicField(fields, condition.fieldPath) ?? fields[0];
+  const field =
+    resolveJsonLogicField(fields, condition.fieldPath, options) ?? fields[0];
   if (!field) return condition;
 
   const operators = getJsonLogicOperatorsForField(field);
@@ -152,10 +182,11 @@ export const normalizeJsonLogicConditionDraft = (
 export const normalizeJsonLogicRuleDraft = (
   draft: JsonLogicRuleDraft,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicRuleDraft => ({
   ...draft,
   conditions: draft.conditions.map((condition) =>
-    normalizeJsonLogicConditionDraft(condition, fields),
+    normalizeJsonLogicConditionDraft(condition, fields, options),
   ),
 });
 
@@ -195,13 +226,14 @@ const parseBinaryCondition = (
   operator: JsonLogicOperator,
   expression: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft | null => {
   if (!Array.isArray(expression) || expression.length !== 2) return null;
 
   const fieldPath = readVarPath(expression[0]);
   if (!fieldPath) return null;
 
-  const field = findJsonLogicField(fields, fieldPath);
+  const field = resolveJsonLogicField(fields, fieldPath, options);
   if (!field) return null;
 
   if (!getJsonLogicOperatorsForField(field).includes(operator)) return null;
@@ -239,6 +271,7 @@ const parseBinaryCondition = (
 const parseContainsCondition = (
   expression: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft | null => {
   if (!Array.isArray(expression) || expression.length !== 2) return null;
   if (typeof expression[0] !== "string") return null;
@@ -246,7 +279,7 @@ const parseContainsCondition = (
   const fieldPath = readVarPath(expression[1]);
   if (!fieldPath) return null;
 
-  const field = findJsonLogicField(fields, fieldPath);
+  const field = resolveJsonLogicField(fields, fieldPath, options);
   if (!field || field.valueKind !== "stringArray") return null;
   if (!getJsonLogicOperatorsForField(field).includes("CONTAINS")) return null;
 
@@ -261,10 +294,11 @@ const parseContainsCondition = (
 const parseBooleanVarCondition = (
   expression: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft | null => {
   const fieldPath = readVarPath(expression);
   if (!fieldPath) return null;
-  const field = findJsonLogicField(fields, fieldPath);
+  const field = resolveJsonLogicField(fields, fieldPath, options);
   if (!field || field.valueKind !== "boolean") return null;
 
   return {
@@ -278,8 +312,9 @@ const parseBooleanVarCondition = (
 const parseJsonLogicCondition = (
   rule: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft | null => {
-  const booleanVarCondition = parseBooleanVarCondition(rule, fields);
+  const booleanVarCondition = parseBooleanVarCondition(rule, fields, options);
   if (booleanVarCondition) return booleanVarCondition;
 
   if (!isRecord(rule)) return null;
@@ -289,23 +324,25 @@ const parseJsonLogicCondition = (
   const [operator, expression] = entries[0] ?? [];
   if (!operator) return null;
 
-  if (operator === "===") return parseBinaryCondition("EQUALS", expression, fields);
+  if (operator === "===") {
+    return parseBinaryCondition("EQUALS", expression, fields, options);
+  }
   if (operator === "!==") {
-    return parseBinaryCondition("NOT_EQUALS", expression, fields);
+    return parseBinaryCondition("NOT_EQUALS", expression, fields, options);
   }
   if (operator === ">") {
-    return parseBinaryCondition("GREATER_THAN", expression, fields);
+    return parseBinaryCondition("GREATER_THAN", expression, fields, options);
   }
   if (operator === ">=") {
-    return parseBinaryCondition("GREATER_THAN_OR_EQUALS", expression, fields);
+    return parseBinaryCondition("GREATER_THAN_OR_EQUALS", expression, fields, options);
   }
   if (operator === "<") {
-    return parseBinaryCondition("LESS_THAN", expression, fields);
+    return parseBinaryCondition("LESS_THAN", expression, fields, options);
   }
   if (operator === "<=") {
-    return parseBinaryCondition("LESS_THAN_OR_EQUALS", expression, fields);
+    return parseBinaryCondition("LESS_THAN_OR_EQUALS", expression, fields, options);
   }
-  if (operator === "in") return parseContainsCondition(expression, fields);
+  if (operator === "in") return parseContainsCondition(expression, fields, options);
 
   return null;
 };
@@ -313,6 +350,7 @@ const parseJsonLogicCondition = (
 const parseCompoundRule = (
   rule: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): Pick<JsonLogicRuleDraft, "mode" | "conditions"> | null => {
   if (!isRecord(rule)) return null;
   const entries = Object.entries(rule);
@@ -324,7 +362,7 @@ const parseCompoundRule = (
   }
 
   const conditions = expression.map((item) =>
-    parseJsonLogicCondition(item, fields),
+    parseJsonLogicCondition(item, fields, options),
   );
   if (conditions.some((condition) => condition === null)) return null;
 
@@ -339,6 +377,7 @@ const parseCompoundRule = (
 export const toJsonLogicRuleDraft = (
   rule: unknown,
   fields: readonly JsonLogicFieldOption[],
+  options?: JsonLogicRuleParseOptions,
 ): JsonLogicRuleDraft => {
   if (rule === null || rule === true) {
     return {
@@ -349,7 +388,7 @@ export const toJsonLogicRuleDraft = (
     };
   }
 
-  const compoundRule = parseCompoundRule(rule, fields);
+  const compoundRule = parseCompoundRule(rule, fields, options);
   if (compoundRule) {
     return {
       ...compoundRule,
@@ -358,7 +397,7 @@ export const toJsonLogicRuleDraft = (
     };
   }
 
-  const condition = parseJsonLogicCondition(rule, fields);
+  const condition = parseJsonLogicCondition(rule, fields, options);
   if (condition) {
     return {
       mode: "ALL",
@@ -403,8 +442,9 @@ const buildJsonLogicCondition = (
   condition: JsonLogicConditionDraft,
   fields: readonly JsonLogicFieldOption[],
   labels: JsonLogicRuleBuildLabels,
+  options?: JsonLogicRuleParseOptions,
 ): unknown => {
-  const field = findJsonLogicField(fields, condition.fieldPath);
+  const field = resolveJsonLogicField(fields, condition.fieldPath, options);
   if (!field) {
     throw new Error(`${labels.fieldLabel}无效`);
   }
@@ -439,6 +479,7 @@ export const buildJsonLogicRule = (
     fields: readonly JsonLogicFieldOption[];
     alwaysRule: unknown;
     labels?: Partial<JsonLogicRuleBuildLabels>;
+    allowCustomFields?: boolean;
   },
 ): unknown => {
   if (draft.mode === "ALWAYS") return input.alwaysRule;
@@ -449,7 +490,9 @@ export const buildJsonLogicRule = (
   }
 
   const conditions = draft.conditions.map((condition) =>
-    buildJsonLogicCondition(condition, input.fields, labels),
+    buildJsonLogicCondition(condition, input.fields, labels, {
+      allowCustomFields: input.allowCustomFields,
+    }),
   );
   if (conditions.length === 0) return input.alwaysRule;
   if (conditions.length === 1) return conditions[0];
