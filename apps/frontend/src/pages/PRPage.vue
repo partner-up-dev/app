@@ -41,28 +41,16 @@
       </PageHeader>
 
       <Modal
-        v-if="showEditContentModal && id !== null && editableFields"
+        v-if="showEditContentModal && id !== null"
         :open="showEditContentModal"
         max-width="480px"
         :title="t('editContentModal.title')"
         @close="closeEditContentModal"
       >
-        <PRForm
-          v-if="!isPostReadyEditMode"
-          ref="editContentFormRef"
-          :initial-fields="editableFields"
-          :show-budget-field="showBudgetField"
-          :show-time-field="showTimeField"
-          :type-editable="false"
-          @submit="handleEditContentSubmit"
-        />
-
-        <PRPostReadyEditor
-          v-else
-          ref="postReadyEditorRef"
-          :initial-fields="editableFields"
-          :edit-capability="prDetail.editCapability"
-          @submit="handleEditContentSubmit"
+        <PREditor
+          ref="editorRef"
+          :pr-id="id"
+          @saved="closeEditContentModal"
         />
 
         <div class="creator-modal-actions creator-modal-actions--spaced">
@@ -75,31 +63,15 @@
           </Button>
           <Button
             type="button"
-            :loading="editContentPending"
+            :loading="editorPending"
             :disabled="!isEditContentFormValid"
+            data-testid="pr-detail.creator.edit-content.submit"
             @click="submitEditContentForm"
           >
             {{ t("editContentModal.confirmAction") }}
           </Button>
         </div>
-
-        <ErrorToast
-          v-if="hasEditContentError"
-          :message="editContentError?.message || t('editContentModal.updateFailed')"
-          @close="resetContentUpdate"
-        />
       </Modal>
-
-      <ConfirmDialog
-        :open="showReleaseConfirmDialog"
-        title="确认移出冲突成员"
-        message="这次修改会让部分成员与你选择的新时间冲突。确认后，系统会将这些成员移出本次 PR，并通知他们原因。"
-        confirm-label="确认修改并移出"
-        confirm-tone="danger"
-        :loading="editContentPending"
-        @close="closeReleaseConfirmDialog"
-        @confirm="confirmReleaseAndSubmit"
-      />
 
       <Modal
         v-if="showModifyStatusModal && id !== null"
@@ -216,12 +188,10 @@ import { computed, isRef, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import type { PartnerRequestFormInput } from "@/lib/validation";
 import Button from "@/shared/ui/actions/Button.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
@@ -243,8 +213,7 @@ import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRStudySprintPomodoroAction from "@/domains/pr/ui/sections/PRStudySprintPomodoroAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
-import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
-import PRPostReadyEditor from "@/domains/pr/ui/forms/PRPostReadyEditor.vue";
+import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
@@ -280,15 +249,11 @@ const { data, isLoading, error } = usePRDetail(id);
 const prDetail = computed(() => data.value);
 const pendingReplayRegistry = providePRPendingReplayRegistry();
 const factsCardTargetRef = ref<HTMLElement | null>(null);
-const editContentFormRef = ref<InstanceType<typeof PRForm> | null>(null);
-const postReadyEditorRef =
-  ref<InstanceType<typeof PRPostReadyEditor> | null>(null);
+const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
 const updateStatusFormRef =
   ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
 const showEditContentModal = ref(false);
 const showModifyStatusModal = ref(false);
-const showReleaseConfirmDialog = ref(false);
-const pendingReleasePayload = ref<PartnerRequestFormInput | null>(null);
 const matchedPRHandoff = useMatchedPRHandoff();
 const prReadyForPendingReplay = computed(
   () =>
@@ -312,7 +277,6 @@ const updateStatusInitialStatus = computed<PRStatusManual>(() => {
   }
   return "OPEN";
 });
-const isPostReadyEditMode = computed(() => prDetail.value?.status === "READY");
 const supportsEventContextFeatures = computed(
   () => prDetail.value?.partnerSection.reminder.supported ?? false,
 );
@@ -388,21 +352,13 @@ const placementMatchingContext = computed(() => {
 });
 
 const {
-  editableFields,
-  showBudgetField,
-  showTimeField,
   showEditContentAction,
   showModifyStatusAction,
   showHeaderQuickActions,
-  editContentPending,
-  editContentError,
-  hasEditContentError,
   updateStatusPending,
   updateStatusError,
   hasUpdateStatusError,
-  submitContentUpdate,
   submitStatusUpdate,
-  resetContentUpdate,
   resetStatusUpdate,
 } = usePRCreatorActions({
   id,
@@ -410,19 +366,21 @@ const {
   supportsEventContextFeatures,
 });
 
+const editorPending = computed(() => {
+  const pending = editorRef.value?.isPending;
+  return isRef<boolean>(pending) ? pending.value : Boolean(pending);
+});
+
 const isEditContentFormValid = computed(() => {
-  const canSubmit = isPostReadyEditMode.value
-    ? postReadyEditorRef.value?.canSubmit
-    : editContentFormRef.value?.canSubmit;
-  return isRef(canSubmit) ? canSubmit.value : Boolean(canSubmit);
+  const canSubmit = editorRef.value?.canSubmit;
+  return isRef<boolean>(canSubmit) ? canSubmit.value : Boolean(canSubmit);
 });
 
 useBodyScrollLock(
   computed(
     () =>
       showEditContentModal.value ||
-      showModifyStatusModal.value ||
-      showReleaseConfirmDialog.value,
+      showModifyStatusModal.value,
   ),
 );
 
@@ -447,63 +405,16 @@ const trackCreatorActionClick = (actionType: CreatorSecondaryActionType) => {
 };
 
 const openEditContentModal = () => {
-  resetContentUpdate();
   trackCreatorActionClick("CREATOR_EDIT_CONTENT");
   showEditContentModal.value = true;
 };
 
 const closeEditContentModal = () => {
   showEditContentModal.value = false;
-  showReleaseConfirmDialog.value = false;
-  pendingReleasePayload.value = null;
-  resetContentUpdate();
 };
 
 const submitEditContentForm = () => {
-  if (isPostReadyEditMode.value) {
-    postReadyEditorRef.value?.submitForm();
-    return;
-  }
-  editContentFormRef.value?.submitForm();
-};
-
-const handleEditContentSubmit = async (
-  payload: PartnerRequestFormInput,
-): Promise<void> => {
-  await submitEditContentPayload(payload);
-};
-
-const submitEditContentPayload = async (
-  payload: PartnerRequestFormInput,
-  options: { allowRelease?: boolean } = {},
-): Promise<void> => {
-  try {
-    await submitContentUpdate(payload, options);
-    closeEditContentModal();
-  } catch (error) {
-    if (
-      options.allowRelease !== true &&
-      error instanceof Error &&
-      "code" in error &&
-      error.code === "PARTICIPANT_RELEASE_REQUIRED"
-    ) {
-      pendingReleasePayload.value = payload;
-      resetContentUpdate();
-      showReleaseConfirmDialog.value = true;
-      return;
-    }
-    throw error;
-  }
-};
-
-const closeReleaseConfirmDialog = () => {
-  showReleaseConfirmDialog.value = false;
-};
-
-const confirmReleaseAndSubmit = async () => {
-  const payload = pendingReleasePayload.value;
-  if (!payload) return;
-  await submitEditContentPayload(payload, { allowRelease: true });
+  editorRef.value?.submitForm();
 };
 
 const openModifyStatusModal = () => {

@@ -5,6 +5,7 @@ import {
 } from "../../../_infra/http/backend-app";
 import type {
   PartnerRequestFields,
+  PRAllowEditAfterReady,
   PRId,
   PRStatus,
 } from "../../../../src/entities/partner-request";
@@ -28,6 +29,13 @@ export type GivenPublishedPartnerRequestInput = {
   minPartners: number;
   expectedCreatedStatus?: PRStatus;
   title?: string;
+};
+
+export type GivenPersistedPartnerRequestInput = {
+  creator: ScenarioUser;
+  fields: PartnerRequestFields;
+  status: PRStatus;
+  allowEditAfterReady?: PRAllowEditAfterReady | null;
 };
 
 const defaultTimeWindow = (): [string, string] => [
@@ -81,6 +89,31 @@ export async function givenDraftPR(input: {
     joinGateConfig: [],
     status: "DRAFT",
     createdBy: null,
+  });
+  await initializeSlotsForPR(request.id, null);
+
+  return { id: request.id };
+}
+
+export async function givenPersistedPartnerRequest(
+  input: GivenPersistedPartnerRequestInput,
+): Promise<ScenarioPartnerRequest> {
+  const request = await prRepo.create({
+    title: input.fields.title,
+    type: input.fields.type,
+    time: input.fields.time,
+    location: input.fields.location,
+    route: input.fields.route,
+    minPartners: input.fields.minPartners,
+    maxPartners: input.fields.maxPartners,
+    budget: input.fields.budget,
+    preferences: input.fields.preferences,
+    notes: input.fields.notes,
+    meetingPoint: input.fields.meetingPoint ?? null,
+    joinGateConfig: [],
+    status: input.status,
+    createdBy: input.creator.user.id,
+    allowEditAfterReady: input.allowEditAfterReady ?? null,
   });
   await initializeSlotsForPR(request.id, null);
 

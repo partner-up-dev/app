@@ -140,7 +140,7 @@ Prohibited:
 - `domains/event/ui/composites/AnchorEventRadioCardCarousel.vue`: Event-domain carousel selector that centers and enlarges the selected Anchor Event card while keeping event-card content reuse local to the event domain.
 - `domains/pr/ui/primitives/PRPreviewCard.vue`: PR-domain preview card for PR list rows and search results. Accepts `prId`, owns the PR detail query, and supports route override, cover image, contextual time label, and an `actions` slot. Keep canonical PR facts inside the owned detail query; keep call-site props limited to caller context.
 - `domains/pr/ui/forms/DateTimeRangePicker.vue`: Standalone time-window picker for start/end date-time.
-- `domains/pr/ui/forms/PRForm.vue`: Structured PR create/edit form using `src/lib/validation`.
+- `domains/pr/ui/forms/PREditor.vue`: Unified structured PR create/edit editor using `src/lib/validation`; pass `prId` only for edit mode.
 - `domains/route/ui/RouteEditor.vue`: Generic route editor with compact route rows, waypoint add/remove, map preview toggle, and `LocationPicker` handoff for point selection.
 - `domains/route/ui/RouteMap.vue`: Generic route display wrapper over `shared/map/Map.vue`; consuming domains own payload conversion and planned polyline sourcing.
 - `domains/route/ui/RoutePointList.vue`: Generic compact/detail ordered route-point list with role dots; consuming domains choose whether to show addresses.

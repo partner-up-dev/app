@@ -3,6 +3,7 @@ import {
   config,
   type MeetingPointConfig,
   partnerRequests,
+  type PRAllowEditAfterReady,
   type PRStatus,
   users,
   type PRJoinGateConfig,
@@ -33,6 +34,16 @@ export async function configurePRStatus(input: {
   await getTestDb()
     .update(partnerRequests)
     .set({ status: input.status })
+    .where(eq(partnerRequests.id, input.pr.id));
+}
+
+export async function configurePRPostReadyEditPolicy(input: {
+  pr: ScenarioPartnerRequest;
+  allowEditAfterReady: PRAllowEditAfterReady | null;
+}): Promise<void> {
+  await getTestDb()
+    .update(partnerRequests)
+    .set({ allowEditAfterReady: input.allowEditAfterReady })
     .where(eq(partnerRequests.id, input.pr.id));
 }
 

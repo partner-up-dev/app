@@ -26,6 +26,13 @@ export type PREditCapability = {
   };
 };
 
+export type PREditPostReadyCapability = {
+  editableFields: PREditableField[];
+  constraints: {
+    timeWindow?: [string, string];
+  };
+};
+
 const OPEN_EDITABLE_FIELDS: PREditableField[] = [
   "title",
   "time",
@@ -57,6 +64,15 @@ const resolveReadyEditableFields = (
   return fields;
 };
 
+export const buildPREditPostReadyCapability = (
+  policy: PRAllowEditAfterReady | null,
+): PREditPostReadyCapability => ({
+  editableFields: resolveReadyEditableFields(policy),
+  constraints: {
+    ...(policy?.timeWindow ? { timeWindow: policy.timeWindow } : {}),
+  },
+});
+
 export const buildPREditCapability = (
   request: PartnerRequest,
   viewerUserId: UserId | null,
@@ -74,17 +90,13 @@ export const buildPREditCapability = (
   }
 
   if (request.status === "READY") {
-    const editableFields = resolveReadyEditableFields(
+    const postReadyCapability = buildPREditPostReadyCapability(
       request.allowEditAfterReady,
     );
     return {
-      canEdit: editableFields.length > 0,
-      editableFields,
-      constraints: {
-        ...(request.allowEditAfterReady?.timeWindow
-          ? { timeWindow: request.allowEditAfterReady.timeWindow }
-          : {}),
-      },
+      canEdit: postReadyCapability.editableFields.length > 0,
+      editableFields: postReadyCapability.editableFields,
+      constraints: postReadyCapability.constraints,
     };
   }
 

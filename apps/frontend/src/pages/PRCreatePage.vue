@@ -36,11 +36,7 @@
           <p>{{ t("createPage.formModeDescription") }}</p>
         </header>
 
-        <PRForm
-          :form-id="createFormId"
-          :initial-fields="initialFields"
-          @submit="handleSubmit"
-        />
+        <PREditor ref="editorRef" />
       </section>
     </div>
 
@@ -48,13 +44,10 @@
       <div data-region="actions">
         <PRCreateFooterActions
           v-if="activeMode === 'form'"
-          :pending="
-            createMutation.isPending.value || publishMutation.isPending.value
-          "
-          :pending-status="pendingStatus"
-          :allow-draft-save="allowDraftSave"
-          :form-id="createFormId"
-          @submit-as="submitAs"
+          :pending="editorPending"
+          :pending-status="editorPendingStatus"
+          :allow-draft-save="editorAllowDraftSave"
+          @submit-as="submitEditorAs"
         />
       </div>
     </template>
@@ -63,37 +56,21 @@
       <MiniumCommonFooter data-region="support" />
     </template>
 
-    <ErrorToast
-      v-if="
-        activeMode === 'form' &&
-        (createMutation.isError.value || publishMutation.isError.value)
-      "
-      :message="
-        createMutation.error.value?.message ||
-        publishMutation.error.value?.message ||
-        t('createPage.createFailed')
-      "
-      @close="
-        createMutation.reset();
-        publishMutation.reset();
-      "
-    />
   </PageScaffoldFlow>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, isRef, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRoute } from "vue-router";
-import PRForm from "@/domains/pr/ui/forms/PRForm.vue";
+import { useRoute, useRouter } from "vue-router";
+import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
-import { usePRCreateFlow } from "@/domains/pr/use-cases/usePRCreateFlow";
+import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
 
 const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
   if (value === "nl" || value === "form") return value;
@@ -110,17 +87,8 @@ const hasTopicQuery = (value: unknown): boolean => {
 
 const { t } = useI18n();
 const route = useRoute();
-const createFormId = "pr-create-structured-form";
-const {
-  createMutation,
-  publishMutation,
-  initialFields,
-  pendingStatus,
-  allowDraftSave,
-  submitAs,
-  handleSubmit,
-  goHome,
-} = usePRCreateFlow();
+const router = useRouter();
+const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
 
 const initialMode =
   resolveQueryMode(route.query.mode) ??
@@ -142,15 +110,35 @@ const setMode = (mode: "nl" | "form") => {
   if (activeMode.value === mode) return;
 
   activeMode.value = mode;
-  if (mode === "nl") {
-    createMutation.reset();
-    publishMutation.reset();
-  }
 };
 
 const handleModeChange = (value: string | number) => {
   if (value !== "nl" && value !== "form") return;
   setMode(value);
+};
+
+const readExposed = <T,>(value: unknown, fallback: T): T => {
+  if (isRef<T>(value)) return value.value;
+  return value === undefined || value === null ? fallback : (value as T);
+};
+
+const editorPending = computed(() =>
+  readExposed(editorRef.value?.isPending, false),
+);
+const editorPendingStatus = computed(() =>
+  readExposed<CreateSubmissionMode>(editorRef.value?.pendingStatus, "PUBLISH"),
+);
+const editorAllowDraftSave = computed(() =>
+  readExposed(editorRef.value?.allowDraftSave, false),
+);
+
+const submitEditorAs = (status: CreateSubmissionMode) => {
+  editorRef.value?.submitAs(status);
+  editorRef.value?.submitForm();
+};
+
+const goHome = () => {
+  void router.push("/");
 };
 </script>
 

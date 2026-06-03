@@ -132,7 +132,9 @@
 
       <InfoRow :label="t('prCard.time')">
         <span class="facts-inline-value">
-          <span>{{ localizedTimeText }}</span>
+          <span data-testid="pr-detail.facts.time-value">
+            {{ localizedTimeText }}
+          </span>
           <span v-if="timeEditableAfterReady" class="facts-editable-mark">
             可调整
           </span>
@@ -365,13 +367,16 @@ const localizedTimeText = computed(() => {
 });
 
 const timeEditableAfterReady = computed(() =>
-  prDetail.value?.editCapability.editableFields.includes("time") ?? false,
+  prDetail.value?.editPostReadyCapability.editableFields.includes("time") ??
+  false,
 );
 const locationEditableAfterReady = computed(() =>
-  prDetail.value?.editCapability.editableFields.includes("location") ?? false,
+  prDetail.value?.editPostReadyCapability.editableFields.includes("location") ??
+  false,
 );
 const routeEditableAfterReady = computed(() =>
-  prDetail.value?.editCapability.editableFields.includes("route") ?? false,
+  prDetail.value?.editPostReadyCapability.editableFields.includes("route") ??
+  false,
 );
 
 const participantCountText = computed(() => {

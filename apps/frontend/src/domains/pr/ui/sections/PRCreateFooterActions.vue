@@ -3,8 +3,7 @@
     <Button
       v-if="allowDraftSave"
       tone="outline"
-      type="submit"
-      :form="formId"
+      type="button"
       :disabled="pending"
       data-testid="pr-create.save-draft"
       @click="emit('submit-as', 'DRAFT')"
@@ -16,8 +15,7 @@
       }}
     </Button>
     <Button
-      type="submit"
-      :form="formId"
+      type="button"
       :disabled="pending"
       data-testid="pr-create.publish"
       @click="emit('submit-as', 'PUBLISH')"
@@ -33,14 +31,13 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import type { CreateSubmissionMode } from "@/domains/pr/use-cases/usePRCreateFlow";
+import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
 import Button from "@/shared/ui/actions/Button.vue";
 
 defineProps<{
   pending: boolean;
   pendingStatus: CreateSubmissionMode;
   allowDraftSave: boolean;
-  formId: string;
 }>();
 
 const emit = defineEmits<{

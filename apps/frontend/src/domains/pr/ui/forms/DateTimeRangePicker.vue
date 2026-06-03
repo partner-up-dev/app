@@ -7,13 +7,13 @@
           <input
             v-model="startDate"
             type="date"
-            data-testid="pr-create.form.start-date"
+            :data-testid="`${testIdPrefix}.start-date`"
             :placeholder="t('dateTimeRangePicker.startDatePlaceholder')"
           />
           <input
             v-model="startTime"
             type="time"
-            data-testid="pr-create.form.start-time"
+            :data-testid="`${testIdPrefix}.start-time`"
             :placeholder="t('dateTimeRangePicker.startTimePlaceholder')"
             :disabled="!startDate"
           />
@@ -46,13 +46,13 @@
           <input
             v-model="endDate"
             type="date"
-            data-testid="pr-create.form.end-date"
+            :data-testid="`${testIdPrefix}.end-date`"
             :placeholder="t('dateTimeRangePicker.endDatePlaceholder')"
           />
           <input
             v-model="endTime"
             type="time"
-            data-testid="pr-create.form.end-time"
+            :data-testid="`${testIdPrefix}.end-time`"
             :placeholder="t('dateTimeRangePicker.endTimePlaceholder')"
             :disabled="!endDate"
           />
@@ -97,14 +97,17 @@ interface Props {
   modelValue: TimeWindow;
   label?: string;
   hint?: string;
+  testIdPrefix?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   label: undefined,
   hint: undefined,
+  testIdPrefix: "pr-editor.form",
 });
 
 const { t } = useI18n();
+const testIdPrefix = computed(() => props.testIdPrefix);
 
 const labelText = computed(
   () => props.label ?? t("dateTimeRangePicker.defaultLabel"),

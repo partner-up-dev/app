@@ -29,7 +29,9 @@ import { toPublicPR } from "./public-pr-view.service";
 import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
 import {
   buildPREditCapability,
+  buildPREditPostReadyCapability,
   type PREditCapability,
+  type PREditPostReadyCapability,
 } from "../../pr-core/services/pr-edit-capability.service";
 
 const partnerRepo = new PartnerRepository();
@@ -99,6 +101,7 @@ export type PRDetail = {
   } | null;
   partnerSection: PartnerSectionView;
   editCapability: PREditCapability;
+  editPostReadyCapability: PREditPostReadyCapability;
 };
 
 const resolveMeetingPointProjection = (
@@ -270,5 +273,8 @@ export async function getPRDetailView(
         participationFrequencyEvaluation.allowed === false,
     }),
     editCapability: buildPREditCapability(request, viewerUserId),
+    editPostReadyCapability: buildPREditPostReadyCapability(
+      request.allowEditAfterReady,
+    ),
   };
 }

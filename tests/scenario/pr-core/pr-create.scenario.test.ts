@@ -57,12 +57,12 @@ async function fillStructuredPRForm(input: {
   title: string;
 }): Promise<void> {
   const { page, title } = input;
-  await page.getByTestId("pr-create.form.title").fill(title);
-  await page.getByTestId("pr-create.form.type").fill("badminton");
-  await page.getByTestId("pr-create.form.advanced-toggle").click();
-  await page.getByTestId("pr-create.form.start-date").fill("2031-04-01");
-  await page.getByTestId("pr-create.form.end-date").fill("2031-04-02");
-  await page.getByTestId("pr-create.form.place.location").fill("Scenario Court");
+  await page.getByTestId("pr-editor.form.title").fill(title);
+  await page.getByTestId("pr-editor.form.type").fill("badminton");
+  await page.getByTestId("pr-editor.form.advanced-toggle").click();
+  await page.getByTestId("pr-editor.form.start-date").fill("2031-04-01");
+  await page.getByTestId("pr-editor.form.end-date").fill("2031-04-02");
+  await page.getByTestId("pr-editor.form.place.location").fill("Scenario Court");
 }
 
 const pickRoutePoint = async (
@@ -111,11 +111,11 @@ const pickRoutePoint = async (
 };
 
 const fillStructuredRoutePRForm = async (page: Page): Promise<void> => {
-  await page.getByTestId("pr-create.form.type").fill("ride_hailing");
-  await page.getByTestId("pr-create.form.advanced-toggle").click();
-  await page.getByTestId("pr-create.form.start-date").fill("2031-04-01");
-  await page.getByTestId("pr-create.form.end-date").fill("2031-04-02");
-  await page.getByTestId("pr-create.form.place.mode.route").click();
+  await page.getByTestId("pr-editor.form.type").fill("ride_hailing");
+  await page.getByTestId("pr-editor.form.advanced-toggle").click();
+  await page.getByTestId("pr-editor.form.start-date").fill("2031-04-01");
+  await page.getByTestId("pr-editor.form.end-date").fill("2031-04-02");
+  await page.getByTestId("pr-editor.form.place.mode.route").click();
   await pickRoutePoint(page, 0, routeCreateDraft[0]!);
   await pickRoutePoint(page, 1, routeCreateDraft[1]!);
 };

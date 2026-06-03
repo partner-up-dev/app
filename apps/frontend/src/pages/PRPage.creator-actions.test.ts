@@ -16,6 +16,11 @@ const testState = vi.hoisted(() => ({
 }));
 
 vi.mock("vue-i18n", () => ({
+  createI18n: () => ({
+    global: {
+      t: (key: string) => key,
+    },
+  }),
   useI18n: () => ({
     t: (key: string, params?: Record<string, unknown>) => {
       if (key === "prPage.pairingCodeEntry.action") {
@@ -218,13 +223,6 @@ vi.mock("@/domains/support/ui/sections/MiniumCommonFooter.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/pr/ui/forms/PRForm.vue", () => ({
-  default: {
-    name: "PRForm",
-    template: "<form />",
-  },
-}));
-
 vi.mock("@/domains/pr/ui/forms/UpdatePRStatusForm.vue", () => ({
   default: {
     name: "UpdatePRStatusForm",
@@ -252,6 +250,7 @@ type CreatorActionVisibilityCase = {
   name: string;
   status: PRStatus;
   isCreator: boolean;
+  allowPostReadyTimeEdit?: boolean;
   editVisible: boolean;
   statusVisible: boolean;
 };
@@ -272,10 +271,18 @@ const cases: CreatorActionVisibilityCase[] = [
     statusVisible: true,
   },
   {
-    name: "creator ready",
+    name: "creator ready without post-ready edits",
     status: "READY",
     isCreator: true,
     editVisible: false,
+    statusVisible: true,
+  },
+  {
+    name: "creator ready with post-ready edits",
+    status: "READY",
+    isCreator: true,
+    allowPostReadyTimeEdit: true,
+    editVisible: true,
     statusVisible: true,
   },
   {
@@ -297,8 +304,16 @@ const cases: CreatorActionVisibilityCase[] = [
 describe("PRPage creator action visibility", () => {
   test.each(cases)(
     "$name shows edit=$editVisible and modify-status=$statusVisible",
-    async ({ status, isCreator, editVisible, statusVisible }) => {
-      const host = await mountPage(buildPRDetail({ status, isCreator }));
+    async ({
+      status,
+      isCreator,
+      allowPostReadyTimeEdit,
+      editVisible,
+      statusVisible,
+    }) => {
+      const host = await mountPage(
+        buildPRDetail({ status, isCreator, allowPostReadyTimeEdit }),
+      );
 
       expect(hasTestId(host, "pr-detail.creator.edit-content")).toBe(
         editVisible,
@@ -475,6 +490,7 @@ const buildPRDetail = ({
   canonicalTitle = title.trim() || "搭子请求",
   capacityCurrent = 0,
   capacityMax = null,
+  allowPostReadyTimeEdit = false,
 }: {
   status: PRStatus;
   isCreator: boolean;
@@ -487,6 +503,7 @@ const buildPRDetail = ({
   canonicalTitle?: string;
   capacityCurrent?: number;
   capacityMax?: number | null;
+  allowPostReadyTimeEdit?: boolean;
 }): PRDetailView =>
   ({
     id: 123,
@@ -560,11 +577,36 @@ const buildPRDetail = ({
             ],
             constraints: {},
           }
+        : status === "READY" && isCreator && allowPostReadyTimeEdit
+          ? {
+              canEdit: true,
+              editableFields: ["time"],
+              constraints: {
+                timeWindow: [
+                  "2038-01-02T12:00:00.000Z",
+                  "2038-01-02T16:00:00.000Z",
+                ],
+              },
+            }
         : {
             canEdit: false,
             editableFields: [],
             constraints: {},
           },
+    editPostReadyCapability: allowPostReadyTimeEdit
+      ? {
+          editableFields: ["time"],
+          constraints: {
+            timeWindow: [
+              "2038-01-02T12:00:00.000Z",
+              "2038-01-02T16:00:00.000Z",
+            ],
+          },
+        }
+      : {
+          editableFields: [],
+          constraints: {},
+        },
     feedbackQuestionnaire: null,
     anchorEventContext:
       anchorEventTitle === null

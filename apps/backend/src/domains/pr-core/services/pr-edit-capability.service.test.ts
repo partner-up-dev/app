@@ -8,6 +8,7 @@ import type { UserId } from "../../../entities/user";
 import {
   assertPRContentEditable,
   buildPREditCapability,
+  buildPREditPostReadyCapability,
   resolveChangedPRContentFields,
 } from "./pr-edit-capability.service";
 
@@ -81,6 +82,31 @@ describe("PR edit capability", () => {
       },
     });
     assert.equal(buildPREditCapability(request, null).canEdit, false);
+  });
+
+  it("exposes post-ready adjustment fields independently from viewer identity", () => {
+    const request = buildRequest({
+      allowEditAfterReady: {
+        timeWindow: [
+          "2026-06-02T08:00:00.000Z",
+          "2026-06-02T12:00:00.000Z",
+        ],
+        location: true,
+      },
+    });
+
+    assert.deepEqual(
+      buildPREditPostReadyCapability(request.allowEditAfterReady),
+      {
+        editableFields: ["time", "location"],
+        constraints: {
+          timeWindow: [
+            "2026-06-02T08:00:00.000Z",
+            "2026-06-02T12:00:00.000Z",
+          ],
+        },
+      },
+    );
   });
 
   it("allows READY time edits inside the configured range", () => {
