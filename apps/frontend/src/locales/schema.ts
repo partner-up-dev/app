@@ -1723,6 +1723,11 @@ export interface MessageSchema {
     previewTimeWindowsAction: string;
     timeWindowsPreviewTitle: string;
     emptyRecurringRulesPreview: string;
+    prTimeWindowEditorDefaultModeTitle: string;
+    prTimeWindowEditorDefaultModeNormal: string;
+    prTimeWindowEditorDefaultModeFuzzy: string;
+    prTimeWindowEditorDefaultModeAdvanced: string;
+    prTimeWindowEditorDefaultModeHint: string;
     participationDefaultsTitle: string;
     participationDefaultsDescription: string;
     landingRolloutTitle: string;

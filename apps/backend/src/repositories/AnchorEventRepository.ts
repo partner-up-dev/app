@@ -102,6 +102,7 @@ export class AnchorEventRepository {
         | "betaGroupQrCode"
         | "prCreationPolicy"
         | "fullPrExpansionPolicy"
+        | "prTimeWindowEditorDefaultMode"
         | "status"
       >
     >,

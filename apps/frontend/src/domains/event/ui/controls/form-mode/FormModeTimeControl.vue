@@ -6,6 +6,7 @@
     :preset-options="presetOptions"
     :duration-minutes="durationMinutes"
     :earliest-lead-minutes="earliestLeadMinutes"
+    :default-mode="defaultMode"
     :label="t('anchorEvent.formMode.timeTitle')"
     :mode-toggle-aria-label="t('anchorEvent.formMode.timeModeToggleAriaLabel')"
     :date-picker-aria-label="t('anchorEvent.formMode.dateWheelAriaLabel')"
@@ -64,6 +65,7 @@ import {
   formatFormModeFuzzySelectionLabel,
   formatFormModeTimeLabel,
   type FormModeTimeSelection,
+  type FormModeTimeMode,
   isValidFormModeDateTime,
 } from "@/domains/event/model/form-mode";
 import {
@@ -81,6 +83,7 @@ const props = defineProps<{
   startOptions: readonly StartOption[];
   durationMinutes: number | null;
   earliestLeadMinutes: number | null;
+  defaultMode: FormModeTimeMode;
 }>();
 
 const emit = defineEmits<{

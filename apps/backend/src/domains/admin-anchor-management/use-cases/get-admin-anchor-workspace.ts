@@ -8,6 +8,7 @@ import type {
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
+  AnchorEventPrTimeWindowEditorDefaultMode,
   FeedbackQuestionnaireTemplate,
   FeedbackQuestionnaireTemplateId,
 } from "../../../entities";
@@ -102,6 +103,7 @@ export type AdminAnchorEventSummary = {
   betaGroupQrCode: string | null;
   prCreationPolicy: AnchorEventPrCreationPolicy;
   fullPrExpansionPolicy: AnchorEventFullPrExpansionPolicy;
+  prTimeWindowEditorDefaultMode: AnchorEventPrTimeWindowEditorDefaultMode;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -206,6 +208,7 @@ export async function getAdminAnchorEventWorkspace(): Promise<AdminAnchorEventWo
         betaGroupQrCode: event.betaGroupQrCode,
         prCreationPolicy: event.prCreationPolicy,
         fullPrExpansionPolicy: event.fullPrExpansionPolicy,
+        prTimeWindowEditorDefaultMode: event.prTimeWindowEditorDefaultMode,
         status: event.status,
         createdAt: event.createdAt.toISOString(),
         updatedAt: event.updatedAt.toISOString(),

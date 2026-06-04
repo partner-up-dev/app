@@ -47,6 +47,7 @@ export type AnchorEventTimePolicyDraft = {
   earliestLeadMinutes: number | null;
   absoluteRulesText: string;
   recurringRulesText: string;
+  prTimeWindowEditorDefaultMode: AdminAnchorEventInput["prTimeWindowEditorDefaultMode"];
   defaultConfirmationEnabled: boolean;
   defaultConfirmationStartOffsetMinutes: number;
   defaultConfirmationEndOffsetMinutes: number;
@@ -233,6 +234,7 @@ export const toAnchorEventMutationInput = (
   betaGroupQrCode: event.betaGroupQrCode ?? null,
   prCreationPolicy: event.prCreationPolicy,
   fullPrExpansionPolicy: event.fullPrExpansionPolicy,
+  prTimeWindowEditorDefaultMode: event.prTimeWindowEditorDefaultMode,
   status: event.status as AdminAnchorEventInput["status"],
   ...patch,
 });
@@ -311,6 +313,7 @@ export const buildAnchorEventMutationInputFromEditorDraft = (
     betaGroupQrCode: draft.betaGroupQrCode.trim() || null,
     prCreationPolicy: draft.prCreationPolicy,
     fullPrExpansionPolicy: draft.fullPrExpansionPolicy,
+    prTimeWindowEditorDefaultMode: draft.prTimeWindowEditorDefaultMode,
     status: draft.status,
   };
 };

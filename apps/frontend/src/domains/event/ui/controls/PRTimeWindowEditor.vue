@@ -147,6 +147,7 @@ const props = withDefaults(
     presetOptions: readonly PRTimeWindowPresetOption[];
     durationMinutes: number | null;
     earliestLeadMinutes: number | null;
+    defaultMode?: PRTimeWindowEditorMode;
     label?: string;
     modeToggleAriaLabel?: string;
     datePickerAriaLabel?: string;
@@ -161,6 +162,7 @@ const props = withDefaults(
   }>(),
   {
     allowEditAfterReady: null,
+    defaultMode: "NORMAL",
     label: "时间",
     modeToggleAriaLabel: "切换时间选择模式",
     datePickerAriaLabel: "选择日期",
@@ -186,7 +188,7 @@ const timeModeOptions: readonly TimeModeOption[] = [
   { value: "FUZZY", label: "模糊" },
 ];
 
-const activeMode = ref<PRTimeWindowEditorMode>("NORMAL");
+const activeMode = ref<PRTimeWindowEditorMode>(props.defaultMode);
 const selectedDateKey = ref<string | null>(null);
 const selectedTimeValue = ref<string | null>(null);
 const selectedFuzzyDateValue = ref<string | null>(null);
@@ -412,6 +414,15 @@ watch(
   () => [props.modelValue, props.allowEditAfterReady] as const,
   ([timeWindow]) => setModeForExternalValue(timeWindow),
   { immediate: true },
+);
+
+watch(
+  () => props.defaultMode,
+  (defaultMode) => {
+    if (props.modelValue === null && !props.allowEditAfterReady?.timeWindow) {
+      activeMode.value = defaultMode;
+    }
+  },
 );
 
 watch(

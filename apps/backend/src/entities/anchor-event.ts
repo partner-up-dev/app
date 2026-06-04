@@ -55,6 +55,14 @@ export const anchorEventFullPrExpansionPolicySchema = z.enum([
 export type AnchorEventFullPrExpansionPolicy = z.infer<
   typeof anchorEventFullPrExpansionPolicySchema
 >;
+export const anchorEventPrTimeWindowEditorDefaultModeSchema = z.enum([
+  "NORMAL",
+  "FUZZY",
+  "ADVANCED",
+]);
+export type AnchorEventPrTimeWindowEditorDefaultMode = z.infer<
+  typeof anchorEventPrTimeWindowEditorDefaultModeSchema
+>;
 
 /** A location entry: POI.name or a free-form location label. */
 export const locationEntrySchema = z.string().trim().min(1);
@@ -467,6 +475,10 @@ export const anchorEvents = pgTable("anchor_events", {
     .$type<AnchorEventFullPrExpansionPolicy>()
     .notNull()
     .default("DISABLED"),
+  prTimeWindowEditorDefaultMode: text("pr_time_window_editor_default_mode")
+    .$type<AnchorEventPrTimeWindowEditorDefaultMode>()
+    .notNull()
+    .default("NORMAL"),
   status: text("status").$type<AnchorEventStatus>().notNull().default("ACTIVE"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -484,6 +496,8 @@ export const insertAnchorEventSchema = createInsertSchema(anchorEvents, {
   participationFrequencyLimit:
     anchorEventParticipationFrequencyLimitSchema.optional(),
   locationMeetingPoints: meetingPointConfigMapSchema.optional(),
+  prTimeWindowEditorDefaultMode:
+    anchorEventPrTimeWindowEditorDefaultModeSchema.optional(),
 });
 export const selectAnchorEventSchema = createSelectSchema(anchorEvents, {
   routePool: anchorEventRoutePoolSchema,
@@ -492,6 +506,8 @@ export const selectAnchorEventSchema = createSelectSchema(anchorEvents, {
   joinGateConfig: prJoinGateConfigSchema,
   participationFrequencyLimit: anchorEventParticipationFrequencyLimitSchema,
   locationMeetingPoints: meetingPointConfigMapSchema,
+  prTimeWindowEditorDefaultMode:
+    anchorEventPrTimeWindowEditorDefaultModeSchema,
 });
 
 // ---------------------------------------------------------------------------

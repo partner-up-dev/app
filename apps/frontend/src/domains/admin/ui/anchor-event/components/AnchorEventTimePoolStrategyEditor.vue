@@ -24,6 +24,29 @@
     </div>
 
     <label class="field">
+      <span class="field-label">
+        {{ t("adminAnchorEvents.prTimeWindowEditorDefaultModeTitle") }}
+      </span>
+      <select
+        v-model="form.prTimeWindowEditorDefaultMode"
+        class="field-input"
+      >
+        <option value="NORMAL">
+          {{ t("adminAnchorEvents.prTimeWindowEditorDefaultModeNormal") }}
+        </option>
+        <option value="FUZZY">
+          {{ t("adminAnchorEvents.prTimeWindowEditorDefaultModeFuzzy") }}
+        </option>
+        <option value="ADVANCED">
+          {{ t("adminAnchorEvents.prTimeWindowEditorDefaultModeAdvanced") }}
+        </option>
+      </select>
+    </label>
+    <p class="hint">
+      {{ t("adminAnchorEvents.prTimeWindowEditorDefaultModeHint") }}
+    </p>
+
+    <label class="field">
       <span class="field-label">{{ t("adminPR.absoluteRulesLabel") }}</span>
       <textarea v-model="form.absoluteRulesText" class="field-input field-textarea" />
     </label>

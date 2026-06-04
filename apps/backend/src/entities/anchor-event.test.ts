@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
+  anchorEventPrTimeWindowEditorDefaultModeSchema,
   anchorEventRoutePoolSchema,
   normalizeAnchorEventRoutePool,
 } from "./anchor-event";
@@ -63,4 +64,23 @@ test("normalizeAnchorEventRoutePool keeps valid unique entries", () => {
   ]);
 
   assert.deepEqual(normalized, [{ id: "route-a", route }]);
+});
+
+test("anchorEventPrTimeWindowEditorDefaultModeSchema accepts only supported editor modes", () => {
+  assert.equal(
+    anchorEventPrTimeWindowEditorDefaultModeSchema.parse("NORMAL"),
+    "NORMAL",
+  );
+  assert.equal(
+    anchorEventPrTimeWindowEditorDefaultModeSchema.parse("FUZZY"),
+    "FUZZY",
+  );
+  assert.equal(
+    anchorEventPrTimeWindowEditorDefaultModeSchema.parse("ADVANCED"),
+    "ADVANCED",
+  );
+  assert.equal(
+    anchorEventPrTimeWindowEditorDefaultModeSchema.safeParse("CARD").success,
+    false,
+  );
 });

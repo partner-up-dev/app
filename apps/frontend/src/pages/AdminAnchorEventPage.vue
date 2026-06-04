@@ -197,6 +197,7 @@ const emptyEventForm = (): EventForm => ({
   betaGroupQrCode: "",
   prCreationPolicy: "USER_AND_ADMIN",
   fullPrExpansionPolicy: "DISABLED",
+  prTimeWindowEditorDefaultMode: "NORMAL",
   status: "ACTIVE",
 });
 
@@ -256,6 +257,7 @@ const toEventForm = (event: EventRecord): EventForm => ({
   betaGroupQrCode: event.betaGroupQrCode ?? "",
   prCreationPolicy: event.prCreationPolicy,
   fullPrExpansionPolicy: event.fullPrExpansionPolicy,
+  prTimeWindowEditorDefaultMode: event.prTimeWindowEditorDefaultMode,
   status: event.status as EventForm["status"],
 });
 

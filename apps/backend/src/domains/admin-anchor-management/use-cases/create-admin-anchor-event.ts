@@ -6,6 +6,7 @@ import type {
   AnchorEventFullPrExpansionPolicy,
   AnchorEventParticipationFrequencyLimit,
   AnchorEventPrCreationPolicy,
+  AnchorEventPrTimeWindowEditorDefaultMode,
   AnchorEventRoutePool,
   AnchorEventStatus,
   AnchorEventTimePoolConfig,
@@ -52,6 +53,7 @@ export interface CreateAdminAnchorEventInput {
   betaGroupQrCode: string | null;
   prCreationPolicy: AnchorEventPrCreationPolicy;
   fullPrExpansionPolicy: AnchorEventFullPrExpansionPolicy;
+  prTimeWindowEditorDefaultMode: AnchorEventPrTimeWindowEditorDefaultMode;
   status: AnchorEventStatus;
 }
 
@@ -115,6 +117,7 @@ export async function createAdminAnchorEvent(
     betaGroupQrCode: input.betaGroupQrCode,
     prCreationPolicy: input.prCreationPolicy,
     fullPrExpansionPolicy: input.fullPrExpansionPolicy,
+    prTimeWindowEditorDefaultMode: input.prTimeWindowEditorDefaultMode,
     status: input.status,
   });
 }

@@ -42,6 +42,7 @@
           :start-options="selectedPlaceStartOptions"
           :duration-minutes="formModeData.event.durationMinutes"
           :earliest-lead-minutes="formModeData.event.earliestLeadMinutes"
+          :default-mode="formModeData.event.prTimeWindowEditorDefaultMode"
           @update:model-value="trackFormStarted('time')"
         />
 
