@@ -1,0 +1,162 @@
+{
+  "url": "/orders/a3587ccf-3479-4dd4-bda9-4e92b87a24de",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "nodes": [
+    {
+      "testId": "order-detail.page",
+      "tag": "div",
+      "text": "订单详情 查看支付、账单和预约进度 ORDER 烘焙区 B · 2人 · 2小时 订单状态 进行中 服务时间 01/01 18:00 - 01/01 20:00 参与人数 2 人 BILL ¥32.00 Rental order charge ¥16.00 Rental order charge ¥16.00 支付状态：待支付 查看账单并支付 CANCELLATION 取消政策 烘焙区 B · 2人 · 2小时：开始前可退，退款 100%，需人工处理 取消订单 FULFILLMENT 场地预订 支付完成，等待场地方确认预订。",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    },
+    {
+      "testId": null,
+      "tag": "section",
+      "text": "ORDER 烘焙区 B · 2人 · 2小时 订单状态 进行中 服务时间 01/01 18:00 - 01/01 20:00 参与人数 2 人",
+      "x": 18,
+      "y": 116,
+      "width": 354,
+      "height": 250
+    },
+    {
+      "testId": "order-detail.item-name",
+      "tag": "h2",
+      "text": "烘焙区 B · 2人 · 2小时",
+      "x": 36,
+      "y": 153,
+      "width": 318,
+      "height": 34
+    },
+    {
+      "testId": "order-detail.order-status",
+      "tag": "strong",
+      "text": "进行中",
+      "x": 296,
+      "y": 215,
+      "width": 48,
+      "height": 21
+    },
+    {
+      "testId": "order-detail.service-window",
+      "tag": "strong",
+      "text": "01/01 18:00 - 01/01 20:00",
+      "x": 150,
+      "y": 266,
+      "width": 194,
+      "height": 21
+    },
+    {
+      "testId": "order-detail.participant-count",
+      "tag": "strong",
+      "text": "2 人",
+      "x": 314,
+      "y": 317,
+      "width": 30,
+      "height": 21
+    },
+    {
+      "testId": null,
+      "tag": "section",
+      "text": "BILL ¥32.00 Rental order charge ¥16.00 Rental order charge ¥16.00 支付状态：待支付 查看账单并支付",
+      "x": 18,
+      "y": 384,
+      "width": 354,
+      "height": 316
+    },
+    {
+      "testId": "order-detail.total-price",
+      "tag": "h2",
+      "text": "¥32.00",
+      "x": 36,
+      "y": 421,
+      "width": 318,
+      "height": 34
+    },
+    {
+      "testId": "order-detail.bill-line",
+      "tag": "div",
+      "text": "Rental order charge ¥16.00",
+      "x": 36,
+      "y": 473,
+      "width": 318,
+      "height": 41
+    },
+    {
+      "testId": "order-detail.bill-line",
+      "tag": "div",
+      "text": "Rental order charge ¥16.00",
+      "x": 36,
+      "y": 524,
+      "width": 318,
+      "height": 41
+    },
+    {
+      "testId": "order-detail.payment-status",
+      "tag": "p",
+      "text": "支付状态：待支付",
+      "x": 36,
+      "y": 583,
+      "width": 318,
+      "height": 21
+    },
+    {
+      "testId": "order-detail.bill-detail-link",
+      "tag": "a",
+      "text": "查看账单并支付",
+      "x": 36,
+      "y": 622,
+      "width": 318,
+      "height": 60
+    },
+    {
+      "testId": null,
+      "tag": "section",
+      "text": "CANCELLATION 取消政策 烘焙区 B · 2人 · 2小时：开始前可退，退款 100%，需人工处理 取消订单",
+      "x": 18,
+      "y": 718,
+      "width": 354,
+      "height": 235
+    },
+    {
+      "testId": "order-detail.cancellation-policy",
+      "tag": "div",
+      "text": "烘焙区 B · 2人 · 2小时：开始前可退，退款 100%，需人工处理",
+      "x": 36,
+      "y": 807,
+      "width": 318,
+      "height": 62
+    },
+    {
+      "testId": "order-detail.cancel-rental",
+      "tag": "button",
+      "text": "取消订单",
+      "x": 36,
+      "y": 887,
+      "width": 318,
+      "height": 48
+    },
+    {
+      "testId": null,
+      "tag": "section",
+      "text": "FULFILLMENT 场地预订 支付完成，等待场地方确认预订。",
+      "x": 18,
+      "y": 971,
+      "width": 354,
+      "height": 128
+    },
+    {
+      "testId": "order-detail.fulfillment-status",
+      "tag": "p",
+      "text": "支付完成，等待场地方确认预订。",
+      "x": 36,
+      "y": 1060,
+      "width": 318,
+      "height": 21
+    }
+  ]
+}
