@@ -23,6 +23,7 @@
       :preset-options="presetOptions"
       :duration-minutes="detail?.durationMinutes ?? null"
       :earliest-lead-minutes="detail?.earliestLeadMinutes ?? null"
+      :default-mode="detail?.prTimeWindowEditorDefaultMode ?? 'NORMAL'"
       :label="t('anchorEvent.createCard.timeWindowLabel')"
       :date-picker-aria-label="t('anchorEvent.formMode.dateWheelAriaLabel')"
       :time-picker-aria-label="t('anchorEvent.formMode.timeWheelAriaLabel')"

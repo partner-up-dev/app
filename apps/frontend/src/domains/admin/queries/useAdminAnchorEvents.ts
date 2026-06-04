@@ -102,6 +102,7 @@ export type AdminAnchorEventInput = {
   betaGroupQrCode: string | null;
   prCreationPolicy: "USER_AND_ADMIN" | "ADMIN_ONLY";
   fullPrExpansionPolicy: "ENABLED" | "DISABLED";
+  prTimeWindowEditorDefaultMode: "NORMAL" | "FUZZY" | "ADVANCED";
   status: "ACTIVE" | "PAUSED" | "ARCHIVED";
 };
 

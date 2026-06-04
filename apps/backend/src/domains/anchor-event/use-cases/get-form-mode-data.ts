@@ -10,6 +10,7 @@ import {
   type AnchorEvent,
   type AnchorEventId,
   type AnchorEventPrCreationPolicy,
+  type AnchorEventPrTimeWindowEditorDefaultMode,
 } from "../../../entities";
 import { isJoinableStatus } from "../../pr-core/services/status-rules";
 import {
@@ -119,6 +120,7 @@ export interface AnchorEventFormModeData {
     defaultMinPartners: number | null;
     defaultMaxPartners: number | null;
     prCreationPolicy: AnchorEventPrCreationPolicy;
+    prTimeWindowEditorDefaultMode: AnchorEventPrTimeWindowEditorDefaultMode;
     canUserCreatePR: boolean;
   };
   locations: Array<{
@@ -234,6 +236,7 @@ export async function getAnchorEventFormModeData(
       defaultMinPartners: event.defaultMinPartners,
       defaultMaxPartners: event.defaultMaxPartners,
       prCreationPolicy: event.prCreationPolicy,
+      prTimeWindowEditorDefaultMode: event.prTimeWindowEditorDefaultMode,
       canUserCreatePR: canUserCreatePRForAnchorEvent(event),
     },
     locations: locationPlaceOptions.map((option) => ({

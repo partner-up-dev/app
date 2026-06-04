@@ -10,6 +10,7 @@ import type {
   AnchorEvent,
   AnchorEventId,
   AnchorEventPrCreationPolicy,
+  AnchorEventPrTimeWindowEditorDefaultMode,
   AnchorEventRoutePool,
   TimeWindowEntry,
 } from "../../../entities/anchor-event";
@@ -107,6 +108,7 @@ export interface AnchorEventDetail {
   coverImage: string | null;
   betaGroupQrCode: string | null;
   prCreationPolicy: AnchorEventPrCreationPolicy;
+  prTimeWindowEditorDefaultMode: AnchorEventPrTimeWindowEditorDefaultMode;
   canUserCreatePR: boolean;
   status: string;
   browseTimeWindows: BrowseTimeWindowDetail[];
@@ -361,6 +363,7 @@ export async function getAnchorEventDetail(
     coverImage: event.coverImage,
     betaGroupQrCode: event.betaGroupQrCode,
     prCreationPolicy: event.prCreationPolicy,
+    prTimeWindowEditorDefaultMode: event.prTimeWindowEditorDefaultMode,
     canUserCreatePR: canUserCreatePRForAnchorEvent(event),
     status: event.status,
     browseTimeWindows,

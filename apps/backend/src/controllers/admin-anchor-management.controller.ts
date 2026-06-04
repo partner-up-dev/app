@@ -6,6 +6,7 @@ import {
   anchorEventFullPrExpansionPolicySchema,
   anchorEventParticipationFrequencyLimitSchema,
   anchorEventPrCreationPolicySchema,
+  anchorEventPrTimeWindowEditorDefaultModeSchema,
   anchorEventRoutePoolSchema,
   anchorEventTimePoolConfigSchema,
   meetingPointConfigMapSchema,
@@ -116,6 +117,8 @@ const adminAnchorEventInputSchema = z.object({
   betaGroupQrCode: z.string().trim().nullable(),
   prCreationPolicy: anchorEventPrCreationPolicySchema,
   fullPrExpansionPolicy: anchorEventFullPrExpansionPolicySchema,
+  prTimeWindowEditorDefaultMode:
+    anchorEventPrTimeWindowEditorDefaultModeSchema.optional().default("NORMAL"),
   status: anchorEventStatusSchema,
 });
 

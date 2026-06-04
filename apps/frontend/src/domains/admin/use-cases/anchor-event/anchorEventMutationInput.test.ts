@@ -55,6 +55,7 @@ const baseDraft = (): AnchorEventEditorForm => ({
   betaGroupQrCode: "",
   prCreationPolicy: "USER_AND_ADMIN",
   fullPrExpansionPolicy: "DISABLED",
+  prTimeWindowEditorDefaultMode: "NORMAL",
   status: "ACTIVE",
 });
 
@@ -111,6 +112,7 @@ describe("anchor event route pool mutation input", () => {
     });
 
     expect(input.locationPool).toEqual(["珠江新城", "天河公园"]);
+    expect(input.prTimeWindowEditorDefaultMode).toBe("NORMAL");
     expect(input.locationMeetingPoints).toEqual({
       珠江新城: {
         description: "A 出口",
@@ -124,6 +126,7 @@ describe("anchor event route pool mutation input", () => {
     const input = buildAnchorEventMutationInputFromEditorDraft({
       ...baseDraft(),
       placePoolMode: "route",
+      prTimeWindowEditorDefaultMode: "FUZZY",
       routePool: [
         {
           id: "route-a",
@@ -134,6 +137,7 @@ describe("anchor event route pool mutation input", () => {
 
     expect(input.locationPool).toEqual([]);
     expect(input.locationMeetingPoints).toEqual({});
+    expect(input.prTimeWindowEditorDefaultMode).toBe("FUZZY");
     expect(input.routePool).toHaveLength(1);
     expect(input.routePool[0]?.id).toBe("route-a");
   });

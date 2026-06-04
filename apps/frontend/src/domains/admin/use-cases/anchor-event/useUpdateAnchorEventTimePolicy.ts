@@ -28,6 +28,7 @@ export const useUpdateAnchorEventTimePolicy = () => {
         defaultConfirmationEndOffsetMinutes:
           draft.defaultConfirmationEndOffsetMinutes,
         defaultJoinLockOffsetMinutes: draft.defaultJoinLockOffsetMinutes,
+        prTimeWindowEditorDefaultMode: draft.prTimeWindowEditorDefaultMode,
       }),
     });
 
