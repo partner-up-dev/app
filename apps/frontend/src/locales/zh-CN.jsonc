@@ -210,12 +210,12 @@
     }
   },
   "officialAccountFollow": {
-    "nudgeTitle": "关注公众号，随时回来",
-    "nudgeDescription": "新场次、名额释放和活动服务更新都会在这里同步。",
+    "nudgeTitle": "现在还不想找搭子？",
+    "nudgeDescription": "关注公众号，想找搭子时可从菜单立马回来",
     "followAction": "关注公众号",
     "laterAction": "稍后",
     "modalTitle": "关注搭一把公众号",
-    "modalDescription": "扫码关注后，可以持续获得活动更新和服务通知入口。",
+    "modalDescription": "我们是“搭一把”，致力于为您带来安全、高效和舒适的搭子体验",
     "qrAlt": "搭一把公众号二维码",
     "qrMissing": "公众号二维码暂未配置，请稍后再试。",
     "doneAction": "完成"
