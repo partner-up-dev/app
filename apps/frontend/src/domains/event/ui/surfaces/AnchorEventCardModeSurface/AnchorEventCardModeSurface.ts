@@ -2,16 +2,23 @@ import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import type {
   AnchorEventPlaceOption,
+  AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";
 
 export type DemandCardViewModel = {
   cardKey: string;
+  timeWindow?: TimeWindow;
   timeLabel: string;
   displayLocationName: string;
   preferenceTags: string[];
   notes: string | null;
   detailPrId: number | null;
+  createTarget: {
+    timeWindow: TimeWindow;
+    place: AnchorEventSelectedPlace;
+    preferences: string[];
+  } | null;
   coverImage: string | null;
 };
 

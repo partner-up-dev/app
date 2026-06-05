@@ -24,6 +24,7 @@ type EventAssistedPRCreateInput = {
   targetTimeWindow: TimeWindow | null;
   allowEditAfterReady?: PRAllowEditAfterReady | null;
   place: AnchorEventSelectedPlace | null;
+  preferences?: readonly string[];
   entrySurface?: "form_mode" | "card_rich" | "list_mode";
 };
 
@@ -94,6 +95,7 @@ export const useEventAssistedPRCreateFlow = (
   const buildEventAssistedFields = ({
     targetTimeWindow,
     place,
+    preferences,
   }: EventAssistedPRCreateInput): PartnerRequestFields => {
     const currentEvent = event.value;
     if (!currentEvent) {
@@ -114,7 +116,7 @@ export const useEventAssistedPRCreateFlow = (
       maxPartners: currentEvent.defaultMaxPartners ?? null,
       partners: [],
       budget: null,
-      preferences: [],
+      preferences: [...(preferences ?? [])],
       notes: null,
       meetingPoint: null,
     };
@@ -208,6 +210,7 @@ export const useEventAssistedPRCreateFlow = (
     targetTimeWindow,
     allowEditAfterReady,
     place,
+    preferences,
     entrySurface,
   }: EventAssistedPRCreateInput) => {
     createEventAssistedPRMutation.reset();
@@ -224,6 +227,7 @@ export const useEventAssistedPRCreateFlow = (
     const fields = buildEventAssistedFields({
       targetTimeWindow,
       place,
+      preferences: preferences ?? [],
     });
     const createTelemetrySource = {
       place,

@@ -56,6 +56,14 @@ describe("ExpandableCard", () => {
     expect(getContentMotion(mounted.host).classList.contains("is-open")).toBe(
       false,
     );
+    expect(getContentClip(mounted.host).parentElement).toBe(
+      getContentMotion(mounted.host),
+    );
+    expect(
+      getContentClip(mounted.host).querySelector(
+        ".expandable-card__content [data-testid='expensive-child']",
+      ),
+    ).not.toBeNull();
     expect(mounted.stats.mounted).toBe(1);
     expect(mounted.stats.unmounted).toBe(0);
   });
@@ -168,6 +176,14 @@ const getContentMotion = (host: HTMLElement): HTMLElement => {
   const content = host.querySelector(".expandable-card__content-motion");
   if (!(content instanceof HTMLElement)) {
     throw new Error("ExpandableCard content motion wrapper not found");
+  }
+  return content;
+};
+
+const getContentClip = (host: HTMLElement): HTMLElement => {
+  const content = host.querySelector(".expandable-card__content-clip");
+  if (!(content instanceof HTMLElement)) {
+    throw new Error("ExpandableCard content clip wrapper not found");
   }
   return content;
 };

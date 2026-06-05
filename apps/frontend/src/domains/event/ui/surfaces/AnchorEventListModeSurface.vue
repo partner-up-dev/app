@@ -29,17 +29,34 @@
         data-region="pr-list"
         data-testid="anchor-event-list-mode.pr-list"
       >
-        <div v-if="visiblePRItems.length > 0" class="pr-list">
-          <PRPreviewCard
-            v-for="item in visiblePRItems"
-            :key="`${item.timeWindowKey}:${item.pr.id}`"
-            :pr-id="item.pr.id"
-            :to="buildPrDetailRoute(item.pr.id)"
-            :time-label="item.timeLabel"
-            :cover-image="resolveCoverImage(item.pr.location)"
-            @open-detail="trackListPrRowAction(item)"
-          />
+        <div v-if="visibleListItems.length > 0" class="pr-list">
+          <template v-for="item in visibleListItems" :key="item.key">
+            <PRPreviewCard
+              v-if="item.kind === 'real'"
+              :pr-id="item.pr.id"
+              :to="buildPrDetailRoute(item.pr.id)"
+              :time-label="item.timeLabel"
+              :cover-image="resolveCoverImage(item.pr.location)"
+              @open-detail="trackListPrRowAction(item)"
+            />
+            <EventDummyPRCard
+              v-else
+              :title="eventTitle"
+              :time-label="item.timeLabel"
+              :display-location-name="item.dummy.displayLocationName"
+              :place-icon="item.dummy.place.kind === 'route' ? '🧭' : '📍'"
+              :max-partners="detail.defaultMaxPartners"
+              :cover-image="resolveCoverImage(item.dummy.displayLocationName)"
+              :pending="isCreatePending"
+              :disabled="!canUserCreatePR"
+              data-testid="anchor-event-list-mode.dummy-pr"
+              @open-detail="handleOpenDummyDetailInList(item)"
+            />
+          </template>
         </div>
+        <p v-if="listDummyCreateErrorMessage" class="list-create-error">
+          {{ listDummyCreateErrorMessage }}
+        </p>
         <article
           v-else-if="isListExhausted"
           class="list-exhausted-card"
@@ -116,6 +133,7 @@ import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import EventPRCreateCard from "@/domains/event/ui/primitives/EventPRCreateCard.vue";
+import EventDummyPRCard from "@/domains/event/ui/primitives/EventDummyPRCard.vue";
 import AnchorEventBetaGroupCard from "@/domains/event/ui/primitives/AnchorEventBetaGroupCard.vue";
 import OtherAnchorEventsSection from "@/domains/event/ui/sections/OtherAnchorEventsSection.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
@@ -146,6 +164,10 @@ import {
   getExclusiveCreateTimeWindowLocationOptions,
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
+import {
+  buildAnchorEventDummyPRs,
+  type AnchorEventDummyPR,
+} from "@/domains/event/model/dummy-prs";
 import { trackEvent } from "@/shared/telemetry/track";
 
 type DateTabItem = {
@@ -173,6 +195,8 @@ type DateGroup = {
 };
 
 type VisiblePRItem = {
+  kind: "real";
+  key: string;
   timeWindowKey: string;
   dateKey: string;
   pr: AnchorEventTimeWindowPR;
@@ -180,6 +204,18 @@ type VisiblePRItem = {
   timeWindowStart: string | null;
   rowRank: number;
 };
+
+type VisibleDummyItem = {
+  kind: "dummy";
+  key: string;
+  dateKey: string;
+  dummy: AnchorEventDummyPR;
+  timeLabel: string;
+  timeWindowStart: string | null;
+  rowRank: number;
+};
+
+type VisibleListItem = VisiblePRItem | VisibleDummyItem;
 
 type CreateTimeWindowChoice = {
   entry: CreateTimeWindow;
@@ -331,6 +367,32 @@ const dateGroups = computed<DateGroup[]>(() => {
     });
   });
 
+  upcomingSortedCreateTimeWindows.value.forEach((entry, index) => {
+    const groupKey =
+      resolveTimeWindowDateKey(entry.timeWindow) ?? `create-window:${entry.key}`;
+    if (groupIndexByKey.has(groupKey)) {
+      return;
+    }
+
+    const groupLabel = groupKey.startsWith("create-window:")
+      ? formatTimeWindowLabel(
+          entry.timeWindow,
+          index,
+          t("anchorEvent.batchLabel"),
+        )
+      : formatDateKeyLabel(groupKey as ProductLocalDateKey);
+    const isExpiredDate = isExpiredDateGroupKey(groupKey, todayDateKey);
+
+    groupIndexByKey.set(groupKey, groups.length);
+    groups.push({
+      key: groupKey,
+      label: groupLabel,
+      isExpiredDate,
+      tabClass: isExpiredDate ? LIST_MODE_EXPIRED_TAB_CLASS : undefined,
+      timeWindows: [],
+    });
+  });
+
   return toVisibleListModeDateGroups(groups).map((group) => ({
     ...group,
     tabClass: group.isExpiredDate ? LIST_MODE_EXPIRED_TAB_CLASS : undefined,
@@ -457,11 +519,41 @@ const resolveCoverImage = (location: string | null): string | null => {
   return pickRandomPoiGalleryImage(poiGalleryById.value.get(normalized) ?? []);
 };
 
+const dummyPRs = computed(() =>
+  detail.value
+    ? buildAnchorEventDummyPRs({
+        browseTimeWindows: detail.value.browseTimeWindows,
+        createTimeWindows: detail.value.createTimeWindows,
+        presetTags: detail.value.presetTags,
+        poiByName: poiByName.value,
+      })
+    : [],
+);
+
 const isVisibleListModePR = (
   pr: AnchorEventTimeWindowPR,
   group: DateGroup,
 ): boolean =>
   group.isExpiredDate ? pr.status === "CLOSED" : pr.status !== "EXPIRED";
+
+const resolveVisibleDummyItemsForGroup = (
+  group: DateGroup,
+): VisibleDummyItem[] =>
+  dummyPRs.value
+    .filter((dummy) => dummy.dateKey === group.key)
+    .map((dummy, index) => ({
+      kind: "dummy",
+      key: dummy.key,
+      dateKey: group.key,
+      dummy,
+      timeLabel: formatTimeWindowTimeLabel(
+        dummy.timeWindow,
+        index,
+        t("anchorEvent.batchLabel"),
+      ),
+      timeWindowStart: dummy.timeWindowStart,
+      rowRank: index + 1,
+    }));
 
 const resolveVisiblePRItemsForGroup = (group: DateGroup): VisiblePRItem[] => {
   const items: VisiblePRItem[] = [];
@@ -471,6 +563,8 @@ const resolveVisiblePRItemsForGroup = (group: DateGroup): VisiblePRItem[] => {
       isVisibleListModePR(entry, group),
     )) {
       items.push({
+        kind: "real",
+        key: `real:${timeWindowItem.entry.key}:${pr.id}`,
         timeWindowKey: timeWindowItem.entry.key,
         dateKey: group.key,
         pr,
@@ -487,6 +581,29 @@ const resolveVisiblePRItemsForGroup = (group: DateGroup): VisiblePRItem[] => {
 const visiblePRItems = computed<VisiblePRItem[]>(() => {
   const group = selectedDateGroup.value;
   return group ? resolveVisiblePRItemsForGroup(group) : [];
+});
+
+const visibleListItems = computed<VisibleListItem[]>(() => {
+  const group = selectedDateGroup.value;
+  if (!group) {
+    return [];
+  }
+
+  return [
+    ...resolveVisiblePRItemsForGroup(group),
+    ...resolveVisibleDummyItemsForGroup(group),
+  ].sort((left, right) => {
+    const leftTimestamp =
+      left.kind === "real"
+        ? resolveTimeWindowStartTimestamp(left.pr.time)
+        : resolveTimeWindowStartTimestamp(left.dummy.timeWindow);
+    const rightTimestamp =
+      right.kind === "real"
+        ? resolveTimeWindowStartTimestamp(right.pr.time)
+        : resolveTimeWindowStartTimestamp(right.dummy.timeWindow);
+
+    return leftTimestamp - rightTimestamp || left.key.localeCompare(right.key);
+  });
 });
 
 const listLoadedCounts = computed(() => {
@@ -567,12 +684,6 @@ watch(
   { immediate: true },
 );
 
-const isJoinablePR = (pr: AnchorEventTimeWindowPR): boolean =>
-  pr.status === "OPEN";
-
-const timeWindowHasJoinablePR = (entry: AnchorEventTimeWindow): boolean =>
-  entry.prs.some(isJoinablePR);
-
 const timeWindowsEqual = (
   left: TimeWindow | null | undefined,
   right: TimeWindow | null | undefined,
@@ -638,21 +749,19 @@ const createCardValidationMessage = computed(() => {
 const resolvedCreateActionErrorMessage = computed(
   () => createActionErrorMessage.value ?? createCardValidationMessage.value,
 );
+const listDummyCreateErrorMessage = computed(
+  () => createActionErrorMessage.value,
+);
 const isCreateDisabled = computed(
   () => isCreatePending.value || createCardValidationMessage.value !== null,
 );
 
-const hasJoinablePRInSelectedDate = computed(() => {
-  const group = selectedDateGroup.value;
-  if (!group) {
-    return false;
-  }
-
-  return group.timeWindows.some(({ entry }) => timeWindowHasJoinablePR(entry));
-});
+const hasBrowseItemInSelectedDate = computed(
+  () => visibleListItems.value.length > 0,
+);
 
 const createCardTitle = computed(() => {
-  if (hasJoinablePRInSelectedDate.value) {
+  if (hasBrowseItemInSelectedDate.value) {
     return t("anchorEvent.createCard.title");
   }
 
@@ -667,14 +776,14 @@ const shouldAutoExpandCreateCard = computed(() => {
     return false;
   }
 
-  return canUserCreatePR.value && !hasJoinablePRInSelectedDate.value;
+  return canUserCreatePR.value && !hasBrowseItemInSelectedDate.value;
 });
 
 const shouldAutoExpandBetaGroupCard = computed(
   () =>
     detail.value?.prCreationPolicy === "ADMIN_ONLY" &&
     eventBetaGroupQrCode.value !== null &&
-    !hasJoinablePRInSelectedDate.value,
+    !hasBrowseItemInSelectedDate.value,
 );
 
 const createCardAutoExpandContextKey = computed(
@@ -735,6 +844,35 @@ const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
     targetTimeWindow: selectedCreateTimeWindow.value,
     allowEditAfterReady: selectedCreateAllowEditAfterReady.value,
     place,
+    entrySurface: "list_mode",
+  });
+};
+
+const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
+  if (!canUserCreatePR.value || isCreatePending.value) {
+    return;
+  }
+
+  trackEvent("anchor_event_list_create_started", {
+    ...buildListFunnelPayload(),
+    dateKey: item.dateKey,
+    locationId:
+      item.dummy.place.kind === "location"
+        ? item.dummy.place.locationId
+        : null,
+    routePoolEntryId:
+      item.dummy.place.kind === "route"
+        ? item.dummy.place.routePoolEntryId
+        : null,
+    placeKind: item.dummy.place.kind,
+    timeWindowStart: item.dummy.timeWindowStart,
+    preferenceCount: item.dummy.preferenceTags.length,
+  });
+
+  await createEventAssistedPR({
+    targetTimeWindow: item.dummy.timeWindow,
+    place: item.dummy.place,
+    preferences: item.dummy.preferenceTags,
     entrySurface: "list_mode",
   });
 };
@@ -816,6 +954,12 @@ const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
   justify-self: start;
   color: var(--sys-color-primary);
   text-decoration: none;
+}
+
+.list-create-error {
+  margin: 0;
+  @include mx.pu-font(body-small);
+  color: var(--sys-color-error);
 }
 
 .loading-state,

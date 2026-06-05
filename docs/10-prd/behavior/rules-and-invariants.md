@@ -54,6 +54,9 @@
 - A published POI does not appear in an Anchor Event Form Mode unless that Anchor Event's location pool references the POI name.
 - The Anchor Event landing page shows discoverable PRs whose `PR.type` resolves to that Anchor Event, grouped by each PR's own resolved time window.
 - Event-page discovery reads root PR facts by Anchor Event context resolution and PR-owned time/place facts rather than by durable PR-side event linkage.
+- Anchor Event List and Card modes may show frontend-generated dummy PR opportunities alongside real PRs. Dummy PRs are transient browser candidates, not backend PR discovery truth, and they materialize only after the user triggers the same detail intent used for real PR browse items.
+- Dummy PR browse items should use the same PR preview-card appearance and primary "查看详情" action language as real PR browse items.
+- Dummy PR generation is bounded by event create windows, enabled place options, and the published preset preference tag pool. It may generate no-preference and single-tag candidates only, must exclude exact real-PR conflicts by time window, place, and preference fingerprint, and must cap each product-local date at three browse opportunities including real PRs.
 - Anchor Event owns whether a full PR can trigger automatic same-time-window PR expansion. The default policy is `DISABLED`; events with `ENABLED` may create a visible sibling PR after an event-context PR reaches full capacity while still in `OPEN`.
 - Anchor Event may own a participation frequency limit. When configured as `X`, a user with a current active participation in that event must wait through the next `X` complete PRs in event time-window order before joining or waitlisting another PR in the same event; the following PR is eligible. Only current `JOINED`, `CONFIRMED`, and `ATTENDED` slots count as limiting history. `PENDING`, `EXITED`, `RELEASED`, and `CANCELLED` slots do not count as limiting history.
 

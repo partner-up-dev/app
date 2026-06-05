@@ -181,6 +181,7 @@ export type TelemetryPayloadMap = {
     cardKey: string;
     targetPrId?: number | null;
     rank: number;
+    preferenceCount?: number;
   };
   anchor_event_card_empty_create_started: AnchorEventFunnelContextPayload & {
     locationId?: string | null;
@@ -217,6 +218,7 @@ export type TelemetryPayloadMap = {
     routePoolEntryId?: string | null;
     placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
+    preferenceCount?: number;
   };
   pr_entry_reached: AnchorEventFunnelContextPayload & {
     prId: number;

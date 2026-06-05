@@ -159,7 +159,11 @@ import {
 } from "@/domains/event/queries/useCreateEventAssistedPR";
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import { usePoisByIds } from "@/shared/poi/queries/usePoisByIds";
-import { toDemandCardViewModels } from "@/domains/event/model/demand-cards";
+import {
+  sortDemandCardViewModels,
+  toDemandCardViewModels,
+  toDummyDemandCardViewModels,
+} from "@/domains/event/model/demand-cards";
 import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
@@ -174,6 +178,7 @@ import {
   type AnchorEventPlaceOption,
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
+import { buildAnchorEventDummyPRs } from "@/domains/event/model/dummy-prs";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import type { ApiError } from "@/shared/api/error";
 import {
@@ -705,13 +710,31 @@ const resolveCoverImage = (location: string | null): string | null => {
   return pickRandomPoiGalleryImage(poiGalleryById.value.get(normalized) ?? []);
 };
 
-const allDemandCards = computed(() =>
-  toDemandCardViewModels({
+const dummyPRs = computed(() =>
+  detail.value
+    ? buildAnchorEventDummyPRs({
+        browseTimeWindows: detail.value.browseTimeWindows,
+        createTimeWindows: detail.value.createTimeWindows,
+        presetTags: detail.value.presetTags,
+        poiByName: poiByName.value,
+      })
+    : [],
+);
+
+const allDemandCards = computed(() => {
+  const realCards = toDemandCardViewModels({
     cards: demandCards.value ?? [],
     eventCoverImage: detail.value?.coverImage ?? null,
     resolveCoverImage,
-  }),
-);
+  });
+  const dummyCards = toDummyDemandCardViewModels({
+    dummies: dummyPRs.value,
+    eventCoverImage: detail.value?.coverImage ?? null,
+    resolveCoverImage,
+  });
+
+  return sortDemandCardViewModels([...realCards, ...dummyCards]);
+});
 
 const processedCardKeys = ref<string[]>([]);
 const processedCardKeySet = computed(() => new Set(processedCardKeys.value));
@@ -824,7 +847,7 @@ const handleSkipActiveCard = () => {
 
 const handleViewActiveCardDetail = async () => {
   const card = activeDemandCard.value;
-  if (!card || card.detailPrId === null) {
+  if (!card || (card.detailPrId === null && card.createTarget === null)) {
     return;
   }
 
@@ -836,14 +859,26 @@ const handleViewActiveCardDetail = async () => {
       cardKey: card.cardKey,
       targetPrId: card.detailPrId,
       rank: resolveDemandCardRank(card.cardKey),
+      preferenceCount: card.createTarget?.preferences.length,
     });
   }
 
   cardActionError.value = null;
   isCardRouting.value = true;
   try {
-    await router.push(prDetailPath(card.detailPrId));
-    if (funnelPayload) {
+    if (card.createTarget) {
+      await createEventAssistedPR({
+        targetTimeWindow: card.createTarget.timeWindow,
+        place: card.createTarget.place,
+        preferences: card.createTarget.preferences,
+      });
+      return;
+    }
+
+    if (card.detailPrId !== null) {
+      await router.push(prDetailPath(card.detailPrId));
+    }
+    if (funnelPayload && card.detailPrId !== null) {
       trackEvent("pr_entry_reached", {
         ...funnelPayload,
         prId: card.detailPrId,
@@ -882,9 +917,11 @@ const isWeChatAuthBlockingError = (
 const buildEventAssistedFields = ({
   targetTimeWindow,
   place,
+  preferences,
 }: {
   targetTimeWindow: TimeWindow | null;
   place: AnchorEventSelectedPlace | null;
+  preferences?: readonly string[];
 }) => {
   const event = detail.value;
   if (!event) {
@@ -905,7 +942,7 @@ const buildEventAssistedFields = ({
     maxPartners: event.defaultMaxPartners ?? null,
     partners: [],
     budget: null,
-    preferences: [],
+    preferences: [...(preferences ?? [])],
     notes: null,
   };
 };
@@ -929,10 +966,12 @@ const createEventAssistedPR = async ({
   targetTimeWindow,
   allowEditAfterReady,
   place,
+  preferences,
 }: {
   targetTimeWindow: TimeWindow | null;
   allowEditAfterReady?: PRAllowEditAfterReady | null;
   place: AnchorEventSelectedPlace | null;
+  preferences?: readonly string[];
 }) => {
   if (!canUserCreatePR.value) {
     return;
@@ -948,6 +987,7 @@ const createEventAssistedPR = async ({
   const fields = buildEventAssistedFields({
     targetTimeWindow,
     place,
+    preferences,
   });
   const funnelPayload =
     buildCurrentFunnelPayload() ?? {

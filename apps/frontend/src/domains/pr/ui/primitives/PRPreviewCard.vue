@@ -1,60 +1,30 @@
 <template>
-  <article v-bind="$attrs" class="pr-preview-card">
-    <RouterLink
-      :to="resolvedTo"
-      class="pr-preview-card__link"
-      @click="emit('open-detail')"
-    >
-      <div
-        v-if="coverImage"
-        class="pr-preview-card__cover"
-        :style="{ backgroundImage: `url(${coverImage})` }"
-      />
-
-      <div class="pr-preview-card__content">
-        <div class="pr-preview-card__header">
-          <div class="pr-preview-card__headline">
-            <span class="pr-preview-card__title">
-              {{ prTitle }}
-            </span>
-          </div>
-          <PRStatusBadge
-            v-if="resolvedStatus"
-            class="pr-preview-card__status"
-            :status="resolvedStatus"
-            size="sm"
-            appearance="pill"
-          />
-        </div>
-
-        <div class="pr-preview-card__meta">
-          <span v-if="timeLabelText" class="pr-preview-card__time">
-            🕒 {{ timeLabelText }}
-          </span>
-          <span v-if="resolvedPlaceLabel" class="pr-preview-card__location">
-            {{ resolvedPlaceIcon }} {{ resolvedPlaceLabel }}
-          </span>
-          <span v-if="resolvedPartnerCountLabel" class="pr-preview-card__partners">
-            👥 {{ resolvedPartnerCountLabel }}
-          </span>
-        </div>
-      </div>
-    </RouterLink>
-
-    <div v-if="hasActions" class="pr-preview-card__actions">
+  <PRPreviewCardFrame
+    v-bind="$attrs"
+    mode="link"
+    :to="resolvedTo"
+    :title="prTitle"
+    :status="resolvedStatus"
+    :time-label="timeLabelText"
+    :place-label="resolvedPlaceLabel"
+    :place-icon="resolvedPlaceIcon"
+    :partner-count-label="resolvedPartnerCountLabel"
+    :cover-image="coverImage"
+    @activate="emit('open-detail')"
+  >
+    <template v-if="hasActions" #actions>
       <slot name="actions" />
-    </div>
-  </article>
+    </template>
+  </PRPreviewCardFrame>
 </template>
 
 <script setup lang="ts">
 import type { PRId } from "@partner-up-dev/backend";
 import { computed, useSlots } from "vue";
-import { RouterLink } from "vue-router";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
-import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
+import PRPreviewCardFrame from "@/domains/pr/ui/primitives/PRPreviewCardFrame.vue";
 import { buildRouteSummary } from "@/domains/route/model/route";
 import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
@@ -129,6 +99,9 @@ const resolvedPartnerCountLabel = computed(() => {
   }
 
   if (typeof current === "number" && typeof max === "number") {
+    if (current === 0) {
+      return String(max);
+    }
     return `${current}/${max}`;
   }
 
@@ -141,84 +114,3 @@ const resolvedPartnerCountLabel = computed(() => {
 
 const hasActions = computed(() => Boolean(slots.actions));
 </script>
-
-<style lang="scss" scoped>
-.pr-preview-card {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--dcs-pr-preview-card-radius);
-  background: var(--sys-color-surface-container);
-  overflow: hidden;
-}
-
-.pr-preview-card__link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  transition: transform 0.15s ease;
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--sys-color-primary);
-    outline-offset: 2px;
-  }
-}
-
-.pr-preview-card__cover {
-  width: 100%;
-  height: 108px;
-  background-size: cover;
-  background-position: center;
-}
-
-.pr-preview-card__content {
-  padding: var(--dcs-pr-preview-card-content-padding-block)
-    var(--dcs-pr-preview-card-content-padding-inline);
-}
-
-.pr-preview-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.375rem;
-  gap: var(--dcs-pr-preview-card-header-gap);
-}
-
-.pr-preview-card__headline {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sys-spacing-xsmall) / 2);
-  min-width: 0;
-}
-
-.pr-preview-card__title {
-  @include mx.pu-font(title-small);
-  overflow-wrap: anywhere;
-}
-
-.pr-preview-card__status {
-  flex-shrink: 0;
-}
-
-.pr-preview-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sys-spacing-medium);
-  @include mx.pu-font(label-medium);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.pr-preview-card__actions {
-  display: flex;
-  flex-direction: row;
-  gap: var(--sys-spacing-small);
-  padding: 0 var(--sys-spacing-small) var(--sys-spacing-small);
-}
-
-.pr-preview-card__actions :deep(> *) {
-  flex: 1 1 0;
-}
-</style>
