@@ -21,8 +21,10 @@
       :aria-hidden="!expanded"
       :inert="!expanded"
     >
-      <div class="expandable-card__content">
-        <slot />
+      <div class="expandable-card__content-clip">
+        <div class="expandable-card__content">
+          <slot />
+        </div>
       </div>
     </div>
     <Transition v-else name="expandable-card-content">
@@ -135,7 +137,7 @@ watch(
   pointer-events: auto;
 }
 
-.expandable-card__content-motion > .expandable-card__content {
+.expandable-card__content-motion > .expandable-card__content-clip {
   min-height: 0;
   overflow: hidden;
 }
