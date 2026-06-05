@@ -1957,7 +1957,7 @@
     "createCard": {
       "title": "没有合适的？",
       "titleWhenNoAvailablePR": "想自己发一个？",
-      "subtitle": "在你喜欢的场地创建一个{eventTitle}请求，找到搭子后我们会通知您",
+      "subtitle": "换一个时间地点，创建{eventTitle}请求，找到搭子后我们会通知您",
       "locationLabel": "地点",
       "locationPlaceholder": "请选择地点",
       "placeLabel": "地点 / 路线",

@@ -1,4 +1,7 @@
 import type { AnchorEventDemandCardsResponse } from "@/domains/event/model/types";
+import type { AnchorEventDummyPR } from "@/domains/event/model/dummy-prs";
+import type { AnchorEventSelectedPlace } from "@/domains/event/model/place-options";
+import { resolveTimeWindowStartTimestamp } from "@/domains/event/model/time-window-view";
 import {
   addDaysToProductLocalDateKey,
   getTodayProductLocalDateKey,
@@ -19,11 +22,18 @@ export type DemandCardViewModel = {
   preferenceTags: string[];
   notes: string | null;
   detailPrId: number | null;
+  createTarget: DemandCardCreateTarget | null;
   candidateCount: number;
   coverImage: string | null;
 };
 
 type PoiGalleryResolver = (location: string | null) => string | null;
+
+export type DemandCardCreateTarget = {
+  timeWindow: TimeWindow;
+  place: AnchorEventSelectedPlace;
+  preferences: string[];
+};
 
 const PRODUCT_TIME_ZONE = "Asia/Shanghai";
 
@@ -159,7 +169,53 @@ export const toDemandCardViewModels = ({
     preferenceTags: card.preferenceTags,
     notes: card.notes,
     detailPrId: card.detailPrId,
+    createTarget: null,
     candidateCount: card.candidateCount,
     coverImage:
       resolveCoverImage(card.displayLocationName) ?? eventCoverImage ?? null,
   }));
+
+export const toDummyDemandCardViewModels = ({
+  dummies,
+  eventCoverImage,
+  resolveCoverImage,
+}: {
+  dummies: readonly AnchorEventDummyPR[];
+  eventCoverImage: string | null;
+  resolveCoverImage: PoiGalleryResolver;
+}): DemandCardViewModel[] =>
+  dummies.map((dummy) => ({
+    cardKey: dummy.key,
+    timeWindow: dummy.timeWindow,
+    batchStartTimestamp: resolveTimeWindowStartTimestamp(dummy.timeWindow),
+    timeLabel: formatCardTimeLabel(dummy.timeWindow),
+    displayLocationName: dummy.displayLocationName,
+    preferenceFingerprint: dummy.preferenceFingerprint,
+    preferenceTags: dummy.preferenceTags,
+    notes: null,
+    detailPrId: null,
+    createTarget: {
+      timeWindow: dummy.timeWindow,
+      place: dummy.place,
+      preferences: [...dummy.preferenceTags],
+    },
+    candidateCount: 0,
+    coverImage:
+      resolveCoverImage(dummy.displayLocationName) ??
+      eventCoverImage ??
+      null,
+  }));
+
+export const sortDemandCardViewModels = (
+  cards: readonly DemandCardViewModel[],
+): DemandCardViewModel[] =>
+  [...cards].sort(
+    (left, right) =>
+      left.batchStartTimestamp - right.batchStartTimestamp ||
+      left.displayLocationName.localeCompare(right.displayLocationName, "zh-CN") ||
+      (left.preferenceFingerprint ?? "").localeCompare(
+        right.preferenceFingerprint ?? "",
+        "zh-CN",
+      ) ||
+      left.cardKey.localeCompare(right.cardKey),
+  );

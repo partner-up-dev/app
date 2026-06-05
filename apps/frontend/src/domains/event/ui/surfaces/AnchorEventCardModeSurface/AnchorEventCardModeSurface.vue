@@ -82,6 +82,9 @@
           :notes="previewCard.notes"
           :cover-image="previewCard.coverImage"
           :detail-pr-id="previewCard.detailPrId"
+          :action-available="
+            previewCard.detailPrId !== null || previewCard.createTarget !== null
+          "
           :preview="true"
           :preview-depth="previewIndex + 1"
           aria-hidden="true"
@@ -100,6 +103,7 @@
             :notes="resolvedActiveDemandCard.notes"
             :cover-image="resolvedActiveDemandCard.coverImage"
             :detail-pr-id="resolvedActiveDemandCard.detailPrId"
+            :action-available="activeCardActionAvailable"
             :pending="resolvedIsCardRouting"
             @swipe-preview="handleSwipePreview"
             @skip="emitSkipActiveCard"
@@ -124,12 +128,10 @@
         type="button"
         class="card-mode__action"
         appearance="pill"
-        :disabled="
-          resolvedIsCardRouting || resolvedActiveDemandCard.detailPrId === null
-        "
+        :disabled="resolvedIsCardRouting || !activeCardActionAvailable"
         @click="handleViewActionClick"
       >
-        {{ t("anchorEvent.card.detailButton") }}
+        {{ activeCardPrimaryActionLabel }}
       </Button>
     </div>
 
@@ -233,7 +235,11 @@ import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/cont
 import Button from "@/shared/ui/actions/Button.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
-import { toDemandCardViewModels } from "@/domains/event/model/demand-cards";
+import {
+  sortDemandCardViewModels,
+  toDemandCardViewModels,
+  toDummyDemandCardViewModels,
+} from "@/domains/event/model/demand-cards";
 import {
   pickRandomPoiGalleryImage,
   toPoiGalleryMap,
@@ -253,6 +259,7 @@ import {
   resolveTimeWindowStartTimestamp,
   type TimeWindow,
 } from "@/domains/event/model/time-window-view";
+import { buildAnchorEventDummyPRs } from "@/domains/event/model/dummy-prs";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { useEventAssistedPRCreateFlow } from "@/domains/event/use-cases/useEventAssistedPRCreateFlow";
 import { useReducedMotion } from "@/shared/motion/useReducedMotion";
@@ -401,13 +408,31 @@ const resolveCoverImage = (location: string | null): string | null => {
   return pickRandomPoiGalleryImage(poiGalleryById.value.get(normalized) ?? []);
 };
 
-const internalDemandCards = computed(() =>
-  toDemandCardViewModels({
+const internalDummyPRs = computed(() =>
+  detail.value
+    ? buildAnchorEventDummyPRs({
+        browseTimeWindows: detail.value.browseTimeWindows,
+        createTimeWindows: detail.value.createTimeWindows,
+        presetTags: detail.value.presetTags,
+        poiByName: poiByName.value,
+      })
+    : [],
+);
+
+const internalDemandCards = computed(() => {
+  const realCards = toDemandCardViewModels({
     cards: demandCards.value ?? [],
     eventCoverImage: detail.value?.coverImage ?? null,
     resolveCoverImage,
-  }),
-);
+  });
+  const dummyCards = toDummyDemandCardViewModels({
+    dummies: internalDummyPRs.value,
+    eventCoverImage: detail.value?.coverImage ?? null,
+    resolveCoverImage,
+  });
+
+  return sortDemandCardViewModels([...realCards, ...dummyCards]);
+});
 
 const processedCardKeySet = computed(() => new Set(processedCardKeys.value));
 const remainingDemandCards = computed(() =>
@@ -428,6 +453,13 @@ const resolvedStackPreviewCards = computed(() =>
   isControlled.value ? props.stackPreviewCards : internalStackPreviewCards.value,
 );
 const isCardStageActive = computed(() => resolvedActiveDemandCard.value !== null);
+const activeCardActionAvailable = computed(() => {
+  const card = resolvedActiveDemandCard.value;
+  return card !== null && (card.detailPrId !== null || card.createTarget !== null);
+});
+const activeCardPrimaryActionLabel = computed(() =>
+  t("anchorEvent.card.detailButton"),
+);
 const resolvedIsCardRouting = computed(() =>
   isControlled.value ? props.isCardRouting : internalIsCardRouting.value,
 );
@@ -864,7 +896,7 @@ const emitViewActiveCardDetail = async () => {
   }
 
   const card = resolvedActiveDemandCard.value;
-  if (!card || card.detailPrId === null) {
+  if (!card || !activeCardActionAvailable.value) {
     return;
   }
 
@@ -872,7 +904,19 @@ const emitViewActiveCardDetail = async () => {
   internalCardActionError.value = null;
   internalIsCardRouting.value = true;
   try {
-    await router.push(prDetailPath(card.detailPrId));
+    if (card.createTarget) {
+      await createEventAssistedPR({
+        targetTimeWindow: card.createTarget.timeWindow,
+        place: card.createTarget.place,
+        preferences: card.createTarget.preferences,
+        entrySurface: "card_rich",
+      });
+      return;
+    }
+
+    if (card.detailPrId !== null) {
+      await router.push(prDetailPath(card.detailPrId));
+    }
   } catch (error) {
     internalCardActionError.value =
       error instanceof Error ? error.message : t("common.operationFailed");

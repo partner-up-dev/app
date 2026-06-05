@@ -5,6 +5,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
  */
 
 import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
+import { AnchorEventPreferenceTagRepository } from "../../../repositories/AnchorEventPreferenceTagRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import type {
   AnchorEvent,
@@ -44,6 +45,7 @@ import {
 import { findPoisByNames } from "../../poi";
 
 const eventRepo = new AnchorEventRepository();
+const preferenceTagRepo = new AnchorEventPreferenceTagRepository();
 const partnerRepo = new PartnerRepository();
 
 export interface EventPRSummary {
@@ -114,6 +116,11 @@ export interface AnchorEventDetail {
   browseTimeWindows: BrowseTimeWindowDetail[];
   createTimeWindows: CreateTimeWindowDetail[];
   placeSelector: AnchorEventPlaceSelectorView;
+  presetTags: Array<{
+    id: number;
+    label: string;
+    description: string;
+  }>;
   exhausted: boolean;
   createdAt: string;
 }
@@ -229,7 +236,10 @@ export async function getAnchorEventDetail(
   const routePool = resolveEventRoutePool(event);
   const timeWindowDetails = listAnchorEventTimeWindowDetails(event);
   const timeWindowPool = timeWindowDetails.map((detail) => detail.timeWindow);
-  const pois = await findPoisByNames(locationPool);
+  const [pois, tags] = await Promise.all([
+    findPoisByNames(locationPool),
+    preferenceTagRepo.findByAnchorEventIdAndStatuses(eventId, ["PUBLISHED"]),
+  ]);
   const poiByLocation = new Map(pois.map((poi) => [poi.name, poi]));
   const eventRouteOptions = toRouteOptions(routePool);
   const eventPlaceSelector = buildAnchorEventPlaceSelectorView({
@@ -369,6 +379,11 @@ export async function getAnchorEventDetail(
     browseTimeWindows,
     createTimeWindows,
     placeSelector: eventPlaceSelector,
+    presetTags: tags.map((tag) => ({
+      id: tag.id,
+      label: tag.label,
+      description: tag.description,
+    })),
     exhausted,
     createdAt: event.createdAt.toISOString(),
   };

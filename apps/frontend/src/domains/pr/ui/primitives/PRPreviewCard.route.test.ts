@@ -75,6 +75,29 @@ describe("PRPreviewCard route display", () => {
     expect(host.textContent).toContain("FULL");
   });
 
+  test("shows only max capacity when current count is zero", () => {
+    const host = mountCard(
+      buildPRDetail({
+        current: 0,
+        max: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("👥 4");
+    expect(host.textContent).not.toContain("0/4");
+  });
+
+  test("keeps current over max capacity when current count is non-zero", () => {
+    const host = mountCard(
+      buildPRDetail({
+        current: 1,
+        max: 4,
+      }),
+    );
+
+    expect(host.textContent).toContain("👥 1/4");
+  });
+
   test("keeps READY display ahead of derived fullness", () => {
     const host = mountCard(
       buildPRDetail({

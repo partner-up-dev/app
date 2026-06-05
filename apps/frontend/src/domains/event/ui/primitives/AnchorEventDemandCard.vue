@@ -114,6 +114,7 @@ const props = withDefaults(
     notes?: string | null;
     coverImage?: string | null;
     detailPrId?: number | null;
+    actionAvailable?: boolean | null;
     pending?: boolean;
     preview?: boolean;
     previewDepth?: number;
@@ -122,6 +123,7 @@ const props = withDefaults(
     notes: null,
     coverImage: null,
     detailPrId: null,
+    actionAvailable: null,
     pending: false,
     preview: false,
     previewDepth: 1,
@@ -164,7 +166,9 @@ const displayNotes = computed(() => {
   return normalized.length > 0 ? normalized : null;
 });
 const isDetailActionAvailable = computed(
-  () => !props.preview && props.detailPrId !== null,
+  () =>
+    !props.preview &&
+    (props.actionAvailable ?? props.detailPrId !== null),
 );
 const isInteractionLocked = computed(
   () =>
