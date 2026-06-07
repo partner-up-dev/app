@@ -628,7 +628,7 @@ const handleSavePreferenceDrawer = async () => {
 
 .preference-group__title {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .preference-group__list {
@@ -640,8 +640,8 @@ const handleSavePreferenceDrawer = async () => {
 .tag-pill {
   display: inline-flex;
   align-items: stretch;
-  gap: var(--sys-spacing-xxsmall);
-  min-width: calc(var(--sys-size-large) + var(--sys-spacing-large));
+  gap: calc(var(--sys-spacing-xsmall) / 2);
+  min-width: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-large));
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-pill);
   background: var(--sys-color-surface);
@@ -662,7 +662,7 @@ const handleSavePreferenceDrawer = async () => {
 .tag-pill--draft {
   align-items: center;
   gap: var(--sys-spacing-xsmall);
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-medium);
 }
 
@@ -697,11 +697,11 @@ const handleSavePreferenceDrawer = async () => {
 }
 
 .tag-pill--removable .tag-pill__main {
-  padding-right: var(--sys-spacing-xxsmall);
+  padding-right: calc(var(--sys-spacing-xsmall) / 2);
 }
 
 .tag-pill__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .tag-pill__plus {
@@ -721,7 +721,7 @@ const handleSavePreferenceDrawer = async () => {
   outline: none;
   background: transparent;
   color: inherit;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .tag-pill__remove {
@@ -764,12 +764,12 @@ const handleSavePreferenceDrawer = async () => {
   background: var(--sys-color-surface-container-low);
   color: var(--sys-color-on-surface-variant);
   white-space: pre-line;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .inline-message {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .inline-message--error {

@@ -83,13 +83,13 @@ defineEmits<{
 }
 
 .share-card-title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
   margin: 0;
 }
 
 .share-card-desc {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
 }
@@ -113,7 +113,7 @@ defineEmits<{
 }
 
 .thumb-placeholder {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -133,6 +133,6 @@ defineEmits<{
   color: var(--sys-color-on-surface);
   display: grid;
   place-items: center;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 </style>

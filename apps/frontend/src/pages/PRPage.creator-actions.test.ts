@@ -240,9 +240,9 @@ vi.mock("@/domains/commerce/ui/ButtonPlacement.vue", () => ({
   },
 }));
 
-vi.mock("@/domains/support/ui/sections/MiniumCommonFooter.vue", () => ({
+vi.mock("@/shared/ui/sections/PageFooter.vue", () => ({
   default: {
-    name: "MiniumCommonFooter",
+    name: "PageFooter",
     template: "<footer />",
   },
 }));

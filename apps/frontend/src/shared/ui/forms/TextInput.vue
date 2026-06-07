@@ -63,7 +63,7 @@ defineEmits<{
 
 <style scoped lang="scss">
 .text-input {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   width: 100%;
   min-width: 0;
   border: 1px solid var(--sys-color-outline);

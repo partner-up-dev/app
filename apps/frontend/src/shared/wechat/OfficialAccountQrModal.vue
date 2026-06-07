@@ -51,7 +51,7 @@ useBodyScrollLock(computed(() => props.open));
 }
 
 .official-account-modal-description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -62,7 +62,7 @@ useBodyScrollLock(computed(() => props.open));
 }
 
 .official-account-qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }

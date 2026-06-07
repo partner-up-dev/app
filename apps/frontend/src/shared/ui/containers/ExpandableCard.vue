@@ -74,7 +74,7 @@ watch(
 
 .expandable-card__toggle {
   width: 100%;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: none;
   background: transparent;
   color: inherit;
@@ -95,17 +95,17 @@ watch(
 
 .expandable-card__title {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .expandable-card__subtitle {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .expandable-card__icon {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   transition: transform 0.18s ease;
 }
 

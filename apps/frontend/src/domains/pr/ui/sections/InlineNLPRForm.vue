@@ -217,9 +217,9 @@ const handleVoiceToggle = async (): Promise<void> => {
 }
 
 .nl-input {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   width: 100%;
-  height: var(--sys-size-large);
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px solid var(--sys-color-outline);
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface-container);
@@ -245,9 +245,9 @@ const handleVoiceToggle = async (): Promise<void> => {
 }
 
 .send-button {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   min-width: 4.8rem;
-  height: var(--sys-size-large);
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px solid var(--sys-color-primary);
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-primary-container);
@@ -298,9 +298,9 @@ const handleVoiceToggle = async (): Promise<void> => {
 }
 
 .voice-button {
-  @include mx.pu-font(label-large);
-  min-width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  @include mx.pu-font(control);
+  min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px dashed var(--sys-color-primary);
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-primary-container);
@@ -345,7 +345,7 @@ const handleVoiceToggle = async (): Promise<void> => {
 }
 
 .error-message {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-error);
 }
 
@@ -359,7 +359,7 @@ const handleVoiceToggle = async (): Promise<void> => {
   }
 
   .send-button {
-    min-width: var(--sys-size-large);
+    min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   }
 }
 

@@ -44,13 +44,13 @@ const placement = computed(() => placementQuery.data.value?.placements[0] ?? nul
 .button-placement {
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
 }
 
 .button-placement__description {
   margin: 0;
   color: var(--sys-color-on-surface-variant);
-  font-size: var(--sys-font-size-small);
+  font-size: var(--sys-typo-caption-size);
   line-height: 1.4;
 }
 </style>

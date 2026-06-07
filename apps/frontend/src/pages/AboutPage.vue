@@ -244,20 +244,20 @@ const backendCommitHash = computed(() => {
   background: var(--sys-color-surface-container);
 
   dt {
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
     color: var(--sys-color-on-surface-variant);
     margin: 0 0 var(--sys-spacing-xsmall);
   }
 
   dd {
     margin: 0;
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface);
     overflow-wrap: anywhere;
   }
 
   code {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     display: inline-block;
     padding: var(--sys-spacing-xsmall);
     border-radius: var(--sys-radius-small);
@@ -282,23 +282,23 @@ const backendCommitHash = computed(() => {
   }
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     color: var(--sys-color-on-surface);
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
   }
 }
 
 .about-beta-groups__kicker {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-secondary);
 }
 
 .about-beta-groups__state {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -317,7 +317,7 @@ const backendCommitHash = computed(() => {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sys-spacing-small);
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) 0;
 }
 
@@ -326,7 +326,7 @@ const backendCommitHash = computed(() => {
 }
 
 .about-beta-groups-row__label {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;
 }
@@ -336,7 +336,7 @@ const backendCommitHash = computed(() => {
   border: 0;
   padding: var(--sys-spacing-xsmall);
   background: transparent;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-primary);
   cursor: pointer;
   text-decoration: underline;
@@ -357,7 +357,7 @@ const backendCommitHash = computed(() => {
 
 .about-beta-group-modal__description,
 .about-beta-group-modal__missing {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;
@@ -385,7 +385,7 @@ const backendCommitHash = computed(() => {
 
 .fetch-warning {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 </style>

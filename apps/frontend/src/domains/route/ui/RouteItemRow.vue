@@ -1,12 +1,12 @@
 <template>
   <article
     v-if="variant === 'inline'"
-    class="route-item-wrapper"
+    class="route-item-row"
     :data-role="role"
   >
-    <div class="route-item">
+    <div class="route-item-row__field">
       <button
-        class="route-item__location"
+        class="route-item-row__location"
         type="button"
         :data-testid="`route.point.${index}.pick`"
         @click="emit('pick')"
@@ -16,7 +16,7 @@
 
       <button
         v-if="!disableDatetime"
-        class="route-item__icon-action"
+        class="route-item-row__icon-action"
         type="button"
         :aria-label="t('route.editDatetime')"
         :data-testid="`route.point.${index}.datetime`"
@@ -28,7 +28,7 @@
 
     <button
       v-if="removable"
-      class="route-item-wrapper__remove"
+      class="route-item-row__remove"
       type="button"
       :aria-label="t('route.removeWaypoint')"
       :data-testid="`route.point.${index}.remove`"
@@ -39,11 +39,11 @@
 
     <div
       v-if="canMoveUp || canMoveDown"
-      class="route-item-wrapper__order-actions"
+      class="route-item-row__order-actions"
     >
       <button
         v-if="canMoveUp"
-        class="route-item-wrapper__order-action"
+        class="route-item-row__order-action"
         type="button"
         :aria-label="t('route.movePointUp')"
         :data-testid="`route.point.${index}.move-up`"
@@ -53,7 +53,7 @@
       </button>
       <button
         v-if="canMoveDown"
-        class="route-item-wrapper__order-action"
+        class="route-item-row__order-action"
         type="button"
         :aria-label="t('route.movePointDown')"
         :data-testid="`route.point.${index}.move-down`"
@@ -66,14 +66,14 @@
 
   <article
     v-else
-    class="route-item route-item--immersive"
-    :class="`route-item--${role}`"
+    class="route-item-row route-item-row--immersive"
+    :class="`route-item-row--${role}`"
     :data-role="role"
   >
-    <div class="route-item__title">{{ immersiveTitle }}</div>
-    <div class="route-item__content">
+    <div class="route-item-row__title">{{ immersiveTitle }}</div>
+    <div class="route-item-row__body">
       <button
-        class="route-item__location"
+        class="route-item-row__location"
         type="button"
         :data-testid="`route.point.${index}.pick`"
         @click="emit('pick')"
@@ -81,13 +81,13 @@
         {{ locationText }}
       </button>
 
-      <span v-if="role === 'departure'" class="route-item__text">
+      <span v-if="role === 'departure'" class="route-item-row__text">
         {{ t("route.immersive.departure.text") }}
       </span>
 
       <button
         v-if="role === 'departure' && !disableDatetime"
-        class="route-item__action"
+        class="route-item-row__action"
         type="button"
         :aria-label="t('route.editDatetime')"
         :data-testid="`route.point.${index}.datetime`"
@@ -98,7 +98,7 @@
 
       <button
         v-if="role === 'waypoint' && removable"
-        class="route-item__action"
+        class="route-item-row__action"
         type="button"
         :aria-label="t('route.removeWaypoint')"
         :data-testid="`route.point.${index}.remove`"
@@ -107,10 +107,10 @@
         <span class="i-mdi-minus-circle" aria-hidden="true"></span>
       </button>
 
-      <div v-if="canMoveUp || canMoveDown" class="route-item__order-actions">
+      <div v-if="canMoveUp || canMoveDown" class="route-item-row__order-actions">
         <button
           v-if="canMoveUp"
-          class="route-item__action"
+          class="route-item-row__action"
           type="button"
           :aria-label="t('route.movePointUp')"
           :data-testid="`route.point.${index}.move-up`"
@@ -120,7 +120,7 @@
         </button>
         <button
           v-if="canMoveDown"
-          class="route-item__action"
+          class="route-item-row__action"
           type="button"
           :aria-label="t('route.movePointDown')"
           :data-testid="`route.point.${index}.move-down`"
@@ -188,7 +188,7 @@ const immersiveTitle = computed(() =>
 </script>
 
 <style scoped lang="scss">
-.route-item-wrapper {
+.route-item-row {
   display: flex;
   align-items: center;
   min-width: 0;
@@ -196,23 +196,23 @@ const immersiveTitle = computed(() =>
   box-sizing: border-box;
 }
 
-.route-item {
+.route-item-row__field {
   min-width: 0;
 }
 
-.route-item-wrapper > .route-item {
+.route-item-row > .route-item-row__field {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
   justify-content: space-between;
   min-width: 0;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   box-sizing: border-box;
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
   background: var(--sys-color-surface-container);
 }
 
-.route-item__location {
+.route-item-row__location {
   min-width: 0;
   border: 0;
   background: transparent;
@@ -221,8 +221,8 @@ const immersiveTitle = computed(() =>
   appearance: none;
 }
 
-.route-item-wrapper > .route-item .route-item__location {
-  @include mx.pu-font(label-large);
+.route-item-row > .route-item-row__field .route-item-row__location {
+  @include mx.pu-font(control);
   flex: 1 1 auto;
   padding: 0;
   overflow: hidden;
@@ -231,10 +231,10 @@ const immersiveTitle = computed(() =>
   white-space: nowrap;
 }
 
-.route-item__icon-action,
-.route-item-wrapper__remove,
-.route-item-wrapper__order-action,
-.route-item__action {
+.route-item-row__icon-action,
+.route-item-row__remove,
+.route-item-row__order-action,
+.route-item-row__action {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
@@ -244,61 +244,61 @@ const immersiveTitle = computed(() =>
   appearance: none;
 }
 
-.route-item__icon-action,
-.route-item-wrapper__remove,
-.route-item-wrapper__order-action {
-  width: var(--sys-size-medium);
-  height: var(--sys-size-medium);
+.route-item-row__icon-action,
+.route-item-row__remove,
+.route-item-row__order-action {
+  width: var(--sys-spacing-large);
+  height: var(--sys-spacing-large);
   color: var(--sys-color-on-surface-variant);
 }
 
-.route-item-wrapper__remove {
+.route-item-row__remove {
   color: var(--sys-color-tertiary);
 }
 
-.route-item__icon-action span,
-.route-item-wrapper__remove span,
-.route-item-wrapper__order-action span,
-.route-item__action span {
+.route-item-row__icon-action span,
+.route-item-row__remove span,
+.route-item-row__order-action span,
+.route-item-row__action span {
   @include mx.pu-icon(medium);
 }
 
-.route-item__location:focus-visible,
-.route-item__icon-action:focus-visible,
-.route-item-wrapper__remove:focus-visible,
-.route-item-wrapper__order-action:focus-visible,
-.route-item__action:focus-visible {
+.route-item-row__location:focus-visible,
+.route-item-row__icon-action:focus-visible,
+.route-item-row__remove:focus-visible,
+.route-item-row__order-action:focus-visible,
+.route-item-row__action:focus-visible {
   outline: 2px solid var(--sys-color-primary);
   outline-offset: 2px;
 }
 
-.route-item-wrapper__order-actions {
+.route-item-row__order-actions {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   align-self: stretch;
 }
 
-.route-item--immersive {
+.route-item-row--immersive {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.route-item--immersive .route-item__title {
-  @include mx.pu-font(headline-large);
+.route-item-row--immersive .route-item-row__title {
+  @include mx.pu-font(hero);
   color: var(--sys-color-on-surface);
 }
 
-.route-item--immersive .route-item__content {
+.route-item-row--immersive .route-item-row__body {
   display: flex;
   align-items: center;
   gap: var(--sys-spacing-xsmall);
   min-width: 0;
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
 }
 
-.route-item--immersive .route-item__location {
+.route-item-row--immersive .route-item-row__location {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
@@ -311,20 +311,20 @@ const immersiveTitle = computed(() =>
   white-space: nowrap;
 }
 
-.route-item__text,
-.route-item__action,
-.route-item__order-actions {
+.route-item-row__text,
+.route-item-row__action,
+.route-item-row__order-actions {
   flex: 0 0 auto;
 }
 
-.route-item__action {
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+.route-item-row__action {
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: 0;
   color: var(--sys-color-tertiary);
 }
 
-.route-item__order-actions {
+.route-item-row__order-actions {
   display: flex;
   align-items: center;
 }

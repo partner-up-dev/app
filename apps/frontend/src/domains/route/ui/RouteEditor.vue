@@ -377,8 +377,8 @@ const handleLocationPicked = (location: PickedLocation) => {
 
 .route-editor__icon-action {
   display: grid;
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   place-items: center;
   border: 0;
   border-radius: var(--sys-radius-small);

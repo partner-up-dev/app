@@ -385,17 +385,17 @@ watch(output, (next) => emit("update:output", next), {
   div {
     display: flex;
     flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+    gap: calc(var(--sys-spacing-xsmall) / 2);
     min-width: 0;
   }
 
   span {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     color: var(--sys-color-on-surface-variant);
   }
 
   strong {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface);
   }
 }
@@ -407,7 +407,7 @@ watch(output, (next) => emit("update:output", next), {
   padding-top: var(--sys-spacing-small);
 
   h2 {
-    @include mx.pu-font(title-small);
+    @include mx.pu-font(section);
     margin: 0;
     color: var(--sys-color-on-surface);
   }
@@ -474,7 +474,7 @@ watch(output, (next) => emit("update:output", next), {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
 
   strong {
     overflow-wrap: anywhere;
@@ -487,7 +487,7 @@ watch(output, (next) => emit("update:output", next), {
 
 .rental-ordering__input {
   width: 100%;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px solid var(--sys-color-outline);
   border-radius: var(--sys-radius-small);
   padding: 0 var(--sys-spacing-small);
@@ -505,7 +505,7 @@ watch(output, (next) => emit("update:output", next), {
 .rental-ordering__notice-block {
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
   padding-top: var(--sys-spacing-small);
   border-top: 1px solid var(--sys-color-outline-variant);
 

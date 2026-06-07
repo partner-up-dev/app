@@ -118,7 +118,9 @@ const passiveValueItems = computed(() => [
 }
 
 h2 {
-  @include mx.pu-font(body-large);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--sys-color-on-surface-variant);
   opacity: 0;
   transform: translate3d(0, 0.4rem, 0);
@@ -194,7 +196,9 @@ h2.is-visible {
 }
 
 .value-order {
-  @include mx.pu-font(title-medium);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--sys-color-on-surface-variant);
   min-width: 2.5ch;
 }
@@ -212,7 +216,9 @@ h2.is-visible {
 }
 
 .value-text {
-  @include mx.pu-font(title-medium);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--sys-color-on-surface);
 }
 
@@ -261,7 +267,7 @@ h2.is-visible {
   }
 
   h2 {
-    @include mx.pu-font(title-medium);
+    font-size: 1.125rem;
     letter-spacing: 0.05em;
   }
 
@@ -274,7 +280,8 @@ h2.is-visible {
   }
 
   .value-order {
-    @include mx.pu-font(title-large);
+    font-size: 1.375rem;
+    line-height: 2rem;
   }
 
   .value-icon {
@@ -282,7 +289,8 @@ h2.is-visible {
   }
 
   .value-text {
-    @include mx.pu-font(body-large);
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
   .value-panel {

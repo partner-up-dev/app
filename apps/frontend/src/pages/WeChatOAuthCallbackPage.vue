@@ -153,12 +153,12 @@ onMounted(() => {
 }
 
 .wechat-oauth-callback-page__title {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   color: var(--sys-color-on-surface);
 }
 
 .wechat-oauth-callback-page__subtitle {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -171,7 +171,7 @@ onMounted(() => {
 }
 
 .wechat-oauth-callback-page__error {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-error);
   margin: 0;
 }

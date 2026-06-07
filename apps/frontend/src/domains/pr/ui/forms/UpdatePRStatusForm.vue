@@ -79,7 +79,7 @@ defineExpose({
 }
 
 .status-option {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   justify-content: center;
   min-width: 0;
 }

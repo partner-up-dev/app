@@ -65,7 +65,7 @@ const formatWindow = (windowValue: [string | null, string | null]) =>
 
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

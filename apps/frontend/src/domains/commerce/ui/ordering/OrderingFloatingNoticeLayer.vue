@@ -35,7 +35,7 @@ const iconClass = computed(() =>
 .ordering-floating-notice {
   position: absolute;
   right: var(--sys-spacing-medium);
-  bottom: calc(var(--sys-size-large) + var(--sys-spacing-xlarge));
+  bottom: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-xlarge));
   left: var(--sys-spacing-medium);
   z-index: 20;
   display: grid;
@@ -44,14 +44,14 @@ const iconClass = computed(() =>
   align-items: center;
   padding: var(--sys-spacing-small);
   border-radius: var(--sys-radius-small);
-  box-shadow: var(--sys-elevation-level3);
+  box-shadow: var(--sys-shadow-3);
 
   span:first-child {
     @include mx.pu-icon(small);
   }
 
   span:last-child {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     overflow-wrap: anywhere;
   }
 }

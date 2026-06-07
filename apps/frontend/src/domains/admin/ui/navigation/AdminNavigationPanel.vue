@@ -273,17 +273,17 @@ watch(
 }
 
 .admin-navigation-panel__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .admin-navigation-panel__subtitle {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
 .admin-navigation-panel__group-trigger {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -353,7 +353,7 @@ watch(
 }
 
 .admin-navigation-panel__item {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .admin-navigation-panel__item.router-link-active:not(.is-active),

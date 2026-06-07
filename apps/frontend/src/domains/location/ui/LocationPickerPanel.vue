@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
 }
 
 .location-picker-panel__unavailable p {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
 }
 
@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
 
 .location-picker-panel__field span,
 .location-picker-panel__coordinate span {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -270,7 +270,7 @@ onBeforeUnmount(() => {
 }
 
 .location-picker-panel__coordinate strong {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   min-width: 0;
   color: var(--sys-color-on-surface);
   text-align: right;

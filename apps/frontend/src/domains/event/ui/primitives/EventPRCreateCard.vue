@@ -201,7 +201,7 @@ const emitCreate = () => {
 }
 
 .create-card__label {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -212,18 +212,18 @@ const emitCreate = () => {
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
 }
 
 .create-card__hint {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .create-card__error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 

@@ -67,7 +67,7 @@ const showOfficialAccountQrModal = ref(false);
 }
 
 .wechat-access-section__hint {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
   max-width: 32ch;
@@ -75,7 +75,7 @@ const showOfficialAccountQrModal = ref(false);
 
 @media (max-width: 768px) {
   .wechat-access-section__hint {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
     max-width: none;
   }
 }

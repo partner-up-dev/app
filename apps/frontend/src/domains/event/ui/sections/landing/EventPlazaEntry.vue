@@ -68,18 +68,22 @@ const handleClick = () => {
 }
 
 .plaza-text {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
   max-width: 42ch;
 }
 
 .plaza-description {
-  @include mx.pu-font(label-large);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4286;
 }
 
 .plaza-action-link {
-  @include mx.pu-font(body-medium);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4286;
   margin-left: auto;
   display: inline-flex;
   align-items: center;

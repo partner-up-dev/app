@@ -51,12 +51,12 @@ const statusText = computed(() => {
   flex-shrink: 0;
 
   &--size-md {
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
     padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
   }
 
   &--size-sm {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     padding: calc(var(--sys-spacing-xsmall) / 2) var(--sys-spacing-small);
   }
 

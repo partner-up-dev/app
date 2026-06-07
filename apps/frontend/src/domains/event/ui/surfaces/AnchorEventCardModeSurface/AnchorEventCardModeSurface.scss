@@ -112,7 +112,7 @@
 }
 
 .card-stage__projection-label {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   position: relative;
   margin: 0;
   white-space: nowrap;
@@ -270,7 +270,7 @@
 }
 
 .card-mode__error {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-error);
   padding-inline-start: calc(
@@ -320,13 +320,13 @@
 }
 
 .card-empty__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   margin: 0;
   color: var(--sys-color-on-surface);
 }
 
 .card-empty__subtitle {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -344,7 +344,7 @@
 }
 
 .card-empty__label {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -355,11 +355,11 @@
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
 }
 
 .card-empty__error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }

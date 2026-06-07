@@ -27,7 +27,7 @@ const keepOpen = (): void => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/styles/mixins" as mx;
+@use "@partner-up-dev/design-web/styles/mixins" as mx;
 
 .wechat-oauth-login-modal {
   display: flex;
@@ -39,8 +39,8 @@ const keepOpen = (): void => {
 }
 
 .wechat-oauth-login-modal__spinner {
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 3px solid var(--sys-color-outline-variant);
   border-top-color: var(--sys-color-primary);
   border-radius: 50%;
@@ -50,7 +50,7 @@ const keepOpen = (): void => {
 .wechat-oauth-login-modal__text {
   color: var(--sys-color-on-surface);
 
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
 }
 
 @media (prefers-reduced-motion: reduce) {

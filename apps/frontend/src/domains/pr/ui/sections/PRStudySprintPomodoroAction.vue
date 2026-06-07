@@ -79,7 +79,7 @@ const handleOpen = (): void => {
 
 .action-tip {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

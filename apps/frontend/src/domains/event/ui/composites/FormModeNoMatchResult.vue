@@ -187,12 +187,12 @@ const handleJoinCandidateClick = (
 }
 .no-match-hero__title,
 .candidate-list__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .no-match-hero__body {
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .candidate-list {
@@ -209,7 +209,7 @@ const handleJoinCandidateClick = (
 }
 
 .inline-message {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .inline-message--error {

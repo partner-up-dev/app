@@ -78,7 +78,7 @@ const { t } = useI18n();
 }
 
 .slot-state-text {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

@@ -11,27 +11,47 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 
 ## Preferred Primitives
 
-- `actions/Button.vue`: shared button primitive for pill and rect actions; prefer it over page-local button classes.
+Actions:
+
+- `actions/Button.vue`: shared button primitive. Prefer it over page-local button classes; use `appearance="pill"` for compact CTA clusters and `appearance="rect"` for dialogs or block actions. Keep `tone` choices narrow.
 - `actions/ActionLink.vue`: shared action-looking link primitive for RouterLink and external anchor CTAs.
-- `actions/FeedbackButton.vue`: shared action button wrapper for short-lived pending/success/error feedback states.
-- `containers/SurfaceCard.vue`: shared card shell for section, outline, and inset treatments.
-- `containers/ChoiceCard.vue`: shared selectable card shell for button and RouterLink choices.
-- `layout/FullScreenPageScaffold.vue`: viewport-height page shell with dedicated header/content/footer slots for pages whose middle region should flex and own scrolling.
-- `layout/FooterRevealPageScaffold.vue`: viewport-first page shell with dedicated header/content/footer slots for pages that should keep `header + content` in the first screen and reveal the footer through normal page scrolling.
-- `forms/FormField.vue`: label + control + hint/error wrapper for plain field rows.
-- `forms/TextareaInput.vue`: shared textarea primitive with the governed shell used by cross-domain text-entry surfaces.
+- `actions/FeedbackButton.vue`: shared transient feedback action button for short-lived pending/success/error feedback states.
+
+Containers and layout:
+
+- `containers/SurfaceCard.vue`: standard card shell for reusable section, inset, and outline surfaces.
+- `containers/ExpandableCard.vue`: collapsible card shell. Use `keep-content-mounted` only when collapsed content owns expensive local state or setup work.
+- `containers/ChoiceCard.vue`: selectable card primitive for button-like choices and RouterLink navigation choices.
+- `layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue`: shared page scaffolds. Prefer these for route pages instead of duplicating root safe-area layout.
+- `layout/FullScreenPageScaffold.vue`: viewport-height page scaffold with header/content/footer regions where the middle region should flex and own scrolling.
+- `layout/FooterRevealPageScaffold.vue`: viewport-first page scaffold where header + content fill the first screen and footer appears through normal page scroll.
+- `sections/PageFooter.vue`: product page footer chrome with `variant="minimal"` for compact support/navigation footers and `variant="brand"` for landing-style brand/legal footers. Prefer extending this variant API over creating another page footer component.
+
+Forms and controls:
+
+- `forms/FormField.vue`: label + control + hint/error wrapper for plain form rows. It does not own the input shell.
+- `forms/TextareaInput.vue`: shared textarea primitive with stable shell, optional char count, and configurable rows/max length.
 - `forms/ToggleSwitch.vue`: labeled boolean switch primitive with `v-model`; consuming components own copy, workflow meaning, and side effects.
 - `forms/WheelPicker.vue`: finite vertical option picker with centered snap selection for generic single-value choices.
-- `forms/ProductLocalDateCalendarPicker.vue`: product-local date-key calendar grid for fixed-window multi-select flows; keep date-window policy in the owning page or domain.
+- `forms/ProductLocalDateCalendarPicker.vue`: product-local date-key calendar grid for visible-window multi-select flows.
 - `controls/SegmentedControl.vue`: generic mutually exclusive mode selector; keep domain labels, state, workflow transitions, and option-level scenario test IDs in the consuming surface.
+
+Display and feedback:
+
 - `display/InfoRow.vue`: neutral label/value layout for metadata.
-- `display/InfoRowAction.vue`: label row with a right-side inline action button for metadata rows whose action target is only the trailing affordance.
-- `display/Cell.vue`: compact title/value row with optional suffix icon or suffix slot for generic list and settings surfaces; pass `border` to show the bottom divider.
-- `display/Chip.vue` and `display/ChipGroup.vue`: lightweight shared tag/group primitives.
-- `feedback/InlineNotice.vue`: inline notice banner for page-level or section-level feedback.
-- `feedback/EmptyState.vue`: empty/not-found shell with optional icon and actions.
-- `overlay/ConfirmDialog.vue`: standard confirm/cancel dialog for simple destructive or blocking confirmations.
+- `display/InfoRowAction.vue`: label row with a trailing inline button for metadata rows whose action target is only the trailing affordance.
+- `display/Cell.vue`: compact title/value row with optional suffix icon or suffix slot for generic list and settings surfaces.
+- `display/Chip.vue` and `display/ChipGroup.vue`: neutral tokenized chips for tags, lightweight roster labels, and compact metadata groups.
+- `display/FitChipGroup.vue`: single-line chip row that measures available width and only shows whole chips that fully fit.
+- `feedback/InlineNotice.vue`: inline success/info/warning/error banner.
+- `feedback/EmptyState.vue`: empty or not-found shell with title, description, icon, and optional actions slot.
 - `identity/Avatar.vue`: generic avatar with image/fallback behavior.
+
+Overlay:
+
+- `overlay/Modal.vue`: generic modal primitive. Add scroll locking with `useBodyScrollLock(computed(() => open.value))` in the parent when needed.
+- `overlay/ConfirmDialog.vue`: standard confirm/cancel dialog built on `Modal` and `Button`.
+- `overlay/BottomDrawer.vue`: bottom drawer overlay for secondary mobile-oriented workflows.
 
 ## Reuse Rules
 
@@ -39,4 +59,4 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 - Keep action treatment styles inside the lowest action primitives (`Button` and `ActionLink`); higher-level shared components, domain components, and pages should compose primitives instead of re-declaring those styles.
 - If a component needs backend-derived policy logic, workflow branching, or domain vocabulary, keep it in the owning domain and compose shared primitives inside it.
 - If a primitive variant is needed in a third distinct place, extend the shared primitive API instead of cloning the component locally.
-- When extending a primitive API, update `src/AGENTS.components.md` in the same change so the new contract stays discoverable.
+- When extending a primitive API, update this file in the same change so the new contract stays discoverable.

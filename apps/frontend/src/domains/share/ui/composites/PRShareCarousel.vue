@@ -141,16 +141,16 @@ const {
 }
 
 .nav-btn {
-  min-width: var(--sys-size-large);
-  min-height: var(--sys-size-large);
+  min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
 
   div {
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
   }
 }
 
 .method-label {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   margin: 0;
   flex: 1;

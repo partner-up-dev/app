@@ -219,7 +219,7 @@ const handleSubmit = (): void => {
 .feedback-form__label {
   margin: 0;
   padding: 0;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -232,13 +232,13 @@ const handleSubmit = (): void => {
   align-items: center;
   gap: var(--sys-spacing-small);
   color: var(--sys-color-on-surface);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .feedback-form__error {
   margin: 0;
   color: var(--sys-color-error);
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .feedback-form__actions {

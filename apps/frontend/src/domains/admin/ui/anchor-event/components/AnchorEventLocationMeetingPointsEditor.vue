@@ -132,7 +132,7 @@ const updateLocationMeetingPointImageUrl = (
 }
 
 .location-meeting-point-title {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .grid-2 {
@@ -145,7 +145,7 @@ const updateLocationMeetingPointImageUrl = (
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -165,7 +165,7 @@ const updateLocationMeetingPointImageUrl = (
 
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

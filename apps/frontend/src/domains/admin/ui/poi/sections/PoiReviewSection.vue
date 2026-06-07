@@ -137,7 +137,7 @@ const statusChipTone = (
 }
 
 .hint {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -158,7 +158,7 @@ const statusChipTone = (
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

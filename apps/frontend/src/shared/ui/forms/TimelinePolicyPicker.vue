@@ -260,13 +260,13 @@ function handleConfirmationEnabledChange(event: Event): void {
 
 .timeline-policy-picker__title {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .timeline-policy-picker__description,
 .timeline-policy-picker__validation {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -313,12 +313,12 @@ function handleConfirmationEnabledChange(event: Event): void {
 }
 
 .timeline-policy-picker__marker-label {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .timeline-policy-picker__marker-time {
   max-width: 108px;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -358,11 +358,11 @@ function handleConfirmationEnabledChange(event: Event): void {
 }
 
 .timeline-policy-picker__control-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .timeline-policy-picker__control-value {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 

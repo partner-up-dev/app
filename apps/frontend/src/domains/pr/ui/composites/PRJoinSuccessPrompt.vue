@@ -266,12 +266,12 @@ defineExpose({
 
 .join-success-prompt__subscriptions-title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .join-success-prompt__subscriptions-description {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

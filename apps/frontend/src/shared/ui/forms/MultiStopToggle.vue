@@ -143,6 +143,8 @@ const selectPreviousStop = () => {
 
 <style lang="scss" scoped>
 .multi-stop-toggle {
+  --multi-stop-toggle-index: 0;
+  --multi-stop-toggle-count: 2;
   --multi-stop-toggle-track-padding: 0.2rem;
   --multi-stop-toggle-thumb-size: 1.35rem;
   --multi-stop-toggle-step: 1.2rem;
@@ -210,7 +212,7 @@ const selectPreviousStop = () => {
   height: var(--multi-stop-toggle-thumb-size);
   border-radius: var(--sys-radius-full);
   background: var(--sys-color-primary);
-  box-shadow: var(--sys-elevation-level1);
+  box-shadow: var(--sys-shadow-1);
   transform: translateX(
     calc(var(--multi-stop-toggle-index) * var(--multi-stop-toggle-step))
   );

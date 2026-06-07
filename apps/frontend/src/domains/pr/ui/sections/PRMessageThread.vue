@@ -293,18 +293,18 @@ const handleSubmitMessage = async () => {
 }
 
 .message-thread__title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .message-thread__subtitle {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .message-thread__loading {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -341,13 +341,13 @@ const handleSubmitMessage = async () => {
 }
 
 .message-thread__empty-title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .message-thread__empty-description {
   margin-top: var(--sys-spacing-xsmall);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -398,7 +398,7 @@ const handleSubmitMessage = async () => {
 }
 
 .message-list__author {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface);
 }
 
@@ -407,13 +407,13 @@ const handleSubmitMessage = async () => {
 }
 
 .message-list__time {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .message-list__body {
   margin: var(--sys-spacing-xsmall) 0 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

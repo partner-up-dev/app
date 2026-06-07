@@ -195,13 +195,13 @@ const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
   gap: var(--sys-spacing-xsmall);
 
   h2 {
-    @include mx.pu-font(title-small);
+    @include mx.pu-font(section);
     margin: 0;
     color: var(--sys-color-on-surface);
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     margin: 0;
     color: var(--sys-color-on-surface-variant);
   }
@@ -225,7 +225,7 @@ const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
 }
 
 .support-entry-link {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-secondary);
   text-decoration: none;
 

@@ -60,13 +60,13 @@ withDefaults(
 }
 
 .info-row__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   flex-shrink: 0;
 }
 
 .info-row__value {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   min-width: 0;
   flex: 1;

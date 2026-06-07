@@ -244,6 +244,7 @@ const {
 const eventDetail = computed(() => detail.value ?? null);
 const {
   createEventAssistedPR,
+  materializeDummyPR,
   createActionErrorMessage,
   isCreatePending,
 } = useEventAssistedPRCreateFlow(eventDetail);
@@ -313,6 +314,9 @@ const isExpiredDateGroupKey = (
 
 const isClosedPR = (pr: AnchorEventTimeWindowPR): boolean =>
   pr.status === "CLOSED";
+
+const isCurrentOrFutureVisiblePR = (pr: AnchorEventTimeWindowPR): boolean =>
+  pr.status === "OPEN" || pr.status === "READY" || pr.status === "ACTIVE";
 
 const dateGroupHasClosedPR = (group: DateGroup): boolean =>
   group.timeWindows.some(({ entry }) => entry.prs.some(isClosedPR));
@@ -535,7 +539,7 @@ const isVisibleListModePR = (
   pr: AnchorEventTimeWindowPR,
   group: DateGroup,
 ): boolean =>
-  group.isExpiredDate ? pr.status === "CLOSED" : pr.status !== "EXPIRED";
+  group.isExpiredDate ? isClosedPR(pr) : isCurrentOrFutureVisiblePR(pr);
 
 const resolveVisibleDummyItemsForGroup = (
   group: DateGroup,
@@ -854,7 +858,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
     return;
   }
 
-  trackEvent("anchor_event_list_create_started", {
+  trackEvent("anchor_event_dummy_pr_detail_started", {
     ...buildListFunnelPayload(),
     dateKey: item.dateKey,
     locationId:
@@ -870,7 +874,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
     preferenceCount: item.dummy.preferenceTags.length,
   });
 
-  await createEventAssistedPR({
+  await materializeDummyPR({
     targetTimeWindow: item.dummy.timeWindow,
     place: item.dummy.place,
     preferences: item.dummy.preferenceTags,
@@ -941,17 +945,17 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
 }
 
 .list-exhausted-card__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .list-exhausted-card__body {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .list-exhausted-card__link {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   justify-self: start;
   color: var(--sys-color-primary);
   text-decoration: none;
@@ -959,7 +963,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
 
 .list-create-error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 

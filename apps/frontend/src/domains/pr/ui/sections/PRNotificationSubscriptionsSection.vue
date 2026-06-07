@@ -48,6 +48,6 @@ const showInlineReminderSubscriptions = computed(() => {
 
 .utility-section__title {
   margin: 0;
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
 }
 </style>

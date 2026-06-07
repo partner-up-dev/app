@@ -86,13 +86,13 @@ const qrAlt = computed(() =>
 }
 
 .beta-group-qr-panel__title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   margin: 0;
   color: var(--sys-color-on-surface);
 }
 
 .beta-group-qr-panel__description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: var(--sys-spacing-xsmall) 0 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -113,7 +113,7 @@ const qrAlt = computed(() =>
 }
 
 .beta-group-qr-panel__qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;

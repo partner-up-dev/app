@@ -179,7 +179,7 @@
       />
     </template>
 
-    <MiniumCommonFooter data-region="support" />
+    <PageFooter variant="minimal" data-region="support" />
   </PageScaffold>
 </template>
 
@@ -194,7 +194,7 @@ import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
@@ -569,7 +569,7 @@ usePRPendingWeChatReplay({
 }
 
 .type-badge {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
   border-radius: 999px;
   background: var(--sys-color-secondary-container);

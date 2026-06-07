@@ -90,7 +90,7 @@ onBeforeUnmount(() => {
 }
 
 .modal-title {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   margin-bottom: var(--sys-spacing-medium);
 }
 </style>

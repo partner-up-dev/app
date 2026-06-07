@@ -196,7 +196,7 @@ watch(
 
 .form-mode-location-control__title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .location-card {
@@ -244,7 +244,7 @@ watch(
   justify-content: flex-start;
   padding: var(--sys-spacing-medium);
   color: var(--sys-color-on-primary-container);
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .location-card__create {
@@ -266,7 +266,7 @@ watch(
 
 .location-caption__name {
   margin: 0;
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
 }
 
 .location-label-enter-active,

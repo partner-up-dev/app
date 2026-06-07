@@ -173,13 +173,13 @@ watch(allConfiguredGatesResolved, (resolved) => {
 
 .gate-title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .gate-text {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -190,7 +190,7 @@ watch(allConfiguredGatesResolved, (resolved) => {
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface-container-low);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   white-space: pre-wrap;
 }
@@ -207,7 +207,7 @@ watch(allConfiguredGatesResolved, (resolved) => {
 
 .action-error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 </style>

@@ -21,8 +21,9 @@ const StudySprintPomodoroPage = () =>
   import("@/pages/StudySprintPomodoroPage.vue");
 const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
-const NewOrderPage = () =>
+const OrderingFromPlacementPage = () =>
   import("@/pages/OrderingFromPlacementPage.vue");
+const OrderingSupportPage = () => import("@/pages/OrderingSupportPage.vue");
 const CommerceOrderDetailPage = () =>
   import("@/pages/CommerceOrderDetailPage.vue");
 const CommerceBillDetailPage = () =>
@@ -149,7 +150,15 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/order/new",
     name: "order-new",
-    component: NewOrderPage,
+    component: OrderingFromPlacementPage,
+    meta: {
+      wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/order/support",
+    name: "order-support",
+    component: OrderingSupportPage,
     meta: {
       wechatSharePolicy: "skip",
     },

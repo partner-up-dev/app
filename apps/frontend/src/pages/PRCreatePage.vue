@@ -1,10 +1,10 @@
 <template>
-  <PageScaffoldFlow class="create-page" data-page="pr-create">
+  <PageScaffoldFlow class="pr-create-page" data-page="pr-create">
     <template #header>
       <PRCreateHeader @back="goHome" />
     </template>
 
-    <div class="page-main">
+    <div class="pr-create-page__body">
       <TabBar
         :items="modeTabs"
         :model-value="activeMode"
@@ -15,10 +15,10 @@
 
       <section
         v-show="activeMode === 'nl'"
-        class="mode-panel"
+        class="pr-create-page__mode-panel"
         data-region="create-form"
       >
-        <header class="mode-panel-header">
+        <header class="pr-create-page__mode-panel-header">
           <h2>{{ t("createPage.nlModeTitle") }}</h2>
           <p>{{ t("createPage.nlModeDescription") }}</p>
         </header>
@@ -28,10 +28,10 @@
 
       <section
         v-show="activeMode === 'form'"
-        class="mode-panel"
+        class="pr-create-page__mode-panel"
         data-region="create-form"
       >
-        <header class="mode-panel-header">
+        <header class="pr-create-page__mode-panel-header">
           <h2>{{ t("createPage.formModeTitle") }}</h2>
           <p>{{ t("createPage.formModeDescription") }}</p>
         </header>
@@ -53,7 +53,7 @@
     </template>
 
     <template #footer>
-      <MiniumCommonFooter data-region="support" />
+      <PageFooter variant="minimal" data-region="support" />
     </template>
 
   </PageScaffoldFlow>
@@ -66,7 +66,7 @@ import { useRoute, useRouter } from "vue-router";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
@@ -143,13 +143,13 @@ const goHome = () => {
 </script>
 
 <style lang="scss" scoped>
-.page-main {
+.pr-create-page__body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-medium);
 }
 
-.mode-panel {
+.pr-create-page__mode-panel {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-medium);
@@ -158,19 +158,19 @@ const goHome = () => {
   padding: var(--sys-spacing-medium);
 }
 
-.mode-panel-header {
+.pr-create-page__mode-panel-header {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     color: var(--sys-color-on-surface);
     margin: 0;
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
     margin: 0;
   }

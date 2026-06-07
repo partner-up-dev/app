@@ -102,7 +102,7 @@ watch(
 }
 
 .empty-text {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -123,7 +123,7 @@ watch(
 }
 
 .counter {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

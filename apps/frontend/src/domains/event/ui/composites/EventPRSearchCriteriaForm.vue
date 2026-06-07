@@ -120,11 +120,11 @@ const selectedDateKeys = computed(() =>
   }
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
   }
 }

@@ -55,7 +55,7 @@
     </SurfaceCard>
 
     <template #footer>
-      <MiniumCommonFooter />
+      <PageFooter variant="minimal" />
     </template>
   </PageScaffoldFlow>
 </template>
@@ -72,7 +72,7 @@ import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
 import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Avatar from "@/shared/ui/identity/Avatar.vue";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import {
   prDetailPath,
 } from "@/domains/pr/routing/routes";
@@ -143,7 +143,7 @@ const backFallbackTo = computed(() => {
 }
 
 .edit-profile-link {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-primary);
   text-decoration: none;
 
@@ -166,12 +166,12 @@ const backFallbackTo = computed(() => {
 }
 
 .nickname-label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
 .nickname-value {
-  @include mx.pu-font(headline-small);
+  @include mx.pu-font(title);
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;
 }

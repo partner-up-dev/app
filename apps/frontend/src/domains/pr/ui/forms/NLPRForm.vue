@@ -205,12 +205,12 @@ const handleVoiceToggle = async (): Promise<void> => {
 }
 
 .voice-action {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   gap: var(--sys-spacing-xsmall);
   padding: 0 var(--sys-spacing-small);
-  height: var(--sys-size-large);
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border-radius: var(--sys-radius-small);
   border: 1px dashed var(--sys-color-primary);
   background: var(--sys-color-primary-container);
@@ -253,7 +253,7 @@ const handleVoiceToggle = async (): Promise<void> => {
 
 .error-message {
   color: var(--sys-color-error);
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .voice-error {

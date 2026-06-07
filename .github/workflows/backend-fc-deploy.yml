@@ -13,6 +13,7 @@ on:
       - develop
     paths:
       - ".node-version"
+      - ".npmrc"
       - "apps/backend/**"
       - ".github/workflows/backend-fc-deploy.yml"
       - "package.json"
@@ -24,6 +25,7 @@ on:
 permissions:
   contents: write
   issues: write
+  packages: read
   pull-requests: write
 
 concurrency:
@@ -75,6 +77,7 @@ jobs:
       ALIBABA_CLOUD_ACCOUNT_ID: ${{ secrets.ALIBABA_CLOUD_ACCOUNT_ID }}
       BACKEND_COMMIT_HASH: ${{ github.sha }}
       GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
       PUBLISH_LAYER_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_layer_only == true }}
     steps:
       - name: Checkout

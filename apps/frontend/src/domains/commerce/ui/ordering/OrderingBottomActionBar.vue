@@ -7,7 +7,7 @@
         class="ordering-bottom-action__price-detail"
         :disabled="!priceDetailEnabled"
         :data-testid="priceDetailTestid"
-        aria-label="查看价格明细"
+        :aria-label="t('ordering.priceDetailAria')"
         @click="$emit('open-price-detail')"
       >
         <span
@@ -25,13 +25,16 @@
       :data-testid="createTestid"
       @click="$emit('create')"
     >
-      创建订单
+      {{ createLabel ?? t("ordering.createOrderAction") }}
     </Button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
+
+const { t } = useI18n();
 
 withDefaults(
   defineProps<{
@@ -42,12 +45,14 @@ withDefaults(
     priceTestid?: string;
     priceDetailTestid?: string;
     createTestid?: string;
+    createLabel?: string;
   }>(),
   {
     priceDetailEnabled: true,
     priceTestid: "ordering.price",
     priceDetailTestid: "ordering.price-detail.open",
     createTestid: "ordering.create-order",
+    createLabel: undefined,
   },
 );
 
@@ -68,19 +73,19 @@ defineEmits<{
     var(--pu-safe-bottom) calc(var(--sys-spacing-medium) + var(--pu-safe-left));
   border-top: 1px solid var(--sys-color-outline);
   background: var(--sys-color-surface-container);
-  box-shadow: var(--sys-elevation-level2);
+  box-shadow: var(--sys-shadow-2);
 }
 
 .ordering-bottom-action__price {
   display: flex;
   align-items: center;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
   min-width: 0;
   min-height: 3.625rem;
   color: var(--sys-color-on-surface);
 
   strong {
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
     min-width: 0;
     overflow-wrap: anywhere;
   }

@@ -12,8 +12,13 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".node-version"
+      - ".npmrc"
       - ".github/workflows/backend-gate.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   backend-gate:
@@ -35,6 +40,7 @@ jobs:
           --health-retries 5
 
     env:
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
       SCENARIO_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
     steps:

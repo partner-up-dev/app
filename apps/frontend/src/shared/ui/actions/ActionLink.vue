@@ -280,44 +280,44 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .ui-action-link--size-sm {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .ui-action-link--size-md {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .ui-action-link--size-lg {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .ui-action-link--appearance-rect.ui-action-link--size-sm {
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
 .ui-action-link--appearance-rect.ui-action-link--size-md {
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 
 .ui-action-link--appearance-rect.ui-action-link--size-lg {
-  min-height: calc(var(--sys-size-large) + var(--sys-spacing-small));
+  min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
   padding: var(--sys-spacing-medium) var(--sys-spacing-large);
 }
 
 .ui-action-link--appearance-pill.ui-action-link--size-sm {
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
 .ui-action-link--appearance-pill.ui-action-link--size-md {
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 
 .ui-action-link--appearance-pill.ui-action-link--size-lg {
-  min-height: calc(var(--sys-size-large) + var(--sys-spacing-small));
+  min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
   padding: var(--sys-spacing-small) var(--sys-spacing-large);
 }
 

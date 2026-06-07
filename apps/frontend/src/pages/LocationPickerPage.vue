@@ -63,7 +63,7 @@ const handlePick = (location: PickedLocation) => {
 }
 
 .location-picker-page__header h1 {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   min-width: 0;
   margin: 0;
   color: var(--sys-color-on-surface);

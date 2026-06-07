@@ -171,7 +171,7 @@ const handleFileChange = async (event: Event) => {
 .image-url-input__error {
   margin: 0;
   color: var(--sys-color-error);
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 @media (max-width: 560px) {

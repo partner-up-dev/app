@@ -393,6 +393,18 @@ const resolveOriginRect = (): LongPressOriginRect => {
 
 <style lang="scss" scoped>
 .form-mode-long-press-button {
+  --form-mode-long-press-pressure-outline: 0;
+  --form-mode-long-press-progress: 0;
+  --form-mode-long-press-tremble-duration: 112ms;
+  --form-mode-long-press-tremble-left: 0;
+  --form-mode-long-press-tremble-left-soft: 0;
+  --form-mode-long-press-tremble-right: 0;
+  --form-mode-long-press-tremble-right-soft: 0;
+  --form-mode-long-press-tremble-up: 0;
+  --form-mode-long-press-tremble-down: 0;
+  --form-mode-long-press-tremble-rotate-left: 0deg;
+  --form-mode-long-press-tremble-rotate-right: 0deg;
+
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -420,7 +432,7 @@ const resolveOriginRect = (): LongPressOriginRect => {
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
   will-change: transform, outline-width;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .form-mode-long-press-button__label {

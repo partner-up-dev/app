@@ -75,7 +75,7 @@ const hasValue = computed(
 }
 
 .info-row-action__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   flex-shrink: 0;
 }
@@ -106,7 +106,7 @@ const hasValue = computed(
 }
 
 .info-row-action__value {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   min-width: 0;
   overflow: hidden;
   text-align: right;

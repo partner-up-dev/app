@@ -48,7 +48,7 @@
       </section>
     </main>
 
-    <FullCommonFooter data-region="footer" />
+    <PageFooter variant="brand" data-region="footer" />
 
     <OfficialAccountFollowNudge
       data-region="official-account-nudge"
@@ -68,7 +68,7 @@ import LandingValuePropsSection from "@/domains/landing/ui/sections/LandingValue
 import EventHighlightsSection from "@/domains/event/ui/sections/landing/EventHighlightsSection.vue";
 import EventPlazaEntry from "@/domains/event/ui/sections/landing/EventPlazaEntry.vue";
 import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
-import FullCommonFooter from "@/domains/landing/ui/sections/FullCommonFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import LandingWeChatAccessSection from "@/domains/landing/ui/sections/LandingWeChatAccessSection.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
@@ -135,8 +135,8 @@ onUnmounted(() => {
   --landing-hero-title-measure-compact: 8.8ch;
   --landing-hero-subtitle-measure: 30ch;
   --landing-hero-subtitle-measure-compact: 25ch;
-  --landing-footer-gap: clamp(1.3rem, 4.8vw, 2rem);
-  --landing-footer-copy-measure: 34ch;
+  --page-footer-gap: clamp(1.3rem, 4.8vw, 2rem);
+  --page-footer-copy-measure: 34ch;
   --landing-value-panel-max-height: 26rem;
 }
 
@@ -250,13 +250,15 @@ onUnmounted(() => {
   gap: var(--sys-spacing-xsmall);
 
   h2 {
-    @include mx.pu-font(headline-small);
+    font-size: 1.5rem;
+    font-weight: 200;
+    line-height: 2.25rem;
     color: var(--sys-color-on-surface);
     margin: 0;
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
     margin: 0;
     max-width: 28ch;
@@ -264,7 +266,9 @@ onUnmounted(() => {
 }
 
 .section-header--creator h2 {
-  @include mx.pu-font(title-large);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 2rem;
 }
 
 .section-paper {
@@ -324,20 +328,24 @@ onUnmounted(() => {
   gap: var(--sys-spacing-xsmall);
 
   h3 {
-    @include mx.pu-font(headline-small);
+    font-size: 1.5rem;
+    font-weight: 200;
+    line-height: 2.25rem;
     color: var(--sys-color-on-surface);
     margin: 0;
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
     margin: 0;
   }
 }
 
 .creator-action-text {
-  @include mx.pu-font(label-large);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4286;
   color: var(--sys-color-primary);
   flex-shrink: 0;
   transition:
@@ -374,11 +382,13 @@ onUnmounted(() => {
   }
 
   .section-header h2 {
-    @include mx.pu-font(title-large);
+    font-size: 1.375rem;
+    font-weight: 400;
+    line-height: 2rem;
   }
 
   .section-header p {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
   }
 
   .creator-entry {
@@ -387,15 +397,18 @@ onUnmounted(() => {
   }
 
   .creator-copy h3 {
-    @include mx.pu-font(title-large);
+    font-size: 1.375rem;
+    font-weight: 400;
+    line-height: 2rem;
   }
 
   .creator-copy p {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
   }
 
   .creator-action-text {
-    @include mx.pu-font(title-medium);
+    font-size: 1.125rem;
+    line-height: 1.5;
   }
 }
 
@@ -434,8 +447,8 @@ onUnmounted(() => {
   .home-section,
   .creator-entry,
   .creator-action-text,
-  .footer-nav-link,
-  .footer-nav-link::before {
+  .page-footer__nav-link,
+  .page-footer__nav-link::before {
     animation: none !important;
     transition: none !important;
   }

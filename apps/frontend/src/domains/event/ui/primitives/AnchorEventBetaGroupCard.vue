@@ -161,12 +161,12 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
 }
 
 .anchor-event-beta-group-card__kicker {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .anchor-event-beta-group-card__description {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -181,7 +181,7 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
 }
 
 .anchor-event-beta-group-card__missing {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }

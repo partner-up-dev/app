@@ -74,7 +74,7 @@ useBodyScrollLock(computed(() => props.open));
 
 .support-contact-qr-modal__description,
 .support-contact-qr-modal__qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;
@@ -96,7 +96,7 @@ useBodyScrollLock(computed(() => props.open));
 }
 
 .support-contact-qr-modal__url {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   width: 100%;
   margin: 0;
   padding: var(--sys-spacing-xsmall);

@@ -115,12 +115,12 @@ const handleOpenOfficialAccountQr = (): void => {
 }
 
 .nudge-title {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   color: var(--sys-color-surface-container-lowest);
 }
 
 .nudge-description {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   margin-top: var(--sys-spacing-xsmall);
   color: var(--sys-color-surface-container-highest);
 }

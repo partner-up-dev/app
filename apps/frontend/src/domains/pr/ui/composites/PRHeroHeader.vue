@@ -31,7 +31,7 @@ const { t } = useI18n();
 
 <style lang="scss" scoped>
 .created-at {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

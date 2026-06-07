@@ -313,7 +313,7 @@ watch(
 
 .form-mode-place-control__title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .place-card {
@@ -369,7 +369,7 @@ watch(
 }
 
 .place-card__fallback span {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   overflow-wrap: anywhere;
 }
 
@@ -383,7 +383,7 @@ watch(
 
 .place-caption__name {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
   text-align: center;
 }
@@ -425,7 +425,7 @@ watch(
 }
 
 .place-caption__route-name {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   min-width: 0;
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;

@@ -2,7 +2,7 @@
   margin-bottom: var(--sys-spacing-medium);
 
   label {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     display: block;
     margin-bottom: var(--sys-spacing-xsmall);
     color: var(--sys-color-on-surface-variant);
@@ -14,7 +14,7 @@
 
   input,
   textarea {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
     width: 100%;
     padding: var(--sys-spacing-small);
     border: 1px solid var(--sys-color-outline);
@@ -83,7 +83,7 @@
   }
 
   .tag {
-    @include mx.pu-font(label-small);
+    @include mx.pu-font(caption);
     display: inline-flex;
     align-items: center;
     gap: var(--sys-spacing-xsmall);
@@ -116,14 +116,14 @@
   display: block;
   margin-top: var(--sys-spacing-xsmall);
   color: var(--sys-color-error);
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .field-hint {
   display: block;
   margin-top: var(--sys-spacing-xsmall);
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .advanced-fields-enter-active,

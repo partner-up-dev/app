@@ -406,13 +406,13 @@ const clearErrors = () => {
 .field-label,
 .hint,
 small {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
 .summary-grid dd {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .field {

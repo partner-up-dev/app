@@ -106,13 +106,13 @@ const shouldRenderSection = computed(() => {
 
 .other-anchor-events__title {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .other-anchor-events__state {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

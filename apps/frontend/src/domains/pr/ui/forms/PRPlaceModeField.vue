@@ -173,12 +173,12 @@ const handleRouteChange = (route: Route) => {
 
 .pr-place-mode-field__label,
 .pr-place-mode-field__field span {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
 .pr-place-mode-field__field input {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   width: 100%;
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline);
@@ -205,7 +205,7 @@ const handleRouteChange = (route: Route) => {
 }
 
 .pr-place-mode-field__error {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-error);
 }
 </style>

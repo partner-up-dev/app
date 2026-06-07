@@ -62,7 +62,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
 }
 
 .ordering-price-detail__empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -78,15 +78,15 @@ const formatFen = (amountFen: number | null | undefined): string => {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+    gap: calc(var(--sys-spacing-xsmall) / 2);
   }
 
   strong {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
   }
 
   span {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     color: var(--sys-color-on-surface-variant);
     overflow-wrap: anywhere;
   }

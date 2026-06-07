@@ -5,6 +5,7 @@ export { assignAnchorEventLandingMode } from "./get-landing-mode-assignment";
 export { getAnchorEventFormModeData } from "./get-form-mode-data";
 export { submitAnchorEventFormModePreferenceTags } from "./submit-form-mode-preference-tags";
 export { recommendAnchorEventFormModePRs } from "./recommend-form-mode-prs";
+export { materializeAnchorEventDummyPR } from "./materialize-dummy-pr";
 export { expandFullCapacityPR } from "./expand-full-pr";
 export type { AnchorEventSummary } from "./list-events";
 export type {
@@ -21,3 +22,8 @@ export type {
   AnchorEventFormModeRecommendationPlaceSelection,
   FormModeRecommendationCandidate,
 } from "./recommend-form-mode-prs";
+export type {
+  DummyPRMaterializationPlace,
+  MaterializeAnchorEventDummyPRInput,
+  MaterializeAnchorEventDummyPRResult,
+} from "./materialize-dummy-pr";

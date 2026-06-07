@@ -134,14 +134,14 @@ const selectOption = (option: SegmentedControlOption) => {
 }
 
 .segmented-control--size-sm .segmented-control__item {
-  @include mx.pu-font(label-medium);
-  min-height: var(--sys-size-medium);
+  @include mx.pu-font(control);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
 .segmented-control--size-md .segmented-control__item {
-  @include mx.pu-font(label-large);
-  min-height: var(--sys-size-large);
+  @include mx.pu-font(control);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 

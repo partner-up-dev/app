@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
 }
 
 .bottom-drawer-title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   margin: 0;
 }
 

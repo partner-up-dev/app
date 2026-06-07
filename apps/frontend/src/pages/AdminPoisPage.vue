@@ -149,7 +149,7 @@ const {
 }
 
 .empty-panel {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

@@ -222,7 +222,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/styles/mixins" as mx;
+@use "@partner-up-dev/design-web/styles/mixins" as mx;
 
 .wechat-oauth-handoff {
   display: flex;
@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
 
 .wechat-oauth-handoff__content {
   display: flex;
-  width: min(100%, calc(var(--sys-size-xlarge) * 6));
+  width: min(100%, calc(calc(var(--sys-spacing-large) * 2) * 6));
   flex-direction: column;
   align-items: center;
   gap: var(--sys-spacing-small);
@@ -245,8 +245,8 @@ onBeforeUnmount(() => {
 
 .wechat-oauth-handoff__spinner,
 .wechat-oauth-handoff__mark {
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   margin-bottom: var(--sys-spacing-small);
   border-radius: 50%;
 }
@@ -264,27 +264,27 @@ onBeforeUnmount(() => {
   background: var(--sys-color-error-container);
   color: var(--sys-color-on-error-container);
 
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .wechat-oauth-handoff__eyebrow {
   color: var(--sys-color-primary);
 
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .wechat-oauth-handoff__title {
   max-width: 100%;
   color: var(--sys-color-on-surface);
 
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
 }
 
 .wechat-oauth-handoff__description {
   max-width: 100%;
   color: var(--sys-color-on-surface-variant);
 
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .wechat-oauth-handoff__actions {

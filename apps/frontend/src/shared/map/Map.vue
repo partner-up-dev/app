@@ -366,7 +366,7 @@ watch(
 }
 
 .map-shell__fallback-text {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   overflow-wrap: anywhere;
 }
 </style>

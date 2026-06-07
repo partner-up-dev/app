@@ -120,15 +120,15 @@ const pointAddress = (point: RoutePoint): string | null => {
 }
 
 .route-point-list--compact .route-point-list__name {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .route-point-list--detail .route-point-list__name {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .route-point-list__address {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   min-width: 0;
   color: var(--sys-color-on-surface-variant);
   overflow-wrap: anywhere;

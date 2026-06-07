@@ -19,7 +19,7 @@ defineProps<{
   padding: var(--sys-spacing-large);
 
   p {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
   }
 }

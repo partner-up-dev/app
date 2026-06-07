@@ -1,11 +1,14 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const appRoot = process.cwd();
 const srcRoot = path.join(appRoot, "src");
 const baselinePath = path.join(appRoot, "token-governance-baseline.json");
-const sysTokenPath = path.join(srcRoot, "styles", "_sys.scss");
+const sysTokenPath = fileURLToPath(
+  import.meta.resolve("@partner-up-dev/design-web/styles/_sys.scss"),
+);
 const strict = process.argv.includes("--strict");
 
 const scanRoots = [
@@ -83,6 +86,7 @@ const rules = [
     description:
       "Do not hardcode typography sizes in consumers. Prefer sys typography tokens.",
     regex: /\bfont-size:\s*(?!0(?:px|rem|em|%)?\b)(\d*\.?\d+)(rem|px)\b/g,
+    allowLandingVisualException: true,
   },
   {
     id: "no-hardcoded-padding",

@@ -411,7 +411,7 @@ defineExpose({
 
 .action-error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 </style>

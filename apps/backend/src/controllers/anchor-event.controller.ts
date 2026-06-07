@@ -10,6 +10,7 @@ import {
   getAnchorEventFormModeData,
   submitAnchorEventFormModePreferenceTags,
   recommendAnchorEventFormModePRs,
+  materializeAnchorEventDummyPR,
   type AnchorEventFormModeRecommendationPlaceSelection,
 } from "../domains/anchor-event";
 import {
@@ -60,6 +61,35 @@ const formModeRecommendationTimeWindowSchema = z
       });
     }
   });
+
+const dummyPRMaterializationTimeWindowSchema = z
+  .tuple([z.string().datetime(), z.string().datetime()])
+  .superRefine((timeWindow, ctx) => {
+    if (new Date(timeWindow[0]).getTime() > new Date(timeWindow[1]).getTime()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "timeWindow endAt must be greater than or equal to startAt",
+        path: [1],
+      });
+    }
+  });
+
+const dummyPRMaterializationPlaceSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("location"),
+    locationId: z.string().trim().min(1),
+  }),
+  z.object({
+    kind: z.literal("route"),
+    routePoolEntryId: z.string().trim().min(1).max(120),
+  }),
+]);
+
+const dummyPRMaterializationSchema = z.object({
+  timeWindow: dummyPRMaterializationTimeWindowSchema,
+  place: dummyPRMaterializationPlaceSchema,
+  preferences: z.array(z.string().trim().min(1).max(80)).max(1).default([]),
+});
 
 const formModeRecommendationSchema = z.union([
   formModeRecommendationBaseSchema.extend({
@@ -191,6 +221,22 @@ export const anchorEventRoute = app
         timeWindows: "timeWindows" in payload
           ? payload.timeWindows
           : [{ startAt: payload.startAt, endAt: payload.startAt }],
+        preferences: payload.preferences,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/:eventId/dummy-prs/materialize",
+    zValidator("param", eventIdParamSchema),
+    zValidator("json", dummyPRMaterializationSchema),
+    async (c) => {
+      const { eventId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const result = await materializeAnchorEventDummyPR({
+        eventId,
+        timeWindow: payload.timeWindow,
+        place: payload.place,
         preferences: payload.preferences,
       });
       return c.json(result);

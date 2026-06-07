@@ -508,7 +508,7 @@ watch(
 
 .pr-time-window-editor__label {
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .pr-time-window-editor__mode-switcher {
@@ -521,7 +521,7 @@ watch(
 .pr-time-window-editor__mode-label {
   color: var(--sys-color-on-surface-variant);
   white-space: nowrap;
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .pr-time-window-editor__pickers {
@@ -540,14 +540,14 @@ watch(
 
 .pr-time-window-editor__field-label {
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .pr-time-window-editor__select {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-small);
@@ -558,6 +558,6 @@ watch(
 .pr-time-window-editor__hint {
   margin: 0;
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 </style>

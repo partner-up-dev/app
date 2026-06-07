@@ -59,7 +59,7 @@ withDefaults(
 }
 
 .form-field__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -73,7 +73,7 @@ withDefaults(
 
 .form-field__message {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .form-field__message--hint {

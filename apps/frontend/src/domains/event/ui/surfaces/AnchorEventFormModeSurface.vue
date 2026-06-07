@@ -1352,7 +1352,7 @@ onBeforeUnmount(() => {
 
 .inline-message {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .inline-message--error {

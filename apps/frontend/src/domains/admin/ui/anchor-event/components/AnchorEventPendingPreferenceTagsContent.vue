@@ -164,7 +164,7 @@ const rejectTag = async (tagId: number): Promise<void> => {
 
 .pending-preference-tags-content__label {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .pending-preference-tags-content__actions {
@@ -175,13 +175,13 @@ const rejectTag = async (tagId: number): Promise<void> => {
 
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
 .error-message {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-error);
 }
 </style>

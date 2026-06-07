@@ -112,8 +112,8 @@ async function handleBack(): Promise<void> {
   border: none;
   color: var(--sys-color-on-surface);
   cursor: pointer;
-  min-width: var(--sys-size-large);
-  min-height: var(--sys-size-large);
+  min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border-radius: 999px;
   align-items: center;
   justify-content: center;
@@ -130,7 +130,7 @@ async function handleBack(): Promise<void> {
 }
 
 .page-header__title {
-  @include mx.pu-font(headline-large);
+  @include mx.pu-font(hero);
   color: var(--sys-color-on-surface);
   margin: 0;
   flex: 1;
@@ -143,18 +143,18 @@ async function handleBack(): Promise<void> {
 }
 
 .page-header--small .page-header__title {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   -webkit-line-clamp: 1;
 }
 
 .page-header__subtitle {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
 }
 
 .page-header--small .page-header__subtitle {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .page-header__meta {
