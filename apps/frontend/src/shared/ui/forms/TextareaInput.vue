@@ -78,7 +78,7 @@ const controlStyle = computed(() =>
 }
 
 .textarea-input__control {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   width: 100%;
   border: 1px solid var(--sys-color-outline);
   color: var(--sys-color-on-surface);
@@ -104,7 +104,7 @@ const controlStyle = computed(() =>
 }
 
 .textarea-input__count {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
   text-align: right;
 }

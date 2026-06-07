@@ -408,7 +408,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
 .payment-checkout-page__section-heading {
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
 
   h2,
   p {
@@ -416,13 +416,13 @@ const formatFen = (amountFen: number | null | undefined): string => {
   }
 
   h2 {
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
     color: var(--sys-color-on-surface);
   }
 }
 
 .payment-checkout-page__eyebrow {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -442,7 +442,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   }
 
   strong {
-    @include mx.pu-font(headline-small);
+    @include mx.pu-font(title);
     color: var(--sys-color-on-surface);
   }
 }

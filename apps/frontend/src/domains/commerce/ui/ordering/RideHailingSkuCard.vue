@@ -103,7 +103,7 @@ defineEmits<{
   }
 
   strong {
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
     overflow-wrap: anywhere;
   }
 }
@@ -137,12 +137,12 @@ defineEmits<{
   gap: var(--sys-spacing-xsmall);
 
   span {
-    @include mx.pu-font(label-small);
+    @include mx.pu-font(caption);
     color: var(--sys-color-on-surface-variant);
   }
 
   strong {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     white-space: nowrap;
   }
 }

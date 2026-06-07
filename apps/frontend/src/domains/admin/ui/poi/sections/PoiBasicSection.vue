@@ -471,13 +471,13 @@ const handleLocationPicked = (location: PickedLocation) => {
 
 <style lang="scss" scoped>
 .hint {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
 
 .current-poi-meta {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -502,7 +502,7 @@ const handleLocationPicked = (location: PickedLocation) => {
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -543,7 +543,7 @@ const handleLocationPicked = (location: PickedLocation) => {
 }
 
 .checkbox-field {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   display: flex;
   align-items: center;
   gap: var(--sys-spacing-xsmall);
@@ -582,7 +582,7 @@ const handleLocationPicked = (location: PickedLocation) => {
 }
 
 .coordinate-field__value {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: var(--sys-spacing-xsmall) 0 0;
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;
@@ -608,13 +608,13 @@ const handleLocationPicked = (location: PickedLocation) => {
   width: 100%;
   height: 6.5rem;
   object-fit: cover;
-  border-radius: var(--sys-shape-corner-medium);
+  border-radius: var(--sys-radius-medium);
   background: var(--sys-color-surface-container);
   grid-row: span 2;
 }
 
 .gallery-url {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   overflow: hidden;

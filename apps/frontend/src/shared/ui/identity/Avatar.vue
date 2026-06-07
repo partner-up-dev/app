@@ -138,18 +138,18 @@ const fallbackAriaHidden = computed(() => resolvedAlt.value.length === 0);
 }
 
 .ui-avatar--size-sm .ui-avatar__fallback span {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .ui-avatar--size-md .ui-avatar__fallback span {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .ui-avatar--size-lg .ui-avatar__fallback span {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
 }
 
 .ui-avatar--size-xl .ui-avatar__fallback span {
-  @include mx.pu-font(headline-small);
+  @include mx.pu-font(title);
 }
 </style>

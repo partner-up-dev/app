@@ -379,7 +379,7 @@ watch(
   padding: 0 var(--sys-spacing-medium) var(--sys-spacing-medium);
   border-radius: var(--sys-radius-large) var(--sys-radius-large) 0 0;
   background: var(--sys-color-surface);
-  box-shadow: var(--sys-elevation-level3);
+  box-shadow: var(--sys-shadow-3);
 }
 
 .ride-content__handle {
@@ -401,17 +401,17 @@ watch(
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+    gap: calc(var(--sys-spacing-xsmall) / 2);
   }
 
   span,
   small {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     color: var(--sys-color-on-surface-variant);
   }
 
   strong {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     overflow-wrap: anywhere;
   }
 }
@@ -422,6 +422,6 @@ watch(
   gap: var(--sys-spacing-small);
   min-height: 0;
   overflow: auto;
-  padding-bottom: var(--sys-spacing-xxsmall);
+  padding-bottom: calc(var(--sys-spacing-xsmall) / 2);
 }
 </style>

@@ -259,44 +259,44 @@ defineEmits<{
 }
 
 .ui-button--size-sm {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .ui-button--size-md {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .ui-button--size-lg {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .ui-button--appearance-rect.ui-button--size-sm {
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
 .ui-button--appearance-rect.ui-button--size-md {
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 
 .ui-button--appearance-rect.ui-button--size-lg {
-  min-height: calc(var(--sys-size-large) + var(--sys-spacing-small));
+  min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
   padding: var(--sys-spacing-medium) var(--sys-spacing-large);
 }
 
 .ui-button--appearance-pill.ui-button--size-sm {
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
 .ui-button--appearance-pill.ui-button--size-md {
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 
 .ui-button--appearance-pill.ui-button--size-lg {
-  min-height: calc(var(--sys-size-large) + var(--sys-spacing-small));
+  min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
   padding: var(--sys-spacing-small) var(--sys-spacing-large);
 }
 

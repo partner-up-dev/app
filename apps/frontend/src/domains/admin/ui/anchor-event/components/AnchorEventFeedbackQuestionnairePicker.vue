@@ -50,7 +50,7 @@ const parseNullableId = (event: Event): number | null => {
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

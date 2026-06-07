@@ -1437,19 +1437,19 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .analytics-filter-rail__eyebrow {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-primary);
 }
 
 .analytics-filter-rail__summary {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .analytics-input {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   width: 100%;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   min-width: 0;
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline);
@@ -1498,17 +1498,17 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .kpi-card__label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
 .kpi-card__value {
-  @include mx.pu-font(display-small);
+  @include mx.pu-font(hero);
   color: var(--sys-color-on-surface);
 }
 
 .kpi-card__detail {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .analytics-panel,
@@ -1530,15 +1530,15 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .analytics-panel h2,
 .funnel-panel h2 {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
 }
 
 .analytics-panel p {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .projection-footnote {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .nudge-summary-grid {
@@ -1563,11 +1563,11 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .nudge-summary-grid dt,
 .nudge-summary-grid span {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .nudge-summary-grid dd {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   color: var(--sys-color-on-surface);
 }
 
@@ -1588,7 +1588,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .analytics-table th,
 .analytics-table td {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   padding: var(--sys-spacing-small);
   border-bottom: 1px solid var(--sys-color-outline-variant);
   text-align: left;
@@ -1596,7 +1596,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .analytics-table th {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -1615,9 +1615,9 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .analytics-table__hint {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   display: block;
-  margin-top: var(--sys-spacing-xxsmall);
+  margin-top: calc(var(--sys-spacing-xsmall) / 2);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -1690,7 +1690,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 
 .funnel-step__metrics dt,
 .funnel-step__metrics dd {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 
 .funnel-step__metrics dd {
@@ -1704,7 +1704,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 }
 
 .status-pill {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   display: inline-flex;
   align-items: center;
   min-height: 24px;

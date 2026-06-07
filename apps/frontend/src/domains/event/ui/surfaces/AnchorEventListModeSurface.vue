@@ -941,17 +941,17 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
 }
 
 .list-exhausted-card__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .list-exhausted-card__body {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
 .list-exhausted-card__link {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   justify-self: start;
   color: var(--sys-color-primary);
   text-decoration: none;
@@ -959,7 +959,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
 
 .list-create-error {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 

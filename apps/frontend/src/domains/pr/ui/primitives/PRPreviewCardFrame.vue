@@ -123,9 +123,14 @@ const preferenceLabel = computed(
 
 <style lang="scss" scoped>
 .pr-preview-card {
+  --pr-preview-card-radius: var(--sys-radius-medium);
+  --pr-preview-card-content-padding-block: var(--sys-spacing-small);
+  --pr-preview-card-content-padding-inline: var(--sys-spacing-medium);
+  --pr-preview-card-header-gap: var(--sys-spacing-small);
+
   display: flex;
   flex-direction: column;
-  border-radius: var(--dcs-pr-preview-card-radius);
+  border-radius: var(--pr-preview-card-radius);
   background: var(--sys-color-surface-container);
   overflow: hidden;
 }
@@ -168,8 +173,8 @@ const preferenceLabel = computed(
 }
 
 .pr-preview-card__content {
-  padding: var(--dcs-pr-preview-card-content-padding-block)
-    var(--dcs-pr-preview-card-content-padding-inline);
+  padding: var(--pr-preview-card-content-padding-block)
+    var(--pr-preview-card-content-padding-inline);
 }
 
 .pr-preview-card__header {
@@ -177,7 +182,7 @@ const preferenceLabel = computed(
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.375rem;
-  gap: var(--dcs-pr-preview-card-header-gap);
+  gap: var(--pr-preview-card-header-gap);
 }
 
 .pr-preview-card__headline {
@@ -188,7 +193,7 @@ const preferenceLabel = computed(
 }
 
 .pr-preview-card__title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   overflow-wrap: anywhere;
 }
 
@@ -200,7 +205,7 @@ const preferenceLabel = computed(
   display: flex;
   flex-wrap: wrap;
   gap: var(--sys-spacing-medium);
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

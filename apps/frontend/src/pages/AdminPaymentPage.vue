@@ -545,14 +545,14 @@ watch(
 .hint,
 small,
 .summary-grid dt {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
 .summary-grid dd {
   min-width: 0;
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .breakable {
@@ -560,10 +560,10 @@ small,
 }
 
 .status-pill {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   display: inline-flex;
   width: fit-content;
-  padding: var(--sys-spacing-xxsmall) var(--sys-spacing-xsmall);
+  padding: calc(var(--sys-spacing-xsmall) / 2) var(--sys-spacing-xsmall);
   border: 1px solid var(--sys-color-primary);
   border-radius: var(--sys-radius-small);
   color: var(--sys-color-primary);

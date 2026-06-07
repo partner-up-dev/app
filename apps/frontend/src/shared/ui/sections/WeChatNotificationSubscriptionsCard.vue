@@ -16,6 +16,6 @@ defineProps<{
 <style scoped lang="scss">
 .section-title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 </style>

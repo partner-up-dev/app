@@ -135,20 +135,22 @@ watchEffect(() => {
   z-index: 4;
 
   h2 {
-    @include mx.pu-font(headline-small);
+    font-size: 1.5rem;
+    font-weight: 200;
+    line-height: 2.25rem;
     color: var(--sys-color-on-surface);
     margin: 0;
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
     margin: 0;
   }
 }
 
 .highlights-bridge {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   max-width: 36ch;
 }
@@ -170,7 +172,7 @@ watchEffect(() => {
 }
 
 .state-text {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -187,7 +189,9 @@ watchEffect(() => {
 }
 
 .fallback-action {
-  @include mx.pu-font(label-large);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4286;
   width: fit-content;
   text-decoration: none;
   color: var(--sys-color-primary);

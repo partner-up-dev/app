@@ -56,7 +56,7 @@ const { t } = useI18n();
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -72,7 +72,7 @@ const { t } = useI18n();
 .error-message {
   grid-column: 1 / -1;
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-error);
 }
 

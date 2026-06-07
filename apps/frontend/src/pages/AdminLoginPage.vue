@@ -131,7 +131,7 @@ watchEffect(() => {
 }
 
 .admin-login-page__eyebrow {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   margin: 0;
   color: var(--sys-color-primary);
   letter-spacing: 0.12em;
@@ -198,7 +198,7 @@ watchEffect(() => {
 }
 
 .field__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .field__input {

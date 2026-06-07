@@ -253,7 +253,7 @@
     </div>
 
     <template #footer>
-      <SupportNavFooter />
+      <PageFooter variant="minimal" />
     </template>
   </PageScaffoldFlow>
 </template>
@@ -266,7 +266,7 @@ import { useQueryClient } from "@tanstack/vue-query";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
@@ -563,13 +563,13 @@ const handleCopyCredential = async (value: string | null) => {
   }
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     color: var(--sys-color-on-surface);
   }
 
   p {
     margin-top: var(--sys-spacing-xsmall);
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
   }
 }
@@ -606,7 +606,7 @@ const handleCopyCredential = async (value: string | null) => {
 
 .profile-field-hint {
   margin: calc(var(--sys-spacing-xsmall) * -1) 0 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -647,14 +647,14 @@ const handleCopyCredential = async (value: string | null) => {
   min-width: 0;
 
   p {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     margin: 0;
     color: var(--sys-color-on-surface-variant);
   }
 }
 
 .profile-meta-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -664,15 +664,15 @@ const handleCopyCredential = async (value: string | null) => {
 }
 
 .credential-value {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;
 }
 
 .credential-copy-button {
   flex-shrink: 0;
-  width: var(--sys-size-medium);
-  min-height: var(--sys-size-medium);
+  width: var(--sys-spacing-large);
+  min-height: var(--sys-spacing-large);
   padding: 0;
 
   :deep(.ui-button__content) {
@@ -724,13 +724,13 @@ const handleCopyCredential = async (value: string | null) => {
   }
 
   h2 {
-    @include mx.pu-font(title-small);
+    @include mx.pu-font(section);
     color: var(--sys-color-on-surface);
     overflow-wrap: anywhere;
   }
 
   p {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     color: var(--sys-color-on-surface-variant);
     overflow-wrap: anywhere;
   }

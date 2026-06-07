@@ -52,7 +52,7 @@ useBodyScrollLock(computed(() => props.open));
 }
 
 .landing-web-qr-modal__description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;
@@ -64,7 +64,7 @@ useBodyScrollLock(computed(() => props.open));
 }
 
 .landing-web-qr-modal__empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;

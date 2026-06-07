@@ -211,7 +211,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
 .bill-detail-page__section-heading {
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
 
   h2,
   p {
@@ -219,13 +219,13 @@ const formatFen = (amountFen: number | null | undefined): string => {
   }
 
   h2 {
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
     color: var(--sys-color-on-surface);
   }
 }
 
 .bill-detail-page__eyebrow {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-primary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -239,14 +239,14 @@ const formatFen = (amountFen: number | null | undefined): string => {
   div {
     display: flex;
     flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+    gap: calc(var(--sys-spacing-xsmall) / 2);
     padding: var(--sys-spacing-small);
     border-radius: var(--sys-radius-small);
     background: var(--sys-color-surface-container-high);
   }
 
   span {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     color: var(--sys-color-on-surface-variant);
   }
 
@@ -282,7 +282,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   div {
     display: flex;
     flex-direction: column;
-    gap: var(--sys-spacing-xxsmall);
+    gap: calc(var(--sys-spacing-xsmall) / 2);
   }
 
   span,

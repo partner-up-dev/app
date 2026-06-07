@@ -68,19 +68,19 @@ defineEmits<{
     var(--pu-safe-bottom) calc(var(--sys-spacing-medium) + var(--pu-safe-left));
   border-top: 1px solid var(--sys-color-outline);
   background: var(--sys-color-surface-container);
-  box-shadow: var(--sys-elevation-level2);
+  box-shadow: var(--sys-shadow-2);
 }
 
 .ordering-bottom-action__price {
   display: flex;
   align-items: center;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
   min-width: 0;
   min-height: 3.625rem;
   color: var(--sys-color-on-surface);
 
   strong {
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
     min-width: 0;
     overflow-wrap: anywhere;
   }

@@ -216,10 +216,18 @@ export default defineConfig(({ mode }) => {
         scss: {
           additionalData: (source, file) => {
             const hasStyleNamespaces =
-              source.includes(`@use "@/styles/functions" as fn`) ||
-              source.includes(`@use '@/styles/functions' as fn`) ||
-              source.includes(`@use "@/styles/mixins" as mx`) ||
-              source.includes(`@use '@/styles/mixins' as mx`);
+              source.includes(
+                `@use "@partner-up-dev/design-web/styles/functions" as fn`,
+              ) ||
+              source.includes(
+                `@use '@partner-up-dev/design-web/styles/functions' as fn`,
+              ) ||
+              source.includes(
+                `@use "@partner-up-dev/design-web/styles/mixins" as mx`,
+              ) ||
+              source.includes(
+                `@use '@partner-up-dev/design-web/styles/mixins' as mx`,
+              );
 
             if (
               file.includes("src/components/") ||
@@ -232,7 +240,7 @@ export default defineConfig(({ mode }) => {
               if (hasStyleNamespaces) {
                 return source;
               }
-              return `@use "@/styles/functions" as fn; @use "@/styles/mixins" as mx;${source}`;
+              return `@use "@partner-up-dev/design-web/styles/functions" as fn; @use "@partner-up-dev/design-web/styles/mixins" as mx;${source}`;
             }
             return source;
           },

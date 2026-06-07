@@ -102,12 +102,12 @@ const confirmationNotificationDescriptionPrefixes = computed<
 
 .join-confirmation-followup__title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .join-confirmation-followup__description {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

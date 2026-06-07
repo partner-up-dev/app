@@ -192,12 +192,12 @@ const toggleDate = (dateKey: ProductLocalDateKey) => {
   align-items: baseline;
   gap: var(--sys-spacing-small);
   flex-wrap: wrap;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .product-local-date-calendar-picker__range {
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .product-local-date-calendar-picker__weekday-row,
@@ -210,7 +210,7 @@ const toggleDate = (dateKey: ProductLocalDateKey) => {
 .product-local-date-calendar-picker__weekday {
   text-align: center;
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
 }
 
 .product-local-date-calendar-picker__cell {
@@ -248,10 +248,10 @@ const toggleDate = (dateKey: ProductLocalDateKey) => {
 }
 
 .product-local-date-calendar-picker__day {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .product-local-date-calendar-picker__marker {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
 }
 </style>

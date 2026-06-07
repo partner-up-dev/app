@@ -219,7 +219,8 @@ onUnmounted(() => {
 }
 
 .hero-title {
-  @include mx.pu-font(display-large);
+  font-size: 2.625rem;
+  font-weight: 200;
   color: var(--sys-color-on-surface);
   margin: 0;
   max-width: var(--landing-hero-title-measure);
@@ -247,7 +248,7 @@ onUnmounted(() => {
 }
 
 .subtitle {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   max-width: var(--landing-hero-subtitle-measure);
   opacity: 0;
@@ -283,7 +284,9 @@ onUnmounted(() => {
 }
 
 .hero-action {
-  @include mx.pu-font(label-large);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4286;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -380,7 +383,9 @@ onUnmounted(() => {
 }
 
 .hero-art-mark-fallback {
-  @include mx.pu-font(title-large);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 2rem;
   position: absolute;
   letter-spacing: 0.12em;
   color: var(--sys-color-outline);
@@ -393,11 +398,12 @@ onUnmounted(() => {
   }
 
   .hero-title {
+    font-size: 2.625rem;
     max-width: var(--landing-hero-title-measure-compact);
   }
 
   .subtitle {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
     max-width: var(--landing-hero-subtitle-measure-compact);
   }
 
@@ -406,12 +412,13 @@ onUnmounted(() => {
   }
 
   .hero-action {
-    @include mx.pu-font(body-large);
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
   .hero-action--primary,
   .hero-action--secondary {
-    min-height: calc(var(--sys-size-large) + var(--sys-spacing-small));
+    min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
     padding: var(--sys-spacing-small) var(--sys-spacing-medium);
   }
 

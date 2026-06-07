@@ -116,7 +116,7 @@ const savePreferenceTags = (): void => {
 
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 </style>

@@ -100,7 +100,7 @@ const { t } = useI18n();
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -121,7 +121,7 @@ const { t } = useI18n();
 .hint,
 .error-message {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .hint {

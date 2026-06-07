@@ -95,15 +95,15 @@ watch(
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--sys-spacing-xxsmall);
+  gap: calc(var(--sys-spacing-xsmall) / 2);
 
   strong {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     overflow-wrap: anywhere;
   }
 
   p {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     display: -webkit-box;
     margin: 0;
     overflow: hidden;

@@ -1,33 +1,24 @@
 <template>
-  <PageScaffold class="page-scaffold-centered">
-    <slot name="header" />
+  <PuPageScaffold content-placement="center">
+    <template
+      v-if="$slots.header"
+      #header
+    >
+      <slot name="header" />
+    </template>
 
-    <main class="page-scaffold-centered__main">
-      <slot />
-    </main>
+    <slot />
 
-    <slot name="actions" />
-    <slot name="footer" />
-  </PageScaffold>
+    <template
+      v-if="$slots.actions || $slots.footer"
+      #footer
+    >
+      <slot name="actions" />
+      <slot name="footer" />
+    </template>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 </script>
-
-<style lang="scss" scoped>
-.page-scaffold-centered {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-scaffold-centered__main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sys-spacing-medium);
-}
-</style>

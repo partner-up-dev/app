@@ -74,11 +74,11 @@ withDefaults(
 }
 
 .bento-item__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .bento-item__description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

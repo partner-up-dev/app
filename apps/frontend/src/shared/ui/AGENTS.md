@@ -25,6 +25,7 @@ Containers and layout:
 - `layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue`: shared page scaffolds. Prefer these for route pages instead of duplicating root safe-area layout.
 - `layout/FullScreenPageScaffold.vue`: viewport-height page scaffold with header/content/footer regions where the middle region should flex and own scrolling.
 - `layout/FooterRevealPageScaffold.vue`: viewport-first page scaffold where header + content fill the first screen and footer appears through normal page scroll.
+- `sections/PageFooter.vue`: product page footer chrome with `variant="minimal"` for compact support/navigation footers and `variant="brand"` for landing-style brand/legal footers. Prefer extending this variant API over creating another page footer component.
 
 Forms and controls:
 

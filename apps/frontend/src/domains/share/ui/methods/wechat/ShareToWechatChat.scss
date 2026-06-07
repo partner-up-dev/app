@@ -24,7 +24,7 @@
 }
 
 .mini-program-webview-state__text {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   max-width: 24rem;
   margin: 0;
   color: var(--sys-color-on-surface-variant);
@@ -41,7 +41,7 @@
 }
 
 .preview-title {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   margin: 0 0 var(--sys-spacing-xsmall);
 }
@@ -59,7 +59,7 @@
 }
 
 .helper-text {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -72,7 +72,7 @@
 }
 
 .error-text {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
   background: var(--sys-color-error-container);
   border-radius: var(--sys-radius-small);
@@ -91,7 +91,7 @@
 }
 
 .sub-text {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
   margin-top: var(--sys-spacing-xsmall);
 }

@@ -29,7 +29,7 @@ const { t } = useI18n();
   margin-bottom: var(--sys-spacing-medium);
 
   h1 {
-    @include mx.pu-font(headline-medium);
+    @include mx.pu-font(title);
     color: var(--sys-color-on-surface);
     margin: 0;
   }
@@ -41,8 +41,8 @@ const { t } = useI18n();
   border: none;
   color: var(--sys-color-on-surface);
   cursor: pointer;
-  min-width: var(--sys-size-large);
-  min-height: var(--sys-size-large);
+  min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border-radius: 999px;
   align-items: center;
   justify-content: center;

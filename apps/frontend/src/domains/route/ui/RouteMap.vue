@@ -333,7 +333,7 @@ const formatPointLabel = (point: RoutePoint, index: number): string => {
 }
 
 .route-map__fallback p {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   margin: 0;
 }
 
@@ -348,7 +348,7 @@ const formatPointLabel = (point: RoutePoint, index: number): string => {
 }
 
 .route-map__points li {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   overflow-wrap: anywhere;
 }
 </style>

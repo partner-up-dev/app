@@ -592,6 +592,8 @@ function clearWheelTimer(): void {
 
 <style lang="scss" scoped>
 .wheel-picker {
+  --wheel-picker-item-height: 44px;
+  --wheel-picker-viewport-height: 220px;
   --wheel-picker-fade-background: var(--sys-color-surface);
   --wheel-picker-highlight-background: var(--sys-color-surface-container-high);
   --wheel-picker-highlight-border: var(--sys-color-outline-variant);
@@ -735,7 +737,7 @@ function clearWheelTimer(): void {
     opacity 180ms ease,
     transform 180ms ease,
     filter 180ms ease;
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
 }
 
 .wheel-picker__option:focus {
@@ -752,7 +754,7 @@ function clearWheelTimer(): void {
 
 .wheel-picker__option--active {
   color: var(--wheel-picker-selected-color);
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .wheel-picker__option--disabled {
@@ -777,7 +779,7 @@ function clearWheelTimer(): void {
   padding: 0 var(--sys-spacing-medium);
   color: var(--sys-color-on-surface-variant);
   text-align: center;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 @media (prefers-reduced-motion: reduce) {

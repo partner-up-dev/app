@@ -164,7 +164,7 @@ const updateRouteEntryRoute = (index: number, route: Route): void => {
 .route-pool-entry__summary,
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -173,7 +173,7 @@ const updateRouteEntryRoute = (index: number, route: Route): void => {
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

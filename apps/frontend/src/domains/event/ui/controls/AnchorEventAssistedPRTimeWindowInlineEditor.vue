@@ -102,7 +102,7 @@ const presetOptions = computed<PRTimeWindowPresetOption[]>(() =>
 .time-window-inline-editor__message,
 .time-window-inline-editor__hint {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .time-window-inline-editor__message {

@@ -206,7 +206,7 @@ const immersiveTitle = computed(() =>
   align-items: center;
   justify-content: space-between;
   min-width: 0;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   box-sizing: border-box;
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
   background: var(--sys-color-surface-container);
@@ -222,7 +222,7 @@ const immersiveTitle = computed(() =>
 }
 
 .route-item-row > .route-item-row__field .route-item-row__location {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   flex: 1 1 auto;
   padding: 0;
   overflow: hidden;
@@ -247,8 +247,8 @@ const immersiveTitle = computed(() =>
 .route-item-row__icon-action,
 .route-item-row__remove,
 .route-item-row__order-action {
-  width: var(--sys-size-medium);
-  height: var(--sys-size-medium);
+  width: var(--sys-spacing-large);
+  height: var(--sys-spacing-large);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -286,7 +286,7 @@ const immersiveTitle = computed(() =>
 }
 
 .route-item-row--immersive .route-item-row__title {
-  @include mx.pu-font(headline-large);
+  @include mx.pu-font(hero);
   color: var(--sys-color-on-surface);
 }
 
@@ -295,7 +295,7 @@ const immersiveTitle = computed(() =>
   align-items: center;
   gap: var(--sys-spacing-xsmall);
   min-width: 0;
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
 }
 
 .route-item-row--immersive .route-item-row__location {
@@ -318,8 +318,8 @@ const immersiveTitle = computed(() =>
 }
 
 .route-item-row__action {
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: 0;
   color: var(--sys-color-tertiary);
 }

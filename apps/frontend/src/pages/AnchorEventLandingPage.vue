@@ -102,7 +102,7 @@
             @update:model-value="handleModeControlChange"
           />
         </div>
-        <LandingFooter data-region="footer" />
+        <PageFooter variant="brand" data-region="footer" />
       </div>
     </template>
   </FooterRevealPageScaffold>
@@ -142,7 +142,7 @@ import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
-import LandingFooter from "@/domains/landing/ui/sections/LandingFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffold.vue";
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
@@ -1180,7 +1180,7 @@ const handleSelectOtherEvent = async (nextEventId: number | null) => {
 
 .anchor-event-landing-page--card-rich
   :deep(.footer-reveal-page-scaffold__viewport) {
-  height: var(--footer-reveal-first-screen-height);
+  height: var(--pu-vh);
   overflow: hidden;
 }
 
@@ -1203,8 +1203,8 @@ const handleSelectOtherEvent = async (nextEventId: number | null) => {
   z-index: 40;
   min-width: 0;
   padding-top: var(--sys-spacing-medium);
-  padding-left: var(--landing-footer-padding-inline-start, 0);
-  padding-right: var(--landing-footer-padding-inline-end, 0);
+  padding-left: var(--page-footer-padding-inline-start, 0);
+  padding-right: var(--page-footer-padding-inline-end, 0);
   background: var(--sys-color-surface-container);
 }
 

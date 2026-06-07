@@ -208,12 +208,12 @@ const removeGate = (index: number): void => {
 
 .join-gate-editor__title {
   margin: 0;
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .join-gate-editor__hint {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -246,7 +246,7 @@ const removeGate = (index: number): void => {
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

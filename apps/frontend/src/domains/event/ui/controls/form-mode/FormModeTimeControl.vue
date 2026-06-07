@@ -231,11 +231,11 @@ watch(
 
   :deep(.pr-time-window-editor__label) {
     color: var(--sys-color-on-surface);
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
   }
 
   :deep(.pr-time-window-editor__mode-label) {
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
   }
 
   :deep(.pr-time-window-editor__field-label) {
@@ -246,7 +246,7 @@ watch(
     margin: var(--sys-spacing-xsmall) 0 0;
     color: var(--sys-color-secondary);
     text-align: center;
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
   }
 }
 </style>

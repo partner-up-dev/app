@@ -91,12 +91,12 @@ const cancelLabelText = computed(() => props.cancelLabel ?? t("common.cancel"));
 }
 
 .confirm-dialog__message {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
 }
 
 .confirm-dialog__description {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 

@@ -150,7 +150,7 @@ const hasTags = computed(
 }
 
 .pr-roster-item__name {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   overflow-wrap: anywhere;
 }
 
@@ -171,7 +171,7 @@ const hasTags = computed(
   color: var(--sys-color-on-primary-container);
 
   span {
-    @include mx.pu-font(label-large);
+    @include mx.pu-font(control);
   }
 }
 
@@ -183,7 +183,7 @@ const hasTags = computed(
 
 .pr-roster-item__tag,
 .pr-roster-item__state {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
 }
 

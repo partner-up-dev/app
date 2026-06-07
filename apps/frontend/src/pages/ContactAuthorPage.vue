@@ -87,7 +87,7 @@ const qrCodeUrl = computed(() => {
 }
 
 .description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   text-align: center;
 }
@@ -110,7 +110,7 @@ const qrCodeUrl = computed(() => {
 }
 
 .qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   text-align: center;
 }

@@ -66,7 +66,7 @@
     </div>
 
     <template #footer>
-      <SupportNavFooter />
+      <PageFooter variant="minimal" />
     </template>
   </PageScaffoldFlow>
 </template>
@@ -75,7 +75,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
@@ -120,7 +120,7 @@ const joinedErrorMessage = computed(() => {
 .my-prs-page__auth-hint,
 .my-prs-page__empty,
 .my-prs-page__error {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
 }
 
@@ -145,14 +145,14 @@ const joinedErrorMessage = computed(() => {
   justify-content: space-between;
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     margin: 0;
     color: var(--sys-color-on-surface);
   }
 }
 
 .my-prs-page__count {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   background: var(--sys-color-surface-container);
   border-radius: var(--sys-radius-large);

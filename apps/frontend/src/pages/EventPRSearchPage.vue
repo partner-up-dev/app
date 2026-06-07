@@ -512,13 +512,13 @@ const goEventPlaza = async () => {
   padding: var(--sys-spacing-xlarge) 0;
   text-align: center;
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .event-pr-search-page__summary {
   margin-bottom: var(--sys-spacing-medium);
   color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .event-pr-search-page__result-list {

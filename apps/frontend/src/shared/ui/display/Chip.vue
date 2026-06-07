@@ -44,21 +44,21 @@ withDefaults(
 }
 
 .ui-chip--size-sm {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   padding: 0 calc(var(--sys-spacing-small) - 2px);
-  min-height: var(--sys-size-small);
+  min-height: calc(var(--sys-spacing-medium) + var(--sys-spacing-small));
 }
 
 .ui-chip--size-md {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
 }
 
 .ui-chip--size-lg {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-medium);
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
 }
 
 .ui-chip--tone-secondary {

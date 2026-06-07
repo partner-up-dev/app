@@ -324,7 +324,7 @@ const handleClick = () => {
     justify-content: center;
     background: var(--sys-color-primary-container);
     color: var(--sys-color-on-primary-container);
-    @include mx.pu-font(title-large);
+    @include mx.pu-font(title);
   }
 }
 
@@ -357,7 +357,7 @@ const handleClick = () => {
 }
 
 .event-available-locations-row {
-  min-height: var(--sys-size-small);
+  min-height: calc(var(--sys-spacing-medium) + var(--sys-spacing-small));
 }
 
 :deep(.event-available-location-pill) {
@@ -373,7 +373,7 @@ const handleClick = () => {
 }
 
 .event-title {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   margin: 0;
   text-wrap: balance;
@@ -381,7 +381,7 @@ const handleClick = () => {
 }
 
 .event-desc {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
   display: -webkit-box;
@@ -392,7 +392,7 @@ const handleClick = () => {
 }
 
 .event-cta {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   gap: var(--sys-spacing-xsmall);

@@ -114,7 +114,7 @@ useBodyScrollLock(openRef);
 .mini-program-jssdk-notice__description,
 .mini-program-jssdk-notice__instruction,
 .mini-program-jssdk-notice__qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;
@@ -140,7 +140,7 @@ useBodyScrollLock(openRef);
 }
 
 .mini-program-jssdk-notice__url {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   width: 100%;
   margin: 0;
   padding: var(--sys-spacing-xsmall);

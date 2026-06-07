@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
-@use "@/styles/mixins" as mx;
+@use "@partner-up-dev/design-web/styles/mixins" as mx;
 
 .matched-pr-handoff {
   position: fixed;
@@ -376,7 +376,7 @@ onBeforeUnmount(() => {
 
 .matched-pr-handoff__error {
   margin: var(--sys-spacing-small) 0 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 

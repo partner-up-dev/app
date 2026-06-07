@@ -130,13 +130,13 @@ watch(
 }
 
 .tab-bar__tab {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--sys-spacing-xsmall);
   flex-shrink: 0;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) var(--sys-spacing-medium);
   border: 1px solid var(--sys-color-outline);
   border-radius: 999px;

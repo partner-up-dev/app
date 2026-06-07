@@ -1,28 +1,24 @@
 <template>
-  <PageScaffold class="page-scaffold-flow">
-    <slot name="header" />
+  <PuPageScaffold>
+    <template
+      v-if="$slots.header"
+      #header
+    >
+      <slot name="header" />
+    </template>
 
-    <main class="page-scaffold-flow__main">
-      <slot />
-    </main>
+    <slot />
 
-    <slot name="actions" />
-    <slot name="footer" />
-  </PageScaffold>
+    <template
+      v-if="$slots.actions || $slots.footer"
+      #footer
+    >
+      <slot name="actions" />
+      <slot name="footer" />
+    </template>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 </script>
-
-<style lang="scss" scoped>
-.page-scaffold-flow {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-scaffold-flow__main {
-  flex: 1;
-  min-height: 0;
-}
-</style>

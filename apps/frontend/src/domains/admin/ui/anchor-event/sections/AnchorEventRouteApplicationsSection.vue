@@ -313,7 +313,7 @@ const formatCreatedAt = (value: string): string => {
 
 .empty-text {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -350,27 +350,27 @@ const formatCreatedAt = (value: string): string => {
   }
 
   h3 {
-    @include mx.pu-font(title-small);
+    @include mx.pu-font(section);
     overflow-wrap: anywhere;
   }
 
   p {
     margin-top: var(--sys-spacing-xsmall);
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     color: var(--sys-color-on-surface-variant);
   }
 }
 
 .route-application-card__reason {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-error);
 }
 
 .route-application-card__hint,
 .route-application-card__validation {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 .route-application-card__hint {

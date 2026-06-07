@@ -17,7 +17,7 @@
 }
 
 .preview-title {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
   margin: 0 0 var(--sys-spacing-xsmall);
 }
@@ -42,7 +42,7 @@
 }
 
 .qr-poster__empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
   text-align: center;
@@ -62,7 +62,7 @@
 }
 
 .preview-text {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   font-family: var(--sys-font-family-mono);
   color: var(--sys-color-on-surface);
   margin: 0;

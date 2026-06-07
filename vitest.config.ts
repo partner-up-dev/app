@@ -42,7 +42,7 @@ export default defineConfig({
     preprocessorOptions: {
       scss: {
         additionalData:
-          '@use "@/styles/functions" as fn; @use "@/styles/mixins" as mx;',
+          '@use "@partner-up-dev/design-web/styles/functions" as fn; @use "@partner-up-dev/design-web/styles/mixins" as mx;',
       },
     },
   },

@@ -426,7 +426,7 @@ watch(
 
 .facts-title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
@@ -439,13 +439,13 @@ watch(
 
 .facts-entry__heading {
   margin: 0;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
 .facts-entry__value {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   overflow-wrap: anywhere;
 }
@@ -478,7 +478,7 @@ watch(
 }
 
 .facts-entry-button__label {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -490,7 +490,7 @@ watch(
 }
 
 .facts-entry-button__action {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-secondary);
 }
 
@@ -500,7 +500,7 @@ watch(
 }
 
 .facts-empty {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -512,7 +512,7 @@ watch(
 }
 
 .facts-editable-mark {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   display: inline-flex;
   align-items: center;
   min-height: 22px;
@@ -524,7 +524,7 @@ watch(
 
 .facts-notes {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -543,11 +543,11 @@ watch(
 }
 
 .roster-chip-overflow {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--sys-size-medium);
+  min-height: var(--sys-spacing-large);
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
   border-radius: 999px;
   background: var(--sys-color-secondary-container);

@@ -324,7 +324,7 @@ const clearErrors = () => {
 .field-label,
 .hint,
 small {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .hint,

@@ -1,5 +1,5 @@
 import "uno.css";
-import "./styles/index.scss";
+import "@partner-up-dev/design-web/styles";
 import { createPartnerUpApp } from "./app/create-app";
 
 createPartnerUpApp().mount("#app");

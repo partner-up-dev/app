@@ -37,7 +37,7 @@ defineProps<{
 }
 
 .admin-rail-panel__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   margin: 0;
 }
 

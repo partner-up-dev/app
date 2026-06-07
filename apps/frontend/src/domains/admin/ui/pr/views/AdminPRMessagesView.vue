@@ -392,7 +392,7 @@ const handleDeleteMessage = async (messageId: number) => {
 
 .hint {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -404,7 +404,7 @@ const handleDeleteMessage = async (messageId: number) => {
 
 .error-message {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-error);
 }
 
@@ -439,7 +439,7 @@ const handleDeleteMessage = async (messageId: number) => {
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -491,13 +491,13 @@ const handleDeleteMessage = async (messageId: number) => {
 }
 
 .message-author {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface);
 }
 
 .message-body {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

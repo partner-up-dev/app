@@ -40,18 +40,18 @@ defineEmits<{
   }
 
   p {
-    @include mx.pu-font(body-large);
+    @include mx.pu-font(body);
     flex: 1;
   }
 
   .close {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     background: none;
     border: none;
     color: inherit;
     cursor: pointer;
-    min-width: var(--sys-size-large);
-    min-height: var(--sys-size-large);
+    min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+    min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
     padding: 0;
     display: inline-flex;
     align-items: center;

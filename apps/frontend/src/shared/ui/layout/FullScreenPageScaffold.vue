@@ -1,48 +1,23 @@
 <template>
-  <PageScaffold class="full-screen-page-scaffold">
-    <header
+  <PuPageScaffold viewport="screen">
+    <template
       v-if="$slots.header"
-      class="full-screen-page-scaffold__header"
+      #header
     >
       <slot name="header" />
-    </header>
+    </template>
 
-    <main class="full-screen-page-scaffold__content">
-      <slot />
-    </main>
+    <slot />
 
-    <footer
+    <template
       v-if="$slots.footer"
-      class="full-screen-page-scaffold__footer"
+      #footer
     >
       <slot name="footer" />
-    </footer>
-  </PageScaffold>
+    </template>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 </script>
-
-<style lang="scss" scoped>
-.full-screen-page-scaffold {
-  display: flex;
-  flex-direction: column;
-  height: var(--pu-vh);
-  min-height: var(--pu-vh);
-}
-
-.full-screen-page-scaffold__header,
-.full-screen-page-scaffold__footer {
-  min-width: 0;
-  flex: 0 0 auto;
-}
-
-.full-screen-page-scaffold__content {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-</style>

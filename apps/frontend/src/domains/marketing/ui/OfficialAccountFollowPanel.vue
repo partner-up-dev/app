@@ -62,13 +62,13 @@ const { officialAccountQrCodeLoading, officialAccountQrCodeUrl } =
 }
 
 .panel-title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   margin: 0;
   color: var(--sys-color-on-surface);
 }
 
 .panel-description {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: var(--sys-spacing-xsmall) 0 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -89,7 +89,7 @@ const { officialAccountQrCodeLoading, officialAccountQrCodeUrl } =
 }
 
 .qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   text-align: center;

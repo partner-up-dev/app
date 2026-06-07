@@ -137,13 +137,13 @@ const backFallbackTo = computed(() =>
 }
 
 .ordering-support__qr-empty {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   padding: var(--sys-spacing-medium);
   color: var(--sys-color-on-surface-variant);
 }
 
 .ordering-support__text {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 </style>

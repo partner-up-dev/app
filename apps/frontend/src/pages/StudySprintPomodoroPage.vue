@@ -699,14 +699,14 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .guidance-kicker {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   margin: 0;
   color: var(--sys-color-primary);
   text-align: center;
 }
 
 .guidance-page h1 {
-  @include mx.pu-font(headline-small);
+  @include mx.pu-font(title);
   margin: 0;
   color: var(--sys-color-on-surface);
   text-align: center;
@@ -767,7 +767,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .room-header__body h1 {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -777,7 +777,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .room-header__body span {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -848,7 +848,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .participant-tile__avatar span {
-  @include mx.pu-font(headline-medium);
+  @include mx.pu-font(title);
 }
 
 .participant-tile__avatar img {
@@ -858,7 +858,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .participant-tile__status {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   position: absolute;
   top: var(--sys-spacing-small);
   right: var(--sys-spacing-small);
@@ -898,7 +898,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .participant-tile__name-row strong {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   min-width: 0;
   overflow: hidden;
   color: var(--sys-color-on-surface);
@@ -907,7 +907,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .participant-tile__name-row span {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   flex: 0 0 auto;
   padding: 0 var(--sys-spacing-xsmall);
   border-radius: 999px;
@@ -916,7 +916,7 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .participant-tile__meta {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -952,12 +952,12 @@ const statusLabel = (status: ParticipantStatus): string => {
 }
 
 .room-controls__summary span {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
 .room-controls__summary strong {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface);
 }
 

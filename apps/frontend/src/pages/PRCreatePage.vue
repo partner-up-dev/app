@@ -18,7 +18,7 @@
         class="pr-create-page__mode-panel"
         data-region="create-form"
       >
-        <header class="pr-create-page__pr-create-page__mode-panel-header">
+        <header class="pr-create-page__mode-panel-header">
           <h2>{{ t("createPage.nlModeTitle") }}</h2>
           <p>{{ t("createPage.nlModeDescription") }}</p>
         </header>
@@ -31,7 +31,7 @@
         class="pr-create-page__mode-panel"
         data-region="create-form"
       >
-        <header class="pr-create-page__pr-create-page__mode-panel-header">
+        <header class="pr-create-page__mode-panel-header">
           <h2>{{ t("createPage.formModeTitle") }}</h2>
           <p>{{ t("createPage.formModeDescription") }}</p>
         </header>
@@ -53,7 +53,7 @@
     </template>
 
     <template #footer>
-      <SupportNavFooter data-region="support" />
+      <PageFooter variant="minimal" data-region="support" />
     </template>
 
   </PageScaffoldFlow>
@@ -66,7 +66,7 @@ import { useRoute, useRouter } from "vue-router";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
-import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
@@ -158,19 +158,19 @@ const goHome = () => {
   padding: var(--sys-spacing-medium);
 }
 
-.pr-create-page__pr-create-page__mode-panel-header {
+.pr-create-page__mode-panel-header {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
     color: var(--sys-color-on-surface);
     margin: 0;
   }
 
   p {
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
     margin: 0;
   }

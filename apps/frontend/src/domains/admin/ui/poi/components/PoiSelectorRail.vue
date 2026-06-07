@@ -84,7 +84,7 @@ const statusLabel = (status: PoiStatus): string => {
 
 <style lang="scss" scoped>
 .hint {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
 }
@@ -107,13 +107,13 @@ const statusLabel = (status: PoiStatus): string => {
 }
 
 .create-poi__title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
   margin: 0;
   color: var(--sys-color-on-surface);
 }
 
 .field-label {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 

@@ -201,13 +201,13 @@ const handleChange = (event: Event): void => {
 }
 
 .inline-place-selector__label {
-  @include mx.pu-font(label-small);
+  @include mx.pu-font(caption);
   color: var(--sys-color-on-surface-variant);
 }
 
 .inline-place-selector__input {
   width: 100%;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-small);

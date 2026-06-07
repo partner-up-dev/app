@@ -130,8 +130,8 @@ const handleBack = async (): Promise<void> => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--sys-size-large);
-  height: var(--sys-size-large);
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px solid currentColor;
   border-radius: 999px;
   background: transparent;

@@ -72,7 +72,7 @@ const hasRight = computed(() => hasValue.value || hasSuffix.value);
   gap: var(--sys-spacing-small);
   width: 100%;
   min-width: 0;
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   box-sizing: border-box;
   padding: var(--sys-spacing-small) 0;
   border: 0;
@@ -114,7 +114,7 @@ const hasRight = computed(() => hasValue.value || hasSuffix.value);
 }
 
 .ui-cell__title {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   flex: 0 1 auto;
   color: var(--sys-color-on-surface);
 }
@@ -129,7 +129,7 @@ const hasRight = computed(() => hasValue.value || hasSuffix.value);
 }
 
 .ui-cell__value {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   flex: 0 1 auto;
   color: var(--sys-color-on-surface-variant);
   text-align: right;

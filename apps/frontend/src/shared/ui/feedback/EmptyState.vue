@@ -86,13 +86,13 @@ withDefaults(
 }
 
 .empty-state__title {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
 
 .empty-state__description,
 .empty-state__body {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 

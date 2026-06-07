@@ -774,7 +774,7 @@ defineExpose({
 }
 
 .demand-card__cover {
-  min-height: calc(var(--sys-size-xlarge) * 4);
+  min-height: calc(calc(var(--sys-spacing-large) * 2) * 4);
   background-size: cover;
   background-position: center;
   display: flex;
@@ -791,7 +791,7 @@ defineExpose({
 }
 
 .demand-card__fallback-location {
-  @include mx.pu-font(title-large);
+  @include mx.pu-font(title);
   margin: 0;
   color: var(--sys-color-on-primary-container);
   text-align: center;
@@ -799,7 +799,7 @@ defineExpose({
 }
 
 .demand-card__location-badge {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
@@ -826,7 +826,7 @@ defineExpose({
 }
 
 .demand-card__time {
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
   margin: 0;
   color: var(--sys-color-on-surface);
 }
@@ -838,7 +838,7 @@ defineExpose({
 }
 
 .demand-card__preference-chip {
-  @include mx.pu-font(label-medium);
+  @include mx.pu-font(control);
   display: inline-flex;
   align-items: center;
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
@@ -849,7 +849,7 @@ defineExpose({
 }
 
 .demand-card__notes {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   margin: 0;
   color: var(--sys-color-on-surface-variant);
   overflow: hidden;

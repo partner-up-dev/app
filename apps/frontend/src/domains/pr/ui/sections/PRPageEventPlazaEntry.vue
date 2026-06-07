@@ -50,7 +50,7 @@ const handleClick = (): void => {
 }
 
 .utility-link {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   display: inline-flex;
   align-items: center;
   color: var(--sys-color-secondary);

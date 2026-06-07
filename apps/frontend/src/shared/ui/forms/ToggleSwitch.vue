@@ -81,7 +81,7 @@ const handleClick = () => {
 
 .toggle-switch__label {
   min-width: 0;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .toggle-switch__track {

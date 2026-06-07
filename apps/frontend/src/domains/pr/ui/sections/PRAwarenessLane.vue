@@ -167,13 +167,13 @@ const rosterAvatarFallback = (displayName: string): string => {
 
 .lane-title {
   margin: 0;
-  @include mx.pu-font(title-medium);
+  @include mx.pu-font(section);
 }
 
 .lane-capacity,
 .lane-empty {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -207,7 +207,7 @@ const rosterAvatarFallback = (displayName: string): string => {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -216,7 +216,7 @@ const rosterAvatarFallback = (displayName: string): string => {
 }
 
 .roster-history__count {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
 }
 
 </style>

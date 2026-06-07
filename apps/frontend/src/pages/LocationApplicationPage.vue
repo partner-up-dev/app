@@ -261,12 +261,12 @@ onMounted(async () => {
   }
 
   h2 {
-    @include mx.pu-font(title-medium);
+    @include mx.pu-font(section);
   }
 
   p {
     margin-top: var(--sys-spacing-xsmall);
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
     color: var(--sys-color-on-surface-variant);
   }
 }
@@ -282,7 +282,7 @@ onMounted(async () => {
 
 .empty-text {
   margin: 0;
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
 
@@ -313,7 +313,7 @@ onMounted(async () => {
 
   h3 {
     margin: 0;
-    @include mx.pu-font(title-small);
+    @include mx.pu-font(section);
     overflow-wrap: anywhere;
   }
 }
@@ -321,7 +321,7 @@ onMounted(async () => {
 .application-card__meta,
 .application-card__reason {
   margin: 0;
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
 }
 

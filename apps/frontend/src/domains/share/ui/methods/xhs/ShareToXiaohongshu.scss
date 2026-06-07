@@ -33,7 +33,7 @@
 
 // ===== CAPTION EDITOR =====
 .caption-textarea {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
   width: 100%;
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline);
@@ -209,11 +209,11 @@
 
   p {
     margin: var(--sys-spacing-xsmall) 0;
-    @include mx.pu-font(body-medium);
+    @include mx.pu-font(body);
   }
 
   .sub-text {
-    @include mx.pu-font(body-small);
+    @include mx.pu-font(support);
     opacity: 0.8;
   }
 }

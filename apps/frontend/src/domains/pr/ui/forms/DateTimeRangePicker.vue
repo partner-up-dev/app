@@ -207,7 +207,7 @@ const clearEndTime = () => {
   margin-bottom: var(--sys-spacing-medium);
 
   label {
-    @include mx.pu-font(label-medium);
+    @include mx.pu-font(control);
     display: block;
     margin-bottom: var(--sys-spacing-xsmall);
     color: var(--sys-color-on-surface-variant);
@@ -238,14 +238,14 @@ const clearEndTime = () => {
 }
 
 input {
-  @include mx.pu-font(body-large);
+  @include mx.pu-font(body);
   width: 100%;
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline);
   border-radius: var(--sys-radius-small);
   color: var(--sys-color-on-surface);
   background: var(--sys-color-surface-container);
-  min-height: var(--sys-size-large);
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
 
   &::placeholder {
     color: var(--sys-color-on-surface-variant);
@@ -263,7 +263,7 @@ input {
 }
 
 .time-hint {
-  @include mx.pu-font(body-small);
+  @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
   margin-top: var(--sys-spacing-xsmall);
 }
@@ -284,7 +284,7 @@ input {
 
   .clear-time {
     width: 100%;
-    min-height: var(--sys-size-large);
+    min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   }
 }
 </style>

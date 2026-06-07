@@ -61,11 +61,11 @@
 }
 
 .pm-section-title {
-  @include mx.pu-font(title-small);
+  @include mx.pu-font(section);
 }
 
 .pm-subsection-title {
-  @include mx.pu-font(label-large);
+  @include mx.pu-font(control);
 }
 
 .pm-grid {
@@ -95,7 +95,7 @@
 .pm-field-label,
 .pm-hint,
 .pm-small {
-  @include mx.pu-font(body-medium);
+  @include mx.pu-font(body);
 }
 
 .pm-field-label {
