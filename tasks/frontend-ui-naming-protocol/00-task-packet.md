@@ -237,6 +237,36 @@ Exit criteria:
 - Any enforcement proposal has low false-positive rate and clear exceptions.
 - Status: implemented and verified.
 
+### Slice 2B - Footer Boundary Correction
+
+- Replace the temporary split names `SupportNavFooter` and `LandingFooter` with one semantic component:
+  - `apps/frontend/src/shared/ui/sections/PageFooter.vue`
+- Use variants instead of separate components:
+  - `variant="minimal"` for compact support/navigation footers
+  - `variant="brand"` for landing footer with nav, brand copy, logo, and legal links
+- Delete the split components:
+  - `apps/frontend/src/domains/support/ui/sections/SupportNavFooter.vue`
+  - `apps/frontend/src/domains/landing/ui/sections/LandingFooter.vue`
+- Update consumers:
+  - `HomePage.vue`
+  - `AnchorEventLandingPage.vue`
+  - `MyPRsPage.vue`
+  - `MePage.vue`
+  - `PRCreatePage.vue`
+  - `PRMessagesPage.vue`
+  - `PRPage.vue`
+  - `UserProfilePage.vue`
+  - `PRPage.creator-actions.test.ts`
+- Verification:
+  - old footer names and class prefixes should return no source matches
+  - `pnpm --filter @partner-up-dev/frontend audit:naming` should no longer report a footer split candidate
+  - token lint, frontend build, and frontend unit tests should pass
+
+Exit criteria:
+
+- Page footer has one ownership boundary and variants express layout/content differences.
+- Status: implemented and verified.
+
 ## Impact Handshake For First Code Slice
 
 - Address and Object:
@@ -291,7 +321,16 @@ Exit criteria:
   - `node --check apps/frontend/scripts/audit-ui-naming.mjs` passed
   - `pnpm --filter @partner-up-dev/frontend audit:naming` passed
   - `pnpm --filter @partner-up-dev/frontend audit:naming -- --json` passed
+- 2026-06-07: checkpoint commit created: `610249e7 refactor(frontend): align ui naming protocol`.
+- 2026-06-07: Slice 2B started after user identified `SupportNavFooter` and `LandingFooter` as a boundary split rather than a naming-only issue.
+- 2026-06-07: Slice 2B merged the split footer components into `PageFooter`.
+  - old footer names and class prefixes returned no source matches
+  - `pnpm --filter @partner-up-dev/frontend audit:naming` no longer reports a footer split candidate
+  - `git diff --check` passed
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed
+  - `pnpm --filter @partner-up-dev/frontend build` passed
+  - `pnpm test:unit:frontend` passed
 
 ## Next Step
 
-Review the six audit findings and decide whether to correct the footer boundary first.
+Review remaining audit findings: four `Content` candidates and one low-severity `Info` candidate.
