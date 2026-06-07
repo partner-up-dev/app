@@ -1,5 +1,97 @@
 # Changelog
 
+## [3.0.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v2.0.0...backend-v3.0.0) (2026-06-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **telemetry:** remove journey entity table
+* **analytics:** replace user BI projections with fact views
+* **telemetry:** user_telemetry_events no longer stores event_kind, and the user telemetry registry no longer exposes eventKind.
+* **telemetry:** user behavior telemetry now uses registry-governed v2 user_telemetry_* tables and RawUserEvent ingestion.
+* **pr:** Booking Support, Booking Contact join gates, booking execution/reimbursement data, and reimbursement staff contact entry are removed.
+
+### Features
+
+* **admin:** add commerce management views ([293ffde](https://github.com/partner-up-dev/mvp-HA/commit/293ffde282fa546cd0ebd57e62272c1914548f68))
+* **admin:** add payment provider instance management ([23935d0](https://github.com/partner-up-dev/mvp-HA/commit/23935d0f03176cee144a6c9bd0b6efee24a3b0af))
+* **admin:** add ride hailing provider admin ([d3752ec](https://github.com/partner-up-dev/mvp-HA/commit/d3752ecc5113bcccc269b342b9841b10b21f06d7))
+* **admin:** allow editing route applications ([395e16d](https://github.com/partner-up-dev/mvp-HA/commit/395e16d91b12659fa19e32ca56a1962e3136bb56))
+* **admin:** derive payment provider instance key ([2a94791](https://github.com/partner-up-dev/mvp-HA/commit/2a94791091c482be7052031dabbceb90d5be2294))
+* **admin:** edit anchor event route pools ([de1b90b](https://github.com/partner-up-dev/mvp-HA/commit/de1b90b5d8494914f3e7f5c43e347db530c1edcc))
+* **analytics:** add pr create funnel projection ([4816fa0](https://github.com/partner-up-dev/mvp-HA/commit/4816fa05dec2dd4a38b1818ee9792a7f4f36cba0))
+* **analytics:** add query-level user event projection ([2dc680e](https://github.com/partner-up-dev/mvp-HA/commit/2dc680e70448b88a2ca14f4f0a5121138ded5282))
+* **analytics:** complete bi overview migration ([fceb2ce](https://github.com/partner-up-dev/mvp-HA/commit/fceb2ce6a06fe037c4e4a3e62379827a57b38e6b))
+* **analytics:** replace user BI projections with fact views ([38a53ab](https://github.com/partner-up-dev/mvp-HA/commit/38a53ab311b0347302cd4916db297b1dea09a053))
+* **analytics:** show official account nudge clicks ([ec5a025](https://github.com/partner-up-dev/mvp-HA/commit/ec5a025526031ffdd07e7b728de37826bdf90e6c))
+* **auth:** add WeChat OAuth latency tracing ([a60f1a3](https://github.com/partner-up-dev/mvp-HA/commit/a60f1a3f5e8b6201ddcf570bef585f40124bcec5))
+* **backend:** add ride hailing provider foundation ([aeebd0e](https://github.com/partner-up-dev/mvp-HA/commit/aeebd0e01899da1d4b7195dba263e57f32ce1a01))
+* **backend:** implement rental ecommerce foundation ([916bb4a](https://github.com/partner-up-dev/mvp-HA/commit/916bb4a1d094061d3b10397b58fa969880eb48e3))
+* **backend:** realign order execution aggregates ([6f0f555](https://github.com/partner-up-dev/mvp-HA/commit/6f0f555c976d5ff3776af73e2f1664259b759aff))
+* **commerce:** add bill-line payment flow ([47dcde1](https://github.com/partner-up-dev/mvp-HA/commit/47dcde14e3aa5f5810e7973c6e3cac2b9bcb6ec5))
+* **commerce:** complete rental baseline flow ([bfae9ae](https://github.com/partner-up-dev/mvp-HA/commit/bfae9ae68bcb0d43ffd2b6aede64cc42cac16121))
+* **commerce:** complete ride hailing system journey ([db305f6](https://github.com/partner-up-dev/mvp-HA/commit/db305f6e11c50e52080068061b07abc788ad4d38))
+* **commerce:** realign placement ordering boundary ([74c7029](https://github.com/partner-up-dev/mvp-HA/commit/74c70291501925614cffcbf88726759dc1a15f4e))
+* **commerce:** route ordering to reservation QR ([185ab72](https://github.com/partner-up-dev/mvp-HA/commit/185ab725a6ba817cd3726745dcf4d092659bc74a))
+* **ecommerce:** realign ordering command flow ([62e2734](https://github.com/partner-up-dev/mvp-HA/commit/62e2734629cbf8c6d2db2790e58c5bc4c1478232))
+* **event:** add anchor event dummy PR browse items ([d267d3c](https://github.com/partner-up-dev/mvp-HA/commit/d267d3c3548a5082be2f40000d5f70ec64501f0a))
+* **event:** add backend-owned place selectors ([7bc91ee](https://github.com/partner-up-dev/mvp-HA/commit/7bc91eea96e7ac7276f2a1d6608078e833390128))
+* **event:** add route application workflow ([e866cb8](https://github.com/partner-up-dev/mvp-HA/commit/e866cb8241abffd6fe4ce4d707e36585f21c409c))
+* **event:** align form mode fuzzy time windows ([b164daf](https://github.com/partner-up-dev/mvp-HA/commit/b164dafc921fc6bff932926bd95df9336635fc9f))
+* **event:** configure PR time editor default mode ([7974e8e](https://github.com/partner-up-dev/mvp-HA/commit/7974e8e6e924f4b76399680d49fe2755b066e6b4))
+* **event:** expose backend-owned place selector ([51a4a1e](https://github.com/partner-up-dev/mvp-HA/commit/51a4a1ed5713395134d92cf705d492682674acaf))
+* **event:** support fuzzy form mode time ([403817d](https://github.com/partner-up-dev/mvp-HA/commit/403817d7829b09f4ab9754f970e1fa4974873e4c))
+* **event:** support route form recommendations ([3701be3](https://github.com/partner-up-dev/mvp-HA/commit/3701be3e60358ec36a7a9e310ebbf24664c12271))
+* **event:** unify anchor event landing modes ([fb5b48c](https://github.com/partner-up-dev/mvp-HA/commit/fb5b48cf2d4594e167939b8528fb31a1d1c681d8))
+* **pr:** add anchor event route pool policies ([4113317](https://github.com/partner-up-dev/mvp-HA/commit/41133172057be2b25818117914984a037188ee16))
+* **pr:** add confirmation join follow-up ([30e8ee3](https://github.com/partner-up-dev/mvp-HA/commit/30e8ee352382f82cdd2aa2b957c7ff942d9988db))
+* **pr:** add event community follow-up ([8e156af](https://github.com/partner-up-dev/mvp-HA/commit/8e156af64961689fed1f2f111468513ba294220f))
+* **pr:** add route editor map workflow ([8e2a020](https://github.com/partner-up-dev/mvp-HA/commit/8e2a020921dcf0e23b67b5309d6aad66302f5514))
+* **pr:** add route place mode foundation ([9a91879](https://github.com/partner-up-dev/mvp-HA/commit/9a91879e83c478399a15cba5a3099505ed1868c2))
+* **pr:** add study sprint pomodoro room ([8013c0f](https://github.com/partner-up-dev/mvp-HA/commit/8013c0f8bdb090a12fccc0bd25f9f3664acdbd58))
+* **pr:** align ready lifecycle ([c9e495a](https://github.com/partner-up-dev/mvp-HA/commit/c9e495ac19288fa4c06957904b5ef8a5a268afaa))
+* **pr:** allow ready prs to edit fuzzy time windows ([b8f0faa](https://github.com/partner-up-dev/mvp-HA/commit/b8f0faaf55c58178e41178e41c71c37a57117e4a))
+* **pr:** enforce canonical PR creation path ([e098ae7](https://github.com/partner-up-dev/mvp-HA/commit/e098ae729fbed6f2a72610f497fc7b358ff39e53))
+* **pr:** prefer anchor event labels in PR titles ([64c2c67](https://github.com/partner-up-dev/mvp-HA/commit/64c2c67de41eac9c552b868aeb2b375cafc665b3))
+* **pr:** remove booking support flow ([bfadb06](https://github.com/partner-up-dev/mvp-HA/commit/bfadb064fcdba668876d7f14076b67899517b8f9))
+* **pr:** simplify PR status lifecycle ([0c4398f](https://github.com/partner-up-dev/mvp-HA/commit/0c4398ff001013c7bcc6f89c7092270d6ce99a76))
+* **pr:** unify pr editor for ready time edits ([5d8bca7](https://github.com/partner-up-dev/mvp-HA/commit/5d8bca7f024200cc928d801e7dbfbc69af793bf9))
+* **telemetry:** migrate user behavior events ([93fc613](https://github.com/partner-up-dev/mvp-HA/commit/93fc613e4de4a6ee15716c136331cb9cee0477a8))
+
+
+### Bug Fixes
+
+* **admin:** configure placement binding rules ([06437eb](https://github.com/partner-up-dev/mvp-HA/commit/06437ebbebf2ccf53e49755a3616f447a0ad5d93))
+* **admin:** gate rental cancellation through fulfillment ([af797a6](https://github.com/partner-up-dev/mvp-HA/commit/af797a6b659d6a36c0e7fbd597855a171dae2c89))
+* **analytics:** normalize enriched event timestamps ([43b6fd9](https://github.com/partner-up-dev/mvp-HA/commit/43b6fd9ab8e8255dd42822352c1cb45619a8a0c8))
+* **backend:** align payment bill line ssot ([17a9bd6](https://github.com/partner-up-dev/mvp-HA/commit/17a9bd682fe5a35674e5edacd2b866e7d530d112))
+* **backend:** align wechatpay provider topology ([955eab4](https://github.com/partner-up-dev/mvp-HA/commit/955eab4e9a48b7a78280e24adb88940aa1a9ef6b))
+* **backend:** apply pricing application in ordering ([05870d5](https://github.com/partner-up-dev/mvp-HA/commit/05870d51672cc5a9e99609704e74087788c4c253))
+* **backend:** block late payment fulfillment ([21b8ff6](https://github.com/partner-up-dev/mvp-HA/commit/21b8ff6ccc20e63e146d7a6f8fbd6cb39b97f5d2))
+* **backend:** bound rental refunds by paid bill lines ([d07130d](https://github.com/partner-up-dev/mvp-HA/commit/d07130de91df2c1a3094e4d01b30421aac1ea880))
+* **backend:** enforce placement matching rules ([7f73b54](https://github.com/partner-up-dev/mvp-HA/commit/7f73b5485af4e820f5309919c18a6cd7bc282b72))
+* **backend:** validate wechatpay provider credentials ([6e0775d](https://github.com/partner-up-dev/mvp-HA/commit/6e0775d23ceb9d447b622df42a710ae53d52e8cd))
+* **ci:** repair PR 244 gate regressions ([0fc84de](https://github.com/partner-up-dev/mvp-HA/commit/0fc84de2dd8ff77cf53bda0af31785e891bfb0d7))
+* **commerce:** align payment provider topology ([c654676](https://github.com/partner-up-dev/mvp-HA/commit/c654676ee9e26c8296dc46afd3049eaf764fa548))
+* **deploy:** pass payment notify base url to backend ([0292895](https://github.com/partner-up-dev/mvp-HA/commit/0292895d2f4f0008061c934b0a2236e32e2b34f0))
+* **event:** exclude joined PRs from anchor recommendations ([dc2b7ec](https://github.com/partner-up-dev/mvp-HA/commit/dc2b7ec38742094757ceaf46b4d6ce823a997fac))
+* **event:** hide draft PRs from public browsing ([cdeb169](https://github.com/partner-up-dev/mvp-HA/commit/cdeb169db1afb88a4f867d20a2a48b5f29a8e7ba))
+* **event:** materialize dummy PRs as system-owned ([94c95e2](https://github.com/partner-up-dev/mvp-HA/commit/94c95e2e9a0368000117dc40d92cc1c5f599ca78))
+* **event:** unify event-assisted PR creation ([8d1189b](https://github.com/partner-up-dev/mvp-HA/commit/8d1189b359c4163cbe1f72dab46bcfc449dc2968))
+* **pr:** complete canonical PR create mapping ([a9c6585](https://github.com/partner-up-dev/mvp-HA/commit/a9c65855a76a59822a82a73178fd22d6ec32f030))
+* **pr:** prefer existing types for NL create ([64821fd](https://github.com/partner-up-dev/mvp-HA/commit/64821fda4624d18d8d7cc5728e3bd8e63ed2a043))
+
+
+### Performance Improvements
+
+* **backend:** defer WeChat OAuth profile fetch ([74ad134](https://github.com/partner-up-dev/mvp-HA/commit/74ad1342f371c500a966c611d80520dd90cdfcd1))
+
+
+### Code Refactoring
+
+* **telemetry:** remove journey entity table ([e2a22e6](https://github.com/partner-up-dev/mvp-HA/commit/e2a22e640676ffa690ac3669c70a3196ad77654e))
+* **telemetry:** remove user event kind ([4e767be](https://github.com/partner-up-dev/mvp-HA/commit/4e767be689a1ee7fc9900a99768be8ba186cdb65))
+
 ## [2.0.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v1.0.0...backend-v2.0.0) (2026-05-15)
 
 
