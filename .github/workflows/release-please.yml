@@ -10,6 +10,7 @@ on:
       - "release-please-config.json"
       - ".release-please-manifest.json"
       - ".github/release-please-backend-github-release.json"
+      - ".github/release-please-frontend-github-release.json"
       - ".github/workflows/release-please.yml"
   workflow_dispatch:
 
@@ -26,7 +27,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - name: Create release pull requests and frontend source releases
+      - name: Create release pull requests
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}

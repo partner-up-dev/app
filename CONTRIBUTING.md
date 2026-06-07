@@ -24,4 +24,4 @@ Release notes after the `0.3.0` bootstrap baseline:
 - Do not manually bump app `package.json` versions except for explicit release automation bootstrap or a human-approved recovery.
 - Do not manually edit generated changelog release sections. Improve future changelog content through better commits or Release Please commit overrides on the merged PR body.
 - Backend GitHub Releases represent successful production deployment, not just source availability.
-- Frontend GitHub Releases currently represent source releases because frontend deployment is pull-based and GitHub CI cannot observe deployment success.
+- Frontend GitHub Releases represent successful production deployment to Aliyun ESA, not just source availability.

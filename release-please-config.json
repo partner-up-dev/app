@@ -14,7 +14,8 @@
       "release-type": "node",
       "component": "frontend",
       "package-name": "@partner-up-dev/frontend",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "skip-github-release": true
     }
   }
 }

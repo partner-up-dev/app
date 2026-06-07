@@ -442,7 +442,7 @@ watch(output, (next) => emit("update:output", next), {
 
   &.is-selected {
     border-color: var(--sys-color-primary);
-    background: color-mix(in srgb, var(--sys-color-primary) 10%, var(--sys-color-surface));
+    background: var(--sys-color-primary-container);
   }
 
   &:focus-visible {
