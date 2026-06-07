@@ -13,13 +13,20 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".node-version"
+      - ".npmrc"
       - ".github/workflows/frontend-gate.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   frontend-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

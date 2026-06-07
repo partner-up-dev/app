@@ -6,12 +6,23 @@ on:
       - master
       - develop
     paths:
+      - ".node-version"
+      - ".npmrc"
       - "apps/backend/**"
       - ".github/workflows/backend-db-validate.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   validate-db-artifacts:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
