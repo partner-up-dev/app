@@ -157,6 +157,10 @@ import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
 } from "@/domains/event/queries/useCreateEventAssistedPR";
+import {
+  useMaterializeDummyPR,
+  type MaterializeDummyPRError,
+} from "@/domains/event/queries/useMaterializeDummyPR";
 import type { AnchorEventDetailResponse } from "@/domains/event/model/types";
 import { usePoisByIds } from "@/shared/poi/queries/usePoisByIds";
 import {
@@ -488,14 +492,20 @@ watch(
 );
 
 const createEventAssistedPRMutation = useCreateEventAssistedPR();
+const materializeDummyPRMutation = useMaterializeDummyPR();
 const isCreatePending = computed(
-  () => createEventAssistedPRMutation.isPending.value,
+  () =>
+    createEventAssistedPRMutation.isPending.value ||
+    materializeDummyPRMutation.isPending.value,
 );
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
 const createActionErrorMessage = computed(() => {
-  const createAnchorError = createEventAssistedPRMutation.error
-    .value as CreateEventAssistedPRError | null;
+  const createAnchorError = (createEventAssistedPRMutation.error.value ??
+    materializeDummyPRMutation.error.value) as
+    | CreateEventAssistedPRError
+    | MaterializeDummyPRError
+    | null;
   if (createAnchorError) {
     switch (createAnchorError.code) {
       case JOIN_TIME_WINDOW_CONFLICT_CODE:
@@ -867,11 +877,38 @@ const handleViewActiveCardDetail = async () => {
   isCardRouting.value = true;
   try {
     if (card.createTarget) {
-      await createEventAssistedPR({
-        targetTimeWindow: card.createTarget.timeWindow,
+      const event = detail.value;
+      if (!event) {
+        return;
+      }
+      materializeDummyPRMutation.reset();
+      const created = await materializeDummyPRMutation.mutateAsync({
+        eventId: event.id,
+        timeWindow: card.createTarget.timeWindow,
         place: card.createTarget.place,
         preferences: card.createTarget.preferences,
       });
+      trackEvent("anchor_event_dummy_pr_materialization_result", {
+        ...(funnelPayload ?? {
+          eventId: event.id,
+          activityType: event.type,
+        }),
+        prId: created.id,
+        entrySurface: "card_rich",
+        actionResult: "success",
+        materialization: created.materialization,
+        preferenceCount: card.createTarget.preferences.length,
+      });
+      trackEvent("pr_entry_reached", {
+        ...(funnelPayload ?? {
+          eventId: event.id,
+          activityType: event.type,
+        }),
+        prId: created.id,
+        entrySurface: "card_rich",
+        entryType: "detail",
+      });
+      await router.push(buildEventDetailTarget(created.canonicalPath, event.id));
       return;
     }
 
@@ -887,6 +924,31 @@ const handleViewActiveCardDetail = async () => {
       });
     }
   } catch (error) {
+    if (card.createTarget) {
+      const event = detail.value;
+      const telemetryPayload =
+        funnelPayload ??
+        (event
+          ? {
+              eventId: event.id,
+              activityType: event.type,
+            }
+          : null);
+      if (telemetryPayload) {
+        trackEvent("anchor_event_dummy_pr_materialization_result", {
+          ...telemetryPayload,
+          entrySurface: "card_rich",
+          preferenceCount: card.createTarget.preferences.length,
+          ...resolveTelemetryFailurePayload(
+            error,
+            "ANCHOR_EVENT_DUMMY_PR_MATERIALIZATION_FAILED",
+            error instanceof Error
+              ? error.message
+              : t("anchorEvent.createCard.errors.createFailed"),
+          ),
+        });
+      }
+    }
     cardActionError.value =
       error instanceof Error ? error.message : t("common.operationFailed");
   } finally {
@@ -959,6 +1021,16 @@ const buildEventAssistedCreateTarget = (
   if (handoff === "event_assisted_create") {
     query.set("handoff", handoff);
   }
+  return `${canonicalPath}?${query.toString()}`;
+};
+
+const buildEventDetailTarget = (
+  canonicalPath: string,
+  eventId: number,
+): string => {
+  const query = new URLSearchParams({
+    fromEvent: eventId.toString(),
+  });
   return `${canonicalPath}?${query.toString()}`;
 };
 

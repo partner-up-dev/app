@@ -33,6 +33,7 @@ const prRepo = new PartnerRequestRepository();
 export type StructuredCreateSource =
   | "FORM"
   | "EVENT_ASSISTED"
+  | "EVENT_DUMMY"
   | "NATURAL_LANGUAGE"
   | "AUTO_EXPANSION";
 
@@ -81,6 +82,8 @@ const resolveOperationAction = (source: StructuredCreateSource): string => {
   switch (source) {
     case "EVENT_ASSISTED":
       return "pr.create_event_assisted";
+    case "EVENT_DUMMY":
+      return "pr.materialize_event_dummy";
     case "NATURAL_LANGUAGE":
       return "pr.create_from_nl";
     case "AUTO_EXPANSION":

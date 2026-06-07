@@ -323,6 +323,7 @@ const {
 const eventDetail = computed(() => detail.value ?? null);
 const {
   createEventAssistedPR,
+  materializeDummyPR,
   createActionErrorMessage: internalCreateActionErrorMessage,
   isCreatePending: internalIsCreatePending,
   replayErrorMessage,
@@ -905,7 +906,7 @@ const emitViewActiveCardDetail = async () => {
   internalIsCardRouting.value = true;
   try {
     if (card.createTarget) {
-      await createEventAssistedPR({
+      await materializeDummyPR({
         targetTimeWindow: card.createTarget.timeWindow,
         place: card.createTarget.place,
         preferences: card.createTarget.preferences,

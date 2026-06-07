@@ -12,6 +12,10 @@ import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
 } from "@/domains/event/queries/useCreateEventAssistedPR";
+import {
+  useMaterializeDummyPR,
+  type MaterializeDummyPRError,
+} from "@/domains/event/queries/useMaterializeDummyPR";
 import type { ApiError } from "@/shared/api/error";
 import {
   clearPendingWeChatAction,
@@ -26,6 +30,13 @@ type EventAssistedPRCreateInput = {
   place: AnchorEventSelectedPlace | null;
   preferences?: readonly string[];
   entrySurface?: "form_mode" | "card_rich" | "list_mode";
+};
+
+type DummyPRMaterializeInput = Omit<
+  EventAssistedPRCreateInput,
+  "allowEditAfterReady" | "entrySurface"
+> & {
+  entrySurface?: "card_rich" | "list_mode";
 };
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
@@ -56,17 +67,23 @@ export const useEventAssistedPRCreateFlow = (
   const router = useRouter();
   const { t } = useI18n();
   const createEventAssistedPRMutation = useCreateEventAssistedPR();
+  const materializeDummyPRMutation = useMaterializeDummyPR();
   const replayErrorMessage = ref<string | null>(null);
   const pendingCreateReplayRunning = ref(false);
 
   const isCreatePending = computed(
-    () => createEventAssistedPRMutation.isPending.value,
+    () =>
+      createEventAssistedPRMutation.isPending.value ||
+      materializeDummyPRMutation.isPending.value,
   );
   const canUserCreatePR = computed(() => event.value?.canUserCreatePR === true);
 
   const createActionErrorMessage = computed(() => {
-    const createAnchorError = createEventAssistedPRMutation.error
-      .value as CreateEventAssistedPRError | null;
+    const createAnchorError = (createEventAssistedPRMutation.error.value ??
+      materializeDummyPRMutation.error.value) as
+      | CreateEventAssistedPRError
+      | MaterializeDummyPRError
+      | null;
     if (createAnchorError) {
       switch (createAnchorError.code) {
         case JOIN_TIME_WINDOW_CONFLICT_CODE:
@@ -134,6 +151,16 @@ export const useEventAssistedPRCreateFlow = (
     if (handoff === "event_assisted_create") {
       query.set("handoff", handoff);
     }
+    return `${canonicalPath}?${query.toString()}`;
+  };
+
+  const buildEventDetailTarget = (
+    canonicalPath: string,
+    eventId: number,
+  ): string => {
+    const query = new URLSearchParams({
+      fromEvent: eventId.toString(),
+    });
     return `${canonicalPath}?${query.toString()}`;
   };
 
@@ -293,6 +320,82 @@ export const useEventAssistedPRCreateFlow = (
     }
   };
 
+  const materializeDummyPR = async ({
+    targetTimeWindow,
+    place,
+    preferences,
+    entrySurface,
+  }: DummyPRMaterializeInput) => {
+    materializeDummyPRMutation.reset();
+    replayErrorMessage.value = null;
+
+    const currentEvent = event.value;
+    if (!currentEvent || !canUserCreatePR.value) {
+      return;
+    }
+    if (!targetTimeWindow || !place) {
+      return;
+    }
+
+    const materializeTelemetrySource = {
+      place,
+      startAt: targetTimeWindow[0] ?? "",
+      preferenceCount: preferences?.length ?? 0,
+    };
+    try {
+      const created = await materializeDummyPRMutation.mutateAsync({
+        eventId: currentEvent.id,
+        timeWindow: targetTimeWindow,
+        place,
+        preferences: preferences ?? [],
+      });
+      trackEvent("anchor_event_dummy_pr_materialization_result", {
+        eventId: currentEvent.id,
+        activityType: currentEvent.type,
+        locationType:
+          place.kind === "location"
+            ? resolveLocationType(currentEvent, place.locationId)
+            : "route_pool",
+        timeType: resolveTimeType(currentEvent, materializeTelemetrySource.startAt),
+        preferenceCount: materializeTelemetrySource.preferenceCount,
+        prId: created.id,
+        entrySurface,
+        actionResult: "success",
+        materialization: created.materialization,
+      });
+      if (entrySurface) {
+        trackEvent("pr_entry_reached", {
+          eventId: currentEvent.id,
+          activityType: currentEvent.type,
+          prId: created.id,
+          entrySurface,
+          entryType: "detail",
+        });
+      }
+      await router.push(buildEventDetailTarget(created.canonicalPath, currentEvent.id));
+    } catch (error) {
+      trackEvent("anchor_event_dummy_pr_materialization_result", {
+        eventId: currentEvent.id,
+        activityType: currentEvent.type,
+        locationType:
+          place.kind === "location"
+            ? resolveLocationType(currentEvent, place.locationId)
+            : "route_pool",
+        timeType: resolveTimeType(currentEvent, materializeTelemetrySource.startAt),
+        preferenceCount: materializeTelemetrySource.preferenceCount,
+        entrySurface,
+        ...resolveTelemetryFailurePayload(
+          error,
+          "ANCHOR_EVENT_DUMMY_PR_MATERIALIZATION_FAILED",
+          error instanceof Error
+            ? error.message
+            : t("anchorEvent.createCard.errors.createFailed"),
+        ),
+      });
+      throw error;
+    }
+  };
+
   const attemptPendingCreateReplay = async () => {
     if (pendingCreateReplayRunning.value) {
       return;
@@ -410,6 +513,7 @@ export const useEventAssistedPRCreateFlow = (
 
   return {
     createEventAssistedPR,
+    materializeDummyPR,
     createActionErrorMessage,
     isCreatePending,
     replayErrorMessage,

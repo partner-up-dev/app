@@ -1,7 +1,7 @@
 # Anchor Event Dummy PRs
 
 ## Objective & Hypothesis
-Intent: In Anchor Event `LIST` and `CARD_RICH` landing modes, show frontend-generated dummy PR opportunities that are not persisted PRs yet. When a user triggers the same "查看详情" intent used by real PR cards, the frontend immediately creates the corresponding event-assisted PR through the unified PR create command and opens the created PR detail.
+Intent: In Anchor Event `LIST` and `CARD_RICH` landing modes, show frontend-generated dummy PR opportunities that are not persisted PRs yet. When a user triggers the same "查看详情" intent used by real PR cards, the frontend materializes the corresponding system-owned PR and opens the PR detail.
 
 Hypothesis: A bounded frontend projection can make empty or sparse event sessions feel actionable without changing backend PR discovery truth or mixing this behavior with automatic full-PR expansion. The projection should derive candidates from event create time windows, place pool options, and the published preference tag pool while excluding combinations that conflict with existing real PRs.
 
@@ -11,6 +11,7 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
 - Tag combinations are bounded to `no tag + one published tag`; no multi-tag combination generation in this slice.
 - Dummy generation shows at most 3 dummy PRs globally, chooses at most 1 to 2 product-local dates, and should not force-fill to the cap.
 - Triggering a dummy PR's "查看详情" intent is one-click create, with no confirmation step and without changing the primary action copy to "创建搭子请求".
+- Dummy materialization is system-owned: it must not make the viewer the PR creator, must not auto-join the viewer, and must not run viewer time-window conflict checks.
 - List/Card browse ordering should mix real PRs and dummy PRs in the same time/place neighborhood instead of appending dummy PRs as a separate block.
 - Dummy generation should exclude options that conflict with real PRs, and should prefer candidates that differ from real PRs by time, place, and preference fingerprint as much as possible.
 - If a dummy would match an existing real PR by time window and place, do not generate it.
@@ -21,7 +22,8 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
 ## Guardrails Touched
 - `/e/:eventId` landing behavior remains owned by Anchor Event frontend surfaces under `apps/frontend/src/domains/event`.
 - Real PR browsing truth remains backend-authored through `browseTimeWindows` and demand cards; dummy PRs must stay distinct in code/data shape from persisted PR rows while using the same user-facing preview-card appearance.
-- Event-assisted create must continue through `useEventAssistedPRCreateFlow` / `useCreateEventAssistedPR` and the unified structured PR create command.
+- Manual event-assisted create must continue through `useEventAssistedPRCreateFlow` / `useCreateEventAssistedPR` and the unified structured PR create command.
+- Dummy PR materialization uses an Anchor Event system-owned endpoint/use-case that creates `OPEN` PRs with no creator slot.
 - Dummy creation must respect `canUserCreatePR`, disabled place options, past start windows, POI availability/capacity, and backend create rejection paths.
 - Automatic full-PR expansion remains backend/event policy and must not be reused or renamed for this feature.
 - Preference tag pool ownership remains Anchor Event-owned moderation state; if List/Card detail lacks published tags, expose only the smallest read contract needed or reuse an existing event read model intentionally.
@@ -69,6 +71,13 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
 ## Verification Results
 - 2026-06-07 Diagnose: production `/e/7` showed three visually identical dummy PR preview cards for the same date, time, and place. Root cause was per-date filling plus tag-only variation hidden by List preview cards.
 - 2026-06-07 Execute: dummy generation now has a global dummy cap, a 1-2 date spread cap, real/dummy time-place de-duplication, start-time staggering, and inline one-tag PR preview display.
+- 2026-06-07 Diagnose: dummy "查看详情" still used the authenticated event-assisted create path, so it ran viewer PR time-window conflict checks and treated the viewer as the creator/participant after publish.
+- 2026-06-07 Execute target: dummy materialization moves to a system-owned Anchor Event endpoint. It should validate event/time/place/tag scope, return an existing visible PR for the same time/place if one exists, and otherwise create an `OPEN` PR with `createdBy = null` and no partner slot.
+- 2026-06-07 Execute: List/Card dummy detail now calls the Anchor Event dummy materialization endpoint, routes to ordinary PR detail with `fromEvent`, and no longer emits PR commitment telemetry for dummy materialization.
+- `pnpm --filter @partner-up-dev/backend typecheck` passed after the system-owned dummy materialization change.
+- `pnpm --filter @partner-up-dev/backend test:unit -- apps/backend/src/domains/anchor-event/use-cases/materialize-dummy-pr.test.ts apps/backend/src/domains/pr-core/services/pr-read.service.test.ts` passed: 2 files, 5 tests.
+- `pnpm --filter @partner-up-dev/frontend build` passed after the system-owned dummy materialization change.
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/queries/useMaterializeDummyPR.test.ts apps/frontend/src/domains/event/queries/useCreateEventAssistedPR.test.ts apps/frontend/src/domains/event/model/dummy-prs.test.ts apps/frontend/src/domains/pr/ui/primitives/PRPreviewCard.route.test.ts` passed: 4 files, 18 tests.
 - `pnpm --filter @partner-up-dev/frontend build` passed after the 2026-06-07 adjustment.
 - `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/dummy-prs.test.ts apps/frontend/src/domains/pr/ui/primitives/PRPreviewCard.route.test.ts` passed after the 2026-06-07 adjustment: 2 files, 14 tests.
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.

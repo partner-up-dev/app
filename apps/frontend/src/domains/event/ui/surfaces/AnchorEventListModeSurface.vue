@@ -244,6 +244,7 @@ const {
 const eventDetail = computed(() => detail.value ?? null);
 const {
   createEventAssistedPR,
+  materializeDummyPR,
   createActionErrorMessage,
   isCreatePending,
 } = useEventAssistedPRCreateFlow(eventDetail);
@@ -857,7 +858,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
     return;
   }
 
-  trackEvent("anchor_event_list_create_started", {
+  trackEvent("anchor_event_dummy_pr_detail_started", {
     ...buildListFunnelPayload(),
     dateKey: item.dateKey,
     locationId:
@@ -873,7 +874,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
     preferenceCount: item.dummy.preferenceTags.length,
   });
 
-  await createEventAssistedPR({
+  await materializeDummyPR({
     targetTimeWindow: item.dummy.timeWindow,
     place: item.dummy.place,
     preferences: item.dummy.preferenceTags,

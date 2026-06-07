@@ -60,6 +60,10 @@ const CANONICAL_EVENT_NAMES: Partial<Record<TelemetryEventName, string>> = {
   anchor_event_list_pr_row_seen: "anchor_event.pr_row.seen",
   anchor_event_list_pr_row_action_taken: "anchor_event.pr_row.action_taken",
   anchor_event_list_create_started: "anchor_event.list_create.started",
+  anchor_event_dummy_pr_detail_started:
+    "anchor_event.dummy_pr.detail_started",
+  anchor_event_dummy_pr_materialization_result:
+    "anchor_event.dummy_pr.materialization_result",
   pr_entry_reached: "pr.entry.reached",
   pr_commitment_result: "pr.commitment.result",
   pr_create_result: "pr.create.result",

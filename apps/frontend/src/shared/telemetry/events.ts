@@ -22,6 +22,8 @@ export type TelemetryEventName =
   | "anchor_event_list_pr_row_seen"
   | "anchor_event_list_pr_row_action_taken"
   | "anchor_event_list_create_started"
+  | "anchor_event_dummy_pr_detail_started"
+  | "anchor_event_dummy_pr_materialization_result"
   | "pr_entry_reached"
   | "pr_commitment_result"
   | "pr_create_result"
@@ -220,6 +222,24 @@ export type TelemetryPayloadMap = {
     timeWindowStart?: string | null;
     preferenceCount?: number;
   };
+  anchor_event_dummy_pr_detail_started: AnchorEventFunnelContextPayload & {
+    dateKey?: string | null;
+    locationId?: string | null;
+    routePoolEntryId?: string | null;
+    placeKind?: "location" | "route" | null;
+    timeWindowStart?: string | null;
+    preferenceCount?: number;
+  };
+  anchor_event_dummy_pr_materialization_result:
+    AnchorEventFunnelContextPayload &
+      ResultTelemetryPayload & {
+        prId?: number;
+        entrySurface?: "card_rich" | "list_mode";
+        materialization?: "created" | "existing";
+        preferenceCount: number;
+        locationType?: "preset" | "user_submitted" | "route_pool";
+        timeType?: "preset" | "user_submitted";
+      };
   pr_entry_reached: AnchorEventFunnelContextPayload & {
     prId: number;
     entrySurface:
