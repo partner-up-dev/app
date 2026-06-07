@@ -38,4 +38,4 @@ It documents environments, rollout flow, observability-relevant runtime facts, a
 
 - mixing deployment workflow with product behavior
 - describing an aspirational setup instead of the actual CI/CD path
-- burying recovery assumptions inside task notes or scripts only
+- burying recovery assumptions inside task-local packets or scripts only

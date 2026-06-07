@@ -14,7 +14,7 @@ This is a working posture, not a durable owner.
 ## Read-Do Steps
 
 1. State the current unknowns and why they block progress.
-2. Record temporary assumptions explicitly in `tasks/`.
+2. Record temporary assumptions explicitly in the active task-local workspace.
 3. Read only the smallest useful references.
 4. Reduce the unknowns into candidate decisions, claims, or hypotheses.
 5. Decide whether to stay in `Explore`, move to `Solidify`, or return to `Diagnose`.

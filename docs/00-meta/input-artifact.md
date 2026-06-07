@@ -23,7 +23,7 @@ Use when the requested deliverable is a bounded artifact such as a script, one-o
 
 1. Define the artifact output shape and completion proof.
 2. Implement the smallest artifact that satisfies the request.
-3. Keep assumptions and disposal rules local to the task unless reuse becomes real.
+3. Keep assumptions, scratch material, evidence, and disposal rules inside the task-local workspace unless reuse becomes real.
 4. Review whether any reusable lesson deserves promotion into durable docs.
 
 ## Exit Criteria

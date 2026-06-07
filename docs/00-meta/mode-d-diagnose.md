@@ -15,7 +15,7 @@ This mode is common in `Reality` work, but it can reappear anywhere execution pr
 
 1. Capture the observable symptom, timeline, and blast radius.
 2. Collect logs, metrics, traces, failing tests, or other direct evidence.
-3. Build or update a diagnostics record in `tasks/`.
+3. Build or update a diagnostics record in the active task-local workspace.
 4. Rank hypotheses by evidence quality and missing evidence.
 5. Decide whether the next justified step is more diagnosis, exploration, or execution.
 

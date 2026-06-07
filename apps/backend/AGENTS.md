@@ -62,7 +62,7 @@ Read the smallest useful set and keep durable docs current:
 - Cross-unit technical truth: `docs/20-product-tdd/*.md`
 - Runtime and rollout truth: `docs/40-deployment/*.md`
 - `docs/30-unit-tdd/<unit>/*.md` only when a named hard-unit doc exists and is relevant
-- Active task packets and temporary reasoning: `tasks/*`
+- Active task-local packets, evidence, and temporary reasoning: `tasks/*`
 - Local backend constraints:
   - `src/entities/AGENTS.md`
   - `src/repositories/AGENTS.md`
@@ -118,5 +118,5 @@ For durable truth, use:
 
 For volatile implementation status or migration notes:
 
-- record them in active `tasks/<task>/` packets
+- record them in active `tasks/<task>/` packets as task-local workspace state
 - keep this file limited to stable backend operating guidance

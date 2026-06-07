@@ -30,9 +30,25 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 
 - owned by layer: `docs/00-meta/`
 - one-line definition: Minimal Viable Task anchors: `Objective & Hypothesis`, `Guardrails Touched`, and `Verification`
-- why it exists: keeps `tasks/` lightweight but grounded
+- why it exists: keeps each task-local workspace compact, recoverable, and grounded
 - common confusion with: full design doc or alignment-complete request
 - when to load: whenever non-trivial work starts in `tasks/`
+
+## Task Packet
+
+- owned by layer: `docs/00-meta/`
+- one-line definition: an agent-owned, task-local workspace for volatile reasoning, evidence, artifacts, collaboration state, and verification
+- why it exists: keeps unstable work inspectable without promoting it into durable docs or losing it in conversation history
+- common confusion with: durable architecture docs or uninspectable scratch work
+- when to load: whenever a task grows beyond a trivial command or answer
+
+## Source Search Defaults
+
+- owned by layer: `docs/00-meta/`
+- one-line definition: ordinary source and durable-doc searches exclude volatile workspaces, generated output, dependencies, virtual environments, and tool caches by default
+- why it exists: prevents historical task evidence and generated files from distorting active truth discovery
+- common confusion with: never searching `tasks/`
+- when to load: before broad repository searches or when deciding whether task evidence is in scope
 
 ## Alignment Substrate
 
@@ -63,5 +79,5 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 - owned by layer: root `AGENTS.md` plus the owning durable doc layer
 - one-line definition: moving stable knowledge out of `tasks/` into PRD, TDD, Deployment, or local `AGENTS.md`
 - why it exists: keeps durable memory small and high-signal
-- common confusion with: copying task notes verbatim into durable docs
+- common confusion with: copying packet content verbatim into durable docs
 - when to load: after verification, when deciding what should survive the task

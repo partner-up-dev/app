@@ -11,7 +11,7 @@ PartnerUp helps users find a partner (搭子) effectively and safely.
 |   `-- frontend/
 |-- docs/                 # Durable product and technical truth
 |-- tests/                # Cross-unit and root-owned verification
-|-- tasks/                # Volatile work, diagnosis, and temporary reasoning
+|-- tasks/                # Agent-owned task-local workspaces for volatile work
 `-- scripts/
 ```
 
@@ -32,7 +32,7 @@ Read following documents for the current work when needed and keep them current.
 - `docs/20-product-tdd/`: cross-unit technical realization and authority boundaries.
 - `docs/30-unit-tdd/`: open only when a named hard-unit doc exists and is relevant.
 - `docs/40-deployment/`: runtime, rollout, observability, and recovery truth.
-- `tasks/`: active entropy buffer for non-trivial work. Every non-trivial task packet should record `Objective & Hypothesis`, `Guardrails Touched`, and `Verification`.
+- `tasks/`: agent-owned, task-local workspace for volatile planning, investigation, diagnostics, artifacts, evidence, and collaboration state. Every non-trivial task packet should keep a compact control surface with `Objective & Hypothesis`, `Guardrails Touched`, and `Verification`.
 - `apps/backend/AGENTS.md`, `apps/frontend/AGENTS.md`, and nearer `**/AGENTS.md`: local constraints are additive and should be checked before edits in that subtree.
 
 ## Operating Model
@@ -40,12 +40,14 @@ Read following documents for the current work when needed and keep them current.
 1. Classify the incoming request as `Intent`, `Constraint`, `Reality`, or `Artifact`.
 2. Identify the durable owner and blast radius before choosing how to work.
 3. For non-trivial work, open or update a task packet under `tasks/`.
-4. Choose the active mode for the current slice: `Explore`, `Solidify`, `Execute`, or `Diagnose`.
-5. Load only the route doc, mode SOP, and governing anchors needed for that slice.
-6. Expand into alignment substrate fields only when references, boundaries, state, evidence, or blast radius are still ambiguous.
-7. Execute with explicit verification.
-8. Re-enter a different mode if evidence or clarity changes.
-9. Promote only stable truths after verification.
+4. Keep the task packet current when discussion, exploration, implementation friction, or verification changes the working state.
+5. Choose the active mode for the current slice: `Explore`, `Solidify`, `Execute`, or `Diagnose`.
+6. Load only the route doc, mode SOP, and governing anchors needed for that slice.
+7. Search source and durable docs with volatile workspaces, generated output, dependencies, caches, and virtual environments excluded by default.
+8. Expand into alignment substrate fields only when references, boundaries, state, evidence, or blast radius are still ambiguous.
+9. Execute with explicit verification.
+10. Re-enter a different mode if evidence or clarity changes.
+11. Promote only stable truths after verification.
 
 ### Typed Input Guide
 
@@ -66,6 +68,19 @@ Mode guidance:
 - do not assume one task equals one mode
 - switch modes when evidence or clarity changes
 - mode selection never overrides durable ownership
+
+Task packet guidance:
+
+- task packets are agent-owned and may be updated, split, and reorganized by the agent inside the task boundary
+- keep each packet readable, inspectable, and steerable by the human
+- preserve a compact control surface with objective, guardrails, verification, current understanding, confirmed constraints, and next step
+- split a packet by collaboration pressure rather than by a fixed folder scheme
+- keep volatile packet content out of durable docs until it passes the promotion test
+
+Search guidance:
+
+- when searching source or durable docs, exclude `tasks/`, `temp/`, generated output such as `build/` and `dist/`, dependency folders such as `node_modules/`, virtual environments, and tool caches by default
+- search those locations only when the task explicitly targets them or when recovering/reviewing task evidence
 
 ### Impact Handshake
 
