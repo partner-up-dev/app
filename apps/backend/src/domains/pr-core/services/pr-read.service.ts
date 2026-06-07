@@ -10,7 +10,11 @@ import {
 } from "../../../repositories/AnchorEventPRContextRepository";
 import type { AnchorEventId } from "../../../entities/anchor-event";
 import type { TimeWindowEntry } from "../../../entities/anchor-event";
-import type { PRId, PRStatus, PartnerRequest } from "../../../entities/partner-request";
+import type {
+  PRId,
+  PRStatus,
+  PartnerRequest,
+} from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { refreshTemporalStatus } from "../temporal-refresh";
@@ -50,8 +54,20 @@ const applyConsistencyToRequests = async (
   return Promise.all(requests.map((request) => refreshTemporalStatus(request)));
 };
 
+export const isPublicVisiblePRStatus = (status: PRStatus | string): boolean =>
+  status === "OPEN" ||
+  status === "READY" ||
+  status === "ACTIVE" ||
+  status === "CLOSED" ||
+  status === "EXPIRED";
+
 export const isActiveVisiblePRStatus = (status: PRStatus | string): boolean =>
-  status !== "CLOSED" && status !== "EXPIRED";
+  status === "OPEN" || status === "READY" || status === "ACTIVE";
+
+const filterPublicVisibleRequests = (
+  requests: readonly PartnerRequest[],
+): PartnerRequest[] =>
+  requests.filter((request) => isPublicVisiblePRStatus(request.status));
 
 export async function readPartnerRequestById(
   id: PRId,
@@ -83,7 +99,11 @@ export async function readVisiblePartnerRequestsByType(
   options: { consistency?: PRReadConsistency } = {},
 ): Promise<PartnerRequest[]> {
   const rows = await prRepo.findVisibleByType(type);
-  return applyConsistencyToRequests(rows, options.consistency ?? "strong");
+  const synced = await applyConsistencyToRequests(
+    rows,
+    options.consistency ?? "strong",
+  );
+  return filterPublicVisibleRequests(synced);
 }
 
 export async function readVisiblePartnerRequestsByTypeAndTime(
@@ -92,7 +112,11 @@ export async function readVisiblePartnerRequestsByTypeAndTime(
   options: { consistency?: PRReadConsistency } = {},
 ): Promise<PartnerRequest[]> {
   const rows = await prRepo.findVisibleByTypeAndTime(type, timeWindow);
-  return applyConsistencyToRequests(rows, options.consistency ?? "strong");
+  const synced = await applyConsistencyToRequests(
+    rows,
+    options.consistency ?? "strong",
+  );
+  return filterPublicVisibleRequests(synced);
 }
 
 const applyConsistencyToAnchorRecords = async (
@@ -103,10 +127,12 @@ const applyConsistencyToAnchorRecords = async (
     records.map((record) => record.root),
     consistency,
   );
-  return records.map((record, index) => ({
-    ...record,
-    root: syncedRoots[index]!,
-  }));
+  return records
+    .map((record, index) => ({
+      ...record,
+      root: syncedRoots[index]!,
+    }))
+    .filter((record) => isPublicVisiblePRStatus(record.root.status));
 };
 
 export async function readVisibleAnchorEventPRContextRecordsByEventTimeWindow(

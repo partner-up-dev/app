@@ -314,6 +314,9 @@ const isExpiredDateGroupKey = (
 const isClosedPR = (pr: AnchorEventTimeWindowPR): boolean =>
   pr.status === "CLOSED";
 
+const isCurrentOrFutureVisiblePR = (pr: AnchorEventTimeWindowPR): boolean =>
+  pr.status === "OPEN" || pr.status === "READY" || pr.status === "ACTIVE";
+
 const dateGroupHasClosedPR = (group: DateGroup): boolean =>
   group.timeWindows.some(({ entry }) => entry.prs.some(isClosedPR));
 
@@ -535,7 +538,7 @@ const isVisibleListModePR = (
   pr: AnchorEventTimeWindowPR,
   group: DateGroup,
 ): boolean =>
-  group.isExpiredDate ? pr.status === "CLOSED" : pr.status !== "EXPIRED";
+  group.isExpiredDate ? isClosedPR(pr) : isCurrentOrFutureVisiblePR(pr);
 
 const resolveVisibleDummyItemsForGroup = (
   group: DateGroup,

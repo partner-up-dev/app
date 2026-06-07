@@ -63,6 +63,7 @@
 ## 3. Lifecycle And Participation Rules
 
 - The durable `PartnerRequest` status set is `DRAFT`, `OPEN`, `READY`, `ACTIVE`, `CLOSED`, and `EXPIRED`.
+- `DRAFT` is creator-private draft state and must not appear in public PR browse surfaces, including Anchor Event List/Card browsing and search results.
 - `FULL` is a user-visible derived capacity state, not a durable `PartnerRequest.status`: an `OPEN` PR with `maxPartners` present and current active participants greater than or equal to `maxPartners` is presented as full.
 - `READY` means the collaboration object is formed and roster-locked; joining, waitlisting, and exiting are no longer allowed, and progression toward `ACTIVE` may still continue.
 - `READY` locks roster admission, not every PR fact. A PR may carry PR-owned `allowEditAfterReady` policy that lets the creator keep editing explicitly listed core fields after `READY`; fields absent from that policy remain locked.
