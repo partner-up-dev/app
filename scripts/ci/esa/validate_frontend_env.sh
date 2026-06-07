@@ -27,6 +27,9 @@ require_group "frontend build" \
   VITE_TENCENT_LBS_JS_KEY \
   VITE_FRONTEND_COMMIT_HASH
 
+require_group "GitHub Packages registry" \
+  NODE_AUTH_TOKEN
+
 if [ "$missing" -ne 0 ]; then
   exit 1
 fi
