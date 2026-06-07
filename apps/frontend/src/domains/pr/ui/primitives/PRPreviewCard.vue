@@ -8,6 +8,7 @@
     :time-label="timeLabelText"
     :place-label="resolvedPlaceLabel"
     :place-icon="resolvedPlaceIcon"
+    :preference-tags="resolvedPreferenceTags"
     :partner-count-label="resolvedPartnerCountLabel"
     :cover-image="coverImage"
     @activate="emit('open-detail')"
@@ -81,6 +82,8 @@ const resolvedPlaceLabel = computed(
 const resolvedPlaceIcon = computed(
   () => ((prDetail.value?.core.route?.length ?? 0) >= 2 ? "🧭" : "📍"),
 );
+
+const resolvedPreferenceTags = computed(() => prDetail.value?.core.preferences ?? []);
 
 const timeLabelText = computed(() => {
   const explicit = normalizeLabel(props.timeLabel);

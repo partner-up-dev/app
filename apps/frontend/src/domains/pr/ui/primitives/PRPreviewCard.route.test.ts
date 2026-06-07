@@ -98,6 +98,22 @@ describe("PRPreviewCard route display", () => {
     expect(host.textContent).toContain("👥 1/4");
   });
 
+  test("shows only the first non-empty preference tag after place", () => {
+    const host = mountCard(
+      buildPRDetail({
+        placeDisplayName: "活动室",
+        preferences: ["", " 学科:数学 ", "新手友好"],
+      }),
+    );
+    const text = host.textContent ?? "";
+
+    expect(text).toContain("🏷️ 数学");
+    expect(text).not.toContain("学科:数学");
+    expect(text).not.toContain("新手友好");
+    expect(text.indexOf("📍 活动室")).toBeLessThan(text.indexOf("🏷️ 数学"));
+    expect(text.indexOf("🏷️ 数学")).toBeLessThan(text.indexOf("👥 4"));
+  });
+
   test("keeps READY display ahead of derived fullness", () => {
     const host = mountCard(
       buildPRDetail({
@@ -130,12 +146,14 @@ const buildPRDetail = ({
   status = "OPEN",
   current = 0,
   max = 4,
+  preferences = [],
 }: {
   placeDisplayName?: string | null;
   route?: PRRoute | null;
   status?: PRStatus;
   current?: number;
   max?: number | null;
+  preferences?: string[];
 }): PRDetailView =>
   ({
     id: 123,
@@ -153,7 +171,7 @@ const buildPRDetail = ({
       partners: [],
       myPartnerId: null,
       budget: null,
-      preferences: [],
+      preferences,
       notes: null,
       meetingPoint: null,
       meetingPointVisibility: "VISIBLE",

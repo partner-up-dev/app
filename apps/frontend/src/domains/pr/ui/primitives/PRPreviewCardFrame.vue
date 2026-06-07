@@ -36,6 +36,9 @@
           <span v-if="placeLabel" class="pr-preview-card__location">
             {{ placeIcon }} {{ placeLabel }}
           </span>
+          <span v-if="preferenceLabel" class="pr-preview-card__preference">
+            🏷️ {{ preferenceLabel }}
+          </span>
           <span v-if="partnerCountLabel" class="pr-preview-card__partners">
             👥 {{ partnerCountLabel }}
           </span>
@@ -64,6 +67,7 @@ const props = withDefaults(
     placeLabel?: string | null;
     placeIcon?: string;
     partnerCountLabel?: string | null;
+    preferenceTags?: readonly string[];
     coverImage?: string | null;
     to?: string | null;
     disabled?: boolean;
@@ -74,6 +78,7 @@ const props = withDefaults(
     placeLabel: null,
     placeIcon: "📍",
     partnerCountLabel: null,
+    preferenceTags: () => [],
     coverImage: null,
     to: null,
     disabled: false,
@@ -91,6 +96,28 @@ const rootProps = computed(() =>
   props.mode === "link"
     ? { to: props.to ?? "" }
     : { type: "button", disabled: props.disabled },
+);
+
+const toPreferenceDisplayLabel = (tag: string): string | null => {
+  const normalized = tag.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const separatorIndex = normalized.search(/[:：]/);
+  if (separatorIndex < 0) {
+    return normalized;
+  }
+
+  const displayLabel = normalized.slice(separatorIndex + 1).trim();
+  return displayLabel.length > 0 ? displayLabel : normalized;
+};
+
+const preferenceLabel = computed(
+  () =>
+    props.preferenceTags
+      .map(toPreferenceDisplayLabel)
+      .find((tag): tag is string => tag !== null) ?? null,
 );
 </script>
 

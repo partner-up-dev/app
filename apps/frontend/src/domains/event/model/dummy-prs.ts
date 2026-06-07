@@ -51,11 +51,17 @@ export type AnchorEventDummyGenerationInput = {
   createTimeWindows: readonly CreateTimeWindow[];
   presetTags: readonly PresetTag[];
   poiByName: ReadonlyMap<string, AnchorEventPoiGeometry>;
-  perDateLimit?: number;
+  maxDummyCount?: number;
+  maxDateCount?: number;
+  maxDummiesPerDate?: number;
+  perDateOpportunityLimit?: number;
   now?: Date;
 };
 
-const DEFAULT_PER_DATE_LIMIT = 3;
+const DEFAULT_MAX_DUMMY_COUNT = 3;
+const DEFAULT_MAX_DATE_COUNT = 2;
+const DEFAULT_MAX_DUMMIES_PER_DATE = 2;
+const DEFAULT_PER_DATE_OPPORTUNITY_LIMIT = 3;
 
 const normalizeLabel = (value: string | null | undefined): string | null => {
   const normalized = value?.trim() ?? "";
@@ -142,6 +148,9 @@ const resolveDummyFingerprint = (
     placeKey,
     normalizePreferenceFingerprint(preferences) ?? "preferences:none",
   ].join("::");
+
+const resolveTimePlaceKey = (timeWindow: TimeWindow, placeKey: string): string =>
+  [timeWindow[0] ?? "_", timeWindow[1] ?? "_", placeKey].join("::");
 
 const hasTimeWindowStartedAt = (timeWindow: TimeWindow, now: Date): boolean => {
   const startTimestamp = resolveTimeWindowStartTimestamp(timeWindow);
@@ -238,24 +247,67 @@ const scoreDummyDiversity = (
   return score;
 };
 
+const sortDummies = (
+  left: AnchorEventDummyPR,
+  right: AnchorEventDummyPR,
+): number =>
+  resolveTimeWindowStartTimestamp(left.timeWindow) -
+    resolveTimeWindowStartTimestamp(right.timeWindow) ||
+  left.displayLocationName.localeCompare(right.displayLocationName, "zh-CN") ||
+  (left.preferenceFingerprint ?? "").localeCompare(
+    right.preferenceFingerprint ?? "",
+    "zh-CN",
+  ) ||
+  left.key.localeCompare(right.key);
+
+const resolveCandidateSortValue = (dummy: AnchorEventDummyPR): string =>
+  [
+    String(resolveTimeWindowStartTimestamp(dummy.timeWindow)),
+    dummy.displayLocationName,
+    dummy.preferenceFingerprint ?? "",
+    dummy.key,
+  ].join("::");
+
 export const buildAnchorEventDummyPRs = ({
   browseTimeWindows,
   createTimeWindows,
   presetTags,
   poiByName,
-  perDateLimit = DEFAULT_PER_DATE_LIMIT,
+  maxDummyCount = DEFAULT_MAX_DUMMY_COUNT,
+  maxDateCount = DEFAULT_MAX_DATE_COUNT,
+  maxDummiesPerDate = DEFAULT_MAX_DUMMIES_PER_DATE,
+  perDateOpportunityLimit = DEFAULT_PER_DATE_OPPORTUNITY_LIMIT,
   now = new Date(),
 }: AnchorEventDummyGenerationInput): AnchorEventDummyPR[] => {
-  const limit = Math.max(Math.floor(perDateLimit), 0);
-  if (limit === 0) {
+  const totalLimit = Math.max(Math.floor(maxDummyCount), 0);
+  const dateLimit = Math.max(Math.floor(maxDateCount), 0);
+  const perDateDummyLimit = Math.max(Math.floor(maxDummiesPerDate), 0);
+  const perDateOpportunityCap = Math.max(
+    Math.floor(perDateOpportunityLimit),
+    0,
+  );
+  if (
+    totalLimit === 0 ||
+    dateLimit === 0 ||
+    perDateDummyLimit === 0 ||
+    perDateOpportunityCap === 0
+  ) {
     return [];
   }
 
   const realItemsByDate = resolveRealItemsByDate(browseTimeWindows);
   const realFingerprints = new Set<string>();
+  const realTimePlaceKeys = new Set<string>();
   for (const timeWindow of browseTimeWindows) {
     for (const pr of timeWindow.prs) {
       realFingerprints.add(resolveRealPRFingerprint(pr));
+      const placeKey = resolveAnchorEventPlaceKey({
+        location: pr.location,
+        route: pr.route,
+      });
+      if (placeKey) {
+        realTimePlaceKeys.add(resolveTimePlaceKey(pr.time, placeKey));
+      }
     }
   }
 
@@ -286,6 +338,11 @@ export const buildAnchorEventDummyPRs = ({
       }
 
       const placeKey = resolveOptionPlaceKey(option);
+      const timePlaceKey = resolveTimePlaceKey(entry.timeWindow, placeKey);
+      if (realTimePlaceKeys.has(timePlaceKey)) {
+        continue;
+      }
+
       for (const preferenceTags of preferenceChoices) {
         const fingerprint = resolveDummyFingerprint(
           entry.timeWindow,
@@ -325,44 +382,117 @@ export const buildAnchorEventDummyPRs = ({
   }
 
   const selected: AnchorEventDummyPR[] = [];
-  for (const [dateKey, candidates] of candidatesByDate) {
-    const realItems = realItemsByDate.get(dateKey) ?? [];
-    const remainingSlots = Math.max(limit - realItems.length, 0);
-    if (remainingSlots === 0) {
-      continue;
+  const selectedTimePlaceKeys = new Set<string>();
+  const selectedStartKeys = new Set<string>();
+  const selectedPlaceKeys = new Set<string>();
+  const selectedPreferenceKeys = new Set<string | null>();
+  const selectedCountByDate = new Map<string, number>();
+
+  const availableDateKeys = [...candidatesByDate.entries()]
+    .map(([dateKey, candidates]) => {
+      const realItems = realItemsByDate.get(dateKey) ?? [];
+      const remainingOpportunitySlots = Math.max(
+        perDateOpportunityCap - realItems.length,
+        0,
+      );
+
+      return {
+        dateKey,
+        candidates: candidates.sort(sortDummies),
+        realItems,
+        limit: Math.min(perDateDummyLimit, remainingOpportunitySlots),
+      };
+    })
+    .filter((entry) => entry.limit > 0 && entry.candidates.length > 0)
+    .sort(
+      (left, right) =>
+        resolveTimeWindowStartTimestamp(left.candidates[0]?.timeWindow ?? [
+          null,
+          null,
+        ]) -
+          resolveTimeWindowStartTimestamp(right.candidates[0]?.timeWindow ?? [
+            null,
+            null,
+          ]) || left.dateKey.localeCompare(right.dateKey),
+    )
+    .slice(0, dateLimit);
+
+  const pickBestCandidate = (
+    candidates: readonly AnchorEventDummyPR[],
+    realItems: readonly AnchorEventRealPRBrowseItem[],
+  ): AnchorEventDummyPR | null => {
+    const eligible = candidates.filter((candidate) => {
+      const timePlaceKey = resolveTimePlaceKey(
+        candidate.timeWindow,
+        candidate.placeKey,
+      );
+      return (
+        !selectedTimePlaceKeys.has(timePlaceKey) &&
+        !selectedStartKeys.has(candidate.timeWindowStart ?? "")
+      );
+    });
+
+    if (eligible.length === 0) {
+      return null;
     }
 
-    selected.push(
-      ...candidates
-        .sort((left, right) => {
-          const leftScore = scoreDummyDiversity(left, realItems);
-          const rightScore = scoreDummyDiversity(right, realItems);
-          if (leftScore !== rightScore) {
-            return rightScore - leftScore;
-          }
+    return (
+      [...eligible].sort((left, right) => {
+        const leftScore =
+          scoreDummyDiversity(left, realItems) +
+          (selectedPlaceKeys.has(left.placeKey) ? 0 : 2) +
+          (selectedPreferenceKeys.has(left.preferenceFingerprint) ? 0 : 1) +
+          (left.preferenceFingerprint ? 1 : 0);
+        const rightScore =
+          scoreDummyDiversity(right, realItems) +
+          (selectedPlaceKeys.has(right.placeKey) ? 0 : 2) +
+          (selectedPreferenceKeys.has(right.preferenceFingerprint) ? 0 : 1) +
+          (right.preferenceFingerprint ? 1 : 0);
 
-          return (
-            resolveTimeWindowStartTimestamp(left.timeWindow) -
-              resolveTimeWindowStartTimestamp(right.timeWindow) ||
-            left.displayLocationName.localeCompare(
-              right.displayLocationName,
-              "zh-CN",
-            ) ||
-            (left.preferenceFingerprint ?? "").localeCompare(
-              right.preferenceFingerprint ?? "",
-              "zh-CN",
-            )
-          );
-        })
-        .slice(0, remainingSlots),
+        if (leftScore !== rightScore) {
+          return rightScore - leftScore;
+        }
+
+        return resolveCandidateSortValue(left).localeCompare(
+          resolveCandidateSortValue(right),
+          "zh-CN",
+        );
+      })[0] ?? null
     );
+  };
+
+  let madeProgress = true;
+  while (selected.length < totalLimit && madeProgress) {
+    madeProgress = false;
+
+    for (const entry of availableDateKeys) {
+      if (selected.length >= totalLimit) {
+        break;
+      }
+
+      const selectedForDate = selectedCountByDate.get(entry.dateKey) ?? 0;
+      if (selectedForDate >= entry.limit) {
+        continue;
+      }
+
+      const candidate = pickBestCandidate(entry.candidates, entry.realItems);
+      if (!candidate) {
+        continue;
+      }
+
+      selected.push(candidate);
+      selectedCountByDate.set(entry.dateKey, selectedForDate + 1);
+      selectedTimePlaceKeys.add(
+        resolveTimePlaceKey(candidate.timeWindow, candidate.placeKey),
+      );
+      selectedStartKeys.add(candidate.timeWindowStart ?? "");
+      selectedPlaceKeys.add(candidate.placeKey);
+      selectedPreferenceKeys.add(candidate.preferenceFingerprint);
+      madeProgress = true;
+    }
   }
 
   return selected.sort(
-    (left, right) =>
-      left.dateKey.localeCompare(right.dateKey) ||
-      resolveTimeWindowStartTimestamp(left.timeWindow) -
-        resolveTimeWindowStartTimestamp(right.timeWindow) ||
-      left.displayLocationName.localeCompare(right.displayLocationName, "zh-CN"),
+    (left, right) => left.dateKey.localeCompare(right.dateKey) || sortDummies(left, right),
   );
 };

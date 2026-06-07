@@ -45,6 +45,7 @@
               :time-label="item.timeLabel"
               :display-location-name="item.dummy.displayLocationName"
               :place-icon="item.dummy.place.kind === 'route' ? '🧭' : '📍'"
+              :preference-tags="item.dummy.preferenceTags"
               :max-partners="detail.defaultMaxPartners"
               :cover-image="resolveCoverImage(item.dummy.displayLocationName)"
               :pending="isCreatePending"
