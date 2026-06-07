@@ -5,19 +5,19 @@
     </template>
 
     <template #actions>
-      <AdminCommerceProductActionsContent />
+      <AdminCommerceProductActionBar />
     </template>
 
     <template #rail>
       <AdminRailPanel :title="t('adminCommerceProducts.spusTitle')">
-        <AdminCommerceProductRailContent />
+        <AdminCommerceProductRailList />
       </AdminRailPanel>
 
       <AdminRailPanel
         v-if="hasSelectedProduct"
         :title="t('adminCommerceProducts.skusTitle')"
       >
-        <AdminCommerceSkuRailContent />
+        <AdminCommerceSkuRailList />
       </AdminRailPanel>
     </template>
 
@@ -29,7 +29,7 @@
             :description="t('adminCommerceProducts.spuHint')"
             span="full"
           >
-            <AdminCommerceSpuEditorContent />
+            <AdminCommerceSpuEditor />
           </BentoItem>
 
           <BentoItem
@@ -37,7 +37,7 @@
             :description="t('adminCommerceProducts.skuHint')"
             span="full"
           >
-            <AdminCommerceSkuEditorContent />
+            <AdminCommerceSkuEditor />
           </BentoItem>
 
           <BentoItem
@@ -45,10 +45,10 @@
             :description="t('adminCommerceProducts.cancellationPolicyHint')"
             span="full"
           >
-            <AdminCommerceCancellationPolicyEditorContent />
+            <AdminCommerceCancellationPolicyEditor />
           </BentoItem>
 
-          <AdminCommerceProductErrorContent />
+          <AdminCommerceProductErrorToast />
         </AdminCommerceProductWorkspaceGate>
       </div>
     </template>
@@ -63,14 +63,14 @@ import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import AdminCommerceCancellationPolicyEditorContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceCancellationPolicyEditorContent.vue";
-import AdminCommerceProductActionsContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductActionsContent.vue";
-import AdminCommerceProductErrorContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductErrorContent.vue";
-import AdminCommerceProductRailContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductRailContent.vue";
+import AdminCommerceCancellationPolicyEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceCancellationPolicyEditor.vue";
+import AdminCommerceProductActionBar from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductActionBar.vue";
+import AdminCommerceProductErrorToast from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductErrorToast.vue";
+import AdminCommerceProductRailList from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductRailList.vue";
 import AdminCommerceProductWorkspaceGate from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductWorkspaceGate.vue";
-import AdminCommerceSkuEditorContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuEditorContent.vue";
-import AdminCommerceSkuRailContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuRailContent.vue";
-import AdminCommerceSpuEditorContent from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSpuEditorContent.vue";
+import AdminCommerceSkuEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuEditor.vue";
+import AdminCommerceSkuRailList from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuRailList.vue";
+import AdminCommerceSpuEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSpuEditor.vue";
 import { provideAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
 
 const { t } = useI18n();

@@ -8,6 +8,7 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "test:unit": "pnpm --dir ../.. exec vitest run --project frontend-unit",
+    "audit:naming": "node ./scripts/audit-ui-naming.mjs",
     "lint:tokens": "node ./scripts/check-token-governance.mjs",
     "lint:tokens:strict": "node ./scripts/check-token-governance.mjs --strict"
   },

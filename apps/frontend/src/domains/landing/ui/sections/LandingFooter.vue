@@ -1,23 +1,23 @@
 <template>
   <footer class="home-section home-section--footer">
-    <section class="footer-brand">
-      <nav class="footer-nav" :aria-label="t('home.landing.footerNavTitle')">
+    <section class="landing-footer__brand">
+      <nav class="landing-footer__nav" :aria-label="t('home.landing.footerNavTitle')">
         <RouterLink
           v-for="link in footerNavLinks"
           :key="link.routeName"
-          class="footer-nav-link"
+          class="landing-footer__nav-link"
           :to="{ name: link.routeName }"
         >
-          <span class="footer-nav-label">{{ link.label }}</span>
+          <span class="landing-footer__nav-label">{{ link.label }}</span>
           <span
-            class="footer-nav-icon i-mdi:arrow-right"
+            class="landing-footer__nav-icon i-mdi:arrow-right"
             aria-hidden="true"
           ></span>
         </RouterLink>
       </nav>
-      <div class="footer-brand-main">
+      <div class="landing-footer__brand-main">
         <img
-          class="footer-brand-logo"
+          class="landing-footer__brand-logo"
           src="/share-logo.png"
           :alt="t('app.name')"
           width="48"
@@ -30,9 +30,9 @@
       <p>{{ t("home.landing.footerIntroBody") }}</p>
     </section>
 
-    <section class="footer-legal">
-      <p class="footer-copyright">© 搭一把科技有限公司</p>
-      <a href="https://beian.miit.gov.cn/" class="footer-beian"
+    <section class="landing-footer__legal">
+      <p class="landing-footer__copyright">© 搭一把科技有限公司</p>
+      <a href="https://beian.miit.gov.cn/" class="landing-footer__beian"
         >粤ICP备2024324879号</a
       >
     </section>
@@ -76,9 +76,9 @@ const footerNavLinks = computed(() =>
   min-width: 0;
   justify-content: flex-start;
   gap: var(--landing-footer-gap);
-  padding-top: var(--full-common-footer-padding-top, 0);
-  padding-left: var(--full-common-footer-padding-inline-start, 0);
-  padding-right: var(--full-common-footer-padding-inline-end, 0);
+  padding-top: var(--landing-footer-padding-top, 0);
+  padding-left: var(--landing-footer-padding-inline-start, 0);
+  padding-right: var(--landing-footer-padding-inline-end, 0);
   padding-bottom: calc(
     var(--landing-section-padding-block) + var(--pu-safe-bottom)
   );
@@ -86,13 +86,13 @@ const footerNavLinks = computed(() =>
   background-color: var(--sys-color-surface-container);
 }
 
-.footer-brand {
+.landing-footer__brand {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 }
 
-.footer-brand-main {
+.landing-footer__brand-main {
   display: inline-flex;
   align-items: center;
   gap: var(--sys-spacing-small);
@@ -105,27 +105,27 @@ const footerNavLinks = computed(() =>
   }
 }
 
-.footer-brand-logo {
+.landing-footer__brand-logo {
   width: var(--sys-size-large);
   height: var(--sys-size-large);
   border-radius: var(--sys-radius-small);
   object-fit: cover;
 }
 
-.footer-brand p {
+.landing-footer__brand p {
   @include mx.pu-font(body-medium);
   color: var(--sys-color-on-surface-variant);
   max-width: var(--landing-footer-copy-measure);
   margin: 0;
 }
 
-.footer-nav {
+.landing-footer__nav {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sys-spacing-small);
 }
 
-.footer-nav-link {
+.landing-footer__nav-link {
   @include mx.pu-font(label-large);
   position: relative;
   display: inline-flex;
@@ -151,7 +151,7 @@ const footerNavLinks = computed(() =>
     transition: transform 180ms ease;
   }
 
-  .footer-nav-icon {
+  .landing-footer__nav-icon {
     margin-left: var(--sys-spacing-xsmall);
     display: inline-block;
     vertical-align: middle;
@@ -159,7 +159,7 @@ const footerNavLinks = computed(() =>
     @include mx.pu-icon(medium);
   }
 
-  // .footer-nav-label {
+  // .landing-footer__nav-label {
   //   text-decoration: underline;
   //   text-underline-offset: 3px;
   // }
@@ -178,20 +178,20 @@ const footerNavLinks = computed(() =>
   }
 }
 
-.footer-legal {
+.landing-footer__legal {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sys-spacing-xsmall);
   color: var(--sys-color-on-surface-variant);
 }
 
-.footer-copyright {
+.landing-footer__copyright {
   @include mx.pu-font(label-small);
   color: var(--sys-color-on-surface-variant);
   margin: 0;
 }
 
-.footer-beian {
+.landing-footer__beian {
   @include mx.pu-font(label-small);
   color: var(--sys-color-on-surface-variant);
   text-decoration: none;
@@ -211,30 +211,30 @@ const footerNavLinks = computed(() =>
 }
 
 @media (max-width: 768px) {
-  .footer-brand-main h2 {
+  .landing-footer__brand-main h2 {
     @include mx.pu-font(headline-small);
   }
 
-  .footer-brand p {
+  .landing-footer__brand p {
     @include mx.pu-font(body-large);
   }
 
-  .footer-nav {
+  .landing-footer__nav {
     gap: var(--sys-spacing-xsmall) var(--sys-spacing-medium);
   }
 
-  .footer-nav-link {
+  .landing-footer__nav-link {
     @include mx.pu-font(title-small);
     min-height: 3rem;
     padding: var(--sys-spacing-xsmall);
   }
 
-  .footer-legal {
+  .landing-footer__legal {
     gap: var(--sys-spacing-xsmall);
   }
 
-  .footer-copyright,
-  .footer-beian {
+  .landing-footer__copyright,
+  .landing-footer__beian {
     @include mx.pu-font(label-medium);
   }
 }

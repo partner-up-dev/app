@@ -21,6 +21,7 @@ Read the smallest useful set and keep durable docs current:
 - Active task-local packets, evidence, and temporary reasoning: `tasks/*`
 - Architecture: `src/ARCHITECTURE.md`
 - Vue component guideline: `src/AGENTS.components.md`
+- UI naming protocol: `src/AGENTS.naming.md`
 - Styling rules: `src/styles/AGENTS.md`
 - Data fetching local rules: `src/queries/AGENTS.md`
 

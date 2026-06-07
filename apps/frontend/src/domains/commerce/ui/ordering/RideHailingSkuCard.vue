@@ -7,7 +7,7 @@
     data-testid="ordering.ride-hailing.vehicle-card"
     @click="$emit('select')"
   >
-    <div class="ride-sku-card__left">
+    <div class="ride-sku-card__summary">
       <div class="ride-sku-card__name">
         <span class="i-mdi-information-outline" aria-hidden="true"></span>
         <strong>{{ displayName }}</strong>
@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div class="ride-sku-card__right">
+    <div class="ride-sku-card__pricing">
       <div class="ride-sku-card__price">
         <span>{{ disabledReason ?? "预估" }}</span>
         <strong>{{ priceLabel }}</strong>
@@ -85,7 +85,7 @@ defineEmits<{
   cursor: not-allowed;
 }
 
-.ride-sku-card__left {
+.ride-sku-card__summary {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -122,7 +122,7 @@ defineEmits<{
   }
 }
 
-.ride-sku-card__right {
+.ride-sku-card__pricing {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;

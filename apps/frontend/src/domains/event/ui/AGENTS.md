@@ -2,6 +2,10 @@
 
 This folder owns event-domain UI surfaces, controls, composites, and primitives.
 
+## Component Contracts
+
+- `composites/AnchorEventRadioCardCarousel.vue`: event-domain carousel selector that centers and enlarges the selected Anchor Event card while keeping event-card content reuse local to the event domain.
+
 ## Anchor Event Form Mode Topology
 
 `/e/:eventId` owns the complete Form Mode journey. Keep selection data, recommendation data, long-press continuity, and create fallback in one route-level state machine.

@@ -102,7 +102,7 @@
             @update:model-value="handleModeControlChange"
           />
         </div>
-        <FullCommonFooter data-region="footer" />
+        <LandingFooter data-region="footer" />
       </div>
     </template>
   </FooterRevealPageScaffold>
@@ -142,7 +142,7 @@ import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
-import FullCommonFooter from "@/domains/landing/ui/sections/FullCommonFooter.vue";
+import LandingFooter from "@/domains/landing/ui/sections/LandingFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffold.vue";
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
@@ -1203,8 +1203,8 @@ const handleSelectOtherEvent = async (nextEventId: number | null) => {
   z-index: 40;
   min-width: 0;
   padding-top: var(--sys-spacing-medium);
-  padding-left: var(--full-common-footer-padding-inline-start, 0);
-  padding-right: var(--full-common-footer-padding-inline-end, 0);
+  padding-left: var(--landing-footer-padding-inline-start, 0);
+  padding-right: var(--landing-footer-padding-inline-end, 0);
   background: var(--sys-color-surface-container);
 }
 

@@ -7,57 +7,57 @@
       />
     </template>
 
-    <div class="page-main">
-      <p v-if="!userSessionStore.isAuthenticated" class="auth-hint">
+    <div class="my-prs-page__body">
+      <p v-if="!userSessionStore.isAuthenticated" class="my-prs-page__auth-hint">
         {{ t("myPrsPage.authHint") }}
       </p>
 
-      <section class="list-section">
-        <div class="section-header">
+      <section class="my-prs-page__section">
+        <div class="my-prs-page__section-header">
           <h2>{{ t("myPrsPage.createdTitle") }}</h2>
-          <span class="count">{{ createdItems.length }}</span>
+          <span class="my-prs-page__count">{{ createdItems.length }}</span>
         </div>
 
         <LoadingIndicator
           v-if="createdQuery.isLoading.value"
           :message="t('myPrsPage.loading')"
         />
-        <p v-else-if="createdQuery.error.value" class="error-text">
+        <p v-else-if="createdQuery.error.value" class="my-prs-page__error">
           {{ createdErrorMessage }}
         </p>
-        <p v-else-if="createdItems.length === 0" class="empty-text">
+        <p v-else-if="createdItems.length === 0" class="my-prs-page__empty">
           {{ t("myPrsPage.createdEmpty") }}
         </p>
-        <ul v-else class="list">
+        <ul v-else class="my-prs-page__list">
           <li v-for="item in createdItems" :key="`created-${item.id}`">
             <PRPreviewCard
-              class="list-item"
+              class="my-prs-page__preview-card"
               :pr-id="item.id"
             />
           </li>
         </ul>
       </section>
 
-      <section class="list-section">
-        <div class="section-header">
+      <section class="my-prs-page__section">
+        <div class="my-prs-page__section-header">
           <h2>{{ t("myPrsPage.joinedTitle") }}</h2>
-          <span class="count">{{ joinedDisplayItems.length }}</span>
+          <span class="my-prs-page__count">{{ joinedDisplayItems.length }}</span>
         </div>
 
         <LoadingIndicator
           v-if="joinedQuery.isLoading.value"
           :message="t('myPrsPage.loading')"
         />
-        <p v-else-if="joinedQuery.error.value" class="error-text">
+        <p v-else-if="joinedQuery.error.value" class="my-prs-page__error">
           {{ joinedErrorMessage }}
         </p>
-        <p v-else-if="joinedDisplayItems.length === 0" class="empty-text">
+        <p v-else-if="joinedDisplayItems.length === 0" class="my-prs-page__empty">
           {{ t("myPrsPage.joinedEmpty") }}
         </p>
-        <ul v-else class="list">
+        <ul v-else class="my-prs-page__list">
           <li v-for="item in joinedDisplayItems" :key="`joined-${item.id}`">
             <PRPreviewCard
-              class="list-item"
+              class="my-prs-page__preview-card"
               :pr-id="item.id"
             />
           </li>
@@ -66,7 +66,7 @@
     </div>
 
     <template #footer>
-      <MiniumCommonFooter />
+      <SupportNavFooter />
     </template>
   </PageScaffoldFlow>
 </template>
@@ -75,7 +75,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
@@ -111,35 +111,35 @@ const joinedErrorMessage = computed(() => {
 </script>
 
 <style scoped lang="scss">
-.page-main {
+.my-prs-page__body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-large);
 }
 
-.auth-hint,
-.empty-text,
-.error-text {
+.my-prs-page__auth-hint,
+.my-prs-page__empty,
+.my-prs-page__error {
   @include mx.pu-font(body-medium);
   margin: 0;
 }
 
-.auth-hint,
-.empty-text {
+.my-prs-page__auth-hint,
+.my-prs-page__empty {
   color: var(--sys-color-on-surface-variant);
 }
 
-.error-text {
+.my-prs-page__error {
   color: var(--sys-color-error);
 }
 
-.list-section {
+.my-prs-page__section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.section-header {
+.my-prs-page__section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -151,7 +151,7 @@ const joinedErrorMessage = computed(() => {
   }
 }
 
-.count {
+.my-prs-page__count {
   @include mx.pu-font(label-medium);
   color: var(--sys-color-on-surface-variant);
   background: var(--sys-color-surface-container);
@@ -159,7 +159,7 @@ const joinedErrorMessage = computed(() => {
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
 }
 
-.list {
+.my-prs-page__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -168,7 +168,7 @@ const joinedErrorMessage = computed(() => {
   gap: var(--sys-spacing-small);
 }
 
-.list-item {
+.my-prs-page__preview-card {
   &:hover {
     background: var(--sys-color-surface-container);
   }

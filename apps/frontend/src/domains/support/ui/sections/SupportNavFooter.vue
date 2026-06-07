@@ -1,13 +1,13 @@
 <template>
-  <footer class="minium-common-footer">
+  <footer class="support-nav-footer">
     <nav
-      class="minium-common-footer__nav"
+      class="support-nav-footer__nav"
       :aria-label="t('aboutPage.footerNavLabel')"
     >
       <RouterLink
         v-for="link in visibleFooterLinks"
         :key="link.routeName"
-        class="minium-common-footer__link"
+        class="support-nav-footer__link"
         :to="{ name: link.routeName }"
       >
         {{ link.label }}
@@ -45,13 +45,13 @@ const visibleFooterLinks = computed(() =>
 </script>
 
 <style lang="scss" scoped>
-.minium-common-footer {
+.support-nav-footer {
   margin-top: var(--sys-spacing-large);
   padding-top: var(--sys-spacing-small);
   border-top: 1px solid var(--sys-color-outline-variant);
 }
 
-.minium-common-footer__nav {
+.support-nav-footer__nav {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,7 +59,7 @@ const visibleFooterLinks = computed(() =>
   gap: var(--sys-spacing-small) var(--sys-spacing-medium);
 }
 
-.minium-common-footer__link {
+.support-nav-footer__link {
   @include mx.pu-font(label-large);
   color: var(--sys-color-secondary);
   text-decoration: none;

@@ -179,7 +179,7 @@
       />
     </template>
 
-    <MiniumCommonFooter data-region="support" />
+    <SupportNavFooter data-region="support" />
   </PageScaffold>
 </template>
 
@@ -194,7 +194,7 @@ import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
 import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";

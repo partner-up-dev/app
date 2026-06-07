@@ -25,7 +25,7 @@
     />
 
     <template #footer>
-      <MiniumCommonFooter data-region="support" />
+      <SupportNavFooter data-region="support" />
     </template>
   </FullScreenPageScaffold>
 </template>
@@ -37,7 +37,7 @@ import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vu
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PRMessageThread from "@/domains/pr/ui/sections/PRMessageThread.vue";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 

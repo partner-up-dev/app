@@ -48,7 +48,7 @@
       </section>
     </main>
 
-    <FullCommonFooter data-region="footer" />
+    <LandingFooter data-region="footer" />
 
     <OfficialAccountFollowNudge
       data-region="official-account-nudge"
@@ -68,7 +68,7 @@ import LandingValuePropsSection from "@/domains/landing/ui/sections/LandingValue
 import EventHighlightsSection from "@/domains/event/ui/sections/landing/EventHighlightsSection.vue";
 import EventPlazaEntry from "@/domains/event/ui/sections/landing/EventPlazaEntry.vue";
 import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
-import FullCommonFooter from "@/domains/landing/ui/sections/FullCommonFooter.vue";
+import LandingFooter from "@/domains/landing/ui/sections/LandingFooter.vue";
 import LandingWeChatAccessSection from "@/domains/landing/ui/sections/LandingWeChatAccessSection.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
@@ -434,8 +434,8 @@ onUnmounted(() => {
   .home-section,
   .creator-entry,
   .creator-action-text,
-  .footer-nav-link,
-  .footer-nav-link::before {
+  .landing-footer__nav-link,
+  .landing-footer__nav-link::before {
     animation: none !important;
     transition: none !important;
   }

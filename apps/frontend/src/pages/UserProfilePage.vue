@@ -55,7 +55,7 @@
     </SurfaceCard>
 
     <template #footer>
-      <MiniumCommonFooter />
+      <SupportNavFooter />
     </template>
   </PageScaffoldFlow>
 </template>
@@ -72,7 +72,7 @@ import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
 import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Avatar from "@/shared/ui/identity/Avatar.vue";
-import MiniumCommonFooter from "@/domains/support/ui/sections/MiniumCommonFooter.vue";
+import SupportNavFooter from "@/domains/support/ui/sections/SupportNavFooter.vue";
 import {
   prDetailPath,
 } from "@/domains/pr/routing/routes";
