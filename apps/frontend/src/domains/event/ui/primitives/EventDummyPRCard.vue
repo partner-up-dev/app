@@ -6,6 +6,7 @@
     :time-label="timeLabel"
     :place-label="displayLocationName"
     :place-icon="placeIcon"
+    :preference-tags="preferenceTags"
     :partner-count-label="partnerCountLabel"
     :cover-image="coverImage"
     :disabled="disabled || pending"
@@ -23,6 +24,7 @@ const props = withDefaults(
     timeLabel: string;
     displayLocationName: string;
     placeIcon?: string;
+    preferenceTags?: readonly string[];
     maxPartners: number | null;
     coverImage?: string | null;
     pending?: boolean;
@@ -30,6 +32,7 @@ const props = withDefaults(
   }>(),
   {
     placeIcon: "📍",
+    preferenceTags: () => [],
     coverImage: null,
     pending: false,
     disabled: false,

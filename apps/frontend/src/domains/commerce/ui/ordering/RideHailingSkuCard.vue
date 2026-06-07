@@ -77,7 +77,7 @@ defineEmits<{
 }
 
 .ride-sku-card.is-selected {
-  background: color-mix(in srgb, var(--sys-color-primary) 12%, var(--sys-color-surface));
+  background: var(--sys-color-primary-container);
 }
 
 .ride-sku-card.is-disabled {

@@ -1,9 +1,26 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 import vue from "@vitejs/plugin-vue";
+import { parse as parseJsonc } from "jsonc-parser";
+
+const jsoncPlugin = () => ({
+  name: "jsonc-loader",
+  transform(source: string, id: string) {
+    if (!id.endsWith(".jsonc")) {
+      return null;
+    }
+
+    const parsed = parseJsonc(source);
+    return {
+      code: `export default ${JSON.stringify(parsed)};`,
+      map: null,
+    };
+  },
+});
 
 export default defineConfig({
   plugins: [
+    jsoncPlugin(),
     vue({
       template: {
         compilerOptions: {

@@ -76,15 +76,16 @@ Tracked release units:
 
 The shared manifest is `.release-please-manifest.json`.
 
-Backend and frontend release semantics intentionally differ:
+Backend and frontend GitHub Release semantics are deployment-gated:
 
 - Backend Release Please PRs update source release metadata, but backend GitHub
   Releases are skipped in the general release workflow. The backend deployment
   workflow creates the backend GitHub Release only after the `master`
   production rollout finishes successfully.
-- Frontend GitHub Releases are source releases. Frontend deployment is
-  currently pull-based, so GitHub Actions cannot prove that Aliyun ESA has
-  picked up and deployed the new frontend source.
+- Frontend Release Please PRs update source release metadata, but frontend
+  GitHub Releases are skipped in the general release workflow. The frontend
+  deployment workflow creates the frontend GitHub Release only after the
+  `master` production ESA rollout finishes successfully.
 
 If release PR checks must run when opened by automation, configure
 `RELEASE_PLEASE_TOKEN` as a GitHub PAT or GitHub App token with repository
@@ -112,22 +113,69 @@ cron expression `CRON_TZ=Asia/Shanghai 0 0/30 8-23 ? * ?`.
 The workflow delegates deployment to
 `scripts/ci/fc/deploy_job_runner_trigger.sh`.
 
-## Frontend Rollout Reality
+## Frontend ESA CI/CD Flow
 
 Current frontend deployment target is Aliyun ESA.
+
+Primary workflow: `.github/workflows/frontend-esa-deploy.yml`
+
+The workflow prepares the GitHub runner and delegates deploy control flow to
+`scripts/ci/esa/deploy_frontend.sh`. The script is the canonical executable
+rollout path for frontend ESA deployment.
 
 Repo-tracked rollout facts:
 
 - deploy descriptor: `apps/frontend/esa.jsonc`
-- install command: `pnpm install`
-- build command: `pnpm run --filter frontend build`
+- hosted install command: `pnpm install --frozen-lockfile`
+- hosted validation: frontend design-token lint, frontend unit tests, and
+  frontend build
+- build command: `pnpm --filter @partner-up-dev/frontend build`
 - published assets directory: `./dist`
 - not found strategy: SPA fallback
 
-The repo does not currently define a canonical GitHub Actions workflow for frontend ESA deploy.
+The frontend deploy workflow is triggered by frontend source changes, backend
+source changes that may affect frontend RPC types, and root workspace/toolchain
+inputs used during install or build.
 
-Frontend GitHub Releases do not assert deployment success under the current
-pull-based ESA rollout model.
+### Standard deploy path
+
+1. checkout
+2. install workspace dependencies
+3. validate required deployment environment
+4. lint frontend design tokens
+5. run frontend unit tests
+6. build frontend static assets
+7. authenticate `esa-cli` with ESA access key credentials
+8. deploy `apps/frontend/dist` to the GitHub Environment-selected Aliyun ESA
+   project and publish it to that project's `production` environment
+9. on `master`, create the frontend GitHub Release after production ESA
+   deployment succeeds
+
+### Environment behavior
+
+- `develop` uses the GitHub `staging` environment and its configured ESA
+  project
+- `master` uses the GitHub `production` environment and its configured ESA
+  project
+- each ESA project deploy publishes to ESA environment `production`
+- deploys run serially through the `frontend-esa-deploy` concurrency group
+- `VITE_API_URL` is supplied by the GitHub Environment variable of the same
+  name
+- `VITE_TENCENT_LBS_JS_KEY` is supplied by the GitHub Environment secret of the
+  same name
+- `VITE_FRONTEND_COMMIT_HASH` is injected from `GITHUB_SHA`
+- ESA credentials are supplied through GitHub Environment secrets
+  `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`; the
+  frontend ESA deploy script maps them to the ESA CLI credential environment
+  names before invoking `esa-cli`
+- frontend environment isolation is implemented by separate ESA projects, not
+  by ESA's `staging` environment inside one project
+
+Frontend GitHub Releases are gated by successful `master` production ESA
+deployment. The general Release Please workflow creates frontend release PRs
+and updates frontend source release metadata, but it skips frontend GitHub
+Release creation. The frontend deploy workflow creates the frontend GitHub
+Release after production ESA deployment succeeds.
 
 ## Manual Rollout Reality
 

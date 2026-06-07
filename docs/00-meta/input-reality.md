@@ -6,7 +6,7 @@ Use for bugs, anomalies, outages, crashes, corrupt state, or any mismatch betwee
 
 ## Primary Owner
 
-- `tasks/` for evidence gathering and hypothesis ranking
+- `tasks/` for task-local evidence gathering, hypothesis ranking, and investigation state
 - nearest local `AGENTS.md` for recurrence tripwires after the fix
 
 ## Mode Relationship

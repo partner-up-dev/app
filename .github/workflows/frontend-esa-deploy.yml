@@ -1,0 +1,66 @@
+name: Deploy Frontend to Aliyun ESA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - ".node-version"
+      - "apps/frontend/**"
+      - "apps/backend/src/**"
+      - ".github/workflows/frontend-esa-deploy.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "scripts/ci/esa/**"
+      - "vitest.config.ts"
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: frontend-esa-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
+    env:
+      ALIYUN_ESA_PROJECT_NAME: ${{ vars.ALIYUN_ESA_PROJECT_NAME || 'partner-up-mvp-ha' }}
+      ALIYUN_ESA_ENVIRONMENT: production
+      ALIYUN_ESA_DEPLOY_DESCRIPTION: github:${{ github.sha }}
+      ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+      ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      VITE_TENCENT_LBS_JS_KEY: ${{ secrets.VITE_TENCENT_LBS_JS_KEY }}
+      VITE_FRONTEND_COMMIT_HASH: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Deploy frontend through repository script
+        run: bash scripts/ci/esa/deploy_frontend.sh
+
+      - name: Create frontend GitHub Release
+        if: github.ref_name == 'master'
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please-frontend-github-release.json
+          manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true

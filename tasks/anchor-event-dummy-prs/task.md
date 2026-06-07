@@ -9,11 +9,13 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
 - Dummy PRs are frontend orchestration only; they are not real PR records and are not automatic expansion sibling PRs.
 - Dummy generation uses the event-derived create window data from Anchor Event detail rather than independently reimplementing raw `timePoolConfig`.
 - Tag combinations are bounded to `no tag + one published tag`; no multi-tag combination generation in this slice.
-- Each product-local date shows at most 3 browse opportunities total, counting real PRs and dummy PRs together.
+- Dummy generation shows at most 3 dummy PRs globally, chooses at most 1 to 2 product-local dates, and should not force-fill to the cap.
 - Triggering a dummy PR's "查看详情" intent is one-click create, with no confirmation step and without changing the primary action copy to "创建搭子请求".
 - List/Card browse ordering should mix real PRs and dummy PRs in the same time/place neighborhood instead of appending dummy PRs as a separate block.
 - Dummy generation should exclude options that conflict with real PRs, and should prefer candidates that differ from real PRs by time, place, and preference fingerprint as much as possible.
-- If a dummy would match an existing real PR by time window, place, and preference fingerprint, do not generate it.
+- If a dummy would match an existing real PR by time window and place, do not generate it.
+- Dummy generation must not create more than one dummy for the same time-window and place pair; preference tags must not be used to fill duplicate-looking cards.
+- PR preview cards show at most one inline preference label after place and before participant count, using the same meta-row treatment as time/place/count.
 - List Mode PR card capacity text should hide `current` when it is `0`; keep the compact display as `👥 4` when max is 4.
 
 ## Guardrails Touched
@@ -39,16 +41,16 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
 
 ## Open Implementation Questions
 - Whether published preference tags should be added to Anchor Event detail or fetched through a separate frontend query already available to event surfaces.
-- The exact mixed sort scoring when real PRs and dummy PRs share a date: start time first is expected, but place/tag diversity should break ties to avoid duplicates around existing PRs.
 - Dummy PR browse cards should keep the same visual treatment and primary "查看详情" intent as real PR cards; creation remains an implementation step before opening detail.
 
 ## Verification
 - Add model tests for dummy generation:
   - only future enabled create windows participate
   - `no tag + single tag` only
-  - real PR exact conflicts are excluded
-  - per-date cap counts real PRs and dummy PRs together
-  - candidate diversity prefers different time/place/preference fingerprints when real PRs exist
+  - real PR time/place conflicts are excluded
+  - global dummy cap is 3 and date spread is bounded to 1 to 2 dates
+  - candidate selection does not repeat dummy time/place pairs or use tags to fill duplicate slots
+  - candidate diversity prefers staggered start times and different place/preference fingerprints when real PRs exist
 - Add or update frontend tests for List Mode one-click dummy create using `entrySurface: "list_mode"`.
 - Add or update frontend tests for Card Mode one-click dummy create using `entrySurface: "card_rich"`.
 - Add PR card unit coverage for `current = 0, max = 4` displaying only `4`, preserving existing non-zero behavior such as `1/4`.
@@ -65,8 +67,10 @@ Hypothesis: A bounded frontend projection can make empty or sparse event session
   - Verification: focused projection tests, PRPreviewCard capacity test, TypeScript/Vitest frontend verification.
 
 ## Verification Results
-- `pnpm --filter @partner-up-dev/frontend build` passed.
-- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/dummy-prs.test.ts apps/frontend/src/domains/pr/ui/primitives/PRPreviewCard.route.test.ts` passed: 2 files, 10 tests.
+- 2026-06-07 Diagnose: production `/e/7` showed three visually identical dummy PR preview cards for the same date, time, and place. Root cause was per-date filling plus tag-only variation hidden by List preview cards.
+- 2026-06-07 Execute: dummy generation now has a global dummy cap, a 1-2 date spread cap, real/dummy time-place de-duplication, start-time staggering, and inline one-tag PR preview display.
+- `pnpm --filter @partner-up-dev/frontend build` passed after the 2026-06-07 adjustment.
+- `pnpm --filter @partner-up-dev/frontend test:unit -- apps/frontend/src/domains/event/model/dummy-prs.test.ts apps/frontend/src/domains/pr/ui/primitives/PRPreviewCard.route.test.ts` passed after the 2026-06-07 adjustment: 2 files, 14 tests.
 - `pnpm --filter @partner-up-dev/backend typecheck` passed.
-- `pnpm --filter @partner-up-dev/frontend lint:tokens` exited 0 with only pre-existing commerce `color-mix` findings in `RentalOrderingContent.vue` and `RideHailingSkuCard.vue`; this slice added no new token-governance finding.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` exited 0 with no findings outside baseline after the 2026-06-07 adjustment.
 - `pnpm test:unit:frontend` still fails before running `apps/frontend/src/pages/PRPage.creator-actions.test.ts` because Vite/Rollup parses `apps/frontend/src/locales/zh-CN.jsonc` as plain JS; the other 24 frontend unit files and 93 tests passed.

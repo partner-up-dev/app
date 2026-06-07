@@ -152,10 +152,29 @@ Current durable facts we can state:
 - deployment target: Aliyun ESA
 - repo deployment descriptor: `apps/frontend/esa.jsonc`
 - frontend builds to `apps/frontend/dist`
+- canonical hosted deploy workflow:
+  `.github/workflows/frontend-esa-deploy.yml`
+- canonical executable deploy path: `scripts/ci/esa/deploy_frontend.sh`
 - backend runtime depends on `FRONTEND_URL` for share link generation
 - WeChat OAuth callback defaults to the backend `/api/wechat/oauth/callback` URL inferred from the OAuth start request and forwarded public host / protocol headers
 
-The repo does not currently document a full CI/CD workflow for frontend ESA rollout with the same level of detail as backend FC deploy.
+Required GitHub Environment secrets:
 
-Frontend GitHub Releases are source releases only in the current pull-based ESA
-deployment model.
+- `ALIBABA_CLOUD_ACCESS_KEY_ID`
+- `ALIBABA_CLOUD_ACCESS_KEY_SECRET`
+- `VITE_TENCENT_LBS_JS_KEY`
+
+Required GitHub Environment variables:
+
+- `VITE_API_URL`
+- `ALIYUN_ESA_PROJECT_NAME`
+
+Frontend deploys map `develop` to the GitHub `staging` environment and
+`master` to the GitHub `production` environment. Each GitHub Environment should
+point `ALIYUN_ESA_PROJECT_NAME` at its own ESA project. The deploy script always
+publishes to ESA environment `production` inside the selected project.
+
+Frontend GitHub Releases are created only after successful `master` production
+ESA deployment. The general Release Please workflow still owns frontend release
+PRs and source release metadata updates, but it skips frontend GitHub Release
+creation.
