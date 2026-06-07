@@ -167,13 +167,12 @@ Required GitHub Environment secrets:
 Required GitHub Environment variables:
 
 - `VITE_API_URL`
+- `ALIYUN_ESA_PROJECT_NAME`
 
-Optional GitHub Environment variables:
-
-- `ALIYUN_ESA_PROJECT_NAME`; defaults to `partner-up-mvp-ha` when unset
-
-Frontend deploys map `develop` to ESA `staging` and `master` to ESA
-`production`.
+Frontend deploys map `develop` to the GitHub `staging` environment and
+`master` to the GitHub `production` environment. Each GitHub Environment should
+point `ALIYUN_ESA_PROJECT_NAME` at its own ESA project. The deploy script always
+publishes to ESA environment `production` inside the selected project.
 
 Frontend GitHub Releases are created only after successful `master` production
 ESA deployment. The general Release Please workflow still owns frontend release

@@ -146,15 +146,18 @@ inputs used during install or build.
 5. run frontend unit tests
 6. build frontend static assets
 7. authenticate `esa-cli` with ESA access key credentials
-8. deploy `apps/frontend/dist` to Aliyun ESA with the branch-selected
-   environment
+8. deploy `apps/frontend/dist` to the GitHub Environment-selected Aliyun ESA
+   project and publish it to that project's `production` environment
 9. on `master`, create the frontend GitHub Release after production ESA
    deployment succeeds
 
 ### Environment behavior
 
-- `develop` deploys to ESA `staging`
-- `master` deploys to ESA `production`
+- `develop` uses the GitHub `staging` environment and its configured ESA
+  project
+- `master` uses the GitHub `production` environment and its configured ESA
+  project
+- each ESA project deploy publishes to ESA environment `production`
 - deploys run serially through the `frontend-esa-deploy` concurrency group
 - `VITE_API_URL` is supplied by the GitHub Environment variable of the same
   name
@@ -165,6 +168,8 @@ inputs used during install or build.
   `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`; the
   frontend ESA deploy script maps them to the ESA CLI credential environment
   names before invoking `esa-cli`
+- frontend environment isolation is implemented by separate ESA projects, not
+  by ESA's `staging` environment inside one project
 
 Frontend GitHub Releases are gated by successful `master` production ESA
 deployment. The general Release Please workflow creates frontend release PRs

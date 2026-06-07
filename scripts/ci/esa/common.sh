@@ -29,18 +29,6 @@ ci_esa_cd_repo_root() {
   cd "$(ci_esa_repo_root)"
 }
 
-ci_esa_ref_name() {
-  if [ -n "${GITHUB_REF_NAME:-}" ]; then
-    echo "$GITHUB_REF_NAME"
-    return 0
-  fi
-
-  git branch --show-current 2>/dev/null || true
-}
-
 ci_esa_environment() {
-  case "$(ci_esa_ref_name)" in
-    master) echo "production" ;;
-    *) echo "staging" ;;
-  esac
+  echo "production"
 }

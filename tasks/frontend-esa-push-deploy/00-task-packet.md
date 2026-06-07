@@ -20,6 +20,9 @@ unchanged.
 - Aliyun deploy credentials: `ALIBABA_CLOUD_ACCESS_KEY_ID` and
   `ALIBABA_CLOUD_ACCESS_KEY_SECRET`; the frontend ESA script maps them to the
   ESA CLI environment names at invocation time.
+- Environment split: GitHub `staging` and `production` environments point to
+  different ESA projects through `ALIYUN_ESA_PROJECT_NAME`; each selected ESA
+  project is published to ESA environment `production`.
 - Frontend build-time environment: `VITE_API_URL`,
   `VITE_TENCENT_LBS_JS_KEY`, `VITE_FRONTEND_COMMIT_HASH`
 - Frontend hosted validation: Vitest JSONC imports and strict token

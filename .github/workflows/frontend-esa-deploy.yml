@@ -33,7 +33,7 @@ jobs:
     environment: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
     env:
       ALIYUN_ESA_PROJECT_NAME: ${{ vars.ALIYUN_ESA_PROJECT_NAME || 'partner-up-mvp-ha' }}
-      ALIYUN_ESA_ENVIRONMENT: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
+      ALIYUN_ESA_ENVIRONMENT: production
       ALIYUN_ESA_DEPLOY_DESCRIPTION: github:${{ github.sha }}
       ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
       ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
