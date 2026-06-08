@@ -17,6 +17,8 @@ Hypothesis: the frontend can move from locally forked `src/shared/ui` and `src/s
 - Runtime token emission and Sass helper ownership should switch to `@partner-up-dev/design-web/styles`; the old local `apps/frontend/src/styles` implementation has been removed after migrating indirect Sass helper token usage.
 - Removed design-web typography roles such as the old `display-*` and `headline-*` are not token gaps. Landing/marketing expression such as hero titles, kickers, CTA text, and campaign section headlines should use component-local hardcoded typography when the value is not intended for reuse.
 - Frontend deployment has already moved to CI push mode through `.github/workflows/frontend-esa-deploy.yml` and `scripts/ci/esa/deploy_frontend.sh`; this integration should not assume a server-side pull deployment model.
+- `@partner-up-dev/design-web` should remain frontend-only at the dependency graph boundary. Backend-only CI and deploy jobs should not require GitHub Packages credentials merely because the root workspace lockfile contains the frontend package.
+- Root Vitest configuration should stay orchestration-only; frontend-only Vite plugins, JSONC loaders, and design-web Sass setup belong to the frontend Vitest project config.
 - First component migration order was adapted to the actual `@partner-up-dev/design-web@0.1.0` public package surface:
   1. `SurfaceCard` -> `PuCard` compatibility wrapper, because `PuSurfaceCard` is not present in the published `0.1.0` package.
   2. `PageScaffold*` -> unified `PuPageScaffold` compatibility wrappers, because only `PuPageScaffold` is present in the published `0.1.0` package.
@@ -32,6 +34,8 @@ Hypothesis: the frontend can move from locally forked `src/shared/ui` and `src/s
 - Frontend style-token ownership: `@partner-up-dev/design-web/styles`; `apps/frontend/src/styles/AGENTS.md` remains only as local frontend guidance.
 - Design package release/local-link workflow for `@partner-up-dev/design-web`.
 - Build and token lint guardrails for frontend visual primitives.
+- Test platform ownership: root `vitest.config.ts` plus project-specific Vitest configs for backend, frontend, and system scenario tests.
+- Backend CI dependency installation boundary for backend gate, backend DB artifact validation, and backend FC deploy.
 
 ## Integration Shape
 
@@ -136,6 +140,13 @@ F:\CODING\Project\Anana\Application\design2\packages\web
   - Added component-local defaults for runtime-injected variables in `MultiStopToggle`, `WheelPicker`, and `FormModeLongPressButton`.
   - Replaced the stale footer reveal first-screen variable with `--pu-vh`.
 - Remaining install warning is unrelated to this frontend integration: backend `wechatpay-axios-plugin` still has an unmet `yargs@^17.1.1` peer.
+- Follow-up dependency-boundary slice:
+  - Split root Vitest config into project configs so backend-only tests no longer load frontend-only dependencies such as `jsonc-parser`, Vue plugin config, or design-web Sass setup.
+  - Switched backend-only CI/deploy installs from full workspace install to filtered backend/root installs:
+    - backend DB validate: `@partner-up-dev/backend...`
+    - backend gate: root project plus `@partner-up-dev/backend...`
+    - backend FC deploy: `@partner-up-dev/backend...`
+  - Removed temporary GitHub Packages auth from backend-only workflows after narrowing their install graph.
 
 ## Verification
 
@@ -177,3 +188,19 @@ F:\CODING\Project\Anana\Application\design2\packages\web
   - `pnpm --filter @partner-up-dev/frontend build` passed.
   - Browser computed-style check against `https://partner-up.localhost/` passed at `390x844` and `1280x900`; key Home display/headline/action elements render at old-style `200`/`400` weights.
   - `git diff --check` passed.
+- Dependency-boundary verification passed on 2026-06-08:
+  - Static scan confirmed root/backend Vitest config no longer references `@partner-up-dev/design-web`, `jsonc-parser`, or `@vitejs/plugin-vue`; those are isolated in `apps/frontend/vitest.config.ts`.
+  - Static scan confirmed backend-only workflows and `scripts/ci/fc/deploy_backend.sh` no longer set `NODE_AUTH_TOKEN` or `packages: read`; frontend and e2e workflows still do.
+  - Temporary workspace install without `NODE_AUTH_TOKEN` passed for `pnpm --filter . --filter "@partner-up-dev/backend..." install --frozen-lockfile --ignore-scripts` and selected only root plus `apps/backend`.
+  - Temporary workspace install without `NODE_AUTH_TOKEN` passed for `pnpm --filter "@partner-up-dev/backend..." install --frozen-lockfile --ignore-scripts` and selected only `apps/backend`.
+  - The remaining `.npmrc` warning for missing `${NODE_AUTH_TOKEN}` is pnpm/npm config interpolation noise; it does not fetch `@partner-up-dev/design-web` under the backend filtered install graph.
+  - `pnpm test:unit:backend` passed: 58 test files, 210 tests.
+  - `pnpm test:scenario:backend` passed: 23 test files, 64 tests.
+  - `pnpm test:unit:frontend` passed: 26 test files, 114 tests.
+  - `pnpm --filter @partner-up-dev/backend typecheck` passed.
+  - `pnpm db:lint` passed.
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens:strict` passed.
+  - `pnpm --filter @partner-up-dev/frontend build` passed.
+  - `pnpm exec vitest list --project system-scenario --reporter verbose` passed and listed 39 system scenario tests.
+  - `pnpm test:scenario:system` was attempted and failed in existing browser/UI assertions around intercepted clicks and order-detail waits; the project config loaded and executed tests, and the failure shape was not dependency/config loading.
+  - `pnpm --filter @partner-up-dev/backend db:generate` was attempted and hit Drizzle's existing interactive create/rename prompt for `pr_join_notice_acceptances`; it produced no `apps/backend/drizzle` drift.

@@ -12,7 +12,7 @@ install_workspace_dependencies() {
     return 0
   fi
 
-  ci_fc_run pnpm install --frozen-lockfile
+  ci_fc_run pnpm --filter @partner-up-dev/backend... install --frozen-lockfile
   workspace_dependencies_installed=true
 }
 
