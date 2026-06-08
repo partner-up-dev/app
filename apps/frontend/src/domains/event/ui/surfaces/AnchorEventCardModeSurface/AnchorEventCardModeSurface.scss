@@ -44,7 +44,8 @@
   inline-size: 100vw;
   transform: translateX(-50%);
   pointer-events: none;
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .card-stage__projection-layer--underlay {
