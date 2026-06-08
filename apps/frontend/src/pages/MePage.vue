@@ -7,7 +7,7 @@
       />
     </template>
 
-    <div class="page-main">
+    <div class="me-page__body">
       <InlineNotice
         v-if="bindFeedbackMessage"
         :tone="bindFeedbackCode === 'success' ? 'success' : 'error'"
@@ -147,7 +147,7 @@
 
         <div class="profile-meta-list">
           <div class="profile-meta-row profile-meta-row--identity">
-            <div class="profile-meta-copy">
+            <div class="profile-meta-body">
               <span class="profile-meta-label">
                 {{ t("mePage.profile.wechatIdentityLabel") }}
               </span>
@@ -177,14 +177,14 @@
           </div>
 
           <div class="profile-meta-row profile-meta-row--compact">
-            <div class="profile-meta-copy">
+            <div class="profile-meta-body">
               <span class="profile-meta-label">{{
                 t("mePage.credentials.userIdLabel")
               }}</span>
               <code class="credential-value">{{ storedUserIdLabel }}</code>
             </div>
             <Button
-              class="credential-copy-button"
+              class="credential-clipboard-action"
               appearance="pill"
               tone="ghost"
               size="sm"
@@ -214,7 +214,7 @@
 
       <div class="shortcut-grid">
         <RouterLink class="shortcut-card" :to="{ name: 'pr-mine' }">
-          <div class="shortcut-card__copy">
+          <div class="shortcut-card__text">
             <h2>{{ t("mePage.history.title") }}</h2>
             <p>{{ t("mePage.history.description") }}</p>
           </div>
@@ -228,7 +228,7 @@
           class="shortcut-card"
           :to="{ name: 'poi-location-apply', query: { view: 'mine' } }"
         >
-          <div class="shortcut-card__copy">
+          <div class="shortcut-card__text">
             <h2>{{ t("mePage.locationApplications.title") }}</h2>
             <p>{{ t("mePage.locationApplications.description") }}</p>
           </div>
@@ -545,7 +545,7 @@ const handleCopyCredential = async (value: string | null) => {
 </script>
 
 <style scoped lang="scss">
-.page-main {
+.me-page__body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-large);
@@ -640,7 +640,7 @@ const handleCopyCredential = async (value: string | null) => {
   justify-content: flex-start;
 }
 
-.profile-meta-copy {
+.profile-meta-body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
@@ -669,13 +669,13 @@ const handleCopyCredential = async (value: string | null) => {
   overflow-wrap: anywhere;
 }
 
-.credential-copy-button {
+.credential-clipboard-action {
   flex-shrink: 0;
   width: var(--sys-spacing-large);
   min-height: var(--sys-spacing-large);
   padding: 0;
 
-  :deep(.ui-button__content) {
+  :deep(.ui-button__label) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -712,7 +712,7 @@ const handleCopyCredential = async (value: string | null) => {
   }
 }
 
-.shortcut-card__copy {
+.shortcut-card__text {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);

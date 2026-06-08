@@ -34,7 +34,7 @@
           </Button>
         </header>
 
-        <div class="bottom-drawer-content">
+        <div class="bottom-drawer-body">
           <slot />
         </div>
 
@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.bottom-drawer-content {
+.bottom-drawer-body {
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--sys-spacing-small) var(--sys-spacing-small)

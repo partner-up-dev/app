@@ -1,16 +1,16 @@
 <template>
-  <div class="anchor-event-time-windows-preview-content">
+  <div class="anchor-event-time-window-preview-list">
     <div v-if="recurringRules.length === 0" class="hint">
       {{ t("adminAnchorEvents.emptyRecurringRulesPreview") }}
     </div>
     <div v-else-if="timeWindows.length === 0" class="hint">
       {{ t("adminPR.emptyTimeWindows") }}
     </div>
-    <div v-else class="selection-list">
+    <div v-else class="anchor-event-time-window-preview-list__items">
       <ChoiceCard
         v-for="timeWindow in timeWindows"
         :key="timeWindow.key"
-        class="selection-btn"
+        class="anchor-event-time-window-preview-list__item"
       >
         <span>{{ formatWindow(timeWindow.timeWindow) }}</span>
         <small v-if="timeWindow.description">{{ timeWindow.description }}</small>
@@ -52,14 +52,14 @@ const formatWindow = (windowValue: [string | null, string | null]) =>
 </script>
 
 <style lang="scss" scoped>
-.anchor-event-time-windows-preview-content,
-.selection-list {
+.anchor-event-time-window-preview-list,
+.anchor-event-time-window-preview-list__items {
   display: flex;
   flex-direction: column;
 }
 
-.anchor-event-time-windows-preview-content,
-.selection-list {
+.anchor-event-time-window-preview-list,
+.anchor-event-time-window-preview-list__items {
   gap: var(--sys-spacing-medium);
 }
 

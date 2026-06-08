@@ -28,7 +28,7 @@
       class="ui-button__spinner"
       aria-hidden="true"
     ></span>
-    <span class="ui-button__content">
+    <span class="ui-button__label">
       <slot />
     </span>
     <span
@@ -321,7 +321,7 @@ defineEmits<{
   transform: scale(0.99);
 }
 
-.ui-button__content {
+.ui-button__label {
   min-width: 0;
 }
 
@@ -350,7 +350,7 @@ defineEmits<{
   animation: ui-button-spin 0.8s linear infinite;
 }
 
-.is-loading .ui-button__content {
+.is-loading .ui-button__label {
   opacity: 0.92;
 }
 

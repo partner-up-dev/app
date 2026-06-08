@@ -15,7 +15,7 @@
         <div v-if="offers.length === 0" class="hint">
           {{ t("adminCommercePlacementOffer.emptyOffers") }}
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="offer-rail-list">
           <ChoiceCard
             v-for="offer in offers"
             :key="offer.id"
@@ -300,14 +300,14 @@ const clearErrors = () => {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list,
+.offer-rail-list,
 .form-stack {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.offer-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

@@ -12,7 +12,7 @@
         <Chip tone="secondary" size="lg">
           {{ t("contactSupportPage.supportBadge") }}
         </Chip>
-        <div class="contact-copy">
+        <div class="contact-text">
           <h2>{{ t("contactSupportPage.supportTitle") }}</h2>
           <p>{{ t("contactSupportPage.supportDescription") }}</p>
         </div>
@@ -32,7 +32,7 @@
         <Chip class="contact-badge--beta-group" tone="secondary" size="lg">
           {{ t("contactSupportPage.betaGroupBadge") }}
         </Chip>
-        <div class="contact-copy">
+        <div class="contact-text">
           <h2>{{ t("contactSupportPage.betaGroupTitle") }}</h2>
           <p>{{ t("contactSupportPage.betaGroupDescription") }}</p>
         </div>
@@ -190,7 +190,7 @@ const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
   opacity: 0.8;
 }
 
-.contact-copy {
+.contact-text {
   display: grid;
   gap: var(--sys-spacing-xsmall);
 

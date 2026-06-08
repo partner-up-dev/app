@@ -18,7 +18,7 @@
           </Button>
         </template>
 
-        <AnchorEventCoreInfoEditor v-model="form" />
+        <AnchorEventDetailsEditor v-model="form" />
       </BentoItem>
 
       <BentoItem :title="t('adminPR.eventCoverImageLabel')" span="full">
@@ -48,7 +48,7 @@ import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventCapacityDefaultsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventCapacityDefaultsEditor.vue";
-import AnchorEventCoreInfoEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventCoreInfoEditor.vue";
+import AnchorEventDetailsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventDetailsEditor.vue";
 import AnchorEventMediaEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventMediaEditor.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 

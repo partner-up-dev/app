@@ -42,7 +42,7 @@
           />
         </datalist>
 
-        <BentoLayout class="stack--main">
+        <BentoLayout class="pr-workspace-layout">
           <BentoItem :title="t('adminPRMessages.prsTitle')" span="full">
             <div class="stack">
               <div class="section-header">
@@ -61,12 +61,12 @@
 
               <div
                 v-else
-                class="selection-list selection-list--grid selection-list--scroll"
+                class="pr-result-list pr-result-list--grid pr-result-list--scroll"
               >
                 <ChoiceCard
                   v-for="pr in filteredPRs"
                   :key="pr.prId"
-                  class="selection-btn"
+                  class="pr-result-card"
                   :active="selectedPRId === pr.prId"
                   @click="selectPR(pr.prId)"
                 >
@@ -106,7 +106,7 @@
                     :key="item.id"
                     class="admin-message-item"
                   >
-                    <div class="section-header section-header--top">
+                    <div class="section-header section-header--start">
                       <div class="stack stack--tight">
                         <strong class="message-author">
                           {{ resolveMessageAuthor(item) }}
@@ -376,17 +376,17 @@ const handleDeleteMessage = async (messageId: number) => {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list {
+.pr-result-list {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.pr-result-list {
   gap: var(--sys-spacing-medium);
 }
 
-.stack--main {
+.pr-workspace-layout {
   width: 100%;
 }
 
@@ -416,17 +416,17 @@ const handleDeleteMessage = async (messageId: number) => {
   flex-wrap: wrap;
 }
 
-.section-header--top {
+.section-header--start {
   align-items: flex-start;
 }
 
-.selection-list--grid {
+.pr-result-list--grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--sys-spacing-small);
 }
 
-.selection-list--scroll {
+.pr-result-list--scroll {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: var(--sys-spacing-xsmall);

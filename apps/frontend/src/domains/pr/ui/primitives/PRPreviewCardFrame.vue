@@ -13,7 +13,7 @@
         :style="{ backgroundImage: `url(${coverImage})` }"
       />
 
-      <div class="pr-preview-card__content">
+      <div class="pr-preview-card__body">
         <div class="pr-preview-card__header">
           <div class="pr-preview-card__headline">
             <span class="pr-preview-card__title">
@@ -124,8 +124,8 @@ const preferenceLabel = computed(
 <style lang="scss" scoped>
 .pr-preview-card {
   --pr-preview-card-radius: var(--sys-radius-medium);
-  --pr-preview-card-content-padding-block: var(--sys-spacing-small);
-  --pr-preview-card-content-padding-inline: var(--sys-spacing-medium);
+  --pr-preview-card-body-padding-block: var(--sys-spacing-small);
+  --pr-preview-card-body-padding-inline: var(--sys-spacing-medium);
   --pr-preview-card-header-gap: var(--sys-spacing-small);
 
   display: flex;
@@ -172,9 +172,9 @@ const preferenceLabel = computed(
   background-position: center;
 }
 
-.pr-preview-card__content {
-  padding: var(--pr-preview-card-content-padding-block)
-    var(--pr-preview-card-content-padding-inline);
+.pr-preview-card__body {
+  padding: var(--pr-preview-card-body-padding-block)
+    var(--pr-preview-card-body-padding-inline);
 }
 
 .pr-preview-card__header {

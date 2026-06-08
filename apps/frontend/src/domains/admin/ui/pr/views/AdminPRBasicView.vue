@@ -51,7 +51,7 @@
           />
         </datalist>
 
-        <BentoLayout class="stack--main">
+        <BentoLayout class="pr-workspace-layout">
           <BentoItem :title="t('adminPR.prsTitle')" span="full">
             <div class="stack">
               <div class="section-header">
@@ -70,12 +70,12 @@
 
               <div
                 v-else
-                class="selection-list selection-list--grid selection-list--scroll"
+                class="pr-result-list pr-result-list--grid pr-result-list--scroll"
               >
                 <ChoiceCard
                   v-for="pr in filteredPRs"
                   :key="pr.prId"
-                  class="selection-btn"
+                  class="pr-result-card"
                   :active="!isCreatingPR && selectedPRId === pr.prId"
                   @click="selectExistingPR(pr.prId)"
                 >
@@ -908,17 +908,17 @@ const handleSavePR = async () => {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list {
+.pr-result-list {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.pr-result-list {
   gap: var(--sys-spacing-medium);
 }
 
-.stack--main {
+.pr-workspace-layout {
   width: 100%;
 }
 
@@ -942,13 +942,13 @@ const handleSavePR = async () => {
   flex-wrap: wrap;
 }
 
-.selection-list--grid {
+.pr-result-list--grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--sys-spacing-small);
 }
 
-.selection-list--scroll {
+.pr-result-list--scroll {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: var(--sys-spacing-xsmall);

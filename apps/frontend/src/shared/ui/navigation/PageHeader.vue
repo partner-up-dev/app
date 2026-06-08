@@ -1,9 +1,9 @@
 <template>
   <header class="page-header" :class="`page-header--${variant}`">
-    <div class="page-header__top">
+    <div class="page-header__bar">
       <button
         v-if="showBack"
-        class="page-header__back-btn"
+        class="page-header__back-action"
         :aria-label="backLabel"
         @click="handleBack"
       >
@@ -98,7 +98,7 @@ async function handleBack(): Promise<void> {
   margin-bottom: var(--sys-spacing-small);
 }
 
-.page-header__top {
+.page-header__bar {
   display: flex;
   align-items: center;
   gap: var(--sys-spacing-small);
@@ -106,7 +106,7 @@ async function handleBack(): Promise<void> {
   margin-bottom: var(--sys-spacing-small);
 }
 
-.page-header__back-btn {
+.page-header__back-action {
   display: flex;
   background: transparent;
   border: none;

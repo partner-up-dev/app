@@ -9,7 +9,7 @@
         <div v-if="orders.length === 0" class="hint">
           {{ t("adminCommerceOrderBill.emptyOrders") }}
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="order-rail-list">
           <ChoiceCard
             v-for="record in orders"
             :key="record.order.id"
@@ -142,13 +142,13 @@ watch(
 
 <style lang="scss" scoped>
 .stack,
-.selection-list {
+.order-rail-list {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.order-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

@@ -1,6 +1,6 @@
 <template>
   <section class="official-account-follow-panel">
-    <div class="panel-copy">
+    <div class="panel-summary">
       <span class="panel-icon i-mdi-wechat" aria-hidden="true"></span>
       <div class="panel-text">
         <h3 class="panel-title">
@@ -45,7 +45,7 @@ const { officialAccountQrCodeLoading, officialAccountQrCodeUrl } =
   gap: var(--sys-spacing-medium);
 }
 
-.panel-copy {
+.panel-summary {
   display: flex;
   gap: var(--sys-spacing-small);
   align-items: flex-start;

@@ -143,14 +143,14 @@
   }
 }
 
-.poster-container {
+.poster-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--sys-spacing-small);
 }
 
-.poster-image-wrapper {
+.poster-image-frame {
   position: relative;
   width: 100%;
   max-width: var(--xhs-poster-max-width);
@@ -237,12 +237,12 @@
   gap: var(--sys-spacing-small);
 }
 
-.outline-btn {
+.outline-action {
   flex: 1;
 }
 
-.copy-caption-btn,
-.download-poster-btn {
+.caption-clipboard-action,
+.poster-download-action {
   flex: 1;
 }
 

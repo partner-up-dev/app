@@ -2,7 +2,7 @@
   <section v-if="(hasJoined && canConfirm) || (hasJoined && canCheckIn)" class="actions">
     <Button
       v-if="hasJoined && canConfirm"
-      class="confirm-slot-btn"
+      class="confirm-slot-action"
       tone="primary-outline"
       @click="emit('confirm-slot')"
       :disabled="confirmPending"
@@ -12,7 +12,7 @@
 
     <Button
       v-if="hasJoined && canCheckIn"
-      class="checkin-attended-btn"
+      class="checkin-attended-action"
       tone="tertiary"
       @click="emit('submit-check-in')"
       :disabled="checkInPending"
@@ -55,8 +55,8 @@ const { t } = useI18n();
   width: 100%;
 }
 
-.confirm-slot-btn,
-.checkin-attended-btn {
+.confirm-slot-action,
+.checkin-attended-action {
   flex: 1;
   min-width: 0;
   font-weight: 600;

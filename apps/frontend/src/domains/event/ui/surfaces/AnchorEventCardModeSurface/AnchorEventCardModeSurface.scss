@@ -63,7 +63,7 @@
   pointer-events: none;
 }
 
-.card-stage__inner {
+.card-stage__deck {
   position: relative;
   z-index: 2;
   min-height: 0;
@@ -104,11 +104,11 @@
   will-change: transform, opacity;
 }
 
-.card-stage__projection-side--left {
+.card-stage__projection-side--skip {
   left: 0;
 }
 
-.card-stage__projection-side--right {
+.card-stage__projection-side--detail {
   right: 0;
 }
 
@@ -123,7 +123,7 @@
   will-change: opacity, transform;
 }
 
-.card-stage__projection-label--left {
+.card-stage__projection-label--skip {
   justify-self: start;
   color: var(--sys-color-error);
   text-shadow:
@@ -131,7 +131,7 @@
     0 0 38px rgb(from var(--sys-color-error) r g b / 0.2);
 }
 
-.card-stage__projection-label--right {
+.card-stage__projection-label--detail {
   justify-self: end;
   color: var(--sys-color-primary);
   text-align: end;
@@ -184,7 +184,7 @@
   filter: blur(84px);
 }
 
-.card-stage__projection-side--left .card-stage__projection-source {
+.card-stage__projection-side--skip .card-stage__projection-source {
   background: radial-gradient(
     ellipse at 14% 50%,
     var(--sys-color-error) 0%,
@@ -192,7 +192,7 @@
   );
 }
 
-.card-stage__projection-side--left .card-stage__projection-bloom {
+.card-stage__projection-side--skip .card-stage__projection-bloom {
   background: radial-gradient(
     ellipse at 10% 50%,
     var(--sys-color-error) 0%,
@@ -200,7 +200,7 @@
   );
 }
 
-.card-stage__projection-side--left .card-stage__projection-rim {
+.card-stage__projection-side--skip .card-stage__projection-rim {
   inset-inline-start: 4%;
   background: linear-gradient(
     90deg,
@@ -209,7 +209,7 @@
   );
 }
 
-.card-stage__projection-side--left .card-stage__projection-spill {
+.card-stage__projection-side--skip .card-stage__projection-spill {
   inset-inline-start: -40%;
   background: linear-gradient(
     90deg,
@@ -218,7 +218,7 @@
   );
 }
 
-.card-stage__projection-side--right .card-stage__projection-source {
+.card-stage__projection-side--detail .card-stage__projection-source {
   background: radial-gradient(
     ellipse at 86% 50%,
     var(--sys-color-primary) 0%,
@@ -226,7 +226,7 @@
   );
 }
 
-.card-stage__projection-side--right .card-stage__projection-bloom {
+.card-stage__projection-side--detail .card-stage__projection-bloom {
   background: radial-gradient(
     ellipse at 90% 50%,
     var(--sys-color-primary) 0%,
@@ -234,7 +234,7 @@
   );
 }
 
-.card-stage__projection-side--right .card-stage__projection-rim {
+.card-stage__projection-side--detail .card-stage__projection-rim {
   inset-inline-end: 4%;
   background: linear-gradient(
     270deg,
@@ -243,7 +243,7 @@
   );
 }
 
-.card-stage__projection-side--right .card-stage__projection-spill {
+.card-stage__projection-side--detail .card-stage__projection-spill {
   inset-inline-end: -40%;
   background: linear-gradient(
     270deg,

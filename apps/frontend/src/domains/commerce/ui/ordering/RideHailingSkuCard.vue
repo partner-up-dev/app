@@ -1,30 +1,30 @@
 <template>
   <button
     type="button"
-    class="ride-sku-card"
+    class="ride-hailing-sku-card"
     :class="{ 'is-selected': selected, 'is-disabled': !selectable }"
     :disabled="!selectable"
     data-testid="ordering.ride-hailing.vehicle-card"
     @click="$emit('select')"
   >
-    <div class="ride-sku-card__summary">
-      <div class="ride-sku-card__name">
+    <div class="ride-hailing-sku-card__summary">
+      <div class="ride-hailing-sku-card__name">
         <span class="i-mdi-information-outline" aria-hidden="true"></span>
         <strong>{{ displayName }}</strong>
       </div>
-      <div class="ride-sku-card__preview" aria-hidden="true">
+      <div class="ride-hailing-sku-card__preview" aria-hidden="true">
         <span class="i-mdi-car-side"></span>
       </div>
     </div>
 
-    <div class="ride-sku-card__pricing">
-      <div class="ride-sku-card__price">
+    <div class="ride-hailing-sku-card__pricing">
+      <div class="ride-hailing-sku-card__price">
         <span>{{ disabledReason ?? "预估" }}</span>
         <strong>{{ priceLabel }}</strong>
       </div>
       <span
         v-if="selected"
-        class="ride-sku-card__check i-mdi-checkbox-marked-circle"
+        class="ride-hailing-sku-card__check i-mdi-checkbox-marked-circle"
         data-testid="ordering.ride-hailing.vehicle-card.selected"
         aria-hidden="true"
       ></span>
@@ -47,7 +47,7 @@ defineEmits<{
 </script>
 
 <style scoped lang="scss">
-.ride-sku-card {
+.ride-hailing-sku-card {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -76,23 +76,23 @@ defineEmits<{
   }
 }
 
-.ride-sku-card.is-selected {
+.ride-hailing-sku-card.is-selected {
   background: var(--sys-color-primary-container);
 }
 
-.ride-sku-card.is-disabled {
+.ride-hailing-sku-card.is-disabled {
   opacity: var(--sys-opacity-disabled);
   cursor: not-allowed;
 }
 
-.ride-sku-card__summary {
+.ride-hailing-sku-card__summary {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 }
 
-.ride-sku-card__name {
+.ride-hailing-sku-card__name {
   display: flex;
   align-items: center;
   gap: var(--sys-spacing-xsmall);
@@ -108,7 +108,7 @@ defineEmits<{
   }
 }
 
-.ride-sku-card__preview {
+.ride-hailing-sku-card__preview {
   display: grid;
   width: 6.25rem;
   height: 4.25rem;
@@ -122,7 +122,7 @@ defineEmits<{
   }
 }
 
-.ride-sku-card__pricing {
+.ride-hailing-sku-card__pricing {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
@@ -131,7 +131,7 @@ defineEmits<{
   gap: var(--sys-spacing-small);
 }
 
-.ride-sku-card__price {
+.ride-hailing-sku-card__price {
   display: flex;
   align-items: baseline;
   gap: var(--sys-spacing-xsmall);
@@ -147,7 +147,7 @@ defineEmits<{
   }
 }
 
-.ride-sku-card__check {
+.ride-hailing-sku-card__check {
   @include mx.pu-icon(small);
   color: var(--sys-color-primary);
 }

@@ -8,7 +8,7 @@
       />
     </template>
 
-    <div class="route-application-page__main">
+    <div class="route-application-page__body">
       <InlineNotice
         v-if="submitSuccessTitle"
         tone="success"
@@ -72,7 +72,7 @@
               :max-zoom="15"
               variant="inline"
             />
-            <div class="application-card__copy">
+            <div class="application-card__body">
               <div class="application-card__title-row">
                 <h3>{{ routeSummary(application.route) }}</h3>
                 <Chip :tone="statusChipTone(application.status)" size="sm">
@@ -262,21 +262,21 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.route-application-page__main,
+.route-application-page__body,
 .application-form,
 .application-list,
-.application-card__copy {
+.application-card__body {
   display: flex;
   flex-direction: column;
 }
 
-.route-application-page__main {
+.route-application-page__body {
   gap: var(--sys-spacing-large);
 }
 
 .application-form,
 .application-list,
-.application-card__copy {
+.application-card__body {
   gap: var(--sys-spacing-medium);
 }
 

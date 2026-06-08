@@ -179,7 +179,7 @@ const emitCreate = () => {
 }
 
 .create-card-shell :deep(.expandable-card__toggle),
-.create-card-shell :deep(.expandable-card__content) {
+.create-card-shell :deep(.expandable-card__body) {
   position: relative;
   z-index: 1;
 }

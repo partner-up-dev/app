@@ -55,7 +55,7 @@
         />
 
         <section
-          class="ordering-support__content"
+          class="ordering-support__contact"
           :aria-label="t('ordering.support.contactAria')"
         >
           <Button
@@ -480,14 +480,14 @@ onMounted(() => {
   text-align: center;
 }
 
-.ordering-support__content {
+.ordering-support__contact {
   display: grid;
   justify-items: center;
   gap: var(--sys-spacing-medium);
   width: min(100%, 22rem);
 }
 
-.ordering-support__content :deep(.ui-button) {
+.ordering-support__contact :deep(.ui-button) {
   width: 100%;
 }
 

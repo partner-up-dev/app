@@ -1,7 +1,7 @@
 <template>
   <header class="page-header">
     <button
-      class="home-btn"
+      class="home-action"
       @click="emit('back')"
       :aria-label="t('common.backToHome')"
     >
@@ -35,7 +35,7 @@ const { t } = useI18n();
   }
 }
 
-.home-btn {
+.home-action {
   display: flex;
   background: transparent;
   border: none;

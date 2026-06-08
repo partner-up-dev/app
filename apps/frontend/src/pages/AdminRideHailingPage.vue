@@ -21,7 +21,7 @@
         <div v-if="providerInstances.length === 0" class="hint">
           暂无 Provider Instance
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="provider-rail-list">
           <ChoiceCard
             v-for="record in providerInstances"
             :key="record.id"
@@ -403,14 +403,14 @@ watch(
 
 <style lang="scss" scoped>
 .stack,
-.selection-list,
+.provider-rail-list,
 .form-stack {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.provider-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

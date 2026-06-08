@@ -13,7 +13,7 @@
       aria-hidden="true"
     ></span>
 
-    <div class="empty-state__copy">
+    <div class="empty-state__text">
       <h2 class="empty-state__title">{{ title }}</h2>
       <p v-if="description" class="empty-state__description">
         {{ description }}
@@ -76,7 +76,7 @@ withDefaults(
   color: var(--sys-color-primary);
 }
 
-.empty-state__copy {
+.empty-state__text {
   min-width: 0;
 }
 

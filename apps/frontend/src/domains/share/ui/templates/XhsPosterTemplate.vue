@@ -4,7 +4,7 @@
     :style="posterStyles"
     ref="posterElement"
   >
-    <div class="poster-content" :style="contentStyles">
+    <div class="poster-body" :style="contentStyles">
       <div class="caption-text" :style="textStyles">
         {{ formattedCaption }}
       </div>
@@ -86,7 +86,7 @@ defineExpose({
   text-rendering: optimizeLegibility;
 }
 
-.poster-content {
+.poster-body {
   box-sizing: border-box;
 }
 

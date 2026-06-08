@@ -55,7 +55,7 @@
           :title="t('adminAnchorEvents.pendingPreferenceTagsTitle')"
           span="full"
         >
-          <AnchorEventPendingPreferenceTagsContent
+          <AnchorEventPendingPreferenceTagList
             :event-id="eventId"
             :enabled="hasEditableEvent"
           />
@@ -71,7 +71,7 @@ import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import AnchorEventPendingPreferenceTagsContent from "@/domains/admin/ui/anchor-event/components/AnchorEventPendingPreferenceTagsContent.vue";
+import AnchorEventPendingPreferenceTagList from "@/domains/admin/ui/anchor-event/components/AnchorEventPendingPreferenceTagList.vue";
 import AnchorEventPreferenceTagPoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventPreferenceTagPoolEditor.vue";
 
 type PreferenceTagPoolEditorExposed = {

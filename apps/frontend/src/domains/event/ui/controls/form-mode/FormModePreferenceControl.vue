@@ -43,7 +43,7 @@
               }"
             >
               <button
-                class="tag-pill__main"
+                class="tag-pill__body"
                 type="button"
                 @click="handleSelectDrawerTag(tag.label)"
               >
@@ -680,7 +680,7 @@ const handleSavePreferenceDrawer = async () => {
   color: var(--sys-color-on-secondary-container);
 }
 
-.tag-pill__main {
+.tag-pill__body {
   display: inline-flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -696,7 +696,7 @@ const handleSavePreferenceDrawer = async () => {
   text-align: center;
 }
 
-.tag-pill--removable .tag-pill__main {
+.tag-pill--removable .tag-pill__body {
   padding-right: calc(var(--sys-spacing-xsmall) / 2);
 }
 

@@ -9,8 +9,8 @@ Hypothesis: the repo already has a strong domain-first structure and many good `
 ## Input Route And Mode
 
 - Input route: Constraint / Artifact.
-- Current mode: Execute Slice 3 audit script.
-- Execution gate: user approved Slice 3 on 2026-06-07.
+- Current mode: Execute Slice 5 complete.
+- Execution gate: user approved continuing until Slice 5 complete on 2026-06-08.
 - Source discussion: ChatGPT shared conversation "Web开发UI术语表" at `https://chatgpt.com/share/6a250b58-c3d0-8320-90b4-ce86e0e2a454`.
 
 ## Guardrails Touched
@@ -267,6 +267,110 @@ Exit criteria:
 - Page footer has one ownership boundary and variants express layout/content differences.
 - Status: implemented and verified.
 
+### Slice 4 - Remaining Audit Findings
+
+- Review the remaining audit findings semantically instead of mechanically removing words.
+- Applied renames:
+  - `AnchorEventPendingPreferenceTagsContent.vue` -> `AnchorEventPendingPreferenceTagList.vue`
+  - `AnchorEventTimeWindowsPreviewContent.vue` -> `AnchorEventTimeWindowPreviewList.vue`
+  - `AnchorEventCoreInfoEditor.vue` -> `AnchorEventDetailsEditor.vue`
+  - `RentalOrderingContent.vue` -> `RentalOrderingForm.vue`
+  - `RideHailingOrderingContent.vue` -> `RideHailingOrderingPanel.vue`
+- Role rationale:
+  - pending preference tags are a query-backed moderation list with actions
+  - time windows preview is a modal-local result list
+  - rental ordering is a field and SKU selection form boundary
+  - ride hailing ordering is a map-backed selection panel rather than a form
+  - anchor event core info is editable event details, not generic info
+- Invariants:
+  - route paths and route names remain unchanged
+  - user-facing copy remains unchanged
+  - `data-testid` selectors remain unchanged
+  - ordering data model names such as `OrderingContentInput` and `OrderingContentOutput` remain unchanged
+
+Exit criteria:
+
+- Default naming audit returns zero findings.
+- Status: implemented and verified.
+
+### Slice 5A - Ordering Element-Class Cleanup
+
+- Start element class/root-class correction after confirming default component audit is too narrow.
+- Keep this slice inside ordering UI to avoid broad selector churn.
+- Applied changes:
+  - `OrderingBottomActionBar.vue` -> `OrderingFooterActionBar.vue`
+  - `ordering-bottom-action*` classes -> `ordering-footer-action-bar*`
+  - `OrderingPageShell` slot `bottom-action` -> `footer-action`
+  - `ordering-shell__content` -> `ordering-shell__body`
+  - `ordering-page__content` -> `ordering-page__body`
+  - `ordering-support__content` -> `ordering-support__contact`
+  - `rental-ordering-form__sku-main` -> `rental-ordering-form__sku-summary`
+  - `ordering-shell*` -> `ordering-page-shell*`
+  - `ordering-floating-notice*` -> `ordering-floating-notice-layer*`
+  - `ride-sku-card*` -> `ride-hailing-sku-card*`
+- Invariants:
+  - user-facing copy remains unchanged
+  - route paths and route names remain unchanged
+  - form `id` / `for-id` pairs remain unchanged
+  - `data-testid` values remain unchanged, including `ordering.bottom-action`
+
+Exit criteria:
+
+- Ordering old component/class names return no source matches, except preserved test ids when explicitly documented.
+- Ordering directory root-class drift returns no findings.
+- Default naming audit stays clean.
+- Status: implemented and verified.
+
+### Slice 5B - Admin Rail And Result-Class Cleanup
+
+- Remove high-repetition weak `selection-*` / `stack--main` / position-class names from admin and admin-commerce surfaces.
+- Applied changes:
+  - PR admin result list classes -> `pr-result-list`, `pr-result-card`, `pr-workspace-layout`
+  - admin commerce rail lists -> `fulfillment-rail-list`, `offer-rail-list`, `order-rail-list`, `placement-rail-list`, `provider-rail-list`
+  - anchor event rail classes -> `anchor-event-rail-list`, `anchor-event-card`
+  - product management shared rail class -> `pm-rail-list`
+  - message header modifier `section-header--top` -> `section-header--start`
+- Invariants:
+  - route paths, route names, user-facing copy, and `data-testid` values remain unchanged
+  - form `id` / `for-id` pairs remain unchanged
+
+Exit criteria:
+
+- `selection-list`, `selection-btn`, `pm-selection-list`, `stack--main`, and `section-header--top` return no source matches.
+- Status: implemented and verified.
+
+### Slice 5C - Cross-Surface Element-Class And Id Audit
+
+- Clean the remaining clear `content` / `copy` / `btn` / `main` / `left` / `right` / `inner` / `wrapper` element-class candidates where a stronger local role was obvious.
+- Applied patterns:
+  - `content` -> `body`, `summary`, `text`, or `label`
+  - `copy` text blocks -> `text` or `summary`
+  - `btn` abbreviations -> `action`
+  - `left` / `right` structural classes -> `skip` / `detail`, `trailing`, or other semantic roles
+  - `main` element classes outside explicit page-layout need -> `body` or `summary`
+  - bare component-local `content` class in `RouteEditor` -> `route-editor__body`
+- Adjacent tests updated:
+  - `ExpandableCard.test.ts` now queries `expandable-card__body*` selectors after the internal class rename.
+- Deliberate class-scan exceptions:
+  - `BottomDrawer`: `bottom` is the component contract, not a vague position suffix.
+  - `WheelPicker`: `fade--top` / `fade--bottom` are literal edge fade overlays.
+  - `InfoRow` / `InfoRowAction`: `InfoRow` is an existing shared display primitive; renaming the public component boundary is larger than Slice 5.
+- Root-class audit judgement:
+  - `--include-root-class` still reports low-priority drift, but the findings are dominated by `ui-*` primitives, page scaffold `page` classes, shared utility root classes, state branch roots, and intentionally shorter local roots.
+  - Keep root-class drift report-only until the audit has a better false-positive model.
+- Invariants:
+  - no `data-testid` values changed
+  - id/for/aria/form ids were scanned and left unchanged
+  - route paths, route names, user-facing copy, and backend/API names remain unchanged
+
+Exit criteria:
+
+- Old selector residue checks return no source matches.
+- Static class scan has no remaining actionable weak terms after documented exceptions.
+- Default naming audit remains clean.
+- id/for/aria weak-name scan returns zero findings.
+- Status: implemented and verified.
+
 ## Impact Handshake For First Code Slice
 
 - Address and Object:
@@ -330,7 +434,43 @@ Exit criteria:
   - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed
   - `pnpm --filter @partner-up-dev/frontend build` passed
   - `pnpm test:unit:frontend` passed
+- 2026-06-08: Slice 4 applied semantic renames for the remaining default audit findings.
+  - old component names and old root class prefixes returned no source matches
+  - `pnpm --filter @partner-up-dev/frontend audit:naming -- --json` returned zero findings
+  - `git diff --check` passed
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed
+  - `pnpm --filter @partner-up-dev/frontend build` passed
+  - `pnpm test:unit:frontend` passed
+- 2026-06-08: Slice 5 pre-scan showed default component audit was clean but incomplete.
+  - `pnpm --filter @partner-up-dev/frontend audit:naming -- --json` returned zero findings
+  - independent scan found one component-name candidate: `OrderingBottomActionBar`
+  - `--include-root-class` returned 98 low-priority root-class drift candidates
+  - static class scan, excluding icon classes, found 122 weak-segment candidates
+  - id/for scan found no obvious high-risk id misuse; most ids are anchors, form links, or aria links
+- 2026-06-08: Slice 5A applied ordering-scoped component, slot, and class cleanup.
+  - old ordering component/class names returned no source matches
+  - ordering directory root-class drift returned no findings
+  - `pnpm --filter @partner-up-dev/frontend audit:naming -- --json` returned zero findings
+  - `git diff --check` passed
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed
+  - `pnpm --filter @partner-up-dev/frontend build` passed
+  - `pnpm test:unit:frontend` passed
+- 2026-06-08: Slice 5B removed high-repetition admin/admin-commerce `selection-*` and related weak element classes.
+  - `selection-list`, `selection-btn`, `pm-selection-list`, `stack--main`, and `section-header--top` returned no source matches
+- 2026-06-08: Slice 5C cleaned remaining actionable element-class candidates across shared UI, PR, route, event, share, marketing, and page surfaces.
+  - old selector residue checks returned no source matches
+  - id/for/aria weak-name scan returned zero findings
+  - static class scan was reduced to documented exceptions only:
+    - `BottomDrawer`
+    - `WheelPicker` edge fades
+    - `InfoRow` / `InfoRowAction`
+  - `pnpm --filter @partner-up-dev/frontend audit:naming -- --json` returned zero findings
+  - `pnpm --filter @partner-up-dev/frontend audit:naming -- --include-root-class --json` returned 94 low-priority report-only findings and remains too noisy for completion gating
+  - `git diff --check` passed
+  - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed
+  - `pnpm --filter @partner-up-dev/frontend build` passed
+  - `pnpm test:unit:frontend` passed after updating `ExpandableCard.test.ts` selectors
 
 ## Next Step
 
-Review remaining audit findings: four `Content` candidates and one low-severity `Info` candidate.
+Slice 5 is complete. Next action is to review/stage the Slice 4 + Slice 5 diff and commit it if the scope is acceptable.

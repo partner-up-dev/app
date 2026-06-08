@@ -18,7 +18,7 @@
           <span class="page-footer__nav-icon i-mdi:arrow-right" aria-hidden="true"></span>
         </RouterLink>
       </nav>
-      <div class="page-footer__brand-main">
+      <div class="page-footer__brand-body">
         <img
           class="page-footer__brand-logo"
           src="/share-logo.png"
@@ -234,7 +234,7 @@ const visibleFooterLinks = computed(() =>
   }
 }
 
-.page-footer__brand-main {
+.page-footer__brand-body {
   display: inline-flex;
   align-items: center;
   gap: var(--sys-spacing-small);

@@ -47,7 +47,7 @@
           bordered
         />
 
-        <div class="profile-copy">
+        <div class="profile-text">
           <span class="nickname-label">{{ t("userProfilePage.nicknameLabel") }}</span>
           <strong class="nickname-value">{{ displayName }}</strong>
         </div>
@@ -158,7 +158,7 @@ const backFallbackTo = computed(() => {
   gap: var(--sys-spacing-medium);
 }
 
-.profile-copy {
+.profile-text {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);

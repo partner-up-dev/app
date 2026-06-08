@@ -14,7 +14,7 @@
           block
           @click="showLocationGalleryModal = true"
         >
-          <span class="facts-entry-button__content">
+          <span class="facts-entry-button__body">
             <span class="facts-entry-button__label">{{
               t("prCard.location")
             }}</span>
@@ -102,7 +102,7 @@
           block
           @click="showMeetingPointGalleryModal = true"
         >
-          <span class="facts-entry-button__content">
+          <span class="facts-entry-button__body">
             <span class="facts-entry-button__label">{{
               t("prCard.meetingPoint")
             }}</span>
@@ -464,11 +464,11 @@ watch(
   justify-content: flex-start;
 }
 
-.facts-entry-button:deep(.ui-button__content) {
+.facts-entry-button:deep(.ui-button__label) {
   width: 100%;
 }
 
-.facts-entry-button__content {
+.facts-entry-button__body {
   display: flex;
   width: 100%;
   align-items: center;

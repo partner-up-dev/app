@@ -47,7 +47,7 @@
       />
     </div>
 
-    <div class="event-info">
+    <div class="event-card__summary">
       <FitChipGroup
         v-if="!isShorter && availableLocations.length > 0"
         class="event-available-locations-row"
@@ -348,7 +348,7 @@ const handleClick = () => {
   min-width: 0;
 }
 
-.event-info {
+.event-card__summary {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -408,7 +408,7 @@ const handleClick = () => {
   height: 104px;
 }
 
-.event-card--shorter .event-info {
+.event-card--shorter .event-card__summary {
   gap: var(--sys-spacing-xsmall);
   padding: var(--sys-spacing-small) var(--sys-spacing-medium)
     var(--sys-spacing-medium);

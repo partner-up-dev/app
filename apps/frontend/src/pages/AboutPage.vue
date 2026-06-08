@@ -7,7 +7,7 @@
       />
     </template>
 
-    <section class="about-content" :aria-label="t('aboutPage.sectionTitle')">
+    <section class="about-body" :aria-label="t('aboutPage.sectionTitle')">
       <dl class="about-list">
         <div class="about-item">
           <dt>{{ t("aboutPage.productNameLabel") }}</dt>
@@ -223,7 +223,7 @@ const backendCommitHash = computed(() => {
 </script>
 
 <style scoped lang="scss">
-.about-content {
+.about-body {
   width: min(100%, 42rem);
   display: flex;
   flex-direction: column;

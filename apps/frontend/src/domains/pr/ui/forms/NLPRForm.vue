@@ -1,7 +1,7 @@
 <template>
   <form class="nl-form" @submit.prevent="onSubmit">
     <Field name="rawText" v-slot="{ field, errors }">
-      <div class="field-wrapper">
+      <div class="nl-field">
         <TextareaInput
           input-id="pr-text"
           :model-value="field.value"
@@ -190,7 +190,7 @@ const handleVoiceToggle = async (): Promise<void> => {
   gap: var(--sys-spacing-medium);
 }
 
-.field-wrapper {
+.nl-field {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);

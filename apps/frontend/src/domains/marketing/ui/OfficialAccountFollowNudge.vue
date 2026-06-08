@@ -7,9 +7,9 @@
       aria-live="polite"
       data-testid="official-account-follow-nudge"
     >
-      <div class="nudge-content">
+      <div class="nudge-body">
         <span class="nudge-icon i-mdi-wechat" aria-hidden="true"></span>
-        <div class="nudge-copy">
+        <div class="nudge-text">
           <p class="nudge-title">
             {{ t("officialAccountFollow.nudgeTitle") }}
           </p>
@@ -93,7 +93,7 @@ const handleOpenOfficialAccountQr = (): void => {
   @include mx.pu-elevation(4);
 }
 
-.nudge-content {
+.nudge-body {
   display: flex;
   gap: var(--sys-spacing-small);
   align-items: flex-start;
@@ -105,7 +105,7 @@ const handleOpenOfficialAccountQr = (): void => {
   @include mx.pu-icon(large, true);
 }
 
-.nudge-copy {
+.nudge-text {
   min-width: 0;
 }
 
