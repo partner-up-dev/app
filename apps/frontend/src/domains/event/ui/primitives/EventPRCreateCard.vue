@@ -6,9 +6,7 @@
     <ExpandableCard
       :title="title ?? t('anchorEvent.createCard.title')"
       :subtitle="
-        t('anchorEvent.createCard.subtitle', {
-          eventTitle,
-        })
+        t('anchorEvent.createCard.subtitle')
       "
       :default-expanded="expandableDefaultExpanded"
       :expanded-reset-key="expandableCardResetKey"
