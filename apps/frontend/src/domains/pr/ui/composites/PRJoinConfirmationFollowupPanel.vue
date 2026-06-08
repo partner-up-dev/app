@@ -9,7 +9,7 @@
         class="join-confirmation-followup__icon i-mdi-clock-alert-outline"
         aria-hidden="true"
       ></span>
-      <div class="join-confirmation-followup__copy">
+      <div class="join-confirmation-followup__text">
         <h2
           id="join-confirmation-followup-title"
           class="join-confirmation-followup__title"
@@ -93,7 +93,7 @@ const confirmationNotificationDescriptionPrefixes = computed<
   @include mx.pu-icon(medium);
 }
 
-.join-confirmation-followup__copy {
+.join-confirmation-followup__text {
   display: flex;
   min-width: 0;
   flex-direction: column;

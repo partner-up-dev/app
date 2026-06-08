@@ -3,7 +3,7 @@
     class="beta-group-qr-panel"
     data-testid="pr-detail.beta-group.panel"
   >
-    <div class="beta-group-qr-panel__copy">
+    <div class="beta-group-qr-panel__summary">
       <span
         class="beta-group-qr-panel__icon i-mdi-account-group-outline"
         aria-hidden="true"
@@ -69,7 +69,7 @@ const qrAlt = computed(() =>
   gap: var(--sys-spacing-medium);
 }
 
-.beta-group-qr-panel__copy {
+.beta-group-qr-panel__summary {
   display: flex;
   gap: var(--sys-spacing-small);
   align-items: flex-start;

@@ -16,19 +16,19 @@
     </button>
     <div
       v-if="keepContentMounted"
-      class="expandable-card__content-motion"
+      class="expandable-card__body-motion"
       :class="{ 'is-open': expanded }"
       :aria-hidden="!expanded"
       :inert="!expanded"
     >
-      <div class="expandable-card__content-clip">
-        <div class="expandable-card__content">
+      <div class="expandable-card__body-clip">
+        <div class="expandable-card__body">
           <slot />
         </div>
       </div>
     </div>
-    <Transition v-else name="expandable-card-content">
-      <div v-if="expanded" class="expandable-card__content">
+    <Transition v-else name="expandable-card-body">
+      <div v-if="expanded" class="expandable-card__body">
         <slot />
       </div>
     </Transition>
@@ -113,11 +113,11 @@ watch(
   transform: rotate(180deg);
 }
 
-.expandable-card__content {
+.expandable-card__body {
   padding: 0 var(--sys-spacing-medium) var(--sys-spacing-medium);
 }
 
-.expandable-card__content-motion {
+.expandable-card__body-motion {
   display: grid;
   grid-template-rows: 0fr;
   overflow: hidden;
@@ -130,27 +130,27 @@ watch(
     transform 0.15s ease;
 }
 
-.expandable-card__content-motion.is-open {
+.expandable-card__body-motion.is-open {
   grid-template-rows: 1fr;
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
 }
 
-.expandable-card__content-motion > .expandable-card__content-clip {
+.expandable-card__body-motion > .expandable-card__body-clip {
   min-height: 0;
   overflow: hidden;
 }
 
-.expandable-card-content-enter-active,
-.expandable-card-content-leave-active {
+.expandable-card-body-enter-active,
+.expandable-card-body-leave-active {
   transition:
     opacity 0.15s ease,
     transform 0.15s ease;
 }
 
-.expandable-card-content-enter-from,
-.expandable-card-content-leave-to {
+.expandable-card-body-enter-from,
+.expandable-card-body-leave-to {
   opacity: 0;
   transform: translateY(-4px);
 }

@@ -16,7 +16,7 @@
       </ActionLink>
     </template>
 
-    <div class="ordering-page__content">
+    <div class="ordering-page__body">
       <InlineNotice
         v-if="missingInput"
         tone="error"
@@ -24,13 +24,13 @@
         :message="t('ordering.invalidEntryMessage')"
       />
 
-      <RentalOrderingContent
+      <RentalOrderingForm
         v-else-if="rentalOrdering && orderingContentInput"
         :input="orderingContentInput"
         @update:output="handleRentalOutputUpdate"
       />
 
-      <RideHailingOrderingContent
+      <RideHailingOrderingPanel
         v-else-if="rideOrdering && orderingContentInput"
         :input="orderingContentInput"
         :evaluated-options="rideEvaluatedOptions"
@@ -39,8 +39,8 @@
       />
     </div>
 
-    <template #bottom-action>
-      <OrderingBottomActionBar
+    <template #footer-action>
+      <OrderingFooterActionBar
         v-if="rentalOrdering"
         :amount-label="priceDisplayLabel"
         :can-create="canCreate"
@@ -53,7 +53,7 @@
         @open-price-detail="priceDetailOpen = true"
         @create="submitOrder"
       />
-      <OrderingBottomActionBar
+      <OrderingFooterActionBar
         v-if="rideOrdering"
         :amount-label="priceDisplayLabel"
         :can-create="canCreate"
@@ -99,13 +99,13 @@ import { useRouter } from "vue-router";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
-import OrderingBottomActionBar from "@/domains/commerce/ui/ordering/OrderingBottomActionBar.vue";
+import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingFloatingNoticeLayer from "@/domains/commerce/ui/ordering/OrderingFloatingNoticeLayer.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
-import RentalOrderingContent from "@/domains/commerce/ui/ordering/RentalOrderingContent.vue";
-import RideHailingOrderingContent, {
+import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
+import RideHailingOrderingPanel, {
   type RideVehicleOption,
-} from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
+} from "@/domains/commerce/ui/ordering/RideHailingOrderingPanel.vue";
 import {
   useEvaluateOrdering,
   type CreateOrderInput,
@@ -568,7 +568,7 @@ const submitOrder = async (): Promise<void> => {
 </script>
 
 <style scoped lang="scss">
-.ordering-page__content {
+.ordering-page__body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;

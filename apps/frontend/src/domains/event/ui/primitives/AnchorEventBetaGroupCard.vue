@@ -146,7 +146,7 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
 }
 
 .anchor-event-beta-group-card-shell :deep(.expandable-card__toggle),
-.anchor-event-beta-group-card-shell :deep(.expandable-card__content) {
+.anchor-event-beta-group-card-shell :deep(.expandable-card__body) {
   position: relative;
   z-index: 1;
 }

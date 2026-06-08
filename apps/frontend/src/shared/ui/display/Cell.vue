@@ -11,7 +11,7 @@
       </slot>
     </div>
 
-    <div v-if="hasRight" class="ui-cell__right">
+    <div v-if="hasTrailing" class="ui-cell__trailing">
       <div v-if="hasValue" class="ui-cell__value">
         <slot>
           {{ props.value }}
@@ -62,7 +62,7 @@ const hasValue = computed(
 const hasSuffix = computed(
   () => Boolean(slots.suffix) || Boolean(props.suffixIcon),
 );
-const hasRight = computed(() => hasValue.value || hasSuffix.value);
+const hasTrailing = computed(() => hasValue.value || hasSuffix.value);
 </script>
 
 <style lang="scss" scoped>
@@ -119,7 +119,7 @@ const hasRight = computed(() => hasValue.value || hasSuffix.value);
   color: var(--sys-color-on-surface);
 }
 
-.ui-cell__right {
+.ui-cell__trailing {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;

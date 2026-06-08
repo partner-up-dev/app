@@ -19,7 +19,7 @@
       persistent
     />
 
-    <section class="author-content">
+    <section class="author-body">
       <p class="description">{{ t("contactAuthorPage.description") }}</p>
       <div class="qr-frame">
         <img
@@ -79,7 +79,7 @@ const qrCodeUrl = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.author-content {
+.author-body {
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -35,7 +35,7 @@
           :checked="props.modelValue.confirmationEnabled"
           @change="handleConfirmationEnabledChange"
         />
-        <span class="timeline-policy-picker__toggle-copy">
+        <span class="timeline-policy-picker__toggle-text">
           <span class="timeline-policy-picker__control-label">
             {{ t("timelinePolicyPicker.confirmationEnabled") }}
           </span>
@@ -345,7 +345,7 @@ function handleConfirmationEnabledChange(event: Event): void {
   margin-top: 2px;
 }
 
-.timeline-policy-picker__toggle-copy {
+.timeline-policy-picker__toggle-text {
   display: grid;
   gap: calc(var(--sys-spacing-xsmall) / 2);
 }

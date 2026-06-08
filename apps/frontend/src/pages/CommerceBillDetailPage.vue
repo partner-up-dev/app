@@ -92,7 +92,7 @@
               class="bill-detail-page__line"
               data-testid="bill-detail.line"
             >
-              <div class="bill-detail-page__line-main">
+              <div class="bill-detail-page__line-summary">
                 <div>
                   <strong>{{ line.label }}</strong>
                   <span>{{ line.description ?? "无补充说明" }}</span>
@@ -270,7 +270,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   background: var(--sys-color-surface-container-high);
 }
 
-.bill-detail-page__line-main,
+.bill-detail-page__line-summary,
 .bill-detail-page__line-footer {
   display: flex;
   align-items: center;
@@ -278,7 +278,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   gap: var(--sys-spacing-medium);
 }
 
-.bill-detail-page__line-main {
+.bill-detail-page__line-summary {
   div {
     display: flex;
     flex-direction: column;
@@ -307,7 +307,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
     grid-template-columns: 1fr;
   }
 
-  .bill-detail-page__line-main,
+  .bill-detail-page__line-summary,
   .bill-detail-page__line-footer {
     align-items: flex-start;
     flex-direction: column;

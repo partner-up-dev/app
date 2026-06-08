@@ -24,7 +24,7 @@
     >
       <slot name="leading" />
     </span>
-    <span class="ui-action-link__content">
+    <span class="ui-action-link__label">
       <slot />
     </span>
     <span
@@ -342,7 +342,7 @@ const handleClick = (event: MouseEvent) => {
   transform: scale(0.99);
 }
 
-.ui-action-link__content {
+.ui-action-link__label {
   min-width: 0;
 }
 

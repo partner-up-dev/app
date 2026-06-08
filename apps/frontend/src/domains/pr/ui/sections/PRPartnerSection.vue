@@ -1,7 +1,7 @@
 <template>
   <section class="partner-section">
     <header class="partner-section__header">
-      <div class="partner-section__header-main">
+      <div class="partner-section__header-body">
         <div class="flex justify-between">
           <h2 class="partner-section__title">
             {{ t("prPage.partnerSection.title") }}
@@ -464,7 +464,7 @@ function blockedReasonText(
   border-bottom: 1px solid var(--sys-color-outline-variant);
 }
 
-.partner-section__header-main {
+.partner-section__header-body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);

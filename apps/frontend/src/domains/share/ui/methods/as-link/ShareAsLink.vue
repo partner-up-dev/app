@@ -16,7 +16,7 @@
 
       <div class="link-preview">
         <h4 class="preview-title">{{ t("share.asLink.linkPreviewTitle") }}</h4>
-        <div class="preview-content">
+        <div class="link-preview-body">
           <pre class="preview-text">{{ normalizedUrl }}</pre>
         </div>
       </div>
@@ -24,7 +24,7 @@
 
     <div class="action-section">
       <FeedbackButton
-        class="action-btn"
+        class="share-action"
         :state="feedbackState"
         :disabled="shareState !== 'idle'"
         block

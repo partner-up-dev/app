@@ -6,9 +6,7 @@
     <ExpandableCard
       :title="title ?? t('anchorEvent.createCard.title')"
       :subtitle="
-        t('anchorEvent.createCard.subtitle', {
-          eventTitle,
-        })
+        t('anchorEvent.createCard.subtitle')
       "
       :default-expanded="expandableDefaultExpanded"
       :expanded-reset-key="expandableCardResetKey"
@@ -179,7 +177,7 @@ const emitCreate = () => {
 }
 
 .create-card-shell :deep(.expandable-card__toggle),
-.create-card-shell :deep(.expandable-card__content) {
+.create-card-shell :deep(.expandable-card__body) {
   position: relative;
   z-index: 1;
 }

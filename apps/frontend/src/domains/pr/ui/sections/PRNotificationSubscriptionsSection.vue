@@ -5,7 +5,7 @@
     data-region="reliability"
     data-testid="pr-detail.notification-subscriptions"
   >
-    <div class="utility-section__content">
+    <div class="utility-section__body">
       <h2 class="utility-section__title">
         {{ t("prPage.notificationSubscriptions.title") }}
       </h2>
@@ -40,7 +40,7 @@ const showInlineReminderSubscriptions = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.utility-section__content {
+.utility-section__body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);

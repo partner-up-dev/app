@@ -47,7 +47,7 @@
         max-width="720px"
         @close="previewOpen = false"
       >
-        <AnchorEventTimeWindowsPreviewContent
+        <AnchorEventTimeWindowPreviewList
           :duration-minutes="normalizedDurationMinutes"
           :earliest-lead-minutes="normalizedEarliestLeadMinutes"
           :recurring-rules="recurringStartRules"
@@ -79,7 +79,7 @@ import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventParticipationPolicyEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventParticipationPolicyEditor.vue";
 import AnchorEventTimePoolStrategyEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventTimePoolStrategyEditor.vue";
-import AnchorEventTimeWindowsPreviewContent from "@/domains/admin/ui/anchor-event/components/AnchorEventTimeWindowsPreviewContent.vue";
+import AnchorEventTimeWindowPreviewList from "@/domains/admin/ui/anchor-event/components/AnchorEventTimeWindowPreviewList.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import type { AnchorEventRecurringStartRulePreviewInput } from "@/domains/admin/model/anchorEventTimeWindowPreview";
 

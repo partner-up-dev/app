@@ -27,7 +27,7 @@
         @create-fallback="handleCreateFallback"
       />
 
-      <div v-else class="form-mode-selection">
+      <div v-else class="form-mode-builder">
         <AnchorEventCarouselPlaceSelector
           v-model="selectedPlaceId"
           :place-selector="formModeData.placeSelector"
@@ -1313,7 +1313,7 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .anchor-event-form-mode,
 .anchor-event-form-mode__stack,
-.form-mode-selection {
+.form-mode-builder {
   display: flex;
   flex-direction: column;
 }
@@ -1330,7 +1330,7 @@ onBeforeUnmount(() => {
   gap: var(--sys-spacing-medium);
 }
 
-.form-mode-selection {
+.form-mode-builder {
   flex: 1 1 auto;
   min-height: 0;
   justify-content: space-between;

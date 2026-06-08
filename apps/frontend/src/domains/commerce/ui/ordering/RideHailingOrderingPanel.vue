@@ -1,8 +1,8 @@
 <template>
   <template v-if="rideOffer">
-    <div class="ride-content">
+    <div class="ride-hailing-ordering-panel">
       <RouteMap
-        class="ride-content__route-map"
+        class="ride-hailing-ordering-panel__route-map"
         data-testid="ordering.ride-hailing.route-map"
         :route="routeForMap"
         :planned-polyline="plannedPolyline"
@@ -12,10 +12,16 @@
         hide-bottom-attribution
       />
 
-      <div class="ride-content__sheet" data-testid="ordering.ride-hailing.bottom-sheet">
-        <div class="ride-content__handle" aria-hidden="true"></div>
+      <div
+        class="ride-hailing-ordering-panel__sheet"
+        data-testid="ordering.ride-hailing.bottom-sheet"
+      >
+        <div class="ride-hailing-ordering-panel__handle" aria-hidden="true"></div>
 
-        <div class="ride-content__passengers" data-testid="ordering.ride-hailing.riders">
+        <div
+          class="ride-hailing-ordering-panel__passengers"
+          data-testid="ordering.ride-hailing.riders"
+        >
           <div>
             <span>同乘人</span>
             <strong>{{ riderSummary }}</strong>
@@ -25,7 +31,7 @@
           </small>
         </div>
 
-        <div class="ride-content__vehicles">
+        <div class="ride-hailing-ordering-panel__vehicles">
           <RideHailingSkuCard
             v-for="option in rideQuoteOptions"
             :key="option.skuId"
@@ -343,29 +349,29 @@ watch(
 </script>
 
 <style scoped lang="scss">
-.ride-content {
+.ride-hailing-ordering-panel {
   position: relative;
   width: 100%;
   min-height: 0;
 }
 
-.ride-content,
-.ride-content__route-map {
+.ride-hailing-ordering-panel,
+.ride-hailing-ordering-panel__route-map {
   height: 100%;
 }
 
-.ride-content__route-map :deep(.route-map),
-.ride-content__route-map :deep(.map-shell) {
+.ride-hailing-ordering-panel__route-map :deep(.route-map),
+.ride-hailing-ordering-panel__route-map :deep(.map-shell) {
   height: 100%;
   border: 0;
   border-radius: 0;
 }
 
-.ride-content__route-map {
+.ride-hailing-ordering-panel__route-map {
   pointer-events: none;
 }
 
-.ride-content__sheet {
+.ride-hailing-ordering-panel__sheet {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -382,7 +388,7 @@ watch(
   box-shadow: var(--sys-shadow-3);
 }
 
-.ride-content__handle {
+.ride-hailing-ordering-panel__handle {
   width: 2rem;
   height: 0.25rem;
   margin: var(--sys-spacing-small) auto 0;
@@ -390,7 +396,7 @@ watch(
   background: var(--sys-color-on-surface-variant);
 }
 
-.ride-content__passengers {
+.ride-hailing-ordering-panel__passengers {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -416,7 +422,7 @@ watch(
   }
 }
 
-.ride-content__vehicles {
+.ride-hailing-ordering-panel__vehicles {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);

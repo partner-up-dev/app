@@ -2,7 +2,7 @@
   <div v-if="products.length === 0" class="pm-hint">
     {{ t("adminCommerceProducts.emptyProducts") }}
   </div>
-  <div v-else class="pm-selection-list">
+  <div v-else class="pm-rail-list">
     <ChoiceCard
       v-for="product in products"
       :key="product.spu.id"

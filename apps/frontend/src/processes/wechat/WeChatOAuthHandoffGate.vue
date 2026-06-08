@@ -2,7 +2,7 @@
   <slot v-if="ready" />
 
   <main v-else class="wechat-oauth-handoff" aria-live="polite">
-    <section class="wechat-oauth-handoff__content" aria-busy="true">
+    <section class="wechat-oauth-handoff__body" aria-busy="true">
       <div
         v-if="state !== 'failed'"
         class="wechat-oauth-handoff__spinner"
@@ -234,7 +234,7 @@ onBeforeUnmount(() => {
   color: var(--sys-color-on-surface);
 }
 
-.wechat-oauth-handoff__content {
+.wechat-oauth-handoff__body {
   display: flex;
   width: min(100%, calc(calc(var(--sys-spacing-large) * 2) * 6));
   flex-direction: column;

@@ -50,7 +50,7 @@
             class="message-thread__empty-icon i-mdi-message-text-outline"
             aria-hidden="true"
           />
-          <div class="message-thread__empty-copy">
+          <div class="message-thread__empty-text">
             <h2 class="message-thread__empty-title">
               {{ t("prPage.messageThread.emptyTitle") }}
             </h2>
@@ -331,7 +331,7 @@ const handleSubmitMessage = async () => {
   flex-shrink: 0;
 }
 
-.message-thread__empty-copy {
+.message-thread__empty-text {
   min-width: 0;
 }
 

@@ -8,7 +8,7 @@
       { 'pr-roster-item--link': hasLink },
     ]"
   >
-    <div class="pr-roster-item__main">
+    <div class="pr-roster-item__body">
       <div class="pr-roster-item__identity">
         <img
           v-if="props.avatarUrl"
@@ -135,7 +135,7 @@ const hasTags = computed(
   }
 }
 
-.pr-roster-item__main {
+.pr-roster-item__body {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);

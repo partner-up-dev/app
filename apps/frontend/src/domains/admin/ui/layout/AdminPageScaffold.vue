@@ -3,7 +3,7 @@
     <div class="admin-page-scaffold__layout">
       <aside
         v-if="$slots.navigation || $slots.rail"
-        class="admin-page-scaffold__left"
+        class="admin-page-scaffold__aside"
       >
         <slot name="navigation" />
 
@@ -21,7 +21,7 @@
           <slot name="actions" />
         </div>
 
-        <main class="admin-page-scaffold__main">
+        <main class="admin-page-scaffold__body">
           <slot name="main">
             <slot />
           </slot>
@@ -42,9 +42,9 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 
 .admin-page-scaffold__layout,
 .admin-page-scaffold__workspace,
-.admin-page-scaffold__left,
+.admin-page-scaffold__aside,
 .admin-page-scaffold__context,
-.admin-page-scaffold__main {
+.admin-page-scaffold__body {
   min-width: 0;
 }
 
@@ -55,7 +55,7 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
   align-items: start;
 }
 
-.admin-page-scaffold__left {
+.admin-page-scaffold__aside {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-medium);
@@ -92,7 +92,7 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 }
 
 @media (min-width: 901px) {
-  .admin-page-scaffold__left {
+  .admin-page-scaffold__aside {
     position: sticky;
     top: calc(var(--sys-spacing-medium) + var(--pu-safe-top));
   }
@@ -103,7 +103,7 @@ import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-page-scaffold__left {
+  .admin-page-scaffold__aside {
     max-height: none;
     overflow-y: visible;
   }

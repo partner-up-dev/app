@@ -2,7 +2,7 @@
   <section class="share-pr">
     <div class="carousel-header">
       <Button
-        class="nav-btn"
+        class="method-nav-action"
         appearance="pill"
         tone="ghost"
         size="sm"
@@ -15,7 +15,7 @@
       </Button>
       <h3 class="method-label">{{ currentMethod.label }}</h3>
       <Button
-        class="nav-btn"
+        class="method-nav-action"
         appearance="pill"
         tone="ghost"
         size="sm"
@@ -29,7 +29,7 @@
     </div>
 
     <div
-      class="content-section"
+      class="method-pane-stage"
       @pointerdown.capture="handleShareMethodInteraction"
       @keydown.capture="handleShareMethodInteraction"
       @input.capture="handleShareMethodInteraction"
@@ -140,7 +140,7 @@ const {
   margin-bottom: var(--sys-spacing-medium);
 }
 
-.nav-btn {
+.method-nav-action {
   min-width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
 
@@ -157,7 +157,7 @@ const {
   text-align: center;
 }
 
-.content-section {
+.method-pane-stage {
   position: relative;
   height: 66vh;
   min-height: 0;

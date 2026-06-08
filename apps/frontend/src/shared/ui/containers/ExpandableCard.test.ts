@@ -61,7 +61,7 @@ describe("ExpandableCard", () => {
     );
     expect(
       getContentClip(mounted.host).querySelector(
-        ".expandable-card__content [data-testid='expensive-child']",
+        ".expandable-card__body [data-testid='expensive-child']",
       ),
     ).not.toBeNull();
     expect(mounted.stats.mounted).toBe(1);
@@ -173,7 +173,7 @@ const getToggle = (host: HTMLElement): HTMLButtonElement => {
 };
 
 const getContentMotion = (host: HTMLElement): HTMLElement => {
-  const content = host.querySelector(".expandable-card__content-motion");
+  const content = host.querySelector(".expandable-card__body-motion");
   if (!(content instanceof HTMLElement)) {
     throw new Error("ExpandableCard content motion wrapper not found");
   }
@@ -181,7 +181,7 @@ const getContentMotion = (host: HTMLElement): HTMLElement => {
 };
 
 const getContentClip = (host: HTMLElement): HTMLElement => {
-  const content = host.querySelector(".expandable-card__content-clip");
+  const content = host.querySelector(".expandable-card__body-clip");
   if (!(content instanceof HTMLElement)) {
     throw new Error("ExpandableCard content clip wrapper not found");
   }

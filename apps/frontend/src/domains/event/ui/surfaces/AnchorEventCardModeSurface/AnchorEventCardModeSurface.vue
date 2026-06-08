@@ -20,26 +20,26 @@
     <div class="card-stage">
       <div class="card-stage__label-rail" aria-hidden="true">
         <span
-          class="card-stage__projection-label card-stage__projection-label--left"
+          class="card-stage__projection-label card-stage__projection-label--skip"
           :style="leftPromptStyle"
         >
           {{ t("anchorEvent.card.swipeSkipHint") }}
         </span>
         <span
-          class="card-stage__projection-label card-stage__projection-label--right"
+          class="card-stage__projection-label card-stage__projection-label--detail"
           :style="rightPromptStyle"
         >
           {{ t("anchorEvent.card.swipeDetailHint") }}
         </span>
       </div>
 
-      <div class="card-stage__inner">
+      <div class="card-stage__deck">
         <div
           class="card-stage__projection-layer card-stage__projection-layer--underlay"
           aria-hidden="true"
         >
           <span
-            class="card-stage__projection-side card-stage__projection-side--left"
+            class="card-stage__projection-side card-stage__projection-side--skip"
             :style="leftProjectionShellStyle"
           >
             <span
@@ -53,7 +53,7 @@
             </span>
           </span>
           <span
-            class="card-stage__projection-side card-stage__projection-side--right"
+            class="card-stage__projection-side card-stage__projection-side--detail"
             :style="rightProjectionShellStyle"
           >
             <span

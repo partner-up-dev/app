@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="ordering-shell" :data-testid="dataTestid">
+  <FullScreenPageScaffold class="ordering-page-shell" :data-testid="dataTestid">
     <template #header>
       <PageHeader
         :title="title"
@@ -13,12 +13,12 @@
       </PageHeader>
     </template>
 
-    <main class="ordering-shell__content">
+    <main class="ordering-page-shell__body">
       <slot />
     </main>
 
     <template #footer>
-      <slot name="bottom-action" />
+      <slot name="footer-action" />
     </template>
 
     <slot name="floating" />
@@ -40,20 +40,20 @@ defineProps<{
 </script>
 
 <style scoped lang="scss">
-.ordering-shell {
+.ordering-page-shell {
   position: relative;
   min-width: 0;
   --pu-page-max-width: 44rem;
   --pu-page-padding-bottom: 0;
 }
 
-.ordering-shell :deep(.full-screen-page-scaffold__footer) {
+.ordering-page-shell :deep(.full-screen-page-scaffold__footer) {
   width: 100vw;
   margin-right: calc(50% - 50vw);
   margin-left: calc(50% - 50vw);
 }
 
-.ordering-shell__content {
+.ordering-page-shell__body {
   position: relative;
   display: flex;
   flex: 1 1 auto;

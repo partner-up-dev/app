@@ -671,7 +671,7 @@
                   :key="step.stepKey"
                   class="funnel-step"
                 >
-                  <div class="funnel-step__main">
+                  <div class="funnel-step__body">
                     <div class="funnel-step__title-row">
                       <strong>{{ step.label }}</strong>
                       <span>{{ formatCount(step.journeyCount) }}</span>
@@ -1384,7 +1384,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .funnel-panel,
 .funnel-panel__header,
 .funnel-steps,
-.funnel-step__main,
+.funnel-step__body,
 .funnel-step__metrics,
 .nudge-summary-grid,
 .nudge-summary-grid > div,
@@ -1399,7 +1399,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .analytics-panel,
 .funnel-panel,
 .funnel-steps,
-.funnel-step__main,
+.funnel-step__body,
 .funnel-step__metrics,
 .nudge-summary-grid > div,
 .kpi-card {
@@ -1652,7 +1652,7 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   border-bottom: 0;
 }
 
-.funnel-step__main {
+.funnel-step__body {
   gap: var(--sys-spacing-xsmall);
 }
 

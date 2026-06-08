@@ -31,7 +31,7 @@
             :to="{ name: 'pr-create' }"
             @click="handleFallbackCreateClick"
           >
-            <div class="creator-copy">
+            <div class="creator-text">
               <h3>{{ t("home.landing.secondaryCreateTitle") }}</h3>
               <p>{{ t("home.landing.secondaryCreateDescription") }}</p>
             </div>
@@ -322,7 +322,7 @@ onUnmounted(() => {
   }
 }
 
-.creator-copy {
+.creator-text {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
@@ -396,13 +396,13 @@ onUnmounted(() => {
     padding: var(--landing-entry-padding-compact);
   }
 
-  .creator-copy h3 {
+  .creator-text h3 {
     font-size: 1.375rem;
     font-weight: 400;
     line-height: 2rem;
   }
 
-  .creator-copy p {
+  .creator-text p {
     @include mx.pu-font(body);
   }
 

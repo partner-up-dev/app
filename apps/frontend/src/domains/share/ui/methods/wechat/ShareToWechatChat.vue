@@ -14,7 +14,7 @@
       </Button>
     </div>
 
-    <div v-else class="wechat-chat-method__main">
+    <div v-else class="wechat-chat-method__body">
       <div class="options-section flex flex-col">
         <Button
           tone="outline"

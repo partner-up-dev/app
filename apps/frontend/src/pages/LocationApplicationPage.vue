@@ -8,7 +8,7 @@
       />
     </template>
 
-    <div class="location-application-page__main">
+    <div class="location-application-page__body">
       <InlineNotice
         v-if="submitSuccessTitle"
         tone="success"
@@ -91,7 +91,7 @@
               :src="application.imageUrl"
               :alt="application.title"
             />
-            <div class="application-card__copy">
+            <div class="application-card__body">
               <div class="application-card__title-row">
                 <h3>{{ application.title }}</h3>
                 <Chip :tone="statusChipTone(application.status)" size="sm">
@@ -236,21 +236,21 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.location-application-page__main,
+.location-application-page__body,
 .application-form,
 .application-list,
-.application-card__copy {
+.application-card__body {
   display: flex;
   flex-direction: column;
 }
 
-.location-application-page__main {
+.location-application-page__body {
   gap: var(--sys-spacing-large);
 }
 
 .application-form,
 .application-list,
-.application-card__copy {
+.application-card__body {
   gap: var(--sys-spacing-medium);
 }
 

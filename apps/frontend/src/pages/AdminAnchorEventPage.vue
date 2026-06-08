@@ -21,11 +21,11 @@
         <div v-if="events.length === 0" class="hint">
           {{ t("adminAnchorEvents.emptyEvents") }}
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="anchor-event-rail-list">
           <ChoiceCard
             v-for="event in events"
             :key="event.id"
-            class="selection-btn"
+            class="anchor-event-card"
             :active="!isCreatingEvent && selectedEventId === event.id"
             @click="selectEvent(event.id)"
           >
@@ -629,13 +629,13 @@ const handleRejectRouteApplication = async (payload: {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list {
+.anchor-event-rail-list {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.anchor-event-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

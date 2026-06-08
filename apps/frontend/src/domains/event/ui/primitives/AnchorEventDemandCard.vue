@@ -31,7 +31,7 @@
       }}</span>
     </div>
 
-    <div class="demand-card__content">
+    <div class="demand-card__body">
       <section class="demand-card__primary">
         <p class="demand-card__time">{{ timeLabel }}</p>
         <div
@@ -769,7 +769,7 @@ defineExpose({
   filter: saturate(0.85) brightness(0.9);
 }
 
-.demand-card--preview .demand-card__content {
+.demand-card--preview .demand-card__body {
   gap: var(--sys-spacing-small);
 }
 
@@ -810,7 +810,7 @@ defineExpose({
   backdrop-filter: blur(4px);
 }
 
-.demand-card__content {
+.demand-card__body {
   padding: calc(var(--sys-spacing-medium) + var(--sys-spacing-xsmall));
   display: flex;
   flex-direction: column;

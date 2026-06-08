@@ -1,5 +1,5 @@
 <template>
-  <div class="anchor-event-core-info-editor">
+  <div class="anchor-event-details-editor">
     <label class="field">
       <span class="field-label">{{ t("adminPR.eventNameLabel") }}</span>
       <input v-model="form.title" class="field-input" />
@@ -35,13 +35,13 @@ const { t } = useI18n();
 </script>
 
 <style lang="scss" scoped>
-.anchor-event-core-info-editor,
+.anchor-event-details-editor,
 .field {
   display: flex;
   flex-direction: column;
 }
 
-.anchor-event-core-info-editor {
+.anchor-event-details-editor {
   gap: var(--sys-spacing-small);
 }
 

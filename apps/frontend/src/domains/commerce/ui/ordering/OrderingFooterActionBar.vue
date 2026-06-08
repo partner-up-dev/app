@@ -1,24 +1,24 @@
 <template>
-  <div class="ordering-bottom-action" data-testid="ordering.bottom-action">
-    <div class="ordering-bottom-action__price">
+  <div class="ordering-footer-action-bar" data-testid="ordering.bottom-action">
+    <div class="ordering-footer-action-bar__price-summary">
       <strong :data-testid="priceTestid">{{ amountLabel }}</strong>
       <button
         type="button"
-        class="ordering-bottom-action__price-detail"
+        class="ordering-footer-action-bar__price-detail-trigger"
         :disabled="!priceDetailEnabled"
         :data-testid="priceDetailTestid"
         :aria-label="t('ordering.priceDetailAria')"
         @click="$emit('open-price-detail')"
       >
         <span
-          class="ordering-bottom-action__chevron i-mdi-chevron-up"
+          class="ordering-footer-action-bar__chevron i-mdi-chevron-up"
           aria-hidden="true"
         ></span>
       </button>
     </div>
 
     <Button
-      class="ordering-bottom-action__create"
+      class="ordering-footer-action-bar__submit-action"
       size="md"
       :disabled="!canCreate"
       :loading="loading"
@@ -63,7 +63,7 @@ defineEmits<{
 </script>
 
 <style scoped lang="scss">
-.ordering-bottom-action {
+.ordering-footer-action-bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 8.5rem);
   gap: var(--sys-spacing-small);
@@ -76,7 +76,7 @@ defineEmits<{
   box-shadow: var(--sys-shadow-2);
 }
 
-.ordering-bottom-action__price {
+.ordering-footer-action-bar__price-summary {
   display: flex;
   align-items: center;
   gap: calc(var(--sys-spacing-xsmall) / 2);
@@ -91,7 +91,7 @@ defineEmits<{
   }
 }
 
-.ordering-bottom-action__price-detail {
+.ordering-footer-action-bar__price-detail-trigger {
   display: inline-grid;
   flex: 0 0 auto;
   width: 1.875rem;
@@ -115,19 +115,19 @@ defineEmits<{
   }
 }
 
-.ordering-bottom-action__create {
+.ordering-footer-action-bar__submit-action {
   width: 100%;
   min-height: 2.5rem;
   height: 2.5rem;
   padding: 0 var(--sys-spacing-medium);
 }
 
-.ordering-bottom-action__chevron {
+.ordering-footer-action-bar__chevron {
   @include mx.pu-icon(small);
 }
 
 @media (max-width: 24rem) {
-  .ordering-bottom-action {
+  .ordering-footer-action-bar {
     grid-template-columns: minmax(0, 1fr) minmax(6.5rem, 7.5rem);
   }
 }

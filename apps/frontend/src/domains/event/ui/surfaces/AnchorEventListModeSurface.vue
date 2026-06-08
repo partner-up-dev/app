@@ -23,7 +23,7 @@
       @update:model-value="handleDateTabChange"
     />
 
-    <div class="date-content" role="tabpanel">
+    <div class="date-panel" role="tabpanel">
       <div
         class="batch-list"
         data-region="pr-list"
@@ -896,7 +896,7 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
   margin-bottom: 1rem;
 }
 
-.date-content {
+.date-panel {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;

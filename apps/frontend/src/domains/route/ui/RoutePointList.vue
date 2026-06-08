@@ -10,7 +10,7 @@
         :class="`route-point-list__dot--${resolveRole(index)}`"
         aria-hidden="true"
       ></span>
-      <span class="route-point-list__content">
+      <span class="route-point-list__body">
         <span class="route-point-list__name">
           {{ pointName(point, index) }}
         </span>
@@ -106,7 +106,7 @@ const pointAddress = (point: RoutePoint): string | null => {
   background: var(--sys-color-error);
 }
 
-.route-point-list__content {
+.route-point-list__body {
   display: flex;
   min-width: 0;
   flex-direction: column;

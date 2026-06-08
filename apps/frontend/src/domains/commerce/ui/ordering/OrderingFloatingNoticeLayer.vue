@@ -1,8 +1,8 @@
 <template>
   <div
     v-if="message"
-    class="ordering-floating-notice"
-    :class="`ordering-floating-notice--${tone}`"
+    class="ordering-floating-notice-layer"
+    :class="`ordering-floating-notice-layer--${tone}`"
     :data-testid="dataTestid"
     role="status"
   >
@@ -32,7 +32,7 @@ const iconClass = computed(() =>
 </script>
 
 <style scoped lang="scss">
-.ordering-floating-notice {
+.ordering-floating-notice-layer {
   position: absolute;
   right: var(--sys-spacing-medium);
   bottom: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-xlarge));
@@ -56,12 +56,12 @@ const iconClass = computed(() =>
   }
 }
 
-.ordering-floating-notice--warning {
+.ordering-floating-notice-layer--warning {
   background: var(--sys-color-warning);
   color: var(--sys-color-on-warning);
 }
 
-.ordering-floating-notice--error {
+.ordering-floating-notice-layer--error {
   background: var(--sys-color-error);
   color: var(--sys-color-on-error);
 }

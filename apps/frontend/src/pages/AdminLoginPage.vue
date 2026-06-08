@@ -11,7 +11,7 @@
     <section class="admin-login-card">
       <div class="admin-login-card__glow" aria-hidden="true" />
 
-      <div class="admin-login-card__content">
+      <div class="admin-login-card__body">
         <label class="field">
           <span class="field__label">{{ t("adminLogin.userIdLabel") }}</span>
           <input
@@ -118,7 +118,7 @@ watchEffect(() => {
 
 .admin-login-page__header,
 .admin-login-card,
-.admin-login-card__content,
+.admin-login-card__body,
 .field {
   display: flex;
   flex-direction: column;
@@ -187,7 +187,7 @@ watchEffect(() => {
   filter: blur(36px);
 }
 
-.admin-login-card__content {
+.admin-login-card__body {
   position: relative;
   gap: var(--sys-spacing-medium);
   padding: calc(var(--sys-spacing-medium) + var(--sys-spacing-small));

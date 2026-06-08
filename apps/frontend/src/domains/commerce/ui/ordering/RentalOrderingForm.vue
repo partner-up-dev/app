@@ -1,6 +1,6 @@
 <template>
   <template v-if="rentalOffer">
-    <div class="rental-ordering">
+    <div class="rental-ordering-form">
       <SpuCard
         :title="primarySpu?.name ?? '可预订场地'"
         :description="spuDescription"
@@ -8,7 +8,7 @@
         data-testid="ordering.rental.product-summary"
       />
 
-      <div class="rental-ordering__service">
+      <div class="rental-ordering-form__service">
         <div>
           <span>服务时间</span>
           <strong>
@@ -31,7 +31,7 @@
 
       <ul
         v-if="primarySpu?.presentation.sellingPoints.length"
-        class="rental-ordering__selling-points"
+        class="rental-ordering-form__selling-points"
       >
         <li
           v-for="point in primarySpu.presentation.sellingPoints"
@@ -41,26 +41,26 @@
         </li>
       </ul>
 
-      <div class="rental-ordering__section">
+      <div class="rental-ordering-form__section">
         <h2>商品配置</h2>
-        <div class="rental-ordering__sku-list">
+        <div class="rental-ordering-form__sku-list">
           <button
             v-for="sku in selectableSkus"
             :key="sku.skuId"
             type="button"
-            class="rental-ordering__sku-row"
+            class="rental-ordering-form__sku-row"
             :class="{ 'is-selected': sku.skuId === selectedSkuId }"
             data-testid="ordering.rental.sku-option"
             @click="selectedSkuId = sku.skuId"
           >
-            <span class="rental-ordering__sku-check">
+            <span class="rental-ordering-form__sku-check">
               <span
                 v-if="sku.skuId === selectedSkuId"
                 class="i-mdi-check"
                 aria-hidden="true"
               ></span>
             </span>
-            <span class="rental-ordering__sku-main">
+            <span class="rental-ordering-form__sku-summary">
               <strong>{{ sku.name }}</strong>
               <small>
                 {{ rentalSkuParticipantCount(sku) }} 人 ·
@@ -72,7 +72,7 @@
         </div>
       </div>
 
-      <div class="rental-ordering__section">
+      <div class="rental-ordering-form__section">
         <h2>联系方式</h2>
         <FormField
           label="联系人电话"
@@ -82,7 +82,7 @@
           <input
             id="rental-contact-phone"
             v-model.trim="contactPhone"
-            class="rental-ordering__input"
+            class="rental-ordering-form__input"
             inputmode="tel"
             autocomplete="tel"
             data-testid="ordering.rental.contact-phone"
@@ -91,9 +91,9 @@
         </FormField>
       </div>
 
-      <div class="rental-ordering__section">
+      <div class="rental-ordering-form__section">
         <h2>参与者身份信息</h2>
-        <div class="rental-ordering__registrants">
+        <div class="rental-ordering-form__registrants">
           <FormField
             v-for="(_, index) in registrantNames"
             :key="index"
@@ -104,7 +104,7 @@
             <input
               :id="`rental-registrant-${index}`"
               v-model.trim="registrantNames[index]"
-              class="rental-ordering__input"
+              class="rental-ordering-form__input"
               autocomplete="name"
               :data-testid="`ordering.rental.registrant-name.${index}`"
               placeholder="请输入真实姓名"
@@ -113,9 +113,9 @@
         </div>
       </div>
 
-      <div class="rental-ordering__section rental-ordering__section--subtle">
+      <div class="rental-ordering-form__section rental-ordering-form__section--subtle">
         <div
-          class="rental-ordering__policy"
+          class="rental-ordering-form__policy"
           data-testid="ordering.rental.cancellation-policy"
         >
           <strong>取消政策</strong>
@@ -134,7 +134,7 @@
         <div
           v-for="notice in primarySpu?.presentation.noticeBlocks ?? []"
           :key="notice.title"
-          class="rental-ordering__notice-block"
+          class="rental-ordering-form__notice-block"
         >
           <strong>{{ notice.title }}</strong>
           <p>{{ notice.content }}</p>
@@ -358,7 +358,7 @@ watch(output, (next) => emit("update:output", next), {
 </script>
 
 <style scoped lang="scss">
-.rental-ordering {
+.rental-ordering-form {
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -366,7 +366,7 @@ watch(output, (next) => emit("update:output", next), {
   padding: var(--sys-spacing-small) 0 var(--sys-spacing-large);
 }
 
-.rental-ordering__selling-points {
+.rental-ordering-form__selling-points {
   display: grid;
   gap: calc(var(--sys-spacing-xsmall) / 2);
   margin: 0;
@@ -374,7 +374,7 @@ watch(output, (next) => emit("update:output", next), {
   color: var(--sys-color-on-surface-variant);
 }
 
-.rental-ordering__service {
+.rental-ordering-form__service {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--sys-spacing-medium);
@@ -400,7 +400,7 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__section {
+.rental-ordering-form__section {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
@@ -413,18 +413,18 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__section--subtle {
+.rental-ordering-form__section--subtle {
   gap: var(--sys-spacing-medium);
 }
 
-.rental-ordering__sku-list,
-.rental-ordering__registrants {
+.rental-ordering-form__sku-list,
+.rental-ordering-form__registrants {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 }
 
-.rental-ordering__sku-row {
+.rental-ordering-form__sku-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--sys-spacing-small);
@@ -456,7 +456,7 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__sku-check {
+.rental-ordering-form__sku-check {
   display: grid;
   width: 1.25rem;
   height: 1.25rem;
@@ -470,7 +470,7 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__sku-main {
+.rental-ordering-form__sku-summary {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -485,7 +485,7 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__input {
+.rental-ordering-form__input {
   width: 100%;
   min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 1px solid var(--sys-color-outline);
@@ -501,8 +501,8 @@ watch(output, (next) => emit("update:output", next), {
   }
 }
 
-.rental-ordering__policy,
-.rental-ordering__notice-block {
+.rental-ordering-form__policy,
+.rental-ordering-form__notice-block {
   display: flex;
   flex-direction: column;
   gap: calc(var(--sys-spacing-xsmall) / 2);
@@ -516,7 +516,7 @@ watch(output, (next) => emit("update:output", next), {
 }
 
 @media (max-width: 42rem) {
-  .rental-ordering__service {
+  .rental-ordering-form__service {
     grid-template-columns: 1fr;
   }
 }

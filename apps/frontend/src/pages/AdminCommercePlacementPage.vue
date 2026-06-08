@@ -15,7 +15,7 @@
         <div v-if="placements.length === 0" class="hint">
           {{ t("adminCommercePlacementOffer.emptyPlacements") }}
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="placement-rail-list">
           <ChoiceCard
             v-for="placement in placements"
             :key="placement.id"
@@ -433,14 +433,14 @@ const clearErrors = () => {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list,
+.placement-rail-list,
 .form-stack {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.placement-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

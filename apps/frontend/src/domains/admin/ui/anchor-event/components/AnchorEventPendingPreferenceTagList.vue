@@ -1,5 +1,5 @@
 <template>
-  <div class="pending-preference-tags-content">
+  <div class="anchor-event-pending-preference-tag-list">
     <LoadingIndicator
       v-if="preferenceTagsQuery.isLoading.value"
       :message="t('common.loading')"
@@ -13,14 +13,16 @@
       {{ t("adminAnchorEvents.emptyPendingPreferenceTags") }}
     </p>
 
-    <div v-else class="pending-preference-tags-content__list">
+    <div v-else class="anchor-event-pending-preference-tag-list__items">
       <article
         v-for="tag in pendingTags"
         :key="tag.id"
-        class="pending-preference-tags-content__item"
+        class="anchor-event-pending-preference-tag-list__item"
       >
-        <div class="pending-preference-tags-content__copy">
-          <p class="pending-preference-tags-content__label">{{ tag.label }}</p>
+        <div class="anchor-event-pending-preference-tag-list__summary">
+          <p class="anchor-event-pending-preference-tag-list__label">
+            {{ tag.label }}
+          </p>
           <p class="hint">
             {{
               tag.description ||
@@ -29,7 +31,7 @@
           </p>
         </div>
 
-        <div class="pending-preference-tags-content__actions">
+        <div class="anchor-event-pending-preference-tag-list__actions">
           <Button
             appearance="pill"
             size="sm"
@@ -134,40 +136,40 @@ const rejectTag = async (tagId: number): Promise<void> => {
 </script>
 
 <style lang="scss" scoped>
-.pending-preference-tags-content,
-.pending-preference-tags-content__list,
-.pending-preference-tags-content__item,
-.pending-preference-tags-content__copy {
+.anchor-event-pending-preference-tag-list,
+.anchor-event-pending-preference-tag-list__items,
+.anchor-event-pending-preference-tag-list__item,
+.anchor-event-pending-preference-tag-list__summary {
   display: flex;
   flex-direction: column;
 }
 
-.pending-preference-tags-content,
-.pending-preference-tags-content__list,
-.pending-preference-tags-content__item {
+.anchor-event-pending-preference-tag-list,
+.anchor-event-pending-preference-tag-list__items,
+.anchor-event-pending-preference-tag-list__item {
   gap: var(--sys-spacing-small);
 }
 
-.pending-preference-tags-content__copy {
+.anchor-event-pending-preference-tag-list__summary {
   gap: var(--sys-spacing-xsmall);
 }
 
-.pending-preference-tags-content__item {
+.anchor-event-pending-preference-tag-list__item {
   padding-block: var(--sys-spacing-small);
   border-top: 1px solid var(--sys-color-outline-variant);
 }
 
-.pending-preference-tags-content__item:first-child {
+.anchor-event-pending-preference-tag-list__item:first-child {
   padding-top: 0;
   border-top: 0;
 }
 
-.pending-preference-tags-content__label {
+.anchor-event-pending-preference-tag-list__label {
   margin: 0;
   @include mx.pu-font(section);
 }
 
-.pending-preference-tags-content__actions {
+.anchor-event-pending-preference-tag-list__actions {
   display: flex;
   gap: var(--sys-spacing-xsmall);
   flex-wrap: wrap;

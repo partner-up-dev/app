@@ -2,7 +2,7 @@
   <div v-if="selectedProduct?.skus.length === 0" class="pm-hint">
     {{ t("adminCommerceProducts.emptySkus") }}
   </div>
-  <div v-else class="pm-selection-list">
+  <div v-else class="pm-rail-list">
     <ChoiceCard
       v-for="record in selectedProduct?.skus ?? []"
       :key="record.sku.id"

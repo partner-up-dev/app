@@ -33,8 +33,8 @@
 
       <!-- Poster Preview -->
       <div class="poster-preview">
-        <div v-if="posterUrl" class="poster-container">
-          <div class="poster-image-wrapper">
+        <div v-if="posterUrl" class="poster-stage">
+          <div class="poster-image-frame">
             <img
               :src="posterUrl"
               :alt="t('share.xiaohongshu.posterAlt')"
@@ -69,7 +69,7 @@
     <div class="action-section">
       <div class="actions-row">
         <FeedbackButton
-          class="outline-btn copy-caption-btn"
+          class="outline-action caption-clipboard-action"
           tone="outline"
           :state="copyFeedbackState"
           :disabled="!caption?.caption || copyState !== 'idle'"
@@ -78,7 +78,7 @@
           {{ copyButtonLabel }}
         </FeedbackButton>
         <Button
-          class="outline-btn download-poster-btn"
+          class="outline-action poster-download-action"
           tone="outline"
           @click="handleDownloadPoster"
           :disabled="!caption?.caption || posterIsGenerating || inWeChatBrowser"

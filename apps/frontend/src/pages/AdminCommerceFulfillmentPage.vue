@@ -9,7 +9,7 @@
         <div v-if="fulfillments.length === 0" class="hint">
           {{ t("adminCommerceFulfillment.emptyFulfillments") }}
         </div>
-        <div v-else class="selection-list">
+        <div v-else class="fulfillment-rail-list">
           <ChoiceCard
             v-for="record in fulfillments"
             :key="record.fulfillment.id"
@@ -380,14 +380,14 @@ const clearErrors = () => {
 
 <style lang="scss" scoped>
 .stack,
-.selection-list,
+.fulfillment-rail-list,
 .form-stack {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.selection-list {
+.fulfillment-rail-list {
   gap: var(--sys-spacing-medium);
 }
 

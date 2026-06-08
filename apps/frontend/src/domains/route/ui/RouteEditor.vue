@@ -24,7 +24,7 @@
         </button>
       </div>
 
-      <div class="content">
+      <div class="route-editor__body">
         <RouteItemRow
           v-for="(point, index) in editableRoute"
           :key="`${editableRoute.length}-${index}`"
@@ -354,7 +354,7 @@ const handleLocationPicked = (location: PickedLocation) => {
   align-items: flex-start;
 }
 
-.route-editor--normal .content {
+.route-editor--normal .route-editor__body {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
