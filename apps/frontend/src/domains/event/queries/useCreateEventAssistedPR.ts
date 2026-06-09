@@ -53,7 +53,13 @@ export const useCreateEventAssistedPR = () => {
     CreateEventAssistedPRError,
     CreateEventAssistedPRInput
   >({
-    mutationFn: async ({ eventId, fields, allowEditAfterReady, handoff }) => {
+    mutationFn: async ({
+      eventId,
+      fields,
+      allowEditAfterReady,
+      routePoolEntryId,
+      handoff,
+    }) => {
       const response = await client.api.pr.new.form.$post(
         {
           json: buildEventAssistedPRCreateBody({
@@ -79,6 +85,7 @@ export const useCreateEventAssistedPR = () => {
             kind: "EVENT_ASSISTED_PR_CREATE",
             eventId,
             handoff,
+            routePoolEntryId: routePoolEntryId ?? null,
             allowEditAfterReady,
             fields: {
               type: fields.type,

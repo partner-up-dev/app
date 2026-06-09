@@ -35,7 +35,7 @@
 - User-created and system-expanded PR creation must go through the unified PR create command, and that command rejects a `PR.time_window[0]` that has already passed. Admin PR creation remains a separate operator authority.
 - Publishing a `DRAFT` PR requires an authenticated account.
 - Publishing a `DRAFT` PR also rejects a `PR.time_window[0]` that has already passed.
-- Direct creation of an `OPEN` PR, including event-assisted create, requires an authenticated account.
+- Direct user-owned creation of an `OPEN` PR, including event-assisted create, requires an authenticated account. System-owned auto-created PRs, including Form Mode zero-candidate auto-create and dummy PR materialization, do not assign the viewer as creator.
 - `/e/:eventId` is the canonical Anchor Event landing entry for List, Card, and Form browsing. `/events/:eventId` is a compatibility entry that forwards to the same landing route.
 - `/e/:eventId` landing mode supports `FORM`, `CARD_RICH`, and `LIST`. `LIST` uses the same Anchor Event list browsing semantics as the previous `/events/:eventId` list view.
 - A valid `/e/:eventId?mode=` value is explicit route state and owns the current landing mode. Without valid route mode, the same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
@@ -43,8 +43,8 @@
 - Form Mode recommendation and candidate ordering are backend-authored even though the user chooses location, start time, and preferences on the page.
 - Form Mode may accept a fuzzy time preference as recommendation input by converting it in the frontend into concrete PR start-time match windows. The fuzzy time choices include part-of-day windows and an all-day option for one selected product-local date. These windows match candidate `PR.time_window[0]` only, are not constrained by the Anchor Event's configured time pool, and are not persisted as PR facts.
 - Form Mode fuzzy date choices cover today plus the next 6 product-local days as individual dates; aggregate choices such as weekend or any day are not part of the first contract.
-- Form Mode directly creates an event-assisted PR when recommendation returns no matched PR and no ordered candidates; the created PR detail page should show a created-request notice.
-- Event-assisted PR creation from Form Mode still creates a `PR` with one resolved `time_window`. In fuzzy mode, that resolved window is the selected fuzzy activity window itself, such as a product-local all-day or part-of-day window, and the created PR may materialize the same range into `allowEditAfterReady.timeWindow` so the creator can narrow it after `READY`.
+- Form Mode directly creates a system-owned `OPEN` PR when recommendation returns no matched PR and no ordered candidates; the viewer is not assigned as creator and the created PR detail page does not show the user-created request notice.
+- Form Mode zero-candidate auto-create still creates a `PR` with one resolved `time_window`. In fuzzy mode, that resolved window is the selected fuzzy activity window itself, such as a product-local all-day or part-of-day window, and the created PR may materialize the same range into `allowEditAfterReady.timeWindow`.
 - Form Mode bootstrap may preselect location and start time from the nearest joinable PR in the current Anchor Event context when that PR's start time is inside the event `earliestLeadMinutes` boundary.
 - Anchor Event owns the event-specific preset preference tag pool, its moderation state, and which published tags later visitors may see in Form Mode.
 - Anchor Event start rules may own optional description copy. Generated time windows inherit the first non-empty matching start-rule description by configured start-rule order, and that copy remains presentation context rather than a persisted PR fact.

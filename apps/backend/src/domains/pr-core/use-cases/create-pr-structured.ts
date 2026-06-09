@@ -34,6 +34,7 @@ export type StructuredCreateSource =
   | "FORM"
   | "EVENT_ASSISTED"
   | "EVENT_DUMMY"
+  | "EVENT_FORM_MODE_AUTO"
   | "NATURAL_LANGUAGE"
   | "AUTO_EXPANSION";
 
@@ -84,6 +85,8 @@ const resolveOperationAction = (source: StructuredCreateSource): string => {
       return "pr.create_event_assisted";
     case "EVENT_DUMMY":
       return "pr.materialize_event_dummy";
+    case "EVENT_FORM_MODE_AUTO":
+      return "pr.create_form_mode_auto";
     case "NATURAL_LANGUAGE":
       return "pr.create_from_nl";
     case "AUTO_EXPANSION":

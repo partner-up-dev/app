@@ -10,6 +10,7 @@ import {
   getAnchorEventFormModeData,
   submitAnchorEventFormModePreferenceTags,
   recommendAnchorEventFormModePRs,
+  createAnchorEventFormModeAutoPR,
   materializeAnchorEventDummyPR,
   type AnchorEventFormModeRecommendationPlaceSelection,
 } from "../domains/anchor-event";
@@ -18,7 +19,10 @@ import {
   submitAnchorEventRouteApplication,
 } from "../domains/anchor-event-route-application";
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
-import { prRouteSchema } from "../entities/partner-request";
+import {
+  prAllowEditAfterReadySchema,
+  prRouteSchema,
+} from "../entities/partner-request";
 import type { UserId } from "../entities/user";
 import { throwHttpProblem } from "../lib/problem-details";
 
@@ -89,6 +93,13 @@ const dummyPRMaterializationSchema = z.object({
   timeWindow: dummyPRMaterializationTimeWindowSchema,
   place: dummyPRMaterializationPlaceSchema,
   preferences: z.array(z.string().trim().min(1).max(80)).max(1).default([]),
+});
+
+const formModeAutoCreateSchema = z.object({
+  timeWindow: dummyPRMaterializationTimeWindowSchema,
+  place: formModeRecommendationPlaceSchema,
+  preferences: z.array(z.string().trim().min(1).max(80)).max(16).default([]),
+  allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
 });
 
 const formModeRecommendationSchema = z.union([
@@ -205,6 +216,23 @@ export const anchorEventRoute = app
       const { labels } = c.req.valid("json");
       const result = await submitAnchorEventFormModePreferenceTags(eventId, labels);
       return c.json(result);
+    },
+  )
+  .post(
+    "/:eventId/form-mode/auto-create",
+    zValidator("param", eventIdParamSchema),
+    zValidator("json", formModeAutoCreateSchema),
+    async (c) => {
+      const { eventId } = c.req.valid("param");
+      const payload = c.req.valid("json");
+      const result = await createAnchorEventFormModeAutoPR({
+        eventId,
+        timeWindow: payload.timeWindow,
+        place: payload.place,
+        preferences: payload.preferences,
+        allowEditAfterReady: payload.allowEditAfterReady ?? null,
+      });
+      return c.json(result, 201);
     },
   )
   .post(

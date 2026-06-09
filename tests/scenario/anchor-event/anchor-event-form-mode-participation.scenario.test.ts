@@ -16,6 +16,7 @@ import {
 } from "../../../apps/backend/tests/anchor-event/_kit/builders/anchor-events";
 import { bindScenarioWeChatOpenId } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import { probeLatestPartnerSlot } from "../../../apps/backend/tests/pr-core/_kit/probes/system-state";
+import { probePartnerRequestCreationState } from "../../../apps/backend/tests/pr-core/_kit/probes/partner-requests";
 import {
   givenUser,
   type ScenarioUser,
@@ -218,11 +219,18 @@ const selectFuzzyTomorrowDusk = async (page: Page): Promise<void> => {
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
-  await page.waitForFunction(() =>
-    document
-      .querySelector('[data-testid="anchor-event-form-mode.primary-action"]')
-      ?.textContent?.includes("明天傍晚") === true,
-  );
+  await page.waitForFunction(() => {
+    const dateOption = document.querySelector(
+      '[data-testid="anchor-event-form-mode.time-date-wheel"] [aria-selected="true"]',
+    );
+    const timeOption = document.querySelector(
+      '[data-testid="anchor-event-form-mode.time-time-wheel"] [aria-selected="true"]',
+    );
+    return (
+      dateOption?.textContent?.includes("明天") === true &&
+      timeOption?.textContent?.includes("傍晚") === true
+    );
+  });
 };
 
 const expectJoinedSlot = async (input: {
@@ -265,6 +273,27 @@ const expectCreatedPRDetail = async (input: {
   assert.equal(detail.core.location, input.locationId);
 };
 
+const expectSystemCreatedPRDetail = async (input: {
+  prId: number;
+  token: string;
+  event: ScenarioAnchorEvent;
+  locationId: string;
+}): Promise<void> => {
+  const detail = await expectBackendJsonResponse<PRDetailProbe>(
+    await requestBackendJson(`/api/pr/${input.prId}`, {
+      token: input.token,
+    }),
+    200,
+  );
+
+  const creationState = await probePartnerRequestCreationState(input.prId);
+  assert.equal(creationState.createdBy, null);
+  assert.equal(creationState.status, "OPEN");
+  assert.equal(detail.status, "OPEN");
+  assert.equal(detail.core.type, input.event.type);
+  assert.equal(detail.core.location, input.locationId);
+};
+
 const expectCreatedRoutePRDetail = async (input: {
   prId: number;
   token: string;
@@ -280,6 +309,29 @@ const expectCreatedRoutePRDetail = async (input: {
   );
 
   assert.equal(detail.createdBy, input.creatorUserId);
+  assert.equal(detail.status, "OPEN");
+  assert.equal(detail.core.type, input.event.type);
+  assert.equal(detail.core.location, null);
+  assert.deepEqual(detail.core.route, input.route);
+  assert.equal(detail.core.placeDisplayName, buildPRRouteSummary(input.route));
+};
+
+const expectSystemCreatedRoutePRDetail = async (input: {
+  prId: number;
+  token: string;
+  event: ScenarioAnchorEvent;
+  route: PRRoute;
+}): Promise<void> => {
+  const detail = await expectBackendJsonResponse<PRDetailProbe>(
+    await requestBackendJson(`/api/pr/${input.prId}`, {
+      token: input.token,
+    }),
+    200,
+  );
+
+  const creationState = await probePartnerRequestCreationState(input.prId);
+  assert.equal(creationState.createdBy, null);
+  assert.equal(creationState.status, "OPEN");
   assert.equal(detail.status, "OPEN");
   assert.equal(detail.core.type, input.event.type);
   assert.equal(detail.core.location, null);
@@ -527,7 +579,9 @@ scenario(
 
       const createResponsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/pr/new/form") &&
+          response.url().includes(
+            `/api/events/${event.id}/form-mode/auto-create`,
+          ) &&
           response.request().method() === "POST",
         { timeout: 20_000 },
       );
@@ -542,27 +596,24 @@ scenario(
       const createRequestBody = JSON.parse(
         createResponse.request().postData() ?? "{}",
       ) as Record<string, unknown>;
-      assert.equal(createRequestBody.createSource, "EVENT_ASSISTED");
+      assert.deepEqual(createRequestBody.place, {
+        kind: "location",
+        locationId: event.locationId,
+      });
+      assert.equal(createRequestBody.createSource, undefined);
 
       await page.waitForURL(
         (url) =>
           /^\/pr\/\d+$/.test(url.pathname) &&
           url.searchParams.get("entry") === "create" &&
           url.searchParams.get("fromEvent") === String(event.id) &&
-          url.searchParams.get("handoff") === "event_assisted_create",
+          url.searchParams.get("handoff") === null,
         { timeout: 20_000 },
       );
       const createdPrId = readPrIdFromCurrentUrl(page);
-      await page
-        .getByTestId("pr-detail.event-assisted-create.notice")
-        .waitFor({
-          state: "visible",
-          timeout: 10_000,
-        });
-      await expectCreatedPRDetail({
+      await expectSystemCreatedPRDetail({
         prId: createdPrId,
         token: visitor.token,
-        creatorUserId: visitor.user.id,
         event,
         locationId: event.locationId,
       });
@@ -596,7 +647,9 @@ scenario(
 
       const createResponsePromise = page.waitForResponse(
         (response) =>
-          response.url().includes("/api/pr/new/form") &&
+          response.url().includes(
+            `/api/events/${event.id}/form-mode/auto-create`,
+          ) &&
           response.request().method() === "POST",
         { timeout: 20_000 },
       );
@@ -624,38 +677,33 @@ scenario(
         createResponse.request().postData() ?? "{}",
       ) as {
         createSource?: unknown;
-        fields?: {
-          location?: unknown;
-          route?: unknown;
+        place?: {
+          kind?: unknown;
+          routePoolEntryId?: unknown;
         };
       };
-      assert.equal(createRequestBody.createSource, "EVENT_ASSISTED");
-      assert.equal(createRequestBody.fields?.location, null);
-      assert.deepEqual(createRequestBody.fields?.route, formModeRoutePoolRoute);
+      assert.equal(createRequestBody.createSource, undefined);
+      assert.deepEqual(createRequestBody.place, {
+        kind: "route",
+        routePoolEntryId: "system-route-pool-entry",
+      });
 
       await page.waitForURL(
         (url) =>
           /^\/pr\/\d+$/.test(url.pathname) &&
           url.searchParams.get("entry") === "create" &&
           url.searchParams.get("fromEvent") === String(event.id) &&
-          url.searchParams.get("handoff") === "event_assisted_create",
+          url.searchParams.get("handoff") === null,
         { timeout: 20_000 },
       );
       const createdPrId = readPrIdFromCurrentUrl(page);
-      await page
-        .getByTestId("pr-detail.event-assisted-create.notice")
-        .waitFor({
-          state: "visible",
-          timeout: 10_000,
-        });
       await page.getByTestId("pr-detail.route").waitFor({
         state: "visible",
         timeout: 10_000,
       });
-      await expectCreatedRoutePRDetail({
+      await expectSystemCreatedRoutePRDetail({
         prId: createdPrId,
         token: visitor.token,
-        creatorUserId: visitor.user.id,
         event,
         route: formModeRoutePoolRoute,
       });
