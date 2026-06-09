@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/vue-query";
+import type { PRRoute } from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
 
@@ -9,7 +10,7 @@ export type AnchorEventFormModeRecommendationPlaceInput =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
+      route: PRRoute;
     };
 
 export type AnchorEventFormModeRecommendationTimeWindowInput = {

@@ -26,7 +26,8 @@
 - PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
 - Event-context PR creation is frontend assistance from Anchor Event surfaces into unified structured PR creation.
 - Event-assisted create resolves frontend-selected event-page choices into the same structured PR fields used by `/pr/new`. Any event referral or create-source marker is transient request context rather than durable PR identity.
-- Anchor Event assisted creation can source suggested place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`.
+- Anchor Event assisted creation can source suggested place choices from an event-owned `locationPool` or an event-owned `routePool`. A route-pool entry carries an event-local stable id plus the same ordered route payload used by `PR.route`, but that id is source-option identity rather than selected-route authority.
+- Route-pool assisted creation selects a concrete `PR.route`. The frontend may locally reverse a source route before submitting; the submitted route is still an ordinary PR-owned route and does not have to correspond to another route-pool entry.
 - A single Anchor Event owns one configured place pool mode at a time. Manual PR creation for the same `PR.type` remains governed by the PR create contract and may choose either PR place mode.
 - Route-mode event-assisted create submits `PR.route` and persists `location = null`. Location-mode event-assisted create submits `PR.location` and persists `route = null`.
 - PR existence does not depend on Anchor Event identity or time-pool selection.

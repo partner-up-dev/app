@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   createPRFromStructured: vi.fn(),
   eventOwnsTimeWindow: vi.fn(),
   isPublicEventScopedLocation: vi.fn(),
-  findEventRoutePoolEntry: vi.fn(),
 }));
 
 vi.mock("../../../repositories/AnchorEventRepository", () => ({
@@ -29,7 +28,6 @@ vi.mock("../services/time-window-pool", () => ({
 }));
 
 vi.mock("../services/event-scope", () => ({
-  findEventRoutePoolEntry: mocks.findEventRoutePoolEntry,
   isPublicEventScopedLocation: mocks.isPublicEventScopedLocation,
 }));
 
@@ -80,7 +78,6 @@ beforeEach(() => {
   });
   mocks.eventOwnsTimeWindow.mockReturnValue(true);
   mocks.isPublicEventScopedLocation.mockResolvedValue(true);
-  mocks.findEventRoutePoolEntry.mockReturnValue({ id: "route-a", route });
 });
 
 describe("createAnchorEventFormModeAutoPR", () => {
@@ -131,13 +128,13 @@ describe("createAnchorEventFormModeAutoPR", () => {
     );
   });
 
-  test("resolves route-pool place into PR route", async () => {
+  test("uses the submitted concrete route for route place", async () => {
     await createAnchorEventFormModeAutoPR({
       eventId: 7,
       timeWindow,
       place: {
         kind: "route",
-        routePoolEntryId: "route-a",
+        route,
       },
       preferences: [],
     });

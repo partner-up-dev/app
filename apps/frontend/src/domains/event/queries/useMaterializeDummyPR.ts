@@ -18,7 +18,6 @@ export type MaterializeDummyPRPlace =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
       route: PRRoute;
     };
 
@@ -59,7 +58,7 @@ export const buildDummyPRMaterializationBody = (
         })
       : ({
           kind: "route" as const,
-          routePoolEntryId: input.place.routePoolEntryId,
+          route: input.place.route,
         }),
   preferences: [...(input.preferences ?? [])],
 });

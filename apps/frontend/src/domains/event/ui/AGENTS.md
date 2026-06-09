@@ -38,6 +38,7 @@ Rules:
 
 - `AnchorEventFormModeSurface.vue` owns selection state, recommendation result state, matched handoff, no-match result transition, create fallback, and flow telemetry.
 - Form Mode controls own local interaction state and expose committed values through narrow `v-model` contracts.
+- Place Control exposes a concrete selected place through `v-model`; route selections carry `PR.route`, not route-pool entry identity, because the user may locally reverse a route-pool source option.
 - The no-match result is a Form Mode inline state within `/e/:eventId`.
 - If no matched PR and no ordered candidates exist, Form Mode should directly create a system-owned `OPEN` PR and route to the created PR detail without the event-assisted created-request notice.
 - Matched PR handoff state is route-level process state under `processes/route-handoff` so the overlay can survive `/e/:eventId` to `/pr/:id` navigation.

@@ -34,7 +34,6 @@ describe("Form Mode auto PR create query", () => {
       ],
       place: {
         kind: "route",
-        routePoolEntryId: "route-a",
         route,
       },
       preferences: ["安静", "新手友好"],
@@ -48,7 +47,7 @@ describe("Form Mode auto PR create query", () => {
       ],
       place: {
         kind: "route",
-        routePoolEntryId: "route-a",
+        route,
       },
       preferences: ["安静", "新手友好"],
       allowEditAfterReady,

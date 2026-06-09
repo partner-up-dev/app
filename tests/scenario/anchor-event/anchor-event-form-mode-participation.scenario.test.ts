@@ -53,6 +53,10 @@ const formModeRoutePoolRoute: PRRoute = [
     full_address: "System Route Destination Address",
   },
 ];
+const reversedFormModeRoutePoolRoute: PRRoute = [
+  { ...formModeRoutePoolRoute[1]! },
+  { ...formModeRoutePoolRoute[0]! },
+];
 
 const addDaysToDateKey = (dateKey: string, days: number): string => {
   const [yearText, monthText, dayText] = dateKey.split("-");
@@ -98,7 +102,7 @@ type FormModeRecommendationProbe = {
   selection: {
     kind: "location" | "route";
     locationId: string | null;
-    routePoolEntryId: string | null;
+    route: PRRoute | null;
     timeWindows?: Array<{
       startAt: string;
       endAt: string;
@@ -657,6 +661,21 @@ scenario(
       await page.goto(`/e/${event.id}`);
       await expectFormMode(page);
       await expectRouteSelected(page, "system-route-pool-entry");
+      await page
+        .getByTestId("anchor-event-form-mode.place.route-direction-toggle")
+        .click();
+      await page.waitForFunction(
+        ({ origin, destination }) => {
+          const routeNames = Array.from(
+            document.querySelectorAll(".place-caption__route-name"),
+          ).map((element) => element.textContent?.trim() ?? "");
+          return routeNames[0] === destination && routeNames.at(-1) === origin;
+        },
+        {
+          origin: formModeRoutePoolRoute[0]!.name,
+          destination: formModeRoutePoolRoute.at(-1)!.name,
+        },
+      );
 
       const recommendation = await submitFormAndReadRecommendation({
         page,
@@ -664,9 +683,9 @@ scenario(
       });
       assert.equal(recommendation.selection.kind, "route");
       assert.equal(recommendation.selection.locationId, null);
-      assert.equal(
-        recommendation.selection.routePoolEntryId,
-        "system-route-pool-entry",
+      assert.deepEqual(
+        recommendation.selection.route,
+        reversedFormModeRoutePoolRoute,
       );
       assert.equal(recommendation.matchedRecommendation, null);
       assert.deepEqual(recommendation.orderedCandidates, []);
@@ -679,13 +698,13 @@ scenario(
         createSource?: unknown;
         place?: {
           kind?: unknown;
-          routePoolEntryId?: unknown;
+          route?: unknown;
         };
       };
       assert.equal(createRequestBody.createSource, undefined);
       assert.deepEqual(createRequestBody.place, {
         kind: "route",
-        routePoolEntryId: "system-route-pool-entry",
+        route: reversedFormModeRoutePoolRoute,
       });
 
       await page.waitForURL(
@@ -705,7 +724,7 @@ scenario(
         prId: createdPrId,
         token: visitor.token,
         event,
-        route: formModeRoutePoolRoute,
+        route: reversedFormModeRoutePoolRoute,
       });
     });
   },

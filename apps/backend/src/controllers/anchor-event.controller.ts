@@ -43,7 +43,7 @@ const formModeRecommendationPlaceSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("route"),
-    routePoolEntryId: z.string().trim().min(1).max(120),
+    route: prRouteSchema,
   }),
 ]);
 
@@ -85,7 +85,7 @@ const dummyPRMaterializationPlaceSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("route"),
-    routePoolEntryId: z.string().trim().min(1).max(120),
+    route: prRouteSchema,
   }),
 ]);
 

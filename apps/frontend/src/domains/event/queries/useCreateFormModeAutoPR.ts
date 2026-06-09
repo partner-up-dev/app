@@ -18,7 +18,6 @@ export type FormModeAutoCreatePlace =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
       route: PRRoute;
     };
 
@@ -60,7 +59,7 @@ export const buildFormModeAutoCreateBody = (
         })
       : ({
           kind: "route" as const,
-          routePoolEntryId: input.place.routePoolEntryId,
+          route: input.place.route,
         }),
   preferences: [...(input.preferences ?? [])],
   allowEditAfterReady: input.allowEditAfterReady ?? null,

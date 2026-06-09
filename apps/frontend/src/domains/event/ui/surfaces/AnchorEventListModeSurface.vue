@@ -841,7 +841,6 @@ const handleCreateInList = async (place: AnchorEventSelectedPlace | null) => {
     ...buildListFunnelPayload(),
     dateKey: selectedDateKey.value,
     locationId: place?.kind === "location" ? place.locationId : null,
-    routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
     placeKind: place?.kind ?? null,
     timeWindowStart: selectedCreateTimeWindow.value?.[0] ?? null,
   });
@@ -864,10 +863,6 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
     locationId:
       item.dummy.place.kind === "location"
         ? item.dummy.place.locationId
-        : null,
-    routePoolEntryId:
-      item.dummy.place.kind === "route"
-        ? item.dummy.place.routePoolEntryId
         : null,
     placeKind: item.dummy.place.kind,
     timeWindowStart: item.dummy.timeWindowStart,

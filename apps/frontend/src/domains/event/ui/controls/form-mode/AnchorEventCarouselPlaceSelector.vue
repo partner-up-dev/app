@@ -62,7 +62,7 @@
     </PeekRadioCarousel>
 
     <Transition name="place-label" mode="out-in">
-      <div :key="activeCardId ?? 'none'" class="place-caption">
+      <div :key="selectedPlaceCaptionKey" class="place-caption">
         <div
           v-if="selectedRoutePoints.length > 0"
           class="place-caption__route-shell"
@@ -94,7 +94,10 @@
             @click="switchSelectedRouteDirection"
           >
             <template #leading>
-              <span class="i-mdi-swap-horizontal" aria-hidden="true"></span>
+              <span
+                class="i-mdi-swap-horizontal place-caption__direction-icon"
+                aria-hidden="true"
+              ></span>
             </template>
           </PuButton>
         </div>
@@ -116,10 +119,13 @@ import PeekRadioCarousel, {
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import { pickStableGalleryImage } from "@/domains/event/model/form-mode";
 import {
+  areAnchorEventRoutesEqual,
   buildFormModePlaceOptions,
-  buildRoutePlaceOptionGroups,
+  cloneAnchorEventRoute,
+  reverseAnchorEventRoute,
   type AnchorEventPlaceOption,
   type AnchorEventRoutePlaceOption,
+  type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
 import {
   resolveRoutePointRole,
@@ -145,8 +151,8 @@ type RoutePlaceCardViewModel = AnchorEventRoutePlaceOption &
   PeekRadioCarouselItem & {
     coverImage: null;
     isCreateCard?: false;
-    directionGroupId: string;
-    directionOptions: readonly AnchorEventRoutePlaceOption[];
+    sourceRoute: AnchorEventRoutePlaceOption["route"];
+    isReversed: boolean;
   };
 type SelectablePlaceCardViewModel =
   | LocationPlaceCardViewModel
@@ -164,42 +170,35 @@ type PlaceCardViewModel =
   | CreatePlaceCardViewModel;
 
 const props = defineProps<{
-  modelValue: string | null;
+  modelValue: AnchorEventSelectedPlace | null;
   placeSelector: PlaceSelectorView;
 }>();
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string | null];
+  "update:modelValue": [value: AnchorEventSelectedPlace | null];
   "createLocation": [];
   "createRoute": [];
 }>();
 
 const { t } = useI18n();
-const activeCardId = ref<string | null>(props.modelValue);
+const activeCardId = ref<string | null>(null);
+const reversedRouteCardIds = ref<ReadonlySet<string>>(new Set());
 const usesLocationPool = computed(() => props.placeSelector.kind === "location");
 const usesRoutePool = computed(() => props.placeSelector.kind === "route");
 
-const isRoutePlaceOption = (
-  option: AnchorEventPlaceOption,
-): option is AnchorEventRoutePlaceOption => option.kind === "route";
-
 const createRoutePlaceCard = (
-  directionGroupId: string,
-  directionOptions: readonly AnchorEventRoutePlaceOption[],
+  option: AnchorEventRoutePlaceOption,
 ): RoutePlaceCardViewModel => {
-  const activeRoute =
-    directionOptions.find((option) => option.id === activeCardId.value) ??
-    directionOptions.find((option) => option.id === props.modelValue) ??
-    directionOptions[0];
-  if (!activeRoute) {
-    throw new Error("Route direction group requires at least one variant");
-  }
+  const isReversed = reversedRouteCardIds.value.has(option.id);
 
   return {
-    ...activeRoute,
+    ...option,
     coverImage: null,
-    directionGroupId,
-    directionOptions,
+    route: isReversed
+      ? reverseAnchorEventRoute(option.route)
+      : cloneAnchorEventRoute(option.route),
+    sourceRoute: option.route,
+    isReversed,
   };
 };
 
@@ -209,34 +208,15 @@ const selectablePlaceCards = computed<SelectablePlaceCardViewModel[]>(() => {
     locations: [],
     routes: [],
   });
-  const routeGroups = buildRoutePlaceOptionGroups(
-    options.filter(isRoutePlaceOption),
-  );
-  const routeGroupByOptionId = new Map<string, (typeof routeGroups)[number]>();
-  for (const group of routeGroups) {
-    for (const variant of group.variants) {
-      routeGroupByOptionId.set(variant.id, group);
-    }
-  }
-
-  const emittedRouteGroupIds = new Set<string>();
-  return options.flatMap((option): SelectablePlaceCardViewModel[] => {
+  return options.map((option): SelectablePlaceCardViewModel => {
     if (option.kind === "location") {
-      return [
-        {
-          ...option,
-          coverImage: pickStableGalleryImage(option.gallery, option.locationId),
-        },
-      ];
+      return {
+        ...option,
+        coverImage: pickStableGalleryImage(option.gallery, option.locationId),
+      };
     }
 
-    const group = routeGroupByOptionId.get(option.id);
-    if (!group || emittedRouteGroupIds.has(group.id)) {
-      return [];
-    }
-
-    emittedRouteGroupIds.add(group.id);
-    return [createRoutePlaceCard(group.id, group.variants)];
+    return createRoutePlaceCard(option);
   });
 });
 
@@ -285,12 +265,21 @@ const selectedRoutePoints = computed<RoutePoint[]>(() =>
 );
 
 const selectedRouteDirectionOptions = computed(
-  () => selectedRoutePlaceCard.value?.directionOptions ?? [],
+  () => selectedRoutePlaceCard.value?.sourceRoute ?? [],
 );
 
-const canSwitchSelectedRouteDirection = computed(
-  () => selectedRouteDirectionOptions.value.length > 1,
+const canSwitchSelectedRouteDirection = computed(() =>
+  selectedRouteDirectionOptions.value.length > 1,
 );
+
+const selectedPlaceCaptionKey = computed(() => {
+  const route = selectedRoutePlaceCard.value;
+  if (!route) {
+    return activeCardId.value ?? "none";
+  }
+
+  return `${route.id}-${route.isReversed ? "reverse" : "forward"}`;
+});
 
 const selectedPlaceLabel = computed(() => {
   const selected = selectedPlaceCard.value;
@@ -326,6 +315,31 @@ const emitCreateAction = (card: CreatePlaceCardViewModel) => {
   emit("createRoute");
 };
 
+const toSelectedPlace = (
+  card: SelectablePlaceCardViewModel | null,
+): AnchorEventSelectedPlace | null => {
+  if (!card || card.disabled) {
+    return null;
+  }
+
+  if (card.kind === "location") {
+    return {
+      kind: "location",
+      locationId: card.locationId,
+    };
+  }
+
+  return {
+    kind: "route",
+    route: cloneAnchorEventRoute(card.route),
+  };
+};
+
+const findSelectablePlaceCard = (
+  id: string | null | undefined,
+): SelectablePlaceCardViewModel | null =>
+  selectablePlaceCards.value.find((place) => place.id === id) ?? null;
+
 const handleUpdatePlace = (value: string | number | null) => {
   if (value === CREATE_LOCATION_CARD_ID || value === CREATE_ROUTE_CARD_ID) {
     activeCardId.value = value;
@@ -334,13 +348,13 @@ const handleUpdatePlace = (value: string | number | null) => {
 
   const nextValue = typeof value === "string" ? value : null;
   activeCardId.value = nextValue;
-  emit("update:modelValue", nextValue);
+  emit("update:modelValue", toSelectedPlace(findSelectablePlaceCard(nextValue)));
 };
 
 const handleCardClick = (card: PlaceCardViewModel) => {
   if (card.kind !== "create") {
     activeCardId.value = card.id;
-    emit("update:modelValue", card.id);
+    emit("update:modelValue", toSelectedPlace(card));
     return;
   }
 
@@ -353,22 +367,26 @@ const handleCardClick = (card: PlaceCardViewModel) => {
 };
 
 const switchSelectedRouteDirection = () => {
-  const directionOptions = selectedRouteDirectionOptions.value;
-  if (directionOptions.length <= 1) {
+  const selectedRoute = selectedRoutePlaceCard.value;
+  if (!selectedRoute || selectedRoute.sourceRoute.length <= 1) {
     return;
   }
 
-  const currentIndex = directionOptions.findIndex(
-    (option) => option.id === selectedRoutePlaceCard.value?.id,
-  );
-  const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-  const nextRoute = directionOptions[nextIndex % directionOptions.length];
-  if (!nextRoute) {
-    return;
+  const nextReversedRouteCardIds = new Set(reversedRouteCardIds.value);
+  const isNextReversed = !selectedRoute.isReversed;
+  if (isNextReversed) {
+    nextReversedRouteCardIds.add(selectedRoute.id);
+  } else {
+    nextReversedRouteCardIds.delete(selectedRoute.id);
   }
+  reversedRouteCardIds.value = nextReversedRouteCardIds;
 
-  activeCardId.value = nextRoute.id;
-  emit("update:modelValue", nextRoute.id);
+  emit("update:modelValue", {
+    kind: "route",
+    route: isNextReversed
+      ? reverseAnchorEventRoute(selectedRoute.sourceRoute)
+      : cloneAnchorEventRoute(selectedRoute.sourceRoute),
+  });
 };
 
 const handleCarouselKeydown = (event: KeyboardEvent) => {
@@ -390,11 +408,55 @@ const handleCarouselKeydown = (event: KeyboardEvent) => {
   emitCreateAction(activeCard);
 };
 
+const syncFromModelValue = (
+  value: AnchorEventSelectedPlace | null,
+): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  if (value.kind === "location") {
+    const locationCard = selectablePlaceCards.value.find(
+      (place) =>
+        place.kind === "location" && place.locationId === value.locationId,
+    );
+    if (!locationCard) {
+      return false;
+    }
+
+    activeCardId.value = locationCard.id;
+    return true;
+  }
+
+  for (const card of selectablePlaceCards.value) {
+    if (card.kind !== "route") {
+      continue;
+    }
+
+    const nextReversedRouteCardIds = new Set(reversedRouteCardIds.value);
+    if (areAnchorEventRoutesEqual(card.sourceRoute, value.route)) {
+      nextReversedRouteCardIds.delete(card.id);
+      reversedRouteCardIds.value = nextReversedRouteCardIds;
+      activeCardId.value = card.id;
+      return true;
+    }
+
+    if (areAnchorEventRoutesEqual(reverseAnchorEventRoute(card.sourceRoute), value.route)) {
+      nextReversedRouteCardIds.add(card.id);
+      reversedRouteCardIds.value = nextReversedRouteCardIds;
+      activeCardId.value = card.id;
+      return true;
+    }
+  }
+
+  return false;
+};
+
 watch(
   () => props.modelValue,
   (value) => {
-    if (value !== activeCardId.value && !isCreateCardId(activeCardId.value)) {
-      activeCardId.value = value;
+    if (!isCreateCardId(activeCardId.value)) {
+      syncFromModelValue(value);
     }
   },
 );
@@ -402,6 +464,9 @@ watch(
 watch(
   selectablePlaceCards,
   (places) => {
+    if (isCreateCardId(activeCardId.value)) {
+      return;
+    }
     if (
       activeCardId.value &&
       !isCreateCardId(activeCardId.value) &&
@@ -409,12 +474,12 @@ watch(
     ) {
       return;
     }
-    if (props.modelValue && places.some((place) => place.id === props.modelValue)) {
+    if (syncFromModelValue(props.modelValue)) {
       return;
     }
-    const fallbackPlaceId = places[0]?.id ?? null;
-    activeCardId.value = fallbackPlaceId;
-    emit("update:modelValue", fallbackPlaceId);
+    const fallbackPlace = places[0] ?? null;
+    activeCardId.value = fallbackPlace?.id ?? null;
+    emit("update:modelValue", toSelectedPlace(fallbackPlace));
   },
   { immediate: true },
 );
@@ -526,6 +591,10 @@ watch(
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.place-caption__direction-icon {
+  transform: rotate(90deg);
 }
 
 .place-caption__route-item {

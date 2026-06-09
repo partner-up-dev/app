@@ -12,10 +12,7 @@ import type {
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { canUserCreatePRForAnchorEvent } from "../../pr/services";
 import { createPRFromStructured } from "../../pr/model/pr";
-import {
-  findEventRoutePoolEntry,
-  isPublicEventScopedLocation,
-} from "../services/event-scope";
+import { isPublicEventScopedLocation } from "../services/event-scope";
 import { eventOwnsTimeWindow } from "../services/time-window-pool";
 
 const anchorEventRepo = new AnchorEventRepository();
@@ -27,7 +24,7 @@ export type FormModeAutoCreatePlace =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
+      route: PRRoute;
     };
 
 export type CreateAnchorEventFormModeAutoPRInput = {
@@ -50,13 +47,11 @@ type ResolvedFormModeAutoCreatePlace =
       kind: "location";
       location: string;
       route: null;
-      routePoolEntryId: null;
     }
   | {
       kind: "route";
       location: null;
       route: PRRoute;
-      routePoolEntryId: string;
     };
 
 const resolveFormModeAutoCreatePlace = async (
@@ -64,19 +59,10 @@ const resolveFormModeAutoCreatePlace = async (
   place: FormModeAutoCreatePlace,
 ): Promise<ResolvedFormModeAutoCreatePlace> => {
   if (place.kind === "route") {
-    const routeEntry = findEventRoutePoolEntry(event, place.routePoolEntryId);
-    if (!routeEntry) {
-      return throwHttpProblem({
-        status: 400,
-        detail: "Selected route is outside the anchor event scope",
-        code: "ANCHOR_EVENT_FORM_MODE_AUTO_CREATE_INVALID_PLACE",
-      });
-    }
     return {
       kind: "route",
       location: null,
-      route: routeEntry.route,
-      routePoolEntryId: routeEntry.id,
+      route: place.route,
     };
   }
 
@@ -93,7 +79,6 @@ const resolveFormModeAutoCreatePlace = async (
     kind: "location",
     location,
     route: null,
-    routePoolEntryId: null,
   };
 };
 
@@ -163,7 +148,6 @@ export async function createAnchorEventFormModeAutoPR(
         detail: {
           placeKind: place.kind,
           location: place.location,
-          routePoolEntryId: place.routePoolEntryId,
           preferenceCount: input.preferences.length,
         },
       },

@@ -1071,7 +1071,6 @@ const createEventAssistedPR = async ({
     const created = await createEventAssistedPRMutation.mutateAsync({
       eventId: event.id,
       fields,
-      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
       allowEditAfterReady: allowEditAfterReady ?? null,
     });
     trackEvent("pr_commitment_result", {
@@ -1153,7 +1152,6 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
-      routePoolEntryId: pending.routePoolEntryId ?? null,
       allowEditAfterReady: pending.allowEditAfterReady ?? null,
     });
     await router.push(
@@ -1205,7 +1203,6 @@ const handleCreateFromCardEmpty = async () => {
     trackEvent("anchor_event_card_empty_create_started", {
       ...funnelPayload,
       locationId: place?.kind === "location" ? place.locationId : null,
-      routePoolEntryId: place?.kind === "route" ? place.routePoolEntryId : null,
       placeKind: place?.kind ?? null,
       timeWindowStart: targetTimeWindow[0],
     });

@@ -11,9 +11,7 @@ import type {
 } from "../../../entities";
 import {
   arePRRoutesEqual,
-  findEventRoutePoolEntry,
   isPublicEventScopedLocation,
-  resolveEventRoutePool,
   resolvePublicEventLocationPool,
 } from "../services/event-scope";
 import {
@@ -36,20 +34,18 @@ export type AnchorEventFormModeRecommendationPlaceSelection =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
+      route: PRRoute;
     };
 
 type ResolvedRecommendationPlace =
   | {
       kind: "location";
       locationId: string;
-      routePoolEntryId: null;
       route: null;
     }
   | {
       kind: "route";
       locationId: null;
-      routePoolEntryId: string;
       route: PRRoute;
     };
 
@@ -72,7 +68,7 @@ export interface AnchorEventFormModeRecommendationResponse {
   selection: {
     kind: "location" | "route";
     locationId: string | null;
-    routePoolEntryId: string | null;
+    route: PRRoute | null;
     timeWindow: AnchorEventFormModeTimeWindow;
     timeWindows: AnchorEventFormModeTimeWindow[];
     preferences: string[];
@@ -115,19 +111,10 @@ const resolveRecommendationPlace = async (
   place: AnchorEventFormModeRecommendationPlaceSelection,
 ): Promise<ResolvedRecommendationPlace> => {
   if (place.kind === "route") {
-    const routePoolEntry = findEventRoutePoolEntry(event, place.routePoolEntryId);
-    if (!routePoolEntry) {
-      return throwHttpProblem({
-        status: 400,
-        detail: "Selected route is outside the anchor event scope",
-      });
-    }
-
     return {
       kind: "route",
       locationId: null,
-      routePoolEntryId: routePoolEntry.id,
-      route: routePoolEntry.route,
+      route: place.route,
     };
   }
 
@@ -142,7 +129,6 @@ const resolveRecommendationPlace = async (
   return {
     kind: "location",
     locationId,
-    routePoolEntryId: null,
     route: null,
   };
 };
@@ -225,15 +211,12 @@ export async function recommendAnchorEventFormModePRs(input: {
     new Set(input.preferences.map((preference) => preference.trim()).filter(Boolean)),
   );
   const publicLocationSet = new Set(await resolvePublicEventLocationPool(event));
-  const routePool = resolveEventRoutePool(event);
 
   const scopedCandidateRecords = (await eventContextRepo.findVisibleByAnchorEventId(event.id))
     .filter((record) => RECOMMENDABLE_PR_STATUSES.has(record.root.status))
     .filter((record) => {
       if (selectedPlace.kind === "route") {
-        return routePool.some((entry) =>
-          arePRRoutesEqual(entry.route, record.root.route),
-        );
+        return arePRRoutesEqual(selectedPlace.route, record.root.route);
       }
 
       const location = record.root.location?.trim() ?? "";
@@ -319,7 +302,7 @@ export async function recommendAnchorEventFormModePRs(input: {
     selection: {
       kind: selectedPlace.kind,
       locationId: selectedPlace.locationId,
-      routePoolEntryId: selectedPlace.routePoolEntryId,
+      route: selectedPlace.route,
       timeWindow: selectionTimeWindows[0]!,
       timeWindows: selectionTimeWindows,
       preferences: selectionPreferences,

@@ -1,15 +1,16 @@
 import { describe, expect, test } from "vitest";
 import type { PRRoute } from "@partner-up-dev/backend";
 import {
-  areRoutesOppositeDirections,
+  areAnchorEventRoutesEqual,
   buildCreateTimeWindowPlaceOptions,
   buildFormModePlaceOptions,
   buildLocationPlaceOptionId,
   buildRoutePlaceOptionId,
-  buildRoutePlaceOptionGroups,
+  findAnchorEventPlaceOptionBySelectedPlace,
   getExclusiveCreateTimeWindowLocationOptions,
   getFirstEnabledPlaceOption,
   hasEnabledCreateTimeWindowPlaceOption,
+  reverseAnchorEventRoute,
   type AnchorEventRoutePlaceOption,
   toAnchorEventSelectedPlace,
 } from "./place-options";
@@ -50,60 +51,25 @@ const routeOption = (
 });
 
 describe("anchor event place options", () => {
-  test("recognizes opposite route directions", () => {
-    expect(areRoutesOppositeDirections(route, reversedRoute)).toBe(true);
-    expect(areRoutesOppositeDirections(route, route)).toBe(false);
+  test("reverses a route into a concrete selected route", () => {
+    const actual = reverseAnchorEventRoute(route);
+
+    expect(actual).toEqual(reversedRoute);
+    expect(actual).not.toBe(route);
+    expect(actual[0]).not.toBe(route[1]);
+    expect(areAnchorEventRoutesEqual(route, actual)).toBe(false);
+    expect(areAnchorEventRoutesEqual(reversedRoute, actual)).toBe(true);
   });
 
-  test("groups opposite route-pool directions into one display group", () => {
-    const groups = buildRoutePlaceOptionGroups([
-      routeOption("route-a-b", route),
-      routeOption("route-b-a", reversedRoute),
-      routeOption("route-c-d", [
-        {
-          ...route[0]!,
-          name: "天河体育中心",
-        },
-        {
-          ...route[1]!,
-          name: "广州东站",
-        },
-      ]),
-    ]);
+  test("resolves a reversed selected route back to its source option", () => {
+    const option = routeOption("route-a-b", route);
 
-    expect(groups).toHaveLength(2);
-    expect(groups[0]?.variants.map((option) => option.routePoolEntryId))
-      .toEqual(["route-a-b", "route-b-a"]);
-    expect(groups[1]?.variants.map((option) => option.routePoolEntryId))
-      .toEqual(["route-c-d"]);
-  });
-
-  test("does not group routes that are not full reverse paths", () => {
-    const firstRoute: PRRoute = [
-      route[0]!,
-      {
-        ...route[0]!,
-        name: "花城广场",
-      },
-      route[1]!,
-    ];
-    const secondRoute: PRRoute = [
-      route[1]!,
-      {
-        ...route[0]!,
-        name: "珠江新城",
-      },
-      route[0]!,
-    ];
-
-    const groups = buildRoutePlaceOptionGroups([
-      routeOption("route-a-c-b", firstRoute),
-      routeOption("route-b-d-a", secondRoute),
-    ]);
-
-    expect(groups).toHaveLength(2);
-    expect(groups.map((group) => group.variants)).toHaveLength(2);
-    expect(groups.every((group) => group.variants.length === 1)).toBe(true);
+    expect(
+      findAnchorEventPlaceOptionBySelectedPlace([option], {
+        kind: "route",
+        route: reversedRoute,
+      }),
+    ).toEqual(option);
   });
 
   test("buildFormModePlaceOptions treats route pool as exclusive when routes exist", () => {
@@ -293,7 +259,6 @@ describe("anchor event place options", () => {
     );
     expect(toAnchorEventSelectedPlace(options[0])).toEqual({
       kind: "route",
-      routePoolEntryId: "route-a",
       route,
     });
   });

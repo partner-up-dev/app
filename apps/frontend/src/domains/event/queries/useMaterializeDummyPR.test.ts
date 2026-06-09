@@ -28,7 +28,6 @@ describe("dummy PR materialization query", () => {
       ],
       place: {
         kind: "route",
-        routePoolEntryId: "route-a",
         route,
       },
       preferences: ["数学"],
@@ -41,7 +40,7 @@ describe("dummy PR materialization query", () => {
       ],
       place: {
         kind: "route",
-        routePoolEntryId: "route-a",
+        route,
       },
       preferences: ["数学"],
     });

@@ -102,7 +102,7 @@ type AnchorEventFormModeRecommendationResponse = {
   selection: {
     kind: "location" | "route";
     locationId: string | null;
-    routePoolEntryId: string | null;
+    route: PRRoute | null;
   };
   matchedRecommendation: {
     pr: {
@@ -510,7 +510,6 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
         }),
         createSource: "EVENT_ASSISTED",
         anchorEventId: event.id,
-        routePoolEntryId: "south-to-pazhou",
       },
     }),
     201,
@@ -550,7 +549,7 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
         body: {
           place: {
             kind: "route",
-            routePoolEntryId: "south-to-pazhou",
+            route: routePool[0]!.route,
           },
           timeWindows: [
             {
@@ -566,7 +565,7 @@ scenario("route_pool_event_assisted_create_persists_route_mode_pr", async (ctx) 
 
   assert.equal(recommendation.selection.kind, "route");
   assert.equal(recommendation.selection.locationId, null);
-  assert.equal(recommendation.selection.routePoolEntryId, "south-to-pazhou");
+  assert.deepEqual(recommendation.selection.route, routePool[0]?.route);
   assert.equal(recommendation.matchedRecommendation?.pr.id, created.id);
   assert.deepEqual(recommendation.matchedRecommendation?.pr.route, routePool[0]?.route);
   assert.equal(recommendation.matchedRecommendation?.match.exactPlace, true);
