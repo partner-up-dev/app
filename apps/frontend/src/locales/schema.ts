@@ -716,6 +716,7 @@ export interface MessageSchema {
       routePlaceholder: string;
       routeAriaLabel: string;
       applyRoute: string;
+      switchRouteDirection: string;
       emptyPlaceholder: string;
     };
     formMode: {

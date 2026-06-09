@@ -36,6 +36,11 @@ export type AnchorEventPlaceOption =
   | AnchorEventLocationPlaceOption
   | AnchorEventRoutePlaceOption;
 
+export type AnchorEventRoutePlaceOptionGroup = {
+  id: string;
+  variants: readonly AnchorEventRoutePlaceOption[];
+};
+
 export type AnchorEventPlaceSelectorView = {
   kind: "location" | "route" | "none";
   labelKey: string;
@@ -98,6 +103,7 @@ type CreatePlaceOptionsInput = {
 
 const LOCATION_OPTION_PREFIX = "location:";
 const ROUTE_OPTION_PREFIX = "route:";
+const ROUTE_DIRECTION_GROUP_PREFIX = "route-direction:";
 
 export const buildLocationPlaceOptionId = (locationId: string): string =>
   `${LOCATION_OPTION_PREFIX}${locationId}`;
@@ -129,6 +135,153 @@ export const resolvePoiMapCoordinate = (
 
 const normalizeRouteLabel = (route: Route): string =>
   buildRouteEndpointLabel(route) ?? route[0]?.name?.trim() ?? "";
+
+const normalizeRoutePointIdentityText = (
+  value: string | null | undefined,
+): string =>
+  value?.replace(/\s+/g, " ").trim().toLocaleLowerCase("zh-CN") ?? "";
+
+const buildCoordinateIdentity = (
+  coordinate: [number, number] | null | undefined,
+): string =>
+  isFiniteCoordinatePair(coordinate) ? `${coordinate[0]},${coordinate[1]}` : "";
+
+const buildRoutePointIdentity = (
+  point: Route[number] | null | undefined,
+): string | null => {
+  if (!point) {
+    return null;
+  }
+
+  const identity = [
+    normalizeRoutePointIdentityText(point.name),
+    normalizeRoutePointIdentityText(point.full_address),
+    buildCoordinateIdentity(point.wgs84),
+    buildCoordinateIdentity(point.bd09),
+    buildCoordinateIdentity(point.gcj02),
+  ];
+
+  return identity.some((part) => part.length > 0) ? identity.join("|") : null;
+};
+
+const buildRoutePointIdentities = (
+  route: Route | null | undefined,
+): string[] | null => {
+  if (!route || route.length < 2) {
+    return null;
+  }
+
+  const identities = route.map(buildRoutePointIdentity);
+  return identities.every((identity): identity is string => identity !== null)
+    ? identities
+    : null;
+};
+
+const buildRouteDirectionGroupKey = (
+  route: Route | null | undefined,
+): string | null => {
+  const identities = buildRoutePointIdentities(route);
+  if (!identities) {
+    return null;
+  }
+
+  const forward = identities.join(">");
+  const reverse = [...identities].reverse().join(">");
+  return forward <= reverse
+    ? `${forward}<=>${reverse}`
+    : `${reverse}<=>${forward}`;
+};
+
+export const areRoutesOppositeDirections = (
+  left: Route | null | undefined,
+  right: Route | null | undefined,
+): boolean => {
+  const leftIdentities = buildRoutePointIdentities(left);
+  const rightIdentities = buildRoutePointIdentities(right);
+  if (
+    !leftIdentities ||
+    !rightIdentities ||
+    leftIdentities.length !== rightIdentities.length
+  ) {
+    return false;
+  }
+
+  const sameDirection = leftIdentities.every(
+    (identity, index) => identity === rightIdentities[index],
+  );
+  if (sameDirection) {
+    return false;
+  }
+
+  return leftIdentities.every(
+    (identity, index) =>
+      identity === rightIdentities[rightIdentities.length - 1 - index],
+  );
+};
+
+export const buildRoutePlaceOptionGroups = (
+  options: readonly AnchorEventRoutePlaceOption[],
+): AnchorEventRoutePlaceOptionGroup[] => {
+  const rawGroups = new Map<string, AnchorEventRoutePlaceOption[]>();
+  for (const option of options) {
+    const groupKey = buildRouteDirectionGroupKey(option.route) ?? option.id;
+    const group = rawGroups.get(groupKey);
+    if (group) {
+      group.push(option);
+      continue;
+    }
+    rawGroups.set(groupKey, [option]);
+  }
+
+  const groupByOptionId = new Map<string, AnchorEventRoutePlaceOptionGroup>();
+  for (const [groupKey, groupOptions] of rawGroups.entries()) {
+    const hasOppositeDirectionPair = groupOptions.some((option, index) =>
+      groupOptions.some(
+        (other, otherIndex) =>
+          otherIndex !== index &&
+          areRoutesOppositeDirections(option.route, other.route),
+      ),
+    );
+
+    if (!hasOppositeDirectionPair) {
+      for (const option of groupOptions) {
+        groupByOptionId.set(option.id, {
+          id: `${ROUTE_DIRECTION_GROUP_PREFIX}${option.id}`,
+          variants: [option],
+        });
+      }
+      continue;
+    }
+
+    const group: AnchorEventRoutePlaceOptionGroup = {
+      id: `${ROUTE_DIRECTION_GROUP_PREFIX}${groupKey}`,
+      variants: groupOptions,
+    };
+    for (const option of groupOptions) {
+      groupByOptionId.set(option.id, group);
+    }
+  }
+
+  const emittedOptionIds = new Set<string>();
+  const groups: AnchorEventRoutePlaceOptionGroup[] = [];
+  for (const option of options) {
+    if (emittedOptionIds.has(option.id)) {
+      continue;
+    }
+
+    const group = groupByOptionId.get(option.id);
+    if (!group) {
+      continue;
+    }
+
+    groups.push(group);
+    for (const variant of group.variants) {
+      emittedOptionIds.add(variant.id);
+    }
+  }
+
+  return groups;
+};
 
 const clonePlaceSelectorOptions = (
   placeSelector: AnchorEventPlaceSelectorView | null | undefined,

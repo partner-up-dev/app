@@ -1973,6 +1973,7 @@
       "routePlaceholder": "请选择路线",
       "routeAriaLabel": "路线选择",
       "applyRoute": "申请新路线",
+      "switchRouteDirection": "调转路线方向",
       "emptyPlaceholder": "暂无可选地点"
     },
     "formMode": {

@@ -63,25 +63,41 @@
 
     <Transition name="place-label" mode="out-in">
       <div :key="activeCardId ?? 'none'" class="place-caption">
-        <ol
+        <div
           v-if="selectedRoutePoints.length > 0"
-          class="place-caption__route-list"
+          class="place-caption__route-shell"
         >
-          <li
-            v-for="(point, index) in selectedRoutePoints"
-            :key="`${index}-${point.name}`"
-            class="place-caption__route-item"
+          <ol class="place-caption__route-list">
+            <li
+              v-for="(point, index) in selectedRoutePoints"
+              :key="`${index}-${point.name}`"
+              class="place-caption__route-item"
+            >
+              <span
+                class="place-caption__route-dot"
+                :class="`place-caption__route-dot--${routePointRole(index)}`"
+                aria-hidden="true"
+              ></span>
+              <span class="place-caption__route-name">
+                {{ routePointName(point, index) }}
+              </span>
+            </li>
+          </ol>
+          <PuButton
+            v-if="canSwitchSelectedRouteDirection"
+            shape="circle"
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('anchorEvent.placeSelector.switchRouteDirection')"
+            data-testid="anchor-event-form-mode.place.route-direction-toggle"
+            @click="switchSelectedRouteDirection"
           >
-            <span
-              class="place-caption__route-dot"
-              :class="`place-caption__route-dot--${routePointRole(index)}`"
-              aria-hidden="true"
-            ></span>
-            <span class="place-caption__route-name">
-              {{ routePointName(point, index) }}
-            </span>
-          </li>
-        </ol>
+            <template #leading>
+              <span class="i-mdi-swap-horizontal" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </div>
         <p v-else class="place-caption__name">
           {{ selectedPlaceLabel }}
         </p>
@@ -93,6 +109,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { PuButton } from "@partner-up-dev/design-web";
 import PeekRadioCarousel, {
   type PeekRadioCarouselItem,
 } from "@/domains/event/ui/composites/PeekRadioCarousel.vue";
@@ -100,7 +117,9 @@ import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import { pickStableGalleryImage } from "@/domains/event/model/form-mode";
 import {
   buildFormModePlaceOptions,
+  buildRoutePlaceOptionGroups,
   type AnchorEventPlaceOption,
+  type AnchorEventRoutePlaceOption,
 } from "@/domains/event/model/place-options";
 import {
   resolveRoutePointRole,
@@ -114,11 +133,24 @@ type PlaceSelectorView = AnchorEventFormModeResponse["placeSelector"];
 const CREATE_LOCATION_CARD_ID = "__create_location__";
 const CREATE_ROUTE_CARD_ID = "__create_route__";
 
-type SelectablePlaceCardViewModel = AnchorEventPlaceOption &
+type LocationPlaceCardViewModel = Extract<
+  AnchorEventPlaceOption,
+  { kind: "location" }
+> &
   PeekRadioCarouselItem & {
     coverImage: string | null;
     isCreateCard?: false;
   };
+type RoutePlaceCardViewModel = AnchorEventRoutePlaceOption &
+  PeekRadioCarouselItem & {
+    coverImage: null;
+    isCreateCard?: false;
+    directionGroupId: string;
+    directionOptions: readonly AnchorEventRoutePlaceOption[];
+  };
+type SelectablePlaceCardViewModel =
+  | LocationPlaceCardViewModel
+  | RoutePlaceCardViewModel;
 type CreatePlaceCardViewModel = PeekRadioCarouselItem & {
   id: typeof CREATE_LOCATION_CARD_ID | typeof CREATE_ROUTE_CARD_ID;
   kind: "create";
@@ -147,24 +179,73 @@ const activeCardId = ref<string | null>(props.modelValue);
 const usesLocationPool = computed(() => props.placeSelector.kind === "location");
 const usesRoutePool = computed(() => props.placeSelector.kind === "route");
 
-const selectablePlaceCards = computed<SelectablePlaceCardViewModel[]>(() =>
-  buildFormModePlaceOptions({
+const isRoutePlaceOption = (
+  option: AnchorEventPlaceOption,
+): option is AnchorEventRoutePlaceOption => option.kind === "route";
+
+const createRoutePlaceCard = (
+  directionGroupId: string,
+  directionOptions: readonly AnchorEventRoutePlaceOption[],
+): RoutePlaceCardViewModel => {
+  const activeRoute =
+    directionOptions.find((option) => option.id === activeCardId.value) ??
+    directionOptions.find((option) => option.id === props.modelValue) ??
+    directionOptions[0];
+  if (!activeRoute) {
+    throw new Error("Route direction group requires at least one variant");
+  }
+
+  return {
+    ...activeRoute,
+    coverImage: null,
+    directionGroupId,
+    directionOptions,
+  };
+};
+
+const selectablePlaceCards = computed<SelectablePlaceCardViewModel[]>(() => {
+  const options = buildFormModePlaceOptions({
     placeSelector: props.placeSelector,
     locations: [],
     routes: [],
-  }).map((option) => ({
-    ...option,
-    coverImage:
-      option.kind === "location"
-        ? pickStableGalleryImage(option.gallery, option.locationId)
-        : null,
-  })),
-);
+  });
+  const routeGroups = buildRoutePlaceOptionGroups(
+    options.filter(isRoutePlaceOption),
+  );
+  const routeGroupByOptionId = new Map<string, (typeof routeGroups)[number]>();
+  for (const group of routeGroups) {
+    for (const variant of group.variants) {
+      routeGroupByOptionId.set(variant.id, group);
+    }
+  }
+
+  const emittedRouteGroupIds = new Set<string>();
+  return options.flatMap((option): SelectablePlaceCardViewModel[] => {
+    if (option.kind === "location") {
+      return [
+        {
+          ...option,
+          coverImage: pickStableGalleryImage(option.gallery, option.locationId),
+        },
+      ];
+    }
+
+    const group = routeGroupByOptionId.get(option.id);
+    if (!group || emittedRouteGroupIds.has(group.id)) {
+      return [];
+    }
+
+    emittedRouteGroupIds.add(group.id);
+    return [createRoutePlaceCard(group.id, group.variants)];
+  });
+});
 
 const createLocationCard = (): CreatePlaceCardViewModel => ({
   kind: "create",
   id: CREATE_LOCATION_CARD_ID,
-  label: t(props.placeSelector.applyActionKey ?? "anchorEvent.placeSelector.applyLocation"),
+  label: t(
+    props.placeSelector.applyActionKey ?? "anchorEvent.placeSelector.applyLocation",
+  ),
   coverImage: null,
   isCreateCard: true,
   createKind: "location",
@@ -173,7 +254,9 @@ const createLocationCard = (): CreatePlaceCardViewModel => ({
 const createRouteCard = (): CreatePlaceCardViewModel => ({
   kind: "create",
   id: CREATE_ROUTE_CARD_ID,
-  label: t(props.placeSelector.applyActionKey ?? "anchorEvent.placeSelector.applyRoute"),
+  label: t(
+    props.placeSelector.applyActionKey ?? "anchorEvent.placeSelector.applyRoute",
+  ),
   coverImage: null,
   isCreateCard: true,
   createKind: "route",
@@ -193,8 +276,20 @@ const selectedPlaceCard = computed<PlaceCardViewModel | null>(
   () => placeCards.value.find((place) => place.id === activeCardId.value) ?? null,
 );
 
+const selectedRoutePlaceCard = computed<RoutePlaceCardViewModel | null>(() =>
+  selectedPlaceCard.value?.kind === "route" ? selectedPlaceCard.value : null,
+);
+
 const selectedRoutePoints = computed<RoutePoint[]>(() =>
-  selectedPlaceCard.value?.kind === "route" ? selectedPlaceCard.value.route : [],
+  selectedRoutePlaceCard.value?.route ?? [],
+);
+
+const selectedRouteDirectionOptions = computed(
+  () => selectedRoutePlaceCard.value?.directionOptions ?? [],
+);
+
+const canSwitchSelectedRouteDirection = computed(
+  () => selectedRouteDirectionOptions.value.length > 1,
 );
 
 const selectedPlaceLabel = computed(() => {
@@ -257,6 +352,25 @@ const handleCardClick = (card: PlaceCardViewModel) => {
   activeCardId.value = card.id;
 };
 
+const switchSelectedRouteDirection = () => {
+  const directionOptions = selectedRouteDirectionOptions.value;
+  if (directionOptions.length <= 1) {
+    return;
+  }
+
+  const currentIndex = directionOptions.findIndex(
+    (option) => option.id === selectedRoutePlaceCard.value?.id,
+  );
+  const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
+  const nextRoute = directionOptions[nextIndex % directionOptions.length];
+  if (!nextRoute) {
+    return;
+  }
+
+  activeCardId.value = nextRoute.id;
+  emit("update:modelValue", nextRoute.id);
+};
+
 const handleCarouselKeydown = (event: KeyboardEvent) => {
   if (
     !isCreateCardId(activeCardId.value) ||
@@ -288,6 +402,13 @@ watch(
 watch(
   selectablePlaceCards,
   (places) => {
+    if (
+      activeCardId.value &&
+      !isCreateCardId(activeCardId.value) &&
+      places.some((place) => place.id === activeCardId.value)
+    ) {
+      return;
+    }
     if (props.modelValue && places.some((place) => place.id === props.modelValue)) {
       return;
     }
@@ -388,12 +509,21 @@ watch(
   text-align: center;
 }
 
+.place-caption__route-shell {
+  display: grid;
+  width: min(100%, 28rem);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sys-spacing-small);
+  margin: 0 auto;
+}
+
 .place-caption__route-list {
   display: flex;
-  width: min(100%, 28rem);
+  min-width: 0;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
-  margin: 0 auto;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
