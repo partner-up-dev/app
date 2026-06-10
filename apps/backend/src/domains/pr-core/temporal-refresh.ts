@@ -174,11 +174,11 @@ async function releaseUnconfirmedSlotsIfNeeded(
   }
 
   await recalculatePRStatus(request.id);
+  await promoteWaitlistedPartners(request.id);
   if (hasAnchorParticipationPolicy(request)) {
     await applyAnchorParticipantReleaseEffects({
       prId: request.id,
       releasedUserIds,
     });
   }
-  await promoteWaitlistedPartners(request.id);
 }

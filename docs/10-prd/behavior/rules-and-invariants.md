@@ -68,8 +68,8 @@
 - `DRAFT` is creator-private draft state and must not appear in public PR browse surfaces, including Anchor Event List/Card browsing and search results.
 - `FULL` is a user-visible derived capacity state, not a durable `PartnerRequest.status`: an `OPEN` PR with `maxPartners` present and current active participants greater than or equal to `maxPartners` is presented as full.
 - `READY` means the collaboration object is formed and roster-locked; joining, waitlisting, and exiting are no longer allowed, and progression toward `ACTIVE` may still continue.
-- `READY` locks roster admission, not every PR fact. A PR may carry PR-owned `allowEditAfterReady` policy that lets the creator keep editing explicitly listed core fields after `READY`; fields absent from that policy remain locked.
-- READY-after edits are creator-only. When a time edit would conflict with current participants' other active PR commitments, the default outcome is a 409 conflict. If the creator explicitly confirms with `allowRelease`, the backend may release the conflicted participants with a stable `releaseReason`, as long as the remaining active participants still satisfy `minPartners`.
+- `READY` locks roster admission, not every PR fact. A PR may carry PR-owned `allowEditAfterReady` policy that lets the current creator keep editing explicitly listed core fields after `READY`; fields absent from that policy remain locked.
+- READY-after edits are current-creator-only. When a time edit would conflict with current participants' other active PR commitments, the default outcome is a 409 conflict. If the current creator explicitly confirms with `allowRelease`, the backend may release the conflicted participants with a stable `releaseReason`, as long as the remaining active participants still satisfy `minPartners`.
 - `PartnerRequest` state is jointly shaped by partner thresholds, time windows, confirmation windows, and context-specific rules.
 - When a PR reaches its close time, it expires only when current active participants are fewer than `minPartners`.
 - When a PR reaches its close time with current active participants greater than or equal to `minPartners`, it closes automatically.
@@ -77,6 +77,7 @@
 - Auto-created paths must fall back to `2` when a valid `minPartners` is unavailable. Manual input paths must reject empty value, `0`, `maxPartners = 1`, and invalid bounds.
 - If the user already joined a non-terminal PR whose time window conflicts with the target PR, the system must reject new join actions and any creation or publish action that would claim a slot.
 - `PR` supports `join` and `exit`.
+- `PartnerRequest.createdBy` represents the current creator responsibility, not an immutable original author. When a published PR with active participants has `createdBy = null`, the backend assigns the earliest active participant as current creator. When the current creator exits or is released, the backend transfers `createdBy` to the earliest remaining active participant, or clears it to `null` when no active participants remain.
 - A full-capacity `OPEN` PR may accept waitlist entries while it remains before the join-lock boundary. `READY` keeps the admission surface closed.
 - Waitlist submission is subject to Anchor Event participation frequency limits when the target PR belongs to an event with that policy.
 - Waitlist entries are stored as `Partner.status = PENDING`. Cancelled waitlist entries are stored as `Partner.status = CANCELLED` and no longer hold queue position.

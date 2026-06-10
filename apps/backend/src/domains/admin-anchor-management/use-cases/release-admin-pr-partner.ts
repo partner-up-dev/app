@@ -67,13 +67,14 @@ export async function releaseAdminPRPartner(input: {
     slot.userId,
   );
 
+  await recalculatePRStatus(input.prId);
+  await promoteWaitlistedPartners(input.prId);
+
   const { creatorTransferredToUserId } =
     await applyAnchorParticipantReleaseEffects({
       prId: input.prId,
       releasedUserIds: [slot.userId],
     });
-
-  await recalculatePRStatus(input.prId);
 
   operationLogService.log({
     actorId: input.actorUserId,
@@ -92,7 +93,6 @@ export async function releaseAdminPRPartner(input: {
     },
   });
 
-  await promoteWaitlistedPartners(input.prId);
   const latest = await prRepo.findById(input.prId);
   if (latest) {
     await scheduleAlternativeWaitlistNotificationsForCandidate(latest);

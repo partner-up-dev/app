@@ -110,6 +110,24 @@ describe("buildPRPartnerSection", () => {
     assert.equal(view.viewer.exitBlockedReason, "NOT_JOINABLE_STATUS");
   });
 
+  it("allows the current creator to exit from OPEN", () => {
+    const participant = buildActiveParticipant("JOINED");
+    const view = buildPRPartnerSection({
+      publicPR: buildPublicPR({
+        status: "OPEN",
+        createdBy: viewerUserId,
+        time: ["2030-01-01T12:00:00.000Z", "2030-01-01T13:00:00.000Z"],
+      }),
+      activeParticipants: [participant],
+      rosterParticipants: [participant],
+      viewerUserId,
+    });
+
+    assert.equal(view.viewer.isCreator, true);
+    assert.equal(view.viewer.canExit, true);
+    assert.equal(view.viewer.exitBlockedReason, "NONE");
+  });
+
   it("does not allow an attended participant to check in again", () => {
     const participant = buildActiveParticipant("ATTENDED");
     const view = buildPRPartnerSection({

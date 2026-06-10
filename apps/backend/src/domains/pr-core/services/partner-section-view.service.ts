@@ -379,10 +379,7 @@ export function buildPRPartnerSection(params: {
 
   let canExit = true;
   let exitBlockedReason: PartnerSectionActionBlockedReason = "NONE";
-  if (base.viewer.isCreator) {
-    canExit = false;
-    exitBlockedReason = "NOT_JOINABLE_STATUS";
-  } else if (!base.viewer.isParticipant) {
+  if (!base.viewer.isParticipant) {
     canExit = false;
     exitBlockedReason = "NOT_JOINED";
   } else if (!isExitAllowedStatus(publicPR.status)) {

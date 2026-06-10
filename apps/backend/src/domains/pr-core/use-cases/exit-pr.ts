@@ -19,6 +19,7 @@ import {
 import { resetPRJoinGateResolutionsForUser } from "../services/join-gates.service";
 import { promoteWaitlistedPartners } from "../services/waitlist.service";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { reconcileCurrentCreator } from "../services/current-creator.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -34,10 +35,6 @@ export async function exitPRByUserId(
   }
   const refreshedRequest = await refreshTemporalStatus(request);
   const hasParticipationPolicy = hasAnchorParticipationPolicy(refreshedRequest);
-
-  if (refreshedRequest.createdBy === userId) {
-    return throwHttpProblem({ status: 400, detail: "Cannot exit - creator cannot exit own partner request" });
-  }
 
   if (!isExitAllowedStatus(refreshedRequest.status as string)) {
     return throwHttpProblem({ status: 400, detail: "Cannot exit - partner request is not open" });
@@ -74,6 +71,7 @@ export async function exitPRByUserId(
   });
 
   await promoteWaitlistedPartners(id);
+  await reconcileCurrentCreator(id);
 
   const latest = await prRepo.findById(id);
   if (!latest) {

@@ -8,7 +8,7 @@
 4. The frontend submits the natural-language create command.
 5. If the selected type maps to an Anchor Event whose PR creation policy allows user creation and the user already has an authenticated account, the backend creates and publishes the PR inside the same creation flow.
 6. If the user is anonymous, the backend creates a `DRAFT` and waits for a later authenticated publish step.
-7. The publish step assigns creator ownership and returns a shareable, revisitable `PR`.
+7. The publish step assigns current creator responsibility and returns a shareable, revisitable `PR`.
 
 ## 2. Create a PR Through Structured Form
 
@@ -20,7 +20,7 @@
 6. The frontend submits the structured create command. If the selected `type` resolves to an Anchor Event, that event's PR creation policy gates user creation, and PR creation materializes that event's PR defaults such as default notes when the create payload has no notes, join gates, and mounted feedback questionnaire instance onto the created PR.
 7. If the user already has an authenticated account, the backend creates and publishes the PR inside the same creation flow.
 8. If the user is anonymous, the backend creates a `DRAFT` and waits for a later authenticated publish step.
-9. The publish step assigns creator ownership and returns a shareable, revisitable `PR`.
+9. The publish step assigns current creator responsibility and returns a shareable, revisitable `PR`.
 
 ## 3. Enter Through a Link and Join a PR
 
@@ -33,7 +33,7 @@
 6. If join succeeds in a PR where reminder registration is relevant and confirmation is enabled, the system immediately prompts a dedicated confirmation follow-up with the confirmation reminder subscription, confirmation importance, the confirmation window, and the slot-release consequence. The confirmation follow-up includes the confirmation deadline when known.
 7. The general join-success notification-subscription follow-up focuses on new-partner reminder and meeting-point reminder recommendations, and each recommendation explains why it is useful. When confirmation is disabled for that PR, the join-success sequence starts with this general follow-up while leaving the persistent notification-subscriptions section available on the detail page for later revisit.
 8. After the join-success notification follow-ups are completed, the same flow may show one combined community follow-up view. That view can include the current Anchor Event's beta-group QR with the copy "加群获得活动最新动态", the official-account QR when the user is eligible for that prompt, or both when both are relevant.
-9. If join succeeds, the user enters the downstream progression of that collaboration object.
+9. If join succeeds, the user enters the downstream progression of that collaboration object. When a published PR has no current creator and this join makes the user the earliest active participant, the backend assigns that user as the current creator.
 10. If the current PR was entered from Anchor Event context and is not the right fit, `/pr/:id` keeps a lightweight path back to browsing other active Anchor Events without hiding the current collaboration detail.
 
 ## 4. Enter PR Through Anchor Event Browsing And Search
@@ -50,7 +50,7 @@
 8.1. If the desired location is absent, the Form Mode location control provides a location-application entry. The application creates a pending `POI` with the submitted name and image, independent of any one Anchor Event.
 9. Form Mode submission returns one backend-authored matched recommendation plus an ordered candidate list.
 10. If Form Mode has no matched recommendation and has ordered candidates, the page shows the inline no-match result with candidate actions. When the Anchor Event PR creation policy allows user creation, the same selected conditions can feed the create fallback action `都不合适，帮我找`.
-11. If Form Mode has no matched recommendation, zero ordered candidates, and a user-creation-enabled event policy, the page directly creates a system-owned `OPEN` `PR` from the selected conditions after the long-press completes, then opens the created `/pr/:id` without assigning the viewer as creator. With an admin-only creation policy, the page stays in the no-match result state and keeps browsing exits available.
+11. If Form Mode has no matched recommendation, zero ordered candidates, and a user-creation-enabled event policy, the page directly creates a system-owned `OPEN` `PR` from the selected conditions after the long-press completes, then opens the created `/pr/:id` without assigning the viewer as creator at creation time. With an admin-only creation policy, the page stays in the no-match result state and keeps browsing exits available.
 12. Joining a recommended candidate from Form Mode uses the same PR join flow as canonical PR detail; successful joins continue into canonical `/pr/:id` while preserving event-context handoff continuity.
 13. In `/events/search`, the user chooses one active `Anchor Event` and one or more available local dates before seeing matching `PR` results.
 14. Search results follow the chosen Anchor Event's `PR.type` resolution and time-pool rules; result cards identify candidate PRs by time, location, visible status, and participant count rather than repeating event-side context.
@@ -64,7 +64,7 @@
 21. The current Anchor Event and downstream PR detail surfaces may also expose other active Anchor Events as a secondary browsing path, so the user can pivot without leaving the event-context collaboration journey entirely.
 22. The user may then join or continue browsing other visible PRs in that event context.
 23. The resulting PR may continue through timing and reliability loops such as confirmation, reminders, attendance follow-up, event beta-group follow-up, and mounted post-event feedback when the corresponding modules are active.
-24. If a PR carries READY-after edit policy, its creator can use PR Editor after `READY` to adjust only those fields. If a time adjustment conflicts with participants, the editor asks for explicit confirmation before the backend releases conflicted participants with a release reason.
+24. If a PR carries READY-after edit policy, its current creator can use PR Editor after `READY` to adjust only those fields. If a time adjustment conflicts with participants, the editor asks for explicit confirmation before the backend releases conflicted participants with a release reason.
 
 ## 4.1 Submit And Review A POI Location Application
 
