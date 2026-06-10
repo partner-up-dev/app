@@ -11,7 +11,7 @@
       </header>
     </template>
 
-    <SurfaceCard class="wechat-oauth-callback-page__card">
+    <PuCard as="section" class="wechat-oauth-callback-page__card">
       <LoadingIndicator
         v-if="status === 'processing'"
         :message="statusMessage"
@@ -19,17 +19,17 @@
       <p v-else class="wechat-oauth-callback-page__error">
         {{ statusMessage }}
       </p>
-    </SurfaceCard>
+    </PuCard>
   </PageScaffoldCentered>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { PuCard } from "@partner-up-dev/design-web";
 import { client } from "@/lib/rpc";
 import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import {
   useUserSessionStore,
   type AuthSessionPayload,

@@ -1,7 +1,9 @@
 <template>
-  <SurfaceCard
+  <PuCard
     :as="as"
-    :tone="tone"
+    tone="neutral"
+    :variant="cardVariant"
+    :padding="cardPadding"
     :gap="compact ? 'xs' : 'sm'"
     class="empty-state"
     :class="`empty-state--align-${align}`"
@@ -26,16 +28,17 @@
     <div v-if="$slots.actions" class="empty-state__actions">
       <slot name="actions" />
     </div>
-  </SurfaceCard>
+  </PuCard>
 </template>
 
 <script setup lang="ts">
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
+import { computed } from "vue";
+import { PuCard } from "@partner-up-dev/design-web";
 
 type EmptyStateAlign = "start" | "center";
 type EmptyStateTone = "section" | "outline";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     as?: string;
     title: string;
@@ -54,6 +57,11 @@ withDefaults(
     tone: "outline",
   },
 );
+
+const cardVariant = computed(() =>
+  props.tone === "outline" ? "outline" : "soft",
+);
+const cardPadding = computed(() => (props.tone === "outline" ? "sm" : "md"));
 </script>
 
 <style lang="scss" scoped>

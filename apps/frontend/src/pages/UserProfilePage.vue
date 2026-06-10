@@ -27,7 +27,7 @@
       persistent
     />
 
-    <SurfaceCard v-else-if="profile" gap="md">
+    <PuCard v-else-if="profile" as="section" gap="md">
       <div
         v-if="profile.isCurrentLocalUser"
         class="profile-actions"
@@ -52,7 +52,7 @@
           <strong class="nickname-value">{{ displayName }}</strong>
         </div>
       </div>
-    </SurfaceCard>
+    </PuCard>
 
     <template #footer>
       <PageFooter variant="minimal" />
@@ -65,12 +65,12 @@ import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
+import { PuCard } from "@partner-up-dev/design-web";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Avatar from "@/shared/ui/identity/Avatar.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import {

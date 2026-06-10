@@ -16,7 +16,7 @@
       />
       <ErrorToast v-if="pageError" :message="pageError" persistent />
 
-      <SurfaceCard gap="md">
+      <PuCard as="section" gap="md">
         <form class="application-form" @submit.prevent="handleSubmit">
           <FormField
             :label="t('routeApplicationPage.routeLabel')"
@@ -41,9 +41,9 @@
             {{ t("routeApplicationPage.submitAction") }}
           </Button>
         </form>
-      </SurfaceCard>
+      </PuCard>
 
-      <SurfaceCard gap="md">
+      <PuCard as="section" gap="md">
         <div class="section-header">
           <div>
             <h2>{{ t("routeApplicationPage.mineTitle") }}</h2>
@@ -88,7 +88,7 @@
             </div>
           </article>
         </div>
-      </SurfaceCard>
+      </PuCard>
     </div>
   </PageScaffoldFlow>
 </template>
@@ -98,9 +98,9 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
+import { PuCard } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import Chip from "@/shared/ui/display/Chip.vue";

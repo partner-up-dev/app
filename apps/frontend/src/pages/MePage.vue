@@ -23,7 +23,7 @@
         :message="t('mePage.loading')"
       />
 
-      <SurfaceCard gap="md">
+      <PuCard as="section" gap="md">
         <div class="section-header">
           <div>
             <h2>{{ t("mePage.profile.title") }}</h2>
@@ -210,7 +210,7 @@
             </Button>
           </div>
         </div>
-      </SurfaceCard>
+      </PuCard>
 
       <div class="shortcut-grid">
         <RouterLink class="shortcut-card" :to="{ name: 'pr-mine' }">
@@ -263,13 +263,13 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useQueryClient } from "@tanstack/vue-query";
+import { PuCard } from "@partner-up-dev/design-web";
 import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
 import Avatar from "@/shared/ui/identity/Avatar.vue";
 import Button from "@/shared/ui/actions/Button.vue";

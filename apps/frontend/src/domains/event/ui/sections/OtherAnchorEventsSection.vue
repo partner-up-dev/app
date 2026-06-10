@@ -4,10 +4,14 @@
     ref="sectionRef"
     class="other-anchor-events__panel-shell"
   >
-    <ExpandableCard
+    <PuCard
+      as="section"
       class="other-anchor-events other-anchor-events--panel"
       :title="t('anchorEvent.otherEvents.title')"
+      :toggle-label="t('anchorEvent.otherEvents.title')"
       :default-expanded="false"
+      collapsible
+      variant="outline"
     >
       <p v-if="isLoading" class="other-anchor-events__state">
         {{ t("common.loading") }}
@@ -20,7 +24,7 @@
         card-surface="outline"
         :auto-scroll="isInView"
       />
-    </ExpandableCard>
+    </PuCard>
   </div>
 
   <section
@@ -52,7 +56,7 @@ import { useI18n } from "vue-i18n";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { useInViewStagger } from "@/shared/motion/useInViewStagger";
 import AnchorEventHorizontalList from "@/domains/event/ui/composites/AnchorEventHorizontalList.vue";
-import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
+import { PuCard } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{

@@ -3,14 +3,19 @@
     class="create-card-shell"
     :class="{ 'create-card-shell--flash': autoExpandHighlightActive }"
   >
-    <ExpandableCard
-      :title="title ?? t('anchorEvent.createCard.title')"
+    <PuCard
+      as="section"
+      class="create-card-panel"
+      :title="cardTitle"
       :subtitle="
         t('anchorEvent.createCard.subtitle')
       "
-      :default-expanded="expandableDefaultExpanded"
-      :expanded-reset-key="expandableCardResetKey"
+      :toggle-label="cardTitle"
+      :default-expanded="cardDefaultExpanded"
+      :expanded-reset-key="cardResetKey"
+      collapsible
       keep-content-mounted
+      variant="outline"
     >
       <div class="create-card">
         <AnchorEventAssistedPRTimeWindowInlineEditor
@@ -47,7 +52,7 @@
           }}
         </Button>
       </div>
-    </ExpandableCard>
+    </PuCard>
   </div>
 </template>
 
@@ -55,7 +60,7 @@
 import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
+import { PuCard } from "@partner-up-dev/design-web";
 import Button from "@/shared/ui/actions/Button.vue";
 import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
 import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
@@ -67,7 +72,7 @@ import {
   type AnchorEventPlaceOption,
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
-import { useExpandableCardAttention } from "./useExpandableCardAttention";
+import { usePuCardAttention } from "./usePuCardAttention";
 
 const props = withDefaults(
   defineProps<{
@@ -105,6 +110,9 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const cardTitle = computed(
+  () => props.title ?? t("anchorEvent.createCard.title"),
+);
 const placeLabel = computed(
   () => props.placeLabel ?? t("anchorEvent.placeSelector.locationLabel"),
 );
@@ -119,9 +127,9 @@ const isCreateDisabled = computed(
 );
 const {
   autoExpandHighlightActive,
-  expandableCardResetKey,
-  expandableDefaultExpanded,
-} = useExpandableCardAttention({
+  cardDefaultExpanded,
+  cardResetKey,
+} = usePuCardAttention({
   defaultExpanded: toRef(props, "defaultExpanded"),
   autoExpandContextKey: toRef(props, "autoExpandContextKey"),
 });
@@ -161,13 +169,13 @@ const emitCreate = () => {
 </script>
 
 <style lang="scss" scoped>
-.create-card-shell :deep(.expandable-card) {
+.create-card-shell :deep(.create-card-panel) {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 
-.create-card-shell :deep(.expandable-card)::before {
+.create-card-shell :deep(.create-card-panel)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -176,13 +184,15 @@ const emitCreate = () => {
   z-index: 0;
 }
 
-.create-card-shell :deep(.expandable-card__toggle),
-.create-card-shell :deep(.expandable-card__body) {
+.create-card-shell
+  :deep(.create-card-panel > .pu-card__header),
+.create-card-shell
+  :deep(.create-card-panel > .pu-card__body) {
   position: relative;
   z-index: 1;
 }
 
-.create-card-shell--flash :deep(.expandable-card)::before {
+.create-card-shell--flash :deep(.create-card-panel)::before {
   animation: create-card-surface-flash 900ms ease-in-out 1;
 }
 

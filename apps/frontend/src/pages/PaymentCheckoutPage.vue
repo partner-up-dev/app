@@ -31,7 +31,7 @@
       </div>
 
       <template v-else-if="checkout">
-        <SurfaceCard gap="md">
+        <PuCard as="section" gap="md">
           <div class="payment-checkout-page__section-heading">
             <p class="payment-checkout-page__eyebrow">Checkout</p>
             <h2>{{ checkout.order.itemName }}</h2>
@@ -47,9 +47,9 @@
           <p class="payment-checkout-page__status" data-testid="payment-checkout.status">
             支付状态：{{ paymentStatusLabel }}
           </p>
-        </SurfaceCard>
+        </PuCard>
 
-        <SurfaceCard gap="md">
+        <PuCard as="section" gap="md">
           <div class="payment-checkout-page__section-heading">
             <p class="payment-checkout-page__eyebrow">Provider</p>
             <h2>微信支付</h2>
@@ -122,9 +122,9 @@
             :message="clientPaymentError"
             data-testid="payment-checkout.client-error"
           />
-        </SurfaceCard>
+        </PuCard>
 
-        <SurfaceCard gap="sm" tone="outline">
+        <PuCard as="section" gap="sm" padding="sm" variant="outline">
           <ActionLink
             :to="{ path: `/bills/${checkout.bill.id}` }"
             tone="outline"
@@ -132,7 +132,7 @@
           >
             返回账单
           </ActionLink>
-        </SurfaceCard>
+        </PuCard>
       </template>
     </div>
   </FullScreenPageScaffold>
@@ -141,10 +141,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
+import { PuCard } from "@partner-up-dev/design-web";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {

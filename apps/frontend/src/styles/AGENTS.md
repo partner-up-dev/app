@@ -29,7 +29,7 @@ Extend a shared primitive only when the treatment is stable across consumers and
 
 - page scaffold components for safe-area layout
 - `Button`, `ActionLink`, and `FeedbackButton` for action treatments
-- `SurfaceCard` for reusable card shells
+- `PuCard` from `@partner-up-dev/design-web` for reusable card shells
 - `ChoiceCard` for reusable selectable card shells
 - form primitives for reusable input shells
 
