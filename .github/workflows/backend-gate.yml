@@ -8,6 +8,7 @@ on:
     paths:
       - "apps/backend/**"
       - "vitest.config.ts"
+      - "vitest.backend.config.ts"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"

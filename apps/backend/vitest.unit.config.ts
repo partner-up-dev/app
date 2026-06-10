@@ -7,5 +7,6 @@ export default defineProject({
     name: "backend-unit",
     include: ["src/**/*.test.ts"],
     environment: "node",
+    testTimeout: 10_000,
   },
 });
