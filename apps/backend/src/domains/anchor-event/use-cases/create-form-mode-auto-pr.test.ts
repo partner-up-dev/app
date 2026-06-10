@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   findEventById: vi.fn(),
   canUserCreate: vi.fn(),
   createPRFromStructured: vi.fn(),
-  eventOwnsTimeWindow: vi.fn(),
   isPublicEventScopedLocation: vi.fn(),
 }));
 
@@ -21,10 +20,6 @@ vi.mock("../../pr/services", () => ({
 
 vi.mock("../../pr/model/pr", () => ({
   createPRFromStructured: mocks.createPRFromStructured,
-}));
-
-vi.mock("../services/time-window-pool", () => ({
-  eventOwnsTimeWindow: mocks.eventOwnsTimeWindow,
 }));
 
 vi.mock("../services/event-scope", () => ({
@@ -64,6 +59,18 @@ const event = {
   defaultMinPartners: 2,
   defaultMaxPartners: 4,
   prCreationPolicy: "USER_AND_ADMIN",
+  timePoolConfig: {
+    durationMinutes: 60,
+    earliestLeadMinutes: null,
+    startRules: [
+      {
+        id: "event-owned-start",
+        kind: "ABSOLUTE",
+        startAt: "2038-01-02T12:35:00.000Z",
+        description: null,
+      },
+    ],
+  },
 } as AnchorEvent;
 
 beforeEach(() => {
@@ -76,7 +83,6 @@ beforeEach(() => {
     status: "OPEN",
     canonicalPath: "/pr/99",
   });
-  mocks.eventOwnsTimeWindow.mockReturnValue(true);
   mocks.isPublicEventScopedLocation.mockResolvedValue(true);
 });
 
@@ -148,6 +154,42 @@ describe("createAnchorEventFormModeAutoPR", () => {
       expect.objectContaining({
         createSource: "EVENT_FORM_MODE_AUTO",
         publicationMode: "create-open",
+      }),
+    );
+  });
+
+  test("accepts a fuzzy activity window outside the event time pool", async () => {
+    const fuzzyAllDayWindow: [string, string] = [
+      "2038-01-01T16:00:00.000Z",
+      "2038-01-02T15:59:00.000Z",
+    ];
+
+    await createAnchorEventFormModeAutoPR({
+      eventId: 7,
+      timeWindow: fuzzyAllDayWindow,
+      place: {
+        kind: "location",
+        locationId: "大学城体育中心",
+      },
+      preferences: [],
+      allowEditAfterReady: {
+        timeWindow: fuzzyAllDayWindow,
+      },
+    });
+
+    expect(mocks.createPRFromStructured).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "数学自习",
+        time: fuzzyAllDayWindow,
+        location: "大学城体育中心",
+      }),
+      expect.any(Object),
+      expect.objectContaining({
+        createSource: "EVENT_FORM_MODE_AUTO",
+        publicationMode: "create-open",
+        allowEditAfterReady: {
+          timeWindow: fuzzyAllDayWindow,
+        },
       }),
     );
   });

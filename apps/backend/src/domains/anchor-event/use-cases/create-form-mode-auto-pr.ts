@@ -13,7 +13,6 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { canUserCreatePRForAnchorEvent } from "../../pr/services";
 import { createPRFromStructured } from "../../pr/model/pr";
 import { isPublicEventScopedLocation } from "../services/event-scope";
-import { eventOwnsTimeWindow } from "../services/time-window-pool";
 
 const anchorEventRepo = new AnchorEventRepository();
 
@@ -109,14 +108,6 @@ export async function createAnchorEventFormModeAutoPR(
       code: "ANCHOR_EVENT_USER_PR_CREATION_DISABLED",
     });
   }
-  if (!eventOwnsTimeWindow(event, input.timeWindow)) {
-    return throwHttpProblem({
-      status: 400,
-      detail: "Selected time window is outside the anchor event scope",
-      code: "ANCHOR_EVENT_FORM_MODE_AUTO_CREATE_INVALID_TIME_WINDOW",
-    });
-  }
-
   const place = await resolveFormModeAutoCreatePlace(event, input.place);
   return await createPRFromStructured(
     {
