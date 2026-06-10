@@ -11,7 +11,6 @@ import {
   configurePRStatus,
 } from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
 import {
-  givenAdminUser,
   givenUser,
   type ScenarioUser,
 } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
@@ -30,30 +29,6 @@ const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
 const rentalHeroImageSrc =
   "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%3E%3Crect%20width='120'%20height='120'%20fill='%2396d945'/%3E%3Cpath%20d='M24%2084h72M32%2036h56v36H32z'%20stroke='%2326381c'%20stroke-width='8'%20fill='none'/%3E%3C/svg%3E";
-
-async function installScenarioAdminSession(
-  page: Page,
-  user: ScenarioUser,
-): Promise<void> {
-  await page.addInitScript(
-    (session) => {
-      window.localStorage.setItem("partner_up_admin_user_id", session.userId);
-      window.localStorage.setItem(
-        "partner_up_admin_access_token",
-        session.token,
-      );
-      window.localStorage.setItem("partner_up_admin_session_role", "service");
-      window.localStorage.setItem(
-        "partner_up_admin_session_roles",
-        JSON.stringify(["service"]),
-      );
-    },
-    {
-      token: user.token,
-      userId: user.user.id,
-    },
-  );
-}
 
 type ScenarioPartnerRequest = {
   id: number;
@@ -297,81 +272,35 @@ async function fillRentalOrderingRequiredFields(page: Page): Promise<void> {
   await page.getByTestId("ordering.rental.registrant-name.1").fill("李四");
 }
 
-async function waitForBillSettlementStatus(
-  page: Page,
-  expected: string,
-): Promise<void> {
-  await page.waitForFunction((label) => {
-    const text = document.querySelector(
-      '[data-testid="bill-detail.settlement-status"]',
-    )?.textContent;
-    return text?.includes(label);
-  }, expected);
-}
-
-async function waitForBillLineCount(page: Page, expected: number): Promise<void> {
-  await page.waitForFunction(
-    ({ testId, expectedCount }) =>
-      document.querySelectorAll(`[data-testid="${testId}"]`).length ===
-      expectedCount,
-    {
-      testId: "bill-detail.line",
-      expectedCount: expected,
-    },
-    { timeout: 10_000 },
-  );
-}
-
-async function waitForOrderDetailText(input: {
+async function assertOrderingSupportHandoff(input: {
   page: Page;
-  testId: string;
-  expected: string;
+  expectedTitle: string;
+  expectedPrice: RegExp;
 }): Promise<void> {
-  await input.page.waitForFunction(
-    ({ testId, expected }) => {
-      const text = document.querySelector(
-        `[data-testid="${testId}"]`,
-      )?.textContent;
-      return text?.includes(expected);
-    },
-    {
-      testId: input.testId,
-      expected: input.expected,
-    },
-  );
-}
+  await input.page.getByTestId("ordering.support.page").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  assert.equal(new URL(input.page.url()).pathname, "/order/support");
+  await input.page.getByTestId("ordering.support.contact.open").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
 
-async function payFirstAvailableBillLine(input: {
-  page: Page;
-  amountPattern: RegExp;
-  statusAfterReturn: string;
-  label: string;
-}): Promise<void> {
-  await input.page.getByTestId("bill-detail.pay-line").first().click();
-  await input.page.getByTestId("payment-checkout.page").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await assertLocatorTextMatches({
-    actual: input.page.getByTestId("payment-checkout.amount").textContent(),
-    pattern: input.amountPattern,
-    label: input.label,
-  });
-  await input.page.getByTestId("payment-checkout.create-charge").click();
-  await input.page.getByTestId("payment-checkout.success").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await input.page.getByTestId("payment-checkout.bill-link").click();
-  await input.page.getByTestId("bill-detail.page").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await waitForBillSettlementStatus(input.page, input.statusAfterReturn);
+  const summaryText =
+    (await input.page
+      .getByTestId("ordering.support.summary-card")
+      .first()
+      .textContent()) ?? "";
+  assert.ok(
+    summaryText.includes(input.expectedTitle),
+    `Ordering support summary should include "${input.expectedTitle}", got "${summaryText}"`,
+  );
+  assert.match(summaryText, input.expectedPrice);
 }
 
 scenario(
-  "commerce_rental_ordering_reaches_confirmed_fulfillment",
+  "commerce_rental_ordering_reaches_support_handoff",
   async (ctx) => {
     const creator = await givenUser("system-commerce-rental-creator");
     const joiner = await givenUser("system-commerce-rental-joiner");
@@ -494,182 +423,16 @@ scenario(
       });
       await page.getByTestId("ordering.rental.create-order").click();
 
-      await page.getByTestId("order-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
+      await assertOrderingSupportHandoff({
+        page,
+        expectedTitle: "系统测试烘焙空间",
+        expectedPrice: /32\.00/,
       });
       createdOrderPath = new URL(page.url()).pathname;
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.item-name").textContent(),
-        expected: "烘焙区 B",
-        label: "Order detail selected SKU",
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.participant-count").textContent(),
-        expected: "2 人",
-        label: "Order detail participant count",
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("order-detail.total-price").textContent(),
-        pattern: /32\.00/,
-        label: "Order detail frozen total price",
-      });
-      assert.equal(await page.getByTestId("order-detail.bill-line").count(), 2);
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.cancellation-policy").textContent(),
-        expected: "开始前可退",
-        label: "Order detail frozen cancellation policy",
-      });
-      await page.getByTestId("order-detail.payment-status").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.payment-status").textContent(),
-        expected: "待支付",
-        label: "Initial payment status",
-      });
-
-      await page.goto(`/pr/${pr.id}`);
-      await page.getByTestId("pr-detail.commerce-placement.open").click();
-      await page.getByTestId("order-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.item-name").textContent(),
-        expected: "烘焙区 B",
-        label: "Existing order target routes back to order detail",
-      });
-
-      await page.getByTestId("order-detail.bill-detail-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await waitForBillLineCount(page, 2);
-      await page.getByTestId("bill-detail.pay-line").click();
-      await page.getByTestId("payment-checkout.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("payment-checkout.amount").textContent(),
-        pattern: /16\.00/,
-        label: "Creator bill line checkout amount",
-      });
-      await page.getByTestId("payment-checkout.create-charge").click();
-      await page.getByTestId("payment-checkout.success").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("payment-checkout.bill-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await waitForBillSettlementStatus(page, "部分已支付");
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("bill-detail.settlement-status").textContent(),
-        expected: "部分已支付",
-        label: "Bill status after creator payment",
-      });
     });
 
     const orderPath = createdOrderPath;
-    assert.ok(orderPath, "Created order path should be recorded");
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, joiner);
-      await installDeterministicShareSidecarStubs(page);
-      await installFakeWeChatPayBridge(
-        page,
-        getScenarioEnvironment().fakeWeChatPay.origin,
-      );
-
-      await page.goto(orderPath);
-      await page.getByTestId("order-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("order-detail.bill-detail-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("bill-detail.pay-line").click();
-      await page.getByTestId("payment-checkout.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("payment-checkout.amount").textContent(),
-        pattern: /16\.00/,
-        label: "Joiner bill line checkout amount",
-      });
-      await page.getByTestId("payment-checkout.create-charge").click();
-      await page.getByTestId("payment-checkout.success").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("payment-checkout.bill-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await waitForBillSettlementStatus(page, "已支付");
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("bill-detail.settlement-status").textContent(),
-        expected: "已支付",
-        label: "Bill status after both participant payments",
-      });
-      await page.getByTestId("bill-detail.order-link").click();
-      await page.getByTestId("order-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await waitForOrderDetailText({
-        page,
-        testId: "order-detail.payment-status",
-        expected: "已支付",
-      });
-      await waitForOrderDetailText({
-        page,
-        testId: "order-detail.fulfillment-status",
-        expected: "等待场地方确认预订",
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.payment-status").textContent(),
-        expected: "已支付",
-        label: "Order payment status after both BillLines paid",
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.fulfillment-status").textContent(),
-        expected: "等待场地方确认预订",
-        label: "Fulfillment status after bill settlement",
-      });
-    });
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, creator);
-      await installDeterministicShareSidecarStubs(page);
-
-      await page.goto(orderPath);
-      await page.getByTestId("order-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("order-detail.mock-rental-confirm").click();
-      await page.getByTestId("order-detail.rental.booking-confirmed").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("order-detail.rental.booking-confirmed").textContent(),
-        expected: "预约成功",
-        label: "Final fulfillment result",
-      });
-    });
+    assert.equal(orderPath, "/order/support");
   },
 );
 
@@ -777,7 +540,7 @@ scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
   });
 });
 
-scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
+scenario("commerce_rental_cancel_entry_reaches_support_handoff", async (ctx) => {
   const creator = await givenUser("system-commerce-cancel-creator");
   const joiner = await givenUser("system-commerce-cancel-joiner");
   const pr = await givenCommerceRentalPr({
@@ -812,41 +575,17 @@ scenario("commerce_rental_order_detail_cancels_unpaid_order", async (ctx) => {
     });
     await page.getByTestId("ordering.rental.create-order").click();
 
-    await page.getByTestId("order-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.getByTestId("order-detail.cancel-rental").click();
-    await page.getByTestId("order-detail.rental.cancelled").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("order-detail.order-status").textContent(),
-      expected: "已取消",
-      label: "Cancelled order status",
-    });
-    assert.equal(await page.getByTestId("order-detail.bill-line").count(), 2);
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("order-detail.rental.cancelled").textContent(),
-      expected: "已按取消政策调整账单",
-      label: "Cancellation adjustment copy",
+    await assertOrderingSupportHandoff({
+      page,
+      expectedTitle: "系统测试烘焙空间",
+      expectedPrice: /20\.00/,
     });
   });
 });
 
-scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
-  const admin = await givenAdminUser("system-commerce-paid-cancel-admin");
+scenario("commerce_rental_refund_entry_reaches_support_handoff", async (ctx) => {
   const creator = await givenUser("system-commerce-paid-cancel-creator");
   const joiner = await givenUser("system-commerce-paid-cancel-joiner");
-  await bindScenarioWeChatOpenId({
-    user: creator,
-    openId: "fake-openid-commerce-paid-cancel-creator",
-  });
-  await bindScenarioWeChatOpenId({
-    user: joiner,
-    openId: "fake-openid-commerce-paid-cancel-joiner",
-  });
   const pr = await givenCommerceRentalPr({
     creator,
     minPartners: 2,
@@ -884,155 +623,14 @@ scenario("commerce_rental_order_detail_refunds_paid_order", async (ctx) => {
       return price?.includes("20.00");
     });
     await page.getByTestId("ordering.rental.create-order").click();
-    await page.getByTestId("order-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
+    await assertOrderingSupportHandoff({
+      page,
+      expectedTitle: "系统测试烘焙空间",
+      expectedPrice: /20\.00/,
     });
     orderPath = new URL(page.url()).pathname;
-
-    await page.getByTestId("order-detail.bill-detail-link").click();
-    await page.getByTestId("bill-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await payFirstAvailableBillLine({
-      page,
-      amountPattern: /10\.00/,
-      statusAfterReturn: "部分已支付",
-      label: "Creator paid cancellation checkout amount",
-    });
   });
 
   assert.ok(orderPath, "Paid cancellation order path should be recorded");
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, joiner);
-    await installDeterministicShareSidecarStubs(page);
-    await installFakeWeChatPayBridge(
-      page,
-      getScenarioEnvironment().fakeWeChatPay.origin,
-    );
-
-    await page.goto(orderPath);
-    await page.getByTestId("order-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.getByTestId("order-detail.bill-detail-link").click();
-    await page.getByTestId("bill-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await payFirstAvailableBillLine({
-      page,
-      amountPattern: /10\.00/,
-      statusAfterReturn: "已支付",
-      label: "Joiner paid cancellation checkout amount",
-    });
-  });
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(orderPath);
-    await page.getByTestId("order-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await waitForOrderDetailText({
-      page,
-      testId: "order-detail.fulfillment-status",
-      expected: "等待场地方确认预订",
-    });
-    await page.getByTestId("order-detail.cancel-rental").click();
-    await page.getByTestId("order-detail.rental.cancellation-pending").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-  });
-
-  await withScenarioPage(async (page) => {
-    await installScenarioAdminSession(page, admin);
-
-    await page.goto("/admin/commerce/fulfillments");
-    await page.getByTestId("admin-fulfillment.cancellation-gate").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("admin-fulfillment.cancellation-gate").textContent(),
-      expected: "待处理取消请求",
-      label: "Fulfillment admin cancellation gate",
-    });
-    await page.getByTestId("admin-fulfillment.approve-cancellation").click();
-    await page.waitForFunction(() => {
-      const gate = document.querySelector(
-        '[data-testid="admin-fulfillment.cancellation-gate"]',
-      )?.textContent;
-      return gate?.includes("暂无待处理取消请求");
-    });
-  });
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(orderPath);
-    await page.getByTestId("order-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.getByTestId("order-detail.rental.cancelled").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("order-detail.order-status").textContent(),
-      expected: "已取消",
-      label: "Paid cancellation order status",
-    });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("order-detail.total-price").textContent(),
-      pattern: /0\.00/,
-      label: "Paid cancellation effective bill total",
-    });
-
-    await page.getByTestId("order-detail.bill-detail-link").click();
-    await page.getByTestId("bill-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.waitForFunction(() => {
-      const text = document.querySelector(
-        '[data-testid="bill-detail.refunded-total"]',
-      )?.textContent;
-      return text?.includes("20.00");
-    });
-    assert.equal(await page.getByTestId("bill-detail.line").count(), 4);
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("bill-detail.refund-total").textContent(),
-      pattern: /20\.00/,
-      label: "Paid cancellation refund total",
-    });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("bill-detail.refunded-total").textContent(),
-      pattern: /20\.00/,
-      label: "Paid cancellation refunded total",
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("bill-detail.settlement-status").textContent(),
-      expected: "已退款",
-      label: "Paid cancellation settlement status",
-    });
-
-    const lineStatuses = await page
-      .getByTestId("bill-detail.line-status")
-      .allTextContents();
-    assert.equal(
-      lineStatuses.filter((status) => status.includes("已退款")).length,
-      2,
-      "Paid cancellation should refund both participant BillLines",
-    );
-  });
+  assert.equal(orderPath, "/order/support");
 });

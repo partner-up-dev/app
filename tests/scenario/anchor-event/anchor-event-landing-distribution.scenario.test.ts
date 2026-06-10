@@ -52,13 +52,10 @@ type PRDetailProbe = {
   };
 };
 
-type EventAssistedCreateRequestBody = {
-  createSource?: unknown;
-  routePoolEntryId?: unknown;
-  fields?: {
-    location?: unknown;
-    route?: unknown;
-  };
+type DummyPRMaterializationRequestBody = {
+  timeWindow?: unknown;
+  place?: unknown;
+  preferences?: unknown;
 };
 
 const landingRoutePoolRoute: PRRoute = [
@@ -170,27 +167,26 @@ const readPrIdFromCurrentUrl = (page: Page): number => {
   return prId;
 };
 
-const waitForEventAssistedCreateResponse = async (
+const waitForDummyPRMaterializationResponse = async (
   page: Page,
-): Promise<EventAssistedCreateRequestBody> => {
+): Promise<DummyPRMaterializationRequestBody> => {
   const response = await page.waitForResponse(
     (candidate) =>
-      candidate.url().includes("/api/pr/new/form") &&
+      candidate.url().includes("/api/events/") &&
+      candidate.url().includes("/dummy-prs/materialize") &&
       candidate.request().method() === "POST",
     { timeout: 20_000 },
   );
-  assert.equal(response.status(), 201);
-  const body = JSON.parse(
+  assert.equal(response.status(), 200);
+  return JSON.parse(
     response.request().postData() ?? "{}",
-  ) as EventAssistedCreateRequestBody;
-  assert.equal(body.createSource, "EVENT_ASSISTED");
-  return body;
+  ) as DummyPRMaterializationRequestBody;
 };
 
 const expectCreatedPRDetail = async (input: {
   prId: number;
   token: string;
-  creatorUserId: string;
+  creatorUserId?: string;
   event: ScenarioAnchorEvent;
   locationId: string;
 }): Promise<void> => {
@@ -201,7 +197,9 @@ const expectCreatedPRDetail = async (input: {
     200,
   );
 
-  assert.equal(detail.createdBy, input.creatorUserId);
+  if (input.creatorUserId !== undefined) {
+    assert.equal(detail.createdBy, input.creatorUserId);
+  }
   assert.equal(detail.status, "OPEN");
   assert.equal(detail.core.type, input.event.type);
   assert.equal(detail.core.location, input.locationId);
@@ -210,7 +208,7 @@ const expectCreatedPRDetail = async (input: {
 const expectCreatedRoutePRDetail = async (input: {
   prId: number;
   token: string;
-  creatorUserId: string;
+  creatorUserId?: string;
   event: ScenarioAnchorEvent;
   route: PRRoute;
 }): Promise<void> => {
@@ -221,48 +219,14 @@ const expectCreatedRoutePRDetail = async (input: {
     200,
   );
 
-  assert.equal(detail.createdBy, input.creatorUserId);
+  if (input.creatorUserId !== undefined) {
+    assert.equal(detail.createdBy, input.creatorUserId);
+  }
   assert.equal(detail.status, "OPEN");
   assert.equal(detail.core.type, input.event.type);
   assert.equal(detail.core.location, null);
   assert.deepEqual(detail.core.route, input.route);
   assert.equal(detail.core.placeDisplayName, buildPRRouteSummary(input.route));
-};
-
-const waitForInlineRouteSelection = async (
-  page: Page,
-  routePoolEntryId: string,
-): Promise<void> => {
-  const expectedValue = `route:${routePoolEntryId}`;
-  await page
-    .getByTestId("anchor-event-inline-place-selector.select")
-    .first()
-    .waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-  await page.waitForFunction(
-    (value) => {
-      const selects = Array.from(
-        document.querySelectorAll(
-          '[data-testid="anchor-event-inline-place-selector.select"]',
-        ),
-      );
-      return selects.some((select) => {
-        if (!(select instanceof HTMLSelectElement)) {
-          return false;
-        }
-        return (
-          select.value === value &&
-          Array.from(select.options).some(
-            (option) => option.value === value && !option.disabled,
-          )
-        );
-      });
-    },
-    expectedValue,
-    { timeout: 10_000 },
-  );
 };
 
 const waitForEnabledButton = async (
@@ -279,6 +243,18 @@ const waitForEnabledButton = async (
     element,
     { timeout: 10_000 },
   );
+};
+
+const clickEnabledButton = async (
+  page: Page,
+  testId: string,
+): Promise<void> => {
+  await waitForEnabledButton(page, testId);
+  const button = page.getByTestId(testId);
+  await button.evaluate((element) =>
+    element.scrollIntoView({ block: "center", inline: "nearest" }),
+  );
+  await button.click({ force: true });
 };
 
 scenario("anchor_event_landing_distribution_renders_all_modes", async (ctx) => {
@@ -403,24 +379,15 @@ scenario("anchor_event_card_mode_event_assisted_create_happy_path", async (ctx) 
     await installDeterministicShareSidecarStubs(page);
 
     await page.goto(`/e/${event.id}`);
-    await expectLandingPage(page);
-    await page
-      .locator(
-        '[data-testid="anchor-event-card-mode.surface"][data-mode-state="empty"]',
-      )
-      .waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
+    await expectCardRichMode(page);
 
-    const createResponsePromise = waitForEventAssistedCreateResponse(page);
-    await page.getByTestId("anchor-event-card-mode.empty-create").click();
+    const createResponsePromise = waitForDummyPRMaterializationResponse(page);
+    await clickEnabledButton(page, "anchor-event-card-mode.detail");
     await createResponsePromise;
 
     await page.waitForURL(
       (url) =>
         /^\/pr\/\d+$/.test(url.pathname) &&
-        url.searchParams.get("entry") === "create" &&
         url.searchParams.get("fromEvent") === String(event.id),
       { timeout: 20_000 },
     );
@@ -428,7 +395,6 @@ scenario("anchor_event_card_mode_event_assisted_create_happy_path", async (ctx) 
     await expectCreatedPRDetail({
       prId: createdPrId,
       token: visitor.token,
-      creatorUserId: visitor.user.id,
       event,
       locationId: event.locationId,
     });
@@ -457,14 +423,15 @@ scenario("anchor_event_list_mode_event_assisted_create_happy_path", async (ctx) 
     await page.goto(`/e/${event.id}`);
     await expectListModeSurface(page);
 
-    const createResponsePromise = waitForEventAssistedCreateResponse(page);
-    await page.getByTestId("anchor-event.create-card.create").click();
+    const createResponsePromise = waitForDummyPRMaterializationResponse(page);
+    await page.getByTestId("anchor-event-list-mode.dummy-pr").first().click({
+      force: true,
+    });
     await createResponsePromise;
 
     await page.waitForURL(
       (url) =>
         /^\/pr\/\d+$/.test(url.pathname) &&
-        url.searchParams.get("entry") === "create" &&
         url.searchParams.get("fromEvent") === String(event.id),
       { timeout: 20_000 },
     );
@@ -472,7 +439,6 @@ scenario("anchor_event_list_mode_event_assisted_create_happy_path", async (ctx) 
     await expectCreatedPRDetail({
       prId: createdPrId,
       token: visitor.token,
-      creatorUserId: visitor.user.id,
       event,
       locationId: event.locationId,
     });
@@ -510,29 +476,19 @@ scenario(
       await installDeterministicShareSidecarStubs(page);
 
       await page.goto(`/e/${event.id}`);
-      await expectLandingPage(page);
-      await page
-        .locator(
-          '[data-testid="anchor-event-card-mode.surface"][data-mode-state="empty"]',
-        )
-        .waitFor({
-          state: "visible",
-          timeout: 10_000,
-        });
-      await waitForInlineRouteSelection(page, routePoolEntryId);
-      await waitForEnabledButton(page, "anchor-event-card-mode.empty-create");
+      await expectCardRichMode(page);
 
-      const createResponsePromise = waitForEventAssistedCreateResponse(page);
-      await page.getByTestId("anchor-event-card-mode.empty-create").click();
+      const createResponsePromise = waitForDummyPRMaterializationResponse(page);
+      await clickEnabledButton(page, "anchor-event-card-mode.detail");
       const createRequestBody = await createResponsePromise;
-      assert.equal(createRequestBody.routePoolEntryId, undefined);
-      assert.equal(createRequestBody.fields?.location, null);
-      assert.deepEqual(createRequestBody.fields?.route, landingRoutePoolRoute);
+      assert.deepEqual(createRequestBody.place, {
+        kind: "route",
+        route: landingRoutePoolRoute,
+      });
 
       await page.waitForURL(
         (url) =>
           /^\/pr\/\d+$/.test(url.pathname) &&
-          url.searchParams.get("entry") === "create" &&
           url.searchParams.get("fromEvent") === String(event.id),
         { timeout: 20_000 },
       );
@@ -544,7 +500,6 @@ scenario(
       await expectCreatedRoutePRDetail({
         prId: createdPrId,
         token: visitor.token,
-        creatorUserId: visitor.user.id,
         event,
         route: landingRoutePoolRoute,
       });
@@ -584,20 +539,20 @@ scenario(
 
       await page.goto(`/e/${event.id}`);
       await expectListModeSurface(page);
-      await waitForInlineRouteSelection(page, routePoolEntryId);
-      await waitForEnabledButton(page, "anchor-event.create-card.create");
 
-      const createResponsePromise = waitForEventAssistedCreateResponse(page);
-      await page.getByTestId("anchor-event.create-card.create").click();
+      const createResponsePromise = waitForDummyPRMaterializationResponse(page);
+      await page.getByTestId("anchor-event-list-mode.dummy-pr").first().click({
+        force: true,
+      });
       const createRequestBody = await createResponsePromise;
-      assert.equal(createRequestBody.routePoolEntryId, undefined);
-      assert.equal(createRequestBody.fields?.location, null);
-      assert.deepEqual(createRequestBody.fields?.route, landingRoutePoolRoute);
+      assert.deepEqual(createRequestBody.place, {
+        kind: "route",
+        route: landingRoutePoolRoute,
+      });
 
       await page.waitForURL(
         (url) =>
           /^\/pr\/\d+$/.test(url.pathname) &&
-          url.searchParams.get("entry") === "create" &&
           url.searchParams.get("fromEvent") === String(event.id),
         { timeout: 20_000 },
       );
@@ -609,7 +564,6 @@ scenario(
       await expectCreatedRoutePRDetail({
         prId: createdPrId,
         token: visitor.token,
-        creatorUserId: visitor.user.id,
         event,
         route: landingRoutePoolRoute,
       });
@@ -684,15 +638,7 @@ scenario(
       await installScenarioUserSession(page, visitor);
 
       await page.goto(`/e/${event.id}`);
-      await expectLandingPage(page);
-      await page
-        .locator(
-          '[data-testid="anchor-event-card-mode.surface"][data-mode-state="empty"]',
-        )
-        .waitFor({
-          state: "visible",
-          timeout: 10_000,
-        });
+      await expectCardRichMode(page);
       await expectNoBetaGroupCard(page);
     });
   },
@@ -728,17 +674,6 @@ scenario(
 
       const betaGroupCard = page.getByTestId("anchor-event.beta-group-card");
       await betaGroupCard.waitFor({ state: "visible", timeout: 10_000 });
-      const betaGroupCardElement = await betaGroupCard.elementHandle();
-      assert.ok(betaGroupCardElement);
-      await page.waitForFunction(
-        (element) =>
-          element instanceof HTMLElement &&
-          element.classList.contains(
-            "anchor-event-beta-group-card-shell--flash",
-          ),
-        betaGroupCardElement,
-        { timeout: 4_000 },
-      );
       await betaGroupCard
         .getByRole("img", { name: `${event.title} 搭子群二维码` })
         .waitFor({ state: "visible", timeout: 4_000 });

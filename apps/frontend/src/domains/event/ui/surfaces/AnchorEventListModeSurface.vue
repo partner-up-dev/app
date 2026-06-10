@@ -787,8 +787,7 @@ const shouldAutoExpandCreateCard = computed(() => {
 const shouldAutoExpandBetaGroupCard = computed(
   () =>
     detail.value?.prCreationPolicy === "ADMIN_ONLY" &&
-    eventBetaGroupQrCode.value !== null &&
-    !hasBrowseItemInSelectedDate.value,
+    eventBetaGroupQrCode.value !== null,
 );
 
 const createCardAutoExpandContextKey = computed(
