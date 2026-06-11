@@ -133,12 +133,12 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
+import { PuCard } from "@partner-up-dev/design-web";
 import Button from "@/shared/ui/actions/Button.vue";
 import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import FormField from "@/shared/ui/forms/FormField.vue";
 import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   useAdvancePRMessageReadMarker,
@@ -173,12 +173,16 @@ const advanceReadMarkerMutation = useAdvancePRMessageReadMarker();
 const threadItems = computed(() => messagesQuery.data.value?.items ?? []);
 const thread = computed(() => messagesQuery.data.value?.thread ?? null);
 const isPageLayout = computed(() => props.layout === "page");
-const containerComponent = computed(() => (isPageLayout.value ? "section" : SurfaceCard));
+const containerComponent = computed(() =>
+  isPageLayout.value ? "section" : PuCard,
+);
 const containerProps = computed(() =>
   isPageLayout.value
     ? {}
     : {
-        tone: "outline" as const,
+        as: "section" as const,
+        variant: "outline" as const,
+        padding: "sm" as const,
         gap: "sm" as const,
       },
 );

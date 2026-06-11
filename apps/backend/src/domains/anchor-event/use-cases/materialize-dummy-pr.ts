@@ -15,7 +15,6 @@ import {
 } from "../../pr/services";
 import {
   arePRRoutesEqual,
-  findEventRoutePoolEntry,
   isPublicEventScopedLocation,
 } from "../services/event-scope";
 import { eventOwnsTimeWindow } from "../services/time-window-pool";
@@ -32,7 +31,7 @@ export type DummyPRMaterializationPlace =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
+      route: PRRoute;
     };
 
 export type MaterializeAnchorEventDummyPRInput = {
@@ -108,18 +107,10 @@ const resolveDummyPlace = async (
   place: DummyPRMaterializationPlace,
 ): Promise<ResolvedDummyPlace> => {
   if (place.kind === "route") {
-    const routeEntry = findEventRoutePoolEntry(event, place.routePoolEntryId);
-    if (!routeEntry) {
-      return throwHttpProblem({
-        status: 400,
-        detail: "Selected route is outside the anchor event scope",
-        code: "ANCHOR_EVENT_DUMMY_PR_INVALID_PLACE",
-      });
-    }
     return {
       kind: "route",
       location: null,
-      route: routeEntry.route,
+      route: place.route,
     };
   }
 

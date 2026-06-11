@@ -24,9 +24,11 @@ const presetOptions: PRTimeWindowPresetOption[] = [
 const mountEditor = async ({
   defaultMode,
   modelValue = null,
+  durationMinutes = 60,
 }: {
   defaultMode: PRTimeWindowEditorMode;
   modelValue?: TimeWindow | null;
+  durationMinutes?: number | null;
 }) => {
   const host = document.createElement("div");
   document.body.append(host);
@@ -48,7 +50,7 @@ const mountEditor = async ({
               allowEditAfterReady.value = nextValue;
             },
             presetOptions,
-            durationMinutes: 60,
+            durationMinutes,
             earliestLeadMinutes: 120,
             defaultMode,
           });
@@ -83,5 +85,28 @@ describe("PRTimeWindowEditor", () => {
     });
 
     expect(host.textContent).toContain("普通");
+  });
+
+  test("renders custom duration with dedicated label and input classes", async () => {
+    const host = await mountEditor({
+      defaultMode: "ADVANCED",
+      durationMinutes: null,
+    });
+
+    const durationField = host.querySelector(
+      ".pr-time-window-editor__duration-field",
+    );
+    const durationLabel = durationField?.querySelector(
+      ".pr-time-window-editor__duration-label",
+    );
+    const durationInput = durationField?.querySelector<HTMLInputElement>("input");
+
+    expect(durationLabel?.textContent).toContain("持续分钟");
+    expect(
+      durationField?.querySelector(".pr-time-window-editor__field-label"),
+    ).toBeNull();
+    expect(
+      durationInput?.classList.contains("pr-time-window-editor__duration-input"),
+    ).toBe(true);
   });
 });

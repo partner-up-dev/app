@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import type { Page } from "playwright";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
-import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
 import { withScenarioPage } from "../_infra/browser/browser";
 import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
 import { scenario } from "../_infra/scenario/scenario";
@@ -40,12 +39,6 @@ type ScenarioRideHailingPr = {
 type FutureRideHailingSkuFacts = {
   rideHailingProviderInstanceId: string;
   providerVehicleTypeCode: string;
-};
-
-type FakeCaocaoStateSnapshot = {
-  feeConfirms: Array<{
-    providerOrderId: string;
-  }>;
 };
 
 const rideHailingRoute: PRRoute = [
@@ -91,19 +84,6 @@ async function resetFakeCaocao(): Promise<void> {
   await fetch(new URL("/__fake_caocao/reset", fakeCaocao.origin), {
     method: "POST",
   });
-}
-
-async function configureFakeCaocaoCreateFailure(): Promise<void> {
-  const { fakeCaocao } = getScenarioEnvironment();
-  await fetch(new URL("/__fake_caocao/create-failure/next", fakeCaocao.origin), {
-    method: "POST",
-  });
-}
-
-async function readFakeCaocaoState(): Promise<FakeCaocaoStateSnapshot> {
-  const { fakeCaocao } = getScenarioEnvironment();
-  const response = await fetch(new URL("/__fake_caocao/state", fakeCaocao.origin));
-  return (await response.json()) as FakeCaocaoStateSnapshot;
 }
 
 async function givenRideHailingPr(input: {
@@ -352,65 +332,35 @@ async function selectPremierVehicle(page: Page): Promise<void> {
   });
 }
 
-async function assertRideHailingOrderDetail(page: Page): Promise<void> {
-  await page.getByTestId("order-detail.ride-hailing.page").waitFor({
+async function assertRideHailingSupportHandoff(page: Page): Promise<void> {
+  await page.getByTestId("ordering.support.page").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  await page.getByTestId("order-detail.ride-hailing.route-map").waitFor({
+  assert.equal(new URL(page.url()).pathname, "/order/support");
+  await page.getByTestId("ordering.support.contact.open").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.selected-vehicle").textContent(),
-    expected: "系统曹操专车",
-    label: "Order detail selected vehicle",
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.passengers").textContent(),
-    expected: "同乘人",
-    label: "Order detail passengers",
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
-    expected: "杭州东站",
-    label: "Order detail route summary origin",
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
-    expected: "灵隐寺",
-    label: "Order detail route summary destination",
-  });
-}
 
-async function waitForProviderProgression(page: Page): Promise<void> {
-  await page.getByTestId("order-detail.ride-hailing.driver").waitFor({
-    state: "visible",
-    timeout: 20_000,
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.driver").textContent(),
-    expected: "曹操测试司机",
-    label: "Accepted driver info",
-  });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.vehicle").textContent(),
-    expected: "浙A·TEST",
-    label: "Accepted vehicle info",
-  });
-  await assertLocatorTextMatches({
-    actual: page.getByTestId("order-detail.ride-hailing.status").textContent(),
-    label: "RideHailing mapped status",
-    pattern: /已接单|前往上车点|行程中|待支付|已完成/,
-  });
-  await page.getByTestId("order-detail.ride-hailing.bill-detail-link").waitFor({
-    state: "visible",
-    timeout: 30_000,
-  });
+  const summaryText =
+    (await page
+      .getByTestId("ordering.support.summary-card")
+      .first()
+      .textContent()) ?? "";
+  assert.ok(
+    summaryText.includes("系统曹操出行"),
+    `Ordering support summary should include ride hailing title, got "${summaryText}"`,
+  );
+  assert.ok(
+    summaryText.includes("专车"),
+    `Ordering support summary should include selected vehicle, got "${summaryText}"`,
+  );
+  assert.match(summaryText, /52\.00/);
 }
 
 scenario(
-  "commerce_ride_hailing_ordering_completes_provider_backed_trip",
+  "commerce_ride_hailing_ordering_reaches_support_handoff",
   async (ctx) => {
     await resetFakeCaocao();
     const creator = await givenUser("system-ride-hailing-creator", {
@@ -438,82 +388,23 @@ scenario(
     await withScenarioPage(async (page) => {
       await installScenarioUserSession(page, creator);
       await installDeterministicShareSidecarStubs(page);
-      await installFakeWeChatPayBridge(
-        page,
-        getScenarioEnvironment().fakeWeChatPay.origin,
-      );
 
       await openRideHailingOrderingFromPr({ page, prId: pr.id });
       await assertRideHailingOrderingContent(page);
       await selectPremierVehicle(page);
 
       await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await assertRideHailingOrderDetail(page);
+      await assertRideHailingSupportHandoff(page);
       orderPath = new URL(page.url()).pathname;
-
-      await waitForProviderProgression(page);
-      await page.getByTestId("order-detail.ride-hailing.bill-detail-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("bill-detail.pay-line").first().click();
-      await page.getByTestId("payment-checkout.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("payment-checkout.amount").textContent(),
-        label: "RideHailing final fare checkout amount",
-        pattern: /56\.00/,
-      });
-      await page.getByTestId("payment-checkout.create-charge").click();
-      await page.getByTestId("payment-checkout.success").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByTestId("payment-checkout.bill-link").click();
-      await page.getByTestId("bill-detail.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("bill-detail.settlement-status").textContent(),
-        expected: "已支付",
-        label: "RideHailing bill settlement status",
-      });
     });
 
     const createdOrderPath = orderPath;
-    assert.ok(createdOrderPath, "RideHailing order path should be recorded");
-
-    const fakeCaocaoState = await readFakeCaocaoState();
-    assert.ok(
-      fakeCaocaoState.feeConfirms.length > 0,
-      "Fake Caocao should receive feeConfirm after local payment settlement",
-    );
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, creator);
-      await installDeterministicShareSidecarStubs(page);
-
-      await page.goto(`/pr/${pr.id}`);
-      await page.getByTestId("pr-detail.commerce-placement.open").click();
-      await page.getByTestId("order-detail.ride-hailing.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      assert.equal(
-        new URL(page.url()).pathname,
-        createdOrderPath,
-        "Existing PR placement should resolve to the RideHailing Order Detail",
-      );
-    });
+    assert.equal(createdOrderPath, "/order/support");
   },
 );
 
 scenario(
-  "commerce_ride_hailing_provider_create_failure_allows_retry_without_open_order",
+  "commerce_ride_hailing_provider_entry_reaches_support_handoff",
   async (ctx) => {
     await resetFakeCaocao();
     const creator = await givenUser("system-ride-hailing-failure-creator", {
@@ -526,7 +417,6 @@ scenario(
     await configurePRStatus({ pr, status: "READY" });
     await registerScenarioPaymentProvider();
     const placement = await givenRideHailingOrderingPlacement();
-    await configureFakeCaocaoCreateFailure();
 
     ctx.record("creatorUserId", creator.user.id);
     ctx.record("prId", pr.id);
@@ -539,21 +429,7 @@ scenario(
       await openRideHailingOrderingFromPr({ page, prId: pr.id });
       await selectPremierVehicle(page);
       await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await page.getByTestId("ordering.ride-hailing.create-error").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("ordering.ride-hailing.create-error").textContent(),
-        label: "RideHailing create failure message",
-        pattern: /失败|重试|未能创建/,
-      });
-
-      await openRideHailingOrderingFromPr({ page, prId: pr.id });
-      await page.getByTestId("ordering.ride-hailing.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
+      await assertRideHailingSupportHandoff(page);
     });
   },
 );

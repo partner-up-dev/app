@@ -7,13 +7,17 @@
     }"
     data-testid="anchor-event.beta-group-card"
   >
-    <ExpandableCard
-      :key="expandableCardKey"
+    <PuCard
+      as="section"
       class="anchor-event-beta-group-card anchor-event-beta-group-card--list"
       :title="cardTitle"
       :subtitle="description"
-      :default-expanded="expandableDefaultExpanded"
+      :toggle-label="cardTitle"
+      :default-expanded="cardDefaultExpanded"
+      :expanded-reset-key="cardResetKey"
+      collapsible
       data-region="event-beta-group"
+      variant="outline"
     >
       <div class="anchor-event-beta-group-card__body">
         <img
@@ -26,7 +30,7 @@
           {{ t("anchorEvent.betaGroupCard.qrMissing") }}
         </p>
       </div>
-    </ExpandableCard>
+    </PuCard>
   </div>
 
   <article
@@ -61,8 +65,8 @@
 <script setup lang="ts">
 import { computed, toRef } from "vue";
 import { useI18n } from "vue-i18n";
-import ExpandableCard from "@/shared/ui/containers/ExpandableCard.vue";
-import { useExpandableCardAttention } from "./useExpandableCardAttention";
+import { PuCard } from "@partner-up-dev/design-web";
+import { usePuCardAttention } from "./usePuCardAttention";
 
 const props = withDefaults(
   defineProps<{
@@ -85,9 +89,9 @@ const props = withDefaults(
 const { t } = useI18n();
 const {
   autoExpandHighlightActive,
-  expandableCardKey,
-  expandableDefaultExpanded,
-} = useExpandableCardAttention({
+  cardDefaultExpanded,
+  cardResetKey,
+} = usePuCardAttention({
   defaultExpanded: toRef(props, "defaultExpanded"),
   autoExpandContextKey: toRef(props, "autoExpandContextKey"),
 });
@@ -130,13 +134,14 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
   gap: var(--sys-spacing-small);
 }
 
-.anchor-event-beta-group-card-shell :deep(.expandable-card) {
+.anchor-event-beta-group-card-shell :deep(.anchor-event-beta-group-card--list) {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 
-.anchor-event-beta-group-card-shell :deep(.expandable-card)::before {
+.anchor-event-beta-group-card-shell
+  :deep(.anchor-event-beta-group-card--list)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -145,13 +150,16 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
   z-index: 0;
 }
 
-.anchor-event-beta-group-card-shell :deep(.expandable-card__toggle),
-.anchor-event-beta-group-card-shell :deep(.expandable-card__body) {
+.anchor-event-beta-group-card-shell
+  :deep(.anchor-event-beta-group-card--list > .pu-card__header),
+.anchor-event-beta-group-card-shell
+  :deep(.anchor-event-beta-group-card--list > .pu-card__body) {
   position: relative;
   z-index: 1;
 }
 
-.anchor-event-beta-group-card-shell--flash :deep(.expandable-card)::before {
+.anchor-event-beta-group-card-shell--flash
+  :deep(.anchor-event-beta-group-card--list)::before {
   animation: beta-group-card-surface-flash 900ms ease-in-out 1;
 }
 

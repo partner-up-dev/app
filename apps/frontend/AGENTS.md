@@ -39,7 +39,7 @@ Useful commands:
 - Styling governance: use direct `sys` tokens first; add `dcs` only for real governed outputs; extend shared primitives only for stable reusable treatments with a real component contract.
 - Make use of SCSS features.
 - Page layout reuse: prefer `src/shared/ui/layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue` for route pages; do not duplicate root safe-area container styles in page files.
-- Shared UI reuse: before adding page-local shells or feedback widgets, check `src/shared/ui/AGENTS.md` and prefer existing primitives such as `SurfaceCard`, `ChoiceCard`, `FormField`, `Button`, `InfoRow`, `Chip`, `ChipGroup`, `InlineNotice`, `EmptyState`, `ConfirmDialog`, and `Avatar` when the fit is real.
+- Shared UI reuse: before adding page-local shells or feedback widgets, check `src/shared/ui/AGENTS.md` and prefer package or shared primitives such as `PuCard`, `ChoiceCard`, `FormField`, `Button`, `InfoRow`, `Chip`, `ChipGroup`, `InlineNotice`, `EmptyState`, `ConfirmDialog`, and `Avatar` when the fit is real.
 - Feature composition boundary: extract reusable feature UI plus business logic into dedicated feature components instead of leaving logic in page files.
 - Container vs feature split: keep container components presentational-only; they should provide layout and shell and should not own feature side effects.
 - Usage-site assembly: pages should assemble container plus feature components and only own page context such as visibility, section placement, and page-level error aggregation.

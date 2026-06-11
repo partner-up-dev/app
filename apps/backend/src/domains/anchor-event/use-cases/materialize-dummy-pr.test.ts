@@ -11,7 +11,6 @@ const mocks = vi.hoisted(() => ({
   createPRFromStructured: vi.fn(),
   eventOwnsTimeWindow: vi.fn(),
   isPublicEventScopedLocation: vi.fn(),
-  findEventRoutePoolEntry: vi.fn(),
   arePRRoutesEqual: vi.fn(),
 }));
 
@@ -49,7 +48,6 @@ vi.mock("../services/time-window-pool", () => ({
 
 vi.mock("../services/event-scope", () => ({
   arePRRoutesEqual: mocks.arePRRoutesEqual,
-  findEventRoutePoolEntry: mocks.findEventRoutePoolEntry,
   isPublicEventScopedLocation: mocks.isPublicEventScopedLocation,
 }));
 
@@ -96,7 +94,6 @@ beforeEach(() => {
   mocks.resolvePoi.mockResolvedValue(null);
   mocks.eventOwnsTimeWindow.mockReturnValue(true);
   mocks.isPublicEventScopedLocation.mockResolvedValue(true);
-  mocks.findEventRoutePoolEntry.mockReturnValue({ id: "route-a", route });
   mocks.arePRRoutesEqual.mockReturnValue(false);
   mocks.createPRFromStructured.mockResolvedValue({
     id: 99,
@@ -177,5 +174,30 @@ describe("materializeAnchorEventDummyPR", () => {
       materialization: "existing",
     });
     expect(mocks.createPRFromStructured).not.toHaveBeenCalled();
+  });
+
+  test("uses the submitted concrete route for route dummy materialization", async () => {
+    await materializeAnchorEventDummyPR({
+      eventId: 7,
+      timeWindow,
+      place: {
+        kind: "route",
+        route,
+      },
+      preferences: [],
+    });
+
+    expect(mocks.createPRFromStructured).toHaveBeenCalledWith(
+      expect.objectContaining({
+        location: null,
+        route,
+      }),
+      expect.any(Object),
+      expect.objectContaining({
+        anchorEventId: 7,
+        createSource: "EVENT_DUMMY",
+        publicationMode: "create-open",
+      }),
+    );
   });
 });

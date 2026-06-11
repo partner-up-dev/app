@@ -83,12 +83,12 @@
     </div>
 
     <label v-if="showDurationInput" class="pr-time-window-editor__duration-field">
-      <span class="pr-time-window-editor__field-label">
+      <span class="pr-time-window-editor__duration-label">
         {{ durationMinutesLabel }}
       </span>
       <input
         v-model.number="customDurationMinutes"
-        class="pr-time-window-editor__select"
+        class="pr-time-window-editor__select pr-time-window-editor__duration-input"
         type="number"
         min="5"
         step="5"
@@ -530,15 +530,23 @@ watch(
   gap: var(--sys-spacing-xsmall);
 }
 
-.pr-time-window-editor__field,
-.pr-time-window-editor__duration-field {
+.pr-time-window-editor__field {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
 }
 
-.pr-time-window-editor__field-label {
+.pr-time-window-editor__duration-field {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sys-spacing-small);
+}
+
+.pr-time-window-editor__field-label,
+.pr-time-window-editor__duration-label {
   color: var(--sys-color-on-surface-variant);
   @include mx.pu-font(caption);
 }
@@ -553,6 +561,12 @@ watch(
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
+}
+
+.pr-time-window-editor__duration-input {
+  flex: 0 0 min(8rem, 45%);
+  width: auto;
+  text-align: end;
 }
 
 .pr-time-window-editor__hint {

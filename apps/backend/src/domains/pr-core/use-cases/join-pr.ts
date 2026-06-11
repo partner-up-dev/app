@@ -31,6 +31,7 @@ import {
 import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
 import { closeAlternativeWaitlistSourcesAfterJoin } from "../services/waitlist-alternative-reminder.service";
 import { assertAnchorEventParticipationFrequencyLimitAllows } from "../services/anchor-participation-frequency-limit.service";
+import { reconcileCurrentCreator } from "../services/current-creator.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -74,6 +75,7 @@ export async function joinPRAsUser(
 
   const existing = await partnerRepo.findActiveByPrIdAndUserId(id, user.id);
   if (existing) {
+    await reconcileCurrentCreator(id);
     const latest = await prRepo.findById(id);
     if (!latest) {
       return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
@@ -130,6 +132,7 @@ export async function joinPRAsUser(
   });
 
   await recalculatePRStatus(id);
+  await reconcileCurrentCreator(id);
 
   const afterRecalculate = await prRepo.findById(id);
   const activeCountAfterJoin = await countActivePartnersForPR(id);

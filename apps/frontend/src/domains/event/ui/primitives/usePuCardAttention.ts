@@ -4,26 +4,25 @@ import { useReducedMotion } from "@/shared/motion/useReducedMotion";
 const AUTO_EXPAND_DELAY_MS = 1000;
 const AUTO_EXPAND_FLASH_DURATION_MS = 900;
 
-export const useExpandableCardAttention = (input: {
+export const usePuCardAttention = (input: {
   defaultExpanded: Ref<boolean>;
   autoExpandContextKey: Ref<string | number | null | undefined>;
 }) => {
   const { prefersReducedMotion } = useReducedMotion();
-  const expandableDefaultExpanded = ref(input.defaultExpanded.value);
-  const expandableCardVersion = ref(0);
+  const cardDefaultExpanded = ref(input.defaultExpanded.value);
+  const cardVersion = ref(0);
   const autoExpandHighlightActive = ref(false);
   let autoExpandTimerId: number | null = null;
   let autoExpandHighlightTimerId: number | null = null;
   let autoExpandHighlightAnimationFrameId: number | null = null;
 
-  const expandableCardKey = computed(() => {
+  const cardResetKey = computed(() => {
     const contextKey = input.autoExpandContextKey.value ?? "default";
-    const expandedState = expandableDefaultExpanded.value
+    const expandedState = cardDefaultExpanded.value
       ? "expanded"
       : "collapsed";
-    return `${contextKey}:${expandedState}:${expandableCardVersion.value}`;
+    return `${contextKey}:${expandedState}:${cardVersion.value}`;
   });
-  const expandableCardResetKey = computed(() => expandableCardKey.value);
 
   const clearAutoExpandTimer = () => {
     if (typeof window === "undefined" || autoExpandTimerId === null) {
@@ -61,9 +60,9 @@ export const useExpandableCardAttention = (input: {
     autoExpandHighlightActive.value = false;
   };
 
-  const remountExpandableCard = (expanded: boolean) => {
-    expandableDefaultExpanded.value = expanded;
-    expandableCardVersion.value += 1;
+  const resetCardExpansion = (expanded: boolean) => {
+    cardDefaultExpanded.value = expanded;
+    cardVersion.value += 1;
   };
 
   const triggerAutoExpandHighlight = () => {
@@ -100,24 +99,24 @@ export const useExpandableCardAttention = (input: {
         (isFirstSync || contextChanged || !previousShouldAutoExpand);
 
       if (!shouldDelayAutoExpand) {
-        remountExpandableCard(shouldAutoExpand);
+        resetCardExpansion(shouldAutoExpand);
         return;
       }
 
-      remountExpandableCard(false);
+      resetCardExpansion(false);
 
       if (!shouldAutoExpand) {
         return;
       }
 
       if (typeof window === "undefined") {
-        remountExpandableCard(true);
+        resetCardExpansion(true);
         return;
       }
 
       autoExpandTimerId = window.setTimeout(() => {
         autoExpandTimerId = null;
-        remountExpandableCard(true);
+        resetCardExpansion(true);
         triggerAutoExpandHighlight();
       }, AUTO_EXPAND_DELAY_MS);
     },
@@ -139,8 +138,7 @@ export const useExpandableCardAttention = (input: {
 
   return {
     autoExpandHighlightActive,
-    expandableCardKey,
-    expandableCardResetKey,
-    expandableDefaultExpanded,
+    cardDefaultExpanded,
+    cardResetKey,
   };
 };

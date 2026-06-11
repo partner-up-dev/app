@@ -17,6 +17,21 @@ layer's runtime authority.
   - `system-scenario`
 - Vitest owns discovery, filtering, project scheduling, default reporter output,
   and machine-readable CI artifacts.
+- The root `vitest.config.ts` owns project orchestration only. It must not load
+  unit-specific Vite plugins, browser transforms, package aliases, CSS
+  preprocessors, or design-system runtime styling.
+- Project-specific Vitest config files own their unit's toolchain:
+  - backend projects are Node-only and must not load frontend-only dependencies
+    such as Vue plugins, JSONC loaders, UnoCSS, Sass, or
+    `@partner-up-dev/design-web`
+  - the frontend project owns Vue plugin setup, JSONC loading, frontend aliases,
+    and `@partner-up-dev/design-web` Sass `additionalData`
+  - the system scenario project owns only the cross-unit test runner contract;
+    frontend and backend servers are started by scenario runtime infra
+- Backend-only test commands use `vitest.backend.config.ts`, which may only
+  orchestrate backend projects and shared reporter settings. This keeps backend
+  CI compatible with backend-only dependency installs and prevents frontend
+  project config initialization in backend gates.
 - Unit tests run in the Node environment during the first migration. Frontend
   unit tests do not require `happy-dom` or `jsdom` unless a later component-test
   slice introduces a browser-like environment.

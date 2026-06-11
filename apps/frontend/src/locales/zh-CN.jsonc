@@ -1942,11 +1942,11 @@
       "detailButton": "查看详情",
       "swipeSkipHint": "下一个",
       "swipeDetailHint": "查看详情",
-      "emptyTitle": "卡片已看完",
-      "emptySubtitle": "还没有合适的局？可以直接创建一个。"
+      "emptyTitle": "没有了",
+      "emptySubtitle": "都不合适的？创建一个。"
     },
-    "exhausted": "该活动所有场次已满",
-    "subscribeHint": "关注我们的公众号，有名额释放或新场次时第一时间通知你",
+    "exhausted": "没有可加入的搭子请求",
+    "subscribeHint": "您可以在下方卡片中创建新的搭子请求，或关注我们公众号以及时获得相关消息",
     "betaGroupCard": {
       "kicker": "搭子群",
       "description": "加入搭子群，申请场次、获取活动支持、联系搭子",
@@ -1973,6 +1973,7 @@
       "routePlaceholder": "请选择路线",
       "routeAriaLabel": "路线选择",
       "applyRoute": "申请新路线",
+      "switchRouteDirection": "调转路线方向",
       "emptyPlaceholder": "暂无可选地点"
     },
     "formMode": {
@@ -2005,9 +2006,9 @@
       "customTagSubmitFailed": "标签已加入本次推荐，但提交到活动标签池失败，请稍后重试。",
       "recommendationPageTitle": "推荐场次",
       "viewAllSessions": "查看所有场次",
-      "primaryCtaFallback": "请选择地点与开始时间",
-      "primaryCta": "加入一场 {time} 在 {location} 的{eventTitle}活动",
-      "primaryRouteCta": "加入一场 {time} 经过 {place} 的{eventTitle}活动",
+      "primaryCtaFallback": "检索",
+      "primaryCta": "检索",
+      "primaryRouteCta": "检索",
       "primaryCreateCta": "创建一场 {time} 经过 {place} 的{eventTitle}活动",
       "primaryCtaPending": "正在寻找场次...",
       "joinCandidateAction": "加入这场",

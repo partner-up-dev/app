@@ -1,5 +1,5 @@
 <template>
-  <SurfaceCard v-bind="$attrs" as="section" class="pr-facts-card" gap="sm">
+  <PuCard v-bind="$attrs" as="section" class="pr-facts-card" gap="sm">
     <LoadingIndicator v-if="isLoading" :message="t('common.loading')" />
     <ErrorToast v-else-if="error" :message="error.message" persistent />
 
@@ -201,7 +201,7 @@
         <p class="facts-notes">{{ normalizedNotes }}</p>
       </InfoRow>
     </template>
-  </SurfaceCard>
+  </PuCard>
 
   <PRRosterModal
     v-if="interactive && prDetail"
@@ -240,7 +240,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
+import { PuCard } from "@partner-up-dev/design-web";
 import InfoRow from "@/shared/ui/display/InfoRow.vue";
 import InfoRowAction from "@/shared/ui/display/InfoRowAction.vue";
 import Chip from "@/shared/ui/display/Chip.vue";

@@ -7,5 +7,6 @@ type DesignWebComponent = DefineComponent<
 >;
 
 export const PuCard: DesignWebComponent;
+export const PuButton: DesignWebComponent;
 export const PuInlineNotice: DesignWebComponent;
 export const PuPageScaffold: DesignWebComponent;

@@ -29,7 +29,7 @@
 
       <div v-else class="form-mode-builder">
         <AnchorEventCarouselPlaceSelector
-          v-model="selectedPlaceId"
+          v-model="selectedPlace"
           :place-selector="formModeData.placeSelector"
           @update:model-value="trackFormStarted('location')"
           @create-location="handleCreateLocationApplication"
@@ -122,6 +122,10 @@ import {
   useCreateEventAssistedPR,
   type CreateEventAssistedPRError,
 } from "@/domains/event/queries/useCreateEventAssistedPR";
+import {
+  useCreateFormModeAutoPR,
+  type CreateFormModeAutoPRError,
+} from "@/domains/event/queries/useCreateFormModeAutoPR";
 import AnchorEventCarouselPlaceSelector from "@/domains/event/ui/controls/form-mode/AnchorEventCarouselPlaceSelector.vue";
 import FormModeTimeControl from "@/domains/event/ui/controls/form-mode/FormModeTimeControl.vue";
 import FormModePreferenceControl from "@/domains/event/ui/controls/form-mode/FormModePreferenceControl.vue";
@@ -140,9 +144,7 @@ import {
 import type { AnchorEventFormModeRecommendationResponse } from "@/domains/event/model/types";
 import {
   buildFormModePlaceOptions,
-  buildLocationPlaceOptionId,
-  findAnchorEventPlaceOption,
-  toAnchorEventSelectedPlace,
+  findAnchorEventPlaceOptionBySelectedPlace,
   type AnchorEventPlaceOption,
   type AnchorEventSelectedPlace,
 } from "@/domains/event/model/place-options";
@@ -170,9 +172,10 @@ const eventId = computed(() => props.eventId);
 const formModeQuery = useAnchorEventFormModeData(eventId);
 const recommendationMutation = useAnchorEventFormModeRecommendation();
 const createMutation = useCreateEventAssistedPR();
+const autoCreateMutation = useCreateFormModeAutoPR();
 const matchedPRHandoff = useMatchedPRHandoff();
 
-const selectedPlaceId = ref<string | null>(null);
+const selectedPlace = ref<AnchorEventSelectedPlace | null>(null);
 const selectedTimeSelection = ref<FormModeTimeSelection | null>(null);
 const selectedAllowEditAfterReady = ref<PRAllowEditAfterReady | null>(null);
 const selectedPreferences = ref<string[]>([]);
@@ -222,17 +225,10 @@ const placeOptions = computed<AnchorEventPlaceOption[]>(() => {
 });
 
 const selectedPlaceOption = computed(() =>
-  findAnchorEventPlaceOption(placeOptions.value, selectedPlaceId.value),
-);
-
-const selectedPlace = computed<AnchorEventSelectedPlace | null>(() =>
-  toAnchorEventSelectedPlace(selectedPlaceOption.value),
+  findAnchorEventPlaceOptionBySelectedPlace(placeOptions.value, selectedPlace.value),
 );
 const selectedLocationId = computed(() =>
   selectedPlace.value?.kind === "location" ? selectedPlace.value.locationId : null,
-);
-const selectedRoutePoolEntryId = computed(() =>
-  selectedPlace.value?.kind === "route" ? selectedPlace.value.routePoolEntryId : null,
 );
 
 const selectedStartAt = computed(() => {
@@ -270,46 +266,12 @@ const selectedPlaceStartOptions = computed(() => {
   return data.startOptions.filter((option) => availableStartKeys.has(option.key));
 });
 
-const selectedPlaceLabel = computed(
-  () =>
-    selectedPlaceOption.value?.label ??
-    t(formModeData.value?.placeSelector.placeholderKey ?? "anchorEvent.placeSelector.emptyPlaceholder"),
-);
-
-const selectedTimeLabel = computed(() => {
-  const label = selectedTimeSelection.value?.label.trim();
-  if (label) {
-    return label;
-  }
-  if (!isValidFormModeDateTime(selectedStartAt.value)) {
-    return t("anchorEvent.formMode.timePlaceholder");
-  }
-  return `${formatFormModeDateLabel(selectedStartAt.value)} ${formatFormModeTimeLabel(
-    selectedStartAt.value,
-  )}`;
-});
-
-const primaryCtaLabel = computed(() => {
-  if (!selectedStartAt.value || !selectedPlace.value) {
-    return t("anchorEvent.formMode.primaryCtaFallback");
-  }
-  if (selectedPlace.value.kind === "route") {
-    return t("anchorEvent.formMode.primaryRouteCta", {
-      time: selectedTimeLabel.value,
-      place: selectedPlaceLabel.value,
-      eventTitle: formModeData.value?.event.title ?? "",
-    });
-  }
-  return t("anchorEvent.formMode.primaryCta", {
-    time: selectedTimeLabel.value,
-    location: selectedPlaceLabel.value,
-    eventTitle: formModeData.value?.event.title ?? "",
-  });
-});
+const primaryCtaLabel = computed(() => t("anchorEvent.formMode.primaryCta"));
 
 const recommendationSubmissionPending = computed(
   () =>
     recommendationMutation.isPending.value ||
+    autoCreateMutation.isPending.value ||
     matchedPRHandoff.isActive.value ||
     joinSplashPhase.value !== "IDLE",
 );
@@ -464,7 +426,11 @@ const createActionErrorMessage = computed(() => {
     return createReplayErrorMessage.value;
   }
 
-  const error = createMutation.error.value as CreateEventAssistedPRError | null;
+  const error = (createMutation.error.value ??
+    autoCreateMutation.error.value) as
+    | CreateEventAssistedPRError
+    | CreateFormModeAutoPRError
+    | null;
   if (!error) {
     return null;
   }
@@ -520,7 +486,10 @@ watch(
       return;
     }
 
-    selectedPlaceId.value = buildLocationPlaceOptionId(defaultSelection.locationId);
+    selectedPlace.value = {
+      kind: "location",
+      locationId: defaultSelection.locationId,
+    };
     const defaultStartOption = data.startOptions.find(
       (option) => option.startAt === defaultSelection.startAt,
     );
@@ -570,7 +539,7 @@ defineExpose({
   returnToSelection,
 });
 
-watch([selectedPlaceId, selectedTimeSelection, selectedPreferences], () => {
+watch([selectedPlace, selectedTimeSelection, selectedPreferences], () => {
   returnToSelection();
 });
 
@@ -646,8 +615,6 @@ const buildSelectedConditionPayload = () => {
   return {
     ...buildFormFunnelPayload(),
     locationId: place.kind === "location" ? place.locationId : null,
-    routePoolEntryId:
-      place.kind === "route" ? place.routePoolEntryId : null,
     placeKind: place.kind,
     locationType:
       place.kind === "location"
@@ -665,7 +632,7 @@ const buildRecommendationPlaceInput = (
   place.kind === "route"
     ? {
         kind: "route",
-        routePoolEntryId: place.routePoolEntryId,
+        route: place.route,
       }
     : {
         kind: "location",
@@ -725,7 +692,6 @@ const trackFormStarted = (
       formModeData.value.defaultSelection !== null &&
       formModeData.value.defaultSelection !== undefined,
     locationId: selectedLocationId.value ?? undefined,
-    routePoolEntryId: selectedRoutePoolEntryId.value ?? undefined,
     placeKind: selectedPlace.value?.kind,
     locationType:
       selectedLocationId.value === null
@@ -842,8 +808,6 @@ const trackEventAssistedCreateResult = (
     activityType: resolveFormModeActivityType(),
     locationId:
       source.place.kind === "location" ? source.place.locationId : null,
-    routePoolEntryId:
-      source.place.kind === "route" ? source.place.routePoolEntryId : null,
     placeKind: source.place.kind,
     locationType:
       source.place.kind === "location"
@@ -867,18 +831,18 @@ const trackEventAssistedCreateResult = (
   });
 };
 
-type EventAssistedCreateTrigger = "manual_fallback" | "auto_no_candidates";
+type EventAssistedCreateTrigger = "manual_fallback";
 
-const buildEventAssistedCreateTarget = (
+const buildCreatedPRTarget = (
   canonicalPath: string,
-  trigger: EventAssistedCreateTrigger,
+  handoff?: "event_assisted_create",
 ): string => {
   const query = new URLSearchParams({
     entry: "create",
     fromEvent: props.eventId.toString(),
   });
-  if (trigger === "auto_no_candidates") {
-    query.set("handoff", "event_assisted_create");
+  if (handoff) {
+    query.set("handoff", handoff);
   }
   return `${canonicalPath}?${query.toString()}`;
 };
@@ -898,26 +862,17 @@ const createEventAssistedPR = async (
 
   const fields = buildCreateFields();
   if (!fields) {
-    if (trigger === "auto_no_candidates") {
-      selectionErrorMessage.value = t(
-        "anchorEvent.createCard.errors.createFailed",
-      );
-    }
     return false;
   }
 
-  if (trigger === "manual_fallback") {
-    trackEvent("anchor_event_form_create_fallback_click", {
-      eventId: props.eventId,
-      activityType: resolveFormModeActivityType(),
-      locationId: place.kind === "location" ? place.locationId : null,
-      routePoolEntryId:
-        place.kind === "route" ? place.routePoolEntryId : null,
-      placeKind: place.kind,
-      startAt,
-      preferenceCount: selectedPreferences.value.length,
-    });
-  }
+  trackEvent("anchor_event_form_create_fallback_click", {
+    eventId: props.eventId,
+    activityType: resolveFormModeActivityType(),
+    locationId: place.kind === "location" ? place.locationId : null,
+    placeKind: place.kind,
+    startAt,
+    preferenceCount: selectedPreferences.value.length,
+  });
 
   const createTelemetrySource = {
     place,
@@ -937,10 +892,6 @@ const createEventAssistedPR = async (
       eventId: props.eventId,
       fields,
       allowEditAfterReady: selectedAllowEditAfterReady.value,
-      routePoolEntryId:
-        place.kind === "route" ? place.routePoolEntryId : null,
-      handoff:
-        trigger === "auto_no_candidates" ? "event_assisted_create" : undefined,
     });
 
     trackEventAssistedCreateResult(
@@ -956,9 +907,7 @@ const createEventAssistedPR = async (
       entrySurface: "form_mode",
       entryType: "create_handoff",
     });
-    await router.push(
-      buildEventAssistedCreateTarget(created.canonicalPath, trigger),
-    );
+    await router.push(buildCreatedPRTarget(created.canonicalPath));
     return true;
   } catch (error) {
     if (isWeChatAuthBlockingError(error)) {
@@ -986,14 +935,78 @@ const createEventAssistedPR = async (
       },
       createTelemetrySource,
     );
-    if (trigger === "auto_no_candidates") {
-      selectionErrorMessage.value =
-        isCreateEventAssistedPRError(error)
-          ? resolveCreateErrorMessage(error)
-          : error instanceof Error
+    return false;
+  }
+};
+
+const createFormModeAutoPR = async (): Promise<boolean> => {
+  if (!canUserCreatePR.value) {
+    return false;
+  }
+
+  const place = selectedPlace.value;
+  const [startAt, endAt] = resolveSelectedTimeWindow();
+  if (!place || !startAt || !endAt) {
+    selectionErrorMessage.value = t("anchorEvent.createCard.errors.createFailed");
+    return false;
+  }
+
+  const createTelemetrySource = {
+    place,
+    startAt,
+    preferenceCount: selectedPreferences.value.length,
+  };
+  const selectedConditionPayload = buildSelectedConditionPayload();
+  if (selectedConditionPayload) {
+    trackEvent("anchor_event_assisted_create_started", {
+      ...selectedConditionPayload,
+      trigger: "auto_no_candidates",
+    });
+  }
+
+  autoCreateMutation.reset();
+  try {
+    const created = await autoCreateMutation.mutateAsync({
+      eventId: props.eventId,
+      timeWindow: [startAt, endAt],
+      place,
+      preferences: [...selectedPreferences.value],
+      allowEditAfterReady: selectedAllowEditAfterReady.value,
+    });
+    trackEventAssistedCreateResult(
+      {
+        actionResult: "success",
+        prId: created.id,
+      },
+      createTelemetrySource,
+    );
+    trackEvent("pr_entry_reached", {
+      ...buildFormFunnelPayload(),
+      prId: created.id,
+      entrySurface: "form_mode",
+      entryType: "create_handoff",
+    });
+    await router.push(buildCreatedPRTarget(created.canonicalPath));
+    return true;
+  } catch (error) {
+    trackEventAssistedCreateResult(
+      {
+        ...resolveTelemetryFailurePayload(
+          error,
+          "FORM_MODE_AUTO_CREATE_FAILED",
+          error instanceof Error
             ? error.message
+            : t("anchorEvent.createCard.errors.createFailed"),
+        ),
+      },
+      createTelemetrySource,
+    );
+    selectionErrorMessage.value =
+      isCreateEventAssistedPRError(error)
+        ? resolveCreateErrorMessage(error)
+        : error instanceof Error
+          ? error.message
           : t("anchorEvent.createCard.errors.createFailed");
-    }
     return false;
   }
 };
@@ -1069,7 +1082,7 @@ const handleSubmitRecommendation = async (originRect: LongPressOriginRect) => {
         return;
       }
 
-      const createStarted = await createEventAssistedPR("auto_no_candidates");
+      const createStarted = await createFormModeAutoPR();
       if (createStarted) {
         resetJoinSplash();
         return;
@@ -1227,7 +1240,6 @@ const attemptPendingCreateReplay = async () => {
             pending.fields.route !== null
               ? ({
                   kind: "route",
-                  routePoolEntryId: pending.routePoolEntryId ?? "",
                   route: pending.fields.route,
                 } satisfies AnchorEventSelectedPlace)
               : ({
@@ -1238,6 +1250,72 @@ const attemptPendingCreateReplay = async () => {
           preferenceCount: pending.fields.preferences.length,
         }
       : null;
+  if (pending.handoff === "event_assisted_create") {
+    const [startAt, endAt] = pending.fields.time;
+    const pendingAutoCreatePlace =
+      pending.fields.route !== null
+        ? ({
+            kind: "route",
+            route: pending.fields.route,
+          } satisfies AnchorEventSelectedPlace)
+        : pending.fields.location
+          ? ({
+              kind: "location",
+              locationId: pending.fields.location,
+            } satisfies AnchorEventSelectedPlace)
+          : null;
+
+    try {
+      if (
+        typeof startAt !== "string" ||
+        typeof endAt !== "string" ||
+        !pendingAutoCreatePlace
+      ) {
+        throw new Error(t("anchorEvent.createCard.errors.createFailed"));
+      }
+
+      const created = await autoCreateMutation.mutateAsync({
+        eventId: props.eventId,
+        timeWindow: [startAt, endAt],
+        place: pendingAutoCreatePlace,
+        preferences: pending.fields.preferences,
+        allowEditAfterReady: pending.allowEditAfterReady ?? null,
+      });
+      if (pendingCreateTelemetrySource) {
+        trackEventAssistedCreateResult(
+          {
+            actionResult: "success",
+            prId: created.id,
+          },
+          pendingCreateTelemetrySource,
+        );
+      }
+      await router.push(buildCreatedPRTarget(created.canonicalPath));
+    } catch (error) {
+      if (pendingCreateTelemetrySource) {
+        trackEventAssistedCreateResult(
+          {
+            ...resolveTelemetryFailurePayload(
+              error,
+              "FORM_MODE_AUTO_CREATE_REPLAY_FAILED",
+              error instanceof Error
+                ? error.message
+                : t("anchorEvent.createCard.errors.createFailed"),
+            ),
+          },
+          pendingCreateTelemetrySource,
+        );
+      }
+      createReplayErrorMessage.value =
+        error instanceof Error
+          ? error.message
+          : t("anchorEvent.createCard.errors.createFailed");
+    } finally {
+      pendingCreateReplayRunning.value = false;
+    }
+    return;
+  }
+
   try {
     const created = await createMutation.mutateAsync({
       eventId: props.eventId,
@@ -1256,7 +1334,6 @@ const attemptPendingCreateReplay = async () => {
         preferences: pending.fields.preferences,
         notes: null,
       },
-      routePoolEntryId: pending.routePoolEntryId ?? null,
     });
     if (pendingCreateTelemetrySource) {
       trackEventAssistedCreateResult(
@@ -1268,12 +1345,7 @@ const attemptPendingCreateReplay = async () => {
       );
     }
     await router.push(
-      buildEventAssistedCreateTarget(
-        created.canonicalPath,
-        pending.handoff === "event_assisted_create"
-          ? "auto_no_candidates"
-          : "manual_fallback",
-      ),
+      buildCreatedPRTarget(created.canonicalPath, pending.handoff),
     );
   } catch (error) {
     if (pendingCreateTelemetrySource) {

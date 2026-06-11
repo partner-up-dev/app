@@ -31,7 +31,7 @@
       </div>
 
       <template v-else-if="detail">
-        <SurfaceCard gap="md">
+        <PuCard as="section" gap="md">
           <div class="bill-detail-page__section-heading">
             <p class="bill-detail-page__eyebrow">Bill</p>
             <h2>{{ detail.order.itemName }}</h2>
@@ -77,9 +77,9 @@
           >
             返回订单详情
           </ActionLink>
-        </SurfaceCard>
+        </PuCard>
 
-        <SurfaceCard gap="md">
+        <PuCard as="section" gap="md">
           <div class="bill-detail-page__section-heading">
             <p class="bill-detail-page__eyebrow">Lines</p>
             <h2>账单责任</h2>
@@ -118,7 +118,7 @@
               </div>
             </div>
           </div>
-        </SurfaceCard>
+        </PuCard>
       </template>
     </div>
   </FullScreenPageScaffold>
@@ -127,10 +127,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { PuCard } from "@partner-up-dev/design-web";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
 

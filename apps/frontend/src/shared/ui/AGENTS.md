@@ -19,8 +19,7 @@ Actions:
 
 Containers and layout:
 
-- `containers/SurfaceCard.vue`: standard card shell for reusable section, inset, and outline surfaces.
-- `containers/ExpandableCard.vue`: collapsible card shell. Use `keep-content-mounted` only when collapsed content owns expensive local state or setup work.
+- `PuCard` from `@partner-up-dev/design-web`: standard card shell for reusable grouped content, outline surfaces, and collapsible sections. Use `variant` for treatment and `keep-content-mounted` only when collapsed content owns local state that must survive collapse.
 - `containers/ChoiceCard.vue`: selectable card primitive for button-like choices and RouterLink navigation choices.
 - `layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue`: shared page scaffolds. Prefer these for route pages instead of duplicating root safe-area layout.
 - `layout/FullScreenPageScaffold.vue`: viewport-height page scaffold with header/content/footer regions where the middle region should flex and own scrolling.

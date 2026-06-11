@@ -85,7 +85,6 @@ const createStructuredPRCommandSchema = z.union([
     fields: partnerRequestFieldsSchema,
     createSource: z.literal("EVENT_ASSISTED"),
     anchorEventId: z.coerce.number().int().positive().optional(),
-    routePoolEntryId: z.string().trim().min(1).max(120).optional(),
     allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   }),
   z.object({

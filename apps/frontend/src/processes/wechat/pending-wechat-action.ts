@@ -38,7 +38,6 @@ type PendingAnchorCreateAction = PendingActionBase & {
   kind: "EVENT_ASSISTED_PR_CREATE";
   eventId: number;
   handoff?: PendingAnchorCreateHandoff;
-  routePoolEntryId?: string | null;
   allowEditAfterReady?: PRAllowEditAfterReady | null;
   fields: {
     type: string;
@@ -84,7 +83,6 @@ type NewPendingWeChatAction =
       kind: "EVENT_ASSISTED_PR_CREATE";
       eventId: number;
       handoff?: PendingAnchorCreateHandoff;
-      routePoolEntryId?: string | null;
       allowEditAfterReady?: PRAllowEditAfterReady | null;
       fields: {
         type: string;
@@ -200,10 +198,6 @@ const isPendingWeChatAction = (
           fields.location.trim().length > 0)) &&
       (fields.route === null || isPRRoute(fields.route)) &&
       (fields.location !== null || fields.route !== null) &&
-      (anchorCandidate.routePoolEntryId === undefined ||
-        anchorCandidate.routePoolEntryId === null ||
-        (typeof anchorCandidate.routePoolEntryId === "string" &&
-          anchorCandidate.routePoolEntryId.trim().length > 0)) &&
       isEditableAfterReady(anchorCandidate.allowEditAfterReady) &&
       Array.isArray(fields.preferences) &&
       fields.preferences.every((entry) => typeof entry === "string") &&

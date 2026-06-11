@@ -90,7 +90,6 @@ type AnchorEventFunnelContextPayload = AnalyticsContextPayload & {
 
 type AnchorEventPlaceTelemetryPayload = {
   locationId?: string | null;
-  routePoolEntryId?: string | null;
   placeKind?: "location" | "route" | null;
   locationType?: "preset" | "user_submitted";
 };
@@ -187,7 +186,6 @@ export type TelemetryPayloadMap = {
   };
   anchor_event_card_empty_create_started: AnchorEventFunnelContextPayload & {
     locationId?: string | null;
-    routePoolEntryId?: string | null;
     placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
   };
@@ -217,7 +215,6 @@ export type TelemetryPayloadMap = {
   anchor_event_list_create_started: AnchorEventFunnelContextPayload & {
     dateKey?: string | null;
     locationId?: string | null;
-    routePoolEntryId?: string | null;
     placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
     preferenceCount?: number;
@@ -225,7 +222,6 @@ export type TelemetryPayloadMap = {
   anchor_event_dummy_pr_detail_started: AnchorEventFunnelContextPayload & {
     dateKey?: string | null;
     locationId?: string | null;
-    routePoolEntryId?: string | null;
     placeKind?: "location" | "route" | null;
     timeWindowStart?: string | null;
     preferenceCount?: number;
@@ -393,7 +389,6 @@ export type TelemetryPayloadMap = {
     trigger: "location" | "time" | "preference" | "primary_cta";
     hasDefaultSelection: boolean;
     locationId?: string;
-    routePoolEntryId?: string;
     placeKind?: "location" | "route";
     locationType?: "preset" | "user_submitted";
     startAt?: string;
@@ -431,7 +426,6 @@ export type TelemetryPayloadMap = {
   anchor_event_form_create_fallback_click: AnalyticsContextPayload & {
     eventId: number;
     locationId?: string | null;
-    routePoolEntryId?: string | null;
     placeKind?: "location" | "route" | null;
     startAt: string;
     preferenceCount: number;
@@ -442,7 +436,6 @@ export type TelemetryPayloadMap = {
       prId?: number;
       activityType?: string;
       locationId?: string | null;
-      routePoolEntryId?: string | null;
       placeKind?: "location" | "route";
       locationType?: "preset" | "user_submitted";
       startAt: string;

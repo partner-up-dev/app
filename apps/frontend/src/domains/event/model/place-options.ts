@@ -52,7 +52,6 @@ export type AnchorEventSelectedPlace =
     }
   | {
       kind: "route";
-      routePoolEntryId: string;
       route: PRRoute;
     };
 
@@ -130,6 +129,54 @@ export const resolvePoiMapCoordinate = (
 const normalizeRouteLabel = (route: Route): string =>
   buildRouteEndpointLabel(route) ?? route[0]?.name?.trim() ?? "";
 
+const cloneCoordinatePair = (
+  coordinate: [number, number] | null,
+): [number, number] | null =>
+  coordinate === null ? null : [coordinate[0], coordinate[1]];
+
+export const cloneAnchorEventRoute = (route: PRRoute): PRRoute =>
+  route.map((point) => ({
+    ...point,
+    wgs84: cloneCoordinatePair(point.wgs84),
+    bd09: cloneCoordinatePair(point.bd09),
+    gcj02: cloneCoordinatePair(point.gcj02),
+  }));
+
+export const reverseAnchorEventRoute = (route: PRRoute): PRRoute =>
+  cloneAnchorEventRoute(route).reverse();
+
+const areCoordinatePairsEqual = (
+  left: [number, number] | null,
+  right: [number, number] | null,
+): boolean => {
+  if (left === null || right === null) {
+    return left === right;
+  }
+
+  return left[0] === right[0] && left[1] === right[1];
+};
+
+export const areAnchorEventRoutesEqual = (
+  left: PRRoute | null | undefined,
+  right: PRRoute | null | undefined,
+): boolean => {
+  if (!left || !right || left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((leftPoint, index) => {
+    const rightPoint = right[index];
+    return (
+      rightPoint !== undefined &&
+      leftPoint.name === rightPoint.name &&
+      leftPoint.full_address === rightPoint.full_address &&
+      areCoordinatePairsEqual(leftPoint.wgs84, rightPoint.wgs84) &&
+      areCoordinatePairsEqual(leftPoint.bd09, rightPoint.bd09) &&
+      areCoordinatePairsEqual(leftPoint.gcj02, rightPoint.gcj02)
+    );
+  });
+};
+
 const clonePlaceSelectorOptions = (
   placeSelector: AnchorEventPlaceSelectorView | null | undefined,
 ): AnchorEventPlaceOption[] | null => {
@@ -180,8 +227,7 @@ export const toAnchorEventSelectedPlace = (
 
   return {
     kind: "route",
-    routePoolEntryId: option.routePoolEntryId,
-    route: option.route,
+    route: cloneAnchorEventRoute(option.route),
   };
 };
 
@@ -190,6 +236,37 @@ export const findAnchorEventPlaceOption = (
   id: string | null | undefined,
 ): AnchorEventPlaceOption | null =>
   options.find((option) => option.id === id) ?? null;
+
+export const findAnchorEventPlaceOptionBySelectedPlace = (
+  options: readonly AnchorEventPlaceOption[],
+  selectedPlace: AnchorEventSelectedPlace | null | undefined,
+): AnchorEventPlaceOption | null => {
+  if (!selectedPlace) {
+    return null;
+  }
+
+  if (selectedPlace.kind === "location") {
+    return (
+      options.find(
+        (option): option is AnchorEventLocationPlaceOption =>
+          option.kind === "location" &&
+          option.locationId === selectedPlace.locationId,
+      ) ?? null
+    );
+  }
+
+  return (
+    options.find(
+      (option): option is AnchorEventRoutePlaceOption =>
+        option.kind === "route" &&
+        (areAnchorEventRoutesEqual(option.route, selectedPlace.route) ||
+          areAnchorEventRoutesEqual(
+            reverseAnchorEventRoute(option.route),
+            selectedPlace.route,
+          )),
+    ) ?? null
+  );
+};
 
 export const getFirstEnabledPlaceOption = (
   options: readonly AnchorEventPlaceOption[],

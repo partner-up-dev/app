@@ -31,15 +31,16 @@ This folder owns event-domain UI surfaces, controls, composites, and primitives.
         |       |   `-- PRPreviewCard with action slot
         |       `-- Create CTA: 都不合适，帮我找
         `-- orderedCandidates = 0
-            `-- Assisted create -> /pr/:id?entry=create&handoff=event_assisted_create
+            `-- System auto-create -> /pr/:id?entry=create
 ```
 
 Rules:
 
 - `AnchorEventFormModeSurface.vue` owns selection state, recommendation result state, matched handoff, no-match result transition, create fallback, and flow telemetry.
 - Form Mode controls own local interaction state and expose committed values through narrow `v-model` contracts.
+- Place Control exposes a concrete selected place through `v-model`; route selections carry `PR.route`, not route-pool entry identity, because the user may locally reverse a route-pool source option.
 - The no-match result is a Form Mode inline state within `/e/:eventId`.
-- If no matched PR and no ordered candidates exist, Form Mode should directly create an event-assisted PR and route to the created PR detail with a `handoff=event_assisted_create` success notice.
+- If no matched PR and no ordered candidates exist, Form Mode should directly create a system-owned `OPEN` PR and route to the created PR detail without the event-assisted created-request notice.
 - Matched PR handoff state is route-level process state under `processes/route-handoff` so the overlay can survive `/e/:eventId` to `/pr/:id` navigation.
 - PageHeader back in the no-match result state should return to the Form Mode selection state.
 - The selection state owns the `查看所有场次` action.
@@ -62,7 +63,7 @@ Rules:
 - Score is used to choose the best matched PR when multiple matches exist.
 - Ordered candidates are returned only when the matched pool is empty.
 - Ordered candidates use the same score function over the whole base PR pool.
-- An empty ordered-candidate list means the frontend should skip the no-match candidate surface and submit the event-assisted create command from the current selection.
+- An empty ordered-candidate list means the frontend should skip the no-match candidate surface and submit the Form Mode system auto-create command from the current selection.
 
 ## Anchor Event PR Card Actions
 

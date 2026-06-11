@@ -207,8 +207,6 @@ export const useEventAssistedPRCreateFlow = (
       prId: payload.prId,
       locationId:
         source.place.kind === "location" ? source.place.locationId : null,
-      routePoolEntryId:
-        source.place.kind === "route" ? source.place.routePoolEntryId : null,
       placeKind: source.place.kind,
       locationType:
         source.place.kind === "location"
@@ -266,8 +264,6 @@ export const useEventAssistedPRCreateFlow = (
         eventId: currentEvent.id,
         fields,
         allowEditAfterReady: allowEditAfterReady ?? null,
-        routePoolEntryId:
-          place?.kind === "route" ? place.routePoolEntryId : null,
       });
       trackCreateResult(currentEvent, createTelemetrySource, {
         actionResult: "success",
@@ -429,7 +425,6 @@ export const useEventAssistedPRCreateFlow = (
               pending.fields.route !== null
                 ? ({
                     kind: "route",
-                    routePoolEntryId: pending.routePoolEntryId ?? "",
                     route: pending.fields.route,
                   } satisfies AnchorEventSelectedPlace)
                 : ({
@@ -458,7 +453,6 @@ export const useEventAssistedPRCreateFlow = (
           preferences: pending.fields.preferences,
           notes: null,
         },
-        routePoolEntryId: pending.routePoolEntryId ?? null,
       });
       if (pendingCreateTelemetrySource) {
         trackCreateResult(currentEvent, pendingCreateTelemetrySource, {

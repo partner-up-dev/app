@@ -11,6 +11,17 @@ Hosted PR validation is split by gate owner:
 Backend and frontend gates run for PRs targeting `develop` or `master` when
 their owned surfaces or workspace install inputs change.
 
+Install boundaries follow gate ownership:
+
+- backend-only gates install the backend dependency graph instead of the whole
+  frontend workspace graph; they must not require GitHub Packages credentials
+  for frontend-only packages such as `@partner-up-dev/design-web`
+- backend gate installs root test tooling plus the backend dependency graph
+  through `pnpm --filter . --filter @partner-up-dev/backend... install --frozen-lockfile`
+- frontend and E2E gates may install the full workspace graph because they
+  build or execute the frontend; they require GitHub Packages read auth through
+  `NODE_AUTH_TOKEN`
+
 E2E gate runs for PRs targeting `master`. It is also available through
 `workflow_dispatch` for release qualification and diagnosis. The E2E gate uses
 GitHub Actions Postgres service state via `SCENARIO_DATABASE_ADMIN_URL`,
@@ -31,13 +42,16 @@ pnpm is read from the root `packageManager`, and Serverless Devs is pinned in
 releases while project commands run on Node 22.
 
 The backend deploy workflow is triggered by backend source changes and by root
-workspace/toolchain inputs used during install, build, or layer packaging:
+workspace/toolchain inputs used during backend filtered install, build, or layer packaging:
 `.node-version`, `package.json`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`.
+It does not trigger on `.npmrc` changes and does not require GitHub Packages
+read permissions because frontend-only private packages are outside the backend
+install graph.
 
 ### Standard deploy path
 
 1. checkout
-2. install workspace dependencies
+2. install backend dependency graph with `pnpm --filter @partner-up-dev/backend... install --frozen-lockfile`
 3. lint backend migration/seed artifacts
 4. build FC migration bundle
 5. deploy FC migration function
@@ -98,7 +112,7 @@ PR validation workflow: `.github/workflows/backend-db-validate.yml`
 
 This workflow:
 
-1. installs dependencies
+1. installs the backend dependency graph with `pnpm --filter @partner-up-dev/backend... install --frozen-lockfile`
 2. runs `pnpm --filter @partner-up-dev/backend db:lint`
 3. regenerates Drizzle SQL artifacts
 4. fails on artifact drift under `apps/backend/drizzle` and `apps/backend/drizzle/meta`
@@ -127,6 +141,8 @@ Repo-tracked rollout facts:
 
 - deploy descriptor: `apps/frontend/esa.jsonc`
 - hosted install command: `pnpm install --frozen-lockfile`
+- hosted package registry auth: `NODE_AUTH_TOKEN` for GitHub Packages reads,
+  including `@partner-up-dev/design-web`
 - hosted validation: frontend design-token lint, frontend unit tests, and
   frontend build
 - build command: `pnpm --filter @partner-up-dev/frontend build`

@@ -40,7 +40,7 @@
       </div>
 
       <template v-else-if="detail">
-        <SurfaceCard gap="md">
+        <PuCard as="section" gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Order</p>
             <h2 data-testid="order-detail.item-name">{{ primaryItemName }}</h2>
@@ -66,7 +66,7 @@
               </strong>
             </div>
           </div>
-        </SurfaceCard>
+        </PuCard>
 
         <template v-if="rideHailingDetail">
           <section
@@ -86,7 +86,7 @@
               </div>
             </div>
 
-            <SurfaceCard gap="md">
+            <PuCard as="section" gap="md">
               <div class="order-detail-page__section-heading">
                 <p class="order-detail-page__eyebrow">Ride</p>
                 <h2 data-testid="order-detail.ride-hailing.status">
@@ -135,12 +135,12 @@
               >
                 查看账单并支付
               </ActionLink>
-            </SurfaceCard>
+            </PuCard>
           </section>
         </template>
 
         <template v-else>
-          <SurfaceCard gap="md">
+          <PuCard as="section" gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Bill</p>
             <h2 data-testid="order-detail.total-price">
@@ -171,9 +171,9 @@
           >
             查看账单并支付
           </ActionLink>
-          </SurfaceCard>
+          </PuCard>
 
-          <SurfaceCard gap="md">
+          <PuCard as="section" gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Cancellation</p>
             <h2>取消政策</h2>
@@ -216,9 +216,9 @@
             :message="cancellationResultMessage"
             data-testid="order-detail.rental.cancelled"
           />
-          </SurfaceCard>
+          </PuCard>
 
-          <SurfaceCard gap="md">
+          <PuCard as="section" gap="md">
           <div class="order-detail-page__section-heading">
             <p class="order-detail-page__eyebrow">Fulfillment</p>
             <h2>场地预订</h2>
@@ -246,7 +246,7 @@
             message="场地履约已经进入已确认状态。"
             data-testid="order-detail.rental.booking-confirmed"
           />
-          </SurfaceCard>
+          </PuCard>
         </template>
       </template>
     </div>
@@ -256,10 +256,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
+import { PuCard } from "@partner-up-dev/design-web";
 import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {

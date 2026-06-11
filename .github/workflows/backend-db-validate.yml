@@ -7,7 +7,6 @@ on:
       - develop
     paths:
       - ".node-version"
-      - ".npmrc"
       - "apps/backend/**"
       - ".github/workflows/backend-db-validate.yml"
       - "package.json"
@@ -16,13 +15,10 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   validate-db-artifacts:
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -37,7 +33,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies (workspace)
-        run: pnpm install --frozen-lockfile
+        run: pnpm --filter @partner-up-dev/backend... install --frozen-lockfile
 
       - name: Lint migration and seed files
         run: pnpm --filter @partner-up-dev/backend db:lint

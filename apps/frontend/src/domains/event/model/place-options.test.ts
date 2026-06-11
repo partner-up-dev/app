@@ -1,13 +1,17 @@
 import { describe, expect, test } from "vitest";
 import type { PRRoute } from "@partner-up-dev/backend";
 import {
+  areAnchorEventRoutesEqual,
   buildCreateTimeWindowPlaceOptions,
   buildFormModePlaceOptions,
   buildLocationPlaceOptionId,
   buildRoutePlaceOptionId,
+  findAnchorEventPlaceOptionBySelectedPlace,
   getExclusiveCreateTimeWindowLocationOptions,
   getFirstEnabledPlaceOption,
   hasEnabledCreateTimeWindowPlaceOption,
+  reverseAnchorEventRoute,
+  type AnchorEventRoutePlaceOption,
   toAnchorEventSelectedPlace,
 } from "./place-options";
 
@@ -28,7 +32,46 @@ const route: PRRoute = [
   },
 ];
 
+const reversedRoute: PRRoute = [route[1]!, route[0]!].map((point) => ({
+  ...point,
+}));
+
+const routeOption = (
+  routePoolEntryId: string,
+  optionRoute: PRRoute,
+): AnchorEventRoutePlaceOption => ({
+  kind: "route",
+  id: buildRoutePlaceOptionId(routePoolEntryId),
+  routePoolEntryId,
+  label: routePoolEntryId,
+  route: optionRoute,
+  remainingQuota: null,
+  disabled: false,
+  disabledReason: "NONE",
+});
+
 describe("anchor event place options", () => {
+  test("reverses a route into a concrete selected route", () => {
+    const actual = reverseAnchorEventRoute(route);
+
+    expect(actual).toEqual(reversedRoute);
+    expect(actual).not.toBe(route);
+    expect(actual[0]).not.toBe(route[1]);
+    expect(areAnchorEventRoutesEqual(route, actual)).toBe(false);
+    expect(areAnchorEventRoutesEqual(reversedRoute, actual)).toBe(true);
+  });
+
+  test("resolves a reversed selected route back to its source option", () => {
+    const option = routeOption("route-a-b", route);
+
+    expect(
+      findAnchorEventPlaceOptionBySelectedPlace([option], {
+        kind: "route",
+        route: reversedRoute,
+      }),
+    ).toEqual(option);
+  });
+
   test("buildFormModePlaceOptions treats route pool as exclusive when routes exist", () => {
     const options = buildFormModePlaceOptions({
       placeSelector: null,
@@ -216,7 +259,6 @@ describe("anchor event place options", () => {
     );
     expect(toAnchorEventSelectedPlace(options[0])).toEqual({
       kind: "route",
-      routePoolEntryId: "route-a",
       route,
     });
   });

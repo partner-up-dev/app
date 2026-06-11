@@ -1,9 +1,8 @@
 import type { PRId, UserId } from "../../../entities";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import { reconcileCurrentCreator } from "./current-creator.service";
 
 const prRepo = new PartnerRequestRepository();
-const partnerRepo = new PartnerRepository();
 
 export type AnchorParticipantReleaseEffects = {
   creatorTransferredToUserId: UserId | null;
@@ -22,19 +21,12 @@ export const applyAnchorParticipantReleaseEffects = async (input: {
     };
   }
 
-  let creatorTransferredToUserId = request.createdBy ?? null;
-  let creatorTransferApplied = false;
-  if (request.createdBy && input.releasedUserIds.includes(request.createdBy)) {
-    const activeParticipants =
-      await partnerRepo.listActiveParticipantSummariesByPrId(input.prId);
-    const successor = activeParticipants[0] ?? null;
-    creatorTransferredToUserId = successor?.userId ?? null;
-    await prRepo.setCreatedBy(input.prId, creatorTransferredToUserId);
-    creatorTransferApplied = true;
-  }
+  const releasedCurrentCreator =
+    request.createdBy !== null && input.releasedUserIds.includes(request.createdBy);
+  const reconciliation = await reconcileCurrentCreator(input.prId);
 
   return {
-    creatorTransferredToUserId,
-    creatorTransferApplied,
+    creatorTransferredToUserId: reconciliation.nextCreatedBy,
+    creatorTransferApplied: releasedCurrentCreator && reconciliation.changed,
   };
 };

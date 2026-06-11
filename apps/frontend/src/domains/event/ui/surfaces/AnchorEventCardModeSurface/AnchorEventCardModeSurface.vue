@@ -119,6 +119,7 @@
         class="card-mode__action"
         appearance="pill"
         tone="danger"
+        data-testid="anchor-event-card-mode.skip"
         :disabled="resolvedIsCardRouting"
         @click="handleSkipActionClick"
       >
@@ -128,6 +129,7 @@
         type="button"
         class="card-mode__action"
         appearance="pill"
+        data-testid="anchor-event-card-mode.detail"
         :disabled="resolvedIsCardRouting || !activeCardActionAvailable"
         @click="handleViewActionClick"
       >

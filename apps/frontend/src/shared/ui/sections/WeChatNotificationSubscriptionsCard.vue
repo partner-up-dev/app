@@ -1,12 +1,12 @@
 <template>
-  <SurfaceCard gap="md">
+  <PuCard as="section" gap="md">
     <h2 class="section-title">{{ title }}</h2>
     <slot />
-  </SurfaceCard>
+  </PuCard>
 </template>
 
 <script setup lang="ts">
-import SurfaceCard from "@/shared/ui/containers/SurfaceCard.vue";
+import { PuCard } from "@partner-up-dev/design-web";
 
 defineProps<{
   title: string;

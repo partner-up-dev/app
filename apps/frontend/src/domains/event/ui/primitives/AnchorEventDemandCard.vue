@@ -502,7 +502,7 @@ const triggerAction = (action: SwipeAction) => {
     return;
   }
 
-  if (action === "view-detail" && props.detailPrId === null) {
+  if (action === "view-detail" && !isDetailActionAvailable.value) {
     startRebound();
     return;
   }
@@ -610,7 +610,7 @@ const handlePointerUp = (event: PointerEvent) => {
   const action = resolveSwipeAction(offsetX, velocityX);
   activePointer.value = null;
 
-  if (action === "view-detail" && props.detailPrId === null) {
+  if (action === "view-detail" && !isDetailActionAvailable.value) {
     startRebound();
     return;
   }

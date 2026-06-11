@@ -22,7 +22,6 @@ type CreateEventAssistedPRInput = {
   eventId: number;
   fields: PartnerRequestFields;
   allowEditAfterReady?: PRAllowEditAfterReady | null;
-  routePoolEntryId?: string | null;
   handoff?: "event_assisted_create";
 };
 
@@ -53,7 +52,12 @@ export const useCreateEventAssistedPR = () => {
     CreateEventAssistedPRError,
     CreateEventAssistedPRInput
   >({
-    mutationFn: async ({ eventId, fields, allowEditAfterReady, handoff }) => {
+    mutationFn: async ({
+      eventId,
+      fields,
+      allowEditAfterReady,
+      handoff,
+    }) => {
       const response = await client.api.pr.new.form.$post(
         {
           json: buildEventAssistedPRCreateBody({
