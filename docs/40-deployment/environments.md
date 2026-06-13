@@ -4,6 +4,7 @@
 
 The default local development entry is portless-managed:
 
+- ensure frontend and backend are available: `pnpm dev:ensure`
 - full stack: `pnpm dev:portless`
 - frontend only: `pnpm dev:portless:frontend`
 - backend only: `pnpm dev:portless:backend`
@@ -21,6 +22,11 @@ portless app with `Host: api.partner-up.localhost`.
 Fixed local ports remain available for compatibility workflows through package
 env files and helper scripts. They are local fallback inputs, while portless is
 the default developer workflow.
+
+Agents should use `pnpm dev:ensure` before browser or manual validation that
+needs the local frontend/backend pair. The ensure command checks the stable
+portless routes and starts only the missing services, which avoids duplicate
+dev servers during repeated agent runs.
 
 System scenario tests are a separate local runtime. The `system-scenario` Vitest project
 allocates isolated frontend and backend HTTP ports for the test process,

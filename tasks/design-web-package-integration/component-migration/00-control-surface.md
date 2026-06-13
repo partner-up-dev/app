@@ -110,6 +110,12 @@ design package should not absorb.
 - `PuWheelPicker` was added to the second slice after the user asked to include
   it before committing. `FormModeTimeControl.vue` now imports the package
   component directly and the local wheel picker implementation was deleted.
+- Agent Skill source clarified: the up-to-date `design-web` TanStack Intent
+  skill is shipped inside `@partner-up-dev/design-web@0.4.0` under
+  `skills/design-web`. Agents should load it with `pnpm dlx
+  @tanstack/intent@latest load @partner-up-dev/design-web#design-web` after
+  package updates instead of hand-editing or relying on stale local copies under
+  `~/.codex/skills`.
 - Next slice direction: migrate overlay primitives directly to package
   components: `Modal` -> `PuModal`, `ConfirmDialog` -> `PuDialog` or
   `PuModal` + `PuButton` depending on package API fit, and `BottomDrawer` ->
@@ -152,6 +158,14 @@ Baseline per component slice:
   passed; token lint passed; frontend unit tests passed, 26 files / 117 tests;
   migrated wrapper import scan returned no usage-site references; `git
   diff --check` passed.
+- Agent Skill verification on 2026-06-13: `pnpm dlx
+  @tanstack/intent@latest list --json` found
+  `@partner-up-dev/design-web#design-web` from the installed `0.4.0` package;
+  `pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web`
+  returned the updated skill with `PuDialog`; `pnpm dlx
+  @tanstack/intent@latest validate
+  apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`
+  passed.
 - Browser smoke with Edge through Playwright on `http://localhost:4001/` and
   `/pr/1` - passed. Evidence:
   `evidence/home-footer-mobile.png` and `evidence/pr-footer-mobile.png`.

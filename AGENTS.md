@@ -106,7 +106,9 @@ Pause and ask for human confirmation when:
 ## Development Workflow
 
 - Use GitHub CLI (`gh`) for GitHub operations and issue workflows.
-- Use `pnpm dev:portless` as the default full-stack local development entry. `portless.json` owns the stable app names for the frontend (`partner-up`) and backend (`api.partner-up`).
+- When local frontend/backend services must be available for browser or manual validation, run `pnpm dev:ensure` from the repository root first. It reuses existing `portless` routes and starts only missing dev servers.
+- Use `pnpm dev:portless` as the underlying full-stack local development entry. `portless.json` owns the stable app names for the frontend (`partner-up`) and backend (`api.partner-up`). Do not start ad hoc duplicate dev servers with raw `pnpm dev`, `pnpm dev:frontend`, or `pnpm dev:backend` when the goal is only to ensure services are running.
+- When updating `@partner-up-dev/design-web`, do not hand-edit local agent skill copies. After installing the new package version, verify the package-shipped TanStack Intent skill with `pnpm dlx @tanstack/intent@latest list --json`, `pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web`, and `pnpm dlx @tanstack/intent@latest validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`. Do not add an `intent-skills` managed block unless explicitly requested.
 - Keep tests and guardrails aligned with behavior changes; do not ship by build-only confidence.
 - Use `pnpm lint:backend` to run backend source guardrails, including the Problem Details lint that prevents production API code from throwing raw Hono HTTP exceptions.
 - Run test suites from the repository root through Vitest projects: `pnpm test:unit:backend`, `pnpm test:unit:frontend`, `pnpm test:scenario:backend`, `pnpm test:scenario:system`, or `pnpm test:scenario:all`. Scenario Vitest project setup loads `apps/frontend/.env` and `apps/backend/.env`, then owns temporary database and server lifecycle.

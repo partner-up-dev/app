@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @partner-up-dev/frontend dev & pnpm --filter @partner-up-dev/backend dev",
+    "dev:ensure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ensure-dev-servers.ps1",
     "dev:portless": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/portless.ps1",
     "dev:portless:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/portless.ps1 --name partner-up -- pnpm --filter @partner-up-dev/frontend dev",
     "dev:portless:backend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/portless.ps1 --name api.partner-up -- pnpm --filter @partner-up-dev/backend dev",

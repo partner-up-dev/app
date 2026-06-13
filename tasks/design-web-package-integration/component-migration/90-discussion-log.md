@@ -170,3 +170,15 @@
 - Post-`WheelPicker` verification passed: frontend build, token lint, frontend
   unit tests (26 files / 117 tests), migrated wrapper import scan, and
   `git diff --check`.
+- User rejected hand-editing the stale global Agent Skill copy under
+  `~/.codex/skills/design-web` and asked for the TanStack Intent upgrade path.
+- Investigation confirmed `@partner-up-dev/design-web@0.4.0` is
+  intent-enabled and publishes `skills/design-web` inside the package. The
+  package-shipped skill includes `PuDialog`, `PuLoadingState`, `PuSpinner`,
+  `PuSnackbar`, and updated overlay guidance; the stale global copy does not.
+- Durable docs now record the package-update workflow: update the package,
+  then use `pnpm dlx @tanstack/intent@latest list --json`, `pnpm dlx
+  @tanstack/intent@latest load @partner-up-dev/design-web#design-web`, and
+  `pnpm dlx @tanstack/intent@latest validate
+  apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
+  The repository does not add an `intent-skills` managed block.

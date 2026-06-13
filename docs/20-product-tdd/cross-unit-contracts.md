@@ -13,7 +13,8 @@ Contract implication:
 
 ## 1.1 Local Development Origin Contract
 
-- The default developer full-stack entry is `pnpm dev:portless` from the repository root.
+- The agent-facing developer availability entry is `pnpm dev:ensure` from the repository root. It checks the stable portless routes and starts only missing frontend/backend dev servers.
+- The underlying developer full-stack entry is `pnpm dev:portless` from the repository root.
 - `portless.json` maps `apps/frontend` to the public app name `partner-up` and `apps/backend` to the public app name `api.partner-up`.
 - During portless development, Vite reads `PORTLESS_URL`, `HOST`, and `PORT` from the portless runtime, publishes `import.meta.env.VITE_API_URL` as the frontend origin, and keeps browser API calls same-origin through the frontend `/api` proxy.
 - The frontend `/api` proxy targets the backend portless app by sending `Host: api.partner-up.localhost`, which keeps local browser flows aligned with the typed backend HTTP contract while application code stays free of fixed numeric ports.

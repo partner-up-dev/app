@@ -193,6 +193,26 @@ and updates frontend source release metadata, but it skips frontend GitHub
 Release creation. The frontend deploy workflow creates the frontend GitHub
 Release after production ESA deployment succeeds.
 
+## Frontend Design Package Updates
+
+`@partner-up-dev/design-web` publishes its TanStack Intent agent skill inside
+the package under `skills/design-web`. Updating the package dependency is the
+skill update mechanism; do not manually edit local copies such as
+`~/.codex/skills/design-web`.
+
+After changing the installed design-web version, run these checks from the
+repository root:
+
+```powershell
+pnpm dlx @tanstack/intent@latest list --json
+pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web
+pnpm dlx @tanstack/intent@latest validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web
+```
+
+The `load` command is the agent-facing source of truth for the current
+package-shipped skill. Do not run `intent install` or add an `intent-skills`
+managed block unless the repository intentionally adopts that mapping format.
+
 ## Manual Rollout Reality
 
 Manual backend deployment is supported through the same repository scripts used
