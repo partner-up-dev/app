@@ -78,14 +78,14 @@
     </section>
 
     <div class="pm-inline-actions">
-      <Button
+      <PuButton
         size="sm"
-        type="button"
+
         :disabled="isSavingSku || selectedSpuId === null"
         @click="handleSaveSku"
       >
         {{ isSavingSku ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.saveSkuAction") }}
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -105,7 +105,7 @@ import {
   useUpdateAdminProductSku,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
 
 const { t } = useI18n();

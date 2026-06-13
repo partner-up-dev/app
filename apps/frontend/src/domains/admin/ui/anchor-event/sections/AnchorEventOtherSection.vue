@@ -7,15 +7,15 @@
     <BentoLayout>
       <BentoItem :title="t('adminCommon.navAnchorEventOther')" span="full">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="saveDisabled"
             @click="$emit('save')"
           >
             {{ saveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventJoinGateEditor v-model="form" />
@@ -81,16 +81,16 @@
 
       <BentoItem :title="t('adminAnchorEvents.landingRolloutTitle')">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="!landingRolloutEditor?.canSave"
             :loading="landingRolloutEditor?.isSaving ?? false"
             @click="saveLandingConfig"
           >
             {{ landingSaveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventLandingRolloutEditor
@@ -106,13 +106,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventFeedbackQuestionnairePicker from "@/domains/admin/ui/anchor-event/components/AnchorEventFeedbackQuestionnairePicker.vue";
 import AnchorEventJoinGateEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventJoinGateEditor.vue";
 import AnchorEventLandingRolloutEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLandingRolloutEditor.vue";
-import { PuInput, PuTextarea, PuToggleSwitch } from "@partner-up-dev/design-web";
+import { PuButton, PuInput, PuTextarea, PuToggleSwitch } from "@partner-up-dev/design-web";
 import type {
   AnchorEventEditorForm,
   FeedbackQuestionnaireTemplateOption,

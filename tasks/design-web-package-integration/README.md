@@ -23,7 +23,9 @@ Hypothesis: the frontend can move from locally forked `src/shared/ui` and `src/s
   1. `SurfaceCard` -> `PuCard` compatibility wrapper, because `PuSurfaceCard` is not present in the published `0.1.0` package.
   2. `PageScaffold*` -> unified `PuPageScaffold` compatibility wrappers, because only `PuPageScaffold` is present in the published `0.1.0` package.
   3. `InlineNotice` -> `PuInlineNotice`.
-- `Button` migration is intentionally deferred because the current MVP-HA `Button` API is slot-based while `PuButton` is prop-based.
+- `Button` and `FeedbackButton` have migrated directly to package `PuButton`;
+  the local action wrappers are no longer part of the frontend shared UI
+  contract.
 
 ## Guardrails Touched
 

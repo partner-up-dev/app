@@ -111,8 +111,8 @@
     </PuFormItem>
 
     <div class="message-thread__actions">
-      <Button
-        tone="primary"
+      <PuButton
+        tone="primary" variant="solid"
         :loading="createMessageMutation.isPending.value"
         :disabled="!canSubmitMessage"
         @click="handleSubmitMessage"
@@ -122,7 +122,7 @@
             ? t("prPage.messageThread.submittingAction")
             : t("prPage.messageThread.submitAction")
         }}
-      </Button>
+      </PuButton>
     </div>
   </component>
 </template>
@@ -131,8 +131,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuCard, PuEmptyState, PuFormItem, PuInlineNotice, PuTextarea } from "@partner-up-dev/design-web";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton, PuCard, PuEmptyState, PuFormItem, PuInlineNotice, PuTextarea } from "@partner-up-dev/design-web";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   useAdvancePRMessageReadMarker,

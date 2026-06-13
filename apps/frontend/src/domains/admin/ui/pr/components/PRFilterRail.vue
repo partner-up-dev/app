@@ -1,15 +1,15 @@
 <template>
   <AdminRailPanel :title="t('adminPR.filtersTitle')">
     <template v-if="showCreateAction" #actions>
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         @click="emit('create-pr')"
       >
         {{ t("adminPR.newPRAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <label class="field">
@@ -55,7 +55,7 @@
 import { useI18n } from "vue-i18n";
 import type { AdminPRFilters } from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   showCreateAction?: boolean;

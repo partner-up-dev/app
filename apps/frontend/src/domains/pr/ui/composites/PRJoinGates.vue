@@ -8,23 +8,23 @@
         {{ activeGate.body }}
       </div>
       <div class="gate-actions">
-        <Button
-          tone="surface"
-          type="button"
+        <PuButton
+          tone="neutral" variant="soft"
+
           :disabled="interactionPending"
           data-testid="pr-detail.join-gate.join-notice.cancel"
           @click="emit('cancel')"
         >
           取消
-        </Button>
-        <Button
-          type="button"
+        </PuButton>
+        <PuButton
+
           :loading="interactionPending"
           data-testid="pr-detail.join-gate.join-notice.accept"
           @click="resolveJoinNotice(activeGate)"
         >
           同意
-        </Button>
+        </PuButton>
       </div>
     </template>
 
@@ -44,12 +44,12 @@
 import { computed, ref, watch, type Component } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   usePRJoinGates,
   type PRJoinGateProjectionItem,
   type ResolvePRJoinGateResponse,
 } from "@/domains/pr/queries/usePRJoinGates";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type JoinNoticeGate = Extract<
   PRJoinGateProjectionItem,

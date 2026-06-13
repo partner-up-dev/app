@@ -1,10 +1,10 @@
 <template>
   <div v-if="placement" class="button-placement">
-    <Button
-      appearance="rect"
-      tone="surface"
+    <PuButton
+      shape="rect"
+      tone="neutral" variant="soft"
       size="md"
-      type="button"
+
       data-testid="pr-detail.commerce-placement.open"
       @click="emit('placement-click', placement)"
     >
@@ -12,7 +12,7 @@
         <span class="i-mdi-storefront-outline"></span>
       </template>
       {{ placement.creative.ctaLabel }}
-    </Button>
+    </PuButton>
     <p v-if="placement.creative.description" class="button-placement__description">
       {{ placement.creative.description }}
     </p>
@@ -21,11 +21,11 @@
 
 <script setup lang="ts">
 import { computed, toRef } from "vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   usePlacementMatch,
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   matchingContext: unknown;

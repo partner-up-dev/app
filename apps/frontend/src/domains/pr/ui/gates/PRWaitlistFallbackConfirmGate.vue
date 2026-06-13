@@ -3,28 +3,28 @@
     <p class="fallback-gate__text">确认提交候补？</p>
     <p class="fallback-gate__text">候补成功后会按提交时间顺序等待补位。</p>
     <div class="fallback-gate__actions">
-      <Button
-        tone="surface"
-        type="button"
+      <PuButton
+        tone="neutral" variant="soft"
+
         :disabled="pending"
         @click="emit('cancel')"
       >
         取消
-      </Button>
-      <Button
-        type="button"
+      </PuButton>
+      <PuButton
+
         :loading="pending"
         data-testid="pr-detail.waitlist.confirm"
         @click="emit('confirm')"
       >
         确认候补
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   pending: boolean;

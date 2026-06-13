@@ -6,9 +6,9 @@
     data-testid="pr-detail.check-in-feedback-actions"
   >
     <div v-if="showCheckInAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="!viewer.canCheckIn"
         :loading="attendanceActions.checkInPending.value"
         block
@@ -20,22 +20,22 @@
             ? t("prPage.checkingIn")
             : t("prPage.checkInAttended")
         }}
-      </Button>
+      </PuButton>
       <p v-if="checkInTip" class="action-tip">
         {{ checkInTip }}
       </p>
     </div>
 
     <div v-if="showFeedbackRetryAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         block
         data-testid="pr-detail.feedback.open"
         @click="openFeedbackQuestionnaire"
       >
         {{ t("prPage.feedbackQuestionnaire.openAction") }}
-      </Button>
+      </PuButton>
     </div>
 
     <p v-if="primaryActionError" class="action-error">
@@ -57,7 +57,6 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import { usePRAttendanceActions } from "@/domains/pr/use-cases/usePRAttendanceActions";
 import { useSubmitFeedbackQuestionnaire } from "@/domains/feedback/queries/useSubmitFeedbackQuestionnaire";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
@@ -66,6 +65,7 @@ import {
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
 import PRFeedbackQuestionnaireModal from "./PRFeedbackQuestionnaireModal.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;

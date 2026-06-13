@@ -6,14 +6,14 @@
       :back-fallback-to="{ name: 'event-plaza' }"
     >
       <template #top-actions>
-        <Button
+        <PuButton
           v-if="isResultMode"
-          tone="ghost"
+          tone="neutral" variant="ghost"
           size="sm"
           @click="showCriteriaDrawer = true"
         >
           {{ t("eventPRSearch.actions.modifyCriteria") }}
-        </Button>
+        </PuButton>
       </template>
     </PageHeader>
 
@@ -28,9 +28,9 @@
       icon="i-mdi-alert-circle-outline"
     >
       <template #actions>
-        <Button tone="outline" @click="goEventPlaza">
+        <PuButton tone="neutral" variant="outline" @click="goEventPlaza">
           {{ t("eventPRSearch.actions.goEventPlaza") }}
-        </Button>
+        </PuButton>
       </template>
     </PuEmptyState>
 
@@ -41,9 +41,9 @@
       icon="i-mdi-calendar-blank-outline"
     >
       <template #actions>
-        <Button tone="outline" @click="goHome">
+        <PuButton tone="neutral" variant="outline" @click="goHome">
           {{ t("eventPRSearch.actions.backHome") }}
-        </Button>
+        </PuButton>
       </template>
     </PuEmptyState>
 
@@ -55,12 +55,12 @@
       />
 
       <div class="event-pr-search-page__footer-actions mt-4">
-        <Button tone="outline" block @click="goHome">
+        <PuButton tone="neutral" variant="outline" block @click="goHome">
           {{ t("eventPRSearch.actions.backHome") }}
-        </Button>
-        <Button block :disabled="!canSubmitForm" @click="submitSearch">
+        </PuButton>
+        <PuButton block :disabled="!canSubmitForm" @click="submitSearch">
           {{ t("eventPRSearch.actions.search") }}
-        </Button>
+        </PuButton>
       </div>
     </template>
 
@@ -83,12 +83,12 @@
         icon="i-mdi-alert-circle-outline"
       >
         <template #actions>
-          <Button tone="outline" @click="showCriteriaDrawer = true">
+          <PuButton tone="neutral" variant="outline" @click="showCriteriaDrawer = true">
             {{ t("eventPRSearch.actions.modifyCriteria") }}
-          </Button>
-          <Button tone="surface" @click="goEventPlaza">
+          </PuButton>
+          <PuButton tone="neutral" variant="soft" @click="goEventPlaza">
             {{ t("eventPRSearch.actions.goEventPlaza") }}
-          </Button>
+          </PuButton>
         </template>
       </PuEmptyState>
 
@@ -118,12 +118,12 @@
           icon="i-mdi-calendar-remove-outline"
         >
           <template #actions>
-            <Button tone="outline" @click="showCriteriaDrawer = true">
+            <PuButton tone="neutral" variant="outline" @click="showCriteriaDrawer = true">
               {{ t("eventPRSearch.actions.modifyCriteria") }}
-            </Button>
-            <Button tone="surface" @click="goEventPlaza">
+            </PuButton>
+            <PuButton tone="neutral" variant="soft" @click="goEventPlaza">
               {{ t("eventPRSearch.actions.goEventPlaza") }}
-            </Button>
+            </PuButton>
           </template>
         </PuEmptyState>
       </template>
@@ -140,16 +140,16 @@
 
         <template #footer>
           <div class="event-pr-search-page__drawer-actions">
-            <Button tone="outline" block @click="showCriteriaDrawer = false">
+            <PuButton tone="neutral" variant="outline" block @click="showCriteriaDrawer = false">
               {{ t("common.cancel") }}
-            </Button>
-            <Button
+            </PuButton>
+            <PuButton
               block
               :disabled="!canApplyDrawerCriteria"
               @click="applyDrawerCriteria"
             >
               {{ t("eventPRSearch.actions.applyCriteria") }}
-            </Button>
+            </PuButton>
           </div>
         </template>
       </PuDrawer>
@@ -162,12 +162,7 @@ import type { PRId } from "@partner-up-dev/backend";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
-import {
-  PuEmptyState,
-  PuPageScaffold,
-  PuDrawer,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuEmptyState, PuPageScaffold, PuDrawer } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import EventPRSearchCriteriaForm from "@/domains/event/ui/composites/EventPRSearchCriteriaForm.vue";

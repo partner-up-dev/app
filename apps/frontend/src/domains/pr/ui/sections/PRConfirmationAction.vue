@@ -6,9 +6,9 @@
     data-testid="pr-detail.confirmation-action"
   >
     <div v-if="showConfirmAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="!viewer.canConfirm"
         :loading="attendanceActions.confirmPending.value"
         block
@@ -20,7 +20,7 @@
             ? t("prPage.confirmingSlot")
             : t("prPage.confirmSlot")
         }}
-      </Button>
+      </PuButton>
       <p v-if="confirmTip" class="action-tip">
         {{ confirmTip }}
       </p>
@@ -36,7 +36,6 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import { usePRAttendanceActions } from "@/domains/pr/use-cases/usePRAttendanceActions";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import {
@@ -44,6 +43,7 @@ import {
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;

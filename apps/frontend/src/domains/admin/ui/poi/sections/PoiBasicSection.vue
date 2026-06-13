@@ -7,17 +7,17 @@
       data-testid="admin-pois.section.basic"
     >
       <template #actions>
-        <Button
-          appearance="pill"
+        <PuButton
+          shape="pill"
           size="sm"
-          type="button"
+
           :disabled="selectedPoiId === null || isSavingPoi"
           @click="emit('save-poi')"
         >
           {{
             isSavingPoi ? t("adminPois.savingPoi") : t("adminPois.savePoiAction")
           }}
-        </Button>
+        </PuButton>
       </template>
 
       <p class="current-poi-meta">
@@ -39,11 +39,11 @@
           <div class="coordinate-field__header">
             <span class="field-label">{{ t("adminPois.coordinateLabel") }}</span>
             <div class="coordinate-field__actions">
-              <Button
-                appearance="pill"
-                tone="outline"
+              <PuButton
+                shape="pill"
+                tone="neutral" variant="outline"
                 size="sm"
-                type="button"
+
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.pick-coordinate"
                 @click="isLocationPickerOpen = true"
@@ -52,13 +52,13 @@
                   <span class="i-mdi-map-marker-radius" />
                 </template>
                 {{ t("adminPois.pickCoordinateAction") }}
-              </Button>
-              <Button
+              </PuButton>
+              <PuButton
                 v-if="selectedPoiHasCoordinate"
-                appearance="pill"
-                tone="danger"
+                shape="pill"
+                tone="danger" variant="outline"
                 size="sm"
-                type="button"
+
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.clear-coordinate"
                 @click="emit('clear-coordinates')"
@@ -67,7 +67,7 @@
                   <span class="i-mdi-map-marker-remove" />
                 </template>
                 {{ t("adminPois.clearCoordinateAction") }}
-              </Button>
+              </PuButton>
             </div>
           </div>
           <p class="coordinate-field__value">
@@ -106,16 +106,16 @@
             :disabled="selectedPoiId === null"
             @uploaded="emit('gallery-uploaded', $event)"
           />
-          <Button
-            appearance="pill"
-            tone="outline"
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
             size="sm"
-            type="button"
+
             :disabled="selectedPoiId === null"
             @click="emit('add-manual-url')"
           >
             {{ t("adminPois.addUrlAction") }}
-          </Button>
+          </PuButton>
         </div>
       </div>
 
@@ -135,24 +135,24 @@
           />
           <p class="gallery-url">{{ imageUrl }}</p>
           <div class="gallery-actions">
-            <Button
-              appearance="pill"
-              tone="outline"
+            <PuButton
+              shape="pill"
+              tone="neutral" variant="outline"
               size="sm"
-              type="button"
+
               @click="copyGalleryUrl(imageUrl)"
             >
               {{ t("adminPois.copyUrlAction") }}
-            </Button>
-            <Button
-              appearance="pill"
-              tone="danger"
+            </PuButton>
+            <PuButton
+              shape="pill"
+              tone="danger" variant="outline"
               size="sm"
-              type="button"
+
               @click="emit('remove-gallery-image', index)"
             >
               {{ t("adminPois.removeImageAction") }}
-            </Button>
+            </PuButton>
           </div>
         </article>
       </div>
@@ -174,16 +174,16 @@
       </div>
 
       <div class="section-header">
-        <Button
-          appearance="pill"
-          tone="outline"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="outline"
           size="sm"
-          type="button"
+
           :disabled="selectedPoiId === null"
           @click="emit('add-availability-rule')"
         >
           {{ t("adminPois.addAvailabilityRuleAction") }}
-        </Button>
+        </PuButton>
       </div>
 
       <p v-if="selectedPoiAvailabilityRules.length === 0" class="hint">
@@ -199,14 +199,14 @@
           <strong>
             {{ t("adminPois.availabilityRuleTitle", { index: index + 1 }) }}
           </strong>
-          <Button
-            tone="danger"
+          <PuButton
+            tone="danger" variant="outline"
             size="sm"
-            type="button"
+
             @click="emit('remove-availability-rule', index)"
           >
             {{ t("adminPois.removeRuleAction") }}
-          </Button>
+          </PuButton>
         </div>
 
         <div class="grid">
@@ -382,8 +382,8 @@ import type { PickedLocation } from "@/domains/location/model/location-picker";
 import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 

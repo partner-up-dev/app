@@ -21,18 +21,17 @@
         {{ targetUrl }}
       </p>
 
-      <Button appearance="rect" type="button" block @click="emit('close')">
+      <PuButton shape="rect" block @click="emit('close')">
         {{ t("common.close") }}
-      </Button>
+      </PuButton>
     </div>
   </PuModal>
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, toRef } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useQrCodeDataUrl } from "@/shared/wechat/useQrCodeDataUrl";
 
 const props = defineProps<{
@@ -95,7 +94,7 @@ const { qrCodeDataUrl, qrCodeError } = useQrCodeDataUrl(openRef, targetUrlRef);
   overflow-wrap: anywhere;
 }
 
-.support-contact-qr-modal :deep(.ui-button) {
+.support-contact-qr-modal :deep(.pu-button) {
   width: 100%;
 }
 </style>

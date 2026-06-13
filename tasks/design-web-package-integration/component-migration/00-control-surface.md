@@ -16,7 +16,7 @@ design package should not absorb.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Implementation status: fourth action-card slice implemented and verified
+- Implementation status: fifth action-button slice implemented and verified
   locally.
   Usage sites now consume the relevant package components directly and the
   migrated local facades have been deleted.
@@ -131,6 +131,11 @@ design package should not absorb.
   with structured `action`; `ChoiceCard` usage sites now directly use `PuCard`
   with `selectable` for button-like choices or `action` for route cards. Local
   `ActionLink.vue` and `ChoiceCard.vue` were deleted.
+- Fifth slice completed: local `Button` and `FeedbackButton` usage sites now
+  directly use `PuButton`. Old local prop vocabulary was mapped at usage sites,
+  submit buttons use `action.native`, feedback actions use the package
+  `feedback` prop, old `.ui-button` layout selectors were removed or retargeted
+  to package classes, and `Button.vue` / `FeedbackButton.vue` were deleted.
 
 ## First Slice Candidate
 
@@ -178,6 +183,11 @@ diff --check` passed.
   `ActionLink`/`ChoiceCard` reference scan returned no source references; old
   `PuButton`/`PuCard` prop vocabulary scan returned no findings; `git diff
 --check` passed.
+- Fifth-slice verification on 2026-06-13: frontend build passed; token lint
+  passed; frontend unit tests passed, 26 files / 117 tests; migrated
+  `Button`/`FeedbackButton` reference scan returned no source references; old
+  `PuButton` prop vocabulary scan returned no findings; `git diff --check`
+  passed.
 - Agent Skill verification on 2026-06-13: `pnpm dlx
 @tanstack/intent@latest list --json` found
   `@partner-up-dev/design-web#design-web` from the installed `0.4.0` package;

@@ -5,15 +5,15 @@
     </template>
 
     <template #actions>
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         @click="prepareNewOffer"
       >
         {{ t("adminCommercePlacementOffer.newOfferAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #rail>
@@ -137,9 +137,9 @@
               />
 
               <div class="inline-actions">
-                <Button
+                <PuButton
                   size="sm"
-                  type="button"
+
                   :disabled="isSavingOffer"
                   @click="handleSaveOffer"
                 >
@@ -148,7 +148,7 @@
                       ? t("adminCommercePlacementOffer.savingAction")
                       : t("adminCommercePlacementOffer.saveOfferAction")
                   }}
-                </Button>
+                </PuButton>
               </div>
             </div>
           </BentoItem>
@@ -186,8 +186,7 @@ import {
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

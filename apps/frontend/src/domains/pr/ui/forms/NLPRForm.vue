@@ -39,9 +39,9 @@
       </div>
     </Field>
 
-    <Button type="submit" class="submit-action" :loading="isSubmitting" full-width>
+    <PuButton :action="{ native: 'submit' }" class="submit-action" :loading="isSubmitting" block>
       {{ t("nlForm.submit") }}
-    </Button>
+    </PuButton>
 
     <PuLoadingState v-if="isSubmitting" :message="t('nlForm.parsing')" />
 
@@ -64,10 +64,9 @@ import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useLandingRotatingTopic } from "@/domains/landing/use-cases/useLandingRotatingTopic";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
-import { PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
+import { PuButton, PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

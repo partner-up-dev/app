@@ -31,15 +31,15 @@
             />
           </PuFormItem>
 
-          <Button
-            appearance="rect"
+          <PuButton
+            shape="rect"
             size="lg"
-            type="submit"
+            :action="{ native: 'submit' }"
             :disabled="!canSubmit"
             :loading="submitMutation.isPending.value"
           >
             {{ t("routeApplicationPage.submitAction") }}
-          </Button>
+          </PuButton>
         </form>
       </PuCard>
 
@@ -102,9 +102,8 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
-import { PuCard, PuFormItem, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuFormItem, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import {
   createEmptyRouteDraft,

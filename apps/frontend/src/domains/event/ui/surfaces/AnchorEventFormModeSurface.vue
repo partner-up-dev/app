@@ -61,14 +61,14 @@
         </p>
 
         <div class="form-actions">
-          <Button
-            appearance="rect"
-            tone="outline"
-            type="button"
+          <PuButton
+            shape="rect"
+            tone="neutral" variant="outline"
+
             @click="handleViewAllSessions"
           >
             {{ t("anchorEvent.formMode.viewAllSessions") }}
-          </Button>
+          </PuButton>
 
           <FormModeLongPressButton
             :label="primaryCtaLabel"
@@ -108,7 +108,6 @@ import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
 } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
@@ -155,7 +154,7 @@ import {
 import LiquidWaveSplash from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import type { LiquidSplashPhase } from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuLoadingState } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   eventId: number;

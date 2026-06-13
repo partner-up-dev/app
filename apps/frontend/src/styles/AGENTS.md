@@ -28,8 +28,7 @@ Add or keep `dcs` only when the governed output itself needs central ownership a
 Extend a shared primitive only when the treatment is stable across consumers and the HTML/interaction contract belongs with the style. Current examples:
 
 - page scaffold components for safe-area layout
-- `Button` and `FeedbackButton` for app-owned action treatments
-- `PuButton` from `@partner-up-dev/design-web` for package-owned route/href CTAs and action-looking links
+- `PuButton` from `@partner-up-dev/design-web` for command buttons, form submit/reset actions, route/href CTAs, feedback actions, and action-looking links
 - `PuCard` from `@partner-up-dev/design-web` for reusable card shells and selectable/navigation card roots
 - form primitives for reusable input shells
 

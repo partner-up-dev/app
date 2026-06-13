@@ -20,15 +20,15 @@
         />
 
         <div class="controls">
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="images.length <= 1"
             @click="goPrev"
           >
             {{ t("prCard.locationGallery.prev") }}
-          </Button>
+          </PuButton>
 
           <span class="counter">
             {{
@@ -39,15 +39,15 @@
             }}
           </span>
 
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="images.length <= 1"
             @click="goNext"
           >
             {{ t("prCard.locationGallery.next") }}
-          </Button>
+          </PuButton>
         </div>
       </template>
     </div>
@@ -55,10 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 
 interface PRLocationGalleryModalProps {
   open: boolean;

@@ -19,29 +19,29 @@
         />
       </WeChatNotificationSubscriptionsCard>
 
-      <Button
-        tone="surface"
+      <PuButton
+        tone="neutral" variant="soft"
         block
         data-testid="pr-detail.waitlist-success.done"
         @click="handleWaitlistSubscriptionDone"
       >
         {{ t("prPage.joinSuccessSubscriptions.closeAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template v-else>
       <OfficialAccountFollowPanel />
       <div class="waitlist-success-prompt__actions">
-        <Button
-          tone="surface"
-          type="button"
+        <PuButton
+          tone="neutral" variant="soft"
+
           @click="handleCloseWaitlistOfficialAccountPrompt"
         >
           {{ t("officialAccountFollow.laterAction") }}
-        </Button>
-        <Button type="button" @click="handleWaitlistOfficialAccountDone">
+        </PuButton>
+        <PuButton @click="handleWaitlistOfficialAccountDone">
           {{ t("officialAccountFollow.doneAction") }}
-        </Button>
+        </PuButton>
       </div>
     </template>
   </div>
@@ -50,12 +50,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
 import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
 import OfficialAccountFollowPanel from "@/domains/marketing/ui/OfficialAccountFollowPanel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type WaitlistPromptStep = "SUBSCRIPTIONS" | "OFFICIAL_ACCOUNT";
 

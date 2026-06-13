@@ -4,15 +4,15 @@
     class="utility-action-cell study-sprint-action"
     data-region="study-sprint-pomodoro"
   >
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
       :disabled="!canEnter"
       data-testid="pr-detail.study-sprint-pomodoro.open"
       @click="handleOpen"
     >
       {{ actionLabel }}
-    </Button>
+    </PuButton>
     <p
       v-if="!canEnter"
       class="action-tip"
@@ -27,7 +27,7 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;

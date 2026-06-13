@@ -29,13 +29,13 @@
             <h2>{{ t("mePage.profile.title") }}</h2>
             <p>{{ t("mePage.profile.description") }}</p>
           </div>
-          <Button
+          <PuButton
             v-if="userSessionStore.isAuthenticated"
             class="profile-session-action"
-            appearance="pill"
-            tone="danger"
+            shape="pill"
+            tone="danger" variant="outline"
             size="sm"
-            type="button"
+
             data-testid="me.session.logout"
             :loading="logoutPending"
             @click="handleLogout"
@@ -48,7 +48,7 @@
                 ? t("mePage.logout.pending")
                 : t("mePage.logout.action")
             }}
-          </Button>
+          </PuButton>
         </div>
 
         <div class="profile-panel">
@@ -101,40 +101,40 @@
             </p>
 
             <div class="profile-actions">
-              <Button
-                appearance="pill"
+              <PuButton
+                shape="pill"
                 size="sm"
-                type="button"
+
                 :disabled="!canSaveNickname"
                 :loading="updateProfileMutation.isPending.value"
                 @click="handleSaveNickname"
               >
                 {{ t("mePage.profile.saveNickname") }}
-              </Button>
+              </PuButton>
 
-              <Button
-                appearance="pill"
+              <PuButton
+                shape="pill"
                 size="sm"
-                type="button"
+
                 data-testid="me.profile.phone.save"
                 :disabled="!canSavePhoneNumber"
                 :loading="updatePhoneNumberMutation.isPending.value"
                 @click="handleSavePhoneNumber"
               >
                 {{ t("mePage.profile.savePhone") }}
-              </Button>
+              </PuButton>
 
-              <Button
-                appearance="pill"
-                tone="outline"
+              <PuButton
+                shape="pill"
+                tone="neutral" variant="outline"
                 size="sm"
-                type="button"
+
                 :disabled="!canEditProfile || updateAvatarMutation.isPending.value"
                 :loading="updateAvatarMutation.isPending.value"
                 @click="handlePickAvatar"
               >
                 {{ t("mePage.profile.changeAvatar") }}
-              </Button>
+              </PuButton>
 
               <input
                 ref="avatarInputRef"
@@ -164,18 +164,18 @@
                 variant="soft"
                 shape="pill"
               />
-              <Button
+              <PuButton
                 v-else
                 class="wechat-identity-action"
-                appearance="pill"
+                shape="pill"
                 size="sm"
-                type="button"
+
                 :disabled="wechatIdentityActionDisabled"
                 :loading="wechatIdentityActionPending"
                 @click="handleStartWeChatIdentity"
               >
                 {{ wechatIdentityActionLabel }}
-              </Button>
+              </PuButton>
             </div>
           </div>
 
@@ -186,12 +186,12 @@
               }}</span>
               <code class="credential-value">{{ storedUserIdLabel }}</code>
             </div>
-            <Button
+            <PuButton
               class="credential-clipboard-action"
-              appearance="pill"
-              tone="ghost"
+              shape="pill"
+              tone="neutral" variant="ghost"
               size="sm"
-              type="button"
+
               :disabled="!storedUserId"
               @click="handleCopyCredential(storedUserId)"
             >
@@ -210,7 +210,7 @@
                 "
                 aria-hidden="true"
               ></span>
-            </Button>
+            </PuButton>
           </div>
         </div>
       </PuCard>
@@ -266,19 +266,10 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useQueryClient } from "@tanstack/vue-query";
-import {
-  PuCard,
-  PuFormItem,
-  PuImg,
-  PuInlineNotice,
-  PuLoadingState,
-  PuPageScaffold,
-  PuTag,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuFormItem, PuImg, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
@@ -680,7 +671,7 @@ const handleCopyCredential = async (value: string | null) => {
   min-height: var(--sys-spacing-large);
   padding: 0;
 
-  :deep(.ui-button__label) {
+  :deep(.pu-button__content) {
     display: inline-flex;
     align-items: center;
     justify-content: center;

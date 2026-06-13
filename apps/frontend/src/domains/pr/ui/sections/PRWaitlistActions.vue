@@ -19,9 +19,9 @@
     />
 
     <div v-if="showWaitlistAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -35,15 +35,15 @@
               ? t("prPage.waitlisting")
               : t("prPage.waitlist")
         }}
-      </Button>
+      </PuButton>
       <p v-if="waitlistActionError" class="action-error">
         {{ waitlistActionError }}
       </p>
     </div>
 
     <div v-if="showCancelWaitlistAction" class="action-group">
-      <Button
-        tone="surface"
+      <PuButton
+        tone="neutral" variant="soft"
         :loading="cancelWaitlistMutation.isPending.value"
         block
         data-testid="pr-detail.waitlist.cancel"
@@ -54,7 +54,7 @@
             ? t("prPage.cancelWaitlisting")
             : t("prPage.cancelWaitlist")
         }}
-      </Button>
+      </PuButton>
       <p v-if="cancelWaitlistActionError" class="action-error">
         {{ cancelWaitlistActionError }}
       </p>
@@ -125,7 +125,6 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   useCancelWaitlistPR,
   useWaitlistPR,
@@ -142,7 +141,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { trackEvent } from "@/shared/telemetry/track";
-import { PuInlineNotice, PuModal, PuDialog } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuModal, PuDialog } from "@partner-up-dev/design-web";
 
 type WaitlistSuccessPromptExpose = {
   close: () => void;

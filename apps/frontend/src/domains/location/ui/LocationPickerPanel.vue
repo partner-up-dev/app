@@ -44,24 +44,24 @@
     </div>
 
     <footer class="location-picker-panel__actions">
-      <Button
-        type="button"
-        tone="outline"
+      <PuButton
+
+        tone="neutral" variant="outline"
         size="sm"
         data-testid="location-picker.cancel"
         @click="emit('cancel')"
       >
         {{ t("common.cancel") }}
-      </Button>
-      <Button
-        type="button"
+      </PuButton>
+      <PuButton
+
         size="sm"
         :disabled="draftLocation === null"
         data-testid="location-picker.confirm"
         @click="confirmPick"
       >
         {{ t("common.confirm") }}
-      </Button>
+      </PuButton>
     </footer>
   </section>
 </template>
@@ -69,9 +69,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import type { RouteCoordinate } from "@/domains/route/model/route";
-import { PuInput } from "@partner-up-dev/design-web";
+import { PuButton, PuInput } from "@partner-up-dev/design-web";
 import {
   buildTencentLocationPickerUrl,
   clonePickedLocation,

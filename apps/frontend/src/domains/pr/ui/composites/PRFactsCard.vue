@@ -14,10 +14,10 @@
         :dividers="false"
       >
         <section v-if="showLocationSection" class="facts-entry">
-          <Button
+          <PuButton
             v-if="interactive && locationGalleryAvailable"
             class="facts-entry-button"
-            tone="ghost"
+            tone="neutral" variant="ghost"
             block
             @click="showLocationGalleryModal = true"
           >
@@ -35,7 +35,7 @@
                 />
               </span>
             </span>
-          </Button>
+          </PuButton>
 
           <PuDescriptionItem
             v-else
@@ -133,10 +133,10 @@
             {{ t("prCard.meetingPointPrivate") }}
           </PuDescriptionItem>
 
-          <Button
+          <PuButton
             v-else-if="interactive && meetingPointImageUrl"
             class="facts-entry-button"
-            tone="ghost"
+            tone="neutral" variant="ghost"
             block
             @click="showMeetingPointGalleryModal = true"
           >
@@ -154,7 +154,7 @@
                 />
               </span>
             </span>
-          </Button>
+          </PuButton>
 
           <PuDescriptionItem
             v-else
@@ -294,15 +294,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import {
-  PuCard,
-  PuChip,
-  PuChipGroup,
-  PuDescriptionItem,
-  PuDescriptionList,
-  PuLoadingState,
-} from "@partner-up-dev/design-web";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton, PuCard, PuChip, PuChipGroup, PuDescriptionItem, PuDescriptionList, PuLoadingState } from "@partner-up-dev/design-web";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
 import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
@@ -524,7 +516,7 @@ watch(
   justify-content: flex-start;
 }
 
-.facts-entry-button:deep(.ui-button__label) {
+.facts-entry-button:deep(.pu-button__content) {
   width: 100%;
 }
 

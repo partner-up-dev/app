@@ -88,20 +88,20 @@
                   @input="handleRejectReasonInput(application.id, $event)"
                 ></textarea>
                 <div class="route-application-card__actions">
-                  <Button
-                    appearance="pill"
+                  <PuButton
+                    shape="pill"
                     size="sm"
-                    type="button"
+
                     :disabled="disabled || !canAccept(application.id)"
                     @click="handleAccept(application)"
                   >
                     {{ t("adminAnchorEvents.acceptRouteApplicationAction") }}
-                  </Button>
-                  <Button
-                    appearance="pill"
-                    tone="outline"
+                  </PuButton>
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
                     size="sm"
-                    type="button"
+
                     :disabled="disabled"
                     @click="
                       $emit('reject', {
@@ -111,7 +111,7 @@
                     "
                   >
                     {{ t("adminAnchorEvents.rejectRouteApplicationAction") }}
-                  </Button>
+                  </PuButton>
                 </div>
               </div>
             </div>
@@ -126,7 +126,6 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import type { AdminRouteApplication } from "@/domains/admin/queries/useAdminAnchorEvents";
@@ -141,7 +140,7 @@ import {
 } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
-import { PuTag } from "@partner-up-dev/design-web";
+import { PuButton, PuTag } from "@partner-up-dev/design-web";
 
 type RouteApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 

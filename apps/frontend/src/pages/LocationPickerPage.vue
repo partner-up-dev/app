@@ -2,9 +2,9 @@
   <PuPageScaffold viewport="screen" class="location-picker-page">
     <template #header>
       <div class="location-picker-page__header">
-        <Button
-          type="button"
-          tone="ghost"
+        <PuButton
+
+          tone="neutral" variant="ghost"
           size="sm"
           data-testid="location-picker-page.back"
           @click="goBack"
@@ -13,7 +13,7 @@
             <span class="i-mdi-arrow-left" aria-hidden="true"></span>
           </template>
           {{ t("common.backToPrevious") }}
-        </Button>
+        </PuButton>
         <h1>{{ t("locationPicker.title") }}</h1>
       </div>
     </template>
@@ -31,10 +31,9 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   readLastPickedLocation,
   saveLastPickedLocation,

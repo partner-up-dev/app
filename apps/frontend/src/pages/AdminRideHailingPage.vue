@@ -7,15 +7,15 @@
     <template #rail>
       <AdminRailPanel title="网约车服务商">
         <div class="rail-actions">
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             data-testid="admin-ride-hailing.create"
             @click="startCreate"
           >
             新建实例
-          </Button>
+          </PuButton>
         </div>
 
         <div v-if="providerInstances.length === 0" class="hint">
@@ -155,14 +155,14 @@
               </div>
 
               <div class="inline-actions">
-                <Button
+                <PuButton
                   size="sm"
-                  type="submit"
+                  :action="{ native: 'submit' }"
                   :disabled="isSaving"
                   data-testid="admin-ride-hailing.save"
                 >
                   {{ isSaving ? "保存中" : "保存" }}
-                </Button>
+                </PuButton>
               </div>
             </form>
           </BentoItem>
@@ -223,8 +223,7 @@ import {
   type AdminRideHailingProviderWorkspaceResponse,
 } from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 

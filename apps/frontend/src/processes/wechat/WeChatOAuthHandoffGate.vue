@@ -15,17 +15,17 @@
       <p class="wechat-oauth-handoff__description">{{ description }}</p>
 
       <div v-if="state !== 'loading'" class="wechat-oauth-handoff__actions">
-        <Button
+        <PuButton
           v-if="state === 'failed'"
-          type="button"
-          tone="primary"
+
+          tone="primary" variant="solid"
           @click="retry"
         >
           重新尝试
-        </Button>
-        <Button type="button" tone="surface" @click="continueAsGuest">
+        </PuButton>
+        <PuButton tone="neutral" variant="soft" @click="continueAsGuest">
           先以访客浏览
-        </Button>
+        </PuButton>
       </div>
     </section>
   </main>
@@ -34,7 +34,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import {
   clearWeChatOAuthHandoffFromAddressBar,
@@ -47,6 +46,7 @@ import {
   clearWeChatOAuthTrace,
   trackWeChatOAuthTrace,
 } from "@/processes/wechat/oauth-trace";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const HANDOFF_SLOW_THRESHOLD_MS = 8_000;
 

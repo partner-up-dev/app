@@ -115,10 +115,10 @@
         />
 
         <div class="analytics-filter-rail__actions">
-          <Button
-            appearance="rect"
-            tone="primary"
-            type="button"
+          <PuButton
+            shape="rect"
+            tone="primary" variant="solid"
+
             data-testid="admin-analytics.filters.apply"
             @click="applyFilters"
           >
@@ -126,11 +126,11 @@
               <span class="i-mdi-filter-check" aria-hidden="true"></span>
             </template>
             {{ t("adminAnalytics.applyFiltersAction") }}
-          </Button>
-          <Button
-            appearance="rect"
-            tone="outline"
-            type="button"
+          </PuButton>
+          <PuButton
+            shape="rect"
+            tone="neutral" variant="outline"
+
             data-testid="admin-analytics.filters.reset"
             @click="resetFilters"
           >
@@ -138,17 +138,17 @@
               <span class="i-mdi-refresh" aria-hidden="true"></span>
             </template>
             {{ t("adminAnalytics.resetFiltersAction") }}
-          </Button>
+          </PuButton>
         </div>
       </aside>
     </template>
 
     <template #actions>
-      <Button
-        appearance="pill"
-        tone="surface"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="soft"
         size="sm"
-        type="button"
+
         :loading="isDashboardRefreshing"
         data-testid="admin-analytics.refresh"
         @click="refreshDashboard"
@@ -157,7 +157,7 @@
           <span class="i-mdi-sync" aria-hidden="true"></span>
         </template>
         {{ t("adminAnalytics.refreshAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #main>
@@ -849,8 +849,7 @@ import {
   type AdminPRCreateFunnelResponse,
   type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuFormItem, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];

@@ -74,22 +74,22 @@
     </p>
 
     <div class="feedback-form__actions">
-      <Button
-        type="submit"
+      <PuButton
+        :action="{ native: 'submit' }"
         :loading="pending"
         :disabled="pending"
         data-testid="pr-detail.feedback.submit"
       >
         {{ pending ? "提交中..." : "提交反馈" }}
-      </Button>
-      <Button
-        type="button"
-        tone="surface"
+      </PuButton>
+      <PuButton
+
+        tone="neutral" variant="soft"
         :disabled="pending"
         @click="$emit('cancel')"
       >
         稍后填写
-      </Button>
+      </PuButton>
     </div>
   </form>
 </template>
@@ -100,9 +100,8 @@ import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
 } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
-import { PuFormItem, PuTextarea } from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuTextarea } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   instanceId: number;

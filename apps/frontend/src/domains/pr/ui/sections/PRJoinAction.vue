@@ -30,9 +30,9 @@
     />
 
     <div v-if="showJoinAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -46,7 +46,7 @@
               ? t("prPage.joining")
               : t("prPage.join")
         }}
-      </Button>
+      </PuButton>
       <p v-if="joinFlowError" class="action-error">
         {{ joinFlowError }}
       </p>
@@ -87,7 +87,6 @@ import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntrySurface } from "@/domains/pr/model/pr-join-entry-context";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRJoinSuccessPrompt from "@/domains/pr/ui/composites/PRJoinSuccessPrompt.vue";
@@ -101,7 +100,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
 
 type JoinSuccessPromptExpose = {
   close: () => void;

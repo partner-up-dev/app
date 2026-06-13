@@ -2,9 +2,9 @@
   <div class="xiaohongshu-method">
     <!-- Options Section -->
     <div v-if="prData" class="options-section">
-      <Button
-        tone="outline"
-        type="button"
+      <PuButton
+        tone="neutral" variant="outline"
+
         block
         @click="handleRegenerate"
         :disabled="isCaptionGenerating"
@@ -14,7 +14,7 @@
             ? t("share.xiaohongshu.generating")
             : `🔄 ${t("share.xiaohongshu.regenerateButton")}`
         }}
-      </Button>
+      </PuButton>
     </div>
 
     <!-- Preview Section -->
@@ -67,28 +67,28 @@
     <!-- Actions Section -->
     <div class="action-section">
       <div class="actions-row">
-        <FeedbackButton
+        <PuButton
           class="outline-action caption-clipboard-action"
           variant="outline"
-          :state="copyFeedbackState"
+          :feedback="copyFeedbackState"
           :disabled="!caption?.caption || copyState !== 'idle'"
           @click="handleCopyCaptionWithUrl"
         >
           {{ copyButtonLabel }}
-        </FeedbackButton>
-        <Button
+        </PuButton>
+        <PuButton
           class="outline-action poster-download-action"
-          tone="outline"
+          tone="neutral" variant="outline"
           @click="handleDownloadPoster"
           :disabled="!caption?.caption || posterIsGenerating || inWeChatBrowser"
         >
           {{ downloadButtonLabel }}
-        </Button>
+        </PuButton>
       </div>
-      <Button type="button" block @click="handleOpenApp">
+      <PuButton block @click="handleOpenApp">
         {{ t("share.xiaohongshu.openAppButton") }}
         <div class="i-mdi-arrow-top-right"></div>
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -98,8 +98,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRShareProps } from "@/domains/share/model/types";
 import { useShareToXiaohongshu } from "@/domains/share/use-cases/xhs/useShareToXiaohongshu";
-import Button from "@/shared/ui/actions/Button.vue";
-import FeedbackButton from "@/shared/ui/actions/FeedbackButton.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<PRShareProps>();
 const { t } = useI18n();

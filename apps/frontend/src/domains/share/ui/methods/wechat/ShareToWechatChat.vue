@@ -4,26 +4,26 @@
       <p class="mini-program-webview-state__text">
         {{ t("share.wechat.miniProgramWebViewHint") }}
       </p>
-      <Button
-        appearance="rect"
-        tone="primary-outline"
-        type="button"
+      <PuButton
+        shape="rect"
+        tone="primary" variant="outline"
+
         @click="showMiniProgramWebViewNotice = true"
       >
         {{ t("share.wechat.openInWechatAction") }}
-      </Button>
+      </PuButton>
     </div>
 
     <div v-else class="wechat-chat-method__body">
       <div class="options-section flex flex-col">
-        <Button
-          tone="outline"
-          type="button"
+        <PuButton
+          tone="neutral" variant="outline"
+
           @click="handleGenerateAndUpdate"
           :disabled="isWorking"
         >
           {{ switchButtonLabel }}
-        </Button>
+        </PuButton>
       </div>
 
       <div class="preview-section">
@@ -71,9 +71,9 @@ import { useI18n } from "vue-i18n";
 import type { PRShareProps } from "@/domains/share/model/types";
 import { useShareToWechatChat } from "@/domains/share/use-cases/wechat/useShareToWechatChat";
 import WechatChatPreview from "@/domains/share/ui/primitives/WechatChatPreview.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
 import WeChatMiniProgramJssdkNoticeModal from "@/shared/wechat/WeChatMiniProgramJssdkNoticeModal.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<PRShareProps>();
 const { t } = useI18n();

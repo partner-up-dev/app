@@ -143,12 +143,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import {
-  PuButton,
-  PuCard,
-  PuInlineNotice,
-  PuPageScaffold,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
 

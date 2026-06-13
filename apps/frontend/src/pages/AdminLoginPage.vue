@@ -36,15 +36,15 @@
           />
         </label>
 
-        <Button
-          appearance="pill"
+        <PuButton
+          shape="pill"
           size="lg"
-          type="button"
+
           :disabled="loginMutation.isPending.value"
           @click="handleSubmit"
         >
           {{ loginMutation.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction") }}
-        </Button>
+        </PuButton>
 
         <p class="admin-login-card__hint">{{ t("adminLogin.seedHint") }}</p>
         <ErrorToast
@@ -64,8 +64,7 @@ import { useI18n } from "vue-i18n";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useAdminLogin } from "@/domains/admin/queries/useAdminLogin";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const route = useRoute();
 const router = useRouter();

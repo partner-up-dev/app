@@ -23,15 +23,15 @@
     </div>
 
     <div class="action-section">
-      <FeedbackButton
+      <PuButton
         class="share-action"
-        :state="feedbackState"
+        :feedback="feedbackState"
         :disabled="shareState !== 'idle'"
         block
         @click="handleShare"
       >
         {{ buttonLabel }}
-      </FeedbackButton>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -41,8 +41,8 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useShareAsLink } from "@/domains/share/use-cases/as-link/useShareAsLink";
 import { useQrPosterImageUrl } from "@/domains/share/use-cases/as-link/useQrPosterImageUrl";
-import FeedbackButton from "@/shared/ui/actions/FeedbackButton.vue";
 import type { ShareSpmRouteKey } from "@/shared/url/spm";
+import { PuButton } from "@partner-up-dev/design-web";
 
 interface Props {
   shareUrl: string;

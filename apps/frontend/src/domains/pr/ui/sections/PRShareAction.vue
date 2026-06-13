@@ -1,13 +1,13 @@
 <template>
   <div v-if="showShareAction" class="utility-action-group" data-region="share">
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
       data-testid="pr-detail.share.open"
       @click="showShareDrawer = true"
     >
       {{ t("prPage.shareEntry.action") }}
-    </Button>
+    </PuButton>
 
     <PuDrawer v-model:visible="showShareDrawer" title="分享邀请">
       <PRShareSection
@@ -23,13 +23,12 @@
 </template>
 
 <script setup lang="ts">
-import { PuDrawer } from "@partner-up-dev/design-web";
+import { PuButton, PuDrawer } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRShareData } from "@/domains/share/model/types";
 import type { ShareSpmRouteKey } from "@/shared/url/spm";
-import Button from "@/shared/ui/actions/Button.vue";
 import PRShareSection from "@/domains/pr/ui/sections/PRShareSection.vue";
 
 const props = defineProps<{

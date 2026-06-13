@@ -91,20 +91,20 @@
       </div>
 
       <div class="operations">
-        <Button
-          tone="surface"
+        <PuButton
+          tone="neutral" variant="soft"
           :disabled="!canOpenRouteMap"
           @click="openRouteMap"
         >
           {{ t("route.navigateAction") }}
-        </Button>
-        <Button
-          tone="tertiary"
+        </PuButton>
+        <PuButton
+          tone="tertiary" variant="solid"
           :disabled="!canAddWaypoint"
           @click="addWaypoint"
         >
           {{ t("route.addWaypoint") }}
-        </Button>
+        </PuButton>
       </div>
     </template>
 
@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
@@ -153,7 +153,6 @@ import {
   resolveRoutePointRole,
   swapRoutePointWithNeighbor,
 } from "@/domains/route/model/route";
-import Button from "@/shared/ui/actions/Button.vue";
 
 const props = withDefaults(
   defineProps<{

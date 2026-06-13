@@ -7,15 +7,15 @@
     <BentoLayout>
       <BentoItem :title="t('adminAnchorEvents.activityInfoTitle')" span="full">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="saveDisabled"
             @click="$emit('save')"
           >
             {{ saveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventDetailsEditor v-model="form" />
@@ -44,13 +44,13 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventCapacityDefaultsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventCapacityDefaultsEditor.vue";
 import AnchorEventDetailsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventDetailsEditor.vue";
 import AnchorEventMediaEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventMediaEditor.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   saveLabel: string;

@@ -13,9 +13,7 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 
 Actions:
 
-- `actions/Button.vue`: shared button primitive. Prefer it over page-local button classes; use `appearance="pill"` for compact CTA clusters and `appearance="rect"` for dialogs or block actions. Keep `tone` choices narrow.
-- `PuButton` from `@partner-up-dev/design-web`: default package action primitive for command buttons, route CTAs, href CTAs, icon actions, and action-looking links. Use the package `action` prop directly at usage sites instead of adding a local action-link wrapper.
-- `actions/FeedbackButton.vue`: shared transient feedback action button for short-lived pending/success/error feedback states.
+- `PuButton` from `@partner-up-dev/design-web`: default package action primitive for command buttons, native form submit/reset actions, route CTAs, href CTAs, icon actions, action-looking links, and short-lived pending/success/error feedback states. Use `shape`, `tone`, `variant`, `action`, `feedback`, `loading`, and `block` directly at usage sites instead of adding local action wrappers.
 
 Containers and layout:
 
@@ -47,7 +45,7 @@ Overlay:
 ## Reuse Rules
 
 - Prefer composing these primitives in pages and domain sections before creating new page-local shells.
-- Keep app-specific action treatment styles inside the lowest remaining app-owned action primitives (`Button` and `FeedbackButton`); otherwise compose package `PuButton` / `PuCard` directly instead of re-declaring action recipes.
+- Compose package `PuButton` / `PuCard` directly instead of re-declaring reusable action recipes. Keep app-specific layout around action groups in the owning page or domain surface.
 - If a component needs backend-derived policy logic, workflow branching, or domain vocabulary, keep it in the owning domain and compose shared primitives inside it.
 - If a primitive variant is needed in a third distinct place, extend the shared primitive API instead of cloning the component locally.
 - When extending a primitive API, update this file in the same change so the new contract stays discoverable.

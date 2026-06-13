@@ -1,14 +1,14 @@
 <template>
-  <Button
+  <PuButton
     v-if="props.qrEntry"
     v-bind="attrs"
-    type="button"
-    appearance="pill"
+    shape="pill"
     :tone="props.tone"
+    variant="solid"
     @click="$emit('openQr')"
   >
     <slot />
-  </Button>
+  </PuButton>
   <PuButton
     v-else
     v-bind="attrs"
@@ -23,7 +23,6 @@
 
 <script setup lang="ts">
 import { useAttrs } from "vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import { PuButton } from "@partner-up-dev/design-web";
 
 defineOptions({

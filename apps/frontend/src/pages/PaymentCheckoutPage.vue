@@ -72,7 +72,7 @@
             :message="checkout.eligibility.disabledReason ?? '支付条件不满足。'"
           />
 
-          <Button
+          <PuButton
             v-if="canCreateCharge"
             size="lg"
             :loading="createChargeMutation.isPending.value"
@@ -80,39 +80,39 @@
             @click="createCharge"
           >
             发起微信支付
-          </Button>
+          </PuButton>
 
           <template
             v-if="activePayment && activePayment.status !== 'SUCCEEDED'"
           >
-            <Button
+            <PuButton
               v-if="
                 activePaymentClientActionType === 'PAYMENT_REDIRECT' &&
                 redirectUrl
               "
-              tone="secondary"
+              tone="secondary" variant="solid"
               data-testid="payment-checkout.redirect-open"
               @click="openRedirectPayment"
             >
               继续支付
-            </Button>
-            <Button
+            </PuButton>
+            <PuButton
               v-if="activePaymentClientActionType === 'WECHAT_BRIDGE'"
-              tone="secondary"
+              tone="secondary" variant="solid"
               data-testid="payment-checkout.wechat-bridge-open"
               @click="runActiveClientPaymentAction"
             >
               继续微信支付
-            </Button>
-            <Button
+            </PuButton>
+            <PuButton
               v-if="activePaymentClientActionType !== 'PAYMENT_REDIRECT'"
-              tone="secondary"
+              tone="secondary" variant="solid"
               :loading="syncMutation.isPending.value"
               data-testid="payment-checkout.sync"
               @click="syncPayment"
             >
               同步支付状态
-            </Button>
+            </PuButton>
           </template>
 
           <PuInlineNotice
@@ -160,14 +160,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
-import {
-  PuButton,
-  PuCard,
-  PuInlineNotice,
-  PuPageScaffold,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   useCreateChargeForBillLine,
   usePaymentCheckout,

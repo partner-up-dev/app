@@ -136,11 +136,11 @@
 
                         <div class="actions actions--inline">
                           <template v-if="editingMessageId === item.id">
-                            <Button
-                              appearance="pill"
-                              tone="outline"
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="outline"
                               size="sm"
-                              type="button"
+
                               :disabled="
                                 prMessagesActions.isPending.update.value ||
                                 editingMessageBody.trim().length === 0
@@ -152,38 +152,38 @@
                                   ? t("adminPRMessages.messageSaving")
                                   : t("adminPRMessages.saveEditAction")
                               }}
-                            </Button>
-                            <Button
-                              appearance="pill"
-                              tone="ghost"
+                            </PuButton>
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="ghost"
                               size="sm"
-                              type="button"
+
                               :disabled="
                                 prMessagesActions.isPending.update.value
                               "
                               @click="cancelEditMessage"
                             >
                               {{ t("common.cancel") }}
-                            </Button>
+                            </PuButton>
                           </template>
                           <template v-else>
-                            <Button
-                              appearance="pill"
-                              tone="outline"
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="outline"
                               size="sm"
-                              type="button"
+
                               :disabled="
                                 prMessagesActions.isPending.delete.value
                               "
                               @click="beginEditMessage(item.id, item.body)"
                             >
                               {{ t("adminPRMessages.editAction") }}
-                            </Button>
-                            <Button
-                              appearance="pill"
-                              tone="danger"
+                            </PuButton>
+                            <PuButton
+                              shape="pill"
+                              tone="danger" variant="outline"
                               size="sm"
-                              type="button"
+
                               :disabled="
                                 prMessagesActions.isPending.delete.value
                               "
@@ -194,7 +194,7 @@
                                   ? t("adminPRMessages.messageDeleting")
                                   : t("adminPRMessages.deleteAction")
                               }}
-                            </Button>
+                            </PuButton>
                           </template>
                         </div>
                       </div>
@@ -228,10 +228,10 @@
                   </p>
 
                   <div class="actions">
-                    <Button
-                      appearance="pill"
+                    <PuButton
+                      shape="pill"
                       size="sm"
-                      type="button"
+
                       :disabled="
                         prMessagesActions.isPending.create.value ||
                         messageDraftBody.trim().length === 0
@@ -243,7 +243,7 @@
                           ? t("adminPRMessages.messageSending")
                           : t("adminPRMessages.messageAction")
                       }}
-                    </Button>
+                    </PuButton>
                   </div>
                 </template>
               </div>
@@ -271,9 +271,8 @@ import {
 } from "@/domains/admin/queries/useAdminPRManagement";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

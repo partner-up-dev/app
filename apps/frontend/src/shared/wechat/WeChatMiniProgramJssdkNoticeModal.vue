@@ -35,28 +35,27 @@
       </p>
 
       <div class="mini-program-jssdk-notice__actions">
-        <Button
-          tone="primary-outline"
-          appearance="rect"
-          type="button"
+        <PuButton
+          tone="primary" variant="outline"
+          shape="rect"
+
           @click="copyCurrentUrl"
         >
           {{ copyButtonLabel }}
-        </Button>
-        <Button appearance="rect" type="button" @click="emit('close')">
+        </PuButton>
+        <PuButton shape="rect" @click="emit('close')">
           {{ t("common.close") }}
-        </Button>
+        </PuButton>
       </div>
     </div>
   </PuModal>
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { copyToClipboard } from "@/lib/clipboard";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useCurrentWebPageQrCode } from "@/shared/wechat/useCurrentWebPageQrCode";
 
 const props = defineProps<{

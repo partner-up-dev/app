@@ -37,9 +37,9 @@
 
         <p v-if="errorMessage" class="create-card__error">{{ errorMessage }}</p>
 
-        <Button
-          type="button"
-          appearance="pill"
+        <PuButton
+
+          shape="pill"
           size="sm"
           data-testid="anchor-event.create-card.create"
           :disabled="isCreateDisabled"
@@ -50,7 +50,7 @@
               ? t("anchorEvent.createCard.creatingAction")
               : t("anchorEvent.createCard.createAction")
           }}
-        </Button>
+        </PuButton>
       </div>
     </PuCard>
   </div>
@@ -60,8 +60,7 @@
 import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton, PuCard } from "@partner-up-dev/design-web";
 import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
 import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";

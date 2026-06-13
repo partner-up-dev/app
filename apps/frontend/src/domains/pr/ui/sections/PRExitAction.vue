@@ -6,8 +6,8 @@
     data-testid="pr-detail.exit-action"
   >
     <div class="action-group">
-      <Button
-        tone="danger"
+      <PuButton
+        tone="danger" variant="outline"
         :disabled="!viewer.canExit"
         :loading="exitMutation.isPending.value"
         block
@@ -15,7 +15,7 @@
         @click="requestExitWithConfirm"
       >
         {{ t("prPage.exit") }}
-      </Button>
+      </PuButton>
       <p v-if="exitBlockedTip" class="action-tip">
         {{ exitBlockedTip }}
       </p>
@@ -41,11 +41,10 @@
 </template>
 
 <script setup lang="ts">
-import { PuDialog } from "@partner-up-dev/design-web";
+import { PuButton, PuDialog } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useExitPR } from "@/domains/pr/queries/usePRActions";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";

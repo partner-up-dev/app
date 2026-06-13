@@ -2,14 +2,14 @@
   <div class="anchor-event-route-pool-editor">
     <p class="hint">{{ t("adminPR.eventRoutePoolHint") }}</p>
 
-    <Button
-      type="button"
-      appearance="pill"
+    <PuButton
+
+      shape="pill"
       size="sm"
       @click="addRouteEntry"
     >
       {{ t("adminPR.eventRoutePoolAddAction") }}
-    </Button>
+    </PuButton>
 
     <p v-if="form.routePool.length === 0" class="hint">
       {{ t("adminPR.eventRoutePoolEmpty") }}
@@ -32,16 +32,16 @@
           />
         </label>
 
-        <Button
-          type="button"
-          appearance="pill"
-          tone="danger"
+        <PuButton
+
+          shape="pill"
+          tone="danger" variant="outline"
           size="sm"
           data-testid="admin-anchor-event.route-pool.remove"
           @click="removeRouteEntry(index)"
         >
           {{ t("adminPR.eventRoutePoolRemoveAction") }}
-        </Button>
+        </PuButton>
       </div>
 
       <p class="route-pool-entry__summary">
@@ -60,7 +60,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import type { AnchorEventRoutePool } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import {
   buildRouteSummary,
@@ -69,6 +68,7 @@ import {
   type Route,
 } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const form = defineModel<AnchorEventEditorForm>({ required: true });
 const { t } = useI18n();

@@ -44,11 +44,11 @@
           </label>
 
           <div class="action-row">
-            <Button
-              appearance="pill"
-              tone="outline"
+            <PuButton
+              shape="pill"
+              tone="neutral" variant="outline"
               size="sm"
-              type="button"
+
               :disabled="!canPublishPoi"
               :loading="isPublishingPoi"
               @click="emit('publish-poi')"
@@ -58,12 +58,12 @@
                   ? t("adminPois.publishingPoi")
                   : t("adminPois.publishPoiAction")
               }}
-            </Button>
-            <Button
-              appearance="pill"
-              tone="danger"
+            </PuButton>
+            <PuButton
+              shape="pill"
+              tone="danger" variant="outline"
               size="sm"
-              type="button"
+
               :disabled="!canRejectPoi"
               :loading="isRejectingPoi"
               @click="emit('reject-poi')"
@@ -73,7 +73,7 @@
                   ? t("adminPois.rejectingPoi")
                   : t("adminPois.rejectPoiAction")
               }}
-            </Button>
+            </PuButton>
           </div>
         </template>
       </div>
@@ -86,8 +86,7 @@ import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuTag } from "@partner-up-dev/design-web";
+import { PuButton, PuTag } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];

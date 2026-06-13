@@ -23,17 +23,17 @@
         :disabled="disabled"
         @update:model-value="handleUrlInput"
       />
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         :disabled="disabled || isUploading"
         :loading="isUploading"
         @click="handlePickImage"
       >
         {{ isUploading ? uploadingLabel : uploadLabel }}
-      </Button>
+      </PuButton>
     </div>
 
     <img
@@ -52,9 +52,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import type { ImageUploadPurpose } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
-import { PuInput } from "@partner-up-dev/design-web";
+import { PuButton, PuInput } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{

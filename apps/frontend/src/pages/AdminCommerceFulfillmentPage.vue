@@ -101,11 +101,11 @@
                 <textarea v-model="bookingNote" class="text-area"></textarea>
               </label>
               <div class="inline-actions">
-                <Button
-                  appearance="pill"
-                  tone="outline"
+                <PuButton
+                  shape="pill"
+                  tone="neutral" variant="outline"
                   size="sm"
-                  type="button"
+
                   :disabled="isConfirming"
                   @click="handleConfirmBooking"
                 >
@@ -114,10 +114,10 @@
                       ? t("adminCommerceFulfillment.processingAction")
                       : t("adminCommerceFulfillment.confirmBookingAction")
                   }}
-                </Button>
-                <Button
+                </PuButton>
+                <PuButton
                   size="sm"
-                  type="button"
+
                   :disabled="isRejecting"
                   @click="handleRejectBooking"
                 >
@@ -126,7 +126,7 @@
                       ? t("adminCommerceFulfillment.processingAction")
                       : t("adminCommerceFulfillment.rejectBookingAction")
                   }}
-                </Button>
+                </PuButton>
               </div>
             </div>
           </BentoItem>
@@ -154,11 +154,11 @@
                 ></textarea>
               </label>
               <div class="inline-actions">
-                <Button
-                  appearance="pill"
-                  tone="danger"
+                <PuButton
+                  shape="pill"
+                  tone="danger" variant="outline"
                   size="sm"
-                  type="button"
+
                   :disabled="!canResolveCancellation || isApprovingCancellation"
                   data-testid="admin-fulfillment.approve-cancellation"
                   @click="handleApproveCancellation"
@@ -168,10 +168,10 @@
                       ? t("adminCommerceFulfillment.processingAction")
                       : t("adminCommerceFulfillment.approveCancellationAction")
                   }}
-                </Button>
-                <Button
+                </PuButton>
+                <PuButton
                   size="sm"
-                  type="button"
+
                   :disabled="!canResolveCancellation || isDenyingCancellation"
                   data-testid="admin-fulfillment.deny-cancellation"
                   @click="handleDenyCancellation"
@@ -181,7 +181,7 @@
                       ? t("adminCommerceFulfillment.processingAction")
                       : t("adminCommerceFulfillment.denyCancellationAction")
                   }}
-                </Button>
+                </PuButton>
               </div>
             </div>
           </BentoItem>
@@ -221,9 +221,9 @@
                 ></textarea>
               </label>
               <div class="inline-actions">
-                <Button
+                <PuButton
                   size="sm"
-                  type="button"
+
                   :disabled="isSavingGuidance"
                   @click="handleSaveGuidance"
                 >
@@ -232,7 +232,7 @@
                       ? t("adminCommerceFulfillment.processingAction")
                       : t("adminCommerceFulfillment.saveGuidanceAction")
                   }}
-                </Button>
+                </PuButton>
               </div>
             </div>
           </BentoItem>
@@ -275,12 +275,7 @@ import {
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import {
-  PuCard,
-  PuEmptyState,
-  PuLoadingState,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

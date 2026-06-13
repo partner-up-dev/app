@@ -46,12 +46,12 @@
         <strong class="pm-subsection-title">
           {{ t("adminCommerceJsonLogic.conditionsTitle") }}
         </strong>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addCondition">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addCondition">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceJsonLogic.addConditionAction") }}
-        </Button>
+        </PuButton>
       </div>
 
       <p v-if="rule.conditions.length === 0" class="pm-hint">
@@ -127,18 +127,18 @@
           />
         </label>
 
-        <Button
-          appearance="pill"
-          tone="danger"
+        <PuButton
+          shape="pill"
+          tone="danger" variant="outline"
           size="sm"
-          type="button"
+
           @click="removeCondition(condition.draftId)"
         >
           <template #leading>
             <span class="i-mdi-delete-outline" />
           </template>
           {{ t("adminCommerceJsonLogic.removeConditionAction") }}
-        </Button>
+        </PuButton>
       </article>
     </template>
   </section>
@@ -147,11 +147,7 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  PuSegmented,
-  PuSegmentedItem,
-  type PuSegmentedValue,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuSegmented, PuSegmentedItem, type PuSegmentedValue } from "@partner-up-dev/design-web";
 import {
   createCustomJsonLogicField,
   createJsonLogicConditionDraft,
@@ -166,7 +162,6 @@ import {
   type JsonLogicRuleDraft,
   type JsonLogicRuleMode,
 } from "@/domains/admin-commerce/model/json-logic/jsonLogicRuleEditorModel";
-import Button from "@/shared/ui/actions/Button.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
 
 type SegmentedOption = {

@@ -32,25 +32,25 @@
         </div>
 
         <div class="anchor-event-pending-preference-tag-list__actions">
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="isModerating"
             @click="publishTag(tag.id)"
           >
             {{ t("adminAnchorEvents.publishPreferenceTagAction") }}
-          </Button>
-          <Button
-            appearance="pill"
-            tone="outline"
+          </PuButton>
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
             size="sm"
-            type="button"
+
             :disabled="isModerating"
             @click="rejectTag(tag.id)"
           >
             {{ t("adminAnchorEvents.rejectPreferenceTagAction") }}
-          </Button>
+          </PuButton>
         </div>
       </article>
     </div>
@@ -60,8 +60,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuLoadingState } from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventPreferenceTags,
   usePublishAdminAnchorEventPreferenceTag,

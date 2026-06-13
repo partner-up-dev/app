@@ -55,9 +55,9 @@
           class="ordering-support__contact"
           :aria-label="t('ordering.support.contactAria')"
         >
-          <Button
-            type="button"
-            appearance="rect"
+          <PuButton
+
+            shape="rect"
             size="lg"
             data-testid="ordering.support.contact.open"
             @click="showContactModal = true"
@@ -66,7 +66,7 @@
               <span class="i-mdi-headset" aria-hidden="true"></span>
             </template>
             {{ t("ordering.support.contactAction") }}
-          </Button>
+          </PuButton>
         </section>
 
         <PuModal
@@ -93,15 +93,15 @@
               </p>
             </div>
 
-            <Button
-              type="button"
-              appearance="rect"
+            <PuButton
+
+              shape="rect"
               block
               data-testid="ordering.support.contact.close"
               @click="showContactModal = false"
             >
               {{ t("common.close") }}
-            </Button>
+            </PuButton>
           </div>
         </PuModal>
       </template>
@@ -118,15 +118,15 @@
         ></span>
         <h1>{{ t("ordering.support.recoveryTitle") }}</h1>
         <p>{{ recoveryDescription }}</p>
-        <Button
-          type="button"
-          appearance="rect"
+        <PuButton
+
+          shape="rect"
           size="lg"
           data-testid="ordering.support.recovery.action"
           @click="handleRecoveryAction"
         >
           {{ recoveryActionLabel }}
-        </Button>
+        </PuButton>
       </section>
     </div>
 
@@ -145,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -164,7 +164,6 @@ import {
   PUBLIC_CONFIG_KEYS,
   usePublicConfig,
 } from "@/shared/config/queries/usePublicConfig";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 
 const { t } = useI18n();
@@ -428,7 +427,7 @@ onMounted(() => {
   color: var(--sys-color-error);
 }
 
-.ordering-support__recovery :deep(.ui-button) {
+.ordering-support__recovery :deep(.pu-button) {
   width: 100%;
 }
 
@@ -485,7 +484,7 @@ onMounted(() => {
   width: min(100%, 22rem);
 }
 
-.ordering-support__contact :deep(.ui-button) {
+.ordering-support__contact :deep(.pu-button) {
   width: 100%;
 }
 

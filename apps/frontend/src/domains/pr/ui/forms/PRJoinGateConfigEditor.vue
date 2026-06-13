@@ -8,15 +8,15 @@
         </p>
       </div>
       <div class="join-gate-editor__actions">
-        <Button
-          appearance="pill"
-          tone="outline"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="outline"
           size="sm"
-          type="button"
+
           @click="addJoinNotice"
         >
           添加 Join Notice
-        </Button>
+        </PuButton>
       </div>
     </div>
 
@@ -31,15 +31,15 @@
     >
       <div class="join-gate-row__header">
         <strong>{{ gate.kind }}</strong>
-        <Button
-          appearance="pill"
-          tone="danger"
+        <PuButton
+          shape="pill"
+          tone="danger" variant="outline"
           size="sm"
-          type="button"
+
           @click="removeGate(index)"
         >
           删除
-        </Button>
+        </PuButton>
       </div>
 
       <div class="join-gate-row__grid">
@@ -88,7 +88,7 @@ import type {
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
 } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   modelValue: PRJoinGateConfig;

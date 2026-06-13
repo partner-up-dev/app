@@ -6,16 +6,16 @@
         <p class="subscription-desc">{{ item.description }}</p>
       </div>
 
-      <Button
+      <PuButton
         v-if="item.actionKind === 'OPEN_SUBSCRIBE' && item.pending"
         class="subscription-action"
         :tone="actionButtonTone"
+        variant="outline"
         size="sm"
-        type="button"
         disabled
       >
         {{ props.updatingLabel }}
-      </Button>
+      </PuButton>
 
       <div
         v-else-if="
@@ -26,14 +26,14 @@
         "
         class="open-subscribe-proxy"
       >
-        <Button
+        <PuButton
           class="subscription-action"
           :tone="actionButtonTone"
+          variant="outline"
           size="sm"
-          type="button"
         >
           {{ item.actionLabel }}
-        </Button>
+        </PuButton>
 
         <wx-open-subscribe
           class="open-subscribe-overlay"
@@ -55,32 +55,32 @@
         </wx-open-subscribe>
       </div>
 
-      <Button
+      <PuButton
         v-else-if="
           item.actionKind === 'SHOW_MINIPROGRAM_WEBVIEW_NOTICE' &&
           item.actionLabel
         "
         class="subscription-action"
         :tone="actionButtonTone"
+        variant="outline"
         size="sm"
-        type="button"
         :disabled="item.actionDisabled || item.pending"
         @click="showMiniProgramWebViewNotice = true"
       >
         {{ item.actionLabel }}
-      </Button>
+      </PuButton>
 
-      <Button
+      <PuButton
         v-else-if="item.actionLabel"
         class="subscription-action"
         :tone="actionButtonTone"
+        variant="outline"
         size="sm"
-        type="button"
         :disabled="item.actionDisabled || item.pending"
         @click="handleAction(item.key)"
       >
         {{ item.pending ? props.updatingLabel : item.actionLabel }}
-      </Button>
+      </PuButton>
     </div>
   </article>
 
@@ -98,8 +98,8 @@ import {
   useWeChatNotificationSubscriptionsPanel,
   type WeChatNotificationKind,
 } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
-import Button from "@/shared/ui/actions/Button.vue";
 import WeChatMiniProgramJssdkNoticeModal from "@/shared/wechat/WeChatMiniProgramJssdkNoticeModal.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{
@@ -148,7 +148,7 @@ const items = computed(() =>
   }),
 );
 const actionButtonTone = computed(() =>
-  props.outlineProfile === "surface" ? "outline" : "primary-outline",
+  props.outlineProfile === "surface" ? "neutral" : "primary",
 );
 
 const panelError = computed(() => {

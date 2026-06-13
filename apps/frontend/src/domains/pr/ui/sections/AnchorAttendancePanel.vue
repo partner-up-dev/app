@@ -1,30 +1,30 @@
 <template>
   <section v-if="(hasJoined && canConfirm) || (hasJoined && canCheckIn)" class="actions">
-    <Button
+    <PuButton
       v-if="hasJoined && canConfirm"
       class="confirm-slot-action"
-      tone="primary-outline"
+      tone="primary" variant="outline"
       @click="emit('confirm-slot')"
       :disabled="confirmPending"
     >
       {{ confirmPending ? t("prPage.confirmingSlot") : t("prPage.confirmSlot") }}
-    </Button>
+    </PuButton>
 
-    <Button
+    <PuButton
       v-if="hasJoined && canCheckIn"
       class="checkin-attended-action"
-      tone="tertiary"
+      tone="tertiary" variant="solid"
       @click="emit('submit-check-in')"
       :disabled="checkInPending"
     >
       {{ checkInPending ? t("prPage.checkingIn") : t("prPage.checkInAttended") }}
-    </Button>
+    </PuButton>
   </section>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   hasJoined: boolean;

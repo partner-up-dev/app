@@ -28,11 +28,11 @@
           :placeholder="t('adminPois.newPoiPlaceholder')"
         />
       </label>
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         :disabled="isCreatingPoi || !canCreatePoi"
         @click="emit('create-poi')"
       >
@@ -41,7 +41,7 @@
             ? t("adminPois.creatingPoi")
             : t("adminPois.createPoiAction")
         }}
-      </Button>
+      </PuButton>
     </section>
   </AdminRailPanel>
 </template>
@@ -50,7 +50,7 @@
 import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];

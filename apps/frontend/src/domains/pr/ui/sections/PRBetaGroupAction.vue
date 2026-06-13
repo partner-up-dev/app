@@ -4,14 +4,14 @@
     class="utility-action-cell"
     data-region="beta-group"
   >
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
       data-testid="pr-detail.beta-group.open"
       @click="handleOpenBetaGroupModal"
     >
       {{ t("prPage.betaGroupEntry.action") }}
-    </Button>
+    </PuButton>
 
     <PuModal :open="showBetaGroupModal" @close="showBetaGroupModal = false">
       <AnchorEventBetaGroupQrPanel
@@ -23,11 +23,10 @@
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import AnchorEventBetaGroupQrPanel from "@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 

@@ -79,17 +79,17 @@
       </section>
     </nav>
 
-    <Button
+    <PuButton
       v-if="showLogout"
       v-show="!isPanelCollapsed"
-      appearance="pill"
-      tone="outline"
+      shape="pill"
+      tone="neutral" variant="outline"
       size="sm"
-      type="button"
+
       @click="$emit('logout')"
     >
       {{ t("adminCommon.logoutAction") }}
-    </Button>
+    </PuButton>
   </section>
 </template>
 
@@ -98,14 +98,13 @@ import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import { useRoute, type RouteLocationRaw } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   adminNavigationGroups,
   type AdminNavigationItem,
 } from "@/domains/admin/ui/navigation/adminNavigationModel";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
 import type { AdminSessionRole } from "@/domains/admin/model/admin-session-storage";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuButton, PuCard } from "@partner-up-dev/design-web";
 
 defineProps<{
   showLogout?: boolean;

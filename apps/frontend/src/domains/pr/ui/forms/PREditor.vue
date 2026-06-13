@@ -47,11 +47,11 @@
         </span>
       </div>
 
-      <Button
+      <PuButton
         v-if="showAdvancedToggle"
-        type="button"
+
         class="advanced-toggle"
-        tone="dashed"
+        tone="neutral" variant="dashed"
         block
         data-testid="pr-editor.form.advanced-toggle"
         :aria-expanded="isAdvancedOpen"
@@ -62,7 +62,7 @@
             ? t("partnerRequestForm.advancedHide")
             : t("partnerRequestForm.advancedShow")
         }}
-      </Button>
+      </PuButton>
 
       <Transition name="advanced-fields">
         <div v-if="showBodyFields" class="advanced-section">
@@ -209,17 +209,12 @@ import {
   toUserUpdatePRContentFields,
 } from "@/domains/pr/model/types";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
-import {
-  PuEmptyState,
-  PuLoadingState,
-  PuDialog,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuEmptyState, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId?: number;

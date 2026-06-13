@@ -91,9 +91,9 @@ Started after explicit user approval.
 
 | File                            | Local Component                        | Package Target             | Status   |
 | ------------------------------- | -------------------------------------- | -------------------------- | -------- |
-| `components/button.md`          | `shared/ui/actions/Button.vue`         | `PuButton`                 | Proposed |
+| `components/button.md`          | `shared/ui/actions/Button.vue`         | `PuButton`                 | Done     |
 | `components/action-link.md`     | `shared/ui/actions/ActionLink.vue`     | `PuButton` action prop     | Done     |
-| `components/feedback-button.md` | `shared/ui/actions/FeedbackButton.vue` | `PuButton` feedback prop   | Proposed |
+| `components/feedback-button.md` | `shared/ui/actions/FeedbackButton.vue` | `PuButton` feedback prop   | Done     |
 | `components/choice-card.md`     | `shared/ui/containers/ChoiceCard.vue`  | `PuCard` action/selectable | Done     |
 
 ## Selected Fourth Slice Candidate
@@ -105,9 +105,24 @@ Started after explicit user direction to handle `ActionLink` and `ChoiceCard`.
 | 1     | `components/action-link.md` | Replace local `ActionLink` call sites with `PuButton` plus structured `action`; map routes to `{ to }`, anchors to `{ href, external, target, rel }`, and delete the local primitive after call sites clear. | Done   |
 | 2     | `components/choice-card.md` | Replace local `ChoiceCard` call sites with `PuCard`; use `selectable` for button-like choices, `action` for route cards, and delete the local primitive after call sites clear.                              | Done   |
 
+## Selected Fifth Slice Candidate
+
+Completed after explicit user start.
+
+| Order | File                            | Scope                                                                                                                                                                                           | Status   |
+| ----- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1     | `components/button.md`          | Replace local `Button` usage sites directly with `PuButton`, map old prop vocabulary at each usage site, clean CSS selectors that target local button internals, and delete the local primitive. | Done |
+| 2     | `components/feedback-button.md` | Replace local `FeedbackButton` usage sites directly with `PuButton feedback`, keep product pending/success/error state intent at the usage site, and delete the local primitive.                | Done |
+
+## Sixth Pass: Tabs
+
+| File                      | Local Component                    | Package Target | Status   |
+| ------------------------- | ---------------------------------- | -------------- | -------- |
+| `components/tab-bar.md`   | `shared/ui/navigation/TabBar.vue`  | `PuTabs`       | Proposed |
+
 ## Deferred Domain Or Product Chrome
 
 These should not be first-pass package migrations unless a component slice needs
-them directly: `PageHeader`, `TabBar`,
-`ProductLocalDateCalendarPicker`, `TimelinePolicyPicker`, `MultiStopToggle`, and
-domain-owned PR/Event/Route/Commerce UI.
+them directly: `PageHeader`, `ProductLocalDateCalendarPicker`,
+`TimelinePolicyPicker`, `MultiStopToggle`, and domain-owned
+PR/Event/Route/Commerce UI.

@@ -39,18 +39,18 @@
           >
             <template #trigger="{ open, pending, disabled, joined, errorMessage }">
               <div class="matched-pr-handoff__actions">
-                <Button
-                  type="button"
-                  tone="surface"
+                <PuButton
+
+                  tone="neutral" variant="soft"
                   block
                   data-testid="anchor-event-form-mode.matched.cancel"
                   :disabled="pending"
                   @click="handleCancel"
                 >
                   {{ t("common.cancel") }}
-                </Button>
-                <Button
-                  type="button"
+                </PuButton>
+                <PuButton
+
                   block
                   data-testid="anchor-event-form-mode.matched.join"
                   :loading="pending"
@@ -62,7 +62,7 @@
                       ? t("prPage.partnerSection.rosterJoined")
                       : t("prPage.join")
                   }}
-                </Button>
+                </PuButton>
               </div>
               <p
                 v-if="errorMessage"
@@ -82,7 +82,6 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
@@ -92,6 +91,7 @@ import {
   useMatchedPRHandoff,
   type RouteHandoffRect,
 } from "@/processes/route-handoff/useMatchedPRHandoff";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const handoff = useMatchedPRHandoff();
 const router = useRouter();

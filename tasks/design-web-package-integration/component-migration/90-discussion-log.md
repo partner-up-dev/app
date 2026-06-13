@@ -223,3 +223,44 @@ apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
 - Verification passed: frontend build, token lint, frontend unit tests (26
   files / 117 tests), source reference scan, `PuButton`/`PuCard` old-prop
   vocabulary scan, and `git diff --check`.
+- Fourth slice was committed as
+  `5b2635ec refactor(frontend): migrate action cards to design package`.
+- User selected the next exploration order: fifth slice for `Button` and
+  `FeedbackButton`, sixth slice for `PuTabs`, plus an audit that old `InfoRow`
+  migrated to `PuDescriptionItem` rather than `PuCell`.
+- Fifth-slice inventory found 220 local `<Button>` tags, 97 local button
+  imports, and 2 `<FeedbackButton>` tags. Because the user already rejected
+  compatibility wrappers, the fifth slice must migrate usage sites directly to
+  `PuButton` and delete `Button.vue` / `FeedbackButton.vue` after call sites
+  clear.
+- `PuButton` package docs expose `action`, `shape`, `tone`, `variant`, `size`,
+  `feedback`, `loading`, `disabled`, and `block`. Current inventory found no
+  local `<Button form=...>` usage, so the missing package `form` prop is not a
+  current blocker; submit buttons still need explicit native actions.
+- Sixth-slice inventory found 2 local `<TabBar>` tags. The target is `PuTabs`
+  with value-based tab items. Existing `tabClass` should be treated as a visual
+  escape hatch to retire, not as a reason to wrap `PuTabs`.
+- InfoRow audit confirmed all former production `InfoRow` / `InfoRowAction`
+  usage was in `PRFactsCard.vue` and now uses `PuDescriptionList` /
+  `PuDescriptionItem`. Current `PuCell` usage is unrelated
+  `FormModePreferenceControl.vue` usage.
+- Fifth slice started after explicit user approval.
+- All local `Button` and `FeedbackButton` usage sites were migrated directly to
+  `PuButton`. Static old `appearance`, local `tone`, `full-width`, and
+  native `type` props were mapped at usage sites to package `shape`,
+  `tone`/`variant`, `block`, and `action.native`.
+- `FeedbackButton` state usage moved to the package `feedback` prop in
+  `ShareAsLink.vue` and `ShareToXiaohongshu.vue`; no feedback wrapper remains.
+- The dynamic APR notification action tone was changed from old local tone
+  values (`outline` / `primary-outline`) to package `tone` plus
+  `variant="outline"`.
+- Old `.ui-button` and `.ui-button__label` layout selectors were removed or
+  retargeted to package `.pu-button` and `.pu-button__content` classes where
+  the selector only owned local layout constraints.
+- `apps/frontend/src/shared/ui/actions/Button.vue` and
+  `FeedbackButton.vue` were deleted. `shared/ui` and frontend style guidance
+  now identify `PuButton` as the action primitive instead of local action
+  wrappers.
+- Fifth-slice verification passed: frontend build, token lint, frontend unit
+  tests (26 files / 117 tests), old local action reference scan, old
+  `PuButton` prop vocabulary scan, and `git diff --check`.

@@ -88,13 +88,13 @@
           </div>
         </div>
 
-        <Button
-          appearance="pill"
-          type="button"
+        <PuButton
+          shape="pill"
+
           @click="showOfficialAccountQrModal = true"
         >
           {{ t("home.landing.officialAccountAction") }}
-        </Button>
+        </PuButton>
       </section>
 
       <p
@@ -143,8 +143,7 @@ import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
+import { PuButton, PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const backendBuildMetadataQuery = useBackendBuildMetadata();

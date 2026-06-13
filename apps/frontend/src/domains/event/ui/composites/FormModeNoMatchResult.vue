@@ -39,9 +39,9 @@
                 #trigger="{ open, pending, disabled, joined, errorMessage }"
               >
                 <div class="candidate-join-flow">
-                  <Button
-                    appearance="rect"
-                    type="button"
+                  <PuButton
+                    shape="rect"
+
                     block
                     data-testid="anchor-event-form-mode.candidate.join"
                     :data-pr-id="candidate.pr.id"
@@ -57,7 +57,7 @@
                         ? t("prPage.partnerSection.rosterJoined")
                         : t("anchorEvent.formMode.joinCandidateAction")
                     }}
-                  </Button>
+                  </PuButton>
                   <p
                     v-if="errorMessage"
                     class="inline-message inline-message--error"
@@ -82,10 +82,10 @@
     </section>
 
     <div v-if="props.showCreateFallback" class="no-match-actions">
-      <Button
-        appearance="rect"
-        tone="tertiary"
-        type="button"
+      <PuButton
+        shape="rect"
+        tone="tertiary" variant="solid"
+
         block
         data-testid="anchor-event-form-mode.create-fallback"
         :loading="props.createPending"
@@ -93,7 +93,7 @@
         @click="emit('create-fallback')"
       >
         {{ t("anchorEvent.formMode.createFallbackAction") }}
-      </Button>
+      </PuButton>
     </div>
 
     <p
@@ -113,9 +113,9 @@ import {
   formatFormModeTimeLabel,
   isValidFormModeDateTime,
 } from "@/domains/event/model/form-mode";
-import Button from "@/shared/ui/actions/Button.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type RecommendationCandidate =
   AnchorEventFormModeRecommendationResponse["orderedCandidates"][number];

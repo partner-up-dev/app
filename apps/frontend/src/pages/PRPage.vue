@@ -11,26 +11,26 @@
       >
         <template #top-actions>
           <div v-if="showHeaderQuickActions" class="header-quick-actions">
-            <Button
+            <PuButton
               v-if="showEditContentAction"
-              tone="outline"
+              tone="neutral" variant="outline"
               size="sm"
-              type="button"
+
               data-testid="pr-detail.creator.edit-content"
               @click="openEditContentModal"
             >
               {{ t("prPage.editContent") }}
-            </Button>
-            <Button
+            </PuButton>
+            <PuButton
               v-if="showModifyStatusAction"
-              tone="outline"
+              tone="neutral" variant="outline"
               size="sm"
-              type="button"
+
               data-testid="pr-detail.creator.modify-status"
               @click="openModifyStatusModal"
             >
               {{ t("prPage.modifyStatus") }}
-            </Button>
+            </PuButton>
           </div>
         </template>
 
@@ -50,18 +50,18 @@
         <PREditor ref="editorRef" :pr-id="id" @saved="closeEditContentModal" />
 
         <div class="creator-modal-actions creator-modal-actions--spaced">
-          <Button type="button" tone="outline" @click="closeEditContentModal">
+          <PuButton tone="neutral" variant="outline" @click="closeEditContentModal">
             {{ t("common.cancel") }}
-          </Button>
-          <Button
-            type="button"
+          </PuButton>
+          <PuButton
+
             :loading="editorPending"
             :disabled="!isEditContentFormValid"
             data-testid="pr-detail.creator.edit-content.submit"
             @click="submitEditContentForm"
           >
             {{ t("editContentModal.confirmAction") }}
-          </Button>
+          </PuButton>
         </div>
       </PuModal>
 
@@ -80,15 +80,15 @@
         />
 
         <div class="creator-modal-actions">
-          <Button tone="outline" @click="closeModifyStatusModal">
+          <PuButton tone="neutral" variant="outline" @click="closeModifyStatusModal">
             {{ t("common.cancel") }}
-          </Button>
-          <Button
+          </PuButton>
+          <PuButton
             :loading="updateStatusPending"
             @click="submitUpdateStatusForm"
           >
             {{ t("modifyStatusModal.confirmAction") }}
-          </Button>
+          </PuButton>
         </div>
 
         <ErrorToast
@@ -177,7 +177,6 @@ import { computed, isRef, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
@@ -220,12 +219,7 @@ import {
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
 import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
-import {
-  PuInlineNotice,
-  PuLoadingState,
-  PuPageScaffold,
-  PuModal,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
 
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"
@@ -543,7 +537,7 @@ usePRPendingWeChatReplay({
   display: flex;
   gap: var(--sys-spacing-small);
 
-  :deep(.ui-button) {
+  :deep(.pu-button) {
     flex: 1;
     min-width: 66px;
   }

@@ -19,26 +19,26 @@
           />
         </div>
         <div class="time-actions">
-          <Button
-            type="button"
+          <PuButton
+
             class="clear-time"
-            tone="outline"
+            tone="neutral" variant="outline"
             size="sm"
             :disabled="!startTime"
             @click="clearStartTime"
           >
             {{ t("dateTimeRangePicker.clearTime") }}
-          </Button>
-          <Button
-            type="button"
+          </PuButton>
+          <PuButton
+
             class="clear-time"
-            tone="outline"
+            tone="neutral" variant="outline"
             size="sm"
             :disabled="!startDate && !startTime"
             @click="clearStart"
           >
             {{ t("dateTimeRangePicker.clear") }}
-          </Button>
+          </PuButton>
         </div>
       </div>
       <div class="time-block">
@@ -58,26 +58,26 @@
           />
         </div>
         <div class="time-actions">
-          <Button
-            type="button"
+          <PuButton
+
             class="clear-time"
-            tone="outline"
+            tone="neutral" variant="outline"
             size="sm"
             :disabled="!endTime"
             @click="clearEndTime"
           >
             {{ t("dateTimeRangePicker.clearTime") }}
-          </Button>
-          <Button
-            type="button"
+          </PuButton>
+          <PuButton
+
             class="clear-time"
-            tone="outline"
+            tone="neutral" variant="outline"
             size="sm"
             :disabled="!endDate && !endTime"
             @click="clearEnd"
           >
             {{ t("dateTimeRangePicker.clear") }}
-          </Button>
+          </PuButton>
         </div>
       </div>
     </div>
@@ -89,7 +89,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PartnerRequestFields } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type TimeWindow = PartnerRequestFields["time"];
 

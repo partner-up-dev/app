@@ -17,7 +17,7 @@
       </button>
     </div>
 
-    <Button
+    <PuButton
       class="ordering-footer-action-bar__submit-action"
       size="md"
       :disabled="!canCreate"
@@ -26,13 +26,13 @@
       @click="$emit('create')"
     >
       {{ createLabel ?? t("ordering.createOrderAction") }}
-    </Button>
+    </PuButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 

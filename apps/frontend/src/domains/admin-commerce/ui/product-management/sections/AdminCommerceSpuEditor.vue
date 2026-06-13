@@ -134,12 +134,12 @@
 
       <div class="pm-section-header">
         <h4 class="pm-subsection-title">{{ t("adminCommerceProducts.parameterGroupsLabel") }}</h4>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addParameterGroup">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addParameterGroup">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceProducts.addParameterGroupAction") }}
-        </Button>
+        </PuButton>
       </div>
       <p v-if="spuForm.parameterGroups.length === 0" class="pm-hint">
         {{ t("adminCommerceProducts.emptyListPlaceholder") }}
@@ -151,12 +151,12 @@
       >
         <div class="pm-section-header">
           <strong>{{ t("adminCommerceProducts.parameterGroupTitle", { index: groupIndex + 1 }) }}</strong>
-          <Button appearance="pill" tone="danger" size="sm" type="button" @click="removeParameterGroup(groupIndex)">
+          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeParameterGroup(groupIndex)">
             <template #leading>
               <span class="i-mdi-delete-outline" />
             </template>
             {{ t("adminCommerceProducts.removeItemAction") }}
-          </Button>
+          </PuButton>
         </div>
         <label class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.groupTitleLabel") }}</span>
@@ -164,12 +164,12 @@
         </label>
         <div class="pm-section-header">
           <span class="pm-field-label">{{ t("adminCommerceProducts.parameterItemsLabel") }}</span>
-          <Button appearance="pill" tone="outline" size="sm" type="button" @click="addParameterItem(groupIndex)">
+          <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addParameterItem(groupIndex)">
             <template #leading>
               <span class="i-mdi-plus" />
             </template>
             {{ t("adminCommerceProducts.addParameterItemAction") }}
-          </Button>
+          </PuButton>
         </div>
         <div
           v-for="(item, itemIndex) in group.items"
@@ -184,23 +184,23 @@
             <span class="pm-field-label">{{ t("adminCommerceProducts.parameterValueLabel") }}</span>
             <input v-model="item.value" class="pm-field-input" type="text" />
           </label>
-          <Button appearance="pill" tone="danger" size="sm" type="button" @click="removeParameterItem(groupIndex, itemIndex)">
+          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeParameterItem(groupIndex, itemIndex)">
             <template #leading>
               <span class="i-mdi-close" />
             </template>
             {{ t("adminCommerceProducts.removeItemAction") }}
-          </Button>
+          </PuButton>
         </div>
       </article>
 
       <div class="pm-section-header">
         <h4 class="pm-subsection-title">{{ t("adminCommerceProducts.noticeBlocksLabel") }}</h4>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addNoticeBlock">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addNoticeBlock">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceProducts.addNoticeBlockAction") }}
-        </Button>
+        </PuButton>
       </div>
       <p v-if="spuForm.noticeBlocks.length === 0" class="pm-hint">
         {{ t("adminCommerceProducts.emptyListPlaceholder") }}
@@ -212,12 +212,12 @@
       >
         <div class="pm-section-header">
           <strong>{{ t("adminCommerceProducts.noticeBlockTitle", { index: index + 1 }) }}</strong>
-          <Button appearance="pill" tone="danger" size="sm" type="button" @click="removeNoticeBlock(index)">
+          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeNoticeBlock(index)">
             <template #leading>
               <span class="i-mdi-delete-outline" />
             </template>
             {{ t("adminCommerceProducts.removeItemAction") }}
-          </Button>
+          </PuButton>
         </div>
         <div class="pm-grid">
           <label class="pm-field">
@@ -235,12 +235,12 @@
     <section class="pm-editor-section">
       <div class="pm-section-header">
         <h3 class="pm-section-title">{{ t("adminCommerceProducts.factsLabel") }}</h3>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addSpuFact">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addSpuFact">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceProducts.addFactAction") }}
-        </Button>
+        </PuButton>
       </div>
       <p v-if="spuForm.facts.length === 0" class="pm-hint">
         {{ t("adminCommerceProducts.emptyListPlaceholder") }}
@@ -255,9 +255,9 @@
     </section>
 
     <div class="pm-inline-actions">
-      <Button size="sm" type="button" :disabled="isSavingSpu" @click="handleSaveSpu">
+      <PuButton size="sm" :disabled="isSavingSpu" @click="handleSaveSpu">
         {{ isSavingSpu ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.saveSpuAction") }}
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -284,9 +284,8 @@ import {
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
 import FactEntryEditor from "@/domains/admin-commerce/ui/product-management/composites/FactEntryEditor.vue";
 import StringListEditor from "@/domains/admin-commerce/ui/product-management/composites/StringListEditor.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
-import { PuToggleSwitch } from "@partner-up-dev/design-web";
+import { PuButton, PuToggleSwitch } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const context = useAdminCommerceProductManagementContext();

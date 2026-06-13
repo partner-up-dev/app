@@ -2,12 +2,12 @@
   <section class="pm-editor-section">
     <div class="pm-section-header">
       <h3 class="pm-section-title">{{ title }}</h3>
-      <Button appearance="pill" tone="outline" size="sm" type="button" @click="addRule">
+      <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addRule">
         <template #leading>
           <span class="i-mdi-plus" />
         </template>
         {{ t("adminCommerceProducts.pricingRuleAddAction") }}
-      </Button>
+      </PuButton>
     </div>
     <p v-if="rules.length === 0" class="pm-hint">
       {{ t("adminCommerceProducts.emptyPricingRules") }}
@@ -19,12 +19,12 @@
     >
       <div class="pm-section-header">
         <strong>{{ t("adminCommerceProducts.pricingRuleTitle", { index: index + 1 }) }}</strong>
-        <Button appearance="pill" tone="danger" size="sm" type="button" @click="removeRule(index)">
+        <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeRule(index)">
           <template #leading>
             <span class="i-mdi-delete-outline" />
           </template>
           {{ t("adminCommerceProducts.removeItemAction") }}
-        </Button>
+        </PuButton>
       </div>
       <div class="pm-grid">
         <label class="pm-field">
@@ -106,9 +106,8 @@ import {
   type PricingRuleDraft,
 } from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
 import PricingConditionRuleEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingConditionRuleEditor.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
-import { PuToggleSwitch } from "@partner-up-dev/design-web";
+import { PuButton, PuToggleSwitch } from "@partner-up-dev/design-web";
 
 defineProps<{
   title: string;

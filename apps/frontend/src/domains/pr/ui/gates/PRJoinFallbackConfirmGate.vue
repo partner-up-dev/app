@@ -3,28 +3,28 @@
     <p class="fallback-gate__text">确认加入当前活动？</p>
     <p class="fallback-gate__text">加入后即可按流程完成确认与签到。</p>
     <div class="fallback-gate__actions">
-      <Button
-        tone="surface"
-        type="button"
+      <PuButton
+        tone="neutral" variant="soft"
+
         :disabled="pending"
         @click="emit('cancel')"
       >
         取消
-      </Button>
-      <Button
-        type="button"
+      </PuButton>
+      <PuButton
+
         :loading="pending"
         data-testid="pr-detail.join.confirm"
         @click="emit('confirm')"
       >
         确认加入
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   pending: boolean;

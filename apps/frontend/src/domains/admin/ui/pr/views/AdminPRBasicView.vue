@@ -300,11 +300,11 @@
                       </option>
                     </select>
                   </label>
-                  <Button
-                    appearance="pill"
-                    tone="outline"
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
                     size="sm"
-                    type="button"
+
                     :disabled="
                       selectedPRId === null ||
                       prFeedbackQuestionnaireUseCase.isPending.updateInstance
@@ -319,7 +319,7 @@
                         ? t("adminPR.saving")
                         : t("adminPR.saveFeedbackQuestionnaireInstanceAction")
                     }}
-                  </Button>
+                  </PuButton>
 
                   <label class="field">
                     <span class="field-label">
@@ -347,11 +347,11 @@
                       </option>
                     </select>
                   </label>
-                  <Button
-                    appearance="pill"
-                    tone="outline"
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
                     size="sm"
-                    type="button"
+
                     :disabled="
                       selectedPRId === null ||
                       mountFeedbackQuestionnaireTemplateId === null ||
@@ -365,14 +365,14 @@
                         ? t("adminPR.saving")
                         : t("adminPR.mountFeedbackQuestionnaireTemplateAction")
                     }}
-                  </Button>
+                  </PuButton>
                 </div>
 
                 <div class="actions actions--inline">
-                  <Button
-                    appearance="pill"
+                  <PuButton
+                    shape="pill"
                     size="sm"
-                    type="button"
+
                     :disabled="
                       isSavingPR ||
                       isDeletingPR ||
@@ -391,13 +391,13 @@
                           ? t("adminPR.createPRAction")
                           : t("adminPR.savePRAction")
                     }}
-                  </Button>
-                  <Button
+                  </PuButton>
+                  <PuButton
                     v-if="!isCreatingPR && selectedPR !== null"
-                    appearance="pill"
-                    tone="danger"
+                    shape="pill"
+                    tone="danger" variant="outline"
                     size="sm"
-                    type="button"
+
                     :disabled="isSavingPR || isDeletingPR"
                     @click="requestDeletePR(selectedPR.prId)"
                   >
@@ -406,7 +406,7 @@
                         ? t("adminPR.deletingPR")
                         : t("adminPR.deletePRAction")
                     }}
-                  </Button>
+                  </PuButton>
                 </div>
               </div>
             </BentoItem>
@@ -469,7 +469,6 @@ import {
   getPRRouteValidationIssue,
   type PRPlaceMode,
 } from "@/domains/pr/model/pr-route";
-import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
@@ -477,7 +476,7 @@ import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
-import { PuCard, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
 
 type PRForm = {
   title: string;

@@ -5,15 +5,15 @@
     </template>
 
     <template #actions>
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         @click="prepareNewPlacement"
       >
         {{ t("adminCommercePlacementOffer.newPlacementAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #rail>
@@ -154,15 +154,15 @@
                   <span class="field-label">{{
                     t("adminCommercePlacementOffer.bindingRulesLabel")
                   }}</span>
-                  <Button
-                    appearance="pill"
-                    tone="outline"
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
                     size="sm"
-                    type="button"
+
                     @click="addBindingRule"
                   >
                     {{ t("adminCommercePlacementOffer.addBindingRuleAction") }}
-                  </Button>
+                  </PuButton>
                 </div>
 
                 <div
@@ -200,25 +200,25 @@
                   </div>
 
                   <div class="binding-row__actions">
-                    <Button
-                      appearance="pill"
-                      tone="outline"
+                    <PuButton
+                      shape="pill"
+                      tone="neutral" variant="outline"
                       size="sm"
-                      type="button"
+
                       @click="removeBindingRule(rule.id)"
                     >
                       {{
                         t("adminCommercePlacementOffer.removeBindingRuleAction")
                       }}
-                    </Button>
+                    </PuButton>
                   </div>
                 </div>
               </section>
 
               <div class="inline-actions">
-                <Button
+                <PuButton
                   size="sm"
-                  type="button"
+
                   :disabled="isSavingPlacement"
                   @click="handleSavePlacement"
                 >
@@ -227,7 +227,7 @@
                       ? t("adminCommercePlacementOffer.savingAction")
                       : t("adminCommercePlacementOffer.savePlacementAction")
                   }}
-                </Button>
+                </PuButton>
               </div>
             </div>
           </BentoItem>
@@ -265,8 +265,7 @@ import {
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PlacementMatchingRulesEditor from "@/domains/admin-commerce/ui/placement-matching-rules/PlacementMatchingRulesEditor.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

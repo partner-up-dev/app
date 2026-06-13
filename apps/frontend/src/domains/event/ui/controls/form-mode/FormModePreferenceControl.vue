@@ -116,21 +116,21 @@
 
       <template #footer>
         <div class="drawer-actions">
-          <Button
-            appearance="pill"
-            tone="outline"
-            type="button"
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
+
             @click="closePreferenceDrawer"
           >
             {{ t("common.cancel") }}
-          </Button>
-          <Button
-            appearance="pill"
-            type="button"
+          </PuButton>
+          <PuButton
+            shape="pill"
+
             @click="handleSavePreferenceDrawer"
           >
             {{ t("common.confirm") }}
-          </Button>
+          </PuButton>
         </div>
       </template>
     </PuDrawer>
@@ -146,12 +146,7 @@ import {
   derivePreferenceCategory,
 } from "@/domains/event/model/form-mode";
 import { useAnchorEventPreferenceTagSubmissions } from "@/domains/event/queries/useAnchorEventPreferenceTagSubmissions";
-import Button from "@/shared/ui/actions/Button.vue";
-import {
-  PuCell,
-  PuDrawer,
-  type PuDrawerCloseEvent,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCell, PuDrawer, type PuDrawerCloseEvent } from "@partner-up-dev/design-web";
 
 type FormModePresetTag = AnchorEventFormModeResponse["presetTags"][number];
 type PreferenceCell =

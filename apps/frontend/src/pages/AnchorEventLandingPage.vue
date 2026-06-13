@@ -19,16 +19,16 @@
         @back="handleLandingBack"
       >
         <template #top-actions>
-          <Button
-            appearance="pill"
-            tone="outline"
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
             size="sm"
-            type="button"
+
             data-testid="anchor-event-landing.other-events.open"
             @click="showOtherEventsDrawer = true"
           >
             {{ t("anchorEvent.otherEvents.action") }}
-          </Button>
+          </PuButton>
         </template>
       </PageHeader>
     </template>
@@ -201,19 +201,11 @@ import {
   clearPendingWeChatAction,
   readPendingWeChatAction,
 } from "@/processes/wechat/pending-wechat-action";
-import Button from "@/shared/ui/actions/Button.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import {
-  PuLoadingState,
-  PuPageScaffold,
-  PuSegmented,
-  PuSegmentedItem,
-  type PuSegmentedValue,
-  PuDrawer,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuLoadingState, PuPageScaffold, PuSegmented, PuSegmentedItem, type PuSegmentedValue, PuDrawer } from "@partner-up-dev/design-web";
 import {
   buildAnchorEventFunnelPayload,
   type AnchorEventFunnelContext,

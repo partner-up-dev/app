@@ -219,15 +219,15 @@
               </p>
             </div>
 
-            <Button
+            <PuButton
               v-if="detail.cancellation.canRequest"
-              tone="danger"
+              tone="danger" variant="outline"
               :loading="cancelMutation.isPending.value"
               data-testid="order-detail.cancel-rental"
               @click="cancelRentalOrder"
             >
               取消订单
-            </Button>
+            </PuButton>
 
             <PuInlineNotice
               v-if="isCancellationPending"
@@ -259,16 +259,16 @@
               {{ fulfillmentStatusLabel }}
             </p>
 
-            <Button
+            <PuButton
               v-if="canConfirmRentalBooking"
               size="lg"
-              tone="secondary"
+              tone="secondary" variant="solid"
               :loading="confirmationMutation.isPending.value"
               data-testid="order-detail.mock-rental-confirm"
               @click="simulateBookingConfirmation"
             >
               模拟确认预订
-            </Button>
+            </PuButton>
 
             <PuInlineNotice
               v-if="detail.fulfillment?.bookingStatus === 'BOOKING_CONFIRMED'"
@@ -287,14 +287,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import {
-  PuButton,
-  PuCard,
-  PuInlineNotice,
-  PuPageScaffold,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   useCancelRentalOrder,
   useCommerceOrderDetail,

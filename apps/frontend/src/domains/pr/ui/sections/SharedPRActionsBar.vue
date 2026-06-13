@@ -7,48 +7,48 @@
     v-if="canJoin || canExit || showEditContentAction || showModifyStatusAction"
     class="actions"
   >
-    <Button
+    <PuButton
       v-if="canJoin"
-      type="button"
+
       :disabled="joinPending"
       @click="emit('join')"
     >
       {{ joinPending ? t("prPage.joining") : t("prPage.join") }}
-    </Button>
+    </PuButton>
 
-    <Button
+    <PuButton
       v-if="canExit"
-      tone="danger"
-      type="button"
+      tone="danger" variant="outline"
+
       :disabled="exitPending"
       @click="emit('exit')"
     >
       {{ exitPending ? t("prPage.exiting") : t("prPage.exit") }}
-    </Button>
+    </PuButton>
 
-    <Button
+    <PuButton
       v-if="showEditContentAction"
-      tone="surface"
-      type="button"
+      tone="neutral" variant="soft"
+
       @click="emit('edit-content')"
     >
       {{ t("prPage.editContent") }}
-    </Button>
+    </PuButton>
 
-    <Button
+    <PuButton
       v-if="showModifyStatusAction"
-      tone="surface"
-      type="button"
+      tone="neutral" variant="soft"
+
       @click="emit('modify-status')"
     >
       {{ t("prPage.modifyStatus") }}
-    </Button>
+    </PuButton>
   </section>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   canJoin: boolean;
