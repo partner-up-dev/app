@@ -16,10 +16,6 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-vi.mock("@/shared/ui/overlay/useBodyScrollLock", () => ({
-  useBodyScrollLock: vi.fn(),
-}));
-
 vi.mock("@/shared/telemetry/track", () => ({
   trackEvent: vi.fn(),
 }));
@@ -76,14 +72,6 @@ vi.mock("@/domains/pr/ui/composites/PRWaitlistSuccessPrompt.vue", () => ({
   default: {
     name: "PRWaitlistSuccessPrompt",
     template: '<div data-testid="waitlist-success-prompt" />',
-  },
-}));
-
-vi.mock("@/shared/ui/overlay/ConfirmDialog.vue", () => ({
-  default: {
-    name: "ConfirmDialog",
-    props: ["open"],
-    template: '<div v-if="open" data-testid="confirm-dialog" />',
   },
 }));
 

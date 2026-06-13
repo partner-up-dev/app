@@ -5,7 +5,11 @@
     @submit.prevent="submitForm"
   >
     <PuLoadingState v-if="isDetailLoading" :message="t('common.loading')" />
-    <ErrorToast v-else-if="detailError" :message="detailError.message" persistent />
+    <ErrorToast
+      v-else-if="detailError"
+      :message="detailError.message"
+      persistent
+    />
 
     <PuEmptyState
       v-else-if="!hasEditableFields"
@@ -28,7 +32,9 @@
       <div v-if="canEditType" class="form-field">
         <label>
           {{ t("partnerRequestForm.type") }}
-          <span class="required">{{ t("partnerRequestForm.requiredMark") }}</span>
+          <span class="required">{{
+            t("partnerRequestForm.requiredMark")
+          }}</span>
         </label>
         <input
           v-model="typeModel"
@@ -167,14 +173,15 @@
     </template>
   </form>
 
-  <ConfirmDialog
+  <PuDialog
     :open="showReleaseConfirmDialog"
     title="确认移出冲突成员"
-    message="这次修改会让部分成员与你选择的新时间冲突。确认后，系统会将这些成员移出本次 PR，并通知他们原因。"
-    confirm-label="确认修改并移出"
-    confirm-tone="danger"
-    :loading="isPending"
+    description="这次修改会让部分成员与你选择的新时间冲突。确认后，系统会将这些成员移出本次 PR，并通知他们原因。"
+    confirm-text="确认修改并移出"
+    tone="error"
+    :confirm-loading="isPending"
     @close="closeReleaseConfirmDialog"
+    @cancel="closeReleaseConfirmDialog"
     @confirm="confirmReleaseAndSubmit"
   />
 </template>
@@ -184,10 +191,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter, type LocationQueryValue } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useForm } from "vee-validate";
-import type {
-  PRId,
-  PRStatus,
-} from "@partner-up-dev/backend";
+import type { PRId, PRStatus } from "@partner-up-dev/backend";
 import type { PartnerRequestFormInput } from "@/lib/validation";
 import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
@@ -206,13 +210,16 @@ import {
 } from "@/domains/pr/model/types";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
 import Button from "@/shared/ui/actions/Button.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
-import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuEmptyState,
+  PuLoadingState,
+  PuDialog,
+} from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId?: number;
@@ -353,7 +360,9 @@ const showAdvancedToggle = computed(
 );
 const isAdvancedOpen = ref(false);
 const showBodyFields = computed(
-  () => hasAdvancedFields.value && (!showAdvancedToggle.value || isAdvancedOpen.value),
+  () =>
+    hasAdvancedFields.value &&
+    (!showAdvancedToggle.value || isAdvancedOpen.value),
 );
 
 watch(
@@ -366,23 +375,17 @@ watch(
   { immediate: true },
 );
 
-const {
-  defineField,
-  values,
-  errors,
-  resetForm,
-  handleSubmit,
-  setFieldValue,
-} = useForm<PartnerRequestFormInput>({
-  validationSchema: computed(() =>
-    buildPartnerRequestFormValidationSchema({
-      validateTime: canEditTime.value,
-    }),
-  ),
-  initialValues: {
-    fields: clonePRFields(initialFields.value),
-  },
-});
+const { defineField, values, errors, resetForm, handleSubmit, setFieldValue } =
+  useForm<PartnerRequestFormInput>({
+    validationSchema: computed(() =>
+      buildPartnerRequestFormValidationSchema({
+        validateTime: canEditTime.value,
+      }),
+    ),
+    initialValues: {
+      fields: clonePRFields(initialFields.value),
+    },
+  });
 
 watch(
   initialFields,

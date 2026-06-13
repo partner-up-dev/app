@@ -108,7 +108,7 @@
       </div>
     </template>
 
-    <Modal
+    <PuModal
       :open="routeMapOpen"
       :title="t('route.mapTitle')"
       max-width="760px"
@@ -121,7 +121,7 @@
         :interactive="false"
         :fit-padding="32"
       />
-    </Modal>
+    </PuModal>
 
     <LocationPickerModal
       :open="pendingPickerIndex !== null"
@@ -134,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
@@ -153,7 +154,6 @@ import {
   swapRoutePointWithNeighbor,
 } from "@/domains/route/model/route";
 import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -377,8 +377,14 @@ const handleLocationPicked = (location: PickedLocation) => {
 
 .route-editor__icon-action {
   display: grid;
-  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
-  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  width: calc(
+    var(--sys-spacing-large) + var(--sys-spacing-small) +
+      var(--sys-spacing-xsmall)
+  );
+  height: calc(
+    var(--sys-spacing-large) + var(--sys-spacing-small) +
+      var(--sys-spacing-xsmall)
+  );
   place-items: center;
   border: 0;
   border-radius: var(--sys-radius-small);

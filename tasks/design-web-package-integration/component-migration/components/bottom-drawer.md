@@ -18,16 +18,21 @@
 
 - From: local bottom drawer overlay.
 - To: `PuDrawer` using `visible` / `update:visible` and `close`.
-- Compatibility strategy: preserve the local `open` prop and translate close
-  reasons if call sites depend on them.
+- Compatibility strategy: do not keep a local wrapper. Use package
+  `visible`/`update:visible` at call sites. Translate close payloads only inside
+  the usage site when product semantics depend on reason. The current known
+  semantic mapping is `PuDrawer` reason `overlay` equals the old `backdrop`
+  reason in the form-mode preference drawer and should keep its auto-save
+  behavior.
 
 ## Risks
 
 - Package uses `visible`, not `open`.
-- Close reason vocabulary differs.
+- Close reason vocabulary differs: `overlay` / `escape` / `close-button`.
 - Safe-area, max-height, and body scroll behavior are mobile-sensitive.
 
 ## Verification
 
-- Build, token lint, targeted drawer workflow tests or smoke.
-- Mobile browser smoke for PR share and commerce drawer flows.
+- Passed: frontend build, token lint, frontend unit tests, old overlay import
+  scan, old scroll-lock scan, `PuDrawer` old-prop vocabulary scan, and `git
+diff --check`.

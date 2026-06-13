@@ -178,7 +178,28 @@
   `PuSnackbar`, and updated overlay guidance; the stale global copy does not.
 - Durable docs now record the package-update workflow: update the package,
   then use `pnpm dlx @tanstack/intent@latest list --json`, `pnpm dlx
-  @tanstack/intent@latest load @partner-up-dev/design-web#design-web`, and
+@tanstack/intent@latest load @partner-up-dev/design-web#design-web`, and
   `pnpm dlx @tanstack/intent@latest validate
-  apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
+apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
   The repository does not add an `intent-skills` managed block.
+- Third overlay slice started after explicit user approval.
+- Package-shipped `design-web` skill and references identify `PuDialog`,
+  `PuModal`, and `PuDrawer` as the correct public overlay APIs. Local
+  `~/.codex/skills/design-web` remains stale and is not used as source of
+  truth for component availability.
+- Decision: confirmation usage sites migrate directly to `PuDialog`; no local
+  `ConfirmDialog` wrapper remains. Because `PuDialog` tone is
+  `"neutral" | PuStatusTone`, destructive confirmations map to `tone="error"`.
+- Decision: `PuDrawer` usage sites adopt `visible` / `update:visible` directly.
+  The form-mode preference drawer maps `close.reason === "overlay"` to the old
+  backdrop auto-save behavior at the usage site.
+- Third overlay slice completed. Usage sites now import `PuModal`, `PuDialog`,
+  and `PuDrawer` directly from `@partner-up-dev/design-web`; local
+  `Modal.vue`, `ConfirmDialog.vue`, `BottomDrawer.vue`,
+  `useBodyScrollLock.ts`, and `lib/body-scroll-lock.ts` were deleted.
+- WeChat OAuth keeps its non-dismissible workflow by setting
+  `closeOnOverlay=false` and `closeOnEscape=false` directly on `PuModal`.
+- Verification passed: frontend build, token lint, frontend unit tests (26
+  files / 117 tests), migrated overlay and scroll-lock reference scan,
+  package-prop vocabulary scan for `PuDialog`/`PuDrawer`, and `git diff
+--check`.

@@ -24,10 +24,10 @@
       {{ preferenceSubmissionMessage }}
     </p>
 
-    <BottomDrawer
-      :open="preferenceDrawerOpen"
+    <PuDrawer
+      v-model:visible="preferenceDrawerOpen"
       :title="preferenceDrawerTitle"
-      min-height="40vh"
+      height="40vh"
       @close="handlePreferenceDrawerClose"
     >
       <div v-if="activeDrawerCell" class="preference-drawer">
@@ -133,7 +133,7 @@
           </Button>
         </div>
       </template>
-    </BottomDrawer>
+    </PuDrawer>
   </section>
 </template>
 
@@ -147,11 +147,13 @@ import {
 } from "@/domains/event/model/form-mode";
 import { useAnchorEventPreferenceTagSubmissions } from "@/domains/event/queries/useAnchorEventPreferenceTagSubmissions";
 import Button from "@/shared/ui/actions/Button.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
-import { PuCell } from "@partner-up-dev/design-web";
+import {
+  PuCell,
+  PuDrawer,
+  type PuDrawerCloseEvent,
+} from "@partner-up-dev/design-web";
 
 type FormModePresetTag = AnchorEventFormModeResponse["presetTags"][number];
-type BottomDrawerCloseReason = "backdrop" | "close-button" | "escape";
 type PreferenceCell =
   | {
       key: string;
@@ -385,10 +387,10 @@ const closePreferenceDrawer = () => {
   drawerCustomTagMessage.value = null;
 };
 
-const handlePreferenceDrawerClose = async (
-  reason: BottomDrawerCloseReason,
-): Promise<void> => {
-  if (reason === "backdrop") {
+const handlePreferenceDrawerClose = async ({
+  reason,
+}: PuDrawerCloseEvent): Promise<void> => {
+  if (reason === "overlay") {
     await handleSavePreferenceDrawer();
     return;
   }
@@ -641,7 +643,13 @@ const handleSavePreferenceDrawer = async () => {
   display: inline-flex;
   align-items: stretch;
   gap: calc(var(--sys-spacing-xsmall) / 2);
-  min-width: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-large));
+  min-width: calc(
+    calc(
+        var(--sys-spacing-large) + var(--sys-spacing-small) +
+          var(--sys-spacing-xsmall)
+      ) +
+      var(--sys-spacing-large)
+  );
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-pill);
   background: var(--sys-color-surface);

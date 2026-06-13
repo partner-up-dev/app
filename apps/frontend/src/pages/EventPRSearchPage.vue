@@ -17,10 +17,7 @@
       </template>
     </PageHeader>
 
-    <div
-      v-if="eventsQuery.isLoading.value"
-      class="event-pr-search-page__state"
-    >
+    <div v-if="eventsQuery.isLoading.value" class="event-pr-search-page__state">
       {{ t("common.loading") }}
     </div>
 
@@ -131,10 +128,9 @@
         </PuEmptyState>
       </template>
 
-      <BottomDrawer
-        :open="showCriteriaDrawer"
+      <PuDrawer
+        v-model:visible="showCriteriaDrawer"
         :title="t('eventPRSearch.drawerTitle')"
-        @close="showCriteriaDrawer = false"
       >
         <EventPRSearchCriteriaForm
           v-model:selected-event-id="drawerEventId"
@@ -156,7 +152,7 @@
             </Button>
           </div>
         </template>
-      </BottomDrawer>
+      </PuDrawer>
     </template>
   </PuPageScaffold>
 </template>
@@ -167,9 +163,12 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import Button from "@/shared/ui/actions/Button.vue";
-import { PuEmptyState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuEmptyState,
+  PuPageScaffold,
+  PuDrawer,
+} from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import EventPRSearchCriteriaForm from "@/domains/event/ui/composites/EventPRSearchCriteriaForm.vue";
 import type { AnchorEventListItem } from "@/domains/event/model/types";

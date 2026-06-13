@@ -1,5 +1,6 @@
 <template>
-  <PuPageScaffold footer-placement="reveal"
+  <PuPageScaffold
+    footer-placement="reveal"
     :class="[
       'anchor-event-landing-page',
       { 'anchor-event-landing-page--card-rich': resolvedMode === 'CARD_RICH' },
@@ -120,10 +121,9 @@
     </template>
   </PuPageScaffold>
 
-  <BottomDrawer
-    :open="showOtherEventsDrawer"
+  <PuDrawer
+    v-model:visible="showOtherEventsDrawer"
     :title="t('anchorEvent.otherEvents.title')"
-    @close="showOtherEventsDrawer = false"
   >
     <PuLoadingState
       v-if="otherEventsQuery.isLoading.value"
@@ -141,7 +141,7 @@
       @update:model-value="selectedOtherEventId = $event"
       @activate="handleSelectOtherEvent"
     />
-  </BottomDrawer>
+  </PuDrawer>
 
   <OfficialAccountFollowNudge
     :open="officialAccountFollowPrompt.isVisible.value"
@@ -202,7 +202,6 @@ import {
   readPendingWeChatAction,
 } from "@/processes/wechat/pending-wechat-action";
 import Button from "@/shared/ui/actions/Button.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
@@ -213,6 +212,7 @@ import {
   PuSegmented,
   PuSegmentedItem,
   type PuSegmentedValue,
+  PuDrawer,
 } from "@partner-up-dev/design-web";
 import {
   buildAnchorEventFunnelPayload,
@@ -293,8 +293,11 @@ const eventId = computed(() => {
 const requestedMode = computed(() => route.query.mode);
 const { assignmentQuery, resolvedMode, setResolvedMode, isTimeoutFallback } =
   useResolvedAnchorEventLandingMode(eventId, requestedMode);
-const { data: detail, isLoading: isDetailLoading, isError: isDetailError } =
-  useAnchorEventDetail(eventId);
+const {
+  data: detail,
+  isLoading: isDetailLoading,
+  isError: isDetailError,
+} = useAnchorEventDetail(eventId);
 const otherEventsQuery = useAnchorEvents();
 const selectedOtherEventId = ref<number | null>(null);
 const otherEventCandidates = computed(() =>
@@ -437,7 +440,10 @@ const hasRouterBackEntry = (): boolean => {
 const backFallbackTo: RouteLocationRaw = { name: "event-plaza" };
 
 const handleLandingBack = async () => {
-  if (resolvedMode.value === "FORM" && formModeResultState.value === "no-match") {
+  if (
+    resolvedMode.value === "FORM" &&
+    formModeResultState.value === "no-match"
+  ) {
     formModeSurfaceRef.value?.returnToSelection();
     return;
   }
@@ -615,8 +621,8 @@ watch(
       return;
     }
 
-    const current = timeWindows.find(
-      (entry) => timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
+    const current = timeWindows.find((entry) =>
+      timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
     );
     if (current) {
       return;
@@ -637,8 +643,7 @@ const selectedCardCreateTimeWindow = computed(() => {
   return (
     upcomingSortedCreateTimeWindows.value.find((entry) =>
       timeWindowsEqual(entry.timeWindow, timeWindow),
-    ) ??
-    null
+    ) ?? null
   );
 });
 
@@ -775,7 +780,9 @@ const remainingDemandCards = computed(() =>
   ),
 );
 const activeDemandCard = computed(() => remainingDemandCards.value[0] ?? null);
-const stackPreviewCards = computed(() => remainingDemandCards.value.slice(1, 3));
+const stackPreviewCards = computed(() =>
+  remainingDemandCards.value.slice(1, 3),
+);
 
 const cardActionError = ref<string | null>(null);
 const isCardRouting = ref(false);
@@ -929,7 +936,9 @@ const handleViewActiveCardDetail = async () => {
         entrySurface: "card_rich",
         entryType: "detail",
       });
-      await router.push(buildEventDetailTarget(created.canonicalPath, event.id));
+      await router.push(
+        buildEventDetailTarget(created.canonicalPath, event.id),
+      );
       return;
     }
 
@@ -1082,11 +1091,10 @@ const createEventAssistedPR = async ({
     place,
     preferences,
   });
-  const funnelPayload =
-    buildCurrentFunnelPayload() ?? {
-      eventId: event.id,
-      activityType: event.type,
-    };
+  const funnelPayload = buildCurrentFunnelPayload() ?? {
+    eventId: event.id,
+    activityType: event.type,
+  };
 
   try {
     const created = await createEventAssistedPRMutation.mutateAsync({
@@ -1107,7 +1115,9 @@ const createEventAssistedPR = async ({
       entrySurface: "card_rich",
       entryType: "create_handoff",
     });
-    await router.push(buildEventAssistedCreateTarget(created.canonicalPath, event.id));
+    await router.push(
+      buildEventAssistedCreateTarget(created.canonicalPath, event.id),
+    );
   } catch (error) {
     if (isWeChatAuthBlockingError(error)) {
       trackEvent("pr_commitment_result", {
@@ -1213,7 +1223,10 @@ const handleCreateFromCardEmpty = async () => {
   }
 
   const place = toAnchorEventSelectedPlace(
-    findAnchorEventPlaceOption(cardCreatePlaceOptions.value, cardCreatePlaceId.value),
+    findAnchorEventPlaceOption(
+      cardCreatePlaceOptions.value,
+      cardCreatePlaceId.value,
+    ),
   );
   const targetTimeWindow = cardCreateTimeWindow.value;
   if (!targetTimeWindow?.[0] || !targetTimeWindow?.[1] || !place) {

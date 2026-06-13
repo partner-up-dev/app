@@ -40,9 +40,9 @@ Display and feedback:
 
 Overlay:
 
-- `overlay/Modal.vue`: generic modal primitive. Add scroll locking with `useBodyScrollLock(computed(() => open.value))` in the parent when needed.
-- `overlay/ConfirmDialog.vue`: standard confirm/cancel dialog built on `Modal` and `Button`.
-- `overlay/BottomDrawer.vue`: bottom drawer overlay for secondary mobile-oriented workflows.
+- `PuModal` from `@partner-up-dev/design-web`: generic focused modal shell. Use direct package imports at usage sites; set `closeOnOverlay` or `closeOnEscape` only when the workflow needs custom dismissal rules.
+- `PuDialog` from `@partner-up-dev/design-web`: structured confirmation and short focused workflow dialog. Use package action text, loading, disabled, tone, and slots directly instead of adding a local confirm wrapper.
+- `PuDrawer` from `@partner-up-dev/design-web`: drawer shell for secondary workflows, filters, and details. Use `visible` / `update:visible` directly, and map close payloads at the usage site only when product semantics depend on close reason.
 
 ## Reuse Rules
 

@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="title ?? t('prCard.locationGallery.title')"
     max-width="560px"
@@ -51,13 +51,13 @@
         </div>
       </template>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 
 interface PRLocationGalleryModalProps {

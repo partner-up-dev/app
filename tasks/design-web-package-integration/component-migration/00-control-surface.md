@@ -16,9 +16,9 @@ design package should not absorb.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Implementation status: second slice implemented and verified locally. Usage
-  sites now consume the relevant package components directly and the migrated
-  local facades have been deleted.
+- Implementation status: third overlay slice implemented and verified locally.
+  Usage sites now consume the relevant package components directly and the
+  migrated local facades have been deleted.
 
 ## Guardrails Touched
 
@@ -113,13 +113,19 @@ design package should not absorb.
 - Agent Skill source clarified: the up-to-date `design-web` TanStack Intent
   skill is shipped inside `@partner-up-dev/design-web@0.4.0` under
   `skills/design-web`. Agents should load it with `pnpm dlx
-  @tanstack/intent@latest load @partner-up-dev/design-web#design-web` after
+@tanstack/intent@latest load @partner-up-dev/design-web#design-web` after
   package updates instead of hand-editing or relying on stale local copies under
   `~/.codex/skills`.
-- Next slice direction: migrate overlay primitives directly to package
-  components: `Modal` -> `PuModal`, `ConfirmDialog` -> `PuDialog` or
-  `PuModal` + `PuButton` depending on package API fit, and `BottomDrawer` ->
-  `PuDrawer`.
+- Third slice completed: migrated overlay primitives directly to package
+  components: `Modal` -> `PuModal`, `ConfirmDialog` -> `PuDialog`, and
+  `BottomDrawer` -> `PuDrawer`. Do not keep local overlay wrappers for visual,
+  DOM, close-event, or animation parity. Usage sites own any product-specific
+  semantic mapping, such as treating `PuDrawer` close reason `overlay` as the
+  former preference-drawer `backdrop` auto-save path.
+- Third slice evidence: local wrappers deleted in this slice are `Modal`,
+  `ConfirmDialog`, `BottomDrawer`, and `useBodyScrollLock`. The old
+  `lib/body-scroll-lock.ts` helper was also deleted after overlay call sites no
+  longer needed parent-managed scroll locking.
 
 ## First Slice Candidate
 
@@ -157,14 +163,18 @@ Baseline per component slice:
 - Second-slice post-`WheelPicker` verification on 2026-06-13: frontend build
   passed; token lint passed; frontend unit tests passed, 26 files / 117 tests;
   migrated wrapper import scan returned no usage-site references; `git
-  diff --check` passed.
+diff --check` passed.
+- Third-slice verification on 2026-06-13: frontend build passed; token lint
+  passed; frontend unit tests passed, 26 files / 117 tests; migrated overlay
+  and scroll-lock scan returned no usage-site references; package API scan found
+  no old `PuDialog` or `PuDrawer` prop vocabulary; `git diff --check` passed.
 - Agent Skill verification on 2026-06-13: `pnpm dlx
-  @tanstack/intent@latest list --json` found
+@tanstack/intent@latest list --json` found
   `@partner-up-dev/design-web#design-web` from the installed `0.4.0` package;
   `pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web`
   returned the updated skill with `PuDialog`; `pnpm dlx
-  @tanstack/intent@latest validate
-  apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`
+@tanstack/intent@latest validate
+apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`
   passed.
 - Browser smoke with Edge through Playwright on `http://localhost:4001/` and
   `/pr/1` - passed. Evidence:

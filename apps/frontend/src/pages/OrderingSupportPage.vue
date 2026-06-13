@@ -1,8 +1,5 @@
 <template>
-  <OrderingPageShell
-    :title="pageTitle"
-    :back-fallback-to="backFallbackTo"
-  >
+  <OrderingPageShell :title="pageTitle" :back-fallback-to="backFallbackTo">
     <div class="ordering-support" data-testid="ordering.support.page">
       <template v-if="supportHandoff">
         <section
@@ -72,7 +69,7 @@
           </Button>
         </section>
 
-        <Modal
+        <PuModal
           :open="showContactModal"
           :title="t('ordering.support.contactModalTitle')"
           max-width="420px"
@@ -106,7 +103,7 @@
               {{ t("common.close") }}
             </Button>
           </div>
-        </Modal>
+        </PuModal>
       </template>
 
       <section
@@ -148,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -167,8 +165,6 @@ import {
   usePublicConfig,
 } from "@/shared/config/queries/usePublicConfig";
 import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 
 const { t } = useI18n();
@@ -212,9 +208,9 @@ const orderingEntry = ref<OrderingEntryPayload | null>(readOrderingEntry());
 const supportHandoff = ref<OrderingSupportHandoffPayload | null>(
   readSupportHandoff(),
 );
-const summaryCardRef = ref<InstanceType<typeof OrderingSupportSummaryCard> | null>(
-  null,
-);
+const summaryCardRef = ref<InstanceType<
+  typeof OrderingSupportSummaryCard
+> | null>(null);
 const summaryPosterUrl = ref<string | null>(null);
 const summaryPosterGenerating = ref(false);
 const summaryPosterError = ref<string | null>(null);
@@ -269,7 +265,9 @@ const summaryPosterHint = computed(() =>
 );
 
 const backFallbackTo = computed(() =>
-  orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
+  orderingEntry.value?.prId
+    ? { path: `/pr/${orderingEntry.value.prId}` }
+    : { path: "/" },
 );
 
 const pageTitle = computed(() =>
@@ -294,9 +292,9 @@ const handleRecoveryAction = (): void => {
   void router.push(orderingEntry.value ? { name: "order-new" } : { path: "/" });
 };
 
-useBodyScrollLock(computed(() => showContactModal.value));
-
-const loadHtml2Canvas = async (): Promise<typeof import("html2canvas")["default"]> => {
+const loadHtml2Canvas = async (): Promise<
+  (typeof import("html2canvas"))["default"]
+> => {
   const module = await import("html2canvas");
   return module.default;
 };

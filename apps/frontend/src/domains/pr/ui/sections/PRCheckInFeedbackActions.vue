@@ -58,7 +58,6 @@ import { useI18n } from "vue-i18n";
 import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import Button from "@/shared/ui/actions/Button.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { usePRAttendanceActions } from "@/domains/pr/use-cases/usePRAttendanceActions";
 import { useSubmitFeedbackQuestionnaire } from "@/domains/feedback/queries/useSubmitFeedbackQuestionnaire";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
@@ -88,8 +87,7 @@ const attendanceActions = usePRAttendanceActions({
 
 const feedbackQuestionnaire = computed(() => props.pr.feedbackQuestionnaire);
 const hasPendingFeedbackQuestionnaire = computed(
-  () =>
-    feedbackQuestionnaire.value?.responseState.status === "NOT_SUBMITTED",
+  () => feedbackQuestionnaire.value?.responseState.status === "NOT_SUBMITTED",
 );
 
 const showCheckInAction = computed(
@@ -126,8 +124,6 @@ usePRPrimaryActionImpression({
   visible: showCheckInAction,
 });
 
-useBodyScrollLock(computed(() => feedbackModalOpen.value));
-
 const openFeedbackQuestionnaire = (): void => {
   if (!hasPendingFeedbackQuestionnaire.value) return;
   feedbackModalOpen.value = true;
@@ -135,7 +131,8 @@ const openFeedbackQuestionnaire = (): void => {
 
 const handleCheckIn = async (): Promise<void> => {
   if (!showCheckInAction.value) return;
-  if (!viewer.value.canCheckIn || attendanceActions.checkInPending.value) return;
+  if (!viewer.value.canCheckIn || attendanceActions.checkInPending.value)
+    return;
   primaryActionError.value = null;
   trackPRPrimaryActionClick(props.pr, "CHECK_IN");
   try {

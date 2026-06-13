@@ -3,8 +3,7 @@
 ## Target
 
 - Local owner: `apps/frontend/src/shared/ui/overlay/ConfirmDialog.vue`.
-- Package target: likely `PuDialog`, or `PuModal` plus `PuButton` if `PuDialog`
-  does not cover the exact contract.
+- Package target: `PuDialog`.
 - Desired final state: package owns confirmation dialog shell and action button
   treatments.
 
@@ -18,15 +17,21 @@
 ## Migration Shape
 
 - From: local `Modal` plus local `Button`.
-- To: inspect `PuDialog` API before choosing direct package dialog or composed
-  package modal/buttons.
-- Compatibility strategy: migrate after `Button` and `Modal` slices are stable.
+- To: direct `PuDialog` usage at confirmation sites.
+- Compatibility strategy: map `message`/`description` to package description
+  and content slots, `confirmLabel`/`cancelLabel` to package action text props,
+  `loading` to `confirmLoading`, `disabled` to `confirmDisabled`, and
+  destructive intent to package `tone="error"` because `PuDialog` uses status
+  tones rather than control tones.
 
 ## Risks
 
 - Destructive confirmation tone must stay clear.
 - Mobile action stacking may shift.
+- `PuDialog` close emits reasons; usage sites should close on all non-confirm
+  close/cancel paths unless a mutation is pending.
 
 ## Verification
 
-- Build, token lint, targeted confirmation workflow tests.
+- Passed: frontend build, token lint, frontend unit tests, old overlay import
+  scan, `PuDialog` old-prop vocabulary scan, and `git diff --check`.

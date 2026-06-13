@@ -5,7 +5,10 @@
     data-testid="admin-anchor-event.section.time"
   >
     <BentoLayout>
-      <BentoItem :title="t('adminAnchorEvents.timePoolStrategyTitle')" span="full">
+      <BentoItem
+        :title="t('adminAnchorEvents.timePoolStrategyTitle')"
+        span="full"
+      >
         <template #actions>
           <Button
             appearance="pill"
@@ -41,7 +44,7 @@
         />
       </BentoItem>
 
-      <Modal
+      <PuModal
         :open="previewOpen"
         :title="t('adminAnchorEvents.timeWindowsPreviewTitle')"
         max-width="720px"
@@ -64,17 +67,16 @@
             {{ t("common.close") }}
           </Button>
         </div>
-      </Modal>
+      </PuModal>
     </BentoLayout>
   </section>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventParticipationPolicyEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventParticipationPolicyEditor.vue";
@@ -98,8 +100,6 @@ defineEmits<{
 const form = defineModel<AnchorEventEditorForm>({ required: true });
 const { t } = useI18n();
 const previewOpen = ref(false);
-
-useBodyScrollLock(previewOpen);
 
 const normalizeNullableNonNegativeInteger = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
@@ -151,35 +151,33 @@ const normalizedEarliestLeadMinutes = computed(() =>
   normalizeNullableNonNegativeInteger(form.value.earliestLeadMinutes),
 );
 
-const recurringStartRules = computed<AnchorEventRecurringStartRulePreviewInput[]>(
-  () =>
-    normalizeLines(form.value.recurringRulesText)
-      .map((line, index) => {
-        const { ruleText, description } = splitRuleDescription(line);
-        const [weekdaysRaw = "", timeOfDayRaw = ""] = ruleText.split(/\s+/, 2);
-        const weekdays = weekdaysRaw
-          .split(",")
-          .map((value) => Number(value.trim()))
-          .filter(
-            (value) => Number.isInteger(value) && value >= 0 && value <= 6,
-          );
-        const timeOfDay = timeOfDayRaw.trim();
-        if (weekdays.length === 0 || !/^\d{2}:\d{2}$/.test(timeOfDay)) {
-          return null;
-        }
-        return {
-          id: `recurring-${index + 1}`,
-          kind: "RECURRING" as const,
-          weekdays,
-          timeOfDay,
-          description,
-        };
-      })
-      .filter(
-        (
-          value,
-        ): value is AnchorEventRecurringStartRulePreviewInput => value !== null,
-      ),
+const recurringStartRules = computed<
+  AnchorEventRecurringStartRulePreviewInput[]
+>(() =>
+  normalizeLines(form.value.recurringRulesText)
+    .map((line, index) => {
+      const { ruleText, description } = splitRuleDescription(line);
+      const [weekdaysRaw = "", timeOfDayRaw = ""] = ruleText.split(/\s+/, 2);
+      const weekdays = weekdaysRaw
+        .split(",")
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6);
+      const timeOfDay = timeOfDayRaw.trim();
+      if (weekdays.length === 0 || !/^\d{2}:\d{2}$/.test(timeOfDay)) {
+        return null;
+      }
+      return {
+        id: `recurring-${index + 1}`,
+        kind: "RECURRING" as const,
+        weekdays,
+        timeOfDay,
+        description,
+      };
+    })
+    .filter(
+      (value): value is AnchorEventRecurringStartRulePreviewInput =>
+        value !== null,
+    ),
 );
 </script>
 

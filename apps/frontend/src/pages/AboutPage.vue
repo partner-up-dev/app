@@ -111,7 +111,7 @@
       @close="showOfficialAccountQrModal = false"
     />
 
-    <Modal
+    <PuModal
       :open="betaGroupModalOpen"
       :title="selectedBetaGroupModalTitle"
       max-width="420px"
@@ -131,7 +131,7 @@
           {{ t("aboutPage.betaGroupQrMissing") }}
         </p>
       </div>
-    </Modal>
+    </PuModal>
   </PuPageScaffold>
 </template>
 
@@ -143,10 +143,8 @@ import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const backendBuildMetadataQuery = useBackendBuildMetadata();
@@ -191,8 +189,6 @@ const selectedBetaGroupQrAlt = computed(() =>
 const betaGroupModalOpen = computed(
   () => selectedBetaGroupEvent.value !== null,
 );
-
-useBodyScrollLock(betaGroupModalOpen);
 
 const openBetaGroupModal = (eventId: number): void => {
   selectedBetaGroupEventId.value = eventId;
@@ -317,7 +313,10 @@ const backendCommitHash = computed(() => {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sys-spacing-small);
-  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  min-height: calc(
+    var(--sys-spacing-large) + var(--sys-spacing-small) +
+      var(--sys-spacing-xsmall)
+  );
   padding: var(--sys-spacing-small) 0;
 }
 

@@ -40,25 +40,17 @@
         </template>
       </PageHeader>
 
-      <Modal
+      <PuModal
         v-if="showEditContentModal && id !== null"
         :open="showEditContentModal"
         max-width="480px"
         :title="t('editContentModal.title')"
         @close="closeEditContentModal"
       >
-        <PREditor
-          ref="editorRef"
-          :pr-id="id"
-          @saved="closeEditContentModal"
-        />
+        <PREditor ref="editorRef" :pr-id="id" @saved="closeEditContentModal" />
 
         <div class="creator-modal-actions creator-modal-actions--spaced">
-          <Button
-            type="button"
-            tone="outline"
-            @click="closeEditContentModal"
-          >
+          <Button type="button" tone="outline" @click="closeEditContentModal">
             {{ t("common.cancel") }}
           </Button>
           <Button
@@ -71,9 +63,9 @@
             {{ t("editContentModal.confirmAction") }}
           </Button>
         </div>
-      </Modal>
+      </PuModal>
 
-      <Modal
+      <PuModal
         v-if="showModifyStatusModal && id !== null"
         :open="showModifyStatusModal"
         max-width="360px"
@@ -101,15 +93,14 @@
 
         <ErrorToast
           v-if="hasUpdateStatusError"
-          :message="updateStatusError?.message || t('modifyStatusModal.updateFailed')"
+          :message="
+            updateStatusError?.message || t('modifyStatusModal.updateFailed')
+          "
           @close="resetStatusUpdate"
         />
-      </Modal>
+      </PuModal>
 
-      <PRDraftPublishNotice
-        :pr-id="id"
-        :pr="prDetail"
-      />
+      <PRDraftPublishNotice :pr-id="id" :pr="prDetail" />
 
       <PuInlineNotice
         v-if="showEventAssistedCreateHandoffNotice"
@@ -134,9 +125,7 @@
           :join-entry-context="joinEntryContext"
         />
 
-        <PRConfirmationAction
-          :pr="prDetail"
-        />
+        <PRConfirmationAction :pr="prDetail" />
 
         <PRCheckInFeedbackActions :pr="prDetail" />
 
@@ -190,8 +179,6 @@ import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
@@ -233,7 +220,12 @@ import {
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
 import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
-import { PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+  PuModal,
+} from "@partner-up-dev/design-web";
 
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"
@@ -248,14 +240,17 @@ const prDetail = computed(() => data.value);
 const pendingReplayRegistry = providePRPendingReplayRegistry();
 const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
-const updateStatusFormRef =
-  ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
+const updateStatusFormRef = ref<InstanceType<typeof UpdatePRStatusForm> | null>(
+  null,
+);
 const showEditContentModal = ref(false);
 const showModifyStatusModal = ref(false);
 const matchedPRHandoff = useMatchedPRHandoff();
 const prReadyForPendingReplay = computed(
   () =>
-    id.value !== null && prDetail.value !== undefined && prDetail.value !== null,
+    id.value !== null &&
+    prDetail.value !== undefined &&
+    prDetail.value !== null,
 );
 
 const prDisplayTitle = computed(() => {
@@ -374,14 +369,6 @@ const isEditContentFormValid = computed(() => {
   return isRef<boolean>(canSubmit) ? canSubmit.value : Boolean(canSubmit);
 });
 
-useBodyScrollLock(
-  computed(
-    () =>
-      showEditContentModal.value ||
-      showModifyStatusModal.value,
-  ),
-);
-
 const { shareUrl, spmRouteKey, prShareData } = usePRShareContext({
   id,
   pr: prDetail,
@@ -451,7 +438,7 @@ const handleJoinSuccessClosed = async (): Promise<void> => {
   });
 };
 
-const readJsonOrThrow = async <T>(response: Response): Promise<T> => {
+const readJsonOrThrow = async <T,>(response: Response): Promise<T> => {
   if (!response.ok) {
     throw new Error("Request failed");
   }
