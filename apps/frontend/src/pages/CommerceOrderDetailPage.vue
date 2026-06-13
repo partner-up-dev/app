@@ -1,5 +1,9 @@
 <template>
-  <PuPageScaffold viewport="screen" class="order-detail-page" data-testid="order-detail.page">
+  <PuPageScaffold
+    viewport="screen"
+    class="order-detail-page"
+    data-testid="order-detail.page"
+  >
     <template #header>
       <PageHeader
         title="订单详情"
@@ -7,15 +11,16 @@
         :back-fallback-to="backFallbackTo"
       >
         <template #top-actions>
-          <ActionLink
-            :to="{ name: 'contact-support' }"
-            appearance="pill"
+          <PuButton
+            :action="{ to: { name: 'contact-support' } }"
+            shape="pill"
+            tone="primary"
             variant="outline"
             size="sm"
             data-testid="order-detail.contact-support.open"
           >
             客服
-          </ActionLink>
+          </PuButton>
         </template>
       </PageHeader>
     </template>
@@ -35,7 +40,10 @@
         :message="orderErrorMessage"
       />
 
-      <div v-else-if="orderQuery.isPending.value" class="order-detail-page__loading">
+      <div
+        v-else-if="orderQuery.isPending.value"
+        class="order-detail-page__loading"
+      >
         正在加载订单...
       </div>
 
@@ -78,10 +86,14 @@
               data-testid="order-detail.ride-hailing.route-map"
             >
               <div class="order-detail-page__ride-polyline"></div>
-              <div class="order-detail-page__ride-callout order-detail-page__ride-callout--origin">
+              <div
+                class="order-detail-page__ride-callout order-detail-page__ride-callout--origin"
+              >
                 {{ rideHailingDetail.route.origin.name }}
               </div>
-              <div class="order-detail-page__ride-callout order-detail-page__ride-callout--destination">
+              <div
+                class="order-detail-page__ride-callout order-detail-page__ride-callout--destination"
+              >
                 {{ rideHailingDetail.route.destination.name }}
               </div>
             </div>
@@ -97,7 +109,9 @@
               <div class="order-detail-page__facts">
                 <div>
                   <span>车型</span>
-                  <strong data-testid="order-detail.ride-hailing.selected-vehicle">
+                  <strong
+                    data-testid="order-detail.ride-hailing.selected-vehicle"
+                  >
                     {{ rideHailingDetail.selectedVehicleName }}
                   </strong>
                 </div>
@@ -113,13 +127,21 @@
                     {{ ridePassengersLabel }}
                   </strong>
                 </div>
-                <div v-if="rideHailingDetail.driver || rideHailingDetail.live?.driver">
+                <div
+                  v-if="
+                    rideHailingDetail.driver || rideHailingDetail.live?.driver
+                  "
+                >
                   <span>司机</span>
                   <strong data-testid="order-detail.ride-hailing.driver">
                     {{ rideDriverLabel }}
                   </strong>
                 </div>
-                <div v-if="rideHailingDetail.vehicle || rideHailingDetail.live?.vehicle">
+                <div
+                  v-if="
+                    rideHailingDetail.vehicle || rideHailingDetail.live?.vehicle
+                  "
+                >
                   <span>车辆</span>
                   <strong data-testid="order-detail.ride-hailing.vehicle">
                     {{ rideVehicleLabel }}
@@ -127,125 +149,134 @@
                 </div>
               </div>
 
-              <ActionLink
+              <PuButton
                 v-if="detail.bill"
-                :to="{ path: `/bills/${detail.bill.id}` }"
+                :action="{ to: { path: `/bills/${detail.bill.id}` } }"
+                shape="rect"
+                tone="primary"
+                variant="solid"
                 size="lg"
                 data-testid="order-detail.ride-hailing.bill-detail-link"
               >
                 查看账单并支付
-              </ActionLink>
+              </PuButton>
             </PuCard>
           </section>
         </template>
 
         <template v-else>
           <PuCard as="section" gap="md">
-          <div class="order-detail-page__section-heading">
-            <p class="order-detail-page__eyebrow">Bill</p>
-            <h2 data-testid="order-detail.total-price">
-              {{ formatFen(billEffectiveTotalFen) }}
-            </h2>
-          </div>
-
-          <div class="order-detail-page__bill-lines">
-            <div
-              v-for="line in detail.bill?.lines ?? []"
-              :key="line.id"
-              data-testid="order-detail.bill-line"
-            >
-              <span>{{ line.label }}</span>
-              <strong>{{ formatFen(line.amountFen) }}</strong>
+            <div class="order-detail-page__section-heading">
+              <p class="order-detail-page__eyebrow">Bill</p>
+              <h2 data-testid="order-detail.total-price">
+                {{ formatFen(billEffectiveTotalFen) }}
+              </h2>
             </div>
-          </div>
 
-          <p class="order-detail-page__status" data-testid="order-detail.payment-status">
-            支付状态：{{ paymentStatusLabel }}
-          </p>
+            <div class="order-detail-page__bill-lines">
+              <div
+                v-for="line in detail.bill?.lines ?? []"
+                :key="line.id"
+                data-testid="order-detail.bill-line"
+              >
+                <span>{{ line.label }}</span>
+                <strong>{{ formatFen(line.amountFen) }}</strong>
+              </div>
+            </div>
 
-          <ActionLink
-            v-if="detail.bill"
-            :to="{ path: `/bills/${detail.bill.id}` }"
-            size="lg"
-            data-testid="order-detail.bill-detail-link"
-          >
-            查看账单并支付
-          </ActionLink>
-          </PuCard>
-
-          <PuCard as="section" gap="md">
-          <div class="order-detail-page__section-heading">
-            <p class="order-detail-page__eyebrow">Cancellation</p>
-            <h2>取消政策</h2>
-          </div>
-
-          <div
-            class="order-detail-page__policy"
-            data-testid="order-detail.cancellation-policy"
-          >
             <p
-              v-for="summary in cancellationPolicySummary"
-              :key="summary"
+              class="order-detail-page__status"
+              data-testid="order-detail.payment-status"
             >
-              {{ summary }}
+              支付状态：{{ paymentStatusLabel }}
             </p>
-          </div>
 
-          <Button
-            v-if="detail.cancellation.canRequest"
-            tone="danger"
-            :loading="cancelMutation.isPending.value"
-            data-testid="order-detail.cancel-rental"
-            @click="cancelRentalOrder"
-          >
-            取消订单
-          </Button>
-
-          <PuInlineNotice
-            v-if="isCancellationPending"
-            tone="info"
-            title="取消处理中"
-            message="取消请求已提交，等待履约方处理。"
-            data-testid="order-detail.rental.cancellation-pending"
-          />
-
-          <PuInlineNotice
-            v-if="detail.order.status === 'CANCELLED'"
-            tone="success"
-            title="订单已取消"
-            :message="cancellationResultMessage"
-            data-testid="order-detail.rental.cancelled"
-          />
+            <PuButton
+              v-if="detail.bill"
+              :action="{ to: { path: `/bills/${detail.bill.id}` } }"
+              shape="rect"
+              tone="primary"
+              variant="solid"
+              size="lg"
+              data-testid="order-detail.bill-detail-link"
+            >
+              查看账单并支付
+            </PuButton>
           </PuCard>
 
           <PuCard as="section" gap="md">
-          <div class="order-detail-page__section-heading">
-            <p class="order-detail-page__eyebrow">Fulfillment</p>
-            <h2>场地预订</h2>
-          </div>
+            <div class="order-detail-page__section-heading">
+              <p class="order-detail-page__eyebrow">Cancellation</p>
+              <h2>取消政策</h2>
+            </div>
 
-          <p class="order-detail-page__status" data-testid="order-detail.fulfillment-status">
-            {{ fulfillmentStatusLabel }}
-          </p>
+            <div
+              class="order-detail-page__policy"
+              data-testid="order-detail.cancellation-policy"
+            >
+              <p v-for="summary in cancellationPolicySummary" :key="summary">
+                {{ summary }}
+              </p>
+            </div>
 
-          <Button
-            v-if="canConfirmRentalBooking"
-            size="lg"
-            tone="secondary"
-            :loading="confirmationMutation.isPending.value"
-            data-testid="order-detail.mock-rental-confirm"
-            @click="simulateBookingConfirmation"
-          >
-            模拟确认预订
-          </Button>
+            <Button
+              v-if="detail.cancellation.canRequest"
+              tone="danger"
+              :loading="cancelMutation.isPending.value"
+              data-testid="order-detail.cancel-rental"
+              @click="cancelRentalOrder"
+            >
+              取消订单
+            </Button>
 
-          <PuInlineNotice
-            v-if="detail.fulfillment?.bookingStatus === 'BOOKING_CONFIRMED'"
-            tone="success"
-            title="预约成功"
-            message="场地履约已经进入已确认状态。"
-            data-testid="order-detail.rental.booking-confirmed"
-          />
+            <PuInlineNotice
+              v-if="isCancellationPending"
+              tone="info"
+              title="取消处理中"
+              message="取消请求已提交，等待履约方处理。"
+              data-testid="order-detail.rental.cancellation-pending"
+            />
+
+            <PuInlineNotice
+              v-if="detail.order.status === 'CANCELLED'"
+              tone="success"
+              title="订单已取消"
+              :message="cancellationResultMessage"
+              data-testid="order-detail.rental.cancelled"
+            />
+          </PuCard>
+
+          <PuCard as="section" gap="md">
+            <div class="order-detail-page__section-heading">
+              <p class="order-detail-page__eyebrow">Fulfillment</p>
+              <h2>场地预订</h2>
+            </div>
+
+            <p
+              class="order-detail-page__status"
+              data-testid="order-detail.fulfillment-status"
+            >
+              {{ fulfillmentStatusLabel }}
+            </p>
+
+            <Button
+              v-if="canConfirmRentalBooking"
+              size="lg"
+              tone="secondary"
+              :loading="confirmationMutation.isPending.value"
+              data-testid="order-detail.mock-rental-confirm"
+              @click="simulateBookingConfirmation"
+            >
+              模拟确认预订
+            </Button>
+
+            <PuInlineNotice
+              v-if="detail.fulfillment?.bookingStatus === 'BOOKING_CONFIRMED'"
+              tone="success"
+              title="预约成功"
+              message="场地履约已经进入已确认状态。"
+              data-testid="order-detail.rental.booking-confirmed"
+            />
           </PuCard>
         </template>
       </template>
@@ -256,10 +287,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {
   useCancelRentalOrder,
   useCommerceOrderDetail,
@@ -416,7 +451,9 @@ const rideVehicleLabel = computed(() => {
   const vehicle =
     rideHailingDetail.value?.vehicle ?? rideHailingDetail.value?.live?.vehicle;
   if (!vehicle) return "";
-  return [vehicle.plate, vehicle.color, vehicle.brand].filter(Boolean).join(" ");
+  return [vehicle.plate, vehicle.color, vehicle.brand]
+    .filter(Boolean)
+    .join(" ");
 });
 
 const orderErrorMessage = computed(() =>
@@ -457,7 +494,8 @@ let ridePollingTimer: number | undefined;
 
 onMounted(() => {
   ridePollingTimer = window.setInterval(() => {
-    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill) return;
+    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill)
+      return;
     void orderQuery.refetch();
   }, 1500);
 });

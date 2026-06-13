@@ -37,18 +37,22 @@
           <p>{{ t("contactSupportPage.betaGroupDescription") }}</p>
         </div>
 
-        <ActionLink
+        <PuButton
           class="contact-action contact-action--beta-group"
-          :to="{ name: 'about', hash: '#beta-groups' }"
-          appearance="pill"
+          :action="{ to: { name: 'about', hash: '#beta-groups' } }"
+          shape="pill"
+          tone="primary"
           variant="outline"
         >
           {{ t("contactSupportPage.betaGroupAction") }}
-        </ActionLink>
+        </PuButton>
       </div>
     </section>
 
-    <nav class="support-entry-links" :aria-label="t('aboutPage.footerNavLabel')">
+    <nav
+      class="support-entry-links"
+      :aria-label="t('aboutPage.footerNavLabel')"
+    >
       <RouterLink class="support-entry-link" :to="{ name: 'contact-author' }">
         {{ t("contactSupportPage.authorEntry") }}
       </RouterLink>
@@ -76,11 +80,13 @@ import { useI18n } from "vue-i18n";
 import SupportContactAction from "@/domains/support/ui/sections/SupportContactAction.vue";
 import SupportContactQrModal from "@/domains/support/ui/sections/SupportContactQrModal.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
-import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
-import { PuChip, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PUBLIC_CONFIG_KEYS,
+  usePublicConfig,
+} from "@/shared/config/queries/usePublicConfig";
+import { PuButton, PuChip, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const DEFAULT_SUPPORT_LINK_WECHAT_IN =
   "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
@@ -152,7 +158,6 @@ const supportLink = computed(() =>
 );
 
 const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
-
 </script>
 
 <style lang="scss" scoped>

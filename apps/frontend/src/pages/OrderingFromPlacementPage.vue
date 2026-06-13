@@ -5,15 +5,16 @@
     :data-testid="orderingPageTestId"
   >
     <template #actions>
-      <ActionLink
-        :to="{ name: 'contact-support' }"
-        appearance="pill"
+      <PuButton
+        :action="{ to: { name: 'contact-support' } }"
+        shape="pill"
+        tone="primary"
         variant="outline"
         size="sm"
         data-testid="ordering.contact-support.open"
       >
         {{ t("ordering.contactSupportAction") }}
-      </ActionLink>
+      </PuButton>
     </template>
 
     <div class="ordering-page__body">
@@ -96,13 +97,12 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingFloatingNoticeLayer from "@/domains/commerce/ui/ordering/OrderingFloatingNoticeLayer.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
-import { PuInlineNotice } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 import RideHailingOrderingPanel, {
   type RideVehicleOption,
 } from "@/domains/commerce/ui/ordering/RideHailingOrderingPanel.vue";
@@ -258,7 +258,9 @@ const floatingNoticeMessage = computed(() => availabilityMessage.value);
 const floatingNoticeTone = computed<"warning" | "error">(() => "warning");
 
 const backFallbackTo = computed(() =>
-  orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
+  orderingEntry.value?.prId
+    ? { path: `/pr/${orderingEntry.value.prId}` }
+    : { path: "/" },
 );
 
 const handleRentalOutputUpdate = (next: OrderingContentOutput | null): void => {

@@ -24,9 +24,7 @@
       >
         <span
           class="admin-navigation-panel__panel-toggle-icon"
-          :class="
-            isPanelCollapsed ? 'i-mdi-chevron-down' : 'i-mdi-chevron-up'
-          "
+          :class="isPanelCollapsed ? 'i-mdi-chevron-down' : 'i-mdi-chevron-up'"
           aria-hidden="true"
         ></span>
       </button>
@@ -52,7 +50,10 @@
           @click="toggleGroup(group.id)"
         >
           <span>{{ t(group.labelKey) }}</span>
-          <span class="admin-navigation-panel__chevron" aria-hidden="true"></span>
+          <span
+            class="admin-navigation-panel__chevron"
+            aria-hidden="true"
+          ></span>
         </button>
 
         <div
@@ -60,18 +61,20 @@
           :id="`admin-navigation-panel-group-${group.id}`"
           class="admin-navigation-panel__items"
         >
-          <ChoiceCard
+          <PuCard
             v-for="item in group.items"
             :key="item.id"
-            :to="buildItemTarget(item)"
+            :action="{ to: buildItemTarget(item) }"
             :active="isItemActive(item)"
-            tone="low"
             class="admin-navigation-panel__item"
+            variant="soft"
+            padding="sm"
+            gap="xs"
           >
             <span class="admin-navigation-panel__item-label">
               {{ t(item.labelKey) }}
             </span>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </section>
     </nav>
@@ -96,15 +99,13 @@ import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import {
   adminNavigationGroups,
   type AdminNavigationItem,
 } from "@/domains/admin/ui/navigation/adminNavigationModel";
-import {
-  useAdminSessionStore,
-} from "@/domains/admin/use-cases/useAdminSessionStore";
+import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
 import type { AdminSessionRole } from "@/domains/admin/model/admin-session-storage";
+import { PuCard } from "@partner-up-dev/design-web";
 
 defineProps<{
   showLogout?: boolean;
@@ -332,7 +333,8 @@ watch(
   display: block;
 }
 
-.admin-navigation-panel__group.is-active .admin-navigation-panel__group-trigger {
+.admin-navigation-panel__group.is-active
+  .admin-navigation-panel__group-trigger {
   color: var(--sys-color-primary);
 }
 

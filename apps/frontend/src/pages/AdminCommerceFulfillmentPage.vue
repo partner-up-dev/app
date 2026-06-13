@@ -10,15 +10,19 @@
           {{ t("adminCommerceFulfillment.emptyFulfillments") }}
         </div>
         <div v-else class="fulfillment-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="record in fulfillments"
             :key="record.fulfillment.id"
             :active="selectedFulfillmentId === record.fulfillment.id"
             @click="selectedFulfillmentIdRaw = record.fulfillment.id"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ record.fulfillment.bookingStatus }}</span>
             <small>{{ record.fulfillment.cancellationHandlingStatus }}</small>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
@@ -42,7 +46,10 @@
           align="start"
         />
         <template v-else-if="selectedRecord">
-          <BentoItem :title="t('adminCommerceFulfillment.summaryTitle')" span="full">
+          <BentoItem
+            :title="t('adminCommerceFulfillment.summaryTitle')"
+            span="full"
+          >
             <dl class="summary-grid">
               <div>
                 <dt>{{ t("adminCommerceFulfillment.fulfillmentIdLabel") }}</dt>
@@ -57,12 +64,23 @@
                 <dd>{{ selectedRecord.fulfillment.bookingStatus }}</dd>
               </div>
               <div>
-                <dt>{{ t("adminCommerceFulfillment.cancellationHandlingLabel") }}</dt>
-                <dd>{{ selectedRecord.fulfillment.cancellationHandlingStatus }}</dd>
+                <dt>
+                  {{ t("adminCommerceFulfillment.cancellationHandlingLabel") }}
+                </dt>
+                <dd>
+                  {{ selectedRecord.fulfillment.cancellationHandlingStatus }}
+                </dd>
               </div>
               <div>
-                <dt>{{ t("adminCommerceFulfillment.cancellationOutcomeLabel") }}</dt>
-                <dd>{{ selectedRecord.fulfillment.supplierCancellationOutcome ?? "-" }}</dd>
+                <dt>
+                  {{ t("adminCommerceFulfillment.cancellationOutcomeLabel") }}
+                </dt>
+                <dd>
+                  {{
+                    selectedRecord.fulfillment.supplierCancellationOutcome ??
+                    "-"
+                  }}
+                </dd>
               </div>
               <div>
                 <dt>{{ t("adminCommerceFulfillment.billLabel") }}</dt>
@@ -71,11 +89,16 @@
             </dl>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceFulfillment.bookingOpsTitle')" span="full">
+          <BentoItem
+            :title="t('adminCommerceFulfillment.bookingOpsTitle')"
+            span="full"
+          >
             <div class="form-stack">
               <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.bookingNoteLabel") }}</span>
-                <textarea v-model="bookingNote" class="text-area" ></textarea>
+                <span class="field-label">{{
+                  t("adminCommerceFulfillment.bookingNoteLabel")
+                }}</span>
+                <textarea v-model="bookingNote" class="text-area"></textarea>
               </label>
               <div class="inline-actions">
                 <Button
@@ -86,7 +109,11 @@
                   :disabled="isConfirming"
                   @click="handleConfirmBooking"
                 >
-                  {{ isConfirming ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.confirmBookingAction") }}
+                  {{
+                    isConfirming
+                      ? t("adminCommerceFulfillment.processingAction")
+                      : t("adminCommerceFulfillment.confirmBookingAction")
+                  }}
                 </Button>
                 <Button
                   size="sm"
@@ -94,13 +121,20 @@
                   :disabled="isRejecting"
                   @click="handleRejectBooking"
                 >
-                  {{ isRejecting ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.rejectBookingAction") }}
+                  {{
+                    isRejecting
+                      ? t("adminCommerceFulfillment.processingAction")
+                      : t("adminCommerceFulfillment.rejectBookingAction")
+                  }}
                 </Button>
               </div>
             </div>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceFulfillment.cancellationOpsTitle')" span="full">
+          <BentoItem
+            :title="t('adminCommerceFulfillment.cancellationOpsTitle')"
+            span="full"
+          >
             <div class="form-stack">
               <div
                 class="status-strip"
@@ -111,8 +145,13 @@
                 <span>{{ pendingCancellationAttempt?.attemptId ?? "-" }}</span>
               </div>
               <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.cancellationNoteLabel") }}</span>
-                <textarea v-model="cancellationNote" class="text-area" ></textarea>
+                <span class="field-label">{{
+                  t("adminCommerceFulfillment.cancellationNoteLabel")
+                }}</span>
+                <textarea
+                  v-model="cancellationNote"
+                  class="text-area"
+                ></textarea>
               </label>
               <div class="inline-actions">
                 <Button
@@ -124,7 +163,11 @@
                   data-testid="admin-fulfillment.approve-cancellation"
                   @click="handleApproveCancellation"
                 >
-                  {{ isApprovingCancellation ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.approveCancellationAction") }}
+                  {{
+                    isApprovingCancellation
+                      ? t("adminCommerceFulfillment.processingAction")
+                      : t("adminCommerceFulfillment.approveCancellationAction")
+                  }}
                 </Button>
                 <Button
                   size="sm"
@@ -133,36 +176,74 @@
                   data-testid="admin-fulfillment.deny-cancellation"
                   @click="handleDenyCancellation"
                 >
-                  {{ isDenyingCancellation ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.denyCancellationAction") }}
+                  {{
+                    isDenyingCancellation
+                      ? t("adminCommerceFulfillment.processingAction")
+                      : t("adminCommerceFulfillment.denyCancellationAction")
+                  }}
                 </Button>
               </div>
             </div>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceFulfillment.entryGuidanceTitle')" span="full">
+          <BentoItem
+            :title="t('adminCommerceFulfillment.entryGuidanceTitle')"
+            span="full"
+          >
             <div class="form-stack">
               <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.entryPhoneLabel") }}</span>
-                <input v-model="entryGuidance.entryByPhone" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommerceFulfillment.entryPhoneLabel")
+                }}</span>
+                <input
+                  v-model="entryGuidance.entryByPhone"
+                  class="text-input"
+                  type="text"
+                />
               </label>
               <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.entryRealNameLabel") }}</span>
-                <input v-model="entryGuidance.entryByRealName" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommerceFulfillment.entryRealNameLabel")
+                }}</span>
+                <input
+                  v-model="entryGuidance.entryByRealName"
+                  class="text-input"
+                  type="text"
+                />
               </label>
               <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.entryNoteLabel") }}</span>
-                <textarea v-model="entryGuidance.note" class="text-area" ></textarea>
+                <span class="field-label">{{
+                  t("adminCommerceFulfillment.entryNoteLabel")
+                }}</span>
+                <textarea
+                  v-model="entryGuidance.note"
+                  class="text-area"
+                ></textarea>
               </label>
               <div class="inline-actions">
-                <Button size="sm" type="button" :disabled="isSavingGuidance" @click="handleSaveGuidance">
-                  {{ isSavingGuidance ? t("adminCommerceFulfillment.processingAction") : t("adminCommerceFulfillment.saveGuidanceAction") }}
+                <Button
+                  size="sm"
+                  type="button"
+                  :disabled="isSavingGuidance"
+                  @click="handleSaveGuidance"
+                >
+                  {{
+                    isSavingGuidance
+                      ? t("adminCommerceFulfillment.processingAction")
+                      : t("adminCommerceFulfillment.saveGuidanceAction")
+                  }}
                 </Button>
               </div>
             </div>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceFulfillment.rawStateTitle')" span="full">
-            <pre class="json-pre">{{ prettyJson(selectedRecord.fulfillment) }}</pre>
+          <BentoItem
+            :title="t('adminCommerceFulfillment.rawStateTitle')"
+            span="full"
+          >
+            <pre class="json-pre">{{
+              prettyJson(selectedRecord.fulfillment)
+            }}</pre>
           </BentoItem>
 
           <ErrorToast
@@ -195,8 +276,11 @@ import {
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuCard,
+  PuEmptyState,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -217,8 +301,12 @@ const entryGuidance = ref({
 });
 const localErrorMessage = ref<string | null>(null);
 
-const fulfillments = computed(() => workspaceQuery.data.value?.fulfillments ?? []);
-const selectedFulfillmentId = computed(() => selectedFulfillmentIdRaw.value || null);
+const fulfillments = computed(
+  () => workspaceQuery.data.value?.fulfillments ?? [],
+);
+const selectedFulfillmentId = computed(
+  () => selectedFulfillmentIdRaw.value || null,
+);
 const selectedRecord = computed(
   () =>
     fulfillments.value.find(
@@ -245,8 +333,8 @@ const pendingCancellationAttempt = computed(
 );
 const canResolveCancellation = computed(
   () =>
-    selectedRecord.value?.fulfillment.cancellationHandlingStatus === "REQUESTED" &&
-    pendingCancellationAttempt.value !== null,
+    selectedRecord.value?.fulfillment.cancellationHandlingStatus ===
+      "REQUESTED" && pendingCancellationAttempt.value !== null,
 );
 const cancellationGateLabel = computed(() =>
   canResolveCancellation.value
@@ -273,7 +361,8 @@ watch(
         (record) => record.fulfillment.id === selectedFulfillmentIdRaw.value,
       )
     ) {
-      selectedFulfillmentIdRaw.value = nextFulfillments[0]?.fulfillment.id ?? "";
+      selectedFulfillmentIdRaw.value =
+        nextFulfillments[0]?.fulfillment.id ?? "";
     }
   },
   { immediate: true },

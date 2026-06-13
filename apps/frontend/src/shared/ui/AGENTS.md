@@ -14,13 +14,13 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 Actions:
 
 - `actions/Button.vue`: shared button primitive. Prefer it over page-local button classes; use `appearance="pill"` for compact CTA clusters and `appearance="rect"` for dialogs or block actions. Keep `tone` choices narrow.
-- `actions/ActionLink.vue`: shared action-looking link primitive for RouterLink and external anchor CTAs.
+- `PuButton` from `@partner-up-dev/design-web`: default package action primitive for command buttons, route CTAs, href CTAs, icon actions, and action-looking links. Use the package `action` prop directly at usage sites instead of adding a local action-link wrapper.
 - `actions/FeedbackButton.vue`: shared transient feedback action button for short-lived pending/success/error feedback states.
 
 Containers and layout:
 
 - `PuCard` from `@partner-up-dev/design-web`: standard card shell for reusable grouped content, outline surfaces, and collapsible sections. Use `variant` for treatment and `keep-content-mounted` only when collapsed content owns local state that must survive collapse.
-- `containers/ChoiceCard.vue`: selectable card primitive for button-like choices and RouterLink navigation choices.
+- `PuCard` from `@partner-up-dev/design-web`: use `selectable` for button-like choices and `action` for route or href card targets instead of adding a local choice-card wrapper.
 - `PuPageScaffold` from `@partner-up-dev/design-web`: page scaffold for route pages, centered flows, full-screen flows, desktop aside pages, and reveal-footer layouts. Prefer direct package usage instead of recreating safe-area page chrome locally.
 - `sections/PageFooter.vue`: product page footer chrome with `variant="minimal"` for compact support/navigation footers and `variant="brand"` for landing-style brand/legal footers. Prefer extending this variant API over creating another page footer component.
 
@@ -47,7 +47,7 @@ Overlay:
 ## Reuse Rules
 
 - Prefer composing these primitives in pages and domain sections before creating new page-local shells.
-- Keep action treatment styles inside the lowest action primitives (`Button` and `ActionLink`); higher-level shared components, domain components, and pages should compose primitives instead of re-declaring those styles.
+- Keep app-specific action treatment styles inside the lowest remaining app-owned action primitives (`Button` and `FeedbackButton`); otherwise compose package `PuButton` / `PuCard` directly instead of re-declaring action recipes.
 - If a component needs backend-derived policy logic, workflow branching, or domain vocabulary, keep it in the owning domain and compose shared primitives inside it.
 - If a primitive variant is needed in a third distinct place, extend the shared primitive API instead of cloning the component locally.
 - When extending a primitive API, update this file in the same change so the new contract stays discoverable.

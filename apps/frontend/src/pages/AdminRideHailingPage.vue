@@ -22,19 +22,26 @@
           暂无 Provider Instance
         </div>
         <div v-else class="provider-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="record in providerInstances"
             :key="record.id"
             :active="selectedProviderId === record.id"
             data-testid="admin-ride-hailing.provider-card"
             @click="selectedProviderIdRaw = record.id"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ record.displayName }}</span>
             <small>{{ record.providerType }} / {{ record.instanceKey }}</small>
-            <span class="status-pill" :class="{ 'is-disabled': record.status === 'DISABLED' }">
+            <span
+              class="status-pill"
+              :class="{ 'is-disabled': record.status === 'DISABLED' }"
+            >
               {{ providerStatusLabel(record.status) }}
             </span>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
@@ -56,7 +63,11 @@
               <div class="field-grid">
                 <label class="field">
                   <span class="field-label">Provider</span>
-                  <select v-model="form.providerType" class="text-input" disabled>
+                  <select
+                    v-model="form.providerType"
+                    class="text-input"
+                    disabled
+                  >
                     <option value="CAOCAO">曹操 CAOCAO</option>
                   </select>
                 </label>
@@ -168,11 +179,19 @@
               </div>
               <div>
                 <dt>Callback URL</dt>
-                <dd class="breakable">{{ selectedProvider?.callbackUrl ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.callbackUrl ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>Updated At</dt>
-                <dd>{{ selectedProvider ? formatTimestamp(selectedProvider.updatedAt) : "-" }}</dd>
+                <dd>
+                  {{
+                    selectedProvider
+                      ? formatTimestamp(selectedProvider.updatedAt)
+                      : "-"
+                  }}
+                </dd>
               </div>
             </dl>
           </BentoItem>
@@ -205,8 +224,7 @@ import {
 } from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 
@@ -250,7 +268,9 @@ const selectedProvider = computed(
       (record) => record.id === selectedProviderId.value,
     ) ?? null,
 );
-const isCreateMode = computed(() => selectedProviderId.value === CREATE_PROVIDER_ID);
+const isCreateMode = computed(
+  () => selectedProviderId.value === CREATE_PROVIDER_ID,
+);
 const isSaving = computed(
   () => createMutation.isPending.value || updateMutation.isPending.value,
 );

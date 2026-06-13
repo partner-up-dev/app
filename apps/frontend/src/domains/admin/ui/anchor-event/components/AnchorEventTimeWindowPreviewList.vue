@@ -7,14 +7,19 @@
       {{ t("adminPR.emptyTimeWindows") }}
     </div>
     <div v-else class="anchor-event-time-window-preview-list__items">
-      <ChoiceCard
+      <PuCard
         v-for="timeWindow in timeWindows"
         :key="timeWindow.key"
         class="anchor-event-time-window-preview-list__item"
+        variant="outline"
+        padding="sm"
+        gap="xs"
       >
         <span>{{ formatWindow(timeWindow.timeWindow) }}</span>
-        <small v-if="timeWindow.description">{{ timeWindow.description }}</small>
-      </ChoiceCard>
+        <small v-if="timeWindow.description">{{
+          timeWindow.description
+        }}</small>
+      </PuCard>
     </div>
   </div>
 </template>
@@ -22,8 +27,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
+import { PuCard } from "@partner-up-dev/design-web";
 import {
   listRecurringAnchorEventTimeWindowPreview,
   type AnchorEventRecurringStartRulePreviewInput,

@@ -22,19 +22,26 @@
           暂无 Payment Provider Instance
         </div>
         <div v-else class="provider-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="record in providerInstances"
             :key="record.id"
             :active="selectedProviderId === record.id"
             data-testid="admin-payment.provider-card"
             @click="selectedProviderIdRaw = record.id"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ record.displayName }}</span>
             <small>{{ record.providerType }} / {{ record.clientId }}</small>
-            <span class="status-pill" :class="{ 'is-disabled': record.status === 'DISABLED' }">
+            <span
+              class="status-pill"
+              :class="{ 'is-disabled': record.status === 'DISABLED' }"
+            >
               {{ providerStatusLabel(record.status) }}
             </span>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
@@ -56,7 +63,11 @@
               <div class="field-grid">
                 <label class="field">
                   <span class="field-label">Provider</span>
-                  <select v-model="form.providerType" class="text-input" disabled>
+                  <select
+                    v-model="form.providerType"
+                    class="text-input"
+                    disabled
+                  >
                     <option value="WECHAT_PAY">微信支付 WECHAT_PAY</option>
                   </select>
                 </label>
@@ -121,7 +132,9 @@
 
                 <div class="field">
                   <span class="field-label">Instance Key</span>
-                  <output class="read-only-output">{{ derivedInstanceKey }}</output>
+                  <output class="read-only-output">{{
+                    derivedInstanceKey
+                  }}</output>
                 </div>
 
                 <label class="field field--wide">
@@ -203,7 +216,9 @@
               </div>
               <div>
                 <dt>Instance Key</dt>
-                <dd class="breakable">{{ selectedProvider?.instanceKey ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.instanceKey ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>API v3 Key</dt>
@@ -223,15 +238,25 @@
               </div>
               <div>
                 <dt>Charge Notify URL</dt>
-                <dd class="breakable">{{ selectedProvider?.chargeNotifyUrl ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.chargeNotifyUrl ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>Refund Notify URL</dt>
-                <dd class="breakable">{{ selectedProvider?.refundNotifyUrl ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.refundNotifyUrl ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>Updated At</dt>
-                <dd>{{ selectedProvider ? formatTimestamp(selectedProvider.updatedAt) : "-" }}</dd>
+                <dd>
+                  {{
+                    selectedProvider
+                      ? formatTimestamp(selectedProvider.updatedAt)
+                      : "-"
+                  }}
+                </dd>
               </div>
             </dl>
           </BentoItem>
@@ -264,8 +289,7 @@ import {
 } from "@/domains/admin-payment/queries/useAdminPayment";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 
@@ -312,12 +336,16 @@ const selectedProvider = computed(
       (record) => record.id === selectedProviderId.value,
     ) ?? null,
 );
-const isCreateMode = computed(() => selectedProviderId.value === CREATE_PROVIDER_ID);
+const isCreateMode = computed(
+  () => selectedProviderId.value === CREATE_PROVIDER_ID,
+);
 const isSaving = computed(
   () => createMutation.isPending.value || updateMutation.isPending.value,
 );
 const formTitle = computed(() =>
-  isCreateMode.value ? "新建 Payment Provider Instance" : "编辑 Payment Provider Instance",
+  isCreateMode.value
+    ? "新建 Payment Provider Instance"
+    : "编辑 Payment Provider Instance",
 );
 const derivedInstanceKey = computed(() => {
   const mchId = form.value.mchId.trim();
@@ -333,7 +361,9 @@ const optionalSecretPlaceholder = computed(() =>
 );
 const apiV3KeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
-  return selectedProvider.value?.config.apiV3KeyConfigured ? "已配置" : "未配置";
+  return selectedProvider.value?.config.apiV3KeyConfigured
+    ? "已配置"
+    : "未配置";
 });
 const merchantPrivateKeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
@@ -389,8 +419,7 @@ function formFromProvider(provider: ProviderInstance): ProviderForm {
     chargeMode: provider.config.chargeMode,
     endpointBaseUrl: provider.config.endpointBaseUrl ?? "",
     apiV3Key: "",
-    merchantCertificateSerialNo:
-      provider.config.merchantCertificate.serialNo,
+    merchantCertificateSerialNo: provider.config.merchantCertificate.serialNo,
     merchantPrivateKeyPem: "",
     merchantCertificatePem: "",
   };
@@ -412,7 +441,10 @@ const requireCreateSecret = (value: string, label: string): void => {
 
 const buildInput = (): AdminPaymentProviderInstanceInput => {
   requireCreateSecret(form.value.apiV3Key, "API v3 Key");
-  requireCreateSecret(form.value.merchantPrivateKeyPem, "Merchant Private Key PEM");
+  requireCreateSecret(
+    form.value.merchantPrivateKeyPem,
+    "Merchant Private Key PEM",
+  );
 
   return {
     providerType: form.value.providerType,

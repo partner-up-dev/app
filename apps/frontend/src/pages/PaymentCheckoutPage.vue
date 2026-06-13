@@ -1,5 +1,9 @@
 <template>
-  <PuPageScaffold viewport="screen" class="payment-checkout-page" data-testid="payment-checkout.page">
+  <PuPageScaffold
+    viewport="screen"
+    class="payment-checkout-page"
+    data-testid="payment-checkout.page"
+  >
     <template #header>
       <PageHeader
         title="支付"
@@ -44,7 +48,10 @@
             </strong>
           </div>
 
-          <p class="payment-checkout-page__status" data-testid="payment-checkout.status">
+          <p
+            class="payment-checkout-page__status"
+            data-testid="payment-checkout.status"
+          >
             支付状态：{{ paymentStatusLabel }}
           </p>
         </PuCard>
@@ -56,7 +63,10 @@
           </div>
 
           <PuInlineNotice
-            v-if="!checkout.eligibility.payable && activePayment?.status !== 'SUCCEEDED'"
+            v-if="
+              !checkout.eligibility.payable &&
+              activePayment?.status !== 'SUCCEEDED'
+            "
             tone="warning"
             title="当前不可支付"
             :message="checkout.eligibility.disabledReason ?? '支付条件不满足。'"
@@ -72,9 +82,14 @@
             发起微信支付
           </Button>
 
-          <template v-if="activePayment && activePayment.status !== 'SUCCEEDED'">
+          <template
+            v-if="activePayment && activePayment.status !== 'SUCCEEDED'"
+          >
             <Button
-              v-if="activePaymentClientActionType === 'PAYMENT_REDIRECT' && redirectUrl"
+              v-if="
+                activePaymentClientActionType === 'PAYMENT_REDIRECT' &&
+                redirectUrl
+              "
               tone="secondary"
               data-testid="payment-checkout.redirect-open"
               @click="openRedirectPayment"
@@ -109,7 +124,9 @@
           />
 
           <PuInlineNotice
-            v-if="createChargeMutation.isError.value || syncMutation.isError.value"
+            v-if="
+              createChargeMutation.isError.value || syncMutation.isError.value
+            "
             tone="error"
             title="支付处理失败"
             :message="mutationErrorMessage"
@@ -125,13 +142,15 @@
         </PuCard>
 
         <PuCard as="section" gap="sm" padding="sm" variant="outline">
-          <ActionLink
-            :to="{ path: `/bills/${checkout.bill.id}` }"
+          <PuButton
+            :action="{ to: { path: `/bills/${checkout.bill.id}` } }"
+            shape="rect"
+            tone="primary"
             variant="outline"
             data-testid="payment-checkout.bill-link"
           >
             返回账单
-          </ActionLink>
+          </PuButton>
         </PuCard>
       </template>
     </div>
@@ -141,10 +160,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {
   useCreateChargeForBillLine,
   usePaymentCheckout,
@@ -216,7 +239,10 @@ const activePayment = computed(
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const readString = (record: Record<string, unknown>, key: string): string | null => {
+const readString = (
+  record: Record<string, unknown>,
+  key: string,
+): string | null => {
   const value = record[key];
   return typeof value === "string" && value.length > 0 ? value : null;
 };

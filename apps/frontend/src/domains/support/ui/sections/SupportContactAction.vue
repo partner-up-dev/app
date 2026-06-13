@@ -9,22 +9,22 @@
   >
     <slot />
   </Button>
-  <ActionLink
+  <PuButton
     v-else
     v-bind="attrs"
-    :href="props.href"
-    external
-    appearance="pill"
+    :action="{ href: props.href, external: true }"
+    shape="pill"
     :tone="props.tone"
+    variant="solid"
   >
     <slot />
-  </ActionLink>
+  </PuButton>
 </template>
 
 <script setup lang="ts">
 import { useAttrs } from "vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineOptions({
   inheritAttrs: false,

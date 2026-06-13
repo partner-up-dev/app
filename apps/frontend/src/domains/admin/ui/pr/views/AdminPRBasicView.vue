@@ -72,19 +72,23 @@
                   v-else
                   class="pr-result-list pr-result-list--grid pr-result-list--scroll"
                 >
-                  <ChoiceCard
+                  <PuCard
                     v-for="pr in filteredPRs"
                     :key="pr.prId"
                     class="pr-result-card"
                     :active="!isCreatingPR && selectedPRId === pr.prId"
                     @click="selectExistingPR(pr.prId)"
+                    selectable
+                    variant="outline"
+                    padding="sm"
+                    gap="xs"
                   >
                     <span>
                       {{ pr.title || pr.placeDisplayName || `#${pr.prId}` }}
                     </span>
                     <small>#{{ pr.prId }} / {{ pr.status }}</small>
                     <small>{{ formatWindow(pr.time) }}</small>
-                  </ChoiceCard>
+                  </PuCard>
                 </div>
               </div>
             </BentoItem>
@@ -466,7 +470,6 @@ import {
   type PRPlaceMode,
 } from "@/domains/pr/model/pr-route";
 import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
@@ -474,7 +477,7 @@ import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
-import { PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
+import { PuCard, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
 
 type PRForm = {
   title: string;

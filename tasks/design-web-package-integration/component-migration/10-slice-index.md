@@ -92,9 +92,18 @@ Started after explicit user approval.
 | File                            | Local Component                        | Package Target             | Status   |
 | ------------------------------- | -------------------------------------- | -------------------------- | -------- |
 | `components/button.md`          | `shared/ui/actions/Button.vue`         | `PuButton`                 | Proposed |
-| `components/action-link.md`     | `shared/ui/actions/ActionLink.vue`     | `PuButton` action prop     | Proposed |
+| `components/action-link.md`     | `shared/ui/actions/ActionLink.vue`     | `PuButton` action prop     | Done     |
 | `components/feedback-button.md` | `shared/ui/actions/FeedbackButton.vue` | `PuButton` feedback prop   | Proposed |
-| `components/choice-card.md`     | `shared/ui/containers/ChoiceCard.vue`  | `PuCard` action/selectable | Proposed |
+| `components/choice-card.md`     | `shared/ui/containers/ChoiceCard.vue`  | `PuCard` action/selectable | Done     |
+
+## Selected Fourth Slice Candidate
+
+Started after explicit user direction to handle `ActionLink` and `ChoiceCard`.
+
+| Order | File                        | Scope                                                                                                                                                                                                        | Status |
+| ----- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 1     | `components/action-link.md` | Replace local `ActionLink` call sites with `PuButton` plus structured `action`; map routes to `{ to }`, anchors to `{ href, external, target, rel }`, and delete the local primitive after call sites clear. | Done   |
+| 2     | `components/choice-card.md` | Replace local `ChoiceCard` call sites with `PuCard`; use `selectable` for button-like choices, `action` for route cards, and delete the local primitive after call sites clear.                              | Done   |
 
 ## Deferred Domain Or Product Chrome
 

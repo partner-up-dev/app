@@ -10,15 +10,19 @@
           {{ t("adminCommerceOrderBill.emptyOrders") }}
         </div>
         <div v-else class="order-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="record in orders"
             :key="record.order.id"
             :active="selectedOrderId === record.order.id"
             @click="selectedOrderIdRaw = record.order.id"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ record.order.family }} · {{ record.order.status }}</span>
             <small>#{{ record.order.offerId }}</small>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
@@ -42,7 +46,10 @@
           align="start"
         />
         <template v-else-if="selectedOrderRecord">
-          <BentoItem :title="t('adminCommerceOrderBill.orderSummaryTitle')" span="full">
+          <BentoItem
+            :title="t('adminCommerceOrderBill.orderSummaryTitle')"
+            span="full"
+          >
             <dl class="summary-grid">
               <div>
                 <dt>{{ t("adminCommerceOrderBill.orderIdLabel") }}</dt>
@@ -59,12 +66,22 @@
             </dl>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceOrderBill.participantsTitle')" span="full">
-            <pre class="json-pre">{{ prettyJson(selectedOrderRecord.order.participants) }}</pre>
+          <BentoItem
+            :title="t('adminCommerceOrderBill.participantsTitle')"
+            span="full"
+          >
+            <pre class="json-pre">{{
+              prettyJson(selectedOrderRecord.order.participants)
+            }}</pre>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceOrderBill.terminationAttemptsTitle')" span="full">
-            <pre class="json-pre">{{ prettyJson(selectedOrderRecord.order.terminationAttempts) }}</pre>
+          <BentoItem
+            :title="t('adminCommerceOrderBill.terminationAttemptsTitle')"
+            span="full"
+          >
+            <pre class="json-pre">{{
+              prettyJson(selectedOrderRecord.order.terminationAttempts)
+            }}</pre>
           </BentoItem>
 
           <BentoItem :title="t('adminCommerceOrderBill.billTitle')" span="full">
@@ -87,7 +104,9 @@
                 </div>
               </dl>
 
-              <pre class="json-pre">{{ prettyJson(selectedOrderRecord.billLines) }}</pre>
+              <pre class="json-pre">{{
+                prettyJson(selectedOrderRecord.billLines)
+              }}</pre>
             </template>
           </BentoItem>
         </template>
@@ -107,8 +126,11 @@ import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminCommerceOrderBillWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuCard,
+  PuEmptyState,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -118,7 +140,9 @@ const selectedOrderIdRaw = ref("");
 const orders = computed(() => workspaceQuery.data.value?.orders ?? []);
 const selectedOrderId = computed(() => selectedOrderIdRaw.value || null);
 const selectedOrderRecord = computed(
-  () => orders.value.find((record) => record.order.id === selectedOrderId.value) ?? null,
+  () =>
+    orders.value.find((record) => record.order.id === selectedOrderId.value) ??
+    null,
 );
 
 const effectiveTotalFen = computed(() => {
@@ -131,7 +155,9 @@ const effectiveTotalFen = computed(() => {
 watch(
   orders,
   (nextOrders) => {
-    if (!nextOrders.some((record) => record.order.id === selectedOrderIdRaw.value)) {
+    if (
+      !nextOrders.some((record) => record.order.id === selectedOrderIdRaw.value)
+    ) {
       selectedOrderIdRaw.value = nextOrders[0]?.order.id ?? "";
     }
   },

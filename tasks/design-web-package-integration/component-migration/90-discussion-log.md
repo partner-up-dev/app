@@ -203,3 +203,23 @@ apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
   files / 117 tests), migrated overlay and scroll-lock reference scan,
   package-prop vocabulary scan for `PuDialog`/`PuDrawer`, and `git diff
 --check`.
+- Third overlay slice was committed as
+  `95b383d1 refactor(frontend): migrate overlay primitives to design package`.
+- Fourth slice started for `ActionLink` and `ChoiceCard`. Package docs and
+  declarations identify `PuButton` with structured `action` as the correct
+  target for action-looking route/href CTAs, and `PuCard` with `action` or
+  `selectable` as the correct target for choice cards.
+- Current `ActionLink` usage includes ineffective `variant="outline"` attrs
+  because the local component has no `variant` prop. The fourth slice should
+  treat those as author intent and map them to real `PuButton` variants instead
+  of preserving the old no-op.
+- Fourth slice completed. `ActionLink.vue` was deleted after all usage sites
+  moved to direct `PuButton :action` composition. `ChoiceCard.vue` was deleted
+  after all usage sites moved to direct `PuCard` composition.
+- `ChoiceCard` usages were split by semantics: button-like rail/status choices
+  use `PuCard selectable`, admin navigation route choices use `PuCard
+:action="{ to: ... }"`, and the time-window preview list uses non-interactive
+  `PuCard`.
+- Verification passed: frontend build, token lint, frontend unit tests (26
+  files / 117 tests), source reference scan, `PuButton`/`PuCard` old-prop
+  vocabulary scan, and `git diff --check`.

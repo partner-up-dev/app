@@ -16,7 +16,8 @@ design package should not absorb.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Implementation status: third overlay slice implemented and verified locally.
+- Implementation status: fourth action-card slice implemented and verified
+  locally.
   Usage sites now consume the relevant package components directly and the
   migrated local facades have been deleted.
 
@@ -126,6 +127,10 @@ design package should not absorb.
   `ConfirmDialog`, `BottomDrawer`, and `useBodyScrollLock`. The old
   `lib/body-scroll-lock.ts` helper was also deleted after overlay call sites no
   longer needed parent-managed scroll locking.
+- Fourth slice completed: `ActionLink` usage sites now directly use `PuButton`
+  with structured `action`; `ChoiceCard` usage sites now directly use `PuCard`
+  with `selectable` for button-like choices or `action` for route cards. Local
+  `ActionLink.vue` and `ChoiceCard.vue` were deleted.
 
 ## First Slice Candidate
 
@@ -168,6 +173,11 @@ diff --check` passed.
   passed; frontend unit tests passed, 26 files / 117 tests; migrated overlay
   and scroll-lock scan returned no usage-site references; package API scan found
   no old `PuDialog` or `PuDrawer` prop vocabulary; `git diff --check` passed.
+- Fourth-slice verification on 2026-06-13: frontend build passed; token lint
+  passed; frontend unit tests passed, 26 files / 117 tests; migrated
+  `ActionLink`/`ChoiceCard` reference scan returned no source references; old
+  `PuButton`/`PuCard` prop vocabulary scan returned no findings; `git diff
+--check` passed.
 - Agent Skill verification on 2026-06-13: `pnpm dlx
 @tanstack/intent@latest list --json` found
   `@partner-up-dev/design-web#design-web` from the installed `0.4.0` package;

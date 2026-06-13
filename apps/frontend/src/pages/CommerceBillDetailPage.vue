@@ -1,5 +1,9 @@
 <template>
-  <PuPageScaffold viewport="screen" class="bill-detail-page" data-testid="bill-detail.page">
+  <PuPageScaffold
+    viewport="screen"
+    class="bill-detail-page"
+    data-testid="bill-detail.page"
+  >
     <template #header>
       <PageHeader
         title="账单详情"
@@ -70,13 +74,15 @@
             </div>
           </div>
 
-          <ActionLink
-            :to="{ path: `/orders/${detail.order.id}` }"
+          <PuButton
+            :action="{ to: { path: `/orders/${detail.order.id}` } }"
+            shape="rect"
+            tone="primary"
             variant="outline"
             data-testid="bill-detail.order-link"
           >
             返回订单详情
-          </ActionLink>
+          </PuButton>
         </PuCard>
 
         <PuCard as="section" gap="md">
@@ -97,24 +103,34 @@
                   <strong>{{ line.label }}</strong>
                   <span>{{ line.description ?? "无补充说明" }}</span>
                   <small>
-                    {{ line.userId === detail.viewer.userId ? "你的账单行" : "其他参与者账单行" }}
+                    {{
+                      line.userId === detail.viewer.userId
+                        ? "你的账单行"
+                        : "其他参与者账单行"
+                    }}
                   </small>
                 </div>
-                <b>{{ line.kind === "REFUND" ? "-" : "" }}{{ formatFen(line.amountFen) }}</b>
+                <b
+                  >{{ line.kind === "REFUND" ? "-" : ""
+                  }}{{ formatFen(line.amountFen) }}</b
+                >
               </div>
 
               <div class="bill-detail-page__line-footer">
                 <span data-testid="bill-detail.line-status">
                   {{ lineStatusLabel(line.settlementStatus) }}
                 </span>
-                <ActionLink
+                <PuButton
                   v-if="line.payableByViewer && line.checkoutHref"
-                  :to="{ path: line.checkoutHref }"
+                  :action="{ to: { path: line.checkoutHref } }"
+                  shape="rect"
+                  tone="primary"
+                  variant="solid"
                   size="sm"
                   data-testid="bill-detail.pay-line"
                 >
                   去支付
-                </ActionLink>
+                </PuButton>
               </div>
             </div>
           </div>
@@ -127,9 +143,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
 
 const route = useRoute();
@@ -153,7 +173,8 @@ const settlementStatusLabel = computed(() => {
   }
   if (detail.value && detail.value.bill.refundTotalFen > 0) return "退款处理中";
   if (detail.value?.bill.settlementStatus === "PAID") return "已支付";
-  if (detail.value?.bill.settlementStatus === "PARTIALLY_PAID") return "部分已支付";
+  if (detail.value?.bill.settlementStatus === "PARTIALLY_PAID")
+    return "部分已支付";
   return "待支付";
 });
 

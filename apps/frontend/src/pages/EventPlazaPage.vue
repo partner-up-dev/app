@@ -5,15 +5,16 @@
       :subtitle="t('eventPlaza.subtitle')"
     >
       <template #top-actions>
-        <ActionLink
-          :to="{ name: 'event-pr-search' }"
+        <PuButton
+          :action="{ to: { name: 'event-pr-search' } }"
           class="event-plaza-page__search-link"
-          appearance="pill"
+          shape="pill"
+          tone="primary"
           variant="outline"
           size="sm"
         >
           {{ t("eventPlaza.searchAction") }}
-        </ActionLink>
+        </PuButton>
       </template>
     </PageHeader>
 
@@ -44,10 +45,9 @@ import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import EventCard from "@/domains/event/ui/primitives/EventCard.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import type { AnchorEventListResponse } from "@/domains/event/model/types";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { data: events, isLoading, isError } = useAnchorEvents();
