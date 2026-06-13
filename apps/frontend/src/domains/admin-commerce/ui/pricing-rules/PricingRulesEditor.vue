@@ -90,7 +90,7 @@
           <span class="pm-field-label">{{ t("adminCommerceProducts.targetIdLabel") }}</span>
           <input v-model="rule.targetIdText" class="pm-field-input" type="text" />
         </label>
-        <ToggleSwitch
+        <PuToggleSwitch
           v-model="rule.continue"
           :label="t('adminCommerceProducts.continueRuleLabel')"
         />
@@ -107,8 +107,8 @@ import {
 } from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
 import PricingConditionRuleEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingConditionRuleEditor.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
+import { PuToggleSwitch } from "@partner-up-dev/design-web";
 
 defineProps<{
   title: string;

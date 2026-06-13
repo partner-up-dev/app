@@ -25,7 +25,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -34,7 +34,7 @@
           :message="workspaceQuery.error.value.message"
           persistent
         />
-        <EmptyState
+        <PuEmptyState
           v-else-if="orders.length === 0"
           :title="t('adminCommerceOrderBill.emptyStateTitle')"
           :description="t('adminCommerceOrderBill.emptyStateDescription')"
@@ -107,9 +107,8 @@ import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminCommerceOrderBillWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

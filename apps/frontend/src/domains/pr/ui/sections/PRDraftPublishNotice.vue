@@ -1,5 +1,5 @@
 <template>
-  <InlineNotice
+  <PuInlineNotice
     v-if="showDraftPublishCard"
     tone="warning"
     data-testid="pr-detail.draft-publish.notice"
@@ -19,7 +19,7 @@
         }}
       </Button>
     </template>
-  </InlineNotice>
+  </PuInlineNotice>
 </template>
 
 <script setup lang="ts">
@@ -28,10 +28,10 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
+import { PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId: PRId | null;

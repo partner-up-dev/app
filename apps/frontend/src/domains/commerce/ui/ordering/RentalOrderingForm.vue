@@ -74,7 +74,7 @@
 
       <div class="rental-ordering-form__section">
         <h2>联系方式</h2>
-        <FormField
+        <PuFormItem
           label="联系人电话"
           for-id="rental-contact-phone"
           required
@@ -88,13 +88,13 @@
             data-testid="ordering.rental.contact-phone"
             placeholder="请输入联系人手机号"
           />
-        </FormField>
+        </PuFormItem>
       </div>
 
       <div class="rental-ordering-form__section">
         <h2>参与者身份信息</h2>
         <div class="rental-ordering-form__registrants">
-          <FormField
+          <PuFormItem
             v-for="(_, index) in registrantNames"
             :key="index"
             :label="`入场人 ${index + 1}`"
@@ -109,7 +109,7 @@
               :data-testid="`ordering.rental.registrant-name.${index}`"
               placeholder="请输入真实姓名"
             />
-          </FormField>
+          </PuFormItem>
         </div>
       </div>
 
@@ -146,8 +146,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
 import SpuCard from "./SpuCard.vue";
+import { PuFormItem } from "@partner-up-dev/design-web";
 import type {
   OrderingContentInput,
   OrderingContentOutput,

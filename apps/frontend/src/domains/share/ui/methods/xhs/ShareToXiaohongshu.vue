@@ -22,7 +22,6 @@
       <!-- Caption Editor -->
       <textarea
         :value="caption?.caption"
-        rows="3"
         class="caption-textarea"
         :class="{ transitioning: isTransitioning }"
         :placeholder="t('share.xiaohongshu.captionPlaceholder')"
@@ -70,7 +69,7 @@
       <div class="actions-row">
         <FeedbackButton
           class="outline-action caption-clipboard-action"
-          tone="outline"
+          variant="outline"
           :state="copyFeedbackState"
           :disabled="!caption?.caption || copyState !== 'idle'"
           @click="handleCopyCaptionWithUrl"

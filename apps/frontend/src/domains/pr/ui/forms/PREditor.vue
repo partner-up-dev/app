@@ -4,10 +4,10 @@
     data-testid="pr-editor.form"
     @submit.prevent="submitForm"
   >
-    <LoadingIndicator v-if="isDetailLoading" :message="t('common.loading')" />
+    <PuLoadingState v-if="isDetailLoading" :message="t('common.loading')" />
     <ErrorToast v-else-if="detailError" :message="detailError.message" persistent />
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="!hasEditableFields"
       icon="i-mdi-lock-outline"
       title="当前没有可编辑内容"
@@ -152,7 +152,6 @@
             <label>{{ t("partnerRequestForm.notes") }}</label>
             <textarea
               v-model="notesInput"
-              rows="3"
               data-testid="pr-editor.form.notes"
               :placeholder="t('partnerRequestForm.notesPlaceholder')"
             />
@@ -208,13 +207,12 @@ import {
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
 import Button from "@/shared/ui/actions/Button.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
+import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId?: number;

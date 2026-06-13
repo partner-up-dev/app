@@ -31,7 +31,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -135,9 +135,9 @@ import {
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

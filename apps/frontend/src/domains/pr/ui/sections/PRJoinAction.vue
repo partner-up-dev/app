@@ -17,13 +17,13 @@
     data-region="join-action"
     data-testid="pr-detail.join-action"
   >
-    <InlineNotice
+    <PuInlineNotice
       v-if="releaseNoticeText"
       tone="warning"
       :message="releaseNoticeText"
     />
 
-    <InlineNotice
+    <PuInlineNotice
       v-if="joinBlockedMessage"
       tone="warning"
       :message="joinBlockedMessage"
@@ -88,7 +88,6 @@ import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntrySurface } from "@/domains/pr/model/pr-join-entry-context";
 import Button from "@/shared/ui/actions/Button.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
@@ -104,6 +103,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import { PuInlineNotice } from "@partner-up-dev/design-web";
 
 type JoinSuccessPromptExpose = {
   close: () => void;

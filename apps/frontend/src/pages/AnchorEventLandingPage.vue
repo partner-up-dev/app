@@ -1,5 +1,5 @@
 <template>
-  <FooterRevealPageScaffold
+  <PuPageScaffold footer-placement="reveal"
     :class="[
       'anchor-event-landing-page',
       { 'anchor-event-landing-page--card-rich': resolvedMode === 'CARD_RICH' },
@@ -93,26 +93,39 @@
           class="anchor-event-landing-page__mode-switch-shell"
           data-testid="anchor-event-landing.mode-switch"
         >
-          <SegmentedControl
+          <PuSegmented
             class="anchor-event-landing-page__mode-switch"
-            block
             :model-value="resolvedMode"
-            :options="modeOptions"
             :aria-label="t('anchorEvent.viewMode.ariaLabel')"
+            full-width
+            equal-width
             @update:model-value="handleModeControlChange"
-          />
+          >
+            <PuSegmentedItem
+              v-for="option in modeOptions"
+              :key="String(option.value)"
+              :value="option.value"
+              :label="option.label"
+              :disabled="option.disabled"
+              :data-testid="option.testId"
+            >
+              <template v-if="option.icon" #leading>
+                <span :class="option.icon" aria-hidden="true" />
+              </template>
+            </PuSegmentedItem>
+          </PuSegmented>
         </div>
         <PageFooter variant="brand" data-region="footer" />
       </div>
     </template>
-  </FooterRevealPageScaffold>
+  </PuPageScaffold>
 
   <BottomDrawer
     :open="showOtherEventsDrawer"
     :title="t('anchorEvent.otherEvents.title')"
     @close="showOtherEventsDrawer = false"
   >
-    <LoadingIndicator
+    <PuLoadingState
       v-if="otherEventsQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -144,7 +157,6 @@ import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffold.vue";
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
 import AnchorEventFormModeSurface from "@/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue";
 import AnchorEventListModeSurface from "@/domains/event/ui/surfaces/AnchorEventListModeSurface.vue";
@@ -191,15 +203,17 @@ import {
 } from "@/processes/wechat/pending-wechat-action";
 import Button from "@/shared/ui/actions/Button.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import SegmentedControl, {
-  type SegmentedControlOption,
-  type SegmentedControlValue,
-} from "@/shared/ui/controls/SegmentedControl.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import {
+  PuLoadingState,
+  PuPageScaffold,
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import {
   buildAnchorEventFunnelPayload,
   type AnchorEventFunnelContext,
@@ -210,6 +224,13 @@ import {
 } from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
+type SegmentedOption = {
+  value: PuSegmentedValue;
+  label: string;
+  icon?: string;
+  testId?: string;
+  disabled?: boolean;
+};
 
 type FormModeResultState = "selection" | "no-match";
 type FormModeSurfaceExposed = {
@@ -235,7 +256,7 @@ const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
 
 const noop = () => undefined;
 
-const modeOptions = computed<SegmentedControlOption[]>(() => [
+const modeOptions = computed<SegmentedOption[]>(() => [
   {
     value: "LIST",
     label: t("anchorEvent.viewMode.list"),
@@ -429,7 +450,7 @@ const handleLandingBack = async () => {
   await router.replace(backFallbackTo);
 };
 
-const handleModeControlChange = (value: SegmentedControlValue) => {
+const handleModeControlChange = (value: PuSegmentedValue) => {
   const mode = normalizeAnchorEventLandingMode(value);
   const resolvedEventId = eventId.value;
   if (mode === null || resolvedEventId === null) {

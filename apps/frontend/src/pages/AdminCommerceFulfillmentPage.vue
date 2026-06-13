@@ -25,7 +25,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -34,7 +34,7 @@
           :message="workspaceQuery.error.value.message"
           persistent
         />
-        <EmptyState
+        <PuEmptyState
           v-else-if="fulfillments.length === 0"
           :title="t('adminCommerceFulfillment.emptyStateTitle')"
           :description="t('adminCommerceFulfillment.emptyStateDescription')"
@@ -75,7 +75,7 @@
             <div class="form-stack">
               <label class="field">
                 <span class="field-label">{{ t("adminCommerceFulfillment.bookingNoteLabel") }}</span>
-                <textarea v-model="bookingNote" class="text-area" rows="5"></textarea>
+                <textarea v-model="bookingNote" class="text-area" ></textarea>
               </label>
               <div class="inline-actions">
                 <Button
@@ -112,7 +112,7 @@
               </div>
               <label class="field">
                 <span class="field-label">{{ t("adminCommerceFulfillment.cancellationNoteLabel") }}</span>
-                <textarea v-model="cancellationNote" class="text-area" rows="4"></textarea>
+                <textarea v-model="cancellationNote" class="text-area" ></textarea>
               </label>
               <div class="inline-actions">
                 <Button
@@ -151,7 +151,7 @@
               </label>
               <label class="field">
                 <span class="field-label">{{ t("adminCommerceFulfillment.entryNoteLabel") }}</span>
-                <textarea v-model="entryGuidance.note" class="text-area" rows="5"></textarea>
+                <textarea v-model="entryGuidance.note" class="text-area" ></textarea>
               </label>
               <div class="inline-actions">
                 <Button size="sm" type="button" :disabled="isSavingGuidance" @click="handleSaveGuidance">
@@ -194,10 +194,9 @@ import {
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuEmptyState, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

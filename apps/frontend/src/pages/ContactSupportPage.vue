@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldCentered class="contact-support-page">
+  <PuPageScaffold content-placement="center" class="contact-support-page">
     <template #header>
       <PageHeader :title="t('contactSupportPage.title')" />
     </template>
@@ -9,9 +9,9 @@
       :aria-label="t('contactSupportPage.actionsTitle')"
     >
       <div class="contact-card contact-card--support">
-        <Chip tone="secondary" size="lg">
+        <PuChip tone="secondary" size="lg">
           {{ t("contactSupportPage.supportBadge") }}
-        </Chip>
+        </PuChip>
         <div class="contact-text">
           <h2>{{ t("contactSupportPage.supportTitle") }}</h2>
           <p>{{ t("contactSupportPage.supportDescription") }}</p>
@@ -29,9 +29,9 @@
       </div>
 
       <div class="contact-card contact-card--beta-group">
-        <Chip class="contact-badge--beta-group" tone="secondary" size="lg">
+        <PuChip class="contact-badge--beta-group" tone="secondary" size="lg">
           {{ t("contactSupportPage.betaGroupBadge") }}
-        </Chip>
+        </PuChip>
         <div class="contact-text">
           <h2>{{ t("contactSupportPage.betaGroupTitle") }}</h2>
           <p>{{ t("contactSupportPage.betaGroupDescription") }}</p>
@@ -41,7 +41,7 @@
           class="contact-action contact-action--beta-group"
           :to="{ name: 'about', hash: '#beta-groups' }"
           appearance="pill"
-          tone="outline"
+          variant="outline"
         >
           {{ t("contactSupportPage.betaGroupAction") }}
         </ActionLink>
@@ -66,7 +66,7 @@
       :missing-text="t('contactSupportPage.supportQrMissing')"
       @close="supportQrModalOpen = false"
     />
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -76,12 +76,11 @@ import { useI18n } from "vue-i18n";
 import SupportContactAction from "@/domains/support/ui/sections/SupportContactAction.vue";
 import SupportContactQrModal from "@/domains/support/ui/sections/SupportContactQrModal.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
 import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
+import { PuChip, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const DEFAULT_SUPPORT_LINK_WECHAT_IN =
   "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";

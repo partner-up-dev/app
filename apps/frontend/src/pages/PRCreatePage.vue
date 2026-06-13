@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldFlow class="pr-create-page" data-page="pr-create">
+  <PuPageScaffold class="pr-create-page" data-page="pr-create">
     <template #header>
       <PRCreateHeader @back="goHome" />
     </template>
@@ -56,7 +56,7 @@
       <PageFooter variant="minimal" data-region="support" />
     </template>
 
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -67,10 +67,10 @@ import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
 import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
 import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 
 const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
   if (value === "nl" || value === "form") return value;

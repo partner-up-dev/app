@@ -29,17 +29,15 @@
       </BentoItem>
 
       <BentoItem :title="t('adminAnchorEvents.defaultPrNotesTitle')">
-        <TextareaInput
+        <PuTextarea
           v-model="form.defaultPrNotes"
           :placeholder="t('adminAnchorEvents.defaultPrNotesPlaceholder')"
-          :rows="4"
-          min-height="8rem"
         />
       </BentoItem>
 
       <BentoItem :title="t('adminAnchorEvents.participationFrequencyLimitTitle')">
         <div class="policy-setting">
-          <TextInput
+          <PuInput
             v-model="participationFrequencyLimitText"
             type="number"
             inputmode="numeric"
@@ -57,7 +55,7 @@
 
       <BentoItem :title="t('adminAnchorEvents.prCreationPolicyTitle')">
         <div class="policy-setting">
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="adminOnlyCreation"
             :label="t('adminAnchorEvents.prCreationPolicyAdminOnlyLabel')"
             :disabled="props.disabled"
@@ -70,7 +68,7 @@
 
       <BentoItem :title="t('adminAnchorEvents.fullPrExpansionPolicyTitle')">
         <div class="policy-setting">
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="fullPrExpansionEnabled"
             :label="t('adminAnchorEvents.fullPrExpansionPolicyEnabledLabel')"
             :disabled="props.disabled"
@@ -111,12 +109,10 @@ import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import TextInput from "@/shared/ui/forms/TextInput.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import AnchorEventFeedbackQuestionnairePicker from "@/domains/admin/ui/anchor-event/components/AnchorEventFeedbackQuestionnairePicker.vue";
 import AnchorEventJoinGateEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventJoinGateEditor.vue";
 import AnchorEventLandingRolloutEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLandingRolloutEditor.vue";
+import { PuInput, PuTextarea, PuToggleSwitch } from "@partner-up-dev/design-web";
 import type {
   AnchorEventEditorForm,
   FeedbackQuestionnaireTemplateOption,

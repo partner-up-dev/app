@@ -41,7 +41,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -160,7 +160,6 @@
                   <textarea
                     v-model="form.merchantPrivateKeyPem"
                     class="text-area"
-                    rows="7"
                     autocomplete="off"
                     spellcheck="false"
                     :placeholder="secretPlaceholder"
@@ -172,7 +171,6 @@
                   <textarea
                     v-model="form.merchantCertificatePem"
                     class="text-area"
-                    rows="5"
                     autocomplete="off"
                     spellcheck="false"
                     :placeholder="optionalSecretPlaceholder"
@@ -265,9 +263,9 @@ import {
   type AdminPaymentProviderWorkspaceResponse,
 } from "@/domains/admin-payment/queries/useAdminPayment";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 

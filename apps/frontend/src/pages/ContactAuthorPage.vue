@@ -1,10 +1,10 @@
 <template>
-  <PageScaffoldCentered class="contact-author-page">
+  <PuPageScaffold content-placement="center" class="contact-author-page">
     <template #header>
       <PageHeader :title="t('contactAuthorPage.title')" />
     </template>
 
-    <LoadingIndicator
+    <PuLoadingState
       v-if="publicConfigQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -33,17 +33,16 @@
         </p>
       </div>
     </section>
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
 import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
+import { PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const DEFAULT_AUTHOR_QR_CODE_URL =
   "https://oss-app.partner-up.cn/5264495b163398842ad04ee5ee42a3df.jpg";

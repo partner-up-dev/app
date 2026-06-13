@@ -13,9 +13,9 @@
       class="image-url-input__row"
       :class="{ 'image-url-input__row--upload-only': !allowUrlInput }"
     >
-      <TextInput
+      <PuInput
         v-if="allowUrlInput"
-        :input-id="inputId"
+        :id="inputId"
         type="url"
         inputmode="url"
         :model-value="modelValue"
@@ -53,8 +53,8 @@
 import { computed, ref, watch } from "vue";
 import type { ImageUploadPurpose } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
-import TextInput from "@/shared/ui/forms/TextInput.vue";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
+import { PuInput } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{

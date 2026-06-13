@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="payment-checkout-page" data-testid="payment-checkout.page">
+  <PuPageScaffold viewport="screen" class="payment-checkout-page" data-testid="payment-checkout.page">
     <template #header>
       <PageHeader
         title="支付"
@@ -9,14 +9,14 @@
     </template>
 
     <div class="payment-checkout-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="billLineId === null"
         tone="error"
         title="支付入口无效"
         message="缺少账单行编号。"
       />
 
-      <InlineNotice
+      <PuInlineNotice
         v-else-if="checkoutQuery.isError.value"
         tone="error"
         title="无法加载支付信息"
@@ -55,7 +55,7 @@
             <h2>微信支付</h2>
           </div>
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="!checkout.eligibility.payable && activePayment?.status !== 'SUCCEEDED'"
             tone="warning"
             title="当前不可支付"
@@ -100,7 +100,7 @@
             </Button>
           </template>
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="activePayment?.status === 'SUCCEEDED'"
             tone="success"
             title="支付成功"
@@ -108,14 +108,14 @@
             data-testid="payment-checkout.success"
           />
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="createChargeMutation.isError.value || syncMutation.isError.value"
             tone="error"
             title="支付处理失败"
             :message="mutationErrorMessage"
           />
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="clientPaymentError"
             tone="error"
             title="微信支付未完成"
@@ -127,7 +127,7 @@
         <PuCard as="section" gap="sm" padding="sm" variant="outline">
           <ActionLink
             :to="{ path: `/bills/${checkout.bill.id}` }"
-            tone="outline"
+            variant="outline"
             data-testid="payment-checkout.bill-link"
           >
             返回账单
@@ -135,16 +135,14 @@
         </PuCard>
       </template>
     </div>
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard } from "@partner-up-dev/design-web";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
+import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {

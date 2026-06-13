@@ -38,7 +38,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -123,7 +123,6 @@ import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import AnchorEventBasicSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventBasicSection.vue";
@@ -158,6 +157,7 @@ import type {
   EditableMeetingPointForm,
 } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import { validateManualPartnerBounds } from "@/lib/validation";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 type Workspace = NonNullable<AdminAnchorEventWorkspaceResponse>;
 type EventRecord = Workspace["events"][number];

@@ -1,5 +1,5 @@
 <template>
-  <PageScaffold class="event-pr-search-page" data-page="event-pr-search">
+  <PuPageScaffold class="event-pr-search-page" data-page="event-pr-search">
     <PageHeader
       :title="pageTitle"
       :subtitle="pageSubtitle"
@@ -24,7 +24,7 @@
       {{ t("common.loading") }}
     </div>
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="eventsQuery.isError.value"
       :title="t('eventPRSearch.loadEventsFailed')"
       :description="t('eventPRSearch.loadEventsFailedHint')"
@@ -35,9 +35,9 @@
           {{ t("eventPRSearch.actions.goEventPlaza") }}
         </Button>
       </template>
-    </EmptyState>
+    </PuEmptyState>
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="availableEvents.length === 0"
       :title="t('eventPRSearch.emptyEventsTitle')"
       :description="t('eventPRSearch.emptyEventsDescription')"
@@ -48,7 +48,7 @@
           {{ t("eventPRSearch.actions.backHome") }}
         </Button>
       </template>
-    </EmptyState>
+    </PuEmptyState>
 
     <template v-else-if="!isResultMode">
       <EventPRSearchCriteriaForm
@@ -79,7 +79,7 @@
         {{ t("common.loading") }}
       </div>
 
-      <EmptyState
+      <PuEmptyState
         v-else-if="searchQuery.isError.value"
         :title="t('eventPRSearch.loadFailed')"
         :description="searchErrorMessage"
@@ -93,7 +93,7 @@
             {{ t("eventPRSearch.actions.goEventPlaza") }}
           </Button>
         </template>
-      </EmptyState>
+      </PuEmptyState>
 
       <template v-else>
         <p class="event-pr-search-page__summary">
@@ -114,7 +114,7 @@
           />
         </div>
 
-        <EmptyState
+        <PuEmptyState
           v-else
           :title="t('eventPRSearch.emptyResultTitle')"
           :description="t('eventPRSearch.emptyResultDescription')"
@@ -128,7 +128,7 @@
               {{ t("eventPRSearch.actions.goEventPlaza") }}
             </Button>
           </template>
-        </EmptyState>
+        </PuEmptyState>
       </template>
 
       <BottomDrawer
@@ -158,7 +158,7 @@
         </template>
       </BottomDrawer>
     </template>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -167,8 +167,7 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import Button from "@/shared/ui/actions/Button.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
+import { PuEmptyState, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";

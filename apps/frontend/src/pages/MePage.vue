@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldFlow class="me-page">
+  <PuPageScaffold class="me-page">
     <template #header>
       <PageHeader
         :title="t('mePage.title')"
@@ -8,7 +8,7 @@
     </template>
 
     <div class="me-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="bindFeedbackMessage"
         :tone="bindFeedbackCode === 'success' ? 'success' : 'error'"
         :message="bindFeedbackMessage"
@@ -16,7 +16,7 @@
 
       <ErrorToast v-if="errorMessage" :message="errorMessage" persistent />
 
-      <LoadingIndicator
+      <PuLoadingState
         v-if="
           userSessionStore.isAuthenticated && currentUserQuery.isLoading.value
         "
@@ -52,16 +52,18 @@
         </div>
 
         <div class="profile-panel">
-          <Avatar
-            :src="avatarUrl"
+          <PuImg
+            :src="avatarUrl ?? ''"
             :alt="t('mePage.profile.avatarAlt')"
-            :name="currentUser?.nickname ?? null"
-            :fallback="avatarFallbackText"
-            size="xl"
+            :name="currentUser?.nickname ?? undefined"
+            :fallback-initial="avatarFallbackText"
+            size="xLarge"
+            shape="circle"
+            :show-loading="false"
           />
 
           <div class="profile-form">
-            <FormField
+            <PuFormItem
               :label="t('mePage.profile.nicknameLabel')"
               for-id="me-profile-nickname"
             >
@@ -75,9 +77,9 @@
                 maxlength="40"
                 @keydown.enter.prevent="handleSaveNickname"
               />
-            </FormField>
+            </PuFormItem>
 
-            <FormField
+            <PuFormItem
               :label="t('mePage.profile.phoneLabel')"
               for-id="me-profile-phone"
             >
@@ -93,7 +95,7 @@
                 :disabled="!canEditProfile"
                 @keydown.enter.prevent="handleSavePhoneNumber"
               />
-            </FormField>
+            </PuFormItem>
             <p v-if="phoneHintText" class="profile-field-hint">
               {{ phoneHintText }}
             </p>
@@ -153,14 +155,15 @@
               </span>
               <p>{{ wechatIdentityHintText }}</p>
 
-              <Chip
+              <PuTag
                 v-if="wechatBound"
                 class="status-pill"
                 tone="primary"
                 size="md"
-              >
-                {{ t("mePage.profile.wechatBound") }}
-              </Chip>
+                :text="t('mePage.profile.wechatBound')"
+                variant="soft"
+                shape="pill"
+              />
               <Button
                 v-else
                 class="wechat-identity-action"
@@ -255,7 +258,7 @@
     <template #footer>
       <PageFooter variant="minimal" />
     </template>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -263,17 +266,19 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useQueryClient } from "@tanstack/vue-query";
-import { PuCard } from "@partner-up-dev/design-web";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import {
+  PuCard,
+  PuFormItem,
+  PuImg,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import Avatar from "@/shared/ui/identity/Avatar.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";

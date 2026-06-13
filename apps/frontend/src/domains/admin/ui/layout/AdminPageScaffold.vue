@@ -1,5 +1,5 @@
 <template>
-  <PageScaffold class="admin-page-scaffold">
+  <PuPageScaffold class="admin-page-scaffold">
     <div class="admin-page-scaffold__layout">
       <aside
         v-if="$slots.navigation || $slots.rail"
@@ -28,11 +28,11 @@
         </main>
       </div>
     </div>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 </script>
 
 <style lang="scss" scoped>

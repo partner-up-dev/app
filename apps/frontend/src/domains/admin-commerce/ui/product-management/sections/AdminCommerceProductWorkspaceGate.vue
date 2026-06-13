@@ -1,5 +1,5 @@
 <template>
-  <LoadingIndicator v-if="isLoading" :message="t('common.loading')" />
+  <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
   <ErrorToast v-else-if="errorMessage" :message="errorMessage" persistent />
   <slot v-else />
 </template>
@@ -9,7 +9,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const context = useAdminCommerceProductManagementContext();

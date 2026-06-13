@@ -1,6 +1,6 @@
 <template>
   <div class="anchor-event-pending-preference-tag-list">
-    <LoadingIndicator
+    <PuLoadingState
       v-if="preferenceTagsQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -61,7 +61,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventPreferenceTags,
   usePublishAdminAnchorEventPreferenceTag,

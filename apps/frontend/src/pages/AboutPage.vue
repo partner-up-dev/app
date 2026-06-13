@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldCentered class="about-page">
+  <PuPageScaffold content-placement="center" class="about-page">
     <template #header>
       <PageHeader
         :title="t('aboutPage.title')"
@@ -132,14 +132,13 @@
         </p>
       </div>
     </Modal>
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
@@ -147,6 +146,7 @@ import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const backendBuildMetadataQuery = useBackendBuildMetadata();

@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="bill-detail-page" data-testid="bill-detail.page">
+  <PuPageScaffold viewport="screen" class="bill-detail-page" data-testid="bill-detail.page">
     <template #header>
       <PageHeader
         title="账单详情"
@@ -9,14 +9,14 @@
     </template>
 
     <div class="bill-detail-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="billId === null"
         tone="error"
         title="账单无效"
         message="缺少账单编号。"
       />
 
-      <InlineNotice
+      <PuInlineNotice
         v-else-if="billQuery.isError.value"
         tone="error"
         title="无法加载账单"
@@ -72,7 +72,7 @@
 
           <ActionLink
             :to="{ path: `/orders/${detail.order.id}` }"
-            tone="outline"
+            variant="outline"
             data-testid="bill-detail.order-link"
           >
             返回订单详情
@@ -121,16 +121,14 @@
         </PuCard>
       </template>
     </div>
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard } from "@partner-up-dev/design-web";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
+import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
 

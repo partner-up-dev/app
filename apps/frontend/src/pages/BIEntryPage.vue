@@ -1,9 +1,9 @@
 <template>
-  <PageScaffoldCentered class="bi-entry-page">
+  <PuPageScaffold content-placement="center" class="bi-entry-page">
     <section class="bi-entry-card">
       <h1>BI 登录</h1>
 
-      <LoadingIndicator v-if="isPending" message="正在进入 BI 看板" />
+      <PuLoadingState v-if="isPending" message="正在进入 BI 看板" />
 
       <template v-else>
         <ErrorToast v-if="errorMessage" :message="errorMessage" persistent />
@@ -12,7 +12,7 @@
         </Button>
       </template>
     </section>
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -22,8 +22,7 @@ import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionS
 import { adminClient } from "@/lib/admin-rpc";
 import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
+import { PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const ANALYTICS_SEED_USER_ID = "00000000-0000-0000-0000-000000000002";
 

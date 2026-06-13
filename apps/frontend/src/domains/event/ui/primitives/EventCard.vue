@@ -16,48 +16,53 @@
       class="event-cover-shell"
       :class="{ 'event-cover-shell--shorter': isShorter }"
     >
-      <div
-        v-if="coverImage"
+      <PuImg
+        v-if="displayCoverImage"
         class="event-cover"
-        :style="{ backgroundImage: `url(${coverImage})` }"
-      />
-      <div
-        v-else-if="poisGalleryCoverImage"
-        class="event-cover"
-        :style="{ backgroundImage: `url(${poisGalleryCoverImage})` }"
-      />
-      <div
-        v-else-if="activeFallbackImage"
-        class="event-cover"
-        :style="{ backgroundImage: `url(${activeFallbackImage})` }"
+        :src="displayCoverImage"
+        alt=""
+        mode="aspectFill"
+        :show-loading="false"
       />
       <div v-else class="event-cover event-cover--placeholder">
         <span>{{ event.type }}</span>
       </div>
 
-      <FitChipGroup
+      <PuChipGroup
         v-if="isShorter && availableLocations.length > 0"
         class="event-cover-locations"
-        :items="availableLocations"
-        :max-items="MAX_AVAILABLE_LOCATION_PILLS"
         gap="xs"
-        tone="surface"
-        size="sm"
-        chip-class="event-cover-location-pill"
-      />
+        fit
+      >
+        <PuChip
+          v-for="location in availableLocationPills"
+          :key="location"
+          class="event-cover-location-pill"
+          tone="neutral"
+          size="sm"
+        >
+          {{ location }}
+        </PuChip>
+      </PuChipGroup>
     </div>
 
     <div class="event-card__summary">
-      <FitChipGroup
+      <PuChipGroup
         v-if="!isShorter && availableLocations.length > 0"
         class="event-available-locations-row"
-        :items="availableLocations"
-        :max-items="MAX_AVAILABLE_LOCATION_PILLS"
         gap="xs"
-        tone="surface"
-        size="sm"
-        chip-class="event-available-location-pill"
-      />
+        fit
+      >
+        <PuChip
+          v-for="location in availableLocationPills"
+          :key="location"
+          class="event-available-location-pill"
+          tone="neutral"
+          size="sm"
+        >
+          {{ location }}
+        </PuChip>
+      </PuChipGroup>
       <div class="flex flex-col gap-1">
         <h3 class="event-title">{{ event.title }}</h3>
         <p v-if="event.description" class="event-desc">
@@ -76,8 +81,8 @@
 import { computed, onBeforeUnmount, ref, watch, watchEffect } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";
+import { PuChip, PuChipGroup, PuImg } from "@partner-up-dev/design-web";
 import type { AnchorEventListItem } from "@/domains/event/model/types";
-import FitChipGroup from "@/shared/ui/display/FitChipGroup.vue";
 
 interface EventCardProps {
   event: AnchorEventListItem;
@@ -214,6 +219,14 @@ const activeFallbackImage = computed(() => {
   return fallbackGallery.value[safeIndex] ?? null;
 });
 
+const displayCoverImage = computed(
+  () =>
+    coverImage.value ?? poisGalleryCoverImage.value ?? activeFallbackImage.value,
+);
+const availableLocationPills = computed(() =>
+  availableLocations.value.slice(0, MAX_AVAILABLE_LOCATION_PILLS),
+);
+
 watch(fallbackGallery, () => {
   fallbackIndex.value = 0;
 });
@@ -313,10 +326,9 @@ const handleClick = () => {
 }
 
 .event-cover {
+  display: block;
   width: 100%;
   height: 130px;
-  background-size: cover;
-  background-position: center;
 
   &--placeholder {
     display: flex;
@@ -360,16 +372,16 @@ const handleClick = () => {
   min-height: calc(var(--sys-spacing-medium) + var(--sys-spacing-small));
 }
 
-:deep(.event-available-location-pill) {
-  background: var(--sys-color-surface-container-high) !important;
-  color: var(--sys-color-on-surface-variant) !important;
-  border-color: var(--sys-color-outline-variant) !important;
+.event-available-location-pill {
+  background: var(--sys-color-surface-container-high);
+  color: var(--sys-color-on-surface-variant);
+  border-color: var(--sys-color-outline-variant);
 }
 
-:deep(.event-cover-location-pill) {
-  background: var(--sys-color-surface-container-high) !important;
-  color: var(--sys-color-on-surface) !important;
-  border-color: transparent !important;
+.event-cover-location-pill {
+  background: var(--sys-color-surface-container-high);
+  color: var(--sys-color-on-surface);
+  border-color: transparent;
 }
 
 .event-title {

@@ -17,12 +17,12 @@
       </p>
     </header>
 
-    <InlineNotice
+    <PuInlineNotice
       tone="info"
       :message="t('prPage.messageThread.nonRealtimeHint')"
     />
 
-    <InlineNotice
+    <PuInlineNotice
       v-if="messagesQuery.error.value"
       tone="error"
       :message="messagesQuery.error.value.message"
@@ -37,7 +37,7 @@
           {{ t("common.loading") }}
         </p>
 
-        <EmptyState
+        <PuEmptyState
           v-else-if="threadItems.length === 0 && !isPageLayout"
           :title="t('prPage.messageThread.emptyTitle')"
           :description="t('prPage.messageThread.emptyDescription')"
@@ -90,27 +90,25 @@
       </template>
     </div>
 
-    <InlineNotice v-if="submitError" tone="error" :message="submitError" />
-    <InlineNotice
+    <PuInlineNotice v-if="submitError" tone="error" :message="submitError" />
+    <PuInlineNotice
       v-if="readMarkerError"
       tone="warning"
       :message="readMarkerError"
     />
 
-    <FormField
+    <PuFormItem
       class="message-thread__composer"
       :label="t('prPage.messageThread.inputLabel')"
       for-id="pr-message-input"
     >
-      <TextareaInput
-        input-id="pr-message-input"
+      <PuTextarea
+        id="pr-message-input"
         v-model="draftBody"
         :placeholder="t('prPage.messageThread.inputPlaceholder')"
-        :rows="3"
-        :max-length="1000"
-        min-height="5.5rem"
-      />
-    </FormField>
+        ::maxlength="1000"
+        />
+    </PuFormItem>
 
     <div class="message-thread__actions">
       <Button
@@ -133,12 +131,8 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuCard, PuEmptyState, PuFormItem, PuInlineNotice, PuTextarea } from "@partner-up-dev/design-web";
 import Button from "@/shared/ui/actions/Button.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   useAdvancePRMessageReadMarker,

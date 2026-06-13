@@ -1,5 +1,5 @@
 <template>
-  <PageScaffold
+  <PuPageScaffold
     v-if="showGuidance"
     class="study-sprint-guidance"
     data-page="study-sprint-guidance"
@@ -43,14 +43,14 @@
         {{ guidanceActionText }}
       </Button>
     </section>
-  </PageScaffold>
+  </PuPageScaffold>
 
-  <PageScaffold
+  <PuPageScaffold
     v-else
     class="study-sprint-room"
     data-page="study-sprint-room"
   >
-    <LoadingIndicator
+    <PuLoadingState
       v-if="roomQuery.isLoading.value"
       message="正在进入专注房间"
     />
@@ -194,7 +194,7 @@
         </div>
       </section>
     </template>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -202,9 +202,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import Button from "@/shared/ui/actions/Button.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
+import { PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   useRecordStudySprintEvent,
   useStartStudySprintSession,

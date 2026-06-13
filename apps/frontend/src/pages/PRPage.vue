@@ -1,6 +1,6 @@
 <template>
-  <PageScaffold class="pr-page" data-page="pr-detail">
-    <LoadingIndicator v-if="isLoading" :message="t('common.loading')" />
+  <PuPageScaffold class="pr-page" data-page="pr-detail">
+    <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
     <ErrorToast v-else-if="error" :message="error.message" persistent />
 
     <template v-else-if="prDetail">
@@ -111,7 +111,7 @@
         :pr="prDetail"
       />
 
-      <InlineNotice
+      <PuInlineNotice
         v-if="showEventAssistedCreateHandoffNotice"
         tone="success"
         data-testid="pr-detail.event-assisted-create.notice"
@@ -180,7 +180,7 @@
     </template>
 
     <PageFooter variant="minimal" data-region="support" />
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -189,13 +189,10 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
@@ -236,6 +233,7 @@ import {
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
 import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
+import { PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"

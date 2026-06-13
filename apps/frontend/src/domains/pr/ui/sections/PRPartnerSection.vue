@@ -6,7 +6,13 @@
           <h2 class="partner-section__title">
             {{ t("prPage.partnerSection.title") }}
           </h2>
-          <Chip tone="primary" size="lg">{{ slotStateText }}</Chip>
+          <PuTag
+            tone="primary"
+            size="md"
+            :text="slotStateText"
+            variant="soft"
+            shape="pill"
+          />
         </div>
         <p class="partner-section__subtitle">{{ subtitleText }}</p>
       </div>
@@ -224,7 +230,7 @@ import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import PRRosterItem from "@/domains/pr/ui/primitives/PRRosterItem.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
+import { PuTag } from "@partner-up-dev/design-web";
 import {
   formatFriendlyTimeWindowLabel,
   formatLocalDateTimeValue,

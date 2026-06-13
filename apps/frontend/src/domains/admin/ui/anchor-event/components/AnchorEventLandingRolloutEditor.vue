@@ -6,7 +6,7 @@
       {{ t("adminAnchorEvents.selectEventForLandingConfigHint") }}
     </div>
 
-    <LoadingIndicator
+    <PuLoadingState
       v-else-if="landingConfigQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -80,7 +80,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventLandingConfig,
   useReplaceAdminAnchorEventLandingConfig,

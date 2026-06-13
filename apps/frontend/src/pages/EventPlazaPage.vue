@@ -1,5 +1,5 @@
 <template>
-  <PageScaffold class="event-plaza-page">
+  <PuPageScaffold class="event-plaza-page">
     <PageHeader
       :title="t('eventPlaza.title')"
       :subtitle="t('eventPlaza.subtitle')"
@@ -9,7 +9,7 @@
           :to="{ name: 'event-pr-search' }"
           class="event-plaza-page__search-link"
           appearance="pill"
-          tone="outline"
+          variant="outline"
           size="sm"
         >
           {{ t("eventPlaza.searchAction") }}
@@ -36,7 +36,7 @@
     <div v-else class="empty-state">
       {{ t("eventPlaza.noEvents") }}
     </div>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -44,10 +44,10 @@ import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import EventCard from "@/domains/event/ui/primitives/EventCard.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import type { AnchorEventListResponse } from "@/domains/event/model/types";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { data: events, isLoading, isError } = useAnchorEvents();

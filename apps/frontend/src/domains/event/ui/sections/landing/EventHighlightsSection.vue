@@ -14,17 +14,17 @@
         {{ t("home.landing.highlightsTitle") }}
       </h2>
 
-      <ChipGroup class="highlights-trust-cues" gap="sm">
-        <Chip tone="outline" size="sm">
+      <PuChipGroup class="highlights-trust-cues" gap="sm">
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueFixedTime") }}
-        </Chip>
-        <Chip tone="outline" size="sm">
+        </PuChip>
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueFixedLocation") }}
-        </Chip>
-        <Chip tone="outline" size="sm">
+        </PuChip>
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueSubsidy") }}
-        </Chip>
-      </ChipGroup>
+        </PuChip>
+      </PuChipGroup>
 
       <p class="highlights-bridge">
         {{ t("home.landing.highlightsBridge") }}
@@ -79,8 +79,7 @@ import AnchorEventHorizontalList from "@/domains/event/ui/composites/AnchorEvent
 import { useInViewStagger } from "@/shared/motion/useInViewStagger";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { trackEvent } from "@/shared/telemetry/track";
-import Chip from "@/shared/ui/display/Chip.vue";
-import ChipGroup from "@/shared/ui/display/ChipGroup.vue";
+import { PuChip, PuChipGroup } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { targetRef: sectionRef, isInView, itemMotionStyle } = useInViewStagger();

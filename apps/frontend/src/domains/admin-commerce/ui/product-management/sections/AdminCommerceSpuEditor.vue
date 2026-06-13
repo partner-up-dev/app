@@ -94,15 +94,15 @@
           />
         </label>
         <div class="pm-toggle-grid pm-field--full">
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="spuForm.rentalRequiresContactPhone"
             :label="t('adminCommerceProducts.requiresContactPhoneLabel')"
           />
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="spuForm.rentalRequiresRealName"
             :label="t('adminCommerceProducts.requiresRealNameLabel')"
           />
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="spuForm.rentalRequiresNationalId"
             :label="t('adminCommerceProducts.requiresNationalIdLabel')"
           />
@@ -285,8 +285,8 @@ import { useAdminCommerceProductManagementContext } from "@/domains/admin-commer
 import FactEntryEditor from "@/domains/admin-commerce/ui/product-management/composites/FactEntryEditor.vue";
 import StringListEditor from "@/domains/admin-commerce/ui/product-management/composites/StringListEditor.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
+import { PuToggleSwitch } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const context = useAdminCommerceProductManagementContext();

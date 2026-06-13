@@ -5,7 +5,7 @@
     </template>
 
     <template #main>
-      <LoadingIndicator
+      <PuLoadingState
         v-if="templatesQuery.isLoading.value"
         :message="t('common.loading')"
       />
@@ -153,8 +153,8 @@ import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import Button from "@/shared/ui/actions/Button.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 type TemplateRecord = AdminFeedbackQuestionnaireTemplatesResponse[number];
 

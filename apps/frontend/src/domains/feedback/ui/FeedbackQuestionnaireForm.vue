@@ -32,22 +32,22 @@
             </label>
           </div>
         </fieldset>
-        <FormField
+        <PuFormItem
           v-else-if="question.type === 'textarea'"
           :label="question.label"
           :for-id="feedbackFieldId(question.id)"
           :required="question.required"
         >
-          <TextareaInput
-            :input-id="feedbackFieldId(question.id)"
+          <PuTextarea
+            :id="feedbackFieldId(question.id)"
             :model-value="readTextareaValue(question.id)"
-            :max-length="question.maxLength"
+            :maxlength="question.maxLength"
             :disabled="pending"
             show-count
             @update:model-value="setTextareaAnswer(question.id, $event)"
           />
-        </FormField>
-        <FormField
+        </PuFormItem>
+        <PuFormItem
           v-else
           :label="question.label"
           :for-id="feedbackFieldId(question.id)"
@@ -65,7 +65,7 @@
             data-testid="pr-detail.feedback.image-upload"
             @update:model-value="setImageAnswer(question.id, $event)"
           />
-        </FormField>
+        </PuFormItem>
       </template>
     </div>
 
@@ -102,8 +102,7 @@ import type {
 } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
+import { PuFormItem, PuTextarea } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   instanceId: number;

@@ -8,9 +8,14 @@
     >
       <div class="stack">
         <div class="section-header">
-          <Chip v-if="selectedPoi" :tone="statusChipTone(selectedPoi.status)" size="sm">
-            {{ statusLabel(selectedPoi.status) }}
-          </Chip>
+          <PuTag
+            v-if="selectedPoi"
+            :tone="statusTagTone(selectedPoi.status)"
+            :text="statusLabel(selectedPoi.status)"
+            size="sm"
+            variant="soft"
+            shape="pill"
+          />
         </div>
 
         <div v-if="selectedPoi === null" class="hint">
@@ -82,7 +87,7 @@ import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManag
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
+import { PuTag } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];
@@ -119,7 +124,7 @@ const statusLabel = (status: PoiStatus): string => {
   }
 };
 
-const statusChipTone = (
+const statusTagTone = (
   status: PoiStatus,
 ): "primary" | "secondary" | "danger" =>
   status === "PUBLISHED"

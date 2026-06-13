@@ -36,12 +36,13 @@
                   <h3>{{ routeSummary(displayRoute(application)) }}</h3>
                   <p>{{ formatCreatedAt(application.createdAt) }}</p>
                 </div>
-                <Chip
-                  :tone="statusChipTone(application.status)"
+                <PuTag
+                  :tone="statusTagTone(application.status)"
+                  :text="statusLabel(application.status)"
                   size="sm"
-                >
-                  {{ statusLabel(application.status) }}
-                </Chip>
+                  variant="soft"
+                  shape="pill"
+                />
               </div>
 
               <p
@@ -83,7 +84,6 @@
                   :placeholder="
                     t('adminAnchorEvents.routeApplicationRejectPlaceholder')
                   "
-                  rows="2"
                   :value="rejectReasonDraft(application.id)"
                   @input="handleRejectReasonInput(application.id, $event)"
                 ></textarea>
@@ -127,7 +127,6 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
 import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import type { AdminRouteApplication } from "@/domains/admin/queries/useAdminAnchorEvents";
@@ -142,6 +141,7 @@ import {
 } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
+import { PuTag } from "@partner-up-dev/design-web";
 
 type RouteApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 
@@ -270,7 +270,7 @@ const handleRejectReasonInput = (applicationId: number, event: Event) => {
 const statusLabel = (status: RouteApplicationStatus): string =>
   t(`adminAnchorEvents.routeApplicationStatus.${status}`);
 
-const statusChipTone = (
+const statusTagTone = (
   status: RouteApplicationStatus,
 ): "primary" | "secondary" | "danger" =>
   status === "ACCEPTED"

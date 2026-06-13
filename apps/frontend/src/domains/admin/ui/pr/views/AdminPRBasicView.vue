@@ -16,7 +16,7 @@
 
     <template #main>
       <div class="stack">
-      <LoadingIndicator
+      <PuLoadingState
         v-if="workspaceQuery.isLoading.value"
         :message="t('common.loading')"
       />
@@ -434,7 +434,6 @@ import {
 import Button from "@/shared/ui/actions/Button.vue";
 import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
@@ -442,6 +441,7 @@ import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 type PRForm = {
   title: string;

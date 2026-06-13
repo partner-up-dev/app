@@ -8,7 +8,7 @@
       <ActionLink
         :to="{ name: 'contact-support' }"
         appearance="pill"
-        tone="outline"
+        variant="outline"
         size="sm"
         data-testid="ordering.contact-support.open"
       >
@@ -17,7 +17,7 @@
     </template>
 
     <div class="ordering-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="missingInput"
         tone="error"
         :title="t('ordering.invalidEntryTitle')"
@@ -96,13 +96,13 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingFloatingNoticeLayer from "@/domains/commerce/ui/ordering/OrderingFloatingNoticeLayer.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
+import { PuInlineNotice } from "@partner-up-dev/design-web";
 import RideHailingOrderingPanel, {
   type RideVehicleOption,
 } from "@/domains/commerce/ui/ordering/RideHailingOrderingPanel.vue";

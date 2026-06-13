@@ -5,13 +5,13 @@
     data-region="waitlist-actions"
     data-testid="pr-detail.waitlist-actions"
   >
-    <InlineNotice
+    <PuInlineNotice
       v-if="waitlistBlockedMessage"
       tone="warning"
       :message="waitlistBlockedMessage"
     />
 
-    <InlineNotice
+    <PuInlineNotice
       v-if="waitlistNoticeText"
       tone="info"
       :message="waitlistNoticeText"
@@ -122,7 +122,6 @@ import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import Button from "@/shared/ui/actions/Button.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import Modal from "@/shared/ui/overlay/Modal.vue";
 import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
@@ -142,6 +141,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { trackEvent } from "@/shared/telemetry/track";
+import { PuInlineNotice } from "@partner-up-dev/design-web";
 
 type WaitlistSuccessPromptExpose = {
   close: () => void;

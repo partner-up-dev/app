@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="ordering-page-shell" :data-testid="dataTestid">
+  <PuPageScaffold viewport="screen" class="ordering-page-shell" :data-testid="dataTestid">
     <template #header>
       <PageHeader
         :title="title"
@@ -23,13 +23,13 @@
 
     <slot name="floating" />
     <slot name="drawer" />
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 
 defineProps<{
   title: string;

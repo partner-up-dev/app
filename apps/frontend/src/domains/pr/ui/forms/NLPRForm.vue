@@ -2,17 +2,15 @@
   <form class="nl-form" @submit.prevent="onSubmit">
     <Field name="rawText" v-slot="{ field, errors }">
       <div class="nl-field">
-        <TextareaInput
-          input-id="pr-text"
+        <PuTextarea
+          id="pr-text"
           :model-value="field.value"
           @update:model-value="field.onChange"
           :disabled="isSubmitting"
           :placeholder="placeholderText"
-          :rows="3"
-          :max-length="120"
+          ::maxlength="120"
           show-count
-          min-height="120px"
-        />
+          />
         <div class="nl-actions">
           <button
             v-if="isVoiceSupported"
@@ -45,7 +43,7 @@
       {{ t("nlForm.submit") }}
     </Button>
 
-    <LoadingIndicator v-if="isSubmitting" :message="t('nlForm.parsing')" />
+    <PuLoadingState v-if="isSubmitting" :message="t('nlForm.parsing')" />
 
     <ErrorToast
       v-if="createMutation.isError.value"
@@ -63,14 +61,13 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { createNaturalLanguagePRValidationSchema } from "@/lib/validation";
 import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useLandingRotatingTopic } from "@/domains/landing/use-cases/useLandingRotatingTopic";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import Button from "@/shared/ui/actions/Button.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
+import { PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

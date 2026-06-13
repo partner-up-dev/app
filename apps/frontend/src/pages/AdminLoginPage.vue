@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldCentered class="admin-login-page">
+  <PuPageScaffold content-placement="center" class="admin-login-page">
     <template #header>
       <header class="admin-login-page__header">
         <p class="admin-login-page__eyebrow">{{ t("adminCommon.title") }}</p>
@@ -54,7 +54,7 @@
         />
       </div>
     </section>
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -64,8 +64,8 @@ import { useI18n } from "vue-i18n";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useAdminLogin } from "@/domains/admin/queries/useAdminLogin";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
 import Button from "@/shared/ui/actions/Button.vue";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 
 const route = useRoute();
 const router = useRouter();

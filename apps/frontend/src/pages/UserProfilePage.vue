@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldFlow class="user-profile-page">
+  <PuPageScaffold class="user-profile-page">
     <template #header>
       <PageHeader
         :title="t('userProfilePage.title')"
@@ -8,17 +8,17 @@
       />
     </template>
 
-    <LoadingIndicator
+    <PuLoadingState
       v-if="isLoading"
       :message="t('userProfilePage.loading')"
     />
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="isNotFound"
       :title="t('userProfilePage.notFoundTitle')"
       :description="t('userProfilePage.notFoundDescription')"
       icon="i-mdi-account-off-outline"
-      tone="outline"
+      variant="outline"
     />
 
     <ErrorToast
@@ -38,12 +38,14 @@
       </div>
 
       <div class="profile-row">
-        <Avatar
-          :src="profile.avatarUrl"
+        <PuImg
+          :src="profile.avatarUrl ?? ''"
           :alt="t('userProfilePage.avatarAlt', { name: displayName })"
           :name="displayName"
-          :fallback="avatarFallbackText"
-          size="lg"
+          :fallback-initial="avatarFallbackText"
+          size="large"
+          shape="circle"
+          :show-loading="false"
           bordered
         />
 
@@ -57,7 +59,7 @@
     <template #footer>
       <PageFooter variant="minimal" />
     </template>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -65,13 +67,15 @@ import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
+import {
+  PuCard,
+  PuEmptyState,
+  PuImg,
+  PuLoadingState,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import Avatar from "@/shared/ui/identity/Avatar.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import {
   prDetailPath,

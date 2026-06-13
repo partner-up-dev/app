@@ -1,6 +1,6 @@
 <template>
   <div class="preference-tag-pool-editor">
-    <LoadingIndicator
+    <PuLoadingState
       v-if="preferenceTagsQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -51,7 +51,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import Button from "@/shared/ui/actions/Button.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventPreferenceTags,
   useReplaceAdminAnchorEventPreferenceTags,

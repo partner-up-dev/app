@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="order-detail-page" data-testid="order-detail.page">
+  <PuPageScaffold viewport="screen" class="order-detail-page" data-testid="order-detail.page">
     <template #header>
       <PageHeader
         title="订单详情"
@@ -10,7 +10,7 @@
           <ActionLink
             :to="{ name: 'contact-support' }"
             appearance="pill"
-            tone="outline"
+            variant="outline"
             size="sm"
             data-testid="order-detail.contact-support.open"
           >
@@ -21,14 +21,14 @@
     </template>
 
     <div class="order-detail-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="orderId === null"
         tone="error"
         title="订单无效"
         message="缺少订单编号。"
       />
 
-      <InlineNotice
+      <PuInlineNotice
         v-else-if="orderQuery.isError.value"
         tone="error"
         title="无法加载订单"
@@ -201,7 +201,7 @@
             取消订单
           </Button>
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="isCancellationPending"
             tone="info"
             title="取消处理中"
@@ -209,7 +209,7 @@
             data-testid="order-detail.rental.cancellation-pending"
           />
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="detail.order.status === 'CANCELLED'"
             tone="success"
             title="订单已取消"
@@ -239,7 +239,7 @@
             模拟确认预订
           </Button>
 
-          <InlineNotice
+          <PuInlineNotice
             v-if="detail.fulfillment?.bookingStatus === 'BOOKING_CONFIRMED'"
             tone="success"
             title="预约成功"
@@ -250,16 +250,14 @@
         </template>
       </template>
     </div>
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard } from "@partner-up-dev/design-web";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
+import { PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import Button from "@/shared/ui/actions/Button.vue";
 import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import {

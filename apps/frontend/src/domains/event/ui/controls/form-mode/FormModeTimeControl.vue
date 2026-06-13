@@ -22,7 +22,7 @@
     <template
       #date-picker="{ modelValue, options, updateModelValue, ariaLabel, emptyLabel, testId }"
     >
-      <WheelPicker
+      <PuWheelPicker
         :model-value="modelValue"
         :options="options"
         :item-height="42"
@@ -37,7 +37,7 @@
     <template
       #time-picker="{ modelValue, options, updateModelValue, ariaLabel, emptyLabel, testId }"
     >
-      <WheelPicker
+      <PuWheelPicker
         :model-value="modelValue"
         :options="options"
         :item-height="42"
@@ -55,7 +55,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import WheelPicker from "@/shared/ui/forms/WheelPicker.vue";
+import { PuWheelPicker } from "@partner-up-dev/design-web";
 import PRTimeWindowEditor from "@/domains/event/ui/controls/PRTimeWindowEditor.vue";
 import type { AnchorEventFormModeResponse } from "@/domains/event/model/types";
 import type { TimeWindow } from "@/domains/event/model/time-window-view";

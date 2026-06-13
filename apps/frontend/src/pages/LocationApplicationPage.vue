@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldFlow class="location-application-page">
+  <PuPageScaffold class="location-application-page">
     <template #header>
       <PageHeader
         :title="t('locationApplicationPage.title')"
@@ -9,7 +9,7 @@
     </template>
 
     <div class="location-application-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="submitSuccessTitle"
         tone="success"
         :message="submitSuccessTitle"
@@ -18,7 +18,7 @@
 
       <PuCard as="section" gap="md">
         <form class="application-form" @submit.prevent="handleSubmit">
-          <FormField
+          <PuFormItem
             :label="t('locationApplicationPage.nameLabel')"
             for-id="location-application-name"
             required
@@ -31,9 +31,9 @@
               maxlength="80"
               :placeholder="t('locationApplicationPage.namePlaceholder')"
             />
-          </FormField>
+          </PuFormItem>
 
-          <FormField
+          <PuFormItem
             :label="t('locationApplicationPage.imageLabel')"
             for-id="location-application-image-url"
             :hint="imageHint"
@@ -50,7 +50,7 @@
               :preview-alt="t('locationApplicationPage.imagePreviewAlt')"
               :allow-url-input="false"
             />
-          </FormField>
+          </PuFormItem>
 
           <Button
             appearance="rect"
@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <LoadingIndicator
+        <PuLoadingState
           v-if="applicationsQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -94,9 +94,13 @@
             <div class="application-card__body">
               <div class="application-card__title-row">
                 <h3>{{ application.title }}</h3>
-                <Chip :tone="statusChipTone(application.status)" size="sm">
-                  {{ statusLabel(application.status) }}
-                </Chip>
+                <PuTag
+                  :tone="statusTagTone(application.status)"
+                  :text="statusLabel(application.status)"
+                  size="sm"
+                  variant="soft"
+                  shape="pill"
+                />
               </div>
               <p class="application-card__meta">
                 {{ formatCreatedAt(application.createdAt) }}
@@ -109,22 +113,17 @@
         </div>
       </PuCard>
     </div>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuCard, PuFormItem, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
 import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
 import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
 import {
   useMyPoiApplications,
@@ -207,7 +206,7 @@ const handleSubmit = async () => {
 const statusLabel = (status: PoiApplicationStatus): string =>
   t(`locationApplicationPage.status.${status}`);
 
-const statusChipTone = (
+const statusTagTone = (
   status: PoiApplicationStatus,
 ): "primary" | "secondary" | "danger" =>
   status === "PUBLISHED"

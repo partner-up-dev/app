@@ -65,7 +65,7 @@
             <span class="pm-field-label">{{ t("adminCommerceProducts.refundPercentLabel") }}</span>
             <input v-model.number="tier.refundPercent" class="pm-field-input" type="number" min="0" max="100" />
           </label>
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="tier.requiresOperatorHandling"
             :label="t('adminCommerceProducts.requiresOperatorHandlingLabel')"
           />
@@ -95,8 +95,8 @@ import {
 import { useSaveAdminSkuCancellationPolicy } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
 import Button from "@/shared/ui/actions/Button.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
+import { PuToggleSwitch } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const context = useAdminCommerceProductManagementContext();

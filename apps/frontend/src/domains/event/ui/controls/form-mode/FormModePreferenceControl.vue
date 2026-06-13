@@ -4,7 +4,7 @@
     class="form-mode-preference-control"
   >
     <div class="preference-cell-list">
-      <Cell
+      <PuCell
         v-for="cell in preferenceCells"
         :key="cell.key"
         as="button"
@@ -147,8 +147,8 @@ import {
 } from "@/domains/event/model/form-mode";
 import { useAnchorEventPreferenceTagSubmissions } from "@/domains/event/queries/useAnchorEventPreferenceTagSubmissions";
 import Button from "@/shared/ui/actions/Button.vue";
-import Cell from "@/shared/ui/display/Cell.vue";
 import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
+import { PuCell } from "@partner-up-dev/design-web";
 
 type FormModePresetTag = AnchorEventFormModeResponse["presetTags"][number];
 type BottomDrawerCloseReason = "backdrop" | "close-button" | "escape";

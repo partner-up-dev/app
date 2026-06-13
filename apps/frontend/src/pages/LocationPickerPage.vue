@@ -1,5 +1,5 @@
 <template>
-  <FullScreenPageScaffold class="location-picker-page">
+  <PuPageScaffold viewport="screen" class="location-picker-page">
     <template #header>
       <div class="location-picker-page__header">
         <Button
@@ -24,7 +24,7 @@
       @pick="handlePick"
       @cancel="goBack"
     />
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -32,9 +32,9 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import Button from "@/shared/ui/actions/Button.vue";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
+import { PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   readLastPickedLocation,
   saveLastPickedLocation,

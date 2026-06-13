@@ -20,9 +20,15 @@
   >
     <div
       v-if="coverImage"
-      class="demand-card__cover"
-      :style="{ backgroundImage: `url(${coverImage})` }"
+      class="demand-card__cover demand-card__cover--image"
     >
+      <PuImg
+        class="demand-card__cover-image"
+        :src="coverImage"
+        alt=""
+        mode="aspectFill"
+        :show-loading="false"
+      />
       <span class="demand-card__location-badge">{{ displayLocationName }}</span>
     </div>
     <div v-else class="demand-card__cover demand-card__cover--fallback">
@@ -56,6 +62,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
+import { PuImg } from "@partner-up-dev/design-web";
 import {
   DEMAND_CARD_EXIT_TRANSITION,
   DEMAND_CARD_REBOUND_TRANSITION,
@@ -774,13 +781,24 @@ defineExpose({
 }
 
 .demand-card__cover {
+  position: relative;
   min-height: calc(calc(var(--sys-spacing-large) * 2) * 4);
-  background-size: cover;
-  background-position: center;
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
   padding: var(--sys-spacing-small);
+  overflow: hidden;
+}
+
+.demand-card__cover--image {
+  background: var(--sys-color-surface-container-high);
+}
+
+.demand-card__cover-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .demand-card__cover--fallback {
@@ -800,6 +818,8 @@ defineExpose({
 
 .demand-card__location-badge {
   @include mx.pu-font(control);
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);

@@ -17,7 +17,7 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="poisQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -86,7 +86,7 @@ import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNavigationSection";
 import { useAdminPoiManagementWorkspace } from "@/domains/admin/use-cases/poi/useAdminPoiManagementWorkspace";
 import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

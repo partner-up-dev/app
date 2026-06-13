@@ -15,25 +15,25 @@
           </p>
         </div>
 
-        <FormField :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
+        <PuFormItem :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
           <input
             id="analytics-start-at"
             v-model="draftStartAt"
             class="analytics-input"
             type="datetime-local"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
+        <PuFormItem :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
           <input
             id="analytics-end-at"
             v-model="draftEndAt"
             class="analytics-input"
             type="datetime-local"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.eventIdLabel')"
           for-id="analytics-event-id"
@@ -46,9 +46,9 @@
             type="text"
             :placeholder="t('adminAnalytics.allEventsPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.sourceSpmLabel')"
           for-id="analytics-spm"
@@ -60,9 +60,9 @@
             type="text"
             :placeholder="t('adminAnalytics.sourceSpmPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.sourceQrLabel')"
           for-id="analytics-source-qr"
@@ -74,9 +74,9 @@
             type="text"
             :placeholder="t('adminAnalytics.sourceQrPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.assignmentRevisionLabel')"
           for-id="analytics-assignment-revision"
@@ -88,9 +88,9 @@
             type="text"
             :placeholder="t('adminAnalytics.assignmentRevisionPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.renderedModeLabel')"
           for-id="analytics-mode"
@@ -105,9 +105,9 @@
               {{ formatMode(mode) }}
             </option>
           </select>
-        </FormField>
+        </PuFormItem>
 
-        <InlineNotice
+        <PuInlineNotice
           v-if="filterError"
           tone="error"
           :message="filterError"
@@ -162,11 +162,11 @@
 
     <template #main>
       <div class="analytics-dashboard" data-testid="admin-analytics.dashboard">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="isInitialLoading"
           :message="t('adminAnalytics.loading')"
         />
-        <InlineNotice
+        <PuInlineNotice
           v-else-if="dashboardError"
           tone="error"
           :title="t('adminAnalytics.loadFailedTitle')"
@@ -850,9 +850,7 @@ import {
   type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
 import Button from "@/shared/ui/actions/Button.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuFormItem, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];

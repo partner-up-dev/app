@@ -7,10 +7,13 @@
       :class="{ 'pr-preview-card__link--button': mode === 'button' }"
       @click="emit('activate')"
     >
-      <div
+      <PuImg
         v-if="coverImage"
         class="pr-preview-card__cover"
-        :style="{ backgroundImage: `url(${coverImage})` }"
+        :src="coverImage"
+        alt=""
+        mode="aspectFill"
+        :show-loading="false"
       />
 
       <div class="pr-preview-card__body">
@@ -55,6 +58,7 @@
 <script setup lang="ts">
 import { computed, useSlots } from "vue";
 import { RouterLink } from "vue-router";
+import { PuImg } from "@partner-up-dev/design-web";
 import type { PRDisplayStatus } from "@/domains/pr/model/pr-display-status";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 
@@ -166,10 +170,9 @@ const preferenceLabel = computed(
 }
 
 .pr-preview-card__cover {
+  display: block;
   width: 100%;
   height: 108px;
-  background-size: cover;
-  background-position: center;
 }
 
 .pr-preview-card__body {
