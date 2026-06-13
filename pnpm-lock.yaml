@@ -122,8 +122,8 @@ importers:
   apps/frontend:
     dependencies:
       '@partner-up-dev/design-web':
-        specifier: 0.2.0
-        version: 0.2.0(sass@1.97.3)(unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(vite@6.4.1(@types/node@22.19.7)(jiti@2.7.0)(sass@1.97.3)(tsx@4.21.0)))(vue@3.5.35(typescript@6.0.3))
+        specifier: 0.4.0
+        version: 0.4.0(sass@1.97.3)(unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(vite@6.4.1(@types/node@22.19.7)(jiti@2.7.0)(sass@1.97.3)(tsx@4.21.0)))(vue@3.5.35(typescript@6.0.3))
       '@tanstack/vue-query':
         specifier: ^5.60.0
         version: 5.92.9(vue@3.5.35(typescript@6.0.3))
@@ -1187,8 +1187,8 @@ packages:
     resolution: {integrity: sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ==}
     engines: {node: '>= 10.0.0'}
 
-  '@partner-up-dev/design-web@0.2.0':
-    resolution: {integrity: sha512-nBHED6bde25iMIdedtpSgvz/XWSYEAq0YnRJw/ftpsE2EzzMgDWTLjDZ8JW2XiXYHqOdn8T9CK1biefrFENu6w==, tarball: https://npm.pkg.github.com/download/@partner-up-dev/design-web/0.2.0/a701a8a93ded45b19b50af8bbfe0fb876e387868}
+  '@partner-up-dev/design-web@0.4.0':
+    resolution: {integrity: sha512-LS1Sx+SmpecJQZaFTbuKOJc3rMU5TFCrk4oF4o5a/WvoWAV0VNhsmUr8OLid82Zg3nlAEKDaduUhI9cA+6IorA==, tarball: https://npm.pkg.github.com/download/@partner-up-dev/design-web/0.4.0/84e662924ef8d06aab22ad3ffd865ac9c0f5f99b}
     peerDependencies:
       sass: ^1.94.2
       unocss: ^66.6.8
@@ -3379,7 +3379,7 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.5.6
     optional: true
 
-  '@partner-up-dev/design-web@0.2.0(sass@1.97.3)(unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(vite@6.4.1(@types/node@22.19.7)(jiti@2.7.0)(sass@1.97.3)(tsx@4.21.0)))(vue@3.5.35(typescript@6.0.3))':
+  '@partner-up-dev/design-web@0.4.0(sass@1.97.3)(unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(vite@6.4.1(@types/node@22.19.7)(jiti@2.7.0)(sass@1.97.3)(tsx@4.21.0)))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
       sass: 1.97.3
       unocss: 66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(vite@6.4.1(@types/node@22.19.7)(jiti@2.7.0)(sass@1.97.3)(tsx@4.21.0))

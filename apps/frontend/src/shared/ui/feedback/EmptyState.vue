@@ -1,42 +1,33 @@
 <template>
-  <PuCard
-    :as="as"
-    tone="neutral"
-    :variant="cardVariant"
-    :padding="cardPadding"
-    :gap="compact ? 'xs' : 'sm'"
-    class="empty-state"
-    :class="`empty-state--align-${align}`"
+  <PuEmptyState
+    :as="props.as"
+    :title="props.title"
+    :description="props.description"
+    :icon="props.icon"
+    :compact="props.compact"
+    :align="props.align"
+    :surface-level="surfaceLevel"
+    :variant="variant"
   >
-    <span
-      v-if="icon"
-      class="empty-state__icon"
-      :class="icon"
-      aria-hidden="true"
-    ></span>
+    <slot />
 
-    <div class="empty-state__text">
-      <h2 class="empty-state__title">{{ title }}</h2>
-      <p v-if="description" class="empty-state__description">
-        {{ description }}
-      </p>
-      <div v-if="$slots.default" class="empty-state__body">
-        <slot />
-      </div>
-    </div>
-
-    <div v-if="$slots.actions" class="empty-state__actions">
+    <template
+      v-if="$slots.actions"
+      #actions
+    >
       <slot name="actions" />
-    </div>
-  </PuCard>
+    </template>
+  </PuEmptyState>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuEmptyState } from "@partner-up-dev/design-web";
 
 type EmptyStateAlign = "start" | "center";
 type EmptyStateTone = "section" | "outline";
+type EmptyStateSurfaceLevel = "section";
+type EmptyStateVariant = "soft" | "outline";
 
 const props = withDefaults(
   defineProps<{
@@ -58,59 +49,8 @@ const props = withDefaults(
   },
 );
 
-const cardVariant = computed(() =>
+const surfaceLevel = computed<EmptyStateSurfaceLevel>(() => "section");
+const variant = computed<EmptyStateVariant>(() =>
   props.tone === "outline" ? "outline" : "soft",
 );
-const cardPadding = computed(() => (props.tone === "outline" ? "sm" : "md"));
 </script>
-
-<style lang="scss" scoped>
-.empty-state {
-  align-items: stretch;
-}
-
-.empty-state--align-center {
-  text-align: center;
-  align-items: center;
-}
-
-.empty-state--align-start {
-  text-align: left;
-  align-items: flex-start;
-}
-
-.empty-state__icon {
-  @include mx.pu-icon(large, true);
-  color: var(--sys-color-primary);
-}
-
-.empty-state__text {
-  min-width: 0;
-}
-
-.empty-state__title,
-.empty-state__description {
-  margin: 0;
-}
-
-.empty-state__title {
-  @include mx.pu-font(section);
-  color: var(--sys-color-on-surface);
-}
-
-.empty-state__description,
-.empty-state__body {
-  @include mx.pu-font(body);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.empty-state__body {
-  margin-top: var(--sys-spacing-xsmall);
-}
-
-.empty-state__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sys-spacing-small);
-}
-</style>

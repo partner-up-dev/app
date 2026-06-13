@@ -1,41 +1,21 @@
 <template>
-  <div class="loading-state">
-    <div class="spinner" />
-    <p>{{ message }}</p>
-  </div>
+  <PuLoadingState
+    :message="props.message"
+    :label="resolvedLabel"
+    size="lg"
+  />
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { PuLoadingState } from "@partner-up-dev/design-web";
+
+const props = defineProps<{
   message?: string;
 }>();
+
+const { t } = useI18n();
+
+const resolvedLabel = computed(() => props.message ?? t("common.loading"));
 </script>
-
-<style lang="scss" scoped>
-.loading-state {
-  @include mx.flex-center;
-  flex-direction: column;
-  gap: var(--sys-spacing-medium);
-  padding: var(--sys-spacing-large);
-
-  p {
-    @include mx.pu-font(body);
-    color: var(--sys-color-on-surface-variant);
-  }
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--sys-color-surface-container);
-  border-top-color: var(--sys-color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>
