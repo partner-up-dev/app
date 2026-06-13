@@ -6,6 +6,8 @@
 - Package target: `PuTabs`.
 - Desired final state: value-based tab navigation uses the package `PuTabs`
   API directly and local `TabBar.vue` is deleted after usage sites clear.
+- Status: Done. `PRCreatePage.vue` and `AnchorEventListModeSurface.vue` now
+  import `PuTabs` directly, and the local `TabBar.vue` file was deleted.
 
 ## Current Contract
 
@@ -29,18 +31,27 @@
 - `item.label` -> `label`.
 - `item.disabled` -> `disabled`.
 - `v-model` / `update:modelValue` -> `PuTabs` `v-model`.
-- `ariaLabel` -> native `aria-label` attr if package forwarding supports it;
-  otherwise confirm whether `customClass` or package API is sufficient before
-  production migration.
+- `ariaLabel` -> no direct app-side mapping in this slice. Current `PuTabs`
+  public API does not expose a way to label its internal `role="tablist"`;
+  record this as a package API follow-up rather than creating a local wrapper.
+- `tabClass` -> retired. It was used only for the expired-date dashed visual
+  treatment in list mode and is not recreated around `PuTabs`.
+- Layout spacing between list-mode tabs and the `date-panel` is owned by the
+  parent `.date-section` flex `gap`, not by a package `customClass` hook.
 
 ## Risks
 
-- Existing `tabClass` usage may be visual-only product chrome. If the class is
-  only styling, prefer package-native `variant`, `size`, or `showDot`; do not
-  recreate a wrapper to preserve arbitrary per-tab classes.
+- Existing `tabClass` usage was visual-only product chrome. It was removed
+  instead of recreated as an app wrapper or per-tab package-class override.
 - `PuTabs` is value-based and should not be migrated as index-only state.
+- Package follow-up: expose an `ariaLabel` / `ariaLabelledby` API or equivalent
+  forwarding to the internal tablist.
 
 ## Verification
 
-- Build, token lint, frontend unit tests.
-- Targeted browser smoke on PR create tabs and Anchor Event list mode tabs.
+- `pnpm --filter @partner-up-dev/frontend build` - passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` - passed.
+- `pnpm test:unit:frontend` - passed, 26 files / 117 tests.
+- Local reference scan for `TabBar`, `tab-bar__`, and `tabClass` under
+  `apps/frontend/src` returned no findings.
+- `git diff --check` - passed.

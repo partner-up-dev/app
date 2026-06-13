@@ -36,6 +36,10 @@ Display and feedback:
 - `PuInlineNotice`, `PuEmptyState`, and `PuLoadingState` from `@partner-up-dev/design-web`: default local notice, empty state, and loading state primitives.
 - `PuImg` from `@partner-up-dev/design-web`: default image primitive, including avatar-style fallback when `name`, `fallbackInitial`, `shape`, and `bordered` are enough for the surface.
 
+Navigation:
+
+- `PuTabs` from `@partner-up-dev/design-web`: default value-based tab navigation primitive. Use `{ value, label, disabled?, showDot? }` tab items directly at usage sites instead of preserving local tab wrappers or per-tab style escape hatches.
+
 Overlay:
 
 - `PuModal` from `@partner-up-dev/design-web`: generic focused modal shell. Use direct package imports at usage sites; set `closeOnOverlay` or `closeOnEscape` only when the workflow needs custom dismissal rules.

@@ -5,10 +5,11 @@
     </template>
 
     <div class="pr-create-page__body">
-      <TabBar
-        :items="modeTabs"
+      <PuTabs
+        :tabs="modeTabs"
         :model-value="activeMode"
-        :aria-label="t('createPage.modeSwitchAria')"
+        variant="pill"
+        size="md"
         @update:model-value="handleModeChange"
         data-region="mode-switch"
       />
@@ -65,12 +66,11 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
-import TabBar from "@/shared/ui/navigation/TabBar.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
 import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuPageScaffold, PuTabs } from "@partner-up-dev/design-web";
 
 const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
   if (value === "nl" || value === "form") return value;
@@ -97,11 +97,11 @@ const initialMode =
 const activeMode = ref<"nl" | "form">(initialMode);
 const modeTabs = computed(() => [
   {
-    key: "nl",
+    value: "nl",
     label: t("createPage.nlModeTab"),
   },
   {
-    key: "form",
+    value: "form",
     label: t("createPage.formModeTab"),
   },
 ]);

@@ -26,6 +26,8 @@ Hypothesis: the frontend can move from locally forked `src/shared/ui` and `src/s
 - `Button` and `FeedbackButton` have migrated directly to package `PuButton`;
   the local action wrappers are no longer part of the frontend shared UI
   contract.
+- `TabBar` has migrated directly to package `PuTabs`; the local navigation
+  wrapper is no longer part of the frontend shared UI contract.
 
 ## Guardrails Touched
 

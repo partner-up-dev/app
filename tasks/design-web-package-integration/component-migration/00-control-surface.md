@@ -16,8 +16,7 @@ design package should not absorb.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Implementation status: fifth action-button slice implemented and verified
-  locally.
+- Implementation status: sixth tabs slice implemented and verified locally.
   Usage sites now consume the relevant package components directly and the
   migrated local facades have been deleted.
 
@@ -136,6 +135,10 @@ design package should not absorb.
   submit buttons use `action.native`, feedback actions use the package
   `feedback` prop, old `.ui-button` layout selectors were removed or retargeted
   to package classes, and `Button.vue` / `FeedbackButton.vue` were deleted.
+- Sixth slice completed: local `TabBar` usage sites now directly use `PuTabs`.
+  Old `{ key, label, disabled?, tabClass? }` items were mapped to package
+  value-based tab items, the visual `tabClass` escape hatch was retired, and
+  `TabBar.vue` was deleted.
 
 ## First Slice Candidate
 
@@ -188,6 +191,9 @@ diff --check` passed.
   `Button`/`FeedbackButton` reference scan returned no source references; old
   `PuButton` prop vocabulary scan returned no findings; `git diff --check`
   passed.
+- Sixth-slice verification on 2026-06-13: frontend build passed; token lint
+  passed; frontend unit tests passed, 26 files / 117 tests; migrated `TabBar`
+  reference scan returned no source references; `git diff --check` passed.
 - Agent Skill verification on 2026-06-13: `pnpm dlx
 @tanstack/intent@latest list --json` found
   `@partner-up-dev/design-web#design-web` from the installed `0.4.0` package;

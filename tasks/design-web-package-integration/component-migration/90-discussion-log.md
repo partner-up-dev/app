@@ -264,3 +264,23 @@ apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
 - Fifth-slice verification passed: frontend build, token lint, frontend unit
   tests (26 files / 117 tests), old local action reference scan, old
   `PuButton` prop vocabulary scan, and `git diff --check`.
+- Fifth slice was committed as
+  `c0ba0968 refactor(frontend): migrate action buttons to design package`.
+- Sixth tabs slice started after the user asked to commit the fifth slice and
+  continue. `PRCreatePage.vue` and `AnchorEventListModeSurface.vue` now import
+  `PuTabs` directly from `@partner-up-dev/design-web`.
+- `TabBar` items were mapped from `{ key, label }` to package value-based
+  `{ value, label }` tab items. The Anchor Event list-mode `tabClass` escape
+  hatch for expired-date dashed tabs was retired instead of recreated around
+  `PuTabs`.
+- Current `PuTabs` public API does not expose a way to label its internal
+  `role="tablist"` with the old `ariaLabel` prop. This is recorded as a package
+  API follow-up, not a reason to keep a local wrapper.
+- `apps/frontend/src/shared/ui/navigation/TabBar.vue` was deleted after its
+  usage sites cleared.
+- Follow-up correction: `AnchorEventListModeSurface.vue` now gives the package
+  tabs and `date-panel` spacing through the parent `.date-section` flex `gap`
+  instead of relying on `PuTabs customClass` plus a deep selector.
+- Sixth-slice verification passed: frontend build, token lint, frontend unit
+  tests (26 files / 117 tests), old `TabBar` / `tabClass` source reference
+  scan, and `git diff --check`.

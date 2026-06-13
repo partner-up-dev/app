@@ -15,11 +15,12 @@
     class="date-section"
     data-testid="anchor-event-list-mode.surface"
   >
-    <TabBar
+    <PuTabs
       v-if="dateTabs.length > 0"
-      :items="dateTabs"
+      :tabs="dateTabs"
       :model-value="selectedDateKey ?? 'none'"
-      :aria-label="t('anchorEvent.dateLabel')"
+      variant="pill"
+      size="md"
       @update:model-value="handleDateTabChange"
     />
 
@@ -131,7 +132,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import TabBar from "@/shared/ui/navigation/TabBar.vue";
+import { PuTabs } from "@partner-up-dev/design-web";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import EventPRCreateCard from "@/domains/event/ui/primitives/EventPRCreateCard.vue";
 import EventDummyPRCard from "@/domains/event/ui/primitives/EventDummyPRCard.vue";
@@ -172,9 +173,8 @@ import {
 import { trackEvent } from "@/shared/telemetry/track";
 
 type DateTabItem = {
-  key: string;
+  value: string;
   label: string;
-  tabClass?: string;
 };
 
 type AnchorEventTimeWindow =
@@ -191,7 +191,6 @@ type DateGroup = {
   key: string;
   label: string;
   isExpiredDate: boolean;
-  tabClass?: string;
   timeWindows: DateGroupTimeWindowItem[];
 };
 
@@ -279,8 +278,6 @@ const buildPrDetailRoute = (prId: number): string =>
   `/pr/${prId}?fromEvent=${props.eventId}`;
 
 const LIST_MODE_EXPIRED_DATE_LIMIT = 3;
-const LIST_MODE_EXPIRED_TAB_CLASS = "tab-bar__tab--expired";
-
 const sortedBrowseTimeWindows = computed(() => {
   const timeWindows = detail.value?.browseTimeWindows ?? [];
   return [...timeWindows].sort((left, right) => {
@@ -367,7 +364,6 @@ const dateGroups = computed<DateGroup[]>(() => {
       key: groupKey,
       label: groupLabel,
       isExpiredDate,
-      tabClass: isExpiredDate ? LIST_MODE_EXPIRED_TAB_CLASS : undefined,
       timeWindows: [timeWindowViewModel],
     });
   });
@@ -393,22 +389,17 @@ const dateGroups = computed<DateGroup[]>(() => {
       key: groupKey,
       label: groupLabel,
       isExpiredDate,
-      tabClass: isExpiredDate ? LIST_MODE_EXPIRED_TAB_CLASS : undefined,
       timeWindows: [],
     });
   });
 
-  return toVisibleListModeDateGroups(groups).map((group) => ({
-    ...group,
-    tabClass: group.isExpiredDate ? LIST_MODE_EXPIRED_TAB_CLASS : undefined,
-  }));
+  return toVisibleListModeDateGroups(groups);
 });
 
 const dateTabs = computed<DateTabItem[]>(() =>
   dateGroups.value.map((group) => ({
-    key: group.key,
+    value: group.key,
     label: group.label,
-    tabClass: group.tabClass,
   })),
 );
 
@@ -882,11 +873,8 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: var(--sys-spacing-medium);
   min-height: 0;
-  margin-bottom: 1rem;
-}
-
-.date-section :deep(.tab-bar) {
   margin-bottom: 1rem;
 }
 

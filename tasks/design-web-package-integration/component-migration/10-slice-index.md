@@ -118,7 +118,15 @@ Completed after explicit user start.
 
 | File                      | Local Component                    | Package Target | Status   |
 | ------------------------- | ---------------------------------- | -------------- | -------- |
-| `components/tab-bar.md`   | `shared/ui/navigation/TabBar.vue`  | `PuTabs`       | Proposed |
+| `components/tab-bar.md`   | `shared/ui/navigation/TabBar.vue`  | `PuTabs`       | Done     |
+
+## Selected Sixth Slice Candidate
+
+Started after explicit user direction.
+
+| Order | File                    | Scope                                                                                                                                                                                                 | Status |
+| ----- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1     | `components/tab-bar.md` | Replace local `TabBar` call sites directly with `PuTabs`, map key-based items to value-based tabs, retire the per-tab `tabClass` escape hatch, and delete the local primitive after call sites clear. | Done   |
 
 ## Deferred Domain Or Product Chrome
 
