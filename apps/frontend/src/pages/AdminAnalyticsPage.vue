@@ -16,20 +16,18 @@
         </div>
 
         <PuFormItem :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
-          <input
+          <PuInput
             id="analytics-start-at"
             v-model="draftStartAt"
-            class="analytics-input"
-            type="datetime-local"
+            native-type="datetime-local"
           />
         </PuFormItem>
 
         <PuFormItem :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
-          <input
+          <PuInput
             id="analytics-end-at"
             v-model="draftEndAt"
-            class="analytics-input"
-            type="datetime-local"
+            native-type="datetime-local"
           />
         </PuFormItem>
 
@@ -38,12 +36,11 @@
           :label="t('adminAnalytics.eventIdLabel')"
           for-id="analytics-event-id"
         >
-          <input
+          <PuInput
             id="analytics-event-id"
             v-model="draftEventId"
-            class="analytics-input"
             inputmode="numeric"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.allEventsPlaceholder')"
           />
         </PuFormItem>
@@ -53,11 +50,10 @@
           :label="t('adminAnalytics.sourceSpmLabel')"
           for-id="analytics-spm"
         >
-          <input
+          <PuInput
             id="analytics-spm"
             v-model="draftSpm"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.sourceSpmPlaceholder')"
           />
         </PuFormItem>
@@ -67,11 +63,10 @@
           :label="t('adminAnalytics.sourceQrLabel')"
           for-id="analytics-source-qr"
         >
-          <input
+          <PuInput
             id="analytics-source-qr"
             v-model="draftSourceQr"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.sourceQrPlaceholder')"
           />
         </PuFormItem>
@@ -81,11 +76,10 @@
           :label="t('adminAnalytics.assignmentRevisionLabel')"
           for-id="analytics-assignment-revision"
         >
-          <input
+          <PuInput
             id="analytics-assignment-revision"
             v-model="draftAssignmentRevision"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.assignmentRevisionPlaceholder')"
           />
         </PuFormItem>
@@ -849,7 +843,13 @@ import {
   type AdminPRCreateFunnelResponse,
   type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
-import { PuButton, PuFormItem, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];

@@ -48,7 +48,13 @@
             <AdminCommerceCancellationPolicyEditor />
           </BentoItem>
 
-          <AdminCommerceProductErrorToast />
+          <PuInlineNotice
+            v-if="productErrorMessage"
+            tone="error"
+            :message="productErrorMessage"
+            dismissible
+            @close="productManagementContext.clearErrorMessage"
+          />
         </AdminCommerceProductWorkspaceGate>
       </div>
     </template>
@@ -65,13 +71,13 @@ import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationP
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import AdminCommerceCancellationPolicyEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceCancellationPolicyEditor.vue";
 import AdminCommerceProductActionBar from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductActionBar.vue";
-import AdminCommerceProductErrorToast from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductErrorToast.vue";
 import AdminCommerceProductRailList from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductRailList.vue";
 import AdminCommerceProductWorkspaceGate from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceProductWorkspaceGate.vue";
 import AdminCommerceSkuEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuEditor.vue";
 import AdminCommerceSkuRailList from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSkuRailList.vue";
 import AdminCommerceSpuEditor from "@/domains/admin-commerce/ui/product-management/sections/AdminCommerceSpuEditor.vue";
 import { provideAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
+import { PuInlineNotice } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -80,6 +86,9 @@ const productManagementContext =
 
 const hasSelectedProduct = computed(
   () => productManagementContext.selectedProduct.value !== null,
+);
+const productErrorMessage = computed(
+  () => productManagementContext.errorMessage.value,
 );
 const spuEditorTitle = computed(() =>
   productManagementContext.isCreatingSpu.value

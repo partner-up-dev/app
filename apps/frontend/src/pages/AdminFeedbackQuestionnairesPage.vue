@@ -9,7 +9,7 @@
         v-if="templatesQuery.isLoading.value"
         :message="t('common.loading')"
       />
-      <ErrorToast v-else-if="pageError" :message="pageError.message" persistent />
+      <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
       <BentoLayout v-else>
         <BentoItem
@@ -152,8 +152,7 @@ import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuButton, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 type TemplateRecord = AdminFeedbackQuestionnaireTemplatesResponse[number];
 

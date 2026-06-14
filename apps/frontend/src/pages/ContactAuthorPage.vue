@@ -1,7 +1,12 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-author-page">
     <template #header>
-      <PageHeader :title="t('contactAuthorPage.title')" />
+      <PuPageHeader
+        :title="t('contactAuthorPage.title')"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
+      />
     </template>
 
     <PuLoadingState
@@ -9,14 +14,13 @@
       :message="t('common.loading')"
     />
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-if="publicConfigQuery.error.value"
       :message="
         publicConfigQuery.error.value instanceof Error
           ? publicConfigQuery.error.value.message
           : t('errors.fetchPublicConfigFailed')
       "
-      persistent
     />
 
     <section class="author-body">
@@ -39,15 +43,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
-import { PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PUBLIC_CONFIG_KEYS,
+  usePublicConfig,
+} from "@/shared/config/queries/usePublicConfig";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { PuInlineNotice, PuLoadingState, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const DEFAULT_AUTHOR_QR_CODE_URL =
   "https://oss-app.partner-up.cn/5264495b163398842ad04ee5ee42a3df.jpg";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const publicConfigQuery = usePublicConfig(PUBLIC_CONFIG_KEYS.authorWechatQrCode);
 
 const normalizeHttpUrl = (value: string | null | undefined): string | null => {

@@ -5,10 +5,11 @@
     data-testid="payment-checkout.page"
   >
     <template #header>
-      <PageHeader
+      <PuPageHeader
         title="支付"
         subtitle="本页只支付当前这一条账单行"
-        :back-fallback-to="backFallbackTo"
+        show-back
+        @back="handleBack"
       />
     </template>
 
@@ -160,13 +161,19 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
-import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import {
   useCreateChargeForBillLine,
   usePaymentCheckout,
   useSyncPaymentTx,
 } from "@/domains/commerce/queries/useCommerce";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 const route = useRoute();
 
@@ -306,6 +313,7 @@ const paymentStatusLabel = computed(() => {
 const backFallbackTo = computed(() =>
   checkout.value ? { path: `/bills/${checkout.value.bill.id}` } : { path: "/" },
 );
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const checkoutErrorMessage = computed(() =>
   checkoutQuery.error.value instanceof Error

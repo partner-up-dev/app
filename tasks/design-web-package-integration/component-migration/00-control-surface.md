@@ -3,7 +3,7 @@
 ## Objective & Hypothesis
 
 Objective: finish the frontend migration from local reusable UI primitives to
-`@partner-up-dev/design-web@0.4.0`, one component-owned migration file at a
+`@partner-up-dev/design-web`, one component-owned migration file at a
 time, without changing PRD-level product workflows.
 
 Hypothesis: the right route is to preserve product intent while moving usage
@@ -41,7 +41,7 @@ design package should not absorb.
 ## Current Evidence
 
 - `apps/frontend/package.json` now depends on
-  `@partner-up-dev/design-web` `0.4.0`; the lockfile also points to `0.4.0`.
+  `@partner-up-dev/design-web` `0.4.1`; the lockfile also points to `0.4.1`.
 - `apps/frontend/src/main.ts` already imports
   `@partner-up-dev/design-web/styles`.
 - `apps/frontend/uno.config.ts` already uses
@@ -111,7 +111,7 @@ design package should not absorb.
   it before committing. `FormModeTimeControl.vue` now imports the package
   component directly and the local wheel picker implementation was deleted.
 - Agent Skill source clarified: the up-to-date `design-web` TanStack Intent
-  skill is shipped inside `@partner-up-dev/design-web@0.4.0` under
+  skill is shipped inside `@partner-up-dev/design-web` under
   `skills/design-web`. Agents should load it with `pnpm dlx
 @tanstack/intent@latest load @partner-up-dev/design-web#design-web` after
   package updates instead of hand-editing or relying on stale local copies under
@@ -202,6 +202,13 @@ diff --check` passed.
 @tanstack/intent@latest validate
 apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`
   passed.
+- Agent Skill verification after `0.4.1` on 2026-06-14: `pnpm dlx
+@tanstack/intent@latest list --json` found
+  `@partner-up-dev/design-web#design-web` from the installed `0.4.1` package;
+  `pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web`
+  returned the package-shipped skill; `pnpm dlx @tanstack/intent@latest
+validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`
+  passed.
 - Browser smoke with Edge through Playwright on `http://localhost:4001/` and
   `/pr/1` - passed. Evidence:
   `evidence/home-footer-mobile.png` and `evidence/pr-footer-mobile.png`.
@@ -241,5 +248,7 @@ Escalate verification when the touched component owns workflow risk:
   product-owned semantic blocker is recorded.
 - Upstream package follow-up: `0.4.0` resolved the root declaration and version
   literal blocker for current frontend consumption.
-- Second-slice follow-up: `PuForm` is still gated; use it only when a specific
-  form container can adopt package schema/validation semantics directly.
+- Package follow-up: `0.4.1` adds `PuInput nativeType="datetime-local"` support
+  and a documented `PuForm` submit event. `PuForm` is no longer blocked by a
+  missing event, but should still be adopted only where a specific form can
+  accept package schema/validation and submit semantics directly.

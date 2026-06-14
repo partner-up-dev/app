@@ -47,10 +47,9 @@
         </PuButton>
 
         <p class="admin-login-card__hint">{{ t("adminLogin.seedHint") }}</p>
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-if="loginMutation.error.value"
           :message="loginMutation.error.value.message"
-          persistent
         />
       </div>
     </section>
@@ -61,10 +60,9 @@
 import { reactive, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useAdminLogin } from "@/domains/admin/queries/useAdminLogin";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
-import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const route = useRoute();
 const router = useRouter();

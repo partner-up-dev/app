@@ -1,10 +1,13 @@
 <template>
   <PuPageScaffold class="event-plaza-page">
-    <PageHeader
+    <PuPageHeader
       :title="t('eventPlaza.title')"
       :subtitle="t('eventPlaza.subtitle')"
+      show-back
+      :back-label="t('common.backToHome')"
+      @back="handleBack"
     >
-      <template #top-actions>
+      <template #actions>
         <PuButton
           :action="{ to: { name: 'event-pr-search' } }"
           class="event-plaza-page__search-link"
@@ -16,7 +19,7 @@
           {{ t("eventPlaza.searchAction") }}
         </PuButton>
       </template>
-    </PageHeader>
+    </PuPageHeader>
 
     <div v-if="isLoading" class="loading-state">
       {{ t("common.loading") }}
@@ -43,13 +46,18 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import EventCard from "@/domains/event/ui/primitives/EventCard.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import type { AnchorEventListResponse } from "@/domains/event/model/types";
-import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  PuButton,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const { data: events, isLoading, isError } = useAnchorEvents();
 
 const shuffleEvents = (

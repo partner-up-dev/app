@@ -1,11 +1,13 @@
 <template>
   <PuPageScaffold class="event-pr-search-page" data-page="event-pr-search">
-    <PageHeader
+    <PuPageHeader
       :title="pageTitle"
       :subtitle="pageSubtitle"
-      :back-fallback-to="{ name: 'event-plaza' }"
+      show-back
+      :back-label="t('common.backToHome')"
+      @back="handleBack"
     >
-      <template #top-actions>
+      <template #actions>
         <PuButton
           v-if="isResultMode"
           tone="neutral" variant="ghost"
@@ -15,7 +17,7 @@
           {{ t("eventPRSearch.actions.modifyCriteria") }}
         </PuButton>
       </template>
-    </PageHeader>
+    </PuPageHeader>
 
     <div v-if="eventsQuery.isLoading.value" class="event-pr-search-page__state">
       {{ t("common.loading") }}
@@ -162,8 +164,13 @@ import type { PRId } from "@partner-up-dev/backend";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { PuButton, PuEmptyState, PuPageScaffold, PuDrawer } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import {
+  PuButton,
+  PuDrawer,
+  PuEmptyState,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import EventPRSearchCriteriaForm from "@/domains/event/ui/composites/EventPRSearchCriteriaForm.vue";
 import type { AnchorEventListItem } from "@/domains/event/model/types";
@@ -171,6 +178,7 @@ import type { PRSearchResult } from "@/domains/pr/model/types";
 import { useEventPRSearch } from "@/domains/pr/queries/useEventPRSearch";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   formatProductLocalShortDateLabel,
@@ -191,6 +199,7 @@ type SearchCriteria = {
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const { handleBack } = useFallbackBack({ name: "event-plaza" });
 
 const eventsQuery = useAnchorEvents();
 const availableEvents = computed<AnchorEventListItem[]>(

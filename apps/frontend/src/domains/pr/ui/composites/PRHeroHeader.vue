@@ -1,20 +1,22 @@
 <template>
-  <PageHeader
+  <PuPageHeader
     :title="title ?? t('prPage.metaFallbackTitle')"
+    show-back
+    :back-label="t('common.backToHome')"
     @back="emit('back')"
   >
     <template #meta>
       <PRStatusBadge :status="status" />
       <time class="created-at">{{ createdAtLabel }}</time>
     </template>
-  </PageHeader>
+  </PuPageHeader>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import type { PRStatus } from "@partner-up-dev/backend";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
+import { PuPageHeader } from "@partner-up-dev/design-web";
 
 defineProps<{
   title?: string;

@@ -55,7 +55,7 @@
       </span>
     </Field>
 
-    <ErrorToast
+    <PuInlineNotice tone="error" dismissible
       v-if="createMutation.isError.value"
       :message="submitErrorMessage"
       @close="createMutation.reset()"
@@ -69,13 +69,13 @@ import { storeToRefs } from "pinia";
 import { Field, useForm } from "vee-validate";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { createNaturalLanguagePRValidationSchema } from "@/lib/validation";
 import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate";
 import { useLandingTypewriterPlaceholder } from "@/domains/landing/use-cases/useLandingTypewriterPlaceholder";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
+import { PuInlineNotice } from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

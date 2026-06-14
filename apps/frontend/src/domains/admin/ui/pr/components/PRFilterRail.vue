@@ -39,15 +39,13 @@
       </select>
     </label>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchStartLabel") }}</span>
-      <input v-model="filters.startAt" class="field-input" type="datetime-local" />
-    </label>
+    <PuFormItem :label="t('adminPR.searchStartLabel')">
+      <PuInput v-model="filters.startAt" native-type="datetime-local" />
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchEndLabel") }}</span>
-      <input v-model="filters.endAt" class="field-input" type="datetime-local" />
-    </label>
+    <PuFormItem :label="t('adminPR.searchEndLabel')">
+      <PuInput v-model="filters.endAt" native-type="datetime-local" />
+    </PuFormItem>
   </AdminRailPanel>
 </template>
 
@@ -55,7 +53,7 @@
 import { useI18n } from "vue-i18n";
 import type { AdminPRFilters } from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import { PuButton } from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuInput } from "@partner-up-dev/design-web";
 
 defineProps<{
   showCreateAction?: boolean;

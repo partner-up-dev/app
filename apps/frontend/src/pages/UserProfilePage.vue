@@ -1,10 +1,12 @@
 <template>
   <PuPageScaffold class="user-profile-page">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="t('userProfilePage.title')"
         :subtitle="subtitle"
-        :back-fallback-to="backFallbackTo"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       />
     </template>
 
@@ -21,10 +23,9 @@
       variant="outline"
     />
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="errorMessage"
       :message="errorMessage"
-      persistent
     />
 
     <PuCard v-else-if="profile" as="section" gap="md">
@@ -71,12 +72,13 @@ import {
   PuCard,
   PuEmptyState,
   PuImg,
+  PuInlineNotice,
   PuLoadingState,
+  PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   prDetailPath,
 } from "@/domains/pr/routing/routes";
@@ -138,6 +140,7 @@ const backFallbackTo = computed(() => {
 
   return "/";
 });
+const { handleBack } = useFallbackBack(backFallbackTo);
 </script>
 
 <style scoped lang="scss">

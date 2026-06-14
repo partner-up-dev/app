@@ -235,25 +235,29 @@
           </label>
 
           <template v-if="rule.kind === 'ABSOLUTE'">
-            <label class="field">
-              <span class="field-label">{{ t("adminPois.ruleStartAtLabel") }}</span>
-              <input
+            <PuFormItem
+              :label="t('adminPois.ruleStartAtLabel')"
+              :for-id="`admin-pois-rule-${index}-start-at`"
+            >
+              <PuInput
+                :id="`admin-pois-rule-${index}-start-at`"
                 v-model="rule.startAtLocal"
-                class="field-input"
-                type="datetime-local"
-                @input="emit('mark-dirty')"
+                native-type="datetime-local"
+                @update:model-value="emit('mark-dirty')"
               />
-            </label>
+            </PuFormItem>
 
-            <label class="field">
-              <span class="field-label">{{ t("adminPois.ruleEndAtLabel") }}</span>
-              <input
+            <PuFormItem
+              :label="t('adminPois.ruleEndAtLabel')"
+              :for-id="`admin-pois-rule-${index}-end-at`"
+            >
+              <PuInput
+                :id="`admin-pois-rule-${index}-end-at`"
                 v-model="rule.endAtLocal"
-                class="field-input"
-                type="datetime-local"
-                @input="emit('mark-dirty')"
+                native-type="datetime-local"
+                @update:model-value="emit('mark-dirty')"
               />
-            </label>
+            </PuFormItem>
           </template>
 
           <template v-else>
@@ -383,7 +387,7 @@ import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
-import { PuButton } from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuInput } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 

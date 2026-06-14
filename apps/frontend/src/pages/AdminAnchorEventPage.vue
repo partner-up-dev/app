@@ -46,10 +46,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
 
         <template v-else>
@@ -109,7 +108,7 @@
             :disabled="isCreatingEvent"
           />
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="mutationErrorMessage"
             :message="mutationErrorMessage"
             @close="resetMutationErrors"
@@ -126,7 +125,6 @@ import { useI18n } from "vue-i18n";
 import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import AnchorEventBasicSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventBasicSection.vue";
 import AnchorEventLocationsSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventLocationsSection.vue";
 import AnchorEventOtherSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventOtherSection.vue";
@@ -157,7 +155,7 @@ import type {
   EditableMeetingPointForm,
 } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import { validateManualPartnerBounds } from "@/lib/validation";
-import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 type Workspace = NonNullable<AdminAnchorEventWorkspaceResponse>;
 type EventRecord = Workspace["events"][number];

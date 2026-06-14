@@ -20,10 +20,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
 
         <template v-else>
@@ -119,26 +118,26 @@
                 </label>
 
                 <div class="grid-2">
-                  <label class="field">
-                    <span class="field-label">{{
-                      t("adminPR.prTimeStartLabel")
-                    }}</span>
-                    <input
+                  <PuFormItem
+                    :label="t('adminPR.prTimeStartLabel')"
+                    for-id="admin-pr-start-at"
+                  >
+                    <PuInput
+                      id="admin-pr-start-at"
                       v-model="prForm.startAt"
-                      class="field-input"
-                      type="datetime-local"
+                      native-type="datetime-local"
                     />
-                  </label>
-                  <label class="field">
-                    <span class="field-label">{{
-                      t("adminPR.prTimeEndLabel")
-                    }}</span>
-                    <input
+                  </PuFormItem>
+                  <PuFormItem
+                    :label="t('adminPR.prTimeEndLabel')"
+                    for-id="admin-pr-end-at"
+                  >
+                    <PuInput
+                      id="admin-pr-end-at"
                       v-model="prForm.endAt"
-                      class="field-input"
-                      type="datetime-local"
+                      native-type="datetime-local"
                     />
-                  </label>
+                  </PuFormItem>
                 </div>
 
                 <PRPlaceModeField
@@ -412,7 +411,7 @@
             </BentoItem>
           </BentoLayout>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="mutationErrorMessage"
             :message="mutationErrorMessage"
             @close="resetMutationErrors"
@@ -469,14 +468,21 @@ import {
   getPRRouteValidationIssue,
   type PRPlaceMode,
 } from "@/domains/pr/model/pr-route";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
 import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
-import { PuButton, PuCard, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuDialog,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 type PRForm = {
   title: string;

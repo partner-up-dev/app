@@ -5,10 +5,11 @@
     data-testid="bill-detail.page"
   >
     <template #header>
-      <PageHeader
+      <PuPageHeader
         title="账单详情"
         subtitle="每个人只支付自己的账单行"
-        :back-fallback-to="backFallbackTo"
+        show-back
+        @back="handleBack"
       />
     </template>
 
@@ -143,8 +144,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import { PuButton, PuCard, PuInlineNotice, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
 
 const route = useRoute();
@@ -176,6 +177,7 @@ const settlementStatusLabel = computed(() => {
 const backFallbackTo = computed(() =>
   detail.value ? { path: `/orders/${detail.value.order.id}` } : { path: "/" },
 );
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const billErrorMessage = computed(() =>
   billQuery.error.value instanceof Error

@@ -10,15 +10,16 @@
     :content-placement="pageStatePlacement"
   >
     <template #header>
-      <PageHeader
+      <PuPageHeader
         v-if="detail"
         class="anchor-event-landing-page__header"
         :title="detail.title"
         :subtitle="detail.description ?? undefined"
-        :back-fallback-to="{ name: 'event-plaza' }"
+        show-back
+        :back-label="t('common.backToHome')"
         @back="handleLandingBack"
       >
-        <template #top-actions>
+        <template #actions>
           <PuButton
             shape="pill"
             tone="neutral" variant="outline"
@@ -30,7 +31,7 @@
             {{ t("anchorEvent.otherEvents.action") }}
           </PuButton>
         </template>
-      </PageHeader>
+      </PuPageHeader>
     </template>
 
     <div v-if="isLoading" class="loading-state">
@@ -156,7 +157,6 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
 import AnchorEventFormModeSurface from "@/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue";
 import AnchorEventListModeSurface from "@/domains/event/ui/surfaces/AnchorEventListModeSurface.vue";
@@ -205,7 +205,16 @@ import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEv
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { PuButton, PuLoadingState, PuPageScaffold, PuSegmented, PuSegmentedItem, type PuSegmentedValue, PuDrawer } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuDrawer,
+  PuLoadingState,
+  PuPageHeader,
+  PuPageScaffold,
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import {
   buildAnchorEventFunnelPayload,
   type AnchorEventFunnelContext,

@@ -386,9 +386,7 @@ describe("PRPage display title", () => {
       }),
     );
 
-    expect(host.querySelector(".page-header__title")?.textContent).toContain(
-      "城市徒步局",
-    );
+    expectPageSummaryTitle(host, "城市徒步局");
   });
 
   test("uses backend canonical title when type wins before place", async () => {
@@ -404,9 +402,7 @@ describe("PRPage display title", () => {
       }),
     );
 
-    expect(host.querySelector(".page-header__title")?.textContent).toContain(
-      "徒步",
-    );
+    expectPageSummaryTitle(host, "徒步");
   });
 
   test("uses backend canonical place fallback when higher labels are empty", async () => {
@@ -422,9 +418,7 @@ describe("PRPage display title", () => {
       }),
     );
 
-    expect(host.querySelector(".page-header__title")?.textContent).toContain(
-      "广州塔~大学城",
-    );
+    expectPageSummaryTitle(host, "广州塔~大学城");
   });
 });
 
@@ -524,6 +518,19 @@ const mountPage = async (detail: PRDetailView): Promise<HTMLElement> => {
 
 const hasTestId = (host: HTMLElement, testId: string): boolean =>
   host.querySelector(`[data-testid="${testId}"]`) !== null;
+
+const expectPageSummaryTitle = (host: HTMLElement, expected: string): void => {
+  const summaryRegion = host.querySelector('[data-region="summary"]');
+  const titleCandidates = Array.from(
+    summaryRegion?.querySelectorAll("h1,h2,h3,h4") ?? [],
+  );
+
+  expect(
+    titleCandidates.some((candidate) =>
+      candidate.textContent?.includes(expected),
+    ),
+  ).toBe(true);
+};
 
 const buildPRDetail = ({
   status,

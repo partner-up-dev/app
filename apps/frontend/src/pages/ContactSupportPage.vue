@@ -1,7 +1,12 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-support-page">
     <template #header>
-      <PageHeader :title="t('contactSupportPage.title')" />
+      <PuPageHeader
+        :title="t('contactSupportPage.title')"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
+      />
     </template>
 
     <section
@@ -79,14 +84,19 @@ import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import SupportContactAction from "@/domains/support/ui/sections/SupportContactAction.vue";
 import SupportContactQrModal from "@/domains/support/ui/sections/SupportContactQrModal.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
 import {
   PUBLIC_CONFIG_KEYS,
   usePublicConfig,
 } from "@/shared/config/queries/usePublicConfig";
-import { PuButton, PuChip, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  PuButton,
+  PuChip,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const DEFAULT_SUPPORT_LINK_WECHAT_IN =
   "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
@@ -94,6 +104,7 @@ const DEFAULT_SUPPORT_LINK_WECHAT_OUT =
   "https://work.weixin.qq.com/nl/act/p/4030a5b69149404d";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const { isMiniProgramWebView } = useWeChatMiniProgramWebView();
 const supportQrModalOpen = ref(false);
 

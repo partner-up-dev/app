@@ -1,16 +1,17 @@
 <template>
   <PuPageScaffold viewport="screen" class="ordering-page-shell" :data-testid="dataTestid">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="title"
         :subtitle="subtitle"
-        :back-fallback-to="backFallbackTo"
-        variant="small"
+        density="compact"
+        show-back
+        @back="handleBack"
       >
-        <template v-if="$slots.actions" #top-actions>
+        <template v-if="$slots.actions" #actions>
           <slot name="actions" />
         </template>
-      </PageHeader>
+      </PuPageHeader>
     </template>
 
     <main class="ordering-page-shell__body">
@@ -28,15 +29,17 @@
 
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import { PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
-defineProps<{
+const props = defineProps<{
   title: string;
   subtitle?: string;
   backFallbackTo: RouteLocationRaw;
   dataTestid?: string;
 }>();
+
+const { handleBack } = useFallbackBack(() => props.backFallbackTo);
 </script>
 
 <style scoped lang="scss">

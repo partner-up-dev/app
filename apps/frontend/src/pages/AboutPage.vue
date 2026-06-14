@@ -1,9 +1,12 @@
 <template>
   <PuPageScaffold content-placement="center" class="about-page">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="t('aboutPage.title')"
         :subtitle="t('aboutPage.description')"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       />
     </template>
 
@@ -138,14 +141,20 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
-import { PuButton, PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuModal,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const backendBuildMetadataQuery = useBackendBuildMetadata();
 const anchorEventsQuery = useAnchorEvents();
 const showOfficialAccountQrModal = ref(false);

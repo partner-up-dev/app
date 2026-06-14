@@ -45,7 +45,7 @@
 
     <PuLoadingState v-if="isSubmitting" :message="t('nlForm.parsing')" />
 
-    <ErrorToast
+    <PuInlineNotice tone="error" dismissible
       v-if="createMutation.isError.value"
       :message="submitErrorMessage"
       @close="createMutation.reset()"
@@ -61,12 +61,11 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { createNaturalLanguagePRValidationSchema } from "@/lib/validation";
 import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useLandingRotatingTopic } from "@/domains/landing/use-cases/useLandingRotatingTopic";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
-import { PuButton, PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

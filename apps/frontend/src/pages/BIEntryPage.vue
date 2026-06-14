@@ -6,7 +6,7 @@
       <PuLoadingState v-if="isPending" message="正在进入 BI 看板" />
 
       <template v-else>
-        <ErrorToast v-if="errorMessage" :message="errorMessage" persistent />
+        <PuInlineNotice tone="error" v-if="errorMessage" :message="errorMessage" />
         <PuButton shape="pill" tone="neutral" variant="outline" @click="goHome">
           返回首页
         </PuButton>
@@ -20,8 +20,7 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
 import { adminClient } from "@/lib/admin-rpc";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuButton, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const ANALYTICS_SEED_USER_ID = "00000000-0000-0000-0000-000000000002";
 

@@ -5,10 +5,9 @@
     @submit.prevent="submitForm"
   >
     <PuLoadingState v-if="isDetailLoading" :message="t('common.loading')" />
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="detailError"
       :message="detailError.message"
-      persistent
     />
 
     <PuEmptyState
@@ -165,7 +164,7 @@
         </div>
       </Transition>
 
-      <ErrorToast
+      <PuInlineNotice tone="error" dismissible
         v-if="commandErrorMessage"
         :message="commandErrorMessage"
         @close="resetCommandErrors"
@@ -209,12 +208,17 @@ import {
   toUserUpdatePRContentFields,
 } from "@/domains/pr/model/types";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
-import { PuButton, PuEmptyState, PuLoadingState, PuDialog } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuDialog,
+  PuEmptyState,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId?: number;

@@ -13,7 +13,7 @@
     "lint:tokens:strict": "node ./scripts/check-token-governance.mjs --strict"
   },
   "dependencies": {
-    "@partner-up-dev/design-web": "0.4.0",
+    "@partner-up-dev/design-web": "0.4.1",
     "@tanstack/vue-query": "^5.60.0",
     "@unhead/vue": "^2.1.2",
     "@vee-validate/zod": "^4.15.1",

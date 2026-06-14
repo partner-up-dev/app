@@ -54,10 +54,9 @@
       v-if="roomQuery.isLoading.value"
       message="正在进入专注房间"
     />
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="roomQuery.error.value"
       :message="roomQuery.error.value.message"
-      persistent
     />
 
     <template v-else-if="room">
@@ -200,9 +199,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
-import { PuButton, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   useRecordStudySprintEvent,
   useStartStudySprintSession,

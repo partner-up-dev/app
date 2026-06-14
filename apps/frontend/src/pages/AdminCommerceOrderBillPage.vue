@@ -33,10 +33,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <PuEmptyState
           v-else-if="orders.length === 0"
@@ -125,12 +124,7 @@ import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminCommerceOrderBillWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import {
-  PuCard,
-  PuEmptyState,
-  PuLoadingState,
-} from "@partner-up-dev/design-web";
+import { PuCard, PuEmptyState, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

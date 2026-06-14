@@ -1,15 +1,17 @@
 <template>
   <PuPageScaffold class="pr-page" data-page="pr-detail">
     <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
-    <ErrorToast v-else-if="error" :message="error.message" persistent />
+    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
 
     <template v-else-if="prDetail">
-      <PageHeader
+      <PuPageHeader
         :title="prDisplayTitle"
-        :back-fallback-to="backFallbackTo"
         data-region="summary"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       >
-        <template #top-actions>
+        <template #actions>
           <div v-if="showHeaderQuickActions" class="header-quick-actions">
             <PuButton
               v-if="showEditContentAction"
@@ -38,7 +40,7 @@
           <span class="type-badge">{{ prDetail.core.type || "-" }}</span>
           <PRStatusBadge :status="prDisplayStatus" />
         </template>
-      </PageHeader>
+      </PuPageHeader>
 
       <PuModal
         v-if="showEditContentModal && id !== null"
@@ -91,7 +93,7 @@
           </PuButton>
         </div>
 
-        <ErrorToast
+        <PuInlineNotice tone="error" dismissible
           v-if="hasUpdateStatusError"
           :message="
             updateStatusError?.message || t('modifyStatusModal.updateFailed')
@@ -177,9 +179,7 @@ import { computed, isRef, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
@@ -219,7 +219,15 @@ import {
   type PlacementInstanceProjection,
 } from "@/domains/commerce/queries/useCommerce";
 import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
-import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold, PuModal } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+  PuModal,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 type CreatorSecondaryActionType =
   | "CREATOR_EDIT_CONTENT"
@@ -286,6 +294,7 @@ const backFallbackTo = computed(() => {
   }
   return "/";
 });
+const { handleBack } = useFallbackBack(backFallbackTo);
 const handoffEntry = computed(() => {
   const raw = route.query.handoff;
   if (typeof raw === "string") return raw;

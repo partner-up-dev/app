@@ -1,9 +1,12 @@
 <template>
   <PuPageScaffold class="my-prs-page">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="t('myPrsPage.title')"
         :subtitle="t('myPrsPage.description')"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       />
     </template>
 
@@ -75,14 +78,15 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import { useMyCreatedPRs } from "@/domains/pr/queries/useMyCreatedPRs";
 import { useMyJoinedPRs } from "@/domains/pr/queries/useMyJoinedPRs";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
-import { PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { PuLoadingState, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const userSessionStore = useUserSessionStore();
 const createdQuery = useMyCreatedPRs();
 const joinedQuery = useMyJoinedPRs();

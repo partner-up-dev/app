@@ -52,10 +52,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <template v-else>
           <BentoItem :title="formTitle" span="full">
@@ -261,7 +260,7 @@
             </dl>
           </BentoItem>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -287,8 +286,7 @@ import {
   type AdminPaymentProviderInstanceInput,
   type AdminPaymentProviderWorkspaceResponse,
 } from "@/domains/admin-payment/queries/useAdminPayment";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 

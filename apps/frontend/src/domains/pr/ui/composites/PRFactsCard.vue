@@ -1,7 +1,7 @@
 <template>
   <PuCard v-bind="$attrs" as="section" class="pr-facts-card" gap="sm">
     <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
-    <ErrorToast v-else-if="error" :message="error.message" persistent />
+    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
 
     <template v-else-if="prDetail">
       <h2 class="facts-title">活动信息</h2>
@@ -294,8 +294,16 @@ import { computed, nextTick, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuButton, PuCard, PuChip, PuChipGroup, PuDescriptionItem, PuDescriptionList, PuLoadingState } from "@partner-up-dev/design-web";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
+import {
+  PuButton,
+  PuCard,
+  PuChip,
+  PuChipGroup,
+  PuDescriptionItem,
+  PuDescriptionList,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
 import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
 import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";

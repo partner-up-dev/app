@@ -5,12 +5,13 @@
     data-testid="order-detail.page"
   >
     <template #header>
-      <PageHeader
+      <PuPageHeader
         title="订单详情"
         subtitle="查看支付、账单和预约进度"
-        :back-fallback-to="backFallbackTo"
+        show-back
+        @back="handleBack"
       >
-        <template #top-actions>
+        <template #actions>
           <PuButton
             :action="{ to: { name: 'contact-support' } }"
             shape="pill"
@@ -22,7 +23,7 @@
             客服
           </PuButton>
         </template>
-      </PageHeader>
+      </PuPageHeader>
     </template>
 
     <div class="order-detail-page__body">
@@ -287,8 +288,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { PuButton, PuCard, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import { PuButton, PuCard, PuInlineNotice, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   useCancelRentalOrder,
   useCommerceOrderDetail,
@@ -395,6 +396,7 @@ const isCancellationPending = computed(
 );
 
 const backFallbackTo = computed(() => ({ path: "/" }));
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const serviceWindowLabel = computed(() => {
   if (rideHailingDetail.value) {

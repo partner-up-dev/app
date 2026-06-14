@@ -47,10 +47,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <template v-else>
           <BentoItem
@@ -232,7 +231,7 @@
             </div>
           </BentoItem>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -264,8 +263,7 @@ import {
   useUpdateAdminPlacement,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PlacementMatchingRulesEditor from "@/domains/admin-commerce/ui/placement-matching-rules/PlacementMatchingRulesEditor.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

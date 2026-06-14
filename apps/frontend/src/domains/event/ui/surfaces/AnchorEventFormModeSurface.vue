@@ -5,10 +5,9 @@
       :message="t('common.loading')"
     />
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="formModeQuery.error.value"
       :message="formModeQuery.error.value.message"
-      persistent
     />
 
     <div v-else-if="formModeData" class="anchor-event-form-mode__stack">
@@ -108,7 +107,6 @@ import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
 } from "@partner-up-dev/backend";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { useAnchorEventFormModeData } from "@/domains/event/queries/useAnchorEventFormModeData";
@@ -154,7 +152,7 @@ import {
 import LiquidWaveSplash from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import type { LiquidSplashPhase } from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
-import { PuButton, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   eventId: number;

@@ -1,10 +1,12 @@
 <template>
   <PuPageScaffold class="location-application-page">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="t('locationApplicationPage.title')"
         :subtitle="t('locationApplicationPage.subtitle')"
-        :back-fallback-to="backFallbackTo"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       />
     </template>
 
@@ -14,7 +16,7 @@
         tone="success"
         :message="submitSuccessTitle"
       />
-      <ErrorToast v-if="pageError" :message="pageError" persistent />
+      <PuInlineNotice tone="error" v-if="pageError" :message="pageError" />
 
       <PuCard as="section" gap="md">
         <form class="application-form" @submit.prevent="handleSubmit">
@@ -120,10 +122,18 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { PuButton, PuCard, PuFormItem, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
+import {
+  PuButton,
+  PuCard,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageHeader,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
 import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   useMyPoiApplications,
   useSubmitPoiApplication,
@@ -161,6 +171,7 @@ const backFallbackTo = computed<RouteLocationRaw>(() =>
       }
     : { name: "me" },
 );
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const applications = computed(() => applicationsQuery.data.value ?? []);
 const normalizedTitle = computed(() => titleDraft.value.trim());

@@ -1,9 +1,12 @@
 <template>
   <PuPageScaffold class="me-page">
     <template #header>
-      <PageHeader
+      <PuPageHeader
         :title="t('mePage.title')"
         :subtitle="t('mePage.description')"
+        show-back
+        :back-label="t('common.backToHome')"
+        @back="handleBack"
       />
     </template>
 
@@ -14,7 +17,7 @@
         :message="bindFeedbackMessage"
       />
 
-      <ErrorToast v-if="errorMessage" :message="errorMessage" persistent />
+      <PuInlineNotice tone="error" v-if="errorMessage" :message="errorMessage" />
 
       <PuLoadingState
         v-if="
@@ -266,10 +269,19 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useQueryClient } from "@tanstack/vue-query";
-import { PuButton, PuCard, PuFormItem, PuImg, PuInlineNotice, PuLoadingState, PuPageScaffold, PuTag } from "@partner-up-dev/design-web";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
+import {
+  PuButton,
+  PuCard,
+  PuFormItem,
+  PuImg,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageHeader,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
@@ -286,6 +298,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 const route = useRoute();
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const userSessionStore = useUserSessionStore();
 const queryClient = useQueryClient();
 

@@ -21,7 +21,7 @@
           v-if="poisQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast v-else-if="pageError" :message="pageError.message" persistent />
+        <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
         <section v-else-if="pois.length === 0" class="empty-panel">
           {{ t("adminPois.emptyPois") }}
@@ -85,8 +85,7 @@ import PoiReviewSection from "@/domains/admin/ui/poi/sections/PoiReviewSection.v
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNavigationSection";
 import { useAdminPoiManagementWorkspace } from "@/domains/admin/use-cases/poi/useAdminPoiManagementWorkspace";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import { PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();

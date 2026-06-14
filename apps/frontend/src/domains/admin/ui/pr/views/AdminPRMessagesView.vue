@@ -18,10 +18,9 @@
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
 
         <template v-else>
@@ -271,8 +270,7 @@ import {
 } from "@/domains/admin/queries/useAdminPRManagement";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import { PuButton, PuCard, PuLoadingState } from "@partner-up-dev/design-web";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
