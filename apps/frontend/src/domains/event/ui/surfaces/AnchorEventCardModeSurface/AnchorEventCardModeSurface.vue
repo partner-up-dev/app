@@ -1,14 +1,17 @@
 <template>
-  <div v-if="isLoading" class="loading-state">
-    {{ t("common.loading") }}
-  </div>
+  <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
 
-  <div v-else-if="isError" class="error-state">
-    {{ t("anchorEvent.loadFailed") }}
-    <router-link :to="{ name: 'event-plaza' }" class="back-link">
-      {{ t("anchorEvent.backToPlaza") }}
-    </router-link>
-  </div>
+  <PuInlineNotice
+    v-else-if="isError"
+    tone="error"
+    :message="t('anchorEvent.loadFailed')"
+  >
+    <template #actions>
+      <router-link :to="{ name: 'event-plaza' }" class="card-state-link">
+        {{ t("anchorEvent.backToPlaza") }}
+      </router-link>
+    </template>
+  </PuInlineNotice>
 
   <div
     v-else-if="resolvedActiveDemandCard"
@@ -280,7 +283,11 @@ import {
   type AnchorEventCardModeSurfaceProps,
   type FrontDemandCardHandle,
 } from "./AnchorEventCardModeSurface";
-import { PuButton } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<AnchorEventCardModeSurfaceProps>(),

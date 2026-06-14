@@ -1,14 +1,17 @@
 <template>
-  <div v-if="isLoading" class="loading-state">
-    {{ t("common.loading") }}
-  </div>
+  <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
 
-  <div v-else-if="isError" class="error-state">
-    {{ t("anchorEvent.loadFailed") }}
-    <router-link :to="{ name: 'event-plaza' }" class="back-link">
-      {{ t("anchorEvent.backToPlaza") }}
-    </router-link>
-  </div>
+  <PuInlineNotice
+    v-else-if="isError"
+    tone="error"
+    :message="t('anchorEvent.loadFailed')"
+  >
+    <template #actions>
+      <router-link :to="{ name: 'event-plaza' }" class="state-action-link">
+        {{ t("anchorEvent.backToPlaza") }}
+      </router-link>
+    </template>
+  </PuInlineNotice>
 
   <div
     v-else-if="detail"
@@ -56,34 +59,37 @@
             />
           </template>
         </div>
-        <p v-if="listDummyCreateErrorMessage" class="list-create-error">
-          {{ listDummyCreateErrorMessage }}
-        </p>
-        <article
+        <PuInlineNotice
+          v-if="listDummyCreateErrorMessage"
+          tone="error"
+          :message="listDummyCreateErrorMessage"
+        />
+        <PuEmptyState
           v-else-if="isListExhausted"
-          class="list-exhausted-card"
+          :title="t('anchorEvent.exhausted')"
+          :description="t('anchorEvent.subscribeHint')"
+          surface-level="section"
+          variant="outline"
           data-region="exhausted-card"
         >
-          <p class="list-exhausted-card__title">
-            {{ t("anchorEvent.exhausted") }}
-          </p>
-          <p class="list-exhausted-card__body">
-            {{ t("anchorEvent.subscribeHint") }}
-          </p>
-          <router-link
-            :to="{ name: 'event-plaza' }"
-            class="list-exhausted-card__link"
-          >
-            {{ t("anchorEvent.discoverOthers") }}
-          </router-link>
-        </article>
-        <div v-else class="empty-batch">
-          {{
+          <template #actions>
+            <router-link
+              :to="{ name: 'event-plaza' }"
+              class="state-action-link"
+            >
+              {{ t("anchorEvent.discoverOthers") }}
+            </router-link>
+          </template>
+        </PuEmptyState>
+        <PuEmptyState
+          v-else
+          compact
+          :description="
             hasBrowseTimeWindows
-              ? t("anchorEvent.noPRsInSelectedDate")
-              : t("anchorEvent.noBatches")
-          }}
-        </div>
+              ? t('anchorEvent.noPRsInSelectedDate')
+              : t('anchorEvent.noBatches')
+          "
+        />
       </div>
 
       <div class="batch-action-cards">
@@ -132,7 +138,12 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import { PuTabs } from "@partner-up-dev/design-web";
+import {
+  PuEmptyState,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTabs,
+} from "@partner-up-dev/design-web";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import EventPRCreateCard from "@/domains/event/ui/primitives/EventPRCreateCard.vue";
 import EventDummyPRCard from "@/domains/event/ui/primitives/EventDummyPRCard.vue";
@@ -905,60 +916,9 @@ const handleOpenDummyDetailInList = async (item: VisibleDummyItem) => {
   padding-top: var(--sys-spacing-medium);
 }
 
-.empty-state,
-.empty-batch {
-  text-align: center;
-  padding: calc(var(--sys-spacing-large) + var(--sys-spacing-medium)) 0;
-  color: var(--sys-color-on-surface-variant);
-}
-
-.list-exhausted-card {
-  display: grid;
-  gap: var(--sys-spacing-xsmall);
-  padding: var(--sys-spacing-medium);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-large);
-  background: var(--sys-color-surface-container);
-}
-
-.list-exhausted-card__title,
-.list-exhausted-card__body {
-  margin: 0;
-}
-
-.list-exhausted-card__title {
-  @include mx.pu-font(section);
-  color: var(--sys-color-on-surface);
-}
-
-.list-exhausted-card__body {
-  @include mx.pu-font(support);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.list-exhausted-card__link {
+.state-action-link {
   @include mx.pu-font(control);
-  justify-self: start;
-  color: var(--sys-color-primary);
-  text-decoration: none;
-}
-
-.list-create-error {
-  margin: 0;
-  @include mx.pu-font(support);
-  color: var(--sys-color-error);
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: var(--sys-spacing-large) 0;
-  color: var(--sys-color-on-surface-variant);
-}
-
-.back-link {
-  display: block;
-  margin-top: var(--sys-spacing-small);
+  width: fit-content;
   color: var(--sys-color-primary);
   text-decoration: none;
 }

@@ -136,7 +136,7 @@ Scope:
 
 ## Slice 6: Anchor Event Low-Risk States
 
-Status: candidate.
+Status: completed.
 
 Scope:
 
@@ -144,6 +144,15 @@ Scope:
   package components.
 - Use `PuEmptyState`, `PuInlineNotice`, `PuLoadingState`, or `PuSkeleton`
   according to the state.
+
+Implementation notes:
+
+- Detailed scope and deferrals live in `60-slice6-anchor-event-states.md`.
+- Keep Card Mode empty-stack creation controls out of this slice; that path
+  carries form and assisted-create workflow behavior and belongs with the
+  high-risk interaction lane.
+- Migrated low-risk Anchor Event loading/error/empty states directly to
+  `PuLoadingState`, `PuInlineNotice`, and `PuEmptyState` at usage sites.
 
 ## Slice 7: Anchor Event High-Risk Interactions
 
