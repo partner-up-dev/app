@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.1.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v3.0.0...frontend-v3.1.0) (2026-06-11)
+
+
+### Features
+
+* **event:** merge reverse route choices in place control ([a7439c3](https://github.com/partner-up-dev/mvp-HA/commit/a7439c3dc3011bbaf3e606032ca0d506f2999427)), closes [#249](https://github.com/partner-up-dev/mvp-HA/issues/249)
+* **event:** submit concrete anchor event routes ([be75a58](https://github.com/partner-up-dev/mvp-HA/commit/be75a58818450534489539cf0a3a80c7c7186923))
+
+
+### Bug Fixes
+
+* **event:** align form mode auto-created PR ownership ([095d492](https://github.com/partner-up-dev/mvp-HA/commit/095d4927704d5f22b5cea9098c2f7191b6e3b407))
+* **event:** align time window duration field ([a20c54c](https://github.com/partner-up-dev/mvp-HA/commit/a20c54ccce56b13458008994573fb34516f51c70))
+* **event:** prevent card mode horizontal overflow ([f44c7ea](https://github.com/partner-up-dev/mvp-HA/commit/f44c7ea1670a37596fbd8808d87237eb0a0c8353))
+* **frontend:** align e2e flows with handoff surfaces ([20ab680](https://github.com/partner-up-dev/mvp-HA/commit/20ab68026cb6f5158a0a9db100d3874fb038ed03))
+
 ## [3.0.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v2.0.0...frontend-v3.0.0) (2026-06-07)
 
 
