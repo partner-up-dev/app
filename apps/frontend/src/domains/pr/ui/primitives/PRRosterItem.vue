@@ -27,28 +27,46 @@
       </div>
 
       <div v-if="hasTags" class="pr-roster-item__tags">
-        <span
+        <PuTag
           v-if="props.isSelf && props.selfLabel"
           class="pr-roster-item__tag"
-        >
-          {{ props.selfLabel }}
-        </span>
-        <span
+          :text="props.selfLabel"
+          :variant="tagVariant"
+          tone="secondary"
+          shape="pill"
+          size="xs"
+        />
+        <PuTag
           v-if="props.isCreator && props.creatorLabel"
           class="pr-roster-item__tag"
-        >
-          {{ props.creatorLabel }}
-        </span>
+          :text="props.creatorLabel"
+          :variant="tagVariant"
+          tone="secondary"
+          shape="pill"
+          size="xs"
+        />
       </div>
     </div>
 
-    <span class="pr-roster-item__state">{{ props.stateLabel }}</span>
+    <PuTag
+      v-if="props.variant === 'card'"
+      class="pr-roster-item__state-tag"
+      :text="props.stateLabel"
+      tone="secondary"
+      variant="soft"
+      shape="pill"
+      size="xs"
+    />
+    <span v-else class="pr-roster-item__state-text">{{
+      props.stateLabel
+    }}</span>
   </component>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink, type RouteLocationRaw } from "vue-router";
+import { PuTag } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{
@@ -83,6 +101,7 @@ const hasTags = computed(
     (props.isSelf && props.selfLabel.length > 0) ||
     (props.isCreator && props.creatorLabel.length > 0),
 );
+const tagVariant = computed(() => (props.variant === "card" ? "soft" : "plain"));
 </script>
 
 <style lang="scss" scoped>
@@ -181,25 +200,19 @@ const hasTags = computed(
   gap: var(--sys-spacing-xsmall);
 }
 
-.pr-roster-item__tag,
-.pr-roster-item__state {
+.pr-roster-item__state-text {
   @include mx.pu-font(caption);
+  align-self: center;
   color: var(--sys-color-on-surface-variant);
 }
 
-.pr-roster-item--plain .pr-roster-item__state {
-  align-self: center;
+.pr-roster-item__tag,
+.pr-roster-item__state-tag,
+.pr-roster-item__state-text {
+  flex-shrink: 0;
 }
 
-.pr-roster-item--card .pr-roster-item__tag,
-.pr-roster-item--card .pr-roster-item__state {
-  padding: calc(var(--sys-spacing-xsmall) / 2) var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-}
-
-.pr-roster-item--card .pr-roster-item__state {
+.pr-roster-item__state-tag {
   align-self: center;
   margin-left: auto;
 }

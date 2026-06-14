@@ -35,12 +35,13 @@
           >
             <span>{{ record.displayName }}</span>
             <small>{{ record.providerType }} / {{ record.instanceKey }}</small>
-            <span
-              class="status-pill"
-              :class="{ 'is-disabled': record.status === 'DISABLED' }"
-            >
-              {{ providerStatusLabel(record.status) }}
-            </span>
+            <PuTag
+              :text="providerStatusLabel(record.status)"
+              :tone="providerStatusTagTone(record.status)"
+              variant="outline"
+              shape="rect"
+              size="xs"
+            />
           </PuCard>
         </div>
       </AdminRailPanel>
@@ -221,7 +222,13 @@ import {
   type AdminRideHailingProviderInstanceInput,
   type AdminRideHailingProviderWorkspaceResponse,
 } from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
-import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTag,
+} from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 
@@ -323,6 +330,9 @@ function formFromProvider(provider: ProviderInstance): ProviderForm {
 
 const providerStatusLabel = (status: ProviderInstance["status"]): string =>
   status === "ACTIVE" ? "启用" : "停用";
+
+const providerStatusTagTone = (status: ProviderInstance["status"]) =>
+  status === "ACTIVE" ? "primary" : "neutral";
 
 const normalizeOptionalString = (value: string): string | null => {
   const normalized = value.trim();
@@ -477,21 +487,6 @@ small,
 
 .breakable {
   overflow-wrap: anywhere;
-}
-
-.status-pill {
-  @include mx.pu-font(caption);
-  display: inline-flex;
-  width: fit-content;
-  padding: calc(var(--sys-spacing-xsmall) / 2) var(--sys-spacing-xsmall);
-  border: 1px solid var(--sys-color-primary);
-  border-radius: var(--sys-radius-small);
-  color: var(--sys-color-primary);
-}
-
-.status-pill.is-disabled {
-  border-color: var(--sys-color-outline);
-  color: var(--sys-color-on-surface-variant);
 }
 
 .text-input {

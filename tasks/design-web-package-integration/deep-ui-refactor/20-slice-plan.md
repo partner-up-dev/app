@@ -170,3 +170,30 @@ Required before implementation:
   state.
 - Confirm any package substitution that changes gesture or transition
   semantics.
+
+## Slice 8: Chip And Tag Display Cleanup
+
+Status: completed.
+
+Scope:
+
+- Replace local badge, pill, and static status/category label markup with
+  direct `PuTag` usage.
+- Replace token-display chip lists with direct `PuChip`/`PuChipGroup` usage.
+- Start with PR detail/header status metadata and delete `PRStatusBadge` once
+  its usage sites are cleared.
+
+Planning notes:
+
+- Detailed badge audit lives in `70-chip-tag-badge-audit.md`.
+- Keep selectable/removable tag editors out of a passive display cleanup slice
+  unless the interaction contract is explicitly reviewed.
+- Current execution explicitly excludes `FormModePreferenceControl` `tag-pill`
+  and `PREditor` / `PRForm.scss` tag editor controls.
+
+Implementation notes:
+
+- Migrated PR status/type display, admin provider status, analytics outcome
+  status, PR roster display labels, Anchor Event demand-card labels, and PR
+  facts roster overflow marker to direct `PuTag`, `PuChip`, or `PuChipGroup`.
+- Deleted the local `PRStatusBadge` wrapper.

@@ -37,8 +37,22 @@
         </template>
 
         <template #meta>
-          <span class="type-badge">{{ prDetail.core.type || "-" }}</span>
-          <PRStatusBadge :status="prDisplayStatus" />
+          <div class="pr-header-meta">
+            <PuTag
+              :text="prDetail.core.type || '-'"
+              tone="secondary"
+              variant="soft"
+              shape="pill"
+              size="md"
+            />
+            <PuTag
+              :text="prStatusTagText"
+              :tone="prStatusTagTone"
+              variant="soft"
+              shape="pill"
+              size="md"
+            />
+          </div>
         </template>
       </PuPageHeader>
 
@@ -180,7 +194,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
 import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
@@ -200,6 +213,10 @@ import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
+import {
+  resolvePRStatusTagText,
+  resolvePRStatusTagTone,
+} from "@/domains/pr/model/pr-status-tag";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
 import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
@@ -227,6 +244,7 @@ import {
   PuModal,
   PuPageHeader,
   PuPageScaffold,
+  PuTag,
 } from "@partner-up-dev/design-web";
 
 type CreatorSecondaryActionType =
@@ -265,6 +283,12 @@ const prDisplayStatus = computed(() => {
   if (!detail) return "OPEN";
   return resolvePRDisplayStatus(detail.status, detail.partnerSection.capacity);
 });
+const prStatusTagText = computed(() =>
+  resolvePRStatusTagText(prDisplayStatus.value, t),
+);
+const prStatusTagTone = computed(() =>
+  resolvePRStatusTagTone(prDisplayStatus.value),
+);
 const updateStatusInitialStatus = computed<PRStatusManual>(() => {
   const status = prDetail.value?.status;
   if (status === "READY" || status === "ACTIVE" || status === "CLOSED") {
@@ -556,12 +580,14 @@ usePRPendingWeChatReplay({
   margin-top: var(--sys-spacing-large);
 }
 
-.type-badge {
-  @include mx.pu-font(control);
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
+.pr-header-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sys-spacing-small);
+  width: 100%;
+  min-width: 0;
 }
 
 .facts-card {

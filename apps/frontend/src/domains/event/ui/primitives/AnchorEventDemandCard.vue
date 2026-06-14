@@ -29,7 +29,14 @@
         mode="aspectFill"
         :show-loading="false"
       />
-      <span class="demand-card__location-badge">{{ displayLocationName }}</span>
+      <PuTag
+        class="demand-card__location-tag"
+        :text="displayLocationName"
+        tone="neutral"
+        variant="soft"
+        shape="pill"
+        size="sm"
+      />
     </div>
     <div v-else class="demand-card__cover demand-card__cover--fallback">
       <span class="demand-card__fallback-location">{{
@@ -40,18 +47,21 @@
     <div class="demand-card__body">
       <section class="demand-card__primary">
         <p class="demand-card__time">{{ timeLabel }}</p>
-        <div
+        <PuChipGroup
           v-if="preferenceTags.length > 0"
           class="demand-card__preference-list"
+          gap="sm"
         >
-          <span
+          <PuChip
             v-for="tag in preferenceTags"
             :key="tag"
-            class="demand-card__preference-chip"
+            tone="neutral"
+            variant="outline"
+            size="sm"
           >
             {{ tag }}
-          </span>
-        </div>
+          </PuChip>
+        </PuChipGroup>
         <p v-if="displayNotes" class="demand-card__notes">
           {{ displayNotes }}
         </p>
@@ -62,7 +72,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { PuImg } from "@partner-up-dev/design-web";
+import { PuChip, PuChipGroup, PuImg, PuTag } from "@partner-up-dev/design-web";
 import {
   DEMAND_CARD_EXIT_TRANSITION,
   DEMAND_CARD_REBOUND_TRANSITION,
@@ -816,18 +826,9 @@ defineExpose({
   overflow-wrap: anywhere;
 }
 
-.demand-card__location-badge {
-  @include mx.pu-font(control);
+.demand-card__location-tag {
   position: relative;
   z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-surface-container-high);
-  color: var(--sys-color-on-surface);
-  border: 1px solid var(--sys-color-outline-variant);
-  backdrop-filter: blur(4px);
 }
 
 .demand-card__body {
@@ -848,23 +849,6 @@ defineExpose({
 .demand-card__time {
   @include mx.pu-font(section);
   margin: 0;
-  color: var(--sys-color-on-surface);
-}
-
-.demand-card__preference-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sys-spacing-small);
-}
-
-.demand-card__preference-chip {
-  @include mx.pu-font(control);
-  display: inline-flex;
-  align-items: center;
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  border-radius: 999px;
-  border: 1px solid var(--sys-color-outline-variant);
-  background: var(--sys-color-surface-container-high);
   color: var(--sys-color-on-surface);
 }
 

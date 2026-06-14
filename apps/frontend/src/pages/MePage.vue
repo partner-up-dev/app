@@ -160,7 +160,7 @@
 
               <PuTag
                 v-if="wechatBound"
-                class="status-pill"
+                class="wechat-bound-tag"
                 tone="primary"
                 size="md"
                 :text="t('mePage.profile.wechatBound')"
@@ -583,7 +583,7 @@ const handleCopyCredential = async (value: string | null) => {
   }
 }
 
-.status-pill {
+.wechat-bound-tag {
   flex-shrink: 0;
 }
 

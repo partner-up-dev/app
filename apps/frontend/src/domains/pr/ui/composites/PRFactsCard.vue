@@ -237,7 +237,12 @@
                 </PuChip>
               </template>
 
-              <span v-if="hasMoreRoster" class="roster-chip-overflow">...</span>
+              <PuChip
+                v-if="hasMoreRoster"
+                tone="secondary"
+                variant="soft"
+                :label="rosterOverflowLabel"
+              />
             </PuChipGroup>
 
             <span v-else class="facts-empty">
@@ -452,9 +457,11 @@ const activeRoster = computed(
     ) ?? [],
 );
 const rosterPreview = computed(() => activeRoster.value.slice(0, 4));
-const hasMoreRoster = computed(
-  () => activeRoster.value.length > rosterPreview.value.length,
+const hiddenRosterCount = computed(() =>
+  Math.max(activeRoster.value.length - rosterPreview.value.length, 0),
 );
+const hasMoreRoster = computed(() => hiddenRosterCount.value > 0);
+const rosterOverflowLabel = computed(() => `+${hiddenRosterCount.value}`);
 
 const partnerProfilePath = (partnerId: number): string =>
   prPartnerProfilePath(props.prId, partnerId);
@@ -627,15 +634,4 @@ watch(
   }
 }
 
-.roster-chip-overflow {
-  @include mx.pu-font(control);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--sys-spacing-large);
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-}
 </style>

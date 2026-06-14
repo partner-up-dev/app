@@ -723,9 +723,13 @@
                       <td>{{ formatMode(row.renderedMode) }}</td>
                       <td>{{ formatCommitmentType(row.commitmentType) }}</td>
                       <td>
-                        <span class="status-pill" :class="`status-pill--${row.actionResult}`">
-                          {{ formatActionResult(row.actionResult) }}
-                        </span>
+                        <PuTag
+                          :text="formatActionResult(row.actionResult)"
+                          :tone="actionResultTagTone(row.actionResult)"
+                          variant="soft"
+                          shape="pill"
+                          size="xs"
+                        />
                       </td>
                       <td>{{ formatCount(row.journeyCount) }}</td>
                       <td>{{ formatCount(row.eventCount) }}</td>
@@ -849,6 +853,7 @@ import {
   PuInlineNotice,
   PuInput,
   PuLoadingState,
+  PuTag,
 } from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
@@ -1030,6 +1035,14 @@ const formatCommitmentType = (
 ): string => t(`adminAnalytics.commitmentType.${type}`);
 const formatActionResult = (result: OutcomeBreakdownRow["actionResult"]): string =>
   t(`adminAnalytics.actionResult.${result}`);
+const actionResultTagTone = (
+  result: OutcomeBreakdownRow["actionResult"],
+) => {
+  if (result === "success") return "success";
+  if (result === "blocked") return "warning";
+  if (result === "failure") return "error";
+  return "neutral";
+};
 const formatNudgeSource = (
   source: OfficialAccountFollowNudgeSourceRow["source"],
 ): string => t(`adminAnalytics.officialAccountNudgeSource.${source}`);
@@ -1698,32 +1711,6 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sys-spacing-medium);
-}
-
-.status-pill {
-  @include mx.pu-font(caption);
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-surface-container);
-  color: var(--sys-color-on-surface);
-}
-
-.status-pill--success {
-  background: var(--sys-color-primary-container);
-  color: var(--sys-color-on-primary-container);
-}
-
-.status-pill--blocked {
-  background: var(--sys-color-warning);
-  color: var(--sys-color-on-warning);
-}
-
-.status-pill--failure {
-  background: var(--sys-color-error-container);
-  color: var(--sys-color-on-error-container);
 }
 
 @media (max-width: 1180px) {
