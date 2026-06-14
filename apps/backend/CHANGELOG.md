@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.1.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v3.0.0...backend-v3.1.0) (2026-06-11)
+
+
+### Features
+
+* **event:** submit concrete anchor event routes ([be75a58](https://github.com/partner-up-dev/mvp-HA/commit/be75a58818450534489539cf0a3a80c7c7186923))
+* **pr:** pr creator continuous claiming ([d08d6ba](https://github.com/partner-up-dev/mvp-HA/commit/d08d6baf42257b68d987a09435929e7f7aa28957))
+
+
+### Bug Fixes
+
+* **backend:** isolate backend vitest gate ([4a829aa](https://github.com/partner-up-dev/mvp-HA/commit/4a829aab336aac7359c6f392cd6bd41f9fe8919c))
+* **event:** align form mode auto-created PR ownership ([095d492](https://github.com/partner-up-dev/mvp-HA/commit/095d4927704d5f22b5cea9098c2f7191b6e3b407))
+* **event:** allow form mode fuzzy auto-create time ([4eebde8](https://github.com/partner-up-dev/mvp-HA/commit/4eebde8a3c22c06bf0423f034a85c10a8a47b6d4))
+
 ## [3.0.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v2.0.0...backend-v3.0.0) (2026-06-07)
 
 
