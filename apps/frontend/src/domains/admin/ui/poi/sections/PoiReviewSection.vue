@@ -34,14 +34,16 @@
             {{ t("adminPois.reviewedAt", { time: selectedReviewedAt }) }}
           </p>
 
-          <label class="field">
-            <span class="field-label">{{ t("adminPois.rejectReasonLabel") }}</span>
-            <textarea
+          <PuFormItem
+            :label="t('adminPois.rejectReasonLabel')"
+            for-id="admin-pois-reject-reason"
+          >
+            <PuTextarea
+              id="admin-pois-reject-reason"
               v-model="rejectReasonDraft"
-              class="field-input field-textarea"
               :placeholder="t('adminPois.rejectReasonPlaceholder')"
-            ></textarea>
-          </label>
+            />
+          </PuFormItem>
 
           <div class="action-row">
             <PuButton
@@ -86,7 +88,12 @@ import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import { PuButton, PuTag } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuFormItem,
+  PuTag,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];
@@ -155,28 +162,4 @@ const statusTagTone = (
   flex-wrap: wrap;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-
-.field-textarea {
-  min-height: 5rem;
-  resize: vertical;
-}
 </style>

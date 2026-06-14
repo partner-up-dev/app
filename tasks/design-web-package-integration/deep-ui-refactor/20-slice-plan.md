@@ -82,7 +82,10 @@ Primary risk:
 
 ## Slice 3: Eligible Field Controls
 
-Status: candidate. First 0.4.1-enabled datetime cleanup started.
+Status: in progress. First 0.4.1-enabled datetime cleanup completed, and first
+low-risk field-control group implemented. Detailed field-control lane planning
+lives in `40-slice3-field-control-plan.md`; package-side capability needs live
+in `50-form-capability-needs.md`.
 
 Scope:
 

@@ -1,28 +1,26 @@
 <template>
   <div class="anchor-event-capacity-defaults-editor">
-    <label class="field">
-      <span class="field-label">
-        {{ t("adminPR.eventDefaultMinPartnersLabel") }}
-      </span>
-      <input
-        v-model.number="form.defaultMinPartners"
-        class="field-input"
-        type="number"
-        min="1"
+    <PuFormItem
+      :label="t('adminPR.eventDefaultMinPartnersLabel')"
+      for-id="anchor-event-default-min-partners"
+    >
+      <PuInput
+        id="anchor-event-default-min-partners"
+        v-model="defaultMinPartnersText"
+        native-type="number"
       />
-    </label>
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">
-        {{ t("adminPR.eventDefaultMaxPartnersLabel") }}
-      </span>
-      <input
-        v-model.number="form.defaultMaxPartners"
-        class="field-input"
-        type="number"
-        min="2"
+    <PuFormItem
+      :label="t('adminPR.eventDefaultMaxPartnersLabel')"
+      for-id="anchor-event-default-max-partners"
+    >
+      <PuInput
+        id="anchor-event-default-max-partners"
+        v-model="defaultMaxPartnersText"
+        native-type="number"
       />
-    </label>
+    </PuFormItem>
 
     <p v-if="validationMessage" class="error-message">
       {{ validationMessage }}
@@ -31,8 +29,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
+import { PuFormItem, PuInput } from "@partner-up-dev/design-web";
 
 defineProps<{
   validationMessage: string | null;
@@ -40,6 +40,29 @@ defineProps<{
 
 const form = defineModel<AnchorEventEditorForm>({ required: true });
 const { t } = useI18n();
+
+const nullableNumberText = (value: number | null): string =>
+  value === null ? "" : String(value);
+
+const parseNullableNumber = (value: string): number | null => {
+  if (value.trim().length === 0) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const defaultMinPartnersText = computed({
+  get: () => nullableNumberText(form.value.defaultMinPartners),
+  set: (value) => {
+    form.value.defaultMinPartners = parseNullableNumber(value);
+  },
+});
+
+const defaultMaxPartnersText = computed({
+  get: () => nullableNumberText(form.value.defaultMaxPartners),
+  set: (value) => {
+    form.value.defaultMaxPartners = parseNullableNumber(value);
+  },
+});
 </script>
 
 <style lang="scss" scoped>
@@ -47,26 +70,6 @@ const { t } = useI18n();
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sys-spacing-small);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
 }
 
 .error-message {

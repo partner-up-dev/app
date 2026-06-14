@@ -198,29 +198,34 @@
                         </div>
                       </div>
 
-                      <textarea
+                      <PuFormItem
                         v-if="editingMessageId === item.id"
-                        v-model="editingMessageBody"
-                        class="field-input field-textarea"
-                        :placeholder="t('adminPRMessages.messagePlaceholder')"
-                      ></textarea>
+                        :label="t('adminPRMessages.messageLabel')"
+                        :for-id="`admin-pr-message-${item.id}-edit`"
+                      >
+                        <PuTextarea
+                          :id="`admin-pr-message-${item.id}-edit`"
+                          v-model="editingMessageBody"
+                          :placeholder="t('adminPRMessages.messagePlaceholder')"
+                        />
+                      </PuFormItem>
                       <p v-else class="message-body">
                         {{ item.body }}
                       </p>
                     </article>
                   </div>
 
-                  <label class="field">
-                    <span class="field-label">{{
-                      t("adminPRMessages.messageLabel")
-                    }}</span>
-                    <textarea
+                  <PuFormItem
+                    :label="t('adminPRMessages.messageLabel')"
+                    for-id="admin-pr-message-draft"
+                  >
+                    <PuTextarea
+                      id="admin-pr-message-draft"
                       v-model="messageDraftBody"
-                      class="field-input field-textarea"
                       :placeholder="t('adminPRMessages.messagePlaceholder')"
                       :disabled="prMessagesActions.isPending.create.value"
-                    ></textarea>
-                  </label>
+                    />
+                  </PuFormItem>
 
                   <p v-if="messageActionError" class="error-message">
                     {{ messageActionError }}
@@ -270,7 +275,14 @@ import {
 } from "@/domains/admin/queries/useAdminPRManagement";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
-import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -443,31 +455,6 @@ const handleDeleteMessage = async (messageId: number) => {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: var(--sys-spacing-xsmall);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-
-.field-textarea {
-  min-height: 96px;
-  resize: vertical;
 }
 
 .stack--tight {
