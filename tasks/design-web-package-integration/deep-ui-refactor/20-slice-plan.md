@@ -84,10 +84,11 @@ Primary risk:
 
 Status: in progress. First 0.4.1-enabled datetime cleanup completed, and first
 low-risk field-control group implemented. Detailed field-control lane planning
-lives in `40-slice3-field-control-plan.md`; package-side capability needs live
-in `50-form-capability-needs.md`.
+lives in `40-slice3-field-control-plan.md`; the 0.4.3 reassessment lives in
+`45-slice3-0.4.3-reassessment.md`; package-side capability needs live in
+`50-form-capability-needs.md`.
 
-Scope:
+Original scope:
 
 - Replace eligible text, URL, email, tel, search, number, password,
   datetime-local, and textarea controls with `PuFormItem` +
@@ -96,12 +97,24 @@ Scope:
 - Avoid local field CSS clones such as `field-input`, `pm-field-input`,
   `analytics-input`, and `text-area` where package controls cover the intent.
 
-Still out of scope for this slice by default:
+0.4.3 uplift:
 
-- Native `select` and datalist-backed controls unless the product accepts a
-  `PuPicker` interaction.
-- Broad `PuForm` adoption unless a specific form can use package
-  schema/validation and submit semantics directly.
+- `PuNumberInput` now covers `number | null` app state plus min/max/step.
+- `PuSelect` now covers dense web-native single selection.
+- `PuInput` now explicitly documents native `list` forwarding.
+- `PuTextarea` now explicitly documents `rows`, `form`, and `change`.
+- `PuForm` now documents native attributes and external submit support.
+- `PuChipInput` now covers plain editable string-array token input.
+
+Current direction:
+
+- Native `select`, datalist-backed controls, and nullable numeric fields are no
+  longer globally deferred.
+- Continue batching by usage boundary. Do not do one broad raw-control sweep.
+- Keep multi-select, option groups, async/custom select rendering, and
+  non-plain tag editors out of low-risk sub-slices.
+- The first 0.4.3 implementation pass is recorded in
+  `46-slice3-0.4.3-implementation.md`.
 
 0.4.1 uplift already applied:
 
@@ -109,6 +122,27 @@ Still out of scope for this slice by default:
   `native-type="datetime-local"`.
 - `PRFilterRail.vue`, `AdminPRBasicView.vue`, and `PoiBasicSection.vue`
   datetime-local fields use direct `PuInput`.
+
+0.4.3 recommended next sub-slices:
+
+- Slice 3B: select and datalist rebaseline with `PuSelect` and `PuInput list`.
+- Slice 3C: numeric field cleanup with `PuNumberInput`.
+- Slice 3D: `PuForm` boundary cleanup where native form identity and external
+  submit behavior are preserved.
+- Slice 3E: plain editable token input cleanup with `PuChipInput`, starting
+  with PR editor preferences if the interaction contract is confirmed.
+
+0.4.3 implementation notes:
+
+- Completed the bounded Slice 3B select/datalist group.
+- Completed the bounded Slice 3C Anchor Event numeric group.
+- Completed the small Slice 3D `PuForm` boundaries for `NLPRForm.vue` and
+  `UpdatePRStatusForm.vue`, plus direct field-control migration for
+  `PRJoinGateConfigEditor.vue`.
+- Completed Slice 3E for the plain `PREditor.vue` preferences tag input.
+- Deferred `InlineNLPRForm.vue`, broad `PREditor.vue` field migration,
+  `FormModePreferenceControl.vue`, and larger admin commerce/payment form
+  groups.
 
 ## Slice 4: Read-Only Display Cleanup
 
@@ -197,3 +231,85 @@ Implementation notes:
   status, PR roster display labels, Anchor Event demand-card labels, and PR
   facts roster overflow marker to direct `PuTag`, `PuChip`, or `PuChipGroup`.
 - Deleted the local `PRStatusBadge` wrapper.
+
+## Slice 9: Form Mode Preference Composition Pilot
+
+Status: completed.
+
+Scope:
+
+- Treat `FormModePreferenceControl.vue` as the first composition-based
+  migration rather than another one-to-one replacement.
+- Compose the drawer from direct package primitives:
+  `PuCell`, `PuDrawer`, `PuChipGroup`, `PuChip`, `PuChipInput`,
+  `PuInlineNotice`, and `PuButton`.
+- Replace local `tag-pill*` and `inline-message*` ownership with package
+  components.
+- Keep the domain interaction contract explicit: one selected tag per
+  category, multiple uncategorized selections, custom tag normalization,
+  mutation submission for new custom labels, and unchanged
+  `update:modelValue` output.
+
+Planning notes:
+
+- Detailed packet lives in `80-form-mode-preference-composition.md`.
+- `PuChipInput` should own the custom preference entry subset, not the whole
+  curated option selector. Package docs still defer suggestions and custom
+  listbox behavior.
+- Treat the implementation as a pilot. Record what package composition
+  generalized, what still required domain-owned state, and what should inform
+  Slice 10.
+
+Implementation notes:
+
+- Migrated `FormModePreferenceControl.vue` to direct `PuChipGroup`, `PuChip`,
+  `PuChipInput`, `PuFormItem`, and `PuInlineNotice` composition.
+- Preset preference candidates now render as selectable package chips.
+- Custom preference entry is now a `PuChipInput` lane with chip-slot
+  composition for selectable/removable custom values.
+- Removed local `tag-pill*`, `inline-message*`, and draft-input state.
+- Kept category selection, uncategorized selection, label normalization, and
+  custom-tag submission as domain-owned logic.
+
+Verification:
+
+- Passed `pnpm --filter @partner-up-dev/frontend build`.
+- Passed `pnpm --filter @partner-up-dev/frontend lint:tokens`.
+- Passed `pnpm test:unit:frontend`.
+- Passed targeted source scan for old `FormModePreferenceControl` local pill
+  and inline-message symbols.
+- Passed `git diff --check`.
+
+## Slice 10: Composition Pattern Rollout
+
+Status: candidate.
+
+Scope:
+
+- Use the actual Slice 9 implementation evidence to identify other components
+  that need composition-plus-refactor rather than one-to-one replacement.
+- Focus on surfaces that mix local UI primitives, package-eligible containers,
+  product state, and repeated display/form structures.
+- Implement follow-up candidates one at a time; do not turn this into a broad
+  raw-field or passive badge sweep.
+
+Initial candidates:
+
+- `InlineNLPRForm.vue`: compact high-signal candidate for `PuForm` +
+  `PuFormItem` + `PuInput` + icon `PuButton` + `PuInlineNotice`.
+- `PRPartnerSection.vue`: section-level content/container split with
+  `PuCard`, facts/summary composition, notices, and direct actions.
+- `PRFactsCard.vue`, `AdminNavigationPanel.vue`, and
+  `FormModeNoMatchResult.vue`: medium-confidence candidates that need a short
+  topology note before implementation.
+
+Planning notes:
+
+- Detailed rollout packet lives in `90-composition-pattern-rollout.md`.
+- Gesture-heavy surfaces such as the full Form Mode surface still require
+  topology mapping before production edits.
+- `AdminCommerceSpuEditor.vue` is explicitly out of Slice 10.
+- With `AdminCommerceSpuEditor.vue` out of scope, no current Slice 10
+  candidate should plan around `PuChipInput`; remaining candidates use
+  `PuInput`, `PuButton`, `PuInlineNotice`, `PuCard`, `PuDescriptionList`,
+  `PuCellGroup`, `PuChip`, or `PuChipGroup` according to their semantics.

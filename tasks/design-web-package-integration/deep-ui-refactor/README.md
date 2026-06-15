@@ -16,7 +16,9 @@ and product interaction state in one file.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Production code status: Slice 1 implemented and verified.
+- Production code status: Slice 1 implemented and verified; Slice 3 0.4.3
+  implementation pass implemented and verified; Slice 9 composition pilot
+  implemented and verified.
 - Task scope: frontend UI structure and package component composition.
 
 ## Guardrails Touched
@@ -33,7 +35,7 @@ and product interaction state in one file.
 ## Current Understanding
 
 - The up-to-date design package skill is shipped with
-  `@partner-up-dev/design-web@0.4.1` under
+  `@partner-up-dev/design-web@0.4.3` under
   `apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
 - The previous component-migration packet has completed direct migrations for
   local facades such as button, card choice, tabs, overlays, cells, chips,
@@ -51,20 +53,40 @@ and product interaction state in one file.
   `AnchorEventListModeSurface.vue`, `AnchorEventDemandCard.vue`,
   `FormModePreferenceControl.vue`, and `MePage.vue`.
 - Raw form controls remain concentrated in admin, commerce, PR editor, POI,
-  and route/event editing surfaces. The 0.4.1 package now supports
-  `PuInput nativeType="datetime-local"`, so datetime fields can move through
-  the normal field-control lane.
+  and route/event editing surfaces. The 0.4.3 package now supports
+  `PuNumberInput`, `PuSelect`, `PuChipInput`, native `PuInput list`
+  forwarding, `PuTextarea rows`, and documented `PuForm` native form
+  attributes, so Slice 3 can move beyond text/textarea cleanup.
+- The bounded 0.4.3 Slice 3 implementation pass is recorded in
+  `46-slice3-0.4.3-implementation.md`; it covers select/datalist, a focused
+  Anchor Event numeric group, small form boundaries, a dynamic join-gate field
+  group, and the plain PR preferences chip input.
+- `FormModePreferenceControl.vue` is now tracked as a dedicated composition
+  pilot in `80-form-mode-preference-composition.md`: it should move beyond
+  one-to-one replacement into `PuCell` + `PuDrawer` + `PuChipGroup` +
+  `PuChip` + `PuChipInput` composition and local state decomposition.
+- Slice 9 completed the pilot by migrating `FormModePreferenceControl.vue` to
+  direct package composition while keeping category selection and custom tag
+  submission as domain-owned logic.
+- The post-pilot rollout is tracked in
+  `90-composition-pattern-rollout.md`: Slice 10 should use the Slice 9
+  evidence to identify and implement similar composition-plus-refactor
+  candidates, not treat this as a broad mechanical sweep.
 
 ## Package API Constraints
 
-- `PuInput` supports `datetime-local` as of `@partner-up-dev/design-web@0.4.1`.
-  Datalist-backed inputs still need a separate decision because `list` is not
-  part of the documented public `PuInput` props.
-- `PuForm` exposes schema/validation structure and a documented `submit`
-  event as of `0.4.1`. Use it where the form can adopt package form semantics
-  directly, not as a wrapper around old native-form markup.
-- `PuPicker` is available for option selection, but migrating native `select`
-  or `datalist` inputs requires product-level interaction acceptance.
+- `PuInput` supports `datetime-local` as of `@partner-up-dev/design-web@0.4.1`
+  and documents native `list` forwarding as of `0.4.3`.
+- `PuNumberInput` covers `number | null` app state and native numeric
+  constraints as of `0.4.3`.
+- `PuSelect` covers dense web-native single selection as of `0.4.3`.
+- `PuChipInput` covers plain editable string-array token input as of `0.4.3`.
+- `PuForm` exposes schema/validation structure, a documented `submit` event,
+  native form attribute fallthrough, and external submit support. Use it where
+  the form can adopt package form semantics directly, not as a wrapper around
+  old native-form markup.
+- `PuPicker` remains available for option selection when a picker/drawer
+  interaction is desired.
 - `PuSnackbar` and `PuSnackbarHost` are available for transient feedback.
   Persistent embedded error states should usually become `PuInlineNotice`.
 
@@ -79,10 +101,11 @@ Detailed slice planning lives in `20-slice-plan.md`.
    `PuBentoGrid`/`PuBentoItem` at usage sites; evaluate `AdminRailPanel` as
    direct `PuCard` or `PuCellGroup` usage. Keep `AdminPageScaffold` only if it
    remains a real admin layout container over `PuPageScaffold`.
-3. Straightforward field cleanup: migrate eligible text, number, password, URL,
-   and textarea controls to `PuFormItem` + `PuInput`/`PuTextarea`; leave
-   `datetime-local`, native select, and datalist-backed controls in a separate
-   decision lane.
+3. Field cleanup: continue migrating text/password/URL/textarea controls, and
+   use 0.4.3 APIs for numeric fields (`PuNumberInput`), dense single selects
+   (`PuSelect`), datalist-backed free text (`PuInput list`), real submit
+   boundaries (`PuForm`), and plain tag inputs (`PuChipInput`) in small
+   sub-slices.
 4. Read-only/data display cleanup: replace local KPI cards, summary grids,
    row groups, and status badges with `PuBentoItem`, `PuCard`,
    `PuDescriptionList`, `PuDescriptionItem`, `PuCellGroup`, `PuCell`, or
@@ -97,6 +120,14 @@ Detailed slice planning lives in `20-slice-plan.md`.
    machines before splitting. Long press, carousel, splash handoff, and route
    handoff animation are product interaction contracts, not simple package
    substitutions.
+8. Form Mode preference composition pilot: use
+   `80-form-mode-preference-composition.md` to migrate the preference drawer
+   from local pill/input markup to package component composition while keeping
+   category selection and custom preference submission semantics explicit.
+9. Composition pattern rollout: use
+   `90-composition-pattern-rollout.md` to compare the Slice 9 pilot against
+   other mixed UI/state surfaces, then schedule follow-up candidates one at a
+   time.
 
 ## Defer By Default
 
@@ -104,8 +135,10 @@ Detailed slice planning lives in `20-slice-plan.md`.
   swipe projection layers, and map rendering.
 - `ProductLocalDateCalendarPicker` unless a package calendar/date selector
   exists or the product accepts a different picker interaction.
-- Native `select` and datalist-backed controls until the product accepts a
-  package picker or the package exposes a matching public field API.
+- Multi-select, option-group, async-option, or custom-rendered selects until
+  the package exposes a matching public API.
+- Rich option/tag editors, such as Form Mode preferences, until their
+  interaction contracts are explicitly mapped.
 
 ## Verification Baseline
 
@@ -142,6 +175,24 @@ Slice 1 verification:
 - Source scans found no old `PageHeader`/`ErrorToast` usage-site references, no
   package private-path imports, and no raw `type="datetime-local"` in the four
   migrated datetime files.
+
+0.4.3 uplift verification:
+
+- Registry query confirmed `@partner-up-dev/design-web@0.4.3` is available.
+- Package dependency and lockfile updated from `0.4.1` to `0.4.3`.
+- TanStack Intent package skill found by `list --json`, loaded by
+  `load @partner-up-dev/design-web#design-web`, and validated by
+  `validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
+- `dist/version.d.ts` declares `version = "0.4.3"`.
+- 0.4.3 skill references document `PuNumberInput`, `PuSelect`, `PuChipInput`,
+  `PuInput list`, `PuTextarea rows`, and native `PuForm` attribute/external
+  submit support.
+- `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` passed.
+- `pnpm test:unit:frontend` passed.
+- `git diff --check` passed.
+- Slice 3 0.4.3 implementation verification is recorded in
+  `46-slice3-0.4.3-implementation.md`.
 
 For route/page structure slices:
 

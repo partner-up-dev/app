@@ -1,5 +1,5 @@
 <template>
-  <form :id="formId" class="status-form" @submit.prevent="submitForm">
+  <PuForm :id="formId" class="status-form" @submit="submitForm">
     <PuCard
       v-for="status in statusOptions"
       :key="status.value"
@@ -14,14 +14,14 @@
     >
       {{ status.label }}
     </PuCard>
-  </form>
+  </PuForm>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuCard, PuForm } from "@partner-up-dev/design-web";
 
 type StatusOption = {
   value: PRStatusManual;

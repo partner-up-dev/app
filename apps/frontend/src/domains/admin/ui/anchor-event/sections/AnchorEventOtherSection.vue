@@ -37,10 +37,10 @@
 
       <BentoItem :title="t('adminAnchorEvents.participationFrequencyLimitTitle')">
         <div class="policy-setting">
-          <PuInput
-            v-model="participationFrequencyLimitText"
-            type="number"
+          <PuNumberInput
+            v-model="participationFrequencyLimitCount"
             inputmode="numeric"
+            :min="1"
             :disabled="props.disabled"
             :placeholder="
               t('adminAnchorEvents.participationFrequencyLimitPlaceholder')
@@ -111,7 +111,12 @@ import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventFeedbackQuestionnairePicker from "@/domains/admin/ui/anchor-event/components/AnchorEventFeedbackQuestionnairePicker.vue";
 import AnchorEventJoinGateEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventJoinGateEditor.vue";
 import AnchorEventLandingRolloutEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLandingRolloutEditor.vue";
-import { PuButton, PuInput, PuTextarea, PuToggleSwitch } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuNumberInput,
+  PuTextarea,
+  PuToggleSwitch,
+} from "@partner-up-dev/design-web";
 import type {
   AnchorEventEditorForm,
   FeedbackQuestionnaireTemplateOption,
@@ -159,20 +164,13 @@ const fullPrExpansionEnabled = computed({
     form.value.fullPrExpansionPolicy = value ? "ENABLED" : "DISABLED";
   },
 });
-const participationFrequencyLimitText = computed({
+const participationFrequencyLimitCount = computed({
   get: () =>
-    form.value.participationFrequencyLimit?.intervalPrCount.toString() ?? "",
-  set: (value: string) => {
-    const normalized = value.trim();
-    if (!normalized) {
-      form.value.participationFrequencyLimit = null;
-      return;
-    }
-
-    const parsed = Number(normalized);
+    form.value.participationFrequencyLimit?.intervalPrCount ?? null,
+  set: (value: number | null) => {
     form.value.participationFrequencyLimit =
-      Number.isInteger(parsed) && parsed > 0
-        ? { intervalPrCount: parsed }
+      value !== null && Number.isInteger(value) && value > 0
+        ? { intervalPrCount: value }
         : null;
   },
 });

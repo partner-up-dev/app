@@ -6,6 +6,11 @@ This note captures frontend form usage found during Slice 3A of the
 `@partner-up-dev/design-web` migration. It is intended as upstream input for
 future web design package work, not as an app-side API contract.
 
+Update on 2026-06-14: `@partner-up-dev/design-web@0.4.3` resolves several
+items that were previously listed as upstream needs. Keep this file as a
+capability ledger: resolved items are marked rather than deleted so future
+migration decisions can see why Slice 3 changed direction.
+
 The app can already use:
 
 - `PuFormItem` for visible labels, hints, required markers, explicit errors,
@@ -17,6 +22,9 @@ The app can already use:
   of `0.4.1`.
 - `PuPicker`, `PuCheckbox`, and `PuCheckboxGroup` where the current interaction
   model fits.
+- `PuNumberInput` for `number | null` numeric app state, including min/max/step.
+- `PuSelect` for dense web-native single selection.
+- `PuChipInput` for plain editable string-array token input.
 
 ## Current App Usage Patterns
 
@@ -36,8 +44,8 @@ Migration status:
 - Text and textarea fields are straightforward with `PuFormItem`,
   `PuInput`, and `PuTextarea`.
 - `datetime-local` is now viable with `PuInput native-type="datetime-local"`.
-- Numeric fields work visually with `native-type="number"`, but model typing
-  is not ergonomic when the app owns `number | null` state.
+- Numeric fields are now viable with `PuNumberInput` when the app owns
+  `number | null` state.
 
 ### Select And Datalist
 
@@ -51,11 +59,13 @@ Remaining native usage:
 
 Migration status:
 
-- `PuPicker` exists, but it changes the interaction to a drawer/picker flow.
-  That can be right for mobile or constrained flows, but is not always a
-  direct replacement for dense admin selects.
-- `PuInput` does not expose a documented `list` prop, so datalist-backed fields
-  stay native unless the app accepts a different autocomplete/combobox pattern.
+- `PuSelect` now covers dense web-native one-of-many selection.
+- `PuInput` now documents native `list` forwarding, so datalist-backed
+  free-text fields can migrate without adopting a picker interaction.
+- `PuPicker` remains appropriate only when the product wants a picker/drawer
+  interaction rather than dense native selection.
+- The first 0.4.3 app pass has migrated the bounded admin analytics, PR
+  filter, Anchor Event status/template, and POI selector group.
 
 ### Submit Boundaries
 
@@ -70,9 +80,14 @@ Remaining native form usage:
 Migration status:
 
 - `PuForm` can now be evaluated because it emits `submit`.
+- 0.4.3 documents native form attribute fallthrough and external submit button
+  support.
 - Some app forms rely on native `id`/external submit behavior or page-level
-  mutation ownership. Those need explicit package support or careful app-side
-  mapping before migration.
+  mutation ownership. Native `id`/external submit is no longer the blocker;
+  mutation ownership and exposed parent contracts still require careful
+  per-form migration.
+- The first 0.4.3 app pass migrated `NLPRForm.vue` and
+  `UpdatePRStatusForm.vue`, preserving parent-owned submit contracts.
 
 ### Boolean And Multi-Select
 
@@ -90,7 +105,7 @@ Migration status:
 
 ## Upstream Needs
 
-### P0: Numeric Field Model Support
+### Resolved In 0.4.3: Numeric Field Model Support
 
 Current issue:
 
@@ -99,31 +114,24 @@ Current issue:
 - Direct `v-model.number` fails type-checking against the package component
   because the component contract is string-only.
 
-Needed package capability:
+Resolved package capability:
 
-- Either support `modelValue: string | number | null` for numeric native type,
-  or provide a dedicated numeric component/helper such as `PuNumberInput`.
-- Emit a stable numeric value mode, preferably with explicit empty handling:
-  empty -> `null`, valid number -> `number`, invalid intermediate text handled
-  deliberately.
-- Publish types for this behavior so app code does not need local computed
-  string adapters for every numeric field.
+- `PuNumberInput` supports numeric app state as `number | null`.
+- Empty input emits `null`; valid numeric input emits `number`.
+- Invalid intermediate text is held locally.
 
-### P0: Native Numeric Constraints
+### Resolved In 0.4.3: Native Numeric Constraints
 
 Current issue:
 
 - App numeric controls often use native `min`, `max`, and sometimes `step`.
 - `PuInput` public props do not document `min`, `max`, or `step`.
 
-Needed package capability:
+Resolved package capability:
 
-- Public props for `min`, `max`, and `step` when `nativeType` is numeric/date
-  compatible.
-- Pass-through typing and runtime forwarding to the internal native input.
-- Optional invalid-state integration with `PuFormItem` / `PuForm`.
+- `PuNumberInput` documents `min`, `max`, and `step`.
 
-### P1: Select Field For Dense Admin UI
+### Resolved In 0.4.3: Select Field For Dense Admin UI
 
 Current issue:
 
@@ -131,16 +139,17 @@ Current issue:
 - `PuPicker` is available but is a drawer-style picker interaction, which is
   not always the right admin-table/editor interaction.
 
-Needed package capability:
+Resolved package capability:
 
-- A web-native select-like component, for example `PuSelect`, supporting:
-  options, labels, disabled options, placeholder, clearable state, and
-  `PuFormItem` integration.
-- Keyboard and screen-reader behavior comparable to native select or a robust
-  combobox.
-- Compact density suitable for admin panels.
+- `PuSelect` supports string/number/null values, options, placeholder,
+  clearable state, native select attributes, and `PuFormItem` composition.
 
-### P1: Autocomplete / Datalist Replacement
+Remaining later needs:
+
+- Multi-select, option groups, async loading, and custom option rendering are
+  still deferred by the first API.
+
+### Partially Resolved In 0.4.3: Autocomplete / Datalist Replacement
 
 Current issue:
 
@@ -148,31 +157,32 @@ Current issue:
 - `PuInput` does not document a `list` prop, and `PuPicker` changes the model
   from free text to explicit option picking.
 
-Needed package capability:
+Resolved package capability:
 
-- Either document and type native `list` forwarding on `PuInput`, or provide a
-  `PuCombobox` / `PuAutocomplete` component.
-- Must support free text plus suggestions, not only fixed option selection.
-- Should support option labels distinct from submitted values.
+- `PuInput` documents native `list` forwarding for datalist-backed free-text
+  suggestions.
 
-### P1: Form Submit Integration
+Remaining later needs:
+
+- A richer `PuCombobox` / `PuAutocomplete` could still be useful when option
+  labels must differ from submitted values or when async/custom suggestions
+  are needed.
+
+### Resolved In 0.4.3: Form Submit Integration
 
 Current issue:
 
 - `PuForm` now emits `submit`, but the app still needs confidence around native
   form behaviors before broad migration.
 
-Needed package capability:
+Resolved package capability:
 
-- Document whether `PuForm` forwards `id`, `name`, `autocomplete`, `novalidate`,
-  `method`, and `action`.
-- Document external submit button support through native `form` attributes.
-- Provide typed submit event examples with `preventDefault` semantics clearly
-  stated.
-- Consider helper props for pending/disabled submit state only if that does not
-  blur mutation ownership.
+- `PuForm` documents native `id`, `name`, `autocomplete`, `novalidate`,
+  `action`, and `method` fallthrough.
+- It documents default prevention, native `SubmitEvent` emission, validation
+  call expectations, and external submit button support.
 
-### P2: Textarea Sizing Controls
+### Mostly Resolved In 0.4.3: Textarea Sizing Controls
 
 Current issue:
 
@@ -181,13 +191,16 @@ Current issue:
 - `PuTextarea` supports `autoHeight`, but public docs do not expose rows,
   minRows, maxRows, or resize policy.
 
-Needed package capability:
+Resolved package capability:
 
-- Public `rows`, `minRows`, `maxRows`, or `minHeight` strategy.
-- Clear interaction between `autoHeight` and manual resize.
-- This would reduce app-side class styling for multiline editors.
+- `PuTextarea` documents native `rows` forwarding.
+- `PuTextarea` documents `autoHeight` and default vertical resize behavior.
 
-### P2: Change/Input Event Ergonomics
+Remaining later needs:
+
+- `minRows` / `maxRows` may still be useful if fixed `rows` is not enough.
+
+### Resolved In 0.4.3: Change/Input Event Ergonomics
 
 Current issue:
 
@@ -195,12 +208,24 @@ Current issue:
 - `PuInput` emits `update:modelValue`, `focus`, `blur`, but not a documented
   raw `input` or `change` event.
 
-Needed package capability:
+Resolved package capability:
 
-- Document the intended dirty-state hook.
-- If package components should replace native controls in dirty-tracked admin
-  editors, expose typed `input`/`change` events or recommend
-  `update:modelValue`.
+- `PuInput` and `PuTextarea` document `update:modelValue` as the live dirty
+  hook and expose `change` for browser committed-value semantics.
+
+### New In 0.4.3: Editable Chip Input
+
+Current app relevance:
+
+- `PREditor.vue` preferences tags input has migrated to `PuChipInput`.
+- `FormModePreferenceControl.vue` is more complex than a plain chip input
+  because it owns curated options, descriptions, drawer state, and custom
+  draft creation.
+
+Remaining later needs:
+
+- `PuChipInput` suggestions and custom option listbox behavior are deferred by
+  the first API.
 
 ## App Migration Implications
 
@@ -215,7 +240,10 @@ Recommended package-side priority:
 Until then, the frontend should:
 
 - Continue migrating string-backed text and textarea fields directly.
-- Use local computed adapters for small numbers only when the replacement is
-  otherwise worth it.
-- Keep native select and datalist controls out of direct migration slices.
-- Adopt `PuForm` only per form boundary after submit semantics are checked.
+- Prefer `PuNumberInput` for numeric app state.
+- Prefer `PuSelect` for dense single selection and `PuInput list` for
+  datalist-backed free-text suggestions.
+- Adopt `PuForm` only per form boundary, even though native form attributes and
+  external submit are now documented.
+- Use `PuChipInput` for plain string-array token entry; discuss richer option
+  selection surfaces before migrating them.

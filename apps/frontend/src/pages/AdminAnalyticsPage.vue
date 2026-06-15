@@ -89,16 +89,11 @@
           :label="t('adminAnalytics.renderedModeLabel')"
           for-id="analytics-mode"
         >
-          <select
+          <PuSelect
             id="analytics-mode"
-            v-model="draftRenderedMode"
-            class="analytics-input"
-          >
-            <option value="">{{ t("adminAnalytics.allModesOption") }}</option>
-            <option v-for="mode in modeOptions" :key="mode" :value="mode">
-              {{ formatMode(mode) }}
-            </option>
-          </select>
+            v-model="draftRenderedModeModel"
+            :options="renderedModeOptions"
+          />
         </PuFormItem>
 
         <PuInlineNotice
@@ -853,7 +848,10 @@ import {
   PuInlineNotice,
   PuInput,
   PuLoadingState,
+  PuSelect,
   PuTag,
+  type PuSelectOption,
+  type PuSelectValue,
 } from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
@@ -956,6 +954,27 @@ const draftRenderedMode = ref<AnchorEventAnalyticsRenderedMode | "">("");
 const filterError = ref<string | null>(null);
 const focusedMode = ref<AnchorEventAnalyticsRenderedMode | null>(null);
 const refreshPending = ref(false);
+
+const isRenderedMode = (
+  value: PuSelectValue,
+): value is AnchorEventAnalyticsRenderedMode =>
+  typeof value === "string" &&
+  modeOptions.includes(value as AnchorEventAnalyticsRenderedMode);
+
+const renderedModeOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminAnalytics.allModesOption"), value: "" },
+  ...modeOptions.map((mode) => ({
+    label: formatMode(mode),
+    value: mode,
+  })),
+]);
+
+const draftRenderedModeModel = computed({
+  get: () => draftRenderedMode.value,
+  set: (value: PuSelectValue) => {
+    draftRenderedMode.value = isRenderedMode(value) ? value : "";
+  },
+});
 
 const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
   startAt: parseLocalInputValue(defaultRange.startAt)?.toISOString(),
@@ -1454,23 +1473,6 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
 .analytics-filter-rail__summary {
   @include mx.pu-font(support);
   color: var(--sys-color-on-surface-variant);
-}
-
-.analytics-input {
-  @include mx.pu-font(body);
-  width: 100%;
-  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
-  min-width: 0;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface-container-lowest);
-  color: var(--sys-color-on-surface);
-}
-
-.analytics-input:focus {
-  outline: 2px solid var(--sys-color-primary);
-  outline-offset: 1px;
 }
 
 .analytics-filter-rail__actions {

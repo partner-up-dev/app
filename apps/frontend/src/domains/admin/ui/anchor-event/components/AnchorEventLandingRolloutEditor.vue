@@ -17,52 +17,50 @@
 
     <template v-else>
       <div class="grid-3">
-        <label class="field">
-          <span class="field-label">
-            {{ t("adminAnchorEvents.formRatioLabel") }}
-          </span>
-          <input
-            v-model.number="form.formRatio"
-            class="field-input"
-            type="number"
-            min="0"
+        <PuFormItem
+          :label="t('adminAnchorEvents.formRatioLabel')"
+          for-id="anchor-event-landing-form-ratio"
+        >
+          <PuNumberInput
+            id="anchor-event-landing-form-ratio"
+            v-model="form.formRatio"
+            :min="0"
           />
-        </label>
-        <label class="field">
-          <span class="field-label">
-            {{ t("adminAnchorEvents.cardRichRatioLabel") }}
-          </span>
-          <input
-            v-model.number="form.cardRichRatio"
-            class="field-input"
-            type="number"
-            min="0"
+        </PuFormItem>
+
+        <PuFormItem
+          :label="t('adminAnchorEvents.cardRichRatioLabel')"
+          for-id="anchor-event-landing-card-rich-ratio"
+        >
+          <PuNumberInput
+            id="anchor-event-landing-card-rich-ratio"
+            v-model="form.cardRichRatio"
+            :min="0"
           />
-        </label>
-        <label class="field">
-          <span class="field-label">
-            {{ t("adminAnchorEvents.listRatioLabel") }}
-          </span>
-          <input
-            v-model.number="form.listRatio"
-            class="field-input"
-            type="number"
-            min="0"
+        </PuFormItem>
+
+        <PuFormItem
+          :label="t('adminAnchorEvents.listRatioLabel')"
+          for-id="anchor-event-landing-list-ratio"
+        >
+          <PuNumberInput
+            id="anchor-event-landing-list-ratio"
+            v-model="form.listRatio"
+            :min="0"
           />
-        </label>
+        </PuFormItem>
       </div>
 
-      <label class="field">
-        <span class="field-label">
-          {{ t("adminAnchorEvents.assignmentRevisionLabel") }}
-        </span>
-        <input
-          v-model.number="form.assignmentRevision"
-          class="field-input"
-          type="number"
-          min="1"
+      <PuFormItem
+        :label="t('adminAnchorEvents.assignmentRevisionLabel')"
+        for-id="anchor-event-landing-assignment-revision"
+      >
+        <PuNumberInput
+          id="anchor-event-landing-assignment-revision"
+          v-model="form.assignmentRevision"
+          :min="1"
         />
-      </label>
+      </PuFormItem>
 
       <p class="hint">{{ t("adminAnchorEvents.landingFallbackHint") }}</p>
 
@@ -80,17 +78,21 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { PuLoadingState } from "@partner-up-dev/design-web";
+import {
+  PuFormItem,
+  PuLoadingState,
+  PuNumberInput,
+} from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventLandingConfig,
   useReplaceAdminAnchorEventLandingConfig,
 } from "@/domains/admin/queries/useAdminAnchorEventLandingConfig";
 
 type LandingConfigForm = {
-  formRatio: number;
-  cardRichRatio: number;
-  listRatio: number;
-  assignmentRevision: number;
+  formRatio: number | null;
+  cardRichRatio: number | null;
+  listRatio: number | null;
+  assignmentRevision: number | null;
 };
 
 const props = withDefaults(
@@ -242,37 +244,15 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.anchor-event-landing-rollout-editor,
-.field {
+.anchor-event-landing-rollout-editor {
   display: flex;
   flex-direction: column;
-}
-
-.anchor-event-landing-rollout-editor {
   gap: var(--sys-spacing-small);
 }
 
 .grid-3 {
   display: grid;
   gap: var(--sys-spacing-medium);
-}
-
-.field {
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
 }
 
 .hint,

@@ -1,5 +1,5 @@
 <template>
-  <form class="nl-form" @submit.prevent="onSubmit">
+  <PuForm class="nl-form" @submit="onSubmit">
     <Field name="rawText" v-slot="{ field, errors }">
       <div class="nl-field">
         <PuTextarea
@@ -8,9 +8,9 @@
           @update:model-value="field.onChange"
           :disabled="isSubmitting"
           :placeholder="placeholderText"
-          ::maxlength="120"
+          :maxlength="120"
           show-count
-          />
+        />
         <div class="nl-actions">
           <button
             v-if="isVoiceSupported"
@@ -50,7 +50,7 @@
       :message="submitErrorMessage"
       @close="createMutation.reset()"
     />
-  </form>
+  </PuForm>
 </template>
 
 <script setup lang="ts">
@@ -65,7 +65,13 @@ import { useLandingRotatingTopic } from "@/domains/landing/use-cases/useLandingR
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
-import { PuButton, PuInlineNotice, PuLoadingState, PuTextarea } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuForm,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

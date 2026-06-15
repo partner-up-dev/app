@@ -8,6 +8,29 @@ with domain-specific validation, native `select`, datalist, route pickers,
 dynamic arrays, and submit lifecycle. Treat this as a sequence of smaller
 field-control slices.
 
+## 0.4.3 Reassessment
+
+`@partner-up-dev/design-web@0.4.3` changes the Slice 3 boundary materially.
+The detailed reassessment lives in `45-slice3-0.4.3-reassessment.md`.
+
+Newly viable package APIs:
+
+- `PuNumberInput` for numeric app state, including `number | null`, `min`,
+  `max`, and `step`.
+- `PuSelect` for dense web-native single selection.
+- `PuInput` with documented native `list` forwarding for datalist-backed
+  free-text fields.
+- `PuTextarea` with documented `rows`, `form`, and `change`.
+- `PuForm` with documented native form attributes and external submit support.
+- `PuChipInput` for plain editable string-array token input.
+
+Implication:
+
+- Native `select`, datalist-backed fields, and numeric fields are no longer
+  deferred by default.
+- They still need bounded sub-slices because many remaining controls live in
+  large editor forms or dynamic admin DSL editors.
+
 ## Current Evidence
 
 Read-only scans on 2026-06-14 found raw `input`/`textarea` controls in these
@@ -40,6 +63,12 @@ Use direct package fields:
   date, time, and datetime-local.
 - `PuTextarea` for multiline text.
 
+0.4.3 adjustment:
+
+- Use `PuNumberInput`, not `PuInput`, for numeric app state.
+- Use `PuInput list` for datalist-backed free-text suggestions.
+- Use `PuTextarea rows` for low-risk native textarea sizing.
+
 Good first targets:
 
 - `AdminPRMessagesView.vue`: only textareas, low interaction complexity.
@@ -59,10 +88,54 @@ Rules:
 - Remove local `.field-input`, `.field-textarea`, `.pm-field-input`, or
   `.text-area` CSS only when all users in that component are gone.
 
-## Lane B: PuForm Containers
+## Lane B: Select And Datalist Controls
 
-`PuForm` is now viable because `0.4.1` documents a `submit` event, but it
-should be adopted only per form boundary.
+Use direct package controls:
+
+- `PuSelect` for fixed one-of-many choices.
+- `PuInput` with native `list` forwarding for free text plus suggestions.
+
+Good targets:
+
+- `AdminAnalyticsPage.vue` mode filter select.
+- `PRFilterRail.vue` type/location datalist fields and status select.
+- `AnchorEventDetailsEditor.vue` status select.
+- `AnchorEventFeedbackQuestionnairePicker.vue`.
+- `PoiSelectorRail.vue` selector/search controls.
+
+Rules:
+
+- Do not use `PuSelect` for free-text suggestions; use `PuInput list`.
+- Do not include multi-select, option groups, async option loading, or custom
+  option rendering in this lane.
+
+## Lane C: Numeric Controls
+
+Use `PuNumberInput` for numeric state.
+
+Good targets:
+
+- Revisit `AnchorEventCapacityDefaultsEditor.vue` to remove local string
+  adapters.
+- `AnchorEventLandingRolloutEditor.vue`.
+- `AnchorEventTimePoolStrategyEditor.vue`.
+- Admin commerce product/SKU/pricing/cancellation numeric fields.
+- Admin payment and ride-hailing numeric config fields.
+
+Rules:
+
+- Keep string-backed numeric-looking fields on `PuInput` when formatting must
+  be preserved exactly.
+- Batch dynamic JSON/rule-editor fields separately if they are part of a DSL
+  editing surface.
+
+## Lane D: PuForm Containers
+
+`PuForm` is now viable because the package documents `submit`, native form
+attributes, and external submit button support. It should still be adopted only
+per form boundary.
+
+Forms using `id`/external submit no longer need to be deferred for that reason.
 
 Candidate order:
 
@@ -83,13 +156,26 @@ Rules:
   component/composable.
 - Pause before changing form IDs or external button submit relationships.
 
-## Lane C: Deferred Controls
+## Lane E: Editable Token Inputs
+
+Use `PuChipInput` for plain string-array token entry.
+
+Good targets:
+
+- `PREditor.vue` preferences tags input.
+
+Needs discussion:
+
+- `FormModePreferenceControl.vue` remains a richer interaction surface with
+  drawer descriptions, curated options, custom draft creation, and removal.
+  `PuChipInput` may cover part of it, but it is not a passive or mechanical
+  replacement.
+
+## Deferred Controls
 
 Defer unless explicitly discussed:
 
-- Native `select` fields.
-- Datalist-backed fields (`list` / `:list`), because `PuInput` does not expose
-  a public `list` prop.
+- Multi-select, option-group, async-option, or custom-rendered select fields.
 - Checkbox grids and weekday selectors unless a matching package control is
   selected.
 - Dynamic JSON/rule editors where input widgets are embedded in a DSL editor.
@@ -140,3 +226,27 @@ Verification:
 - Targeted scans found no raw `<input>` or `<textarea>` in touched files.
 - Targeted field CSS scan found only the intentionally retained native status
   `select` in `AnchorEventDetailsEditor.vue`.
+
+## 0.4.3 Implementation Pass
+
+Status: implemented and verified.
+
+Detailed implementation notes live in `46-slice3-0.4.3-implementation.md`.
+
+Scope completed:
+
+- Lane B: migrated the bounded select/datalist group to `PuSelect` and
+  `PuInput list`.
+- Lane C: migrated the bounded Anchor Event numeric group to `PuNumberInput`.
+- Lane D: migrated only real small form boundaries to `PuForm`, and migrated
+  the dynamic join-gate field group to package field controls.
+- Lane E: migrated the plain `PREditor.vue` preferences string-array editor to
+  `PuChipInput`.
+
+Still deferred:
+
+- `InlineNLPRForm.vue`, because only replacing the outer form would leave the
+  custom inline input/send/voice composition untouched.
+- Broad `PREditor.vue` field migration and larger admin commerce/payment
+  forms.
+- `FormModePreferenceControl.vue`, because it is not a plain chip input.

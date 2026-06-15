@@ -124,34 +124,19 @@
             />
           </div>
 
-          <div v-if="canEditPreferences" class="form-field">
-            <label>{{ t("partnerRequestForm.preferences") }}</label>
-            <div class="tags-input">
-              <div class="tags">
-                <span
-                  v-for="(pref, index) in preferencesModel"
-                  :key="index"
-                  class="tag"
-                >
-                  {{ pref }}
-                  <button
-                    type="button"
-                    class="remove-tag"
-                    @click="removePreference(index)"
-                  >
-                    {{ t("partnerRequestForm.removePreference") }}
-                  </button>
-                </span>
-              </div>
-              <input
-                v-model="newPreference"
-                type="text"
-                data-testid="pr-editor.form.preference-input"
-                :placeholder="t('partnerRequestForm.preferencesPlaceholder')"
-                @keydown.enter.prevent="addPreference"
-              />
-            </div>
-          </div>
+          <PuFormItem
+            v-if="canEditPreferences"
+            class="form-field"
+            :label="t('partnerRequestForm.preferences')"
+          >
+            <PuChipInput
+              v-model="preferencesInput"
+              data-testid="pr-editor.form.preference-input"
+              :placeholder="t('partnerRequestForm.preferencesPlaceholder')"
+              :remove-label="t('partnerRequestForm.removePreference')"
+              shape="pill"
+            />
+          </PuFormItem>
 
           <div v-if="canEditNotes" class="form-field">
             <label>{{ t("partnerRequestForm.notes") }}</label>
@@ -214,8 +199,10 @@ import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 import {
   PuButton,
+  PuChipInput,
   PuDialog,
   PuEmptyState,
+  PuFormItem,
   PuInlineNotice,
   PuLoadingState,
 } from "@partner-up-dev/design-web";
@@ -439,6 +426,13 @@ const notesInput = computed({
   },
 });
 
+const preferencesInput = computed({
+  get: () => preferencesModel.value ?? [],
+  set: (value: string[]) => {
+    preferencesModel.value = value;
+  },
+});
+
 const minPartnersInput = computed(() =>
   values.fields.minPartners === null ? "" : String(values.fields.minPartners),
 );
@@ -454,19 +448,6 @@ const onMinPartnersInput = (event: Event) => {
 const onMaxPartnersInput = (event: Event) => {
   const value = (event.target as HTMLInputElement).value;
   setFieldValue("fields.maxPartners", parseNullableNumber(value));
-};
-
-const newPreference = ref("");
-
-const addPreference = () => {
-  const pref = newPreference.value.trim();
-  if (!pref || preferencesModel.value.includes(pref)) return;
-  preferencesModel.value = [...preferencesModel.value, pref];
-  newPreference.value = "";
-};
-
-const removePreference = (index: number) => {
-  preferencesModel.value = preferencesModel.value.filter((_, i) => i !== index);
 };
 
 const timeHint = computed(() => {

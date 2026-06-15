@@ -1,65 +1,52 @@
 <template>
-  <label class="field">
-    <span class="field-label">
-      {{ t("adminPR.eventFeedbackQuestionnaireTemplateLabel") }}
-    </span>
-    <select
-      class="field-input"
-      :value="form.feedbackQuestionnaireTemplateId ?? ''"
+  <PuFormItem
+    :label="t('adminPR.eventFeedbackQuestionnaireTemplateLabel')"
+    for-id="anchor-event-feedback-template"
+  >
+    <PuSelect
+      id="anchor-event-feedback-template"
+      v-model="feedbackTemplateId"
+      :options="templateOptions"
+      :placeholder="t('adminPR.noFeedbackQuestionnaire')"
+      clearable
       data-testid="admin-anchor-event.feedback-template"
-      @change="form.feedbackQuestionnaireTemplateId = parseNullableId($event)"
-    >
-      <option value="">{{ t("adminPR.noFeedbackQuestionnaire") }}</option>
-      <option
-        v-for="template in templates"
-        :key="template.id"
-        :value="template.id"
-      >
-        {{ template.title }}
-      </option>
-    </select>
-  </label>
+    />
+  </PuFormItem>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type {
   AnchorEventEditorForm,
   FeedbackQuestionnaireTemplateOption,
 } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
+import {
+  PuFormItem,
+  PuSelect,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
-defineProps<{
+const props = defineProps<{
   templates: FeedbackQuestionnaireTemplateOption[];
 }>();
 
 const form = defineModel<AnchorEventEditorForm>({ required: true });
 const { t } = useI18n();
 
-const parseNullableId = (event: Event): number | null => {
-  const target = event.target as HTMLSelectElement | null;
-  const parsed = Number(target?.value ?? "");
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
+const templateOptions = computed<PuSelectOption[]>(() =>
+  props.templates.map((template) => ({
+    label: template.title,
+    value: template.id,
+  })),
+);
+
+const feedbackTemplateId = computed({
+  get: () => form.value.feedbackQuestionnaireTemplateId,
+  set: (value: PuSelectValue) => {
+    form.value.feedbackQuestionnaireTemplateId =
+      typeof value === "number" ? value : null;
+  },
+});
 </script>
-
-<style lang="scss" scoped>
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-</style>
