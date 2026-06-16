@@ -75,6 +75,15 @@ and product interaction state in one file.
 - Slice 10 first rollout pass migrated `InlineNLPRForm.vue` and
   `FormModeNoMatchResult.vue` on active product paths. `PRPartnerSection.vue`
   was investigated and deferred because current source has no usage site.
+- Slice 11 is planned in `95-slice11-upload-select-toggle.md`: it should
+  migrate direct user upload controls to `PuFileUpload`/`PuFilesUpload`, delete
+  the local `ImageUrlInput` UI wrapper, replace local `MultiStopToggle` with
+  `PuMultiStopToggle`, and migrate a bounded non-Commerce `PuSelect` group.
+  This slice is now implemented and verified. Remaining raw selects are
+  Commerce-owned follow-up candidates or the deferred
+  `AnchorEventInlinePlaceSelector.vue` picker/composition candidate.
+  `PuPicker` remains deliberately deferred because it changes interaction
+  model rather than merely replacing native selects.
 
 ## Package API Constraints
 
@@ -131,6 +140,10 @@ Detailed slice planning lives in `20-slice-plan.md`.
    `90-composition-pattern-rollout.md` to compare the Slice 9 pilot against
    other mixed UI/state surfaces, then schedule follow-up candidates one at a
    time.
+10. Upload/select/toggle control cleanup: use
+    `95-slice11-upload-select-toggle.md` to migrate file upload controls,
+    the local multi-stop toggle, and a bounded native-select group to direct
+    package components. First pass completed.
 
 ## Defer By Default
 
@@ -196,6 +209,19 @@ Slice 1 verification:
 - `git diff --check` passed.
 - Slice 3 0.4.3 implementation verification is recorded in
   `46-slice3-0.4.3-implementation.md`.
+
+Slice 11 verification:
+
+- `PuFileUpload`/`PuFilesUpload` replaced direct user upload controls while
+  backend upload transports and persisted URL shapes remained app-owned.
+- Local `ImageUrlInput.vue` and `MultiStopToggle.vue` were deleted.
+- Bounded non-Commerce native select targets migrated to `PuSelect`.
+- Deferred selects are limited to Commerce page/editor follow-up work and
+  `AnchorEventInlinePlaceSelector.vue`.
+- `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` passed.
+- `pnpm test:unit:frontend` passed.
+- `git diff --check` passed.
 
 For route/page structure slices:
 

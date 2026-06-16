@@ -61,24 +61,22 @@
           <BentoItem :title="formTitle" span="full">
             <form class="form-stack" @submit.prevent="handleSave">
               <div class="field-grid">
-                <label class="field">
-                  <span class="field-label">Provider</span>
-                  <select
-                    v-model="form.providerType"
-                    class="text-input"
+                <PuFormItem label="Provider" for-id="admin-ride-hailing-provider">
+                  <PuSelect
+                    id="admin-ride-hailing-provider"
+                    v-model="providerTypeModel"
+                    :options="providerTypeOptions"
                     disabled
-                  >
-                    <option value="CAOCAO">曹操 CAOCAO</option>
-                  </select>
-                </label>
+                  />
+                </PuFormItem>
 
-                <label class="field">
-                  <span class="field-label">Status</span>
-                  <select v-model="form.status" class="text-input">
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                </label>
+                <PuFormItem label="Status" for-id="admin-ride-hailing-status">
+                  <PuSelect
+                    id="admin-ride-hailing-status"
+                    v-model="providerStatusModel"
+                    :options="providerStatusOptions"
+                  />
+                </PuFormItem>
 
                 <label class="field">
                   <span class="field-label">Instance Key</span>
@@ -225,9 +223,13 @@ import {
 import {
   PuButton,
   PuCard,
+  PuFormItem,
   PuInlineNotice,
   PuLoadingState,
+  PuSelect,
   PuTag,
+  type PuSelectOption,
+  type PuSelectValue,
 } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
@@ -281,6 +283,13 @@ const isSaving = computed(
 const formTitle = computed(() =>
   isCreateMode.value ? "新建 Provider Instance" : "编辑 Provider Instance",
 );
+const providerTypeOptions = computed<PuSelectOption[]>(() => [
+  { label: "曹操 CAOCAO", value: "CAOCAO" },
+]);
+const providerStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "DISABLED", value: "DISABLED" },
+]);
 const signKeyPlaceholder = computed(() =>
   isCreateMode.value ? "新建实例必填" : "留空则保留",
 );
@@ -333,6 +342,24 @@ const providerStatusLabel = (status: ProviderInstance["status"]): string =>
 
 const providerStatusTagTone = (status: ProviderInstance["status"]) =>
   status === "ACTIVE" ? "primary" : "neutral";
+
+const providerTypeModel = computed({
+  get: () => form.value.providerType,
+  set: (value: PuSelectValue) => {
+    if (value === "CAOCAO") {
+      form.value.providerType = value;
+    }
+  },
+});
+
+const providerStatusModel = computed({
+  get: () => form.value.status,
+  set: (value: PuSelectValue) => {
+    if (value === "ACTIVE" || value === "DISABLED") {
+      form.value.status = value;
+    }
+  },
+});
 
 const normalizeOptionalString = (value: string): string | null => {
   const normalized = value.trim();

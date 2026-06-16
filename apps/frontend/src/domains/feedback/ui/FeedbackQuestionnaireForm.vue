@@ -53,17 +53,27 @@
           :for-id="feedbackFieldId(question.id)"
           :required="question.required"
         >
-          <ImageUrlInput
-            :model-value="readImageUrl(question.id)"
-            :input-id="feedbackFieldId(question.id)"
-            purpose="feedback"
-            upload-label="上传图片"
-            uploading-label="上传中..."
-            preview-alt="反馈图片预览"
-            :disabled="pending"
-            :allow-url-input="false"
+          <PuFileUpload
+            :id="feedbackFieldId(question.id)"
+            :model-value="readImageUploadValue(question.id)"
+            mode="file"
+            layout="panel"
+            :accept="IMAGE_UPLOAD_ACCEPT"
+            choose-label="上传图片"
+            drop-label="上传图片"
+            drop-description="反馈图片预览"
+            replace-label="上传图片"
+            :disabled="pending || isImageQuestionUploading(question.id)"
             data-testid="pr-detail.feedback.image-upload"
-            @update:model-value="setImageAnswer(question.id, $event)"
+            @add="handleImageUploadAdd(question.id, $event)"
+            @remove="handleImageUploadRemove(question.id)"
+            @reject="handleImageUploadReject(question.id, $event)"
+            @update:model-value="handleImageUploadUpdate(question.id, $event)"
+          />
+          <PuInlineNotice
+            v-if="imageUploadError(question.id)"
+            tone="error"
+            :message="imageUploadError(question.id) ?? ''"
           />
         </PuFormItem>
       </template>
@@ -100,8 +110,21 @@ import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
 } from "@partner-up-dev/backend";
-import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
-import { PuButton, PuFormItem, PuTextarea } from "@partner-up-dev/design-web";
+import { useCloudStorage } from "@/shared/upload/useCloudStorage";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  imageUploadItemFromUrl,
+} from "@/shared/upload/useDesignWebImageUpload";
+import {
+  PuButton,
+  PuFileUpload,
+  PuFormItem,
+  PuInlineNotice,
+  PuTextarea,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
+} from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   instanceId: number;
@@ -116,6 +139,10 @@ const emit = defineEmits<{
 
 const answers = ref<FeedbackQuestionnaireAnswers>({});
 const validationMessage = ref<string | null>(null);
+const imageUploadValues = ref<Record<string, PuFileUploadValue>>({});
+const imageUploadErrors = ref<Record<string, string | null>>({});
+const uploadingImageQuestionIds = ref<Set<string>>(new Set());
+const { uploadImage, uploadError, clearError } = useCloudStorage();
 
 const readSingleChoiceValue = (questionId: string): string | null => {
   const answer = answers.value[questionId];
@@ -130,6 +157,16 @@ const readTextareaValue = (questionId: string): string => {
 const readImageUrl = (questionId: string): string => {
   const answer = answers.value[questionId];
   return answer?.type === "image_upload" ? answer.imageUrl : "";
+};
+
+const readImageUploadValue = (questionId: string): PuFileUploadValue => {
+  const localValue = imageUploadValues.value[questionId];
+  if (localValue !== undefined) {
+    return localValue;
+  }
+
+  const imageUrl = readImageUrl(questionId).trim();
+  return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
 };
 
 const feedbackFieldId = (questionId: string): string =>
@@ -166,6 +203,129 @@ const setImageAnswer = (questionId: string, imageUrl: string): void => {
       imageUrl,
     },
   };
+};
+
+const setImageUploadValue = (
+  questionId: string,
+  value: PuFileUploadValue,
+): void => {
+  imageUploadValues.value = {
+    ...imageUploadValues.value,
+    [questionId]: value,
+  };
+};
+
+const clearImageUploadValue = (questionId: string): void => {
+  const nextValues = { ...imageUploadValues.value };
+  delete nextValues[questionId];
+  imageUploadValues.value = nextValues;
+};
+
+const setImageUploadError = (
+  questionId: string,
+  message: string | null,
+): void => {
+  imageUploadErrors.value = {
+    ...imageUploadErrors.value,
+    [questionId]: message,
+  };
+};
+
+const setImageQuestionUploading = (
+  questionId: string,
+  isUploading: boolean,
+): void => {
+  const nextIds = new Set(uploadingImageQuestionIds.value);
+  if (isUploading) {
+    nextIds.add(questionId);
+  } else {
+    nextIds.delete(questionId);
+  }
+  uploadingImageQuestionIds.value = nextIds;
+};
+
+const isImageQuestionUploading = (questionId: string): boolean =>
+  uploadingImageQuestionIds.value.has(questionId);
+
+const imageUploadError = (questionId: string): string | null =>
+  imageUploadErrors.value[questionId] ?? null;
+
+const handleImageUploadUpdate = (
+  questionId: string,
+  value: PuFileUploadValue,
+): void => {
+  setImageUploadValue(questionId, value);
+  setImageUploadError(questionId, null);
+
+  if (value === null) {
+    setImageAnswer(questionId, "");
+    clearImageUploadValue(questionId);
+    clearError();
+    return;
+  }
+
+  if (value.source === "url" && value.url) {
+    setImageAnswer(questionId, value.url);
+    clearError();
+  }
+};
+
+const handleImageUploadAdd = async (
+  questionId: string,
+  item: PuFileUploadItem,
+): Promise<void> => {
+  setImageUploadError(questionId, null);
+
+  if (item.source === "url" && item.url) {
+    setImageAnswer(questionId, item.url);
+    setImageUploadValue(questionId, imageUploadItemFromUrl(item.url, item.name));
+    clearError();
+    return;
+  }
+
+  if (!item.file) {
+    setImageUploadValue(questionId, item);
+    return;
+  }
+
+  setImageQuestionUploading(questionId, true);
+  setImageUploadValue(questionId, {
+    ...item,
+    status: "uploading",
+    message: "上传中...",
+  });
+
+  try {
+    const imageUrl = await uploadImage(item.file, { purpose: "feedback" });
+    setImageAnswer(questionId, imageUrl);
+    setImageUploadValue(questionId, imageUploadItemFromUrl(imageUrl, item.name));
+  } catch (error) {
+    const message =
+      uploadError.value ??
+      (error instanceof Error ? error.message : "上传失败");
+    setImageUploadError(questionId, message);
+    setImageUploadValue(questionId, {
+      ...item,
+      status: "error",
+      message,
+    });
+  } finally {
+    setImageQuestionUploading(questionId, false);
+  }
+};
+
+const handleImageUploadRemove = (questionId: string): void => {
+  setImageAnswer(questionId, "");
+  clearImageUploadValue(questionId);
+  setImageUploadError(questionId, null);
+  clearError();
+};
+
+const handleImageUploadReject = (
+  questionId: string,
+  rejections: PuFileUploadRejection[],
+): void => {
+  setImageUploadError(questionId, rejections[0]?.message ?? null);
 };
 
 const isAnswered = (questionId: string): boolean => {

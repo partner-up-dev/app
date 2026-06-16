@@ -164,15 +164,28 @@
                   ></textarea>
                 </label>
 
-                <label class="field">
-                  <span class="field-label">
-                    {{ t("adminPR.prMeetingPointImageUrlLabel") }}
-                  </span>
-                  <input
-                    v-model="prForm.meetingPointImageUrl"
-                    class="field-input"
+                <PuFormItem
+                  :label="t('adminPR.prMeetingPointImageUrlLabel')"
+                  for-id="admin-pr-meeting-point-image-url"
+                >
+                  <PuFileUpload
+                    id="admin-pr-meeting-point-image-url"
+                    v-model="prMeetingPointImageUploadValue"
+                    mode="url"
+                    layout="inline"
+                    :url-placeholder="t('adminPR.eventImageUrlPlaceholder')"
+                    :url-add-label="t('adminPois.addUrlAction')"
+                    @add="handlePRMeetingPointImageAdd"
+                    @remove="handlePRMeetingPointImageRemove"
+                    @reject="handlePRMeetingPointImageReject"
+                    @update:model-value="handlePRMeetingPointImageUpdate"
                   />
-                </label>
+                  <PuInlineNotice
+                    v-if="prMeetingPointImageError"
+                    tone="error"
+                    :message="prMeetingPointImageError"
+                  />
+                </PuFormItem>
 
                 <div class="grid-2">
                   <label class="field">
@@ -236,31 +249,27 @@
                   source="PR"
                 />
 
-                <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prStatusLabel")
-                  }}</span>
-                  <select v-model="prForm.status" class="field-input">
-                    <option value="OPEN">OPEN</option>
-                    <option value="READY">READY</option>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="CLOSED">CLOSED</option>
-                  </select>
-                </label>
+                <PuFormItem
+                  :label="t('adminPR.prStatusLabel')"
+                  for-id="admin-pr-status"
+                >
+                  <PuSelect
+                    id="admin-pr-status"
+                    v-model="prStatusModel"
+                    :options="prStatusOptions"
+                  />
+                </PuFormItem>
 
-                <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prVisibilityLabel")
-                  }}</span>
-                  <select v-model="prForm.visibilityStatus" class="field-input">
-                    <option value="VISIBLE">
-                      {{ t("adminPR.visibilityVisible") }}
-                    </option>
-                    <option value="HIDDEN">
-                      {{ t("adminPR.visibilityHidden") }}
-                    </option>
-                  </select>
-                </label>
+                <PuFormItem
+                  :label="t('adminPR.prVisibilityLabel')"
+                  for-id="admin-pr-visibility"
+                >
+                  <PuSelect
+                    id="admin-pr-visibility"
+                    v-model="prVisibilityStatusModel"
+                    :options="prVisibilityStatusOptions"
+                  />
+                </PuFormItem>
 
                 <p v-if="matchedTypeOption" class="hint">
                   {{
@@ -274,31 +283,19 @@
                   v-if="!isCreatingPR && selectedPR !== null"
                   class="stack stack--tight"
                 >
-                  <label class="field">
-                    <span class="field-label">
-                      {{ t("adminPR.prFeedbackQuestionnaireInstanceLabel") }}
-                    </span>
-                    <select
-                      class="field-input"
-                      :value="prForm.feedbackQuestionnaireInstanceId ?? ''"
+                  <PuFormItem
+                    :label="t('adminPR.prFeedbackQuestionnaireInstanceLabel')"
+                    for-id="admin-pr-feedback-instance"
+                  >
+                    <PuSelect
+                      id="admin-pr-feedback-instance"
+                      v-model="feedbackQuestionnaireInstanceModel"
+                      :options="feedbackQuestionnaireInstanceOptions"
+                      :placeholder="t('adminPR.noFeedbackQuestionnaire')"
+                      clearable
                       data-testid="admin-pr.feedback-instance"
-                      @change="
-                        prForm.feedbackQuestionnaireInstanceId =
-                          parseNullableId($event)
-                      "
-                    >
-                      <option value="">
-                        {{ t("adminPR.noFeedbackQuestionnaire") }}
-                      </option>
-                      <option
-                        v-for="instance in feedbackQuestionnaireInstances"
-                        :key="instance.id"
-                        :value="instance.id"
-                      >
-                        #{{ instance.id }} / {{ instance.title }}
-                      </option>
-                    </select>
-                  </label>
+                    />
+                  </PuFormItem>
                   <PuButton
                     shape="pill"
                     tone="neutral" variant="outline"
@@ -320,32 +317,19 @@
                     }}
                   </PuButton>
 
-                  <label class="field">
-                    <span class="field-label">
-                      {{ t("adminPR.prFeedbackQuestionnaireTemplateLabel") }}
-                    </span>
-                    <select
-                      class="field-input"
-                      :value="mountFeedbackQuestionnaireTemplateId ?? ''"
+                  <PuFormItem
+                    :label="t('adminPR.prFeedbackQuestionnaireTemplateLabel')"
+                    for-id="admin-pr-feedback-template"
+                  >
+                    <PuSelect
+                      id="admin-pr-feedback-template"
+                      v-model="mountFeedbackQuestionnaireTemplateModel"
+                      :options="feedbackQuestionnaireTemplateOptions"
+                      :placeholder="t('adminPR.noFeedbackQuestionnaire')"
+                      clearable
                       data-testid="admin-pr.feedback-template"
-                      @change="
-                        mountFeedbackQuestionnaireTemplateId =
-                          parseNullableId($event)
-                      "
-                    >
-                      <option value="">
-                        {{ t("adminPR.noFeedbackQuestionnaire") }}
-                      </option>
-                      <option
-                        v-for="template in feedbackQuestionnaireTemplates"
-                        :key="template.id"
-                        :value="template.id"
-                      >
-                        {{ template.key }}@{{ template.version }} /
-                        {{ template.title }}
-                      </option>
-                    </select>
-                  </label>
+                    />
+                  </PuFormItem>
                   <PuButton
                     shape="pill"
                     tone="neutral" variant="outline"
@@ -473,15 +457,23 @@ import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor
 import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import { imageUploadItemFromUrl } from "@/shared/upload/useDesignWebImageUpload";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
 import {
   PuButton,
   PuCard,
   PuDialog,
+  PuFileUpload,
   PuFormItem,
   PuInlineNotice,
   PuInput,
   PuLoadingState,
+  PuSelect,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
+  type PuSelectOption,
+  type PuSelectValue,
 } from "@partner-up-dev/design-web";
 
 type PRForm = {
@@ -602,12 +594,35 @@ const prForm = ref<PRForm>(emptyPRForm());
 const mountFeedbackQuestionnaireTemplateId = ref<number | null>(null);
 const lastAppliedType = ref<string | null>(null);
 const pendingDeletePRId = ref<number | null>(null);
+const prMeetingPointImageError = ref<string | null>(null);
 
 const feedbackQuestionnaireInstances = computed(
   () => workspace.value?.feedbackQuestionnaireInstances ?? [],
 );
 const feedbackQuestionnaireTemplates = computed(
   () => workspace.value?.feedbackQuestionnaireTemplates ?? [],
+);
+const prStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: "OPEN", value: "OPEN" },
+  { label: "READY", value: "READY" },
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "CLOSED", value: "CLOSED" },
+]);
+const prVisibilityStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPR.visibilityVisible"), value: "VISIBLE" },
+  { label: t("adminPR.visibilityHidden"), value: "HIDDEN" },
+]);
+const feedbackQuestionnaireInstanceOptions = computed<PuSelectOption[]>(() =>
+  feedbackQuestionnaireInstances.value.map((instance) => ({
+    label: `#${instance.id} / ${instance.title}`,
+    value: instance.id,
+  })),
+);
+const feedbackQuestionnaireTemplateOptions = computed<PuSelectOption[]>(() =>
+  feedbackQuestionnaireTemplates.value.map((template) => ({
+    label: `${template.key}@${template.version} / ${template.title}`,
+    value: template.id,
+  })),
 );
 const pendingDeletePR = computed<AdminPRRecord | null>(
   () => prs.value.find((pr) => pr.prId === pendingDeletePRId.value) ?? null,
@@ -682,6 +697,70 @@ const formLocationOptions = computed(() => {
     return matchedLocations;
   }
   return poiOptions.value;
+});
+
+const isPRStatus = (value: PuSelectValue): value is PRForm["status"] =>
+  value === "OPEN" ||
+  value === "READY" ||
+  value === "ACTIVE" ||
+  value === "CLOSED";
+
+const isPRVisibilityStatus = (
+  value: PuSelectValue,
+): value is PRForm["visibilityStatus"] =>
+  value === "VISIBLE" || value === "HIDDEN";
+
+const nullablePositiveIntegerFromSelectValue = (
+  value: PuSelectValue,
+): number | null => {
+  const parsed =
+    typeof value === "number" ? value : Number(String(value ?? "").trim());
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const prStatusModel = computed({
+  get: () => prForm.value.status,
+  set: (value: PuSelectValue) => {
+    if (isPRStatus(value)) {
+      prForm.value.status = value;
+    }
+  },
+});
+
+const prVisibilityStatusModel = computed({
+  get: () => prForm.value.visibilityStatus,
+  set: (value: PuSelectValue) => {
+    if (isPRVisibilityStatus(value)) {
+      prForm.value.visibilityStatus = value;
+    }
+  },
+});
+
+const feedbackQuestionnaireInstanceModel = computed({
+  get: () => prForm.value.feedbackQuestionnaireInstanceId,
+  set: (value: PuSelectValue) => {
+    prForm.value.feedbackQuestionnaireInstanceId =
+      nullablePositiveIntegerFromSelectValue(value);
+  },
+});
+
+const mountFeedbackQuestionnaireTemplateModel = computed({
+  get: () => mountFeedbackQuestionnaireTemplateId.value,
+  set: (value: PuSelectValue) => {
+    mountFeedbackQuestionnaireTemplateId.value =
+      nullablePositiveIntegerFromSelectValue(value);
+  },
+});
+
+const prMeetingPointImageUploadValue = computed<PuFileUploadValue>({
+  get: () => {
+    const imageUrl = prForm.value.meetingPointImageUrl.trim();
+    return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
+  },
+  set: (value) => {
+    prForm.value.meetingPointImageUrl =
+      value?.source === "url" && value.url ? value.url : "";
+  },
 });
 
 const resolvedTimeWindow = computed<[string | null, string | null]>(() => [
@@ -809,18 +888,37 @@ watch([() => prForm.value.type, isCreatingPR], ([type, creating]) => {
   lastAppliedType.value = matched.type;
 });
 
-const parseNullableId = (event: Event): number | null => {
-  const target = event.target as HTMLSelectElement | null;
-  const parsed = Number(target?.value ?? "");
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
-
 const prepareNewPR = () => {
   isCreatingPR.value = true;
   clearSelection();
   prForm.value = emptyPRForm();
   mountFeedbackQuestionnaireTemplateId.value = null;
   lastAppliedType.value = null;
+};
+
+const handlePRMeetingPointImageUpdate = (
+  value: PuFileUploadValue,
+): void => {
+  prMeetingPointImageUploadValue.value = value;
+  prMeetingPointImageError.value = null;
+};
+
+const handlePRMeetingPointImageAdd = (item: PuFileUploadItem): void => {
+  if (item.source === "url" && item.url) {
+    prForm.value.meetingPointImageUrl = item.url;
+    prMeetingPointImageError.value = null;
+  }
+};
+
+const handlePRMeetingPointImageRemove = (): void => {
+  prForm.value.meetingPointImageUrl = "";
+  prMeetingPointImageError.value = null;
+};
+
+const handlePRMeetingPointImageReject = (
+  rejections: PuFileUploadRejection[],
+): void => {
+  prMeetingPointImageError.value = rejections[0]?.message ?? null;
 };
 
 const selectExistingPR = (prId: number) => {

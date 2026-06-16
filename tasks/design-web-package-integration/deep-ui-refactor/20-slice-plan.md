@@ -335,3 +335,64 @@ Verification:
 - Passed targeted scans for removed local primitive class families.
 - Passed source scan showing no current `PRPartnerSection` usage sites.
 - Passed `git diff --check`.
+
+## Slice 11: Upload, Select, And Multi-Stop Controls
+
+Status: completed.
+
+Scope:
+
+- Replace direct user upload controls with `PuFileUpload` and `PuFilesUpload`.
+- Delete the local `ImageUrlInput.vue` upload UI wrapper after usage sites
+  clear; keep `useCloudStorage.ts` as backend upload transport.
+- Replace the local `MultiStopToggle.vue` primitive with direct
+  `PuMultiStopToggle` usage in `PRTimeWindowEditor.vue`, then delete the local
+  primitive.
+- Migrate a bounded non-Commerce `PuSelect` group, focusing on POI
+  availability rules, admin PR status/visibility/feedback selects, provider
+  configuration pages, and feedback questionnaire template selection.
+
+Planning notes:
+
+- Detailed packet lives in `95-slice11-upload-select-toggle.md`.
+- `PuFileUpload`/`PuFilesUpload` own file and URL entry UI, but they do not
+  replace the app's backend upload transport. Keep upload mutations and
+  `useCloudStorage` as transport boundaries.
+- `PuPicker` is explicitly not included. It should only be used where a
+  drawer/picker interaction is desired, not as a broad native select
+  replacement.
+- `AdminCommerceSpuEditor.vue` remains out of scope by prior human
+  constraint. Other Admin Commerce select-heavy editors should be scheduled as
+  a later commerce-owned slice if needed.
+
+Implementation notes:
+
+- Added a non-UI `useDesignWebImageUpload.ts` adapter that maps package upload
+  item state to app-owned URL strings and string arrays while keeping
+  `useCloudStorage.ts` as the backend upload transport.
+- Migrated direct user upload controls to `PuFileUpload` or `PuFilesUpload`:
+  location application image, feedback image upload questions, Anchor Event
+  media fields, current-user avatar file selection, POI gallery, and URL-only
+  meeting-point image fields.
+- Deleted `ImageUrlInput.vue` after usage sites cleared.
+- Replaced the local `MultiStopToggle.vue` usage with direct
+  `PuMultiStopToggle` in `PRTimeWindowEditor.vue`, migrated that component's
+  fallback date/time selectors to `PuSelect`, and deleted the local toggle
+  primitive.
+- Migrated the bounded non-Commerce select group to `PuSelect`: POI
+  availability mode/kind/frequency, admin PR status/visibility/feedback
+  selects, payment and ride-hailing provider configuration selects, and the
+  feedback questionnaire template rail selector.
+- Left Commerce page selects and `AnchorEventInlinePlaceSelector.vue`
+  deferred. Commerce needs a commerce-owned select slice; the inline place
+  selector is a preview-plus-location interaction candidate, not a generic
+  native-select replacement.
+
+Verification:
+
+- Passed `pnpm --filter @partner-up-dev/frontend build`.
+- Passed `pnpm --filter @partner-up-dev/frontend lint:tokens`.
+- Passed `pnpm test:unit:frontend`.
+- Passed targeted scans for removed `ImageUrlInput`, local
+  `MultiStopToggle`, and raw native selects in the targeted files.
+- Passed `git diff --check`.

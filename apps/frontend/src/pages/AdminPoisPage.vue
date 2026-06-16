@@ -30,8 +30,6 @@
         <template v-else>
           <PoiBasicSection
             v-if="activeAdminSection === 'poi-basic'"
-            v-model:manual-gallery-url="manualGalleryUrl"
-            v-model:is-uploading-gallery-image="isUploadingGalleryImage"
             v-model:selected-poi-full-address="selectedPoiFullAddress"
             v-model:selected-poi-cap-text="selectedPoiCapText"
             v-model:selected-poi-meeting-point-description="selectedPoiMeetingPointDescription"
@@ -45,9 +43,7 @@
             :selected-poi="selectedPoi"
             :weekday-options="weekdayOptions"
             :is-saving-poi="isSavingPoi"
-            @add-manual-url="handleAddManualUrl"
-            @gallery-uploaded="handleGalleryUploaded"
-            @remove-gallery-image="handleRemoveGalleryImage"
+            @update-gallery="setSelectedPoiGallery"
             @pick-location="handlePickPoiLocation"
             @clear-coordinates="handleClearPoiCoordinates"
             @add-availability-rule="handleAddAvailabilityRule"
@@ -101,8 +97,6 @@ const {
   pois,
   selectedPoiId,
   selectedPoi,
-  manualGalleryUrl,
-  isUploadingGalleryImage,
   selectedPoiGallery,
   selectedPoiFullAddress,
   selectedPoiCoordinateText,
@@ -113,9 +107,7 @@ const {
   selectedPoiMeetingPointImageUrl,
   selectedPoiAvailabilityRules,
   markSelectedPoiDirty,
-  handleAddManualUrl,
-  handleGalleryUploaded,
-  handleRemoveGalleryImage,
+  setSelectedPoiGallery,
   handlePickPoiLocation,
   handleClearPoiCoordinates,
   handleAddAvailabilityRule,

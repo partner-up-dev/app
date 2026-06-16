@@ -126,27 +126,28 @@
               >
                 {{ t("mePage.profile.savePhone") }}
               </PuButton>
-
-              <PuButton
-                shape="pill"
-                tone="neutral" variant="outline"
-                size="sm"
-
-                :disabled="!canEditProfile || updateAvatarMutation.isPending.value"
-                :loading="updateAvatarMutation.isPending.value"
-                @click="handlePickAvatar"
-              >
-                {{ t("mePage.profile.changeAvatar") }}
-              </PuButton>
-
-              <input
-                ref="avatarInputRef"
-                class="sr-only"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                @change="handleAvatarChange"
-              />
             </div>
+
+            <PuFileUpload
+              v-model="avatarUploadValue"
+              class="avatar-upload-control"
+              mode="file"
+              layout="inline"
+              :accept="IMAGE_UPLOAD_ACCEPT"
+              :choose-label="t('mePage.profile.changeAvatar')"
+              :replace-label="t('mePage.profile.changeAvatar')"
+              :drop-label="t('mePage.profile.changeAvatar')"
+              :disabled="!canEditProfile || updateAvatarMutation.isPending.value"
+              @add="handleAvatarUploadAdd"
+              @remove="handleAvatarUploadRemove"
+              @reject="handleAvatarUploadReject"
+              @update:model-value="handleAvatarUploadUpdate"
+            />
+            <PuInlineNotice
+              v-if="avatarUploadError"
+              tone="error"
+              :message="avatarUploadError"
+            />
           </div>
         </div>
 
@@ -272,6 +273,7 @@ import { useQueryClient } from "@tanstack/vue-query";
 import {
   PuButton,
   PuCard,
+  PuFileUpload,
   PuFormItem,
   PuImg,
   PuInlineNotice,
@@ -279,7 +281,11 @@ import {
   PuPageHeader,
   PuPageScaffold,
   PuTag,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
 } from "@partner-up-dev/design-web";
+import { IMAGE_UPLOAD_ACCEPT } from "@/shared/upload/useDesignWebImageUpload";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
@@ -308,7 +314,8 @@ const updateAvatarMutation = useUpdateCurrentUserAvatar();
 const updatePhoneNumberMutation = useUpdateCurrentUserPhoneNumber();
 const startWeChatBindMutation = useStartWeChatBind();
 
-const avatarInputRef = ref<HTMLInputElement | null>(null);
+const avatarUploadValue = ref<PuFileUploadValue>(null);
+const avatarUploadError = ref<string | null>(null);
 const nicknameDraft = ref("");
 const phoneDraft = ref("");
 const copiedField = ref<"userId" | null>(null);
@@ -466,19 +473,48 @@ const handleSavePhoneNumber = async () => {
   phoneDraft.value = "";
 };
 
-const handlePickAvatar = () => {
-  avatarInputRef.value?.click();
+const handleAvatarUploadUpdate = (value: PuFileUploadValue) => {
+  avatarUploadValue.value = value;
+  avatarUploadError.value = null;
 };
 
-const handleAvatarChange = async (event: Event) => {
-  const input = event.target as HTMLInputElement | null;
-  const nextFile = input?.files?.[0] ?? null;
-  if (!nextFile) return;
-
-  await updateAvatarMutation.mutateAsync({ avatar: nextFile });
-  if (input) {
-    input.value = "";
+const handleAvatarUploadAdd = async (
+  item: PuFileUploadItem,
+): Promise<void> => {
+  if (!item.file) {
+    avatarUploadValue.value = item;
+    return;
   }
+
+  avatarUploadValue.value = {
+    ...item,
+    status: "uploading",
+    message: t("common.loading"),
+  };
+  avatarUploadError.value = null;
+
+  try {
+    await updateAvatarMutation.mutateAsync({ avatar: item.file });
+    avatarUploadValue.value = null;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("errors.updateCurrentUserAvatarFailed");
+    avatarUploadError.value = message;
+    avatarUploadValue.value = {
+      ...item,
+      status: "error",
+      message,
+    };
+  }
+};
+
+const handleAvatarUploadRemove = () => {
+  avatarUploadValue.value = null;
+  avatarUploadError.value = null;
+};
+
+const handleAvatarUploadReject = (rejections: PuFileUploadRejection[]) => {
+  avatarUploadError.value = rejections[0]?.message ?? null;
 };
 
 const handleStartWeChatLogin = () => {
@@ -761,6 +797,10 @@ const handleCopyCredential = async (value: string | null) => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.avatar-upload-control {
+  max-width: 28rem;
 }
 
 @media (max-width: 768px) {

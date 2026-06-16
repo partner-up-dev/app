@@ -61,24 +61,22 @@
           <BentoItem :title="formTitle" span="full">
             <form class="form-stack" @submit.prevent="handleSave">
               <div class="field-grid">
-                <label class="field">
-                  <span class="field-label">Provider</span>
-                  <select
-                    v-model="form.providerType"
-                    class="text-input"
+                <PuFormItem label="Provider" for-id="admin-payment-provider">
+                  <PuSelect
+                    id="admin-payment-provider"
+                    v-model="providerTypeModel"
+                    :options="providerTypeOptions"
                     disabled
-                  >
-                    <option value="WECHAT_PAY">微信支付 WECHAT_PAY</option>
-                  </select>
-                </label>
+                  />
+                </PuFormItem>
 
-                <label class="field">
-                  <span class="field-label">Status</span>
-                  <select v-model="form.status" class="text-input">
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                </label>
+                <PuFormItem label="Status" for-id="admin-payment-status">
+                  <PuSelect
+                    id="admin-payment-status"
+                    v-model="providerStatusModel"
+                    :options="providerStatusOptions"
+                  />
+                </PuFormItem>
 
                 <label class="field">
                   <span class="field-label">Display Name</span>
@@ -100,13 +98,13 @@
                   />
                 </label>
 
-                <label class="field">
-                  <span class="field-label">Charge Mode</span>
-                  <select v-model="form.chargeMode" class="text-input">
-                    <option value="JSAPI">JSAPI</option>
-                    <option value="H5">H5</option>
-                  </select>
-                </label>
+                <PuFormItem label="Charge Mode" for-id="admin-payment-charge-mode">
+                  <PuSelect
+                    id="admin-payment-charge-mode"
+                    v-model="chargeModeModel"
+                    :options="chargeModeOptions"
+                  />
+                </PuFormItem>
 
                 <label class="field">
                   <span class="field-label">App ID</span>
@@ -290,9 +288,13 @@ import {
 import {
   PuButton,
   PuCard,
+  PuFormItem,
   PuInlineNotice,
   PuLoadingState,
+  PuSelect,
   PuTag,
+  type PuSelectOption,
+  type PuSelectValue,
 } from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
@@ -357,6 +359,17 @@ const derivedInstanceKey = computed(() => {
   if (!mchId || !appId) return "-";
   return `mch:${mchId}:app:${appId}`;
 });
+const providerTypeOptions = computed<PuSelectOption[]>(() => [
+  { label: "微信支付 WECHAT_PAY", value: "WECHAT_PAY" },
+]);
+const providerStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "DISABLED", value: "DISABLED" },
+]);
+const chargeModeOptions = computed<PuSelectOption[]>(() => [
+  { label: "JSAPI", value: "JSAPI" },
+  { label: "H5", value: "H5" },
+]);
 const secretPlaceholder = computed(() =>
   isCreateMode.value ? "新建实例必填" : "留空则保留",
 );
@@ -434,6 +447,33 @@ const providerStatusLabel = (status: ProviderInstance["status"]): string =>
 
 const providerStatusTagTone = (status: ProviderInstance["status"]) =>
   status === "ACTIVE" ? "primary" : "neutral";
+
+const providerTypeModel = computed({
+  get: () => form.value.providerType,
+  set: (value: PuSelectValue) => {
+    if (value === "WECHAT_PAY") {
+      form.value.providerType = value;
+    }
+  },
+});
+
+const providerStatusModel = computed({
+  get: () => form.value.status,
+  set: (value: PuSelectValue) => {
+    if (value === "ACTIVE" || value === "DISABLED") {
+      form.value.status = value;
+    }
+  },
+});
+
+const chargeModeModel = computed({
+  get: () => form.value.chargeMode,
+  set: (value: PuSelectValue) => {
+    if (value === "JSAPI" || value === "H5") {
+      form.value.chargeMode = value;
+    }
+  },
+});
 
 const normalizeOptionalString = (value: string): string | null => {
   const normalized = value.trim();

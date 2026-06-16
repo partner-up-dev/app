@@ -41,16 +41,26 @@
             :hint="imageHint"
             required
           >
-            <ImageUrlInput
-              v-model="imageUrlDraft"
-              v-model:uploading="isUploadingImage"
-              input-id="location-application-image-url"
-              purpose="poi"
-              :placeholder="t('locationApplicationPage.imageUrlPlaceholder')"
-              :upload-label="t('locationApplicationPage.pickImageAction')"
-              :uploading-label="t('common.loading')"
-              :preview-alt="t('locationApplicationPage.imagePreviewAlt')"
-              :allow-url-input="false"
+            <PuFileUpload
+              id="location-application-image-url"
+              v-model="imageUploadValue"
+              mode="file"
+              layout="panel"
+              :accept="IMAGE_UPLOAD_ACCEPT"
+              :choose-label="t('locationApplicationPage.pickImageAction')"
+              :drop-label="t('locationApplicationPage.pickImageAction')"
+              :drop-description="t('locationApplicationPage.imageHint')"
+              :replace-label="t('locationApplicationPage.pickImageAction')"
+              :disabled="submitMutation.isPending.value || isUploadingImage"
+              @add="handleImageUploadAdd"
+              @remove="handleImageUploadRemove"
+              @reject="handleImageUploadReject"
+              @update:model-value="handleImageUploadUpdate"
+            />
+            <PuInlineNotice
+              v-if="imageUploadError"
+              tone="error"
+              :message="imageUploadError"
             />
           </PuFormItem>
 
@@ -125,6 +135,7 @@ import { useI18n } from "vue-i18n";
 import {
   PuButton,
   PuCard,
+  PuFileUpload,
   PuFormItem,
   PuInlineNotice,
   PuLoadingState,
@@ -132,8 +143,11 @@ import {
   PuPageScaffold,
   PuTag,
 } from "@partner-up-dev/design-web";
-import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  useSingleImageUploadField,
+} from "@/shared/upload/useDesignWebImageUpload";
 import {
   useMyPoiApplications,
   useSubmitPoiApplication,
@@ -147,7 +161,6 @@ const route = useRoute();
 const sessionReady = ref(false);
 const titleDraft = ref("");
 const imageUrlDraft = ref("");
-const isUploadingImage = ref(false);
 const submitSuccessTitle = ref<string | null>(null);
 
 const applicationsQuery = useMyPoiApplications(sessionReady);
@@ -195,6 +208,23 @@ const pageError = computed(() => {
   ];
   const first = candidates.find((candidate) => candidate instanceof Error);
   return first instanceof Error ? first.message : null;
+});
+
+const {
+  uploadValue: imageUploadValue,
+  isUploading: isUploadingImage,
+  errorMessage: imageUploadError,
+  handleUpdate: handleImageUploadUpdate,
+  handleAdd: handleImageUploadAdd,
+  handleRemove: handleImageUploadRemove,
+  handleReject: handleImageUploadReject,
+} = useSingleImageUploadField({
+  getUrl: () => imageUrlDraft.value,
+  setUrl: (url) => {
+    imageUrlDraft.value = url;
+  },
+  purpose: "poi",
+  uploadingMessage: t("common.loading"),
 });
 
 const handleSubmit = async () => {
