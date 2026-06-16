@@ -13,6 +13,9 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".node-version"
+      - "biome.json"
+      - "sgconfig.yml"
+      - "tools/**"
       - ".github/workflows/backend-gate.yml"
   workflow_dispatch:
 
@@ -58,13 +61,16 @@ jobs:
         run: pnpm --filter . --filter @partner-up-dev/backend... install --frozen-lockfile
 
       - name: Typecheck backend
-        run: pnpm --filter @partner-up-dev/backend typecheck
+        run: pnpm check:type:backend
+
+      - name: Validate backend config artifacts
+        run: pnpm check:config:backend
+
+      - name: Build backend reachability targets
+        run: pnpm check:build:backend
 
       - name: Run backend unit tests
         run: pnpm test:unit:backend
-
-      - name: Lint backend DB artifacts
-        run: pnpm db:lint
 
       - name: Run backend scenario tests
         run: pnpm test:scenario:backend

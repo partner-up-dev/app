@@ -78,7 +78,9 @@ Read the smallest useful set and keep durable docs current:
 - Controller layer (`src/controllers`): protocol conversion only; see `src/controllers/AGENTS.md`.
 - Infra layer (`src/infra`): job runner, telemetry ingest, analytics read/export queries, notifications, and operation log.
 - Unit tests under `src/**/*.test.ts` cover local rules, pure domain services, schema/bounds logic, and isolated error mapping. Scenario tests under `tests/<domain>/**/*.scenario.test.ts` cover cross-module behavior through HTTP APIs with real Postgres migrations, especially persisted state transitions, route/controller/use-case/repository coordination, and user-visible business promises.
+- `pnpm check:lint:backend` is the canonical backend source lint slice.
 - `pnpm lint:problem-details` enforces the backend API error contract in production source. Expected API failures should use Problem Details helpers from `src/lib/problem-details.ts` or typed domain helpers built on them. `src/index.ts` is the compatibility adapter that may read Hono `HTTPException` and normalize it into Problem Details.
+- `pnpm check:type:backend`, `pnpm check:config:backend`, and `pnpm check:build:backend` are the canonical backend type, DB/config, and build-reachability slices used by CI.
 - Backend scenario verification should be launched from the repository root with `pnpm test:scenario:backend`. The Vitest project setup loads workspace `.env` files and owns scenario database setup, migration, and cleanup.
 - Better not use intervals or in-process background jobs; the backend runs in scale-to-0 serverless.
 
@@ -89,6 +91,7 @@ Read the smallest useful set and keep durable docs current:
 - `pnpm db:migrate` runs the custom migration runner and records applied schema and data migrations in `app_migrations`.
 - CI/CD deploys and invokes a dedicated FC migration function inside the VPC, but it still calls the same migration runner as `pnpm db:migrate`.
 - `pnpm db:lint` validates migration and seed file naming plus transaction-mode rules before deploy.
+- `pnpm db:check` runs `drizzle-kit check`; it complements but does not replace repo-owned migration/seed lint.
 - `pnpm db:next-migration <drizzle|data-migrations>` prints the next global numeric prefix shared by both migration folders.
 - `pnpm db:reset` is local-only. It drops and recreates the local database, applies all migrations, then runs seeds.
 - `pnpm db:seed` reruns all files in `seeds/`, so every seed file must be idempotent.

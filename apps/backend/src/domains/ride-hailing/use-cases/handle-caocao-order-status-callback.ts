@@ -13,6 +13,7 @@ import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { createRideHailingProviderPort } from "../services";
+import type { CaocaoOrderStatusCallback } from "../model/provider";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
@@ -138,7 +139,7 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
     providerInstance: input.providerInstance,
   });
 
-  let parsed;
+  let parsed: CaocaoOrderStatusCallback;
   try {
     parsed = port.parseOrderStatusCallback(input.form);
     if (!parsed.localOrderId) {

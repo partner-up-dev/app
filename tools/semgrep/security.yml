@@ -1,0 +1,22 @@
+rules:
+  - id: partner-up-reviewed-execsync
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: Shell execution must stay behind reviewed build or infrastructure boundaries.
+    pattern: execSync($COMMAND, ...)
+    paths:
+      include:
+        - apps/**/*.ts
+        - scripts/**/*.mjs
+
+  - id: partner-up-reviewed-v-html
+    languages:
+      - generic
+    severity: WARNING
+    message: v-html usage must be backed by trusted template ownership or explicit sanitization.
+    pattern: v-html
+    paths:
+      include:
+        - apps/frontend/src/**/*.vue

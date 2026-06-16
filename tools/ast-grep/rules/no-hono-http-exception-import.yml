@@ -1,0 +1,6 @@
+id: no-hono-http-exception-import
+language: TypeScript
+severity: error
+message: Use Problem Details helpers from src/lib/problem-details.ts instead of importing hono/http-exception.
+rule:
+  pattern: import $$$ from "hono/http-exception"

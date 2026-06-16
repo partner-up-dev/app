@@ -1,0 +1,6 @@
+id: no-new-http-exception
+language: TypeScript
+severity: error
+message: Use throwHttpProblem/createHttpProblem or a typed domain helper instead of new HTTPException.
+rule:
+  pattern: new HTTPException($$$)

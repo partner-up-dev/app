@@ -27,8 +27,15 @@ Read the smallest useful set and keep durable docs current:
 
 Useful commands:
 
+- `pnpm check:lint:frontend`
+- `pnpm check:type:frontend`
+- `pnpm check:build:frontend`
+
+Focused local checks:
+
 - `pnpm --filter @partner-up-dev/frontend lint:tokens`
 - `pnpm --filter @partner-up-dev/frontend lint:tokens:strict`
+- `pnpm --filter @partner-up-dev/frontend audit:naming`
 
 ## Coding Guidelines
 
