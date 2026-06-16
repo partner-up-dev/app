@@ -104,7 +104,10 @@ Original scope:
 - `PuInput` now explicitly documents native `list` forwarding.
 - `PuTextarea` now explicitly documents `rows`, `form`, and `change`.
 - `PuForm` now documents native attributes and external submit support.
-- `PuChipInput` now covers plain editable string-array token input.
+- `PuChipInput` was originally used for plain editable string-array token
+  input in 0.4.3. `@partner-up-dev/design-web@0.4.4` corrects that boundary:
+  `PuChipInput` is for one editable chip value, and `PuChipsEditor` is for
+  editable string-array chip collections.
 
 Current direction:
 
@@ -129,7 +132,7 @@ Current direction:
 - Slice 3C: numeric field cleanup with `PuNumberInput`.
 - Slice 3D: `PuForm` boundary cleanup where native form identity and external
   submit behavior are preserved.
-- Slice 3E: plain editable token input cleanup with `PuChipInput`, starting
+- Slice 3E: plain editable token input cleanup with `PuChipsEditor`, starting
   with PR editor preferences if the interaction contract is confirmed.
 
 0.4.3 implementation notes:
@@ -140,6 +143,7 @@ Current direction:
   `UpdatePRStatusForm.vue`, plus direct field-control migration for
   `PRJoinGateConfigEditor.vue`.
 - Completed Slice 3E for the plain `PREditor.vue` preferences tag input.
+  0.4.4 corrected this usage from `PuChipInput` to `PuChipsEditor`.
 - Deferred `InlineNLPRForm.vue`, broad `PREditor.vue` field migration,
   `FormModePreferenceControl.vue`, and larger admin commerce/payment form
   groups.
@@ -253,9 +257,10 @@ Scope:
 Planning notes:
 
 - Detailed packet lives in `80-form-mode-preference-composition.md`.
-- `PuChipInput` should own the custom preference entry subset, not the whole
+- `PuChipInput` should own each custom preference label, not the whole
   curated option selector. Package docs still defer suggestions and custom
-  listbox behavior.
+  listbox behavior, so preset option selection remains domain-owned
+  `PuChipGroup` + `PuChip`.
 - Treat the implementation as a pilot. Record what package composition
   generalized, what still required domain-owned state, and what should inform
   Slice 10.
@@ -265,8 +270,8 @@ Implementation notes:
 - Migrated `FormModePreferenceControl.vue` to direct `PuChipGroup`, `PuChip`,
   `PuChipInput`, `PuFormItem`, and `PuInlineNotice` composition.
 - Preset preference candidates now render as selectable package chips.
-- Custom preference entry is now a `PuChipInput` lane with chip-slot
-  composition for selectable/removable custom values.
+- Custom preference values are now individual `PuChipInput` instances inside a
+  chip group, with a blank `PuChipInput` draft chip for new custom values.
 - Removed local `tag-pill*`, `inline-message*`, and draft-input state.
 - Kept category selection, uncategorized selection, label normalization, and
   custom-tag submission as domain-owned logic.
@@ -313,8 +318,9 @@ Planning notes:
   sites, so it is deferred as legacy cleanup rather than active route
   composition work.
 - With `AdminCommerceSpuEditor.vue` out of scope, no current Slice 10
-  candidate should plan around `PuChipInput`; remaining candidates use
-  `PuInput`, `PuButton`, `PuInlineNotice`, `PuCard`, `PuDescriptionList`,
+  candidate should plan around `PuChipInput`/`PuChipsEditor`; remaining
+  candidates use `PuInput`, `PuButton`, `PuInlineNotice`, `PuCard`,
+  `PuDescriptionList`,
   `PuCellGroup`, `PuChip`, or `PuChipGroup` according to their semantics.
 
 Implementation notes:

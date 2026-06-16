@@ -18,7 +18,7 @@ and product interaction state in one file.
 - Active mode: `Execute`.
 - Production code status: Slice 1 implemented and verified; Slice 3 0.4.3
   implementation pass implemented and verified; Slice 9 composition pilot
-  implemented and verified.
+  implemented and corrected for the 0.4.4 chip-editor boundary.
 - Task scope: frontend UI structure and package component composition.
 
 ## Guardrails Touched
@@ -35,7 +35,7 @@ and product interaction state in one file.
 ## Current Understanding
 
 - The up-to-date design package skill is shipped with
-  `@partner-up-dev/design-web@0.4.3` under
+  `@partner-up-dev/design-web@0.4.4` under
   `apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
 - The previous component-migration packet has completed direct migrations for
   local facades such as button, card choice, tabs, overlays, cells, chips,
@@ -53,10 +53,13 @@ and product interaction state in one file.
   `AnchorEventListModeSurface.vue`, `AnchorEventDemandCard.vue`,
   `FormModePreferenceControl.vue`, and `MePage.vue`.
 - Raw form controls remain concentrated in admin, commerce, PR editor, POI,
-  and route/event editing surfaces. The 0.4.3 package now supports
-  `PuNumberInput`, `PuSelect`, `PuChipInput`, native `PuInput list`
-  forwarding, `PuTextarea rows`, and documented `PuForm` native form
-  attributes, so Slice 3 can move beyond text/textarea cleanup.
+  and route/event editing surfaces. The 0.4.3 package supports
+  `PuNumberInput`, `PuSelect`, native `PuInput list` forwarding,
+  `PuTextarea rows`, and documented `PuForm` native form attributes. The
+  0.4.4 package corrects chip editing: `PuChipInput` is one editable chip
+  value, and `PuChipsEditor` owns string-array tag/chip collection editing.
+  Slice 3 can move beyond text/textarea cleanup with those corrected
+  boundaries.
 - The bounded 0.4.3 Slice 3 implementation pass is recorded in
   `46-slice3-0.4.3-implementation.md`; it covers select/datalist, a focused
   Anchor Event numeric group, small form boundaries, a dynamic join-gate field
@@ -92,7 +95,8 @@ and product interaction state in one file.
 - `PuNumberInput` covers `number | null` app state and native numeric
   constraints as of `0.4.3`.
 - `PuSelect` covers dense web-native single selection as of `0.4.3`.
-- `PuChipInput` covers plain editable string-array token input as of `0.4.3`.
+- `PuChipInput` is a single editable chip input as of `0.4.4`; use
+  `PuChipsEditor` for plain editable string-array token input.
 - `PuForm` exposes schema/validation structure, a documented `submit` event,
   native form attribute fallthrough, and external submit support. Use it where
   the form can adopt package form semantics directly, not as a wrapper around
@@ -114,9 +118,9 @@ Detailed slice planning lives in `20-slice-plan.md`.
    direct `PuCard` or `PuCellGroup` usage. Keep `AdminPageScaffold` only if it
    remains a real admin layout container over `PuPageScaffold`.
 3. Field cleanup: continue migrating text/password/URL/textarea controls, and
-   use 0.4.3 APIs for numeric fields (`PuNumberInput`), dense single selects
+   use package APIs for numeric fields (`PuNumberInput`), dense single selects
    (`PuSelect`), datalist-backed free text (`PuInput list`), real submit
-   boundaries (`PuForm`), and plain tag inputs (`PuChipInput`) in small
+   boundaries (`PuForm`), and plain tag inputs (`PuChipsEditor`) in small
    sub-slices.
 4. Read-only/data display cleanup: replace local KPI cards, summary grids,
    row groups, and status badges with `PuBentoItem`, `PuCard`,
@@ -188,6 +192,7 @@ Slice 1 verification:
 - `pnpm --filter @partner-up-dev/frontend lint:tokens` passed.
 - `pnpm test:unit:frontend` passed.
 - `git diff --check` passed.
+- `git diff --check` passed.
 - Source scans found no old `PageHeader`/`ErrorToast` usage-site references, no
   package private-path imports, and no raw `type="datetime-local"` in the four
   migrated datetime files.
@@ -209,6 +214,24 @@ Slice 1 verification:
 - `git diff --check` passed.
 - Slice 3 0.4.3 implementation verification is recorded in
   `46-slice3-0.4.3-implementation.md`.
+
+0.4.4 uplift verification:
+
+- Package dependency and lockfile updated from `0.4.3` to `0.4.4`.
+- TanStack Intent package skill found by `list --json`, loaded by
+  `load @partner-up-dev/design-web#design-web`, and validated by
+  `validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web`.
+- 0.4.4 skill references document the corrected split: `PuChipInput` for one
+  editable chip value and `PuChipsEditor` for string-array chip collection
+  editing.
+- `PREditor.vue` preferences corrected from old array-style `PuChipInput`
+  usage to `PuChipsEditor`.
+- `FormModePreferenceControl.vue` corrected to the 0.4.4 `PuChipInput`
+  composition: one editable chip per custom preference plus one draft chip for
+  new custom labels.
+- `pnpm --filter @partner-up-dev/frontend build` passed.
+- `pnpm --filter @partner-up-dev/frontend lint:tokens` passed.
+- `pnpm test:unit:frontend` passed.
 
 Slice 11 verification:
 

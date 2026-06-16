@@ -50,30 +50,35 @@
             class="preference-custom-field"
             :label="t('anchorEvent.formMode.customTagTitle')"
           >
-            <PuChipInput
-              :model-value="activeDrawerCustomLabels"
-              shape="pill"
-              add-on-blur
-              :placeholder="t('anchorEvent.formMode.customTagPlaceholder')"
-              @add="handleAddCustomTag"
-              @remove="handleRemoveCustomTag"
-            >
-              <template #chip="{ value, remove }">
-                <PuChip
-                  as="button"
-                  type="button"
-                  shape="pill"
-                  removable
-                  :selected="isDrawerTagSelected(value)"
-                  :tone="isDrawerTagSelected(value) ? 'primary' : 'neutral'"
-                  :variant="isDrawerTagSelected(value) ? 'soft' : 'outline'"
-                  :label="formatTagDisplayLabel(value, activeDrawerCell)"
-                  :remove-label="buildCustomTagRemoveLabel(value)"
-                  @click="handleSelectDrawerTag(value)"
-                  @remove="handleRemoveCustomTagFromInput(value, remove, $event)"
-                />
-              </template>
-            </PuChipInput>
+            <PuChipGroup class="preference-custom-field__chips" wrap gap="sm">
+              <PuChipInput
+                v-for="tag in activeDrawerCustomTags"
+                :key="tag.label"
+                :model-value="formatTagDisplayLabel(tag.label, activeDrawerCell)"
+                shape="pill"
+                select-on-focus
+                commit-on-blur
+                :tone="isDrawerTagSelected(tag.label) ? 'primary' : 'neutral'"
+                :variant="isDrawerTagSelected(tag.label) ? 'soft' : 'outline'"
+                :remove-label="buildCustomTagRemoveLabel(tag.label)"
+                @focus="selectCustomLabel(tag.label)"
+                @commit="handleCommitCustomTag(tag.label, $event)"
+                @remove="handleRemoveCustomTag(tag.label)"
+              />
+
+              <PuChipInput
+                :model-value="customTagDraft"
+                shape="pill"
+                tone="neutral"
+                variant="dashed"
+                commit-on-blur
+                :removable="false"
+                :placeholder="t('anchorEvent.formMode.customTagPlaceholder')"
+                @update:model-value="handleCustomTagDraftUpdate"
+                @commit="handleAddCustomTag"
+                @cancel="handleCustomTagDraftUpdate"
+              />
+            </PuChipGroup>
           </PuFormItem>
 
           <div v-if="activeDrawerDescription" class="tag-description-panel">
@@ -156,6 +161,7 @@ const activeDrawerCell = ref<PreferenceCell | null>(null);
 const drawerSelectedCategoryMap = ref<Record<string, string | null>>({});
 const drawerSelectedUncategorizedLabels = ref<string[]>([]);
 const drawerCustomTags = ref<FormModePresetTag[]>([]);
+const customTagDraft = ref("");
 const preferenceSubmissionMessage = ref<string | null>(null);
 
 const normalizeTagKey = (label: string): string =>
@@ -284,10 +290,6 @@ const activeDrawerCustomTags = computed<FormModePresetTag[]>(() => {
   );
 });
 
-const activeDrawerCustomLabels = computed<string[]>(() =>
-  activeDrawerCustomTags.value.map((tag) => tag.label),
-);
-
 const activeDrawerSelectedLabel = computed(() => {
   const cell = activeDrawerCell.value;
   if (!cell) {
@@ -382,6 +384,7 @@ const openPreferenceDrawer = (cell: PreferenceCell) => {
   drawerSelectedCategoryMap.value = nextCategoryMap;
   drawerSelectedUncategorizedLabels.value = [...nextUncategorized];
   drawerCustomTags.value = [...localCustomTags.value];
+  customTagDraft.value = "";
   preferenceDrawerOpen.value = true;
 };
 
@@ -489,6 +492,25 @@ const selectCustomLabel = (label: string) => {
   }
 };
 
+const replaceDrawerSelection = (previousLabel: string, nextLabel: string) => {
+  const category = derivePreferenceCategory(previousLabel);
+  if (category) {
+    if (drawerSelectedCategoryMap.value[category] !== previousLabel) {
+      return;
+    }
+    drawerSelectedCategoryMap.value = {
+      ...drawerSelectedCategoryMap.value,
+      [category]: nextLabel,
+    };
+    return;
+  }
+
+  drawerSelectedUncategorizedLabels.value =
+    drawerSelectedUncategorizedLabels.value.map((item) =>
+      item === previousLabel ? nextLabel : item,
+    );
+};
+
 const removeDrawerSelection = (label: string) => {
   const category = derivePreferenceCategory(label);
   if (category) {
@@ -514,13 +536,43 @@ const handleRemoveCustomTag = (label: string) => {
   removeDrawerSelection(label);
 };
 
-const handleRemoveCustomTagFromInput = (
-  _label: string,
-  remove: (event: MouseEvent) => void,
-  event: MouseEvent,
-): void => {
-  event.stopPropagation();
-  remove(event);
+const handleCustomTagDraftUpdate = (value: string) => {
+  customTagDraft.value = value;
+};
+
+const hasDrawerTagLabel = (label: string, exceptLabel?: string): boolean => {
+  const key = normalizeTagKey(label);
+  const exceptKey = exceptLabel ? normalizeTagKey(exceptLabel) : null;
+  return drawerEffectiveTags.value.some((tag) => {
+    const tagKey = normalizeTagKey(tag.label);
+    return tagKey === key && tagKey !== exceptKey;
+  });
+};
+
+const handleCommitCustomTag = (previousLabel: string, value: string) => {
+  const normalized = buildCustomTagLabelForActiveCell(value);
+  if (!normalized) {
+    handleRemoveCustomTag(previousLabel);
+    return;
+  }
+
+  if (hasDrawerTagLabel(normalized, previousLabel)) {
+    handleRemoveCustomTag(previousLabel);
+    selectCustomLabel(normalized);
+    return;
+  }
+
+  const previousKey = normalizeTagKey(previousLabel);
+  drawerCustomTags.value = drawerCustomTags.value.map((tag) =>
+    normalizeTagKey(tag.label) === previousKey
+      ? {
+          ...tag,
+          label: normalized,
+        }
+      : tag,
+  );
+  replaceDrawerSelection(previousLabel, normalized);
+  selectCustomLabel(normalized);
 };
 
 const handleAddCustomTag = (value: string) => {
@@ -529,11 +581,7 @@ const handleAddCustomTag = (value: string) => {
     return;
   }
 
-  const knownLabels = new Set(
-    drawerEffectiveTags.value.map((tag) => normalizeTagKey(tag.label)),
-  );
-  const key = normalizeTagKey(normalized);
-  if (!knownLabels.has(key)) {
+  if (!hasDrawerTagLabel(normalized)) {
     const tag = {
       id: -Date.now(),
       label: normalized,
@@ -543,6 +591,7 @@ const handleAddCustomTag = (value: string) => {
   }
 
   selectCustomLabel(normalized);
+  customTagDraft.value = "";
 };
 
 const handleSavePreferenceDrawer = async () => {

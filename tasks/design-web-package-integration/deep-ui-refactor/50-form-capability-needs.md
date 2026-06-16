@@ -11,6 +11,10 @@ items that were previously listed as upstream needs. Keep this file as a
 capability ledger: resolved items are marked rather than deleted so future
 migration decisions can see why Slice 3 changed direction.
 
+Update on 2026-06-16: `@partner-up-dev/design-web@0.4.4` corrects the chip
+editor boundary. `PuChipInput` is now a single editable chip; `PuChipsEditor`
+is the string-array tag/chip collection editor.
+
 The app can already use:
 
 - `PuFormItem` for visible labels, hints, required markers, explicit errors,
@@ -24,7 +28,8 @@ The app can already use:
   model fits.
 - `PuNumberInput` for `number | null` numeric app state, including min/max/step.
 - `PuSelect` for dense web-native single selection.
-- `PuChipInput` for plain editable string-array token input.
+- `PuChipInput` for editing one chip value.
+- `PuChipsEditor` for plain editable string-array token input.
 
 ## Current App Usage Patterns
 
@@ -213,19 +218,23 @@ Resolved package capability:
 - `PuInput` and `PuTextarea` document `update:modelValue` as the live dirty
   hook and expose `change` for browser committed-value semantics.
 
-### New In 0.4.3: Editable Chip Input
+### Corrected In 0.4.4: Editable Chip Inputs
 
 Current app relevance:
 
-- `PREditor.vue` preferences tags input has migrated to `PuChipInput`.
-- `FormModePreferenceControl.vue` is more complex than a plain chip input
-  because it owns curated options, descriptions, drawer state, and custom
-  draft creation.
+- `PREditor.vue` preferences tags input has migrated to `PuChipsEditor`.
+- `FormModePreferenceControl.vue` is more complex than a plain string-array
+  editor because it owns curated options, descriptions, drawer state,
+  category-specific selection, custom draft creation, and custom label
+  editing.
+- `FormModePreferenceControl.vue` custom preference values use individual
+  `PuChipInput` instances, while curated options remain
+  `PuChipGroup` + `PuChip`.
 
 Remaining later needs:
 
-- `PuChipInput` suggestions and custom option listbox behavior are deferred by
-  the first API.
+- `PuChipsEditor` suggestions and custom option listbox behavior are deferred
+  by the first API.
 
 ## App Migration Implications
 
@@ -245,5 +254,5 @@ Until then, the frontend should:
   datalist-backed free-text suggestions.
 - Adopt `PuForm` only per form boundary, even though native form attributes and
   external submit are now documented.
-- Use `PuChipInput` for plain string-array token entry; discuss richer option
+- Use `PuChipsEditor` for plain string-array token entry; discuss richer option
   selection surfaces before migrating them.

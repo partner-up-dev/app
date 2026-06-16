@@ -25,6 +25,7 @@ Containers and layout:
 Forms and controls:
 
 - `PuFormItem`, `PuInput`, `PuTextarea`, `PuToggleSwitch`, and `PuWheelPicker` from `@partner-up-dev/design-web`: default form-field, text-control, switch, and wheel-picker primitives. Use them directly at usage sites rather than adding local wrappers.
+- `PuChipInput` and `PuChipsEditor` from `@partner-up-dev/design-web`: use `PuChipInput` for editing one chip value, and `PuChipsEditor` for string-array tag/chip collection editing. Keep domain suggestion, selection, and submission behavior in the consuming surface.
 - `PuSegmented` and `PuSegmentedItem` from `@partner-up-dev/design-web`: default mutually exclusive mode selector. Keep domain labels, state, workflow transitions, and option-level scenario test IDs in the consuming surface.
 - `forms/ProductLocalDateCalendarPicker.vue`: product-local date-key calendar grid for visible-window multi-select flows.
 

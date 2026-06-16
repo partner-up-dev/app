@@ -16,7 +16,8 @@ instead of local pill, input, and inline-message markup.
 
 - Input route: `Constraint`.
 - Active mode: `Execute`.
-- Production code status: implemented and verified.
+- Production code status: implemented, verified, then corrected for the 0.4.4
+  chip-editor API boundary.
 - Candidate file:
   `apps/frontend/src/domains/event/ui/controls/form-mode/FormModePreferenceControl.vue`.
 
@@ -24,7 +25,7 @@ instead of local pill, input, and inline-message markup.
 
 - Root task protocol: this packet is volatile planning under `tasks/`.
 - Design package boundary: use only public exports and package skill
-  references for `@partner-up-dev/design-web@0.4.3`.
+  references for `@partner-up-dev/design-web@0.4.4`.
 - Product invariant: preserve the form-mode preference workflow: users choose
   preset preferences, can add custom preferences, selected values are emitted
   through `update:modelValue`, and newly created labels are submitted to the
@@ -42,11 +43,16 @@ instead of local pill, input, and inline-message markup.
   flex-gap wrappers where the children are chips.
 - `PuChip` fits selectable and removable option tokens through `selected`,
   `removable`, `click`, and `remove`.
-- `PuChipInput` fits editable string-array token entry, but package docs state
-  that suggestions and custom option listbox behavior are deferred.
-- Therefore `PuChipInput` should not swallow the whole drawer option selector.
-  It can own the custom preference entry subset while curated/preset options
-  remain `PuChipGroup` + `PuChip`.
+- `PuChipInput` now fits editing one chip value. This is the correct primitive
+  for Form Mode custom preferences because each custom label needs inline
+  edit/commit/cancel/remove behavior.
+- `PuChipsEditor` fits plain editable string-array token entry, but it should
+  not own this drawer because the drawer is not a plain collection field: it
+  mixes curated options, category-specific selection, custom label
+  normalization, and submission bookkeeping.
+- Therefore Form Mode should keep curated/preset options as
+  `PuChipGroup` + `PuChip`, and render custom values as individual
+  `PuChipInput` instances inside a `PuChipGroup`.
 
 ## Pre-Implementation Component Topology
 
@@ -85,9 +91,9 @@ composition at the usage site:
 - Render each preset option as direct `PuChip as="button" type="button"`.
 - Use `PuChip selected` for current selection and `PuChip removable` for
   custom values that are still represented in the option list.
-- Use `PuChipInput` for the custom preference entry lane. This may replace the
-  local plus-chip + draft-input mode with a persistent compact custom-entry
-  field if that produces simpler state and acceptable UX.
+- Use `PuChipInput` for each custom preference value and for the custom draft
+  entry. This keeps one-chip edit semantics explicit instead of treating the
+  drawer as a generic string-array editor.
 - Replace local error paragraphs with `PuInlineNotice tone="error"`.
 - Keep drawer footer actions as direct `PuButton`.
 
@@ -106,21 +112,17 @@ shared UI wrapper. This is domain behavior, not generic design-system surface.
 
 ## Open Design Question
 
-`PuChipInput` can be used in two reasonable ways:
+`PuChipInput` should be used at the per-tag level:
 
-1. Custom-entry lane only: display existing custom values as editable chips in
-   a separate input lane, while preset options stay in the main chip group.
-2. Add-only helper: keep custom values in the main chip group and use
-   `PuChipInput` only to commit draft labels.
+1. Existing custom values render as individual editable chips. Commit updates
+   the domain-owned custom tag label; Escape cancels through package behavior;
+   remove deletes the custom label and clears its selection.
+2. New custom values use a blank `PuChipInput` draft chip. Commit normalizes
+   the label for the active category, adds it if needed, selects it, and clears
+   the draft.
 
-The first option uses `PuChipInput` more honestly as a string-array field and
-removes more local UI state. It changes the drawer layout more. The second
-option changes less visually but risks treating `PuChipInput` like a hidden
-text input with extra ceremony.
-
-Current recommendation: prefer option 1 unless implementation evidence shows
-that category-prefix normalization or submission bookkeeping becomes harder
-than the removed local markup is worth.
+`PuChipsEditor` remains appropriate for plain tag arrays such as PR editor
+preferences, but it is the wrong owner for Form Mode preference selection.
 
 ## Proposed Execution Slice
 
@@ -145,9 +147,9 @@ Implemented in
   selection workflow.
 - Replaced the local preset option pill list with direct `PuChipGroup` +
   selectable `PuChip` usage.
-- Moved custom preference entry into a `PuFormItem` + `PuChipInput` lane.
-  Custom chips use the `PuChipInput` `chip` slot so they can remain
-  selectable and removable through direct `PuChip`.
+- Moved custom preference entry into a `PuFormItem` + `PuChipGroup` lane.
+  Existing custom labels and the add-new draft are direct `PuChipInput`
+  instances so each tag can be edited, committed, cancelled, or removed.
 - Replaced submission failure text with `PuInlineNotice tone="error"`.
 - Deleted the local draft-input state:
   `drawerCustomTagEditing`, `drawerCustomTagInput`, and
@@ -160,6 +162,15 @@ Implemented in
 The pilot showed that package composition can remove most local primitive UI
 ownership, but the product-specific selection topology still belongs in the
 domain component or a future domain composable.
+
+0.4.4 correction:
+
+- `@partner-up-dev/design-web@0.4.4` corrected the component boundary:
+  `PuChipInput` is now a single editable chip, while `PuChipsEditor` owns
+  string-array chip collection editing.
+- `FormModePreferenceControl.vue` now uses `PuChipInput` for individual custom
+  preference labels and keeps the curated option selector as
+  `PuChipGroup` + `PuChip`.
 
 ## Pilot Role
 

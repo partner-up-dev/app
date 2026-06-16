@@ -129,12 +129,13 @@
             class="form-field"
             :label="t('partnerRequestForm.preferences')"
           >
-            <PuChipInput
+            <PuChipsEditor
               v-model="preferencesInput"
               data-testid="pr-editor.form.preference-input"
               :placeholder="t('partnerRequestForm.preferencesPlaceholder')"
               :remove-label="t('partnerRequestForm.removePreference')"
               shape="pill"
+              add-on-blur
             />
           </PuFormItem>
 
@@ -199,7 +200,7 @@ import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 import {
   PuButton,
-  PuChipInput,
+  PuChipsEditor,
   PuDialog,
   PuEmptyState,
   PuFormItem,
