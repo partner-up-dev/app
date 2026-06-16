@@ -72,6 +72,9 @@ and product interaction state in one file.
   `90-composition-pattern-rollout.md`: Slice 10 should use the Slice 9
   evidence to identify and implement similar composition-plus-refactor
   candidates, not treat this as a broad mechanical sweep.
+- Slice 10 first rollout pass migrated `InlineNLPRForm.vue` and
+  `FormModeNoMatchResult.vue` on active product paths. `PRPartnerSection.vue`
+  was investigated and deferred because current source has no usage site.
 
 ## Package API Constraints
 

@@ -282,7 +282,7 @@ Verification:
 
 ## Slice 10: Composition Pattern Rollout
 
-Status: candidate.
+Status: first rollout pass completed.
 
 Scope:
 
@@ -297,11 +297,11 @@ Initial candidates:
 
 - `InlineNLPRForm.vue`: compact high-signal candidate for `PuForm` +
   `PuFormItem` + `PuInput` + icon `PuButton` + `PuInlineNotice`.
-- `PRPartnerSection.vue`: section-level content/container split with
-  `PuCard`, facts/summary composition, notices, and direct actions.
-- `PRFactsCard.vue`, `AdminNavigationPanel.vue`, and
-  `FormModeNoMatchResult.vue`: medium-confidence candidates that need a short
-  topology note before implementation.
+- `FormModeNoMatchResult.vue`: active Form Mode result-state composition with
+  `PuEmptyState`, `PuInlineNotice`, and direct `PuButton`.
+- `PRFactsCard.vue` and `AdminNavigationPanel.vue`: remaining
+  medium-confidence candidates that need a short topology note before
+  implementation.
 
 Planning notes:
 
@@ -309,7 +309,29 @@ Planning notes:
 - Gesture-heavy surfaces such as the full Form Mode surface still require
   topology mapping before production edits.
 - `AdminCommerceSpuEditor.vue` is explicitly out of Slice 10.
+- `PRPartnerSection.vue` was investigated and found to have no current usage
+  sites, so it is deferred as legacy cleanup rather than active route
+  composition work.
 - With `AdminCommerceSpuEditor.vue` out of scope, no current Slice 10
   candidate should plan around `PuChipInput`; remaining candidates use
   `PuInput`, `PuButton`, `PuInlineNotice`, `PuCard`, `PuDescriptionList`,
   `PuCellGroup`, `PuChip`, or `PuChipGroup` according to their semantics.
+
+Implementation notes:
+
+- Migrated `InlineNLPRForm.vue` from native form/input/buttons/spinner/error
+  text to direct `PuForm`, `PuFormItem`, `PuInput`, `PuButton`, and
+  `PuInlineNotice` composition.
+- Migrated `FormModeNoMatchResult.vue` local no-candidate hero and inline
+  error messages to `PuEmptyState` and `PuInlineNotice`.
+- Kept product-owned state, route events, PR join flow, voice transcript
+  handling, draft persistence, and mutation routing unchanged.
+
+Verification:
+
+- Passed `pnpm --filter @partner-up-dev/frontend build`.
+- Passed `pnpm --filter @partner-up-dev/frontend lint:tokens`.
+- Passed `pnpm test:unit:frontend`.
+- Passed targeted scans for removed local primitive class families.
+- Passed source scan showing no current `PRPartnerSection` usage sites.
+- Passed `git diff --check`.
