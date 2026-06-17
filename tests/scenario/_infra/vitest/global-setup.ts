@@ -8,7 +8,7 @@ import {
 import {
   startFakeCaocaoServer,
   type StartedFakeCaocaoServer,
-} from "../../../../packages/fake-caocao-server/src/index";
+} from "@partner-up-dev/fake-caocao-server";
 import {
   createScenarioDatabase,
   installScenarioDatabaseEnv,

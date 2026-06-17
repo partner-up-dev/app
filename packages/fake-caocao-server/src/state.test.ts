@@ -1,0 +1,55 @@
+import { describe, expect, test } from "vitest";
+import { FakeCaocaoState } from "./state";
+
+describe("FakeCaocaoState", () => {
+  test("creates idempotent orders and advances them to finished", () => {
+    const state = new FakeCaocaoState();
+
+    const created = state.createOrder({
+      carType: "PREMIER",
+      externalOrderId: "external-order-1",
+    });
+    const duplicate = state.createOrder({
+      carType: "EXPRESS",
+      externalOrderId: "external-order-1",
+    });
+
+    expect(duplicate).toEqual(created);
+    expect(created.phase).toBe("CREATED");
+    expect(created.finalAmountFen).toBe(5600);
+
+    const accepted = state.advanceOrderDetail(created.providerOrderId);
+    const inTrip = state.advanceOrderDetail(created.providerOrderId);
+    const finished = state.advanceOrderDetail(created.providerOrderId);
+
+    expect(accepted?.phase).toBe("ACCEPTED");
+    expect(inTrip?.phase).toBe("IN_TRIP");
+    expect(finished?.phase).toBe("FINISHED");
+  });
+
+  test("supports next-create failure, cancellation, and fee confirmation", () => {
+    const state = new FakeCaocaoState();
+
+    state.configureNextCreateFailure();
+    expect(state.consumeNextCreateFailure()).toBe(true);
+    expect(state.consumeNextCreateFailure()).toBe(false);
+
+    const created = state.createOrder({
+      callbackUrl: "http://127.0.0.1:4000/callback",
+      carType: "EXPRESS",
+      externalOrderId: "external-order-2",
+    });
+    state.advanceOrderDetail(created.providerOrderId);
+    const cancelled = state.cancelOrder(created.providerOrderId);
+    const feeConfirm = state.confirmFee({
+      allowanceAmountFen: 120,
+      caocaoAllowanceAmountFen: 80,
+      providerOrderId: created.providerOrderId,
+    });
+
+    expect(cancelled?.phase).toBe("CANCELLED");
+    expect(cancelled?.cancelFeeFen).toBe(800);
+    expect(feeConfirm.providerOrderId).toBe(created.providerOrderId);
+    expect(state.snapshot().feeConfirms).toHaveLength(1);
+  });
+});

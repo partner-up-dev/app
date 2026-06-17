@@ -54,8 +54,8 @@
       "project": ["src/**/*.ts", "bin/**/*.ts", "vitest.config.ts"]
     },
     "packages/fake-caocao-server": {
-      "entry": ["src/index.ts"],
-      "project": ["src/**/*.ts"]
+      "entry": ["src/index.ts", "bin/fake-caocao-server.ts", "vitest.config.ts"],
+      "project": ["src/**/*.ts", "bin/**/*.ts", "vitest.config.ts"]
     },
     "tests/scenario": {
       "entry": ["vitest.config.ts", "**/*.scenario.test.ts"],

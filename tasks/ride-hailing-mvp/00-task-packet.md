@@ -1,0 +1,151 @@
+# Ride Hailing MVP
+
+Date: 2026-06-17
+
+## Purpose
+
+This file is now the packet index for the Ride Hailing MVP recovery work.
+
+The task is too large for a monofile packet. Working state should move into the
+smallest focused sibling file instead of accumulating here.
+
+## Packet Map
+
+- `control.md`
+  - current task control surface, governing principles, active sequence, and
+    human-confirmation boundary
+- `10-flow-correction.md`
+  - first product correction: remove the support-handoff detour and restore the
+    real `quote -> create order -> order detail` spine
+- `20-caocao-mock-server.md`
+  - local-dev fake provider strategy, comparison with fake WeChatPay, and the
+    minimum work needed to make provider-backed UI iteration practical
+- `30-ui-runtime-audit.md`
+  - current ordering/detail UI weaknesses and the runtime checkpoints to use
+    once dev servers are running
+
+## Objective & Hypothesis
+
+Bring the existing ride-hailing flow up to MVP quality by closing the gap in three areas:
+
+1. ordering page UI
+2. order detail page UI
+3. dynamic SPU / SKU resolution for route-aware ride-hailing offers
+
+Hypothesis:
+
+- the repository already contains a near-complete commerce and ride-hailing foundation
+- the main gap is not feature existence but contract alignment between route context, provider quote lookup, and user-facing ordering / detail surfaces
+- the safest path is to map the current product + technical contract first, then isolate whether the MVP uplift is mostly frontend assembly, API contract correction, or catalog / provider topology work
+
+## Guardrails Touched
+
+- Provisional input route: Reality against existing ecommerce contract, with a possible Constraint / Intent slice only if provider-authoritative SKU discovery needs new durable contract
+- Active mode: Execute
+- Durable owners likely involved:
+  - `docs/10-prd/`
+  - `docs/20-product-tdd/`
+  - `apps/frontend/src/pages/`
+  - `apps/frontend/src/domains/commerce/`
+  - `apps/backend/src/controllers/commerce.controller.ts`
+  - `apps/backend/src/domains/commerce/`
+  - `apps/backend/src/domains/ride-hailing/`
+- Local constraints to load before mutation:
+  - `apps/frontend/AGENTS.md`
+  - nearer frontend / backend `AGENTS.md` in touched subtrees
+- Human confirmation required before non-task-packet code edits
+
+## Verification
+
+- Establish current route + page + query + provider topology from source, not assumption
+- Cross-check current implementation against durable ecommerce / ride-hailing contracts
+- Identify whether MVP target requires PRD change, Product TDD change, or implementation-only work
+- Execution slice verification completed:
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm check:type:frontend`
+  - `pnpm vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+## Current Understanding
+
+- Ride-hailing code already exists across frontend and backend
+- The first two enabling slices are now implemented:
+  - fake Caocao is runnable as a standalone workspace dev tool
+  - `/order/new` now creates real orders and routes to `/orders/:orderId`
+- Known concern areas from the request:
+  - ordering page UI is below MVP standard
+  - order detail page UI is below MVP standard
+  - SPU / SKU must be dynamic per city and route
+  - route-specific SKU list and price estimate should come from the ride-hailing provider, not only static local catalog truth
+- Unknowns still blocking execution:
+  - whether MVP uplift should first change durable product truth or can stay implementation-local
+  - whether provider-authoritative SKU discovery needs a new backend contract instead of reusing `ordering/evaluate`
+
+## Exploration Findings
+
+- Current user-facing route spine is implemented in frontend router:
+  - `/order/new`
+  - `/order/support`
+  - `/orders/:orderId`
+- Backend already exposes the durable commerce API spine:
+  - `POST /api/commerce/ordering/evaluate`
+  - `POST /api/commerce/orders`
+  - `GET /api/commerce/orders/:orderId`
+- Frontend ordering page now calls the real `createOrder` mutation and routes to
+  `/orders/:orderId` on success.
+- Existing browser scenario coverage has been updated to assert real order
+  creation for both ride-hailing and rental ordering.
+- Placement ordering entry already injects route-scoped defaults into bindings:
+  - route snapshot
+  - departure time
+  - participant list
+  - viewer contact phone
+  - This is why the current ride-hailing ordering panel works despite having no visible contact input.
+- Dynamic ride quote exists, but the current SKU discovery model is hybrid rather than provider-authoritative:
+  - offer detail returns static SPU / SKU options from catalog
+  - ordering evaluation then calls provider estimate per catalog SKU
+  - unavailable SKUs become disabled after provider estimate failure
+  - therefore the provider influences price and availability, but does not author the initial candidate SKU set
+- Current provider quote / create calls only use origin and destination coordinates plus vehicle type code.
+  - waypoints are stored in snapshots but are not part of the provider estimate or create request path
+  - city is not an explicit first-class query parameter in the current contract
+- Current ride-hailing order detail page is a low-fidelity surface:
+  - route map is a CSS illustration, not the shared route map component
+  - detail polling refetches the whole order every 1.5 seconds before bill creation
+  - the page mixes ride and rental detail responsibilities in one file and one layout
+  - it is serviceable for internal verification, but not yet an MVP-quality passenger-facing lifecycle page
+
+## Evidence Pointers
+
+- Frontend router: `apps/frontend/src/app/router.ts`
+- Current ordering submit behavior: `apps/frontend/src/pages/OrderingFromPlacementPage.vue`
+- Current support handoff page: `apps/frontend/src/pages/OrderingSupportPage.vue`
+- Current order detail page: `apps/frontend/src/pages/CommerceOrderDetailPage.vue`
+- Frontend commerce queries: `apps/frontend/src/domains/commerce/queries/useCommerce.ts`
+- Ride-hailing ordering panel: `apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingPanel.vue`
+- Ordering entry binding assembly: `apps/backend/src/domains/merchandising/use-cases/match-placement-instance.ts`
+- Backend commerce controller: `apps/backend/src/controllers/commerce.controller.ts`
+- Ride quote evaluation: `apps/backend/src/domains/trade/use-cases/ride-hailing-ordering-flow.ts`
+- Real order creation: `apps/backend/src/domains/trade/use-cases/create-order.ts`
+- Current browser scenario expectation: `tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+
+## Confirmed Constraints
+
+- Exploration and task packet work are allowed now
+- Production code mutation for slices 1 and 2 is approved and executed
+- Prefer smallest useful reference set and keep this packet current as evidence changes
+
+## Next Step
+
+1. Use the newly stable fake Caocao setup for live UI runtime audit.
+2. Redesign the ride-hailing ordering page around route summary, quote state,
+   and SKU selection.
+3. Redesign ride-hailing order detail around ride lifecycle and final-bill
+   states.
+4. Decide whether dynamic SKU discovery stays catalog-seeded or becomes
+   provider-authored.
+
+## Working Rule
+
+Do not keep expanding this file as a running log. Update the smallest relevant
+packet file instead.

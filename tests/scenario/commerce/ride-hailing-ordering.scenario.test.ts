@@ -86,6 +86,13 @@ async function resetFakeCaocao(): Promise<void> {
   });
 }
 
+async function armFakeCaocaoCreateFailure(): Promise<void> {
+  const { fakeCaocao } = getScenarioEnvironment();
+  await fetch(new URL("/__fake_caocao/create-failure/next", fakeCaocao.origin), {
+    method: "POST",
+  });
+}
+
 async function givenRideHailingPr(input: {
   creator: ScenarioUser;
   title: string;
@@ -332,35 +339,35 @@ async function selectPremierVehicle(page: Page): Promise<void> {
   });
 }
 
-async function assertRideHailingSupportHandoff(page: Page): Promise<void> {
-  await page.getByTestId("ordering.support.page").waitFor({
+async function assertRideHailingOrderDetail(page: Page): Promise<void> {
+  await page.getByTestId("order-detail.page").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  assert.equal(new URL(page.url()).pathname, "/order/support");
-  await page.getByTestId("ordering.support.contact.open").waitFor({
+  assert.match(new URL(page.url()).pathname, /^\/orders\/[0-9a-f-]+$/);
+  await page.getByTestId("order-detail.ride-hailing.page").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-
-  const summaryText =
-    (await page
-      .getByTestId("ordering.support.summary-card")
-      .first()
-      .textContent()) ?? "";
-  assert.ok(
-    summaryText.includes("系统曹操出行"),
-    `Ordering support summary should include ride hailing title, got "${summaryText}"`,
-  );
-  assert.ok(
-    summaryText.includes("专车"),
-    `Ordering support summary should include selected vehicle, got "${summaryText}"`,
-  );
-  assert.match(summaryText, /52\.00/);
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("order-detail.ride-hailing.selected-vehicle").textContent(),
+    expected: "系统曹操专车",
+    label: "RideHailing selected vehicle",
+  });
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
+    expected: "杭州东站",
+    label: "RideHailing route summary origin",
+  });
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
+    expected: "灵隐寺",
+    label: "RideHailing route summary destination",
+  });
 }
 
 scenario(
-  "commerce_ride_hailing_ordering_reaches_support_handoff",
+  "commerce_ride_hailing_ordering_reaches_order_detail",
   async (ctx) => {
     await resetFakeCaocao();
     const creator = await givenUser("system-ride-hailing-creator", {
@@ -394,19 +401,20 @@ scenario(
       await selectPremierVehicle(page);
 
       await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await assertRideHailingSupportHandoff(page);
+      await assertRideHailingOrderDetail(page);
       orderPath = new URL(page.url()).pathname;
     });
 
     const createdOrderPath = orderPath;
-    assert.equal(createdOrderPath, "/order/support");
+    assert.match(createdOrderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
   },
 );
 
 scenario(
-  "commerce_ride_hailing_provider_entry_reaches_support_handoff",
+  "commerce_ride_hailing_provider_create_failure_stays_on_ordering_page",
   async (ctx) => {
     await resetFakeCaocao();
+    await armFakeCaocaoCreateFailure();
     const creator = await givenUser("system-ride-hailing-failure-creator", {
       phoneNumber: "13800138000",
     });
@@ -429,7 +437,16 @@ scenario(
       await openRideHailingOrderingFromPr({ page, prId: pr.id });
       await selectPremierVehicle(page);
       await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await assertRideHailingSupportHandoff(page);
+      await page.getByTestId("ordering.ride-hailing.page").waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+      await assertLocatorTextIncludes({
+        actual: page.getByTestId("ordering.notice.blocked").textContent(),
+        expected: "Fake Caocao create failed",
+        label: "RideHailing create failure notice",
+      });
+      assert.equal(new URL(page.url()).pathname, "/order/new");
     });
   },
 );

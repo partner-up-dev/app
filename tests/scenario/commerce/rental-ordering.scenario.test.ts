@@ -272,35 +272,28 @@ async function fillRentalOrderingRequiredFields(page: Page): Promise<void> {
   await page.getByTestId("ordering.rental.registrant-name.1").fill("李四");
 }
 
-async function assertOrderingSupportHandoff(input: {
+async function assertRentalOrderDetail(input: {
   page: Page;
-  expectedTitle: string;
-  expectedPrice: RegExp;
+  expectedItemName: string;
 }): Promise<void> {
-  await input.page.getByTestId("ordering.support.page").waitFor({
+  await input.page.getByTestId("order-detail.page").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  assert.equal(new URL(input.page.url()).pathname, "/order/support");
-  await input.page.getByTestId("ordering.support.contact.open").waitFor({
+  assert.match(new URL(input.page.url()).pathname, /^\/orders\/[0-9a-f-]+$/);
+  await input.page.getByTestId("order-detail.bill-detail-link").waitFor({
     state: "visible",
     timeout: 10_000,
   });
-
-  const summaryText =
-    (await input.page
-      .getByTestId("ordering.support.summary-card")
-      .first()
-      .textContent()) ?? "";
-  assert.ok(
-    summaryText.includes(input.expectedTitle),
-    `Ordering support summary should include "${input.expectedTitle}", got "${summaryText}"`,
-  );
-  assert.match(summaryText, input.expectedPrice);
+  await assertLocatorTextIncludes({
+    actual: input.page.getByTestId("order-detail.item-name").textContent(),
+    expected: input.expectedItemName,
+    label: "Rental order detail item name",
+  });
 }
 
 scenario(
-  "commerce_rental_ordering_reaches_support_handoff",
+  "commerce_rental_ordering_reaches_order_detail",
   async (ctx) => {
     const creator = await givenUser("system-commerce-rental-creator");
     const joiner = await givenUser("system-commerce-rental-joiner");
@@ -403,11 +396,7 @@ scenario(
         expected: "固定总价",
         label: "Ordering price detail explanation",
       });
-      await page.keyboard.press("Escape");
-      await page.getByTestId("ordering.rental.price-detail").waitFor({
-        state: "hidden",
-        timeout: 10_000,
-      });
+      await page.getByRole("button", { name: "Close drawer" }).click();
 
       await skuOptions.filter({ hasText: "烘焙区 B" }).click();
       await page.waitForFunction(() => {
@@ -423,16 +412,15 @@ scenario(
       });
       await page.getByTestId("ordering.rental.create-order").click();
 
-      await assertOrderingSupportHandoff({
+      await assertRentalOrderDetail({
         page,
-        expectedTitle: "系统测试烘焙空间",
-        expectedPrice: /32\.00/,
+        expectedItemName: "烘焙区 B · 2人 · 2小时",
       });
       createdOrderPath = new URL(page.url()).pathname;
     });
 
     const orderPath = createdOrderPath;
-    assert.equal(orderPath, "/order/support");
+    assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
   },
 );
 
@@ -540,7 +528,7 @@ scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
   });
 });
 
-scenario("commerce_rental_cancel_entry_reaches_support_handoff", async (ctx) => {
+scenario("commerce_rental_cancel_entry_reaches_order_detail", async (ctx) => {
   const creator = await givenUser("system-commerce-cancel-creator");
   const joiner = await givenUser("system-commerce-cancel-joiner");
   const pr = await givenCommerceRentalPr({
@@ -575,15 +563,14 @@ scenario("commerce_rental_cancel_entry_reaches_support_handoff", async (ctx) => 
     });
     await page.getByTestId("ordering.rental.create-order").click();
 
-    await assertOrderingSupportHandoff({
+    await assertRentalOrderDetail({
       page,
-      expectedTitle: "系统测试烘焙空间",
-      expectedPrice: /20\.00/,
+      expectedItemName: "烘焙区 A · 2人 · 2小时",
     });
   });
 });
 
-scenario("commerce_rental_refund_entry_reaches_support_handoff", async (ctx) => {
+scenario("commerce_rental_refund_entry_reaches_order_detail", async (ctx) => {
   const creator = await givenUser("system-commerce-paid-cancel-creator");
   const joiner = await givenUser("system-commerce-paid-cancel-joiner");
   const pr = await givenCommerceRentalPr({
@@ -623,14 +610,13 @@ scenario("commerce_rental_refund_entry_reaches_support_handoff", async (ctx) => 
       return price?.includes("20.00");
     });
     await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingSupportHandoff({
+    await assertRentalOrderDetail({
       page,
-      expectedTitle: "系统测试烘焙空间",
-      expectedPrice: /20\.00/,
+      expectedItemName: "烘焙区 A · 2人 · 2小时",
     });
     orderPath = new URL(page.url()).pathname;
   });
 
   assert.ok(orderPath, "Paid cancellation order path should be recorded");
-  assert.equal(orderPath, "/order/support");
+  assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
 });
