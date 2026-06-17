@@ -9,6 +9,11 @@ The default local development entry is portless-managed:
 - frontend only: `pnpm dev:portless:frontend`
 - backend only: `pnpm dev:portless:backend`
 
+These root entries run through Node-based wrapper scripts so the same commands
+work on macOS, Linux, and Windows. The wrapper preserves the Windows Git
+OpenSSL PATH adjustment needed by portless without requiring PowerShell on
+non-Windows environments.
+
 Local app identity is stored in `portless.json`:
 
 - `apps/frontend`: `partner-up`
@@ -22,6 +27,10 @@ portless app with `Host: api.partner-up.localhost`.
 Fixed local ports remain available for compatibility workflows through package
 env files and helper scripts. They are local fallback inputs, while portless is
 the default developer workflow.
+
+The backend development script loads `apps/backend/.env` when the file exists,
+so portless and fixed-port local backend starts share the same local runtime
+inputs.
 
 Agents should use `pnpm dev:ensure` before browser or manual validation that
 needs the local frontend/backend pair. The ensure command checks the stable
