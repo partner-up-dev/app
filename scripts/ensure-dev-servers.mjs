@@ -21,6 +21,7 @@ const routes = [
       "dev",
     ],
     url: "https://partner-up.localhost",
+    readinessPath: "/",
   },
   {
     name: "backend",
@@ -35,6 +36,7 @@ const routes = [
       "dev",
     ],
     url: "https://api.partner-up.localhost",
+    readinessPath: "/health",
   },
 ];
 
@@ -115,9 +117,23 @@ const getPortlessListText = () => {
   return [result.stdout, result.stderr].filter(Boolean).join("\n");
 };
 
-const isRouteHttpReady = (route) =>
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getRegisteredRouteUrl = (routeListText, route) => {
+  const routeUrl = new URL(route.url);
+  const routeUrlPattern = new RegExp(
+    `https://${escapeRegExp(routeUrl.hostname)}(?::\\d+)?(?=\\s|$)`,
+  );
+  const match = routeListText.match(routeUrlPattern);
+
+  return match ? match[0] : null;
+};
+
+const isReadyStatus = (statusCode) => statusCode >= 200 && statusCode < 400;
+
+const isRouteHttpReady = (route, registeredUrl) =>
   new Promise((resolveReady) => {
-    const routeUrl = new URL(route.url);
+    const routeUrl = new URL(route.readinessPath, registeredUrl);
     const req = request(
       {
         headers: {
@@ -125,6 +141,7 @@ const isRouteHttpReady = (route) =>
         },
         host: "127.0.0.1",
         method: "HEAD",
+        path: `${routeUrl.pathname}${routeUrl.search}`,
         port: routeUrl.port === "" ? 443 : Number(routeUrl.port),
         rejectUnauthorized: false,
         servername: routeUrl.hostname,
@@ -132,7 +149,7 @@ const isRouteHttpReady = (route) =>
       },
       (res) => {
         res.resume();
-        resolveReady((res.statusCode ?? 599) < 500);
+        resolveReady(isReadyStatus(res.statusCode ?? 599));
       },
     );
 
@@ -149,11 +166,19 @@ const isRouteHttpReady = (route) =>
   });
 
 const getUnavailableRoutes = async (routeListText) => {
-  const unregisteredRoutes = routes.filter((route) => !routeListText.includes(route.url));
-  const registeredRoutes = routes.filter((route) => routeListText.includes(route.url));
+  const routeRegistrations = routes.map((route) => ({
+    registeredUrl: getRegisteredRouteUrl(routeListText, route),
+    route,
+  }));
+  const unregisteredRoutes = routeRegistrations
+    .filter((registration) => registration.registeredUrl === null)
+    .map((registration) => registration.route);
+  const registeredRoutes = routeRegistrations.filter(
+    (registration) => registration.registeredUrl !== null,
+  );
   const readinessChecks = await Promise.all(
-    registeredRoutes.map(async (route) => ({
-      ready: await isRouteHttpReady(route),
+    registeredRoutes.map(async ({ registeredUrl, route }) => ({
+      ready: await isRouteHttpReady(route, registeredUrl),
       route,
     })),
   );
