@@ -16,6 +16,7 @@
     "dev:portless": "node ./scripts/portless.mjs",
     "dev:portless:frontend": "node ./scripts/portless.mjs --name partner-up -- pnpm --filter @partner-up-dev/frontend dev",
     "dev:portless:backend": "node ./scripts/portless.mjs --name api.partner-up -- pnpm --filter @partner-up-dev/backend dev",
+    "dev:portless:fake-caocao": "node ./scripts/portless.mjs --name fake-caocao -- pnpm --filter @partner-up-dev/fake-caocao-server dev",
     "dev:frontend": "pnpm --filter @partner-up-dev/frontend dev",
     "dev:backend": "pnpm --filter @partner-up-dev/backend dev",
     "build:frontend": "pnpm --filter @partner-up-dev/frontend build",

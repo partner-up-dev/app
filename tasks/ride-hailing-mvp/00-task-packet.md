@@ -23,6 +23,15 @@ smallest focused sibling file instead of accumulating here.
 - `30-ui-runtime-audit.md`
   - current ordering/detail UI weaknesses and the runtime checkpoints to use
     once dev servers are running
+- `dev-ride-hailing-ordering-seed.sql`
+  - temporary dev-only SQL seed for entering the RideHailing ordering page from
+    a PR Page Button Placement
+- `dev-ride-hailing-portless-endpoint-patch.sql`
+  - temporary dev-only SQL patch for databases that already applied the first
+    seed with fixed-port fake Caocao / callback URLs
+- `dev-ride-hailing-placement-type-patch.sql`
+  - temporary dev-only SQL patch for databases that already applied the first
+    seed with task-private `ride-hailing-mvp-dev` Placement matching
 
 ## Objective & Hypothesis
 
@@ -72,6 +81,21 @@ Hypothesis:
 - The first two enabling slices are now implemented:
   - fake Caocao is runnable as a standalone workspace dev tool
   - `/order/new` now creates real orders and routes to `/orders/:orderId`
+- A temporary dev DB seed now exists for live ordering-page iteration from a
+  real PR Placement entry. It expects portless URLs:
+  `https://fake-caocao.localhost` for the fake provider and
+  `https://api.partner-up.localhost` for callbacks.
+- Fake Caocao follows the same portless pattern as backend/frontend: the package
+  `dev` script stays a normal server start, while the root
+  `pnpm dev:portless:fake-caocao` script wraps it with app name `fake-caocao`.
+- The temporary RideHailing Button Placement must match real PR type
+  `RIDE_HAILING`. The earlier task-private `ride-hailing-mvp-dev` type was a
+  seed mistake and has an append-only dev DB patch.
+- Latest dev seed SQL verification:
+  - `dev-ride-hailing-placement-type-patch.sql` rollback execution returned
+    the existing seeded placement with `matching_type = RIDE_HAILING`
+  - `dev-ride-hailing-ordering-seed.sql` rollback execution still succeeds
+    after changing its PR type constant to `RIDE_HAILING`
 - Known concern areas from the request:
   - ordering page UI is below MVP standard
   - order detail page UI is below MVP standard

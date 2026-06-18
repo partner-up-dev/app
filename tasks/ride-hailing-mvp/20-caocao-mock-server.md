@@ -71,8 +71,9 @@ Preferred route:
   registration
 - add targeted package tests for route/signature and state progression
 - switch scenario setup to the package import boundary
-- decide later whether a root-level helper script is needed to run the fake
-  alongside `pnpm dev:ensure`
+- run manual local fake provider work through the root
+  `pnpm dev:portless:fake-caocao` helper, matching the backend/frontend
+  portless wrapper pattern
 
 ## Why This Matters Before UI Work
 
