@@ -88,14 +88,20 @@ Hypothesis:
 - Fake Caocao follows the same portless pattern as backend/frontend: the package
   `dev` script stays a normal server start, while the root
   `pnpm dev:portless:fake-caocao` script wraps it with app name `fake-caocao`.
+- Stable fake Caocao provider/catalog/offer/placement setup now belongs to a
+  development-only data migration. The task SQL only creates a fresh manual-test
+  PR after `pnpm db:migrate:dev`.
 - The temporary RideHailing Button Placement must match real PR type
   `RIDE_HAILING`. The earlier task-private `ride-hailing-mvp-dev` type was a
   seed mistake and has an append-only dev DB patch.
-- Latest dev seed SQL verification:
-  - `dev-ride-hailing-placement-type-patch.sql` rollback execution returned
-    the existing seeded placement with `matching_type = RIDE_HAILING`
-  - `dev-ride-hailing-ordering-seed.sql` rollback execution still succeeds
-    after changing its PR type constant to `RIDE_HAILING`
+- Latest dev data migration verification:
+  - environment-aware data migration parsing is covered by
+    `apps/backend/src/scripts/db/shared.test.ts`
+  - `pnpm db:lint`, backend type/config checks, and FC migration bundle build
+    pass after adding the development-only RideHailing fixture migration
+  - `pnpm db:migrate:dev` now loads `apps/backend/.env`, but live dev DB
+    execution is blocked in this workspace by
+    `CONNECT_TIMEOUT ws-win.hadream.localhost:5436`
 - Known concern areas from the request:
   - ordering page UI is below MVP standard
   - order detail page UI is below MVP standard

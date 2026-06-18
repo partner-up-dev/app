@@ -75,6 +75,7 @@ jobs:
       ALIBABA_CLOUD_ACCOUNT_ID: ${{ secrets.ALIBABA_CLOUD_ACCOUNT_ID }}
       BACKEND_COMMIT_HASH: ${{ github.sha }}
       GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+      PARTNERUP_ENVIRONMENT: ${{ github.ref == 'refs/heads/master' && 'production' || 'staging' }}
       PUBLISH_LAYER_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_layer_only == true }}
     steps:
       - name: Checkout

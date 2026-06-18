@@ -6,7 +6,9 @@ import {
   isMainModule,
   lintMigrationFiles,
   loadMigrationFiles,
+  type MigrationEnvironment,
   releaseMigrationLock,
+  resolveMigrationEnvironment,
 } from "./shared";
 
 function readDatabaseUrlFromEnv(): string {
@@ -18,9 +20,13 @@ function readDatabaseUrlFromEnv(): string {
   return databaseUrl;
 }
 
-export async function runMigrations(connectionString: string): Promise<void> {
+export async function runMigrations(
+  connectionString: string,
+  options: { environment?: MigrationEnvironment } = {},
+): Promise<void> {
   await lintMigrationFiles();
 
+  const environment = options.environment ?? resolveMigrationEnvironment();
   const shouldLog = process.env.DB_MIGRATE_LOG_LEVEL !== "silent";
   const sql = createSqlClient(connectionString);
   try {
@@ -32,25 +38,24 @@ export async function runMigrations(connectionString: string): Promise<void> {
     let skippedCount = 0;
 
     for (const migration of migrations) {
-      const result = await applyMigrationFile(sql, migration);
+      const result = await applyMigrationFile(sql, migration, { environment });
       if (result.skipped) {
         skippedCount += 1;
         if (shouldLog) {
-          console.info(`[db:migrate] skip ${migration.relativePath}`);
+          const skipPrefix = result.skipReason === "environment" ? "skip-env" : "skip";
+          console.info(`[db:migrate] ${skipPrefix} ${migration.relativePath}`);
         }
       } else {
         appliedCount += 1;
         if (shouldLog) {
-          console.info(
-            `[db:migrate] apply ${migration.relativePath} (${result.durationMs}ms)`,
-          );
+          console.info(`[db:migrate] apply ${migration.relativePath} (${result.durationMs}ms)`);
         }
       }
     }
 
     if (shouldLog) {
       console.info(
-        `[db:migrate] complete. applied=${appliedCount} skipped=${skippedCount}`,
+        `[db:migrate] complete. environment=${environment} applied=${appliedCount} skipped=${skippedCount}`,
       );
     }
   } finally {
@@ -63,7 +68,9 @@ export async function runMigrations(connectionString: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await runMigrations(readDatabaseUrlFromEnv());
+  await runMigrations(readDatabaseUrlFromEnv(), {
+    environment: resolveMigrationEnvironment(),
+  });
 }
 
 if (isMainModule(import.meta.url)) {

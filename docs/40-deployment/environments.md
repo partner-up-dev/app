@@ -148,6 +148,13 @@ backend.
 - schema source of truth: Drizzle entities + committed SQL artifacts
 - forward-only schema/data migration model in staging and production
 - migration execution happens through a dedicated FC migration function inside the VPC
+- migration environment is controlled by `PARTNERUP_ENVIRONMENT`
+- the runner defaults to `production` if no explicit environment is provided
+- backend deploy maps `develop` to `staging` and `master` to `production`
+- schema migrations are environment-neutral; only data migrations may declare
+  `-- migration: environments=...`
+- local development-only data migrations use `pnpm db:migrate:dev` or
+  `pnpm db:reset:dev`
 
 ## Job Runner Trigger Environment
 

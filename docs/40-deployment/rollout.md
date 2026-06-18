@@ -55,7 +55,8 @@ install graph.
 3. lint backend migration/seed artifacts
 4. build FC migration bundle
 5. deploy FC migration function
-6. invoke migration function
+6. invoke migration function with `PARTNERUP_ENVIRONMENT` mapped from branch
+   (`develop` -> `staging`, `master` -> `production`)
 7. prepare or publish backend `node_modules` layer when needed
 8. resolve latest layer ARN
 9. build backend
@@ -69,6 +70,8 @@ install graph.
 ## Rollout Guarantees
 
 - migrations happen before backend deploy
+- backend migration environment is explicit in deploy and is not inferred by
+  the migration runner
 - backend deploys run serially through the `backend-fc-deploy` concurrency group
 - layer-only publish is supported via workflow dispatch input
 - runtime build metadata stays available even when the deployed package has no `.git` directory

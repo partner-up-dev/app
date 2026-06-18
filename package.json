@@ -65,7 +65,9 @@
     "db:lint": "pnpm --filter @partner-up-dev/backend db:lint",
     "db:check": "pnpm --filter @partner-up-dev/backend exec drizzle-kit check --config=drizzle.config.ts",
     "db:migrate": "pnpm --filter @partner-up-dev/backend db:migrate",
+    "db:migrate:dev": "pnpm --filter @partner-up-dev/backend db:migrate:dev",
     "db:reset": "pnpm --filter @partner-up-dev/backend db:reset",
+    "db:reset:dev": "pnpm --filter @partner-up-dev/backend db:reset:dev",
     "db:seed": "pnpm --filter @partner-up-dev/backend db:seed",
     "db:next-migration": "pnpm --filter @partner-up-dev/backend db:next-migration",
     "db:studio": "pnpm --filter @partner-up-dev/backend db:studio"

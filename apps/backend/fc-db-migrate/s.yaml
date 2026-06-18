@@ -37,6 +37,7 @@ resources:
       code: ./.fc-package
       environmentVariables:
         DATABASE_URL: ${env('DATABASE_URL')}
+        PARTNERUP_ENVIRONMENT: ${env('PARTNERUP_ENVIRONMENT')}
       vpcConfig:
         vpcId: ${vars.vpcId}
         securityGroupId: ${vars.securityGroupId}
