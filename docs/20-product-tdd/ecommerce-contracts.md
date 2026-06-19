@@ -99,6 +99,8 @@ Does not own:
 Owns:
 
 - charge/refund obligation lines
+- BillLine-local provider execution slot identity
+- BillLine settlement confirmation
 - settlement derivation over successful payment movements
 - reconciliation from current buyer-side total to target buyer-side total
 
@@ -111,13 +113,32 @@ Does not own:
 
 Owns:
 
-- external money movement
-- gateway callback/query state
+- provider orchestration for external money movement
+- gateway callback verification and provider queries
+- provider-specific merchant order/refund reference derivation and parsing
+- payment provider registry and routing credentials
 
 Does not own:
 
 - bill obligation semantics
+- persisted provider transaction lifecycle truth
 - service execution semantics
+
+Payment provider systems own gateway-facing payment lifecycle truth. Backend
+Payment code can create provider executions, query provider state, and accept
+verified callbacks, but provider status, provider snapshots, provider
+transaction ids, and provider failure states are not persisted as backend
+payment transaction truth.
+
+BillLine owns the local provider execution slot for an obligation line:
+
+- `paymentProviderInstanceId` is set only when provider execution is initiated.
+- `attemptCount` is monotonic local key material for provider reference
+  derivation and is not reset after failed, closed, or expired provider states.
+- `settledAt` is Bill-owned settlement confirmation. For `CHARGE` lines it
+  means paid; for `REFUND` lines it means refunded.
+- provider-specific merchant order/refund numbers are derived by the provider
+  adapter from BillLine-local key material and are not persisted as Bill truth.
 
 ## User-Facing Route Spine
 

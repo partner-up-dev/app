@@ -18,6 +18,7 @@ let database: ScenarioDatabaseHandle | null = null;
 
 export async function setup(_project: TestProject): Promise<void> {
   loadWorkspaceEnvFiles(repoRoot);
+  process.env.PAYMENT_NOTIFY_BASE_URL ??= "http://127.0.0.1:1";
 
   database = await createScenarioDatabase();
   const databaseUrl = installScenarioDatabaseEnv(database.databaseUrl);

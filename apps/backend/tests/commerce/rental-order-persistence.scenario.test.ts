@@ -21,17 +21,13 @@ import {
 import { attachOrderToPr } from "../../src/domains/pr-core";
 import type { OfferId } from "../../src/entities/offer";
 import type { BillId } from "../../src/entities/bill";
-import type {
-  PaymentProviderInstanceId,
-  PaymentTxId,
-} from "../../src/entities/payment";
+import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { PRId } from "../../src/entities/partner-request";
 import type { ProductSku } from "../../src/entities/product-sku";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
-import { PaymentTxRepository } from "../../src/repositories/PaymentTxRepository";
 import { RentalOrderRepository } from "../../src/repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 
@@ -40,7 +36,6 @@ const partnerRequestRepo = new PartnerRequestRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billLineRepo = new BillLineRepository();
-const paymentTxRepo = new PaymentTxRepository();
 
 const generateRsaPrivateKeyPem = (): string => {
   const { privateKey } = generateKeyPairSync("rsa", {
@@ -318,22 +313,18 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     },
   });
 
-  const paymentTxId = randomUUID() as PaymentTxId;
-  await paymentTxRepo.create({
-    id: paymentTxId,
-    billLineId: chargeLine.id,
-    type: "CHARGE",
-    providerInstanceId:
+  const openedChargeLine = await billLineRepo.openProviderExecutionSlot({
+    id: chargeLine.id,
+    paymentProviderInstanceId:
       providerResult.providerInstanceId as PaymentProviderInstanceId,
-    clientId: "late-payment",
-    status: "SUCCEEDED",
-    amountFen: chargeLine.amountFen,
-    currency: chargeLine.currency,
-    requestedBy: creator.user.id,
-    merchantOrderNo: `late-${paymentTxId}`,
-    providerStatus: "SUCCESS",
-    providerTransactionId: `provider-${paymentTxId}`,
-    succeededAt: new Date(),
+  });
+  assert.ok(openedChargeLine, "Charge BillLine should open a provider slot");
+  await billLineRepo.markSettledFromProvider({
+    id: openedChargeLine.id,
+    paymentProviderInstanceId:
+      providerResult.providerInstanceId as PaymentProviderInstanceId,
+    attemptCount: openedChargeLine.attemptCount,
+    settledAt: new Date(),
   });
 
   await tradeOrderRepo.applyTerminationState({
@@ -355,7 +346,7 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
   });
 
   const pendingResult = await applyPaymentSettlementConsequence({
-    paymentTxId,
+    billLineId: openedChargeLine.id,
   });
 
   assert.deepEqual(pendingResult, {
@@ -375,7 +366,7 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
   );
 
   const cancelledResult = await applyPaymentSettlementConsequence({
-    paymentTxId,
+    billLineId: openedChargeLine.id,
   });
 
   assert.deepEqual(cancelledResult, {

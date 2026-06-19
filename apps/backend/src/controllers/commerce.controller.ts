@@ -16,8 +16,7 @@ import {
   getBillDetail,
   getBillDetailByOrderId,
   getPaymentCheckout,
-  getPaymentTxDetail,
-  syncPaymentTx,
+  syncPaymentForBillLine,
 } from "../domains/payment";
 
 const app = new Hono<AuthEnv>();
@@ -32,10 +31,6 @@ const billIdParamSchema = z.object({
 
 const billLineIdParamSchema = z.object({
   billLineId: z.string().uuid(),
-});
-
-const paymentTxIdParamSchema = z.object({
-  paymentTxId: z.string().uuid(),
 });
 
 const CLIENT_ID_HEADER = "x-client-id";
@@ -213,16 +208,10 @@ type CommerceRouteSchema = {
       Awaited<ReturnType<typeof createOrReuseChargeForBillLine>>
     >;
   };
-  "/payments/:paymentTxId": {
-    $get: JsonEndpoint<
-      UuidParam<"paymentTxId">,
-      Awaited<ReturnType<typeof getPaymentTxDetail>>
-    >;
-  };
-  "/payments/:paymentTxId/sync": {
+  "/bill-lines/:billLineId/payment/sync": {
     $post: JsonEndpoint<
-      UuidParam<"paymentTxId"> & EmptyInput,
-      Awaited<ReturnType<typeof syncPaymentTx>>
+      UuidParam<"billLineId"> & EmptyInput,
+      Awaited<ReturnType<typeof syncPaymentForBillLine>>
     >;
   };
   "/orders/:orderId/cancel-rental": {
@@ -325,27 +314,14 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       return c.json(result);
     },
   )
-  .get(
-    "/payments/:paymentTxId",
-    zValidator("param", paymentTxIdParamSchema),
-    async (c) => {
-      const { paymentTxId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await getPaymentTxDetail({
-        paymentTxId,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
   .post(
-    "/payments/:paymentTxId/sync",
-    zValidator("param", paymentTxIdParamSchema),
+    "/bill-lines/:billLineId/payment/sync",
+    zValidator("param", billLineIdParamSchema),
     async (c) => {
-      const { paymentTxId } = c.req.valid("param");
+      const { billLineId } = c.req.valid("param");
       const auth = c.get("auth");
-      const result = await syncPaymentTx({
-        paymentTxId,
+      const result = await syncPaymentForBillLine({
+        billLineId,
         viewerUserId: auth.userId,
       });
       return c.json(result);

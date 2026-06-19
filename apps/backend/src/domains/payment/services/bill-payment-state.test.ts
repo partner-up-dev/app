@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
-import type {
-  PaymentProviderInstanceId,
-  PaymentTx,
-  PaymentTxId,
-} from "../../../entities/payment";
+import type { PaymentProviderInstanceId } from "../../../entities/payment";
 import type { UserId } from "../../../entities/user";
 import { deriveBillPaymentState } from "./bill-payment-state";
 
@@ -21,6 +17,9 @@ const billLine = (input: {
   kind: BillLine["kind"];
   amountFen: number;
   refundOfBillLineId?: BillLineId | null;
+  paymentProviderInstanceId?: PaymentProviderInstanceId | null;
+  attemptCount?: number;
+  settledAt?: Date | null;
 }): BillLine => ({
   id: input.id as BillLineId,
   billId,
@@ -31,49 +30,22 @@ const billLine = (input: {
   label: input.kind,
   description: null,
   refundOfBillLineId: input.refundOfBillLineId ?? null,
+  paymentProviderInstanceId: input.paymentProviderInstanceId ?? null,
+  attemptCount: input.attemptCount ?? 0,
+  settledAt: input.settledAt ?? null,
   createdAt: now,
-});
-
-const paymentTx = (input: {
-  id: string;
-  billLineId: BillLineId;
-  type: PaymentTx["type"];
-  status: PaymentTx["status"];
-  amountFen: number;
-}): PaymentTx => ({
-  id: input.id as PaymentTxId,
-  billLineId: input.billLineId,
-  type: input.type,
-  providerInstanceId,
-  clientId: "web",
-  status: input.status,
-  amountFen: input.amountFen,
-  currency: "CNY",
-  requestedBy: userA,
-  merchantOrderNo: input.type === "CHARGE" ? `order-${input.id}` : null,
-  merchantRefundNo: input.type === "REFUND" ? `refund-${input.id}` : null,
-  providerPrepayId: null,
-  providerTransactionId: null,
-  providerRefundId: null,
-  providerStatus: null,
-  clientAction: null,
-  providerSnapshot: null,
-  failureCode: null,
-  failureMessage: null,
-  expiresAt: null,
-  succeededAt: input.status === "SUCCEEDED" ? now : null,
-  closedAt: input.status === "CLOSED" ? now : null,
-  createdAt: now,
-  updatedAt: now,
 });
 
 describe("deriveBillPaymentState", () => {
-  it("derives partial settlement from successful charge PaymentTx rows", () => {
+  it("derives partial settlement from settled charge BillLines", () => {
     const creatorLine = billLine({
       id: "00000000-0000-0000-0000-000000000201",
       userId: userA,
       kind: "CHARGE",
       amountFen: 1000,
+      settledAt: now,
+      paymentProviderInstanceId: providerInstanceId,
+      attemptCount: 1,
     });
     const joinerLine = billLine({
       id: "00000000-0000-0000-0000-000000000202",
@@ -84,15 +56,6 @@ describe("deriveBillPaymentState", () => {
 
     const result = deriveBillPaymentState({
       lines: [creatorLine, joinerLine],
-      txs: [
-        paymentTx({
-          id: "00000000-0000-0000-0000-000000000301",
-          billLineId: creatorLine.id,
-          type: "CHARGE",
-          status: "SUCCEEDED",
-          amountFen: 1000,
-        }),
-      ],
     });
 
     expect(result.chargeTotalFen).toBe(2000);
@@ -101,12 +64,15 @@ describe("deriveBillPaymentState", () => {
     expect(result.lines.map((line) => line.status)).toEqual(["PAID", "UNPAID"]);
   });
 
-  it("derives refunded state from refund PaymentTx rows on refund BillLines", () => {
+  it("derives refunded state from settled refund BillLines", () => {
     const chargeLine = billLine({
       id: "00000000-0000-0000-0000-000000000211",
       userId: userA,
       kind: "CHARGE",
       amountFen: 1000,
+      settledAt: now,
+      paymentProviderInstanceId: providerInstanceId,
+      attemptCount: 1,
     });
     const refundLine = billLine({
       id: "00000000-0000-0000-0000-000000000212",
@@ -114,26 +80,13 @@ describe("deriveBillPaymentState", () => {
       kind: "REFUND",
       amountFen: 1000,
       refundOfBillLineId: chargeLine.id,
+      settledAt: now,
+      paymentProviderInstanceId: providerInstanceId,
+      attemptCount: 1,
     });
 
     const result = deriveBillPaymentState({
       lines: [chargeLine, refundLine],
-      txs: [
-        paymentTx({
-          id: "00000000-0000-0000-0000-000000000311",
-          billLineId: chargeLine.id,
-          type: "CHARGE",
-          status: "SUCCEEDED",
-          amountFen: 1000,
-        }),
-        paymentTx({
-          id: "00000000-0000-0000-0000-000000000312",
-          billLineId: refundLine.id,
-          type: "REFUND",
-          status: "SUCCEEDED",
-          amountFen: 1000,
-        }),
-      ],
     });
 
     expect(result.refundTotalFen).toBe(1000);
@@ -143,12 +96,14 @@ describe("deriveBillPaymentState", () => {
     );
   });
 
-  it("marks active charge and refund PaymentTx rows as pending", () => {
+  it("marks active charge and refund provider bindings as pending", () => {
     const chargeLine = billLine({
       id: "00000000-0000-0000-0000-000000000221",
       userId: userA,
       kind: "CHARGE",
       amountFen: 1000,
+      paymentProviderInstanceId: providerInstanceId,
+      attemptCount: 1,
     });
     const refundLine = billLine({
       id: "00000000-0000-0000-0000-000000000222",
@@ -156,31 +111,17 @@ describe("deriveBillPaymentState", () => {
       kind: "REFUND",
       amountFen: 500,
       refundOfBillLineId: chargeLine.id,
+      paymentProviderInstanceId: providerInstanceId,
+      attemptCount: 1,
     });
 
     const result = deriveBillPaymentState({
       lines: [chargeLine, refundLine],
-      txs: [
-        paymentTx({
-          id: "00000000-0000-0000-0000-000000000321",
-          billLineId: chargeLine.id,
-          type: "CHARGE",
-          status: "ACTION_REQUIRED",
-          amountFen: 1000,
-        }),
-        paymentTx({
-          id: "00000000-0000-0000-0000-000000000322",
-          billLineId: refundLine.id,
-          type: "REFUND",
-          status: "PROCESSING",
-          amountFen: 500,
-        }),
-      ],
     });
 
     expect(result.hasPendingPayment).toBe(true);
     expect(result.lines.map((line) => line.status)).toEqual([
-      "ACTION_REQUIRED",
+      "PROCESSING",
       "REFUND_PENDING",
     ]);
   });

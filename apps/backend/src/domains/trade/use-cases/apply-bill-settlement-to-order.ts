@@ -1,8 +1,7 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillId, BillLineId } from "../../../entities/bill";
+import type { BillId } from "../../../entities/bill";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
 import { deriveBillPaymentState } from "../../payment/services";
@@ -10,7 +9,6 @@ import { confirmRideHailingProviderFeeAfterPayment } from "./ride-hailing-orderi
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
-const paymentTxRepo = new PaymentTxRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
 export async function applyBillSettlementToOrder(input: {
@@ -26,10 +24,7 @@ export async function applyBillSettlementToOrder(input: {
   }
 
   const lines = await billLineRepo.listByBillId(bill.id);
-  const txs = await paymentTxRepo.listByBillLineIds(
-    lines.map((line) => line.id as BillLineId),
-  );
-  const paymentState = deriveBillPaymentState({ lines, txs });
+  const paymentState = deriveBillPaymentState({ lines });
   if (!paymentState.allChargesPaid) {
     return {
       applied: false,

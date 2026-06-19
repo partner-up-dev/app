@@ -1,27 +1,24 @@
+import type { BillLine, BillLineId } from "../../../entities/bill";
+import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  PaymentProviderInstance,
-  PaymentProviderInstanceId,
-  PaymentTx,
-} from "../../../entities/payment";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
-import {
-  createPaymentProviderPort,
-  ensureWeChatPayPlatformCertificates,
-  refreshWeChatPayPlatformCertificates,
-  UnknownWeChatPayPlatformCertificateSerialError,
-} from "../services";
 import type {
   NormalizedChargeStatus,
   NormalizedPaymentStatus,
   NormalizedRefundStatus,
   RawProviderNotification,
 } from "../model";
+import {
+  createPaymentProviderPort,
+  ensureWeChatPayPlatformCertificates,
+  refreshWeChatPayPlatformCertificates,
+  UnknownWeChatPayPlatformCertificateSerialError,
+} from "../services";
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 const providerRepo = new PaymentProviderInstanceRepository();
-const paymentTxRepo = new PaymentTxRepository();
+const billLineRepo = new BillLineRepository();
 
 export type WeChatNotificationHeadersInput = {
   timestamp: string | null;
@@ -30,14 +27,8 @@ export type WeChatNotificationHeadersInput = {
   serial: string | null;
 };
 
-const mapNormalizedStatusToTxStatus = (
-  status: NormalizedPaymentStatus,
-): PaymentTx["status"] => {
-  if (status === "SUCCEEDED") return "SUCCEEDED";
-  if (status === "FAILED") return "FAILED";
-  if (status === "CLOSED") return "CLOSED";
-  return "PROCESSING";
-};
+const isTerminalUnsettledProviderStatus = (status: NormalizedPaymentStatus): boolean =>
+  status === "FAILED" || status === "CLOSED";
 
 const normalizeNotificationInput = (input: {
   headers: WeChatNotificationHeadersInput;
@@ -62,9 +53,7 @@ const normalizeNotificationInput = (input: {
   };
 };
 
-async function loadProviderInstance(
-  providerInstanceId: string,
-): Promise<PaymentProviderInstance> {
+async function loadProviderInstance(providerInstanceId: string): Promise<PaymentProviderInstance> {
   const providerInstance = await providerRepo.findById(
     providerInstanceId as PaymentProviderInstanceId,
   );
@@ -91,9 +80,75 @@ async function parseWithProviderInstance<T>(input: {
     }
   }
 
-  const refreshedProviderInstance =
-    await refreshWeChatPayPlatformCertificates(input.providerInstance);
+  const refreshedProviderInstance = await refreshWeChatPayPlatformCertificates(
+    input.providerInstance,
+  );
   return input.parse(refreshedProviderInstance);
+}
+
+async function loadReferencedBillLine(input: {
+  billLineId: string;
+  expectedKind: BillLine["kind"];
+  providerInstanceId: PaymentProviderInstanceId;
+  attemptCount: number;
+}): Promise<BillLine> {
+  const line = await billLineRepo.findById(input.billLineId as BillLineId);
+  if (!line) {
+    return throwHttpProblem({ status: 404, detail: "BillLine not found" });
+  }
+  if (line.kind !== input.expectedKind) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Payment provider reference kind does not match BillLine",
+    });
+  }
+  if (line.attemptCount < input.attemptCount) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Payment provider reference attempt was not issued",
+    });
+  }
+  if (
+    line.paymentProviderInstanceId &&
+    line.paymentProviderInstanceId !== input.providerInstanceId &&
+    !line.settledAt
+  ) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Payment provider reference does not match current BillLine provider",
+    });
+  }
+
+  return line;
+}
+
+async function settleBillLineFromProvider(input: {
+  line: BillLine;
+  providerInstanceId: PaymentProviderInstanceId;
+  attemptCount: number;
+}): Promise<BillLine> {
+  return (
+    (await billLineRepo.markSettledFromProvider({
+      id: input.line.id,
+      paymentProviderInstanceId: input.providerInstanceId,
+      attemptCount: input.attemptCount,
+      settledAt: new Date(),
+    })) ??
+    (await billLineRepo.findById(input.line.id)) ??
+    input.line
+  );
+}
+
+async function clearBillLineProviderBinding(input: {
+  line: BillLine;
+  providerInstanceId: PaymentProviderInstanceId;
+  attemptCount: number;
+}): Promise<void> {
+  await billLineRepo.clearProviderExecutionSlot({
+    id: input.line.id,
+    paymentProviderInstanceId: input.providerInstanceId,
+    attemptCount: input.attemptCount,
+  });
 }
 
 export async function handleWeChatPayChargeNotification(input: {
@@ -103,6 +158,7 @@ export async function handleWeChatPayChargeNotification(input: {
 }): Promise<{ code: "SUCCESS"; message: string }> {
   const notification = normalizeNotificationInput(input);
   const providerInstance = await loadProviderInstance(input.providerInstanceId);
+  const port = createPaymentProviderPort({ providerInstance });
 
   const parsed = await parseWithProviderInstance<
     NormalizedChargeStatus & { merchantOrderNo: string }
@@ -114,34 +170,34 @@ export async function handleWeChatPayChargeNotification(input: {
         providerInstance: currentProviderInstance,
       }).parseChargeNotification(notification),
   });
-
-  const tx = await paymentTxRepo.findByProviderMerchantOrder({
-    providerInstanceId: providerInstance.id,
-    merchantOrderNo: parsed.merchantOrderNo,
-  });
-  if (!tx || tx.type !== "CHARGE") {
+  const reference = port.parseMerchantPaymentReference(parsed.merchantOrderNo);
+  if (reference.kind !== "CHARGE") {
     return throwHttpProblem({
-      status: 404,
-      detail: "PaymentTx not found for WeChatPay charge notification",
+      status: 409,
+      detail: "WeChatPay charge notification reference is not a charge",
     });
   }
 
-  const nextStatus = mapNormalizedStatusToTxStatus(parsed.status);
-  const now = new Date();
-  const updated = await paymentTxRepo.convergeChargeStatus({
-    id: tx.id,
-    status: nextStatus,
-    providerStatus: parsed.providerStatus,
-    providerTransactionId: parsed.providerTransactionId ?? null,
-    providerSnapshot: parsed.providerSnapshot,
-    failureCode: parsed.failureCode ?? null,
-    failureMessage: parsed.failureMessage ?? null,
-    succeededAt: nextStatus === "SUCCEEDED" ? now : tx.succeededAt,
-    closedAt: nextStatus === "CLOSED" ? now : tx.closedAt,
+  const line = await loadReferencedBillLine({
+    billLineId: reference.billLineId,
+    expectedKind: "CHARGE",
+    providerInstanceId: providerInstance.id,
+    attemptCount: reference.attemptCount,
   });
 
-  if (updated?.status === "SUCCEEDED") {
-    await applyPaymentSettlementConsequence({ paymentTxId: updated.id });
+  if (parsed.status === "SUCCEEDED") {
+    const settledLine = await settleBillLineFromProvider({
+      line,
+      providerInstanceId: providerInstance.id,
+      attemptCount: reference.attemptCount,
+    });
+    await applyPaymentSettlementConsequence({ billLineId: settledLine.id });
+  } else if (isTerminalUnsettledProviderStatus(parsed.status)) {
+    await clearBillLineProviderBinding({
+      line,
+      providerInstanceId: providerInstance.id,
+      attemptCount: reference.attemptCount,
+    });
   }
 
   return {
@@ -157,6 +213,7 @@ export async function handleWeChatPayRefundNotification(input: {
 }): Promise<{ code: "SUCCESS"; message: string }> {
   const notification = normalizeNotificationInput(input);
   const providerInstance = await loadProviderInstance(input.providerInstanceId);
+  const port = createPaymentProviderPort({ providerInstance });
 
   const parsed = await parseWithProviderInstance<
     NormalizedRefundStatus & { merchantRefundNo: string }
@@ -168,31 +225,34 @@ export async function handleWeChatPayRefundNotification(input: {
         providerInstance: currentProviderInstance,
       }).parseRefundNotification(notification),
   });
-
-  const tx = await paymentTxRepo.findByProviderMerchantRefund({
-    providerInstanceId: providerInstance.id,
-    merchantRefundNo: parsed.merchantRefundNo,
-  });
-  if (!tx || tx.type !== "REFUND") {
+  const reference = port.parseMerchantPaymentReference(parsed.merchantRefundNo);
+  if (reference.kind !== "REFUND") {
     return throwHttpProblem({
-      status: 404,
-      detail: "PaymentTx not found for WeChatPay refund notification",
+      status: 409,
+      detail: "WeChatPay refund notification reference is not a refund",
     });
   }
 
-  const nextStatus = mapNormalizedStatusToTxStatus(parsed.status);
-  const now = new Date();
-  await paymentTxRepo.convergeRefundStatus({
-    id: tx.id,
-    status: nextStatus,
-    providerStatus: parsed.providerStatus,
-    providerRefundId: parsed.providerRefundId ?? null,
-    providerSnapshot: parsed.providerSnapshot,
-    failureCode: parsed.failureCode ?? null,
-    failureMessage: parsed.failureMessage ?? null,
-    succeededAt: nextStatus === "SUCCEEDED" ? now : tx.succeededAt,
-    closedAt: nextStatus === "CLOSED" ? now : tx.closedAt,
+  const line = await loadReferencedBillLine({
+    billLineId: reference.billLineId,
+    expectedKind: "REFUND",
+    providerInstanceId: providerInstance.id,
+    attemptCount: reference.attemptCount,
   });
+
+  if (parsed.status === "SUCCEEDED") {
+    await settleBillLineFromProvider({
+      line,
+      providerInstanceId: providerInstance.id,
+      attemptCount: reference.attemptCount,
+    });
+  } else if (isTerminalUnsettledProviderStatus(parsed.status)) {
+    await clearBillLineProviderBinding({
+      line,
+      providerInstanceId: providerInstance.id,
+      attemptCount: reference.attemptCount,
+    });
+  }
 
   return {
     code: "SUCCESS",

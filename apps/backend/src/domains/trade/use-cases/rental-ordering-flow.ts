@@ -1,9 +1,7 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillLineId } from "../../../entities/bill";
 import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { requestRentalCancellationHandling } from "../../fulfillment";
@@ -30,7 +28,6 @@ const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
-const paymentTxRepo = new PaymentTxRepository();
 
 export type CommerceOrderDetailProjection = {
   order: {
@@ -101,14 +98,7 @@ export async function getCommerceOrderDetail(input: {
       : null;
   const bill = await billRepo.findBySourceOrderId(order.id);
   const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
-  const paymentTxs = bill
-    ? await paymentTxRepo.listByBillLineIds(
-        billLines.map((line) => line.id as BillLineId),
-      )
-    : [];
-  const paymentState = bill
-    ? deriveBillPaymentState({ lines: billLines, txs: paymentTxs })
-    : null;
+  const paymentState = bill ? deriveBillPaymentState({ lines: billLines }) : null;
   const rentalOrder =
     order.family === "RENTAL"
       ? await rentalOrderRepo.findByOrderId(order.id)
@@ -218,12 +208,8 @@ export async function cancelRentalOrderFromOrderDetail(input: {
   });
   const bill = await billRepo.findBySourceOrderId(order.id);
   const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
-  const paymentTxs = await paymentTxRepo.listByBillLineIds(
-    billLines.map((line) => line.id as BillLineId),
-  );
   const paymentState = deriveBillPaymentState({
     lines: billLines,
-    txs: paymentTxs,
   });
   const requiresFulfillmentGate =
     policyResolution.requiresOperatorHandling && paymentState.paidChargeFen > 0;

@@ -1,15 +1,5 @@
 export type PaymentProviderType = "WECHAT_PAY";
 
-export type PaymentTxType = "CHARGE" | "REFUND";
-
-export type PaymentTxStatus =
-  | "INITIATED"
-  | "ACTION_REQUIRED"
-  | "PROCESSING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CLOSED";
-
 export type PaymentProviderInstanceStatus = "ACTIVE" | "DISABLED";
 
 export type WeChatPayChargeMode = "JSAPI" | "H5";
@@ -53,11 +43,7 @@ export type PaymentClientAction =
       url: string;
     };
 
-export type NormalizedPaymentStatus =
-  | "PENDING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CLOSED";
+export type NormalizedPaymentStatus = "PENDING" | "SUCCEEDED" | "FAILED" | "CLOSED";
 
 export type NormalizedChargeStatus = {
   status: NormalizedPaymentStatus;
@@ -120,6 +106,17 @@ export type QueryRefundInput = {
   merchantRefundNo: string;
 };
 
+export type ProviderPaymentReferenceKind = "CHARGE" | "REFUND";
+
+export type ProviderPaymentReferenceInput = {
+  providerInstanceId: string;
+  billLineId: string;
+  kind: ProviderPaymentReferenceKind;
+  attemptCount: number;
+};
+
+export type ParsedProviderPaymentReference = ProviderPaymentReferenceInput;
+
 export type RawProviderNotification = {
   headers: {
     timestamp: string;
@@ -131,6 +128,9 @@ export type RawProviderNotification = {
 };
 
 export type PaymentProviderPort = {
+  deriveChargeMerchantOrderNo(input: ProviderPaymentReferenceInput): string;
+  deriveRefundMerchantRefundNo(input: ProviderPaymentReferenceInput): string;
+  parseMerchantPaymentReference(input: string): ParsedProviderPaymentReference;
   createChargePrepay(input: CreateChargePrepayInput): Promise<ChargePrepayResult>;
   queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus>;
   createRefund(input: CreateRefundInput): Promise<CreateRefundResult>;

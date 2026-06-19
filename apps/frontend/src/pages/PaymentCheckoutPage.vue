@@ -159,8 +159,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
 import {
   PuButton,
   PuCard,
@@ -168,10 +166,12 @@ import {
   PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
+import { computed, ref } from "vue";
+import { useRoute } from "vue-router";
 import {
   useCreateChargeForBillLine,
   usePaymentCheckout,
-  useSyncPaymentTx,
+  useSyncBillLinePayment,
 } from "@/domains/commerce/queries/useCommerce";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
@@ -185,7 +185,7 @@ const billLineId = computed(() => {
 
 const checkoutQuery = usePaymentCheckout(billLineId);
 const createChargeMutation = useCreateChargeForBillLine();
-const syncMutation = useSyncPaymentTx();
+const syncMutation = useSyncBillLinePayment();
 const clientPaymentError = ref<string | null>(null);
 
 type WeChatBridgeClientAction = {
@@ -203,9 +203,7 @@ type PaymentRedirectClientAction = {
   url: string;
 };
 
-type PaymentClientAction =
-  | WeChatBridgeClientAction
-  | PaymentRedirectClientAction;
+type PaymentClientAction = WeChatBridgeClientAction | PaymentRedirectClientAction;
 
 type WeixinJSBridgeResponse = {
   err_msg?: string;
@@ -240,17 +238,12 @@ const activePayment = computed(
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const readString = (
-  record: Record<string, unknown>,
-  key: string,
-): string | null => {
+const readString = (record: Record<string, unknown>, key: string): string | null => {
   const value = record[key];
   return typeof value === "string" && value.length > 0 ? value : null;
 };
 
-const parsePaymentClientAction = (
-  value: unknown,
-): PaymentClientAction | null => {
+const parsePaymentClientAction = (value: unknown): PaymentClientAction | null => {
   if (!isRecord(value)) return null;
   const type = readString(value, "type");
 
@@ -286,9 +279,7 @@ const activePaymentClientAction = computed(() =>
   parsePaymentClientAction(activePayment.value?.clientAction),
 );
 
-const activePaymentClientActionType = computed(
-  () => activePaymentClientAction.value?.type ?? null,
-);
+const activePaymentClientActionType = computed(() => activePaymentClientAction.value?.type ?? null);
 
 const redirectUrl = computed(() =>
   activePaymentClientAction.value?.type === "PAYMENT_REDIRECT"
@@ -297,7 +288,10 @@ const redirectUrl = computed(() =>
 );
 
 const canCreateCharge = computed(
-  () => checkout.value?.eligibility.payable === true && !activePayment.value,
+  () =>
+    checkout.value?.eligibility.payable === true &&
+    activePayment.value?.status !== "SUCCEEDED" &&
+    activePaymentClientActionType.value === null,
 );
 
 const paymentStatusLabel = computed(() => {
@@ -334,9 +328,8 @@ const createCharge = async (): Promise<void> => {
 };
 
 const syncPayment = async (): Promise<void> => {
-  const paymentTxId = activePayment.value?.id;
-  if (!paymentTxId) return;
-  await syncMutation.mutateAsync(paymentTxId);
+  if (!billLineId.value) return;
+  await syncMutation.mutateAsync(billLineId.value);
 };
 
 const runClientPaymentAction = async (value: unknown): Promise<void> => {
@@ -354,14 +347,11 @@ const runClientPaymentAction = async (value: unknown): Promise<void> => {
     await invokeWeChatBridgePayment(action);
     await syncPayment();
   } catch (error) {
-    clientPaymentError.value =
-      error instanceof Error ? error.message : "微信支付调用失败。";
+    clientPaymentError.value = error instanceof Error ? error.message : "微信支付调用失败。";
   }
 };
 
-const invokeWeChatBridgePayment = (
-  action: WeChatBridgeClientAction,
-): Promise<void> =>
+const invokeWeChatBridgePayment = (action: WeChatBridgeClientAction): Promise<void> =>
   new Promise((resolve, reject) => {
     const bridge = window.WeixinJSBridge;
     if (!bridge) {

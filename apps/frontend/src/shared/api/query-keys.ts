@@ -60,8 +60,8 @@ export const queryKeys = {
       ["commerce", "bill", billId] as const,
     paymentCheckout: (billLineId: string | null) =>
       ["commerce", "bill-line", billLineId, "checkout"] as const,
-    paymentTx: (paymentTxId: string | null) =>
-      ["commerce", "payment", paymentTxId] as const,
+    billLinePayment: (billLineId: string | null) =>
+      ["commerce", "bill-line", billLineId, "payment"] as const,
   },
   studySprint: {
     room: (prId: PRId | null) => ["study-sprint", "room", prId] as const,

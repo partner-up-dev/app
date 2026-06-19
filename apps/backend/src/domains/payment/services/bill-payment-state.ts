@@ -1,5 +1,4 @@
 import type { BillLine, BillLineId } from "../../../entities/bill";
-import type { PaymentTx } from "../../../entities/payment";
 
 export type BillLineSettlementStatus =
   | "UNPAID"
@@ -15,8 +14,6 @@ export type BillLinePaymentProjection = {
   status: BillLineSettlementStatus;
   paidFen: number;
   refundableFen: number;
-  latestPaymentTxId: string | null;
-  activePaymentTxId: string | null;
 };
 
 export type BillPaymentState = {
@@ -29,67 +26,42 @@ export type BillPaymentState = {
   lines: BillLinePaymentProjection[];
 };
 
-const activeStatuses = new Set(["INITIATED", "ACTION_REQUIRED", "PROCESSING"]);
-
-const toLinePaymentProjection = (
-  line: BillLine,
-  txs: PaymentTx[],
-): BillLinePaymentProjection => {
-  const lineTxs = txs.filter((tx) => tx.billLineId === line.id);
-  const successful = lineTxs.filter((tx) => tx.status === "SUCCEEDED");
-  const active = lineTxs.find((tx) => activeStatuses.has(tx.status)) ?? null;
-  const latest = lineTxs[0] ?? null;
-  const paidFen = successful
-    .filter((tx) => tx.type === "CHARGE")
-    .reduce((sum, tx) => sum + tx.amountFen, 0);
-  const refundedFen = successful
-    .filter((tx) => tx.type === "REFUND")
-    .reduce((sum, tx) => sum + tx.amountFen, 0);
-
+const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
   if (line.kind === "REFUND") {
+    const refundedFen = line.settledAt ? line.amountFen : 0;
     return {
       billLineId: line.id,
       status:
-        refundedFen >= line.amountFen
+        line.settledAt
           ? "REFUNDED"
-          : active
+          : line.paymentProviderInstanceId
             ? "REFUND_PENDING"
             : "UNPAID",
       paidFen: 0,
       refundableFen: refundedFen,
-      latestPaymentTxId: latest?.id ?? null,
-      activePaymentTxId: active?.id ?? null,
     };
   }
 
+  const paidFen = line.settledAt ? line.amountFen : 0;
   const status: BillLineSettlementStatus =
-    paidFen >= line.amountFen
+    line.settledAt
       ? "PAID"
-      : active
-        ? active.status === "ACTION_REQUIRED"
-          ? "ACTION_REQUIRED"
-          : "PROCESSING"
-        : latest?.status === "FAILED" || latest?.status === "CLOSED"
-          ? "FAILED"
-          : "UNPAID";
+      : line.paymentProviderInstanceId
+        ? "PROCESSING"
+        : "UNPAID";
 
   return {
     billLineId: line.id,
     status,
     paidFen,
     refundableFen: 0,
-    latestPaymentTxId: latest?.id ?? null,
-    activePaymentTxId: active?.id ?? null,
   };
 };
 
 export function deriveBillPaymentState(input: {
   lines: BillLine[];
-  txs: PaymentTx[];
 }): BillPaymentState {
-  const projections = input.lines.map((line) =>
-    toLinePaymentProjection(line, input.txs),
-  );
+  const projections = input.lines.map((line) => toLinePaymentProjection(line));
   const projectionByLineId = new Map(
     projections.map((projection) => [projection.billLineId, projection]),
   );

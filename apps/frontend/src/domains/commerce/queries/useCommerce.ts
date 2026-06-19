@@ -1,16 +1,15 @@
-import { computed, type Ref } from "vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
+import { computed, type Ref } from "vue";
 import { client } from "@/lib/rpc";
-import { queryKeys } from "@/shared/api/query-keys";
 import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
+import { queryKeys } from "@/shared/api/query-keys";
 
 type CommerceApi = typeof client.api.commerce;
 type PlacementApi = typeof client.api.placements;
 
 export type PlacementMatchResponse = InferResponseType<PlacementApi["$post"]>;
-export type PlacementInstanceProjection =
-  PlacementMatchResponse["placements"][number];
+export type PlacementInstanceProjection = PlacementMatchResponse["placements"][number];
 
 export type OrderingEntryResponse = InferResponseType<
   PlacementApi[":instanceId"]["ordering-entry"]["$post"]
@@ -20,24 +19,16 @@ export type OrderingEvaluationInput = Parameters<
   CommerceApi["ordering"]["evaluate"]["$post"]
 >[0]["json"];
 
-export type CreateOrderInput = Parameters<
-  CommerceApi["orders"]["$post"]
->[0]["json"];
+export type CreateOrderInput = Parameters<CommerceApi["orders"]["$post"]>[0]["json"];
 
 export type CommerceOrderDetailResponse = InferResponseType<
   CommerceApi["orders"][":orderId"]["$get"]
 >;
 
-export type BillDetailResponse = InferResponseType<
-  CommerceApi["bills"][":billId"]["$get"]
->;
+export type BillDetailResponse = InferResponseType<CommerceApi["bills"][":billId"]["$get"]>;
 
 export type PaymentCheckoutResponse = InferResponseType<
   CommerceApi["bill-lines"][":billLineId"]["checkout"]["$get"]
->;
-
-export type PaymentTxResponse = InferResponseType<
-  CommerceApi["payments"][":paymentTxId"]["$get"]
 >;
 
 const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise<T> => {
@@ -53,12 +44,7 @@ export const usePlacementMatch = (
   type: "BUTTON" = "BUTTON",
 ) =>
   useQuery<PlacementMatchResponse>({
-    queryKey: computed(() => [
-      "placements",
-      "match",
-      type,
-      matchingContext.value,
-    ]),
+    queryKey: computed(() => ["placements", "match", type, matchingContext.value]),
     queryFn: async () => {
       if (matchingContext.value === null) {
         throw new Error("Missing placement matching context");
@@ -75,10 +61,7 @@ export const usePlacementMatch = (
           },
         },
       );
-      return readJsonOrThrow<PlacementMatchResponse>(
-        response,
-        "Failed to load placement",
-      );
+      return readJsonOrThrow<PlacementMatchResponse>(response, "Failed to load placement");
     },
     enabled: () => matchingContext.value !== null,
   });
@@ -98,18 +81,17 @@ export const resolvePlacementBindings = async (input: {
       },
     },
   );
-  return readJsonOrThrow<
-    InferResponseType<PlacementApi[":instanceId"]["bindings"]["$post"]>
-  >(response, "Failed to resolve placement bindings");
+  return readJsonOrThrow<InferResponseType<PlacementApi[":instanceId"]["bindings"]["$post"]>>(
+    response,
+    "Failed to resolve placement bindings",
+  );
 };
 
 export const resolvePlacementOrderingEntry = async (input: {
   placementInstanceId: number;
   matchingContext: unknown;
 }) => {
-  const response = await client.api.placements[":instanceId"][
-    "ordering-entry"
-  ].$post(
+  const response = await client.api.placements[":instanceId"]["ordering-entry"].$post(
     {
       param: { instanceId: String(input.placementInstanceId) },
       json: { matchingContext: input.matchingContext },
@@ -120,10 +102,7 @@ export const resolvePlacementOrderingEntry = async (input: {
       },
     },
   );
-  return readJsonOrThrow<OrderingEntryResponse>(
-    response,
-    "Failed to resolve ordering entry",
-  );
+  return readJsonOrThrow<OrderingEntryResponse>(response, "Failed to resolve ordering entry");
 };
 
 export const useEvaluateOrdering = () =>
@@ -137,9 +116,10 @@ export const useEvaluateOrdering = () =>
           },
         },
       );
-      return readJsonOrThrow<
-        InferResponseType<CommerceApi["ordering"]["evaluate"]["$post"]>
-      >(response, "Failed to evaluate ordering");
+      return readJsonOrThrow<InferResponseType<CommerceApi["ordering"]["evaluate"]["$post"]>>(
+        response,
+        "Failed to evaluate ordering",
+      );
     },
   });
 
@@ -189,10 +169,7 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) =>
           },
         },
       );
-      return readJsonOrThrow<CommerceOrderDetailResponse>(
-        response,
-        "Failed to load order",
-      );
+      return readJsonOrThrow<CommerceOrderDetailResponse>(response, "Failed to load order");
     },
     enabled: () => orderId.value !== null,
   });
@@ -217,10 +194,7 @@ export const useBillDetail = (billId: Ref<string | null>) =>
           },
         },
       );
-      return readJsonOrThrow<BillDetailResponse>(
-        response,
-        "Failed to load bill",
-      );
+      return readJsonOrThrow<BillDetailResponse>(response, "Failed to load bill");
     },
     enabled: () => billId.value !== null,
     refetchOnMount: "always",
@@ -228,17 +202,13 @@ export const useBillDetail = (billId: Ref<string | null>) =>
 
 export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
   useQuery<PaymentCheckoutResponse>({
-    queryKey: computed(() =>
-      queryKeys.commerce.paymentCheckout(billLineId.value),
-    ),
+    queryKey: computed(() => queryKeys.commerce.paymentCheckout(billLineId.value)),
     queryFn: async () => {
       if (billLineId.value === null) {
         throw new Error("Missing bill line id");
       }
 
-      const response = await client.api.commerce["bill-lines"][
-        ":billLineId"
-      ].checkout.$get(
+      const response = await client.api.commerce["bill-lines"][":billLineId"].checkout.$get(
         {
           param: {
             billLineId: billLineId.value,
@@ -250,10 +220,7 @@ export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
           },
         },
       );
-      return readJsonOrThrow<PaymentCheckoutResponse>(
-        response,
-        "Failed to load checkout",
-      );
+      return readJsonOrThrow<PaymentCheckoutResponse>(response, "Failed to load checkout");
     },
     enabled: () => billLineId.value !== null,
   });
@@ -263,8 +230,7 @@ export const useCreateChargeForBillLine = () => {
 
   return useMutation({
     mutationFn: async (billLineId: string) => {
-      const response = await client.api.commerce["bill-lines"][":billLineId"]
-        .charges.$post(
+      const response = await client.api.commerce["bill-lines"][":billLineId"].charges.$post(
         {
           param: { billLineId },
         },
@@ -275,9 +241,7 @@ export const useCreateChargeForBillLine = () => {
         },
       );
       return readJsonOrThrow<
-        InferResponseType<
-          CommerceApi["bill-lines"][":billLineId"]["charges"]["$post"]
-        >
+        InferResponseType<CommerceApi["bill-lines"][":billLineId"]["charges"]["$post"]>
       >(response, "Failed to create charge");
     },
     onSuccess: () => {
@@ -288,15 +252,15 @@ export const useCreateChargeForBillLine = () => {
   });
 };
 
-export const useSyncPaymentTx = () => {
+export const useSyncBillLinePayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (paymentTxId: string) => {
-      const response = await client.api.commerce.payments[":paymentTxId"].sync.$post(
+    mutationFn: async (billLineId: string) => {
+      const response = await client.api.commerce["bill-lines"][":billLineId"].payment.sync.$post(
         {
           param: {
-            paymentTxId,
+            billLineId,
           },
         },
         {
@@ -306,14 +270,12 @@ export const useSyncPaymentTx = () => {
         },
       );
       return readJsonOrThrow<
-        InferResponseType<
-          CommerceApi["payments"][":paymentTxId"]["sync"]["$post"]
-        >
+        InferResponseType<CommerceApi["bill-lines"][":billLineId"]["payment"]["sync"]["$post"]>
       >(response, "Failed to sync payment");
     },
-    onSuccess: (_, paymentTxId) => {
+    onSuccess: (_, billLineId) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.commerce.paymentTx(paymentTxId),
+        queryKey: queryKeys.commerce.billLinePayment(billLineId),
       });
       queryClient.invalidateQueries({
         queryKey: ["commerce"],
@@ -327,9 +289,7 @@ export const useCancelRentalOrder = () => {
 
   return useMutation({
     mutationFn: async (orderId: string) => {
-      const response = await client.api.commerce.orders[":orderId"][
-        "cancel-rental"
-      ].$post(
+      const response = await client.api.commerce.orders[":orderId"]["cancel-rental"].$post(
         {
           param: {
             orderId,
@@ -342,9 +302,7 @@ export const useCancelRentalOrder = () => {
         },
       );
       return readJsonOrThrow<
-        InferResponseType<
-          CommerceApi["orders"][":orderId"]["cancel-rental"]["$post"]
-        >
+        InferResponseType<CommerceApi["orders"][":orderId"]["cancel-rental"]["$post"]>
       >(response, "Failed to cancel rental order");
     },
     onSuccess: (_, orderId) => {

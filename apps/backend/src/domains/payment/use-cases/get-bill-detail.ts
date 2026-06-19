@@ -1,30 +1,16 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
-import type { PaymentTx } from "../../../entities/payment";
+import type { BillId, BillLine } from "../../../entities/bill";
 import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { deriveBillPaymentState } from "../services";
 import { getOrderItemSkuName } from "../../trade";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
-const paymentTxRepo = new PaymentTxRepository();
 const tradeOrderRepo = new TradeOrderRepository();
-
-type PaymentTxSummary = {
-  id: string;
-  type: "CHARGE" | "REFUND";
-  status: string;
-  amountFen: number;
-  providerInstanceId: string;
-  clientId: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export type BillDetailProjection = {
   bill: {
@@ -61,8 +47,9 @@ export type BillDetailProjection = {
     refundedFen: number;
     payableByViewer: boolean;
     checkoutHref: string | null;
-    latestPaymentTx: PaymentTxSummary | null;
-    activePaymentTxId: string | null;
+    paymentProviderInstanceId: string | null;
+    attemptCount: number;
+    settledAt: string | null;
   }>;
 };
 
@@ -79,20 +66,6 @@ const resolveSettlementStatus = (input: {
   }
   if (input.paidChargeFen > 0) return "PARTIALLY_PAID";
   return "UNPAID";
-};
-
-const toPaymentTxSummary = (tx: PaymentTx | null): PaymentTxSummary | null => {
-  if (!tx) return null;
-  return {
-    id: tx.id,
-    type: tx.type,
-    status: tx.status,
-    amountFen: tx.amountFen,
-    providerInstanceId: tx.providerInstanceId,
-    clientId: tx.clientId,
-    createdAt: tx.createdAt.toISOString(),
-    updatedAt: tx.updatedAt.toISOString(),
-  };
 };
 
 async function buildBillDetail(input: {
@@ -113,19 +86,10 @@ async function buildBillDetail(input: {
   }
 
   const lines = await billLineRepo.listByBillId(bill.id);
-  const paymentTxs = await paymentTxRepo.listByBillLineIds(
-    lines.map((line) => line.id as BillLineId),
-  );
-  const paymentState = deriveBillPaymentState({ lines, txs: paymentTxs });
+  const paymentState = deriveBillPaymentState({ lines });
   const paymentByLineId = new Map(
     paymentState.lines.map((line) => [line.billLineId, line]),
   );
-  const latestTxByLineId = new Map<BillLineId, PaymentTx>();
-  for (const tx of paymentTxs) {
-    if (!latestTxByLineId.has(tx.billLineId)) {
-      latestTxByLineId.set(tx.billLineId, tx);
-    }
-  }
 
   return {
     bill: {
@@ -173,8 +137,9 @@ async function buildBillDetail(input: {
         checkoutHref: payableByViewer
           ? `/bill-lines/${line.id}/checkout`
           : null,
-        latestPaymentTx: toPaymentTxSummary(latestTxByLineId.get(line.id) ?? null),
-        activePaymentTxId: payment?.activePaymentTxId ?? null,
+        paymentProviderInstanceId: line.paymentProviderInstanceId,
+        attemptCount: line.attemptCount,
+        settledAt: line.settledAt?.toISOString() ?? null,
       };
     }),
   };

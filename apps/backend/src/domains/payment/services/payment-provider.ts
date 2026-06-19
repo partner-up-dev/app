@@ -1,11 +1,9 @@
-import { type KeyObject } from "node:crypto";
+import { createHmac, type KeyObject } from "node:crypto";
 import { Aes, Formatter, Rsa, Wechatpay } from "wechatpay-axios-plugin";
-import {
-  ProblemDetailsError,
-  throwHttpProblem,
-} from "../../../lib/problem-details";
-import { env } from "../../../lib/env";
 import type { PaymentProviderInstance } from "../../../entities/payment";
+import { env } from "../../../lib/env";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
+import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import type {
   ChargePrepayResult,
   CreateChargePrepayInput,
@@ -14,15 +12,17 @@ import type {
   NormalizedChargeStatus,
   NormalizedPaymentStatus,
   NormalizedRefundStatus,
+  ParsedProviderPaymentReference,
   PaymentClientAction,
   PaymentProviderPort,
+  ProviderPaymentReferenceInput,
+  ProviderPaymentReferenceKind,
   QueryChargeInput,
   QueryRefundInput,
   RawProviderNotification,
   WeChatPayPlatformCertificate,
   WeChatPayProviderInstanceConfig,
 } from "../model";
-import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { normalizeAndValidateWeChatPayProviderConfig } from "./wechatpay-config-validation";
 
 const providerInstanceRepo = new PaymentProviderInstanceRepository();
@@ -38,44 +38,67 @@ const parseJsonRecord = (text: string): Record<string, unknown> => {
   return value;
 };
 
-const readRecordField = (
-  value: unknown,
-  key: string,
-): Record<string, unknown> => {
+const readRecordField = (value: unknown, key: string): Record<string, unknown> => {
   if (isRecord(value) && isRecord(value[key])) {
     return value[key];
   }
   throw new Error(`Expected object field ${key}`);
 };
 
-const readRequiredStringField = (
-  value: unknown,
-  key: string,
-): string => {
-  if (
-    isRecord(value) &&
-    typeof value[key] === "string" &&
-    value[key].length > 0
-  ) {
+const readRequiredStringField = (value: unknown, key: string): string => {
+  if (isRecord(value) && typeof value[key] === "string" && value[key].length > 0) {
     return value[key];
   }
 
   throw new Error(`Expected string field ${key}`);
 };
 
-const readOptionalStringField = (
-  value: unknown,
-  key: string,
-): string | null => {
+const readOptionalStringField = (value: unknown, key: string): string | null => {
   if (!isRecord(value)) return null;
   const field = value[key];
   return typeof field === "string" && field.length > 0 ? field : null;
 };
 
+const readHttpStatus = (error: unknown): number | null => {
+  if (!isRecord(error) || !isRecord(error.response)) return null;
+  const status = error.response.status;
+  return typeof status === "number" ? status : null;
+};
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const maxMerchantReferenceAttemptCount = 36 ** 3 - 1;
+
+const encodeUuidBase64Url = (uuid: string): string => {
+  if (!uuidPattern.test(uuid)) {
+    throw new Error("Invalid UUID for WeChatPay merchant reference");
+  }
+  return Buffer.from(uuid.replaceAll("-", ""), "hex").toString("base64url");
+};
+
+const decodeUuidBase64Url = (encoded: string): string => {
+  const bytes = Buffer.from(encoded, "base64url");
+  if (bytes.length !== 16) {
+    throw new Error("Invalid encoded UUID for WeChatPay merchant reference");
+  }
+  const hex = bytes.toString("hex");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
+};
+
+const parseWeChatPayReferenceKind = (prefix: string): ProviderPaymentReferenceKind => {
+  if (prefix === "PC") return "CHARGE";
+  if (prefix === "PR") return "REFUND";
+  throw new Error("Invalid WeChatPay merchant reference kind");
+};
+
 const isWeChatPayApiV3Config = (
   config: PaymentProviderInstance["config"],
-): config is WeChatPayProviderInstanceConfig =>
-  config.adapterMode === "WECHAT_PAY_API_V3";
+): config is WeChatPayProviderInstanceConfig => config.adapterMode === "WECHAT_PAY_API_V3";
 
 const resolvePaymentNotifyBaseUrl = (): string => {
   if (!env.PAYMENT_NOTIFY_BASE_URL) {
@@ -105,18 +128,14 @@ export const resolveWeChatPayRefundNotifyUrl = (
   ).toString();
 };
 
-const mapWeChatPayTradeState = (
-  state: string | undefined,
-): NormalizedPaymentStatus => {
+const mapWeChatPayTradeState = (state: string | undefined): NormalizedPaymentStatus => {
   if (state === "SUCCESS") return "SUCCEEDED";
   if (state === "CLOSED" || state === "REVOKED") return "CLOSED";
   if (state === "PAYERROR") return "FAILED";
   return "PENDING";
 };
 
-const mapWeChatPayRefundState = (
-  state: string | undefined,
-): NormalizedPaymentStatus => {
+const mapWeChatPayRefundState = (state: string | undefined): NormalizedPaymentStatus => {
   if (state === "SUCCESS") return "SUCCEEDED";
   if (state === "CLOSED") return "CLOSED";
   if (state === "ABNORMAL") return "FAILED";
@@ -140,10 +159,7 @@ const buildPlatformCertificateMap = (
   }
 
   return Object.fromEntries(
-    certificates.map((certificate) => [
-      certificate.serialNo,
-      certificate.certificatePem,
-    ]),
+    certificates.map((certificate) => [certificate.serialNo, certificate.certificatePem]),
   );
 };
 
@@ -151,8 +167,7 @@ const findPlatformCertificatePem = (
   certificates: WeChatPayPlatformCertificate[] | null | undefined,
   serial: string,
 ): string | null =>
-  certificates?.find((certificate) => certificate.serialNo === serial)
-    ?.certificatePem ?? null;
+  certificates?.find((certificate) => certificate.serialNo === serial)?.certificatePem ?? null;
 
 const buildWeChatPayClient = (
   config: WeChatPayProviderInstanceConfig,
@@ -196,13 +211,11 @@ const assertEndpointBaseUrlAllowed = (endpointBaseUrl: string | null): void => {
   if (!endpointBaseUrl) return;
   const parsed = new URL(endpointBaseUrl);
   const isAllowedProductionHost =
-    parsed.protocol === "https:" &&
-    isOfficialWeChatPayEndpointHost(parsed.hostname);
+    parsed.protocol === "https:" && isOfficialWeChatPayEndpointHost(parsed.hostname);
   if (process.env.NODE_ENV === "production" && !isAllowedProductionHost) {
     return throwHttpProblem({
       status: 500,
-      detail:
-        "WeChatPay endpointBaseUrl must point to the official host in production",
+      detail: "WeChatPay endpointBaseUrl must point to the official host in production",
     });
   }
   if (
@@ -212,8 +225,7 @@ const assertEndpointBaseUrlAllowed = (endpointBaseUrl: string | null): void => {
   ) {
     return throwHttpProblem({
       status: 500,
-      detail:
-        "WeChatPay endpointBaseUrl must be localhost or the official host outside production",
+      detail: "WeChatPay endpointBaseUrl must be localhost or the official host outside production",
     });
   }
 };
@@ -231,17 +243,11 @@ const decryptPlatformCertificate = (input: {
   const encryptCertificate = readRecordField(item, "encrypt_certificate");
   const ciphertext = readRequiredStringField(encryptCertificate, "ciphertext");
   const nonce = readRequiredStringField(encryptCertificate, "nonce");
-  const associatedData =
-    readOptionalStringField(encryptCertificate, "associated_data") ?? "";
+  const associatedData = readOptionalStringField(encryptCertificate, "associated_data") ?? "";
 
   return {
     serialNo: readRequiredStringField(item, "serial_no"),
-    certificatePem: Aes.AesGcm.decrypt(
-      ciphertext,
-      input.apiV3Key,
-      nonce,
-      associatedData,
-    ),
+    certificatePem: Aes.AesGcm.decrypt(ciphertext, input.apiV3Key, nonce, associatedData),
     effectiveTime: readOptionalStringField(item, "effective_time"),
     expireTime: readOptionalStringField(item, "expire_time"),
   };
@@ -347,6 +353,7 @@ export const ensureWeChatPayPlatformCertificates = async (
 export class WeChatPayProviderAdapter implements PaymentProviderPort {
   private readonly wxpay: Wechatpay;
   private readonly config: WeChatPayProviderInstanceConfig;
+  private readonly providerInstanceId: string;
 
   constructor(input: {
     providerInstance: PaymentProviderInstance;
@@ -355,18 +362,109 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
       throw new Error("WeChatPay adapter requires APIv3 provider config");
     }
 
-    this.config = normalizeRuntimeWeChatPayProviderConfig(
-      input.providerInstance.config,
-    );
+    this.providerInstanceId = input.providerInstance.id;
+    this.config = normalizeRuntimeWeChatPayProviderConfig(input.providerInstance.config);
     this.wxpay = buildWeChatPayClient(
       this.config,
       buildPlatformCertificateMap(this.config.platformCertificates),
     );
   }
 
-  async createChargePrepay(
-    input: CreateChargePrepayInput,
-  ): Promise<ChargePrepayResult> {
+  deriveChargeMerchantOrderNo(input: ProviderPaymentReferenceInput): string {
+    if (input.kind !== "CHARGE") {
+      throw new Error("WeChatPay charge merchant reference requires charge kind");
+    }
+    return this.deriveMerchantPaymentReference(input);
+  }
+
+  deriveRefundMerchantRefundNo(input: ProviderPaymentReferenceInput): string {
+    if (input.kind !== "REFUND") {
+      throw new Error("WeChatPay refund merchant reference requires refund kind");
+    }
+    return this.deriveMerchantPaymentReference(input);
+  }
+
+  parseMerchantPaymentReference(input: string): ParsedProviderPaymentReference {
+    const prefix = input.slice(0, 2);
+    const kind = parseWeChatPayReferenceKind(prefix);
+    const encodedBillLineId = input.slice(2, 24);
+    const encodedAttemptCount = input.slice(24, 27);
+    const signature = input.slice(27);
+    if (
+      input.length !== 32 ||
+      encodedBillLineId.length !== 22 ||
+      encodedAttemptCount.length !== 3 ||
+      signature.length !== 5
+    ) {
+      throw new Error("Invalid WeChatPay merchant reference shape");
+    }
+
+    const billLineId = decodeUuidBase64Url(encodedBillLineId);
+    const attemptCount = Number.parseInt(encodedAttemptCount, 36);
+    if (!Number.isInteger(attemptCount) || attemptCount <= 0) {
+      throw new Error("Invalid WeChatPay merchant reference attempt count");
+    }
+
+    const expected = this.signMerchantReference({
+      prefix,
+      billLineId,
+      attemptCount,
+    });
+    if (signature !== expected) {
+      throw new Error("Invalid WeChatPay merchant reference signature");
+    }
+
+    return {
+      providerInstanceId: this.providerInstanceId,
+      billLineId,
+      kind,
+      attemptCount,
+    };
+  }
+
+  private deriveMerchantPaymentReference(input: ProviderPaymentReferenceInput): string {
+    if (input.providerInstanceId !== this.providerInstanceId) {
+      throw new Error("WeChatPay merchant reference provider instance mismatch");
+    }
+    if (input.kind !== "CHARGE" && input.kind !== "REFUND") {
+      throw new Error("Unsupported WeChatPay merchant reference kind");
+    }
+    if (
+      !Number.isInteger(input.attemptCount) ||
+      input.attemptCount <= 0 ||
+      input.attemptCount > maxMerchantReferenceAttemptCount
+    ) {
+      throw new Error("Invalid WeChatPay merchant reference attempt count");
+    }
+
+    const prefix = input.kind === "CHARGE" ? "PC" : "PR";
+    const encodedBillLineId = encodeUuidBase64Url(input.billLineId);
+    const encodedAttemptCount = input.attemptCount.toString(36).toUpperCase().padStart(3, "0");
+    const signature = this.signMerchantReference({
+      prefix,
+      billLineId: input.billLineId,
+      attemptCount: input.attemptCount,
+    });
+
+    return `${prefix}${encodedBillLineId}${encodedAttemptCount}${signature}`;
+  }
+
+  private signMerchantReference(input: {
+    prefix: string;
+    billLineId: string;
+    attemptCount: number;
+  }): string {
+    return createHmac("sha256", this.config.apiV3Key)
+      .update(
+        [input.prefix, this.providerInstanceId, input.billLineId, String(input.attemptCount)].join(
+          ":",
+        ),
+      )
+      .digest("base64url")
+      .slice(0, 5);
+  }
+
+  async createChargePrepay(input: CreateChargePrepayInput): Promise<ChargePrepayResult> {
     if (this.config.chargeMode === "JSAPI") {
       if (!input.payerOpenId) {
         return throwHttpProblem({
@@ -436,23 +534,30 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
   }
 
   async queryCharge(input: QueryChargeInput): Promise<NormalizedChargeStatus> {
-    const response = await this.wxpay
-      .chain(`/v3/pay/transactions/out-trade-no/${input.merchantOrderNo}`)
-      .get<Record<string, unknown>>({
-        params: {
-          mchid: this.config.mchId,
-        },
-      });
-    const providerStatus =
-      readOptionalStringField(response.data, "trade_state") ?? "UNKNOWN";
+    let response: { data: Record<string, unknown> };
+    try {
+      response = await this.wxpay
+        .chain(`/v3/pay/transactions/out-trade-no/${input.merchantOrderNo}`)
+        .get<Record<string, unknown>>({
+          params: {
+            mchid: this.config.mchId,
+          },
+        });
+    } catch (error) {
+      if (readHttpStatus(error) === 404) {
+        return {
+          status: "CLOSED",
+          providerStatus: "NOT_FOUND",
+        };
+      }
+      throw error;
+    }
+    const providerStatus = readOptionalStringField(response.data, "trade_state") ?? "UNKNOWN";
 
     return {
       status: mapWeChatPayTradeState(providerStatus),
       providerStatus,
-      providerTransactionId: readOptionalStringField(
-        response.data,
-        "transaction_id",
-      ),
+      providerTransactionId: readOptionalStringField(response.data, "transaction_id"),
       providerSnapshot: response.data,
       failureMessage: readOptionalStringField(response.data, "trade_state_desc"),
     };
@@ -476,8 +581,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
         },
       });
 
-    const providerStatus =
-      readOptionalStringField(response.data, "status") ?? "UNKNOWN";
+    const providerStatus = readOptionalStringField(response.data, "status") ?? "UNKNOWN";
     return {
       status: mapWeChatPayRefundState(providerStatus),
       providerStatus,
@@ -488,11 +592,21 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
   }
 
   async queryRefund(input: QueryRefundInput): Promise<NormalizedRefundStatus> {
-    const response = await this.wxpay
-      .chain(`/v3/refund/domestic/refunds/${input.merchantRefundNo}`)
-      .get<Record<string, unknown>>();
-    const providerStatus =
-      readOptionalStringField(response.data, "status") ?? "UNKNOWN";
+    let response: { data: Record<string, unknown> };
+    try {
+      response = await this.wxpay
+        .chain(`/v3/refund/domestic/refunds/${input.merchantRefundNo}`)
+        .get<Record<string, unknown>>();
+    } catch (error) {
+      if (readHttpStatus(error) === 404) {
+        return {
+          status: "CLOSED",
+          providerStatus: "NOT_FOUND",
+        };
+      }
+      throw error;
+    }
+    const providerStatus = readOptionalStringField(response.data, "status") ?? "UNKNOWN";
 
     return {
       status: mapWeChatPayRefundState(providerStatus),
@@ -543,25 +657,17 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     };
   }
 
-  private decryptVerifiedResource(
-    input: RawProviderNotification,
-  ): Record<string, unknown> {
+  private decryptVerifiedResource(input: RawProviderNotification): Record<string, unknown> {
     const platformCertificatePem = findPlatformCertificatePem(
       this.config.platformCertificates,
       input.headers.serial,
     );
     if (!platformCertificatePem) {
-      throw new UnknownWeChatPayPlatformCertificateSerialError(
-        input.headers.serial,
-      );
+      throw new UnknownWeChatPayPlatformCertificateSerialError(input.headers.serial);
     }
 
     const verified = Rsa.verify(
-      Formatter.response(
-        input.headers.timestamp,
-        input.headers.nonce,
-        input.bodyText,
-      ),
+      Formatter.response(input.headers.timestamp, input.headers.nonce, input.bodyText),
       input.headers.signature,
       platformCertificatePem,
     );
@@ -574,12 +680,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     const ciphertext = readRequiredStringField(resource, "ciphertext");
     const nonce = readRequiredStringField(resource, "nonce");
     const associatedData = readOptionalStringField(resource, "associated_data") ?? "";
-    const plaintext = Aes.AesGcm.decrypt(
-      ciphertext,
-      this.config.apiV3Key,
-      nonce,
-      associatedData,
-    );
+    const plaintext = Aes.AesGcm.decrypt(ciphertext, this.config.apiV3Key, nonce, associatedData);
 
     return parseJsonRecord(plaintext);
   }
@@ -589,12 +690,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
     const nonceStr = Formatter.nonce();
     const packageValue = `prepay_id=${prepayId}`;
     const paySign = Rsa.sign(
-      Formatter.joinedByLineFeed(
-        this.config.appId,
-        timeStamp,
-        nonceStr,
-        packageValue,
-      ),
+      Formatter.joinedByLineFeed(this.config.appId, timeStamp, nonceStr, packageValue),
       this.config.merchantCertificate.privateKeyPem,
     );
 
