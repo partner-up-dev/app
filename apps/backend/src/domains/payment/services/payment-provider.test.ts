@@ -88,6 +88,13 @@ const createUnitPaymentProviderPort = (
 };
 
 describe("WeChatPay merchant payment references", () => {
+  it("allows portless local endpoint hosts outside production", () => {
+    const providerInstance = buildProviderInstance();
+    providerInstance.config.endpointBaseUrl = "https://wechatpay.partner-up.local";
+
+    expect(() => createUnitPaymentProviderPort(providerInstance)).not.toThrow();
+  });
+
   it("round-trips charge reference material without persisted merchant order state", () => {
     const port = createUnitPaymentProviderPort();
 

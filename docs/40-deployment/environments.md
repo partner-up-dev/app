@@ -22,11 +22,47 @@ Local app identity is stored in `portless.json`:
 Portless injects runtime origin and listener values through `PORTLESS_URL`,
 `HOST`, and `PORT`. The frontend Vite config detects `PORTLESS_URL`, exposes
 that value as `import.meta.env.VITE_API_URL`, and proxies `/api` to the backend
-portless app with `Host: api.partner-up.localhost`.
+portless app by deriving the backend host from the active frontend portless
+origin.
+
+The default portless TLD is `.localhost`. LAN device debugging must run portless
+in LAN mode, which forces `.local` routes:
+
+```bash
+pnpm dev:ensure --lan --ip <reachable-lan-ip>
+```
+
+For explicit LAN-mode launches, `scripts/portless.mjs` first honors
+`PORTLESS_LAN_IP` or `--ip`, then makes a best-effort inference from the host's
+default-route network interface. This keeps WSL LAN launches from depending on
+portless's own auto-detection when the reachable address is the WSL subnet
+address.
+
+When a privileged proxy is involved, the elevated proxy and app registrations
+must share one `PORTLESS_STATE_DIR`. VS Code LAN launch entries should set it
+with an environment-neutral variable such as `${userHome}/.portless`; shell
+users can set `PORTLESS_STATE_DIR` explicitly when they need to avoid a root/user
+state split. If the other LAN device cannot route to the advertised address,
+publish a reachable host LAN IP and forward TCP `443` into the dev environment,
+or use a networking mode where the advertised IP is directly reachable.
 
 Fixed local ports remain available for compatibility workflows through package
 env files and helper scripts. They are local fallback inputs, while portless is
 the default developer workflow.
+
+Fake integration servers use provider-scoped portless names under the app
+namespace:
+
+- Caocao: `caocao.partner-up`
+- WeChatPay: `wechatpay.partner-up`
+
+They follow the active portless proxy mode. In LAN mode they are reachable as
+`caocao.partner-up.local` and `wechatpay.partner-up.local`; in local-only mode
+they use the same names under `.localhost`.
+
+Non-production WeChatPay provider endpoints allow portless local hostnames
+(`.localhost` and `.local`) in addition to raw loopback hosts and the official
+WeChatPay API host. Production still requires the official WeChatPay API host.
 
 The backend development script loads `apps/backend/.env` when the file exists,
 so portless and fixed-port local backend starts share the same local runtime

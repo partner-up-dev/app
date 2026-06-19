@@ -1,9 +1,9 @@
-import { defineConfig, loadEnv } from "vite";
-import vue from "@vitejs/plugin-vue";
-import unocss from "unocss/vite";
-import { resolve } from "path";
 import { execSync } from "node:child_process";
+import vue from "@vitejs/plugin-vue";
 import { parse as parseJsonc } from "jsonc-parser";
+import { resolve } from "path";
+import unocss from "unocss/vite";
+import { defineConfig, loadEnv } from "vite";
 
 const jsoncPlugin = () => ({
   name: "jsonc-loader",
@@ -64,6 +64,58 @@ const parsePort = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(port) ? port : fallback;
 };
 
+const resolvePortlessSiblingHost = (
+  portlessUrl: string | null,
+  currentAppName: string,
+  siblingAppName: string,
+): string => {
+  if (!portlessUrl) {
+    return `${siblingAppName}.localhost`;
+  }
+
+  try {
+    const hostname = new URL(portlessUrl).hostname;
+
+    if (hostname === currentAppName) {
+      return siblingAppName;
+    }
+
+    if (hostname.startsWith(`${currentAppName}.`)) {
+      return `${siblingAppName}${hostname.slice(currentAppName.length)}`;
+    }
+  } catch {
+    return `${siblingAppName}.localhost`;
+  }
+
+  return `${siblingAppName}.localhost`;
+};
+
+const resolvePortlessProxyTarget = (portlessUrl: string | null): string => {
+  if (!portlessUrl) {
+    return "https://127.0.0.1";
+  }
+
+  try {
+    const url = new URL(portlessUrl);
+    return `${url.protocol}//127.0.0.1${url.port ? `:${url.port}` : ""}`;
+  } catch {
+    return "https://127.0.0.1";
+  }
+};
+
+const resolvePortlessHostHeader = (portlessUrl: string | null, hostname: string): string => {
+  if (!portlessUrl) {
+    return hostname;
+  }
+
+  try {
+    const url = new URL(portlessUrl);
+    return url.port ? `${hostname}:${url.port}` : hostname;
+  } catch {
+    return hostname;
+  }
+};
+
 const readGitValue = (command: string): string | null => {
   try {
     const output = execSync(command, {
@@ -97,26 +149,17 @@ const frameworkVendorPackages = [
   "hookable",
 ] as const;
 
-const validationVendorPackages = [
-  "zod",
-  "vee-validate",
-  "@vee-validate/zod",
-] as const;
+const validationVendorPackages = ["zod", "vee-validate", "@vee-validate/zod"] as const;
 
 const posterRenderingVendorPackages = ["html2canvas"] as const;
 const qrCodeVendorPackages = ["qrcode"] as const;
 
 const normalizeModuleId = (id: string): string => id.replace(/\\/g, "/");
 
-const includesNodePackage = (
-  id: string,
-  packageName: string,
-): boolean => id.includes(`/node_modules/${packageName}/`);
+const includesNodePackage = (id: string, packageName: string): boolean =>
+  id.includes(`/node_modules/${packageName}/`);
 
-const includesAnyNodePackage = (
-  id: string,
-  packageNames: readonly string[],
-): boolean =>
+const includesAnyNodePackage = (id: string, packageNames: readonly string[]): boolean =>
   packageNames.some((packageName) => includesNodePackage(id, packageName));
 
 const getManualChunkName = (id: string): string | undefined => {
@@ -142,10 +185,7 @@ const getManualChunkName = (id: string): string | undefined => {
     return "vendor";
   }
 
-  if (
-    moduleId.includes("/src/domains/share/") ||
-    moduleId.includes("/src/lib/poster-types")
-  ) {
+  if (moduleId.includes("/src/domains/share/") || moduleId.includes("/src/lib/poster-types")) {
     return "share";
   }
 
@@ -163,16 +203,20 @@ export default defineConfig(({ mode }) => {
     : parsePort(env.VITE_PORT, 5173);
   const backendHost = normalizeEnvValue(env.VITE_BACKEND_HOST) ?? "localhost";
   const backendPort = normalizeEnvValue(env.VITE_BACKEND_PORT) ?? "3000";
-  const portlessBackendHost = "api.partner-up.localhost";
+  const portlessUrl = normalizeEnvValue(process.env.PORTLESS_URL);
+  const portlessBackendHost = resolvePortlessSiblingHost(
+    portlessUrl,
+    "partner-up",
+    "api.partner-up",
+  );
+  const portlessBackendHostHeader = resolvePortlessHostHeader(portlessUrl, portlessBackendHost);
   const backendProxyTarget =
     normalizeEnvValue(env.VITE_BACKEND_PROXY_TARGET) ??
-    (isPortless ? "https://127.0.0.1" : `http://${backendHost}:${backendPort}`);
+    (isPortless ? resolvePortlessProxyTarget(portlessUrl) : `http://${backendHost}:${backendPort}`);
   const backendProxyUrl = new URL(backendProxyTarget);
-  const backendProxyHeaders = isPortless
-    ? { Host: portlessBackendHost }
-    : undefined;
+  const backendProxyHeaders = isPortless ? { Host: portlessBackendHostHeader } : undefined;
   const frontendApiUrl = isPortless
-    ? (normalizeEnvValue(process.env.PORTLESS_URL) ?? "")
+    ? (portlessUrl ?? "")
     : (normalizeEnvValue(env.VITE_API_URL) ?? "");
   const frontendCommitHash =
     normalizeEnvValue(env.VITE_FRONTEND_COMMIT_HASH) ??
@@ -194,9 +238,7 @@ export default defineConfig(({ mode }) => {
     ],
     define: {
       "import.meta.env.VITE_API_URL": JSON.stringify(frontendApiUrl),
-      "import.meta.env.VITE_FRONTEND_COMMIT_HASH": JSON.stringify(
-        frontendCommitHash,
-      ),
+      "import.meta.env.VITE_FRONTEND_COMMIT_HASH": JSON.stringify(frontendCommitHash),
     },
     build: {
       outDir: "./dist",
@@ -216,18 +258,10 @@ export default defineConfig(({ mode }) => {
         scss: {
           additionalData: (source, file) => {
             const hasStyleNamespaces =
-              source.includes(
-                `@use "@partner-up-dev/design-web/styles/functions" as fn`,
-              ) ||
-              source.includes(
-                `@use '@partner-up-dev/design-web/styles/functions' as fn`,
-              ) ||
-              source.includes(
-                `@use "@partner-up-dev/design-web/styles/mixins" as mx`,
-              ) ||
-              source.includes(
-                `@use '@partner-up-dev/design-web/styles/mixins' as mx`,
-              );
+              source.includes(`@use "@partner-up-dev/design-web/styles/functions" as fn`) ||
+              source.includes(`@use '@partner-up-dev/design-web/styles/functions' as fn`) ||
+              source.includes(`@use "@partner-up-dev/design-web/styles/mixins" as mx`) ||
+              source.includes(`@use '@partner-up-dev/design-web/styles/mixins' as mx`);
 
             if (
               file.includes("src/components/") ||
@@ -256,8 +290,7 @@ export default defineConfig(({ mode }) => {
           target: backendProxyTarget,
           changeOrigin: !isPortless,
           ...(backendProxyHeaders ? { headers: backendProxyHeaders } : {}),
-          secure:
-            !isPortless && !backendProxyUrl.hostname.endsWith(".localhost"),
+          secure: !isPortless && !backendProxyUrl.hostname.endsWith(".localhost"),
         },
       },
     },

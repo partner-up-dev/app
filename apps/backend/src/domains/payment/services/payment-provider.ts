@@ -202,7 +202,11 @@ const normalizeRuntimeWeChatPayProviderConfig = (
 };
 
 const isLocalEndpointHost = (hostname: string): boolean =>
-  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  hostname === "localhost" ||
+  hostname === "127.0.0.1" ||
+  hostname === "::1" ||
+  hostname.endsWith(".localhost") ||
+  hostname.endsWith(".local");
 
 const isOfficialWeChatPayEndpointHost = (hostname: string): boolean =>
   hostname === "api.mch.weixin.qq.com";
@@ -225,7 +229,8 @@ const assertEndpointBaseUrlAllowed = (endpointBaseUrl: string | null): void => {
   ) {
     return throwHttpProblem({
       status: 500,
-      detail: "WeChatPay endpointBaseUrl must be localhost or the official host outside production",
+      detail:
+        "WeChatPay endpointBaseUrl must be local, portless local, or the official host outside production",
     });
   }
 };

@@ -7,7 +7,7 @@
 
 do $$
 declare
-  fake_caocao_endpoint constant text := 'https://fake-caocao.localhost';
+  fake_caocao_endpoint constant text := 'https://caocao.partner-up.local';
   backend_callback_base_url constant text := 'https://api.partner-up.localhost';
   old_task_private_pr_type constant text := 'ride-hailing-mvp-dev';
   placement_pr_type constant text := 'RIDE_HAILING';

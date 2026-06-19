@@ -7,9 +7,10 @@ import { fileURLToPath } from "node:url";
 const isWindows = process.platform === "win32";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const routes = [
+const routeDefinitions = [
   {
     name: "frontend",
+    portlessName: "partner-up",
     portlessArgs: [
       "--name",
       "partner-up",
@@ -20,11 +21,11 @@ const routes = [
       "@partner-up-dev/frontend",
       "dev",
     ],
-    url: "https://partner-up.localhost",
     readinessPath: "/",
   },
   {
     name: "backend",
+    portlessName: "api.partner-up",
     portlessArgs: [
       "--name",
       "api.partner-up",
@@ -35,13 +36,49 @@ const routes = [
       "@partner-up-dev/backend",
       "dev",
     ],
-    url: "https://api.partner-up.localhost",
     readinessPath: "/health",
   },
 ];
 
+const parseOptionalStringArg = (name) => {
+  const prefixedArg = process.argv.find((arg) => arg.startsWith(`--${name}=`));
+  const argIndex = process.argv.indexOf(`--${name}`);
+  const separateArg = argIndex === -1 ? undefined : process.argv[argIndex + 1];
+  const argValue = prefixedArg?.slice(name.length + 3) ?? separateArg;
+
+  if (argValue === undefined || argValue.startsWith("--")) {
+    return null;
+  }
+
+  const value = argValue.trim();
+  return value.length > 0 ? value : null;
+};
+
+const isTruthyEnv = (value) => value === "1" || value === "true";
+
+const normalizeEnvValue = (value) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 const getRuntimeEnv = () => {
   const env = { ...process.env };
+  const lanIp = parseOptionalStringArg("ip");
+  const stateDir = parseOptionalStringArg("state-dir");
+
+  if (stateDir) {
+    env.PORTLESS_STATE_DIR = stateDir;
+  }
+
+  if (process.argv.includes("--lan")) {
+    env.PORTLESS_LAN = "1";
+  }
+
+  if (lanIp) {
+    env.PORTLESS_LAN = "1";
+    env.PORTLESS_LAN_IP = lanIp;
+  }
 
   if (isWindows) {
     const gitOpenSslBin = "C:\\Program Files\\Git\\usr\\bin";
@@ -57,6 +94,20 @@ const getRuntimeEnv = () => {
 };
 
 const runtimeEnv = getRuntimeEnv();
+
+const getPortlessTld = () => {
+  if (isTruthyEnv(runtimeEnv.PORTLESS_LAN)) {
+    return "local";
+  }
+
+  return normalizeEnvValue(runtimeEnv.PORTLESS_TLD) ?? "localhost";
+};
+
+const portlessTld = getPortlessTld();
+const routes = routeDefinitions.map((route) => ({
+  ...route,
+  url: `https://${route.portlessName}.${portlessTld}`,
+}));
 
 const parsePositiveIntegerArg = (name, fallback) => {
   const prefixedArg = process.argv.find((arg) => arg.startsWith(`--${name}=`));

@@ -1,11 +1,109 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 
 const isWindows = process.platform === "win32";
 
+const getGlobalArgs = () => {
+  const args = process.argv.slice(2);
+  const separatorIndex = args.indexOf("--");
+
+  return separatorIndex === -1 ? args : args.slice(0, separatorIndex);
+};
+
+const hasGlobalFlag = (flag) => getGlobalArgs().includes(flag);
+
+const hasGlobalFlagValue = (flag) => {
+  const args = getGlobalArgs();
+
+  return args.some((arg, index) => {
+    if (arg.startsWith(`${flag}=`)) {
+      return true;
+    }
+
+    return arg === flag && args[index + 1] !== undefined && !args[index + 1].startsWith("-");
+  });
+};
+
+const isUsableIpv4Address = (address) => {
+  const octets = address.split(".").map((octet) => Number.parseInt(octet, 10));
+
+  if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet))) {
+    return false;
+  }
+
+  const [first, second] = octets;
+
+  return first !== 0 && first !== 127 && first < 224 && !(first === 169 && second === 254);
+};
+
+const getLinuxDefaultRouteInterface = () => {
+  if (process.platform !== "linux") {
+    return null;
+  }
+
+  try {
+    const routeTable = readFileSync("/proc/net/route", "utf8");
+
+    for (const line of routeTable.trim().split("\n").slice(1)) {
+      const [iface, destination, _gateway, flagsText] = line.trim().split(/\s+/);
+      const flags = Number.parseInt(flagsText, 16);
+
+      if (destination === "00000000" && (flags & 0x1) === 0x1) {
+        return iface;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const detectLanIpv4Address = () => {
+  const interfaces = networkInterfaces();
+  const candidates = Object.entries(interfaces).flatMap(([name, addresses]) =>
+    (addresses ?? [])
+      .filter(
+        (address) =>
+          address.family === "IPv4" && !address.internal && isUsableIpv4Address(address.address),
+      )
+      .map((address) => ({ address: address.address, name })),
+  );
+
+  const defaultRouteInterface = getLinuxDefaultRouteInterface();
+  const defaultRouteCandidate = candidates.find(
+    (candidate) => candidate.name === defaultRouteInterface,
+  );
+
+  if (defaultRouteCandidate) {
+    return defaultRouteCandidate.address;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0].address;
+  }
+
+  return null;
+};
+
+const shouldDetectLanIp = (env) =>
+  !env.PORTLESS_LAN_IP &&
+  !hasGlobalFlagValue("--ip") &&
+  (env.PORTLESS_LAN === "1" || env.PORTLESS_LAN === "true" || hasGlobalFlag("--lan"));
+
 const getPortlessEnv = () => {
   const env = { ...process.env };
+
+  if (shouldDetectLanIp(env)) {
+    const lanIp = detectLanIpv4Address();
+
+    if (lanIp) {
+      env.PORTLESS_LAN_IP = lanIp;
+      console.log(`Using LAN IP ${lanIp} for portless.`);
+    }
+  }
 
   if (isWindows) {
     const gitOpenSslBin = "C:\\Program Files\\Git\\usr\\bin";
