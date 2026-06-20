@@ -14,6 +14,7 @@ Contract implication:
 ## 1.1 Local Development Origin Contract
 
 - The agent-facing developer availability entry is `pnpm dev:ensure` from the repository root. It checks the stable portless routes and starts only missing frontend/backend dev servers.
+- Human-facing terminal and VS Code workflows can run `pnpm dev:ensure --foreground` to keep the same stable route contract while inheriting dev-server console output and taking over existing routes for the current terminal lifecycle. Foreground mode prints `DEV_ENSURE_FOREGROUND_READY` after HTTP readiness so VS Code background task problem matchers can release `preLaunchTask` while the dev-server task keeps running. Frontend launch preflight tasks must scope this to `--only frontend`; backend debug launch configurations own the backend process separately.
 - The underlying developer full-stack entry is `pnpm dev:portless` from the repository root.
 - Root portless entries are backed by Node wrapper scripts so the command names stay stable across macOS, Linux, and Windows.
 - `portless.json` maps `apps/frontend` to the public app name `partner-up` and `apps/backend` to the public app name `api.partner-up`.
@@ -21,6 +22,7 @@ Contract implication:
 - The frontend `/api` proxy targets the backend portless app by deriving the backend host from the active frontend `PORTLESS_URL`, for example `api.partner-up.localhost` in local-only mode and `api.partner-up.local` in LAN mode. This keeps browser API calls aligned with the typed backend HTTP contract while application code stays free of fixed numeric ports.
 - LAN device debugging uses portless LAN mode (`PORTLESS_LAN=1` or `pnpm dev:ensure --lan`), which forces `.local` routes. When portless cannot infer a reachable LAN address, callers should set `PORTLESS_LAN_IP` or pass `--ip <reachable-lan-ip>`; the project portless wrapper makes a best-effort default-route interface inference only for explicit LAN mode. When a privileged proxy is involved, the proxy and app registrations must share one `PORTLESS_STATE_DIR`; VS Code LAN launch entries should set it with an environment-neutral variable such as `${userHome}/.portless`.
 - Fake third-party integration servers use provider-scoped portless names under the app namespace: `caocao.partner-up` and `wechatpay.partner-up`. They follow the active portless proxy mode, so LAN debugging exposes them as `caocao.partner-up.local` and `wechatpay.partner-up.local`, while local-only mode exposes the same names under `.localhost`.
+- Fake third-party integration servers can be ensured independently through `pnpm dev:ensure --only caocao` and `pnpm dev:ensure --only wechatpay`. These entries must not start or take over frontend/backend routes.
 - Fixed-port frontend env values (`VITE_PORT`, `VITE_API_URL`, `VITE_BACKEND_HOST`, `VITE_BACKEND_PORT`, `VITE_BACKEND_PROXY_TARGET`) remain a compatibility contract for explicit fixed-port local work.
 - Root-owned system scenario tests own their own frontend and backend ports through the `system-scenario` Vitest project. That isolated test runtime is separate from the developer portless workflow.
 

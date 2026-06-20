@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FakeCaocaoFixture } from "./fixtures";
 import {
   createFakeCaocaoSignature,
-  fakeCaocaoSignaturesMatch,
   type FakeCaocaoSignedParams,
+  fakeCaocaoSignaturesMatch,
 } from "./signature";
 import type {
   FakeCaocaoDriverSnapshot,
@@ -25,13 +25,14 @@ const defaultHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-const sendJson = (
-  res: ServerResponse,
-  status: number,
-  value: unknown,
-): void => {
+const sendJson = (res: ServerResponse, status: number, value: unknown): void => {
   res.writeHead(status, defaultHeaders);
   res.end(JSON.stringify(value));
+};
+
+const sendHealth = (req: IncomingMessage, res: ServerResponse): void => {
+  res.writeHead(200, defaultHeaders);
+  res.end(req.method === "HEAD" ? undefined : JSON.stringify({ status: "ok" }));
 };
 
 const readBodyText = (req: IncomingMessage): Promise<string> =>
@@ -53,10 +54,7 @@ const formToRecord = (params: URLSearchParams): Record<string, string> => {
   return record;
 };
 
-const readParams = async (
-  req: IncomingMessage,
-  url: URL,
-): Promise<Record<string, string>> => {
+const readParams = async (req: IncomingMessage, url: URL): Promise<Record<string, string>> => {
   if (req.method === "GET") {
     return formToRecord(url.searchParams);
   }
@@ -69,9 +67,7 @@ const readParams = async (
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
       return {};
     }
-    return Object.fromEntries(
-      Object.entries(parsed).map(([key, value]) => [key, String(value)]),
-    );
+    return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]));
   }
   return formToRecord(new URLSearchParams(body));
 };
@@ -114,10 +110,7 @@ const verifySignedParams = (input: {
   }
 };
 
-const readFirstParam = (
-  params: Record<string, string>,
-  keys: string[],
-): string | null => {
+const readFirstParam = (params: Record<string, string>, keys: string[]): string | null => {
   for (const key of keys) {
     const value = params[key]?.trim();
     if (value) return value;
@@ -160,9 +153,7 @@ const phaseEvent = (phase: FakeCaocaoOrderState["phase"]): number => {
 
 const orderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
   const driver =
-    order.phase === "ACCEPTED" ||
-    order.phase === "IN_TRIP" ||
-    order.phase === "FINISHED"
+    order.phase === "ACCEPTED" || order.phase === "IN_TRIP" || order.phase === "FINISHED"
       ? driverSnapshot()
       : null;
   return {
@@ -271,6 +262,11 @@ export async function handleFakeCaocaoRequest(
   const url = new URL(req.url ?? "/", `http://${host}`);
 
   try {
+    if (url.pathname === "/health" && (req.method === "GET" || req.method === "HEAD")) {
+      sendHealth(req, res);
+      return;
+    }
+
     if (url.pathname === "/__fake_caocao/reset" && req.method === "POST") {
       await readBodyText(req);
       input.state.reset();
@@ -278,10 +274,7 @@ export async function handleFakeCaocaoRequest(
       return;
     }
 
-    if (
-      url.pathname === "/__fake_caocao/create-failure/next" &&
-      req.method === "POST"
-    ) {
+    if (url.pathname === "/__fake_caocao/create-failure/next" && req.method === "POST") {
       await readBodyText(req);
       input.state.configureNextCreateFailure();
       sendJson(res, 200, { ok: true });
@@ -301,9 +294,7 @@ export async function handleFakeCaocaoRequest(
     });
 
     if (url.pathname === "/common/estimatePriceWithDetail") {
-      const carType =
-        readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ??
-        "EXPRESS";
+      const carType = readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ?? "EXPRESS";
       const estimate = input.state.findEstimate(carType);
       sendJson(res, 200, caocaoSuccess(estimatePayload(estimate)));
       return;
@@ -320,9 +311,7 @@ export async function handleFakeCaocaoRequest(
         sendJson(res, 200, caocaoFailure(40001, "Missing ext_order_id"));
         return;
       }
-      const carType =
-        readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ??
-        "EXPRESS";
+      const carType = readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ?? "EXPRESS";
       const callbackUrl = readFirstParam(params, [
         "callback_url",
         "callbackUrl",
@@ -354,9 +343,7 @@ export async function handleFakeCaocaoRequest(
 
     if (url.pathname === "/common/queryOrderDetailV2") {
       const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
-      const order = providerOrderId
-        ? input.state.advanceOrderDetail(providerOrderId)
-        : null;
+      const order = providerOrderId ? input.state.advanceOrderDetail(providerOrderId) : null;
       if (order?.callbackUrl) {
         postCallback({
           callbackUrl: order.callbackUrl,
@@ -415,8 +402,7 @@ export async function handleFakeCaocaoRequest(
       }
       input.state.confirmFee({
         allowanceAmountFen: Number(params.allowance_amount ?? 0) || null,
-        caocaoAllowanceAmountFen:
-          Number(params.cao_allowance_amount ?? 0) || null,
+        caocaoAllowanceAmountFen: Number(params.cao_allowance_amount ?? 0) || null,
         providerOrderId,
       });
       sendJson(res, 200, caocaoSuccess({ orderNo: providerOrderId }));

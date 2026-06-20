@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, test } from "vitest";
+import { type StartedFakeCaocaoServer, startFakeCaocaoServer } from "./server";
 import { createFakeCaocaoSignature } from "./signature";
-import {
-  startFakeCaocaoServer,
-  type StartedFakeCaocaoServer,
-} from "./server";
 
 const signedSearchParams = (input: {
   clientId: string;
@@ -29,6 +26,16 @@ describe("startFakeCaocaoServer", () => {
   afterEach(async () => {
     await server?.close();
     server = null;
+  });
+
+  test("serves health readiness", async () => {
+    server = await startFakeCaocaoServer();
+
+    const response = await fetch(`${server.origin}/health`, {
+      method: "HEAD",
+    });
+
+    expect(response.ok).toBe(true);
   });
 
   test("serves signed estimate, create, and detail routes", async () => {
@@ -103,12 +110,9 @@ describe("startFakeCaocaoServer", () => {
   test("supports admin reset and next-create failure controls", async () => {
     server = await startFakeCaocaoServer();
 
-    const failNextResponse = await fetch(
-      `${server.origin}/__fake_caocao/create-failure/next`,
-      {
-        method: "POST",
-      },
-    );
+    const failNextResponse = await fetch(`${server.origin}/__fake_caocao/create-failure/next`, {
+      method: "POST",
+    });
     expect(failNextResponse.ok).toBe(true);
 
     const createResponse = await fetch(`${server.origin}/common/orderCarV2`, {

@@ -5,6 +5,10 @@
 The default local development entry is portless-managed:
 
 - ensure frontend and backend are available: `pnpm dev:ensure`
+- foreground dev console: `pnpm dev:ensure --foreground`
+- foreground single dev server: `pnpm dev:ensure --only frontend --foreground`
+- fake Caocao only: `pnpm dev:ensure --only caocao`
+- fake WeChatPay only: `pnpm dev:ensure --only wechatpay`
 - full stack: `pnpm dev:portless`
 - frontend only: `pnpm dev:portless:frontend`
 - backend only: `pnpm dev:portless:backend`
@@ -50,6 +54,12 @@ Fixed local ports remain available for compatibility workflows through package
 env files and helper scripts. They are local fallback inputs, while portless is
 the default developer workflow.
 
+When the frontend Vite dev server runs inside WSL against a Windows-mounted
+repository path such as `/mnt/c/...` or `/mnt/f/...`, the frontend Vite config
+enables polling for file watching. This compensates for WSL file event delivery
+limits on Windows filesystems. Projects stored directly in the WSL filesystem
+such as `/home/<user>/...` keep Vite's normal watcher behavior.
+
 Fake integration servers use provider-scoped portless names under the app
 namespace:
 
@@ -59,6 +69,10 @@ namespace:
 They follow the active portless proxy mode. In LAN mode they are reachable as
 `caocao.partner-up.local` and `wechatpay.partner-up.local`; in local-only mode
 they use the same names under `.localhost`.
+Use `pnpm dev:ensure --only caocao` or `pnpm dev:ensure --only wechatpay` to
+start or reuse one fake provider without touching frontend/backend lifecycles.
+VS Code fake-provider tasks use the same `--only` foreground ensure mode and
+the `DEV_ENSURE_FOREGROUND_READY` readiness marker.
 
 Non-production WeChatPay provider endpoints allow portless local hostnames
 (`.localhost` and `.local`) in addition to raw loopback hosts and the official
@@ -68,10 +82,27 @@ The backend development script loads `apps/backend/.env` when the file exists,
 so portless and fixed-port local backend starts share the same local runtime
 inputs.
 
+For local backend file uploads on WSL/Linux, set `IMAGES_DIR` and `AVATARS_DIR`
+in `apps/backend/.env` to package-local paths under `apps/backend/.dev-server/`
+instead of relying on the production `/mnt/oss` mount. The production FC runtime
+continues to mount OSS at `/mnt/oss`.
+
 Agents should use `pnpm dev:ensure` before browser or manual validation that
 needs the local frontend/backend pair. The ensure command checks the stable
 portless routes and starts only the missing services, which avoids duplicate
 dev servers during repeated agent runs.
+
+Human-facing terminal or VS Code workflows that need live dev-server output
+should use `pnpm dev:ensure --foreground`. Foreground mode keeps the same stable
+route contract, but starts the configured dev servers with inherited console
+stdio and takes over existing routes so the current terminal owns the logs and
+lifecycle. After the routes pass HTTP readiness, foreground mode prints
+`DEV_ENSURE_FOREGROUND_READY`; VS Code background task problem matchers use that
+marker to let debug launches continue while the dev-server task keeps running.
+VS Code frontend launch tasks should scope foreground ensure to the frontend with
+`--only frontend`; backend debug launches own the backend dev server directly so
+compound frontend/backend debugging keeps separate task, process, and debugger
+lifecycles.
 
 System scenario tests are a separate local runtime. The `system-scenario` Vitest project
 allocates isolated frontend and backend HTTP ports for the test process,

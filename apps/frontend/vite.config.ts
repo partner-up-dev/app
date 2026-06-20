@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import vue from "@vitejs/plugin-vue";
 import { parse as parseJsonc } from "jsonc-parser";
 import { resolve } from "path";
@@ -58,6 +59,25 @@ const normalizeEnvValue = (value: string | undefined): string | null => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
+
+const readProcVersion = (): string => {
+  try {
+    return readFileSync("/proc/version", "utf8");
+  } catch {
+    return "";
+  }
+};
+
+const isWslEnvironment = (): boolean =>
+  process.platform === "linux" &&
+  (Boolean(process.env.WSL_DISTRO_NAME) ||
+    Boolean(process.env.WSL_INTEROP) ||
+    readProcVersion().toLowerCase().includes("microsoft"));
+
+const isWindowsMountedPath = (path: string): boolean => /^\/mnt\/[a-z](?:\/|$)/i.test(path);
+
+const shouldUsePollingForDevWatch = (): boolean =>
+  isWslEnvironment() && isWindowsMountedPath(process.cwd());
 
 const parsePort = (value: string | undefined, fallback: number): number => {
   const port = Number.parseInt(value ?? "", 10);
@@ -222,6 +242,7 @@ export default defineConfig(({ mode }) => {
     normalizeEnvValue(env.VITE_FRONTEND_COMMIT_HASH) ??
     readGitValue("git rev-parse HEAD") ??
     "unknown";
+  const usePollingForDevWatch = shouldUsePollingForDevWatch();
 
   return {
     plugins: [
@@ -285,6 +306,14 @@ export default defineConfig(({ mode }) => {
       ...(serverHost ? { host: serverHost } : {}),
       port: serverPort,
       strictPort: isPortless,
+      ...(usePollingForDevWatch
+        ? {
+            watch: {
+              usePolling: true,
+              interval: 300,
+            },
+          }
+        : {}),
       proxy: {
         "/api": {
           target: backendProxyTarget,

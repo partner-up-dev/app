@@ -1,6 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   buildRequestSignatureMessage,
@@ -12,11 +12,11 @@ import {
 } from "./crypto";
 import type { FakeWeChatPayFixture } from "./fixtures";
 import {
+  type FakeRefundState,
+  type FakeTransactionState,
   FakeWeChatPayState,
   fakeRefundStateSchema,
   fakeTransactionStateSchema,
-  type FakeRefundState,
-  type FakeTransactionState,
 } from "./state";
 
 const jsapiPrepayRequestSchema = z.object({
@@ -106,9 +106,7 @@ const readVerifiedJson = async (
 ): Promise<unknown> => {
   const bodyText = await c.req.text();
   if (input.verifyRequests !== false) {
-    const authorization = parseAuthorizationHeader(
-      c.req.header("Authorization") ?? null,
-    );
+    const authorization = parseAuthorizationHeader(c.req.header("Authorization") ?? null);
     if (authorization.mchid !== input.fixture.mchId) {
       throw new Error("Unexpected mchid in Authorization header");
     }
@@ -165,8 +163,7 @@ const transactionResource = (transaction: FakeTransactionState): unknown => ({
   out_trade_no: transaction.outTradeNo,
   transaction_id: transaction.transactionId ?? undefined,
   trade_state: transaction.tradeState,
-  trade_state_desc:
-    transaction.tradeState === "SUCCESS" ? "支付成功" : "交易未支付",
+  trade_state_desc: transaction.tradeState === "SUCCESS" ? "支付成功" : "交易未支付",
   amount: transaction.amount,
   payer: transaction.payerOpenid ? { openid: transaction.payerOpenid } : undefined,
 });
@@ -227,9 +224,7 @@ const postSignedNotification = async (input: {
   });
 };
 
-export function createFakeWeChatPayApp(
-  input: FakeWeChatPayServerAppInput,
-): Hono {
+export function createFakeWeChatPayApp(input: FakeWeChatPayServerAppInput): Hono {
   const state = input.state ?? new FakeWeChatPayState();
   const app = new Hono();
 
@@ -260,15 +255,15 @@ export function createFakeWeChatPayApp(
     ),
   );
 
+  app.on(["GET", "HEAD"], "/health", () => plainJson({ status: "ok" }));
+
   app.get("/v3/certificates", async (c) => {
     await readVerifiedJson(c, input);
     return signedJson(input.fixture, certificatePayload(input.fixture));
   });
 
   app.post("/v3/pay/transactions/jsapi", async (c) => {
-    const parsed = jsapiPrepayRequestSchema.parse(
-      await readVerifiedJson(c, input),
-    );
+    const parsed = jsapiPrepayRequestSchema.parse(await readVerifiedJson(c, input));
     const transaction = state.createTransaction({
       amount: parsed.amount,
       appid: parsed.appid,
@@ -285,9 +280,7 @@ export function createFakeWeChatPayApp(
   });
 
   app.post("/v3/pay/transactions/h5", async (c) => {
-    const parsed = h5PrepayRequestSchema.parse(
-      await readVerifiedJson(c, input),
-    );
+    const parsed = h5PrepayRequestSchema.parse(await readVerifiedJson(c, input));
     const h5Url = `${new URL(c.req.url).origin}/__fake_wechatpay/h5/${encodeURIComponent(
       parsed.out_trade_no,
     )}`;
@@ -308,9 +301,7 @@ export function createFakeWeChatPayApp(
 
   app.get("/v3/pay/transactions/out-trade-no/:outTradeNo", async (c) => {
     await readVerifiedJson(c, input);
-    const transaction = state.findTransactionByOutTradeNo(
-      c.req.param("outTradeNo"),
-    );
+    const transaction = state.findTransactionByOutTradeNo(c.req.param("outTradeNo"));
     if (!transaction) {
       return signedJson(
         input.fixture,

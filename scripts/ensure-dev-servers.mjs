@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const isWindows = process.platform === "win32";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+const defaultRouteNames = new Set(["frontend", "backend"]);
+
 const routeDefinitions = [
   {
     name: "frontend",
@@ -38,6 +40,36 @@ const routeDefinitions = [
     ],
     readinessPath: "/health",
   },
+  {
+    name: "caocao",
+    portlessName: "caocao.partner-up",
+    portlessArgs: [
+      "--name",
+      "caocao.partner-up",
+      "--force",
+      "--",
+      "pnpm",
+      "--filter",
+      "@partner-up-dev/fake-caocao-server",
+      "dev",
+    ],
+    readinessPath: "/health",
+  },
+  {
+    name: "wechatpay",
+    portlessName: "wechatpay.partner-up",
+    portlessArgs: [
+      "--name",
+      "wechatpay.partner-up",
+      "--force",
+      "--",
+      "pnpm",
+      "--filter",
+      "@partner-up-dev/fake-wechatpay-server",
+      "dev",
+    ],
+    readinessPath: "/health",
+  },
 ];
 
 const parseOptionalStringArg = (name) => {
@@ -62,21 +94,45 @@ const normalizeEnvValue = (value) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const selectedRouteName = parseOptionalStringArg("only");
+
+const getSelectedRouteDefinitions = () => {
+  if (!selectedRouteName) {
+    return routeDefinitions.filter((route) => defaultRouteNames.has(route.name));
+  }
+
+  const selectedRoutes = routeDefinitions.filter((route) => route.name === selectedRouteName);
+
+  if (selectedRoutes.length === 0) {
+    throw new Error(
+      `Unknown dev server "${selectedRouteName}". Expected one of: ${routeDefinitions
+        .map((route) => route.name)
+        .join(", ")}`,
+    );
+  }
+
+  return selectedRoutes;
+};
+
+const selectedRouteDefinitions = getSelectedRouteDefinitions();
+
 const getRuntimeEnv = () => {
   const env = { ...process.env };
   const lanIp = parseOptionalStringArg("ip");
   const stateDir = parseOptionalStringArg("state-dir");
+  const shouldUseLan = process.argv.includes("--lan") || lanIp || isTruthyEnv(env.PORTLESS_LAN);
 
   if (stateDir) {
     env.PORTLESS_STATE_DIR = stateDir;
   }
 
-  if (process.argv.includes("--lan")) {
+  if (shouldUseLan) {
     env.PORTLESS_LAN = "1";
+  } else {
+    env.PORTLESS_LAN = "0";
   }
 
   if (lanIp) {
-    env.PORTLESS_LAN = "1";
     env.PORTLESS_LAN_IP = lanIp;
   }
 
@@ -104,10 +160,16 @@ const getPortlessTld = () => {
 };
 
 const portlessTld = getPortlessTld();
-const routes = routeDefinitions.map((route) => ({
+const routes = selectedRouteDefinitions.map((route) => ({
   ...route,
   url: `https://${route.portlessName}.${portlessTld}`,
 }));
+const routeGroupLabel = `${routes.map((route) => route.name).join(" and ")} dev server${
+  routes.length === 1 ? "" : "s"
+}`;
+const routeGroupSubject = `${routeGroupLabel[0].toUpperCase()}${routeGroupLabel.slice(1)}`;
+const routeGroupVerb = routes.length === 1 ? "is" : "are";
+const routeWord = routes.length === 1 ? "route" : "routes";
 
 const parsePositiveIntegerArg = (name, fallback) => {
   const prefixedArg = process.argv.find((arg) => arg.startsWith(`--${name}=`));
@@ -130,6 +192,8 @@ const parsePositiveIntegerArg = (name, fallback) => {
 
 const timeoutSeconds = parsePositiveIntegerArg("timeout-seconds", 90);
 const pollIntervalSeconds = parsePositiveIntegerArg("poll-interval-seconds", 2);
+const shouldRunForeground = process.argv.includes("--foreground");
+const foregroundReadyMarker = "DEV_ENSURE_FOREGROUND_READY";
 
 const assertCommandAvailable = (commandName) => {
   const command = isWindows ? "where" : "command";
@@ -248,7 +312,7 @@ const getTimestamp = () =>
     .replaceAll(":", "")
     .replace(/\.\d{3}Z$/, "");
 
-const startDevServer = (route) => {
+const startDetachedDevServer = (route) => {
   const logDir = join(repoRoot, ".codex-tmp", "dev-servers");
   mkdirSync(logDir, { recursive: true });
 
@@ -278,30 +342,100 @@ const startDevServer = (route) => {
   }
 };
 
+const startForegroundDevServers = (routesToStart) => {
+  const children = new Set();
+  let exitCode = 0;
+  let isTerminating = false;
+  let hasStartedChildren = false;
+  let resolveExitCode;
+  const exitPromise = new Promise((resolve) => {
+    resolveExitCode = resolve;
+  });
+  const handleSigint = () => terminateChildren("SIGINT");
+  const handleSigterm = () => terminateChildren("SIGTERM");
+
+  const cleanup = () => {
+    process.off("SIGINT", handleSigint);
+    process.off("SIGTERM", handleSigterm);
+  };
+
+  const resolveIfDone = () => {
+    if (hasStartedChildren && children.size === 0) {
+      cleanup();
+      resolveExitCode(exitCode);
+    }
+  };
+
+  function terminateChildren(signal) {
+    isTerminating = true;
+
+    for (const child of children) {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill(signal);
+      }
+    }
+  }
+
+  process.once("SIGINT", handleSigint);
+  process.once("SIGTERM", handleSigterm);
+
+  for (const route of routesToStart) {
+    console.log(`Starting ${route.name} dev server in foreground through portless: ${route.url}`);
+
+    const child = spawn(process.execPath, ["./scripts/portless.mjs", ...route.portlessArgs], {
+      cwd: repoRoot,
+      env: runtimeEnv,
+      stdio: "inherit",
+      windowsHide: true,
+    });
+
+    children.add(child);
+
+    child.on("error", (error) => {
+      console.error(`Failed to start ${route.name} dev server: ${error.message}`);
+      children.delete(child);
+      exitCode = 1;
+      terminateChildren("SIGTERM");
+      resolveIfDone();
+    });
+
+    child.on("exit", (code, signal) => {
+      children.delete(child);
+
+      if (!isTerminating) {
+        if (signal) {
+          console.error(`${route.name} dev server exited after receiving signal ${signal}.`);
+          exitCode = 1;
+        } else {
+          exitCode = code ?? 1;
+
+          if (exitCode === 0) {
+            console.log(`${route.name} dev server exited.`);
+          } else {
+            console.error(`${route.name} dev server exited with code ${exitCode}.`);
+          }
+        }
+
+        terminateChildren("SIGTERM");
+      }
+
+      resolveIfDone();
+    });
+  }
+
+  hasStartedChildren = true;
+  resolveIfDone();
+
+  return { exitPromise, stop: terminateChildren };
+};
+
 const sleep = (seconds) =>
   new Promise((resolveSleep) => {
     setTimeout(resolveSleep, seconds * 1000);
   });
 
-const main = async () => {
-  assertCommandAvailable("portless");
-  assertCommandAvailable("pnpm");
-
-  const initialRouteList = getPortlessListText();
-  let unavailableRoutes = await getUnavailableRoutes(initialRouteList);
-
-  if (unavailableRoutes.length === 0) {
-    console.log("Frontend and backend dev servers are already registered:");
-    for (const route of routes) {
-      console.log(`  ${route.url}`);
-    }
-    return;
-  }
-
-  for (const route of unavailableRoutes) {
-    startDevServer(route);
-  }
-
+const waitForRoutesReady = async (readyMessage) => {
+  let unavailableRoutes = routes;
   const deadline = Date.now() + timeoutSeconds * 1000;
 
   do {
@@ -311,7 +445,7 @@ const main = async () => {
     unavailableRoutes = await getUnavailableRoutes(currentRouteList);
 
     if (unavailableRoutes.length === 0) {
-      console.log("Frontend and backend dev servers are ready:");
+      console.log(readyMessage);
       for (const route of routes) {
         console.log(`  ${route.url}`);
       }
@@ -324,6 +458,70 @@ const main = async () => {
       .map((route) => route.name)
       .join(", ")}`,
   );
+};
+
+const main = async () => {
+  assertCommandAvailable("portless");
+  assertCommandAvailable("pnpm");
+
+  const initialRouteList = getPortlessListText();
+  let unavailableRoutes = await getUnavailableRoutes(initialRouteList);
+
+  if (shouldRunForeground) {
+    if (unavailableRoutes.length === 0) {
+      console.log(`${routeGroupSubject} ${routeGroupVerb} already ready.`);
+      console.log(
+        `Foreground mode will take over the ${routeWord} so this terminal owns the logs.`,
+      );
+    } else {
+      console.log(`Foreground mode will start or take over the ${routeGroupLabel} ${routeWord}.`);
+    }
+
+    for (const route of routes) {
+      console.log(`  ${route.url}`);
+    }
+
+    const foreground = startForegroundDevServers(routes);
+    let firstForegroundResult;
+
+    try {
+      firstForegroundResult = await Promise.race([
+        waitForRoutesReady(`${routeGroupSubject} ${routeGroupVerb} ready:`).then(() => ({
+          type: "ready",
+        })),
+        foreground.exitPromise.then((exitCode) => ({
+          exitCode,
+          type: "exit",
+        })),
+      ]);
+    } catch (error) {
+      foreground.stop("SIGTERM");
+      throw error;
+    }
+
+    if (firstForegroundResult.type === "exit") {
+      process.exit(firstForegroundResult.exitCode);
+    }
+
+    console.log(foregroundReadyMarker);
+
+    const exitCode = await foreground.exitPromise;
+    process.exit(exitCode);
+  }
+
+  if (unavailableRoutes.length === 0) {
+    console.log(`${routeGroupSubject} ${routeGroupVerb} already registered:`);
+    for (const route of routes) {
+      console.log(`  ${route.url}`);
+    }
+    return;
+  }
+
+  for (const route of unavailableRoutes) {
+    startDetachedDevServer(route);
+  }
+
+  await waitForRoutesReady(`${routeGroupSubject} ${routeGroupVerb} ready:`);
 };
 
 main().catch((error) => {
