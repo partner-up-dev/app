@@ -5,11 +5,12 @@
         class="ride-hailing-ordering-panel__route-map"
         data-testid="ordering.ride-hailing.route-map"
         :route="routeForMap"
-        :planned-polyline="plannedPolyline"
         :fit-padding="routeMapFitPadding"
-        :interactive="false"
+        :interactive="true"
+        :route-points-editable="routeEditable"
         variant="immersive"
         hide-bottom-attribution
+        @route-point-click="openRoutePointDrawer"
       />
 
       <div
@@ -18,41 +19,140 @@
       >
         <div class="ride-hailing-ordering-panel__handle" aria-hidden="true"></div>
 
-        <div
-          class="ride-hailing-ordering-panel__passengers"
-          data-testid="ordering.ride-hailing.riders"
-        >
-          <div>
-            <span>同乘人</span>
-            <strong>{{ riderSummary }}</strong>
-          </div>
-          <small data-testid="ordering.ride-hailing.departure-time">
-            {{ rideDepartureLabel }}
-          </small>
-        </div>
-
         <div class="ride-hailing-ordering-panel__vehicles">
           <RideHailingSkuCard
-            v-for="option in rideQuoteOptions"
+            v-for="option in visibleRideQuoteOptions"
             :key="option.skuId"
             :display-name="option.displayName"
             :price-label="formatFen(option.quoteAmountFen)"
             :selectable="option.selectable"
             :selected="option.skuId === selectedRideSkuId"
-            :disabled-reason="option.disabledReason"
+            :disabled-reason="null"
             @select="selectedRideSkuId = option.skuId"
           />
         </div>
+
+        <div
+          class="ride-hailing-ordering-panel__controls"
+          data-testid="ordering.ride-hailing.drawer-control-row"
+        >
+          <button
+            type="button"
+            class="ride-hailing-ordering-panel__control"
+            data-testid="ordering.ride-hailing.riders.open"
+            @click="ridersDrawerOpen = true"
+          >
+            <span>同乘人</span>
+            <strong>{{ riderSummary }}</strong>
+            <i class="i-mdi-chevron-right" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="ride-hailing-ordering-panel__control"
+            data-testid="ordering.ride-hailing.departure-time.open"
+            @click="departureDrawerOpen = true"
+          >
+            <span>出发时间</span>
+            <strong data-testid="ordering.ride-hailing.departure-time">
+              {{ rideDepartureLabel }}
+            </strong>
+            <i class="i-mdi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
+
+      <PuDrawer
+        :visible="routePointDrawerOpen"
+        :title="routePointDrawerTitle"
+        max-width="44rem"
+        @close="closeRoutePointDrawer"
+      >
+        <LocationPickerPanel
+          v-if="selectedRoutePoint"
+          :initial-location="selectedRoutePointInitialLocation"
+          data-testid="ordering.ride-hailing.route-point.drawer"
+          @pick="handleRoutePointPicked"
+          @cancel="closeRoutePointDrawer"
+        />
+      </PuDrawer>
+
+      <PuDrawer
+        v-model:visible="ridersDrawerOpen"
+        title="同乘人"
+        max-width="44rem"
+      >
+        <div class="ride-hailing-ordering-panel__drawer-content">
+          <PuInlineNotice
+            v-if="ridersLocked"
+            tone="info"
+            message="同乘人由当前搭子请求锁定。"
+          />
+          <div
+            v-for="rider in rideRiders"
+            :key="rider.userId"
+            class="ride-hailing-ordering-panel__rider-row"
+          >
+            <span class="i-mdi-account-circle" aria-hidden="true"></span>
+            <div>
+              <strong>{{ rider.displayName }}</strong>
+              <small>{{ rider.phoneMasked ?? "暂无手机号" }}</small>
+            </div>
+          </div>
+        </div>
+      </PuDrawer>
+
+      <PuDrawer
+        v-model:visible="departureDrawerOpen"
+        title="出发时间"
+        max-width="44rem"
+      >
+        <div class="ride-hailing-ordering-panel__drawer-content">
+          <PuInlineNotice
+            v-if="departureLocked"
+            tone="info"
+            message="出发时间由当前搭子请求锁定。"
+          />
+          <PuFormItem
+            label="出发时间"
+            for-id="ride-hailing-departure-at"
+            required
+          >
+            <PuInput
+              id="ride-hailing-departure-at"
+              :model-value="editableDepartureInput"
+              native-type="datetime-local"
+              :disabled="departureLocked"
+              data-testid="ordering.ride-hailing.departure-time.input"
+              @update:model-value="handleDepartureInput"
+            />
+          </PuFormItem>
+        </div>
+      </PuDrawer>
     </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import {
+  PuDrawer,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+} from "@partner-up-dev/design-web";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
-import type { Route, RoutePoint } from "@/domains/route/model/route";
-import type { MapCoordinate, MapFitPadding } from "@/shared/map/types";
+import {
+  applyPickedLocationToRoutePoint,
+  cloneRoute,
+  pickRoutePointCoordinate,
+  replaceRoutePointAt,
+  resolveRoutePointRole,
+  type Route,
+  type RoutePoint,
+} from "@/domains/route/model/route";
+import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
+import type { PickedLocation } from "@/domains/location/model/location-picker";
+import type { MapFitPadding } from "@/shared/map/types";
 import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 import type {
   BoundOrderParticipant,
@@ -60,6 +160,7 @@ import type {
   OrderingContentOutput,
 } from "@/domains/commerce/model/ordering-content";
 import {
+  isBindingLocked,
   readBindingValue,
   readBoundOrderParticipants,
 } from "@/domains/commerce/model/ordering-content";
@@ -95,6 +196,12 @@ const emit = defineEmits<{
 
 const selectedRideSkuId = ref<number | null>(null);
 const rideContactPhone = ref("");
+const editableRoute = ref<Route | null>(null);
+const routePointDrawerOpen = ref(false);
+const selectedRoutePointIndex = ref<number | null>(null);
+const ridersDrawerOpen = ref(false);
+const departureDrawerOpen = ref(false);
+const editableDepartureAt = ref<string | null>(null);
 
 const rideOffer = computed<RideOffer | null>(() =>
   props.input.offerDetail.productType === "RIDE_HAILING"
@@ -132,6 +239,14 @@ const boundContactPhone = computed(() => {
   const value = bindingValue("contactPhone");
   return typeof value === "string" ? value.trim() : "";
 });
+
+const routeEditable = computed(() => !isBindingLocked(props.input, "route"));
+const ridersLocked = computed(() =>
+  isBindingLocked(props.input, "orderParticipants"),
+);
+const departureLocked = computed(() =>
+  isBindingLocked(props.input, "departureAt"),
+);
 
 const rideRiders = computed<BoundOrderParticipant[]>(() =>
   readBoundOrderParticipants(props.input.bindings),
@@ -182,7 +297,7 @@ const toRoutePoint = (place: unknown): RoutePoint | null => {
   return null;
 };
 
-const routeForMap = computed<Route | null>(() => {
+const routeFromBinding = computed<Route | null>(() => {
   const route = rideRoute.value;
   if (!route) return null;
   const record = route as Record<string, unknown>;
@@ -198,30 +313,52 @@ const routeForMap = computed<Route | null>(() => {
   return [origin, ...waypoints, destination];
 });
 
-const plannedPolyline = computed<MapCoordinate[] | null>(() => {
-  const route = rideRoute.value as Record<string, unknown> | null;
-  const drivingPlan =
-    typeof route?.drivingPlan === "object" && route.drivingPlan !== null
-      ? (route.drivingPlan as Record<string, unknown>)
-      : null;
-  const rawPolyline = Array.isArray(drivingPlan?.polyline)
-    ? drivingPlan.polyline
-    : null;
-  const polyline =
-    rawPolyline?.flatMap((point): MapCoordinate[] => {
-      if (typeof point !== "object" || point === null || Array.isArray(point)) {
-        return [];
-      }
-      const record = point as Record<string, unknown>;
-      if (
-        typeof record.latitude === "number" &&
-        typeof record.longitude === "number"
-      ) {
-        return [{ lat: record.latitude, lng: record.longitude }];
-      }
-      return [];
-    }) ?? [];
-  return polyline.length >= 2 ? polyline : null;
+const routeForMap = computed<Route | null>(
+  () => editableRoute.value ?? routeFromBinding.value,
+);
+
+const selectedRoutePoint = computed<RoutePoint | null>(() => {
+  const index = selectedRoutePointIndex.value;
+  if (index === null) return null;
+  return routeForMap.value?.[index] ?? null;
+});
+
+const selectedRoutePointInitialLocation = computed<PickedLocation | null>(() => {
+  const point = selectedRoutePoint.value;
+  if (!point?.gcj02) return null;
+  return {
+    name: point.name,
+    address: point.full_address,
+    cityName: null,
+    gcj02: [point.gcj02[0], point.gcj02[1]],
+  };
+});
+
+const routePointDrawerTitle = computed(() => {
+  const index = selectedRoutePointIndex.value;
+  const route = routeForMap.value;
+  if (index === null || !route) return "修改地点";
+  const role = resolveRoutePointRole(index, route.length);
+  if (role === "departure") return "修改上车点";
+  if (role === "arrival") return "修改目的地";
+  return "修改途经点";
+});
+
+const rideRouteForSubmit = computed<RideRouteSnapshot | null>(() => {
+  const route = routeForMap.value;
+  if (!route || route.length < 2) return rideRoute.value;
+  const places = route.map(toRidePlaceSnapshot);
+  if (places.some((place) => place === null)) return rideRoute.value;
+  const resolvedPlaces = places as RidePlaceSnapshot[];
+  const origin = resolvedPlaces[0];
+  const destination = resolvedPlaces[resolvedPlaces.length - 1];
+  if (!origin || !destination) return rideRoute.value;
+  return {
+    origin,
+    waypoints: resolvedPlaces.slice(1, -1),
+    destination,
+    drivingPlan: null,
+  };
 });
 
 const routeMapFitPadding: MapFitPadding = {
@@ -253,14 +390,28 @@ const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
     : rideBaseOptions.value,
 );
 
+const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
+  props.evaluatedOptions.length > 0
+    ? rideQuoteOptions.value.filter((option) => option.selectable)
+    : rideQuoteOptions.value,
+);
+
 const rideDepartureLabel = computed(() => {
-  const departureAt = rideDepartureAt.value;
+  const departureAt = editableDepartureAt.value;
   if (!departureAt) return "现在出发";
   return `${formatTime(departureAt)}出发`;
 });
 
+const editableDepartureInput = computed(() =>
+  editableDepartureAt.value ? toDateTimeLocalValue(editableDepartureAt.value) : "",
+);
+
 const evaluationOutput = computed<OrderingContentOutput | null>(() => {
-  if (!rideOffer.value || selectedRideSkuId.value === null || !rideRoute.value) {
+  if (
+    !rideOffer.value ||
+    selectedRideSkuId.value === null ||
+    !rideRouteForSubmit.value
+  ) {
     return null;
   }
   const phone = rideContactPhone.value.trim();
@@ -276,8 +427,8 @@ const evaluationOutput = computed<OrderingContentOutput | null>(() => {
       },
     ],
     productTypedExtraProperties: {
-      route: rideRoute.value,
-      departureAt: rideDepartureAt.value,
+      route: rideRouteForSubmit.value,
+      departureAt: editableDepartureAt.value,
       riders: rideRiders.value.map((rider) => rider.userId),
       contactPhone: phone,
     },
@@ -304,6 +455,52 @@ const formatFen = (amountFen: number | null | undefined): string => {
   }).format(amountFen / 100);
 };
 
+type RidePlaceSnapshot = {
+  name: string;
+  address?: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+const toRidePlaceSnapshot = (point: RoutePoint): RidePlaceSnapshot | null => {
+  const coordinate = pickRoutePointCoordinate(point);
+  const name = point.name.trim();
+  if (!coordinate || name.length === 0) return null;
+  return {
+    name,
+    address: point.full_address,
+    latitude: coordinate.lat,
+    longitude: coordinate.lng,
+  };
+};
+
+const openRoutePointDrawer = (index: number) => {
+  if (!routeEditable.value) return;
+  selectedRoutePointIndex.value = index;
+  routePointDrawerOpen.value = true;
+};
+
+const closeRoutePointDrawer = () => {
+  routePointDrawerOpen.value = false;
+};
+
+const handleRoutePointPicked = (location: PickedLocation) => {
+  if (!routeEditable.value) return;
+  const index = selectedRoutePointIndex.value;
+  const currentRoute = routeForMap.value;
+  const point = selectedRoutePoint.value;
+  if (index === null || !currentRoute || !point) return;
+  editableRoute.value = replaceRoutePointAt({
+    route: currentRoute,
+    index,
+    point: applyPickedLocationToRoutePoint({
+      point,
+      location,
+    }),
+  });
+  closeRoutePointDrawer();
+};
+
 const formatTime = (value: string): string =>
   new Intl.DateTimeFormat("zh-CN", {
     hour: "2-digit",
@@ -311,8 +508,30 @@ const formatTime = (value: string): string =>
     hour12: false,
   }).format(new Date(value));
 
+const toDateTimeLocalValue = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (input: number) => input.toString().padStart(2, "0");
+  return [
+    date.getFullYear(),
+    "-",
+    pad(date.getMonth() + 1),
+    "-",
+    pad(date.getDate()),
+    "T",
+    pad(date.getHours()),
+    ":",
+    pad(date.getMinutes()),
+  ].join("");
+};
+
+const handleDepartureInput = (value: string) => {
+  if (departureLocked.value) return;
+  editableDepartureAt.value = value.length > 0 ? new Date(value).toISOString() : null;
+};
+
 watch(
-  rideQuoteOptions,
+  visibleRideQuoteOptions,
   (next) => {
     const currentOption = next.find(
       (option) => option.skuId === selectedRideSkuId.value,
@@ -323,6 +542,22 @@ watch(
       next.find((option) => option.selectable) ??
       null;
     selectedRideSkuId.value = defaultOption?.skuId ?? null;
+  },
+  { immediate: true },
+);
+
+watch(
+  routeFromBinding,
+  (next) => {
+    editableRoute.value = cloneRoute(next);
+  },
+  { immediate: true },
+);
+
+watch(
+  rideDepartureAt,
+  (next) => {
+    editableDepartureAt.value = next;
   },
   { immediate: true },
 );
@@ -367,10 +602,6 @@ watch(
   border-radius: 0;
 }
 
-.ride-hailing-ordering-panel__route-map {
-  pointer-events: none;
-}
-
 .ride-hailing-ordering-panel__sheet {
   position: absolute;
   right: 0;
@@ -380,9 +611,9 @@ watch(
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--sys-spacing-small);
+  gap: 0;
   max-height: 55%;
-  padding: 0 var(--sys-spacing-medium) var(--sys-spacing-medium);
+  padding: 0 var(--sys-spacing-medium) var(--sys-spacing-small);
   border-radius: var(--sys-radius-large) var(--sys-radius-large) 0 0;
   background: var(--sys-color-surface);
   box-shadow: var(--sys-shadow-3);
@@ -396,12 +627,81 @@ watch(
   background: var(--sys-color-on-surface-variant);
 }
 
-.ride-hailing-ordering-panel__passengers {
+.ride-hailing-ordering-panel__vehicles {
   display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-panel__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sys-spacing-medium);
+  border-top: 1px solid var(--sys-color-outline-variant);
+  padding-top: var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-panel__control {
+  display: flex;
   min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--sys-spacing-xsmall) / 2);
+  border: 0;
+  padding: var(--sys-spacing-xsmall);
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  cursor: pointer;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  span {
+    @include mx.pu-font(control);
+    flex: 0 0 auto;
+    color: var(--sys-color-on-surface-variant);
+  }
+
+  strong {
+    @include mx.pu-font(control);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  i {
+    @include mx.pu-icon(small);
+    flex: 0 0 auto;
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
+.ride-hailing-ordering-panel__drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-panel__rider-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sys-spacing-small);
+  align-items: center;
+  padding: var(--sys-spacing-small) 0;
+  border-bottom: 1px solid var(--sys-color-outline-variant);
+
+  > span {
+    @include mx.pu-icon(medium);
+    color: var(--sys-color-on-surface-variant);
+  }
 
   div {
     display: flex;
@@ -410,24 +710,13 @@ watch(
     gap: calc(var(--sys-spacing-xsmall) / 2);
   }
 
-  span,
-  small {
-    @include mx.pu-font(control);
-    color: var(--sys-color-on-surface-variant);
-  }
-
   strong {
     @include mx.pu-font(body);
-    overflow-wrap: anywhere;
   }
-}
 
-.ride-hailing-ordering-panel__vehicles {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-small);
-  min-height: 0;
-  overflow: auto;
-  padding-bottom: calc(var(--sys-spacing-xsmall) / 2);
+  small {
+    @include mx.pu-font(support);
+    color: var(--sys-color-on-surface-variant);
+  }
 }
 </style>

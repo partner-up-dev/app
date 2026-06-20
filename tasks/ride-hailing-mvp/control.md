@@ -32,6 +32,9 @@ Hypothesis:
 - Possible follow-up route: `Constraint` or `Intent` only if provider-driven SKU
   discovery requires a durable new contract
 - Active mode: `Execute`
+- Current collaboration state: implement the confirmed
+  `subtasks/30-ordering-page-ui/` slices while keeping each mutation explicit
+  and reviewable
 
 ## Durable Owners In Scope
 
@@ -66,16 +69,33 @@ Hypothesis:
 
 ## Active Sequence
 
-0. Completed: prepare local-dev provider infrastructure so UI iteration can
-   happen against a deterministic fake Caocao service.
-1. Completed: correct the broken product flow:
-   `quote/vehicle selection -> support handoff`
-   to
-   `quote/vehicle selection -> create order -> order detail`.
-2. Next: iterate on ordering page UI.
-3. Then iterate on ride-hailing order detail UI.
-4. After the above, decide whether dynamic SKU discovery should stay
-   catalog-seeded or become provider-authored.
+0. Completed subtask:
+   `subtasks/00-order-spine-correction/`
+   - correct the broken product flow from
+     `quote/vehicle selection -> support handoff`
+     to
+     `quote/vehicle selection -> create order -> order detail`.
+1. Completed subtask:
+   `subtasks/10-fake-caocao-local-dev/`
+   - prepare local-dev provider infrastructure so UI iteration can happen
+     against a deterministic fake Caocao service.
+2. Prepared subtask:
+   `subtasks/20-dev-ride-hailing-fixtures/`
+   - keep RideHailing mock data and manual-test seed state explicit.
+3. Discussion subtask:
+   `subtasks/30-ordering-page-ui/`
+   - confirm the `/order/new` UI shape before implementation.
+4. Pending discussion subtask:
+   `subtasks/40-order-detail-ui/`
+   - confirm the `/orders/:orderId` RideHailing lifecycle UI shape before
+     implementation.
+5. Pending decision subtask:
+   `subtasks/50-provider-authored-ride-options/`
+   - decide whether dynamic SKU discovery stays catalog-seeded or becomes
+     provider-authored.
+6. Cross-subtask verification packet:
+   `subtasks/60-runtime-verification/`
+   - preserve the runtime checklist and commands used once a slice is approved.
 
 ## Why This Sequence
 
@@ -88,7 +108,8 @@ Hypothesis:
 ## Human Confirmation Boundary
 
 - Task-packet work and exploration are approved.
-- Any production code mutation still requires an explicit human start signal.
+- Any new production code mutation still requires an explicit human start
+  signal.
 - Before that start signal, prepare only:
   - task packet structure
   - evidence

@@ -30,6 +30,7 @@ export type MapMarker = {
   id: string;
   position: MapCoordinate;
   label?: string;
+  calloutLabel?: string;
   title?: string;
   tone?: MapGeometryTone;
   icon?: MapMarkerIcon;

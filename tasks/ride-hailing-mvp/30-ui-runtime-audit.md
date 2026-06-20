@@ -1,5 +1,12 @@
 # UI Runtime Audit
 
+This packet is now a historical runtime-audit note. Active discussion and
+implementation planning live in:
+
+- `subtasks/30-ordering-page-ui/control.md`
+- `subtasks/40-order-detail-ui/control.md`
+- `subtasks/60-runtime-verification/control.md`
+
 ## Ordering Page
 
 Current topology:
@@ -9,12 +16,15 @@ Current topology:
 
 Current problems:
 
-- the page still carries the semantics of a real create-order surface while
-  actually routing to support handoff
 - the ride panel has no explicit visible contact input
 - the ride panel exposes almost no editable structure for route/time/riders
 - the current UI feels like an internal verification branch rather than a buyer
   decision surface
+
+Resolved since this audit was first written:
+
+- the shared ordering submit path now creates a real order and routes to
+  `/orders/:orderId`
 
 ## Order Detail Page
 

@@ -9,4 +9,5 @@ export type OrderingEntryPayload = {
   offerDetail: OrderingOfferDetail;
   prId?: number;
   bindings: Record<string, unknown>;
+  bindingLocks: Record<string, true>;
 };

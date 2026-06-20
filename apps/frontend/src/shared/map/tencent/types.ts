@@ -50,6 +50,7 @@ export type TencentLatLngBoundsConstructor = {
 export type TencentMap = {
   setCenter(center: TencentLatLng): TencentMap;
   setZoom(zoom: number): TencentMap;
+  getZoom(): number;
   fitBounds(
     bounds: TencentLatLngBounds,
     options?: TencentFitBoundsOptions,
@@ -96,6 +97,20 @@ export type TencentPointGeometry = {
 export type TencentMultiMarker = {
   setGeometries(geometries: TencentPointGeometry[]): TencentMultiMarker;
   setMap(map: TencentMap | null): TencentMultiMarker;
+  on(
+    eventName: "click",
+    handler: (event: TencentMarkerClickEvent) => void,
+  ): TencentMultiMarker;
+  off(
+    eventName: "click",
+    handler: (event: TencentMarkerClickEvent) => void,
+  ): TencentMultiMarker;
+};
+
+export type TencentMarkerClickEvent = {
+  geometry?: {
+    id?: string;
+  };
 };
 
 export type TencentMultiMarkerConstructor = {
@@ -168,6 +183,8 @@ export type TencentLBSMapProviderInput = {
   minZoom?: number;
   maxZoom?: number;
   interactive?: boolean;
+  showDefaultControls?: boolean;
+  onMarkerClick?: (markerId: string) => void;
 };
 
 export type TencentLBSMapProvider = {
@@ -184,6 +201,8 @@ export type TencentLBSMapProvider = {
     center?: MapCoordinate;
     zoom?: number;
   }): void;
+  zoomIn(): void;
+  zoomOut(): void;
   destroy(): void;
 };
 

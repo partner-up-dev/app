@@ -5,6 +5,7 @@ export type OrderingContentInput = {
   source: OrderingEntryPayload["source"];
   offerDetail: OrderingEntryPayload["offerDetail"];
   bindings: Record<string, unknown>;
+  bindingLocks: OrderingEntryPayload["bindingLocks"];
 };
 
 export type OrderingContentOutput = {
@@ -23,6 +24,11 @@ export const readBindingValue = (
   bindings: Record<string, unknown>,
   key: string,
 ): unknown | null => bindings[key] ?? null;
+
+export const isBindingLocked = (
+  input: Pick<OrderingContentInput, "bindingLocks">,
+  key: string,
+): boolean => input.bindingLocks[key] === true;
 
 export const readBoundOrderParticipants = (
   bindings: Record<string, unknown>,

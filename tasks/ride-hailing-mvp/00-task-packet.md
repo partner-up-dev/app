@@ -14,6 +14,24 @@ smallest focused sibling file instead of accumulating here.
 - `control.md`
   - current task control surface, governing principles, active sequence, and
     human-confirmation boundary
+- `subtasks/00-order-spine-correction/control.md`
+  - completed correction from support-handoff detour to real order creation and
+    order detail navigation
+- `subtasks/10-fake-caocao-local-dev/control.md`
+  - completed first-class fake Caocao local provider package work
+- `subtasks/20-dev-ride-hailing-fixtures/control.md`
+  - development-only RideHailing provider/catalog/offer/placement fixture and
+    task-local manual seed state
+- `subtasks/30-ordering-page-ui/control.md`
+  - discussion packet for the `/order/new` RideHailing ordering UI before any
+    implementation
+- `subtasks/40-order-detail-ui/control.md`
+  - discussion packet for the `/orders/:orderId` RideHailing lifecycle UI
+- `subtasks/50-provider-authored-ride-options/control.md`
+  - pending contract decision for catalog-seeded vs provider-authored ride
+    options
+- `subtasks/60-runtime-verification/control.md`
+  - cross-subtask runtime and scenario verification checklist
 - `10-flow-correction.md`
   - first product correction: remove the support-handoff detour and restore the
     real `quote -> create order -> order detail` spine
@@ -50,7 +68,8 @@ Hypothesis:
 ## Guardrails Touched
 
 - Provisional input route: Reality against existing ecommerce contract, with a possible Constraint / Intent slice only if provider-authoritative SKU discovery needs new durable contract
-- Active mode: Execute
+- Active mode: Explore / Solidify until a subtask implementation shape is
+  explicitly confirmed
 - Durable owners likely involved:
   - `docs/10-prd/`
   - `docs/20-product-tdd/`
@@ -162,18 +181,22 @@ Hypothesis:
 ## Confirmed Constraints
 
 - Exploration and task packet work are allowed now
-- Production code mutation for slices 1 and 2 is approved and executed
+- Production code mutation for completed foundation slices was approved and
+  executed
+- Production code mutation for ordering-page UI, order-detail UI, and provider
+  authored options is not yet approved
 - Prefer smallest useful reference set and keep this packet current as evidence changes
 
 ## Next Step
 
-1. Use the newly stable fake Caocao setup for live UI runtime audit.
-2. Redesign the ride-hailing ordering page around route summary, quote state,
-   and SKU selection.
-3. Redesign ride-hailing order detail around ride lifecycle and final-bill
-   states.
-4. Decide whether dynamic SKU discovery stays catalog-seeded or becomes
-   provider-authored.
+1. Review `subtasks/30-ordering-page-ui/control.md` and confirm the ordering
+   page UI direction.
+2. Then review `subtasks/40-order-detail-ui/control.md` and confirm the detail
+   page lifecycle direction.
+3. Then decide whether `subtasks/50-provider-authored-ride-options/` belongs in
+   the same MVP pass or a later contract slice.
+4. Use `subtasks/60-runtime-verification/` once a concrete implementation slice
+   is approved.
 
 ## Working Rule
 

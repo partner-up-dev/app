@@ -8,6 +8,29 @@
     ></div>
 
     <div
+      v-if="customZoomControlsVisible"
+      class="map-shell__zoom-controls"
+      aria-label="地图缩放"
+    >
+      <button
+        type="button"
+        class="map-shell__zoom-button"
+        aria-label="放大地图"
+        @click.stop="zoomIn"
+      >
+        <span class="i-mdi-plus" aria-hidden="true"></span>
+      </button>
+      <button
+        type="button"
+        class="map-shell__zoom-button"
+        aria-label="缩小地图"
+        @click.stop="zoomOut"
+      >
+        <span class="i-mdi-minus" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div
       v-if="overlayVisible"
       class="map-shell__fallback"
       role="status"
@@ -64,6 +87,8 @@ const props = withDefaults(
     interactive?: boolean;
     variant?: "inline" | "immersive";
     hideBottomAttribution?: boolean;
+    showDefaultControls?: boolean;
+    showZoomControls?: boolean;
     loadingMessage?: string;
     unavailableMessage?: string;
     errorMessage?: string;
@@ -82,6 +107,8 @@ const props = withDefaults(
     interactive: true,
     variant: "inline",
     hideBottomAttribution: false,
+    showDefaultControls: true,
+    showZoomControls: false,
     loadingMessage: "地图加载中",
     unavailableMessage: "地图暂不可用",
     errorMessage: "地图加载失败",
@@ -91,6 +118,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   ready: [];
   error: [error: Error];
+  markerClick: [markerId: string];
 }>();
 
 const MAX_INIT_ATTEMPTS = 80;
@@ -153,6 +181,10 @@ const overlayVisible = computed(
   () => status.value !== "ready" || normalizedApiKey.value.length === 0,
 );
 
+const customZoomControlsVisible = computed(
+  () => props.showZoomControls && props.interactive && !overlayVisible.value,
+);
+
 const hasUsableContainerSize = (container: HTMLElement): boolean => {
   const rect = container.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
@@ -207,6 +239,8 @@ const initMap = async () => {
       minZoom: props.minZoom,
       maxZoom: props.maxZoom,
       interactive: props.interactive,
+      showDefaultControls: props.showDefaultControls,
+      onMarkerClick: (markerId) => emit("markerClick", markerId),
     });
     status.value = "ready";
     applyMapData();
@@ -219,6 +253,14 @@ const initMap = async () => {
   } finally {
     isInitializing.value = false;
   }
+};
+
+const zoomIn = () => {
+  provider.value?.zoomIn();
+};
+
+const zoomOut = () => {
+  provider.value?.zoomOut();
 };
 
 const clearScheduledInitialMapInit = () => {
@@ -322,6 +364,7 @@ watch(
 
 <style scoped lang="scss">
 .map-shell {
+  isolation: isolate;
   position: relative;
   display: block;
   width: 100%;
@@ -343,13 +386,55 @@ watch(
 }
 
 .map-shell__canvas {
+  isolation: isolate;
   position: absolute;
   inset: 0;
+  z-index: 0;
+}
+
+.map-shell__zoom-controls {
+  position: absolute;
+  right: var(--sys-spacing-small);
+  top: var(--sys-spacing-small);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface);
+  box-shadow: var(--sys-shadow-2);
+}
+
+.map-shell__zoom-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--sys-color-outline-variant);
+  background: transparent;
+  color: var(--sys-color-on-surface);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-color-primary);
+    outline-offset: -2px;
+  }
+
+  span {
+    @include mx.pu-icon(small);
+  }
 }
 
 .map-shell__fallback {
   position: absolute;
   inset: 0;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: center;

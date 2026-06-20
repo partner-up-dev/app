@@ -11,9 +11,12 @@
       :interactive="interactive"
       :variant="variant"
       :hide-bottom-attribution="hideBottomAttribution"
+      :show-default-controls="showDefaultControls"
+      :show-zoom-controls="showZoomControls"
       :loading-message="t('route.mapLoading')"
       :unavailable-message="t('route.mapUnavailable')"
       :error-message="t('route.mapFailed')"
+      @marker-click="handleMarkerClick"
     >
       <template #fallback>
         <div class="route-map__fallback">
@@ -81,6 +84,9 @@ const props = withDefaults(
     maxZoom?: number;
     apiKey?: string;
     interactive?: boolean;
+    showDefaultControls?: boolean;
+    showZoomControls?: boolean;
+    routePointsEditable?: boolean;
     variant?: "inline" | "immersive";
     hideBottomAttribution?: boolean;
   }>(),
@@ -93,12 +99,19 @@ const props = withDefaults(
     maxZoom: 16,
     apiKey: undefined,
     interactive: true,
+    showDefaultControls: false,
+    showZoomControls: true,
+    routePointsEditable: false,
     variant: "inline",
     hideBottomAttribution: false,
   },
 );
 
 const { t } = useI18n();
+
+const emit = defineEmits<{
+  routePointClick: [index: number];
+}>();
 
 const planningAbortController = ref<AbortController | null>(null);
 const planningStatus = ref<"idle" | "loading" | "success" | "error">("idle");
@@ -138,6 +151,11 @@ const planningUrl = computed(() => {
 
 const routePlanningPrimary = computed(() => plannedRoutes.value[0] ?? null);
 
+const routePointFallbackLabel = (index: number): string =>
+  t("route.pointFallback", {
+    index: index + 1,
+  });
+
 const buildPointMarker = ({
   point,
   index,
@@ -148,14 +166,12 @@ const buildPointMarker = ({
   position: MapCoordinate;
 }): MapMarker => {
   const role = resolveRoutePointRole(index, routePoints.value.length);
+  const title = point?.name.trim() || routePointFallbackLabel(index);
   return {
     id: `route-point-${index}`,
     position,
-    title:
-      point?.name.trim() ||
-      t("route.pointFallback", {
-        index: index + 1,
-      }),
+    calloutLabel: props.routePointsEditable ? `${title} ›` : title,
+    title,
     icon:
       role === "departure"
         ? "routeStart"
@@ -165,16 +181,46 @@ const buildPointMarker = ({
   };
 };
 
+const fallbackMarkers = computed<MapMarker[]>(() =>
+  routePoints.value.flatMap((point, index): MapMarker[] => {
+    const position = pickRoutePointCoordinate(point);
+    return position
+      ? [
+          buildPointMarker({
+            point,
+            index,
+            position,
+          }),
+        ]
+      : [];
+  }),
+);
+
+const parseRoutePointMarkerId = (markerId: string): number | null => {
+  const match = /^route-point-(\d+)$/.exec(markerId);
+  if (!match) return null;
+  const index = Number(match[1]);
+  return Number.isInteger(index) ? index : null;
+};
+
+const handleMarkerClick = (markerId: string) => {
+  if (!props.routePointsEditable) return;
+  const index = parseRoutePointMarkerId(markerId);
+  if (index === null) return;
+  if (index < 0 || index >= routePoints.value.length) return;
+  emit("routePointClick", index);
+};
+
 const markers = computed<MapMarker[]>(() => {
   const primaryPlan = routePlanningPrimary.value;
   if (!primaryPlan || primaryPlan.polyline.length < 2) {
-    return projection.value.markers;
+    return fallbackMarkers.value;
   }
 
   const firstPoint = primaryPlan.polyline[0];
   const lastPoint = primaryPlan.polyline[primaryPlan.polyline.length - 1];
   if (!firstPoint || !lastPoint) {
-    return projection.value.markers;
+    return fallbackMarkers.value;
   }
 
   const waypointMarkers = routePoints.value.slice(1, -1).map((point, index) => {

@@ -186,6 +186,10 @@ const readOrderingEntry = (): OrderingEntryPayload | null => {
         typeof parsed.bindings === "object" && parsed.bindings !== null
           ? parsed.bindings
           : {},
+      bindingLocks:
+        typeof parsed.bindingLocks === "object" && parsed.bindingLocks !== null
+          ? parsed.bindingLocks
+          : {},
     };
   } catch {
     return null;

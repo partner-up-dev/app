@@ -15,6 +15,7 @@ import type {
   TencentMap,
   TencentMapOptions,
   TencentMapSdk,
+  TencentMarkerClickEvent,
   TencentMultiMarker,
   TencentMultiPolyline,
   TencentPointGeometry,
@@ -221,8 +222,9 @@ const toMarkerGeometries = (
           title: marker.title ?? marker.label ?? marker.id,
         },
       };
-      if (typeof marker.label === "string" && marker.label.length > 0) {
-        geometry.content = marker.label;
+      const content = marker.calloutLabel ?? marker.label ?? "";
+      if (content.length > 0) {
+        geometry.content = content;
       }
       return geometry;
     });
@@ -323,13 +325,15 @@ export const createTencentLBSMapProvider = async ({
   minZoom,
   maxZoom,
   interactive = true,
+  showDefaultControls = true,
+  onMarkerClick,
 }: TencentLBSMapProviderInput): Promise<TencentLBSMapProvider> => {
   const sdk = await loadTencentLBSSdk({ key: apiKey, libraries });
   const mapOptions: TencentMapOptions = {
     center: toTencentLatLng(sdk, center),
     zoom,
     viewMode: "2D",
-    showControl: interactive,
+    showControl: showDefaultControls,
     draggable: interactive,
     scrollable: interactive,
     touchZoomable: interactive,
@@ -351,6 +355,14 @@ export const createTencentLBSMapProvider = async ({
     geometries: [],
     disableInteractive: false,
   });
+
+  const handleMarkerClick = (event: TencentMarkerClickEvent) => {
+    const markerId = event.geometry?.id;
+    if (markerId) {
+      onMarkerClick?.(markerId);
+    }
+  };
+  markerLayer.on("click", handleMarkerClick);
 
   let polylineLayer: TencentMultiPolyline | null = new sdk.MultiPolyline({
     id: "partner-up-polyline-layer",
@@ -389,7 +401,14 @@ export const createTencentLBSMapProvider = async ({
         map.setZoom(nextZoom);
       }
     },
+    zoomIn() {
+      map.setZoom(Math.min(map.getZoom() + 1, maxZoom ?? 20));
+    },
+    zoomOut() {
+      map.setZoom(Math.max(map.getZoom() - 1, minZoom ?? 3));
+    },
     destroy() {
+      markerLayer?.off("click", handleMarkerClick);
       markerLayer?.setMap(null);
       markerLayer = null;
       polylineLayer?.setMap(null);
