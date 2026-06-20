@@ -3,6 +3,7 @@
     :title="t('ordering.pageTitle')"
     :back-fallback-to="backFallbackTo"
     :data-testid="orderingPageTestId"
+    :no-padding="!!rideOrdering"
   >
     <template #actions>
       <PuButton
@@ -31,7 +32,7 @@
         @update:output="handleRentalOutputUpdate"
       />
 
-      <RideHailingOrderingPanel
+      <RideHailingOrderingContent
         v-else-if="rideOrdering && orderingContentInput"
         :input="orderingContentInput"
         :evaluated-options="rideEvaluatedOptions"
@@ -94,31 +95,31 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
-import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
-import OrderingFloatingNoticeLayer from "@/domains/commerce/ui/ordering/OrderingFloatingNoticeLayer.vue";
-import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
-import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
-import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
-import RideHailingOrderingPanel, {
-  type RideVehicleOption,
-} from "@/domains/commerce/ui/ordering/RideHailingOrderingPanel.vue";
-import {
-  useCreateOrder,
-  useEvaluateOrdering,
-  type CreateOrderInput,
-} from "@/domains/commerce/queries/useCommerce";
-import {
-  ORDERING_ENTRY_STORAGE_KEY,
-  type OrderingEntryPayload,
-} from "@/domains/commerce/model/ordering-entry-storage";
 import type {
   OrderingContentInput,
   OrderingContentOutput,
 } from "@/domains/commerce/model/ordering-content";
+import {
+  ORDERING_ENTRY_STORAGE_KEY,
+  type OrderingEntryPayload,
+} from "@/domains/commerce/model/ordering-entry-storage";
+import {
+  type CreateOrderInput,
+  useCreateOrder,
+  useEvaluateOrdering,
+} from "@/domains/commerce/queries/useCommerce";
+import OrderingFloatingNoticeLayer from "@/domains/commerce/ui/ordering/OrderingFloatingNoticeLayer.vue";
+import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
+import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
+import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
+import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
+import RideHailingOrderingContent, {
+  type RideVehicleOption,
+} from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
 
@@ -139,9 +140,7 @@ const readOrderingEntry = (): OrderingEntryPayload | null => {
       offerDetail: parsed.offerDetail,
       prId: typeof parsed.prId === "number" ? parsed.prId : undefined,
       bindings:
-        typeof parsed.bindings === "object" && parsed.bindings !== null
-          ? parsed.bindings
-          : {},
+        typeof parsed.bindings === "object" && parsed.bindings !== null ? parsed.bindings : {},
       bindingLocks:
         typeof parsed.bindingLocks === "object" && parsed.bindingLocks !== null
           ? parsed.bindingLocks
@@ -184,9 +183,7 @@ const orderingContentInput = computed<OrderingContentInput | null>(() => {
   };
 });
 
-const buildOrderInput = (
-  output: OrderingContentOutput | null,
-): CreateOrderInput | null => {
+const buildOrderInput = (output: OrderingContentOutput | null): CreateOrderInput | null => {
   const entry = orderingEntry.value;
   if (!entry || !output) return null;
   return {
@@ -210,14 +207,10 @@ const rideEvaluatedOptions = computed<RideVehicleOption[]>(
   () => evaluateMutation.data.value?.rideHailing?.options ?? [],
 );
 
-const availability = computed(
-  () => evaluateMutation.data.value?.actions.create_order ?? null,
-);
+const availability = computed(() => evaluateMutation.data.value?.actions.create_order ?? null);
 
 const createOrderErrorMessage = computed(() =>
-  createOrderMutation.error.value instanceof Error
-    ? createOrderMutation.error.value.message
-    : null,
+  createOrderMutation.error.value instanceof Error ? createOrderMutation.error.value.message : null,
 );
 
 const availabilityMessage = computed(() => {
@@ -234,23 +227,17 @@ const canCreate = computed(
     availability.value?.allowed === true,
 );
 
-const priceExplanations = computed(
-  () => evaluateMutation.data.value?.price.explanations ?? [],
-);
+const priceExplanations = computed(() => evaluateMutation.data.value?.price.explanations ?? []);
 
 const priceDisplayLabel = computed(() => {
   const range = evaluateMutation.data.value?.price.range ?? null;
   const rangePrices = range
-    ? [range.minFen, range.maxFen].filter(
-        (value): value is number => typeof value === "number",
-      )
+    ? [range.minFen, range.maxFen].filter((value): value is number => typeof value === "number")
     : [];
   if (rangePrices.length > 0) {
     const min = Math.min(...rangePrices);
     const max = Math.max(...rangePrices);
-    return min === max
-      ? formatPriceAmount(min)
-      : `${formatPriceAmount(min)}~${formatYuan(max)}`;
+    return min === max ? formatPriceAmount(min) : `${formatPriceAmount(min)}~${formatYuan(max)}`;
   }
   return formatPriceAmount(evaluateMutation.data.value?.price.totalFen ?? null);
 });
@@ -264,9 +251,7 @@ const floatingNoticeTone = computed<"warning" | "error">(() =>
 );
 
 const backFallbackTo = computed(() =>
-  orderingEntry.value?.prId
-    ? { path: `/pr/${orderingEntry.value.prId}` }
-    : { path: "/" },
+  orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
 
 const handleRentalOutputUpdate = (next: OrderingContentOutput | null): void => {
@@ -329,6 +314,5 @@ const submitOrder = async (): Promise<void> => {
   width: 100%;
   min-height: 0;
   overflow: auto;
-  padding-bottom: var(--sys-spacing-medium);
 }
 </style>

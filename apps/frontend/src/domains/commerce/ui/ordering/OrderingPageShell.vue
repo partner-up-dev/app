@@ -1,5 +1,10 @@
 <template>
-  <PuPageScaffold viewport="screen" class="ordering-page-shell" :data-testid="dataTestid">
+  <PuPageScaffold
+    viewport="screen"
+    class="ordering-page-shell"
+    :class="{ 'ordering-page-shell--no-padding': noPadding }"
+    :data-testid="dataTestid"
+  >
     <template #header>
       <PuPageHeader
         :title="title"
@@ -28,8 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import type { RouteLocationRaw } from "vue-router";
 import { PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import type { RouteLocationRaw } from "vue-router";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 const props = defineProps<{
@@ -37,6 +42,7 @@ const props = defineProps<{
   subtitle?: string;
   backFallbackTo: RouteLocationRaw;
   dataTestid?: string;
+  noPadding?: boolean;
 }>();
 
 const { handleBack } = useFallbackBack(() => props.backFallbackTo);
@@ -50,7 +56,14 @@ const { handleBack } = useFallbackBack(() => props.backFallbackTo);
   --pu-page-padding-bottom: 0;
 }
 
-.ordering-page-shell :deep(.full-screen-page-scaffold__footer) {
+.ordering-page-shell--no-padding {
+  --pu-page-padding-top: 0;
+  --pu-page-padding-right: 0;
+  --pu-page-padding-bottom: 0;
+  --pu-page-padding-left: 0;
+}
+
+.ordering-page-shell :deep(.pu-page-scaffold__footer) {
   width: 100vw;
   margin-right: calc(50% - 50vw);
   margin-left: calc(50% - 50vw);

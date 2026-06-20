@@ -1,8 +1,8 @@
 <template>
   <template v-if="rideOffer">
-    <div class="ride-hailing-ordering-panel">
+    <div class="ride-hailing-ordering-content">
       <RouteMap
-        class="ride-hailing-ordering-panel__route-map"
+        class="ride-hailing-ordering-content__route-map"
         data-testid="ordering.ride-hailing.route-map"
         :route="routeForMap"
         :fit-padding="routeMapFitPadding"
@@ -14,12 +14,12 @@
       />
 
       <div
-        class="ride-hailing-ordering-panel__sheet"
+        class="ride-hailing-ordering-content__sheet"
         data-testid="ordering.ride-hailing.bottom-sheet"
       >
-        <div class="ride-hailing-ordering-panel__handle" aria-hidden="true"></div>
+        <div class="ride-hailing-ordering-content__handle" aria-hidden="true"></div>
 
-        <div class="ride-hailing-ordering-panel__vehicles">
+        <div class="ride-hailing-ordering-content__vehicles">
           <RideHailingSkuCard
             v-for="option in visibleRideQuoteOptions"
             :key="option.skuId"
@@ -31,34 +31,34 @@
             @select="selectedRideSkuId = option.skuId"
           />
         </div>
+      </div>
 
-        <div
-          class="ride-hailing-ordering-panel__controls"
-          data-testid="ordering.ride-hailing.drawer-control-row"
+      <div
+        class="ride-hailing-ordering-content__controls"
+        data-testid="ordering.ride-hailing.drawer-control-row"
+      >
+        <button
+          type="button"
+          class="ride-hailing-ordering-content__control"
+          data-testid="ordering.ride-hailing.riders.open"
+          @click="ridersDrawerOpen = true"
         >
-          <button
-            type="button"
-            class="ride-hailing-ordering-panel__control"
-            data-testid="ordering.ride-hailing.riders.open"
-            @click="ridersDrawerOpen = true"
-          >
-            <span>同乘人</span>
-            <strong>{{ riderSummary }}</strong>
-            <i class="i-mdi-chevron-right" aria-hidden="true"></i>
-          </button>
-          <button
-            type="button"
-            class="ride-hailing-ordering-panel__control"
-            data-testid="ordering.ride-hailing.departure-time.open"
-            @click="departureDrawerOpen = true"
-          >
-            <span>出发时间</span>
-            <strong data-testid="ordering.ride-hailing.departure-time">
-              {{ rideDepartureLabel }}
-            </strong>
-            <i class="i-mdi-chevron-right" aria-hidden="true"></i>
-          </button>
-        </div>
+          <span>同乘人</span>
+          <strong>{{ riderSummary }}</strong>
+          <i class="i-mdi-chevron-right" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="ride-hailing-ordering-content__control"
+          data-testid="ordering.ride-hailing.departure-time.open"
+          @click="departureDrawerOpen = true"
+        >
+          <span>出发时间</span>
+          <strong data-testid="ordering.ride-hailing.departure-time">
+            {{ rideDepartureLabel }}
+          </strong>
+          <i class="i-mdi-chevron-right" aria-hidden="true"></i>
+        </button>
       </div>
 
       <PuDrawer
@@ -81,7 +81,7 @@
         title="同乘人"
         max-width="44rem"
       >
-        <div class="ride-hailing-ordering-panel__drawer-content">
+        <div class="ride-hailing-ordering-content__drawer-content">
           <PuInlineNotice
             v-if="ridersLocked"
             tone="info"
@@ -90,7 +90,7 @@
           <div
             v-for="rider in rideRiders"
             :key="rider.userId"
-            class="ride-hailing-ordering-panel__rider-row"
+            class="ride-hailing-ordering-content__rider-row"
           >
             <span class="i-mdi-account-circle" aria-hidden="true"></span>
             <div>
@@ -106,7 +106,7 @@
         title="出发时间"
         max-width="44rem"
       >
-        <div class="ride-hailing-ordering-panel__drawer-content">
+        <div class="ride-hailing-ordering-content__drawer-content">
           <PuInlineNotice
             v-if="departureLocked"
             tone="info"
@@ -133,27 +133,8 @@
 </template>
 
 <script setup lang="ts">
+import { PuDrawer, PuFormItem, PuInlineNotice, PuInput } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
-import {
-  PuDrawer,
-  PuFormItem,
-  PuInlineNotice,
-  PuInput,
-} from "@partner-up-dev/design-web";
-import RouteMap from "@/domains/route/ui/RouteMap.vue";
-import {
-  applyPickedLocationToRoutePoint,
-  cloneRoute,
-  pickRoutePointCoordinate,
-  replaceRoutePointAt,
-  resolveRoutePointRole,
-  type Route,
-  type RoutePoint,
-} from "@/domains/route/model/route";
-import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
-import type { PickedLocation } from "@/domains/location/model/location-picker";
-import type { MapFitPadding } from "@/shared/map/types";
-import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 import type {
   BoundOrderParticipant,
   OrderingContentInput,
@@ -165,6 +146,20 @@ import {
   readBoundOrderParticipants,
 } from "@/domains/commerce/model/ordering-content";
 import type { CreateOrderInput } from "@/domains/commerce/queries/useCommerce";
+import type { PickedLocation } from "@/domains/location/model/location-picker";
+import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
+import {
+  applyPickedLocationToRoutePoint,
+  cloneRoute,
+  pickRoutePointCoordinate,
+  type Route,
+  type RoutePoint,
+  replaceRoutePointAt,
+  resolveRoutePointRole,
+} from "@/domains/route/model/route";
+import RouteMap from "@/domains/route/ui/RouteMap.vue";
+import type { MapFitPadding } from "@/shared/map/types";
+import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 
 export type RideVehicleOption = {
   skuId: number;
@@ -204,13 +199,10 @@ const departureDrawerOpen = ref(false);
 const editableDepartureAt = ref<string | null>(null);
 
 const rideOffer = computed<RideOffer | null>(() =>
-  props.input.offerDetail.productType === "RIDE_HAILING"
-    ? props.input.offerDetail
-    : null,
+  props.input.offerDetail.productType === "RIDE_HAILING" ? props.input.offerDetail : null,
 );
 
-const bindingValue = (key: string): unknown | null =>
-  readBindingValue(props.input.bindings, key);
+const bindingValue = (key: string): unknown | null => readBindingValue(props.input.bindings, key);
 
 const isRideRouteSnapshot = (value: unknown): value is RideRouteSnapshot => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -241,12 +233,8 @@ const boundContactPhone = computed(() => {
 });
 
 const routeEditable = computed(() => !isBindingLocked(props.input, "route"));
-const ridersLocked = computed(() =>
-  isBindingLocked(props.input, "orderParticipants"),
-);
-const departureLocked = computed(() =>
-  isBindingLocked(props.input, "departureAt"),
-);
+const ridersLocked = computed(() => isBindingLocked(props.input, "orderParticipants"));
+const departureLocked = computed(() => isBindingLocked(props.input, "departureAt"));
 
 const rideRiders = computed<BoundOrderParticipant[]>(() =>
   readBoundOrderParticipants(props.input.bindings),
@@ -270,10 +258,7 @@ const toRoutePoint = (place: unknown): RoutePoint | null => {
         ? record.address
         : null;
 
-  if (
-    typeof record.latitude === "number" &&
-    typeof record.longitude === "number"
-  ) {
+  if (typeof record.latitude === "number" && typeof record.longitude === "number") {
     return {
       name,
       full_address: fullAddress,
@@ -313,9 +298,7 @@ const routeFromBinding = computed<Route | null>(() => {
   return [origin, ...waypoints, destination];
 });
 
-const routeForMap = computed<Route | null>(
-  () => editableRoute.value ?? routeFromBinding.value,
-);
+const routeForMap = computed<Route | null>(() => editableRoute.value ?? routeFromBinding.value);
 
 const selectedRoutePoint = computed<RoutePoint | null>(() => {
   const index = selectedRoutePointIndex.value;
@@ -368,26 +351,25 @@ const routeMapFitPadding: MapFitPadding = {
   left: 32,
 };
 
-const rideBaseOptions = computed<RideVehicleOption[]>(() =>
-  rideOffer.value?.spus.flatMap((spu) =>
-    spu.skuOptions.map((sku) => ({
-      skuId: sku.skuId,
-      spuId: sku.spuId,
-      name: sku.name,
-      displayName: sku.name,
-      selectable: true,
-      selected: false,
-      disabledReason: null,
-      estimateAmountFen: null,
-      quoteAmountFen: null,
-    })),
-  ) ?? [],
+const rideBaseOptions = computed<RideVehicleOption[]>(
+  () =>
+    rideOffer.value?.spus.flatMap((spu) =>
+      spu.skuOptions.map((sku) => ({
+        skuId: sku.skuId,
+        spuId: sku.spuId,
+        name: sku.name,
+        displayName: sku.name,
+        selectable: true,
+        selected: false,
+        disabledReason: null,
+        estimateAmountFen: null,
+        quoteAmountFen: null,
+      })),
+    ) ?? [],
 );
 
 const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
-  props.evaluatedOptions.length > 0
-    ? props.evaluatedOptions
-    : rideBaseOptions.value,
+  props.evaluatedOptions.length > 0 ? props.evaluatedOptions : rideBaseOptions.value,
 );
 
 const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
@@ -407,11 +389,7 @@ const editableDepartureInput = computed(() =>
 );
 
 const evaluationOutput = computed<OrderingContentOutput | null>(() => {
-  if (
-    !rideOffer.value ||
-    selectedRideSkuId.value === null ||
-    !rideRouteForSubmit.value
-  ) {
+  if (!rideOffer.value || selectedRideSkuId.value === null || !rideRouteForSubmit.value) {
     return null;
   }
   const phone = rideContactPhone.value.trim();
@@ -533,9 +511,7 @@ const handleDepartureInput = (value: string) => {
 watch(
   visibleRideQuoteOptions,
   (next) => {
-    const currentOption = next.find(
-      (option) => option.skuId === selectedRideSkuId.value,
-    );
+    const currentOption = next.find((option) => option.skuId === selectedRideSkuId.value);
     if (currentOption?.selectable) return;
     const defaultOption =
       next.find((option) => option.selected && option.selectable) ??
@@ -584,28 +560,29 @@ watch(
 </script>
 
 <style scoped lang="scss">
-.ride-hailing-ordering-panel {
+.ride-hailing-ordering-content {
+  --ride-hailing-ordering-content-control-row-height: 2.75rem;
   position: relative;
   width: 100%;
   min-height: 0;
 }
 
-.ride-hailing-ordering-panel,
-.ride-hailing-ordering-panel__route-map {
+.ride-hailing-ordering-content,
+.ride-hailing-ordering-content__route-map {
   height: 100%;
 }
 
-.ride-hailing-ordering-panel__route-map :deep(.route-map),
-.ride-hailing-ordering-panel__route-map :deep(.map-shell) {
+.ride-hailing-ordering-content__route-map :deep(.route-map),
+.ride-hailing-ordering-content__route-map :deep(.map-shell) {
   height: 100%;
   border: 0;
   border-radius: 0;
 }
 
-.ride-hailing-ordering-panel__sheet {
+.ride-hailing-ordering-content__sheet {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: var(--ride-hailing-ordering-content-control-row-height);
   left: 0;
   z-index: 20;
   pointer-events: auto;
@@ -619,7 +596,7 @@ watch(
   box-shadow: var(--sys-shadow-3);
 }
 
-.ride-hailing-ordering-panel__handle {
+.ride-hailing-ordering-content__handle {
   width: 2rem;
   height: 0.25rem;
   margin: var(--sys-spacing-small) auto 0;
@@ -627,25 +604,31 @@ watch(
   background: var(--sys-color-on-surface-variant);
 }
 
-.ride-hailing-ordering-panel__vehicles {
+.ride-hailing-ordering-content__vehicles {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--sys-spacing-small);
   min-height: 0;
   overflow: auto;
-  padding-bottom: var(--sys-spacing-small);
 }
 
-.ride-hailing-ordering-panel__controls {
+.ride-hailing-ordering-content__controls {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
+  min-height: var(--ride-hailing-ordering-content-control-row-height);
   border-top: 1px solid var(--sys-color-outline-variant);
-  padding-top: var(--sys-spacing-small);
+  padding: var(--sys-spacing-xsmall) var(--sys-spacing-medium);
+  background: var(--sys-color-surface-container);
 }
 
-.ride-hailing-ordering-panel__control {
+.ride-hailing-ordering-content__control {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -684,13 +667,13 @@ watch(
   }
 }
 
-.ride-hailing-ordering-panel__drawer-content {
+.ride-hailing-ordering-content__drawer-content {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-small);
 }
 
-.ride-hailing-ordering-panel__rider-row {
+.ride-hailing-ordering-content__rider-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--sys-spacing-small);

@@ -2,19 +2,24 @@
   <div class="ordering-footer-action-bar" data-testid="ordering.bottom-action">
     <div class="ordering-footer-action-bar__price-summary">
       <strong :data-testid="priceTestid">{{ amountLabel }}</strong>
-      <button
-        type="button"
+      <PuButton
         class="ordering-footer-action-bar__price-detail-trigger"
+        shape="circle"
+        tone="neutral"
+        variant="ghost"
+        size="sm"
         :disabled="!priceDetailEnabled"
         :data-testid="priceDetailTestid"
         :aria-label="t('ordering.priceDetailAria')"
         @click="$emit('open-price-detail')"
       >
-        <span
-          class="ordering-footer-action-bar__chevron i-mdi-chevron-up"
-          aria-hidden="true"
-        ></span>
-      </button>
+        <template #leading>
+          <span
+            class="ordering-footer-action-bar__chevron i-mdi-chevron-up"
+            aria-hidden="true"
+          ></span>
+        </template>
+      </PuButton>
     </div>
 
     <PuButton
@@ -31,8 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "vue-i18n";
 import { PuButton } from "@partner-up-dev/design-web";
+import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
@@ -92,27 +97,12 @@ defineEmits<{
 }
 
 .ordering-footer-action-bar__price-detail-trigger {
-  display: inline-grid;
   flex: 0 0 auto;
   width: 1.875rem;
   height: 1.875rem;
-  place-items: center;
-  border: 1px solid var(--sys-color-outline);
-  border-radius: 999px;
+  min-width: 1.875rem;
+  min-height: 1.875rem;
   padding: 0;
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-  cursor: pointer;
-
-  &:disabled {
-    opacity: var(--sys-opacity-disabled);
-    cursor: default;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--sys-color-primary);
-    outline-offset: 2px;
-  }
 }
 
 .ordering-footer-action-bar__submit-action {
