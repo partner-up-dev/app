@@ -27,6 +27,26 @@ describe("FakeCaocaoState", () => {
     expect(finished?.phase).toBe("FINISHED");
   });
 
+  test("updates estimates for later quotes and orders", () => {
+    const state = new FakeCaocaoState();
+
+    const updated = state.updateEstimate({
+      carType: "PREMIER",
+      estimateAmountFen: 6100,
+    });
+    const created = state.createOrder({
+      carType: "PREMIER",
+      externalOrderId: "external-order-price-change",
+    });
+
+    expect(updated.estimateAmountFen).toBe(6100);
+    expect(state.findEstimate("PREMIER").estimateAmountFen).toBe(6100);
+    expect(created.finalAmountFen).toBe(6500);
+
+    state.reset();
+    expect(state.findEstimate("PREMIER").estimateAmountFen).toBe(5200);
+  });
+
   test("supports next-create failure, cancellation, and fee confirmation", () => {
     const state = new FakeCaocaoState();
 

@@ -118,6 +118,28 @@ const readFirstParam = (params: Record<string, string>, keys: string[]): string 
   return null;
 };
 
+const readRequiredNumberParam = (params: Record<string, string>, keys: string[]): number => {
+  const raw = readFirstParam(params, keys);
+  const parsed = raw === null ? Number.NaN : Number(raw);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Missing numeric fake Caocao parameter: ${keys[0]}`);
+  }
+  return parsed;
+};
+
+const readOptionalNumberParam = (
+  params: Record<string, string>,
+  keys: string[],
+): number | undefined => {
+  const raw = readFirstParam(params, keys);
+  if (raw === null) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid numeric fake Caocao parameter: ${keys[0]}`);
+  }
+  return parsed;
+};
+
 const estimatePayload = (estimate: FakeCaocaoVehicleEstimate): unknown => ({
   carType: estimate.carType,
   carTypeName: estimate.carTypeName,
@@ -278,6 +300,27 @@ export async function handleFakeCaocaoRequest(
       await readBodyText(req);
       input.state.configureNextCreateFailure();
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (url.pathname === "/__fake_caocao/estimates" && req.method === "POST") {
+      const params = await readParams(req, url);
+      const carType = readFirstParam(params, ["carType", "car_type"]);
+      if (!carType) {
+        throw new Error("Missing fake Caocao car type");
+      }
+      const estimate = input.state.updateEstimate({
+        carType,
+        carTypeName: readFirstParam(params, ["carTypeName", "car_type_name"]) ?? undefined,
+        distanceMeters: readOptionalNumberParam(params, ["distanceMeters", "distance"]),
+        durationSeconds: readOptionalNumberParam(params, ["durationSeconds", "duration"]),
+        estimateAmountFen: readRequiredNumberParam(params, [
+          "estimateAmountFen",
+          "estimatePriceFen",
+          "estimate_price",
+        ]),
+      });
+      sendJson(res, 200, { estimate, ok: true });
       return;
     }
 

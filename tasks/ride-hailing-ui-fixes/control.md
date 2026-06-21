@@ -86,9 +86,35 @@ Choose the narrowest sufficient proof per approved slice:
 
 ## Current State
 
-- Slice implemented and committed: RideHailing ordering content naming and
-  layout correction.
-- Verified with `pnpm check:type:frontend` and explicit Biome check on changed
-  frontend files.
-- Remaining proof: human visual review of RideHailing `/order/new` content /
-  footer adjacency and bottom-sheet / control-row spacing.
+- Committed slice: RideHailing ordering content naming and layout correction
+  (`f7ac1aa3`).
+- Implemented but not committed slice: submit-time ordering pre-flight and
+  RideHailing SKU ownership correction.
+- Current target model now reflected in code:
+  - parent-page evaluation runs only after submit/create-order click
+  - blocking pre-flight results open an acknowledgement dialog
+  - changed pre-flight price opens a confirmation dialog before create order
+  - footer price summary comes from Ordering Content summary
+  - RideHailing quote options are loaded by `RideHailingOrderingContent`
+  - parent-page evaluation no longer returns or owns `rideHailing.options`
+- Implemented scenario coverage:
+  - fake Caocao can mutate vehicle estimates through an admin-only test route
+  - RideHailing system scenario now covers submit-time price-change preflight
+    and verifies provider order creation is blocked until the user confirms
+- Map diagnostic:
+  - the gray RideHailing Ordering map observation was confirmed as a browser
+    client issue; shared map code is not part of the active fix.
+- Verified:
+  - `pnpm exec biome check --write packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/state.test.ts packages/fake-caocao-server/src/server.test.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm check:type:frontend`
+  - `pnpm check:type:backend`
+  - explicit `pnpm exec biome lint` on changed source files
+  - `pnpm check:lint:frontend`
+  - `pnpm check:lint:backend`
+  - `pnpm exec vitest run tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts --project system-scenario --reporter=verbose`
+- Non-blocking note:
+  - `pnpm exec biome check ...` reports whole-file formatting differences in
+    already-touched large files; this slice did not auto-format those whole
+    files to avoid unrelated churn.

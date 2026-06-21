@@ -1,19 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Page } from "playwright";
-import { installScenarioUserSession } from "../_infra/browser/session";
-import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
-import { withScenarioPage } from "../_infra/browser/browser";
-import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
-import { scenario } from "../_infra/scenario/scenario";
-import {
-  bindScenarioWeChatOpenId,
-  configurePRStatus,
-} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
-import {
-  givenUser,
-  type ScenarioUser,
-} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
 import {
   createOffer,
   createPlacement,
@@ -27,6 +14,19 @@ import type { PRRoute } from "../../../apps/backend/src/entities/partner-request
 import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
 import { ProductSkuRepository } from "../../../apps/backend/src/repositories/ProductSkuRepository";
+import {
+  bindScenarioWeChatOpenId,
+  configurePRStatus,
+} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
+import {
+  givenUser,
+  type ScenarioUser,
+} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+import { withScenarioPage } from "../_infra/browser/browser";
+import { installScenarioUserSession } from "../_infra/browser/session";
+import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
+import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
+import { scenario } from "../_infra/scenario/scenario";
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
@@ -91,6 +91,30 @@ async function armFakeCaocaoCreateFailure(): Promise<void> {
   await fetch(new URL("/__fake_caocao/create-failure/next", fakeCaocao.origin), {
     method: "POST",
   });
+}
+
+async function updateFakeCaocaoEstimate(input: {
+  carType: string;
+  estimateAmountFen: number;
+}): Promise<void> {
+  const { fakeCaocao } = getScenarioEnvironment();
+  const response = await fetch(new URL("/__fake_caocao/estimates", fakeCaocao.origin), {
+    body: JSON.stringify(input),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+  assert.equal(response.ok, true);
+}
+
+async function readFakeCaocaoOrderCount(): Promise<number> {
+  const { fakeCaocao } = getScenarioEnvironment();
+  const response = await fetch(new URL("/__fake_caocao/state", fakeCaocao.origin));
+  assert.equal(response.ok, true);
+  const body = (await response.json()) as { orders?: unknown[] };
+  assert.ok(Array.isArray(body.orders));
+  return body.orders.length;
 }
 
 async function givenRideHailingPr(input: {
@@ -275,10 +299,7 @@ async function assertLocatorTextMatches(input: {
   assert.match(actual, input.pattern, input.label);
 }
 
-async function openRideHailingOrderingFromPr(input: {
-  page: Page;
-  prId: number;
-}): Promise<void> {
+async function openRideHailingOrderingFromPr(input: { page: Page; prId: number }): Promise<void> {
   await input.page.goto(`/pr/${input.prId}`);
   await input.page.getByTestId("pr-detail.commerce-placement.open").click();
   await input.page.getByTestId("ordering.ride-hailing.page").waitFor({
@@ -366,87 +387,134 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
   });
 }
 
-scenario(
-  "commerce_ride_hailing_ordering_reaches_order_detail",
-  async (ctx) => {
-    await resetFakeCaocao();
-    const creator = await givenUser("system-ride-hailing-creator", {
-      phoneNumber: "13800138000",
+scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-creator", {
+    phoneNumber: "13800138000",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing partner request",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+  ctx.record("providerInstanceId", placement.providerInstanceId);
+
+  let orderPath: string | null = null;
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await selectPremierVehicle(page);
+
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    orderPath = new URL(page.url()).pathname;
+  });
+
+  const createdOrderPath = orderPath;
+  assert.match(createdOrderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
+});
+
+scenario("commerce_ride_hailing_provider_create_failure_stays_on_ordering_page", async (ctx) => {
+  await resetFakeCaocao();
+  await armFakeCaocaoCreateFailure();
+  const creator = await givenUser("system-ride-hailing-failure-creator", {
+    phoneNumber: "13800138000",
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing provider failure PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await selectPremierVehicle(page);
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await page.getByTestId("ordering.ride-hailing.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
     });
-    await bindScenarioWeChatOpenId({
-      openId: "fake-openid-commerce-ride-hailing-creator",
-      user: creator,
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.notice.blocked").textContent(),
+      expected: "Fake Caocao create failed",
+      label: "RideHailing create failure notice",
     });
-    const pr = await givenRideHailingPr({
-      creator,
-      title: "System ride hailing partner request",
+    assert.equal(new URL(page.url()).pathname, "/order/new");
+  });
+});
+
+scenario("commerce_ride_hailing_preflight_price_change_requires_confirmation", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-price-change-creator", {
+    phoneNumber: "13800138002",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-price-change-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing price change PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+  ctx.record("providerInstanceId", placement.providerInstanceId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await selectPremierVehicle(page);
+
+    await updateFakeCaocaoEstimate({
+      carType: "PREMIER",
+      estimateAmountFen: 6100,
     });
-    await configurePRStatus({ pr, status: "READY" });
-    await registerScenarioPaymentProvider();
-    const placement = await givenRideHailingOrderingPlacement();
 
-    ctx.record("creatorUserId", creator.user.id);
-    ctx.record("prId", pr.id);
-    ctx.record("placementId", placement.placementId);
-    ctx.record("providerInstanceId", placement.providerInstanceId);
-
-    let orderPath: string | null = null;
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, creator);
-      await installDeterministicShareSidecarStubs(page);
-
-      await openRideHailingOrderingFromPr({ page, prId: pr.id });
-      await assertRideHailingOrderingContent(page);
-      await selectPremierVehicle(page);
-
-      await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await assertRideHailingOrderDetail(page);
-      orderPath = new URL(page.url()).pathname;
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await page.getByText("价格发生变化").waitFor({
+      state: "visible",
+      timeout: 10_000,
     });
-
-    const createdOrderPath = orderPath;
-    assert.match(createdOrderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
-  },
-);
-
-scenario(
-  "commerce_ride_hailing_provider_create_failure_stays_on_ordering_page",
-  async (ctx) => {
-    await resetFakeCaocao();
-    await armFakeCaocaoCreateFailure();
-    const creator = await givenUser("system-ride-hailing-failure-creator", {
-      phoneNumber: "13800138000",
+    await assertLocatorTextIncludes({
+      actual: page.locator("body").textContent(),
+      expected: "当前价格已从 ￥52.00 更新为 ￥61.00。是否继续下单？",
+      label: "RideHailing price-change preflight dialog",
     });
-    const pr = await givenRideHailingPr({
-      creator,
-      title: "System ride hailing provider failure PR",
-    });
-    await configurePRStatus({ pr, status: "READY" });
-    await registerScenarioPaymentProvider();
-    const placement = await givenRideHailingOrderingPlacement();
+    assert.equal(await readFakeCaocaoOrderCount(), 0);
 
-    ctx.record("creatorUserId", creator.user.id);
-    ctx.record("prId", pr.id);
-    ctx.record("placementId", placement.placementId);
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, creator);
-      await installDeterministicShareSidecarStubs(page);
-
-      await openRideHailingOrderingFromPr({ page, prId: pr.id });
-      await selectPremierVehicle(page);
-      await page.getByTestId("ordering.ride-hailing.create-order").click();
-      await page.getByTestId("ordering.ride-hailing.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("ordering.notice.blocked").textContent(),
-        expected: "Fake Caocao create failed",
-        label: "RideHailing create failure notice",
-      });
-      assert.equal(new URL(page.url()).pathname, "/order/new");
-    });
-  },
-);
+    await page.getByRole("button", { name: "继续下单" }).click();
+    await assertRideHailingOrderDetail(page);
+    assert.equal(await readFakeCaocaoOrderCount(), 1);
+  });
+});

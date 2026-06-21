@@ -16,12 +16,7 @@ export type FakeCaocaoDriverSnapshot = {
   longitude: number;
 };
 
-export type FakeCaocaoOrderPhase =
-  | "CREATED"
-  | "ACCEPTED"
-  | "IN_TRIP"
-  | "FINISHED"
-  | "CANCELLED";
+export type FakeCaocaoOrderPhase = "CREATED" | "ACCEPTED" | "IN_TRIP" | "FINISHED" | "CANCELLED";
 
 export type FakeCaocaoOrderState = {
   providerOrderId: string;
@@ -112,11 +107,38 @@ export class FakeCaocaoState {
   }
 
   findEstimate(carType: string): FakeCaocaoVehicleEstimate {
-    return (
-      this.estimates.get(carType) ??
-      this.estimates.get("EXPRESS") ??
-      defaultEstimates()[0]!
-    );
+    return this.estimates.get(carType) ?? this.estimates.get("EXPRESS") ?? defaultEstimates()[0]!;
+  }
+
+  updateEstimate(input: {
+    carType: string;
+    estimateAmountFen: number;
+    carTypeName?: string;
+    distanceMeters?: number;
+    durationSeconds?: number;
+  }): FakeCaocaoVehicleEstimate {
+    const carType = input.carType.trim();
+    if (!carType) {
+      throw new Error("Missing fake Caocao car type");
+    }
+    const current = this.estimates.get(carType);
+    if (!current) {
+      throw new Error(`Unknown fake Caocao car type: ${carType}`);
+    }
+    if (!Number.isFinite(input.estimateAmountFen) || input.estimateAmountFen < 0) {
+      throw new Error("Fake Caocao estimate amount must be a non-negative number");
+    }
+    const updated: FakeCaocaoVehicleEstimate = {
+      ...current,
+      carTypeName: input.carTypeName?.trim() || current.carTypeName,
+      distanceMeters:
+        typeof input.distanceMeters === "number" ? input.distanceMeters : current.distanceMeters,
+      durationSeconds:
+        typeof input.durationSeconds === "number" ? input.durationSeconds : current.durationSeconds,
+      estimateAmountFen: Math.round(input.estimateAmountFen),
+    };
+    this.estimates.set(carType, updated);
+    return updated;
   }
 
   createOrder(input: {

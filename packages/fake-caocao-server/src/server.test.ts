@@ -107,6 +107,47 @@ describe("startFakeCaocaoServer", () => {
     expect(detailBody.data.phase).toBe("ACCEPTED");
   });
 
+  test("supports admin estimate controls", async () => {
+    server = await startFakeCaocaoServer();
+
+    const updateResponse = await fetch(`${server.origin}/__fake_caocao/estimates`, {
+      body: JSON.stringify({
+        carType: "EXPRESS",
+        estimateAmountFen: 4100,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+    const updateBody = (await updateResponse.json()) as {
+      estimate: { estimateAmountFen: number };
+      ok: boolean;
+    };
+
+    expect(updateResponse.ok).toBe(true);
+    expect(updateBody.ok).toBe(true);
+    expect(updateBody.estimate.estimateAmountFen).toBe(4100);
+
+    const estimateResponse = await fetch(
+      `${server.origin}/common/estimatePriceWithDetail?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          car_type: "EXPRESS",
+          timestamp: "estimate-after-admin-update",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const estimateBody = (await estimateResponse.json()) as {
+      data: { estimateAmountFen: number };
+      success: boolean;
+    };
+
+    expect(estimateBody.success).toBe(true);
+    expect(estimateBody.data.estimateAmountFen).toBe(4100);
+  });
+
   test("supports admin reset and next-create failure controls", async () => {
     server = await startFakeCaocaoServer();
 
