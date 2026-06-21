@@ -158,10 +158,6 @@ export type OrderingEvaluation = {
     } | null;
     explanations: PriceExplanation[];
   };
-  rideHailing?: {
-    quoteExpiresAt: string;
-    options: RideQuoteOption[];
-  } | null;
 };
 
 type SelectedSkuContext = {
@@ -460,6 +456,15 @@ function validateRideExtras(
   return null;
 }
 
+const rideQuoteBaseAmountFen = (quote: RideQuoteOption): number => {
+  if (typeof quote.estimateAmountFen === "number") return quote.estimateAmountFen;
+  if (typeof quote.quoteAmountFen === "number") return quote.quoteAmountFen;
+  return throwHttpProblem({
+    status: 409,
+    detail: "RideHailing quote amount is missing",
+  });
+};
+
 async function resolveRentalSelection(input: {
   command: CreateOrderCommandInput;
   offer: Offer;
@@ -541,7 +546,7 @@ async function resolveRideSelection(input: {
       },
     ],
     orderContext: {
-      quoteTotalFen: quote.quoteAmountFen,
+      quoteTotalFen: rideQuoteBaseAmountFen(quote),
     },
   });
 
@@ -1012,7 +1017,6 @@ export async function evaluateOrdering(
           ...selected.pricingSnapshot.orderLevelExplanations,
         ],
       },
-      rideHailing: null,
     };
   }
 
@@ -1060,7 +1064,7 @@ export async function evaluateOrdering(
             },
           ],
           orderContext: {
-            quoteTotalFen: selectedQuote.quoteAmountFen,
+            quoteTotalFen: rideQuoteBaseAmountFen(selectedQuote),
           },
         })
       : null;
@@ -1095,10 +1099,27 @@ export async function evaluateOrdering(
         ...(pricingSnapshot?.orderLevelExplanations ?? []),
       ],
     },
-    rideHailing: {
-      quoteExpiresAt: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
-      options,
-    },
+  };
+}
+
+export async function quoteRideHailingOrderingOptions(input: {
+  offerId: number;
+  route: RideHailingRouteSnapshot;
+}) {
+  const offer = await resolveOffer(input.offerId);
+  if (offer.productType !== "RIDE_HAILING") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Offer is not a RideHailing offer",
+    });
+  }
+
+  return {
+    quoteExpiresAt: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+    options: await evaluateRideOptions({
+      offer,
+      route: input.route,
+    }),
   };
 }
 

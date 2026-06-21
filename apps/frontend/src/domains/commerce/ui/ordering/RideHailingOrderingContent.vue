@@ -27,7 +27,7 @@
             :price-label="formatFen(option.quoteAmountFen)"
             :selectable="option.selectable"
             :selected="option.skuId === selectedRideSkuId"
-            :disabled-reason="null"
+            :disabled-reason="option.disabledReason"
             @select="selectedRideSkuId = option.skuId"
           />
         </div>
@@ -43,7 +43,7 @@
           data-testid="ordering.ride-hailing.riders.open"
           @click="ridersDrawerOpen = true"
         >
-          <span>同乘人</span>
+          <span data-testid="ordering.ride-hailing.riders">同乘人</span>
           <strong>{{ riderSummary }}</strong>
           <i class="i-mdi-chevron-right" aria-hidden="true"></i>
         </button>
@@ -139,13 +139,19 @@ import type {
   BoundOrderParticipant,
   OrderingContentInput,
   OrderingContentOutput,
+  OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
 import {
   isBindingLocked,
   readBindingValue,
   readBoundOrderParticipants,
 } from "@/domains/commerce/model/ordering-content";
-import type { CreateOrderInput } from "@/domains/commerce/queries/useCommerce";
+import {
+  type CreateOrderInput,
+  type RideHailingQuoteOptionsInput,
+  type RideHailingQuoteOptionsResponse,
+  useRideHailingQuoteOptions,
+} from "@/domains/commerce/queries/useCommerce";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import {
@@ -161,17 +167,7 @@ import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import type { MapFitPadding } from "@/shared/map/types";
 import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 
-export type RideVehicleOption = {
-  skuId: number;
-  spuId: number;
-  name: string;
-  displayName: string;
-  selectable: boolean;
-  selected: boolean;
-  disabledReason: string | null;
-  estimateAmountFen: number | null;
-  quoteAmountFen: number | null;
-};
+export type RideVehicleOption = RideHailingQuoteOptionsResponse["options"][number];
 
 type RideRouteSnapshot = Extract<
   CreateOrderInput["productTypedExtraProperties"],
@@ -181,12 +177,11 @@ type RideOffer = OrderingContentInput["offerDetail"];
 
 const props = defineProps<{
   input: OrderingContentInput;
-  evaluatedOptions: RideVehicleOption[];
 }>();
 
 const emit = defineEmits<{
   "update:output": [value: OrderingContentOutput | null];
-  "evaluation-output-change": [value: OrderingContentOutput | null];
+  "update:summary": [value: OrderingContentSummary];
 }>();
 
 const selectedRideSkuId = ref<number | null>(null);
@@ -327,6 +322,25 @@ const routePointDrawerTitle = computed(() => {
   return "修改途经点";
 });
 
+type RidePlaceSnapshot = {
+  name: string;
+  address?: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+const toRidePlaceSnapshot = (point: RoutePoint): RidePlaceSnapshot | null => {
+  const coordinate = pickRoutePointCoordinate(point);
+  const name = point.name.trim();
+  if (!coordinate || name.length === 0) return null;
+  return {
+    name,
+    address: point.full_address,
+    latitude: coordinate.lat,
+    longitude: coordinate.lng,
+  };
+};
+
 const rideRouteForSubmit = computed<RideRouteSnapshot | null>(() => {
   const route = routeForMap.value;
   if (!route || route.length < 2) return rideRoute.value;
@@ -358,25 +372,55 @@ const rideBaseOptions = computed<RideVehicleOption[]>(
         skuId: sku.skuId,
         spuId: sku.spuId,
         name: sku.name,
+        providerName: "服务商",
+        carTypeName: sku.name,
         displayName: sku.name,
+        providerVehicleTypeCode: "",
+        providerInstanceId: "",
         selectable: true,
         selected: false,
         disabledReason: null,
         estimateAmountFen: null,
         quoteAmountFen: null,
+        priceExplanations: [],
       })),
     ) ?? [],
 );
 
+const quoteOptionsInput = computed<RideHailingQuoteOptionsInput | null>(() => {
+  const route = rideRouteForSubmit.value;
+  if (!rideOffer.value || !route) return null;
+  return {
+    source: {
+      offerId: props.input.source.offerId,
+    },
+    route,
+  };
+});
+
+const quoteOptionsQuery = useRideHailingQuoteOptions(quoteOptionsInput);
+
 const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
-  props.evaluatedOptions.length > 0 ? props.evaluatedOptions : rideBaseOptions.value,
+  quoteOptionsQuery.data.value?.options ?? rideBaseOptions.value,
+);
+
+const hasQuotedOptions = computed(
+  () => (quoteOptionsQuery.data.value?.options.length ?? 0) > 0,
 );
 
 const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
-  props.evaluatedOptions.length > 0
+  hasQuotedOptions.value
     ? rideQuoteOptions.value.filter((option) => option.selectable)
     : rideQuoteOptions.value,
 );
+
+const selectedRideQuoteOption = computed<RideVehicleOption | null>(() => {
+  if (selectedRideSkuId.value === null) return null;
+  return (
+    rideQuoteOptions.value.find((option) => option.skuId === selectedRideSkuId.value) ??
+    null
+  );
+});
 
 const rideDepartureLabel = computed(() => {
   const departureAt = editableDepartureAt.value;
@@ -388,11 +432,19 @@ const editableDepartureInput = computed(() =>
   editableDepartureAt.value ? toDateTimeLocalValue(editableDepartureAt.value) : "",
 );
 
-const evaluationOutput = computed<OrderingContentOutput | null>(() => {
+const output = computed<OrderingContentOutput | null>(() => {
   if (!rideOffer.value || selectedRideSkuId.value === null || !rideRouteForSubmit.value) {
     return null;
   }
+  const selectedOption = selectedRideQuoteOption.value;
+  if (
+    !selectedOption?.selectable ||
+    typeof selectedOption.quoteAmountFen !== "number"
+  ) {
+    return null;
+  }
   const phone = rideContactPhone.value.trim();
+  if (!phone) return null;
   if (rideRiders.value.length === 0) return null;
   return {
     participants: rideRiders.value.map((rider) => ({
@@ -413,16 +465,30 @@ const evaluationOutput = computed<OrderingContentOutput | null>(() => {
   };
 });
 
-const output = computed<OrderingContentOutput | null>(() => {
-  const next = evaluationOutput.value;
-  if (!next) return null;
-  if (
-    "contactPhone" in next.productTypedExtraProperties &&
-    next.productTypedExtraProperties.contactPhone.trim().length > 0
-  ) {
-    return next;
-  }
-  return null;
+const summary = computed<OrderingContentSummary>(() => {
+  const selectedOption = selectedRideQuoteOption.value;
+  const selectablePrices = rideQuoteOptions.value
+    .filter((option) => option.selectable)
+    .map((option) => option.quoteAmountFen)
+    .filter((value): value is number => typeof value === "number");
+  const range =
+    selectablePrices.length > 0
+      ? {
+          minFen: Math.min(...selectablePrices),
+          maxFen: Math.max(...selectablePrices),
+        }
+      : null;
+  return {
+    price: {
+      currency: "CNY",
+      totalFen:
+        typeof selectedOption?.quoteAmountFen === "number"
+          ? selectedOption.quoteAmountFen
+          : null,
+      range,
+      explanations: selectedOption?.priceExplanations ?? [],
+    },
+  };
 });
 
 const formatFen = (amountFen: number | null | undefined): string => {
@@ -431,25 +497,6 @@ const formatFen = (amountFen: number | null | undefined): string => {
     style: "currency",
     currency: "CNY",
   }).format(amountFen / 100);
-};
-
-type RidePlaceSnapshot = {
-  name: string;
-  address?: string | null;
-  latitude: number;
-  longitude: number;
-};
-
-const toRidePlaceSnapshot = (point: RoutePoint): RidePlaceSnapshot | null => {
-  const coordinate = pickRoutePointCoordinate(point);
-  const name = point.name.trim();
-  if (!coordinate || name.length === 0) return null;
-  return {
-    name,
-    address: point.full_address,
-    latitude: coordinate.lat,
-    longitude: coordinate.lng,
-  };
 };
 
 const openRoutePointDrawer = (index: number) => {
@@ -543,7 +590,7 @@ watch(output, (next) => emit("update:output", next), {
   deep: true,
 });
 
-watch(evaluationOutput, (next) => emit("evaluation-output-change", next), {
+watch(summary, (next) => emit("update:summary", next), {
   immediate: true,
   deep: true,
 });

@@ -29,15 +29,15 @@
       <RentalOrderingForm
         v-else-if="rentalOrdering && orderingContentInput"
         :input="orderingContentInput"
-        @update:output="handleRentalOutputUpdate"
+        @update:output="contentOutput = $event"
+        @update:summary="contentSummary = $event"
       />
 
       <RideHailingOrderingContent
         v-else-if="rideOrdering && orderingContentInput"
         :input="orderingContentInput"
-        :evaluated-options="rideEvaluatedOptions"
-        @evaluation-output-change="evaluationContentOutput = $event"
         @update:output="contentOutput = $event"
+        @update:summary="contentSummary = $event"
       />
     </div>
 
@@ -46,7 +46,7 @@
         v-if="rentalOrdering"
         :amount-label="priceDisplayLabel"
         :can-create="canCreate"
-        :loading="createOrderMutation.isPending.value"
+        :loading="createOrderMutation.isPending.value || evaluateMutation.isPending.value"
         :price-detail-enabled="true"
         price-testid="ordering.rental.price"
         price-detail-testid="ordering.rental.price-detail.toggle"
@@ -59,7 +59,7 @@
         v-if="rideOrdering"
         :amount-label="priceDisplayLabel"
         :can-create="canCreate"
-        :loading="createOrderMutation.isPending.value"
+        :loading="createOrderMutation.isPending.value || evaluateMutation.isPending.value"
         :price-detail-enabled="true"
         price-testid="ordering.ride-hailing.quote-price-range"
         price-detail-testid="ordering.ride-hailing.price-detail.toggle"
@@ -91,17 +91,34 @@
         @close="priceDetailOpen = false"
       />
     </template>
+
+    <PuDialog
+      :open="preflightDialog.open"
+      :title="preflightDialog.title"
+      :description="preflightDialog.description"
+      :confirm-text="preflightDialog.confirmText"
+      cancel-text="取消"
+      :show-cancel="preflightDialog.showCancel"
+      :show-confirm="true"
+      :confirm-loading="createOrderMutation.isPending.value"
+      :tone="preflightDialog.kind === 'price-change' ? 'warning' : 'info'"
+      data-testid="ordering.preflight-dialog"
+      @close="closePreflightDialog"
+      @cancel="closePreflightDialog"
+      @confirm="handlePreflightDialogConfirm"
+    />
   </OrderingPageShell>
 </template>
 
 <script setup lang="ts">
-import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
+import { PuButton, PuDialog, PuInlineNotice } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import type {
   OrderingContentInput,
   OrderingContentOutput,
+  OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
 import {
   ORDERING_ENTRY_STORAGE_KEY,
@@ -109,6 +126,7 @@ import {
 } from "@/domains/commerce/model/ordering-entry-storage";
 import {
   type CreateOrderInput,
+  type OrderingEvaluationResponse,
   useCreateOrder,
   useEvaluateOrdering,
 } from "@/domains/commerce/queries/useCommerce";
@@ -117,11 +135,22 @@ import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFoot
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
-import RideHailingOrderingContent, {
-  type RideVehicleOption,
-} from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
+import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
+type PreflightDialogKind = "blocked" | "price-change";
+type PreflightDialogState = {
+  open: boolean;
+  kind: PreflightDialogKind;
+  title: string;
+  description: string;
+  confirmText: string;
+  showCancel: boolean;
+  pendingInput: CreateOrderInput | null;
+};
+type OrderingActionProblem = NonNullable<
+  OrderingEvaluationResponse["actions"]["create_order"]["problem"]
+>;
 
 const { t } = useI18n();
 const router = useRouter();
@@ -169,8 +198,17 @@ const orderingPageTestId = computed(() =>
 );
 
 const contentOutput = ref<OrderingContentOutput | null>(null);
-const evaluationContentOutput = ref<OrderingContentOutput | null>(null);
+const contentSummary = ref<OrderingContentSummary>({ price: null });
 const priceDetailOpen = ref(false);
+const preflightDialog = ref<PreflightDialogState>({
+  open: false,
+  kind: "blocked",
+  title: "",
+  description: "",
+  confirmText: "我知道了",
+  showCancel: false,
+  pendingInput: null,
+});
 
 const orderingContentInput = computed<OrderingContentInput | null>(() => {
   const entry = orderingEntry.value;
@@ -199,38 +237,23 @@ const createOrderInput = computed<CreateOrderInput | null>(() =>
   buildOrderInput(contentOutput.value),
 );
 
-const evaluationOrderInput = computed<CreateOrderInput | null>(() =>
-  buildOrderInput(evaluationContentOutput.value),
-);
-
-const rideEvaluatedOptions = computed<RideVehicleOption[]>(
-  () => evaluateMutation.data.value?.rideHailing?.options ?? [],
-);
-
-const availability = computed(() => evaluateMutation.data.value?.actions.create_order ?? null);
-
 const createOrderErrorMessage = computed(() =>
   createOrderMutation.error.value instanceof Error ? createOrderMutation.error.value.message : null,
 );
-
-const availabilityMessage = computed(() => {
-  if (!createOrderInput.value) return t("ordering.completeInfoNotice");
-  if (evaluateMutation.isPending.value) return t("ordering.evaluatingNotice");
-  return availability.value?.problem?.detail ?? null;
-});
 
 const canCreate = computed(
   () =>
     !!createOrderInput.value &&
     !createOrderMutation.isPending.value &&
-    !evaluateMutation.isPending.value &&
-    availability.value?.allowed === true,
+    !evaluateMutation.isPending.value,
 );
 
-const priceExplanations = computed(() => evaluateMutation.data.value?.price.explanations ?? []);
+const priceSummary = computed(() => contentSummary.value.price);
+
+const priceExplanations = computed(() => priceSummary.value?.explanations ?? []);
 
 const priceDisplayLabel = computed(() => {
-  const range = evaluateMutation.data.value?.price.range ?? null;
+  const range = priceSummary.value?.range ?? null;
   const rangePrices = range
     ? [range.minFen, range.maxFen].filter((value): value is number => typeof value === "number")
     : [];
@@ -239,12 +262,10 @@ const priceDisplayLabel = computed(() => {
     const max = Math.max(...rangePrices);
     return min === max ? formatPriceAmount(min) : `${formatPriceAmount(min)}~${formatYuan(max)}`;
   }
-  return formatPriceAmount(evaluateMutation.data.value?.price.totalFen ?? null);
+  return formatPriceAmount(priceSummary.value?.totalFen ?? null);
 });
 
-const floatingNoticeMessage = computed(
-  () => createOrderErrorMessage.value ?? availabilityMessage.value,
-);
+const floatingNoticeMessage = computed(() => createOrderErrorMessage.value);
 
 const floatingNoticeTone = computed<"warning" | "error">(() =>
   createOrderErrorMessage.value ? "error" : "warning",
@@ -254,11 +275,6 @@ const backFallbackTo = computed(() =>
   orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
 
-const handleRentalOutputUpdate = (next: OrderingContentOutput | null): void => {
-  contentOutput.value = next;
-  evaluationContentOutput.value = next;
-};
-
 const formatYuan = (amountFen: number): string => (amountFen / 100).toFixed(2);
 
 const formatPriceAmount = (amountFen: number | null | undefined): string =>
@@ -266,12 +282,66 @@ const formatPriceAmount = (amountFen: number | null | undefined): string =>
     ? `￥${formatYuan(amountFen)}`
     : t("ordering.summary.currencyPending");
 
+const openBlockedDialog = (problem: Partial<OrderingActionProblem>): void => {
+  preflightDialog.value = {
+    open: true,
+    kind: "blocked",
+    title: problem.title ?? "暂不能创建订单",
+    description: problem.detail ?? "请稍后重试。",
+    confirmText: "我知道了",
+    showCancel: false,
+    pendingInput: null,
+  };
+};
+
+const openPriceChangeDialog = (input: CreateOrderInput, evaluation: OrderingEvaluationResponse): void => {
+  preflightDialog.value = {
+    open: true,
+    kind: "price-change",
+    title: "价格发生变化",
+    description: `当前价格已从 ${formatPriceAmount(
+      priceSummary.value?.totalFen ?? null,
+    )} 更新为 ${formatPriceAmount(evaluation.price.totalFen)}。是否继续下单？`,
+    confirmText: "继续下单",
+    showCancel: true,
+    pendingInput: input,
+  };
+};
+
+const closePreflightDialog = (): void => {
+  preflightDialog.value = {
+    ...preflightDialog.value,
+    open: false,
+    pendingInput: null,
+  };
+};
+
+const shouldConfirmPriceChange = (evaluation: OrderingEvaluationResponse): boolean => {
+  const displayedTotalFen = priceSummary.value?.totalFen ?? null;
+  const evaluatedTotalFen = evaluation.price.totalFen;
+  return (
+    typeof displayedTotalFen === "number" &&
+    typeof evaluatedTotalFen === "number" &&
+    displayedTotalFen !== evaluatedTotalFen
+  );
+};
+
+const createOrderAfterPreflight = async (input: CreateOrderInput): Promise<void> => {
+  try {
+    const created = await createOrderMutation.mutateAsync(input);
+    await router.push({ path: `/orders/${created.orderId}` });
+  } catch {
+    closePreflightDialog();
+  }
+};
+
 watch(
   () => orderingEntry.value?.offerDetail.productType,
   () => {
     contentOutput.value = null;
-    evaluationContentOutput.value = null;
+    contentSummary.value = { price: null };
     priceDetailOpen.value = false;
+    closePreflightDialog();
     createOrderMutation.reset();
     evaluateMutation.reset();
   },
@@ -287,21 +357,41 @@ watch(
   { deep: true },
 );
 
-watch(
-  evaluationOrderInput,
-  (next) => {
-    if (!next) return;
-    evaluateMutation.mutate(next);
-  },
-  { deep: true },
-);
-
 const submitOrder = async (): Promise<void> => {
   const input = createOrderInput.value;
   if (!input) return;
 
-  const created = await createOrderMutation.mutateAsync(input);
-  await router.push({ path: `/orders/${created.orderId}` });
+  try {
+    const evaluation = await evaluateMutation.mutateAsync(input);
+    const createOrderDecision = evaluation.actions.create_order;
+    if (!createOrderDecision.allowed) {
+      openBlockedDialog(createOrderDecision.problem);
+      return;
+    }
+    if (shouldConfirmPriceChange(evaluation)) {
+      openPriceChangeDialog(input, evaluation);
+      return;
+    }
+    await createOrderAfterPreflight(input);
+  } catch (error) {
+    openBlockedDialog({
+      title: "暂不能创建订单",
+      detail: error instanceof Error ? error.message : "请稍后重试。",
+    });
+  }
+};
+
+const handlePreflightDialogConfirm = async (): Promise<void> => {
+  if (preflightDialog.value.kind !== "price-change") {
+    closePreflightDialog();
+    return;
+  }
+  const input = preflightDialog.value.pendingInput;
+  if (!input) {
+    closePreflightDialog();
+    return;
+  }
+  await createOrderAfterPreflight(input);
 };
 </script>
 

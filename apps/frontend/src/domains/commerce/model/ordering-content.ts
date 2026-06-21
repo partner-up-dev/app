@@ -14,6 +14,28 @@ export type OrderingContentOutput = {
   productTypedExtraProperties: CreateOrderInput["productTypedExtraProperties"];
 };
 
+export type OrderingContentPriceExplanation = {
+  sourceId: string;
+  label: string;
+  description: string;
+  deltaFen: number | null;
+  resultAmountFen?: number | null;
+};
+
+export type OrderingContentPriceSummary = {
+  currency: "CNY";
+  totalFen: number | null;
+  range?: {
+    minFen: number | null;
+    maxFen: number | null;
+  } | null;
+  explanations: OrderingContentPriceExplanation[];
+};
+
+export type OrderingContentSummary = {
+  price: OrderingContentPriceSummary | null;
+};
+
 export type BoundOrderParticipant = {
   userId: string;
   displayName: string;

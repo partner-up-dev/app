@@ -9,6 +9,7 @@ import {
   createOrderCommand,
   evaluateOrdering,
   getCommerceOrderDetail,
+  quoteRideHailingOrderingOptions,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import {
@@ -140,6 +141,13 @@ const genericEvaluateOrderingCommandSchema = genericCreateOrderCommandSchema.ext
   ]),
 });
 
+const rideHailingOrderingOptionsCommandSchema = z.object({
+  source: z.object({
+    offerId: z.number().int().positive(),
+  }),
+  route: rideHailingRouteSnapshotSchema,
+});
+
 const readClientId = (headerValue: string | undefined): string => {
   const clientId = headerValue?.trim();
   if (!clientId) {
@@ -172,6 +180,12 @@ type CommerceRouteSchema = {
     $post: JsonEndpoint<
       { json: z.infer<typeof genericEvaluateOrderingCommandSchema> },
       Awaited<ReturnType<typeof evaluateOrdering>>
+    >;
+  };
+  "/ordering/ride-hailing/options": {
+    $post: JsonEndpoint<
+      { json: z.infer<typeof rideHailingOrderingOptionsCommandSchema> },
+      Awaited<ReturnType<typeof quoteRideHailingOrderingOptions>>
     >;
   };
   "/orders": {
@@ -239,6 +253,18 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       const result = await evaluateOrdering({
         ...payload,
         viewerUserId: auth.userId,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/ordering/ride-hailing/options",
+    zValidator("json", rideHailingOrderingOptionsCommandSchema),
+    async (c) => {
+      const payload = c.req.valid("json");
+      const result = await quoteRideHailingOrderingOptions({
+        offerId: payload.source.offerId,
+        route: payload.route,
       });
       return c.json(result);
     },

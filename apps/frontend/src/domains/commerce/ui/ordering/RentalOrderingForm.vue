@@ -151,6 +151,7 @@ import { PuFormItem } from "@partner-up-dev/design-web";
 import type {
   OrderingContentInput,
   OrderingContentOutput,
+  OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
 import {
   readBindingValue,
@@ -167,6 +168,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:output": [value: OrderingContentOutput | null];
+  "update:summary": [value: OrderingContentSummary];
 }>();
 
 const selectedSkuId = ref<number | null>(null);
@@ -269,6 +271,29 @@ const selectedCancellationSummary = computed(
   () => selectedSku.value?.cancellationPolicySummary ?? [],
 );
 
+const summary = computed<OrderingContentSummary>(() => {
+  const sku = selectedSku.value;
+  const amountFen = sku ? rentalSkuAmountFen(sku) : null;
+  return {
+    price: sku
+      ? {
+          currency: "CNY",
+          totalFen: amountFen,
+          range: null,
+          explanations: [
+            {
+              sourceId: `sku:${sku.skuId}`,
+              label: sku.name,
+              description: "固定总价",
+              deltaFen: amountFen,
+              resultAmountFen: amountFen,
+            },
+          ],
+        }
+      : null,
+  };
+});
+
 const output = computed<OrderingContentOutput | null>(() => {
   if (!rentalOffer.value || !selectedSku.value) return null;
   if (!serviceStartAt.value || !serviceEndAt.value) return null;
@@ -352,6 +377,11 @@ watch(
 );
 
 watch(output, (next) => emit("update:output", next), {
+  immediate: true,
+  deep: true,
+});
+
+watch(summary, (next) => emit("update:summary", next), {
   immediate: true,
   deep: true,
 });

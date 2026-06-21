@@ -19,6 +19,18 @@ export type OrderingEvaluationInput = Parameters<
   CommerceApi["ordering"]["evaluate"]["$post"]
 >[0]["json"];
 
+export type OrderingEvaluationResponse = InferResponseType<
+  CommerceApi["ordering"]["evaluate"]["$post"]
+>;
+
+export type RideHailingQuoteOptionsInput = Parameters<
+  CommerceApi["ordering"]["ride-hailing"]["options"]["$post"]
+>[0]["json"];
+
+export type RideHailingQuoteOptionsResponse = InferResponseType<
+  CommerceApi["ordering"]["ride-hailing"]["options"]["$post"]
+>;
+
 export type CreateOrderInput = Parameters<CommerceApi["orders"]["$post"]>[0]["json"];
 
 export type CommerceOrderDetailResponse = InferResponseType<
@@ -116,11 +128,39 @@ export const useEvaluateOrdering = () =>
           },
         },
       );
-      return readJsonOrThrow<InferResponseType<CommerceApi["ordering"]["evaluate"]["$post"]>>(
+      return readJsonOrThrow<OrderingEvaluationResponse>(
         response,
         "Failed to evaluate ordering",
       );
     },
+  });
+
+export const useRideHailingQuoteOptions = (
+  input: Ref<RideHailingQuoteOptionsInput | null>,
+) =>
+  useQuery<RideHailingQuoteOptionsResponse>({
+    queryKey: computed(
+      () => ["commerce", "ordering", "ride-hailing", "options", input.value] as const,
+    ),
+    queryFn: async () => {
+      if (input.value === null) {
+        throw new Error("Missing RideHailing quote input");
+      }
+
+      const response = await client.api.commerce.ordering["ride-hailing"].options.$post(
+        { json: input.value },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<RideHailingQuoteOptionsResponse>(
+        response,
+        "Failed to load ride hailing quote options",
+      );
+    },
+    enabled: () => input.value !== null,
   });
 
 export const useCreateOrder = () => {

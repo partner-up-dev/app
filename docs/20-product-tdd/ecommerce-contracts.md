@@ -253,19 +253,25 @@ Pricing ownership:
 - Ordering Content is selected from `offerDetail.productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
-- Ordering Content receives `{ source, offerDetail, bindings }` and emits only
-  `participants`, selected SKU `items`, and
-  `productTypedExtraProperties`.
+- Ordering Content receives `{ source, offerDetail, bindings }` and emits:
+  command fields (`participants`, selected SKU `items`,
+  `productTypedExtraProperties`) plus local display summary for the footer price
+  and price detail.
 - Ordering Content does not receive `prId`, does not know Placement, and does
   not evaluate or submit orders.
-- BottomActionBar creates both evaluation and creation commands:
+- Product-specific Ordering Content owns product-specific list/quote state. For
+  RideHailing, SKU quote options are loaded by Ordering Content through
+  `POST /api/commerce/ordering/ride-hailing/options`; changing the selected SKU
+  must not refresh the options list by itself.
+- Ordering Page creates evaluation and creation commands on submit:
   `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
 - This command is not coupled to Placement or `matchingContext`.
 - command `items` are `{ skuId, quantity }`; backend resolves SKU -> SPU and
   verifies the SKU belongs to the Offer.
 - Ordering evaluation uses the same command shape through
-  `POST /api/commerce/ordering/evaluate`. It returns price total/range/detail
-  and `actions.create_order` in the action-preflight shape.
+  `POST /api/commerce/ordering/evaluate`. It is submit-time preflight only,
+  returns price total/range/detail and `actions.create_order` in the
+  action-preflight shape, and does not return product-specific option lists.
 - Ordering creation uses `POST /api/commerce/orders`. It re-reads
   authoritative Offer/SPU/SKU truth and performs the transactional validations
   again.

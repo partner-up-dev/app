@@ -8,7 +8,7 @@ import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { RideHailingSkuFacts } from "../../merchandising";
+import type { PriceExplanation, RideHailingSkuFacts } from "../../merchandising";
 import { createRideHailingProviderPort } from "../../ride-hailing";
 import type {
   RideHailingDriverSnapshot,
@@ -41,6 +41,7 @@ export type RideQuoteOption = {
   disabledReason: string | null;
   estimateAmountFen: number | null;
   quoteAmountFen: number | null;
+  priceExplanations: PriceExplanation[];
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -116,6 +117,7 @@ async function quoteSku(input: {
       disabledReason: "Provider instance is not active",
       estimateAmountFen: null,
       quoteAmountFen: null,
+      priceExplanations: [],
     };
   }
 
@@ -147,6 +149,7 @@ async function quoteSku(input: {
         error instanceof Error ? error.message : "Provider quote failed",
       estimateAmountFen: null,
       quoteAmountFen: null,
+      priceExplanations: [],
     };
   }
   const estimateAmountFen =
@@ -187,6 +190,12 @@ async function quoteSku(input: {
     disabledReason: null,
     estimateAmountFen,
     quoteAmountFen: pricingSnapshot.totalFen,
+    priceExplanations: [
+      ...pricingSnapshot.itemBreakdowns.flatMap(
+        (breakdown) => breakdown.explanations,
+      ),
+      ...pricingSnapshot.orderLevelExplanations,
+    ],
   };
 }
 
