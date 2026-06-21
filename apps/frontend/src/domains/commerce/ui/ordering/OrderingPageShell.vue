@@ -9,7 +9,7 @@
       <PuPageHeader
         :title="title"
         :subtitle="subtitle"
-        density="compact"
+        size="sm"
         show-back
         @back="handleBack"
       >
