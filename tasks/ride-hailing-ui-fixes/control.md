@@ -19,9 +19,10 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` only after a concrete issue is named and approved
-- Current collaboration state: waiting for the human to name the next concrete
-  UI issue
+- Active mode: `Execute` for approved implementation segments
+- Current collaboration state: choice-set backend/domain foundation, Ordering
+  UI primitive/control, and SKU Card layout remediation segments implemented;
+  pending human review / commit packaging
 
 ## Inherited Effective Truth
 
@@ -72,6 +73,9 @@ Hypothesis:
 - `apps/frontend/src/domains/commerce/ui/ordering/`
 - `apps/frontend/src/domains/route/ui/RouteMap.vue`
 - `apps/frontend/src/shared/map/`
+- `apps/backend/src/entities/product-sku.ts`
+- `apps/backend/src/domains/merchandising/`
+- `apps/backend/drizzle/`
 - `tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
 
 ## Verification
@@ -88,8 +92,17 @@ Choose the narrowest sufficient proof per approved slice:
 
 - Committed slice: RideHailing ordering content naming and layout correction
   (`f7ac1aa3`).
-- Implemented but not committed slice: submit-time ordering pre-flight and
-  RideHailing SKU ownership correction.
+- Committed slice: submit-time ordering pre-flight and RideHailing SKU
+  ownership correction
+  (`bbb47413`).
+- Committed slice: RideHailing preflight price-change scenario
+  (`f25baf62`).
+- Implemented but not committed slice: Choice-set backend/domain foundation
+  segment 1.
+- Implemented but not committed slice: Choice-set Ordering UI primitive/control
+  segment 2.
+- Implemented but not committed slice: Choice-set SKU Card layout remediation
+  segment 3.
 - Current target model now reflected in code:
   - parent-page evaluation runs only after submit/create-order click
   - blocking pre-flight results open an acknowledgement dialog
@@ -97,10 +110,44 @@ Choose the narrowest sufficient proof per approved slice:
   - footer price summary comes from Ordering Content summary
   - RideHailing quote options are loaded by `RideHailingOrderingContent`
   - parent-page evaluation no longer returns or owns `rideHailing.options`
+  - order command `items` now supports `FIXED` and RideHailing `CHOICE_SET`
+  - RideHailing create-order persists an unresolved choice-set item, dispatches
+    cheapest-first inside the create-order lifecycle, and writes provider
+    binding only into the choice-set resolution
+  - provider create failure cancels the newly created order and returns a
+    `CANCELLED` create-order result for the Ordering Page failure dialog
+  - `ride_hailing_orders` no longer owns provider instance/order binding
+  - RideHailing callback, live detail, and fee confirmation recover provider
+    binding from the resolved choice-set item
+  - RideHailing vehicle cards use `PuCard selectable` with a visual
+    `PuCheckbox`
+  - RideHailing vehicle cards use the reviewed left/right layout:
+    SKU name + info icon and preview on the meta side, estimated price + amount
+    + checkbox on the right-aligned price side
+  - RideHailing vehicle cards no longer render card-internal status/reason
+    text; unavailable quoted options remain hidden at the list layer
+  - RideHailing vehicle selection uses `usePuSelect` multiple and submits an
+    actual selected candidate set
+  - RideHailing bottom sheet uses `PuFloatPanel` with minimized, normal, and
+    expanded stops
+  - route-map fit padding follows the active float-panel stop
+- Human review correction implemented:
+  - `RideHailingSkuCard` layout is left/right:
+    `meta(name + info icon, preview)` plus right-aligned
+    `price(estimated text, amount, checkbox)`
+  - checkbox belongs below price amount and is right-aligned
+  - card does not expose separate `vehicle summary` or `status/reason`
+    concepts
 - Implemented scenario coverage:
   - fake Caocao can mutate vehicle estimates through an admin-only test route
   - RideHailing system scenario now covers submit-time price-change preflight
     and verifies provider order creation is blocked until the user confirms
+  - RideHailing provider-create-failure scenario now verifies the failure dialog
+    and no navigation to Order Detail
+  - backend RideHailing foundation/callback scenarios now cover choice-set item
+    foundation and provider binding in resolution
+  - RideHailing system scenario now covers multi-candidate selection range and
+    cheapest-first dispatch result
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.
@@ -114,7 +161,60 @@ Choose the narrowest sufficient proof per approved slice:
   - `pnpm check:lint:frontend`
   - `pnpm check:lint:backend`
   - `pnpm exec vitest run tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts --project system-scenario --reporter=verbose`
+  - `pnpm check:config:backend`
+  - `pnpm exec vitest run --config vitest.backend.config.ts --project backend-scenario apps/backend/tests/ride-hailing/ride-hailing-order-foundation.scenario.test.ts apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec biome lint apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec biome format --write apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
+  - `pnpm exec biome lint apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
+  - `git diff --check`
 - Non-blocking note:
   - `pnpm exec biome check ...` reports whole-file formatting differences in
     already-touched large files; this slice did not auto-format those whole
     files to avoid unrelated churn.
+- Active exploration:
+  - choice-set SKU / float-panel implementation is complete in three
+    uncommitted segments
+  - SKU should own full `ProductPresentation`; SKU preview images are not
+    currently SKU-owned in the catalog contract
+  - RideHailing vehicle selection should be multi-select
+  - order modeling is under discussion: RideHailing may need native Order
+    support for a choice-set item where the user authorizes several candidate
+    SKUs but fulfillment resolves exactly one final SKU
+  - accepted model direction: create-order stores an unresolved choice-set item,
+    RideHailing Order lifecycle dispatch resolves one SKU inside the
+    create-order transaction, UI displays candidate price range, and Bill is
+    created from the resolved SKU / final settlement amount
+  - resolution may be outside the candidate SKU set when provider reality
+    requires it, such as free upgrade; resolution must record candidate
+    relation and source instead of enforcing membership
+  - long-term clean model takes priority over short-term low-risk command-shape
+    shortcuts
+  - command `items` should become a generic discriminated union supporting
+    `FIXED` and `CHOICE_SET`
+  - RideHailing SPU sales policy also needs a native choice-set selection
+    policy; leaving it as `EXACTLY_ONE` would contradict the multi-select model
+  - RideHailing provider instance should not be create-time required on
+    `ride_hailing_orders`; it is SKU-bound product fact and read from the chosen
+    candidate during dispatch
+  - post-dispatch provider binding, including provider order id, should live
+    only in the choice-set resolution snapshot, not on `ride_hailing_orders`
+  - RideHailing dispatch policy starts cheapest-first
+  - provider dispatch failure cancels the order
+  - provider create failure is not retried against the next cheapest candidate
+    or another provider
+  - provider create failure returns a cancelled order id, and Ordering Page
+    shows a failure dialog without navigating to Order Detail
+  - RideHailing price-change preflight must compare selected candidate ranges,
+    not only `totalFen`
+  - provider substitution outside candidates keeps final settlement billing
+    as-is
+  - Order Detail is out of scope for the choice-set / SKU / FloatPanel slice;
+    preserve the existing detail implementation and compatibility projection
+  - target sequence is captured in
+    `tasks/ride-hailing-ui-fixes/sequence-diagram.md`
+  - large-slice implementation planning and information collection are captured
+    in `tasks/ride-hailing-ui-fixes/choice-set-sku-float-panel-plan.md`
+  - first backend/domain implementation segment is complete and uncommitted
+  - second Ordering UI primitive/control segment is complete and uncommitted
+  - third SKU Card layout remediation segment is complete and uncommitted

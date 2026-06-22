@@ -9,10 +9,7 @@ import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOr
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { BillRepository } from "../../src/repositories/BillRepository";
-import {
-  createCaocaoSignature,
-  encodeCaocaoExternalOrderId,
-} from "../../src/domains/ride-hailing";
+import { createCaocaoSignature, encodeCaocaoExternalOrderId } from "../../src/domains/ride-hailing";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
@@ -83,18 +80,15 @@ scenario("legacy Caocao callback alias resolves provider and requires local orde
     updatedAt: new Date("2020-01-01T00:01:00.000Z"),
   });
 
-  const validResponse = await requestJson(
-    "/api/v1/service_provider/caocao/callback/order",
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      body: buildCallbackForm({
-        signKey: "scenario-caocao-secret-first",
-      }).toString(),
+  const validResponse = await requestJson("/api/v1/service_provider/caocao/callback/order", {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
     },
-  );
+    body: buildCallbackForm({
+      signKey: "scenario-caocao-secret-first",
+    }).toString(),
+  });
 
   assert.equal(validResponse.status, 404);
 
@@ -138,7 +132,10 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
     status: "ACTIVE",
     salesPolicy: {
       skuSelectionPolicy: {
-        type: "EXACTLY_ONE",
+        type: "CHOICE_SET",
+        min: 1,
+        max: null,
+        resolvesTo: 1,
       },
       quantityPolicy: {
         type: "FIXED",
@@ -182,20 +179,83 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
     },
     items: [
       {
+        kind: "CHOICE_SET",
         itemId: randomUUID(),
-        sku: {
-          id: 930001,
-          version: 1,
-          name: "Scenario Caocao Express",
-          factsSnapshot: {
-            rideHailingProviderInstanceId: provider.id,
-            providerVehicleTypeCode: "EXPRESS",
+        productType: "RIDE_HAILING",
+        candidates: [
+          {
+            sku: {
+              id: 930001,
+              version: 1,
+              name: "Scenario Caocao Express",
+              presentationSnapshot: {
+                heroImageAssetIds: [],
+                detailImageAssetIds: [],
+                sellingPoints: [],
+                parameterGroups: [],
+                noticeBlocks: [],
+              },
+              factsSnapshot: {
+                rideHailingProviderInstanceId: provider.id,
+                providerVehicleTypeCode: "EXPRESS",
+              },
+              pricingModelSnapshot: {
+                type: "DYNAMIC_QUOTE",
+                calculatorSpec: {},
+              },
+              cancellationPolicySnapshot: null,
+            },
+            quoteSnapshot: {
+              amountFen: 3600,
+              currency: "CNY",
+              displayName: "Scenario Caocao Express",
+              estimateAmountFen: 3600,
+              quotedAt: "2031-01-01T00:00:00.000Z",
+              explanations: [],
+            },
           },
-          pricingModelSnapshot: {
-            type: "DYNAMIC_QUOTE",
-            calculatorSpec: {},
+        ],
+        resolution: {
+          sku: {
+            id: 930001,
+            version: 1,
+            name: "Scenario Caocao Express",
+            presentationSnapshot: {
+              heroImageAssetIds: [],
+              detailImageAssetIds: [],
+              sellingPoints: [],
+              parameterGroups: [],
+              noticeBlocks: [],
+            },
+            factsSnapshot: {
+              rideHailingProviderInstanceId: provider.id,
+              providerVehicleTypeCode: "EXPRESS",
+            },
+            pricingModelSnapshot: {
+              type: "DYNAMIC_QUOTE",
+              calculatorSpec: {},
+            },
+            cancellationPolicySnapshot: null,
           },
-          cancellationPolicySnapshot: null,
+          providerVehicleTypeCode: "EXPRESS",
+          providerVehicleTypeName: "Scenario Caocao Express",
+          quoteSnapshot: {
+            amountFen: 3600,
+            currency: "CNY",
+            displayName: "Scenario Caocao Express",
+            estimateAmountFen: 3600,
+            quotedAt: "2031-01-01T00:00:00.000Z",
+            explanations: [],
+          },
+          providerBinding: {
+            providerInstanceId: provider.id,
+            providerType: "CAOCAO",
+            providerOrderId: "CC-FINAL-123",
+          },
+          source: "DISPATCH_POLICY",
+          candidateRelation: "IN_CANDIDATES",
+          reason: null,
+          resolvedAt: "2031-01-01T00:00:00.000Z",
         },
         quantity: 1,
       },
@@ -231,8 +291,6 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
       },
     ],
     contactPhone: "13800138000",
-    providerInstanceId: provider.id,
-    providerOrderId: null,
     executionPhase: "INITIATING",
   });
 
@@ -257,9 +315,9 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
   const updatedOrder = await tradeOrderRepo.findById(order.id);
   assert.equal(updatedOrder?.status, "OPEN");
   const updatedRide = await rideOrderRepo.findByOrderId(order.id as TradeOrderId);
-  assert.equal(updatedRide?.providerOrderId, "CC-FINAL-123");
   assert.equal(updatedRide?.executionPhase, "FINISHED");
   assert.equal(updatedRide?.finalSettlementInput?.amountFen, 4321);
+  assert.equal(updatedRide?.finalSettlementInput?.providerOrderId, "CC-FINAL-123");
   assert.equal(updatedRide?.driverSnapshot?.driverName, "张师傅");
   assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙A12345");
   const bill = await billRepo.findBySourceOrderId(order.id);

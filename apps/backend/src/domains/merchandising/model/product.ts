@@ -2,9 +2,16 @@ export type ProductType = "RENTAL" | "RIDE_HAILING";
 
 export type CatalogStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
-export type SkuSelectionPolicy = {
-  type: "EXACTLY_ONE";
-};
+export type SkuSelectionPolicy =
+  | {
+      type: "EXACTLY_ONE";
+    }
+  | {
+      type: "CHOICE_SET";
+      min: number;
+      max?: number | null;
+      resolvesTo: 1;
+    };
 
 export type QuantityPolicy =
   | {
@@ -37,9 +44,7 @@ export type RideHailingServicePolicy = {
   type: "RIDE_HAILING";
 };
 
-export type ServicePolicy =
-  | RentalServicePolicy
-  | RideHailingServicePolicy;
+export type ServicePolicy = RentalServicePolicy | RideHailingServicePolicy;
 
 export type SpuSalesPolicy = {
   skuSelectionPolicy: SkuSelectionPolicy;
@@ -77,6 +82,16 @@ export type ProductPresentation = {
   }>;
 };
 
+export function createEmptyProductPresentation(): ProductPresentation {
+  return {
+    heroImageAssetIds: [],
+    detailImageAssetIds: [],
+    sellingPoints: [],
+    parameterGroups: [],
+    noticeBlocks: [],
+  };
+}
+
 export type ProductSpu = {
   id: number;
   version: number;
@@ -96,6 +111,7 @@ export type ProductSku = {
   status: CatalogStatus;
   name: string;
   sortOrder: number;
+  presentation: ProductPresentation;
   facts: SkuFacts;
   pricingModel: PricingModel;
   cancellationPolicyRef?: {

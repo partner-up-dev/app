@@ -68,8 +68,6 @@ export function toRideHailingOrderModel(
     departureAt: rideRecord.departureAt?.toISOString() ?? null,
     riders: rideRecord.riders,
     contactPhone: rideRecord.contactPhone,
-    providerInstanceId: rideRecord.providerInstanceId,
-    providerOrderId: rideRecord.providerOrderId,
     executionPhase: rideRecord.executionPhase,
     driverSnapshot: rideRecord.driverSnapshot,
     vehicleSnapshot: rideRecord.vehicleSnapshot,

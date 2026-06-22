@@ -229,17 +229,28 @@ Current issue-231 uniqueness constraint:
 - `Offer` may include multiple SPUs only when they share the same
   `productType`
 - `Placement` owns creative and matching, not price or order state
+- `SPU.salesPolicy.skuSelectionPolicy` declares how the user selects SKU
+  candidates:
+  - `EXACTLY_ONE` means the ordered item is one concrete SKU
+  - `CHOICE_SET` means the user authorizes multiple acceptable candidate SKUs
+    and fulfillment resolves one final SKU/provider vehicle
 
 Pricing ownership:
 
 - `PricingModel` is SKU-owned base pricing truth
-- `SPU` owns listing, metadata, sales policy, service policy, and presentation
-  truth; it does not own runtime pricing rules
+- `SPU` owns listing, metadata, sales policy, service policy, and listing-level
+  presentation truth; it does not own runtime pricing rules
+- `SKU` owns SKU-specific presentation truth, such as a vehicle class hero image
+  for RideHailing
 - `Offer PricingPolicy` is commercial overlay truth
 - concrete pricing execution belongs to Trade
-- persisted `trade_orders.items` are SKU snapshots plus quantity, including
-  SKU facts, SKU pricing model, and SKU cancellation policy snapshot; SPU
-  fields are not copied into order items
+- persisted fixed `trade_orders.items` are SKU snapshots plus quantity,
+  including SKU facts, SKU pricing model, and SKU cancellation policy snapshot;
+  SPU fields are not copied into order items
+- persisted choice-set `trade_orders.items` are one logical item containing
+  candidate SKU quote snapshots and a nullable resolution. The candidate set is
+  buyer authorization truth; the resolution records the final SKU/provider
+  vehicle and provider binding.
 
 ## Ordering Command Contract
 
@@ -254,9 +265,8 @@ Pricing ownership:
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
 - Ordering Content receives `{ source, offerDetail, bindings }` and emits:
-  command fields (`participants`, selected SKU `items`,
-  `productTypedExtraProperties`) plus local display summary for the footer price
-  and price detail.
+  command fields (`participants`, `items`, `productTypedExtraProperties`) plus
+  local display summary for the footer price and price detail.
 - Ordering Content does not receive `prId`, does not know Placement, and does
   not evaluate or submit orders.
 - Product-specific Ordering Content owns product-specific list/quote state. For
@@ -266,15 +276,21 @@ Pricing ownership:
 - Ordering Page creates evaluation and creation commands on submit:
   `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
 - This command is not coupled to Placement or `matchingContext`.
-- command `items` are `{ skuId, quantity }`; backend resolves SKU -> SPU and
-  verifies the SKU belongs to the Offer.
+- command `items` are a discriminated union:
+  - fixed items: `{ kind?: "FIXED", skuId, quantity }`
+  - choice-set items:
+    `{ kind: "CHOICE_SET", productType: "RIDE_HAILING", candidateSkuIds, quantity: 1 }`
+- backend resolves all SKU ids -> SPU and verifies they belong to the Offer.
 - Ordering evaluation uses the same command shape through
   `POST /api/commerce/ordering/evaluate`. It is submit-time preflight only,
   returns price total/range/detail and `actions.create_order` in the
   action-preflight shape, and does not return product-specific option lists.
 - Ordering creation uses `POST /api/commerce/orders`. It re-reads
   authoritative Offer/SPU/SKU truth and performs the transactional validations
-  again.
+  again. Successful transport responses are a discriminated result:
+  - `CREATED` navigates to Order Detail
+  - `CANCELLED` carries a cancelled order id and user-displayable reason; the
+    Ordering Page shows a failure dialog and does not navigate
 - for PR-scoped orders, order row creation and `attachOrderToPr` are one
   transaction. PR authority validates attachability; Order does not own PR
   status as a separate proactive validation rule.
@@ -330,10 +346,16 @@ Rental:
 RideHailing:
 
 - usage-based final settlement
-- Order is created from quote snapshot
-- provider binding and execution phase are stored on `ride_hailing_orders`
+- Order is created from candidate quote snapshots. For RideHailing, the user
+  orders one unresolved choice-set item: several acceptable vehicle SKU
+  candidates, with one final resolution.
+- provider binding is stored on the choice-set resolution, not on
+  `ride_hailing_orders`
+- execution phase and ride execution snapshots are stored on
+  `ride_hailing_orders`
 - provider adapter computes external order id dynamically; the provider-side
-  order id returned by create is stored on `ride_hailing_orders`
+  order id returned by create is stored in the choice-set resolution together
+  with provider instance identity
 - provider callback updates execution phase, driver / vehicle snapshots, and
   committed final settlement input
 - final Bill is created only after provider final settlement input is

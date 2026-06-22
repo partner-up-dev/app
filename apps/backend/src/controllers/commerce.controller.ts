@@ -45,18 +45,29 @@ const orderParticipantSchema = z.object({
   userId: z.string().uuid(),
 });
 
+const fixedOrderItemCommandSchema = z.object({
+  kind: z.literal("FIXED").optional(),
+  skuId: z.number().int().positive(),
+  quantity: z.number().int().positive().nullable().optional(),
+});
+
+const rideHailingChoiceSetOrderItemCommandSchema = z.object({
+  kind: z.literal("CHOICE_SET"),
+  productType: z.literal("RIDE_HAILING"),
+  candidateSkuIds: z.array(z.number().int().positive()).min(1),
+  quantity: z.literal(1).nullable().optional(),
+});
+
+const orderItemCommandSchema = z.union([
+  fixedOrderItemCommandSchema,
+  rideHailingChoiceSetOrderItemCommandSchema,
+]);
+
 const rentalOrderingCommandSchema = z.object({
   offerId: z.number().int().positive(),
   prId: z.number().int().positive().nullable().optional(),
   participants: z.array(orderParticipantSchema).min(1),
-  items: z
-    .array(
-      z.object({
-        skuId: z.number().int().positive(),
-        quantity: z.number().int().positive().nullable().optional(),
-      }),
-    )
-    .min(1),
+  items: z.array(fixedOrderItemCommandSchema).min(1),
   extraProperties: z.object({
     serviceStartAt: z.string().datetime({ offset: true }),
     serviceEndAt: z.string().datetime({ offset: true }),
@@ -93,14 +104,7 @@ const rideHailingOrderingCommandSchema = z.object({
   offerId: z.number().int().positive(),
   prId: z.number().int().positive().nullable().optional(),
   participants: z.array(orderParticipantSchema).min(1),
-  items: z
-    .array(
-      z.object({
-        skuId: z.number().int().positive(),
-        quantity: z.number().int().positive().nullable().optional(),
-      }),
-    )
-    .min(1),
+  items: z.array(rideHailingChoiceSetOrderItemCommandSchema).min(1),
   extraProperties: z.object({
     route: rideHailingRouteSnapshotSchema,
     departureAt: z.string().datetime({ offset: true }).nullable().optional(),
@@ -115,14 +119,7 @@ const genericCreateOrderCommandSchema = z.object({
   }),
   prId: z.number().int().positive().nullable().optional(),
   participants: z.array(orderParticipantSchema).min(1),
-  items: z
-    .array(
-      z.object({
-        skuId: z.number().int().positive(),
-        quantity: z.number().int().positive().nullable().optional(),
-      }),
-    )
-    .min(1),
+  items: z.array(orderItemCommandSchema).min(1),
   productTypedExtraProperties: z.union([
     rentalOrderingCommandSchema.shape.extraProperties,
     rideHailingOrderingCommandSchema.shape.extraProperties,
@@ -159,11 +156,7 @@ const readClientId = (headerValue: string | undefined): string => {
   return clientId;
 };
 
-type JsonEndpoint<
-  Input,
-  Output,
-  Status extends number = 200,
-> = {
+type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
   outputFormat: "json";
@@ -196,25 +189,16 @@ type CommerceRouteSchema = {
     >;
   };
   "/orders/:orderId": {
-    $get: JsonEndpoint<
-      UuidParam<"orderId">,
-      Awaited<ReturnType<typeof getCommerceOrderDetail>>
-    >;
+    $get: JsonEndpoint<UuidParam<"orderId">, Awaited<ReturnType<typeof getCommerceOrderDetail>>>;
   };
   "/orders/:orderId/bill": {
-    $get: JsonEndpoint<
-      UuidParam<"orderId">,
-      Awaited<ReturnType<typeof getBillDetailByOrderId>>
-    >;
+    $get: JsonEndpoint<UuidParam<"orderId">, Awaited<ReturnType<typeof getBillDetailByOrderId>>>;
   };
   "/bills/:billId": {
     $get: JsonEndpoint<UuidParam<"billId">, Awaited<ReturnType<typeof getBillDetail>>>;
   };
   "/bill-lines/:billLineId/checkout": {
-    $get: JsonEndpoint<
-      UuidParam<"billLineId">,
-      Awaited<ReturnType<typeof getPaymentCheckout>>
-    >;
+    $get: JsonEndpoint<UuidParam<"billLineId">, Awaited<ReturnType<typeof getPaymentCheckout>>>;
   };
   "/bill-lines/:billLineId/charges": {
     $post: JsonEndpoint<
@@ -269,19 +253,15 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       return c.json(result);
     },
   )
-  .post(
-    "/orders",
-    zValidator("json", genericCreateOrderCommandSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const userId = requireAuthenticatedUserId(c);
-      const result = await createOrderCommand({
-        ...payload,
-        createdBy: userId,
-      });
-      return c.json(result, 201);
-    },
-  )
+  .post("/orders", zValidator("json", genericCreateOrderCommandSchema), async (c) => {
+    const payload = c.req.valid("json");
+    const userId = requireAuthenticatedUserId(c);
+    const result = await createOrderCommand({
+      ...payload,
+      createdBy: userId,
+    });
+    return c.json(result, 201);
+  })
   .get("/orders/:orderId", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const auth = c.get("auth");
@@ -291,19 +271,15 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     });
     return c.json(result);
   })
-  .get(
-    "/orders/:orderId/bill",
-    zValidator("param", orderIdParamSchema),
-    async (c) => {
-      const { orderId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await getBillDetailByOrderId({
-        orderId,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
+  .get("/orders/:orderId/bill", zValidator("param", orderIdParamSchema), async (c) => {
+    const { orderId } = c.req.valid("param");
+    const auth = c.get("auth");
+    const result = await getBillDetailByOrderId({
+      orderId,
+      viewerUserId: auth.userId,
+    });
+    return c.json(result);
+  })
   .get("/bills/:billId", zValidator("param", billIdParamSchema), async (c) => {
     const { billId } = c.req.valid("param");
     const auth = c.get("auth");
@@ -353,19 +329,15 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       return c.json(result);
     },
   )
-  .post(
-    "/orders/:orderId/cancel-rental",
-    zValidator("param", orderIdParamSchema),
-    async (c) => {
-      const { orderId } = c.req.valid("param");
-      const userId = requireAuthenticatedUserId(c);
-      const result = await cancelRentalOrderFromOrderDetail({
-        orderId,
-        actorUserId: userId,
-      });
-      return c.json(result);
-    },
-  )
+  .post("/orders/:orderId/cancel-rental", zValidator("param", orderIdParamSchema), async (c) => {
+    const { orderId } = c.req.valid("param");
+    const userId = requireAuthenticatedUserId(c);
+    const result = await cancelRentalOrderFromOrderDetail({
+      orderId,
+      actorUserId: userId,
+    });
+    return c.json(result);
+  })
   .post(
     "/orders/:orderId/mock-rental-booking-confirmation",
     zValidator("param", orderIdParamSchema),

@@ -3,10 +3,7 @@ import { randomUUID } from "node:crypto";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
 import { db } from "../../src/lib/db";
-import {
-  createOffer,
-  createProductSpu,
-} from "../../src/domains/merchandising";
+import { createOffer, createProductSpu } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,
   createRideHailingOrderFoundation,
@@ -57,9 +54,7 @@ async function givenRideHailingPr(creator: ScenarioUser): Promise<PRId> {
 }
 
 async function listPrOrderParticipants(prId: PRId, createdBy: string) {
-  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
-    prId,
-  );
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(prId);
 
   return buildOrderParticipantsFromContext({
     participants: activeParticipants.map((participant) => ({
@@ -78,7 +73,10 @@ async function givenRideHailingOffer() {
     status: "ACTIVE",
     salesPolicy: {
       skuSelectionPolicy: {
-        type: "EXACTLY_ONE",
+        type: "CHOICE_SET",
+        min: 1,
+        max: null,
+        resolvesTo: 1,
       },
       quantityPolicy: {
         type: "FIXED",
@@ -136,21 +134,43 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
         offerId: offer.id,
         items: [
           {
+            kind: "CHOICE_SET",
             itemId,
-            sku: {
-              id: 901001,
-              version: 1,
-              name: "Scenario Caocao Express",
-              factsSnapshot: {
-                rideHailingProviderInstanceId: provider.id,
-                providerVehicleTypeCode: "1",
+            productType: "RIDE_HAILING",
+            candidates: [
+              {
+                sku: {
+                  id: 901001,
+                  version: 1,
+                  name: "Scenario Caocao Express",
+                  presentationSnapshot: {
+                    heroImageAssetIds: [],
+                    detailImageAssetIds: [],
+                    sellingPoints: [],
+                    parameterGroups: [],
+                    noticeBlocks: [],
+                  },
+                  factsSnapshot: {
+                    rideHailingProviderInstanceId: provider.id,
+                    providerVehicleTypeCode: "1",
+                  },
+                  pricingModelSnapshot: {
+                    type: "DYNAMIC_QUOTE",
+                    calculatorSpec: {},
+                  },
+                  cancellationPolicySnapshot: null,
+                },
+                quoteSnapshot: {
+                  amountFen: 3600,
+                  currency: "CNY",
+                  displayName: "Scenario Caocao Express",
+                  estimateAmountFen: 3600,
+                  quotedAt: "2031-03-01T09:00:00.000Z",
+                  explanations: [],
+                },
               },
-              pricingModelSnapshot: {
-                type: "DYNAMIC_QUOTE",
-                calculatorSpec: {},
-              },
-              cancellationPolicySnapshot: null,
-            },
+            ],
+            resolution: null,
             quantity: 1,
           },
         ],
@@ -205,7 +225,6 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
           },
         ],
         contactPhone: "13800138000",
-        providerInstanceId: provider.id,
       },
       tx,
     );
@@ -230,6 +249,15 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   assert.equal(baseOrder.family, "RIDE_HAILING");
   assert.equal(baseOrder.offerId, offer.id);
   assert.equal(baseOrder.status, "INITIATING");
+  assert.equal(baseOrder.items[0]?.kind, "CHOICE_SET");
+  const choiceSetItem = baseOrder.items[0]?.kind === "CHOICE_SET" ? baseOrder.items[0] : null;
+  assert.ok(choiceSetItem, "RideHailing base item should be a choice set");
+  assert.equal(choiceSetItem.productType, "RIDE_HAILING");
+  assert.equal(
+    choiceSetItem.candidates[0]?.sku.factsSnapshot.rideHailingProviderInstanceId,
+    provider.id,
+  );
+  assert.equal(choiceSetItem.resolution, null);
   assert.equal(hasOwnKey(baseOrder, "routeSnapshot"), false);
   assert.equal(hasOwnKey(baseOrder, "providerCreationStatus"), false);
   assert.equal(hasOwnKey(baseOrder, "dispatchState"), false);
@@ -244,8 +272,8 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   assert.equal(typedOrder.departureAt, null);
   assert.equal(typedOrder.riders[0]?.userId, creator.user.id);
   assert.equal(typedOrder.contactPhone, "13800138000");
-  assert.equal(typedOrder.providerInstanceId, provider.id);
-  assert.equal(typedOrder.providerOrderId, null);
+  assert.equal(hasOwnKey(typedOrder, "providerInstanceId"), false);
+  assert.equal(hasOwnKey(typedOrder, "providerOrderId"), false);
   assert.equal(hasOwnKey(typedOrder, "providerCreationStatus"), false);
   assert.equal(hasOwnKey(typedOrder, "executionProjection"), false);
   assert.equal(hasOwnKey(typedOrder, "dispatchState"), false);

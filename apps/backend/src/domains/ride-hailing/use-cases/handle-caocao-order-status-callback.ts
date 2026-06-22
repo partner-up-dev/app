@@ -14,15 +14,13 @@ import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { createRideHailingProviderPort } from "../services";
 import type { CaocaoOrderStatusCallback } from "../model/provider";
+import { getRideHailingChoiceSetItem, getRideHailingProviderBinding } from "../../trade/services";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
-const readString = (
-  value: Record<string, string>,
-  keys: string[],
-): string | null => {
+const readString = (value: Record<string, string>, keys: string[]): string | null => {
   for (const key of keys) {
     const candidate = value[key];
     if (candidate && candidate.trim().length > 0) return candidate;
@@ -30,10 +28,7 @@ const readString = (
   return null;
 };
 
-const readNumber = (
-  value: Record<string, string>,
-  keys: string[],
-): number | null => {
+const readNumber = (value: Record<string, string>, keys: string[]): number | null => {
   for (const key of keys) {
     const candidate = value[key];
     if (!candidate || candidate.trim().length === 0) continue;
@@ -115,9 +110,7 @@ async function loadActiveCaocaoProviderInstance(
   return providerInstance;
 }
 
-async function loadFirstActiveCaocaoProviderInstance(): Promise<
-  RideHailingProviderInstance
-> {
+async function loadFirstActiveCaocaoProviderInstance(): Promise<RideHailingProviderInstance> {
   const providerInstance = await providerRepo.findFirstActiveByProviderType({
     providerType: "CAOCAO",
   });
@@ -160,16 +153,20 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
 
   const orderId = parsed.localOrderId as TradeOrderId;
   const rideOrder = await rideOrderRepo.findByOrderId(orderId);
-  if (!rideOrder || rideOrder.providerInstanceId !== input.providerInstance.id) {
+  const order = await tradeOrderRepo.findById(orderId);
+  const choiceSetItem = order ? getRideHailingChoiceSetItem(order.items) : null;
+  const providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
+  if (
+    !rideOrder ||
+    !providerBinding ||
+    providerBinding.providerInstanceId !== input.providerInstance.id
+  ) {
     return throwHttpProblem({
       status: 404,
       detail: "RideHailing order not found for Caocao callback",
     });
   }
-  if (
-    rideOrder.providerOrderId !== null &&
-    rideOrder.providerOrderId !== parsed.providerOrderId
-  ) {
+  if (providerBinding.providerOrderId !== parsed.providerOrderId) {
     return throwHttpProblem({
       status: 409,
       detail: "Caocao callback provider order does not match local order",
@@ -187,13 +184,11 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
   });
 
   await rideOrderRepo.updateByOrderId(orderId, {
-    providerOrderId: parsed.providerOrderId,
     executionPhase: mapCaocaoEventToExecutionPhase(parsed.event),
     driverSnapshot,
     vehicleSnapshot,
   });
 
-  const order = await tradeOrderRepo.findById(orderId);
   if (order?.status === "INITIATING") {
     await tradeOrderRepo.updateStatus(orderId, "OPEN");
   }
@@ -232,9 +227,7 @@ export async function handleCaocaoOrderStatusCallback(input: {
   form: Record<string, string>;
 }): Promise<{ code: "SUCCESS"; message: string }> {
   return applyCaocaoCallbackWithProviderInstance({
-    providerInstance: await loadActiveCaocaoProviderInstance(
-      input.providerInstanceId,
-    ),
+    providerInstance: await loadActiveCaocaoProviderInstance(input.providerInstanceId),
     form: input.form,
   });
 }

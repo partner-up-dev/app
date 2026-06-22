@@ -24,6 +24,13 @@ function buildRentalOrder(): RentalOrder {
           id: 1,
           version: 1,
           name: "Baking-2P",
+          presentationSnapshot: {
+            heroImageAssetIds: [],
+            detailImageAssetIds: [],
+            sellingPoints: [],
+            parameterGroups: [],
+            noticeBlocks: [],
+          },
           factsSnapshot: {
             type: "RENTAL",
             zoneCode: "BAKING",

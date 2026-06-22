@@ -27,6 +27,7 @@ export type OrderingOfferDetailSku = {
   name: string;
   status: CatalogStatus;
   sortOrder: number;
+  presentation: ProductPresentation;
   facts: ProductSku["facts"];
   pricingModel: ProductSku["pricingModel"];
   cancellationPolicySummary: Array<{
@@ -95,9 +96,7 @@ export const isRentalSkuFacts = (value: unknown): value is RentalSkuFacts => {
   );
 };
 
-export const isRideHailingSkuFacts = (
-  value: unknown,
-): value is RideHailingSkuFacts => {
+export const isRideHailingSkuFacts = (value: unknown): value is RideHailingSkuFacts => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
@@ -142,6 +141,7 @@ export async function getOrderingOfferDetail(input: {
         name: sku.name,
         status: sku.status,
         sortOrder: sku.sortOrder,
+        presentation: sku.presentation,
         facts: sku.facts,
         pricingModel: sku.pricingModel,
         cancellationPolicySummary: await buildCancellationPolicySummary(sku),

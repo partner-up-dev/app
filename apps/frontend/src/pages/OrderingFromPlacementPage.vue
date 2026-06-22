@@ -294,14 +294,38 @@ const openBlockedDialog = (problem: Partial<OrderingActionProblem>): void => {
   };
 };
 
-const openPriceChangeDialog = (input: CreateOrderInput, evaluation: OrderingEvaluationResponse): void => {
+type ComparablePrice = NonNullable<OrderingContentSummary["price"]>;
+type PriceRangeTuple = readonly [number, number];
+
+const comparableRange = (price: ComparablePrice | null): PriceRangeTuple | null => {
+  const range = price?.range ?? null;
+  const rangePrices = range
+    ? [range.minFen, range.maxFen].filter((value): value is number => typeof value === "number")
+    : [];
+  if (rangePrices.length > 0) {
+    return [Math.min(...rangePrices), Math.max(...rangePrices)];
+  }
+  return typeof price?.totalFen === "number" ? [price.totalFen, price.totalFen] : null;
+};
+
+const formatPriceComparable = (price: ComparablePrice | null): string => {
+  const range = comparableRange(price);
+  if (!range) return formatPriceAmount(null);
+  const [min, max] = range;
+  return min === max ? formatPriceAmount(min) : `${formatPriceAmount(min)}~${formatYuan(max)}`;
+};
+
+const openPriceChangeDialog = (
+  input: CreateOrderInput,
+  evaluation: OrderingEvaluationResponse,
+): void => {
   preflightDialog.value = {
     open: true,
     kind: "price-change",
     title: "价格发生变化",
-    description: `当前价格已从 ${formatPriceAmount(
-      priceSummary.value?.totalFen ?? null,
-    )} 更新为 ${formatPriceAmount(evaluation.price.totalFen)}。是否继续下单？`,
+    description: `当前价格已从 ${formatPriceComparable(
+      priceSummary.value,
+    )} 更新为 ${formatPriceComparable(evaluation.price)}。是否继续下单？`,
     confirmText: "继续下单",
     showCancel: true,
     pendingInput: input,
@@ -317,18 +341,25 @@ const closePreflightDialog = (): void => {
 };
 
 const shouldConfirmPriceChange = (evaluation: OrderingEvaluationResponse): boolean => {
-  const displayedTotalFen = priceSummary.value?.totalFen ?? null;
-  const evaluatedTotalFen = evaluation.price.totalFen;
+  const displayedRange = comparableRange(priceSummary.value);
+  const evaluatedRange = comparableRange(evaluation.price);
   return (
-    typeof displayedTotalFen === "number" &&
-    typeof evaluatedTotalFen === "number" &&
-    displayedTotalFen !== evaluatedTotalFen
+    displayedRange !== null &&
+    evaluatedRange !== null &&
+    (displayedRange[0] !== evaluatedRange[0] || displayedRange[1] !== evaluatedRange[1])
   );
 };
 
 const createOrderAfterPreflight = async (input: CreateOrderInput): Promise<void> => {
   try {
     const created = await createOrderMutation.mutateAsync(input);
+    if (created.outcome === "CANCELLED") {
+      openBlockedDialog({
+        title: created.reason.title,
+        detail: created.reason.detail,
+      });
+      return;
+    }
     await router.push({ path: `/orders/${created.orderId}` });
   } catch {
     closePreflightDialog();

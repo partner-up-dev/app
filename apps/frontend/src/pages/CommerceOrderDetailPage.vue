@@ -288,13 +288,23 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { PuButton, PuCard, PuInlineNotice, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
+  type CommerceOrderDetailResponse,
   useCancelRentalOrder,
   useCommerceOrderDetail,
   useMockRentalBookingConfirmation,
 } from "@/domains/commerce/queries/useCommerce";
+
+type OrderItemSnapshot = CommerceOrderDetailResponse["order"]["items"][number];
+type OrderSkuSnapshot = Extract<OrderItemSnapshot, { kind?: "FIXED"; sku: unknown }>["sku"];
 
 const route = useRoute();
 
@@ -311,9 +321,15 @@ const confirmationMutation = useMockRentalBookingConfirmation();
 const detail = computed(() => orderQuery.data.value ?? null);
 const rideHailingDetail = computed(() => detail.value?.rideHailing ?? null);
 
-const primaryItemName = computed(
-  () => detail.value?.order.items[0]?.sku.name ?? "订单项目",
-);
+const readOrderItemSku = (item: OrderItemSnapshot): OrderSkuSnapshot | null => {
+  if ("sku" in item) return item.sku;
+  return item.resolution?.sku ?? item.candidates[0]?.sku ?? null;
+};
+
+const primaryItemName = computed(() => {
+  const item = detail.value?.order.items[0] ?? null;
+  return item ? (readOrderItemSku(item)?.name ?? "订单项目") : "订单项目";
+});
 
 const paymentStatusLabel = computed(() => {
   if (detail.value?.payment.status === "PAID") return "已支付";
@@ -367,14 +383,15 @@ const canConfirmRentalBooking = computed(
 
 const cancellationPolicySummary = computed(() => {
   const items = detail.value?.order.items ?? [];
-  return items.flatMap((item) =>
-    (item.sku.cancellationPolicySnapshot?.tiers ?? []).map(
+  return items.flatMap((item) => {
+    const sku = readOrderItemSku(item);
+    return (sku?.cancellationPolicySnapshot?.tiers ?? []).map(
       (tier) =>
-        `${item.sku.name}：${tier.visibleLabel}，退款 ${tier.refundPercent}%${
+        `${sku?.name ?? "订单项目"}：${tier.visibleLabel}，退款 ${tier.refundPercent}%${
           tier.requiresOperatorHandling ? "，需人工处理" : ""
         }`,
-    ),
-  );
+    );
+  });
 });
 
 const cancellationResultMessage = computed(() => {
@@ -388,12 +405,8 @@ const cancellationResultMessage = computed(() => {
   return "已按取消政策调整账单。";
 });
 
-const latestCancellationAttempt = computed(
-  () => detail.value?.cancellation.latestAttempt ?? null,
-);
-const isCancellationPending = computed(
-  () => latestCancellationAttempt.value?.status === "PENDING",
-);
+const latestCancellationAttempt = computed(() => detail.value?.cancellation.latestAttempt ?? null);
+const isCancellationPending = computed(() => latestCancellationAttempt.value?.status === "PENDING");
 
 const backFallbackTo = computed(() => ({ path: "/" }));
 const { handleBack } = useFallbackBack(backFallbackTo);
@@ -437,25 +450,19 @@ const ridePassengersLabel = computed(() => {
 });
 
 const rideDriverLabel = computed(() => {
-  const driver =
-    rideHailingDetail.value?.driver ?? rideHailingDetail.value?.live?.driver;
+  const driver = rideHailingDetail.value?.driver ?? rideHailingDetail.value?.live?.driver;
   if (!driver) return "";
   return [driver.driverName, driver.driverPhone].filter(Boolean).join(" ");
 });
 
 const rideVehicleLabel = computed(() => {
-  const vehicle =
-    rideHailingDetail.value?.vehicle ?? rideHailingDetail.value?.live?.vehicle;
+  const vehicle = rideHailingDetail.value?.vehicle ?? rideHailingDetail.value?.live?.vehicle;
   if (!vehicle) return "";
-  return [vehicle.plate, vehicle.color, vehicle.brand]
-    .filter(Boolean)
-    .join(" ");
+  return [vehicle.plate, vehicle.color, vehicle.brand].filter(Boolean).join(" ");
 });
 
 const orderErrorMessage = computed(() =>
-  orderQuery.error.value instanceof Error
-    ? orderQuery.error.value.message
-    : "加载订单失败。",
+  orderQuery.error.value instanceof Error ? orderQuery.error.value.message : "加载订单失败。",
 );
 
 const formatFen = (amountFen: number | null | undefined): string => {
@@ -490,8 +497,7 @@ let ridePollingTimer: number | undefined;
 
 onMounted(() => {
   ridePollingTimer = window.setInterval(() => {
-    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill)
-      return;
+    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill) return;
     void orderQuery.refetch();
   }, 1500);
 });

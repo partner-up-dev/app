@@ -7,6 +7,7 @@ import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { PriceExplanation, RideHailingSkuFacts } from "../../merchandising";
 import { createRideHailingProviderPort } from "../../ride-hailing";
@@ -17,12 +18,18 @@ import type {
   RideHailingRouteSnapshot,
   RideHailingVehicleSnapshot,
 } from "../model";
-import { getOrderItemSkuName, PricingApplication } from "../services";
+import {
+  getOrderItemSkuName,
+  getRideHailingChoiceSetItem,
+  getRideHailingProviderBinding,
+  PricingApplication,
+} from "../services";
 
 const productSpuRepo = new ProductSpuRepository();
 const productSkuRepo = new ProductSkuRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 const pricingApplication = new PricingApplication();
 
 type RideSku = ProductSku & { facts: RideHailingSkuFacts };
@@ -52,9 +59,7 @@ const isRideHailingSkuFacts = (value: unknown): value is RideHailingSkuFacts =>
   typeof value.rideHailingProviderInstanceId === "string" &&
   typeof value.providerVehicleTypeCode === "string";
 
-async function listRideSkus(
-  offer: Offer,
-): Promise<Array<{ spu: ProductSpu; sku: RideSku }>> {
+async function listRideSkus(offer: Offer): Promise<Array<{ spu: ProductSpu; sku: RideSku }>> {
   const result: Array<{ spu: ProductSpu; sku: RideSku }> = [];
   for (const spuId of offer.spuIds) {
     const spu = await productSpuRepo.findById(spuId);
@@ -145,22 +150,16 @@ async function quoteSku(input: {
       providerInstanceId: provider.id,
       selected: false,
       selectable: false,
-      disabledReason:
-        error instanceof Error ? error.message : "Provider quote failed",
+      disabledReason: error instanceof Error ? error.message : "Provider quote failed",
       estimateAmountFen: null,
       quoteAmountFen: null,
       priceExplanations: [],
     };
   }
   const estimateAmountFen =
-    readNumber(rawEstimate, [
-      "estimateAmountFen",
-      "estimatePriceFen",
-      "estimate_price",
-      "price",
-    ]) ?? 0;
-  const carTypeName =
-    readString(rawEstimate, ["carTypeName", "car_type_name"]) ?? input.sku.name;
+    readNumber(rawEstimate, ["estimateAmountFen", "estimatePriceFen", "estimate_price", "price"]) ??
+    0;
+  const carTypeName = readString(rawEstimate, ["carTypeName", "car_type_name"]) ?? input.sku.name;
   const pricingSnapshot = pricingApplication.resolve({
     offer: input.offer,
     items: [
@@ -191,9 +190,7 @@ async function quoteSku(input: {
     estimateAmountFen,
     quoteAmountFen: pricingSnapshot.totalFen,
     priceExplanations: [
-      ...pricingSnapshot.itemBreakdowns.flatMap(
-        (breakdown) => breakdown.explanations,
-      ),
+      ...pricingSnapshot.itemBreakdowns.flatMap((breakdown) => breakdown.explanations),
       ...pricingSnapshot.orderLevelExplanations,
     ],
   };
@@ -203,8 +200,12 @@ export async function evaluateRideOptions(input: {
   offer: Offer;
   route: RideHailingRouteSnapshot;
   selectedSkuId?: number | null;
+  candidateSkuIds?: number[] | null;
 }): Promise<RideQuoteOption[]> {
-  const skus = await listRideSkus(input.offer);
+  const candidateSkuIds = new Set(input.candidateSkuIds ?? []);
+  const skus = (await listRideSkus(input.offer)).filter(
+    ({ sku }) => candidateSkuIds.size === 0 || candidateSkuIds.has(sku.id),
+  );
   const options = await Promise.all(
     skus.map(({ spu, sku }) =>
       quoteSku({
@@ -219,9 +220,7 @@ export async function evaluateRideOptions(input: {
     input.selectedSkuId ??
     options
       .filter((option) => option.selectable && option.quoteAmountFen !== null)
-      .sort(
-        (left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0),
-      )[0]?.skuId ??
+      .sort((left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0))[0]?.skuId ??
     null;
   return options.map((option) => ({
     ...option,
@@ -303,14 +302,18 @@ export async function buildRideHailingDetailProjection(input: {
     });
   }
 
+  const choiceSetItem = getRideHailingChoiceSetItem(input.order.items);
+  const providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
   let providerDetail: ProviderDetailProjection | null = null;
-  if (rideOrder.providerOrderId) {
-    const provider = await providerRepo.findById(rideOrder.providerInstanceId);
+  if (providerBinding?.providerOrderId) {
+    const provider = await providerRepo.findById(
+      providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+    );
     if (provider) {
       const port = createRideHailingProviderPort({ providerInstance: provider });
       providerDetail = parseProviderDetail(
         await port.queryOrderDetail({
-          providerOrderId: rideOrder.providerOrderId,
+          providerOrderId: providerBinding.providerOrderId,
         }),
       );
     }
@@ -321,11 +324,13 @@ export async function buildRideHailingDetailProjection(input: {
     departureAt: rideOrder.departureAt?.toISOString() ?? null,
     riders: rideOrder.riders,
     contactPhone: rideOrder.contactPhone,
-    selectedVehicleName: input.order.items[0]
-      ? getOrderItemSkuName(input.order.items[0])
-      : "曹操出行",
+    selectedVehicleName: choiceSetItem
+      ? getOrderItemSkuName(choiceSetItem)
+      : input.order.items[0]
+        ? getOrderItemSkuName(input.order.items[0])
+        : "曹操出行",
     provider: {
-      providerOrderId: rideOrder.providerOrderId,
+      providerOrderId: providerBinding?.providerOrderId ?? null,
     },
     executionPhase: rideOrder.executionPhase,
     driver: rideOrder.driverSnapshot ?? providerDetail?.driver ?? null,
@@ -334,20 +339,26 @@ export async function buildRideHailingDetailProjection(input: {
   };
 }
 
-export async function confirmRideHailingProviderFeeAfterPayment(input: {
-  orderId: string;
-}) {
+export async function confirmRideHailingProviderFeeAfterPayment(input: { orderId: string }) {
   const rideOrder = await rideOrderRepo.findByOrderId(input.orderId as TradeOrderId);
-  if (!rideOrder?.providerOrderId) {
+  if (!rideOrder) {
+    return { applied: false, reason: "RideHailing order facts are missing" };
+  }
+  const order = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
+  const choiceSetItem = order ? getRideHailingChoiceSetItem(order.items) : null;
+  const providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
+  if (!providerBinding?.providerOrderId) {
     return { applied: false, reason: "RideHailing provider order is missing" };
   }
-  const provider = await providerRepo.findById(rideOrder.providerInstanceId);
+  const provider = await providerRepo.findById(
+    providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+  );
   if (!provider) {
     return { applied: false, reason: "RideHailing provider instance is missing" };
   }
   const port = createRideHailingProviderPort({ providerInstance: provider });
   await port.confirmFee({
-    providerOrderId: rideOrder.providerOrderId,
+    providerOrderId: providerBinding.providerOrderId,
   });
   return {
     applied: true,

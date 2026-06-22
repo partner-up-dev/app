@@ -1,6 +1,6 @@
 <template>
   <template v-if="rideOffer">
-    <div class="ride-hailing-ordering-content">
+    <div ref="contentRoot" class="ride-hailing-ordering-content">
       <RouteMap
         class="ride-hailing-ordering-content__route-map"
         data-testid="ordering.ride-hailing.route-map"
@@ -13,12 +13,16 @@
         @route-point-click="openRoutePointDrawer"
       />
 
-      <div
+      <PuFloatPanel
+        v-model="ridePanelStop"
         class="ride-hailing-ordering-content__sheet"
         data-testid="ordering.ride-hailing.bottom-sheet"
+        :stops="ridePanelStops"
+        position="absolute"
+        :content-padding="false"
+        aria-label="车型面板"
+        :z-index="20"
       >
-        <div class="ride-hailing-ordering-content__handle" aria-hidden="true"></div>
-
         <div class="ride-hailing-ordering-content__vehicles">
           <RideHailingSkuCard
             v-for="option in visibleRideQuoteOptions"
@@ -26,12 +30,12 @@
             :display-name="option.displayName"
             :price-label="formatFen(option.quoteAmountFen)"
             :selectable="option.selectable"
-            :selected="option.skuId === selectedRideSkuId"
-            :disabled-reason="option.disabledReason"
-            @select="selectedRideSkuId = option.skuId"
+            :selected="rideSkuSelection.isSelected(option.skuId)"
+            :preview-src="skuPreviewSrc(option.skuId)"
+            @select="rideSkuSelection.toggle(option.skuId)"
           />
         </div>
-      </div>
+      </PuFloatPanel>
 
       <div
         class="ride-hailing-ordering-content__controls"
@@ -133,8 +137,16 @@
 </template>
 
 <script setup lang="ts">
-import { PuDrawer, PuFormItem, PuInlineNotice, PuInput } from "@partner-up-dev/design-web";
-import { computed, ref, watch } from "vue";
+import {
+  PuDrawer,
+  PuFloatPanel,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  usePuSelect,
+  type PuFloatPanelStop,
+} from "@partner-up-dev/design-web";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type {
   BoundOrderParticipant,
   OrderingContentInput,
@@ -174,6 +186,8 @@ type RideRouteSnapshot = Extract<
   { route: unknown }
 >["route"];
 type RideOffer = OrderingContentInput["offerDetail"];
+type RideSkuOption = RideOffer["spus"][number]["skuOptions"][number];
+type RidePanelStopValue = "minimized" | "normal" | "expanded";
 
 const props = defineProps<{
   input: OrderingContentInput;
@@ -184,7 +198,12 @@ const emit = defineEmits<{
   "update:summary": [value: OrderingContentSummary];
 }>();
 
-const selectedRideSkuId = ref<number | null>(null);
+const CONTROL_ROW_HEIGHT = 44;
+const DEFAULT_CONTENT_HEIGHT = 720;
+
+const contentRoot = ref<HTMLElement | null>(null);
+const contentHeight = ref(DEFAULT_CONTENT_HEIGHT);
+const ridePanelStop = ref<RidePanelStopValue>("normal");
 const rideContactPhone = ref("");
 const editableRoute = ref<Route | null>(null);
 const routePointDrawerOpen = ref(false);
@@ -196,6 +215,25 @@ const editableDepartureAt = ref<string | null>(null);
 const rideOffer = computed<RideOffer | null>(() =>
   props.input.offerDetail.productType === "RIDE_HAILING" ? props.input.offerDetail : null,
 );
+
+let contentResizeObserver: ResizeObserver | null = null;
+
+const updateContentHeight = (): void => {
+  const height = contentRoot.value?.getBoundingClientRect().height ?? DEFAULT_CONTENT_HEIGHT;
+  contentHeight.value = Number.isFinite(height) && height > 0 ? height : DEFAULT_CONTENT_HEIGHT;
+};
+
+onMounted(() => {
+  updateContentHeight();
+  if (typeof ResizeObserver === "undefined" || !contentRoot.value) return;
+  contentResizeObserver = new ResizeObserver(() => updateContentHeight());
+  contentResizeObserver.observe(contentRoot.value);
+});
+
+onUnmounted(() => {
+  contentResizeObserver?.disconnect();
+  contentResizeObserver = null;
+});
 
 const bindingValue = (key: string): unknown | null => readBindingValue(props.input.bindings, key);
 
@@ -358,12 +396,33 @@ const rideRouteForSubmit = computed<RideRouteSnapshot | null>(() => {
   };
 });
 
-const routeMapFitPadding: MapFitPadding = {
+const ridePanelStops = computed<PuFloatPanelStop[]>(() => {
+  const rootHeight = contentHeight.value || DEFAULT_CONTENT_HEIGHT;
+  const maxPanelHeight = Math.max(120, rootHeight - CONTROL_ROW_HEIGHT);
+  const minimized = Math.min(132, maxPanelHeight);
+  const normal = Math.min(Math.max(264, minimized + 96), maxPanelHeight);
+  const expanded = Math.min(Math.max(Math.round(rootHeight * 0.68), normal + 96), maxPanelHeight);
+  return [
+    { value: "minimized", label: "最小化", height: minimized },
+    { value: "normal", label: "正常", height: normal },
+    { value: "expanded", label: "展开", height: expanded },
+  ];
+});
+
+const activeRidePanelStop = computed(
+  () =>
+    ridePanelStops.value.find((stop) => stop.value === ridePanelStop.value) ??
+    ridePanelStops.value[1] ??
+    ridePanelStops.value[0] ??
+    null,
+);
+
+const routeMapFitPadding = computed<MapFitPadding>(() => ({
   top: 48,
   right: 32,
-  bottom: 260,
+  bottom: (activeRidePanelStop.value?.height ?? 264) + CONTROL_ROW_HEIGHT + 32,
   left: 32,
-};
+}));
 
 const rideBaseOptions = computed<RideVehicleOption[]>(
   () =>
@@ -387,6 +446,33 @@ const rideBaseOptions = computed<RideVehicleOption[]>(
     ) ?? [],
 );
 
+const rideSkuOptions = computed<RideSkuOption[]>(
+  () => rideOffer.value?.spus.flatMap((spu) => spu.skuOptions) ?? [],
+);
+
+const directImageSrc = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return null;
+  if (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:") ||
+    normalized.startsWith("/")
+  ) {
+    return normalized;
+  }
+  return null;
+};
+
+const skuPreviewSrc = (skuId: number): string | null => {
+  const sku = rideSkuOptions.value.find((option) => option.skuId === skuId);
+  return (
+    directImageSrc(sku?.presentation.heroImageAssetIds[0]) ??
+    directImageSrc(sku?.presentation.detailImageAssetIds[0])
+  );
+};
+
 const quoteOptionsInput = computed<RideHailingQuoteOptionsInput | null>(() => {
   const route = rideRouteForSubmit.value;
   if (!rideOffer.value || !route) return null;
@@ -400,13 +486,11 @@ const quoteOptionsInput = computed<RideHailingQuoteOptionsInput | null>(() => {
 
 const quoteOptionsQuery = useRideHailingQuoteOptions(quoteOptionsInput);
 
-const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
-  quoteOptionsQuery.data.value?.options ?? rideBaseOptions.value,
+const rideQuoteOptions = computed<RideVehicleOption[]>(
+  () => quoteOptionsQuery.data.value?.options ?? rideBaseOptions.value,
 );
 
-const hasQuotedOptions = computed(
-  () => (quoteOptionsQuery.data.value?.options.length ?? 0) > 0,
-);
+const hasQuotedOptions = computed(() => (quoteOptionsQuery.data.value?.options.length ?? 0) > 0);
 
 const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
   hasQuotedOptions.value
@@ -414,13 +498,24 @@ const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
     : rideQuoteOptions.value,
 );
 
-const selectedRideQuoteOption = computed<RideVehicleOption | null>(() => {
-  if (selectedRideSkuId.value === null) return null;
-  return (
-    rideQuoteOptions.value.find((option) => option.skuId === selectedRideSkuId.value) ??
-    null
-  );
+const rideSkuSelection = usePuSelect<number>({
+  multiple: true,
+  isOptionDisabled: (skuId) =>
+    !visibleRideQuoteOptions.value.some((option) => option.skuId === skuId && option.selectable),
 });
+
+const selectedCandidateSkuIds = computed<number[]>(() =>
+  rideSkuSelection.selectedValues.value.filter((skuId) =>
+    visibleRideQuoteOptions.value.some((option) => option.skuId === skuId && option.selectable),
+  ),
+);
+
+const selectedRideQuoteOptions = computed<RideVehicleOption[]>(() =>
+  selectedCandidateSkuIds.value.flatMap((skuId) => {
+    const option = rideQuoteOptions.value.find((candidate) => candidate.skuId === skuId);
+    return option ? [option] : [];
+  }),
+);
 
 const rideDepartureLabel = computed(() => {
   const departureAt = editableDepartureAt.value;
@@ -433,13 +528,13 @@ const editableDepartureInput = computed(() =>
 );
 
 const output = computed<OrderingContentOutput | null>(() => {
-  if (!rideOffer.value || selectedRideSkuId.value === null || !rideRouteForSubmit.value) {
+  if (!rideOffer.value || selectedCandidateSkuIds.value.length === 0 || !rideRouteForSubmit.value) {
     return null;
   }
-  const selectedOption = selectedRideQuoteOption.value;
   if (
-    !selectedOption?.selectable ||
-    typeof selectedOption.quoteAmountFen !== "number"
+    selectedRideQuoteOptions.value.some(
+      (option) => !option.selectable || typeof option.quoteAmountFen !== "number",
+    )
   ) {
     return null;
   }
@@ -452,7 +547,9 @@ const output = computed<OrderingContentOutput | null>(() => {
     })),
     items: [
       {
-        skuId: selectedRideSkuId.value,
+        kind: "CHOICE_SET",
+        productType: "RIDE_HAILING",
+        candidateSkuIds: selectedCandidateSkuIds.value,
         quantity: 1,
       },
     ],
@@ -466,11 +563,13 @@ const output = computed<OrderingContentOutput | null>(() => {
 });
 
 const summary = computed<OrderingContentSummary>(() => {
-  const selectedOption = selectedRideQuoteOption.value;
-  const selectablePrices = rideQuoteOptions.value
+  const selectablePrices = selectedRideQuoteOptions.value
     .filter((option) => option.selectable)
     .map((option) => option.quoteAmountFen)
     .filter((value): value is number => typeof value === "number");
+  const cheapestSelectedOption = [...selectedRideQuoteOptions.value]
+    .filter((option) => option.selectable && typeof option.quoteAmountFen === "number")
+    .sort((left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0))[0];
   const range =
     selectablePrices.length > 0
       ? {
@@ -482,11 +581,12 @@ const summary = computed<OrderingContentSummary>(() => {
     price: {
       currency: "CNY",
       totalFen:
-        typeof selectedOption?.quoteAmountFen === "number"
-          ? selectedOption.quoteAmountFen
+        selectablePrices.length > 0 &&
+        Math.min(...selectablePrices) === Math.max(...selectablePrices)
+          ? (selectablePrices[0] ?? null)
           : null,
       range,
-      explanations: selectedOption?.priceExplanations ?? [],
+      explanations: cheapestSelectedOption?.priceExplanations ?? [],
     },
   };
 });
@@ -558,13 +658,23 @@ const handleDepartureInput = (value: string) => {
 watch(
   visibleRideQuoteOptions,
   (next) => {
-    const currentOption = next.find((option) => option.skuId === selectedRideSkuId.value);
-    if (currentOption?.selectable) return;
+    const selectableSkuIds = new Set(
+      next.filter((option) => option.selectable).map((option) => option.skuId),
+    );
+    const currentSelection = rideSkuSelection.selectedValues.value.filter((skuId) =>
+      selectableSkuIds.has(skuId),
+    );
+    if (currentSelection.length !== rideSkuSelection.selectedValues.value.length) {
+      rideSkuSelection.setValue(currentSelection);
+    }
+    if (currentSelection.length > 0) return;
     const defaultOption =
       next.find((option) => option.selected && option.selectable) ??
-      next.find((option) => option.selectable) ??
+      [...next]
+        .filter((option) => option.selectable)
+        .sort((left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0))[0] ??
       null;
-    selectedRideSkuId.value = defaultOption?.skuId ?? null;
+    rideSkuSelection.setValue(defaultOption ? [defaultOption.skuId] : []);
   },
   { immediate: true },
 );
@@ -627,37 +737,17 @@ watch(
 }
 
 .ride-hailing-ordering-content__sheet {
-  position: absolute;
-  right: 0;
   bottom: var(--ride-hailing-ordering-content-control-row-height);
-  left: 0;
   z-index: 20;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  max-height: 55%;
-  padding: 0 var(--sys-spacing-medium) var(--sys-spacing-small);
   border-radius: var(--sys-radius-large) var(--sys-radius-large) 0 0;
-  background: var(--sys-color-surface);
-  box-shadow: var(--sys-shadow-3);
-}
-
-.ride-hailing-ordering-content__handle {
-  width: 2rem;
-  height: 0.25rem;
-  margin: var(--sys-spacing-small) auto 0;
-  border-radius: 999px;
-  background: var(--sys-color-on-surface-variant);
 }
 
 .ride-hailing-ordering-content__vehicles {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--sys-spacing-small);
   min-height: 0;
-  overflow: auto;
+  padding: 0 var(--sys-spacing-medium) var(--sys-spacing-small);
 }
 
 .ride-hailing-ordering-content__controls {

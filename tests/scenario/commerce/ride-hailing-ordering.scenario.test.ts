@@ -204,7 +204,10 @@ async function givenRideHailingOrderingPlacement(): Promise<{
         type: "FIXED",
       },
       skuSelectionPolicy: {
-        type: "EXACTLY_ONE",
+        type: "CHOICE_SET",
+        min: 1,
+        max: null,
+        resolvesTo: 1,
       },
     },
     servicePolicy: {
@@ -333,7 +336,7 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
   });
 }
 
-async function selectPremierVehicle(page: Page): Promise<void> {
+async function selectPremierAsAdditionalCandidate(page: Page): Promise<void> {
   const vehicleCards = page.getByTestId("ordering.ride-hailing.vehicle-card");
   await vehicleCards.first().waitFor({
     state: "visible",
@@ -350,13 +353,20 @@ async function selectPremierVehicle(page: Page): Promise<void> {
   });
   await assertLocatorTextMatches({
     actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
-    label: "RideHailing price range",
-    pattern: /￥36\.00~52\.00/,
+    label: "RideHailing default selected candidate price",
+    pattern: /￥36\.00/,
   });
   await vehicleCards.filter({ hasText: "系统曹操专车" }).click();
-  await page.getByTestId("ordering.ride-hailing.vehicle-card.selected").waitFor({
+  const selectedMarkers = page.getByTestId("ordering.ride-hailing.vehicle-card.selected");
+  await selectedMarkers.first().waitFor({
     state: "visible",
     timeout: 10_000,
+  });
+  assert.equal(await selectedMarkers.count(), 2);
+  await assertLocatorTextMatches({
+    actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
+    label: "RideHailing selected candidate range",
+    pattern: /￥36\.00~52\.00/,
   });
 }
 
@@ -372,7 +382,7 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
   });
   await assertLocatorTextIncludes({
     actual: page.getByTestId("order-detail.ride-hailing.selected-vehicle").textContent(),
-    expected: "系统曹操专车",
+    expected: "系统曹操快车",
     label: "RideHailing selected vehicle",
   });
   await assertLocatorTextIncludes({
@@ -417,7 +427,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
-    await selectPremierVehicle(page);
+    await selectPremierAsAdditionalCandidate(page);
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
     await assertRideHailingOrderDetail(page);
@@ -451,16 +461,20 @@ scenario("commerce_ride_hailing_provider_create_failure_stays_on_ordering_page",
     await installDeterministicShareSidecarStubs(page);
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
-    await selectPremierVehicle(page);
+    await selectPremierAsAdditionalCandidate(page);
     await page.getByTestId("ordering.ride-hailing.create-order").click();
     await page.getByTestId("ordering.ride-hailing.page").waitFor({
       state: "visible",
       timeout: 10_000,
     });
+    await page.getByText("下单失败").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
     await assertLocatorTextIncludes({
-      actual: page.getByTestId("ordering.notice.blocked").textContent(),
+      actual: page.locator("body").textContent(),
       expected: "Fake Caocao create failed",
-      label: "RideHailing create failure notice",
+      label: "RideHailing create failure dialog",
     });
     assert.equal(new URL(page.url()).pathname, "/order/new");
   });
@@ -494,7 +508,7 @@ scenario("commerce_ride_hailing_preflight_price_change_requires_confirmation", a
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
-    await selectPremierVehicle(page);
+    await selectPremierAsAdditionalCandidate(page);
 
     await updateFakeCaocaoEstimate({
       carType: "PREMIER",
@@ -508,7 +522,7 @@ scenario("commerce_ride_hailing_preflight_price_change_requires_confirmation", a
     });
     await assertLocatorTextIncludes({
       actual: page.locator("body").textContent(),
-      expected: "当前价格已从 ￥52.00 更新为 ￥61.00。是否继续下单？",
+      expected: "当前价格已从 ￥36.00~52.00 更新为 ￥36.00~61.00。是否继续下单？",
       label: "RideHailing price-change preflight dialog",
     });
     assert.equal(await readFakeCaocaoOrderCount(), 0);

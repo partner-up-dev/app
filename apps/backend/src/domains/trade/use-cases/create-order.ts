@@ -33,13 +33,20 @@ import {
 } from "../../ride-hailing";
 import { attachOrderToPr } from "../../pr-core";
 import type {
+  ChoiceSetOrderItemSnapshot,
+  FixedOrderItemSnapshot,
   OrderItemSnapshot,
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
   OrderStatus,
   RentalRegistrant,
+  RideHailingChoiceSetCandidateSnapshot,
+  RideHailingChoiceSetResolutionSnapshot,
+  RideHailingProviderBindingSnapshot,
   RideHailingRiderSnapshot,
+  RideHailingQuoteSnapshot,
   RideHailingRouteSnapshot,
+  SkuSnapshot,
 } from "../model";
 import {
   buildEqualRelativeSplitRule,
@@ -64,10 +71,20 @@ export type OrderParticipantInput = {
   userId: string;
 };
 
-export type OrderItemInput = {
+export type FixedOrderItemInput = {
+  kind?: "FIXED";
   skuId: number;
   quantity?: number | null;
 };
+
+export type ChoiceSetOrderItemInput = {
+  kind: "CHOICE_SET";
+  productType: "RIDE_HAILING";
+  candidateSkuIds: number[];
+  quantity?: 1 | null;
+};
+
+export type OrderItemInput = FixedOrderItemInput | ChoiceSetOrderItemInput;
 
 export type RentalProductTypedExtraProperties = {
   serviceStartAt: string;
@@ -122,7 +139,6 @@ export type CreateRideHailingOrderFoundationInput = {
   departureAt?: string | null;
   riders: RideHailingRiderSnapshot[];
   contactPhone: string;
-  providerInstanceId: RideHailingProviderInstanceId;
 };
 
 export type OrderingActionProblem = {
@@ -160,6 +176,18 @@ export type OrderingEvaluation = {
   };
 };
 
+export type CreateOrderCommandResult =
+  | {
+      outcome: "CREATED";
+      orderId: string;
+      billId?: string | null;
+    }
+  | {
+      outcome: "CANCELLED";
+      orderId: string;
+      reason: OrderingActionProblem;
+    };
+
 type SelectedSkuContext = {
   offer: Offer;
   spu: ProductSpu;
@@ -171,15 +199,21 @@ type SelectedRentalContext = Omit<SelectedSkuContext, "sku"> & {
   sku: ProductSku & { facts: RentalSkuFacts };
   itemId: string;
   pricingSnapshot: OrderPricingSnapshot;
-  cancellationPolicySnapshot: OrderItemSnapshot["sku"]["cancellationPolicySnapshot"];
+  cancellationPolicySnapshot: FixedOrderItemSnapshot["sku"]["cancellationPolicySnapshot"];
   extraProperties: RentalProductTypedExtraProperties;
 };
 
-type SelectedRideContext = Omit<SelectedSkuContext, "sku"> & {
+type RideCandidateContext = Omit<SelectedSkuContext, "sku"> & {
   sku: ProductSku & { facts: RideHailingSkuFacts };
-  itemId: string;
-  pricingSnapshot: OrderPricingSnapshot;
   quote: RideQuoteOption;
+};
+
+type SelectedRideContext = {
+  offer: Offer;
+  itemId: string;
+  candidates: RideCandidateContext[];
+  dispatchCandidate: RideCandidateContext;
+  pricingSnapshot: OrderPricingSnapshot;
   extraProperties: RideHailingProductTypedExtraProperties;
 };
 
@@ -225,19 +259,69 @@ async function resolveOffer(offerId: number): Promise<Offer> {
   return offer;
 }
 
-async function resolveSelectedSku(input: {
-  offer: Offer;
-  items: OrderItemInput[];
-}): Promise<SelectedSkuContext> {
-  const firstItem = input.items[0];
+function readFixedItemInput(items: OrderItemInput[]): FixedOrderItemInput {
+  const firstItem = items[0];
   if (!firstItem) {
     return throwHttpProblem({
       status: 400,
       detail: "CreateOrder requires at least one selected item",
     });
   }
+  if (firstItem.kind === "CHOICE_SET") {
+    return throwHttpProblem({
+      status: 400,
+      detail: "CreateOrder requires a fixed SKU item",
+    });
+  }
+  return firstItem;
+}
 
-  const sku = await productSkuRepo.findById(firstItem.skuId);
+function readRideChoiceSetItemInput(items: OrderItemInput[]): ChoiceSetOrderItemInput {
+  const firstItem = items[0];
+  if (!firstItem) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "RideHailing CreateOrder requires one choice-set item",
+    });
+  }
+  if (firstItem.kind !== "CHOICE_SET" || firstItem.productType !== "RIDE_HAILING") {
+    return throwHttpProblem({
+      status: 400,
+      detail: "RideHailing CreateOrder requires a RideHailing choice-set item",
+    });
+  }
+  if (items.length !== 1) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "RideHailing CreateOrder supports one choice-set item only",
+    });
+  }
+  if ((firstItem.quantity ?? 1) !== 1) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing choice-set quantity must be 1",
+    });
+  }
+  const candidateSkuIds = [...new Set(firstItem.candidateSkuIds)];
+  if (candidateSkuIds.length === 0) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "请选择至少一个可用车型",
+    });
+  }
+  return {
+    ...firstItem,
+    candidateSkuIds,
+    quantity: 1,
+  };
+}
+
+async function resolveSkuContext(input: {
+  offer: Offer;
+  skuId: number;
+  quantity?: number | null;
+}): Promise<SelectedSkuContext> {
+  const sku = await productSkuRepo.findById(input.skuId);
   if (!sku || sku.status !== "ACTIVE") {
     return throwHttpProblem({ status: 404, detail: "Selected SKU not found" });
   }
@@ -258,7 +342,7 @@ async function resolveSelectedSku(input: {
     });
   }
 
-  const quantity = firstItem.quantity ?? 1;
+  const quantity = input.quantity ?? 1;
   if (quantity !== 1) {
     return throwHttpProblem({
       status: 409,
@@ -272,6 +356,18 @@ async function resolveSelectedSku(input: {
     sku,
     quantity,
   };
+}
+
+async function resolveSelectedSku(input: {
+  offer: Offer;
+  items: OrderItemInput[];
+}): Promise<SelectedSkuContext> {
+  const firstItem = readFixedItemInput(input.items);
+  return resolveSkuContext({
+    offer: input.offer,
+    skuId: firstItem.skuId,
+    quantity: firstItem.quantity,
+  });
 }
 
 async function buildCancellationPolicySnapshot(sku: ProductSku) {
@@ -294,14 +390,8 @@ async function buildCancellationPolicySnapshot(sku: ProductSku) {
   };
 }
 
-function readRentalExtras(
-  input: ProductTypedExtraProperties,
-): RentalProductTypedExtraProperties {
-  if (
-    "serviceStartAt" in input &&
-    "serviceEndAt" in input &&
-    "registrants" in input
-  ) {
+function readRentalExtras(input: ProductTypedExtraProperties): RentalProductTypedExtraProperties {
+  if ("serviceStartAt" in input && "serviceEndAt" in input && "registrants" in input) {
     return input;
   }
   return throwHttpProblem({
@@ -342,9 +432,7 @@ function validateCommonCommand(input: {
   }
   if (
     input.createdBy &&
-    !input.command.participants.some(
-      (participant) => participant.userId === input.createdBy,
-    )
+    !input.command.participants.some((participant) => participant.userId === input.createdBy)
   ) {
     return actionProblem({
       code: "ORDER_CREATOR_NOT_PARTICIPANT",
@@ -412,11 +500,7 @@ function validateRentalExtras(input: {
       detail: "实名登记人数需要匹配订单参与者人数。",
     });
   }
-  if (
-    input.extras.registrants.some(
-      (registrant) => registrant.fullName.trim().length === 0,
-    )
-  ) {
+  if (input.extras.registrants.some((registrant) => registrant.fullName.trim().length === 0)) {
     return actionProblem({
       code: "RENTAL_REGISTRANT_NAME_REQUIRED",
       title: "缺少实名信息",
@@ -515,24 +599,47 @@ async function resolveRideSelection(input: {
   itemId: string;
 }): Promise<SelectedRideContext> {
   const extras = readRideExtras(input.command.productTypedExtraProperties);
-  const selected = await resolveSelectedSku({
-    offer: input.offer,
-    items: input.command.items,
-  });
-  if (!isRideHailingSkuFacts(selected.sku.facts)) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Selected SKU is not a RideHailing SKU",
-    });
-  }
+  const choiceSetInput = readRideChoiceSetItemInput(input.command.items);
 
   const options = await evaluateRideOptions({
     offer: input.offer,
     route: extras.route,
-    selectedSkuId: selected.sku.id,
+    candidateSkuIds: choiceSetInput.candidateSkuIds,
   });
-  const quote = options.find((option) => option.selected && option.selectable);
-  if (!quote || quote.quoteAmountFen === null) {
+  const quotesBySkuId = new Map(options.map((option) => [option.skuId, option]));
+  const candidates = await Promise.all(
+    choiceSetInput.candidateSkuIds.map(async (skuId) => {
+      const selected = await resolveSkuContext({
+        offer: input.offer,
+        skuId,
+        quantity: 1,
+      });
+      if (!isRideHailingSkuFacts(selected.sku.facts)) {
+        return throwHttpProblem({
+          status: 409,
+          detail: "Selected SKU is not a RideHailing SKU",
+        });
+      }
+      const quote = quotesBySkuId.get(selected.sku.id);
+      if (!quote || !quote.selectable || quote.quoteAmountFen === null) {
+        return throwHttpProblem({ status: 409, detail: "请选择可用车型" });
+      }
+      return {
+        ...selected,
+        sku: {
+          ...selected.sku,
+          facts: selected.sku.facts,
+        },
+        quote,
+      };
+    }),
+  );
+  const dispatchCandidate = [...candidates].sort(
+    (left, right) =>
+      (left.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY) -
+      (right.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY),
+  )[0];
+  if (!dispatchCandidate) {
     return throwHttpProblem({ status: 409, detail: "请选择可用车型" });
   }
   const pricingSnapshot = pricingApplication.resolve({
@@ -540,25 +647,22 @@ async function resolveRideSelection(input: {
     items: [
       {
         itemId: input.itemId,
-        spu: selected.spu,
-        sku: selected.sku,
-        quantity: selected.quantity,
+        spu: dispatchCandidate.spu,
+        sku: dispatchCandidate.sku,
+        quantity: dispatchCandidate.quantity,
       },
     ],
     orderContext: {
-      quoteTotalFen: rideQuoteBaseAmountFen(quote),
+      quoteTotalFen: rideQuoteBaseAmountFen(dispatchCandidate.quote),
     },
   });
 
   return {
-    ...selected,
-    sku: {
-      ...selected.sku,
-      facts: selected.sku.facts,
-    },
+    offer: input.offer,
     itemId: input.itemId,
+    candidates,
+    dispatchCandidate,
     pricingSnapshot,
-    quote,
     extraProperties: extras,
   };
 }
@@ -568,14 +672,16 @@ function buildItemSnapshot(input: {
   sku: ProductSku;
   quantity: number;
   name?: string;
-  cancellationPolicySnapshot?: OrderItemSnapshot["sku"]["cancellationPolicySnapshot"];
-}): OrderItemSnapshot {
+  cancellationPolicySnapshot?: FixedOrderItemSnapshot["sku"]["cancellationPolicySnapshot"];
+}): FixedOrderItemSnapshot {
   return {
+    kind: "FIXED",
     itemId: input.itemId,
     sku: {
       id: input.sku.id,
       version: input.sku.version,
       name: input.name ?? input.sku.name,
+      presentationSnapshot: input.sku.presentation,
       factsSnapshot: input.sku.facts,
       pricingModelSnapshot: input.sku.pricingModel,
       cancellationPolicySnapshot: input.cancellationPolicySnapshot ?? null,
@@ -584,10 +690,69 @@ function buildItemSnapshot(input: {
   };
 }
 
-function buildParticipantSnapshots(input: {
-  command: CreateOrderCommandInput;
-  createdBy: string;
-}) {
+function buildSkuSnapshot(input: {
+  sku: ProductSku;
+  name?: string;
+  cancellationPolicySnapshot?: SkuSnapshot["cancellationPolicySnapshot"];
+}): SkuSnapshot {
+  return {
+    id: input.sku.id,
+    version: input.sku.version,
+    name: input.name ?? input.sku.name,
+    presentationSnapshot: input.sku.presentation,
+    factsSnapshot: input.sku.facts,
+    pricingModelSnapshot: input.sku.pricingModel,
+    cancellationPolicySnapshot: input.cancellationPolicySnapshot ?? null,
+  };
+}
+
+function buildRideQuoteSnapshot(quote: RideQuoteOption): RideHailingQuoteSnapshot {
+  if (typeof quote.quoteAmountFen !== "number") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing quote amount is missing",
+    });
+  }
+  return {
+    amountFen: quote.quoteAmountFen,
+    currency: "CNY",
+    displayName: quote.displayName,
+    estimateAmountFen: quote.estimateAmountFen,
+    quotedAt: new Date().toISOString(),
+    explanations: quote.priceExplanations,
+  };
+}
+
+async function buildRideCandidateSnapshot(
+  candidate: RideCandidateContext,
+): Promise<RideHailingChoiceSetCandidateSnapshot> {
+  return {
+    sku: buildSkuSnapshot({
+      sku: candidate.sku,
+      name: candidate.quote.displayName,
+      cancellationPolicySnapshot: await buildCancellationPolicySnapshot(candidate.sku),
+    }),
+    quoteSnapshot: buildRideQuoteSnapshot(candidate.quote),
+  };
+}
+
+async function buildRideChoiceSetItemSnapshot(input: {
+  selected: SelectedRideContext;
+  resolution: RideHailingChoiceSetResolutionSnapshot | null;
+}): Promise<ChoiceSetOrderItemSnapshot> {
+  return {
+    kind: "CHOICE_SET",
+    itemId: input.selected.itemId,
+    productType: "RIDE_HAILING",
+    candidates: await Promise.all(
+      input.selected.candidates.map((candidate) => buildRideCandidateSnapshot(candidate)),
+    ),
+    resolution: input.resolution,
+    quantity: 1,
+  };
+}
+
+function buildParticipantSnapshots(input: { command: CreateOrderCommandInput; createdBy: string }) {
   return buildOrderParticipantsFromContext({
     participants: input.command.participants.map((participant) => ({
       participantId: participant.userId,
@@ -757,7 +922,6 @@ async function createRideHailingOrderFoundationInExecutor(
     departureAt: input.departureAt ? new Date(input.departureAt) : null,
     riders: input.riders,
     contactPhone: input.contactPhone,
-    providerInstanceId: input.providerInstanceId,
     executionPhase: "INITIATING",
   });
 
@@ -774,9 +938,7 @@ export async function createRideHailingOrderFoundation(
     return createRideHailingOrderFoundationInExecutor(input, executor);
   }
 
-  return db.transaction(async (tx) =>
-    createRideHailingOrderFoundationInExecutor(input, tx),
-  );
+  return db.transaction(async (tx) => createRideHailingOrderFoundationInExecutor(input, tx));
 }
 
 async function createRentalOrderBranch(input: {
@@ -863,9 +1025,9 @@ async function createRideHailingOrderBranch(input: {
   command: CreateOrderCommandInput;
   selected: SelectedRideContext;
   createdBy: string;
-}) {
+}): Promise<CreateOrderCommandResult> {
   const provider = await providerRepo.findById(
-    input.selected.sku.facts
+    input.selected.dispatchCandidate.sku.facts
       .rideHailingProviderInstanceId as RideHailingProviderInstanceId,
   );
   if (!provider) {
@@ -883,11 +1045,9 @@ async function createRideHailingOrderBranch(input: {
         command: input.command,
         createdBy: input.createdBy,
       });
-      const item = buildItemSnapshot({
-        itemId: input.selected.itemId,
-        sku: input.selected.sku,
-        quantity: input.selected.quantity,
-        name: input.selected.quote.displayName,
+      const unresolvedItem = await buildRideChoiceSetItemSnapshot({
+        selected: input.selected,
+        resolution: null,
       });
       const base = await createBaseOrder({
         executor: tx,
@@ -895,7 +1055,7 @@ async function createRideHailingOrderBranch(input: {
         status: "INITIATING",
         createdBy: input.createdBy,
         participants,
-        items: [item],
+        items: [unresolvedItem],
         unpaidWindowMinutes: DEFAULT_INITIATING_WINDOW_MINUTES,
       });
 
@@ -916,30 +1076,75 @@ async function createRideHailingOrderBranch(input: {
           : null,
         riders: buildRideRiderSnapshots(input.selected.extraProperties),
         contactPhone: input.selected.extraProperties.contactPhone,
-        providerInstanceId: provider.id,
         executionPhase: "INITIATING",
       });
 
-      const created = await port.createRide({
-        orderId: base.order.id,
-        params: {
-          callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
-          car_type: input.selected.sku.facts.providerVehicleTypeCode,
-          flat: input.selected.extraProperties.route.origin.latitude,
-          flng: input.selected.extraProperties.route.origin.longitude,
-          tlat: input.selected.extraProperties.route.destination.latitude,
-          tlng: input.selected.extraProperties.route.destination.longitude,
-        },
-      });
+      let created: Awaited<ReturnType<typeof port.createRide>>;
+      try {
+        created = await port.createRide({
+          orderId: base.order.id,
+          params: {
+            callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
+            car_type: input.selected.dispatchCandidate.sku.facts.providerVehicleTypeCode,
+            flat: input.selected.extraProperties.route.origin.latitude,
+            flng: input.selected.extraProperties.route.origin.longitude,
+            tlat: input.selected.extraProperties.route.destination.latitude,
+            tlng: input.selected.extraProperties.route.destination.longitude,
+          },
+        });
+      } catch (error) {
+        await rideRepo.updateByOrderId(base.order.id, {
+          executionPhase: "FAILED",
+        });
+        const orderRepo = new TradeOrderRepository(tx);
+        await orderRepo.updateStatus(base.order.id, "CANCELLED", new Date());
+        return {
+          outcome: "CANCELLED",
+          orderId: base.order.id,
+          reason: actionProblem({
+            code: "RIDE_HAILING_PROVIDER_CREATE_FAILED",
+            title: "下单失败",
+            detail:
+              error instanceof Error ? error.message : "RideHailing provider order creation failed",
+          }),
+        };
+      }
       providerOrderIdToCompensate = created.providerOrderId;
-      await rideRepo.updateByOrderId(base.order.id, {
+      const providerBinding: RideHailingProviderBindingSnapshot = {
+        providerInstanceId: provider.id,
+        providerType: provider.providerType,
         providerOrderId: created.providerOrderId,
+      };
+      const resolution: RideHailingChoiceSetResolutionSnapshot = {
+        sku: buildSkuSnapshot({
+          sku: input.selected.dispatchCandidate.sku,
+          name: input.selected.dispatchCandidate.quote.displayName,
+          cancellationPolicySnapshot: await buildCancellationPolicySnapshot(
+            input.selected.dispatchCandidate.sku,
+          ),
+        }),
+        providerVehicleTypeCode: input.selected.dispatchCandidate.sku.facts.providerVehicleTypeCode,
+        providerVehicleTypeName: input.selected.dispatchCandidate.quote.carTypeName,
+        quoteSnapshot: buildRideQuoteSnapshot(input.selected.dispatchCandidate.quote),
+        providerBinding,
+        source: "DISPATCH_POLICY",
+        candidateRelation: "IN_CANDIDATES",
+        reason: null,
+        resolvedAt: new Date().toISOString(),
+      };
+      const resolvedItem = await buildRideChoiceSetItemSnapshot({
+        selected: input.selected,
+        resolution,
+      });
+      await rideRepo.updateByOrderId(base.order.id, {
         executionPhase: "DISPATCHING",
       });
       const orderRepo = new TradeOrderRepository(tx);
+      await orderRepo.replaceItems(base.order.id, [resolvedItem]);
       await orderRepo.updateStatus(base.order.id, "OPEN");
 
       return {
+        outcome: "CREATED",
         orderId: base.order.id,
       };
     });
@@ -959,10 +1164,7 @@ async function createRideHailingOrderBranch(input: {
     }
     return throwHttpProblem({
       status: 502,
-      detail:
-        error instanceof Error
-          ? error.message
-          : "RideHailing provider order creation failed",
+      detail: error instanceof Error ? error.message : "RideHailing provider order creation failed",
     });
   }
 }
@@ -1011,9 +1213,7 @@ export async function evaluateOrdering(
         totalFen: selected.pricingSnapshot.totalFen,
         range: null,
         explanations: [
-          ...selected.pricingSnapshot.itemBreakdowns.flatMap(
-            (breakdown) => breakdown.explanations,
-          ),
+          ...selected.pricingSnapshot.itemBreakdowns.flatMap((breakdown) => breakdown.explanations),
           ...selected.pricingSnapshot.orderLevelExplanations,
         ],
       },
@@ -1022,28 +1222,40 @@ export async function evaluateOrdering(
 
   const extras = readRideExtras(input.productTypedExtraProperties);
   const rideProblem = validateRideExtras(extras);
+  const choiceSetInput = readRideChoiceSetItemInput(input.items);
   const options = await evaluateRideOptions({
     offer,
     route: extras.route,
-    selectedSkuId: input.items[0]?.skuId ?? null,
+    candidateSkuIds: choiceSetInput.candidateSkuIds,
   });
-  const selectedQuote = options.find(
-    (option) => option.selected && option.selectable && option.quoteAmountFen !== null,
+  const quotedCandidates = options.filter(
+    (option) => option.selectable && option.quoteAmountFen !== null,
   );
+  const dispatchQuote = [...quotedCandidates].sort(
+    (left, right) =>
+      (left.quoteAmountFen ?? Number.POSITIVE_INFINITY) -
+      (right.quoteAmountFen ?? Number.POSITIVE_INFINITY),
+  )[0];
   const quoteProblem =
-    selectedQuote === undefined
+    dispatchQuote === undefined
       ? actionProblem({
           code: "RIDE_HAILING_VEHICLE_REQUIRED",
           title: "请选择可用车型",
-          detail: "请选择一个可用的网约车车型。",
+          detail: "请选择至少一个可用的网约车车型。",
         })
       : null;
   const selected =
-    selectedQuote === undefined
+    dispatchQuote === undefined
       ? null
       : await resolveSelectedSku({
           offer,
-          items: input.items,
+          items: [
+            {
+              kind: "FIXED",
+              skuId: dispatchQuote.skuId,
+              quantity: 1,
+            },
+          ],
         });
   if (selected && !isRideHailingSkuFacts(selected.sku.facts)) {
     return throwHttpProblem({
@@ -1052,7 +1264,7 @@ export async function evaluateOrdering(
     });
   }
   const pricingSnapshot =
-    selected && selectedQuote
+    selected && dispatchQuote
       ? pricingApplication.resolve({
           offer,
           items: [
@@ -1064,11 +1276,11 @@ export async function evaluateOrdering(
             },
           ],
           orderContext: {
-            quoteTotalFen: rideQuoteBaseAmountFen(selectedQuote),
+            quoteTotalFen: rideQuoteBaseAmountFen(dispatchQuote),
           },
         })
       : null;
-  const selectablePrices = options
+  const selectablePrices = quotedCandidates
     .map((option) => option.quoteAmountFen)
     .filter((value): value is number => typeof value === "number");
 
@@ -1087,15 +1299,13 @@ export async function evaluateOrdering(
     },
     price: {
       currency: "CNY",
-      totalFen: pricingSnapshot?.totalFen ?? null,
+      totalFen: null,
       range: {
         minFen: selectablePrices.length ? Math.min(...selectablePrices) : null,
         maxFen: selectablePrices.length ? Math.max(...selectablePrices) : null,
       },
       explanations: [
-        ...(pricingSnapshot?.itemBreakdowns.flatMap(
-          (breakdown) => breakdown.explanations,
-        ) ?? []),
+        ...(pricingSnapshot?.itemBreakdowns.flatMap((breakdown) => breakdown.explanations) ?? []),
         ...(pricingSnapshot?.orderLevelExplanations ?? []),
       ],
     },
@@ -1127,7 +1337,7 @@ export async function createOrderCommand(
   input: CreateOrderCommandInput & {
     createdBy: string;
   },
-) {
+): Promise<CreateOrderCommandResult> {
   const commonProblem = validateCommonCommand({
     command: input,
     createdBy: input.createdBy,
@@ -1161,11 +1371,15 @@ export async function createOrderCommand(
         code: rentalProblem.code,
       });
     }
-    return createRentalOrderBranch({
+    const created = await createRentalOrderBranch({
       command: input,
       selected,
       createdBy: input.createdBy,
     });
+    return {
+      outcome: "CREATED",
+      ...created,
+    };
   }
 
   const selected = await resolveRideSelection({

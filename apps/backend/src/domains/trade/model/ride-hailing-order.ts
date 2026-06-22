@@ -1,4 +1,3 @@
-import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrder } from "./order";
 
 export type RideHailingCoordinateSnapshot = {
@@ -63,8 +62,6 @@ export type RideHailingOrder = Omit<TradeOrder, "family"> & {
   departureAt?: string | null;
   riders: RideHailingRiderSnapshot[];
   contactPhone: string;
-  providerInstanceId: RideHailingProviderInstanceId;
-  providerOrderId?: string | null;
   executionPhase: RideHailingExecutionPhase;
   driverSnapshot?: RideHailingDriverSnapshot | null;
   vehicleSnapshot?: RideHailingVehicleSnapshot | null;

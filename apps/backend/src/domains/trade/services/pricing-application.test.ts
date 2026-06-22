@@ -54,6 +54,13 @@ function buildSku(overrides: Partial<ProductSku> = {}): ProductSku {
     status: "ACTIVE",
     name: "Baking zone",
     sortOrder: 0,
+    presentation: {
+      heroImageAssetIds: [],
+      detailImageAssetIds: [],
+      sellingPoints: [],
+      parameterGroups: [],
+      noticeBlocks: [],
+    },
     facts: {
       type: "RENTAL",
       zoneCode: "BAKING",

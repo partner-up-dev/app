@@ -8,6 +8,7 @@ import {
 } from "../entities/trade-order";
 import type { OfferId } from "../entities/offer";
 import type {
+  OrderItemSnapshot,
   OrderStatus,
   OrderTerminationAttempt,
 } from "../domains/trade/model";
@@ -17,26 +18,17 @@ export class TradeOrderRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewTradeOrder): Promise<TradeOrder> {
-    const result = await this.executor
-      .insert(tradeOrders)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(tradeOrders).values(data).returning();
     return result[0]!;
   }
 
   async findById(id: TradeOrderId): Promise<TradeOrder | null> {
-    const result = await this.executor
-      .select()
-      .from(tradeOrders)
-      .where(eq(tradeOrders.id, id));
+    const result = await this.executor.select().from(tradeOrders).where(eq(tradeOrders.id, id));
     return result[0] ?? null;
   }
 
   async listAll(): Promise<TradeOrder[]> {
-    return this.executor
-      .select()
-      .from(tradeOrders)
-      .orderBy(desc(tradeOrders.createdAt));
+    return this.executor.select().from(tradeOrders).orderBy(desc(tradeOrders.createdAt));
   }
 
   async listByIds(ids: TradeOrderId[]): Promise<TradeOrder[]> {
@@ -92,6 +84,18 @@ export class TradeOrderRepository {
       .update(tradeOrders)
       .set({
         terminationAttempts,
+        updatedAt: new Date(),
+      })
+      .where(eq(tradeOrders.id, id))
+      .returning();
+    return result[0] ?? null;
+  }
+
+  async replaceItems(id: TradeOrderId, items: OrderItemSnapshot[]): Promise<TradeOrder | null> {
+    const result = await this.executor
+      .update(tradeOrders)
+      .set({
+        items,
         updatedAt: new Date(),
       })
       .where(eq(tradeOrders.id, id))

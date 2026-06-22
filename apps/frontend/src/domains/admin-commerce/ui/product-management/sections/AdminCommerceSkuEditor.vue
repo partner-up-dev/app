@@ -134,6 +134,7 @@ watch(
       name: record.sku.name,
       status: record.sku.status,
       sortOrder: record.sku.sortOrder,
+      presentation: record.sku.presentation,
       facts: record.sku.facts,
       pricingModel: record.sku.pricingModel,
       cancellationPolicyRef: record.sku.cancellationPolicyRef ?? null,
@@ -161,6 +162,7 @@ const handleSaveSku = async () => {
     const input = buildSkuInput(
       skuForm.value,
       selectedProductType.value,
+      selectedSkuRecord.value?.sku.presentation,
       selectedSkuRecord.value?.sku.cancellationPolicyRef,
       buildLabels(),
     );
@@ -180,9 +182,7 @@ const handleSaveSku = async () => {
       input,
     });
   } catch (error) {
-    context.setErrorMessage(
-      error instanceof Error ? error.message : t("common.operationFailed"),
-    );
+    context.setErrorMessage(error instanceof Error ? error.message : t("common.operationFailed"));
   }
 };
 </script>

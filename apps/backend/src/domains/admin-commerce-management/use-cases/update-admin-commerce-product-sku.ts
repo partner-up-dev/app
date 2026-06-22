@@ -5,9 +5,10 @@ import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository
 import type {
   CatalogStatus,
   PricingModel,
+  ProductPresentation,
   SkuFacts,
 } from "../../merchandising";
-import { assertProductSkuContract } from "../../merchandising";
+import { assertProductSkuContract, createEmptyProductPresentation } from "../../merchandising";
 
 const productSpuRepo = new ProductSpuRepository();
 const productSkuRepo = new ProductSkuRepository();
@@ -17,6 +18,7 @@ export type UpdateAdminCommerceProductSkuInput = {
   name: string;
   status: CatalogStatus;
   sortOrder: number;
+  presentation?: ProductPresentation;
   facts: SkuFacts;
   pricingModel: PricingModel;
   cancellationPolicyRef?: {
@@ -25,9 +27,7 @@ export type UpdateAdminCommerceProductSkuInput = {
   } | null;
 };
 
-export async function updateAdminCommerceProductSku(
-  input: UpdateAdminCommerceProductSkuInput,
-) {
+export async function updateAdminCommerceProductSku(input: UpdateAdminCommerceProductSkuInput) {
   const sku = await productSkuRepo.findById(input.skuId);
   if (!sku) {
     return throwHttpProblem({ status: 404, detail: "Product SKU not found" });
@@ -47,6 +47,7 @@ export async function updateAdminCommerceProductSku(
     name: input.name,
     status: input.status,
     sortOrder: input.sortOrder,
+    presentation: input.presentation ?? sku.presentation ?? createEmptyProductPresentation(),
     facts: input.facts,
     pricingModel: input.pricingModel,
     cancellationPolicyRef: input.cancellationPolicyRef ?? null,
