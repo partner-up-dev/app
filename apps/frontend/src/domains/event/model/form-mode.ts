@@ -43,13 +43,12 @@ export type FormModeFuzzyTimePreset =
   | "LATE_NIGHT"
   | "ALL_DAY";
 
-export type FormModeTimeSelection =
-  {
-    mode: FormModeTimeMode;
-    label: string;
-    timeWindows: FormModeRecommendationTimeWindow[];
-    createTimeWindow: FormModeCreateTimeWindow | null;
-  };
+export type FormModeTimeSelection = {
+  mode: FormModeTimeMode;
+  label: string;
+  timeWindows: FormModeRecommendationTimeWindow[];
+  createTimeWindow: FormModeCreateTimeWindow | null;
+};
 
 export type FormModeRecommendationTimeWindow = {
   startAt: string;
@@ -79,9 +78,7 @@ const parseFormModeDateTime = (value: string): Date | null => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-export const isValidFormModeDateTime = (
-  value: string | null | undefined,
-): value is string =>
+export const isValidFormModeDateTime = (value: string | null | undefined): value is string =>
   typeof value === "string" && parseFormModeDateTime(value) !== null;
 
 export const buildFormModeDateKey = (isoDateTime: string): string => {
@@ -107,11 +104,7 @@ const parseDateKeyAsUtc = (dateKey: string): Date | null => {
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day)
-  ) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return null;
   }
   return new Date(Date.UTC(year, month - 1, day));
@@ -157,10 +150,7 @@ const formatMonthDayFromDateKey = (dateKey: string): string => {
   return `${date.getUTCMonth() + 1}月${date.getUTCDate()}日`;
 };
 
-const formatRelativeDateOptionLabel = (
-  dateKey: string,
-  now: Date,
-): string => {
+const formatRelativeDateOptionLabel = (dateKey: string, now: Date): string => {
   const todayKey = dateKeyFormatter.format(now);
   const tomorrowKey = addDaysToDateKey(todayKey, 1);
   if (dateKey === todayKey) {
@@ -171,12 +161,10 @@ const formatRelativeDateOptionLabel = (
   }
 
   const weekday = getDateKeyDayOfWeek(dateKey);
-  const weekdayLabel = weekday === null ? "" : WEEKDAY_LABELS[weekday] ?? "";
+  const weekdayLabel = weekday === null ? "" : (WEEKDAY_LABELS[weekday] ?? "");
   const currentWeekStart = getDateKeyWeekStart(todayKey);
   const optionWeekStart = getDateKeyWeekStart(dateKey);
-  const nextWeekStart = currentWeekStart
-    ? addDaysToDateKey(currentWeekStart, 7)
-    : null;
+  const nextWeekStart = currentWeekStart ? addDaysToDateKey(currentWeekStart, 7) : null;
   if (optionWeekStart && optionWeekStart === currentWeekStart) {
     return `本${weekdayLabel}`;
   }
@@ -208,7 +196,7 @@ export const buildFormModeFuzzyTimeOptions = (): FormModeFuzzyTimeOption[] => [
   { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
   { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
   { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
-  { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "23:59" },
+  { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "00:00" },
 ];
 
 const buildProductLocalIso = (dateKey: string, timeKey: string): string | null => {
@@ -235,9 +223,7 @@ export const buildFormModeCreateTimeWindow = (
 
   return {
     startAt,
-    endAt: new Date(
-      new Date(startAt).getTime() + durationMinutes * MINUTE_MS,
-    ).toISOString(),
+    endAt: new Date(new Date(startAt).getTime() + durationMinutes * MINUTE_MS).toISOString(),
   };
 };
 
@@ -245,21 +231,14 @@ export const buildFormModeFuzzyTimeWindows = (
   dateKey: string,
   timePreset: FormModeFuzzyTimePreset,
 ): FormModeRecommendationTimeWindow[] => {
-  const option = buildFormModeFuzzyTimeOptions().find(
-    (item) => item.value === timePreset,
-  );
+  const option = buildFormModeFuzzyTimeOptions().find((item) => item.value === timePreset);
   if (!option) {
     return [];
   }
 
   const startAt = buildProductLocalIso(dateKey, option.startTime);
-  const endDateKey =
-    option.endTime <= option.startTime
-      ? addDaysToDateKey(dateKey, 1)
-      : dateKey;
-  const endAt = endDateKey
-    ? buildProductLocalIso(endDateKey, option.endTime)
-    : null;
+  const endDateKey = option.endTime <= option.startTime ? addDaysToDateKey(dateKey, 1) : dateKey;
+  const endAt = endDateKey ? buildProductLocalIso(endDateKey, option.endTime) : null;
   if (!startAt || !endAt) {
     return [];
   }
@@ -275,9 +254,7 @@ export const formatFormModeFuzzySelectionLabel = (
   const dateOption = buildFormModeFuzzyDateOptions(now).find(
     (option) => option.value === dateValue,
   );
-  const timeOption = buildFormModeFuzzyTimeOptions().find(
-    (option) => option.value === timePreset,
-  );
+  const timeOption = buildFormModeFuzzyTimeOptions().find((option) => option.value === timePreset);
   const dateLabel = dateOption?.label ?? "";
   const timeLabel = timeOption?.label ?? "";
   return dateLabel || timeLabel ? `${dateLabel}${timeLabel}` : "";
@@ -330,9 +307,7 @@ export const buildFormModeStartAtFromRouteParts = (
   return isoDateTime;
 };
 
-export const formatFormModeDurationLabel = (
-  durationMinutes: number | null,
-): string => {
+export const formatFormModeDurationLabel = (durationMinutes: number | null): string => {
   if (durationMinutes === null || durationMinutes <= 0) {
     return "";
   }
@@ -349,18 +324,10 @@ export const formatFormModeDurationLabel = (
 };
 
 const buildStableSeed = (seed: string): number =>
-  Array.from(seed).reduce(
-    (accumulator, character) => accumulator + character.charCodeAt(0),
-    0,
-  );
+  Array.from(seed).reduce((accumulator, character) => accumulator + character.charCodeAt(0), 0);
 
-export const pickStableGalleryImage = (
-  gallery: readonly string[],
-  seed: string,
-): string | null => {
-  const normalizedGallery = gallery
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+export const pickStableGalleryImage = (gallery: readonly string[], seed: string): string | null => {
+  const normalizedGallery = gallery.map((item) => item.trim()).filter((item) => item.length > 0);
   if (normalizedGallery.length === 0) {
     return null;
   }
@@ -413,8 +380,7 @@ export const buildPreferenceTagGroups = (tags: readonly PresetTag[]) => {
       tags: items,
     })),
     uncategorized,
-    uncategorizedLabel:
-      categorized.size === 0 && uncategorized.length > 0 ? "偏好" : "其它",
+    uncategorizedLabel: categorized.size === 0 && uncategorized.length > 0 ? "偏好" : "其它",
   };
 };
 
@@ -436,11 +402,7 @@ export const buildAdvancedModeStartOptions = (
   const boundary = new Date(now.getTime() + earliestLeadMinutes * MINUTE_MS);
   const values: StartOption[] = [];
 
-  for (
-    let cursor = start.getTime();
-    cursor <= boundary.getTime();
-    cursor += FIVE_MINUTE_MS
-  ) {
+  for (let cursor = start.getTime(); cursor <= boundary.getTime(); cursor += FIVE_MINUTE_MS) {
     const startAt = new Date(cursor).toISOString();
     values.push({
       key: `${startAt}::advanced`,
@@ -473,9 +435,7 @@ export const buildStartOptionsByDate = (startOptions: readonly StartOption[]) =>
     .map(([dateKey, options]) => ({
       dateKey,
       dateLabel: formatFormModeDateLabel(options[0]?.startAt ?? dateKey),
-      options: [...options].sort((left, right) =>
-        left.startAt.localeCompare(right.startAt),
-      ),
+      options: [...options].sort((left, right) => left.startAt.localeCompare(right.startAt)),
     }))
     .sort((left, right) => left.dateKey.localeCompare(right.dateKey));
 };

@@ -1,8 +1,8 @@
 import { generateObject } from "ai";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import {
-  partnerRequestFieldsSchema,
-  type PartnerRequestFields,
+  naturalLanguagePartnerRequestFieldsSchema,
+  type NaturalLanguagePartnerRequestFields,
   type WeekdayLabel,
 } from "../entities/partner-request";
 import { env } from "../lib/env";
@@ -11,8 +11,7 @@ import { ConfigService } from "./ConfigService";
 import { buildPartnerRequestParsePromptVariablesJson } from "./llm/prompt-variables";
 import { DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT } from "./prompts/partnerRequestParsePrompt";
 
-const CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT =
-  "partner_request.parse_system_prompt";
+const CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT = "partner_request.parse_system_prompt";
 
 type PartnerRequestParseTypeHints = {
   existingPRTypes: string[];
@@ -54,7 +53,7 @@ export class PartnerRequestAIService {
     nowIso: string,
     nowWeekday: WeekdayLabel | null,
     typeHints?: PartnerRequestParseTypeHints,
-  ): Promise<PartnerRequestFields> {
+  ): Promise<NaturalLanguagePartnerRequestFields> {
     const systemPrompt = await this.configService.getValueOrFallback(
       CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT,
       DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT,
@@ -72,7 +71,7 @@ export class PartnerRequestAIService {
 
     const { object } = await generateObject({
       model: this.client(env.LLM_DEFAULT_MODEL),
-      schema: partnerRequestFieldsSchema,
+      schema: naturalLanguagePartnerRequestFieldsSchema,
       system: systemPrompt,
       prompt,
       temperature: 0.3,

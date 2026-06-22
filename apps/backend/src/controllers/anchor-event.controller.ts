@@ -19,10 +19,7 @@ import {
   submitAnchorEventRouteApplication,
 } from "../domains/anchor-event-route-application";
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
-import {
-  prAllowEditAfterReadySchema,
-  prRouteSchema,
-} from "../entities/partner-request";
+import { prAllowEditAfterReadySchema, prRouteSchema } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
 import { throwHttpProblem } from "../lib/problem-details";
 
@@ -51,10 +48,12 @@ const formModeRecommendationBaseSchema = z.object({
   preferences: z.array(z.string().trim().min(1).max(80)).max(16),
 });
 
+const instantDateTimeSchema = z.string().datetime({ offset: true });
+
 const formModeRecommendationTimeWindowSchema = z
   .object({
-    startAt: z.string().datetime(),
-    endAt: z.string().datetime(),
+    startAt: instantDateTimeSchema,
+    endAt: instantDateTimeSchema,
   })
   .superRefine((timeWindow, ctx) => {
     if (new Date(timeWindow.startAt).getTime() > new Date(timeWindow.endAt).getTime()) {
@@ -67,7 +66,7 @@ const formModeRecommendationTimeWindowSchema = z
   });
 
 const dummyPRMaterializationTimeWindowSchema = z
-  .tuple([z.string().datetime(), z.string().datetime()])
+  .tuple([instantDateTimeSchema, instantDateTimeSchema])
   .superRefine((timeWindow, ctx) => {
     if (new Date(timeWindow[0]).getTime() > new Date(timeWindow[1]).getTime()) {
       ctx.addIssue({
@@ -109,13 +108,11 @@ const formModeRecommendationSchema = z.union([
   }),
   formModeRecommendationBaseSchema.extend({
     locationId: z.string().trim().min(1),
-    startAt: z.string().datetime(),
+    startAt: instantDateTimeSchema,
   }),
 ]);
 
-type FormModeRecommendationPayload = z.infer<
-  typeof formModeRecommendationSchema
->;
+type FormModeRecommendationPayload = z.infer<typeof formModeRecommendationSchema>;
 
 const resolveFormModeRecommendationPlace = (
   payload: FormModeRecommendationPayload,
@@ -186,27 +183,16 @@ export const anchorEventRoute = app
     const detail = await getAnchorEventFormModeData(eventId);
     return c.json(detail);
   })
-  .get(
-    "/:eventId/landing-assignment",
-    zValidator("param", eventIdParamSchema),
-    async (c) => {
-      const { eventId } = c.req.valid("param");
-      const assignment = await assignAnchorEventLandingMode(eventId);
-      return c.json(assignment);
-    },
-  )
-  .get(
-    "/:eventId/demand-cards",
-    zValidator("param", eventIdParamSchema),
-    async (c) => {
-      const { eventId } = c.req.valid("param");
-      const cards = await getAnchorEventDemandCards(
-        eventId,
-        readSessionUserId(c),
-      );
-      return c.json(cards);
-    },
-  )
+  .get("/:eventId/landing-assignment", zValidator("param", eventIdParamSchema), async (c) => {
+    const { eventId } = c.req.valid("param");
+    const assignment = await assignAnchorEventLandingMode(eventId);
+    return c.json(assignment);
+  })
+  .get("/:eventId/demand-cards", zValidator("param", eventIdParamSchema), async (c) => {
+    const { eventId } = c.req.valid("param");
+    const cards = await getAnchorEventDemandCards(eventId, readSessionUserId(c));
+    return c.json(cards);
+  })
   .post(
     "/:eventId/preference-tags/submissions",
     zValidator("param", eventIdParamSchema),
@@ -246,9 +232,10 @@ export const anchorEventRoute = app
         eventId,
         viewerUserId: readSessionUserId(c),
         place: resolveFormModeRecommendationPlace(payload),
-        timeWindows: "timeWindows" in payload
-          ? payload.timeWindows
-          : [{ startAt: payload.startAt, endAt: payload.startAt }],
+        timeWindows:
+          "timeWindows" in payload
+            ? payload.timeWindows
+            : [{ startAt: payload.startAt, endAt: payload.startAt }],
         preferences: payload.preferences,
       });
       return c.json(result);

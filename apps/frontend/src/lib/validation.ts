@@ -4,21 +4,15 @@ import { i18n } from "@/locales/i18n";
 import type { PRFormFields } from "@/domains/pr/model/types";
 import { getPRRouteValidationIssue } from "@/domains/pr/model/pr-route";
 
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const isoDateTimeSchema = z.string().datetime();
-const isoDateOrDateTimeSchema = z.union([isoDateTimeSchema, isoDateSchema]);
+const instantDateTimeSchema = z.string().datetime({ offset: true });
 
 const MIN_MANUAL_PARTNERS = 1;
 const MIN_PRESENT_MAX_PARTNERS = 2;
 
-const hasRouteDraft = (
-  route: PRFormFields["route"],
-): route is NonNullable<PRFormFields["route"]> => Array.isArray(route);
+const hasRouteDraft = (route: PRFormFields["route"]): route is NonNullable<PRFormFields["route"]> =>
+  Array.isArray(route);
 
-const addRouteIssue = (
-  context: z.RefinementCtx,
-  message: string,
-): void => {
+const addRouteIssue = (context: z.RefinementCtx, message: string): void => {
   context.addIssue({
     code: z.ZodIssueCode.custom,
     path: ["route"],
@@ -58,13 +52,11 @@ type PartnerRequestFormSchemaOptions = {
 
 const buildTimeSchema = (validateTime: boolean) =>
   z.tuple([
-    (validateTime ? isoDateOrDateTimeSchema : z.string()).nullable(),
-    (validateTime ? isoDateOrDateTimeSchema : z.string()).nullable(),
+    (validateTime ? instantDateTimeSchema : z.string()).nullable(),
+    (validateTime ? instantDateTimeSchema : z.string()).nullable(),
   ]);
 
-const buildFieldsSchema = ({
-  validateTime = true,
-}: PartnerRequestFormSchemaOptions = {}) =>
+const buildFieldsSchema = ({ validateTime = true }: PartnerRequestFormSchemaOptions = {}) =>
   z
     .object({
       title: z.string().optional(),
@@ -72,9 +64,7 @@ const buildFieldsSchema = ({
       time: buildTimeSchema(validateTime),
       location: z.string().nullable(),
       route: z
-        .custom<PRFormFields["route"]>(
-          (value) => value === null || Array.isArray(value),
-        )
+        .custom<PRFormFields["route"]>((value) => value === null || Array.isArray(value))
         .default(null),
       minPartners: z.number().int().nonnegative().nullable(),
       maxPartners: z.number().int().nonnegative().nullable(),
@@ -91,20 +81,14 @@ const buildFieldsSchema = ({
         .optional(),
     })
     .superRefine((value, context) => {
-      if (
-        value.minPartners === null ||
-        value.minPartners < MIN_MANUAL_PARTNERS
-      ) {
+      if (value.minPartners === null || value.minPartners < MIN_MANUAL_PARTNERS) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["minPartners"],
           message: getMinPartnersAtLeastOneMessage(),
         });
       }
-      if (
-        value.maxPartners !== null &&
-        value.maxPartners < MIN_PRESENT_MAX_PARTNERS
-      ) {
+      if (value.maxPartners !== null && value.maxPartners < MIN_PRESENT_MAX_PARTNERS) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["maxPartners"],
@@ -134,38 +118,24 @@ const buildFieldsSchema = ({
         addRouteIssue(context, i18n.global.t("validation.routeMinPoints"));
       }
       if (issue === "name-required") {
-        addRouteIssue(
-          context,
-          i18n.global.t("validation.routePointNameRequired"),
-        );
+        addRouteIssue(context, i18n.global.t("validation.routePointNameRequired"));
       }
       if (issue === "coordinate-required") {
-        addRouteIssue(
-          context,
-          i18n.global.t("validation.routePointCoordinateRequired"),
-        );
+        addRouteIssue(context, i18n.global.t("validation.routePointCoordinateRequired"));
       }
     });
 
 export const createNaturalLanguagePRSchema = z
   .object({
-    rawText: z
-      .string()
-      .min(1, i18n.global.t("validation.naturalLanguageRequired"))
-      .max(2000),
+    rawText: z.string().min(1, i18n.global.t("validation.naturalLanguageRequired")).max(2000),
   })
-  .refine(
-    ({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50,
-    { message: i18n.global.t("validation.naturalLanguageWordLimit") },
-  );
+  .refine(({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50, {
+    message: i18n.global.t("validation.naturalLanguageWordLimit"),
+  });
 
-export const createNaturalLanguagePRValidationSchema = toTypedSchema(
-  createNaturalLanguagePRSchema,
-);
+export const createNaturalLanguagePRValidationSchema = toTypedSchema(createNaturalLanguagePRSchema);
 
-export const buildPartnerRequestFormSchema = (
-  options: PartnerRequestFormSchemaOptions = {},
-) =>
+export const buildPartnerRequestFormSchema = (options: PartnerRequestFormSchemaOptions = {}) =>
   z.object({
     fields: buildFieldsSchema(options),
   });
@@ -174,13 +144,9 @@ export const partnerRequestFormSchema = buildPartnerRequestFormSchema();
 
 export const buildPartnerRequestFormValidationSchema = (
   options: PartnerRequestFormSchemaOptions = {},
-) =>
-  toTypedSchema(buildPartnerRequestFormSchema(options));
+) => toTypedSchema(buildPartnerRequestFormSchema(options));
 
-export const partnerRequestFormValidationSchema = buildPartnerRequestFormValidationSchema(
-);
+export const partnerRequestFormValidationSchema = buildPartnerRequestFormValidationSchema();
 
-export type CreateNaturalLanguagePRInput = z.infer<
-  typeof createNaturalLanguagePRSchema
->;
+export type CreateNaturalLanguagePRInput = z.infer<typeof createNaturalLanguagePRSchema>;
 export type PartnerRequestFormInput = z.infer<typeof partnerRequestFormSchema>;

@@ -1,18 +1,13 @@
 import { PartnerRequestAIService } from "../../../services/PartnerRequestAIService";
-import type {
-  WeekdayLabel,
-} from "../../../entities/partner-request";
-import {
-  type CreatorIdentityInput,
-} from "../services/creator-identity.service";
-import {
-  type CreatePRCommandResult,
-} from "./create-pr.shared";
+import type { WeekdayLabel } from "../../../entities/partner-request";
+import { type CreatorIdentityInput } from "../services/creator-identity.service";
+import { type CreatePRCommandResult } from "./create-pr.shared";
 import { resolveNaturalLanguagePRTypeCandidates } from "../services/pr-type-options.service";
 import {
   canonicalizeNaturalLanguagePRType,
   toNaturalLanguagePRTypePromptHints,
 } from "../services/pr-type-options";
+import { materializeNaturalLanguagePartnerRequestFields } from "../services/pr-time-window-instant.service";
 import { createPRFromStructured } from "./create-pr-structured";
 
 const aiService = new PartnerRequestAIService();
@@ -30,20 +25,16 @@ export async function createPRFromNaturalLanguage(
     nowWeekday,
     toNaturalLanguagePRTypePromptHints(typeCandidates),
   );
-  const canonicalizedFields = {
+  const canonicalizedFields = materializeNaturalLanguagePartnerRequestFields({
     ...fields,
     type: canonicalizeNaturalLanguagePRType(fields.type, typeCandidates),
-  };
+  });
 
-  return createPRFromStructured(
-    canonicalizedFields,
-    creatorIdentity,
-    {
-      createSource: "NATURAL_LANGUAGE",
-      partnerBoundsMode: "automatic",
-      operationLog: {
-        detail: { rawText },
-      },
+  return createPRFromStructured(canonicalizedFields, creatorIdentity, {
+    createSource: "NATURAL_LANGUAGE",
+    partnerBoundsMode: "automatic",
+    operationLog: {
+      detail: { rawText },
     },
-  );
+  });
 }

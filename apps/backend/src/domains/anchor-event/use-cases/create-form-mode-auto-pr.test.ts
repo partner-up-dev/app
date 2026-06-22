@@ -91,7 +91,7 @@ describe("createAnchorEventFormModeAutoPR", () => {
     const allowEditAfterReady = {
       timeWindow: [
         "2038-01-02T00:00:00.000Z",
-        "2038-01-02T23:59:00.000Z",
+        "2038-01-03T00:00:00.000Z",
       ] satisfies [string, string],
     };
 
@@ -161,7 +161,7 @@ describe("createAnchorEventFormModeAutoPR", () => {
   test("accepts a fuzzy activity window outside the event time pool", async () => {
     const fuzzyAllDayWindow: [string, string] = [
       "2038-01-01T16:00:00.000Z",
-      "2038-01-02T15:59:00.000Z",
+      "2038-01-02T16:00:00.000Z",
     ];
 
     await createAnchorEventFormModeAutoPR({

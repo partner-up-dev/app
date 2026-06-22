@@ -90,6 +90,10 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PartnerRequestFields } from "@partner-up-dev/backend";
 import { PuButton } from "@partner-up-dev/design-web";
+import {
+  instantToLocalDateTimeInputParts,
+  localDateTimeInputPartsToInstant,
+} from "@/shared/datetime/localDateTimeInput";
 
 type TimeWindow = PartnerRequestFields["time"];
 
@@ -109,36 +113,13 @@ const props = withDefaults(defineProps<Props>(), {
 const { t } = useI18n();
 const testIdPrefix = computed(() => props.testIdPrefix);
 
-const labelText = computed(
-  () => props.label ?? t("dateTimeRangePicker.defaultLabel"),
-);
+const labelText = computed(() => props.label ?? t("dateTimeRangePicker.defaultLabel"));
 
-const hintText = computed(
-  () => props.hint ?? t("dateTimeRangePicker.defaultHint"),
-);
+const hintText = computed(() => props.hint ?? t("dateTimeRangePicker.defaultHint"));
 
 const emit = defineEmits<{
   "update:modelValue": [TimeWindow];
 }>();
-
-const splitTimeValue = (
-  value: string | null,
-): { date: string | null; time: string | null } => {
-  if (!value) return { date: null, time: null };
-  if (!value.includes("T")) return { date: value, time: null };
-  const [datePart, timePart = ""] = value.split("T");
-  const timeMatch = timePart.match(/^\d{2}:\d{2}/);
-  return { date: datePart || null, time: timeMatch ? timeMatch[0] : null };
-};
-
-const buildTimeValue = (
-  date: string | null,
-  time: string | null,
-): string | null => {
-  if (!date) return null;
-  if (!time) return date;
-  return `${date}T${time}`;
-};
 
 const startDate = ref<string | null>(null);
 const startTime = ref<string | null>(null);
@@ -148,8 +129,8 @@ const endTime = ref<string | null>(null);
 const isSyncing = ref(false);
 
 const syncFromModel = (value: TimeWindow) => {
-  const start = splitTimeValue(value?.[0] ?? null);
-  const end = splitTimeValue(value?.[1] ?? null);
+  const start = instantToLocalDateTimeInputParts(value?.[0] ?? null);
+  const end = instantToLocalDateTimeInputParts(value?.[1] ?? null);
   startDate.value = start.date;
   startTime.value = start.time;
   endDate.value = end.date;
@@ -178,8 +159,8 @@ watch(endDate, (value) => {
 watch([startDate, startTime, endDate, endTime], () => {
   if (isSyncing.value) return;
   emit("update:modelValue", [
-    buildTimeValue(startDate.value, startTime.value),
-    buildTimeValue(endDate.value, endTime.value),
+    localDateTimeInputPartsToInstant(startDate.value, startTime.value),
+    localDateTimeInputPartsToInstant(endDate.value, endTime.value),
   ]);
 });
 

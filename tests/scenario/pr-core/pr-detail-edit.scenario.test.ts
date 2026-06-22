@@ -10,7 +10,7 @@ import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/use
 const readyEditableTimeFields: PartnerRequestFields = {
   title: "System scenario ready editable time PR",
   type: "badminton",
-  time: ["2030-01-01", "2030-01-02"],
+  time: ["2030-01-01T00:00:00+08:00", "2030-01-02T00:00:00+08:00"],
   location: "Scenario Court",
   route: null,
   minPartners: 2,
@@ -28,7 +28,7 @@ scenario("pr_detail_ready_creator_edits_time_window_from_pr_page", async (ctx) =
     fields: readyEditableTimeFields,
     status: "READY",
     allowEditAfterReady: {
-      timeWindow: ["2030-01-01", "2030-01-04"],
+      timeWindow: ["2030-01-01T00:00:00+08:00", "2030-01-04T00:00:00+08:00"],
     },
   });
 
@@ -53,67 +53,76 @@ scenario("pr_detail_ready_creator_edits_time_window_from_pr_page", async (ctx) =
       state: "visible",
       timeout: 10_000,
     });
-    await page.waitForFunction(() => {
-      const startDate = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.start-date"]',
-      )?.value;
-      const startTime = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.start-time"]',
-      )?.value;
-      const endDate = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.end-date"]',
-      )?.value;
-      const endTime = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.end-time"]',
-      )?.value;
-      return (
-        startDate === "2030-01-01" &&
-        startTime === "" &&
-        endDate === "2030-01-02" &&
-        endTime === ""
-      );
-    }, undefined, { timeout: 10_000 });
+    await page.waitForFunction(
+      () => {
+        const startDate = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.start-date"]',
+        )?.value;
+        const startTime = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.start-time"]',
+        )?.value;
+        const endDate = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.end-date"]',
+        )?.value;
+        const endTime = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.end-time"]',
+        )?.value;
+        return (
+          startDate === "2030-01-01" &&
+          startTime === "00:00" &&
+          endDate === "2030-01-02" &&
+          endTime === "00:00"
+        );
+      },
+      undefined,
+      { timeout: 10_000 },
+    );
 
     assert.equal(await page.getByTestId("pr-editor.form.title").count(), 0);
     assert.equal(await page.getByTestId("pr-editor.form.type").count(), 0);
-    assert.equal(
-      await page.getByTestId("pr-editor.form.place.location").count(),
-      0,
-    );
+    assert.equal(await page.getByTestId("pr-editor.form.place.location").count(), 0);
 
     await page.getByTestId("pr-editor.form.start-date").fill("2030-01-02");
     await page.getByTestId("pr-editor.form.end-date").fill("2030-01-03");
-    await page.waitForFunction(() => {
-      const startDate = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.start-date"]',
-      )?.value;
-      const startTime = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.start-time"]',
-      )?.value;
-      const endDate = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.end-date"]',
-      )?.value;
-      const endTime = document.querySelector<HTMLInputElement>(
-        '[data-testid="pr-editor.form.end-time"]',
-      )?.value;
-      return (
-        startDate === "2030-01-02" &&
-        startTime === "" &&
-        endDate === "2030-01-03" &&
-        endTime === ""
-      );
-    }, undefined, { timeout: 10_000 });
+    await page.waitForFunction(
+      () => {
+        const startDate = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.start-date"]',
+        )?.value;
+        const startTime = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.start-time"]',
+        )?.value;
+        const endDate = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.end-date"]',
+        )?.value;
+        const endTime = document.querySelector<HTMLInputElement>(
+          '[data-testid="pr-editor.form.end-time"]',
+        )?.value;
+        return (
+          startDate === "2030-01-02" &&
+          startTime === "00:00" &&
+          endDate === "2030-01-03" &&
+          endTime === "00:00"
+        );
+      },
+      undefined,
+      { timeout: 10_000 },
+    );
     await page.getByTestId("pr-detail.creator.edit-content.submit").click();
 
     await page.getByTestId("pr-editor.form").waitFor({
       state: "detached",
       timeout: 10_000,
     });
-    await page.waitForFunction(() => {
-      const text = document
-        .querySelector('[data-testid="pr-detail.facts.time-value"]')
-        ?.textContent?.trim();
-      return text === "2030-01-02";
-    }, undefined, { timeout: 10_000 });
+    await page.waitForFunction(
+      () => {
+        const text = document
+          .querySelector('[data-testid="pr-detail.facts.time-value"]')
+          ?.textContent?.trim();
+        return text === "2030-01-02";
+      },
+      undefined,
+      { timeout: 10_000 },
+    );
   });
 });

@@ -23,12 +23,11 @@ const presetStartOption = {
 
 describe("form mode time options", () => {
   test("buildAdvancedModeStartOptions rounds from now and stops at earliest lead boundary", () => {
-    expect(buildAdvancedModeStartOptions(15, now).map((option) => option.startAt))
-      .toEqual([
-        "2026-05-17T10:05:00.000Z",
-        "2026-05-17T10:10:00.000Z",
-        "2026-05-17T10:15:00.000Z",
-      ]);
+    expect(buildAdvancedModeStartOptions(15, now).map((option) => option.startAt)).toEqual([
+      "2026-05-17T10:05:00.000Z",
+      "2026-05-17T10:10:00.000Z",
+      "2026-05-17T10:15:00.000Z",
+    ]);
   });
 
   test("shouldAutoOpenAdvancedFormModeTime opens when no preset time is available and earliest lead can produce options", () => {
@@ -36,9 +35,7 @@ describe("form mode time options", () => {
   });
 
   test("shouldAutoOpenAdvancedFormModeTime keeps preset mode when preset time is available", () => {
-    expect(
-      shouldAutoOpenAdvancedFormModeTime([presetStartOption], 15, now),
-    ).toBe(false);
+    expect(shouldAutoOpenAdvancedFormModeTime([presetStartOption], 15, now)).toBe(false);
   });
 
   test("shouldAutoOpenAdvancedFormModeTime stays closed when earliest lead cannot produce options", () => {
@@ -46,15 +43,10 @@ describe("form mode time options", () => {
   });
 
   test("buildFormModeFuzzyDateOptions derives fixed seven-day relative dates from now", () => {
-    const options = buildFormModeFuzzyDateOptions(
-      new Date("2026-05-19T01:00:00.000Z"),
-    );
+    const options = buildFormModeFuzzyDateOptions(new Date("2026-05-19T01:00:00.000Z"));
 
     expect(options).toHaveLength(7);
-    expect(options.map((option) => option.label).slice(0, 2)).toEqual([
-      "今天",
-      "明天",
-    ]);
+    expect(options.map((option) => option.label).slice(0, 2)).toEqual(["今天", "明天"]);
     expect(options.map((option) => option.value)).toEqual([
       "2026-05-19",
       "2026-05-20",
@@ -74,7 +66,7 @@ describe("form mode time options", () => {
       { label: "傍晚", value: "DUSK", startTime: "17:00", endTime: "19:00" },
       { label: "夜晚", value: "NIGHT", startTime: "19:00", endTime: "23:00" },
       { label: "午夜", value: "LATE_NIGHT", startTime: "23:00", endTime: "06:00" },
-      { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "23:59" },
+      { label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "00:00" },
     ]);
   });
 
@@ -95,11 +87,7 @@ describe("form mode time options", () => {
       },
     ]);
     expect(
-      formatFormModeFuzzySelectionLabel(
-        "2026-05-20",
-        "DUSK",
-        new Date("2026-05-19T01:00:00.000Z"),
-      ),
+      formatFormModeFuzzySelectionLabel("2026-05-20", "DUSK", new Date("2026-05-19T01:00:00.000Z")),
     ).toBe("明天傍晚");
   });
 
@@ -107,7 +95,7 @@ describe("form mode time options", () => {
     expect(buildFormModeFuzzyTimeWindows("2026-05-20", "ALL_DAY")).toEqual([
       {
         startAt: "2026-05-19T16:00:00.000Z",
-        endAt: "2026-05-20T15:59:00.000Z",
+        endAt: "2026-05-20T16:00:00.000Z",
       },
     ]);
     expect(

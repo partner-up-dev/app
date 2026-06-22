@@ -12,14 +12,8 @@ import {
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import {
-  meetingPointConfigSchema,
-  type MeetingPointConfig,
-} from "./meeting-point";
-import {
-  prJoinGateConfigSchema,
-  type PRJoinGateConfig,
-} from "./join-gate";
+import { meetingPointConfigSchema, type MeetingPointConfig } from "./meeting-point";
+import { prJoinGateConfigSchema, type PRJoinGateConfig } from "./join-gate";
 import { users, type UserId } from "./user";
 import {
   feedbackQuestionnaireInstances,
@@ -28,15 +22,12 @@ import {
 import type { TradeOrderId } from "./trade-order";
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const isoDateTimeSchema = z.string().datetime();
-const isoDateOrDateTimeSchema = z.union([isoDateTimeSchema, isoDateSchema]);
+const instantDateTimeSchema = z.string().datetime({ offset: true });
+const naturalLanguageDateOrInstantSchema = z.union([instantDateTimeSchema, isoDateSchema]);
 const partnerSlotIdSchema = z.number().int().positive();
 const weekdayLabelSchema = z.string().trim().min(1).max(32);
 export type WeekdayLabel = z.infer<typeof weekdayLabelSchema>;
-export const coordinatePairSchema = z.tuple([
-  z.number(),
-  z.number(),
-]);
+export const coordinatePairSchema = z.tuple([z.number(), z.number()]);
 export type CoordinatePair = z.infer<typeof coordinatePairSchema>;
 export const prRoutePointSchema = z
   .object({
@@ -63,25 +54,18 @@ export type PRRoute = z.infer<typeof prRouteSchema>;
 
 export const prAllowEditAfterReadySchema = z
   .object({
-    timeWindow: z
-      .tuple([isoDateOrDateTimeSchema, isoDateOrDateTimeSchema])
-      .optional(),
+    timeWindow: z.tuple([instantDateTimeSchema, instantDateTimeSchema]).optional(),
     location: z.literal(true).optional(),
     route: z.literal(true).optional(),
   })
   .strict();
-export type PRAllowEditAfterReady = z.infer<
-  typeof prAllowEditAfterReadySchema
->;
+export type PRAllowEditAfterReady = z.infer<typeof prAllowEditAfterReadySchema>;
 
 // Partner request fields (from LLM / client edits)
 export const partnerRequestFieldsObjectSchema = z.object({
   title: z.string().optional(),
   type: z.string(),
-  time: z.tuple([
-    isoDateOrDateTimeSchema.nullable(),
-    isoDateOrDateTimeSchema.nullable(),
-  ]),
+  time: z.tuple([instantDateTimeSchema.nullable(), instantDateTimeSchema.nullable()]),
   location: z.string().nullable(),
   route: prRouteSchema.nullable().default(null),
   minPartners: z.number().int().nonnegative().nullable(),
@@ -93,35 +77,49 @@ export const partnerRequestFieldsObjectSchema = z.object({
   meetingPoint: meetingPointConfigSchema.nullable().optional(),
 });
 
-export const partnerRequestFieldsSchema = partnerRequestFieldsObjectSchema.superRefine((fields, ctx) => {
-  const hasLocation = (fields.location?.trim() ?? "").length > 0;
-  if (hasLocation && fields.route !== null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "PartnerRequest must use either location or route",
-      path: ["route"],
-    });
-  }
-});
+export const partnerRequestFieldsSchema = partnerRequestFieldsObjectSchema.superRefine(
+  (fields, ctx) => {
+    const hasLocation = (fields.location?.trim() ?? "").length > 0;
+    if (hasLocation && fields.route !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "PartnerRequest must use either location or route",
+        path: ["route"],
+      });
+    }
+  },
+);
 
 export type PartnerRequestFields = z.infer<typeof partnerRequestFieldsSchema>;
 
+export const naturalLanguagePartnerRequestFieldsObjectSchema =
+  partnerRequestFieldsObjectSchema.extend({
+    time: z.tuple([
+      naturalLanguageDateOrInstantSchema.nullable(),
+      naturalLanguageDateOrInstantSchema.nullable(),
+    ]),
+  });
+
+export const naturalLanguagePartnerRequestFieldsSchema =
+  naturalLanguagePartnerRequestFieldsObjectSchema.superRefine((fields, ctx) => {
+    const hasLocation = (fields.location?.trim() ?? "").length > 0;
+    if (hasLocation && fields.route !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "PartnerRequest must use either location or route",
+        path: ["route"],
+      });
+    }
+  });
+
+export type NaturalLanguagePartnerRequestFields = z.infer<
+  typeof naturalLanguagePartnerRequestFieldsSchema
+>;
+
 // Status enum
-export const prStatusSchema = z.enum([
-  "DRAFT",
-  "OPEN",
-  "READY",
-  "ACTIVE",
-  "CLOSED",
-  "EXPIRED",
-]);
+export const prStatusSchema = z.enum(["DRAFT", "OPEN", "READY", "ACTIVE", "CLOSED", "EXPIRED"]);
 export type PRStatus = z.infer<typeof prStatusSchema>;
-export const prStatusManualSchema = z.enum([
-  "OPEN",
-  "READY",
-  "ACTIVE",
-  "CLOSED",
-]);
+export const prStatusManualSchema = z.enum(["OPEN", "READY", "ACTIVE", "CLOSED"]);
 export type PRStatusManual = z.infer<typeof prStatusManualSchema>;
 
 export const visibilityStatusSchema = z.enum(["VISIBLE", "HIDDEN"]);
@@ -130,22 +128,17 @@ export type VisibilityStatus = z.infer<typeof visibilityStatusSchema>;
 export const paymentModelSchema = z.enum(["A", "C"]);
 export type PaymentModel = z.infer<typeof paymentModelSchema>;
 
-export const economicPolicyScopeSchema = z.enum([
-  "EVENT_DEFAULT",
-  "BATCH_OVERRIDE",
-]);
+export const economicPolicyScopeSchema = z.enum(["EVENT_DEFAULT", "BATCH_OVERRIDE"]);
 export type EconomicPolicyScope = z.infer<typeof economicPolicyScopeSchema>;
 
 export const createPRStructuredStatusSchema = z.literal("DRAFT");
-export type CreatePRStructuredStatus = z.infer<
-  typeof createPRStructuredStatusSchema
->;
+export type CreatePRStructuredStatus = z.infer<typeof createPRStructuredStatusSchema>;
 
 export const createStructuredPRSchema = partnerRequestFieldsSchema;
 
 export const createNaturalLanguagePRSchema = z.object({
   rawText: z.string().min(1).max(2000),
-  nowIso: z.string().datetime(),
+  nowIso: instantDateTimeSchema,
   nowWeekday: weekdayLabelSchema.nullable().optional(),
 });
 
@@ -191,14 +184,9 @@ export const partnerRequests = pgTable("partner_requests", {
   maxPartners: integer("max_partners"),
   budget: text("budget"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  preferences: text("preferences")
-    .array()
-    .notNull()
-    .default(sql`ARRAY[]::text[]`),
+  preferences: text("preferences").array().notNull().default(sql`ARRAY[]::text[]`),
   notes: text("notes"),
-  meetingPoint: jsonb("meeting_point")
-    .$type<MeetingPointConfig | null>()
-    .default(null),
+  meetingPoint: jsonb("meeting_point").$type<MeetingPointConfig | null>().default(null),
   allowEditAfterReady: jsonb("allow_edit_after_ready")
     .$type<PRAllowEditAfterReady | null>()
     .default(null),
@@ -206,11 +194,7 @@ export const partnerRequests = pgTable("partner_requests", {
     .$type<PRJoinGateConfig>()
     .notNull()
     .default(sql`'[]'::jsonb`),
-  orders: uuid("orders")
-    .array()
-    .$type<TradeOrderId[]>()
-    .notNull()
-    .default(sql`ARRAY[]::uuid[]`),
+  orders: uuid("orders").array().$type<TradeOrderId[]>().notNull().default(sql`ARRAY[]::uuid[]`),
   feedbackQuestionnaireInstanceId: bigint("feedback_questionnaire_instance_id", {
     mode: "number",
   })
@@ -224,9 +208,7 @@ export const partnerRequests = pgTable("partner_requests", {
   xiaohongshuPoster: jsonb("xiaohongshu_poster")
     .$type<XiaohongshuPosterCache | null>()
     .default(null),
-  wechatThumbnail: jsonb("wechat_thumbnail")
-    .$type<WechatThumbnailCache | null>()
-    .default(null),
+  wechatThumbnail: jsonb("wechat_thumbnail").$type<WechatThumbnailCache | null>().default(null),
 });
 
 // Zod schemas for validation
