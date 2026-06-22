@@ -423,3 +423,47 @@
     slice
   - added `quoteId` to fixed listed items and renamed RideHailing listed item
     kind from `QUOTE` to `CHOICE_CANDIDATE`
+
+## Slice: Ordering Entry Decoupling Planning
+
+- Added standalone plan:
+  `tasks/ride-hailing-ui-fixes/ordering-entry-decoupling-plan.md`.
+- Captured current coupling:
+  - PR Page owns existing-order lookup, Placement ordering-entry resolution,
+    raw `sessionStorage` write, and `/order/new` navigation
+  - Ordering Page and Ordering Support duplicate raw handoff parsing
+  - backend Placement ordering-entry already owns binding/context resolution
+- Captured target direction:
+  - Button Placement or its dedicated composable owns the
+    Placement-to-Ordering entry flow
+  - existing-order lookup, Placement ordering-entry resolution, handoff write,
+    and `/order/new` navigation all move out of PR Page
+  - PR Page may pass `matchingContext` and `prId` to Button Placement
+  - Ordering handoff moves behind a Commerce/Ordering Pinia store
+  - `/order/new` keeps its route path/name but the page becomes generic
+    `OrderingPage`
+  - PR Page only mounts Button Placement and passes matching context
+
+## Slice: Ordering Entry Decoupling Implementation
+
+- Frontend:
+  - added `useOrderingHandoffStore` for `OrderingEntryPayload`
+  - added payload normalization/parsing helpers beside the ordering-entry model
+  - moved existing-order lookup, Placement ordering-entry resolution, handoff
+    write, and navigation into `usePlacementOrderingEntryFlow`
+  - updated `ButtonPlacement` to call the entry-flow composable directly and
+    accept `prId`
+  - removed Commerce/Ordering entry-flow logic from `PRPage`
+  - renamed `OrderingFromPlacementPage.vue` to `OrderingPage.vue`
+  - updated `/order/new` lazy import without changing route path/name
+  - updated `OrderingSupportPage` to read ordering entry handoff from the same
+    store
+- Durable docs:
+  - updated ecommerce contract to assign entry-flow ownership to Button
+    Placement and the Commerce Ordering handoff store
+- Verification:
+  - `pnpm check:type:frontend`
+  - `pnpm exec biome check apps/frontend/src/app/router.ts apps/frontend/src/pages/PRPage.vue apps/frontend/src/pages/OrderingPage.vue apps/frontend/src/pages/OrderingSupportPage.vue apps/frontend/src/domains/commerce/model/ordering-entry-storage.ts apps/frontend/src/domains/commerce/queries/useCommerce.ts apps/frontend/src/domains/commerce/ui/ButtonPlacement.vue apps/frontend/src/domains/commerce/use-cases/useOrderingHandoffStore.ts apps/frontend/src/domains/commerce/use-cases/usePlacementOrderingEntryFlow.ts docs/20-product-tdd/ecommerce-contracts.md tasks/ride-hailing-ui-fixes/control.md tasks/ride-hailing-ui-fixes/discussion-log.md tasks/ride-hailing-ui-fixes/change-log.md tasks/ride-hailing-ui-fixes/ordering-entry-decoupling-plan.md`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `git diff --check`

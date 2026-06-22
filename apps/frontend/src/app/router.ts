@@ -1,67 +1,47 @@
-import {
-  createRouter,
-  createWebHistory,
-  type RouteRecordRaw,
-} from "vue-router";
-import { trackEvent } from "@/shared/telemetry/track";
-import { captureSpmAttributionFromUrl } from "@/shared/telemetry/spm-attribution";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { getStoredAdminHasAnyRole } from "@/domains/admin/model/admin-session-storage";
+import { captureSpmAttributionFromUrl } from "@/shared/telemetry/spm-attribution";
+import { trackEvent } from "@/shared/telemetry/track";
 import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 
 const HomePage = () => import("@/pages/HomePage.vue");
 const MePage = () => import("@/pages/MePage.vue");
-const LocationApplicationPage = () =>
-  import("@/pages/LocationApplicationPage.vue");
+const LocationApplicationPage = () => import("@/pages/LocationApplicationPage.vue");
 const LocationPickerPage = () => import("@/pages/LocationPickerPage.vue");
 const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
-const StudySprintPomodoroPage = () =>
-  import("@/pages/StudySprintPomodoroPage.vue");
+const StudySprintPomodoroPage = () => import("@/pages/StudySprintPomodoroPage.vue");
 const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
-const OrderingFromPlacementPage = () =>
-  import("@/pages/OrderingFromPlacementPage.vue");
+const OrderingPage = () => import("@/pages/OrderingPage.vue");
 const OrderingSupportPage = () => import("@/pages/OrderingSupportPage.vue");
-const CommerceOrderDetailPage = () =>
-  import("@/pages/CommerceOrderDetailPage.vue");
-const CommerceBillDetailPage = () =>
-  import("@/pages/CommerceBillDetailPage.vue");
-const PaymentCheckoutPage = () =>
-  import("@/pages/PaymentCheckoutPage.vue");
+const CommerceOrderDetailPage = () => import("@/pages/CommerceOrderDetailPage.vue");
+const CommerceBillDetailPage = () => import("@/pages/CommerceBillDetailPage.vue");
+const PaymentCheckoutPage = () => import("@/pages/PaymentCheckoutPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
 const BIEntryPage = () => import("@/pages/BIEntryPage.vue");
-const AdminAnchorEventPage = () =>
-  import("@/pages/AdminAnchorEventPage.vue");
+const AdminAnchorEventPage = () => import("@/pages/AdminAnchorEventPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
-const AdminCommerceProductPage = () =>
-  import("@/pages/AdminCommerceProductPage.vue");
-const AdminCommerceOfferPage = () =>
-  import("@/pages/AdminCommerceOfferPage.vue");
-const AdminCommercePlacementPage = () =>
-  import("@/pages/AdminCommercePlacementPage.vue");
-const AdminCommerceOrderBillPage = () =>
-  import("@/pages/AdminCommerceOrderBillPage.vue");
-const AdminCommerceFulfillmentPage = () =>
-  import("@/pages/AdminCommerceFulfillmentPage.vue");
-const AdminPaymentPage = () =>
-  import("@/pages/AdminPaymentPage.vue");
-const AdminRideHailingPage = () =>
-  import("@/pages/AdminRideHailingPage.vue");
-const AdminFeedbackQuestionnairesPage = () =>
-  import("@/pages/AdminFeedbackQuestionnairesPage.vue");
+const AdminCommerceProductPage = () => import("@/pages/AdminCommerceProductPage.vue");
+const AdminCommerceOfferPage = () => import("@/pages/AdminCommerceOfferPage.vue");
+const AdminCommercePlacementPage = () => import("@/pages/AdminCommercePlacementPage.vue");
+const AdminCommerceOrderBillPage = () => import("@/pages/AdminCommerceOrderBillPage.vue");
+const AdminCommerceFulfillmentPage = () => import("@/pages/AdminCommerceFulfillmentPage.vue");
+const AdminPaymentPage = () => import("@/pages/AdminPaymentPage.vue");
+const AdminRideHailingPage = () => import("@/pages/AdminRideHailingPage.vue");
+const AdminFeedbackQuestionnairesPage = () => import("@/pages/AdminFeedbackQuestionnairesPage.vue");
 const ContactAuthorPage = () => import("@/pages/ContactAuthorPage.vue");
 const ContactSupportPage = () => import("@/pages/ContactSupportPage.vue");
 const AboutPage = () => import("@/pages/AboutPage.vue");
 const EventPlazaPage = () => import("@/pages/EventPlazaPage.vue");
 const EventPRSearchPage = () => import("@/pages/EventPRSearchPage.vue");
 const AnchorEventLandingPage = () => import("@/pages/AnchorEventLandingPage.vue");
-const WeChatOAuthCallbackPage = () =>
-  import("@/pages/WeChatOAuthCallbackPage.vue");
+const WeChatOAuthCallbackPage = () => import("@/pages/WeChatOAuthCallbackPage.vue");
 
 const routes: RouteRecordRaw[] = [
   {
@@ -150,7 +130,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/order/new",
     name: "order-new",
-    component: OrderingFromPlacementPage,
+    component: OrderingPage,
     meta: {
       wechatSharePolicy: "skip",
     },

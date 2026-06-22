@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { PuButton, PuDialog, PuInlineNotice } from "@partner-up-dev/design-web";
+import { storeToRefs } from "pinia";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -112,16 +113,14 @@ import type {
   OrderingContentOutput,
   OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
-import {
-  ORDERING_ENTRY_STORAGE_KEY,
-  type OrderingEntryPayload,
-} from "@/domains/commerce/model/ordering-entry-storage";
+import type { OrderingEntryPayload } from "@/domains/commerce/model/ordering-entry-storage";
 import { type CreateOrderInput, useCreateOrder } from "@/domains/commerce/queries/useCommerce";
 import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
 import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
+import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
 type OrderingDialogKind = "blocked";
@@ -140,33 +139,8 @@ type OrderingActionProblem = {
 
 const { t } = useI18n();
 const router = useRouter();
-
-const readOrderingEntry = (): OrderingEntryPayload | null => {
-  const raw = sessionStorage.getItem(ORDERING_ENTRY_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<OrderingEntryPayload>;
-    if (typeof parsed.source?.offerId !== "number") return null;
-    if (!parsed.offerDetail) return null;
-    return {
-      source: {
-        offerId: parsed.source.offerId,
-      },
-      offerDetail: parsed.offerDetail,
-      prId: typeof parsed.prId === "number" ? parsed.prId : undefined,
-      bindings:
-        typeof parsed.bindings === "object" && parsed.bindings !== null ? parsed.bindings : {},
-      bindingLocks:
-        typeof parsed.bindingLocks === "object" && parsed.bindingLocks !== null
-          ? parsed.bindingLocks
-          : {},
-    };
-  } catch {
-    return null;
-  }
-};
-
-const orderingEntry = ref<OrderingEntryPayload | null>(readOrderingEntry());
+const orderingHandoff = useOrderingHandoffStore();
+const { orderingEntry } = storeToRefs(orderingHandoff);
 const missingInput = computed(() => orderingEntry.value === null);
 
 const createOrderMutation = useCreateOrder();

@@ -893,3 +893,50 @@
   show skeletons only during initial listing load when there are no visible
   quote options. During background refetch, keep the existing cards visible to
   avoid selection/list flicker.
+
+## Explore: Ordering Entry Decoupling
+
+- Human observation:
+  `OrderingFromPlacement` is a product of over-coupling Order and Placement.
+  Placement should resolve the context needed by Ordering, then hand off through
+  Pinia / Bindings-like intermediate state instead of leaving the Ordering route
+  named and wired as Placement-specific.
+- Finding:
+  `/order/new` already behaves as a generic Ordering route, but the route
+  component is still named `OrderingFromPlacementPage.vue`.
+- Finding:
+  `OrderingFromPlacementPage.vue` itself does not call Placement APIs. It reads
+  a serialized `OrderingEntryPayload` from raw `sessionStorage`.
+- Finding:
+  `PRPage.vue` is the real frontend coupling point. It receives
+  `placement-click` from `ButtonPlacement`, then checks existing PR orders,
+  resolves Placement ordering entry, writes the handoff payload to
+  `sessionStorage`, and navigates to `/order/new`.
+- Finding:
+  backend `resolvePlacementOrderingEntry` is already a Placement boundary
+  operation and already resolves binding rules, PR-derived route/time/participant
+  enrichment, and Offer detail.
+- Finding:
+  `OrderingSupportPage.vue` duplicates raw ordering-entry storage parsing.
+- Direction:
+  keep backend Placement ordering-entry as the binding-resolution authority, but
+  move frontend click orchestration into Button Placement or a composable called
+  only by Button Placement. Add a Commerce/Ordering-owned Pinia handoff store
+  and rename the page to generic `OrderingPage`.
+- Artifact:
+  added `ordering-entry-decoupling-plan.md` with topology, target model,
+  candidate Impact Handshake, invariants, and verification.
+- Human decision:
+  the full ButtonPlacement click flow belongs in ButtonPlacement or a dedicated
+  `usePlacement...` composable, not PR Page. This includes existing-order
+  lookup, Placement ordering-entry resolution, Ordering handoff write, and
+  `/order/new` navigation. PR Page may pass `matchingContext` and `prId`.
+- Implementation:
+  added a Commerce/Ordering Pinia handoff store for `OrderingEntryPayload`,
+  moved Button Placement click orchestration into
+  `usePlacementOrderingEntryFlow`, and renamed the route component to generic
+  `OrderingPage.vue` while keeping `/order/new` stable.
+- Boundary correction:
+  docs now phrase `prId` as not being a separate Placement matching parameter;
+  PR-derived facts may still be present inside `matchingContext`, and PR Page may
+  pass explicit `prId` to Button Placement for existing-order lookup.

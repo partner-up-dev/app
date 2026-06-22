@@ -164,7 +164,7 @@
           <ButtonPlacement
             v-if="canMountButtonPlacement && placementMatchingContext"
             :matching-context="placementMatchingContext"
-            @placement-click="handlePlacementClick"
+            :pr-id="prDetail.id"
           />
         </div>
 
@@ -189,12 +189,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, isRef, nextTick, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+  PuModal,
+  PuPageHeader,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
+import { computed, isRef, nextTick, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute, useRouter } from "vue-router";
+import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
+import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
+import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
+import { resolvePRStatusTagText, resolvePRStatusTagTone } from "@/domains/pr/model/pr-status-tag";
+import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
+import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
+import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
 import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
 import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "@/domains/pr/ui/sections/PRConfirmationAction.vue";
@@ -208,48 +224,21 @@ import PRPairingCodeAction from "@/domains/pr/ui/sections/PRPairingCodeAction.vu
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRStudySprintPomodoroAction from "@/domains/pr/ui/sections/PRStudySprintPomodoroAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
-import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
-import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
-import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
-import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
-import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
-import {
-  resolvePRStatusTagText,
-  resolvePRStatusTagTone,
-} from "@/domains/pr/model/pr-status-tag";
-import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
-import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
-import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
 import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions";
-import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
-import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
-import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
-import { trackEvent } from "@/shared/telemetry/track";
+import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
 import {
   providePRPendingReplayRegistry,
   usePRPendingWeChatReplay,
 } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
+import { usePRRouteShareDescriptor } from "@/domains/pr/use-cases/usePRRouteShareDescriptor";
+import { usePRShareContext } from "@/domains/pr/use-cases/usePRShareContext";
+import { useRouteShareDescriptorRegistration } from "@/domains/share/use-cases/route-share-controller";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
-import { client } from "@/lib/rpc";
-import {
-  resolvePlacementOrderingEntry,
-  type PlacementInstanceProjection,
-} from "@/domains/commerce/queries/useCommerce";
-import { ORDERING_ENTRY_STORAGE_KEY } from "@/domains/commerce/model/ordering-entry-storage";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import {
-  PuButton,
-  PuInlineNotice,
-  PuLoadingState,
-  PuModal,
-  PuPageHeader,
-  PuPageScaffold,
-  PuTag,
-} from "@partner-up-dev/design-web";
+import { trackEvent } from "@/shared/telemetry/track";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 
-type CreatorSecondaryActionType =
-  | "CREATOR_EDIT_CONTENT"
-  | "CREATOR_MODIFY_STATUS";
+type CreatorSecondaryActionType = "CREATOR_EDIT_CONTENT" | "CREATOR_MODIFY_STATUS";
 
 const route = useRoute();
 const router = useRouter();
@@ -260,17 +249,12 @@ const prDetail = computed(() => data.value);
 const pendingReplayRegistry = providePRPendingReplayRegistry();
 const factsCardTargetRef = ref<HTMLElement | null>(null);
 const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
-const updateStatusFormRef = ref<InstanceType<typeof UpdatePRStatusForm> | null>(
-  null,
-);
+const updateStatusFormRef = ref<InstanceType<typeof UpdatePRStatusForm> | null>(null);
 const showEditContentModal = ref(false);
 const showModifyStatusModal = ref(false);
 const matchedPRHandoff = useMatchedPRHandoff();
 const prReadyForPendingReplay = computed(
-  () =>
-    id.value !== null &&
-    prDetail.value !== undefined &&
-    prDetail.value !== null,
+  () => id.value !== null && prDetail.value !== undefined && prDetail.value !== null,
 );
 
 const prDisplayTitle = computed(() => {
@@ -283,12 +267,8 @@ const prDisplayStatus = computed(() => {
   if (!detail) return "OPEN";
   return resolvePRDisplayStatus(detail.status, detail.partnerSection.capacity);
 });
-const prStatusTagText = computed(() =>
-  resolvePRStatusTagText(prDisplayStatus.value, t),
-);
-const prStatusTagTone = computed(() =>
-  resolvePRStatusTagTone(prDisplayStatus.value),
-);
+const prStatusTagText = computed(() => resolvePRStatusTagText(prDisplayStatus.value, t));
+const prStatusTagTone = computed(() => resolvePRStatusTagTone(prDisplayStatus.value));
 const updateStatusInitialStatus = computed<PRStatusManual>(() => {
   const status = prDetail.value?.status;
   if (status === "READY" || status === "ACTIVE" || status === "CLOSED") {
@@ -301,13 +281,8 @@ const supportsEventContextFeatures = computed(
 );
 const routeEventId = computed(() => {
   const routeEventIdRaw = route.query.fromEvent;
-  const routeEventId =
-    typeof routeEventIdRaw === "string" ? Number(routeEventIdRaw) : null;
-  if (
-    routeEventId !== null &&
-    Number.isFinite(routeEventId) &&
-    routeEventId > 0
-  ) {
+  const routeEventId = typeof routeEventIdRaw === "string" ? Number(routeEventIdRaw) : null;
+  if (routeEventId !== null && Number.isFinite(routeEventId) && routeEventId > 0) {
     return routeEventId;
   }
   return null;
@@ -444,9 +419,7 @@ const submitUpdateStatusForm = () => {
   updateStatusFormRef.value?.submitForm();
 };
 
-const handleUpdateStatusSubmit = async (
-  status: PRStatusManual,
-): Promise<void> => {
+const handleUpdateStatusSubmit = async (status: PRStatusManual): Promise<void> => {
   await submitStatusUpdate(status);
   closeModifyStatusModal();
 };
@@ -465,53 +438,7 @@ const handleJoinSuccessClosed = async (): Promise<void> => {
   });
 };
 
-const readJsonOrThrow = async <T,>(response: Response): Promise<T> => {
-  if (!response.ok) {
-    throw new Error("Request failed");
-  }
-  return (await response.json()) as T;
-};
-
-const handlePlacementClick = async (
-  placement: PlacementInstanceProjection,
-): Promise<void> => {
-  const pr = prDetail.value;
-  const matchingContext = placementMatchingContext.value;
-  if (!pr || !matchingContext) return;
-
-  const orderResponse = await client.api.pr[":id"].orders.$get(
-    {
-      param: { id: String(pr.id) },
-      query: {
-        offerId: String(placement.offerId),
-        statusIn: ["INITIATING", "OPEN"],
-      },
-    },
-    { init: { credentials: "include" } },
-  );
-  const orderPayload = await readJsonOrThrow<{
-    orders: Array<{ id: string }>;
-  }>(orderResponse);
-  const existingOrder = orderPayload.orders[0];
-  if (existingOrder) {
-    await router.push({ path: `/orders/${existingOrder.id}` });
-    return;
-  }
-
-  const orderingEntry = await resolvePlacementOrderingEntry({
-    placementInstanceId: placement.id,
-    matchingContext,
-  });
-  sessionStorage.setItem(
-    ORDERING_ENTRY_STORAGE_KEY,
-    JSON.stringify(orderingEntry),
-  );
-  await router.push({ path: "/order/new" });
-};
-
-const shouldHideFactsForHandoff = computed(() =>
-  matchedPRHandoff.shouldHideTargetForPR(id.value),
-);
+const shouldHideFactsForHandoff = computed(() => matchedPRHandoff.shouldHideTargetForPR(id.value));
 
 const registerFactsCardTarget = () => {
   if (id.value === null || !matchedPRHandoff.isActiveForPR(id.value)) {

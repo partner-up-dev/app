@@ -7,6 +7,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 
 type CommerceApi = typeof client.api.commerce;
 type PlacementApi = typeof client.api.placements;
+type PrApi = typeof client.api.pr;
 
 export type PlacementMatchResponse = InferResponseType<PlacementApi["$post"]>;
 export type PlacementInstanceProjection = PlacementMatchResponse["placements"][number];
@@ -14,6 +15,8 @@ export type PlacementInstanceProjection = PlacementMatchResponse["placements"][n
 export type OrderingEntryResponse = InferResponseType<
   PlacementApi[":instanceId"]["ordering-entry"]["$post"]
 >;
+
+export type PrOfferOrderLookupResponse = InferResponseType<PrApi[":id"]["orders"]["$get"]>;
 
 export type OfferListingInput = Parameters<
   CommerceApi["offers"][":offerId"]["listing"]["$post"]
@@ -107,6 +110,24 @@ export const resolvePlacementOrderingEntry = async (input: {
     },
   );
   return readJsonOrThrow<OrderingEntryResponse>(response, "Failed to resolve ordering entry");
+};
+
+export const listPrOrdersForOffer = async (input: {
+  prId: number;
+  offerId: number;
+  statusIn: Array<"INITIATING" | "OPEN">;
+}): Promise<PrOfferOrderLookupResponse> => {
+  const response = await client.api.pr[":id"].orders.$get(
+    {
+      param: { id: String(input.prId) },
+      query: {
+        offerId: String(input.offerId),
+        statusIn: input.statusIn,
+      },
+    },
+    { init: { credentials: "include" } },
+  );
+  return readJsonOrThrow<PrOfferOrderLookupResponse>(response, "Failed to load PR orders");
 };
 
 export const useOfferListing = (

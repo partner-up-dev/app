@@ -146,55 +146,25 @@
 
 <script setup lang="ts">
 import { PuButton, PuModal } from "@partner-up-dev/design-web";
+import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import {
-  ORDERING_ENTRY_STORAGE_KEY,
-  type OrderingEntryPayload,
-} from "@/domains/commerce/model/ordering-entry-storage";
-import {
-  ORDERING_SUPPORT_HANDOFF_STORAGE_KEY,
   isOrderingSupportHandoffPayload,
+  ORDERING_SUPPORT_HANDOFF_STORAGE_KEY,
   type OrderingSupportHandoffPayload,
 } from "@/domains/commerce/model/ordering-support-handoff";
+import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingSupportSummaryCard from "@/domains/commerce/ui/ordering/OrderingSupportSummaryCard.vue";
-import {
-  PUBLIC_CONFIG_KEYS,
-  usePublicConfig,
-} from "@/shared/config/queries/usePublicConfig";
+import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
+import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 
 const { t } = useI18n();
 const router = useRouter();
-
-const readOrderingEntry = (): OrderingEntryPayload | null => {
-  const raw = sessionStorage.getItem(ORDERING_ENTRY_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<OrderingEntryPayload>;
-    if (typeof parsed.source?.offerId !== "number") return null;
-    if (!parsed.offerDetail) return null;
-    return {
-      source: {
-        offerId: parsed.source.offerId,
-      },
-      offerDetail: parsed.offerDetail,
-      prId: typeof parsed.prId === "number" ? parsed.prId : undefined,
-      bindings:
-        typeof parsed.bindings === "object" && parsed.bindings !== null
-          ? parsed.bindings
-          : {},
-      bindingLocks:
-        typeof parsed.bindingLocks === "object" && parsed.bindingLocks !== null
-          ? parsed.bindingLocks
-          : {},
-    };
-  } catch {
-    return null;
-  }
-};
+const orderingHandoff = useOrderingHandoffStore();
+const { orderingEntry } = storeToRefs(orderingHandoff);
 
 const readSupportHandoff = (): OrderingSupportHandoffPayload | null => {
   const raw = sessionStorage.getItem(ORDERING_SUPPORT_HANDOFF_STORAGE_KEY);
@@ -207,13 +177,8 @@ const readSupportHandoff = (): OrderingSupportHandoffPayload | null => {
   }
 };
 
-const orderingEntry = ref<OrderingEntryPayload | null>(readOrderingEntry());
-const supportHandoff = ref<OrderingSupportHandoffPayload | null>(
-  readSupportHandoff(),
-);
-const summaryCardRef = ref<InstanceType<
-  typeof OrderingSupportSummaryCard
-> | null>(null);
+const supportHandoff = ref<OrderingSupportHandoffPayload | null>(readSupportHandoff());
+const summaryCardRef = ref<InstanceType<typeof OrderingSupportSummaryCard> | null>(null);
 const summaryPosterUrl = ref<string | null>(null);
 const summaryPosterGenerating = ref(false);
 const summaryPosterError = ref<string | null>(null);
@@ -268,15 +233,11 @@ const summaryPosterHint = computed(() =>
 );
 
 const backFallbackTo = computed(() =>
-  orderingEntry.value?.prId
-    ? { path: `/pr/${orderingEntry.value.prId}` }
-    : { path: "/" },
+  orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
 
 const pageTitle = computed(() =>
-  supportHandoff.value
-    ? t("ordering.support.pageTitle")
-    : t("ordering.support.recoveryPageTitle"),
+  supportHandoff.value ? t("ordering.support.pageTitle") : t("ordering.support.recoveryPageTitle"),
 );
 
 const recoveryActionLabel = computed(() =>
@@ -295,9 +256,7 @@ const handleRecoveryAction = (): void => {
   void router.push(orderingEntry.value ? { name: "order-new" } : { path: "/" });
 };
 
-const loadHtml2Canvas = async (): Promise<
-  (typeof import("html2canvas"))["default"]
-> => {
+const loadHtml2Canvas = async (): Promise<typeof import("html2canvas")["default"]> => {
   const module = await import("html2canvas");
   return module.default;
 };
@@ -349,9 +308,7 @@ const generateSummaryPoster = async (): Promise<void> => {
     summaryPosterUrl.value = await uploadImage(blob, { purpose: "poster" });
   } catch (error) {
     summaryPosterError.value =
-      error instanceof Error
-        ? error.message
-        : t("ordering.support.posterGenerationFailed");
+      error instanceof Error ? error.message : t("ordering.support.posterGenerationFailed");
   } finally {
     summaryPosterGenerating.value = false;
   }

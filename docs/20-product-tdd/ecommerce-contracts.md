@@ -182,16 +182,20 @@ This means:
 - This task implements only `BUTTON` Placement.
 - Button Placement is rendered inside the PR Page Utility Actions row when the
   PR Page determines the current user is an active participant.
-- PR Page builds `matchingContext` from PR Detail and calls
-  `POST /api/placements?type=BUTTON`.
-- `matchPlacementInstance(type, matchingContext)` is the Placement boundary.
-  Placement does not receive `userId`, `prId`, `contextType`, `slotKey`, or a
-  PR-specific roster.
+- PR Page builds PR-derived `matchingContext` from PR Detail and passes it,
+  together with `prId`, into Button Placement.
+- Button Placement calls `POST /api/placements?type=BUTTON` through its
+  Placement entry flow.
+- `matchPlacementInstance(type, matchingContext)` is the Placement matching
+  boundary. Placement does not receive `userId`, `prId`, `contextType`,
+  `slotKey`, or a PR-specific roster as separate parameters; PR-derived facts
+  are contained only inside `matchingContext`.
 - A Placement Instance contains `offerId` and creative
   `{ ctaLabel, description? }`. It does not contain a navigation target.
-- On click, PR Page checks existing PR-linked orders with explicit status enum
-  values, then either routes to Order Detail or resolves an Ordering entry with
-  `POST /api/placements/:instanceId/ordering-entry` and opens `/order/new`.
+- On click, Button Placement's entry flow checks existing PR-linked orders with
+  explicit status enum values, then either routes to Order Detail or resolves an
+  Ordering entry with `POST /api/placements/:instanceId/ordering-entry`, stores
+  the generic Ordering handoff, and opens `/order/new`.
 - Ordering entry resolution is a Placement boundary operation that calls the
   Offer domain for an `OrderingOfferDetail` projection, resolves bindings, and
   assembles `OrderingEntryPayload`.
@@ -254,7 +258,8 @@ Pricing ownership:
 
 ## Ordering Command Contract
 
-- `/order/new` receives transient `OrderingEntryPayload` from the entry surface:
+- `/order/new` receives transient `OrderingEntryPayload` from the Commerce
+  Ordering handoff store:
   `{ source: { offerId }, offerDetail, prId?, bindings }`.
 - `source.offerId` is the commercial source reference and the stable entry for
   dynamic listing/quote issuance.

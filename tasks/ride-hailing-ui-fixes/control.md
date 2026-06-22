@@ -18,13 +18,12 @@ Hypothesis:
 
 ## Classification
 
-- Primary route: `Reality`
-- Active mode: `Execute` for Offer Listing / quote identity implementation
-  verification and cleanup
+- Primary route: `Constraint`
+- Active mode: `Explore` for Ordering entry decoupling
 - Current collaboration state: choice-set backend/domain foundation, Ordering
-  UI primitive/control, and SKU Card layout remediation segments committed;
-  current Offer Listing / quote identity slice is implemented locally and not
-  committed
+  UI primitive/control, SKU Card layout remediation, and Offer Listing / quote
+  identity segments committed; current slice is Ordering entry decoupling
+  exploration with no production-code mutation yet
 
 ## Inherited Effective Truth
 
@@ -37,7 +36,9 @@ Hypothesis:
 - RideHailing candidate options are currently catalog-seeded, then evaluated by
   provider estimate. Provider-authored option discovery is a separate contract
   decision and is not part of ordinary UI fixes.
-- `OrderingFromPlacementPage.vue` is the shared ordering shell.
+- `OrderingFromPlacementPage.vue` is the current shared ordering route
+  entrypoint, but its name is now a known coupling smell because `/order/new`
+  is generic Ordering.
 - `RideHailingOrderingContent.vue` owns the RideHailing ordering content.
 - `RideHailingSkuCard.vue` owns RideHailing vehicle card display.
 - `CommerceOrderDetailPage.vue` currently owns both Rental and RideHailing order
@@ -108,8 +109,9 @@ Choose the narrowest sufficient proof per approved slice:
 - Committed slice: choice-set backend/domain foundation, Ordering UI
   primitive/control, FloatPanel migration, and SKU Card layout remediation
   (`42eb1a61`).
-- Uncommitted slice: Offer-owned Listing and product-type-independent quote
-  identity implemented:
+- Committed slice: Offer-owned Listing and product-type-independent quote
+  identity
+  (`499291ea`):
   - added `POST /api/commerce/offers/:offerId/listing`
   - added persisted `commerce_quotes`
   - added Quote-domain resolver for quote existence, expiry, active
@@ -188,6 +190,34 @@ Choose the narrowest sufficient proof per approved slice:
     all-unavailable no-create state
   - backend Quote-domain scenario now covers inactive Offer/SKU quote validity
     and invalid `CHOICE_SET` listing-session mixing
+- Current slice exploration: Ordering entry decoupling
+  - observed coupling point: `PRPage.vue` owns Button Placement click
+    orchestration, existing PR order lookup, Placement ordering-entry
+    resolution, raw handoff storage write, and `/order/new` navigation
+  - observed non-coupling point: `OrderingFromPlacementPage.vue` itself only
+    reads a handoff payload; it does not call Placement APIs
+  - observed duplication: `OrderingSupportPage.vue` repeats raw
+    `sessionStorage` parsing for `OrderingEntryPayload`
+  - target direction: Button Placement or a composable called only by Button
+    Placement owns the Placement-to-Ordering entry flow, and Ordering consumes a
+    Commerce/Ordering Pinia handoff store
+  - human decision: existing-order lookup, Placement ordering-entry resolution,
+    handoff write, and `/order/new` navigation should all move into
+    ButtonPlacement / `usePlacement...`; PR Page may pass `matchingContext` and
+    `prId`
+  - implementation status: production code changed locally; verification in
+    complete
+  - implementation shape: `PRPage` now passes only `matchingContext` and `prId`;
+    `ButtonPlacement` calls `usePlacementOrderingEntryFlow`; `OrderingPage`
+    reads `useOrderingHandoffStore`
+  - verified:
+    - `pnpm check:type:frontend`
+    - `pnpm exec biome check` on the changed frontend/doc/task files
+    - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+    - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    - `git diff --check`
+  - planning artifact:
+    `tasks/ride-hailing-ui-fixes/ordering-entry-decoupling-plan.md`
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.
