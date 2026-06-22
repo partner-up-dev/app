@@ -21,6 +21,7 @@ export type TencentMapOptions = {
   zoom?: number;
   minZoom?: number;
   maxZoom?: number;
+  mapStyleId?: string;
   viewMode?: "2D" | "3D";
   showControl?: boolean;
   draggable?: boolean;

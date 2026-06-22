@@ -28,6 +28,7 @@ const DEFAULT_CENTER: MapCoordinate = {
 };
 const DEFAULT_ZOOM = 12;
 const SINGLE_POINT_ZOOM = 15;
+const TENCENT_MAP_STYLE_ID = "style1";
 
 const MARKER_COLORS: Record<MapGeometryTone | "active", string> = {
   primary: "#1D63ED",
@@ -332,6 +333,7 @@ export const createTencentLBSMapProvider = async ({
   const mapOptions: TencentMapOptions = {
     center: toTencentLatLng(sdk, center),
     zoom,
+    mapStyleId: TENCENT_MAP_STYLE_ID,
     viewMode: "2D",
     showControl: showDefaultControls,
     draggable: interactive,
