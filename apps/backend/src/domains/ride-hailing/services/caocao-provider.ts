@@ -11,6 +11,7 @@ import type {
   RideHailingProviderConfirmFeeInput,
   RideHailingProviderCreateRideInput,
   RideHailingProviderEstimateInput,
+  RideHailingProviderVehicleQuote,
   RideHailingProviderPort,
 } from "../model";
 
@@ -20,19 +21,15 @@ type CaocaoParamInput = Record<string, CaocaoParamValue>;
 const EXTERNAL_ORDER_ID_PREFIX = "rh";
 const UUID_BASE36_ALPHABET = /^[0-9a-z]+$/;
 const CAOCAO_ORDER_STATUS_CALLBACK_EVENTS: ReadonlySet<number> = new Set([
-  1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, 40,
-  41, 42, 43, 44, 45, 46, 47, 48,
+  1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, 40, 41, 42, 43, 44, 45, 46, 47,
+  48,
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const readRequiredStringField = (value: unknown, key: string): string => {
-  if (
-    isRecord(value) &&
-    typeof value[key] === "string" &&
-    value[key].length > 0
-  ) {
+  if (isRecord(value) && typeof value[key] === "string" && value[key].length > 0) {
     return value[key];
   }
   if (isRecord(value) && typeof value[key] === "number") {
@@ -42,14 +39,33 @@ const readRequiredStringField = (value: unknown, key: string): string => {
 };
 
 const readRequiredNumberField = (value: unknown, key: string): number => {
-  if (
-    isRecord(value) &&
-    typeof value[key] === "number" &&
-    Number.isFinite(value[key])
-  ) {
+  if (isRecord(value) && typeof value[key] === "number" && Number.isFinite(value[key])) {
     return value[key];
   }
   throw new Error(`Expected number field ${key}`);
+};
+
+const readOptionalNumberField = (value: unknown, keys: string[]): number | null => {
+  if (!isRecord(value)) return null;
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+};
+
+const readOptionalStringField = (value: unknown, keys: string[]): string | null => {
+  if (!isRecord(value)) return null;
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "string" && candidate.trim().length > 0) return candidate;
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return String(candidate);
+  }
+  return null;
 };
 
 const normalizeCaocaoParams = (params: CaocaoParamInput): CaocaoSignedParams => {
@@ -80,10 +96,7 @@ export function createCaocaoSignature(input: {
 const signaturesMatch = (left: string, right: string): boolean => {
   const leftBuffer = Buffer.from(left, "utf8");
   const rightBuffer = Buffer.from(right, "utf8");
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 };
 
 export function buildCaocaoSignedParams(input: {
@@ -106,9 +119,7 @@ export function buildCaocaoSignedParams(input: {
   };
 }
 
-export const serializeCaocaoFormBody = (
-  params: CaocaoSignedParams,
-): URLSearchParams => {
+export const serializeCaocaoFormBody = (params: CaocaoSignedParams): URLSearchParams => {
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     body.set(key, value);
@@ -150,15 +161,12 @@ export function decodeCaocaoExternalOrderId(externalOrderId: string): string | n
 const buildEndpointUrl = (baseUrl: string, path: string): string =>
   `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 
-const parseCaocaoResponseBody = <TData>(
-  body: unknown,
-): CaocaoRawResponse<TData> => {
+const parseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData> => {
   if (!isRecord(body)) {
     throw new Error("Caocao response must be a JSON object");
   }
   const code = readRequiredNumberField(body, "code");
-  const success =
-    typeof body.success === "boolean" ? body.success : null;
+  const success = typeof body.success === "boolean" ? body.success : null;
   const msg = typeof body.msg === "string" ? body.msg : null;
 
   return {
@@ -169,9 +177,7 @@ const parseCaocaoResponseBody = <TData>(
   };
 };
 
-const assertCaocaoSuccess = <TData>(
-  response: CaocaoRawResponse<TData>,
-): TData => {
+const assertCaocaoSuccess = <TData>(response: CaocaoRawResponse<TData>): TData => {
   if (response.code === 200 && response.success) {
     return response.data as TData;
   }
@@ -193,14 +199,9 @@ const assertCaocaoSuccess = <TData>(
   });
 };
 
-const parseCaocaoCallbackEvent = (
-  value: string,
-): CaocaoOrderStatusCallbackEvent => {
+const parseCaocaoCallbackEvent = (value: string): CaocaoOrderStatusCallbackEvent => {
   const parsed = Number(value);
-  if (
-    !Number.isInteger(parsed) ||
-    !CAOCAO_ORDER_STATUS_CALLBACK_EVENTS.has(parsed)
-  ) {
+  if (!Number.isInteger(parsed) || !CAOCAO_ORDER_STATUS_CALLBACK_EVENTS.has(parsed)) {
     throw new Error("Caocao callback event is unsupported");
   }
   return parsed as CaocaoOrderStatusCallbackEvent;
@@ -231,10 +232,12 @@ export function resolveCaocaoOrderStatusCallbackUrl(
 export class CaocaoProviderAdapter implements RideHailingProviderPort {
   private readonly config: CaocaoProviderInstanceConfig;
 
-  constructor(private readonly input: {
-    providerInstance: RideHailingProviderInstance;
-    fetchImpl?: typeof fetch;
-  }) {
+  constructor(
+    private readonly input: {
+      providerInstance: RideHailingProviderInstance;
+      fetchImpl?: typeof fetch;
+    },
+  ) {
     if (input.providerInstance.providerType !== "CAOCAO") {
       throw new Error("Caocao adapter requires a CAOCAO provider instance");
     }
@@ -252,8 +255,36 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     return decodeCaocaoExternalOrderId(externalOrderId);
   }
 
-  async estimate(input: RideHailingProviderEstimateInput): Promise<unknown> {
-    return this.request("GET", "/common/estimatePriceWithDetail", input.params);
+  async estimate(
+    input: RideHailingProviderEstimateInput,
+  ): Promise<RideHailingProviderVehicleQuote> {
+    const data = await this.request<Record<string, unknown>>(
+      "GET",
+      "/common/estimatePriceWithDetail",
+      input.params,
+    );
+    const providerVehicleTypeCode =
+      readOptionalStringField(data, ["carType", "car_type", "vehicle_type"]) ??
+      (typeof input.params.car_type === "string" ? input.params.car_type : null) ??
+      (typeof input.params.carType === "string" ? input.params.carType : null) ??
+      "UNKNOWN";
+    return {
+      providerVehicleTypeCode,
+      providerVehicleTypeName:
+        readOptionalStringField(data, ["carTypeName", "car_type_name"]) ?? providerVehicleTypeCode,
+      estimateAmountFen:
+        readOptionalNumberField(data, [
+          "estimateAmountFen",
+          "estimatePriceFen",
+          "estimate_price",
+          "price",
+        ]) ?? 0,
+      distanceMeters: readOptionalNumberField(data, ["distanceMeters", "distance"]),
+      durationSeconds: readOptionalNumberField(data, ["durationSeconds", "duration"]),
+      providerQuoteId: readOptionalStringField(data, ["price_token", "quoteId", "quote_id"]),
+      providerQuoteExpiresAt: readOptionalStringField(data, ["quoteExpiresAt", "quote_expires_at"]),
+      providerSnapshot: data,
+    };
   }
 
   async createRide(input: RideHailingProviderCreateRideInput): Promise<{
@@ -262,14 +293,10 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     providerSnapshot: unknown;
   }> {
     const externalOrderId = this.buildExternalOrderId(input.orderId);
-    const data = await this.request<Record<string, unknown>>(
-      "POST",
-      "/common/orderCarV2",
-      {
-        ...input.params,
-        ext_order_id: externalOrderId,
-      },
-    );
+    const data = await this.request<Record<string, unknown>>("POST", "/common/orderCarV2", {
+      ...input.params,
+      ext_order_id: externalOrderId,
+    });
     return {
       providerOrderId: readRequiredStringField(data, "orderNo"),
       externalOrderId,
@@ -288,16 +315,12 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     cancelFeeFen: number;
     providerSnapshot: unknown;
   }> {
-    const data = await this.request<Record<string, unknown>>(
-      "POST",
-      "/common/cancelOrderV3",
-      {
-        order_id: input.providerOrderId,
-        cancel_code: input.cancelCode,
-        cancel_reason: input.cancelReason,
-        who_cancel: input.whoCancel,
-      },
-    );
+    const data = await this.request<Record<string, unknown>>("POST", "/common/cancelOrderV3", {
+      order_id: input.providerOrderId,
+      cancel_code: input.cancelCode,
+      cancel_reason: input.cancelReason,
+      who_cancel: input.whoCancel,
+    });
     return {
       providerOrderId: readRequiredStringField(data, "orderNo"),
       cancelFeeFen: readRequiredNumberField(data, "cancelFee"),
@@ -310,13 +333,9 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     cancelFeeFen: number;
     providerSnapshot: unknown;
   }> {
-    const data = await this.request<Record<string, unknown>>(
-      "GET",
-      "/common/queryCancelFee",
-      {
-        order_no: input.providerOrderId,
-      },
-    );
+    const data = await this.request<Record<string, unknown>>("GET", "/common/queryCancelFee", {
+      order_no: input.providerOrderId,
+    });
     return {
       providerOrderId: readRequiredStringField(data, "orderNo"),
       cancelFeeFen: readRequiredNumberField(data, "cancelFee"),
@@ -332,9 +351,7 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     });
   }
 
-  parseOrderStatusCallback(
-    form: Record<string, string>,
-  ): CaocaoOrderStatusCallback {
+  parseOrderStatusCallback(form: Record<string, string>): CaocaoOrderStatusCallback {
     const callbackSign = form.sign;
     if (!callbackSign) {
       throw new Error("Caocao callback signature is missing");
@@ -389,10 +406,7 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       signKey: this.config.signKey,
     });
     const fetchImpl = this.input.fetchImpl ?? fetch;
-    const endpointUrl = buildEndpointUrl(
-      this.config.endpointBaseUrl,
-      endpointPath,
-    );
+    const endpointUrl = buildEndpointUrl(this.config.endpointBaseUrl, endpointPath);
     const response =
       method === "GET"
         ? await fetchImpl(`${endpointUrl}?${serializeCaocaoFormBody(signedParams)}`)
@@ -410,8 +424,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       });
     }
 
-    return assertCaocaoSuccess(
-      parseCaocaoResponseBody<TData>(await response.json()),
-    );
+    return assertCaocaoSuccess(parseCaocaoResponseBody<TData>(await response.json()));
   }
 }

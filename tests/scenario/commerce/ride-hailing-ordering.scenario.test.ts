@@ -10,7 +10,9 @@ import {
 } from "../../../apps/backend/src/domains/merchandising";
 import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
 import { registerRideHailingProviderInstance } from "../../../apps/backend/src/domains/ride-hailing";
+import { commerceQuotes } from "../../../apps/backend/src/entities/commerce-quote";
 import type { PRRoute } from "../../../apps/backend/src/entities/partner-request";
+import { db } from "../../../apps/backend/src/lib/db";
 import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
 import { ProductSkuRepository } from "../../../apps/backend/src/repositories/ProductSkuRepository";
@@ -93,18 +95,21 @@ async function armFakeCaocaoCreateFailure(): Promise<void> {
   });
 }
 
-async function updateFakeCaocaoEstimate(input: {
+async function setFakeCaocaoEstimateAvailability(input: {
   carType: string;
-  estimateAmountFen: number;
+  available: boolean;
 }): Promise<void> {
   const { fakeCaocao } = getScenarioEnvironment();
-  const response = await fetch(new URL("/__fake_caocao/estimates", fakeCaocao.origin), {
-    body: JSON.stringify(input),
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    new URL("/__fake_caocao/estimates/availability", fakeCaocao.origin),
+    {
+      body: JSON.stringify(input),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
     },
-    method: "POST",
-  });
+  );
   assert.equal(response.ok, true);
 }
 
@@ -115,6 +120,28 @@ async function readFakeCaocaoOrderCount(): Promise<number> {
   const body = (await response.json()) as { orders?: unknown[] };
   assert.ok(Array.isArray(body.orders));
   return body.orders.length;
+}
+
+async function expireCommerceQuotes(): Promise<number> {
+  const before = await db.select().from(commerceQuotes);
+  await db.update(commerceQuotes).set({
+    expiresAt: new Date(Date.now() - 1000),
+  });
+  return before.length;
+}
+
+async function waitForCommerceQuoteCountAtLeast(expected: number): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const quotes = await db.select().from(commerceQuotes);
+    if (quotes.length >= expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const quotes = await db.select().from(commerceQuotes);
+  assert.ok(
+    quotes.length >= expected,
+    `Expected at least ${expected} commerce quotes, got ${quotes.length}`,
+  );
 }
 
 async function givenRideHailingPr(input: {
@@ -311,6 +338,59 @@ async function openRideHailingOrderingFromPr(input: { page: Page; prId: number }
   });
 }
 
+const waitForOfferListingResponse = (page: Page): Promise<unknown> =>
+  page.waitForResponse(
+    (response) => {
+      const url = new URL(response.url());
+      return (
+        response.request().method() === "POST" &&
+        /^\/api\/commerce\/offers\/\d+\/listing$/.test(url.pathname) &&
+        response.status() === 200
+      );
+    },
+    { timeout: 10_000 },
+  );
+
+async function openRideHailingOrderingFromPrAndWaitForListing(input: {
+  page: Page;
+  prId: number;
+}): Promise<void> {
+  const listingResponse = waitForOfferListingResponse(input.page);
+  await openRideHailingOrderingFromPr(input);
+  await listingResponse;
+}
+
+async function waitForVehicleCardCount(page: Page, expected: number): Promise<void> {
+  const vehicleCards = page.getByTestId("ordering.ride-hailing.vehicle-card");
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if ((await vehicleCards.count()) === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.equal(await vehicleCards.count(), expected);
+}
+
+async function keepDepartNowIfPrompted(page: Page): Promise<void> {
+  const dialog = page.getByRole("dialog").filter({ hasText: "使用带入的出发时间？" });
+  const visible = await dialog
+    .waitFor({
+      state: "visible",
+      timeout: 1_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+  if (!visible) return;
+  await dialog.getByText(/2031\/04\/01.*10:00/).waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await dialog.getByRole("button", { name: "现在出发", exact: true }).click();
+  await dialog.waitFor({
+    state: "hidden",
+    timeout: 10_000,
+  });
+}
+
 async function assertRideHailingOrderingContent(page: Page): Promise<void> {
   await page.getByTestId("ordering.ride-hailing.route-map").waitFor({
     state: "visible",
@@ -334,9 +414,28 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
+  await keepDepartNowIfPrompted(page);
+}
+
+async function assertDepartureDrawerCanSwitchBetweenImportedAndNow(page: Page): Promise<void> {
+  await page.getByTestId("ordering.ride-hailing.departure-time.open").click();
+  await page.getByTestId("ordering.ride-hailing.departure-time.apply-imported").click();
+  await assertLocatorTextMatches({
+    actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
+    label: "RideHailing imported departure row",
+    pattern: /10:00出发/,
+  });
+  await page.getByTestId("ordering.ride-hailing.departure-time.use-now").click();
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
+    expected: "现在出发",
+    label: "RideHailing depart now row",
+  });
+  await page.keyboard.press("Escape");
 }
 
 async function selectPremierAsAdditionalCandidate(page: Page): Promise<void> {
+  await keepDepartNowIfPrompted(page);
   const vehicleCards = page.getByTestId("ordering.ride-hailing.vehicle-card");
   await vehicleCards.first().waitFor({
     state: "visible",
@@ -427,6 +526,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
+    await assertDepartureDrawerCanSwitchBetweenImportedAndNow(page);
     await selectPremierAsAdditionalCandidate(page);
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
@@ -480,18 +580,82 @@ scenario("commerce_ride_hailing_provider_create_failure_stays_on_ordering_page",
   });
 });
 
-scenario("commerce_ride_hailing_preflight_price_change_requires_confirmation", async (ctx) => {
+scenario("commerce_ride_hailing_unavailable_provider_vehicle_is_hidden", async (ctx) => {
   await resetFakeCaocao();
-  const creator = await givenUser("system-ride-hailing-price-change-creator", {
-    phoneNumber: "13800138002",
+  await setFakeCaocaoEstimateAvailability({
+    carType: "PREMIER",
+    available: false,
+  });
+  const creator = await givenUser("system-ride-hailing-unavailable-vehicle-creator", {
+    phoneNumber: "13800138003",
   });
   await bindScenarioWeChatOpenId({
-    openId: "fake-openid-commerce-ride-hailing-price-change-creator",
+    openId: "fake-openid-commerce-ride-hailing-unavailable-vehicle-creator",
     user: creator,
   });
   const pr = await givenRideHailingPr({
     creator,
-    title: "System ride hailing price change PR",
+    title: "System ride hailing unavailable vehicle PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPrAndWaitForListing({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await keepDepartNowIfPrompted(page);
+
+    await waitForVehicleCardCount(page, 1);
+    await page
+      .getByTestId("ordering.ride-hailing.vehicle-card")
+      .filter({
+        hasText: "系统曹操快车",
+      })
+      .waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+    await page
+      .getByTestId("ordering.ride-hailing.vehicle-card")
+      .filter({
+        hasText: "系统曹操专车",
+      })
+      .waitFor({
+        state: "hidden",
+        timeout: 10_000,
+      });
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
+      label: "RideHailing only available candidate price",
+      pattern: /￥36\.00/,
+    });
+
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    assert.equal(await readFakeCaocaoOrderCount(), 1);
+  });
+});
+
+scenario("commerce_ride_hailing_quote_expired_refreshes_and_preserves_selection", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-quote-expired-creator", {
+    phoneNumber: "13800138002",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-quote-expired-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing quote expired PR",
   });
   await configurePRStatus({ pr, status: "READY" });
   await registerScenarioPaymentProvider();
@@ -510,25 +674,145 @@ scenario("commerce_ride_hailing_preflight_price_change_requires_confirmation", a
     await assertRideHailingOrderingContent(page);
     await selectPremierAsAdditionalCandidate(page);
 
-    await updateFakeCaocaoEstimate({
-      carType: "PREMIER",
-      estimateAmountFen: 6100,
-    });
+    const quoteCountBeforeExpire = await expireCommerceQuotes();
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
-    await page.getByText("价格发生变化").waitFor({
+    await page.getByRole("heading", { name: "报价已过期" }).waitFor({
       state: "visible",
       timeout: 10_000,
     });
-    await assertLocatorTextIncludes({
-      actual: page.locator("body").textContent(),
-      expected: "当前价格已从 ￥36.00~52.00 更新为 ￥36.00~61.00。是否继续下单？",
-      label: "RideHailing price-change preflight dialog",
-    });
     assert.equal(await readFakeCaocaoOrderCount(), 0);
+    await waitForCommerceQuoteCountAtLeast(quoteCountBeforeExpire + 2);
+    await page.getByRole("button", { name: "我知道了" }).click();
 
-    await page.getByRole("button", { name: "继续下单" }).click();
+    const selectedMarkers = page.getByTestId("ordering.ride-hailing.vehicle-card.selected");
+    await selectedMarkers.first().waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    assert.equal(await selectedMarkers.count(), 2);
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
     await assertRideHailingOrderDetail(page);
     assert.equal(await readFakeCaocaoOrderCount(), 1);
+  });
+});
+
+scenario("commerce_ride_hailing_quote_refresh_prunes_unavailable_selected_vehicle", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-quote-prune-creator", {
+    phoneNumber: "13800138004",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-quote-prune-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing quote prune PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+  ctx.record("providerInstanceId", placement.providerInstanceId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await selectPremierAsAdditionalCandidate(page);
+
+    const quoteCountBeforeExpire = await expireCommerceQuotes();
+    await setFakeCaocaoEstimateAvailability({
+      carType: "PREMIER",
+      available: false,
+    });
+
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await page.getByRole("heading", { name: "报价已过期" }).waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    assert.equal(await readFakeCaocaoOrderCount(), 0);
+    await waitForCommerceQuoteCountAtLeast(quoteCountBeforeExpire + 1);
+    await page.getByRole("button", { name: "我知道了" }).click();
+
+    await waitForVehicleCardCount(page, 1);
+    await page
+      .getByTestId("ordering.ride-hailing.vehicle-card")
+      .filter({
+        hasText: "系统曹操专车",
+      })
+      .waitFor({
+        state: "hidden",
+        timeout: 10_000,
+      });
+    const selectedMarkers = page.getByTestId("ordering.ride-hailing.vehicle-card.selected");
+    await selectedMarkers.first().waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    assert.equal(await selectedMarkers.count(), 1);
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
+      label: "RideHailing pruned candidate price",
+      pattern: /￥36\.00/,
+    });
+
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    assert.equal(await readFakeCaocaoOrderCount(), 1);
+  });
+});
+
+scenario("commerce_ride_hailing_all_provider_vehicles_unavailable_blocks_ordering", async (ctx) => {
+  await resetFakeCaocao();
+  await setFakeCaocaoEstimateAvailability({
+    carType: "EXPRESS",
+    available: false,
+  });
+  await setFakeCaocaoEstimateAvailability({
+    carType: "PREMIER",
+    available: false,
+  });
+  const creator = await givenUser("system-ride-hailing-no-vehicles-creator", {
+    phoneNumber: "13800138005",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-no-vehicles-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing no vehicles PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPrAndWaitForListing({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await keepDepartNowIfPrompted(page);
+    await waitForVehicleCardCount(page, 0);
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
+      expected: "待确认",
+      label: "RideHailing unavailable candidate price",
+    });
+    assert.equal(await page.getByTestId("ordering.ride-hailing.create-order").isDisabled(), true);
+    assert.equal(await readFakeCaocaoOrderCount(), 0);
   });
 });

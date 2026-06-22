@@ -140,6 +140,13 @@ const readOptionalNumberParam = (
   return parsed;
 };
 
+const readRequiredBooleanParam = (params: Record<string, string>, keys: string[]): boolean => {
+  const raw = readFirstParam(params, keys)?.toLowerCase();
+  if (raw === "true" || raw === "1") return true;
+  if (raw === "false" || raw === "0") return false;
+  throw new Error(`Missing boolean fake Caocao parameter: ${keys[0]}`);
+};
+
 const estimatePayload = (estimate: FakeCaocaoVehicleEstimate): unknown => ({
   carType: estimate.carType,
   carTypeName: estimate.carTypeName,
@@ -324,6 +331,20 @@ export async function handleFakeCaocaoRequest(
       return;
     }
 
+    if (url.pathname === "/__fake_caocao/estimates/availability" && req.method === "POST") {
+      const params = await readParams(req, url);
+      const carType = readFirstParam(params, ["carType", "car_type"]);
+      if (!carType) {
+        throw new Error("Missing fake Caocao car type");
+      }
+      const estimate = input.state.setEstimateAvailability({
+        carType,
+        available: readRequiredBooleanParam(params, ["available"]),
+      });
+      sendJson(res, 200, { estimate, ok: true });
+      return;
+    }
+
     if (url.pathname === "/__fake_caocao/state" && req.method === "GET") {
       sendJson(res, 200, input.state.snapshot());
       return;
@@ -338,7 +359,11 @@ export async function handleFakeCaocaoRequest(
 
     if (url.pathname === "/common/estimatePriceWithDetail") {
       const carType = readFirstParam(params, ["car_type", "carType", "vehicle_type"]) ?? "EXPRESS";
-      const estimate = input.state.findEstimate(carType);
+      const estimate = input.state.findAvailableEstimate(carType);
+      if (!estimate) {
+        sendJson(res, 200, caocaoFailure(47001, "Fake Caocao vehicle unavailable"));
+        return;
+      }
       sendJson(res, 200, caocaoSuccess(estimatePayload(estimate)));
       return;
     }

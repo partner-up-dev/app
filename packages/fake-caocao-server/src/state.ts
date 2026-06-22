@@ -41,6 +41,7 @@ export type FakeCaocaoFeeConfirmState = {
 export type FakeCaocaoStateSnapshot = {
   readonly failNextCreate: boolean;
   readonly estimates: readonly FakeCaocaoVehicleEstimate[];
+  readonly unavailableEstimateCarTypes: readonly string[];
   readonly orders: readonly FakeCaocaoOrderState[];
   readonly feeConfirms: readonly FakeCaocaoFeeConfirmState[];
 };
@@ -70,6 +71,7 @@ const defaultEstimates = (): FakeCaocaoVehicleEstimate[] => [
 export class FakeCaocaoState {
   private failNextCreate = false;
   private readonly estimates = new Map<string, FakeCaocaoVehicleEstimate>();
+  private readonly unavailableEstimateCarTypes = new Set<string>();
   private readonly orders = new Map<string, FakeCaocaoOrderState>();
   private readonly feeConfirms: FakeCaocaoFeeConfirmState[] = [];
 
@@ -80,6 +82,7 @@ export class FakeCaocaoState {
   reset(): void {
     this.failNextCreate = false;
     this.estimates.clear();
+    this.unavailableEstimateCarTypes.clear();
     for (const estimate of defaultEstimates()) {
       this.estimates.set(estimate.carType, estimate);
     }
@@ -93,6 +96,7 @@ export class FakeCaocaoState {
       failNextCreate: this.failNextCreate,
       feeConfirms: [...this.feeConfirms],
       orders: [...this.orders.values()],
+      unavailableEstimateCarTypes: [...this.unavailableEstimateCarTypes],
     };
   }
 
@@ -108,6 +112,31 @@ export class FakeCaocaoState {
 
   findEstimate(carType: string): FakeCaocaoVehicleEstimate {
     return this.estimates.get(carType) ?? this.estimates.get("EXPRESS") ?? defaultEstimates()[0]!;
+  }
+
+  findAvailableEstimate(carType: string): FakeCaocaoVehicleEstimate | null {
+    const estimate = this.findEstimate(carType);
+    return this.unavailableEstimateCarTypes.has(estimate.carType) ? null : estimate;
+  }
+
+  setEstimateAvailability(input: {
+    carType: string;
+    available: boolean;
+  }): FakeCaocaoVehicleEstimate {
+    const carType = input.carType.trim();
+    if (!carType) {
+      throw new Error("Missing fake Caocao car type");
+    }
+    const current = this.estimates.get(carType);
+    if (!current) {
+      throw new Error(`Unknown fake Caocao car type: ${carType}`);
+    }
+    if (input.available) {
+      this.unavailableEstimateCarTypes.delete(carType);
+    } else {
+      this.unavailableEstimateCarTypes.add(carType);
+    }
+    return current;
   }
 
   updateEstimate(input: {

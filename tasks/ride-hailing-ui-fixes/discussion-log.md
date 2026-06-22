@@ -488,3 +488,408 @@
 - Verification finding:
   formatting, directed lint, frontend typecheck, focused RideHailing system
   scenario, and `git diff --check` passed after Segment 3.
+
+## Exploration: RideHailing Dynamic SKU Loading
+
+- Human next-slice intent:
+  RideHailing SKU availability should become dynamic. Which RideHailing SKUs are
+  listed depends on route and departure time. The proposed direction is querying
+  the provider for available vehicle types based on those dynamic factors.
+- Human interaction requirement:
+  when Ordering entry includes a `departureAt` binding, `RideHailingOrderingContent`
+  should not silently adopt it. After mount it should open a dialog asking
+  whether to use the imported departure time. The default is no, meaning
+  "depart now" and submitted `departureAt: null`.
+- Offer detail source:
+  PR Page resolves a placement ordering entry through
+  `POST /api/placements/:instanceId/ordering-entry`, stores the returned
+  `OrderingEntryPayload` in `sessionStorage`, and navigates to `/order/new`.
+  The backend ordering-entry use case reads `placement.offerId`, resolves
+  bindings from matching context, then calls `getOrderingOfferDetail`.
+- Offer detail projection:
+  `getOrderingOfferDetail` reads the active Offer, then reads each active SPU
+  from `offer.spuIds`, filters by offer product type, reads active SKUs under
+  those SPUs, and returns SPU/SKU projection data: ids, status, sales/service
+  policy, presentation, SKU facts, SKU pricing model, cancellation summary, and
+  offer pricing/terms.
+- Current frontend chain:
+  `RideHailingOrderingContent` receives catalog `offerDetail` from the Ordering
+  entry. It builds `rideBaseOptions` by flattening all active catalog
+  `spu.skuOptions` from the offer. It then builds `quoteOptionsInput` with
+  `{ source.offerId, route }` and calls `useRideHailingQuoteOptions`.
+- Current query behavior:
+  `useRideHailingQuoteOptions` calls
+  `POST /api/commerce/ordering/ride-hailing/options` and keys the query by the
+  full input object. Because the input currently contains route but not
+  departure time, route changes can refetch options while departure-time changes
+  cannot.
+- Current list replacement behavior:
+  once the quote-options query returns any options, `rideQuoteOptions` uses the
+  provider/evaluated options instead of catalog fallback options. If quoted
+  options exist, `visibleRideQuoteOptions` hides non-selectable options.
+- Current backend chain:
+  `/ordering/ride-hailing/options` validates only `{ source.offerId, route }`
+  and calls `quoteRideHailingOrderingOptions({ offerId, route })`.
+- Current backend option source:
+  `quoteRideHailingOrderingOptions` resolves the offer, then
+  `evaluateRideOptions` enumerates every active RideHailing catalog SKU attached
+  to the offer. It filters only by optional `candidateSkuIds` for submit-time
+  paths; browsing/options mode has no candidate filter.
+- Current provider interaction:
+  each catalog SKU maps to provider facts
+  `{ rideHailingProviderInstanceId, providerVehicleTypeCode }`. The backend then
+  calls the provider estimate endpoint once per SKU with that SKU's
+  `car_type` plus origin/destination coordinates.
+- Selectability source:
+  `selectable=false` is not a provider response field in the current model. It
+  is backend-local interpretation. The backend returns `selectable=false` when
+  the mapped provider instance is missing/inactive or when the provider estimate
+  call throws/fails. Successful estimate parsing produces `selectable=true`.
+- Current departure-time gap:
+  `departureAt` already flows from PR `startAt` into Ordering bindings and into
+  create-order extras, but it is not part of quote-options input, provider
+  estimate params, query key, or options endpoint schema.
+- Current provider abstraction gap:
+  `RideHailingProviderPort.estimate` is a thin raw-params method. It has no
+  provider-owned "list available vehicle options for route/time" capability.
+  Dynamic availability currently emerges only by trying known catalog SKUs and
+  marking failed estimates as non-selectable.
+- Current provider quote / vehicle interfaces:
+  the app-level provider port has `estimate`, `createRide`, `queryOrderDetail`,
+  `cancelRide`, `queryCancelFee`, `confirmFee`, and callback parsing. There is
+  no typed "list available vehicle types" method. The Caocao adapter maps
+  `estimate` to `GET /common/estimatePriceWithDetail` and maps `createRide` to
+  `POST /common/orderCarV2`.
+- Current estimate IO:
+  input is raw provider params. The app currently sends `car_type`, `flat`,
+  `flng`, `tlat`, and `tlng`. Output is provider-raw `unknown`; Trade parses
+  price from `estimateAmountFen | estimatePriceFen | estimate_price | price`
+  and vehicle display name from `carTypeName | car_type_name`.
+- Current create-ride IO:
+  input is local `orderId` plus raw provider params. The app currently sends
+  `callback_url`, `car_type`, `flat`, `flng`, `tlat`, and `tlng`; the adapter
+  adds `ext_order_id`. Output is normalized to `{ providerOrderId,
+  externalOrderId, providerSnapshot }`.
+- Current fake-provider gap:
+  fake Caocao stores static estimates keyed by car type. Its estimate response
+  does not vary by route or departure time, and there is no dynamic availability
+  control beyond changing a car type's estimate amount or forcing next create
+  failure.
+- Options endpoint timing and return:
+  `/ordering/ride-hailing/options` is called by TanStack Query when
+  `RideHailingOrderingContent` has non-null `quoteOptionsInput`. The query key
+  includes the full input object, so it refetches when `offerId` or route input
+  changes. It currently returns `{ quoteExpiresAt, options }`, where each option
+  is a backend `RideQuoteOption` containing local SKU id/SPU id, provider and
+  vehicle labels/codes, selected/selectable flags, disabled reason, estimate
+  amount, quoted amount, and price explanations.
+- Initial objection / boundary:
+  provider-driven dynamic SKU discovery must still reconcile with catalog SKU
+  ownership. Orders, billing, and SKU presentation require local SKU identity,
+  so provider-returned vehicle types need a clean mapping to local SKUs rather
+  than becoming anonymous frontend options.
+
+## Model Direction: Dynamic RideHailing Product Listing
+
+- Human model direction:
+  the long-term clean model is to query the Provider for available vehicle
+  classes by SPU + route + departureAt, then merge provider availability/quote
+  facts with local RideHailing SKU catalog facts. A RideHailing SKU is listed
+  only when:
+  - provider estimate/availability returns that vehicle type for the dynamic
+    route/time
+  - the corresponding local SKU exists and is `ACTIVE`
+- Human correction:
+  do not continue returning `selectable=true/false` to the frontend for
+  unavailable RideHailing SKUs. Unavailable options should be absent from the
+  listing result.
+- Human objection:
+  Provider Port `estimate` returning `Promise<unknown>` is not a clean boundary.
+  The Provider Port should define a standard app-level estimate/listing shape,
+  and each adapter should translate provider-specific responses into that
+  shape.
+- Human routing concern:
+  `/ordering/ride-hailing/options` is semantically misnamed for the target
+  model. A more unified Product Listing query interface may be preferable. That
+  interface could route by product type internally or perform product-specific
+  pre/post processing, but the exact route boundary needs review against current
+  Product Catalog and Offer responsibilities.
+- Current Catalog/Offer boundary finding:
+  user-facing ordering has no standalone public Product Catalog route today.
+  Product/SPU/SKU/Offer authoring is admin-owned under admin commerce routes.
+  User-facing product truth enters ordering through Placement's
+  `OrderingEntryPayload.offerDetail`, and dynamic RideHailing option loading is
+  currently under Commerce Ordering.
+- Current Offer model finding:
+  Offer is a commercial wrapper over one or more SPUs of the same product type.
+  It owns product type, SPU ids, terms version, active window, and pricing
+  policy. SPU/SKU own catalog facts/presentation/base pricing/service policy.
+- Implication:
+  even if the provider query is conceptually "SPU + route + departureAt", the
+  public listing request likely still needs `offerId` or an Offer-scoped source
+  so pricing policy, terms, and offer membership remain authoritative. The
+  listing use case can then resolve offer -> SPUs -> product-specific listing
+  query.
+- Departure-time UX refinement:
+  imported `departureAt` binding should remain available in the departure-time
+  drawer as a one-tap apply action even when the initial dialog default keeps
+  `departureAt` null / "depart now".
+
+## Model Direction: Offer-Owned Product Listing Query
+
+- Human decision:
+  the unified listing query should use `offerId` as its public entrypoint. This
+  means the query is not only "list product catalog"; it should include listing
+  prices because Offer owns commercial pricing policy and membership.
+- Human sketch:
+  the conceptual pipeline is:
+  - `offerId -> SPU -> SKUs`
+  - product-type-specific mask logic takes local SKUs plus product-specific
+    context, such as RideHailing route/departureAt, and returns listed SKUs
+  - pricing is resolved behind a product-type-specific path
+- Modeling concern:
+  for RideHailing, provider availability/mask and provider quote are the same
+  provider interaction. Splitting mask and price into two physical calls would
+  be redundant.
+- Working model:
+  keep mask and pricing as conceptual phases, but implement them through a
+  product-specific listing resolver that may do both in one pass. For
+  RideHailing, `Offer + SPUs + route + departureAt` calls the Provider once per
+  mapped vehicle type or through a future provider listing method, joins
+  returned provider vehicle quotes to local ACTIVE SKUs, applies Offer pricing,
+  and returns priced listed SKUs. This satisfies the target without forcing two
+  provider calls.
+- Ownership direction:
+  the unified query is Offer-owned. Offer resolves the commercial context,
+  active window, SPU membership, terms, and pricing policy, then dispatches to
+  product-type-specific listing logic for dynamic availability and base quote
+  facts.
+- Boundary reminder:
+  the listing result is display/draft truth. Under the later quote-identity
+  model, create-order should still re-read Offer/SPU/SKU truth, but price
+  freshness is enforced by validating submitted quote identity rather than
+  silently re-quoting dynamic provider prices.
+
+## Model Direction: Quote Identity Instead Of Price-Diff Preflight
+
+- Human correction:
+  a better stale-price model is for Offer Listing to return quote/estimate
+  identity, not only display prices. Create-order should submit the selected
+  quote/estimate ids. If the quote is expired, backend should reject with a
+  quote-expired result; frontend refreshes listing and the user explicitly
+  clicks order again.
+- Reasoning:
+  this is cleaner than comparing frontend displayed price with submit-time
+  evaluation price. The quote identity becomes the authoritative draft-price
+  boundary, and expiration/change handling aligns with RideHailing provider
+  quote semantics.
+- Consequence:
+  the current submit-time price-change preflight dialog becomes unnecessary for
+  RideHailing. Price freshness is enforced by quote identity validity rather
+  than price comparison.
+- Open modeling detail:
+  if a provider returns a durable quote token/estimate id, the listing resolver
+  should preserve it and pass it through dispatch/create when required. If a
+  provider only returns raw estimate data, the app can mint a local quote id
+  bound to offer, route, departureAt, SKU/provider vehicle, provider snapshot,
+  price, and `expiresAt`.
+- Choice-set consequence:
+  create-order should carry product-type-independent quote identity for the
+  selected candidate set. The preferred payload keeps order item semantics as
+  `FIXED.quoteId` or `CHOICE_SET.candidateQuoteIds`; backend asks the Quote
+  domain to resolve Offer, SKU, route/departureAt, price, quote ownership, SKU
+  activity, expiry, and quote-set coherence before dispatch.
+- Remaining non-price validation:
+  PR/order lifecycle blockers may still be validated at create-order time, but
+  they do not require a separate price preflight endpoint. They can return
+  ordinary blocked/create-failed dialog states.
+
+## Review: Commerce-Native Quote Identity Corrections
+
+- Human correction:
+  quote id should be a higher-level commerce/order concept, not RideHailing
+  specific. Order and pricing should natively support quote id.
+- Human correction:
+  create-order should avoid repeating quote-owned data such as route,
+  departureAt, SKU ids, and Offer. These should resolve from submitted quote
+  identity.
+- Boundary note:
+  quote identity should own commercial/listing facts: Offer, SKU, product
+  context such as route/departureAt, provider quote snapshot, and price.
+  Customer/fulfillment facts such as participants, riders, and contact phone
+  still need explicit ownership and should not be casually hidden inside quote.
+- Human decision:
+  quote-expired should be an HTTP 409 problem detail with a stable code, not an
+  HTTP 200 `CreateOrderResult` branch.
+- Human decision:
+  quote snapshots should be persisted to the database.
+- Human decision:
+  the new listing route should be
+  `POST /api/commerce/offers/:offerId/listing`.
+- Artifact update:
+  revised `offer-listing-quote-identity-plan.md` so quote identity is
+  product-type-independent, quote snapshots are DB-backed, create-order is
+  quote-bound, expired quote uses HTTP 409, and the route shape is fixed.
+
+## Review: Quote Validity Ownership And Plan Topology
+
+- Human correction:
+  quote validity checks such as quote existence, not expired, issuing Offer
+  still active, referenced SKU still active, SKU membership, and listing-context
+  coherence should be owned and encapsulated by the Quote domain. Order should
+  not perform these checks one by one.
+- Naming finding:
+  `QUOTE_SET` is a poor command item kind because it names the freshness
+  mechanism instead of the order item semantics. The cleaner shape keeps
+  `FIXED` and `CHOICE_SET` as item kinds, and carries quote identity as
+  `quoteId` or `candidateQuoteIds`.
+- Naming finding:
+  `CommerceQuoteSnapshot` is too persistence-shaped for the domain concept.
+  The working domain name is `OfferQuote`; the database may persist snapshots,
+  but the application should treat quote as an object that can be resolved and
+  validated.
+- Naming finding:
+  `listingId` is ambiguous. `listingSessionId` better communicates that it
+  groups one Offer Listing response/context.
+- Boundary finding:
+  broad `unknown` quote snapshots are acceptable as database JSON envelopes,
+  but they must be decoded behind the Quote boundary before Order, Pricing, or
+  RideHailing lifecycle consumes them.
+- Topology finding:
+  Offer Listing mints quotes by joining Offer, Product Catalog,
+  product-specific resolver, Provider, and pricing. Create Order consumes
+  validated Quote-domain results and turns them into order items / lifecycle
+  rows. Bill reads resolved order/fulfillment facts and should not decide quote
+  validity.
+- Artifact update:
+  revised `offer-listing-quote-identity-plan.md` with a Quote Domain topology
+  diagram, updated sequence diagram, Quote validity ownership, command naming
+  correction, and naming/boundary review sections.
+
+## Review: Ordering Shell Boundary And Resolved Listing Decisions
+
+- Human correction:
+  `OrderingContent` should not call Create Order. That responsibility belongs
+  to the Ordering Page / shell submit flow. Product-specific Ordering Content
+  owns listing, selection, and price-summary output, then emits a quote-bound
+  draft to the shell.
+- Human decision:
+  when quote expires after create click, frontend refreshes listing and
+  preserves selected SKU ids when the refreshed listing still contains matching
+  SKUs. The user still needs a second explicit create click.
+- Human decision:
+  create-order quote-only payload should not include participants, riders, or
+  contact phone. If those facts remain necessary, they need Quote/listing
+  session ownership or another explicit pre-create owner rather than returning
+  to create-order input.
+- Human decision:
+  Rental should migrate to the unified Offer Listing endpoint in this slice,
+  using a thin fixed-item resolver if no dynamic Rental mask is needed.
+- Naming refinement:
+  fixed listed items also carry quote ids, so `OfferListedItem.kind: "QUOTE"`
+  is misleading. The plan now uses `FIXED` and `CHOICE_CANDIDATE`.
+- Artifact update:
+  revised `offer-listing-quote-identity-plan.md` sequence/topology to route
+  create-order through Ordering Page / shell, resolved the Rental and
+  quote-expiry selection questions, and tightened the quote-only create-order
+  payload boundary.
+
+## Implementation: Offer Listing And Quote Identity
+
+- Impact Handshake accepted with explicit `开始`.
+- Backend implementation:
+  - Offer Listing now owns quote issuance through
+    `POST /api/commerce/offers/:offerId/listing`.
+  - Quote identity is persisted in `commerce_quotes` and is not RideHailing
+    specific.
+  - Quote validity is centralized in a Quote-domain resolver. It validates
+    existence, expiry, active Offer/SKU/SPU, Offer membership, item kind, and
+    choice-set grouping before Order sees product facts.
+  - Create-order product item payloads are quote-only:
+    `FIXED.quoteId` or `CHOICE_SET.candidateQuoteIds`.
+  - Create-order derives participants, Rental registrants/contact, RideHailing
+    riders/contact, route, departureAt, price, Offer, and SKU facts from
+    validated quote/listing snapshots.
+  - Old backend submit-time evaluation and RideHailing options surfaces were
+    removed rather than kept as parallel legacy API semantics.
+- Frontend implementation:
+  - Ordering Content owns unified listing queries and emits quote-bound draft
+    output plus footer summary.
+  - Ordering Page / shell owns create-order mutation and no longer performs
+    price preflight/evaluate.
+  - Quote-expired create failure refreshes listing, preserves matching
+    selected SKU ids, and requires another explicit create click.
+  - Imported `departureAt` binding now opens a prompt that defaults to "now";
+    the drawer keeps a one-tap action to apply the imported time.
+- Human follow-up:
+  the imported departure prompt must show the concrete imported departure
+  date/time value so the user can decide whether to use it. The prompt now
+  displays the formatted imported timestamp in the dialog description.
+- Human follow-up:
+  the departure-time Drawer should also provide a one-tap way to switch back to
+  "现在出发". The Drawer now has a `现在出发` action whenever a concrete
+  departure time is active, clearing `departureAt` back to null.
+- Test/diagnostic finding:
+  `PuDialog` does not inherit arbitrary `data-testid` attributes because of
+  its rendered root/teleport shape. This slice removed those attributes from
+  affected dialogs and updated scenarios to assert via dialog role/text.
+- Verification result:
+  RideHailing and Rental system scenarios pass with the unified listing and
+  quote-only create-order path.
+- Non-blocking lint note:
+  UI naming audit still reports `RideHailingOrderingContent` because it treats
+  "Content" as weak. The name is intentionally retained because it was reviewed
+  as the correct shell concept alongside header and footer.
+
+## Review: Offer Listing And Quote Identity Test Gaps
+
+- Human question:
+  whether tests cover the case where provider estimate reports some
+  RideHailing vehicle types unavailable and the Ordering Page omits those SKUs.
+- Finding:
+  the production listing path already catches failed provider estimates and
+  omits those local SKU rows, but fake Caocao only supported price mutation and
+  could not express per-vehicle estimate unavailability.
+- Test-gap review:
+  the important missing branches were:
+  - partial provider unavailability should hide the unavailable vehicle type
+  - quote-expired refresh should preserve matching selected SKU ids but prune
+    selected SKUs that disappeared from the refreshed listing
+  - all provider-unavailable vehicle types should leave no vehicle cards and
+    disable create
+  - quote validity should reject inactive Offer/SKU behind the Quote boundary
+  - `CHOICE_SET` candidate quote ids must not mix different listing sessions
+- Implementation decision:
+  add fake Caocao estimate availability controls rather than reintroducing a
+  frontend `selectable=false` concept. This keeps unavailable RideHailing SKUs
+  absent from the listing result, matching the accepted model.
+- Verification result:
+  the new backend quote-domain scenario and the expanded RideHailing system
+  scenario both pass.
+
+## Review: Ordering Error Feedback Channel
+
+- Human correction:
+  `ordering-floating-notice-layer` should be removed because it permanently
+  overlays other UI information while Dialog already explains create-order
+  failure reasons.
+- Finding:
+  the floating notice component was only used by `OrderingFromPlacementPage` as
+  a duplicate display of `createOrderMutation.error`.
+- Decision:
+  keep create-order feedback single-channel through Dialog. Quote expired,
+  provider create failure, PR blocker, and generic create-order errors continue
+  to open an acknowledgement Dialog, without a persistent floating notice.
+
+## Review: RideHailing SKU List Loading State
+
+- Human correction:
+  RideHailing SKU list should show a loading skeleton with `PuSkeleton`.
+- Design decision:
+  the loading state belongs inside the SKU list region, not over the whole
+  Ordering Page. The map and bottom control row should remain stable while
+  quote options load.
+- Interaction decision:
+  show skeletons only during initial listing load when there are no visible
+  quote options. During background refetch, keep the existing cards visible to
+  avoid selection/list flicker.

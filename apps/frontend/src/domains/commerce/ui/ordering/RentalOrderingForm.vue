@@ -67,7 +67,7 @@
                 {{ Math.round(rentalSkuDurationMinutes(sku) / 60) }} 小时
               </small>
             </span>
-            <b>{{ formatFen(rentalSkuAmountFen(sku)) }}</b>
+            <b>{{ formatFen(rentalListedPriceFen(sku.skuId) ?? rentalSkuAmountFen(sku)) }}</b>
           </button>
         </div>
       </div>
@@ -157,6 +157,7 @@ import {
   readBindingValue,
   readBoundOrderParticipants,
 } from "@/domains/commerce/model/ordering-content";
+import { type OfferListingInput, useOfferListing } from "@/domains/commerce/queries/useCommerce";
 
 type RentalOffer = OrderingContentInput["offerDetail"];
 type RentalSpu = RentalOffer["spus"][number];
@@ -164,6 +165,7 @@ type RentalSku = RentalSpu["skuOptions"][number];
 
 const props = defineProps<{
   input: OrderingContentInput;
+  listingRefreshKey: number;
 }>();
 
 const emit = defineEmits<{
@@ -176,17 +178,12 @@ const contactPhone = ref("");
 const registrantNames = ref<string[]>([]);
 
 const rentalOffer = computed<RentalOffer | null>(() =>
-  props.input.offerDetail.productType === "RENTAL"
-    ? props.input.offerDetail
-    : null,
+  props.input.offerDetail.productType === "RENTAL" ? props.input.offerDetail : null,
 );
 
-const bindingValue = (key: string): unknown | null =>
-  readBindingValue(props.input.bindings, key);
+const bindingValue = (key: string): unknown | null => readBindingValue(props.input.bindings, key);
 
-const boundOrderParticipants = computed(() =>
-  readBoundOrderParticipants(props.input.bindings),
-);
+const boundOrderParticipants = computed(() => readBoundOrderParticipants(props.input.bindings));
 
 const participantCount = computed(() => {
   const value = bindingValue("participantCount");
@@ -212,20 +209,16 @@ const isRentalSku = (sku: RentalSku): boolean =>
   sku.pricingModel.type === "FIXED_TOTAL";
 
 const rentalSkuParticipantCount = (sku: RentalSku): number =>
-  isRentalSku(sku) && "participantCount" in sku.facts
-    ? sku.facts.participantCount
-    : 0;
+  isRentalSku(sku) && "participantCount" in sku.facts ? sku.facts.participantCount : 0;
 
 const rentalSkuDurationMinutes = (sku: RentalSku): number =>
-  isRentalSku(sku) && "durationMinutes" in sku.facts
-    ? sku.facts.durationMinutes
-    : 0;
+  isRentalSku(sku) && "durationMinutes" in sku.facts ? sku.facts.durationMinutes : 0;
 
 const rentalSkuAmountFen = (sku: RentalSku): number | null =>
   sku.pricingModel.type === "FIXED_TOTAL" ? sku.pricingModel.amountFen : null;
 
-const allSkus = computed<RentalSku[]>(() =>
-  rentalOffer.value?.spus.flatMap((spu) => spu.skuOptions) ?? [],
+const allSkus = computed<RentalSku[]>(
+  () => rentalOffer.value?.spus.flatMap((spu) => spu.skuOptions) ?? [],
 );
 
 const selectableSkus = computed<RentalSku[]>(() =>
@@ -250,37 +243,83 @@ const selectedSpu = computed<RentalSpu | null>(() => {
   );
 });
 
-const primarySpu = computed(
-  () => selectedSpu.value ?? rentalOffer.value?.spus[0] ?? null,
-);
+const primarySpu = computed(() => selectedSpu.value ?? rentalOffer.value?.spus[0] ?? null);
 
-const spuDescription = computed(() =>
-  primarySpu.value?.presentation.sellingPoints.slice(0, 2).join(" · ") ?? null,
+const spuDescription = computed(
+  () => primarySpu.value?.presentation.sellingPoints.slice(0, 2).join(" · ") ?? null,
 );
 
 const spuThumbnailSrc = computed(() => {
   const presentation = primarySpu.value?.presentation;
-  return (
-    presentation?.heroImageAssetIds[0] ??
-    presentation?.detailImageAssetIds[0] ??
-    null
-  );
+  return presentation?.heroImageAssetIds[0] ?? presentation?.detailImageAssetIds[0] ?? null;
 });
 
 const selectedCancellationSummary = computed(
   () => selectedSku.value?.cancellationPolicySummary ?? [],
 );
 
+const completedRegistrantNames = computed(() =>
+  registrantNames.value.map((name) => name.trim()).filter((name) => name.length > 0),
+);
+
+const offerListingInput = computed<OfferListingInput | null>(() => {
+  if (!rentalOffer.value || !serviceStartAt.value || !serviceEndAt.value) return null;
+  const phone = contactPhone.value.trim();
+  if (!phone) return null;
+  if (boundOrderParticipants.value.length === 0) return null;
+  if (completedRegistrantNames.value.length !== participantCount.value) return null;
+  return {
+    productType: "RENTAL",
+    participants: boundOrderParticipants.value,
+    serviceStartAt: serviceStartAt.value,
+    serviceEndAt: serviceEndAt.value,
+    contactPhone: phone,
+    registrants: completedRegistrantNames.value.map((fullName) => ({ fullName })),
+  };
+});
+
+const offerListingQueryInput = computed(() =>
+  offerListingInput.value
+    ? {
+        offerId: props.input.source.offerId,
+        listingInput: offerListingInput.value,
+      }
+    : null,
+);
+
+const offerListingQuery = useOfferListing(offerListingQueryInput);
+
+watch(
+  () => props.listingRefreshKey,
+  () => {
+    if (offerListingQueryInput.value) {
+      void offerListingQuery.refetch();
+    }
+  },
+);
+
+const listedRentalItems = computed(() =>
+  (offerListingQuery.data.value?.items ?? []).filter((item) => item.kind === "FIXED"),
+);
+
+const selectedListedItem = computed(
+  () => listedRentalItems.value.find((item) => item.skuId === selectedSkuId.value) ?? null,
+);
+
+const rentalListedPriceFen = (skuId: number): number | null =>
+  listedRentalItems.value.find((item) => item.skuId === skuId)?.price.totalFen ?? null;
+
 const summary = computed<OrderingContentSummary>(() => {
   const sku = selectedSku.value;
-  const amountFen = sku ? rentalSkuAmountFen(sku) : null;
+  const listedItem = selectedListedItem.value;
+  const amountFen = listedItem?.price.totalFen ?? (sku ? rentalSkuAmountFen(sku) : null);
   return {
     price: sku
       ? {
           currency: "CNY",
           totalFen: amountFen,
           range: null,
-          explanations: [
+          explanations: listedItem?.price.explanations ?? [
             {
               sourceId: `sku:${sku.skuId}`,
               label: sku.name,
@@ -295,35 +334,16 @@ const summary = computed<OrderingContentSummary>(() => {
 });
 
 const output = computed<OrderingContentOutput | null>(() => {
-  if (!rentalOffer.value || !selectedSku.value) return null;
-  if (!serviceStartAt.value || !serviceEndAt.value) return null;
-  const phone = contactPhone.value.trim();
-  const names = registrantNames.value.map((name) => name.trim());
-  if (
-    !phone ||
-    names.length !== participantCount.value ||
-    names.some((name) => !name)
-  ) {
-    return null;
-  }
-  if (boundOrderParticipants.value.length === 0) return null;
+  if (!rentalOffer.value || !selectedSku.value || !selectedListedItem.value) return null;
 
   return {
-    participants: boundOrderParticipants.value.map((participant) => ({
-      userId: participant.userId,
-    })),
     items: [
       {
-        skuId: selectedSku.value.skuId,
+        kind: "FIXED",
+        quoteId: selectedListedItem.value.quoteId,
         quantity: 1,
       },
     ],
-    productTypedExtraProperties: {
-      serviceStartAt: serviceStartAt.value,
-      serviceEndAt: serviceEndAt.value,
-      contactPhone: phone,
-      registrants: names.map((fullName) => ({ fullName })),
-    },
   };
 });
 
@@ -353,9 +373,7 @@ watch(
       next.spus
         .flatMap((spu) => spu.skuOptions)
         .find(
-          (sku) =>
-            isRentalSku(sku) &&
-            rentalSkuParticipantCount(sku) === participantCount.value,
+          (sku) => isRentalSku(sku) && rentalSkuParticipantCount(sku) === participantCount.value,
         ) ??
       next.spus.flatMap((spu) => spu.skuOptions).find(isRentalSku) ??
       null;

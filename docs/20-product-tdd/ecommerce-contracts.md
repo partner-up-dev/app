@@ -256,38 +256,45 @@ Pricing ownership:
 
 - `/order/new` receives transient `OrderingEntryPayload` from the entry surface:
   `{ source: { offerId }, offerDetail, prId?, bindings }`.
-- `source.offerId` is the commercial source reference. It is not enough by
-  itself to render Ordering Content.
+- `source.offerId` is the commercial source reference and the stable entry for
+  dynamic listing/quote issuance.
 - `offerDetail` is an Offer-owned ordering projection containing the product
   type, SPU/SKU ids, display facts, base SKU pricing models, cancellation
-  policy summaries, and Offer pricing policy needed to assemble an order draft.
+  policy summaries, and Offer pricing policy needed to render the initial
+  ordering surface. It is not the dynamic quote authority.
 - Ordering Content is selected from `offerDetail.productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
-- Ordering Content receives `{ source, offerDetail, bindings }` and emits:
-  command fields (`participants`, `items`, `productTypedExtraProperties`) plus
-  local display summary for the footer price and price detail.
+- Ordering Content receives `{ source, offerDetail, bindings }`, calls
+  `POST /api/commerce/offers/:offerId/listing` with product-specific listing
+  input, and emits quote-bound draft items plus local display summary for the
+  footer price and price detail.
 - Ordering Content does not receive `prId`, does not know Placement, and does
   not evaluate or submit orders.
-- Product-specific Ordering Content owns product-specific list/quote state. For
-  RideHailing, SKU quote options are loaded by Ordering Content through
-  `POST /api/commerce/ordering/ride-hailing/options`; changing the selected SKU
-  must not refresh the options list by itself.
-- Ordering Page creates evaluation and creation commands on submit:
-  `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
-- This command is not coupled to Placement or `matchingContext`.
-- command `items` are a discriminated union:
-  - fixed items: `{ kind?: "FIXED", skuId, quantity }`
-  - choice-set items:
-    `{ kind: "CHOICE_SET", productType: "RIDE_HAILING", candidateSkuIds, quantity: 1 }`
-- backend resolves all SKU ids -> SPU and verifies they belong to the Offer.
-- Ordering evaluation uses the same command shape through
-  `POST /api/commerce/ordering/evaluate`. It is submit-time preflight only,
-  returns price total/range/detail and `actions.create_order` in the
-  action-preflight shape, and does not return product-specific option lists.
-- Ordering creation uses `POST /api/commerce/orders`. It re-reads
-  authoritative Offer/SPU/SKU truth and performs the transactional validations
-  again. Successful transport responses are a discriminated result:
+- Offer Listing is Offer-domain owned. It resolves active Offer/SPU/SKU truth,
+  applies product-specific availability masks, executes product-specific
+  quote/pricing logic, persists quote snapshots, and returns listed items with
+  product-type-independent `quoteId`s.
+- For RideHailing, listing uses route/departureAt to query provider vehicle
+  availability/estimates, joins provider results to local ACTIVE SKUs, and does
+  not return unavailable SKUs.
+- For Rental, listing issues fixed quotes for the available rental SKUs matching
+  the current listing facts.
+- Ordering Page owns create-order orchestration. Ordering Content must not call
+  create-order.
+- Create-order product item payload is quote-only and does not repeat
+  participants, riders, contact phone, route, departureAt, offer id, or SKU ids:
+  - fixed items: `{ kind: "FIXED", quoteId, quantity: 1 }`
+  - choice-set items: `{ kind: "CHOICE_SET", candidateQuoteIds, quantity: 1 }`
+- Quote owns quote validity. Order asks Quote to resolve quote-bound item facts;
+  Order does not hand-check quote existence, expiry, active Offer, active SKU,
+  product membership, or quote-set coherence.
+- Expired quotes are rejected from create-order with HTTP 409 problem details
+  code `ORDERING_QUOTE_EXPIRED`; the frontend refreshes listing and asks the
+  user to click create again. Quote-expired failures are not mixed into HTTP 200
+  results.
+- Ordering creation uses `POST /api/commerce/orders`. Successful transport
+  responses are a discriminated result:
   - `CREATED` navigates to Order Detail
   - `CANCELLED` carries a cancelled order id and user-displayable reason; the
     Ordering Page shows a failure dialog and does not navigate
@@ -304,8 +311,8 @@ Pricing ownership:
 The baseline Rental user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail ordering
-3. Order creation
+2. Offer Detail ordering and Offer Listing quote issuance
+3. Order creation from fixed quote id
 4. Order Detail `待支付`
 5. same Order Detail `待确认预订`
 6. same Order Detail resolves to:
@@ -323,8 +330,8 @@ route.
 The baseline RideHailing user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail quote assembly
-3. Order creation from quote snapshot
+2. Offer Detail ordering and route/time-based Offer Listing quote issuance
+3. Order creation from selected candidate quote ids
 4. Order Detail with quote basis and fulfillment state
 5. same Order Detail with final bill after trip finish
 6. same Order Detail with final payment/completed state

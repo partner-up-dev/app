@@ -15,20 +15,12 @@ export type OrderingEntryResponse = InferResponseType<
   PlacementApi[":instanceId"]["ordering-entry"]["$post"]
 >;
 
-export type OrderingEvaluationInput = Parameters<
-  CommerceApi["ordering"]["evaluate"]["$post"]
+export type OfferListingInput = Parameters<
+  CommerceApi["offers"][":offerId"]["listing"]["$post"]
 >[0]["json"];
 
-export type OrderingEvaluationResponse = InferResponseType<
-  CommerceApi["ordering"]["evaluate"]["$post"]
->;
-
-export type RideHailingQuoteOptionsInput = Parameters<
-  CommerceApi["ordering"]["ride-hailing"]["options"]["$post"]
->[0]["json"];
-
-export type RideHailingQuoteOptionsResponse = InferResponseType<
-  CommerceApi["ordering"]["ride-hailing"]["options"]["$post"]
+export type OfferListingResponse = InferResponseType<
+  CommerceApi["offers"][":offerId"]["listing"]["$post"]
 >;
 
 export type CreateOrderInput = Parameters<CommerceApi["orders"]["$post"]>[0]["json"];
@@ -117,48 +109,33 @@ export const resolvePlacementOrderingEntry = async (input: {
   return readJsonOrThrow<OrderingEntryResponse>(response, "Failed to resolve ordering entry");
 };
 
-export const useEvaluateOrdering = () =>
-  useMutation({
-    mutationFn: async (input: OrderingEvaluationInput) => {
-      const response = await client.api.commerce.ordering.evaluate.$post(
-        { json: input },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<OrderingEvaluationResponse>(
-        response,
-        "Failed to evaluate ordering",
-      );
-    },
-  });
-
-export const useRideHailingQuoteOptions = (
-  input: Ref<RideHailingQuoteOptionsInput | null>,
+export const useOfferListing = (
+  input: Ref<{
+    offerId: number;
+    listingInput: OfferListingInput;
+  } | null>,
 ) =>
-  useQuery<RideHailingQuoteOptionsResponse>({
+  useQuery<OfferListingResponse>({
     queryKey: computed(
-      () => ["commerce", "ordering", "ride-hailing", "options", input.value] as const,
+      () => ["commerce", "offers", input.value?.offerId, "listing", input.value] as const,
     ),
     queryFn: async () => {
       if (input.value === null) {
-        throw new Error("Missing RideHailing quote input");
+        throw new Error("Missing Offer Listing input");
       }
 
-      const response = await client.api.commerce.ordering["ride-hailing"].options.$post(
-        { json: input.value },
+      const response = await client.api.commerce.offers[":offerId"].listing.$post(
+        {
+          param: { offerId: input.value.offerId },
+          json: input.value.listingInput,
+        },
         {
           init: {
             credentials: "include",
           },
         },
       );
-      return readJsonOrThrow<RideHailingQuoteOptionsResponse>(
-        response,
-        "Failed to load ride hailing quote options",
-      );
+      return readJsonOrThrow<OfferListingResponse>(response, "Failed to load offer listing");
     },
     enabled: () => input.value !== null,
   });

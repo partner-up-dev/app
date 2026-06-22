@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import type {
+  CommerceQuote,
+  RentalQuoteListingContextSnapshot,
+  RideHailingFulfillmentQuoteSnapshot,
+  RideHailingQuoteListingContextSnapshot,
+} from "../../../entities/commerce-quote";
 import type { Offer, OfferId } from "../../../entities/offer";
 import type { PRId } from "../../../entities/partner-request";
 import type { ProductSku } from "../../../entities/product-sku";
@@ -10,8 +16,6 @@ import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
-import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
@@ -48,73 +52,27 @@ import type {
   RideHailingRouteSnapshot,
   SkuSnapshot,
 } from "../model";
+import { buildEqualRelativeSplitRule, validateOrderParticipants } from "../services";
 import {
-  buildEqualRelativeSplitRule,
-  buildOrderParticipantsFromContext,
-  PricingApplication,
-  validateOrderParticipants,
-} from "../services";
-import { evaluateRideOptions, type RideQuoteOption } from "./ride-hailing-ordering-flow";
+  resolveQuoteBoundOrderItems,
+  type QuoteBoundOrderItemInput,
+  type ValidatedOfferQuote,
+  type ValidatedQuoteItem,
+} from "./offer-quote";
 
 const offerRepo = new OfferRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
-const productSpuRepo = new ProductSpuRepository();
-const productSkuRepo = new ProductSkuRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
-const pricingApplication = new PricingApplication();
 
 const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
 const DEFAULT_INITIATING_WINDOW_MINUTES = 30;
 
-export type OrderParticipantInput = {
-  userId: string;
-};
-
-export type FixedOrderItemInput = {
-  kind?: "FIXED";
-  skuId: number;
-  quantity?: number | null;
-};
-
-export type ChoiceSetOrderItemInput = {
-  kind: "CHOICE_SET";
-  productType: "RIDE_HAILING";
-  candidateSkuIds: number[];
-  quantity?: 1 | null;
-};
-
-export type OrderItemInput = FixedOrderItemInput | ChoiceSetOrderItemInput;
-
-export type RentalProductTypedExtraProperties = {
-  serviceStartAt: string;
-  serviceEndAt: string;
-  contactPhone: string;
-  registrants: Array<{
-    fullName: string;
-    nationalId?: string | null;
-  }>;
-};
-
-export type RideHailingProductTypedExtraProperties = {
-  route: RideHailingRouteSnapshot;
-  departureAt?: string | null;
-  riders: string[];
-  contactPhone: string;
-};
-
-export type ProductTypedExtraProperties =
-  | RentalProductTypedExtraProperties
-  | RideHailingProductTypedExtraProperties;
+export type OrderItemInput = QuoteBoundOrderItemInput;
 
 export type CreateOrderCommandInput = {
-  source: {
-    offerId: number;
-  };
   prId?: number | null;
-  participants: OrderParticipantInput[];
   items: OrderItemInput[];
-  productTypedExtraProperties: ProductTypedExtraProperties;
 };
 
 export type CreateRentalOrderInput = {
@@ -148,34 +106,6 @@ export type OrderingActionProblem = {
   detail: string;
 };
 
-export type OrderingActionDecision =
-  | {
-      allowed: true;
-      problem: null;
-      nextRelevantAt: string | null;
-    }
-  | {
-      allowed: false;
-      problem: OrderingActionProblem;
-      nextRelevantAt: string | null;
-    };
-
-export type OrderingEvaluation = {
-  evaluatedAt: string;
-  actions: {
-    create_order: OrderingActionDecision;
-  };
-  price: {
-    currency: "CNY";
-    totalFen: number | null;
-    range?: {
-      minFen: number | null;
-      maxFen: number | null;
-    } | null;
-    explanations: PriceExplanation[];
-  };
-};
-
 export type CreateOrderCommandResult =
   | {
       outcome: "CREATED";
@@ -188,24 +118,43 @@ export type CreateOrderCommandResult =
       reason: OrderingActionProblem;
     };
 
-type SelectedSkuContext = {
+type RideQuoteOption = {
+  skuId: number;
+  spuId: number;
+  name: string;
+  providerName: string;
+  carTypeName: string;
+  displayName: string;
+  providerVehicleTypeCode: string;
+  providerInstanceId: string;
+  selected: boolean;
+  selectable: boolean;
+  disabledReason: string | null;
+  estimateAmountFen: number | null;
+  quoteAmountFen: number | null;
+  priceExplanations: PriceExplanation[];
+};
+
+type SelectedProductContext = {
   offer: Offer;
   spu: ProductSpu;
   sku: ProductSku;
   quantity: number;
 };
 
-type SelectedRentalContext = Omit<SelectedSkuContext, "sku"> & {
+type SelectedRentalContext = Omit<SelectedProductContext, "sku"> & {
   sku: ProductSku & { facts: RentalSkuFacts };
   itemId: string;
   pricingSnapshot: OrderPricingSnapshot;
   cancellationPolicySnapshot: FixedOrderItemSnapshot["sku"]["cancellationPolicySnapshot"];
-  extraProperties: RentalProductTypedExtraProperties;
+  listingContext: RentalQuoteListingContextSnapshot;
 };
 
-type RideCandidateContext = Omit<SelectedSkuContext, "sku"> & {
+type RideCandidateContext = Omit<SelectedProductContext, "sku"> & {
   sku: ProductSku & { facts: RideHailingSkuFacts };
   quote: RideQuoteOption;
+  offerQuote?: CommerceQuote;
+  fulfillmentQuote: RideHailingFulfillmentQuoteSnapshot;
 };
 
 type SelectedRideContext = {
@@ -214,7 +163,7 @@ type SelectedRideContext = {
   candidates: RideCandidateContext[];
   dispatchCandidate: RideCandidateContext;
   pricingSnapshot: OrderPricingSnapshot;
-  extraProperties: RideHailingProductTypedExtraProperties;
+  listingContext: RideHailingQuoteListingContextSnapshot;
 };
 
 const isActiveNow = (offer: Offer, now = new Date()): boolean => {
@@ -236,18 +185,6 @@ const actionProblem = (input: {
   detail: input.detail,
 });
 
-const allowed = (): OrderingActionDecision => ({
-  allowed: true,
-  problem: null,
-  nextRelevantAt: null,
-});
-
-const blocked = (problem: OrderingActionProblem): OrderingActionDecision => ({
-  allowed: false,
-  problem,
-  nextRelevantAt: null,
-});
-
 async function resolveOffer(offerId: number): Promise<Offer> {
   const offer = await offerRepo.findById(offerId as OfferId);
   if (!offer) {
@@ -257,117 +194,6 @@ async function resolveOffer(offerId: number): Promise<Offer> {
     return throwHttpProblem({ status: 409, detail: "Offer is not active" });
   }
   return offer;
-}
-
-function readFixedItemInput(items: OrderItemInput[]): FixedOrderItemInput {
-  const firstItem = items[0];
-  if (!firstItem) {
-    return throwHttpProblem({
-      status: 400,
-      detail: "CreateOrder requires at least one selected item",
-    });
-  }
-  if (firstItem.kind === "CHOICE_SET") {
-    return throwHttpProblem({
-      status: 400,
-      detail: "CreateOrder requires a fixed SKU item",
-    });
-  }
-  return firstItem;
-}
-
-function readRideChoiceSetItemInput(items: OrderItemInput[]): ChoiceSetOrderItemInput {
-  const firstItem = items[0];
-  if (!firstItem) {
-    return throwHttpProblem({
-      status: 400,
-      detail: "RideHailing CreateOrder requires one choice-set item",
-    });
-  }
-  if (firstItem.kind !== "CHOICE_SET" || firstItem.productType !== "RIDE_HAILING") {
-    return throwHttpProblem({
-      status: 400,
-      detail: "RideHailing CreateOrder requires a RideHailing choice-set item",
-    });
-  }
-  if (items.length !== 1) {
-    return throwHttpProblem({
-      status: 400,
-      detail: "RideHailing CreateOrder supports one choice-set item only",
-    });
-  }
-  if ((firstItem.quantity ?? 1) !== 1) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "RideHailing choice-set quantity must be 1",
-    });
-  }
-  const candidateSkuIds = [...new Set(firstItem.candidateSkuIds)];
-  if (candidateSkuIds.length === 0) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "请选择至少一个可用车型",
-    });
-  }
-  return {
-    ...firstItem,
-    candidateSkuIds,
-    quantity: 1,
-  };
-}
-
-async function resolveSkuContext(input: {
-  offer: Offer;
-  skuId: number;
-  quantity?: number | null;
-}): Promise<SelectedSkuContext> {
-  const sku = await productSkuRepo.findById(input.skuId);
-  if (!sku || sku.status !== "ACTIVE") {
-    return throwHttpProblem({ status: 404, detail: "Selected SKU not found" });
-  }
-  const spu = await productSpuRepo.findById(sku.spuId);
-  if (!spu || spu.status !== "ACTIVE") {
-    return throwHttpProblem({ status: 404, detail: "Selected SPU not found" });
-  }
-  if (spu.productType !== input.offer.productType) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Selected SKU product type does not match Offer",
-    });
-  }
-  if (!input.offer.spuIds.includes(spu.id)) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Selected SPU is not part of the active Offer",
-    });
-  }
-
-  const quantity = input.quantity ?? 1;
-  if (quantity !== 1) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Commerce MVP supports quantity 1 only",
-    });
-  }
-
-  return {
-    offer: input.offer,
-    spu,
-    sku,
-    quantity,
-  };
-}
-
-async function resolveSelectedSku(input: {
-  offer: Offer;
-  items: OrderItemInput[];
-}): Promise<SelectedSkuContext> {
-  const firstItem = readFixedItemInput(input.items);
-  return resolveSkuContext({
-    offer: input.offer,
-    skuId: firstItem.skuId,
-    quantity: firstItem.quantity,
-  });
 }
 
 async function buildCancellationPolicySnapshot(sku: ProductSku) {
@@ -390,54 +216,15 @@ async function buildCancellationPolicySnapshot(sku: ProductSku) {
   };
 }
 
-function readRentalExtras(input: ProductTypedExtraProperties): RentalProductTypedExtraProperties {
-  if ("serviceStartAt" in input && "serviceEndAt" in input && "registrants" in input) {
-    return input;
-  }
-  return throwHttpProblem({
-    status: 400,
-    detail: "Rental CreateOrder requires Rental extra properties",
-  });
-}
-
-function readRideExtras(
-  input: ProductTypedExtraProperties,
-): RideHailingProductTypedExtraProperties {
-  if ("route" in input && "riders" in input) {
-    return input;
-  }
-  return throwHttpProblem({
-    status: 400,
-    detail: "RideHailing CreateOrder requires RideHailing extra properties",
-  });
-}
-
 function validateCommonCommand(input: {
   command: CreateOrderCommandInput;
   createdBy?: string | null;
 }): OrderingActionProblem | null {
-  if (input.command.participants.length === 0) {
-    return actionProblem({
-      code: "ORDER_PARTICIPANTS_REQUIRED",
-      title: "无法创建订单",
-      detail: "订单至少需要一名参与者。",
-    });
-  }
   if (input.command.items.length === 0) {
     return actionProblem({
       code: "ORDER_ITEMS_REQUIRED",
       title: "无法创建订单",
       detail: "订单至少需要一个商品项。",
-    });
-  }
-  if (
-    input.createdBy &&
-    !input.command.participants.some((participant) => participant.userId === input.createdBy)
-  ) {
-    return actionProblem({
-      code: "ORDER_CREATOR_NOT_PARTICIPANT",
-      title: "无法创建订单",
-      detail: "下单人必须包含在订单参与者中。",
     });
   }
   return null;
@@ -474,33 +261,33 @@ async function validatePrAttachmentForEvaluation(input: {
   return null;
 }
 
-function validateRentalExtras(input: {
-  extras: RentalProductTypedExtraProperties;
-  participantCount: number;
+function validateRentalQuoteContext(input: {
+  listingContext: RentalQuoteListingContextSnapshot;
   selectedParticipantCount: number;
 }): OrderingActionProblem | null {
-  if (input.selectedParticipantCount !== input.participantCount) {
+  const participantCount = input.listingContext.participants.length;
+  if (input.selectedParticipantCount !== participantCount) {
     return actionProblem({
       code: "RENTAL_SKU_PARTICIPANT_COUNT_MISMATCH",
       title: "规格与人数不一致",
       detail: "选择的租赁规格需要匹配订单参与人数。",
     });
   }
-  if (input.extras.contactPhone.trim().length === 0) {
+  if (input.listingContext.contactPhone.trim().length === 0) {
     return actionProblem({
       code: "ORDER_CONTACT_PHONE_REQUIRED",
       title: "缺少联系方式",
       detail: "请填写联系人电话。",
     });
   }
-  if (input.extras.registrants.length !== input.participantCount) {
+  if (input.listingContext.registrants.length !== participantCount) {
     return actionProblem({
       code: "RENTAL_REGISTRANT_COUNT_MISMATCH",
       title: "实名登记人数不一致",
       detail: "实名登记人数需要匹配订单参与者人数。",
     });
   }
-  if (input.extras.registrants.some((registrant) => registrant.fullName.trim().length === 0)) {
+  if (input.listingContext.registrants.some((registrant) => registrant.name.trim().length === 0)) {
     return actionProblem({
       code: "RENTAL_REGISTRANT_NAME_REQUIRED",
       title: "缺少实名信息",
@@ -508,8 +295,8 @@ function validateRentalExtras(input: {
     });
   }
   if (
-    Number.isNaN(new Date(input.extras.serviceStartAt).getTime()) ||
-    Number.isNaN(new Date(input.extras.serviceEndAt).getTime())
+    Number.isNaN(new Date(input.listingContext.serviceStartAt).getTime()) ||
+    Number.isNaN(new Date(input.listingContext.serviceEndAt).getTime())
   ) {
     return actionProblem({
       code: "RENTAL_SERVICE_TIME_INVALID",
@@ -520,117 +307,132 @@ function validateRentalExtras(input: {
   return null;
 }
 
-function validateRideExtras(
-  extras: RideHailingProductTypedExtraProperties,
-): OrderingActionProblem | null {
-  if (extras.riders.length === 0) {
-    return actionProblem({
-      code: "RIDE_HAILING_RIDERS_REQUIRED",
-      title: "缺少同乘人",
-      detail: "至少需要一名同乘人。",
-    });
-  }
-  if (extras.contactPhone.trim().length === 0) {
-    return actionProblem({
-      code: "ORDER_CONTACT_PHONE_REQUIRED",
-      title: "缺少联系方式",
-      detail: "请填写联系方式。",
-    });
-  }
-  return null;
-}
-
-const rideQuoteBaseAmountFen = (quote: RideQuoteOption): number => {
-  if (typeof quote.estimateAmountFen === "number") return quote.estimateAmountFen;
-  if (typeof quote.quoteAmountFen === "number") return quote.quoteAmountFen;
-  return throwHttpProblem({
-    status: 409,
-    detail: "RideHailing quote amount is missing",
-  });
-};
-
-async function resolveRentalSelection(input: {
-  command: CreateOrderCommandInput;
-  offer: Offer;
+const pricingSnapshotFromQuote = (input: {
   itemId: string;
-}): Promise<SelectedRentalContext> {
-  const selected = await resolveSelectedSku({
-    offer: input.offer,
-    items: input.command.items,
-  });
-  if (!isRentalSkuFacts(selected.sku.facts)) {
+  price: CommerceQuote["pricingSnapshot"];
+}): OrderPricingSnapshot => {
+  const totalFen = input.price.totalFen;
+  if (typeof totalFen !== "number") {
     return throwHttpProblem({
       status: 409,
-      detail: "Selected SKU is not a Rental SKU",
+      detail: "报价金额缺失。",
+      code: "ORDERING_QUOTE_PRICE_MISSING",
     });
   }
-  const extras = readRentalExtras(input.command.productTypedExtraProperties);
-  const pricingSnapshot = pricingApplication.resolve({
-    offer: input.offer,
-    items: [
+  return {
+    currency: input.price.currency,
+    itemBreakdowns: [
       {
         itemId: input.itemId,
-        spu: selected.spu,
-        sku: selected.sku,
-        quantity: selected.quantity,
+        resolvedAmountFen: totalFen,
+        explanations: input.price.explanations,
       },
     ],
-    orderContext: {
-      serviceTime: extras.serviceStartAt,
-    },
-  });
+    orderLevelExplanations: [],
+    subtotalFen: totalFen,
+    totalFen,
+  };
+};
 
+async function resolveRentalSelectionFromQuote(input: {
+  item: ValidatedQuoteItem;
+  itemId: string;
+}): Promise<SelectedRentalContext> {
+  if (input.item.kind !== "FIXED") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Rental create-order requires a fixed quote item",
+    });
+  }
+  const quote = input.item.quote;
+  if (
+    quote.offer.productType !== "RENTAL" ||
+    quote.quote.listingContextSnapshot.productType !== "RENTAL" ||
+    !isRentalSkuFacts(quote.sku.facts)
+  ) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Selected quote is not a Rental quote",
+    });
+  }
   return {
-    ...selected,
+    offer: quote.offer,
+    spu: quote.spu,
     sku: {
-      ...selected.sku,
-      facts: selected.sku.facts,
+      ...quote.sku,
+      facts: quote.sku.facts,
     },
+    quantity: quote.quote.quantity,
     itemId: input.itemId,
-    pricingSnapshot,
-    cancellationPolicySnapshot: await buildCancellationPolicySnapshot(selected.sku),
-    extraProperties: extras,
+    pricingSnapshot: pricingSnapshotFromQuote({
+      itemId: input.itemId,
+      price: quote.quote.pricingSnapshot,
+    }),
+    cancellationPolicySnapshot: await buildCancellationPolicySnapshot(quote.sku),
+    listingContext: quote.quote.listingContextSnapshot,
   };
 }
 
-async function resolveRideSelection(input: {
-  command: CreateOrderCommandInput;
-  offer: Offer;
+const rideQuoteOptionFromOfferQuote = (quote: ValidatedOfferQuote): RideQuoteOption => {
+  const fulfillment = quote.quote.fulfillmentQuoteSnapshot;
+  if (fulfillment.productType !== "RIDE_HAILING") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Selected quote is not a RideHailing quote",
+    });
+  }
+  return {
+    skuId: quote.sku.id,
+    spuId: quote.spu.id,
+    name: quote.sku.name,
+    providerName: fulfillment.providerName,
+    carTypeName: fulfillment.providerVehicleTypeName,
+    displayName: fulfillment.displayName,
+    providerVehicleTypeCode: fulfillment.providerVehicleTypeCode,
+    providerInstanceId: fulfillment.providerInstanceId,
+    selected: false,
+    selectable: true,
+    disabledReason: null,
+    estimateAmountFen: fulfillment.estimateAmountFen,
+    quoteAmountFen: quote.quote.pricingSnapshot.totalFen,
+    priceExplanations: quote.quote.pricingSnapshot.explanations,
+  };
+};
+
+async function resolveRideSelectionFromQuote(input: {
+  item: ValidatedQuoteItem;
   itemId: string;
 }): Promise<SelectedRideContext> {
-  const extras = readRideExtras(input.command.productTypedExtraProperties);
-  const choiceSetInput = readRideChoiceSetItemInput(input.command.items);
-
-  const options = await evaluateRideOptions({
-    offer: input.offer,
-    route: extras.route,
-    candidateSkuIds: choiceSetInput.candidateSkuIds,
-  });
-  const quotesBySkuId = new Map(options.map((option) => [option.skuId, option]));
+  if (input.item.kind !== "CHOICE_SET") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing create-order requires a choice-set quote item",
+    });
+  }
   const candidates = await Promise.all(
-    choiceSetInput.candidateSkuIds.map(async (skuId) => {
-      const selected = await resolveSkuContext({
-        offer: input.offer,
-        skuId,
-        quantity: 1,
-      });
-      if (!isRideHailingSkuFacts(selected.sku.facts)) {
+    input.item.candidateQuotes.map(async (quote): Promise<RideCandidateContext> => {
+      if (
+        quote.offer.productType !== "RIDE_HAILING" ||
+        quote.quote.listingContextSnapshot.productType !== "RIDE_HAILING" ||
+        quote.quote.fulfillmentQuoteSnapshot.productType !== "RIDE_HAILING" ||
+        !isRideHailingSkuFacts(quote.sku.facts)
+      ) {
         return throwHttpProblem({
           status: 409,
-          detail: "Selected SKU is not a RideHailing SKU",
+          detail: "Selected quote is not a RideHailing quote",
         });
       }
-      const quote = quotesBySkuId.get(selected.sku.id);
-      if (!quote || !quote.selectable || quote.quoteAmountFen === null) {
-        return throwHttpProblem({ status: 409, detail: "请选择可用车型" });
-      }
       return {
-        ...selected,
+        offer: quote.offer,
+        spu: quote.spu,
         sku: {
-          ...selected.sku,
-          facts: selected.sku.facts,
+          ...quote.sku,
+          facts: quote.sku.facts,
         },
-        quote,
+        quantity: quote.quote.quantity,
+        quote: rideQuoteOptionFromOfferQuote(quote),
+        offerQuote: quote.quote,
+        fulfillmentQuote: quote.quote.fulfillmentQuoteSnapshot,
       };
     }),
   );
@@ -642,28 +444,26 @@ async function resolveRideSelection(input: {
   if (!dispatchCandidate) {
     return throwHttpProblem({ status: 409, detail: "请选择可用车型" });
   }
-  const pricingSnapshot = pricingApplication.resolve({
-    offer: input.offer,
-    items: [
-      {
-        itemId: input.itemId,
-        spu: dispatchCandidate.spu,
-        sku: dispatchCandidate.sku,
-        quantity: dispatchCandidate.quantity,
-      },
-    ],
-    orderContext: {
-      quoteTotalFen: rideQuoteBaseAmountFen(dispatchCandidate.quote),
-    },
-  });
-
+  if (
+    !dispatchCandidate.offerQuote ||
+    dispatchCandidate.offerQuote.listingContextSnapshot.productType !== "RIDE_HAILING"
+  ) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing quote context is missing",
+      code: "ORDERING_QUOTE_CONTEXT_INVALID",
+    });
+  }
   return {
-    offer: input.offer,
+    offer: dispatchCandidate.offer,
     itemId: input.itemId,
     candidates,
     dispatchCandidate,
-    pricingSnapshot,
-    extraProperties: extras,
+    pricingSnapshot: pricingSnapshotFromQuote({
+      itemId: input.itemId,
+      price: dispatchCandidate.offerQuote.pricingSnapshot,
+    }),
+    listingContext: dispatchCandidate.offerQuote.listingContextSnapshot,
   };
 }
 
@@ -752,17 +552,6 @@ async function buildRideChoiceSetItemSnapshot(input: {
   };
 }
 
-function buildParticipantSnapshots(input: { command: CreateOrderCommandInput; createdBy: string }) {
-  return buildOrderParticipantsFromContext({
-    participants: input.command.participants.map((participant) => ({
-      participantId: participant.userId,
-      userId: participant.userId,
-      joinedVia: "API",
-    })),
-    createdBy: input.createdBy,
-  });
-}
-
 function buildTimeout(minutes: number) {
   const now = new Date();
   return {
@@ -776,7 +565,7 @@ async function createBaseOrder(input: {
   offer: Offer;
   status?: OrderStatus;
   createdBy: string;
-  participants: ReturnType<typeof buildParticipantSnapshots>;
+  participants: OrderParticipantSnapshot[];
   items: OrderItemSnapshot[];
   unpaidWindowMinutes: number;
 }) {
@@ -947,10 +736,7 @@ async function createRentalOrderBranch(input: {
   createdBy: string;
 }) {
   return db.transaction(async (tx) => {
-    const participants = buildParticipantSnapshots({
-      command: input.command,
-      createdBy: input.createdBy,
-    });
+    const participants = input.selected.listingContext.participants;
     const item = buildItemSnapshot({
       itemId: input.selected.itemId,
       sku: input.selected.sku,
@@ -977,14 +763,10 @@ async function createRentalOrderBranch(input: {
     const rentalOrderRepo = new RentalOrderRepository(tx);
     await rentalOrderRepo.create({
       orderId: base.order.id,
-      serviceStartAt: new Date(input.selected.extraProperties.serviceStartAt),
-      serviceEndAt: new Date(input.selected.extraProperties.serviceEndAt),
-      contactPhone: input.selected.extraProperties.contactPhone,
-      registrants: input.selected.extraProperties.registrants.map((registrant) => ({
-        name: registrant.fullName,
-        phone: input.selected.extraProperties.contactPhone,
-        nationalIdMasked: registrant.nationalId ? "已填写" : null,
-      })),
+      serviceStartAt: new Date(input.selected.listingContext.serviceStartAt),
+      serviceEndAt: new Date(input.selected.listingContext.serviceEndAt),
+      contactPhone: input.selected.listingContext.contactPhone,
+      registrants: input.selected.listingContext.registrants,
     });
 
     const chargeLines = materializeChargeLinesFromSplitRule({
@@ -1012,23 +794,14 @@ async function createRentalOrderBranch(input: {
   });
 }
 
-const buildRideRiderSnapshots = (
-  extras: RideHailingProductTypedExtraProperties,
-): RideHailingRiderSnapshot[] =>
-  extras.riders.map((userId) => ({
-    userId,
-    displayName: "同乘人",
-    phoneMasked: null,
-  }));
-
 async function createRideHailingOrderBranch(input: {
   command: CreateOrderCommandInput;
   selected: SelectedRideContext;
   createdBy: string;
 }): Promise<CreateOrderCommandResult> {
   const provider = await providerRepo.findById(
-    input.selected.dispatchCandidate.sku.facts
-      .rideHailingProviderInstanceId as RideHailingProviderInstanceId,
+    input.selected.dispatchCandidate.fulfillmentQuote
+      .providerInstanceId as RideHailingProviderInstanceId,
   );
   if (!provider) {
     return throwHttpProblem({
@@ -1041,10 +814,7 @@ async function createRideHailingOrderBranch(input: {
   let providerOrderIdToCompensate: string | null = null;
   try {
     return await db.transaction(async (tx) => {
-      const participants = buildParticipantSnapshots({
-        command: input.command,
-        createdBy: input.createdBy,
-      });
+      const participants = input.selected.listingContext.participants;
       const unresolvedItem = await buildRideChoiceSetItemSnapshot({
         selected: input.selected,
         resolution: null,
@@ -1070,12 +840,12 @@ async function createRideHailingOrderBranch(input: {
       const rideRepo = new RideHailingOrderRepository(tx);
       await rideRepo.create({
         orderId: base.order.id,
-        routeSnapshot: input.selected.extraProperties.route,
-        departureAt: input.selected.extraProperties.departureAt
-          ? new Date(input.selected.extraProperties.departureAt)
+        routeSnapshot: input.selected.listingContext.route,
+        departureAt: input.selected.listingContext.departureAt
+          ? new Date(input.selected.listingContext.departureAt)
           : null,
-        riders: buildRideRiderSnapshots(input.selected.extraProperties),
-        contactPhone: input.selected.extraProperties.contactPhone,
+        riders: input.selected.listingContext.riders,
+        contactPhone: input.selected.listingContext.contactPhone,
         executionPhase: "INITIATING",
       });
 
@@ -1085,11 +855,12 @@ async function createRideHailingOrderBranch(input: {
           orderId: base.order.id,
           params: {
             callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
-            car_type: input.selected.dispatchCandidate.sku.facts.providerVehicleTypeCode,
-            flat: input.selected.extraProperties.route.origin.latitude,
-            flng: input.selected.extraProperties.route.origin.longitude,
-            tlat: input.selected.extraProperties.route.destination.latitude,
-            tlng: input.selected.extraProperties.route.destination.longitude,
+            car_type: input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
+            price_token: input.selected.dispatchCandidate.fulfillmentQuote.providerQuoteId,
+            flat: input.selected.listingContext.route.origin.latitude,
+            flng: input.selected.listingContext.route.origin.longitude,
+            tlat: input.selected.listingContext.route.destination.latitude,
+            tlng: input.selected.listingContext.route.destination.longitude,
           },
         });
       } catch (error) {
@@ -1123,8 +894,10 @@ async function createRideHailingOrderBranch(input: {
             input.selected.dispatchCandidate.sku,
           ),
         }),
-        providerVehicleTypeCode: input.selected.dispatchCandidate.sku.facts.providerVehicleTypeCode,
-        providerVehicleTypeName: input.selected.dispatchCandidate.quote.carTypeName,
+        providerVehicleTypeCode:
+          input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
+        providerVehicleTypeName:
+          input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeName,
         quoteSnapshot: buildRideQuoteSnapshot(input.selected.dispatchCandidate.quote),
         providerBinding,
         source: "DISPATCH_POLICY",
@@ -1169,170 +942,6 @@ async function createRideHailingOrderBranch(input: {
   }
 }
 
-export async function evaluateOrdering(
-  input: CreateOrderCommandInput & {
-    viewerUserId?: string | null;
-  },
-): Promise<OrderingEvaluation> {
-  const commonProblem = validateCommonCommand({
-    command: input,
-    createdBy: input.viewerUserId,
-  });
-  const offer = await resolveOffer(input.source.offerId);
-  const prProblem = await validatePrAttachmentForEvaluation({
-    prId: input.prId,
-    offerId: offer.id,
-    viewerUserId: input.viewerUserId,
-  });
-  const itemId = "preview";
-
-  if (offer.productType === "RENTAL") {
-    const selected = await resolveRentalSelection({
-      command: input,
-      offer,
-      itemId,
-    });
-    const rentalProblem = validateRentalExtras({
-      extras: selected.extraProperties,
-      participantCount: input.participants.length,
-      selectedParticipantCount: selected.sku.facts.participantCount,
-    });
-    return {
-      evaluatedAt: new Date().toISOString(),
-      actions: {
-        create_order: commonProblem
-          ? blocked(commonProblem)
-          : prProblem
-            ? blocked(prProblem)
-            : rentalProblem
-              ? blocked(rentalProblem)
-              : allowed(),
-      },
-      price: {
-        currency: "CNY",
-        totalFen: selected.pricingSnapshot.totalFen,
-        range: null,
-        explanations: [
-          ...selected.pricingSnapshot.itemBreakdowns.flatMap((breakdown) => breakdown.explanations),
-          ...selected.pricingSnapshot.orderLevelExplanations,
-        ],
-      },
-    };
-  }
-
-  const extras = readRideExtras(input.productTypedExtraProperties);
-  const rideProblem = validateRideExtras(extras);
-  const choiceSetInput = readRideChoiceSetItemInput(input.items);
-  const options = await evaluateRideOptions({
-    offer,
-    route: extras.route,
-    candidateSkuIds: choiceSetInput.candidateSkuIds,
-  });
-  const quotedCandidates = options.filter(
-    (option) => option.selectable && option.quoteAmountFen !== null,
-  );
-  const dispatchQuote = [...quotedCandidates].sort(
-    (left, right) =>
-      (left.quoteAmountFen ?? Number.POSITIVE_INFINITY) -
-      (right.quoteAmountFen ?? Number.POSITIVE_INFINITY),
-  )[0];
-  const quoteProblem =
-    dispatchQuote === undefined
-      ? actionProblem({
-          code: "RIDE_HAILING_VEHICLE_REQUIRED",
-          title: "请选择可用车型",
-          detail: "请选择至少一个可用的网约车车型。",
-        })
-      : null;
-  const selected =
-    dispatchQuote === undefined
-      ? null
-      : await resolveSelectedSku({
-          offer,
-          items: [
-            {
-              kind: "FIXED",
-              skuId: dispatchQuote.skuId,
-              quantity: 1,
-            },
-          ],
-        });
-  if (selected && !isRideHailingSkuFacts(selected.sku.facts)) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Selected SKU is not a RideHailing SKU",
-    });
-  }
-  const pricingSnapshot =
-    selected && dispatchQuote
-      ? pricingApplication.resolve({
-          offer,
-          items: [
-            {
-              itemId,
-              spu: selected.spu,
-              sku: selected.sku,
-              quantity: selected.quantity,
-            },
-          ],
-          orderContext: {
-            quoteTotalFen: rideQuoteBaseAmountFen(dispatchQuote),
-          },
-        })
-      : null;
-  const selectablePrices = quotedCandidates
-    .map((option) => option.quoteAmountFen)
-    .filter((value): value is number => typeof value === "number");
-
-  return {
-    evaluatedAt: new Date().toISOString(),
-    actions: {
-      create_order: commonProblem
-        ? blocked(commonProblem)
-        : prProblem
-          ? blocked(prProblem)
-          : rideProblem
-            ? blocked(rideProblem)
-            : quoteProblem
-              ? blocked(quoteProblem)
-              : allowed(),
-    },
-    price: {
-      currency: "CNY",
-      totalFen: null,
-      range: {
-        minFen: selectablePrices.length ? Math.min(...selectablePrices) : null,
-        maxFen: selectablePrices.length ? Math.max(...selectablePrices) : null,
-      },
-      explanations: [
-        ...(pricingSnapshot?.itemBreakdowns.flatMap((breakdown) => breakdown.explanations) ?? []),
-        ...(pricingSnapshot?.orderLevelExplanations ?? []),
-      ],
-    },
-  };
-}
-
-export async function quoteRideHailingOrderingOptions(input: {
-  offerId: number;
-  route: RideHailingRouteSnapshot;
-}) {
-  const offer = await resolveOffer(input.offerId);
-  if (offer.productType !== "RIDE_HAILING") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Offer is not a RideHailing offer",
-    });
-  }
-
-  return {
-    quoteExpiresAt: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
-    options: await evaluateRideOptions({
-      offer,
-      route: input.route,
-    }),
-  };
-}
-
 export async function createOrderCommand(
   input: CreateOrderCommandInput & {
     createdBy: string;
@@ -1350,18 +959,46 @@ export async function createOrderCommand(
     });
   }
 
-  const offer = await resolveOffer(input.source.offerId);
+  const quoteItems = await resolveQuoteBoundOrderItems(input.items);
+  const firstQuoteItem = quoteItems[0];
+  if (!firstQuoteItem || quoteItems.length !== 1) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "CreateOrder requires one quote-bound item",
+    });
+  }
+  const firstOffer =
+    firstQuoteItem.kind === "FIXED"
+      ? firstQuoteItem.quote.offer
+      : firstQuoteItem.candidateQuotes[0]?.offer;
+  if (!firstOffer) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "报价缺少 Offer 信息。",
+      code: "ORDERING_QUOTE_OFFER_INVALID",
+    });
+  }
+  const prProblem = await validatePrAttachmentForEvaluation({
+    prId: input.prId,
+    offerId: firstOffer.id,
+    viewerUserId: input.createdBy,
+  });
+  if (prProblem) {
+    return throwHttpProblem({
+      status: prProblem.code === "PR_ORDER_CREATOR_REQUIRED" ? 403 : 409,
+      detail: prProblem.detail,
+      code: prProblem.code,
+    });
+  }
   const itemId = randomUUID();
 
-  if (offer.productType === "RENTAL") {
-    const selected = await resolveRentalSelection({
-      command: input,
-      offer,
+  if (firstQuoteItem.kind === "FIXED") {
+    const selected = await resolveRentalSelectionFromQuote({
+      item: firstQuoteItem,
       itemId,
     });
-    const rentalProblem = validateRentalExtras({
-      extras: selected.extraProperties,
-      participantCount: input.participants.length,
+    const rentalProblem = validateRentalQuoteContext({
+      listingContext: selected.listingContext,
       selectedParticipantCount: selected.sku.facts.participantCount,
     });
     if (rentalProblem) {
@@ -1382,19 +1019,10 @@ export async function createOrderCommand(
     };
   }
 
-  const selected = await resolveRideSelection({
-    command: input,
-    offer,
+  const selected = await resolveRideSelectionFromQuote({
+    item: firstQuoteItem,
     itemId,
   });
-  const rideProblem = validateRideExtras(selected.extraProperties);
-  if (rideProblem) {
-    return throwHttpProblem({
-      status: 409,
-      detail: rideProblem.detail,
-      code: rideProblem.code,
-    });
-  }
   return createRideHailingOrderBranch({
     command: input,
     selected,

@@ -258,3 +258,168 @@
   - `pnpm check:type:frontend`
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `git diff --check`
+
+## Slice: Offer Listing And Quote Identity
+
+- Backend:
+  - added persisted product-type-independent `commerce_quotes`
+  - added `CommerceQuoteRepository`
+  - added Offer-owned `POST /api/commerce/offers/:offerId/listing`
+  - added typed RideHailing provider quote output for estimate adapters
+  - added Quote-domain quote-bound order item resolver
+  - made create-order product items quote-only:
+    `FIXED.quoteId` and `CHOICE_SET.candidateQuoteIds`
+  - moved participants, Rental registrants/contact, RideHailing riders/contact,
+    route, departureAt, price, SKU, and Offer facts into validated quote/listing
+    snapshots
+  - removed old backend `/ordering/evaluate`,
+    `/ordering/ride-hailing/options`, and unused `evaluateRideOptions`
+    surfaces
+  - quote expiry now returns HTTP 409 with code `ORDERING_QUOTE_EXPIRED`
+- Frontend:
+  - added `useOfferListing`
+  - migrated Rental Ordering Content to unified listing quotes
+  - migrated RideHailing Ordering Content to unified listing quotes keyed by
+    route + departureAt
+  - removed create-order preflight/evaluate orchestration from the Ordering
+    Page
+  - quote-expired create failure refreshes listing, preserves matching selected
+    SKU ids, and requires a second explicit create click
+  - added imported departure-time prompt with default "now" behavior and drawer
+    apply action
+  - updated the imported departure-time prompt to display the concrete imported
+    date/time value, not only a generic "has departure time" message
+  - added a Drawer one-tap "现在出发" action so users can switch back from an
+    imported/manual departure time to depart-now
+  - removed `data-testid` attributes from `PuDialog` calls that could not
+    inherit them and caused Vue warnings
+- Durable docs:
+  - updated `docs/20-product-tdd/ecommerce-contracts.md` for Offer Listing,
+    quote identity, quote-only create-order payloads, Quote-owned validity, and
+    quote-expired HTTP 409 behavior
+- Scenario:
+  - replaced the old RideHailing price-change preflight scenario with
+    quote-expired refresh/preserve-selection coverage
+  - updated Rental PR blocker scenarios to assert create-click dialog behavior
+    after unified listing quote issuance
+- Verification:
+  - `pnpm check:type:backend`
+  - `pnpm check:type:frontend`
+  - `pnpm check:type:frontend` after the imported departure-time display
+    follow-up
+  - `pnpm check:type:frontend` after the Drawer depart-now follow-up
+  - `pnpm check:format`
+  - `pnpm check:lint`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    after the imported departure-time display follow-up
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    after the Drawer depart-now follow-up
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+- Non-blocking:
+  - `pnpm check:lint` reports the existing report-only naming audit finding for
+    `RideHailingOrderingContent`; this is intentionally retained because the
+    name matches the reviewed Ordering shell content role.
+
+## Slice: Offer Listing And Quote Identity Test Hardening
+
+- Fake Caocao:
+  - added a test-control estimate availability switch per car type
+  - unavailable estimate requests now return provider failure, letting the
+    Offer Listing resolver exercise its "omit unavailable SKU" behavior
+- RideHailing system scenario:
+  - added coverage that a provider-unavailable vehicle type is hidden from the
+    Ordering Page SKU list
+  - added coverage that quote-expired refresh preserves still-listed selected
+    SKUs but prunes selected SKUs that disappeared from the refreshed listing
+  - added coverage that all provider-unavailable vehicle types produce no
+    vehicle cards, a pending price, a disabled create action, and no provider
+    order
+- Backend Quote-domain scenario:
+  - added coverage that quote validity rejects inactive Offer and inactive SKU
+  - added coverage that `CHOICE_SET` candidate quotes must come from one
+    `listingSessionId`
+- Verification:
+  - `pnpm exec vitest run --project backend-scenario apps/backend/tests/commerce/offer-quote-resolution.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm check:type:backend`
+  - `pnpm check:type:frontend`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm exec biome check packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts apps/backend/tests/commerce/offer-quote-resolution.scenario.test.ts`
+  - `git diff --check`
+
+## Slice: Ordering Error Feedback Simplification
+
+- Frontend:
+  - removed `OrderingFloatingNoticeLayer` from `OrderingFromPlacementPage`
+  - deleted the unused floating notice component
+  - removed the duplicate floating error-message state now that create-order
+    failures and quote-expired cases are explained by Dialog
+- Verification:
+  - `pnpm check:type:frontend`
+  - `pnpm exec biome check apps/frontend/src/pages/OrderingFromPlacementPage.vue`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+  - `git diff --check`
+
+## Slice: RideHailing SKU List Loading Skeleton
+
+- Frontend:
+  - added `PuSkeleton` placeholders inside the RideHailing SKU list area
+  - skeletons follow the reviewed vehicle-card left/right layout shape
+  - skeletons show only for the initial listing load when no visible quote
+    options exist; background refetch keeps the existing cards visible
+- Verification:
+  - `pnpm check:type:frontend`
+  - `pnpm exec biome check apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `git diff --check`
+
+## Slice: Offer Listing And Quote Identity Planning
+
+- Added standalone plan:
+  `tasks/ride-hailing-ui-fixes/offer-listing-quote-identity-plan.md`.
+- Captured accepted direction:
+  - public listing query uses `offerId`
+  - listing is Offer-owned because it includes commercial membership and price
+  - RideHailing dynamic availability depends on route and departure time
+  - RideHailing unavailable SKUs are omitted, not returned as
+    `selectable=false`
+  - Provider Port should return typed app-level quote shapes instead of
+    `unknown`
+  - listing returns quote identity and create-order submits quote identity
+  - expired quote replaces RideHailing price-diff preflight
+- Added plan review sections covering owner fit, main objections/risks, and
+  review questions before implementation.
+- Revised the plan after review:
+  - quote identity is now product-type-independent and commerce/order native,
+    not RideHailing-specific
+  - order and pricing should support quote ids natively
+  - create-order should derive Offer/SKU/route/departureAt/price from quote
+    snapshots instead of repeating them in the payload
+  - quote snapshots are persisted in the database
+  - expired quote is HTTP 409 problem details with a stable code
+  - the route shape is fixed as `POST /api/commerce/offers/:offerId/listing`
+- Re-reviewed the plan for maintainability, readability, and complexity:
+  - moved quote existence, expiry, active Offer/SKU, membership, and
+    listing-context coherence behind a Quote-domain validity resolver
+  - rejected `QUOTE_SET` as a command item kind and kept order item semantics as
+    `FIXED` / `CHOICE_SET` with quote ids as evidence fields
+  - renamed the working domain concept from `CommerceQuoteSnapshot` to
+    `OfferQuote`
+  - renamed `listingId` to `listingSessionId`
+  - clarified that generic quote JSON snapshots are persistence envelopes and
+    must be decoded before Order, Pricing, or RideHailing lifecycle consumes
+    them
+  - added topology and sequence reviews to the standalone plan
+- Revised the plan after additional review:
+  - corrected the frontend topology so Ordering Content emits quote-bound draft
+    state and Ordering Page / shell calls Create Order
+  - resolved quote-expired refresh behavior as preserving matching selected SKU
+    ids while still requiring a second click
+  - resolved create-order product item payload as quote-only, excluding
+    participants/riders/contact phone
+  - resolved Rental migration into the unified Offer Listing endpoint for this
+    slice
+  - added `quoteId` to fixed listed items and renamed RideHailing listed item
+    kind from `QUOTE` to `CHOICE_CANDIDATE`

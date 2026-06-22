@@ -272,6 +272,28 @@ async function fillRentalOrderingRequiredFields(page: Page): Promise<void> {
   await page.getByTestId("ordering.rental.registrant-name.1").fill("李四");
 }
 
+async function waitForRentalQuoteReady(page: Page, expectedPrice = "20.00"): Promise<void> {
+  await page.waitForFunction((priceText) => {
+    const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
+    return price?.includes(priceText);
+  }, expectedPrice);
+}
+
+async function assertOrderingBlockedDialog(input: {
+  page: Page;
+  expectedDetail: string;
+}): Promise<void> {
+  const dialog = input.page.getByRole("dialog", { name: "暂不能创建订单" });
+  await dialog.waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await dialog.getByText(input.expectedDetail).waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+}
+
 async function assertRentalOrderDetail(input: {
   page: Page;
   expectedItemName: string;
@@ -292,137 +314,124 @@ async function assertRentalOrderDetail(input: {
   });
 }
 
-scenario(
-  "commerce_rental_ordering_reaches_order_detail",
-  async (ctx) => {
-    const creator = await givenUser("system-commerce-rental-creator");
-    const joiner = await givenUser("system-commerce-rental-joiner");
-    await bindScenarioWeChatOpenId({
-      user: creator,
-      openId: "fake-openid-commerce-rental-creator",
+scenario("commerce_rental_ordering_reaches_order_detail", async (ctx) => {
+  const creator = await givenUser("system-commerce-rental-creator");
+  const joiner = await givenUser("system-commerce-rental-joiner");
+  await bindScenarioWeChatOpenId({
+    user: creator,
+    openId: "fake-openid-commerce-rental-creator",
+  });
+  await bindScenarioWeChatOpenId({
+    user: joiner,
+    openId: "fake-openid-commerce-rental-joiner",
+  });
+  const pr = await givenCommerceRentalPr({
+    creator,
+    minPartners: 2,
+    maxPartners: null,
+    title: "System commerce rental partner request",
+  });
+  await addJoinedParticipant({ pr, user: joiner });
+  await configurePRStatus({ pr, status: "READY" });
+  const placement = await givenRentalOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("joinerUserId", joiner.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.id);
+
+  let createdOrderPath: string | null = null;
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+    await installFakeWeChatPayBridge(page, getScenarioEnvironment().fakeWeChatPay.origin);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.getByTestId("ordering.rental.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
     });
-    await bindScenarioWeChatOpenId({
-      user: joiner,
-      openId: "fake-openid-commerce-rental-joiner",
+    await page.getByText("系统测试烘焙空间").waitFor({
+      state: "visible",
+      timeout: 10_000,
     });
-    const pr = await givenCommerceRentalPr({
-      creator,
-      minPartners: 2,
-      maxPartners: null,
-      title: "System commerce rental partner request",
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.rental.product-summary").textContent(),
+      expected: "适合 2 人烘焙体验",
+      label: "Ordering rental product summary",
     });
-    await addJoinedParticipant({ pr, user: joiner });
-    await configurePRStatus({ pr, status: "READY" });
-    const placement = await givenRentalOrderingPlacement();
-
-    ctx.record("creatorUserId", creator.user.id);
-    ctx.record("joinerUserId", joiner.user.id);
-    ctx.record("prId", pr.id);
-    ctx.record("placementId", placement.id);
-
-    let createdOrderPath: string | null = null;
-
-    await withScenarioPage(async (page) => {
-      await installScenarioUserSession(page, creator);
-      await installDeterministicShareSidecarStubs(page);
-      await installFakeWeChatPayBridge(
-        page,
-        getScenarioEnvironment().fakeWeChatPay.origin,
-      );
-
-      await page.goto(`/pr/${pr.id}`);
-      await page.getByTestId("pr-detail.commerce-placement.open").click();
-      await page.getByTestId("ordering.rental.page").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await page.getByText("系统测试烘焙空间").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("ordering.rental.product-summary").textContent(),
-        expected: "适合 2 人烘焙体验",
-        label: "Ordering rental product summary",
-      });
-      await page
-        .getByTestId("ordering.rental.product-summary")
-        .locator("img")
-        .waitFor({
-          state: "visible",
-          timeout: 10_000,
-        });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("ordering.rental.participant-count").textContent(),
-        expected: "2 人",
-        label: "Ordering participant count",
-      });
-
-      const skuOptions = page.getByTestId("ordering.rental.sku-option");
-      assert.equal(await skuOptions.count(), 2);
-      await skuOptions.filter({ hasText: "烘焙区 A" }).waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await skuOptions.filter({ hasText: "烘焙区 B" }).waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("ordering.rental.cancellation-policy").textContent(),
-        expected: "开始前可退",
-        label: "Ordering cancellation policy summary",
-      });
-
-      await fillRentalOrderingRequiredFields(page);
-      await page.waitForFunction(() => {
-        const price = document.querySelector(
-          '[data-testid="ordering.rental.price"]',
-        )?.textContent;
-        return price?.includes("20.00");
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("ordering.rental.price").textContent(),
-        pattern: /20\.00/,
-        label: "Default selected SKU price",
-      });
-      await page.getByTestId("ordering.rental.price-detail.toggle").click();
-      await page.getByTestId("ordering.rental.price-detail").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-      await assertLocatorTextIncludes({
-        actual: page.getByTestId("ordering.rental.price-detail").textContent(),
-        expected: "固定总价",
-        label: "Ordering price detail explanation",
-      });
-      await page.getByRole("button", { name: "Close drawer" }).click();
-
-      await skuOptions.filter({ hasText: "烘焙区 B" }).click();
-      await page.waitForFunction(() => {
-        const price = document.querySelector(
-          '[data-testid="ordering.rental.price"]',
-        )?.textContent;
-        return price?.includes("32.00");
-      });
-      await assertLocatorTextMatches({
-        actual: page.getByTestId("ordering.rental.price").textContent(),
-        pattern: /32\.00/,
-        label: "Price after switching rental zone",
-      });
-      await page.getByTestId("ordering.rental.create-order").click();
-
-      await assertRentalOrderDetail({
-        page,
-        expectedItemName: "烘焙区 B · 2人 · 2小时",
-      });
-      createdOrderPath = new URL(page.url()).pathname;
+    await page.getByTestId("ordering.rental.product-summary").locator("img").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.rental.participant-count").textContent(),
+      expected: "2 人",
+      label: "Ordering participant count",
     });
 
-    const orderPath = createdOrderPath;
-    assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
-  },
-);
+    const skuOptions = page.getByTestId("ordering.rental.sku-option");
+    assert.equal(await skuOptions.count(), 2);
+    await skuOptions.filter({ hasText: "烘焙区 A" }).waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await skuOptions.filter({ hasText: "烘焙区 B" }).waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.rental.cancellation-policy").textContent(),
+      expected: "开始前可退",
+      label: "Ordering cancellation policy summary",
+    });
+
+    await fillRentalOrderingRequiredFields(page);
+    await page.waitForFunction(() => {
+      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
+      return price?.includes("20.00");
+    });
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("ordering.rental.price").textContent(),
+      pattern: /20\.00/,
+      label: "Default selected SKU price",
+    });
+    await page.getByTestId("ordering.rental.price-detail.toggle").click();
+    await page.getByTestId("ordering.rental.price-detail").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("ordering.rental.price-detail").textContent(),
+      expected: "固定总价",
+      label: "Ordering price detail explanation",
+    });
+    await page.getByRole("button", { name: "Close drawer" }).click();
+
+    await skuOptions.filter({ hasText: "烘焙区 B" }).click();
+    await page.waitForFunction(() => {
+      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
+      return price?.includes("32.00");
+    });
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("ordering.rental.price").textContent(),
+      pattern: /32\.00/,
+      label: "Price after switching rental zone",
+    });
+    await page.getByTestId("ordering.rental.create-order").click();
+
+    await assertRentalOrderDetail({
+      page,
+      expectedItemName: "烘焙区 B · 2人 · 2小时",
+    });
+    createdOrderPath = new URL(page.url()).pathname;
+  });
+
+  const orderPath = createdOrderPath;
+  assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
+});
 
 scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
   const creator = await givenUser("system-commerce-placement-mismatch-creator");
@@ -447,8 +456,8 @@ scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
         name: "System commerce placement mismatch PR",
       })
       .waitFor({
-      state: "visible",
-      timeout: 10_000,
+        state: "visible",
+        timeout: 10_000,
       });
     await page.waitForLoadState("networkidle");
     assert.equal(
@@ -485,11 +494,13 @@ scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
       timeout: 10_000,
     });
     await fillRentalOrderingRequiredFields(page);
-    await page.getByText("订单创建需要 PR 处于 READY 状态").waitFor({
-      state: "visible",
-      timeout: 10_000,
+    await waitForRentalQuoteReady(page);
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertOrderingBlockedDialog({
+      page,
+      expectedDetail: "订单创建需要 PR 处于 READY 状态",
     });
-    assert.equal(await page.getByTestId("ordering.rental.create-order").isDisabled(), true);
+    assert.equal(new URL(page.url()).pathname, "/order/new");
   });
 });
 
@@ -520,11 +531,13 @@ scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
       timeout: 10_000,
     });
     await fillRentalOrderingRequiredFields(page);
-    await page.getByText("仅 PR 创建者可以创建订单").waitFor({
-      state: "visible",
-      timeout: 10_000,
+    await waitForRentalQuoteReady(page);
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertOrderingBlockedDialog({
+      page,
+      expectedDetail: "仅 PR 创建者可以创建订单",
     });
-    assert.equal(await page.getByTestId("ordering.rental.create-order").isDisabled(), true);
+    assert.equal(new URL(page.url()).pathname, "/order/new");
   });
 });
 
@@ -556,9 +569,7 @@ scenario("commerce_rental_cancel_entry_reaches_order_detail", async (ctx) => {
     });
     await fillRentalOrderingRequiredFields(page);
     await page.waitForFunction(() => {
-      const price = document.querySelector(
-        '[data-testid="ordering.rental.price"]',
-      )?.textContent;
+      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
       return price?.includes("20.00");
     });
     await page.getByTestId("ordering.rental.create-order").click();
@@ -591,10 +602,7 @@ scenario("commerce_rental_refund_entry_reaches_order_detail", async (ctx) => {
   await withScenarioPage(async (page) => {
     await installScenarioUserSession(page, creator);
     await installDeterministicShareSidecarStubs(page);
-    await installFakeWeChatPayBridge(
-      page,
-      getScenarioEnvironment().fakeWeChatPay.origin,
-    );
+    await installFakeWeChatPayBridge(page, getScenarioEnvironment().fakeWeChatPay.origin);
 
     await page.goto(`/pr/${pr.id}`);
     await page.getByTestId("pr-detail.commerce-placement.open").click();
@@ -604,9 +612,7 @@ scenario("commerce_rental_refund_entry_reaches_order_detail", async (ctx) => {
     });
     await fillRentalOrderingRequiredFields(page);
     await page.waitForFunction(() => {
-      const price = document.querySelector(
-        '[data-testid="ordering.rental.price"]',
-      )?.textContent;
+      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
       return price?.includes("20.00");
     });
     await page.getByTestId("ordering.rental.create-order").click();

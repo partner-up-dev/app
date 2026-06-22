@@ -7,9 +7,8 @@ import { throwHttpProblem } from "../lib/problem-details";
 import {
   cancelRentalOrderFromOrderDetail,
   createOrderCommand,
-  evaluateOrdering,
   getCommerceOrderDetail,
-  quoteRideHailingOrderingOptions,
+  listOfferListing,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import {
@@ -41,40 +40,28 @@ const registrantSchema = z.object({
   nationalId: z.string().trim().nullable().optional(),
 });
 
-const orderParticipantSchema = z.object({
+const listingParticipantSchema = z.object({
   userId: z.string().uuid(),
+  displayName: z.string().trim().nullable().optional(),
+  phoneMasked: z.string().trim().nullable().optional(),
 });
 
-const fixedOrderItemCommandSchema = z.object({
-  kind: z.literal("FIXED").optional(),
-  skuId: z.number().int().positive(),
+const fixedQuoteBoundOrderItemCommandSchema = z.object({
+  kind: z.literal("FIXED"),
+  quoteId: z.string().uuid(),
   quantity: z.number().int().positive().nullable().optional(),
 });
 
-const rideHailingChoiceSetOrderItemCommandSchema = z.object({
+const choiceSetQuoteBoundOrderItemCommandSchema = z.object({
   kind: z.literal("CHOICE_SET"),
-  productType: z.literal("RIDE_HAILING"),
-  candidateSkuIds: z.array(z.number().int().positive()).min(1),
+  candidateQuoteIds: z.array(z.string().uuid()).min(1),
   quantity: z.literal(1).nullable().optional(),
 });
 
-const orderItemCommandSchema = z.union([
-  fixedOrderItemCommandSchema,
-  rideHailingChoiceSetOrderItemCommandSchema,
+const quoteBoundOrderItemCommandSchema = z.union([
+  fixedQuoteBoundOrderItemCommandSchema,
+  choiceSetQuoteBoundOrderItemCommandSchema,
 ]);
-
-const rentalOrderingCommandSchema = z.object({
-  offerId: z.number().int().positive(),
-  prId: z.number().int().positive().nullable().optional(),
-  participants: z.array(orderParticipantSchema).min(1),
-  items: z.array(fixedOrderItemCommandSchema).min(1),
-  extraProperties: z.object({
-    serviceStartAt: z.string().datetime({ offset: true }),
-    serviceEndAt: z.string().datetime({ offset: true }),
-    contactPhone: z.string().trim().min(1),
-    registrants: z.array(registrantSchema).min(1),
-  }),
-});
 
 const rideHailingPlaceSnapshotSchema = z.object({
   name: z.string().trim().min(1),
@@ -100,50 +87,33 @@ const rideHailingRouteSnapshotSchema = z.object({
     .optional(),
 });
 
-const rideHailingOrderingCommandSchema = z.object({
-  offerId: z.number().int().positive(),
+const genericCreateOrderCommandSchema = z.object({
   prId: z.number().int().positive().nullable().optional(),
-  participants: z.array(orderParticipantSchema).min(1),
-  items: z.array(rideHailingChoiceSetOrderItemCommandSchema).min(1),
-  extraProperties: z.object({
+  items: z.array(quoteBoundOrderItemCommandSchema).min(1),
+});
+
+const offerIdParamSchema = z.object({
+  offerId: z.coerce.number().int().positive(),
+});
+
+const offerListingInputSchema = z.union([
+  z.object({
+    productType: z.literal("RENTAL"),
+    participants: z.array(listingParticipantSchema).min(1),
+    serviceStartAt: z.string().datetime({ offset: true }),
+    serviceEndAt: z.string().datetime({ offset: true }),
+    contactPhone: z.string().trim().min(1),
+    registrants: z.array(registrantSchema).min(1),
+  }),
+  z.object({
+    productType: z.literal("RIDE_HAILING"),
+    participants: z.array(listingParticipantSchema).min(1),
     route: rideHailingRouteSnapshotSchema,
     departureAt: z.string().datetime({ offset: true }).nullable().optional(),
-    riders: z.array(z.string().uuid()).min(1),
+    riders: z.array(listingParticipantSchema).min(1),
     contactPhone: z.string().trim().min(1),
   }),
-});
-
-const genericCreateOrderCommandSchema = z.object({
-  source: z.object({
-    offerId: z.number().int().positive(),
-  }),
-  prId: z.number().int().positive().nullable().optional(),
-  participants: z.array(orderParticipantSchema).min(1),
-  items: z.array(orderItemCommandSchema).min(1),
-  productTypedExtraProperties: z.union([
-    rentalOrderingCommandSchema.shape.extraProperties,
-    rideHailingOrderingCommandSchema.shape.extraProperties,
-  ]),
-});
-
-const rideHailingEvaluationExtraPropertiesSchema =
-  rideHailingOrderingCommandSchema.shape.extraProperties.extend({
-    contactPhone: z.string().trim(),
-  });
-
-const genericEvaluateOrderingCommandSchema = genericCreateOrderCommandSchema.extend({
-  productTypedExtraProperties: z.union([
-    rentalOrderingCommandSchema.shape.extraProperties,
-    rideHailingEvaluationExtraPropertiesSchema,
-  ]),
-});
-
-const rideHailingOrderingOptionsCommandSchema = z.object({
-  source: z.object({
-    offerId: z.number().int().positive(),
-  }),
-  route: rideHailingRouteSnapshotSchema,
-});
+]);
 
 const readClientId = (headerValue: string | undefined): string => {
   const clientId = headerValue?.trim();
@@ -169,16 +139,10 @@ type UuidParam<Key extends string> = {
 };
 
 type CommerceRouteSchema = {
-  "/ordering/evaluate": {
+  "/offers/:offerId/listing": {
     $post: JsonEndpoint<
-      { json: z.infer<typeof genericEvaluateOrderingCommandSchema> },
-      Awaited<ReturnType<typeof evaluateOrdering>>
-    >;
-  };
-  "/ordering/ride-hailing/options": {
-    $post: JsonEndpoint<
-      { json: z.infer<typeof rideHailingOrderingOptionsCommandSchema> },
-      Awaited<ReturnType<typeof quoteRideHailingOrderingOptions>>
+      { param: z.infer<typeof offerIdParamSchema>; json: z.infer<typeof offerListingInputSchema> },
+      Awaited<ReturnType<typeof listOfferListing>>
     >;
   };
   "/orders": {
@@ -229,26 +193,17 @@ type CommerceRouteSchema = {
 export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .use("*", authMiddleware)
   .post(
-    "/ordering/evaluate",
-    zValidator("json", genericEvaluateOrderingCommandSchema),
+    "/offers/:offerId/listing",
+    zValidator("param", offerIdParamSchema),
+    zValidator("json", offerListingInputSchema),
     async (c) => {
+      const { offerId } = c.req.valid("param");
       const payload = c.req.valid("json");
-      const auth = c.get("auth");
-      const result = await evaluateOrdering({
-        ...payload,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/ordering/ride-hailing/options",
-    zValidator("json", rideHailingOrderingOptionsCommandSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await quoteRideHailingOrderingOptions({
-        offerId: payload.source.offerId,
-        route: payload.route,
+      const userId = requireAuthenticatedUserId(c);
+      const result = await listOfferListing({
+        offerId,
+        viewerUserId: userId,
+        listingInput: payload,
       });
       return c.json(result);
     },

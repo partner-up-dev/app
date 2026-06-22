@@ -24,16 +24,47 @@
         :z-index="20"
       >
         <div class="ride-hailing-ordering-content__vehicles">
-          <RideHailingSkuCard
-            v-for="option in visibleRideQuoteOptions"
-            :key="option.skuId"
-            :display-name="option.displayName"
-            :price-label="formatFen(option.quoteAmountFen)"
-            :selectable="option.selectable"
-            :selected="rideSkuSelection.isSelected(option.skuId)"
-            :preview-src="skuPreviewSrc(option.skuId)"
-            @select="rideSkuSelection.toggle(option.skuId)"
-          />
+          <template v-if="showsRideQuoteSkeleton">
+            <div
+              v-for="index in 2"
+              :key="index"
+              class="ride-hailing-ordering-content__vehicle-skeleton"
+              data-testid="ordering.ride-hailing.vehicle-card.skeleton"
+            >
+              <div class="ride-hailing-ordering-content__vehicle-skeleton-meta">
+                <div class="ride-hailing-ordering-content__vehicle-skeleton-name">
+                  <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
+                  <PuSkeleton width="8.5rem" height="1.125rem" radius="pill" />
+                </div>
+                <PuSkeleton
+                  class="ride-hailing-ordering-content__vehicle-skeleton-preview"
+                  width="min(13.5rem, 100%)"
+                  height="5rem"
+                  radius="sm"
+                  block
+                />
+              </div>
+              <div class="ride-hailing-ordering-content__vehicle-skeleton-price">
+                <PuSkeleton width="2.5rem" height="0.875rem" radius="pill" />
+                <div class="ride-hailing-ordering-content__vehicle-skeleton-amount">
+                  <PuSkeleton width="4.25rem" height="1.25rem" radius="pill" />
+                  <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <RideHailingSkuCard
+              v-for="option in visibleRideQuoteOptions"
+              :key="option.quoteId"
+              :display-name="option.displayName"
+              :price-label="formatFen(option.price.totalFen)"
+              :selectable="true"
+              :selected="rideSkuSelection.isSelected(option.skuId)"
+              :preview-src="skuPreviewSrc(option.skuId)"
+              @select="rideSkuSelection.toggle(option.skuId)"
+            />
+          </template>
         </div>
       </PuFloatPanel>
 
@@ -116,6 +147,26 @@
             tone="info"
             message="出发时间由当前搭子请求锁定。"
           />
+          <PuButton
+            v-if="rideDepartureAt && editableDepartureAt !== rideDepartureAt"
+            type="button"
+            variant="soft"
+            tone="neutral"
+            data-testid="ordering.ride-hailing.departure-time.apply-imported"
+            @click="applyImportedDepartureAt"
+          >
+            使用带入时间
+          </PuButton>
+          <PuButton
+            v-if="editableDepartureAt"
+            type="button"
+            variant="soft"
+            tone="neutral"
+            data-testid="ordering.ride-hailing.departure-time.use-now"
+            @click="keepDepartNow"
+          >
+            现在出发
+          </PuButton>
           <PuFormItem
             label="出发时间"
             for-id="ride-hailing-departure-at"
@@ -132,19 +183,35 @@
           </PuFormItem>
         </div>
       </PuDrawer>
+
+      <PuDialog
+        :open="departureImportDialogOpen"
+        title="使用带入的出发时间？"
+        :description="departureImportDialogDescription"
+        confirm-text="使用"
+        cancel-text="现在出发"
+        :show-cancel="true"
+        :show-confirm="true"
+        @confirm="applyImportedDepartureAt"
+        @cancel="keepDepartNow"
+        @close="keepDepartNow"
+      />
     </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import {
+  PuButton,
+  PuDialog,
   PuDrawer,
   PuFloatPanel,
+  type PuFloatPanelStop,
   PuFormItem,
   PuInlineNotice,
   PuInput,
+  PuSkeleton,
   usePuSelect,
-  type PuFloatPanelStop,
 } from "@partner-up-dev/design-web";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type {
@@ -159,10 +226,9 @@ import {
   readBoundOrderParticipants,
 } from "@/domains/commerce/model/ordering-content";
 import {
-  type CreateOrderInput,
-  type RideHailingQuoteOptionsInput,
-  type RideHailingQuoteOptionsResponse,
-  useRideHailingQuoteOptions,
+  type OfferListingInput,
+  type OfferListingResponse,
+  useOfferListing,
 } from "@/domains/commerce/queries/useCommerce";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
@@ -179,18 +245,19 @@ import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import type { MapFitPadding } from "@/shared/map/types";
 import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 
-export type RideVehicleOption = RideHailingQuoteOptionsResponse["options"][number];
+export type RideVehicleOption = Extract<
+  OfferListingResponse["items"][number],
+  { kind: "CHOICE_CANDIDATE" }
+>;
 
-type RideRouteSnapshot = Extract<
-  CreateOrderInput["productTypedExtraProperties"],
-  { route: unknown }
->["route"];
+type RideRouteSnapshot = Extract<OfferListingInput, { productType: "RIDE_HAILING" }>["route"];
 type RideOffer = OrderingContentInput["offerDetail"];
 type RideSkuOption = RideOffer["spus"][number]["skuOptions"][number];
 type RidePanelStopValue = "minimized" | "normal" | "expanded";
 
 const props = defineProps<{
   input: OrderingContentInput;
+  listingRefreshKey: number;
 }>();
 
 const emit = defineEmits<{
@@ -211,6 +278,8 @@ const selectedRoutePointIndex = ref<number | null>(null);
 const ridersDrawerOpen = ref(false);
 const departureDrawerOpen = ref(false);
 const editableDepartureAt = ref<string | null>(null);
+const departureImportDialogOpen = ref(false);
+const importedDeparturePromptSeen = ref(false);
 
 const rideOffer = computed<RideOffer | null>(() =>
   props.input.offerDetail.productType === "RIDE_HAILING" ? props.input.offerDetail : null,
@@ -424,28 +493,6 @@ const routeMapFitPadding = computed<MapFitPadding>(() => ({
   left: 32,
 }));
 
-const rideBaseOptions = computed<RideVehicleOption[]>(
-  () =>
-    rideOffer.value?.spus.flatMap((spu) =>
-      spu.skuOptions.map((sku) => ({
-        skuId: sku.skuId,
-        spuId: sku.spuId,
-        name: sku.name,
-        providerName: "服务商",
-        carTypeName: sku.name,
-        displayName: sku.name,
-        providerVehicleTypeCode: "",
-        providerInstanceId: "",
-        selectable: true,
-        selected: false,
-        disabledReason: null,
-        estimateAmountFen: null,
-        quoteAmountFen: null,
-        priceExplanations: [],
-      })),
-    ) ?? [],
-);
-
 const rideSkuOptions = computed<RideSkuOption[]>(
   () => rideOffer.value?.spus.flatMap((spu) => spu.skuOptions) ?? [],
 );
@@ -473,40 +520,62 @@ const skuPreviewSrc = (skuId: number): string | null => {
   );
 };
 
-const quoteOptionsInput = computed<RideHailingQuoteOptionsInput | null>(() => {
+const offerListingInput = computed<OfferListingInput | null>(() => {
   const route = rideRouteForSubmit.value;
   if (!rideOffer.value || !route) return null;
+  const phone = rideContactPhone.value.trim();
+  if (!phone || rideRiders.value.length === 0) return null;
   return {
-    source: {
-      offerId: props.input.source.offerId,
-    },
+    productType: "RIDE_HAILING",
+    participants: rideRiders.value,
     route,
+    departureAt: editableDepartureAt.value,
+    riders: rideRiders.value,
+    contactPhone: phone,
   };
 });
 
-const quoteOptionsQuery = useRideHailingQuoteOptions(quoteOptionsInput);
-
-const rideQuoteOptions = computed<RideVehicleOption[]>(
-  () => quoteOptionsQuery.data.value?.options ?? rideBaseOptions.value,
+const offerListingQueryInput = computed(() =>
+  offerListingInput.value
+    ? {
+        offerId: props.input.source.offerId,
+        listingInput: offerListingInput.value,
+      }
+    : null,
 );
 
-const hasQuotedOptions = computed(() => (quoteOptionsQuery.data.value?.options.length ?? 0) > 0);
+const offerListingQuery = useOfferListing(offerListingQueryInput);
 
-const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() =>
-  hasQuotedOptions.value
-    ? rideQuoteOptions.value.filter((option) => option.selectable)
-    : rideQuoteOptions.value,
+watch(
+  () => props.listingRefreshKey,
+  () => {
+    if (offerListingQueryInput.value) {
+      void offerListingQuery.refetch();
+    }
+  },
+);
+
+const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
+  (offerListingQuery.data.value?.items ?? []).filter(
+    (item): item is RideVehicleOption => item.kind === "CHOICE_CANDIDATE",
+  ),
+);
+
+const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() => rideQuoteOptions.value);
+
+const showsRideQuoteSkeleton = computed(
+  () => offerListingQuery.isPending.value && visibleRideQuoteOptions.value.length === 0,
 );
 
 const rideSkuSelection = usePuSelect<number>({
   multiple: true,
   isOptionDisabled: (skuId) =>
-    !visibleRideQuoteOptions.value.some((option) => option.skuId === skuId && option.selectable),
+    !visibleRideQuoteOptions.value.some((option) => option.skuId === skuId),
 });
 
 const selectedCandidateSkuIds = computed<number[]>(() =>
   rideSkuSelection.selectedValues.value.filter((skuId) =>
-    visibleRideQuoteOptions.value.some((option) => option.skuId === skuId && option.selectable),
+    visibleRideQuoteOptions.value.some((option) => option.skuId === skuId),
   ),
 );
 
@@ -517,59 +586,54 @@ const selectedRideQuoteOptions = computed<RideVehicleOption[]>(() =>
   }),
 );
 
+const selectedCandidateQuoteIds = computed<string[]>(() =>
+  selectedRideQuoteOptions.value.map((option) => option.quoteId),
+);
+
 const rideDepartureLabel = computed(() => {
   const departureAt = editableDepartureAt.value;
   if (!departureAt) return "现在出发";
   return `${formatTime(departureAt)}出发`;
 });
 
+const importedDepartureLabel = computed(() =>
+  rideDepartureAt.value ? formatDateTime(rideDepartureAt.value) : "未确定",
+);
+
+const departureImportDialogDescription = computed(
+  () => `当前搭子请求带入出发时间：${importedDepartureLabel.value}。`,
+);
+
 const editableDepartureInput = computed(() =>
   editableDepartureAt.value ? toDateTimeLocalValue(editableDepartureAt.value) : "",
 );
 
 const output = computed<OrderingContentOutput | null>(() => {
-  if (!rideOffer.value || selectedCandidateSkuIds.value.length === 0 || !rideRouteForSubmit.value) {
-    return null;
-  }
   if (
-    selectedRideQuoteOptions.value.some(
-      (option) => !option.selectable || typeof option.quoteAmountFen !== "number",
-    )
+    !rideOffer.value ||
+    selectedCandidateQuoteIds.value.length === 0 ||
+    !rideRouteForSubmit.value
   ) {
     return null;
   }
-  const phone = rideContactPhone.value.trim();
-  if (!phone) return null;
-  if (rideRiders.value.length === 0) return null;
   return {
-    participants: rideRiders.value.map((rider) => ({
-      userId: rider.userId,
-    })),
     items: [
       {
         kind: "CHOICE_SET",
-        productType: "RIDE_HAILING",
-        candidateSkuIds: selectedCandidateSkuIds.value,
+        candidateQuoteIds: selectedCandidateQuoteIds.value,
         quantity: 1,
       },
     ],
-    productTypedExtraProperties: {
-      route: rideRouteForSubmit.value,
-      departureAt: editableDepartureAt.value,
-      riders: rideRiders.value.map((rider) => rider.userId),
-      contactPhone: phone,
-    },
   };
 });
 
 const summary = computed<OrderingContentSummary>(() => {
   const selectablePrices = selectedRideQuoteOptions.value
-    .filter((option) => option.selectable)
-    .map((option) => option.quoteAmountFen)
+    .map((option) => option.price.totalFen)
     .filter((value): value is number => typeof value === "number");
   const cheapestSelectedOption = [...selectedRideQuoteOptions.value]
-    .filter((option) => option.selectable && typeof option.quoteAmountFen === "number")
-    .sort((left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0))[0];
+    .filter((option) => typeof option.price.totalFen === "number")
+    .sort((left, right) => (left.price.totalFen ?? 0) - (right.price.totalFen ?? 0))[0];
   const range =
     selectablePrices.length > 0
       ? {
@@ -586,7 +650,7 @@ const summary = computed<OrderingContentSummary>(() => {
           ? (selectablePrices[0] ?? null)
           : null,
       range,
-      explanations: cheapestSelectedOption?.priceExplanations ?? [],
+      explanations: cheapestSelectedOption?.price.explanations ?? [],
     },
   };
 });
@@ -633,6 +697,16 @@ const formatTime = (value: string): string =>
     hour12: false,
   }).format(new Date(value));
 
+const formatDateTime = (value: string): string =>
+  new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+
 const toDateTimeLocalValue = (value: string): string => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -655,12 +729,24 @@ const handleDepartureInput = (value: string) => {
   editableDepartureAt.value = value.length > 0 ? new Date(value).toISOString() : null;
 };
 
+const applyImportedDepartureAt = () => {
+  if (rideDepartureAt.value) {
+    editableDepartureAt.value = rideDepartureAt.value;
+  }
+  importedDeparturePromptSeen.value = true;
+  departureImportDialogOpen.value = false;
+};
+
+const keepDepartNow = () => {
+  editableDepartureAt.value = null;
+  importedDeparturePromptSeen.value = true;
+  departureImportDialogOpen.value = false;
+};
+
 watch(
   visibleRideQuoteOptions,
   (next) => {
-    const selectableSkuIds = new Set(
-      next.filter((option) => option.selectable).map((option) => option.skuId),
-    );
+    const selectableSkuIds = new Set(next.map((option) => option.skuId));
     const currentSelection = rideSkuSelection.selectedValues.value.filter((skuId) =>
       selectableSkuIds.has(skuId),
     );
@@ -669,11 +755,9 @@ watch(
     }
     if (currentSelection.length > 0) return;
     const defaultOption =
-      next.find((option) => option.selected && option.selectable) ??
-      [...next]
-        .filter((option) => option.selectable)
-        .sort((left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0))[0] ??
-      null;
+      [...next].sort(
+        (left, right) => (left.price.totalFen ?? 0) - (right.price.totalFen ?? 0),
+      )[0] ?? null;
     rideSkuSelection.setValue(defaultOption ? [defaultOption.skuId] : []);
   },
   { immediate: true },
@@ -690,7 +774,14 @@ watch(
 watch(
   rideDepartureAt,
   (next) => {
-    editableDepartureAt.value = next;
+    if (!next) {
+      editableDepartureAt.value = null;
+      return;
+    }
+    if (!importedDeparturePromptSeen.value) {
+      editableDepartureAt.value = null;
+      departureImportDialogOpen.value = true;
+    }
   },
   { immediate: true },
 );
@@ -748,6 +839,55 @@ watch(
   gap: var(--sys-spacing-small);
   min-height: 0;
   padding: 0 var(--sys-spacing-medium) var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton {
+  display: flex;
+  min-width: 0;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--sys-spacing-medium);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  padding: var(--sys-spacing-small);
+  background: var(--sys-color-surface-container-low);
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton-meta {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton-preview {
+  min-height: 5rem;
+  aspect-ratio: 16 / 9;
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton-price {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 5.25rem;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sys-spacing-medium);
+}
+
+.ride-hailing-ordering-content__vehicle-skeleton-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sys-spacing-xsmall);
 }
 
 .ride-hailing-ordering-content__controls {

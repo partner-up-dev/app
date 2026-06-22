@@ -9,9 +9,7 @@ export type OrderingContentInput = {
 };
 
 export type OrderingContentOutput = {
-  participants: CreateOrderInput["participants"];
   items: CreateOrderInput["items"];
-  productTypedExtraProperties: CreateOrderInput["productTypedExtraProperties"];
 };
 
 export type OrderingContentPriceExplanation = {
@@ -42,10 +40,8 @@ export type BoundOrderParticipant = {
   phoneMasked: string | null;
 };
 
-export const readBindingValue = (
-  bindings: Record<string, unknown>,
-  key: string,
-): unknown | null => bindings[key] ?? null;
+export const readBindingValue = (bindings: Record<string, unknown>, key: string): unknown | null =>
+  bindings[key] ?? null;
 
 export const isBindingLocked = (
   input: Pick<OrderingContentInput, "bindingLocks">,
@@ -66,10 +62,8 @@ export const readBoundOrderParticipants = (
     return [
       {
         userId: record.userId,
-        displayName:
-          typeof record.displayName === "string" ? record.displayName : "参与者",
-        phoneMasked:
-          typeof record.phoneMasked === "string" ? record.phoneMasked : null,
+        displayName: typeof record.displayName === "string" ? record.displayName : "参与者",
+        phoneMasked: typeof record.phoneMasked === "string" ? record.phoneMasked : null,
       },
     ];
   });

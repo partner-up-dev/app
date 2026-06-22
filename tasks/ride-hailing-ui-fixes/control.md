@@ -19,10 +19,12 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` for approved implementation segments
+- Active mode: `Execute` for Offer Listing / quote identity implementation
+  verification and cleanup
 - Current collaboration state: choice-set backend/domain foundation, Ordering
-  UI primitive/control, and SKU Card layout remediation segments implemented;
-  pending human review / commit packaging
+  UI primitive/control, and SKU Card layout remediation segments committed;
+  current Offer Listing / quote identity slice is implemented locally and not
+  committed
 
 ## Inherited Effective Truth
 
@@ -74,8 +76,12 @@ Hypothesis:
 - `apps/frontend/src/domains/route/ui/RouteMap.vue`
 - `apps/frontend/src/shared/map/`
 - `apps/backend/src/entities/product-sku.ts`
+- `apps/backend/src/entities/offer.ts`
 - `apps/backend/src/domains/merchandising/`
+- `apps/backend/src/domains/ride-hailing/`
+- `apps/backend/src/domains/trade/`
 - `apps/backend/drizzle/`
+- `packages/fake-caocao-server/`
 - `tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
 
 ## Verification
@@ -87,6 +93,8 @@ Choose the narrowest sufficient proof per approved slice:
   interaction-specific
 - `pnpm vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   when browser-visible workflow behavior or stable test IDs change
+- `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+  when Rental ordering is affected by unified listing / quote identity
 
 ## Current State
 
@@ -97,12 +105,33 @@ Choose the narrowest sufficient proof per approved slice:
   (`bbb47413`).
 - Committed slice: RideHailing preflight price-change scenario
   (`f25baf62`).
-- Implemented but not committed slice: Choice-set backend/domain foundation
-  segment 1.
-- Implemented but not committed slice: Choice-set Ordering UI primitive/control
-  segment 2.
-- Implemented but not committed slice: Choice-set SKU Card layout remediation
-  segment 3.
+- Committed slice: choice-set backend/domain foundation, Ordering UI
+  primitive/control, FloatPanel migration, and SKU Card layout remediation
+  (`42eb1a61`).
+- Uncommitted slice: Offer-owned Listing and product-type-independent quote
+  identity implemented:
+  - added `POST /api/commerce/offers/:offerId/listing`
+  - added persisted `commerce_quotes`
+  - added Quote-domain resolver for quote existence, expiry, active
+    Offer/SKU/SPU, Offer membership, item kind, and choice-set grouping
+  - made create-order product items quote-only:
+    `FIXED.quoteId` / `CHOICE_SET.candidateQuoteIds`
+  - removed frontend submit-time evaluate/preflight path and old
+    RideHailing options hook
+  - removed backend `/ordering/evaluate`,
+    `/ordering/ride-hailing/options`, and unused `evaluateRideOptions`
+    surfaces
+  - migrated Rental and RideHailing Ordering Content to unified Offer Listing
+  - RideHailing listing uses route + departureAt and stores provider quote
+    facts in quote snapshots
+  - quote expiry returns HTTP 409 `ORDERING_QUOTE_EXPIRED`; frontend refreshes
+    listing, preserves matching selected SKU ids, and requires another click
+  - create-order derives participants, riders, contact phone, route,
+    departureAt, SKU, Offer, and price facts from validated quote snapshots
+  - departureAt binding now prompts the user to keep "now" by default while
+    keeping a one-tap apply action in the drawer
+  - removed non-inherited `data-testid` attributes from `PuDialog` usage to
+    avoid the known Vue extraneous-attribute warning
 - Current target model now reflected in code:
   - parent-page evaluation runs only after submit/create-order click
   - blocking pre-flight results open an acknowledgement dialog
@@ -121,9 +150,13 @@ Choose the narrowest sufficient proof per approved slice:
     binding from the resolved choice-set item
   - RideHailing vehicle cards use `PuCard selectable` with a visual
     `PuCheckbox`
+  - RideHailing SKU list uses `PuSkeleton` placeholders for initial quote
+    listing load
   - RideHailing vehicle cards use the reviewed left/right layout:
     SKU name + info icon and preview on the meta side, estimated price + amount
     + checkbox on the right-aligned price side
+  - Ordering Page no longer renders the permanent floating error notice layer;
+    create-order failures are explained by Dialog only
   - RideHailing vehicle cards no longer render card-internal status/reason
     text; unavailable quoted options remain hidden at the list layer
   - RideHailing vehicle selection uses `usePuSelect` multiple and submits an
@@ -140,6 +173,8 @@ Choose the narrowest sufficient proof per approved slice:
     concepts
 - Implemented scenario coverage:
   - fake Caocao can mutate vehicle estimates through an admin-only test route
+  - fake Caocao can mark per-car-type estimates unavailable for dynamic
+    listing scenarios
   - RideHailing system scenario now covers submit-time price-change preflight
     and verifies provider order creation is blocked until the user confirms
   - RideHailing provider-create-failure scenario now verifies the failure dialog
@@ -148,10 +183,21 @@ Choose the narrowest sufficient proof per approved slice:
     foundation and provider binding in resolution
   - RideHailing system scenario now covers multi-candidate selection range and
     cheapest-first dispatch result
+  - RideHailing system scenario now covers provider-unavailable vehicle types
+    being omitted, quote refresh pruning vanished selected SKUs, and the
+    all-unavailable no-create state
+  - backend Quote-domain scenario now covers inactive Offer/SKU quote validity
+    and invalid `CHOICE_SET` listing-session mixing
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.
 - Verified:
+  - `pnpm check:type:backend`
+  - `pnpm check:type:frontend`
+  - `pnpm check:format`
+  - `pnpm check:lint`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
   - `pnpm exec biome check --write packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/state.test.ts packages/fake-caocao-server/src/server.test.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
   - `pnpm --filter @partner-up-dev/fake-caocao-server test`
@@ -167,14 +213,72 @@ Choose the narrowest sufficient proof per approved slice:
   - `pnpm exec biome lint apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `pnpm exec biome format --write apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
   - `pnpm exec biome lint apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
+  - `pnpm exec vitest run --project backend-scenario apps/backend/tests/commerce/offer-quote-resolution.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm exec biome check packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts apps/backend/tests/commerce/offer-quote-resolution.scenario.test.ts`
+  - `pnpm exec biome check apps/frontend/src/pages/OrderingFromPlacementPage.vue`
+  - `pnpm exec biome check apps/frontend/src/domains/commerce/ui/ordering/RideHailingOrderingContent.vue`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
   - `git diff --check`
 - Non-blocking note:
-  - `pnpm exec biome check ...` reports whole-file formatting differences in
-    already-touched large files; this slice did not auto-format those whole
-    files to avoid unrelated churn.
-- Active exploration:
-  - choice-set SKU / float-panel implementation is complete in three
-    uncommitted segments
+  - `pnpm check:lint` includes a report-only UI naming audit finding that
+    `RideHailingOrderingContent` uses the weak word `Content`; this is kept
+    because the human explicitly chose the name to align with the Ordering
+    shell header/content/footer concepts.
+- Historical exploration, superseded by the implemented Offer Listing / quote
+  identity slice where it mentions old evaluate/options endpoints:
+  - current slice: Offer-owned Product Listing and RideHailing quote identity
+  - target problem: which RideHailing SKUs are listed should depend on route and
+    departure time
+  - current frontend chain: `RideHailingOrderingContent` uses catalog
+    `offerDetail.spu.skuOptions` as fallback, then replaces it with
+    `useRideHailingQuoteOptions({ source.offerId, route })` results
+  - current backend chain: `/ordering/ride-hailing/options` accepts
+    `offerId + route`, then `evaluateRideOptions` enumerates all active
+    RideHailing catalog SKUs under the offer and calls provider estimate once
+    per local SKU/provider vehicle type
+  - current gap: `departureAt` already exists in bindings/create-order extras
+    but is not included in quote-options input, query key, endpoint schema, or
+    provider estimate params
+  - current model limitation: provider availability is represented by local
+    catalog SKUs whose estimates succeed/fail; there is no provider-owned
+    "available vehicle types for route/time" capability yet
+  - accepted plan direction: public listing query should use `offerId`, include
+    price, and be Offer-owned
+  - accepted plan direction: RideHailing listing returns only available local
+    ACTIVE SKUs, omitting unavailable SKUs instead of returning
+    `selectable=false`
+  - accepted plan direction: Provider Port should return typed app-level quote
+    shapes rather than raw `unknown`
+  - accepted plan direction: listing returns product-type-independent commerce
+    quote identity; order and pricing should natively support quote ids
+  - accepted plan direction: quote validity belongs to the Quote domain; Order
+    consumes validated quote facts instead of checking quote existence, expiry,
+    active Offer/SKU, membership, or listing context one by one
+  - accepted plan direction: create-order submits selected quote ids and derives
+    Offer/SKU/route/departureAt/price from validated Quote-domain results
+    instead of repeating those fields
+  - accepted plan direction: order item command kinds remain semantic
+    `FIXED` / `CHOICE_SET`; quote ids are carried as evidence fields such as
+    `quoteId` or `candidateQuoteIds`, not as a `QUOTE_SET` item kind
+  - accepted plan direction: quote snapshots are persisted to the database
+  - accepted plan direction: quote expiry returns HTTP 409 problem details with
+    a stable code, not an HTTP 200 result branch
+  - accepted plan direction: new listing route is
+    `POST /api/commerce/offers/:offerId/listing`
+  - accepted plan direction: Rental migrates to the same unified Offer Listing
+    endpoint in this slice
+  - accepted plan direction: Ordering Content owns product listing/selection
+    state and emits quote-bound draft output; Ordering Page / shell owns
+    submit orchestration and create-order mutation
+  - accepted plan direction: create-order product item payload is quote-only and
+    does not include participants, riders, or contact phone
+  - accepted plan direction: quote-expired refresh preserves selected SKU ids
+    when the refreshed listing still contains matching SKUs, then requires
+    another explicit create click
+  - active plan artifact:
+    `tasks/ride-hailing-ui-fixes/offer-listing-quote-identity-plan.md`
   - SKU should own full `ProductPresentation`; SKU preview images are not
     currently SKU-owned in the catalog contract
   - RideHailing vehicle selection should be multi-select
@@ -215,6 +319,5 @@ Choose the narrowest sufficient proof per approved slice:
     `tasks/ride-hailing-ui-fixes/sequence-diagram.md`
   - large-slice implementation planning and information collection are captured
     in `tasks/ride-hailing-ui-fixes/choice-set-sku-float-panel-plan.md`
-  - first backend/domain implementation segment is complete and uncommitted
-  - second Ordering UI primitive/control segment is complete and uncommitted
-  - third SKU Card layout remediation segment is complete and uncommitted
+  - choice-set SKU / float-panel implementation has been committed in
+    `42eb1a61`

@@ -13,9 +13,7 @@ export const caocaoProviderInstanceConfigSchema = z.object({
   requestTimeoutMs: z.number().int().positive().nullable().optional(),
 });
 
-export type CaocaoProviderInstanceConfig = z.infer<
-  typeof caocaoProviderInstanceConfigSchema
->;
+export type CaocaoProviderInstanceConfig = z.infer<typeof caocaoProviderInstanceConfigSchema>;
 
 export type RideHailingProviderInstanceConfig = CaocaoProviderInstanceConfig;
 
@@ -78,6 +76,17 @@ export type RideHailingProviderEstimateInput = {
   params: Record<string, string | number | boolean | null | undefined>;
 };
 
+export type RideHailingProviderVehicleQuote = {
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  estimateAmountFen: number;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  providerQuoteId: string | null;
+  providerQuoteExpiresAt: string | null;
+  providerSnapshot: unknown;
+};
+
 export type RideHailingProviderCreateRideInput = {
   orderId: string;
   params: Record<string, string | number | boolean | null | undefined>;
@@ -99,7 +108,7 @@ export type RideHailingProviderConfirmFeeInput = {
 export type RideHailingProviderPort = {
   buildExternalOrderId(orderId: string): string;
   parseExternalOrderId(externalOrderId: string): string | null;
-  estimate(input: RideHailingProviderEstimateInput): Promise<unknown>;
+  estimate(input: RideHailingProviderEstimateInput): Promise<RideHailingProviderVehicleQuote>;
   createRide(input: RideHailingProviderCreateRideInput): Promise<{
     providerOrderId: string;
     externalOrderId: string;
@@ -117,7 +126,5 @@ export type RideHailingProviderPort = {
     providerSnapshot: unknown;
   }>;
   confirmFee(input: RideHailingProviderConfirmFeeInput): Promise<void>;
-  parseOrderStatusCallback(
-    form: Record<string, string>,
-  ): CaocaoOrderStatusCallback;
+  parseOrderStatusCallback(form: Record<string, string>): CaocaoOrderStatusCallback;
 };
