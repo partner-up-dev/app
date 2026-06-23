@@ -940,3 +940,33 @@
   docs now phrase `prId` as not being a separate Placement matching parameter;
   PR-derived facts may still be present inside `matchingContext`, and PR Page may
   pass explicit `prId` to Button Placement for existing-order lookup.
+
+## Solidify: Durable Docs Promotion
+
+- Human request:
+  review all completed slices and update durable docs where task-packet truths
+  have become stable product or cross-unit technical truth.
+- Promotion decision:
+  do not promote component-level UI implementation details such as `PuCard`,
+  `PuFloatPanel`, or `PuSkeleton` into durable docs. Those remain source-level
+  implementation facts unless they become cross-unit contracts.
+- Promotion decision:
+  promote stable user-visible commerce behavior into PRD:
+  - PR-attached ordering enters through Button Placement and assembles on
+    `/order/new`
+  - Offer Listing is the user-visible quote surface
+  - expired quotes refresh listing, preserve matching selection when possible,
+    and require another explicit create click
+  - RideHailing users authorize a selected candidate set, see a candidate price
+    range, and unavailable provider vehicles are omitted
+  - RideHailing provider-create failure keeps the user on `/order/new` with a
+    failure dialog
+- Product TDD correction:
+  `system-state-and-authority.md` had stale wording that put RideHailing
+  provider binding on `ride_hailing_orders`. It now separates RideHailing
+  execution fields on `ride_hailing_orders` from provider binding in the Trade
+  order choice-set resolution snapshot.
+- Ecommerce contract refinement:
+  `/order/new` is now named as the PR-attached ordering assembly route in the
+  journey chain. `offerDetail` is clarified as an ordering projection, not a
+  user-facing Offer Detail page or dynamic quote authority.

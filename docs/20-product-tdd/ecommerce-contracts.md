@@ -160,7 +160,7 @@ Current constraints:
 The preferred baseline user-visible route spine is:
 
 1. `PR Page`
-2. `Offer Detail`
+2. `/order/new`
 3. `Order Detail`
 
 Why this topology is durable:
@@ -168,6 +168,8 @@ Why this topology is durable:
 - `PR Page` is the contextual entry surface where Button Placement is rendered.
 - `/order/new` is the pre-order explanation and ordering-assembly surface.
 - `Order Detail` is the long-lived post-create lifecycle surface.
+- `/offers/:offerId` may remain a user-facing offer route family, but
+  PR-attached ordering does not require routing through Offer Detail.
 
 This means:
 
@@ -266,7 +268,8 @@ Pricing ownership:
 - `offerDetail` is an Offer-owned ordering projection containing the product
   type, SPU/SKU ids, display facts, base SKU pricing models, cancellation
   policy summaries, and Offer pricing policy needed to render the initial
-  ordering surface. It is not the dynamic quote authority.
+  ordering surface. It is not a user-facing Offer Detail page and is not the
+  dynamic quote authority.
 - Ordering Content is selected from `offerDetail.productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
@@ -283,6 +286,9 @@ Pricing ownership:
 - For RideHailing, listing uses route/departureAt to query provider vehicle
   availability/estimates, joins provider results to local ACTIVE SKUs, and does
   not return unavailable SKUs.
+- RideHailing `departureAt` bindings are not silently applied. Ordering starts
+  from depart-now by default, shows the imported concrete time value, and keeps
+  one-tap actions for using the imported time or switching back to depart-now.
 - For Rental, listing issues fixed quotes for the available rental SKUs matching
   the current listing facts.
 - Ordering Page owns create-order orchestration. Ordering Content must not call
@@ -296,8 +302,10 @@ Pricing ownership:
   product membership, or quote-set coherence.
 - Expired quotes are rejected from create-order with HTTP 409 problem details
   code `ORDERING_QUOTE_EXPIRED`; the frontend refreshes listing and asks the
-  user to click create again. Quote-expired failures are not mixed into HTTP 200
-  results.
+  user to click create again. When the refreshed listing still contains
+  matching RideHailing SKUs, the frontend preserves those selected candidate
+  ids; vanished selected SKUs are pruned. Quote-expired failures are not mixed
+  into HTTP 200 results.
 - Ordering creation uses `POST /api/commerce/orders`. Successful transport
   responses are a discriminated result:
   - `CREATED` navigates to Order Detail
@@ -316,7 +324,7 @@ Pricing ownership:
 The baseline Rental user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail ordering and Offer Listing quote issuance
+2. `/order/new` ordering assembly and Offer Listing quote issuance
 3. Order creation from fixed quote id
 4. Order Detail `待支付`
 5. same Order Detail `待确认预订`
@@ -335,7 +343,7 @@ route.
 The baseline RideHailing user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail ordering and route/time-based Offer Listing quote issuance
+2. `/order/new` ordering assembly and route/time-based Offer Listing quote issuance
 3. Order creation from selected candidate quote ids
 4. Order Detail with quote basis and fulfillment state
 5. same Order Detail with final bill after trip finish
@@ -361,6 +369,9 @@ RideHailing:
 - Order is created from candidate quote snapshots. For RideHailing, the user
   orders one unresolved choice-set item: several acceptable vehicle SKU
   candidates, with one final resolution.
+- create-order dispatches the cheapest quoted candidate first. Provider create
+  failure cancels the local order without retrying the next candidate/provider
+  and returns the `CANCELLED` create-order result to the Ordering Page.
 - provider binding is stored on the choice-set resolution, not on
   `ride_hailing_orders`
 - execution phase and ride execution snapshots are stored on

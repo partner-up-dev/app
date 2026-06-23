@@ -125,6 +125,20 @@
 5. The participant may exit, be released, or complete check-in.
 6. Once no longer active, the participant must not be treated as a current participant.
 
+## 3.1 Commerce Ordering Rules
+
+- PR-attached ordering is entered through a backend-authored Button Placement on PR detail and assembled on `/order/new`.
+- At most one non-terminal order should exist for one PR and Offer pair. Re-opening the matching placement should continue the existing order instead of creating a second one.
+- Offer Listing is the user-visible quote surface. A listing may include only products and SKUs that are currently offerable for the selected context.
+- Quote identity is the freshness and authorization boundary between listing and create-order. Create-order should use quote identity instead of trusting browser-copied product, route, participant, or price fields.
+- Expired quotes require a fresh listing and a second explicit user create action. The system should preserve matching user selections after refresh when those selections are still listed.
+- Rental ordering buys one fixed quoted SKU.
+- RideHailing ordering authorizes a choice set: the user selects one or more acceptable vehicle candidates, and the provider/order lifecycle resolves one final vehicle after dispatch.
+- RideHailing visible vehicle candidates depend on route and departure time. Provider-unavailable candidates should be absent from the list, not shown as disabled options with reasons.
+- RideHailing displayed price before create is the selected candidate range, not the final bill cap.
+- RideHailing final bill follows the resolved provider settlement. A provider upgrade or substitution outside the selected candidate set is recorded rather than rejected, and the final settlement remains the bill basis.
+- If RideHailing provider dispatch fails during create-order, the domain may create and cancel an order, but the user experience remains an ordering failure dialog on `/order/new` rather than navigation to Order Detail.
+
 ## 4. Identity And Authentication Rules
 
 - Browsing does not require upfront login.

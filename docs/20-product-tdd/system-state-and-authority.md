@@ -16,11 +16,14 @@ Persisted in Postgres via backend entities and repositories:
 - ecommerce merchandising truth, including Product Catalog (`SPU` / `SKU`),
   Offer, Placement Instance, Offer pricing rules, SKU pricing models, SKU
   facts, and SKU base cancellation policy
+- ecommerce listing / quote truth, including persisted Offer Listing quote
+  snapshots and quote validity state
 - ecommerce trade truth, including Order, order snapshots, PR-attached order
   relation, and order termination attempts
 - ecommerce family execution truth, including Rental execution fields on
-  `rental_orders` and RideHailing provider binding / execution fields on
-  `ride_hailing_orders`
+  `rental_orders` and RideHailing execution fields on `ride_hailing_orders`;
+  RideHailing provider binding lives in Trade order choice-set resolution
+  snapshots
 - ecommerce bill truth, including Bill, BillLine, BillLine payment execution
   slot identity, BillLine settlement confirmation, and settlement derivation
 - ecommerce payment provider registry truth, including configured provider

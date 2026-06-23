@@ -19,11 +19,11 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Constraint`
-- Active mode: `Explore` for Ordering entry decoupling
+- Active mode: `Solidify` for durable docs promotion
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, and Offer Listing / quote
-  identity segments committed; current slice is Ordering entry decoupling
-  exploration with no production-code mutation yet
+  identity segments committed; Ordering entry decoupling committed; current
+  slice promotes stable task-packet facts into durable PRD / Product TDD docs
 
 ## Inherited Effective Truth
 
@@ -218,6 +218,16 @@ Choose the narrowest sufficient proof per approved slice:
     - `git diff --check`
   - planning artifact:
     `tasks/ride-hailing-ui-fixes/ordering-entry-decoupling-plan.md`
+- Current docs-promotion slice:
+  - promoted stable product behavior into `docs/10-prd/behavior/workflows.md`
+    and `docs/10-prd/behavior/rules-and-invariants.md`
+  - added stable commerce vocabulary to `docs/10-prd/glossary.md`
+  - corrected `docs/20-product-tdd/system-state-and-authority.md` so
+    RideHailing provider binding lives in Trade order choice-set resolution,
+    not on `ride_hailing_orders`
+  - refined `docs/20-product-tdd/ecommerce-contracts.md` for `/order/new`
+    topology, departure-time binding UX, quote-expired selection preservation,
+    and RideHailing cancelled-create behavior
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.

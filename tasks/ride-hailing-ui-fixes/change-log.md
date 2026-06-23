@@ -467,3 +467,27 @@
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `git diff --check`
+
+## Slice: Durable Docs Promotion
+
+- PRD:
+  - added PR-attached commerce ordering workflow to
+    `docs/10-prd/behavior/workflows.md`
+  - added commerce ordering invariants to
+    `docs/10-prd/behavior/rules-and-invariants.md`
+  - added stable commerce terms to `docs/10-prd/glossary.md`
+- Product TDD:
+  - corrected `docs/20-product-tdd/system-state-and-authority.md` so
+    RideHailing provider binding is owned by Trade order choice-set resolution,
+    not `ride_hailing_orders`
+  - refined `docs/20-product-tdd/ecommerce-contracts.md` for `/order/new`
+    ordering topology, `offerDetail` projection semantics, departure-time
+    binding UX, quote-expired selection preservation, and RideHailing
+    cancelled-create behavior
+- Verification:
+  - `pnpm check:format` (markdown files are ignored by Biome changed-file
+    formatting; command completed successfully with no processed files)
+  - `git diff --check`
+  - `rg` stale-contract search for old Offer Detail ordering, old
+    `OrderingFromPlacementPage`, old provider-binding wording, old
+    evaluate/options endpoints, and `selectable=false`
