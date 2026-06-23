@@ -19,13 +19,13 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Explore` / `Solidify` for RideHailing Order Detail map and
-  live route behavior
+- Active mode: `Execute` for RideHailing Order Detail `PuFloatPanel` content
+  correction
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
-  lifecycle control committed; current slice prepares the RideHailing Order
-  Detail content redesign
+  lifecycle control committed; current slice replaces the RideHailing Order
+  Detail `PuFloatPanel` diagnostic content and awaits manual browser review
 
 ## Inherited Effective Truth
 
@@ -59,14 +59,24 @@ Hypothesis:
     marker-only state, in-trip remaining route, and terminal planned route
   - map mode is driven by local persisted `ride.executionPhase`, not provider
     live phase/status
-  - RideHailing `PuFloatPanel` currently shows raw JSON diagnostic data only
+  - RideHailing `PuFloatPanel` no longer shows raw JSON diagnostic data
   - shared Tencent map single-coordinate fitting now respects `fitPadding` by
     using a tiny `fitBounds` area instead of direct `easeTo(center)`
-  - manual browser validation remains pending
+  - manual browser validation confirmed the map padding correction
+  - panel content now contains Status Hero, dispatching-only readonly SKU list,
+    route section, and rider section only
+  - `RideHailingSkuCard.vue` has a readonly/no-checkbox shape for detail
+    display while preserving the Ordering Page default selectable behavior
+  - RideHailing Order Detail projection now exposes minimal candidate vehicle
+    card facts from the persisted choice-set item
+  - cancel/more controls in the Status Hero are disabled visual controls until
+    RideHailing cancellation/more-operation use cases exist
   - standalone plan:
     `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-map-plan.md`
 - `RouteMap.vue` / shared map code are relevant when a UI issue concerns route
   geometry, marker behavior, or zoom/pan behavior.
+- `RideHailingSkuCard.vue` is reusable for order detail dispatching candidate
+  SKU display only if it supports a readonly shape without checkbox.
 
 ## Collaboration Protocol
 
@@ -89,6 +99,20 @@ Hypothesis:
 - Keep each issue independent unless the human explicitly combines them.
 - Keep old `tasks/ride-hailing-mvp/` as historical evidence only; do not expand
   it for new UI-fix work.
+
+## Log Hygiene
+
+- Root `discussion-log.md` and `change-log.md` are current working surfaces,
+  not complete history dumps.
+- Keep root logs short enough to reload before a slice. Prefer:
+  - current segment decisions
+  - pinned cross-slice decisions
+  - open implementation checks
+  - latest completed slice and planned verification
+- Move old completed history into scope-named files under `archive/`.
+- Current archive files:
+  - `archive/discussion-log-ordering-through-order-detail-map.md`
+  - `archive/change-log-ordering-through-order-detail-map.md`
 
 ## Durable Owners Likely Touched
 

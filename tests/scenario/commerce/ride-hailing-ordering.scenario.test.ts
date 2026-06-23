@@ -557,21 +557,39 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
-  const rawData = page.getByTestId("order-detail.ride-hailing.raw-data");
   await assertLocatorTextIncludes({
-    actual: rawData.textContent(),
-    expected: "系统曹操快车",
-    label: "RideHailing raw selected vehicle",
+    actual: page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
+    expected: "派单中",
+    label: "RideHailing status hero title",
+  });
+  const vehicleCards = page.getByTestId("order-detail.ride-hailing.vehicle-card");
+  await vehicleCards.first().waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  assert.equal(await vehicleCards.count(), 2);
+  await vehicleCards.filter({ hasText: "系统曹操快车" }).waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await vehicleCards.filter({ hasText: "系统曹操专车" }).waitFor({
+    state: "visible",
+    timeout: 10_000,
   });
   await assertLocatorTextIncludes({
-    actual: rawData.textContent(),
+    actual: page.getByTestId("order-detail.ride-hailing.route-section").textContent(),
     expected: "杭州东站",
-    label: "RideHailing raw route summary origin",
+    label: "RideHailing route section origin",
   });
   await assertLocatorTextIncludes({
-    actual: rawData.textContent(),
+    actual: page.getByTestId("order-detail.ride-hailing.route-section").textContent(),
     expected: "灵隐寺",
-    label: "RideHailing raw route summary destination",
+    label: "RideHailing route section destination",
+  });
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("order-detail.ride-hailing.riders-section").textContent(),
+    expected: "scenario-system-ride-hailing-creator",
+    label: "RideHailing riders section",
   });
 }
 
@@ -647,9 +665,9 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     assert.equal(finishedOrder.phase, "FINISHED");
     await waitForRideHailingMapMode(page, "PLANNED_ROUTE");
     await assertLocatorTextIncludes({
-      actual: page.getByTestId("order-detail.ride-hailing.raw-data").textContent(),
-      expected: '"bill"',
-      label: "RideHailing raw data includes bill after finished",
+      actual: page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
+      expected: "行程已结束",
+      label: "RideHailing finished status hero",
     });
 
     orderPath = new URL(page.url()).pathname;

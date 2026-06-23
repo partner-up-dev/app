@@ -1,18 +1,18 @@
 <template>
   <PuCard
-    as="button"
+    :as="cardAs"
     class="ride-hailing-sku-card"
-    :class="{ 'is-selected': selected }"
-    type="button"
-    selectable
-    :active="selected"
-    :disabled="!selectable"
+    :class="{ 'is-readonly': readonly, 'is-selected': selected && !readonly }"
+    :type="cardType"
+    :selectable="!readonly"
+    :active="selected && !readonly"
+    :disabled="readonly ? undefined : !selectable"
     variant="soft"
     tone="neutral"
     padding="sm"
     gap="sm"
-    data-testid="ordering.ride-hailing.vehicle-card"
-    @click="$emit('select')"
+    :data-testid="dataTestId"
+    @click="handleSelect"
   >
     <div class="ride-hailing-sku-card__layout">
       <div class="ride-hailing-sku-card__meta">
@@ -40,6 +40,7 @@
         <div class="ride-hailing-sku-card__amount-stack">
           <strong>{{ priceLabel }}</strong>
           <span
+            v-if="!readonly"
             class="ride-hailing-sku-card__checkbox"
             :class="{ 'is-checked': selected }"
             :data-testid="
@@ -65,19 +66,30 @@
 import { PuCard, PuCheckbox } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 
-const props = defineProps<{
-  displayName: string;
-  priceLabel: string;
-  selectable: boolean;
-  selected: boolean;
-  previewSrc?: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    displayName: string;
+    priceLabel: string;
+    selectable: boolean;
+    selected: boolean;
+    previewSrc?: string | null;
+    readonly?: boolean;
+  }>(),
+  {
+    readonly: false,
+  },
+);
 
-defineEmits<{
+const emit = defineEmits<{
   select: [];
 }>();
 
 const previewFailed = ref(false);
+const cardAs = computed(() => (props.readonly ? "article" : "button"));
+const cardType = computed(() => (props.readonly ? undefined : "button"));
+const dataTestId = computed(() =>
+  props.readonly ? "order-detail.ride-hailing.vehicle-card" : "ordering.ride-hailing.vehicle-card",
+);
 
 const resolvedPreviewSrc = computed(() => {
   const value = props.previewSrc?.trim() ?? "";
@@ -100,6 +112,11 @@ watch(
     previewFailed.value = false;
   },
 );
+
+const handleSelect = (): void => {
+  if (props.readonly || !props.selectable) return;
+  emit("select");
+};
 </script>
 
 <style scoped lang="scss">
@@ -108,6 +125,10 @@ watch(
   min-width: 0;
   border-radius: var(--sys-radius-small);
   text-align: left;
+
+  &.is-readonly {
+    cursor: default;
+  }
 }
 
 .ride-hailing-sku-card__layout {
