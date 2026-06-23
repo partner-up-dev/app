@@ -114,12 +114,31 @@ async function setFakeCaocaoEstimateAvailability(input: {
 }
 
 async function readFakeCaocaoOrderCount(): Promise<number> {
+  return (await readFakeCaocaoOrders()).length;
+}
+
+async function readFakeCaocaoOrders(): Promise<
+  Array<{
+    providerOrderId: string;
+    phase: string;
+  }>
+> {
   const { fakeCaocao } = getScenarioEnvironment();
   const response = await fetch(new URL("/__fake_caocao/state", fakeCaocao.origin));
   assert.equal(response.ok, true);
   const body = (await response.json()) as { orders?: unknown[] };
   assert.ok(Array.isArray(body.orders));
-  return body.orders.length;
+  return body.orders.map((order) => {
+    assert.equal(typeof order, "object");
+    assert.notEqual(order, null);
+    const record = order as Record<string, unknown>;
+    assert.equal(typeof record.providerOrderId, "string");
+    assert.equal(typeof record.phase, "string");
+    return {
+      phase: record.phase,
+      providerOrderId: record.providerOrderId,
+    };
+  });
 }
 
 async function expireCommerceQuotes(): Promise<number> {
@@ -531,6 +550,10 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
     await assertRideHailingOrderDetail(page);
+    await page.waitForTimeout(3500);
+    const fakeOrders = await readFakeCaocaoOrders();
+    assert.equal(fakeOrders.length, 1);
+    assert.equal(fakeOrders[0]?.phase, "ACCEPTED");
     orderPath = new URL(page.url()).pathname;
   });
 

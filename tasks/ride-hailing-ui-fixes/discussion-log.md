@@ -970,3 +970,65 @@
   `/order/new` is now named as the PR-attached ordering assembly route in the
   journey chain. `offerDetail` is clarified as an ordering projection, not a
   user-facing Offer Detail page or dynamic quote authority.
+
+## Diagnose: RideHailing Order Detail Mock Lifecycle Control
+
+- Human observation:
+  after order creation, the fake RideHailing order moves too quickly from
+  dispatching to in-trip and pending-payment states, which makes manual Order
+  Detail state review difficult.
+- Finding:
+  fake Caocao has no timer-based lifecycle. The rapid movement comes from
+  `queryOrderDetailV2`: every provider detail read calls
+  `FakeCaocaoState.advanceOrderDetail`.
+- Finding:
+  backend `buildRideHailingDetailProjection` queries provider detail every time
+  Order Detail is loaded if provider binding exists.
+- Finding:
+  frontend `CommerceOrderDetailPage` polls RideHailing order detail every
+  1500 ms until a bill exists.
+- Consequence:
+  opening Order Detail causes the frontend polling loop to drive fake provider
+  state through `CREATED -> ACCEPTED -> IN_TRIP -> FINISHED`; the fake server
+  then posts callbacks and final settlement creates a bill.
+- Target direction:
+  make fake provider detail reads read-only by default and add explicit fake
+  admin/test-control routes to set or advance order phase and post callbacks.
+- Planning artifact:
+  added `order-detail-mock-control-plan.md`.
+- Human proposal:
+  add a dev-only "advance phase" button around the RideHailing Provider Instance
+  Admin editing surface.
+- Review:
+  this is feasible, but the Provider Instance card is provider-level while fake
+  orders are order-level. A no-argument button needs a target policy.
+- Recommended target policy:
+  advance the latest non-terminal fake Caocao order behind the selected provider
+  endpoint, and return/display the affected provider order id and phase.
+- Human correction:
+  the button was intended for the main "编辑 Provider Instance" card, not the
+  left selectable Provider Instance card.
+- Updated UI direction:
+  add a separate dev-only main-area card for fake lifecycle controls, rather
+  than nesting the action inside either the left selection card or the edit form
+  card.
+- Human correction:
+  Frontend Admin should call fake Caocao directly. Do not introduce a backend
+  admin proxy endpoint for advancing fake phases.
+- Boundary note:
+  with direct frontend calls, `import.meta.env.DEV` gating keeps the control out
+  of production UI, but it is not a server-side security boundary. This is
+  acceptable for fake-provider developer tooling as long as the target route is
+  the fake endpoint from the selected Provider Instance config.
+- Implementation:
+  fake Caocao provider detail reads are now read-only; explicit fake control
+  routes own phase set/advance and callback posting.
+- Implementation:
+  RideHailing Provider Instance Admin has a separate dev-only "开发调试" card
+  that directly calls the selected Provider Instance endpoint to advance the
+  latest non-terminal fake order.
+- Verification note:
+  fake server unit tests cover explicit phase advancement and latest
+  non-terminal targeting, while the RideHailing system scenario now asserts
+  repeated Order Detail polling does not auto-advance the fake provider order
+  beyond the create-time accepted callback.

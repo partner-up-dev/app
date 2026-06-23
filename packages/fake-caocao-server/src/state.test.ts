@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { FakeCaocaoState } from "./state";
 
 describe("FakeCaocaoState", () => {
-  test("creates idempotent orders and advances them to finished", () => {
+  test("creates idempotent orders and advances them explicitly to finished", () => {
     const state = new FakeCaocaoState();
 
     const created = state.createOrder({
@@ -18,13 +18,34 @@ describe("FakeCaocaoState", () => {
     expect(created.phase).toBe("CREATED");
     expect(created.finalAmountFen).toBe(5600);
 
-    const accepted = state.advanceOrderDetail(created.providerOrderId);
-    const inTrip = state.advanceOrderDetail(created.providerOrderId);
-    const finished = state.advanceOrderDetail(created.providerOrderId);
+    expect(state.findOrder(created.providerOrderId)?.phase).toBe("CREATED");
+
+    const accepted = state.advanceOrderPhase(created.providerOrderId);
+    const inTrip = state.advanceOrderPhase(created.providerOrderId);
+    const finished = state.advanceOrderPhase(created.providerOrderId);
 
     expect(accepted?.phase).toBe("ACCEPTED");
     expect(inTrip?.phase).toBe("IN_TRIP");
     expect(finished?.phase).toBe("FINISHED");
+  });
+
+  test("advances the latest non-terminal order", () => {
+    const state = new FakeCaocaoState();
+
+    const older = state.createOrder({
+      carType: "EXPRESS",
+      externalOrderId: "external-order-older",
+    });
+    const newer = state.createOrder({
+      carType: "PREMIER",
+      externalOrderId: "external-order-newer",
+    });
+
+    const advanced = state.advanceLatestNonTerminalOrder();
+
+    expect(advanced?.providerOrderId).toBe(newer.providerOrderId);
+    expect(advanced?.phase).toBe("ACCEPTED");
+    expect(state.findOrder(older.providerOrderId)?.phase).toBe("CREATED");
   });
 
   test("updates estimates for later quotes and orders", () => {
@@ -59,7 +80,7 @@ describe("FakeCaocaoState", () => {
       carType: "EXPRESS",
       externalOrderId: "external-order-2",
     });
-    state.advanceOrderDetail(created.providerOrderId);
+    state.advanceOrderPhase(created.providerOrderId);
     const cancelled = state.cancelOrder(created.providerOrderId);
     const feeConfirm = state.confirmFee({
       allowanceAmountFen: 120,

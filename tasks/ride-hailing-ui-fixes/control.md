@@ -19,11 +19,12 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Constraint`
-- Active mode: `Solidify` for durable docs promotion
+- Active mode: `Diagnose` for RideHailing Order Detail mock control
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, and Offer Listing / quote
-  identity segments committed; Ordering entry decoupling committed; current
-  slice promotes stable task-packet facts into durable PRD / Product TDD docs
+  identity segments committed; Ordering entry decoupling and durable docs
+  promotion committed; current slice explores fake provider lifecycle control
+  for RideHailing Order Detail review
 
 ## Inherited Effective Truth
 
@@ -228,6 +229,21 @@ Choose the narrowest sufficient proof per approved slice:
   - refined `docs/20-product-tdd/ecommerce-contracts.md` for `/order/new`
     topology, departure-time binding UX, quote-expired selection preservation,
     and RideHailing cancelled-create behavior
+- Current mock-control slice implemented locally:
+  - observed cause of rapid state collapse: `CommerceOrderDetailPage` polls
+    order detail every 1500 ms, backend detail projection queries provider
+    detail, and fake Caocao used to advance phase on each detail query
+  - fake Caocao provider detail reads are now read-only by default
+  - lifecycle movement is explicit through fake control routes that also post
+    provider callbacks:
+    - `POST /__fake_caocao/orders/latest/advance`
+    - `POST /__fake_caocao/orders/:providerOrderId/advance`
+    - `POST /__fake_caocao/orders/:providerOrderId/phase`
+  - RideHailing Provider Instance Admin has a separate dev-only debug card that
+    directly calls the selected provider instance `config.endpointBaseUrl`
+    fake-control route; no backend proxy is introduced
+  - planning artifact:
+    `tasks/ride-hailing-ui-fixes/order-detail-mock-control-plan.md`
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.
@@ -237,6 +253,8 @@ Choose the narrowest sufficient proof per approved slice:
   - `pnpm check:format`
   - `pnpm check:lint`
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
   - `pnpm exec biome check --write packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/state.test.ts packages/fake-caocao-server/src/server.test.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`

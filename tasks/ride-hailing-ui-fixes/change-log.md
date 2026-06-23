@@ -491,3 +491,47 @@
   - `rg` stale-contract search for old Offer Detail ordering, old
     `OrderingFromPlacementPage`, old provider-binding wording, old
     evaluate/options endpoints, and `selectable=false`
+
+## Slice: RideHailing Order Detail Mock Control Planning
+
+- Added standalone plan:
+  `tasks/ride-hailing-ui-fixes/order-detail-mock-control-plan.md`.
+- Recorded diagnosis:
+  - fake Caocao currently advances order phase on provider detail reads
+  - Order Detail polling every 1500 ms indirectly drives fake lifecycle
+  - backend callbacks from those fake reads move persisted execution phase and
+    create final bill after `FINISHED`
+- Proposed direction:
+  - make fake provider detail reads read-only by default
+  - add explicit fake admin/test-control routes for phase set/advance
+  - post callbacks from explicit fake lifecycle controls
+
+## Slice: RideHailing Order Detail Mock Control Implementation
+
+- Fake Caocao:
+  - made `/common/queryOrderDetailV2` read-only for order phase
+  - replaced read-driven phase advancement with explicit state helpers for
+    setting and advancing order phase
+  - added fake control routes:
+    `POST /__fake_caocao/orders/latest/advance`,
+    `POST /__fake_caocao/orders/:providerOrderId/advance`, and
+    `POST /__fake_caocao/orders/:providerOrderId/phase`
+  - control routes post the corresponding provider callback after moving fake
+    state, so backend order execution state still changes through provider
+    callback handling
+  - preserved create-time accepted callback behavior
+- Frontend Admin:
+  - added a separate dev-only RideHailing Provider Instance debug card
+  - the card directly calls the selected provider instance
+    `config.endpointBaseUrl` fake Caocao control route
+  - no backend admin proxy was introduced
+- Scenario:
+  - strengthened RideHailing order-detail scenario coverage so repeated detail
+    polling does not auto-advance fake provider phase past `ACCEPTED`
+- Verification:
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm check:type:frontend`
+  - `pnpm exec biome check packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/state.test.ts packages/fake-caocao-server/src/server.test.ts apps/frontend/src/pages/AdminRideHailingPage.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `git diff --check`

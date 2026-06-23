@@ -7,6 +7,7 @@ import {
 } from "./signature";
 import type {
   FakeCaocaoDriverSnapshot,
+  FakeCaocaoOrderPhase,
   FakeCaocaoOrderState,
   FakeCaocaoState,
   FakeCaocaoVehicleEstimate,
@@ -180,6 +181,19 @@ const phaseEvent = (phase: FakeCaocaoOrderState["phase"]): number => {
   return 1;
 };
 
+const parseOrderPhase = (phase: string | null): FakeCaocaoOrderPhase | null => {
+  if (
+    phase === "CREATED" ||
+    phase === "ACCEPTED" ||
+    phase === "IN_TRIP" ||
+    phase === "FINISHED" ||
+    phase === "CANCELLED"
+  ) {
+    return phase;
+  }
+  return null;
+};
+
 const orderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
   const driver =
     order.phase === "ACCEPTED" || order.phase === "IN_TRIP" || order.phase === "FINISHED"
@@ -260,18 +274,34 @@ const postCallback = async (input: {
   });
 };
 
+const postOrderPhaseCallback = async (input: {
+  fixture: FakeCaocaoFixture;
+  order: FakeCaocaoOrderState;
+}): Promise<void> => {
+  if (!input.order.callbackUrl) return;
+  await postCallback({
+    callbackUrl: input.order.callbackUrl,
+    event: phaseEvent(input.order.phase),
+    fixture: input.fixture,
+    order: input.order,
+  });
+};
+
 const maybePostCreateCallback = (input: {
   callbackUrl: string | null;
   fixture: FakeCaocaoFixture;
   order: FakeCaocaoOrderState;
+  state: FakeCaocaoState;
 }): void => {
   if (!input.callbackUrl) return;
+  const acceptedOrder = input.state.setOrderPhase(input.order.providerOrderId, "ACCEPTED");
+  if (!acceptedOrder) return;
   setTimeout(() => {
     postCallback({
       callbackUrl: input.callbackUrl!,
       event: 20,
       fixture: input.fixture,
-      order: input.order,
+      order: acceptedOrder,
     }).catch(() => undefined);
   }, 0);
 };
@@ -350,6 +380,70 @@ export async function handleFakeCaocaoRequest(
       return;
     }
 
+    if (url.pathname === "/__fake_caocao/orders/latest/advance" && req.method === "POST") {
+      await readBodyText(req);
+      const order = input.state.advanceLatestNonTerminalOrder();
+      if (!order) {
+        sendJson(res, 404, {
+          code: "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          message: "No non-terminal fake Caocao order found",
+        });
+        return;
+      }
+      await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      sendJson(res, 200, { ok: true, order });
+      return;
+    }
+
+    const orderAdvanceMatch = url.pathname.match(/^\/__fake_caocao\/orders\/([^/]+)\/advance$/);
+    if (orderAdvanceMatch && req.method === "POST") {
+      await readBodyText(req);
+      const order = input.state.advanceOrderPhase(decodeURIComponent(orderAdvanceMatch[1]!));
+      if (!order) {
+        sendJson(res, 404, {
+          code: "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          message: "Fake Caocao order not found",
+        });
+        return;
+      }
+      await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      sendJson(res, 200, { ok: true, order });
+      return;
+    }
+
+    const orderPhaseMatch = url.pathname.match(/^\/__fake_caocao\/orders\/([^/]+)\/phase$/);
+    if (orderPhaseMatch && req.method === "POST") {
+      const phaseParams = await readParams(req, url);
+      const phase = parseOrderPhase(readFirstParam(phaseParams, ["phase"]));
+      if (!phase) {
+        sendJson(res, 400, {
+          code: "FAKE_CAOCAO_UNSUPPORTED_ORDER_PHASE",
+          message: "Unsupported fake Caocao order phase",
+        });
+        return;
+      }
+      const order = input.state.setOrderPhase(decodeURIComponent(orderPhaseMatch[1]!), phase);
+      if (!order) {
+        sendJson(res, 404, {
+          code: "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          message: "Fake Caocao order not found",
+        });
+        return;
+      }
+      await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      sendJson(res, 200, { ok: true, order });
+      return;
+    }
+
     const params = await readParams(req, url);
     verifySignedParams({
       fixture: input.fixture,
@@ -396,6 +490,7 @@ export async function handleFakeCaocaoRequest(
         callbackUrl,
         fixture: input.fixture,
         order,
+        state: input.state,
       });
       sendJson(
         res,
@@ -411,15 +506,7 @@ export async function handleFakeCaocaoRequest(
 
     if (url.pathname === "/common/queryOrderDetailV2") {
       const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
-      const order = providerOrderId ? input.state.advanceOrderDetail(providerOrderId) : null;
-      if (order?.callbackUrl) {
-        postCallback({
-          callbackUrl: order.callbackUrl,
-          event: phaseEvent(order.phase),
-          fixture: input.fixture,
-          order,
-        }).catch(() => undefined);
-      }
+      const order = providerOrderId ? input.state.findOrder(providerOrderId) : null;
       sendJson(
         res,
         200,

@@ -165,6 +165,37 @@
             </form>
           </BentoItem>
 
+          <BentoItem v-if="showFakeCaocaoDevTools" title="开发调试" span="full">
+            <div class="dev-tool-card">
+              <p class="hint">
+                直接调用当前 Provider Instance Endpoint 上的 fake Caocao 控制接口。
+              </p>
+              <PuButton
+                size="sm"
+                tone="neutral"
+                variant="outline"
+                :loading="isAdvancingFakePhase"
+                :disabled="isAdvancingFakePhase"
+                data-testid="admin-ride-hailing.dev.advance-phase"
+                @click="advanceFakeCaocaoPhase"
+              >
+                推进最新订单状态
+              </PuButton>
+              <PuInlineNotice
+                v-if="fakeAdvanceResultMessage"
+                tone="success"
+                :message="fakeAdvanceResultMessage"
+                data-testid="admin-ride-hailing.dev.advance-phase.result"
+              />
+              <PuInlineNotice
+                v-if="fakeAdvanceErrorMessage"
+                tone="error"
+                :message="fakeAdvanceErrorMessage"
+                data-testid="admin-ride-hailing.dev.advance-phase.error"
+              />
+            </div>
+          </BentoItem>
+
           <BentoItem title="实例输出" span="full">
             <dl class="summary-grid">
               <div>
@@ -206,20 +237,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useI18n } from "vue-i18n";
-import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
-import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
-import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import {
-  useAdminRideHailingProviderWorkspace,
-  useCreateAdminRideHailingProviderInstance,
-  useUpdateAdminRideHailingProviderInstance,
-  type AdminRideHailingProviderInstanceInput,
-  type AdminRideHailingProviderWorkspaceResponse,
-} from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
 import {
   PuButton,
   PuCard,
@@ -227,15 +244,28 @@ import {
   PuInlineNotice,
   PuLoadingState,
   PuSelect,
-  PuTag,
   type PuSelectOption,
   type PuSelectValue,
+  PuTag,
 } from "@partner-up-dev/design-web";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
+import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
+import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
+import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
+import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
+import {
+  type AdminRideHailingProviderInstanceInput,
+  type AdminRideHailingProviderWorkspaceResponse,
+  useAdminRideHailingProviderWorkspace,
+  useCreateAdminRideHailingProviderInstance,
+  useUpdateAdminRideHailingProviderInstance,
+} from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
 
 const CREATE_PROVIDER_ID = "__create__";
 
-type ProviderInstance =
-  AdminRideHailingProviderWorkspaceResponse["providerInstances"][number];
+type ProviderInstance = AdminRideHailingProviderWorkspaceResponse["providerInstances"][number];
 
 type ProviderForm = {
   providerType: "CAOCAO";
@@ -258,27 +288,21 @@ const updateMutation = useUpdateAdminRideHailingProviderInstance();
 const selectedProviderIdRaw = ref("");
 const form = ref<ProviderForm>(createBlankForm());
 const localErrorMessage = ref<string | null>(null);
+const isAdvancingFakePhase = ref(false);
+const fakeAdvanceResultMessage = ref<string | null>(null);
+const fakeAdvanceErrorMessage = ref<string | null>(null);
 
-const providerInstances = computed(
-  () => workspaceQuery.data.value?.providerInstances ?? [],
-);
+const providerInstances = computed(() => workspaceQuery.data.value?.providerInstances ?? []);
 const selectedProviderId = computed(
-  () =>
-    selectedProviderIdRaw.value ||
-    providerInstances.value[0]?.id ||
-    CREATE_PROVIDER_ID,
+  () => selectedProviderIdRaw.value || providerInstances.value[0]?.id || CREATE_PROVIDER_ID,
 );
 const selectedProvider = computed(
-  () =>
-    providerInstances.value.find(
-      (record) => record.id === selectedProviderId.value,
-    ) ?? null,
+  () => providerInstances.value.find((record) => record.id === selectedProviderId.value) ?? null,
 );
-const isCreateMode = computed(
-  () => selectedProviderId.value === CREATE_PROVIDER_ID,
-);
-const isSaving = computed(
-  () => createMutation.isPending.value || updateMutation.isPending.value,
+const isCreateMode = computed(() => selectedProviderId.value === CREATE_PROVIDER_ID);
+const isSaving = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
+const showFakeCaocaoDevTools = computed(
+  () => import.meta.env.DEV && selectedProvider.value !== null && !isCreateMode.value,
 );
 const formTitle = computed(() =>
   isCreateMode.value ? "新建 Provider Instance" : "编辑 Provider Instance",
@@ -290,9 +314,7 @@ const providerStatusOptions = computed<PuSelectOption[]>(() => [
   { label: "ACTIVE", value: "ACTIVE" },
   { label: "DISABLED", value: "DISABLED" },
 ]);
-const signKeyPlaceholder = computed(() =>
-  isCreateMode.value ? "新建实例必填" : "留空则保留",
-);
+const signKeyPlaceholder = computed(() => (isCreateMode.value ? "新建实例必填" : "留空则保留"));
 const signKeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
   return selectedProvider.value?.config.signKeyConfigured ? "已配置" : "未配置";
@@ -330,8 +352,7 @@ function formFromProvider(provider: ProviderInstance): ProviderForm {
     endpointBaseUrl: provider.config.endpointBaseUrl,
     callbackBaseUrl: provider.config.callbackBaseUrl ?? "",
     requestTimeoutMs:
-      provider.config.requestTimeoutMs === null ||
-      provider.config.requestTimeoutMs === undefined
+      provider.config.requestTimeoutMs === null || provider.config.requestTimeoutMs === undefined
         ? ""
         : String(provider.config.requestTimeoutMs),
   };
@@ -398,6 +419,46 @@ const buildInput = (): AdminRideHailingProviderInstanceInput => {
   };
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readStringField = (value: unknown, key: string): string | null =>
+  isRecord(value) && typeof value[key] === "string" ? value[key] : null;
+
+const buildFakeControlUrl = (provider: ProviderInstance, path: string): string => {
+  const baseUrl = provider.config.endpointBaseUrl.trim();
+  return new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
+};
+
+const readFakeCaocaoErrorMessage = (payload: unknown): string | null =>
+  readStringField(payload, "message") || readStringField(payload, "detail");
+
+const readFakeCaocaoAdvanceResult = (
+  payload: unknown,
+): {
+  providerOrderId: string;
+  phase: string;
+} => {
+  if (!isRecord(payload) || payload.ok !== true || !isRecord(payload.order)) {
+    throw new Error("Fake Caocao advance response is invalid");
+  }
+  const providerOrderId = readStringField(payload.order, "providerOrderId");
+  const phase = readStringField(payload.order, "phase");
+  if (!providerOrderId || !phase) {
+    throw new Error("Fake Caocao advance response is incomplete");
+  }
+  return { providerOrderId, phase };
+};
+
+const phaseLabel = (phase: string): string => {
+  if (phase === "CREATED") return "已创建";
+  if (phase === "ACCEPTED") return "已接单";
+  if (phase === "IN_TRIP") return "行程中";
+  if (phase === "FINISHED") return "已完成";
+  if (phase === "CANCELLED") return "已取消";
+  return phase;
+};
+
 const startCreate = () => {
   selectedProviderIdRaw.value = CREATE_PROVIDER_ID;
 };
@@ -415,8 +476,7 @@ const handleSave = async () => {
     selectedProviderIdRaw.value = saved.id;
     form.value = formFromProvider(saved);
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -424,6 +484,37 @@ const clearErrors = () => {
   localErrorMessage.value = null;
   createMutation.reset();
   updateMutation.reset();
+};
+
+const clearFakeAdvanceFeedback = () => {
+  fakeAdvanceResultMessage.value = null;
+  fakeAdvanceErrorMessage.value = null;
+};
+
+const advanceFakeCaocaoPhase = async (): Promise<void> => {
+  clearFakeAdvanceFeedback();
+  const provider = selectedProvider.value;
+  if (!provider) return;
+  isAdvancingFakePhase.value = true;
+  try {
+    const response = await fetch(
+      buildFakeControlUrl(provider, "/__fake_caocao/orders/latest/advance"),
+      {
+        method: "POST",
+      },
+    );
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!response.ok) {
+      throw new Error(readFakeCaocaoErrorMessage(payload) ?? "推进 fake 曹操订单状态失败");
+    }
+    const result = readFakeCaocaoAdvanceResult(payload);
+    fakeAdvanceResultMessage.value = `已推进 ${result.providerOrderId} 到 ${phaseLabel(result.phase)}`;
+  } catch (error) {
+    fakeAdvanceErrorMessage.value =
+      error instanceof Error ? error.message : "推进 fake 曹操订单状态失败";
+  } finally {
+    isAdvancingFakePhase.value = false;
+  }
 };
 
 const formatTimestamp = (value: Date | string): string =>
@@ -450,6 +541,7 @@ watch(
       ? formFromProvider(selectedProvider.value)
       : createBlankForm();
     clearErrors();
+    clearFakeAdvanceFeedback();
   },
   { immediate: true },
 );
@@ -458,13 +550,15 @@ watch(
 <style lang="scss" scoped>
 .stack,
 .provider-rail-list,
-.form-stack {
+.form-stack,
+.dev-tool-card {
   display: flex;
   flex-direction: column;
 }
 
 .stack,
-.provider-rail-list {
+.provider-rail-list,
+.dev-tool-card {
   gap: var(--sys-spacing-medium);
 }
 

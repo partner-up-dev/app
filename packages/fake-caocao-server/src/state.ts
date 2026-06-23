@@ -68,6 +68,15 @@ const defaultEstimates = (): FakeCaocaoVehicleEstimate[] => [
   },
 ];
 
+const terminalOrderPhases = new Set<FakeCaocaoOrderPhase>(["FINISHED", "CANCELLED"]);
+
+const nextOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
+  if (phase === "CREATED") return "ACCEPTED";
+  if (phase === "ACCEPTED") return "IN_TRIP";
+  if (phase === "IN_TRIP") return "FINISHED";
+  return phase;
+};
+
 export class FakeCaocaoState {
   private failNextCreate = false;
   private readonly estimates = new Map<string, FakeCaocaoVehicleEstimate>();
@@ -202,28 +211,36 @@ export class FakeCaocaoState {
     return this.orders.get(providerOrderId) ?? null;
   }
 
-  advanceOrderDetail(providerOrderId: string): FakeCaocaoOrderState | null {
+  findLatestNonTerminalOrder(): FakeCaocaoOrderState | null {
+    return (
+      [...this.orders.values()].reverse().find((order) => !terminalOrderPhases.has(order.phase)) ??
+      null
+    );
+  }
+
+  setOrderPhase(providerOrderId: string, phase: FakeCaocaoOrderPhase): FakeCaocaoOrderState | null {
     const order = this.orders.get(providerOrderId);
     if (!order) return null;
 
-    const nextQueryCount = order.queryCount + 1;
-    const nextPhase: FakeCaocaoOrderPhase =
-      order.phase === "CANCELLED"
-        ? "CANCELLED"
-        : nextQueryCount <= 1
-          ? "ACCEPTED"
-          : nextQueryCount === 2
-            ? "IN_TRIP"
-            : "FINISHED";
-
     const updated: FakeCaocaoOrderState = {
       ...order,
-      phase: nextPhase,
-      queryCount: nextQueryCount,
+      phase,
       updatedAt: nowIso(),
     };
     this.orders.set(providerOrderId, updated);
     return updated;
+  }
+
+  advanceOrderPhase(providerOrderId: string): FakeCaocaoOrderState | null {
+    const order = this.orders.get(providerOrderId);
+    if (!order) return null;
+    return this.setOrderPhase(providerOrderId, nextOrderPhase(order.phase));
+  }
+
+  advanceLatestNonTerminalOrder(): FakeCaocaoOrderState | null {
+    const order = this.findLatestNonTerminalOrder();
+    if (!order) return null;
+    return this.advanceOrderPhase(order.providerOrderId);
   }
 
   cancelOrder(providerOrderId: string): FakeCaocaoOrderState | null {

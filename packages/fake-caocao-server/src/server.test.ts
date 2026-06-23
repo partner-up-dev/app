@@ -104,7 +104,54 @@ describe("startFakeCaocaoServer", () => {
 
     expect(detailResponse.ok).toBe(true);
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.phase).toBe("ACCEPTED");
+    expect(detailBody.data.phase).toBe("CREATED");
+
+    const advanceResponse = await fetch(`${server.origin}/__fake_caocao/orders/latest/advance`, {
+      method: "POST",
+    });
+    const advanceBody = (await advanceResponse.json()) as {
+      ok: boolean;
+      order: { phase: string; providerOrderId: string };
+    };
+
+    expect(advanceResponse.ok).toBe(true);
+    expect(advanceBody.ok).toBe(true);
+    expect(advanceBody.order.providerOrderId).toBe(createBody.data.orderNo);
+    expect(advanceBody.order.phase).toBe("ACCEPTED");
+
+    const detailAfterAdvanceResponse = await fetch(
+      `${server.origin}/common/queryOrderDetailV2?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "3-after-advance",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const detailAfterAdvanceBody = (await detailAfterAdvanceResponse.json()) as {
+      code: number;
+      data: { phase: string };
+      success: boolean;
+    };
+
+    expect(detailAfterAdvanceResponse.ok).toBe(true);
+    expect(detailAfterAdvanceBody.success).toBe(true);
+    expect(detailAfterAdvanceBody.data.phase).toBe("ACCEPTED");
+
+    const invalidPhaseResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/phase?phase=BOARDING`,
+      {
+        method: "POST",
+      },
+    );
+    const invalidPhaseBody = (await invalidPhaseResponse.json()) as {
+      code: string;
+      message: string;
+    };
+
+    expect(invalidPhaseResponse.status).toBe(400);
+    expect(invalidPhaseBody.code).toBe("FAKE_CAOCAO_UNSUPPORTED_ORDER_PHASE");
   });
 
   test("supports admin estimate controls", async () => {
