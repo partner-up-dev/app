@@ -52,14 +52,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import SharedMap from "@/shared/map/Map.vue";
-import type {
-  MapActiveGeometry,
-  MapCoordinate,
-  MapFitPadding,
-  MapMarker,
-  MapPolyline,
-} from "@/shared/map/types";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import {
   buildRouteSummary,
@@ -72,11 +64,21 @@ import {
   fetchTencentDrivingRoutePlans,
   type TencentDrivingRoutePlan,
 } from "@/domains/route/model/route-planning";
+import SharedMap from "@/shared/map/Map.vue";
+import type {
+  MapActiveGeometry,
+  MapCoordinate,
+  MapFitPadding,
+  MapMarker,
+  MapPolyline,
+} from "@/shared/map/types";
 
 const props = withDefaults(
   defineProps<{
     route: Route | null;
     plannedPolyline?: readonly MapCoordinate[] | null;
+    extraMarkers?: readonly MapMarker[];
+    extraPolylines?: readonly MapPolyline[];
     planRoute?: boolean;
     planningApiKey?: string;
     activeGeometry?: MapActiveGeometry;
@@ -89,9 +91,12 @@ const props = withDefaults(
     routePointsEditable?: boolean;
     variant?: "inline" | "immersive";
     hideBottomAttribution?: boolean;
+    showFallbackPolyline?: boolean;
   }>(),
   {
     plannedPolyline: null,
+    extraMarkers: () => [],
+    extraPolylines: () => [],
     planRoute: true,
     planningApiKey: undefined,
     activeGeometry: null,
@@ -104,6 +109,7 @@ const props = withDefaults(
     routePointsEditable: false,
     variant: "inline",
     hideBottomAttribution: false,
+    showFallbackPolyline: true,
   },
 );
 
@@ -172,12 +178,7 @@ const buildPointMarker = ({
     position,
     calloutLabel: props.routePointsEditable ? `${title} ›` : title,
     title,
-    icon:
-      role === "departure"
-        ? "routeStart"
-        : role === "arrival"
-          ? "routeEnd"
-          : "routeWaypoint",
+    icon: role === "departure" ? "routeStart" : role === "arrival" ? "routeEnd" : "routeWaypoint",
   };
 };
 
@@ -211,7 +212,7 @@ const handleMarkerClick = (markerId: string) => {
   emit("routePointClick", index);
 };
 
-const markers = computed<MapMarker[]>(() => {
+const routeMarkers = computed<MapMarker[]>(() => {
   const primaryPlan = routePlanningPrimary.value;
   if (!primaryPlan || primaryPlan.polyline.length < 2) {
     return fallbackMarkers.value;
@@ -247,7 +248,9 @@ const markers = computed<MapMarker[]>(() => {
   ];
 });
 
-const polylines = computed<MapPolyline[]>(() => {
+const markers = computed<MapMarker[]>(() => [...routeMarkers.value, ...props.extraMarkers]);
+
+const routePolylines = computed<MapPolyline[]>(() => {
   if (externalPlannedPolyline.value) {
     return [
       {
@@ -279,15 +282,19 @@ const polylines = computed<MapPolyline[]>(() => {
     return [];
   }
 
+  if (!props.showFallbackPolyline) {
+    return [];
+  }
+
   return projection.value.polylines.map((polyline) => ({
     ...polyline,
     tone: "routeInvalid",
   }));
 });
 
-const hasGeometry = computed(
-  () => markers.value.length > 0 || polylines.value.length > 0,
-);
+const polylines = computed<MapPolyline[]>(() => [...routePolylines.value, ...props.extraPolylines]);
+
+const hasGeometry = computed(() => markers.value.length > 0 || polylines.value.length > 0);
 
 const clearPlanning = () => {
   planningAbortController.value?.abort();
@@ -341,9 +348,7 @@ const formatPointLabel = (point: RoutePoint, index: number): string => {
     index: index + 1,
   });
   const address = point.full_address?.trim() ?? "";
-  return address.length > 0
-    ? `${name || fallback} · ${address}`
-    : name || fallback;
+  return address.length > 0 ? `${name || fallback} · ${address}` : name || fallback;
 };
 </script>
 

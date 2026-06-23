@@ -141,6 +141,65 @@ async function readFakeCaocaoOrders(): Promise<
   });
 }
 
+async function advanceLatestFakeCaocaoOrder(): Promise<{
+  providerOrderId: string;
+  phase: string;
+}> {
+  const { fakeCaocao } = getScenarioEnvironment();
+  const response = await fetch(new URL("/__fake_caocao/orders/latest/advance", fakeCaocao.origin), {
+    method: "POST",
+  });
+  assert.equal(response.ok, true);
+  const body = (await response.json()) as {
+    order?: {
+      providerOrderId?: unknown;
+      phase?: unknown;
+    };
+  };
+  assert.equal(typeof body.order?.providerOrderId, "string");
+  assert.equal(typeof body.order?.phase, "string");
+  return {
+    phase: body.order.phase,
+    providerOrderId: body.order.providerOrderId,
+  };
+}
+
+async function setFakeCaocaoOrderPhase(input: {
+  providerOrderId: string;
+  phase: "ACCEPTED" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "FINISHED";
+}): Promise<{
+  providerOrderId: string;
+  phase: string;
+}> {
+  const { fakeCaocao } = getScenarioEnvironment();
+  const response = await fetch(
+    new URL(
+      `/__fake_caocao/orders/${encodeURIComponent(input.providerOrderId)}/phase`,
+      fakeCaocao.origin,
+    ),
+    {
+      body: new URLSearchParams({ phase: input.phase }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    },
+  );
+  assert.equal(response.ok, true);
+  const body = (await response.json()) as {
+    order?: {
+      providerOrderId?: unknown;
+      phase?: unknown;
+    };
+  };
+  assert.equal(typeof body.order?.providerOrderId, "string");
+  assert.equal(typeof body.order?.phase, "string");
+  return {
+    phase: body.order.phase,
+    providerOrderId: body.order.providerOrderId,
+  };
+}
+
 async function expireCommerceQuotes(): Promise<number> {
   const before = await db.select().from(commerceQuotes);
   await db.update(commerceQuotes).set({
@@ -498,21 +557,34 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
+  const rawData = page.getByTestId("order-detail.ride-hailing.raw-data");
   await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.selected-vehicle").textContent(),
+    actual: rawData.textContent(),
     expected: "系统曹操快车",
-    label: "RideHailing selected vehicle",
+    label: "RideHailing raw selected vehicle",
   });
   await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
+    actual: rawData.textContent(),
     expected: "杭州东站",
-    label: "RideHailing route summary origin",
+    label: "RideHailing raw route summary origin",
   });
   await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.route-summary").textContent(),
+    actual: rawData.textContent(),
     expected: "灵隐寺",
-    label: "RideHailing route summary destination",
+    label: "RideHailing raw route summary destination",
   });
+}
+
+async function waitForRideHailingMapMode(
+  page: Page,
+  mode: "SEARCHING_ORIGIN" | "PICKING_UP" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "PLANNED_ROUTE",
+): Promise<void> {
+  await page
+    .locator(`[data-testid="order-detail.ride-hailing.page"][data-map-mode="${mode}"]`)
+    .waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
 }
 
 scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
@@ -554,6 +626,32 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     const fakeOrders = await readFakeCaocaoOrders();
     assert.equal(fakeOrders.length, 1);
     assert.equal(fakeOrders[0]?.phase, "ACCEPTED");
+    await waitForRideHailingMapMode(page, "SEARCHING_ORIGIN");
+
+    const acceptedOrder = await setFakeCaocaoOrderPhase({
+      providerOrderId: fakeOrders[0].providerOrderId,
+      phase: "ACCEPTED",
+    });
+    assert.equal(acceptedOrder.phase, "ACCEPTED");
+    await waitForRideHailingMapMode(page, "PICKING_UP");
+
+    const arrivedOrder = await advanceLatestFakeCaocaoOrder();
+    assert.equal(arrivedOrder.phase, "ARRIVED_AT_PICKUP");
+    await waitForRideHailingMapMode(page, "ARRIVED_AT_PICKUP");
+
+    const inTripOrder = await advanceLatestFakeCaocaoOrder();
+    assert.equal(inTripOrder.phase, "IN_TRIP");
+    await waitForRideHailingMapMode(page, "IN_TRIP");
+
+    const finishedOrder = await advanceLatestFakeCaocaoOrder();
+    assert.equal(finishedOrder.phase, "FINISHED");
+    await waitForRideHailingMapMode(page, "PLANNED_ROUTE");
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("order-detail.ride-hailing.raw-data").textContent(),
+      expected: '"bill"',
+      label: "RideHailing raw data includes bill after finished",
+    });
+
     orderPath = new URL(page.url()).pathname;
   });
 

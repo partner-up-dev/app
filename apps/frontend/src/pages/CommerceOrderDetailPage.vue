@@ -1,6 +1,8 @@
 <template>
   <PuPageScaffold
     viewport="screen"
+    width="full"
+    padding="none"
     class="order-detail-page"
     data-testid="order-detail.page"
   >
@@ -26,7 +28,10 @@
       </PuPageHeader>
     </template>
 
-    <div class="order-detail-page__body">
+    <div
+      class="order-detail-page__body"
+      :class="{ 'order-detail-page__body--immersive': rideHailingDetail }"
+    >
       <PuInlineNotice
         v-if="orderId === null"
         tone="error"
@@ -49,123 +54,41 @@
       </div>
 
       <template v-else-if="detail">
-        <PuCard as="section" gap="md">
-          <div class="order-detail-page__section-heading">
-            <p class="order-detail-page__eyebrow">Order</p>
-            <h2 data-testid="order-detail.item-name">{{ primaryItemName }}</h2>
-          </div>
+        <RideHailingOrderContent
+          v-if="rideHailingDetail"
+          :detail="detail"
+          :ride="rideHailingDetail"
+        />
 
-          <div class="order-detail-page__facts">
-            <div>
-              <span>订单状态</span>
-              <strong data-testid="order-detail.order-status">
-                {{ orderStatusLabel }}
-              </strong>
-            </div>
-            <div>
-              <span>服务时间</span>
-              <strong data-testid="order-detail.service-window">
-                {{ serviceWindowLabel }}
-              </strong>
-            </div>
-            <div>
-              <span>参与人数</span>
-              <strong data-testid="order-detail.participant-count">
-                {{ participantCountLabel }}
-              </strong>
-            </div>
-          </div>
-        </PuCard>
-
-        <template v-if="rideHailingDetail">
-          <section
-            class="order-detail-page__ride"
-            data-testid="order-detail.ride-hailing.page"
-          >
-            <div
-              class="order-detail-page__ride-map"
-              data-testid="order-detail.ride-hailing.route-map"
-            >
-              <div class="order-detail-page__ride-polyline"></div>
-              <div
-                class="order-detail-page__ride-callout order-detail-page__ride-callout--origin"
-              >
-                {{ rideHailingDetail.route.origin.name }}
-              </div>
-              <div
-                class="order-detail-page__ride-callout order-detail-page__ride-callout--destination"
-              >
-                {{ rideHailingDetail.route.destination.name }}
-              </div>
+        <div v-else class="order-detail-page__document-body">
+          <PuCard as="section" gap="md">
+            <div class="order-detail-page__section-heading">
+              <p class="order-detail-page__eyebrow">Order</p>
+              <h2 data-testid="order-detail.item-name">{{ primaryItemName }}</h2>
             </div>
 
-            <PuCard as="section" gap="md">
-              <div class="order-detail-page__section-heading">
-                <p class="order-detail-page__eyebrow">Ride</p>
-                <h2 data-testid="order-detail.ride-hailing.status">
-                  {{ rideStatusLabel }}
-                </h2>
+            <div class="order-detail-page__facts">
+              <div>
+                <span>订单状态</span>
+                <strong data-testid="order-detail.order-status">
+                  {{ orderStatusLabel }}
+                </strong>
               </div>
-
-              <div class="order-detail-page__facts">
-                <div>
-                  <span>车型</span>
-                  <strong
-                    data-testid="order-detail.ride-hailing.selected-vehicle"
-                  >
-                    {{ rideHailingDetail.selectedVehicleName }}
-                  </strong>
-                </div>
-                <div>
-                  <span>路线</span>
-                  <strong data-testid="order-detail.ride-hailing.route-summary">
-                    {{ rideRouteSummary }}
-                  </strong>
-                </div>
-                <div>
-                  <span>乘客</span>
-                  <strong data-testid="order-detail.ride-hailing.passengers">
-                    {{ ridePassengersLabel }}
-                  </strong>
-                </div>
-                <div
-                  v-if="
-                    rideHailingDetail.driver || rideHailingDetail.live?.driver
-                  "
-                >
-                  <span>司机</span>
-                  <strong data-testid="order-detail.ride-hailing.driver">
-                    {{ rideDriverLabel }}
-                  </strong>
-                </div>
-                <div
-                  v-if="
-                    rideHailingDetail.vehicle || rideHailingDetail.live?.vehicle
-                  "
-                >
-                  <span>车辆</span>
-                  <strong data-testid="order-detail.ride-hailing.vehicle">
-                    {{ rideVehicleLabel }}
-                  </strong>
-                </div>
+              <div>
+                <span>服务时间</span>
+                <strong data-testid="order-detail.service-window">
+                  {{ serviceWindowLabel }}
+                </strong>
               </div>
+              <div>
+                <span>参与人数</span>
+                <strong data-testid="order-detail.participant-count">
+                  {{ participantCountLabel }}
+                </strong>
+              </div>
+            </div>
+          </PuCard>
 
-              <PuButton
-                v-if="detail.bill"
-                :action="{ to: { path: `/bills/${detail.bill.id}` } }"
-                shape="rect"
-                tone="primary"
-                variant="solid"
-                size="lg"
-                data-testid="order-detail.ride-hailing.bill-detail-link"
-              >
-                查看账单并支付
-              </PuButton>
-            </PuCard>
-          </section>
-        </template>
-
-        <template v-else>
           <PuCard as="section" gap="md">
             <div class="order-detail-page__section-heading">
               <p class="order-detail-page__eyebrow">Bill</p>
@@ -222,7 +145,8 @@
 
             <PuButton
               v-if="detail.cancellation.canRequest"
-              tone="danger" variant="outline"
+              tone="danger"
+              variant="outline"
               :loading="cancelMutation.isPending.value"
               data-testid="order-detail.cancel-rental"
               @click="cancelRentalOrder"
@@ -263,7 +187,8 @@
             <PuButton
               v-if="canConfirmRentalBooking"
               size="lg"
-              tone="secondary" variant="solid"
+              tone="secondary"
+              variant="solid"
               :loading="confirmationMutation.isPending.value"
               data-testid="order-detail.mock-rental-confirm"
               @click="simulateBookingConfirmation"
@@ -279,15 +204,13 @@
               data-testid="order-detail.rental.booking-confirmed"
             />
           </PuCard>
-        </template>
+        </div>
       </template>
     </div>
   </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
 import {
   PuButton,
   PuCard,
@@ -295,13 +218,16 @@ import {
   PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
-import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { computed, onMounted, onUnmounted } from "vue";
+import { useRoute } from "vue-router";
 import {
   type CommerceOrderDetailResponse,
   useCancelRentalOrder,
   useCommerceOrderDetail,
   useMockRentalBookingConfirmation,
 } from "@/domains/commerce/queries/useCommerce";
+import RideHailingOrderContent from "@/domains/commerce/ui/order-detail/RideHailingOrderContent.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 type OrderItemSnapshot = CommerceOrderDetailResponse["order"]["items"][number];
 type OrderSkuSnapshot = Extract<OrderItemSnapshot, { kind?: "FIXED"; sku: unknown }>["sku"];
@@ -355,12 +281,7 @@ const orderStatusLabel = computed(() => {
   return detail.value?.order.status ?? "未知";
 });
 
-const participantCountLabel = computed(() => {
-  if (rideHailingDetail.value) {
-    return `${rideHailingDetail.value.riders.length} 人`;
-  }
-  return `${detail.value?.order.participantCount ?? 0} 人`;
-});
+const participantCountLabel = computed(() => `${detail.value?.order.participantCount ?? 0} 人`);
 
 const fulfillmentStatusLabel = computed(() => {
   if (detail.value?.order.status === "CANCELLED") {
@@ -412,53 +333,9 @@ const backFallbackTo = computed(() => ({ path: "/" }));
 const { handleBack } = useFallbackBack(backFallbackTo);
 
 const serviceWindowLabel = computed(() => {
-  if (rideHailingDetail.value) {
-    return rideHailingDetail.value.departureAt
-      ? `${formatDateTime(rideHailingDetail.value.departureAt)} 出发`
-      : "现在出发";
-  }
   const start = detail.value?.order.serviceStartAt ?? null;
   const end = detail.value?.order.serviceEndAt ?? null;
   return `${formatDateTime(start)} - ${formatDateTime(end)}`;
-});
-
-const rideStatusLabel = computed(() => {
-  const ride = rideHailingDetail.value;
-  if (!ride) return "未知状态";
-  if (ride.live?.statusLabel) return ride.live.statusLabel;
-  if (detail.value?.order.status === "FAILED") return "呼叫失败";
-  if (ride.executionPhase === "FINISHED") return "待支付";
-  if (ride.executionPhase === "CANCELLED") return "已取消";
-  if (ride.executionPhase === "FAILED") return "呼叫失败";
-  if (ride.executionPhase === "IN_TRIP") return "行程中";
-  if (ride.executionPhase === "ACCEPTED") return "已接单";
-  if (ride.executionPhase === "DISPATCHING") return "正在呼叫";
-  return "正在创建";
-});
-
-const rideRouteSummary = computed(() => {
-  const route = rideHailingDetail.value?.route;
-  if (!route) return "路线待确认";
-  const waypoints = route.waypoints.map((point) => point.name);
-  return [route.origin.name, ...waypoints, route.destination.name].join(" → ");
-});
-
-const ridePassengersLabel = computed(() => {
-  const riders = rideHailingDetail.value?.riders ?? [];
-  if (riders.length === 0) return "同乘人待确认";
-  return `同乘人：${riders.map((rider) => rider.displayName).join("、")}`;
-});
-
-const rideDriverLabel = computed(() => {
-  const driver = rideHailingDetail.value?.driver ?? rideHailingDetail.value?.live?.driver;
-  if (!driver) return "";
-  return [driver.driverName, driver.driverPhone].filter(Boolean).join(" ");
-});
-
-const rideVehicleLabel = computed(() => {
-  const vehicle = rideHailingDetail.value?.vehicle ?? rideHailingDetail.value?.live?.vehicle;
-  if (!vehicle) return "";
-  return [vehicle.plate, vehicle.color, vehicle.brand].filter(Boolean).join(" ");
 });
 
 const orderErrorMessage = computed(() =>
@@ -512,7 +389,6 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .order-detail-page {
   min-width: 0;
-  --pu-page-max-width: 44rem;
 }
 
 .order-detail-page__body {
@@ -520,8 +396,25 @@ onUnmounted(() => {
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--sys-spacing-medium);
+  width: 100%;
   min-height: 0;
   overflow: auto;
+  padding: var(--sys-spacing-medium);
+}
+
+.order-detail-page__body--immersive {
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.order-detail-page__document-body {
+  display: flex;
+  width: min(100%, var(--pu-page-max-width, 44rem));
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sys-spacing-medium);
+  margin: 0 auto;
   padding-bottom: var(--sys-spacing-medium);
 }
 
@@ -562,11 +455,11 @@ onUnmounted(() => {
 
   div {
     display: flex;
+    min-width: 0;
     justify-content: space-between;
     gap: var(--sys-spacing-medium);
-    min-width: 0;
-    padding: var(--sys-spacing-small);
     border-radius: var(--sys-radius-small);
+    padding: var(--sys-spacing-small);
     background: var(--sys-color-surface-container-high);
   }
 
@@ -580,64 +473,12 @@ onUnmounted(() => {
   }
 }
 
-.order-detail-page__ride {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-medium);
-}
-
-.order-detail-page__ride-map {
-  position: relative;
-  min-height: 18rem;
-  overflow: hidden;
-  border-radius: var(--sys-radius-medium);
-  background:
-    linear-gradient(135deg, rgb(226 236 229 / 0.95), rgb(223 232 241 / 0.96)),
-    repeating-linear-gradient(
-      45deg,
-      rgb(255 255 255 / 0.36) 0,
-      rgb(255 255 255 / 0.36) 0.5rem,
-      transparent 0.5rem,
-      transparent 2rem
-    );
-}
-
-.order-detail-page__ride-polyline {
-  position: absolute;
-  inset: 27% 18% 30% 18%;
-  border-bottom: 0.28rem solid var(--sys-color-primary);
-  border-left: 0.28rem solid var(--sys-color-primary);
-  border-radius: 0 0 0 5rem;
-}
-
-.order-detail-page__ride-callout {
-  position: absolute;
-  max-width: min(74%, 18rem);
-  min-height: 2.5rem;
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-  box-shadow: var(--sys-shadow-2);
-}
-
-.order-detail-page__ride-callout--origin {
-  top: 16%;
-  left: 10%;
-}
-
-.order-detail-page__ride-callout--destination {
-  right: 10%;
-  bottom: 15%;
-}
-
 .order-detail-page__policy {
   display: flex;
   flex-direction: column;
   gap: var(--sys-spacing-xsmall);
-  padding: var(--sys-spacing-small);
   border-radius: var(--sys-radius-small);
+  padding: var(--sys-spacing-small);
   background: var(--sys-color-surface-container-high);
 
   p {
