@@ -6,6 +6,7 @@ import {
   fakeCaocaoSignaturesMatch,
 } from "./signature";
 import type {
+  FakeCaocaoCoordinate,
   FakeCaocaoDriverSnapshot,
   FakeCaocaoOrderPhase,
   FakeCaocaoOrderState,
@@ -163,28 +164,58 @@ const estimatePayload = (estimate: FakeCaocaoVehicleEstimate): unknown => ({
   price_token: `fake_quote_${estimate.carType}`,
 });
 
-const driverSnapshot = (): FakeCaocaoDriverSnapshot => ({
-  driverName: "曹操测试司机",
-  driverPhone: "13900139000",
+const defaultDriverLocation = (): FakeCaocaoCoordinate => ({
   latitude: 30.2688,
   longitude: 120.1608,
-  vehicleBrand: "几何",
-  vehicleColor: "白色",
-  vehiclePlate: "浙A·TEST",
 });
 
+const interpolateCoordinate = (
+  from: FakeCaocaoCoordinate,
+  to: FakeCaocaoCoordinate,
+  ratio: number,
+): FakeCaocaoCoordinate => ({
+  latitude: from.latitude + (to.latitude - from.latitude) * ratio,
+  longitude: from.longitude + (to.longitude - from.longitude) * ratio,
+});
+
+const driverCoordinate = (order: FakeCaocaoOrderState | null): FakeCaocaoCoordinate => {
+  if (!order) return defaultDriverLocation();
+  if (order.phase === "ARRIVED_AT_PICKUP") return order.origin;
+  if (order.phase === "IN_TRIP")
+    return interpolateCoordinate(order.origin, order.destination, 0.45);
+  if (order.phase === "FINISHED") return order.destination;
+  return interpolateCoordinate(order.origin, order.destination, -0.12);
+};
+
+const driverSnapshot = (order: FakeCaocaoOrderState | null = null): FakeCaocaoDriverSnapshot => {
+  const coordinate = driverCoordinate(order);
+  return {
+    driverName: "曹操测试司机",
+    driverPhone: "13900139000",
+    direction: order?.phase === "IN_TRIP" ? 88 : 15,
+    latitude: coordinate.latitude,
+    longitude: coordinate.longitude,
+    speedKph: order?.phase === "ARRIVED_AT_PICKUP" ? 0 : 28,
+    vehicleBrand: "几何",
+    vehicleColor: "白色",
+    vehiclePlate: "浙A·TEST",
+  };
+};
+
 const phaseEvent = (phase: FakeCaocaoOrderState["phase"]): number => {
-  if (phase === "ACCEPTED") return 20;
-  if (phase === "IN_TRIP") return 23;
-  if (phase === "FINISHED") return 25;
-  if (phase === "CANCELLED") return 40;
-  return 1;
+  if (phase === "ACCEPTED") return 1;
+  if (phase === "ARRIVED_AT_PICKUP") return 3;
+  if (phase === "IN_TRIP") return 4;
+  if (phase === "FINISHED") return 6;
+  if (phase === "CANCELLED") return 21;
+  return 14;
 };
 
 const parseOrderPhase = (phase: string | null): FakeCaocaoOrderPhase | null => {
   if (
     phase === "CREATED" ||
     phase === "ACCEPTED" ||
+    phase === "ARRIVED_AT_PICKUP" ||
     phase === "IN_TRIP" ||
     phase === "FINISHED" ||
     phase === "CANCELLED"
@@ -194,17 +225,151 @@ const parseOrderPhase = (phase: string | null): FakeCaocaoOrderPhase | null => {
   return null;
 };
 
+const readOptionalCoordinateParam = (
+  params: Record<string, string>,
+  keys: { latitude: string[]; longitude: string[] },
+): FakeCaocaoCoordinate | null => {
+  const latitudeRaw = readFirstParam(params, keys.latitude);
+  const longitudeRaw = readFirstParam(params, keys.longitude);
+  const latitude = latitudeRaw === null ? Number.NaN : Number(latitudeRaw);
+  const longitude = longitudeRaw === null ? Number.NaN : Number(longitudeRaw);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return { latitude, longitude };
+};
+
+const routePolyline = (order: FakeCaocaoOrderState): FakeCaocaoCoordinate[] => {
+  if (order.phase === "ACCEPTED") {
+    return [driverCoordinate(order), order.origin];
+  }
+  if (order.phase === "IN_TRIP") {
+    return [
+      driverCoordinate(order),
+      interpolateCoordinate(order.origin, order.destination, 0.72),
+      order.destination,
+    ];
+  }
+  return [];
+};
+
+const formatRouteCoordinates = (coordinates: FakeCaocaoCoordinate[]): string =>
+  coordinates.map((point) => `${point.latitude},${point.longitude}`).join(";");
+
+const navigationPolylineType = (order: FakeCaocaoOrderState): number => {
+  if (order.phase === "ACCEPTED") return 1;
+  if (order.phase === "ARRIVED_AT_PICKUP") return 2;
+  if (order.phase === "IN_TRIP") return 3;
+  return 2;
+};
+
+const driverLocationPayload = (order: FakeCaocaoOrderState): unknown => {
+  const driver = driverSnapshot(order);
+  return {
+    direction: driver.direction,
+    latitude: driver.latitude,
+    longitude: driver.longitude,
+    speed: driver.speedKph,
+  };
+};
+
+const driverPolylinePayload = (order: FakeCaocaoOrderState): unknown => {
+  const polyline = routePolyline(order);
+  const driver = driverSnapshot(order);
+  return {
+    allLength: order.phase === "ACCEPTED" ? 820 : order.phase === "IN_TRIP" ? 4300 : 0,
+    allTime: order.phase === "ACCEPTED" ? 240 : order.phase === "IN_TRIP" ? 900 : 0,
+    driverEtaInfoVO: {
+      direction: driver.direction,
+      isMatchNaviPath: 1,
+      lat: driver.latitude,
+      lng: driver.longitude,
+      remainDistance: order.phase === "ACCEPTED" ? 820 : order.phase === "IN_TRIP" ? 4300 : 0,
+      remainLightCount: order.phase === "IN_TRIP" ? 3 : 0,
+      remainTime: order.phase === "ACCEPTED" ? 240 : order.phase === "IN_TRIP" ? 900 : 0,
+      speed: driver.speedKph,
+      timestamp: String(Date.now()),
+    },
+    navigationPolylineType: navigationPolylineType(order),
+    orderNo: order.providerOrderId,
+    pathId: `${order.providerOrderId}-fake-path`,
+    steps:
+      polyline.length > 0
+        ? [
+            {
+              length: order.phase === "ACCEPTED" ? 820 : 4300,
+              links: [
+                {
+                  coords: formatRouteCoordinates(polyline),
+                  length: order.phase === "ACCEPTED" ? 820 : 4300,
+                  time: order.phase === "ACCEPTED" ? 240 : 900,
+                },
+              ],
+              time: order.phase === "ACCEPTED" ? 240 : 900,
+            },
+          ]
+        : [],
+  };
+};
+
 const orderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
   const driver =
-    order.phase === "ACCEPTED" || order.phase === "IN_TRIP" || order.phase === "FINISHED"
-      ? driverSnapshot()
+    order.phase === "ACCEPTED" ||
+    order.phase === "ARRIVED_AT_PICKUP" ||
+    order.phase === "IN_TRIP" ||
+    order.phase === "FINISHED"
+      ? driverSnapshot(order)
       : null;
+  const statusCode =
+    order.phase === "CREATED"
+      ? "1"
+      : order.phase === "ACCEPTED"
+        ? "9"
+        : order.phase === "ARRIVED_AT_PICKUP"
+          ? "12"
+          : order.phase === "IN_TRIP"
+            ? "3"
+            : order.phase === "FINISHED"
+              ? "5"
+              : "20";
   return {
     actual_price: order.phase === "FINISHED" ? order.finalAmountFen : null,
+    basicOrderVO: {
+      endName: "Fake Destination",
+      estimatePrice: order.finalAmountFen - 400,
+      extOrderId: order.externalOrderId,
+      fromLocation: {
+        lat: order.origin.latitude,
+        lng: order.origin.longitude,
+      },
+      orderId: order.providerOrderId,
+      startName: "Fake Origin",
+      status: statusCode,
+      toLocation: {
+        lat: order.destination.latitude,
+        lng: order.destination.longitude,
+      },
+    },
     driver,
+    driverInfoVO: driver
+      ? {
+          carBrand: driver.vehicleBrand,
+          card: driver.vehiclePlate,
+          color: driver.vehicleColor,
+          location: {
+            direction: driver.direction,
+            latitude: driver.latitude,
+            longitude: driver.longitude,
+            speed: driver.speedKph,
+          },
+          name: driver.driverName,
+          phone: driver.driverPhone,
+        }
+      : null,
     event: phaseEvent(order.phase),
     ext_order_id: order.externalOrderId,
     finalAmountFen: order.phase === "FINISHED" ? order.finalAmountFen : null,
+    orderFeeVO: {
+      totalFee: order.phase === "FINISHED" ? order.finalAmountFen : null,
+    },
     orderNo: order.providerOrderId,
     order_id: order.providerOrderId,
     phase: order.phase,
@@ -226,9 +391,10 @@ const buildCallbackForm = (input: {
 }): URLSearchParams => {
   const driver =
     input.order.phase === "ACCEPTED" ||
+    input.order.phase === "ARRIVED_AT_PICKUP" ||
     input.order.phase === "IN_TRIP" ||
     input.order.phase === "FINISHED"
-      ? driverSnapshot()
+      ? driverSnapshot(input.order)
       : null;
   const unsigned: FakeCaocaoSignedParams = {
     event: String(input.event),
@@ -299,7 +465,7 @@ const maybePostCreateCallback = (input: {
   setTimeout(() => {
     postCallback({
       callbackUrl: input.callbackUrl!,
-      event: 20,
+      event: phaseEvent(acceptedOrder.phase),
       fixture: input.fixture,
       order: acceptedOrder,
     }).catch(() => undefined);
@@ -484,7 +650,15 @@ export async function handleFakeCaocaoRequest(
       const order = input.state.createOrder({
         callbackUrl,
         carType,
+        destination: readOptionalCoordinateParam(params, {
+          latitude: ["tlat", "to_lat", "toLatitude"],
+          longitude: ["tlng", "to_lng", "toLongitude"],
+        }),
         externalOrderId,
+        origin: readOptionalCoordinateParam(params, {
+          latitude: ["flat", "from_lat", "fromLatitude"],
+          longitude: ["flng", "from_lng", "fromLongitude"],
+        }),
       });
       maybePostCreateCallback({
         callbackUrl,
@@ -512,6 +686,32 @@ export async function handleFakeCaocaoRequest(
         200,
         order
           ? caocaoSuccess(orderDetailPayload(order))
+          : caocaoFailure(40401, "Fake Caocao order not found"),
+      );
+      return;
+    }
+
+    if (url.pathname === "/common/queryDriverLocationByOrderId") {
+      const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
+      const order = providerOrderId ? input.state.findOrder(providerOrderId) : null;
+      sendJson(
+        res,
+        200,
+        order
+          ? caocaoSuccess(driverLocationPayload(order))
+          : caocaoFailure(40401, "Fake Caocao order not found"),
+      );
+      return;
+    }
+
+    if (url.pathname === "/common/queryDriverPolylineV2" && req.method === "POST") {
+      const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
+      const order = providerOrderId ? input.state.findOrder(providerOrderId) : null;
+      sendJson(
+        res,
+        200,
+        order
+          ? caocaoSuccess(driverPolylinePayload(order))
           : caocaoFailure(40401, "Fake Caocao order not found"),
       );
       return;

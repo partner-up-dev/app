@@ -13,8 +13,7 @@ import {
   resolveCaocaoOrderStatusCallbackUrl,
 } from ".";
 
-const providerInstanceId =
-  "00000000-0000-0000-0000-000000000501" as RideHailingProviderInstanceId;
+const providerInstanceId = "00000000-0000-0000-0000-000000000501" as RideHailingProviderInstanceId;
 const orderId = "123e4567-e89b-12d3-a456-426614174000";
 const now = new Date("2031-01-01T00:00:00.000Z");
 
@@ -100,11 +99,7 @@ describe("Caocao signer", () => {
     let requestUrl: string | null = null;
     const fetchImpl: typeof fetch = async (input) => {
       requestUrl =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       return new Response(
         JSON.stringify({
           code: 200,
@@ -218,5 +213,122 @@ describe("Caocao callback verification", () => {
     expect(resolveCaocaoOrderStatusCallbackUrl(caocaoProviderInstance())).toBe(
       "https://api.partner-up.test/api/ride-hailing/caocao/00000000-0000-0000-0000-000000000501/callback/order-status",
     );
+  });
+});
+
+describe("Caocao live order projection", () => {
+  it("normalizes order detail, driver location, and navigation route responses", async () => {
+    const requestPaths: string[] = [];
+    const fetchImpl: typeof fetch = async (input) => {
+      const requestUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const url = new URL(requestUrl);
+      requestPaths.push(url.pathname);
+
+      if (url.pathname.endsWith("/common/queryOrderDetailV2")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              basicOrderVO: {
+                status: "12",
+              },
+              driverInfoVO: {
+                carBrand: "几何",
+                card: "浙A12345",
+                color: "白色",
+                location: {
+                  direction: 90,
+                  latitude: 30.2688,
+                  longitude: 120.1608,
+                  speed: 0,
+                },
+                name: "张师傅",
+                phone: "13800138001",
+              },
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.pathname.endsWith("/common/queryDriverLocationByOrderId")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              direction: 88,
+              latitude: 30.27,
+              longitude: 120.16,
+              speed: 12,
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.pathname.endsWith("/common/queryDriverPolylineV2")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              driverEtaInfoVO: {
+                direction: 88,
+                lat: 30.27,
+                lng: 120.16,
+                remainDistance: 820,
+                remainLightCount: 2,
+                remainTime: 240,
+                speed: 12,
+                timestamp: "1755571305064",
+              },
+              navigationPolylineType: 1,
+              steps: [
+                {
+                  links: [
+                    {
+                      coords: "30.270000,120.160000;30.268800,120.160800",
+                    },
+                  ],
+                },
+              ],
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response(JSON.stringify({ code: 404, success: false }), { status: 200 });
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const detail = await adapter.queryOrderDetail({ providerOrderId: "CC123456" });
+    const location = await adapter.queryDriverLocation({ providerOrderId: "CC123456" });
+    const route = await adapter.queryDriverRoute({ providerOrderId: "CC123456" });
+
+    expect(detail.phase).toBe("12");
+    expect(detail.statusLabel).toBe("司机已到达");
+    expect(detail.driver?.driverName).toBe("张师傅");
+    expect(detail.vehicle?.plate).toBe("浙A12345");
+    expect(detail.vehicleLocation?.headingDegrees).toBe(90);
+    expect(location?.headingDegrees).toBe(88);
+    expect(route?.routeKind).toBe("PICKUP");
+    expect(route?.remainingDistanceMeters).toBe(820);
+    expect(route?.trafficLightCount).toBe(2);
+    expect(route?.polyline).toEqual([
+      { latitude: 30.27, longitude: 120.16 },
+      { latitude: 30.2688, longitude: 120.1608 },
+    ]);
+    expect(requestPaths).toEqual([
+      "/v2/common/queryOrderDetailV2",
+      "/v2/common/queryDriverLocationByOrderId",
+      "/v2/common/queryDriverPolylineV2",
+    ]);
   });
 });

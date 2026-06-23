@@ -21,10 +21,12 @@ describe("FakeCaocaoState", () => {
     expect(state.findOrder(created.providerOrderId)?.phase).toBe("CREATED");
 
     const accepted = state.advanceOrderPhase(created.providerOrderId);
+    const arrived = state.advanceOrderPhase(created.providerOrderId);
     const inTrip = state.advanceOrderPhase(created.providerOrderId);
     const finished = state.advanceOrderPhase(created.providerOrderId);
 
     expect(accepted?.phase).toBe("ACCEPTED");
+    expect(arrived?.phase).toBe("ARRIVED_AT_PICKUP");
     expect(inTrip?.phase).toBe("IN_TRIP");
     expect(finished?.phase).toBe("FINISHED");
   });

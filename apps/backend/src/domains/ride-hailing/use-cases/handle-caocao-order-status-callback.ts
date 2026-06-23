@@ -15,6 +15,7 @@ import type { UserId } from "../../../entities/user";
 import { createRideHailingProviderPort } from "../services";
 import type { CaocaoOrderStatusCallback } from "../model/provider";
 import { getRideHailingChoiceSetItem, getRideHailingProviderBinding } from "../../trade/services";
+import type { RideHailingExecutionPhase } from "../../trade/model";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
@@ -38,14 +39,17 @@ const readNumber = (value: Record<string, string>, keys: string[]): number | nul
   return null;
 };
 
-const mapCaocaoEventToExecutionPhase = (event: number) => {
-  if ([40, 41, 42, 43, 44, 45, 46, 47, 48].includes(event)) {
-    return "CANCELLED" as const;
-  }
-  if ([25, 26, 27].includes(event)) return "FINISHED" as const;
-  if ([23, 24].includes(event)) return "IN_TRIP" as const;
-  if ([20, 21, 22].includes(event)) return "ACCEPTED" as const;
-  return "DISPATCHING" as const;
+const mapCaocaoEventToExecutionPhase = (
+  event: number,
+  currentPhase: RideHailingExecutionPhase,
+): RideHailingExecutionPhase => {
+  if ([20, 21, 22, 26, 27, 40, 41, 44, 45].includes(event)) return "CANCELLED";
+  if ([5, 6, 11, 12, 13].includes(event)) return "FINISHED";
+  if ([4, 48].includes(event)) return "IN_TRIP";
+  if (event === 3) return "ARRIVED_AT_PICKUP";
+  if ([1, 2, 42].includes(event)) return "ACCEPTED";
+  if (event === 14) return "DISPATCHING";
+  return currentPhase;
 };
 
 const emptyToNull = <T extends Record<string, string | null>>(value: T): T | null =>
@@ -184,7 +188,7 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
   });
 
   await rideOrderRepo.updateByOrderId(orderId, {
-    executionPhase: mapCaocaoEventToExecutionPhase(parsed.event),
+    executionPhase: mapCaocaoEventToExecutionPhase(parsed.event, rideOrder.executionPhase),
     driverSnapshot,
     vehicleSnapshot,
   });

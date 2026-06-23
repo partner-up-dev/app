@@ -11,7 +11,11 @@ import type {
   RideHailingProviderConfirmFeeInput,
   RideHailingProviderCreateRideInput,
   RideHailingProviderEstimateInput,
+  RideHailingProviderNavigationRoute,
+  RideHailingProviderNavigationRouteKind,
+  RideHailingProviderOrderDetail,
   RideHailingProviderVehicleQuote,
+  RideHailingProviderVehicleLocation,
   RideHailingProviderPort,
 } from "../model";
 
@@ -21,8 +25,8 @@ type CaocaoParamInput = Record<string, CaocaoParamValue>;
 const EXTERNAL_ORDER_ID_PREFIX = "rh";
 const UUID_BASE36_ALPHABET = /^[0-9a-z]+$/;
 const CAOCAO_ORDER_STATUS_CALLBACK_EVENTS: ReadonlySet<number> = new Set([
-  1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, 40, 41, 42, 43, 44, 45, 46, 47,
-  48,
+  1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 40, 41, 42, 43, 44, 45, 46,
+  47, 48, 49, 50,
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -66,6 +70,201 @@ const readOptionalStringField = (value: unknown, keys: string[]): string | null 
     if (typeof candidate === "number" && Number.isFinite(candidate)) return String(candidate);
   }
   return null;
+};
+
+const readOptionalRecordField = (
+  value: unknown,
+  keys: string[],
+): Record<string, unknown> | null => {
+  if (!isRecord(value)) return null;
+  for (const key of keys) {
+    const candidate = value[key];
+    if (isRecord(candidate)) return candidate;
+  }
+  return null;
+};
+
+const readOptionalArrayField = (value: unknown, keys: string[]): unknown[] | null => {
+  if (!isRecord(value)) return null;
+  for (const key of keys) {
+    const candidate = value[key];
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return null;
+};
+
+const readOptionalNumberFromRecord = (
+  value: Record<string, unknown> | null,
+  keys: string[],
+): number | null => readOptionalNumberField(value, keys);
+
+const buildCaocaoStatusLabel = (phase: string): string => {
+  if (phase === "FINISHED" || ["5", "6", "7", "8"].includes(phase)) return "待支付";
+  if (phase === "IN_TRIP" || phase === "3") return "行程中";
+  if (phase === "ARRIVED_AT_PICKUP" || phase === "12") return "司机已到达";
+  if (phase === "ACCEPTED" || ["2", "9"].includes(phase)) return "已接单";
+  if (phase === "CANCELLED" || ["4", "10", "13", "14", "20", "21", "26", "27"].includes(phase)) {
+    return "已取消";
+  }
+  return "正在呼叫";
+};
+
+const parseCaocaoVehicleLocation = (raw: unknown): RideHailingProviderVehicleLocation | null => {
+  if (!isRecord(raw)) return null;
+  const locationRaw = readOptionalRecordField(raw, [
+    "location",
+    "driverLocation",
+    "driverLocationVO",
+    "driverEtaInfoVO",
+    "driverEtaInfoVo",
+  ]);
+  const source = locationRaw ?? raw;
+  const latitude = readOptionalNumberField(source, ["latitude", "lat"]);
+  const longitude = readOptionalNumberField(source, ["longitude", "lng"]);
+  if (latitude === null || longitude === null) return null;
+  return {
+    capturedAt: readOptionalStringField(source, [
+      "capturedAt",
+      "timestamp",
+      "locationTime",
+      "location_time",
+    ]),
+    headingDegrees: readOptionalNumberField(source, ["headingDegrees", "direction", "heading"]),
+    latitude,
+    longitude,
+    providerSnapshot: raw,
+    speedKph: readOptionalNumberField(source, ["speedKph", "speed"]),
+  };
+};
+
+const parseCaocaoCoordinates = (coords: string): RideHailingProviderNavigationRoute["polyline"] =>
+  coords
+    .split(";")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => {
+      const [latitudeRaw, longitudeRaw] = item.split(",");
+      const latitude = Number(latitudeRaw);
+      const longitude = Number(longitudeRaw);
+      return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? { latitude, longitude }
+        : null;
+    })
+    .filter((point): point is { latitude: number; longitude: number } => point !== null);
+
+const parseCaocaoStepPolyline = (
+  stepsRaw: unknown[] | null,
+): RideHailingProviderNavigationRoute["polyline"] => {
+  if (!stepsRaw) return [];
+  const points: RideHailingProviderNavigationRoute["polyline"] = [];
+  for (const stepRaw of stepsRaw) {
+    const linksRaw = readOptionalArrayField(stepRaw, ["links"]);
+    if (!linksRaw) continue;
+    for (const linkRaw of linksRaw) {
+      const coords = readOptionalStringField(linkRaw, ["coords"]);
+      if (coords) points.push(...parseCaocaoCoordinates(coords));
+    }
+  }
+  return points;
+};
+
+const mapCaocaoNavigationRouteKind = (
+  value: number | null,
+): RideHailingProviderNavigationRouteKind => {
+  if (value === 0) return "RELAY_PREVIOUS_DROPOFF";
+  if (value === 1) return "PICKUP";
+  if (value === 2) return "WAITING";
+  if (value === 3) return "DROPOFF";
+  return "UNKNOWN";
+};
+
+const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
+  const basicOrder = readOptionalRecordField(data, ["basicOrderVO", "basicOrderVo", "basic_order"]);
+  const driverRaw = readOptionalRecordField(data, [
+    "driver",
+    "driverInfoVO",
+    "driverInfoVo",
+    "driver_info",
+  ]);
+  const vehicleRaw = readOptionalRecordField(data, [
+    "vehicle",
+    "driverInfoVO",
+    "driverInfoVo",
+    "driver_info",
+  ]);
+  const phase =
+    readOptionalStringField(data, ["phase", "status"]) ??
+    readOptionalStringField(basicOrder, ["phase", "status"]) ??
+    "UNKNOWN";
+  const driverName = readOptionalStringField(driverRaw, ["driverName", "driver_name", "name"]);
+  const driverPhone = readOptionalStringField(driverRaw, ["driverPhone", "driver_phone", "phone"]);
+  const plate = readOptionalStringField(vehicleRaw, [
+    "plate",
+    "vehiclePlate",
+    "vehicle_plate",
+    "carNo",
+    "car_no",
+    "card",
+  ]);
+  const brand = readOptionalStringField(vehicleRaw, [
+    "brand",
+    "vehicleBrand",
+    "vehicle_brand",
+    "carBrand",
+  ]);
+  const color = readOptionalStringField(vehicleRaw, ["color", "vehicleColor", "vehicle_color"]);
+  const finalAmountFen =
+    readOptionalNumberField(data, ["finalAmountFen", "actual_price"]) ??
+    readOptionalNumberField(
+      readOptionalRecordField(data, ["orderFeeVO", "orderFeeVo", "order_fee"]),
+      ["totalFee", "actualPrice", "actual_price"],
+    );
+
+  return {
+    driver:
+      driverName || driverPhone
+        ? {
+            driverName: driverName ?? "司机",
+            driverPhone: driverPhone ?? "",
+          }
+        : null,
+    finalAmountFen,
+    phase,
+    providerSnapshot: data,
+    statusLabel: buildCaocaoStatusLabel(phase),
+    vehicle:
+      plate || brand || color
+        ? {
+            brand: brand ?? "",
+            color: color ?? "",
+            plate: plate ?? "",
+          }
+        : null,
+    vehicleLocation: driverRaw ? parseCaocaoVehicleLocation(driverRaw) : null,
+  };
+};
+
+const parseCaocaoDriverRoute = (
+  data: Record<string, unknown>,
+): RideHailingProviderNavigationRoute => {
+  const routeType = readOptionalNumberField(data, ["navigationPolylineType"]);
+  const stepsRaw = readOptionalArrayField(data, ["steps"]);
+  const nextStepsRaw = readOptionalArrayField(data, ["nextSteps"]);
+  const etaRaw =
+    readOptionalRecordField(data, ["driverEtaInfoVO", "driverEtaInfoVo"]) ??
+    readOptionalRecordField(data, ["nextDriverEtaInfoVO", "nextDriverEtaInfoVo"]);
+  const polyline = parseCaocaoStepPolyline(stepsRaw);
+  const fallbackPolyline = polyline.length > 0 ? polyline : parseCaocaoStepPolyline(nextStepsRaw);
+
+  return {
+    polyline: fallbackPolyline,
+    providerSnapshot: data,
+    remainingDistanceMeters: readOptionalNumberFromRecord(etaRaw, ["remainDistance"]),
+    remainingDurationSeconds: readOptionalNumberFromRecord(etaRaw, ["remainTime"]),
+    routeKind: mapCaocaoNavigationRouteKind(routeType),
+    trafficLightCount: readOptionalNumberFromRecord(etaRaw, ["remainLightCount"]),
+    vehicleLocation: etaRaw ? parseCaocaoVehicleLocation(etaRaw) : null,
+  };
 };
 
 const normalizeCaocaoParams = (params: CaocaoParamInput): CaocaoSignedParams => {
@@ -304,10 +503,39 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     };
   }
 
-  async queryOrderDetail(input: { providerOrderId: string }): Promise<unknown> {
-    return this.request("GET", "/common/queryOrderDetailV2", {
+  async queryOrderDetail(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderOrderDetail> {
+    const data = await this.request<Record<string, unknown>>("GET", "/common/queryOrderDetailV2", {
       order_id: input.providerOrderId,
     });
+    return parseCaocaoOrderDetail(data);
+  }
+
+  async queryDriverLocation(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderVehicleLocation | null> {
+    const data = await this.request<Record<string, unknown>>(
+      "GET",
+      "/common/queryDriverLocationByOrderId",
+      {
+        order_id: input.providerOrderId,
+      },
+    );
+    return parseCaocaoVehicleLocation(data);
+  }
+
+  async queryDriverRoute(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderNavigationRoute | null> {
+    const data = await this.request<Record<string, unknown>>(
+      "POST",
+      "/common/queryDriverPolylineV2",
+      {
+        order_id: input.providerOrderId,
+      },
+    );
+    return parseCaocaoDriverRoute(data);
   }
 
   async cancelRide(input: RideHailingProviderCancelInput): Promise<{

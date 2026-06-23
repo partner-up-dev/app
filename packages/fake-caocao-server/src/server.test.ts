@@ -139,6 +139,56 @@ describe("startFakeCaocaoServer", () => {
     expect(detailAfterAdvanceBody.success).toBe(true);
     expect(detailAfterAdvanceBody.data.phase).toBe("ACCEPTED");
 
+    const driverLocationResponse = await fetch(
+      `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "3-driver-location",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const driverLocationBody = (await driverLocationResponse.json()) as {
+      code: number;
+      data: { direction: number; latitude: number; longitude: number };
+      success: boolean;
+    };
+
+    expect(driverLocationResponse.ok).toBe(true);
+    expect(driverLocationBody.success).toBe(true);
+    expect(driverLocationBody.data.latitude).toBeTypeOf("number");
+    expect(driverLocationBody.data.longitude).toBeTypeOf("number");
+
+    const driverPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "3-driver-polyline",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const driverPolylineBody = (await driverPolylineResponse.json()) as {
+      code: number;
+      data: {
+        driverEtaInfoVO: { lat: number; lng: number };
+        navigationPolylineType: number;
+        steps: Array<{ links: Array<{ coords: string }> }>;
+      };
+      success: boolean;
+    };
+
+    expect(driverPolylineResponse.ok).toBe(true);
+    expect(driverPolylineBody.success).toBe(true);
+    expect(driverPolylineBody.data.navigationPolylineType).toBe(1);
+    expect(driverPolylineBody.data.steps[0]?.links[0]?.coords).toContain(";");
+
     const invalidPhaseResponse = await fetch(
       `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/phase?phase=BOARDING`,
       {

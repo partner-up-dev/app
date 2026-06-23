@@ -6,6 +6,11 @@ import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { createRideHailingProviderPort } from "../../ride-hailing";
 import type {
+  RideHailingProviderNavigationRoute,
+  RideHailingProviderOrderDetail,
+  RideHailingProviderVehicleLocation,
+} from "../../ride-hailing";
+import type {
   RideHailingDriverSnapshot,
   RideHailingExecutionPhase,
   RideHailingRiderSnapshot,
@@ -22,44 +27,24 @@ const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+type ProviderVehicleLocationProjection = Omit<
+  RideHailingProviderVehicleLocation,
+  "providerSnapshot"
+>;
 
-const readNumber = (value: unknown, keys: string[]): number | null => {
-  if (!isRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
-    if (typeof candidate === "string" && candidate.trim().length > 0) {
-      const parsed = Number(candidate);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return null;
+type ProviderNavigationRouteProjection = Omit<
+  RideHailingProviderNavigationRoute,
+  "providerSnapshot" | "vehicleLocation"
+> & {
+  vehicleLocation: ProviderVehicleLocationProjection | null;
 };
 
-const readString = (value: unknown, keys: string[]): string | null => {
-  if (!isRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "string" && candidate.length > 0) return candidate;
-  }
-  return null;
-};
-
-type ProviderDetailProjection = {
-  phase: string;
-  statusLabel: string;
-  finalAmountFen: number | null;
-  driver: {
-    driverName: string;
-    driverPhone: string;
-  } | null;
-  vehicle: {
-    plate: string;
-    brand: string;
-    color: string;
-  } | null;
+type ProviderDetailProjection = Omit<
+  RideHailingProviderOrderDetail,
+  "providerSnapshot" | "vehicleLocation"
+> & {
+  navigationRoute: ProviderNavigationRouteProjection | null;
+  vehicleLocation: ProviderVehicleLocationProjection | null;
 };
 
 export type RideHailingOrderDetailProjection = {
@@ -77,36 +62,59 @@ export type RideHailingOrderDetailProjection = {
   live: ProviderDetailProjection | null;
 };
 
-const parseProviderDetail = (raw: unknown): ProviderDetailProjection => {
-  const phase = readString(raw, ["phase", "status"]) ?? "CREATED";
-  const finalAmountFen = readNumber(raw, ["finalAmountFen", "actual_price"]);
-  const driverRaw = isRecord(raw) ? raw.driver : null;
-  const vehicleRaw = isRecord(raw) ? raw.vehicle : null;
-  const statusLabel =
-    phase === "FINISHED"
-      ? "待支付"
-      : phase === "IN_TRIP"
-        ? "行程中"
-        : phase === "ACCEPTED"
-          ? "已接单"
-          : "正在呼叫";
+const projectProviderVehicleLocation = (
+  location: RideHailingProviderVehicleLocation | null,
+): ProviderVehicleLocationProjection | null => {
+  if (!location) return null;
   return {
-    phase,
-    statusLabel,
-    finalAmountFen,
-    driver: isRecord(driverRaw)
-      ? {
-          driverName: readString(driverRaw, ["driverName", "name"]) ?? "司机",
-          driverPhone: readString(driverRaw, ["driverPhone", "phone"]) ?? "",
-        }
-      : null,
-    vehicle: isRecord(vehicleRaw)
-      ? {
-          plate: readString(vehicleRaw, ["plate"]) ?? "",
-          brand: readString(vehicleRaw, ["brand"]) ?? "",
-          color: readString(vehicleRaw, ["color"]) ?? "",
-        }
-      : null,
+    capturedAt: location.capturedAt,
+    headingDegrees: location.headingDegrees,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    speedKph: location.speedKph,
+  };
+};
+
+const projectProviderNavigationRoute = (
+  route: RideHailingProviderNavigationRoute | null,
+): ProviderNavigationRouteProjection | null => {
+  if (!route) return null;
+  return {
+    polyline: route.polyline,
+    remainingDistanceMeters: route.remainingDistanceMeters,
+    remainingDurationSeconds: route.remainingDurationSeconds,
+    routeKind: route.routeKind,
+    trafficLightCount: route.trafficLightCount,
+    vehicleLocation: projectProviderVehicleLocation(route.vehicleLocation),
+  };
+};
+
+const shouldQueryProviderLiveGeometry = (phase: RideHailingExecutionPhase): boolean =>
+  phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP" || phase === "IN_TRIP";
+
+const queryOptionalProviderLive = async <T>(operation: () => Promise<T>): Promise<T | null> => {
+  try {
+    return await operation();
+  } catch {
+    return null;
+  }
+};
+
+const projectProviderDetail = (input: {
+  detail: RideHailingProviderOrderDetail;
+  navigationRoute: RideHailingProviderNavigationRoute | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
+}): ProviderDetailProjection => {
+  return {
+    driver: input.detail.driver,
+    finalAmountFen: input.detail.finalAmountFen,
+    navigationRoute: projectProviderNavigationRoute(input.navigationRoute),
+    phase: input.detail.phase,
+    statusLabel: input.detail.statusLabel,
+    vehicle: input.detail.vehicle,
+    vehicleLocation: projectProviderVehicleLocation(
+      input.vehicleLocation ?? input.detail.vehicleLocation,
+    ),
   };
 };
 
@@ -130,11 +138,29 @@ export async function buildRideHailingDetailProjection(input: {
     );
     if (provider) {
       const port = createRideHailingProviderPort({ providerInstance: provider });
-      providerDetail = parseProviderDetail(
-        await port.queryOrderDetail({
-          providerOrderId: providerBinding.providerOrderId,
-        }),
-      );
+      const detail = await port.queryOrderDetail({
+        providerOrderId: providerBinding.providerOrderId,
+      });
+      const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
+      const vehicleLocation = shouldQueryLiveGeometry
+        ? await queryOptionalProviderLive(() =>
+            port.queryDriverLocation({
+              providerOrderId: providerBinding.providerOrderId,
+            }),
+          )
+        : null;
+      const navigationRoute = shouldQueryLiveGeometry
+        ? await queryOptionalProviderLive(() =>
+            port.queryDriverRoute({
+              providerOrderId: providerBinding.providerOrderId,
+            }),
+          )
+        : null;
+      providerDetail = projectProviderDetail({
+        detail,
+        navigationRoute,
+        vehicleLocation,
+      });
     }
   }
 

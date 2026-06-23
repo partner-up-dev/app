@@ -6,6 +6,11 @@ export type FakeCaocaoVehicleEstimate = {
   durationSeconds: number;
 };
 
+export type FakeCaocaoCoordinate = {
+  latitude: number;
+  longitude: number;
+};
+
 export type FakeCaocaoDriverSnapshot = {
   driverName: string;
   driverPhone: string;
@@ -14,9 +19,17 @@ export type FakeCaocaoDriverSnapshot = {
   vehicleColor: string;
   latitude: number;
   longitude: number;
+  direction: number;
+  speedKph: number;
 };
 
-export type FakeCaocaoOrderPhase = "CREATED" | "ACCEPTED" | "IN_TRIP" | "FINISHED" | "CANCELLED";
+export type FakeCaocaoOrderPhase =
+  | "CREATED"
+  | "ACCEPTED"
+  | "ARRIVED_AT_PICKUP"
+  | "IN_TRIP"
+  | "FINISHED"
+  | "CANCELLED";
 
 export type FakeCaocaoOrderState = {
   providerOrderId: string;
@@ -24,6 +37,8 @@ export type FakeCaocaoOrderState = {
   callbackUrl: string | null;
   carType: string;
   phase: FakeCaocaoOrderPhase;
+  origin: FakeCaocaoCoordinate;
+  destination: FakeCaocaoCoordinate;
   queryCount: number;
   finalAmountFen: number;
   cancelFeeFen: number;
@@ -68,11 +83,22 @@ const defaultEstimates = (): FakeCaocaoVehicleEstimate[] => [
   },
 ];
 
+const defaultOrigin = (): FakeCaocaoCoordinate => ({
+  latitude: 30.2688,
+  longitude: 120.1608,
+});
+
+const defaultDestination = (): FakeCaocaoCoordinate => ({
+  latitude: 30.2872,
+  longitude: 120.1766,
+});
+
 const terminalOrderPhases = new Set<FakeCaocaoOrderPhase>(["FINISHED", "CANCELLED"]);
 
 const nextOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
   if (phase === "CREATED") return "ACCEPTED";
-  if (phase === "ACCEPTED") return "IN_TRIP";
+  if (phase === "ACCEPTED") return "ARRIVED_AT_PICKUP";
+  if (phase === "ARRIVED_AT_PICKUP") return "IN_TRIP";
   if (phase === "IN_TRIP") return "FINISHED";
   return phase;
 };
@@ -183,6 +209,8 @@ export class FakeCaocaoState {
     externalOrderId: string;
     carType: string;
     callbackUrl?: string | null;
+    origin?: FakeCaocaoCoordinate | null;
+    destination?: FakeCaocaoCoordinate | null;
   }): FakeCaocaoOrderState {
     const existing = [...this.orders.values()].find(
       (order) => order.externalOrderId === input.externalOrderId,
@@ -196,8 +224,10 @@ export class FakeCaocaoState {
       callbackUrl: input.callbackUrl ?? null,
       carType: estimate.carType,
       createdAt: timestamp,
+      destination: input.destination ?? defaultDestination(),
       externalOrderId: input.externalOrderId,
       finalAmountFen: estimate.estimateAmountFen + 400,
+      origin: input.origin ?? defaultOrigin(),
       phase: "CREATED",
       providerOrderId: `CC${sanitizeProviderId(input.externalOrderId)}`,
       queryCount: 0,
@@ -249,7 +279,7 @@ export class FakeCaocaoState {
 
     const updated: FakeCaocaoOrderState = {
       ...order,
-      cancelFeeFen: order.phase === "ACCEPTED" ? 800 : 0,
+      cancelFeeFen: order.phase === "ACCEPTED" || order.phase === "ARRIVED_AT_PICKUP" ? 800 : 0,
       phase: "CANCELLED",
       updatedAt: nowIso(),
     };

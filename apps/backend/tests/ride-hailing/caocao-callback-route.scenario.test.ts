@@ -305,7 +305,7 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
         signKey: "scenario-caocao-callback-secret",
         orderId: order.id,
         providerOrderId: "CC-FINAL-123",
-        event: "25",
+        event: "6",
         finalAmountFen: "4321",
       }).toString(),
     },

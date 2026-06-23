@@ -32,6 +32,7 @@ export type RideHailingExecutionPhase =
   | "INITIATING"
   | "DISPATCHING"
   | "ACCEPTED"
+  | "ARRIVED_AT_PICKUP"
   | "IN_TRIP"
   | "FINISHED"
   | "CANCELLED"

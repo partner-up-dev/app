@@ -44,6 +44,7 @@ export type CaocaoOrderStatusCallbackEvent =
   | 11
   | 12
   | 13
+  | 14
   | 20
   | 21
   | 22
@@ -60,7 +61,9 @@ export type CaocaoOrderStatusCallbackEvent =
   | 45
   | 46
   | 47
-  | 48;
+  | 48
+  | 49
+  | 50;
 
 export type CaocaoOrderStatusCallback = {
   providerType: "CAOCAO";
@@ -84,6 +87,52 @@ export type RideHailingProviderVehicleQuote = {
   durationSeconds: number | null;
   providerQuoteId: string | null;
   providerQuoteExpiresAt: string | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderCoordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+export type RideHailingProviderVehicleLocation = RideHailingProviderCoordinate & {
+  capturedAt: string | null;
+  headingDegrees: number | null;
+  speedKph: number | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderNavigationRouteKind =
+  | "PICKUP"
+  | "DROPOFF"
+  | "WAITING"
+  | "RELAY_PREVIOUS_DROPOFF"
+  | "UNKNOWN";
+
+export type RideHailingProviderNavigationRoute = {
+  routeKind: RideHailingProviderNavigationRouteKind;
+  polyline: RideHailingProviderCoordinate[];
+  remainingDistanceMeters: number | null;
+  remainingDurationSeconds: number | null;
+  trafficLightCount: number | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderOrderDetail = {
+  phase: string;
+  statusLabel: string;
+  finalAmountFen: number | null;
+  driver: {
+    driverName: string;
+    driverPhone: string;
+  } | null;
+  vehicle: {
+    plate: string;
+    brand: string;
+    color: string;
+  } | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
   providerSnapshot: unknown;
 };
 
@@ -114,7 +163,13 @@ export type RideHailingProviderPort = {
     externalOrderId: string;
     providerSnapshot: unknown;
   }>;
-  queryOrderDetail(input: { providerOrderId: string }): Promise<unknown>;
+  queryOrderDetail(input: { providerOrderId: string }): Promise<RideHailingProviderOrderDetail>;
+  queryDriverLocation(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderVehicleLocation | null>;
+  queryDriverRoute(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderNavigationRoute | null>;
   cancelRide(input: RideHailingProviderCancelInput): Promise<{
     providerOrderId: string;
     cancelFeeFen: number;
