@@ -1032,3 +1032,172 @@
   non-terminal targeting, while the RideHailing system scenario now asserts
   repeated Order Detail polling does not auto-advance the fake provider order
   beyond the create-time accepted callback.
+
+## Explore: RideHailing Order Detail Content Redesign
+
+- Human request:
+  update Order Detail Page and RideHailing Order Content. Order Detail Page
+  should use no-padding `PuPageScaffold`, and RideHailing Order Content should
+  follow the old uniapp RideHailing page reference because the current
+  implementation is structurally wrong.
+- Finding:
+  current Web code has no extracted `RideHailingOrderContent` component. The
+  RideHailing detail surface is inline inside `CommerceOrderDetailPage.vue`.
+- Finding:
+  current RideHailing detail uses a CSS fake map and generic fact cards. This
+  is the main mismatch with the RideHailing interaction model.
+- Reference interpretation:
+  the uniapp file is a RideHailing ordering page, not an order-detail page. The
+  transferable model is full-screen map plus bottom panel, not its exact
+  ordering-specific controls.
+- Implementation direction:
+  split RideHailing detail into a Commerce-domain
+  `RideHailingOrderContent.vue` component that owns the full-screen `RouteMap`
+  and bottom `PuFloatPanel`, while `CommerceOrderDetailPage.vue` keeps route
+  parsing, querying, polling, and Rental detail behavior.
+- API detail:
+  `PuPageScaffold` supports `padding="none"`; this should be used instead of a
+  page-local no-padding class/variable trick.
+- Implementation:
+  `CommerceOrderDetailPage.vue` now uses the actual no-padding scaffold API and
+  keeps Rental-specific document padding in its own body wrapper.
+- Implementation:
+  `RideHailingOrderContent.vue` is a Commerce-domain component that owns the
+  full-screen `RouteMap`, bottom `PuFloatPanel`, and RideHailing-specific
+  status/fact/payment display. The page still owns order querying, route
+  parsing, polling, and Rental mutations.
+- Review note:
+  the uniapp reference was treated as a topology reference, not a literal
+  content copy, because it is an ordering page while the active target is Order
+  Detail.
+
+## Explore: RideHailing Order Detail Map And Live Route
+
+- Human request:
+  continue on `RideHailingOrderContent`, focusing on map and route behavior
+  across RideHailing phases:
+  - dispatching should center the origin and show a searching ripple
+  - accepted / picking up should show provider route polyline and vehicle marker
+  - arrived at pickup should center the vehicle marker and hide polyline
+  - in trip should show provider remaining route and vehicle marker, without
+    already-driven route
+  - finished / cancelled should show the persisted planned driving route
+- Finding:
+  current web `RideHailingOrderContent` always passes
+  `ride.route.drivingPlan?.polyline` to `RouteMap` as planned route geometry.
+- Finding:
+  lower-level `SharedMap` already accepts arbitrary `markers`, `polylines`, and
+  `activeGeometry`, and the Tencent adapter already has a `routeDriver` marker
+  style backed by `/route-map/map-marker-driver.png`.
+- Finding:
+  `RouteMap` is a generic route-domain wrapper and currently does not accept
+  RideHailing live markers/polylines as extra geometry.
+- Finding:
+  backend Order Detail projection exposes `executionPhase`, driver/vehicle
+  text, and loose provider live detail, but not provider route polyline,
+  vehicle coordinates, or vehicle heading.
+- Finding:
+  current local `RideHailingExecutionPhase` has no `ARRIVED_AT_PICKUP`, so it
+  cannot drive the requested marker-only arrived state without a lifecycle
+  model change.
+- Finding:
+  official Caocao docs expose separate driver location and driver pickup /
+  dropoff route APIs. This supports promoting live geometry into typed provider
+  port methods instead of inferring route geometry from raw order detail.
+- Reference note:
+  uniapp detail uses dynamic navigation only for on-the-way states and treats
+  server navigation polyline as the current / remaining route; already-driven
+  history is a separate grey polyline.
+- Plan:
+  added `order-detail-ride-hailing-map-plan.md`.
+
+## Execute: RideHailing Order Detail Map Backend Segment
+
+- Segment split:
+  human approved splitting the slice into backend first, frontend second, and
+  then manual validation.
+- Backend boundary:
+  this segment intentionally avoids frontend map rendering changes. It only
+  prepares the typed provider/live-geometry data needed by the future frontend
+  segment.
+- Provider-port decision:
+  `queryOrderDetail` should not leak raw provider response shape across domain
+  boundaries. The adapter now owns raw Caocao parsing, and Trade consumes typed
+  provider detail/location/route snapshots.
+- Callback mapping decision:
+  official Caocao lifecycle events are now mapped explicitly. Non-lifecycle
+  provider events preserve the current local execution phase instead of being
+  guessed into a lifecycle state.
+- Official-event correction:
+  the backend callback scenario now uses event `6` for final settlement /
+  service end. Event `25` is treated as a non-lifecycle provider event and no
+  longer advances execution phase by itself.
+- Projection decision:
+  `RideHailingOrderDetailProjection.live` exposes typed and sanitized live
+  fields. Provider raw snapshots remain internal to provider/bill audit data
+  and are not returned to the frontend detail payload.
+- Resilience decision:
+  provider order detail remains required when a provider binding exists, but
+  live geometry queries are optional. A location/route endpoint failure should
+  degrade the map, not fail the entire Order Detail page.
+- Fake-provider decision:
+  fake Caocao now stores order origin/destination from `orderCarV2` params so
+  driver position and provider route responses can be deterministic and tied to
+  the created order.
+
+## Execute: RideHailing Order Detail Map Frontend Segment
+
+- Boundary decision:
+  `RouteMap` gained generic extra geometry inputs only. RideHailing phase
+  semantics remain in Commerce RideHailing Order Detail code.
+- View-model decision:
+  the phase-to-map behavior is implemented as a pure helper next to
+  `RideHailingOrderContent` so the frontend can test lifecycle geometry
+  without relying on Tencent map canvas internals.
+- Dispatching decision:
+  `DISPATCHING` centers the route origin marker through `activeGeometry:
+  route-point-0`. The temporary CSS absolute ripple was removed because it was
+  not truly bound to the route origin marker; a correct marker-bound ripple
+  should wait for shared map overlay or marker-decoration support.
+- Accepted / in-trip decision:
+  provider route polylines are treated as current remaining navigation routes.
+  The frontend does not trim them unless future provider evidence shows Caocao
+  returns historical full-trip trails.
+- Fallback decision:
+  accepted without live geometry falls back to planned route; arrived without a
+  driver coordinate centers the origin; in-trip without provider route shows
+  the driver marker with a muted planned-route fallback.
+- Effective-phase correction:
+  map rendering must use local persisted `ride.executionPhase` only. Provider
+  live phase/status may be useful raw data, but it must not advance map state
+  ahead of the order lifecycle. This prevents a persisted `DISPATCHING` order
+  from showing accepted-provider geometry, losing the origin marker focus, and
+  hiding the dispatch ripple.
+- Raw-panel decision:
+  the `PuFloatPanel` content is temporarily reduced to raw JSON for manual
+  diagnosis of order state, RideHailing projection, provider live data, bill,
+  payment, and computed map view-model.
+- Scenario decision:
+  the system scenario asserts stable semantic `data-map-mode` values while
+  manually posting fake Caocao phase callbacks. It does not assert canvas pixels
+  or SDK layer internals.
+
+## Diagnose: Single Marker Fit Padding Under PuFloatPanel
+
+- Observation:
+  in `DISPATCHING`, the route origin marker looked too close to the bottom of
+  the visible map area after accounting for the absolute `PuFloatPanel`
+  overlay.
+- Root cause:
+  RideHailing correctly passed bottom-heavy `fitPadding` into `RouteMap`, but
+  the Tencent provider used `easeTo(center)` for a single active coordinate.
+  That single-point branch ignored padding entirely. Padding was only honored
+  by the multi-coordinate `fitBounds` branch.
+- Secondary note:
+  panel stop height is still an estimate of the visual overlay height. That may
+  explain small future polyline-frame deviations, but it was not the primary
+  cause of the origin marker being centered against the full map container.
+- Decision:
+  fix the shared provider's single-coordinate fit path by using a tiny
+  `fitBounds` area with the same padding and single-point max zoom cap. Keep
+  RideHailing-specific offset logic out of the map caller.

@@ -535,3 +535,168 @@
   - `pnpm exec biome check packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/state.test.ts packages/fake-caocao-server/src/server.test.ts apps/frontend/src/pages/AdminRideHailingPage.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
   - `git diff --check`
+
+## Slice: RideHailing Order Detail Content Redesign Planning
+
+- Added standalone plan:
+  `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-content-plan.md`.
+- Recorded current implementation facts:
+  - RideHailing detail content is still inline in `CommerceOrderDetailPage.vue`
+  - current detail map is a CSS placeholder
+  - no extracted `RideHailingOrderContent` component exists yet
+  - current scenario IDs to preserve are
+    `order-detail.ride-hailing.page`,
+    `order-detail.ride-hailing.selected-vehicle`, and
+    `order-detail.ride-hailing.route-summary`
+- Recorded target direction:
+  - use `PuPageScaffold padding="none"` for Order Detail Page
+  - extract RideHailing full-screen map / float-panel content into
+    `RideHailingOrderContent.vue`
+  - reuse shared `RouteMap` and `PuFloatPanel`
+  - keep Rental detail on the existing card-stack path
+
+## Slice: RideHailing Order Detail Content Redesign Implementation
+
+- Frontend:
+  - changed `CommerceOrderDetailPage.vue` to
+    `PuPageScaffold viewport="screen" width="full" padding="none"`
+  - kept Rental order detail on the existing document/card stack with explicit
+    page-local padding and max width
+  - extracted RideHailing order detail UI into
+    `apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue`
+  - replaced the CSS fake route illustration with shared immersive `RouteMap`
+  - added a RideHailing bottom `PuFloatPanel` with overview, detail, and
+    expanded stops
+  - preserved existing RideHailing Order Detail scenario test ids on
+    equivalent semantic nodes
+- Verification so far:
+  - `pnpm check:type:frontend`
+  - `pnpm exec biome check apps/frontend/src/pages/CommerceOrderDetailPage.vue apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue tasks/ride-hailing-ui-fixes/control.md tasks/ride-hailing-ui-fixes/discussion-log.md tasks/ride-hailing-ui-fixes/change-log.md tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-content-plan.md`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+
+## Slice: RideHailing Order Detail Map And Live Route Planning
+
+- Added standalone plan:
+  `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-map-plan.md`.
+- Recorded current implementation gaps:
+  - Order Detail map currently renders only persisted planned route geometry
+  - backend projection lacks provider live route, vehicle coordinate, and
+    vehicle heading
+  - local RideHailing lifecycle lacks an arrived-at-pickup phase
+  - `RouteMap` is generic and should not absorb RideHailing lifecycle semantics
+- Recorded target model:
+  - introduce typed provider order detail, driver location, and driver route
+    snapshots
+  - promote Caocao driver-location and pickup/dropoff route APIs into the
+    provider port
+  - add `ARRIVED_AT_PICKUP` to RideHailing execution phase
+  - build a pure frontend map view-model for phase-specific map rendering
+- Recorded verification direction:
+  - fake Caocao unit coverage for phase/live geometry
+  - backend provider/callback projection coverage
+  - frontend pure map view-model tests
+  - RideHailing system scenario coverage for accepted, arrived, in-trip, and
+    finished map states
+
+## Slice: RideHailing Order Detail Map And Live Route Backend Segment
+
+- Provider port:
+  - changed `RideHailingProviderPort.queryOrderDetail` from raw `unknown` to
+    typed `RideHailingProviderOrderDetail`
+  - added typed `queryDriverLocation` and `queryDriverRoute` provider methods
+  - added provider-level coordinate, vehicle-location, and navigation-route
+    models
+- Caocao adapter:
+  - normalizes `queryOrderDetailV2` into typed driver, vehicle, status label,
+    final amount, and optional vehicle location snapshots
+  - implements `queryDriverLocationByOrderId`
+  - implements `queryDriverPolylineV2` and parses route kind, polyline,
+    remaining distance/time, traffic-light count, and ETA vehicle location
+- RideHailing lifecycle:
+  - added local execution phase `ARRIVED_AT_PICKUP`
+  - corrected Caocao callback mapping for accepted, arrived, in-trip,
+    finished, and cancellation events
+  - preserves current execution phase for non-lifecycle Caocao events such as
+    route/price/invoice style callbacks
+- Order Detail projection:
+  - strips provider raw snapshots before returning `ride.live`
+  - includes typed `vehicleLocation` and `navigationRoute`
+  - keeps provider location/route query failures from failing the whole Order
+    Detail projection
+- Fake Caocao:
+  - added fake `ARRIVED_AT_PICKUP`
+  - changed explicit advance chain to
+    `CREATED -> ACCEPTED -> ARRIVED_AT_PICKUP -> IN_TRIP -> FINISHED`
+  - stores fake order origin/destination from order-create route params
+  - added fake driver location and route V2 endpoints
+  - switched fake callbacks to official-like lifecycle events while preserving
+    create-time accepted callback behavior
+- Verification:
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm exec vitest run --config vitest.backend.config.ts --project backend-unit -t "Caocao"`
+  - `pnpm exec vitest run --config vitest.backend.config.ts --project backend-scenario -t "Caocao callback"`
+  - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+  - `pnpm exec biome format --write` on the changed backend/fake files
+  - `git diff --check`
+
+## Slice: RideHailing Order Detail Map And Live Route Frontend Segment
+
+- Route map:
+  - added generic `extraMarkers` and `extraPolylines` props to `RouteMap`
+  - added `showFallbackPolyline` so callers can hide RouteMap's straight-line
+    fallback when a domain-specific mode needs marker-only geometry
+  - kept RideHailing lifecycle semantics out of `RouteMap`
+- RideHailing Order Detail:
+  - added a pure `buildRideHailingOrderMapViewModel` helper
+  - maps `DISPATCHING` / `INITIATING` to an origin-focused searching mode
+  - maps `ACCEPTED` to provider pickup route plus driver marker when live data
+    is available
+  - maps `ARRIVED_AT_PICKUP` to driver-marker-only display
+  - maps `IN_TRIP` to provider remaining route plus driver marker, with muted
+    planned-route fallback when provider route is unavailable
+  - keeps `FINISHED`, `CANCELLED`, and `FAILED` on planned route behavior
+  - uses only local `ride.executionPhase` to decide map mode; provider live
+    phase/status no longer advances map state ahead of the persisted lifecycle
+  - added fallback copy for the arrived-at-pickup phase
+  - exposes `data-map-mode` on the route map for stable scenario assertions
+  - temporarily replaced the `PuFloatPanel` content with raw order /
+    RideHailing / bill / payment / map-view-model JSON for manual diagnosis
+  - removed the temporary absolute-positioned ripple overlay because it was not
+    actually bound to the route origin marker
+- Tests:
+  - added frontend unit tests for the RideHailing map view-model phase matrix
+  - extended the RideHailing system scenario to manually advance fake Caocao
+    through accepted, arrived-at-pickup, in-trip, and finished map modes
+  - system scenario now verifies initial post-create local `DISPATCHING`
+    remains `SEARCHING_ORIGIN`, then explicitly posts accepted callback before
+    expecting pickup geometry
+- Verification:
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm exec vitest run --config vitest.config.ts --project frontend-unit -t "buildRideHailingOrderMapViewModel"`
+  - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
+  - `pnpm exec biome format --write` on the changed frontend/scenario files
+  - `git diff --check`
+
+## Slice: RideHailing Order Detail Map Manual Review Corrections
+
+- Shared Tencent map provider:
+  - changed single-coordinate fitting from `easeTo(center)` to a tiny
+    `fitBounds` area so `fitPadding` is respected for one active marker
+  - preserved the existing single-point max zoom cap
+  - kept the fix generic in shared map infrastructure rather than adding a
+    RideHailing-specific offset
+- RideHailing impact:
+  - `DISPATCHING` origin focus can now account for the bottom `PuFloatPanel`
+    overlay when the active geometry is only `route-point-0`
+- Verification:
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm exec vitest run --config vitest.config.ts --project frontend-unit -t "buildRideHailingOrderMapViewModel"`
+  - `pnpm exec biome check apps/frontend/src/shared/map/tencent/tencent-lbs-provider.ts`
+  - `git diff --check -- apps/frontend/src/shared/map/tencent/tencent-lbs-provider.ts`

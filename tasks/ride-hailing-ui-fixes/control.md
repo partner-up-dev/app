@@ -18,13 +18,14 @@ Hypothesis:
 
 ## Classification
 
-- Primary route: `Constraint`
-- Active mode: `Diagnose` for RideHailing Order Detail mock control
+- Primary route: `Reality`
+- Active mode: `Explore` / `Solidify` for RideHailing Order Detail map and
+  live route behavior
 - Current collaboration state: choice-set backend/domain foundation, Ordering
-  UI primitive/control, SKU Card layout remediation, and Offer Listing / quote
-  identity segments committed; Ordering entry decoupling and durable docs
-  promotion committed; current slice explores fake provider lifecycle control
-  for RideHailing Order Detail review
+  UI primitive/control, SKU Card layout remediation, Offer Listing / quote
+  identity, Ordering entry decoupling, durable docs promotion, and fake provider
+  lifecycle control committed; current slice prepares the RideHailing Order
+  Detail content redesign
 
 ## Inherited Effective Truth
 
@@ -44,6 +45,26 @@ Hypothesis:
 - `RideHailingSkuCard.vue` owns RideHailing vehicle card display.
 - `CommerceOrderDetailPage.vue` currently owns both Rental and RideHailing order
   detail rendering.
+- Current RideHailing Order Detail map/live-route slice:
+  - backend segment now exposes typed provider live route, vehicle coordinates,
+    vehicle heading, and sanitized live projection fields
+  - local RideHailing execution phase now distinguishes `ACCEPTED` from
+    `ARRIVED_AT_PICKUP`
+  - shared lower-level map already supports arbitrary markers, polylines, and
+    active geometry; `RouteMap` now exposes generic extra live geometry
+  - fake Caocao now has explicit `ARRIVED_AT_PICKUP`,
+    driver-location, and driver-route test data
+  - frontend segment now builds a pure RideHailing map view-model and renders
+    dispatching origin focus, provider live route, driver marker, arrived
+    marker-only state, in-trip remaining route, and terminal planned route
+  - map mode is driven by local persisted `ride.executionPhase`, not provider
+    live phase/status
+  - RideHailing `PuFloatPanel` currently shows raw JSON diagnostic data only
+  - shared Tencent map single-coordinate fitting now respects `fitPadding` by
+    using a tiny `fitBounds` area instead of direct `easeTo(center)`
+  - manual browser validation remains pending
+  - standalone plan:
+    `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-map-plan.md`
 - `RouteMap.vue` / shared map code are relevant when a UI issue concerns route
   geometry, marker behavior, or zoom/pan behavior.
 
@@ -244,6 +265,18 @@ Choose the narrowest sufficient proof per approved slice:
     fake-control route; no backend proxy is introduced
   - planning artifact:
     `tasks/ride-hailing-ui-fixes/order-detail-mock-control-plan.md`
+- Current Order Detail content slice implemented locally:
+  - `CommerceOrderDetailPage.vue` still renders RideHailing UI inline
+    historical note only; local implementation extracts it
+  - current local code uses `PuPageScaffold padding="none"` for Order Detail
+    Page
+  - Rental detail keeps a document/card-stack wrapper with explicit padding and
+    max width
+  - RideHailing detail is extracted to `RideHailingOrderContent.vue`
+  - RideHailing detail now uses shared immersive `RouteMap` plus a bottom
+    `PuFloatPanel`
+  - planning artifact:
+    `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-content-plan.md`
 - Map diagnostic:
   - the gray RideHailing Ordering map observation was confirmed as a browser
     client issue; shared map code is not part of the active fix.

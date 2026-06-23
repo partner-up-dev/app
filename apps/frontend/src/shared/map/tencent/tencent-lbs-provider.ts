@@ -3,15 +3,16 @@ import type {
   MapCoordinate,
   MapFitPadding,
   MapGeometryTone,
-  MapMarkerIcon,
   MapMarker,
+  MapMarkerIcon,
   MapPolyline,
 } from "@/shared/map/types";
 import { loadTencentLBSSdk } from "./tencent-lbs-loader";
 import type {
+  TencentLatLng,
+  TencentLatLngBounds,
   TencentLBSMapProvider,
   TencentLBSMapProviderInput,
-  TencentLatLng,
   TencentMap,
   TencentMapOptions,
   TencentMapSdk,
@@ -28,6 +29,7 @@ const DEFAULT_CENTER: MapCoordinate = {
 };
 const DEFAULT_ZOOM = 12;
 const SINGLE_POINT_ZOOM = 15;
+const SINGLE_POINT_BOUNDS_DELTA = 0.0001;
 const TENCENT_MAP_STYLE_ID = "style1";
 
 const MARKER_COLORS: Record<MapGeometryTone | "active", string> = {
@@ -65,19 +67,30 @@ const createMarkerSvg = (color: string): string => {
 const isFiniteCoordinate = (coordinate: MapCoordinate): boolean =>
   Number.isFinite(coordinate.lat) && Number.isFinite(coordinate.lng);
 
-const toTencentLatLng = (
+const toTencentLatLng = (sdk: TencentMapSdk, coordinate: MapCoordinate): TencentLatLng =>
+  new sdk.LatLng(coordinate.lat, coordinate.lng);
+
+const createSinglePointBounds = (
   sdk: TencentMapSdk,
   coordinate: MapCoordinate,
-): TencentLatLng => new sdk.LatLng(coordinate.lat, coordinate.lng);
+): TencentLatLngBounds => {
+  // Tencent fitBounds is the viewport API that honors padding; give one point a tiny area.
+  return new sdk.LatLngBounds(
+    toTencentLatLng(sdk, {
+      lat: coordinate.lat - SINGLE_POINT_BOUNDS_DELTA,
+      lng: coordinate.lng - SINGLE_POINT_BOUNDS_DELTA,
+    }),
+    toTencentLatLng(sdk, {
+      lat: coordinate.lat + SINGLE_POINT_BOUNDS_DELTA,
+      lng: coordinate.lng + SINGLE_POINT_BOUNDS_DELTA,
+    }),
+  );
+};
 
-const resolveMarkerStyleId = (
-  marker: MapMarker,
-): MapGeometryTone | MapMarkerIcon | "active" =>
+const resolveMarkerStyleId = (marker: MapMarker): MapGeometryTone | MapMarkerIcon | "active" =>
   marker.active ? "active" : (marker.icon ?? marker.tone ?? "primary");
 
-const resolvePolylineStyleId = (
-  polyline: MapPolyline,
-): MapGeometryTone | "active" =>
+const resolvePolylineStyleId = (polyline: MapPolyline): MapGeometryTone | "active" =>
   polyline.active ? "active" : (polyline.tone ?? "primary");
 
 const createMarkerStyles = (sdk: TencentMapSdk) => ({
@@ -238,9 +251,7 @@ const toPolylineGeometries = (
     .map((polyline, index) => ({
       id: polyline.id,
       styleId: resolvePolylineStyleId(polyline),
-      paths: polyline.path
-        .filter(isFiniteCoordinate)
-        .map((point) => toTencentLatLng(sdk, point)),
+      paths: polyline.path.filter(isFiniteCoordinate).map((point) => toTencentLatLng(sdk, point)),
       rank: polyline.active ? 10_000 : index,
       properties: {
         title: polyline.title ?? polyline.id,
@@ -266,9 +277,7 @@ const collectActiveCoordinates = ({
 
   if (activeGeometry.kind === "marker") {
     const marker = markers.find((item) => item.id === activeGeometry.id);
-    return marker && isFiniteCoordinate(marker.position)
-      ? [marker.position]
-      : [];
+    return marker && isFiniteCoordinate(marker.position) ? [marker.position] : [];
   }
 
   const polyline = polylines.find((item) => item.id === activeGeometry.id);
@@ -295,24 +304,21 @@ const fitCoordinates = ({
   }
 
   const firstLatLng = toTencentLatLng(sdk, firstCoordinate);
-  if (validCoordinates.length === 1) {
-    map.easeTo(
-      {
-        center: firstLatLng,
-        zoom: Math.min(maxZoom ?? SINGLE_POINT_ZOOM, SINGLE_POINT_ZOOM),
-      },
-      { duration: 240 },
-    );
-    return;
+  const bounds =
+    validCoordinates.length === 1
+      ? createSinglePointBounds(sdk, firstCoordinate)
+      : new sdk.LatLngBounds(firstLatLng, firstLatLng);
+  if (validCoordinates.length > 1) {
+    validCoordinates.slice(1).forEach((coordinate) => {
+      bounds.extend(toTencentLatLng(sdk, coordinate));
+    });
   }
-
-  const bounds = new sdk.LatLngBounds(firstLatLng, firstLatLng);
-  validCoordinates.slice(1).forEach((coordinate) => {
-    bounds.extend(toTencentLatLng(sdk, coordinate));
-  });
   map.fitBounds(bounds, {
     padding,
-    maxZoom,
+    maxZoom:
+      validCoordinates.length === 1
+        ? Math.min(maxZoom ?? SINGLE_POINT_ZOOM, SINGLE_POINT_ZOOM)
+        : maxZoom,
     ease: { duration: 240 },
   });
 };
