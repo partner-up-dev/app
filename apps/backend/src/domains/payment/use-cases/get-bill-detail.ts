@@ -1,16 +1,18 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
 import type { BillId, BillLine } from "../../../entities/bill";
 import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { deriveBillPaymentState } from "../services";
+import { UserRepository } from "../../../repositories/UserRepository";
 import { getOrderItemSkuName } from "../../trade";
+import { deriveBillPaymentState } from "../services";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const tradeOrderRepo = new TradeOrderRepository();
+const userRepo = new UserRepository();
 
 export type BillDetailProjection = {
   bill: {
@@ -18,6 +20,7 @@ export type BillDetailProjection = {
     sourceOrderId: string;
     status: string;
     currency: "CNY";
+    totalAmountFen: number;
     chargeTotalFen: number;
     paidChargeFen: number;
     refundTotalFen: number;
@@ -36,6 +39,13 @@ export type BillDetailProjection = {
   lines: Array<{
     id: string;
     userId: string;
+    payer: {
+      userId: string;
+      nickname: string | null;
+      displayName: string;
+      avatarUrl: string | null;
+      isViewer: boolean;
+    };
     kind: BillLine["kind"];
     amountFen: number;
     currency: "CNY";
@@ -68,6 +78,12 @@ const resolveSettlementStatus = (input: {
   return "UNPAID";
 };
 
+const resolvePayerDisplayName = (input: { nickname: string | null; isViewer: boolean }): string => {
+  const normalizedNickname = input.nickname?.trim() ?? "";
+  if (normalizedNickname.length > 0) return normalizedNickname;
+  return input.isViewer ? "你" : "参与者";
+};
+
 async function buildBillDetail(input: {
   billId: BillId;
   viewerUserId: UserId;
@@ -87,9 +103,9 @@ async function buildBillDetail(input: {
 
   const lines = await billLineRepo.listByBillId(bill.id);
   const paymentState = deriveBillPaymentState({ lines });
-  const paymentByLineId = new Map(
-    paymentState.lines.map((line) => [line.billLineId, line]),
-  );
+  const paymentByLineId = new Map(paymentState.lines.map((line) => [line.billLineId, line]));
+  const payers = await userRepo.findByIds(lines.map((line) => line.userId));
+  const payerByUserId = new Map(payers.map((payer) => [payer.id, payer]));
 
   return {
     bill: {
@@ -97,6 +113,7 @@ async function buildBillDetail(input: {
       sourceOrderId: bill.sourceOrderId,
       status: bill.status,
       currency: bill.currency,
+      totalAmountFen: paymentState.chargeTotalFen - paymentState.refundTotalFen,
       chargeTotalFen: paymentState.chargeTotalFen,
       paidChargeFen: paymentState.paidChargeFen,
       refundTotalFen: paymentState.refundTotalFen,
@@ -120,10 +137,22 @@ async function buildBillDetail(input: {
         line.kind === "CHARGE" &&
         line.userId === input.viewerUserId &&
         payment?.status !== "PAID";
+      const payer = payerByUserId.get(line.userId);
+      const isViewer = line.userId === input.viewerUserId;
 
       return {
         id: line.id,
         userId: line.userId,
+        payer: {
+          userId: line.userId,
+          nickname: payer?.nickname ?? null,
+          displayName: resolvePayerDisplayName({
+            nickname: payer?.nickname ?? null,
+            isViewer,
+          }),
+          avatarUrl: payer?.avatar ?? null,
+          isViewer,
+        },
         kind: line.kind,
         amountFen: line.amountFen,
         currency: line.currency,
@@ -134,9 +163,7 @@ async function buildBillDetail(input: {
         paidFen: payment?.paidFen ?? 0,
         refundedFen: payment?.refundableFen ?? 0,
         payableByViewer,
-        checkoutHref: payableByViewer
-          ? `/bill-lines/${line.id}/checkout`
-          : null,
+        checkoutHref: payableByViewer ? `/bill-lines/${line.id}/checkout` : null,
         paymentProviderInstanceId: line.paymentProviderInstanceId,
         attemptCount: line.attemptCount,
         settledAt: line.settledAt?.toISOString() ?? null,

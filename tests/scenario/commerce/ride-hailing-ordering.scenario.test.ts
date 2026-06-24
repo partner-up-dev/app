@@ -547,7 +547,10 @@ async function selectPremierAsAdditionalCandidate(page: Page): Promise<void> {
   });
 }
 
-async function assertRideHailingOrderDetail(page: Page): Promise<void> {
+async function assertRideHailingOrderDetail(
+  page: Page,
+  expectedRiderNames: string[] = ["scenario-system-ride-hailing-creator"],
+): Promise<void> {
   await page.getByTestId("order-detail.page").waitFor({
     state: "visible",
     timeout: 10_000,
@@ -610,11 +613,13 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
     expected: "灵隐寺",
     label: "RideHailing route section destination",
   });
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("order-detail.ride-hailing.riders-section").textContent(),
-    expected: "scenario-system-ride-hailing-creator",
-    label: "RideHailing riders section",
-  });
+  for (const expectedRiderName of expectedRiderNames) {
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("order-detail.ride-hailing.riders-section").textContent(),
+      expected: expectedRiderName,
+      label: `RideHailing riders section (${expectedRiderName})`,
+    });
+  }
 }
 
 async function assertRideHailingFactSectionOrder(input: {
@@ -671,6 +676,84 @@ async function assertRideHailingBillCard(page: Page): Promise<void> {
   });
 }
 
+async function assertRideHailingBillDetailPage(input: {
+  page: Page;
+  viewerPayerName: string;
+  otherPayerName: string;
+}): Promise<void> {
+  const { page } = input;
+  const billLines = page.getByTestId("bill-detail.line");
+
+  await page.getByTestId("bill-detail.page").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("bill-detail.status").textContent(),
+    expected: "待支付",
+    label: "RideHailing bill detail settlement status",
+  });
+  await assertLocatorTextMatches({
+    actual: page.getByTestId("bill-detail.total-amount").textContent(),
+    pattern: /总金额\s*[¥￥]40\.00/,
+    label: "RideHailing bill detail total amount",
+  });
+  await billLines.first().waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  assert.equal(await billLines.count(), 2);
+
+  const viewerLine = billLines.filter({ hasText: input.viewerPayerName });
+  const otherLine = billLines.filter({ hasText: input.otherPayerName });
+
+  await viewerLine.waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await otherLine.waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+
+  await assertLocatorTextIncludes({
+    actual: viewerLine.getByTestId("bill-detail.line-payer").textContent(),
+    expected: input.viewerPayerName,
+    label: "RideHailing bill detail viewer payer",
+  });
+  await assertLocatorTextIncludes({
+    actual: otherLine.getByTestId("bill-detail.line-payer").textContent(),
+    expected: input.otherPayerName,
+    label: "RideHailing bill detail other payer",
+  });
+  await assertLocatorTextMatches({
+    actual: viewerLine.getByTestId("bill-detail.line-amount").textContent(),
+    pattern: /[¥￥]20\.00/,
+    label: "RideHailing bill detail viewer line amount",
+  });
+  await assertLocatorTextMatches({
+    actual: otherLine.getByTestId("bill-detail.line-amount").textContent(),
+    pattern: /[¥￥]20\.00/,
+    label: "RideHailing bill detail other line amount",
+  });
+
+  const viewerLineControl = viewerLine.locator('[role="button"]');
+  const otherLineControl = otherLine.locator('[role="button"]');
+
+  assert.equal(await viewerLine.getAttribute("data-payable"), "true");
+  assert.equal(await viewerLine.getAttribute("data-selected"), "true");
+  assert.equal(await viewerLineControl.getAttribute("aria-disabled"), null);
+  assert.equal(await otherLine.getAttribute("data-payable"), "false");
+  assert.equal(await otherLine.getAttribute("data-selected"), "false");
+  assert.equal(await otherLineControl.getAttribute("aria-disabled"), "true");
+
+  await assertLocatorTextMatches({
+    actual: page.getByTestId("bill-detail.pay-selected").textContent(),
+    pattern: /支付\s*[¥￥]20\.00/,
+    label: "RideHailing bill detail pay selected CTA",
+  });
+}
+
 async function waitForRideHailingMapMode(
   page: Page,
   mode: "SEARCHING_ORIGIN" | "PICKING_UP" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "PLANNED_ROUTE",
@@ -688,6 +771,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
   const creator = await givenUser("system-ride-hailing-creator", {
     phoneNumber: "13800138000",
   });
+  const passenger = await givenUser("system-ride-hailing-passenger");
   await bindScenarioWeChatOpenId({
     openId: "fake-openid-commerce-ride-hailing-creator",
     user: creator,
@@ -696,11 +780,17 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     creator,
     title: "System ride hailing partner request",
   });
+  await partnerRepo.createSlot({
+    prId: pr.id,
+    status: "JOINED",
+    userId: passenger.user.id,
+  });
   await configurePRStatus({ pr, status: "READY" });
   await registerScenarioPaymentProvider();
   const placement = await givenRideHailingOrderingPlacement();
 
   ctx.record("creatorUserId", creator.user.id);
+  ctx.record("passengerUserId", passenger.user.id);
   ctx.record("prId", pr.id);
   ctx.record("placementId", placement.placementId);
   ctx.record("providerInstanceId", placement.providerInstanceId);
@@ -717,7 +807,10 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     await selectPremierAsAdditionalCandidate(page);
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
-    await assertRideHailingOrderDetail(page);
+    await assertRideHailingOrderDetail(page, [
+      "scenario-system-ride-hailing-creator",
+      "scenario-system-ride-hailing-passenger",
+    ]);
     await page.waitForTimeout(3500);
     const fakeOrders = await readFakeCaocaoOrders();
     assert.equal(fakeOrders.length, 1);
@@ -784,19 +877,35 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     await page.waitForURL((url) => /^\/bills\/[0-9a-f-]+$/.test(new URL(url).pathname), {
       timeout: 10_000,
     });
-    await page.getByTestId("bill-detail.page").waitFor({
+    const billDetailPath = new URL(page.url()).pathname;
+    await assertRideHailingBillDetailPage({
+      page,
+      viewerPayerName: "scenario-system-ride-hailing-creator",
+      otherPayerName: "scenario-system-ride-hailing-passenger",
+    });
+    await page.getByTestId("bill-detail.pay-selected").click();
+    await page.waitForURL(
+      (url) => /^\/bill-lines\/[0-9a-f-]+\/checkout$/.test(new URL(url).pathname),
+      {
+        timeout: 10_000,
+      },
+    );
+    await page.getByTestId("payment-checkout.page").waitFor({
       state: "visible",
       timeout: 10_000,
     });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("bill-detail.settlement-status").textContent(),
-      expected: "待支付",
-      label: "RideHailing bill detail settlement status",
-    });
     await assertLocatorTextMatches({
-      actual: page.getByTestId("bill-detail.charge-total").textContent(),
-      pattern: /[¥￥]40\.00/,
-      label: "RideHailing bill detail charge total",
+      actual: page.getByTestId("payment-checkout.amount").textContent(),
+      pattern: /[¥￥]20\.00/,
+      label: "RideHailing payment checkout amount",
+    });
+    await page.getByTestId("payment-checkout.bill-link").click();
+    await page.waitForURL((url) => new URL(url).pathname === billDetailPath, {
+      timeout: 10_000,
+    });
+    await page.getByTestId("bill-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
     });
     await page.getByTestId("bill-detail.order-link").click();
     await page.waitForURL((url) => new URL(url).pathname === orderDetailPath, {

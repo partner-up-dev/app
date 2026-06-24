@@ -7,7 +7,74 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
-## Current Slice: RideHailing Order Detail Bill Card
+## Current Slice: Bill Detail Page Reset And Backend Contract Segment
+
+- Requested first mutation for the next slice:
+  - remove Bill Detail page body content
+  - remove Bill Detail header subtitle
+- Confirmed current backend Bill projection fields:
+  - `bill`: id, sourceOrderId, status, currency, chargeTotalFen,
+    paidChargeFen, refundTotalFen, refundedFen, settlementStatus
+  - `order`: id, family, status, itemName
+  - `lines[]`: id, userId, kind, amountFen, currency, label, description,
+    refundOfBillLineId, settlementStatus, paidFen, refundedFen,
+    payableByViewer, checkoutHref, paymentProviderInstanceId, attemptCount,
+    settledAt
+- Important status reality:
+  - current bill detail line status is derived from `deriveBillPaymentState`
+  - current stable outputs are
+    `UNPAID / PROCESSING / PAID / REFUND_PENDING / REFUNDED`
+  - existing frontend `ACTION_REQUIRED` / `FAILED` line-label branches are not
+    currently exercised by `getBillDetail`
+- Prerequisite reset implemented:
+  - removed Bill Detail header subtitle
+  - removed current successful-state Bill Detail body content
+  - preserved invalid-id, loading, error, and back-navigation handling
+- Backend contract implementation:
+  - expanded `BillDetailProjection.bill` with backend-owned `totalAmountFen`
+  - expanded `BillDetailProjection.lines[]` with enriched payer presentation:
+    - `userId`
+    - `nickname`
+    - `displayName`
+    - `avatarUrl`
+    - `isViewer`
+  - added repository support to load payer records by id set
+- Frontend implementation:
+  - added `domains/commerce/ui/bill-detail/BillLineCard.vue`
+  - rebuilt `CommerceBillDetailPage` header:
+    - `查看订单` in actions
+    - settlement tag and inline `总金额` in meta
+  - bill lines now render as amount/status/payer/description cards
+  - page selection is single-select via `usePuSelect`
+  - only backend-payable lines are selectable
+  - disabled non-payable lines remain visible with disabled checkbox state
+  - page footer CTA now routes only the selected payable line to checkout
+  - `BillCard.vue` now reads backend-owned `totalAmountFen`
+  - follow-up layout correction:
+    - BillLine card now uses:
+      checkbox / amount+status / payer-avatar+nickname
+    - card body now renders description text only
+    - payer nickname no longer appends viewer copy
+    - payer nickname width is container-constrained from the BillLine card
+    - bill-detail success state now uses a true `space-between` flex column;
+      CTA no longer relies on `sticky`
+- Scenario coverage update:
+  - RideHailing bill-detail flow now uses a two-participant order
+  - scenario asserts:
+    - header status and total amount
+    - two bill lines render
+    - viewer-owned line is default-selected and payable
+    - non-viewer line stays disabled
+    - CTA label reflects the selected bill-line amount
+    - bill-detail -> checkout -> bill-detail -> order-detail routing works
+- Verification result:
+  - focused biome check passed
+  - frontend typecheck passed
+  - backend typecheck passed
+  - focused RideHailing system scenario passed
+  - `git diff --check` passed
+
+## Previous Slice: RideHailing Order Detail Bill Card
 
 - Target component contract:
   - Bill Card is a reusable component

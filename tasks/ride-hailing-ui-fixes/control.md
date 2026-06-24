@@ -19,7 +19,7 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` for RideHailing Order Detail Bill Card integration
+- Active mode: `Execute` for Bill Detail page reset and backend-contract segment
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -33,9 +33,10 @@ Hypothesis:
   task-packet wording is now corrected so the Driver Card call affordance is
   treated as an action, not as a required visible `Call` text label; current
   implementation slice covers order-detail back-navigation semantics and a
-  resolved-vehicle section above route facts; next requested slice adds a
-  self-fetch Bill Card above the resolved-vehicle section when a RideHailing
-  order already has a bill
+  resolved-vehicle section above route facts; Bill Card integration is now
+  committed; current slice resets and rebuilds Bill Detail page around
+  backend-owned bill totals, payer-enriched bill lines, single-select checkout,
+  and verified RideHailing bill-detail -> checkout routing
 
 ## Inherited Effective Truth
 
@@ -123,6 +124,13 @@ Hypothesis:
 - Commerce already exposes both `GET /api/commerce/bills/:billId` and
   `GET /api/commerce/orders/:orderId/bill`; the frontend already has
   `useBillDetail(billId)` and `CommerceBillDetailPage` at `/bills/:billId`.
+- Bill Detail backend contract now also exposes:
+  - `bill.totalAmountFen` as the backend-owned signed total shown by frontend
+  - `lines[].payer.userId`
+  - `lines[].payer.nickname`
+  - `lines[].payer.displayName`
+  - `lines[].payer.avatarUrl`
+  - `lines[].payer.isViewer`
 - `CommerceOrderDetailPage` already receives `detail.bill` with bill id,
   status, currency, and lightweight line snapshots; that is enough to detect
   bill existence and hand canonical data ownership to an id-owned Bill Card.
@@ -133,6 +141,9 @@ Hypothesis:
 - Current RideHailing order detail content renders status hero, optional driver
   card, dispatching-only candidate vehicles, resolved service vehicle, route,
   and riders; it does not yet render any bill-specific section.
+- Bill Detail page reset slice already removed the old header subtitle and the
+  old successful-state body content; the page is now rebuilt from the real
+  Bill / BillLine projection with card-based payable-line selection.
 
 ## Collaboration Protocol
 
@@ -192,6 +203,7 @@ Hypothesis:
 Choose the narrowest sufficient proof per approved slice:
 
 - `pnpm check:type:frontend`
+- `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
 - focused browser/manual check through PR placement when the issue is visual or
   interaction-specific
 - `pnpm vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
@@ -201,8 +213,10 @@ Choose the narrowest sufficient proof per approved slice:
 
 ## Current State
 
-- Opened slice: RideHailing Order Detail Bill Card placement and self-fetch
-  component planning.
+- Implemented slice: Bill Detail page reset and backend-contract segment
+  (uncommitted).
+- Committed slice: RideHailing Order Detail Bill Card
+  (`0bcfdc29`).
 
 - Committed slice: RideHailing ordering content naming and layout correction
   (`f7ac1aa3`).

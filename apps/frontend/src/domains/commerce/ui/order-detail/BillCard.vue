@@ -21,24 +21,24 @@
         {{ statusPlaceholder }}
       </span>
 
-      <PuButton
+      <strong
+        class="bill-card__amount"
+        data-testid="order-detail.ride-hailing.bill-card.amount"
+      >
+        {{ amountLabel }}
+      </strong>
+    </div>
+    <PuButton
         :action="billLinkAction"
         shape="rect"
-        tone="primary"
-        variant="outline"
+        tone="neutral"
+        variant="soft"
         size="sm"
         data-testid="order-detail.ride-hailing.bill-card.view"
       >
         查看
       </PuButton>
-    </div>
 
-    <strong
-      class="bill-card__amount"
-      data-testid="order-detail.ride-hailing.bill-card.amount"
-    >
-      {{ amountLabel }}
-    </strong>
   </PuCard>
 </template>
 
@@ -46,7 +46,7 @@
 import { PuButton, PuCard, PuTag } from "@partner-up-dev/design-web";
 import { computed } from "vue";
 import {
-  calculateBillEffectiveTotalFen,
+  formatCurrencyAmount,
   resolveBillSettlementTag,
 } from "@/domains/commerce/model/bill-display";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
@@ -71,7 +71,7 @@ const statusPlaceholder = computed(() => (billQuery.isError.value ? "状态待�
 
 const amountLabel = computed(() => {
   if (detail.value) {
-    return formatFen(calculateBillEffectiveTotalFen(detail.value.bill));
+    return formatCurrencyAmount(detail.value.bill.totalAmountFen, detail.value.bill.currency);
   }
   return billQuery.isError.value ? "暂时无法加载金额" : "正在加载金额...";
 });
@@ -79,14 +79,6 @@ const amountLabel = computed(() => {
 const billLinkAction = computed(() =>
   normalizedBillId.value ? { to: { path: `/bills/${normalizedBillId.value}` } } : undefined,
 );
-
-const formatFen = (amountFen: number | null | undefined): string => {
-  if (typeof amountFen !== "number") return "待确认";
-  return new Intl.NumberFormat("zh-CN", {
-    style: "currency",
-    currency: "CNY",
-  }).format(amountFen / 100);
-};
 </script>
 
 <style scoped lang="scss">

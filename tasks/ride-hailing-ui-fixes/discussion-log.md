@@ -7,7 +7,114 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
-## Current Segment: RideHailing Order Detail Bill Card
+## Current Segment: Bill Detail Page Reset And Data Audit
+
+- New requested slice:
+  - first remove the current Bill Detail page body content
+  - remove the Bill Detail header description/subtitle
+  - then inspect actual Bill and BillLine information before deciding the new
+    UI
+- Current code findings:
+  - current `CommerceBillDetailPage` is still a generic two-card document page
+    with duplicated `Bill` / `Lines` eyebrows and a summary-grid-first layout
+  - current page-level copy assumes a stable model of "每个人只支付自己的账单行",
+    but the backend projection already contains both charge and refund facts
+  - backend `BillDetailProjection.bill` currently exposes:
+    - id
+    - sourceOrderId
+    - status
+    - currency
+    - chargeTotalFen
+    - paidChargeFen
+    - refundTotalFen
+    - refundedFen
+    - settlementStatus
+  - backend `BillDetailProjection.order` currently exposes:
+    - id
+    - family
+    - status
+    - itemName
+  - backend `BillDetailProjection.lines[]` currently exposes:
+    - id
+    - userId
+    - kind
+    - amountFen
+    - currency
+    - label
+    - description
+    - refundOfBillLineId
+    - settlementStatus
+    - paidFen
+    - refundedFen
+    - payableByViewer
+    - checkoutHref
+    - paymentProviderInstanceId
+    - attemptCount
+    - settledAt
+  - important reality check:
+    frontend currently handles `ACTION_REQUIRED` and `FAILED` line labels, but
+    present `getBillDetail` line status is derived from `deriveBillPaymentState`
+    and, in the current implementation, reliably yields
+    `UNPAID / PROCESSING / PAID / REFUND_PENDING / REFUNDED`
+- Design pressure observed:
+  - bill-level data should own header summary only; page body should stay
+    line-driven
+  - payment action belongs only to viewer-payable charge lines, not to the bill
+    shell as a whole
+  - payer avatar/name is required for the chosen line-card layout, so
+    `userId`-only projection is insufficient
+- Implementation result:
+  - removed the current Bill Detail header subtitle
+  - removed the current successful-state Bill Detail body content
+  - kept invalid-id, loading, error, and back-navigation behavior intact
+  - backend `BillDetailProjection.bill` now exposes backend-owned
+    `totalAmountFen`
+  - backend `BillDetailProjection.lines[]` now exposes enriched payer
+    presentation data:
+    - `userId`
+    - `nickname`
+    - `displayName`
+    - `avatarUrl`
+    - `isViewer`
+  - rebuilt `CommerceBillDetailPage` IA:
+    - `查看订单` moved into `PuPageHeader` actions
+    - `状态` and inline `总金额` moved into header meta
+    - bill lines render as card rows with amount, status tag, payer, and
+      description
+    - footer CTA is single-select and bill-line-scoped
+  - selection model follows backend `payableByViewer` only; non-payable lines
+    stay visible but disabled
+  - `BillLineCard` uses a visual-only checkbox and `usePuSelect` single-select
+    state
+  - implementation note:
+    design-web `PuCard` does not inherit arbitrary attrs, so stable
+    `bill-detail.line` anchors live on a native outer wrapper while the inner
+    selectable `PuCard` keeps the role/button interaction model
+- Follow-up layout correction:
+  - BillLine card top row now matches the agreed structure:
+    checkbox, amount/status cluster, payer avatar/nickname cluster
+  - card body now shows description text only; the extra standalone label row
+    was removed
+  - payer nickname no longer appends `你`
+  - payer name width is constrained from the BillLine card container with
+    container-query units when available
+  - bill-detail success state now uses a real `justify-content: space-between`
+    column layout so the CTA sits at the bottom of the `PuPageScaffold`
+    screen viewport without relying on `sticky`
+- Verification result:
+  - `pnpm exec biome check` on changed frontend/backend/scenario files
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
+  - targeted system scenario passed:
+    `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+- Follow-up verification result:
+  - `pnpm exec biome check apps/frontend/src/domains/commerce/ui/bill-detail/BillLineCard.vue apps/frontend/src/pages/CommerceBillDetailPage.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+- Next step:
+  - ready for the next bill-detail slice or commit request
+
+## Previous Segment: RideHailing Order Detail Bill Card
 
 - New requested fix:
   - add a Bill Card component whose input is `billId`
