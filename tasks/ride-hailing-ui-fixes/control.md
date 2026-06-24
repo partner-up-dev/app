@@ -19,8 +19,7 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` for RideHailing Order Detail back navigation and
-  resolved-vehicle section behavior
+- Active mode: `Execute` for RideHailing Order Detail Bill Card integration
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -34,7 +33,9 @@ Hypothesis:
   task-packet wording is now corrected so the Driver Card call affordance is
   treated as an action, not as a required visible `Call` text label; current
   implementation slice covers order-detail back-navigation semantics and a
-  resolved-vehicle section above route facts
+  resolved-vehicle section above route facts; next requested slice adds a
+  self-fetch Bill Card above the resolved-vehicle section when a RideHailing
+  order already has a bill
 
 ## Inherited Effective Truth
 
@@ -119,6 +120,19 @@ Hypothesis:
 - RideHailing order detail already receives full `detail.order.items`
   snapshots; a resolved RideHailing choice-set item can be identified from
   `item.resolution?.sku` without introducing a new backend projection first.
+- Commerce already exposes both `GET /api/commerce/bills/:billId` and
+  `GET /api/commerce/orders/:orderId/bill`; the frontend already has
+  `useBillDetail(billId)` and `CommerceBillDetailPage` at `/bills/:billId`.
+- `CommerceOrderDetailPage` already receives `detail.bill` with bill id,
+  status, currency, and lightweight line snapshots; that is enough to detect
+  bill existence and hand canonical data ownership to an id-owned Bill Card.
+- RideHailing final bill creation already happens in the Caocao callback path:
+  when the provider callback carries a final amount, backend
+  `ensureRideFinalBill` creates the order bill and per-participant charge
+  lines.
+- Current RideHailing order detail content renders status hero, optional driver
+  card, dispatching-only candidate vehicles, resolved service vehicle, route,
+  and riders; it does not yet render any bill-specific section.
 
 ## Collaboration Protocol
 
@@ -186,6 +200,9 @@ Choose the narrowest sufficient proof per approved slice:
   when Rental ordering is affected by unified listing / quote identity
 
 ## Current State
+
+- Opened slice: RideHailing Order Detail Bill Card placement and self-fetch
+  component planning.
 
 - Committed slice: RideHailing ordering content naming and layout correction
   (`f7ac1aa3`).
@@ -313,6 +330,32 @@ Choose the narrowest sufficient proof per approved slice:
     - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
   - planning artifact:
     `tasks/ride-hailing-ui-fixes/order-detail-back-and-resolved-vehicle-plan.md`
+- Current implementation slice: RideHailing Order Detail Bill Card
+  - `BillCard.vue` is now a domain-owned component whose only input is
+    `billId`
+  - the card fetches canonical bill detail via `useBillDetail(billId)`
+  - the card does not repeat a local `账单` title or `Bill` eyebrow; it shows
+    status tag, amount, and `查看` action only
+  - RideHailing order detail now renders a `账单` section above
+    `服务车型` whenever `detail.bill?.id` exists
+  - bill amount currently uses the lightweight effective-total summary
+    `chargeTotalFen - refundTotalFen`, matching the older Order Detail bill
+    summary pattern
+  - bill settlement display logic is now shared through
+    `domains/commerce/model/bill-display.ts`
+  - focused system scenario now asserts:
+    - bill section appears after finished-state bill creation
+    - bill section is ordered before resolved vehicle section
+    - bill card shows `待支付` plus the expected amount
+    - `查看` routes to `/bills/:billId`
+    - bill detail can return to the order detail page
+  - verified:
+    - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+    - `pnpm exec biome check apps/frontend/src/domains/commerce/model/bill-display.ts apps/frontend/src/domains/commerce/ui/order-detail/BillCard.vue apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue apps/frontend/src/pages/CommerceBillDetailPage.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+    - `git diff --check`
+  - planning artifact:
+    `tasks/ride-hailing-ui-fixes/order-detail-bill-card-plan.md`
 - Implemented scenario coverage:
   - fake Caocao can mutate vehicle estimates through an admin-only test route
   - fake Caocao can mark per-car-type estimates unavailable for dynamic

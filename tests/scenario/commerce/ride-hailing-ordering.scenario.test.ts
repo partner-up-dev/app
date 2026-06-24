@@ -617,6 +617,60 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
   });
 }
 
+async function assertRideHailingFactSectionOrder(input: {
+  page: Page;
+  before: string;
+  after: string;
+}): Promise<void> {
+  const order = await input.page.evaluate(
+    ({ after, before }) => {
+      const beforeElement = document.querySelector<HTMLElement>(`[data-testid="${before}"]`);
+      const afterElement = document.querySelector<HTMLElement>(`[data-testid="${after}"]`);
+      if (!beforeElement || !afterElement) return null;
+      const parent = beforeElement.parentElement;
+      if (!parent || parent !== afterElement.parentElement) return null;
+      return {
+        afterIndex: Array.from(parent.children).indexOf(afterElement),
+        beforeIndex: Array.from(parent.children).indexOf(beforeElement),
+      };
+    },
+    { after: input.after, before: input.before },
+  );
+  assert.ok(order !== null, "RideHailing fact sections should share a common parent");
+  assert.ok(
+    order.beforeIndex >= 0 && order.beforeIndex < order.afterIndex,
+    `Expected ${input.before} to appear before ${input.after}`,
+  );
+}
+
+async function assertRideHailingBillCard(page: Page): Promise<void> {
+  const billSection = page.getByTestId("order-detail.ride-hailing.bill-section");
+  await billSection.waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await assertLocatorTextIncludes({
+    actual: billSection.textContent(),
+    expected: "账单",
+    label: "RideHailing bill section title",
+  });
+  await assertRideHailingFactSectionOrder({
+    page,
+    before: "order-detail.ride-hailing.bill-section",
+    after: "order-detail.ride-hailing.resolved-vehicle-section",
+  });
+  await assertLocatorTextIncludes({
+    actual: page.getByTestId("order-detail.ride-hailing.bill-card.status").textContent(),
+    expected: "待支付",
+    label: "RideHailing bill card status",
+  });
+  await assertLocatorTextMatches({
+    actual: page.getByTestId("order-detail.ride-hailing.bill-card.amount").textContent(),
+    pattern: /[¥￥]40\.00/,
+    label: "RideHailing bill card amount",
+  });
+}
+
 async function waitForRideHailingMapMode(
   page: Page,
   mode: "SEARCHING_ORIGIN" | "PICKING_UP" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "PLANNED_ROUTE",
@@ -713,10 +767,43 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
       expected: "行程已结束",
       label: "RideHailing finished status hero",
     });
+    await assertRideHailingBillCard(page);
 
-    orderPath = new URL(page.url()).pathname;
+    const orderDetailPath = new URL(page.url()).pathname;
+    orderPath = orderDetailPath;
     await page.getByLabel("Back").click();
     await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
+      timeout: 10_000,
+    });
+    await page.goto(orderDetailPath);
+    await page.getByTestId("order-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await page.getByTestId("order-detail.ride-hailing.bill-card.view").click();
+    await page.waitForURL((url) => /^\/bills\/[0-9a-f-]+$/.test(new URL(url).pathname), {
+      timeout: 10_000,
+    });
+    await page.getByTestId("bill-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("bill-detail.settlement-status").textContent(),
+      expected: "待支付",
+      label: "RideHailing bill detail settlement status",
+    });
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("bill-detail.charge-total").textContent(),
+      pattern: /[¥￥]40\.00/,
+      label: "RideHailing bill detail charge total",
+    });
+    await page.getByTestId("bill-detail.order-link").click();
+    await page.waitForURL((url) => new URL(url).pathname === orderDetailPath, {
+      timeout: 10_000,
+    });
+    await page.getByTestId("order-detail.page").waitFor({
+      state: "visible",
       timeout: 10_000,
     });
   });

@@ -142,11 +142,18 @@
 </template>
 
 <script setup lang="ts">
+import {
+  PuButton,
+  PuCard,
+  PuInlineNotice,
+  PuPageHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { PuButton, PuCard, PuInlineNotice, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
-import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { resolveBillSettlementTag } from "@/domains/commerce/model/bill-display";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 const route = useRoute();
 
@@ -160,18 +167,8 @@ const billQuery = useBillDetail(billId);
 const detail = computed(() => billQuery.data.value ?? null);
 
 const settlementStatusLabel = computed(() => {
-  if (
-    detail.value &&
-    detail.value.bill.refundTotalFen > 0 &&
-    detail.value.bill.refundedFen >= detail.value.bill.refundTotalFen
-  ) {
-    return "已退款";
-  }
-  if (detail.value && detail.value.bill.refundTotalFen > 0) return "退款处理中";
-  if (detail.value?.bill.settlementStatus === "PAID") return "已支付";
-  if (detail.value?.bill.settlementStatus === "PARTIALLY_PAID")
-    return "部分已支付";
-  return "待支付";
+  if (!detail.value) return "待支付";
+  return resolveBillSettlementTag(detail.value.bill).label;
 });
 
 const backFallbackTo = computed(() =>
@@ -180,9 +177,7 @@ const backFallbackTo = computed(() =>
 const { handleBack } = useFallbackBack(backFallbackTo);
 
 const billErrorMessage = computed(() =>
-  billQuery.error.value instanceof Error
-    ? billQuery.error.value.message
-    : "加载账单失败。",
+  billQuery.error.value instanceof Error ? billQuery.error.value.message : "加载账单失败。",
 );
 
 const lineStatusLabel = (status: string): string => {

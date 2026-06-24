@@ -7,6 +7,39 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
+## Current Slice: RideHailing Order Detail Bill Card
+
+- Target component contract:
+  - Bill Card is a reusable component
+  - input is `billId`
+  - the component fetches canonical bill data by itself
+  - the component shows bill price and a `查看` action to `/bills/:billId`
+- Placement decision:
+  - RideHailing order detail should render the Bill Card only when
+    `detail.bill?.id` exists
+  - the Bill Card belongs above
+    `order-detail.ride-hailing.resolved-vehicle-section`
+- Current dependency decision:
+  - prefer existing `useBillDetail(billId)` rather than adding a new query
+    owner
+  - existing `/orders/:orderId/bill` API remains available but is not the
+    preferred contract for this component slice
+- Implementation result:
+  - added `apps/frontend/src/domains/commerce/ui/order-detail/BillCard.vue`
+  - added shared bill settlement display helper at
+    `apps/frontend/src/domains/commerce/model/bill-display.ts`
+  - RideHailing order detail now shows a `账单` section above
+    `order-detail.ride-hailing.resolved-vehicle-section` when bill id exists
+  - Bill Card shows status tag, effective-total amount, and `查看`
+  - `CommerceBillDetailPage` now reuses the shared bill settlement label
+    helper
+- Verification result:
+  - frontend typecheck passed
+  - focused biome check passed
+  - focused RideHailing system scenario passed with bill-card assertions
+- Slice artifact:
+  - `order-detail-bill-card-plan.md`
+
 ## Last Completed Slice: Order Detail Back Navigation And Resolved Vehicle Section
 
 - Corrected task-packet wording for the Driver Card action:

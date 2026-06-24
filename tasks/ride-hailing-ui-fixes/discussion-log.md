@@ -7,7 +7,57 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
-## Current Segment: Order Detail Back Navigation And Resolved Vehicle Section
+## Current Segment: RideHailing Order Detail Bill Card
+
+- New requested fix:
+  - add a Bill Card component whose input is `billId`
+  - the component should fetch canonical bill data by itself
+  - the card should show bill price and a `查看` action that routes to bill
+    detail
+  - `RideHailingOrderContent` should render this card only when the order
+    already has a bill
+  - placement must be above
+    `order-detail.ride-hailing.resolved-vehicle-section`
+- Current code findings:
+  - RideHailing order detail currently renders no bill-related UI inside
+    `RideHailingOrderContent`
+  - `CommerceOrderDetailPage` already receives `detail.bill?.id`, so the page
+    can decide presence without widening the backend contract
+  - frontend already has `useBillDetail(billId)` and routed bill detail page
+    `/bills/:billId`
+  - backend also exposes `GET /api/commerce/orders/:orderId/bill`, but the
+    requested component contract is bill-id-owned, so that route is not
+    required for this slice unless we hit an API-shape gap
+  - Caocao final-amount callback already creates the RideHailing final bill,
+    so the existing order-detail polling should be able to observe bill
+    appearance after trip completion
+- Implementation result:
+  - added domain-owned `BillCard.vue` under RideHailing order-detail UI; the
+    component input is only `billId`
+  - the card fetches bill detail via `useBillDetail(billId)` and renders:
+    - bill settlement `PuTag`
+    - effective total amount
+    - `查看` button to `/bills/:billId`
+  - the card intentionally does not repeat a local `账单` title or `Bill`
+    eyebrow because the parent section already owns the title
+  - `RideHailingOrderContent` now renders a `账单` section above
+    `order-detail.ride-hailing.resolved-vehicle-section` when `detail.bill?.id`
+    exists
+  - bill settlement label logic is now shared with `CommerceBillDetailPage`
+    through `domains/commerce/model/bill-display.ts`
+- Verification result:
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - focused `biome check` on the changed frontend and scenario files
+  - focused RideHailing system scenario now asserts:
+    - bill section appears after the finished-state bill is created
+    - bill section is ordered above resolved vehicle section
+    - bill card displays `待支付`
+    - `查看` routes to bill detail
+    - bill detail can route back to order detail
+- New slice planning artifact:
+  `order-detail-bill-card-plan.md`
+
+## Previous Segment: Order Detail Back Navigation And Resolved Vehicle Section
 
 - Task-packet correction:
   previous notes overstated a visible `Call` text-label requirement on the

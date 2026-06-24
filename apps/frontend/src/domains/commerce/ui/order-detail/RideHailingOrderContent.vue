@@ -73,6 +73,12 @@
         </section>
 
         <div class="ride-hailing-order-content__facts">
+          <section v-if="billId" class="ride-hailing-order-content__fact-section"
+            data-testid="order-detail.ride-hailing.bill-section">
+            <h3>账单</h3>
+            <BillCard :bill-id="billId" />
+          </section>
+
           <section v-if="resolvedServiceVehicles.length > 0" class="ride-hailing-order-content__fact-section"
             data-testid="order-detail.ride-hailing.resolved-vehicle-section">
             <h3>服务车型</h3>
@@ -119,6 +125,7 @@ import {
 } from "@partner-up-dev/design-web";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { CommerceOrderDetailResponse } from "@/domains/commerce/queries/useCommerce";
+import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
@@ -327,6 +334,11 @@ const resolvedServiceVehicles = computed<ResolvedRideHailingVehicleCard[]>(() =>
   }),
 );
 
+const billId = computed(() => {
+  const value = props.detail.bill?.id?.trim() ?? "";
+  return value.length > 0 ? value : null;
+});
+
 const orderMapViewModel = computed(() =>
   buildRideHailingOrderMapViewModel({
     executionPhase: props.ride.executionPhase,
@@ -337,7 +349,7 @@ const orderMapViewModel = computed(() =>
 
 const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
   orderMapViewModel.value.activeGeometry?.kind === "marker" &&
-    (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
+  (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
     ? "active-marker"
     : "none",
 );
