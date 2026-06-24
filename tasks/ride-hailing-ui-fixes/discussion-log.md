@@ -7,7 +7,51 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
-## Current Segment: RideHailing Order Detail Driver Card And Live Geometry
+## Current Segment: Order Detail Back Navigation And Resolved Vehicle Section
+
+- Task-packet correction:
+  previous notes overstated a visible `Call` text-label requirement on the
+  Driver Card action. The actual accepted contract is that the right-side
+  control is an action-oriented call affordance backed by `driverPhone`; the
+  current icon-led button with accessible `联系司机` semantics is acceptable.
+- New requested fixes:
+  - Order Detail page back button should return to the initiating page rather
+    than the immediate previous `/order/new` page
+  - when a RideHailing order item has a resolved SKU, render a `服务车型`
+    section above `路线`
+  - reuse readonly `RideHailingSkuCard` for that resolved service vehicle
+- Current code findings:
+  - `CommerceOrderDetailPage` binds header back to `useFallbackBack`, and
+    `useFallbackBack` calls `router.back()` whenever a back entry exists
+  - in the normal PR -> `/order/new` -> `/orders/:orderId` flow, current back
+    behavior therefore returns to the ordering page instead of the initiating
+    page
+  - current Order Detail data already contains raw `detail.order.items`
+    snapshots; existing page code already prefers `item.resolution?.sku` over
+    unresolved candidate SKU data
+  - `RideHailingOrderContent` currently renders dispatching-only candidate
+    cards, then route section, then rider section; no resolved service-vehicle
+    section exists yet
+- Implementation result:
+  - `CommerceOrderDetailPage` no longer uses the generic single-step
+    `useFallbackBack` policy; it now skips `/order/new` when that page is the
+    immediate router back entry
+  - when skip-back cannot safely use router history depth, the page falls back
+    to the PR path held in the ordering handoff store
+  - `RideHailingOrderContent` now renders a `服务车型` section above `路线`
+    whenever a RideHailing choice-set item has `resolution.sku`
+  - the new section reuses readonly `RideHailingSkuCard` and stays separate
+    from the existing dispatching-only candidate list
+- Verification result:
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - focused `biome check` on the changed frontend and scenario files
+  - focused RideHailing system scenario passed and now asserts:
+    - resolved service-vehicle section content
+    - back button returns to `/pr/:id`
+- New slice planning artifact:
+  `order-detail-back-and-resolved-vehicle-plan.md`
+
+## Previous Segment: RideHailing Order Detail Driver Card And Live Geometry
 
 - Requested fixes:
   - show a Driver Card whenever RideHailing order detail has driver or vehicle
@@ -22,14 +66,14 @@ Archived full history:
   - fake Caocao emits it as `driverName`, callback form field
     `driver_name`, backend stores/projects it as `ride.driver.driverName`
   - frontend Driver Card should display `ride.driver.driverName` when present
-  - the right-side action is a call action and should be modeled/labeled as
-    `Call`, not `Phone`; phone number is the data value behind that action
+  - the right-side control is a call action, not a phone-data field; the old
+    packet wording incorrectly implied a required visible `Call` label
 - Proposed Driver Card wireframe:
 
 ```text
 ┌─────────────────────────────────────────────────┐
 │ ┌──────────┐  浙A·TEST                 ┌──────┐ │
-│ │  Avatar  │  几何 · 白色              │ Call │ │
+│ │  Avatar  │  几何 · 白色              │  📞  │ │
 │ └──────────┘                           └──────┘ │
 │ 曹操测试司机                                      │
 └─────────────────────────────────────────────────┘
@@ -72,7 +116,7 @@ Archived full history:
 - Follow-up review findings:
   - Driver Card Call action should use the `PuButton` `leading` slot for its
     icon; placing the icon span directly in default content is inconsistent
-    with the design-web button contract. This is a separate small correction.
+    with the design-web button contract. This correction is now implemented.
   - Caocao Fake Server driving-process enhancement should be a separate slice.
     It should first diagnose the adapter path from Caocao `coords` to backend
     provider route projection to Tencent Map SDK input, because a rendered

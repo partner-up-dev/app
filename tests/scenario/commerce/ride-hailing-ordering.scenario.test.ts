@@ -562,19 +562,43 @@ async function assertRideHailingOrderDetail(page: Page): Promise<void> {
     expected: "派单中",
     label: "RideHailing status hero title",
   });
-  const vehicleCards = page.getByTestId("order-detail.ride-hailing.vehicle-card");
-  await vehicleCards.first().waitFor({
+  const dispatchingVehicleSection = page.getByTestId("order-detail.ride-hailing.dispatching-skus");
+  await dispatchingVehicleSection.waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  assert.equal(await vehicleCards.count(), 2);
-  await vehicleCards.filter({ hasText: "系统曹操快车" }).waitFor({
+  const dispatchingVehicleCards = dispatchingVehicleSection.getByTestId(
+    "order-detail.ride-hailing.vehicle-card",
+  );
+  assert.equal(await dispatchingVehicleCards.count(), 2);
+  await dispatchingVehicleCards.filter({ hasText: "系统曹操快车" }).waitFor({
     state: "visible",
     timeout: 10_000,
   });
-  await vehicleCards.filter({ hasText: "系统曹操专车" }).waitFor({
+  await dispatchingVehicleCards.filter({ hasText: "系统曹操专车" }).waitFor({
     state: "visible",
     timeout: 10_000,
+  });
+  const resolvedVehicleSection = page.getByTestId(
+    "order-detail.ride-hailing.resolved-vehicle-section",
+  );
+  await resolvedVehicleSection.waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  const resolvedVehicleCards = resolvedVehicleSection.getByTestId(
+    "order-detail.ride-hailing.vehicle-card",
+  );
+  assert.equal(await resolvedVehicleCards.count(), 1);
+  await assertLocatorTextIncludes({
+    actual: resolvedVehicleSection.textContent(),
+    expected: "服务车型",
+    label: "RideHailing resolved vehicle section title",
+  });
+  await assertLocatorTextIncludes({
+    actual: resolvedVehicleSection.textContent(),
+    expected: "系统曹操快车",
+    label: "RideHailing resolved vehicle section item",
   });
   await assertLocatorTextIncludes({
     actual: page.getByTestId("order-detail.ride-hailing.route-section").textContent(),
@@ -691,6 +715,10 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     });
 
     orderPath = new URL(page.url()).pathname;
+    await page.getByLabel("Back").click();
+    await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
+      timeout: 10_000,
+    });
   });
 
   const createdOrderPath = orderPath;

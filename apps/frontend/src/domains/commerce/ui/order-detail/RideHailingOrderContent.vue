@@ -1,46 +1,19 @@
 <template>
-  <section
-    ref="contentRoot"
-    class="ride-hailing-order-content"
-    data-testid="order-detail.ride-hailing.page"
-    :data-map-mode="orderMapViewModel.mode"
-  >
-    <RouteMap
-      class="ride-hailing-order-content__route-map"
-      data-testid="order-detail.ride-hailing.route-map"
-      :data-map-mode="orderMapViewModel.mode"
-      :route="routeForMap"
-      :planned-polyline="orderMapViewModel.plannedPolyline"
-      :extra-markers="orderMapViewModel.extraMarkers"
-      :extra-polylines="orderMapViewModel.extraPolylines"
-      :plan-route="orderMapViewModel.planRoute"
-      :show-fallback-polyline="orderMapViewModel.showFallbackPolyline"
-      :active-geometry="orderMapViewModel.activeGeometry"
-      :overview-geometry="orderMapViewModel.overviewGeometry"
-      :viewport-follow-mode="routeMapViewportFollowMode"
-      :follow-reset-key="orderMapViewModel.mode"
-      :follow-zoom="15"
-      :show-viewport-follow-controls="routeMapViewportFollowMode !== 'none'"
-      :fit-padding="routeMapFitPadding"
-      :interactive="true"
-      variant="immersive"
-      hide-bottom-attribution
-    />
+  <section ref="contentRoot" class="ride-hailing-order-content" data-testid="order-detail.ride-hailing.page"
+    :data-map-mode="orderMapViewModel.mode">
+    <RouteMap class="ride-hailing-order-content__route-map" data-testid="order-detail.ride-hailing.route-map"
+      :data-map-mode="orderMapViewModel.mode" :route="routeForMap" :planned-polyline="orderMapViewModel.plannedPolyline"
+      :extra-markers="orderMapViewModel.extraMarkers" :extra-polylines="orderMapViewModel.extraPolylines"
+      :plan-route="orderMapViewModel.planRoute" :show-fallback-polyline="orderMapViewModel.showFallbackPolyline"
+      :active-geometry="orderMapViewModel.activeGeometry" :overview-geometry="orderMapViewModel.overviewGeometry"
+      :viewport-follow-mode="routeMapViewportFollowMode" :follow-reset-key="orderMapViewModel.mode" :follow-zoom="15"
+      :show-viewport-follow-controls="routeMapViewportFollowMode !== 'none'" :fit-padding="routeMapFitPadding"
+      :interactive="true" variant="immersive" hide-bottom-attribution />
 
-    <PuFloatPanel
-      v-model="panelStop"
-      class="ride-hailing-order-content__panel"
-      :stops="panelStops"
-      position="absolute"
-      :content-padding="false"
-      aria-label="网约车订单状态面板"
-      :z-index="20"
-    >
+    <PuFloatPanel v-model="panelStop" class="ride-hailing-order-content__panel" :stops="panelStops" position="absolute"
+      :content-padding="false" aria-label="网约车订单状态面板" :z-index="20">
       <div class="ride-hailing-order-content__panel-body">
-        <header
-          class="ride-hailing-order-content__status-hero"
-          data-testid="order-detail.ride-hailing.status-hero"
-        >
+        <header class="ride-hailing-order-content__status-hero" data-testid="order-detail.ride-hailing.status-hero">
           <div class="ride-hailing-order-content__status-copy">
             <h2 data-testid="order-detail.ride-hailing.status-title">
               {{ statusHero.title }}
@@ -51,57 +24,23 @@
           </div>
 
           <div class="ride-hailing-order-content__status-actions">
-            <PuButton
-              v-if="showsCancelAction"
-              type="button"
-              size="sm"
-              shape="pill"
-              tone="neutral"
-              variant="outline"
-              disabled
-              title="取消订单能力待接入"
-              data-testid="order-detail.ride-hailing.cancel"
-            >
+            <PuButton v-if="showsCancelAction" type="button" size="sm" shape="pill" tone="neutral" variant="outline"
+              disabled title="取消订单能力待接入" data-testid="order-detail.ride-hailing.cancel">
               取消订单
             </PuButton>
-            <PuButton
-              type="button"
-              size="sm"
-              shape="circle"
-              tone="neutral"
-              variant="ghost"
-              disabled
-              aria-label="更多操作"
-              title="更多操作待接入"
-              data-testid="order-detail.ride-hailing.more"
-            >
+            <PuButton type="button" size="sm" shape="circle" tone="neutral" variant="ghost" disabled aria-label="更多操作"
+              title="更多操作待接入" data-testid="order-detail.ride-hailing.more">
               <span class="i-mdi-dots-horizontal" aria-hidden="true"></span>
             </PuButton>
           </div>
         </header>
 
-        <PuCard
-          v-if="showsDriverCard"
-          as="section"
-          class="ride-hailing-order-content__driver-card"
-          variant="soft"
-          tone="neutral"
-          padding="sm"
-          gap="sm"
-          data-testid="order-detail.ride-hailing.driver-card"
-        >
+        <PuCard v-if="showsDriverCard" as="section" class="ride-hailing-order-content__driver-card" variant="soft"
+          tone="neutral" padding="sm" gap="sm" data-testid="order-detail.ride-hailing.driver-card">
           <div class="ride-hailing-order-content__driver-layout">
             <div class="ride-hailing-order-content__driver-profile">
-              <PuImg
-                src=""
-                :alt="driverName"
-                :name="driverName"
-                :fallback-initial="driverAvatarInitial"
-                size="medium"
-                shape="circle"
-                :show-loading="false"
-                bordered
-              />
+              <PuImg src="" :alt="driverName" :name="driverName" :fallback-initial="driverAvatarInitial" size="medium"
+                shape="circle" :show-loading="false" bordered />
               <strong data-testid="order-detail.ride-hailing.driver-name">
                 {{ driverName }}
               </strong>
@@ -116,18 +55,9 @@
               </span>
             </div>
 
-            <PuButton
-              type="button"
-              size="sm"
-              shape="rect"
-              tone="primary"
-              variant="outline"
-              :disabled="!driverCallHref"
-              :action="driverCallHref ? { href: driverCallHref } : undefined"
-              aria-label="联系司机"
-              title="联系司机"
-              data-testid="order-detail.ride-hailing.driver-call"
-            >
+            <PuButton type="button" size="sm" shape="rect" tone="primary" variant="outline" :disabled="!driverCallHref"
+              :action="driverCallHref ? { href: driverCallHref } : undefined" aria-label="联系司机" title="联系司机"
+              data-testid="order-detail.ride-hailing.driver-call">
               <template #leading>
                 <span class="i-mdi-phone" aria-hidden="true"></span>
               </template>
@@ -135,48 +65,36 @@
           </div>
         </PuCard>
 
-        <section
-          v-if="showsDispatchingCandidateVehicles"
-          class="ride-hailing-order-content__candidate-section"
-          data-testid="order-detail.ride-hailing.dispatching-skus"
-        >
-          <RideHailingSkuCard
-            v-for="candidate in props.ride.candidateVehicles"
-            :key="candidate.skuId"
-            readonly
-            :display-name="candidate.displayName"
-            :price-label="formatFen(candidate.quoteAmountFen)"
-            :preview-src="directImageSrc(candidate.previewImageAssetId)"
-            :selectable="false"
-            :selected="false"
-          />
+        <section v-if="showsDispatchingCandidateVehicles" class="ride-hailing-order-content__candidate-section"
+          data-testid="order-detail.ride-hailing.dispatching-skus">
+          <RideHailingSkuCard v-for="candidate in props.ride.candidateVehicles" :key="candidate.skuId" readonly
+            :display-name="candidate.displayName" :price-label="formatFen(candidate.quoteAmountFen)"
+            :preview-src="directImageSrc(candidate.previewImageAssetId)" :selectable="false" :selected="false" />
         </section>
 
         <div class="ride-hailing-order-content__facts">
-          <section
-            class="ride-hailing-order-content__fact-section"
-            data-testid="order-detail.ride-hailing.route-section"
-          >
-            <h3>路线</h3>
-            <RoutePointList
-              class="ride-hailing-order-content__route-list"
-              :route="routeForMap"
-              variant="detail"
-              show-address
-            />
+          <section v-if="resolvedServiceVehicles.length > 0" class="ride-hailing-order-content__fact-section"
+            data-testid="order-detail.ride-hailing.resolved-vehicle-section">
+            <h3>服务车型</h3>
+            <div class="ride-hailing-order-content__resolved-vehicle-list">
+              <RideHailingSkuCard v-for="vehicle in resolvedServiceVehicles" :key="vehicle.itemId" readonly
+                :display-name="vehicle.displayName" :price-label="vehicle.priceLabel" :preview-src="vehicle.previewSrc"
+                :selectable="false" :selected="false" />
+            </div>
           </section>
 
-          <section
-            class="ride-hailing-order-content__fact-section"
-            data-testid="order-detail.ride-hailing.riders-section"
-          >
+          <section class="ride-hailing-order-content__fact-section"
+            data-testid="order-detail.ride-hailing.route-section">
+            <h3>路线</h3>
+            <RoutePointList class="ride-hailing-order-content__route-list" :route="routeForMap" variant="detail"
+              show-address />
+          </section>
+
+          <section class="ride-hailing-order-content__fact-section"
+            data-testid="order-detail.ride-hailing.riders-section">
             <h3>乘车人</h3>
             <div class="ride-hailing-order-content__rider-list">
-              <div
-                v-for="rider in props.ride.riders"
-                :key="rider.userId"
-                class="ride-hailing-order-content__rider-row"
-              >
+              <div v-for="rider in props.ride.riders" :key="rider.userId" class="ride-hailing-order-content__rider-row">
                 <span class="i-mdi-account-circle" aria-hidden="true"></span>
                 <div>
                   <strong>{{ rider.displayName }}</strong>
@@ -209,7 +127,21 @@ import type { MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
 import { buildRideHailingOrderMapViewModel } from "./ride-hailing-order-map-view-model";
 
 type RideHailingDetail = NonNullable<CommerceOrderDetailResponse["rideHailing"]>;
+type OrderItemSnapshot = CommerceOrderDetailResponse["order"]["items"][number];
+type RideHailingChoiceSetItemSnapshot = Extract<
+  OrderItemSnapshot,
+  { kind: "CHOICE_SET"; productType: "RIDE_HAILING" }
+>;
+type ResolvedRideHailingSkuSnapshot = NonNullable<
+  NonNullable<RideHailingChoiceSetItemSnapshot["resolution"]>["sku"]
+>;
 type RidePanelStopValue = "peek" | "normal" | "expanded";
+type ResolvedRideHailingVehicleCard = {
+  itemId: string;
+  displayName: string;
+  previewSrc: string | null;
+  priceLabel: string;
+};
 
 const props = defineProps<{
   detail: CommerceOrderDetailResponse;
@@ -364,6 +296,37 @@ const showsDispatchingCandidateVehicles = computed(
   () => props.ride.executionPhase === "DISPATCHING" && props.ride.candidateVehicles.length > 0,
 );
 
+const isRideHailingChoiceSetItem = (
+  item: OrderItemSnapshot,
+): item is RideHailingChoiceSetItemSnapshot =>
+  item.kind === "CHOICE_SET" && item.productType === "RIDE_HAILING";
+
+const readResolvedSkuPreviewSrc = (sku: ResolvedRideHailingSkuSnapshot): string | null =>
+  directImageSrc(
+    firstPresentString([
+      sku?.presentationSnapshot.heroImageAssetIds[0],
+      sku?.presentationSnapshot.detailImageAssetIds[0],
+    ]),
+  );
+
+const resolvedServiceVehicles = computed<ResolvedRideHailingVehicleCard[]>(() =>
+  props.detail.order.items.flatMap((item) => {
+    if (!isRideHailingChoiceSetItem(item)) return [];
+    const resolvedSku = item.resolution?.sku;
+    if (!resolvedSku) return [];
+    return [
+      {
+        itemId: item.itemId,
+        displayName:
+          firstPresentString([item.resolution?.quoteSnapshot?.displayName, resolvedSku.name]) ??
+          "服务车型",
+        previewSrc: readResolvedSkuPreviewSrc(resolvedSku),
+        priceLabel: formatFen(item.resolution?.quoteSnapshot?.amountFen),
+      },
+    ];
+  }),
+);
+
 const orderMapViewModel = computed(() =>
   buildRideHailingOrderMapViewModel({
     executionPhase: props.ride.executionPhase,
@@ -374,7 +337,7 @@ const orderMapViewModel = computed(() =>
 
 const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
   orderMapViewModel.value.activeGeometry?.kind === "marker" &&
-  (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
+    (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
     ? "active-marker"
     : "none",
 );
@@ -555,7 +518,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: var(--sys-spacing-large);
+  gap: var(--sys-spacing-medium);
   margin-top: var(--sys-spacing-xlarge);
 }
 
@@ -576,6 +539,13 @@ const formatFen = (amountFen: number | null | undefined): string => {
   min-width: 0;
 }
 
+.ride-hailing-order-content__resolved-vehicle-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+}
+
 .ride-hailing-order-content__rider-list {
   display: flex;
   min-width: 0;
@@ -590,7 +560,7 @@ const formatFen = (amountFen: number | null | undefined): string => {
   padding: var(--sys-spacing-small) 0;
   border-bottom: 1px solid var(--sys-color-outline-variant);
 
-  > span {
+  >span {
     @include mx.pu-icon(medium);
     color: var(--sys-color-on-surface-variant);
   }
@@ -612,5 +582,4 @@ const formatFen = (amountFen: number | null | undefined): string => {
     color: var(--sys-color-on-surface-variant);
   }
 }
-
 </style>

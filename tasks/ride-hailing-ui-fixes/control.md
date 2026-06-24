@@ -19,8 +19,8 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Diagnose` for RideHailing Order Detail accepted/pickup driver
-  card, vehicle marker, fake provider route geometry, and Caocao phase semantics
+- Active mode: `Execute` for RideHailing Order Detail back navigation and
+  resolved-vehicle section behavior
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -30,7 +30,11 @@ Hypothesis:
   Driver Card Call button icon slot; current Caocao route diagnosis found no
   intermediate-point loss in the fake -> backend -> frontend -> Tencent chain,
   fixed the stronger `navigation_polyline_type` provider contract gap, and added
-  deterministic fake driver movement plus heading-aware vehicle marker rotation
+  deterministic fake driver movement plus heading-aware vehicle marker rotation;
+  task-packet wording is now corrected so the Driver Card call affordance is
+  treated as an action, not as a required visible `Call` text label; current
+  implementation slice covers order-detail back-navigation semantics and a
+  resolved-vehicle section above route facts
 
 ## Inherited Effective Truth
 
@@ -81,8 +85,10 @@ Hypothesis:
   - fake Caocao Admin phase controls must expose callback delivery failure
     rather than silently allowing provider/local lifecycle drift
   - Driver Card should render from `ride.driver` / `ride.vehicle` when either
-    exists; `driverName` is display data, and call action labels should be
-    action-oriented (`Call`) rather than data-oriented (`Phone`)
+    exists; `driverName` is display data, and the right-side affordance is a
+    call action backed by `driverPhone`, not a static phone-data field; visible
+    button text is optional, and the current icon-led button shape is
+    acceptable when it keeps accessible call semantics
   - the shared map provider must preserve the `routeDriver` icon style for
     driver markers even when the marker is active
   - fake Caocao pickup/in-trip route geometry must include enough route points
@@ -106,6 +112,13 @@ Hypothesis:
   geometry, marker behavior, or zoom/pan behavior.
 - `RideHailingSkuCard.vue` is reusable for order detail dispatching candidate
   SKU display only if it supports a readonly shape without checkbox.
+- RideHailing order-detail back navigation currently uses generic
+  `useFallbackBack` and therefore returns to the immediate previous page when a
+  router back entry exists; for the standard PR -> Ordering -> Order Detail
+  flow, this means it returns to `/order/new` instead of the initiating page.
+- RideHailing order detail already receives full `detail.order.items`
+  snapshots; a resolved RideHailing choice-set item can be identified from
+  `item.resolution?.sku` without introducing a new backend projection first.
 
 ## Collaboration Protocol
 
@@ -267,6 +280,39 @@ Choose the narrowest sufficient proof per approved slice:
     projection, frontend view-model path, and Tencent `paths` assembly preserve
     the same multi-point latitude/longitude route shape; a stronger adapter
     issue is missing `navigation_polyline_type` in `queryDriverRoute`
+- Current implementation slice: Order Detail back navigation and resolved
+  vehicle section
+  - task-packet wording correction: previous notes overstated a visible `Call`
+    label requirement on the Driver Card action; the real UI contract is an
+    action-oriented call affordance, and the current icon-led implementation is
+    acceptable
+  - current back-navigation behavior: `CommerceOrderDetailPage` uses
+    `useFallbackBack`, which calls `router.back()` whenever a history back entry
+    exists; in the normal PR -> `/order/new` -> `/orders/:orderId` flow, this
+    returns to the ordering page rather than the initiating page
+  - current data availability: RideHailing order detail already carries the
+    raw order item snapshots, and existing page code already prefers
+    `item.resolution?.sku` over unresolved candidates when deriving an item SKU
+  - current UI gap: `RideHailingOrderContent` renders dispatching-only
+    candidate vehicles and then route/rider sections; it does not render a
+    dedicated resolved service-vehicle section above route facts
+  - implementation result:
+    - Order Detail back now skips `/order/new` when the current router back
+      entry is the ordering page; when two-step back is unavailable, it falls
+      back to the initiating PR path from the ordering handoff store
+    - RideHailing Order Detail now renders a readonly `服务车型` section above
+      `路线` when the order item has a resolved RideHailing SKU
+    - the new section reuses readonly `RideHailingSkuCard` and does not alter
+      the existing dispatching candidate section contract
+    - focused system scenario now asserts the resolved service-vehicle section
+      and verifies that the header back action returns to the PR page instead
+      of `/order/new`
+  - verified:
+    - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+    - `pnpm exec biome check apps/frontend/src/pages/CommerceOrderDetailPage.vue apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+    - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+  - planning artifact:
+    `tasks/ride-hailing-ui-fixes/order-detail-back-and-resolved-vehicle-plan.md`
 - Implemented scenario coverage:
   - fake Caocao can mutate vehicle estimates through an admin-only test route
   - fake Caocao can mark per-car-type estimates unavailable for dynamic

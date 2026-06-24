@@ -7,6 +7,29 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
+## Last Completed Slice: Order Detail Back Navigation And Resolved Vehicle Section
+
+- Corrected task-packet wording for the Driver Card action:
+  - the current icon-led call affordance is acceptable
+  - the real contract is action-oriented call semantics, not a required visible
+    `Call` text label
+- Implemented Order Detail back-navigation correction:
+  - header back skips `/order/new` when that page is the immediate router back
+    entry
+  - when two-step history back is unavailable, the page falls back to the PR
+    path from the ordering handoff store
+- Implemented resolved service-vehicle section:
+  - RideHailing Order Detail now shows `服务车型` above `路线` when a resolved
+    RideHailing SKU exists
+  - the section reuses readonly `RideHailingSkuCard`
+  - the existing dispatching-only candidate-vehicle section remains intact
+- Updated focused scenario coverage:
+  - dispatching candidate cards are asserted within their own section
+  - resolved service-vehicle section is asserted independently
+  - header back action is asserted to return to `/pr/:id`
+- Slice artifact:
+  - `order-detail-back-and-resolved-vehicle-plan.md`
+
 ## Last Completed Slice: RideHailing Order Detail Map Manual Review Corrections
 
 - Fixed shared Tencent map single-coordinate fitting so active single markers
