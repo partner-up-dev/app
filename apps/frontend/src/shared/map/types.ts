@@ -20,11 +20,7 @@ export type MapGeometryTone =
   | "routeSecondary"
   | "routeInvalid";
 
-export type MapMarkerIcon =
-  | "routeStart"
-  | "routeWaypoint"
-  | "routeEnd"
-  | "routeDriver";
+export type MapMarkerIcon = "routeStart" | "routeWaypoint" | "routeEnd" | "routeDriver";
 
 export type MapMarker = {
   id: string;
@@ -34,6 +30,7 @@ export type MapMarker = {
   title?: string;
   tone?: MapGeometryTone;
   icon?: MapMarkerIcon;
+  headingDegrees?: number | null;
   active?: boolean;
 };
 

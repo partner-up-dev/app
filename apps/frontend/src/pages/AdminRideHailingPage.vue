@@ -170,28 +170,41 @@
               <p class="hint">
                 直接调用当前 Provider Instance Endpoint 上的 fake Caocao 控制接口。
               </p>
-              <PuButton
-                size="sm"
-                tone="neutral"
-                variant="outline"
-                :loading="isAdvancingFakePhase"
-                :disabled="isAdvancingFakePhase"
-                data-testid="admin-ride-hailing.dev.advance-phase"
-                @click="advanceFakeCaocaoPhase"
-              >
-                推进最新订单状态
-              </PuButton>
+              <div class="inline-actions">
+                <PuButton
+                  size="sm"
+                  tone="neutral"
+                  variant="outline"
+                  :loading="isMutatingFakePhase"
+                  :disabled="isMutatingFakePhase"
+                  data-testid="admin-ride-hailing.dev.advance-phase"
+                  @click="advanceFakeCaocaoPhase"
+                >
+                  推进最新订单状态
+                </PuButton>
+                <PuButton
+                  size="sm"
+                  tone="neutral"
+                  variant="outline"
+                  :loading="isMutatingFakePhase"
+                  :disabled="isMutatingFakePhase"
+                  data-testid="admin-ride-hailing.dev.retreat-phase"
+                  @click="retreatFakeCaocaoPhase"
+                >
+                  回退最新订单状态
+                </PuButton>
+              </div>
               <PuInlineNotice
-                v-if="fakeAdvanceResultMessage"
+                v-if="fakePhaseControlResultMessage"
                 tone="success"
-                :message="fakeAdvanceResultMessage"
-                data-testid="admin-ride-hailing.dev.advance-phase.result"
+                :message="fakePhaseControlResultMessage"
+                data-testid="admin-ride-hailing.dev.phase-control.result"
               />
               <PuInlineNotice
-                v-if="fakeAdvanceErrorMessage"
+                v-if="fakePhaseControlErrorMessage"
                 tone="error"
-                :message="fakeAdvanceErrorMessage"
-                data-testid="admin-ride-hailing.dev.advance-phase.error"
+                :message="fakePhaseControlErrorMessage"
+                data-testid="admin-ride-hailing.dev.phase-control.error"
               />
             </div>
           </BentoItem>
@@ -288,9 +301,9 @@ const updateMutation = useUpdateAdminRideHailingProviderInstance();
 const selectedProviderIdRaw = ref("");
 const form = ref<ProviderForm>(createBlankForm());
 const localErrorMessage = ref<string | null>(null);
-const isAdvancingFakePhase = ref(false);
-const fakeAdvanceResultMessage = ref<string | null>(null);
-const fakeAdvanceErrorMessage = ref<string | null>(null);
+const isMutatingFakePhase = ref(false);
+const fakePhaseControlResultMessage = ref<string | null>(null);
+const fakePhaseControlErrorMessage = ref<string | null>(null);
 
 const providerInstances = computed(() => workspaceQuery.data.value?.providerInstances ?? []);
 const selectedProviderId = computed(
@@ -425,34 +438,83 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const readStringField = (value: unknown, key: string): string | null =>
   isRecord(value) && typeof value[key] === "string" ? value[key] : null;
 
+const readNumberField = (value: unknown, key: string): number | null =>
+  isRecord(value) && typeof value[key] === "number" ? value[key] : null;
+
 const buildFakeControlUrl = (provider: ProviderInstance, path: string): string => {
   const baseUrl = provider.config.endpointBaseUrl.trim();
   return new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
 };
 
-const readFakeCaocaoErrorMessage = (payload: unknown): string | null =>
-  readStringField(payload, "message") || readStringField(payload, "detail");
+const readFakeCaocaoCallbackErrorMessage = (payload: unknown): string | null => {
+  if (!isRecord(payload) || !isRecord(payload.callback)) return null;
+  const callbackMessage = readStringField(payload.callback, "message");
+  const callbackStatus = readNumberField(payload.callback, "status");
+  const callbackBodyPreview = readStringField(payload.callback, "bodyPreview");
+  const deliveryMessage =
+    callbackMessage ??
+    (callbackStatus === null
+      ? null
+      : `Fake Caocao callback POST failed with HTTP ${callbackStatus}`);
+  if (!deliveryMessage) return callbackBodyPreview;
+  return callbackBodyPreview ? `${deliveryMessage}: ${callbackBodyPreview}` : deliveryMessage;
+};
 
-const readFakeCaocaoAdvanceResult = (
+const readFakeCaocaoFailedOrderMessage = (payload: unknown): string | null => {
+  if (!isRecord(payload) || !isRecord(payload.order)) return null;
+  const providerOrderId = readStringField(payload.order, "providerOrderId");
+  const phase = readStringField(payload.order, "phase");
+  if (!providerOrderId || !phase) return null;
+  return `fake provider 已变更 ${providerOrderId} 到 ${phase}`;
+};
+
+const readFakeCaocaoErrorMessage = (payload: unknown): string | null => {
+  const baseMessage = readStringField(payload, "message") || readStringField(payload, "detail");
+  const callbackMessage = readFakeCaocaoCallbackErrorMessage(payload);
+  const failureMessage =
+    baseMessage && callbackMessage
+      ? `${baseMessage}: ${callbackMessage}`
+      : (baseMessage ?? callbackMessage);
+  const orderMessage = readFakeCaocaoFailedOrderMessage(payload);
+  if (orderMessage && failureMessage) return `${orderMessage}；${failureMessage}`;
+  return failureMessage ?? orderMessage;
+};
+
+const readFakeCaocaoCallbackSuccessMessage = (payload: unknown): string | null => {
+  if (!isRecord(payload) || !isRecord(payload.callback)) return null;
+  if (payload.callback.skipped === true) return "callback 未配置";
+  if (payload.callback.ok === true) {
+    const status = readNumberField(payload.callback, "status");
+    return status === null ? "callback 已送达" : `callback HTTP ${status}`;
+  }
+  return null;
+};
+
+const readFakeCaocaoPhaseControlResult = (
   payload: unknown,
 ): {
+  callbackMessage: string | null;
   providerOrderId: string;
   phase: string;
 } => {
   if (!isRecord(payload) || payload.ok !== true || !isRecord(payload.order)) {
-    throw new Error("Fake Caocao advance response is invalid");
+    throw new Error("Fake Caocao phase control response is invalid");
   }
   const providerOrderId = readStringField(payload.order, "providerOrderId");
   const phase = readStringField(payload.order, "phase");
   if (!providerOrderId || !phase) {
-    throw new Error("Fake Caocao advance response is incomplete");
+    throw new Error("Fake Caocao phase control response is incomplete");
   }
-  return { providerOrderId, phase };
+  return {
+    callbackMessage: readFakeCaocaoCallbackSuccessMessage(payload),
+    phase,
+    providerOrderId,
+  };
 };
 
 const phaseLabel = (phase: string): string => {
   if (phase === "CREATED") return "已创建";
-  if (phase === "ACCEPTED") return "已接单";
+  if (phase === "ACCEPTED") return "接客中";
   if (phase === "IN_TRIP") return "行程中";
   if (phase === "FINISHED") return "已完成";
   if (phase === "CANCELLED") return "已取消";
@@ -486,35 +548,52 @@ const clearErrors = () => {
   updateMutation.reset();
 };
 
-const clearFakeAdvanceFeedback = () => {
-  fakeAdvanceResultMessage.value = null;
-  fakeAdvanceErrorMessage.value = null;
+const clearFakePhaseControlFeedback = () => {
+  fakePhaseControlResultMessage.value = null;
+  fakePhaseControlErrorMessage.value = null;
 };
 
-const advanceFakeCaocaoPhase = async (): Promise<void> => {
-  clearFakeAdvanceFeedback();
+type FakeCaocaoPhaseControlAction = "advance" | "retreat";
+
+const fakeCaocaoPhaseControlActionLabel = (action: FakeCaocaoPhaseControlAction): string =>
+  action === "advance" ? "推进" : "回退";
+
+const mutateFakeCaocaoPhase = async (action: FakeCaocaoPhaseControlAction): Promise<void> => {
+  clearFakePhaseControlFeedback();
   const provider = selectedProvider.value;
   if (!provider) return;
-  isAdvancingFakePhase.value = true;
+  isMutatingFakePhase.value = true;
+  const actionLabel = fakeCaocaoPhaseControlActionLabel(action);
   try {
     const response = await fetch(
-      buildFakeControlUrl(provider, "/__fake_caocao/orders/latest/advance"),
+      buildFakeControlUrl(provider, `/__fake_caocao/orders/latest/${action}`),
       {
         method: "POST",
       },
     );
     const payload = (await response.json().catch(() => null)) as unknown;
     if (!response.ok) {
-      throw new Error(readFakeCaocaoErrorMessage(payload) ?? "推进 fake 曹操订单状态失败");
+      throw new Error(
+        readFakeCaocaoErrorMessage(payload) ?? `${actionLabel} fake 曹操订单状态失败`,
+      );
     }
-    const result = readFakeCaocaoAdvanceResult(payload);
-    fakeAdvanceResultMessage.value = `已推进 ${result.providerOrderId} 到 ${phaseLabel(result.phase)}`;
+    const result = readFakeCaocaoPhaseControlResult(payload);
+    const callbackSuffix = result.callbackMessage ? `（${result.callbackMessage}）` : "";
+    fakePhaseControlResultMessage.value = `已${actionLabel} ${result.providerOrderId} 到 ${phaseLabel(result.phase)}${callbackSuffix}`;
   } catch (error) {
-    fakeAdvanceErrorMessage.value =
-      error instanceof Error ? error.message : "推进 fake 曹操订单状态失败";
+    fakePhaseControlErrorMessage.value =
+      error instanceof Error ? error.message : `${actionLabel} fake 曹操订单状态失败`;
   } finally {
-    isAdvancingFakePhase.value = false;
+    isMutatingFakePhase.value = false;
   }
+};
+
+const advanceFakeCaocaoPhase = async (): Promise<void> => {
+  await mutateFakeCaocaoPhase("advance");
+};
+
+const retreatFakeCaocaoPhase = async (): Promise<void> => {
+  await mutateFakeCaocaoPhase("retreat");
 };
 
 const formatTimestamp = (value: Date | string): string =>
@@ -541,7 +620,7 @@ watch(
       ? formFromProvider(selectedProvider.value)
       : createBlankForm();
     clearErrors();
-    clearFakeAdvanceFeedback();
+    clearFakePhaseControlFeedback();
   },
   { immediate: true },
 );
@@ -622,6 +701,7 @@ small,
 
 .inline-actions {
   display: flex;
+  gap: var(--sys-spacing-small);
   justify-content: flex-end;
 }
 

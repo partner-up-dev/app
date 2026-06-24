@@ -75,6 +75,61 @@
           </div>
         </header>
 
+        <PuCard
+          v-if="showsDriverCard"
+          as="section"
+          class="ride-hailing-order-content__driver-card"
+          variant="soft"
+          tone="neutral"
+          padding="sm"
+          gap="sm"
+          data-testid="order-detail.ride-hailing.driver-card"
+        >
+          <div class="ride-hailing-order-content__driver-layout">
+            <div class="ride-hailing-order-content__driver-profile">
+              <PuImg
+                src=""
+                :alt="driverName"
+                :name="driverName"
+                :fallback-initial="driverAvatarInitial"
+                size="medium"
+                shape="circle"
+                :show-loading="false"
+                bordered
+              />
+              <strong data-testid="order-detail.ride-hailing.driver-name">
+                {{ driverName }}
+              </strong>
+            </div>
+
+            <div class="ride-hailing-order-content__vehicle-copy">
+              <strong data-testid="order-detail.ride-hailing.vehicle-plate">
+                {{ vehiclePlate }}
+              </strong>
+              <span data-testid="order-detail.ride-hailing.vehicle-description">
+                {{ vehicleDescription }}
+              </span>
+            </div>
+
+            <PuButton
+              type="button"
+              size="sm"
+              shape="rect"
+              tone="primary"
+              variant="outline"
+              :disabled="!driverCallHref"
+              :action="driverCallHref ? { href: driverCallHref } : undefined"
+              aria-label="联系司机"
+              title="联系司机"
+              data-testid="order-detail.ride-hailing.driver-call"
+            >
+              <template #leading>
+                <span class="i-mdi-phone" aria-hidden="true"></span>
+              </template>
+            </PuButton>
+          </div>
+        </PuCard>
+
         <section
           v-if="showsDispatchingCandidateVehicles"
           class="ride-hailing-order-content__candidate-section"
@@ -132,7 +187,13 @@
 </template>
 
 <script setup lang="ts">
-import { PuButton, PuFloatPanel, type PuFloatPanelStop } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuFloatPanel,
+  type PuFloatPanelStop,
+  PuImg,
+} from "@partner-up-dev/design-web";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { CommerceOrderDetailResponse } from "@/domains/commerce/queries/useCommerce";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
@@ -225,8 +286,8 @@ const statusCopyByPhase: Record<
   }
 > = {
   ACCEPTED: {
-    title: "已接单",
-    description: "已接单，等待司机出发接客",
+    title: "接客中",
+    description: "司机正在前往上车点，请提前到达约定地点",
   },
   ARRIVED_AT_PICKUP: {
     title: "已到达上车点",
@@ -261,6 +322,38 @@ const statusCopyByPhase: Record<
 const statusHero = computed(() => statusCopyByPhase[props.ride.executionPhase]);
 
 const showsCancelAction = computed(() => props.ride.executionPhase === "DISPATCHING");
+
+const firstPresentString = (values: readonly (string | null | undefined)[]): string | null => {
+  for (const value of values) {
+    const normalized = value?.trim() ?? "";
+    if (normalized.length > 0) return normalized;
+  }
+  return null;
+};
+
+const showsDriverCard = computed(() => Boolean(props.ride.driver || props.ride.vehicle));
+
+const driverName = computed(() => firstPresentString([props.ride.driver?.driverName]) ?? "司机");
+
+const driverAvatarInitial = computed(() => driverName.value.trim().slice(0, 1) || "司");
+
+const driverCallHref = computed(() => {
+  const phone = firstPresentString([props.ride.driver?.driverPhone]);
+  if (!phone) return null;
+  return `tel:${phone.replace(/\s+/g, "")}`;
+});
+
+const vehiclePlate = computed(
+  () => firstPresentString([props.ride.vehicle?.plate]) ?? "车牌待确认",
+);
+
+const vehicleDescription = computed(() => {
+  const description = [props.ride.vehicle?.brand, props.ride.vehicle?.color]
+    .map((item) => item?.trim() ?? "")
+    .filter((item) => item.length > 0)
+    .join(" · ");
+  return description || "车辆信息待确认";
+});
 
 const showsDispatchingCandidateVehicles = computed(
   () => props.ride.executionPhase === "DISPATCHING" && props.ride.candidateVehicles.length > 0,
@@ -370,6 +463,68 @@ const formatFen = (amountFen: number | null | undefined): string => {
   align-items: center;
   justify-content: flex-end;
   gap: var(--sys-spacing-xsmall);
+
+  span {
+    @include mx.pu-icon(small);
+  }
+}
+
+.ride-hailing-order-content__driver-card {
+  margin-top: var(--sys-spacing-medium);
+  border-radius: var(--sys-radius-small);
+}
+
+.ride-hailing-order-content__driver-layout {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sys-spacing-medium);
+}
+
+.ride-hailing-order-content__driver-profile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+
+  strong {
+    @include mx.pu-font(caption);
+    max-width: 4.5rem;
+    overflow: hidden;
+    color: var(--sys-color-on-surface);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.ride-hailing-order-content__vehicle-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: calc(var(--sys-spacing-xsmall) / 2);
+
+  strong,
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  strong {
+    @include mx.pu-font(title);
+    color: var(--sys-color-on-surface);
+  }
+
+  span {
+    @include mx.pu-font(caption);
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
+.ride-hailing-order-content__driver-layout :deep(.pu-button) {
+  flex: 0 0 auto;
 
   span {
     @include mx.pu-icon(small);

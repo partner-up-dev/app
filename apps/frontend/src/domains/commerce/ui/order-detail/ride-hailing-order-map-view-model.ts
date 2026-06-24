@@ -88,11 +88,13 @@ const buildDriverMarker = (
 ): MapMarker | null => {
   const position = toMapCoordinate(location);
   if (!position) return null;
+  const headingDegrees = location?.headingDegrees ?? null;
   return {
     id: DRIVER_MARKER_ID,
     position,
     title: "司机车辆",
     icon: "routeDriver",
+    headingDegrees,
     active: true,
   };
 };

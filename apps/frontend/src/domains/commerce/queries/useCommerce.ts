@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
-import { computed, type Ref } from "vue";
+import { computed, onScopeDispose, type Ref, watch } from "vue";
 import { client } from "@/lib/rpc";
 import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { queryKeys } from "@/shared/api/query-keys";
@@ -37,6 +37,29 @@ export type BillDetailResponse = InferResponseType<CommerceApi["bills"][":billId
 export type PaymentCheckoutResponse = InferResponseType<
   CommerceApi["bill-lines"][":billLineId"]["checkout"]["$get"]
 >;
+
+const ACTIVE_RIDE_HAILING_DETAIL_POLLING_MS = 2_000;
+const activeRideHailingDetailPollingPhases = new Set([
+  "INITIATING",
+  "DISPATCHING",
+  "ACCEPTED",
+  "ARRIVED_AT_PICKUP",
+  "IN_TRIP",
+]);
+
+export const shouldPollCommerceOrderDetail = (
+  detail:
+    | {
+        rideHailing?: {
+          executionPhase?: string | null;
+        } | null;
+      }
+    | null
+    | undefined,
+): boolean => {
+  const phase = detail?.rideHailing?.executionPhase ?? null;
+  return phase !== null && activeRideHailingDetailPollingPhases.has(phase);
+};
 
 const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise<T> => {
   if (!response.ok) {
@@ -187,8 +210,8 @@ export const useCreateOrder = () => {
   });
 };
 
-export const useCommerceOrderDetail = (orderId: Ref<string | null>) =>
-  useQuery<CommerceOrderDetailResponse>({
+export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
+  const query = useQuery<CommerceOrderDetailResponse>({
     queryKey: computed(() => queryKeys.commerce.orderDetail(orderId.value)),
     queryFn: async () => {
       if (orderId.value === null) {
@@ -211,6 +234,30 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) =>
     },
     enabled: () => orderId.value !== null,
   });
+
+  let pollingIntervalId: ReturnType<typeof setInterval> | null = null;
+  const stopPolling = () => {
+    if (pollingIntervalId === null) return;
+    clearInterval(pollingIntervalId);
+    pollingIntervalId = null;
+  };
+
+  watch(
+    () => orderId.value !== null && shouldPollCommerceOrderDetail(query.data.value),
+    (shouldPoll) => {
+      stopPolling();
+      if (!shouldPoll) return;
+      pollingIntervalId = setInterval(() => {
+        void query.refetch();
+      }, ACTIVE_RIDE_HAILING_DETAIL_POLLING_MS);
+    },
+    { immediate: true },
+  );
+
+  onScopeDispose(stopPolling);
+
+  return query;
+};
 
 export const useBillDetail = (billId: Ref<string | null>) =>
   useQuery<BillDetailResponse>({

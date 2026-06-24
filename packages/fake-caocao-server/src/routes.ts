@@ -1,6 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FakeCaocaoFixture } from "./fixtures";
 import {
+  bearingDegrees,
+  type FakeCaocaoMovementSnapshot,
+  movementSnapshotFromRoute,
+  polylineLengthMeters,
+} from "./movement";
+import type { FakeCaocaoRouteKind, FakeCaocaoRoutePlanner } from "./route-planning";
+import {
   createFakeCaocaoSignature,
   type FakeCaocaoSignedParams,
   fakeCaocaoSignaturesMatch,
@@ -16,6 +23,7 @@ import type {
 
 export type FakeCaocaoRouteInput = {
   fixture: FakeCaocaoFixture;
+  routePlanner?: FakeCaocaoRoutePlanner | null;
   state: FakeCaocaoState;
   verifyRequests: boolean;
 };
@@ -169,6 +177,12 @@ const defaultDriverLocation = (): FakeCaocaoCoordinate => ({
   longitude: 120.1608,
 });
 
+const ACTIVE_MOVEMENT_POLL_INTERVAL_SECONDS = 2;
+const ACTIVE_MOVEMENT_TIME_SCALE = 4;
+const ACTIVE_MOVEMENT_MAX_PROGRESS_RATIO = 0.94;
+const PICKUP_SPEED_KPH = 28;
+const IN_TRIP_SPEED_KPH = 36;
+
 const interpolateCoordinate = (
   from: FakeCaocaoCoordinate,
   to: FakeCaocaoCoordinate,
@@ -178,24 +192,209 @@ const interpolateCoordinate = (
   longitude: from.longitude + (to.longitude - from.longitude) * ratio,
 });
 
-const driverCoordinate = (order: FakeCaocaoOrderState | null): FakeCaocaoCoordinate => {
-  if (!order) return defaultDriverLocation();
-  if (order.phase === "ARRIVED_AT_PICKUP") return order.origin;
-  if (order.phase === "IN_TRIP")
-    return interpolateCoordinate(order.origin, order.destination, 0.45);
-  if (order.phase === "FINISHED") return order.destination;
-  return interpolateCoordinate(order.origin, order.destination, -0.12);
+const bendCoordinate = (
+  from: FakeCaocaoCoordinate,
+  to: FakeCaocaoCoordinate,
+  ratio: number,
+  bendRatio: number,
+): FakeCaocaoCoordinate => {
+  const base = interpolateCoordinate(from, to, ratio);
+  const latitudeSpan = to.latitude - from.latitude;
+  const longitudeSpan = to.longitude - from.longitude;
+  return {
+    latitude: base.latitude - longitudeSpan * bendRatio,
+    longitude: base.longitude + latitudeSpan * bendRatio,
+  };
 };
 
-const driverSnapshot = (order: FakeCaocaoOrderState | null = null): FakeCaocaoDriverSnapshot => {
-  const coordinate = driverCoordinate(order);
+const curvedPolyline = (input: {
+  from: FakeCaocaoCoordinate;
+  to: FakeCaocaoCoordinate;
+  bendRatio: number;
+}): FakeCaocaoCoordinate[] =>
+  [
+    [0, 0],
+    [0.16, input.bendRatio * 0.35],
+    [0.34, input.bendRatio * 0.72],
+    [0.52, input.bendRatio],
+    [0.68, input.bendRatio * 0.82],
+    [0.84, input.bendRatio * 0.42],
+    [1, 0],
+  ].map(([ratio, bendRatio]) =>
+    ratio === 0
+      ? input.from
+      : ratio === 1
+        ? input.to
+        : bendCoordinate(input.from, input.to, ratio, bendRatio),
+  );
+
+const driverStartCoordinate = (order: FakeCaocaoOrderState): FakeCaocaoCoordinate =>
+  interpolateCoordinate(order.origin, order.destination, -0.12);
+
+const fallbackPickupRoute = (order: FakeCaocaoOrderState): FakeCaocaoCoordinate[] =>
+  curvedPolyline({
+    bendRatio: 0.24,
+    from: driverStartCoordinate(order),
+    to: order.origin,
+  });
+
+const fallbackDropoffRoute = (order: FakeCaocaoOrderState): FakeCaocaoCoordinate[] =>
+  curvedPolyline({
+    bendRatio: -0.18,
+    from: order.origin,
+    to: order.destination,
+  });
+
+const fallbackRoute = (
+  order: FakeCaocaoOrderState,
+  routeKind: FakeCaocaoRouteKind,
+): FakeCaocaoCoordinate[] =>
+  routeKind === "PICKUP" ? fallbackPickupRoute(order) : fallbackDropoffRoute(order);
+
+const movementRouteKind = (order: FakeCaocaoOrderState): FakeCaocaoRouteKind => {
+  if (order.phase === "IN_TRIP" || order.phase === "FINISHED") return "DROPOFF";
+  return "PICKUP";
+};
+
+const resolveMovementRoute = async (input: {
+  order: FakeCaocaoOrderState;
+  routeKind: FakeCaocaoRouteKind;
+  routePlanner?: FakeCaocaoRoutePlanner | null;
+  state: FakeCaocaoState;
+}): Promise<FakeCaocaoCoordinate[]> => {
+  const cached = input.state.findRoutePlan(input.order.providerOrderId, input.routeKind);
+  if (cached) return cached;
+
+  const fallback = fallbackRoute(input.order, input.routeKind);
+  if (!input.routePlanner) return fallback;
+
+  const from = fallback[0];
+  const to = fallback[fallback.length - 1];
+  if (!from || !to) return fallback;
+
+  try {
+    const plan = await input.routePlanner({
+      from,
+      providerOrderId: input.order.providerOrderId,
+      routeKind: input.routeKind,
+      to,
+    });
+    if (plan.coordinates.length >= 2) {
+      input.state.cacheRoutePlan({
+        coordinates: plan.coordinates,
+        providerOrderId: input.order.providerOrderId,
+        routeKind: input.routeKind,
+      });
+      return plan.coordinates;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+};
+
+const movementSpeedKph = (order: FakeCaocaoOrderState): number =>
+  order.phase === "IN_TRIP" ? IN_TRIP_SPEED_KPH : PICKUP_SPEED_KPH;
+
+const activeMovementDistanceMeters = (
+  order: FakeCaocaoOrderState,
+  route: readonly FakeCaocaoCoordinate[],
+): number => {
+  const routeLengthMeters = polylineLengthMeters(route);
+  const scaledSeconds =
+    order.queryCount * ACTIVE_MOVEMENT_POLL_INTERVAL_SECONDS * ACTIVE_MOVEMENT_TIME_SCALE;
+  const speedMetersPerSecond = movementSpeedKph(order) / 3.6;
+  return Math.min(
+    speedMetersPerSecond * scaledSeconds,
+    routeLengthMeters * ACTIVE_MOVEMENT_MAX_PROGRESS_RATIO,
+  );
+};
+
+const terminalRouteHeading = (route: readonly FakeCaocaoCoordinate[]): number => {
+  const destination = route[route.length - 1];
+  const previous = route[route.length - 2];
+  return destination && previous ? bearingDegrees(previous, destination) : 0;
+};
+
+const stationaryMovementSnapshot = (input: {
+  coordinate: FakeCaocaoCoordinate;
+  headingDegrees: number;
+}): FakeCaocaoMovementSnapshot => ({
+  coordinate: input.coordinate,
+  headingDegrees: input.headingDegrees,
+  remainingDistanceMeters: 0,
+  remainingRoute: [],
+});
+
+const movementSnapshot = (
+  order: FakeCaocaoOrderState | null,
+  plannedRoute?: readonly FakeCaocaoCoordinate[] | null,
+): FakeCaocaoMovementSnapshot => {
+  if (!order) {
+    return stationaryMovementSnapshot({
+      coordinate: defaultDriverLocation(),
+      headingDegrees: 0,
+    });
+  }
+
+  if (order.phase === "ACCEPTED") {
+    const route = plannedRoute ?? fallbackPickupRoute(order);
+    return movementSnapshotFromRoute({
+      distanceAlongRouteMeters: activeMovementDistanceMeters(order, route),
+      fallbackHeadingDegrees: terminalRouteHeading(route),
+      route,
+    });
+  }
+
+  if (order.phase === "ARRIVED_AT_PICKUP") {
+    return stationaryMovementSnapshot({
+      coordinate: order.origin,
+      headingDegrees: terminalRouteHeading(plannedRoute ?? fallbackPickupRoute(order)),
+    });
+  }
+
+  if (order.phase === "IN_TRIP") {
+    const route = plannedRoute ?? fallbackDropoffRoute(order);
+    return movementSnapshotFromRoute({
+      distanceAlongRouteMeters: activeMovementDistanceMeters(order, route),
+      fallbackHeadingDegrees: terminalRouteHeading(route),
+      route,
+    });
+  }
+
+  if (order.phase === "FINISHED") {
+    return stationaryMovementSnapshot({
+      coordinate: order.destination,
+      headingDegrees: terminalRouteHeading(plannedRoute ?? fallbackDropoffRoute(order)),
+    });
+  }
+
+  const route = plannedRoute ?? fallbackPickupRoute(order);
+  return movementSnapshotFromRoute({
+    fallbackHeadingDegrees: terminalRouteHeading(route),
+    progressRatio: 0,
+    route,
+  });
+};
+
+const driverSnapshot = (
+  order: FakeCaocaoOrderState | null = null,
+  plannedRoute?: readonly FakeCaocaoCoordinate[] | null,
+): FakeCaocaoDriverSnapshot => {
+  const snapshot = movementSnapshot(order, plannedRoute);
   return {
     driverName: "曹操测试司机",
     driverPhone: "13900139000",
-    direction: order?.phase === "IN_TRIP" ? 88 : 15,
-    latitude: coordinate.latitude,
-    longitude: coordinate.longitude,
-    speedKph: order?.phase === "ARRIVED_AT_PICKUP" ? 0 : 28,
+    direction: snapshot.headingDegrees,
+    latitude: snapshot.coordinate.latitude,
+    longitude: snapshot.coordinate.longitude,
+    speedKph:
+      order?.phase === "ACCEPTED" || order?.phase === "IN_TRIP"
+        ? order.phase === "IN_TRIP"
+          ? 36
+          : 28
+        : 0,
     vehicleBrand: "几何",
     vehicleColor: "白色",
     vehiclePlate: "浙A·TEST",
@@ -237,16 +436,12 @@ const readOptionalCoordinateParam = (
   return { latitude, longitude };
 };
 
-const routePolyline = (order: FakeCaocaoOrderState): FakeCaocaoCoordinate[] => {
-  if (order.phase === "ACCEPTED") {
-    return [driverCoordinate(order), order.origin];
-  }
-  if (order.phase === "IN_TRIP") {
-    return [
-      driverCoordinate(order),
-      interpolateCoordinate(order.origin, order.destination, 0.72),
-      order.destination,
-    ];
+const routePolyline = (
+  order: FakeCaocaoOrderState,
+  plannedRoute: readonly FakeCaocaoCoordinate[],
+): FakeCaocaoCoordinate[] => {
+  if (order.phase === "ACCEPTED" || order.phase === "IN_TRIP") {
+    return movementSnapshot(order, plannedRoute).remainingRoute;
   }
   return [];
 };
@@ -261,8 +456,24 @@ const navigationPolylineType = (order: FakeCaocaoOrderState): number => {
   return 2;
 };
 
-const driverLocationPayload = (order: FakeCaocaoOrderState): unknown => {
-  const driver = driverSnapshot(order);
+const expectedNavigationPolylineRequestType = (order: FakeCaocaoOrderState): number | null => {
+  if (order.phase === "ACCEPTED" || order.phase === "ARRIVED_AT_PICKUP") return 1;
+  if (order.phase === "IN_TRIP") return 3;
+  return null;
+};
+
+const readNavigationPolylineRequestType = (params: Record<string, string>): number | null => {
+  const raw = readFirstParam(params, ["navigation_polyline_type", "navigationPolylineType"]);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) ? parsed : null;
+};
+
+const driverLocationPayload = (
+  order: FakeCaocaoOrderState,
+  plannedRoute: readonly FakeCaocaoCoordinate[],
+): unknown => {
+  const driver = driverSnapshot(order, plannedRoute);
   return {
     direction: driver.direction,
     latitude: driver.latitude,
@@ -271,20 +482,27 @@ const driverLocationPayload = (order: FakeCaocaoOrderState): unknown => {
   };
 };
 
-const driverPolylinePayload = (order: FakeCaocaoOrderState): unknown => {
-  const polyline = routePolyline(order);
-  const driver = driverSnapshot(order);
+const driverPolylinePayload = (
+  order: FakeCaocaoOrderState,
+  plannedRoute: readonly FakeCaocaoCoordinate[],
+): unknown => {
+  const polyline = routePolyline(order, plannedRoute);
+  const driver = driverSnapshot(order, plannedRoute);
+  const remainingDistanceMeters = Math.round(polylineLengthMeters(polyline));
+  const speedKph = driver.speedKph > 0 ? driver.speedKph : 28;
+  const remainingDurationSeconds =
+    remainingDistanceMeters > 0 ? Math.round(remainingDistanceMeters / (speedKph / 3.6)) : 0;
   return {
-    allLength: order.phase === "ACCEPTED" ? 820 : order.phase === "IN_TRIP" ? 4300 : 0,
-    allTime: order.phase === "ACCEPTED" ? 240 : order.phase === "IN_TRIP" ? 900 : 0,
+    allLength: remainingDistanceMeters,
+    allTime: remainingDurationSeconds,
     driverEtaInfoVO: {
       direction: driver.direction,
       isMatchNaviPath: 1,
       lat: driver.latitude,
       lng: driver.longitude,
-      remainDistance: order.phase === "ACCEPTED" ? 820 : order.phase === "IN_TRIP" ? 4300 : 0,
+      remainDistance: remainingDistanceMeters,
       remainLightCount: order.phase === "IN_TRIP" ? 3 : 0,
-      remainTime: order.phase === "ACCEPTED" ? 240 : order.phase === "IN_TRIP" ? 900 : 0,
+      remainTime: remainingDurationSeconds,
       speed: driver.speedKph,
       timestamp: String(Date.now()),
     },
@@ -299,11 +517,11 @@ const driverPolylinePayload = (order: FakeCaocaoOrderState): unknown => {
               links: [
                 {
                   coords: formatRouteCoordinates(polyline),
-                  length: order.phase === "ACCEPTED" ? 820 : 4300,
-                  time: order.phase === "ACCEPTED" ? 240 : 900,
+                  length: remainingDistanceMeters,
+                  time: remainingDurationSeconds,
                 },
               ],
-              time: order.phase === "ACCEPTED" ? 240 : 900,
+              time: remainingDurationSeconds,
             },
           ]
         : [],
@@ -425,32 +643,125 @@ const buildCallbackForm = (input: {
   });
 };
 
+type FakeCaocaoCallbackDelivery =
+  | {
+      ok: true;
+      skipped: true;
+      callbackUrl: null;
+      message: string;
+    }
+  | {
+      ok: true;
+      skipped: false;
+      callbackUrl: string;
+      status: number;
+      statusText: string;
+      bodyPreview: string | null;
+    }
+  | {
+      ok: false;
+      skipped: false;
+      callbackUrl: string;
+      status: number | null;
+      statusText: string | null;
+      message: string;
+      bodyPreview: string | null;
+    };
+
+class FakeCaocaoCallbackDeliveryError extends Error {
+  readonly delivery: Extract<FakeCaocaoCallbackDelivery, { ok: false }>;
+  readonly order: FakeCaocaoOrderState;
+
+  constructor(
+    delivery: Extract<FakeCaocaoCallbackDelivery, { ok: false }>,
+    order: FakeCaocaoOrderState,
+  ) {
+    super(delivery.message);
+    this.delivery = delivery;
+    this.order = order;
+  }
+}
+
+const readResponseBodyPreview = async (response: Response): Promise<string | null> => {
+  const body = await response.text().catch(() => "");
+  const trimmed = body.trim();
+  if (!trimmed) return null;
+  return trimmed.length > 500 ? `${trimmed.slice(0, 500)}...` : trimmed;
+};
+
 const postCallback = async (input: {
   callbackUrl: string;
   fixture: FakeCaocaoFixture;
   order: FakeCaocaoOrderState;
   event: number;
-}): Promise<void> => {
-  await fetch(input.callbackUrl, {
-    body: buildCallbackForm(input).toString(),
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    method: "POST",
-  });
+}): Promise<FakeCaocaoCallbackDelivery> => {
+  try {
+    const response = await fetch(input.callbackUrl, {
+      body: buildCallbackForm(input).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const bodyPreview = await readResponseBodyPreview(response);
+    if (response.ok) {
+      return {
+        bodyPreview,
+        callbackUrl: input.callbackUrl,
+        ok: true,
+        skipped: false,
+        status: response.status,
+        statusText: response.statusText,
+      };
+    }
+    return {
+      bodyPreview,
+      callbackUrl: input.callbackUrl,
+      message: `Fake Caocao callback POST failed with HTTP ${response.status}`,
+      ok: false,
+      skipped: false,
+      status: response.status,
+      statusText: response.statusText,
+    };
+  } catch (error) {
+    return {
+      bodyPreview: null,
+      callbackUrl: input.callbackUrl,
+      message: error instanceof Error ? error.message : "Fake Caocao callback POST failed",
+      ok: false,
+      skipped: false,
+      status: null,
+      statusText: null,
+    };
+  }
 };
 
 const postOrderPhaseCallback = async (input: {
   fixture: FakeCaocaoFixture;
   order: FakeCaocaoOrderState;
-}): Promise<void> => {
-  if (!input.order.callbackUrl) return;
-  await postCallback({
+}): Promise<FakeCaocaoCallbackDelivery> => {
+  if (!input.order.callbackUrl) {
+    return {
+      callbackUrl: null,
+      message: "No callback URL configured",
+      ok: true,
+      skipped: true,
+    };
+  }
+  return await postCallback({
     callbackUrl: input.order.callbackUrl,
     event: phaseEvent(input.order.phase),
     fixture: input.fixture,
     order: input.order,
   });
+};
+
+const assertCallbackDelivered = (
+  delivery: FakeCaocaoCallbackDelivery,
+  order: FakeCaocaoOrderState,
+): void => {
+  if (delivery.ok) return;
+  throw new FakeCaocaoCallbackDeliveryError(delivery, order);
 };
 
 const maybePostCreateCallback = (input: {
@@ -556,11 +867,31 @@ export async function handleFakeCaocaoRequest(
         });
         return;
       }
-      await postOrderPhaseCallback({
+      const callback = await postOrderPhaseCallback({
         fixture: input.fixture,
         order,
       });
-      sendJson(res, 200, { ok: true, order });
+      assertCallbackDelivered(callback, order);
+      sendJson(res, 200, { callback, ok: true, order });
+      return;
+    }
+
+    if (url.pathname === "/__fake_caocao/orders/latest/retreat" && req.method === "POST") {
+      await readBodyText(req);
+      const order = input.state.retreatLatestOrder();
+      if (!order) {
+        sendJson(res, 404, {
+          code: "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          message: "No retreatable fake Caocao order found",
+        });
+        return;
+      }
+      const callback = await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      assertCallbackDelivered(callback, order);
+      sendJson(res, 200, { callback, ok: true, order });
       return;
     }
 
@@ -575,11 +906,41 @@ export async function handleFakeCaocaoRequest(
         });
         return;
       }
-      await postOrderPhaseCallback({
+      const callback = await postOrderPhaseCallback({
         fixture: input.fixture,
         order,
       });
-      sendJson(res, 200, { ok: true, order });
+      assertCallbackDelivered(callback, order);
+      sendJson(res, 200, { callback, ok: true, order });
+      return;
+    }
+
+    const orderRetreatMatch = url.pathname.match(/^\/__fake_caocao\/orders\/([^/]+)\/retreat$/);
+    if (orderRetreatMatch && req.method === "POST") {
+      await readBodyText(req);
+      const providerOrderId = decodeURIComponent(orderRetreatMatch[1]!);
+      const existingOrder = input.state.findOrder(providerOrderId);
+      if (!existingOrder) {
+        sendJson(res, 404, {
+          code: "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          message: "Fake Caocao order not found",
+        });
+        return;
+      }
+      const order = input.state.retreatOrderPhase(providerOrderId);
+      if (!order) {
+        sendJson(res, 409, {
+          code: "FAKE_CAOCAO_ORDER_PHASE_NOT_RETREATABLE",
+          message: `Fake Caocao order phase cannot retreat: ${existingOrder.phase}`,
+        });
+        return;
+      }
+      const callback = await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      assertCallbackDelivered(callback, order);
+      sendJson(res, 200, { callback, ok: true, order });
       return;
     }
 
@@ -602,11 +963,12 @@ export async function handleFakeCaocaoRequest(
         });
         return;
       }
-      await postOrderPhaseCallback({
+      const callback = await postOrderPhaseCallback({
         fixture: input.fixture,
         order,
       });
-      sendJson(res, 200, { ok: true, order });
+      assertCallbackDelivered(callback, order);
+      sendJson(res, 200, { callback, ok: true, order });
       return;
     }
 
@@ -694,11 +1056,19 @@ export async function handleFakeCaocaoRequest(
     if (url.pathname === "/common/queryDriverLocationByOrderId") {
       const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
       const order = providerOrderId ? input.state.findOrder(providerOrderId) : null;
+      const plannedRoute = order
+        ? await resolveMovementRoute({
+            order,
+            routeKind: movementRouteKind(order),
+            routePlanner: input.routePlanner,
+            state: input.state,
+          })
+        : null;
       sendJson(
         res,
         200,
         order
-          ? caocaoSuccess(driverLocationPayload(order))
+          ? caocaoSuccess(driverLocationPayload(order, plannedRoute ?? fallbackPickupRoute(order)))
           : caocaoFailure(40401, "Fake Caocao order not found"),
       );
       return;
@@ -707,13 +1077,32 @@ export async function handleFakeCaocaoRequest(
     if (url.pathname === "/common/queryDriverPolylineV2" && req.method === "POST") {
       const providerOrderId = readFirstParam(params, ["order_id", "order_no"]);
       const order = providerOrderId ? input.state.findOrder(providerOrderId) : null;
-      sendJson(
-        res,
-        200,
-        order
-          ? caocaoSuccess(driverPolylinePayload(order))
-          : caocaoFailure(40401, "Fake Caocao order not found"),
-      );
+      const requestedRouteType = readNavigationPolylineRequestType(params);
+      const expectedRouteType = order ? expectedNavigationPolylineRequestType(order) : null;
+      if (!order) {
+        sendJson(res, 200, caocaoFailure(40401, "Fake Caocao order not found"));
+        return;
+      }
+      if (requestedRouteType === null) {
+        sendJson(res, 200, caocaoFailure(40001, "Missing fake Caocao navigation_polyline_type"));
+        return;
+      }
+      if (expectedRouteType === null || requestedRouteType !== expectedRouteType) {
+        sendJson(res, 200, caocaoFailure(40002, "Unexpected fake Caocao navigation_polyline_type"));
+        return;
+      }
+
+      const routeKind = movementRouteKind(order);
+      const plannedRoute = await resolveMovementRoute({
+        order,
+        routeKind,
+        routePlanner: input.routePlanner,
+        state: input.state,
+      });
+      sendJson(res, 200, caocaoSuccess(driverPolylinePayload(order, plannedRoute)));
+      if (order.phase === "ACCEPTED" || order.phase === "IN_TRIP") {
+        input.state.advanceOrderMovement(order.providerOrderId);
+      }
       return;
     }
 
@@ -769,6 +1158,15 @@ export async function handleFakeCaocaoRequest(
       message: `Unknown fake Caocao route: ${url.pathname}`,
     });
   } catch (error) {
+    if (error instanceof FakeCaocaoCallbackDeliveryError) {
+      sendJson(res, 502, {
+        callback: error.delivery,
+        code: "FAKE_CAOCAO_CALLBACK_DELIVERY_FAILED",
+        message: error.message,
+        order: error.order,
+      });
+      return;
+    }
     sendJson(res, 400, {
       code: "FAKE_CAOCAO_ERROR",
       message: error instanceof Error ? error.message : "Unknown fake error",

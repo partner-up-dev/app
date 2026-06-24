@@ -17,6 +17,9 @@ import type {
   TencentMapOptions,
   TencentMapSdk,
   TencentMarkerClickEvent,
+  TencentMarkerStyle,
+  TencentMarkerStyleOptions,
+  TencentMoveAlongParamSet,
   TencentMultiMarker,
   TencentMultiPolyline,
   TencentPointGeometry,
@@ -31,6 +34,8 @@ const DEFAULT_ZOOM = 12;
 const SINGLE_POINT_ZOOM = 15;
 const SINGLE_POINT_BOUNDS_DELTA = 0.0001;
 const TENCENT_MAP_STYLE_ID = "style1";
+const DRIVER_MARKER_MOVE_DURATION_MS = 1_900;
+const MARKER_MOVE_COORDINATE_EPSILON = 0.000001;
 
 const MARKER_COLORS: Record<MapGeometryTone | "active", string> = {
   primary: "#1D63ED",
@@ -58,6 +63,7 @@ const ROUTE_MARKER_ICON_SRC: Record<MapMarkerIcon, string> = {
   routeEnd: "/route-map/map-marker-to.png",
   routeDriver: "/route-map/map-marker-driver.png",
 };
+const ROUTE_DRIVER_HEADING_STYLE_PREFIX = "routeDriverHeading";
 
 const createMarkerSvg = (color: string): string => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path fill="${color}" d="M14 0C6.7 0 .8 5.9.8 13.2c0 9.9 13.2 22.8 13.2 22.8s13.2-12.9 13.2-22.8C27.2 5.9 21.3 0 14 0Z"/><circle cx="14" cy="13.2" r="5.2" fill="white"/></svg>`;
@@ -66,6 +72,10 @@ const createMarkerSvg = (color: string): string => {
 
 const isFiniteCoordinate = (coordinate: MapCoordinate): boolean =>
   Number.isFinite(coordinate.lat) && Number.isFinite(coordinate.lng);
+
+const coordinatesEqual = (first: MapCoordinate, second: MapCoordinate): boolean =>
+  Math.abs(first.lat - second.lat) < MARKER_MOVE_COORDINATE_EPSILON &&
+  Math.abs(first.lng - second.lng) < MARKER_MOVE_COORDINATE_EPSILON;
 
 const toTencentLatLng = (sdk: TencentMapSdk, coordinate: MapCoordinate): TencentLatLng =>
   new sdk.LatLng(coordinate.lat, coordinate.lng);
@@ -87,82 +97,126 @@ const createSinglePointBounds = (
   );
 };
 
-const resolveMarkerStyleId = (marker: MapMarker): MapGeometryTone | MapMarkerIcon | "active" =>
-  marker.active ? "active" : (marker.icon ?? marker.tone ?? "primary");
+export const toTencentMarkerRotateDegrees = (
+  headingDegrees: number | null | undefined,
+): number | null => {
+  if (typeof headingDegrees !== "number" || !Number.isFinite(headingDegrees)) return null;
+  const normalizedHeading = ((headingDegrees % 360) + 360) % 360;
+  return (360 - normalizedHeading) % 360;
+};
+
+export const resolveTencentMarkerStyleId = (
+  marker: MapMarker,
+): MapGeometryTone | MapMarkerIcon | "active" | string => {
+  if (marker.icon === "routeDriver") {
+    const rotateDegrees = toTencentMarkerRotateDegrees(marker.headingDegrees);
+    return typeof rotateDegrees === "number"
+      ? `${ROUTE_DRIVER_HEADING_STYLE_PREFIX}-${Math.round(rotateDegrees)}`
+      : "routeDriver";
+  }
+  return marker.icon ?? (marker.active ? "active" : (marker.tone ?? "primary"));
+};
 
 const resolvePolylineStyleId = (polyline: MapPolyline): MapGeometryTone | "active" =>
   polyline.active ? "active" : (polyline.tone ?? "primary");
 
-const createMarkerStyles = (sdk: TencentMapSdk) => ({
-  primary: new sdk.MarkerStyle({
-    width: 28,
-    height: 36,
-    anchor: { x: 14, y: 36 },
-    src: createMarkerSvg(MARKER_COLORS.primary),
-    color: "#FFFFFF",
-    strokeColor: "rgba(0,0,0,0)",
-    size: 12,
-    direction: "center",
-    offset: { x: 0, y: -7 },
-  }),
-  secondary: new sdk.MarkerStyle({
-    width: 28,
-    height: 36,
-    anchor: { x: 14, y: 36 },
-    src: createMarkerSvg(MARKER_COLORS.secondary),
-    color: "#FFFFFF",
-    strokeColor: "rgba(0,0,0,0)",
-    size: 12,
-    direction: "center",
-    offset: { x: 0, y: -7 },
-  }),
-  muted: new sdk.MarkerStyle({
-    width: 28,
-    height: 36,
-    anchor: { x: 14, y: 36 },
-    src: createMarkerSvg(MARKER_COLORS.muted),
-    color: "#FFFFFF",
-    strokeColor: "rgba(0,0,0,0)",
-    size: 12,
-    direction: "center",
-    offset: { x: 0, y: -7 },
-  }),
-  active: new sdk.MarkerStyle({
-    width: 32,
-    height: 40,
-    anchor: { x: 16, y: 40 },
-    src: createMarkerSvg(MARKER_COLORS.active),
-    color: "#FFFFFF",
-    strokeColor: "rgba(0,0,0,0)",
-    size: 12,
-    direction: "center",
-    offset: { x: 0, y: -8 },
-  }),
-  routeStart: new sdk.MarkerStyle({
-    width: 24,
-    height: 24,
-    anchor: { x: 12, y: 12 },
-    src: ROUTE_MARKER_ICON_SRC.routeStart,
-  }),
-  routeWaypoint: new sdk.MarkerStyle({
-    width: 24,
-    height: 24,
-    anchor: { x: 12, y: 12 },
-    src: ROUTE_MARKER_ICON_SRC.routeWaypoint,
-  }),
-  routeEnd: new sdk.MarkerStyle({
-    width: 24,
-    height: 24,
-    anchor: { x: 12, y: 12 },
-    src: ROUTE_MARKER_ICON_SRC.routeEnd,
-  }),
-  routeDriver: new sdk.MarkerStyle({
+const createRouteDriverMarkerStyle = (
+  sdk: TencentMapSdk,
+  rotateDegrees?: number,
+): TencentMarkerStyle => {
+  const options: TencentMarkerStyleOptions = {
     width: 38,
     height: 38,
     anchor: { x: 19, y: 19 },
+    faceTo: "map",
     src: ROUTE_MARKER_ICON_SRC.routeDriver,
-  }),
-});
+  };
+  if (typeof rotateDegrees === "number") {
+    options.rotate = rotateDegrees;
+  }
+  return new sdk.MarkerStyle(options);
+};
+
+const createMarkerStyles = (
+  sdk: TencentMapSdk,
+  markers: readonly MapMarker[] = [],
+): Record<string, TencentMarkerStyle> => {
+  const styles: Record<string, TencentMarkerStyle> = {
+    primary: new sdk.MarkerStyle({
+      width: 28,
+      height: 36,
+      anchor: { x: 14, y: 36 },
+      src: createMarkerSvg(MARKER_COLORS.primary),
+      color: "#FFFFFF",
+      strokeColor: "rgba(0,0,0,0)",
+      size: 12,
+      direction: "center",
+      offset: { x: 0, y: -7 },
+    }),
+    secondary: new sdk.MarkerStyle({
+      width: 28,
+      height: 36,
+      anchor: { x: 14, y: 36 },
+      src: createMarkerSvg(MARKER_COLORS.secondary),
+      color: "#FFFFFF",
+      strokeColor: "rgba(0,0,0,0)",
+      size: 12,
+      direction: "center",
+      offset: { x: 0, y: -7 },
+    }),
+    muted: new sdk.MarkerStyle({
+      width: 28,
+      height: 36,
+      anchor: { x: 14, y: 36 },
+      src: createMarkerSvg(MARKER_COLORS.muted),
+      color: "#FFFFFF",
+      strokeColor: "rgba(0,0,0,0)",
+      size: 12,
+      direction: "center",
+      offset: { x: 0, y: -7 },
+    }),
+    active: new sdk.MarkerStyle({
+      width: 32,
+      height: 40,
+      anchor: { x: 16, y: 40 },
+      src: createMarkerSvg(MARKER_COLORS.active),
+      color: "#FFFFFF",
+      strokeColor: "rgba(0,0,0,0)",
+      size: 12,
+      direction: "center",
+      offset: { x: 0, y: -8 },
+    }),
+    routeStart: new sdk.MarkerStyle({
+      width: 24,
+      height: 24,
+      anchor: { x: 12, y: 12 },
+      src: ROUTE_MARKER_ICON_SRC.routeStart,
+    }),
+    routeWaypoint: new sdk.MarkerStyle({
+      width: 24,
+      height: 24,
+      anchor: { x: 12, y: 12 },
+      src: ROUTE_MARKER_ICON_SRC.routeWaypoint,
+    }),
+    routeEnd: new sdk.MarkerStyle({
+      width: 24,
+      height: 24,
+      anchor: { x: 12, y: 12 },
+      src: ROUTE_MARKER_ICON_SRC.routeEnd,
+    }),
+    routeDriver: createRouteDriverMarkerStyle(sdk),
+  };
+  for (const marker of markers) {
+    if (marker.icon !== "routeDriver") continue;
+    const rotateDegrees = toTencentMarkerRotateDegrees(marker.headingDegrees);
+    if (typeof rotateDegrees !== "number") continue;
+    styles[resolveTencentMarkerStyleId(marker)] = createRouteDriverMarkerStyle(
+      sdk,
+      Math.round(rotateDegrees),
+    );
+  }
+  return styles;
+};
 
 const createPolylineStyles = (sdk: TencentMapSdk) => ({
   primary: new sdk.PolylineStyle({
@@ -229,7 +283,7 @@ const toMarkerGeometries = (
     .map((marker, index) => {
       const geometry: TencentPointGeometry = {
         id: marker.id,
-        styleId: resolveMarkerStyleId(marker),
+        styleId: resolveTencentMarkerStyleId(marker),
         position: toTencentLatLng(sdk, marker.position),
         rank: marker.active ? 10_000 : index,
         properties: {
@@ -242,6 +296,52 @@ const toMarkerGeometries = (
       }
       return geometry;
     });
+
+export const shouldAnimateTencentMarkerMove = (input: {
+  previous: MapMarker | null | undefined;
+  next: MapMarker;
+}): boolean => {
+  if (input.next.icon !== "routeDriver") return false;
+  if (!input.previous || input.previous.icon !== "routeDriver") return false;
+  if (!isFiniteCoordinate(input.previous.position) || !isFiniteCoordinate(input.next.position)) {
+    return false;
+  }
+  return !coordinatesEqual(input.previous.position, input.next.position);
+};
+
+const toRenderedMarkerForMove = (
+  marker: MapMarker,
+  previousMarkersById: ReadonlyMap<string, MapMarker>,
+): MapMarker => {
+  const previous = previousMarkersById.get(marker.id);
+  if (!shouldAnimateTencentMarkerMove({ next: marker, previous }) || !previous) {
+    return marker;
+  }
+  return {
+    ...marker,
+    position: previous.position,
+  };
+};
+
+const toMarkerMoveAlongParams = (
+  sdk: TencentMapSdk,
+  markers: readonly MapMarker[],
+  previousMarkersById: ReadonlyMap<string, MapMarker>,
+): TencentMoveAlongParamSet => {
+  const params: TencentMoveAlongParamSet = {};
+  for (const marker of markers) {
+    const previous = previousMarkersById.get(marker.id);
+    if (!shouldAnimateTencentMarkerMove({ next: marker, previous }) || !previous) continue;
+    params[marker.id] = {
+      duration: DRIVER_MARKER_MOVE_DURATION_MS,
+      path: [toTencentLatLng(sdk, previous.position), toTencentLatLng(sdk, marker.position)],
+    };
+  }
+  return params;
+};
+
+const toMarkerMap = (markers: readonly MapMarker[]): Map<string, MapMarker> =>
+  new Map(markers.map((marker) => [marker.id, marker]));
 
 const toPolylineGeometries = (
   sdk: TencentMapSdk,
@@ -363,6 +463,7 @@ export const createTencentLBSMapProvider = async ({
     geometries: [],
     disableInteractive: false,
   });
+  let previousMarkerTargetsById = new Map<string, MapMarker>();
 
   const handleMarkerClick = (event: TencentMarkerClickEvent) => {
     const markerId = event.geometry?.id;
@@ -383,7 +484,18 @@ export const createTencentLBSMapProvider = async ({
 
   return {
     setMarkers(markers) {
-      markerLayer?.setGeometries(toMarkerGeometries(sdk, markers));
+      markerLayer?.setStyles(createMarkerStyles(sdk, markers));
+      const moveAlongParams = toMarkerMoveAlongParams(sdk, markers, previousMarkerTargetsById);
+      const renderedMarkers = markers.map((marker) =>
+        toRenderedMarkerForMove(marker, previousMarkerTargetsById),
+      );
+      markerLayer?.setGeometries(toMarkerGeometries(sdk, renderedMarkers));
+      if (Object.keys(moveAlongParams).length > 0) {
+        markerLayer?.moveAlong(moveAlongParams, {
+          autoRotation: true,
+        });
+      }
+      previousMarkerTargetsById = toMarkerMap(markers);
     },
     setPolylines(polylines) {
       polylineLayer?.setGeometries(toPolylineGeometries(sdk, polylines));
@@ -417,6 +529,7 @@ export const createTencentLBSMapProvider = async ({
     },
     destroy() {
       markerLayer?.off("click", handleMarkerClick);
+      markerLayer?.stopMove();
       markerLayer?.setMap(null);
       markerLayer = null;
       polylineLayer?.setMap(null);

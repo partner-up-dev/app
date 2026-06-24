@@ -11,6 +11,8 @@ export type FakeCaocaoCoordinate = {
   longitude: number;
 };
 
+export type FakeCaocaoCachedRouteKind = "PICKUP" | "DROPOFF";
+
 export type FakeCaocaoDriverSnapshot = {
   driverName: string;
   driverPhone: string;
@@ -94,6 +96,7 @@ const defaultDestination = (): FakeCaocaoCoordinate => ({
 });
 
 const terminalOrderPhases = new Set<FakeCaocaoOrderPhase>(["FINISHED", "CANCELLED"]);
+const nonRetreatableOrderPhases = new Set<FakeCaocaoOrderPhase>(["CREATED", "CANCELLED"]);
 
 const nextOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
   if (phase === "CREATED") return "ACCEPTED";
@@ -103,11 +106,23 @@ const nextOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
   return phase;
 };
 
+const previousOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
+  if (phase === "ACCEPTED") return "CREATED";
+  if (phase === "ARRIVED_AT_PICKUP") return "ACCEPTED";
+  if (phase === "IN_TRIP") return "ARRIVED_AT_PICKUP";
+  if (phase === "FINISHED") return "IN_TRIP";
+  return phase;
+};
+
 export class FakeCaocaoState {
   private failNextCreate = false;
   private readonly estimates = new Map<string, FakeCaocaoVehicleEstimate>();
   private readonly unavailableEstimateCarTypes = new Set<string>();
   private readonly orders = new Map<string, FakeCaocaoOrderState>();
+  private readonly routePlans = new Map<
+    string,
+    Partial<Record<FakeCaocaoCachedRouteKind, FakeCaocaoCoordinate[]>>
+  >();
   private readonly feeConfirms: FakeCaocaoFeeConfirmState[] = [];
 
   constructor() {
@@ -122,6 +137,7 @@ export class FakeCaocaoState {
       this.estimates.set(estimate.carType, estimate);
     }
     this.orders.clear();
+    this.routePlans.clear();
     this.feeConfirms.length = 0;
   }
 
@@ -237,6 +253,29 @@ export class FakeCaocaoState {
     return order;
   }
 
+  findRoutePlan(
+    providerOrderId: string,
+    routeKind: FakeCaocaoCachedRouteKind,
+  ): FakeCaocaoCoordinate[] | null {
+    return this.routePlans.get(providerOrderId)?.[routeKind] ?? null;
+  }
+
+  cacheRoutePlan(input: {
+    providerOrderId: string;
+    routeKind: FakeCaocaoCachedRouteKind;
+    coordinates: readonly FakeCaocaoCoordinate[];
+  }): void {
+    const coordinates = input.coordinates.filter(
+      (point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude),
+    );
+    if (coordinates.length < 2) return;
+    const current = this.routePlans.get(input.providerOrderId) ?? {};
+    this.routePlans.set(input.providerOrderId, {
+      ...current,
+      [input.routeKind]: coordinates.map((point) => ({ ...point })),
+    });
+  }
+
   findOrder(providerOrderId: string): FakeCaocaoOrderState | null {
     return this.orders.get(providerOrderId) ?? null;
   }
@@ -248,6 +287,14 @@ export class FakeCaocaoState {
     );
   }
 
+  findLatestRetreatableOrder(): FakeCaocaoOrderState | null {
+    return (
+      [...this.orders.values()]
+        .reverse()
+        .find((order) => !nonRetreatableOrderPhases.has(order.phase)) ?? null
+    );
+  }
+
   setOrderPhase(providerOrderId: string, phase: FakeCaocaoOrderPhase): FakeCaocaoOrderState | null {
     const order = this.orders.get(providerOrderId);
     if (!order) return null;
@@ -255,6 +302,7 @@ export class FakeCaocaoState {
     const updated: FakeCaocaoOrderState = {
       ...order,
       phase,
+      queryCount: phase === order.phase ? order.queryCount : 0,
       updatedAt: nowIso(),
     };
     this.orders.set(providerOrderId, updated);
@@ -271,6 +319,30 @@ export class FakeCaocaoState {
     const order = this.findLatestNonTerminalOrder();
     if (!order) return null;
     return this.advanceOrderPhase(order.providerOrderId);
+  }
+
+  retreatOrderPhase(providerOrderId: string): FakeCaocaoOrderState | null {
+    const order = this.orders.get(providerOrderId);
+    if (!order || nonRetreatableOrderPhases.has(order.phase)) return null;
+    return this.setOrderPhase(providerOrderId, previousOrderPhase(order.phase));
+  }
+
+  retreatLatestOrder(): FakeCaocaoOrderState | null {
+    const order = this.findLatestRetreatableOrder();
+    if (!order) return null;
+    return this.retreatOrderPhase(order.providerOrderId);
+  }
+
+  advanceOrderMovement(providerOrderId: string): FakeCaocaoOrderState | null {
+    const order = this.orders.get(providerOrderId);
+    if (!order) return null;
+    const updated: FakeCaocaoOrderState = {
+      ...order,
+      queryCount: order.queryCount + 1,
+      updatedAt: nowIso(),
+    };
+    this.orders.set(providerOrderId, updated);
+    return updated;
   }
 
   cancelOrder(providerOrderId: string): FakeCaocaoOrderState | null {

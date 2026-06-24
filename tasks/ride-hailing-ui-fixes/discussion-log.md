@@ -7,7 +7,145 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
-## Current Segment: RideHailing Order Detail PuFloatPanel Content
+## Current Segment: RideHailing Order Detail Driver Card And Live Geometry
+
+- Requested fixes:
+  - show a Driver Card whenever RideHailing order detail has driver or vehicle
+    information, including accepted/pickup/in-trip/finished-like phases
+  - make the map vehicle marker use the small top-view car icon from the
+    uniapp route-map implementation
+  - improve fake Caocao driver route / vehicle coordinate simulation so pickup
+    and in-trip routes do not visually collapse into a straight endpoint line
+  - verify whether fake Caocao `ACCEPTED` matches Caocao Open API semantics
+- Driver data model:
+  - `曹操测试司机` is example data, not a field name
+  - fake Caocao emits it as `driverName`, callback form field
+    `driver_name`, backend stores/projects it as `ride.driver.driverName`
+  - frontend Driver Card should display `ride.driver.driverName` when present
+  - the right-side action is a call action and should be modeled/labeled as
+    `Call`, not `Phone`; phone number is the data value behind that action
+- Proposed Driver Card wireframe:
+
+```text
+┌─────────────────────────────────────────────────┐
+│ ┌──────────┐  浙A·TEST                 ┌──────┐ │
+│ │  Avatar  │  几何 · 白色              │ Call │ │
+│ └──────────┘                           └──────┘ │
+│ 曹操测试司机                                      │
+└─────────────────────────────────────────────────┘
+```
+
+- Uniapp reference:
+  `sub_packages/ride_hailing/components/driverInfoDisplay/driverInfoDisplay.vue`
+  renders driver avatar/name on the left, vehicle plate plus brand/model/color
+  in the middle, and an icon call button on the right.
+- Confirmed marker root cause:
+  the repo already has the same driver marker asset as uniapp at
+  `/route-map/map-marker-driver.png`. The shared Tencent map provider currently
+  resolves `marker.active` before `marker.icon`, so the active driver marker
+  uses the generic active pin style instead of the `routeDriver` car icon.
+- Confirmed fake route root cause:
+  fake Caocao `ACCEPTED` currently returns only
+  `[driverCoordinate(order), order.origin]`, so the provider route necessarily
+  renders as a straight line. `IN_TRIP` is also only interpolated points, not a
+  road-like path.
+- Caocao API semantics:
+  official docs say event `1` is driver accepted; for realtime orders it maps
+  to order status `9`, and status `9` is "start service" / pickup-route
+  queryable. Driver route docs state pickup route is queryable for status `9`
+  and `12`, and dropoff route for status `3`.
+- Product interpretation for this slice:
+  in the current simplified MVP phase model, backend `ACCEPTED` should be
+  presented as `接客中`, not as a separate stable `已接单` UI state. Creating a
+  true `已接单但未接客` phase would require provider semantics that distinguish
+  it.
+- Implementation result:
+  - `RideHailingOrderContent` now renders a Driver Card from projected
+    driver/vehicle data and exposes a call action when `driverPhone` exists
+  - frontend/backend/Admin display copy now treats local `ACCEPTED` / provider
+    status `9` as `接客中`
+  - shared Tencent marker style resolution now lets explicit marker icons win
+    over active styling, so the route driver car marker is preserved
+  - fake Caocao pickup and in-trip provider route responses now return
+    multi-point curved polylines instead of endpoint-only lines
+  - scenario coverage asserts accepted status copy plus Driver Card name/plate
+- Follow-up review findings:
+  - Driver Card Call action should use the `PuButton` `leading` slot for its
+    icon; placing the icon span directly in default content is inconsistent
+    with the design-web button contract. This is a separate small correction.
+  - Caocao Fake Server driving-process enhancement should be a separate slice.
+    It should first diagnose the adapter path from Caocao `coords` to backend
+    provider route projection to Tencent Map SDK input, because a rendered
+    straight line is more likely a conversion/format mismatch than evidence
+    that the fake server should deviate from Caocao API shape.
+  - Fake Caocao should continue to follow Caocao API semantics. Better driving
+    simulation options should prefer mature routing/polyline tooling or
+    captured realistic route fixtures over hand-authored provider-incompatible
+    coordinate formats.
+  - Follow-up slice research is captured in
+    `caocao-driver-movement-mock-research.md`.
+  - Caocao driver-movement chain diagnosis result:
+    fake server raw `coords`, backend adapter parsed polyline, frontend
+    view-model `extraPolylines`, and Tencent provider `geometries[].paths`
+    all preserve the same multi-point `latitude,longitude` route shape.
+    Current evidence does not support coordinate reversal or intermediate point
+    loss as the primary cause.
+  - Stronger adapter contract issue:
+    Caocao docs require `navigation_polyline_type` for driver route query, but
+    `CaocaoProviderAdapter.queryDriverRoute` currently sends only `order_id`.
+    The fake server also ignores this missing required parameter, so current
+    tests hide the contract mismatch.
+  - Route-contract implementation result:
+    provider route query now carries an explicit `PICKUP` / `DROPOFF` route
+    kind, the trade live projection maps local lifecycle phase to that route
+    kind, Caocao adapter sends `navigation_polyline_type=1` or `3`, and fake
+    Caocao rejects missing/mismatched route-type requests. This fixes the
+    adapter contract before adding richer movement simulation.
+  - Current movement/heading plan:
+    implement deterministic fake movement with a narrow local geometry helper,
+    not a geospatial dependency. The fake server should return the remaining
+    provider-shaped route from the current simulated driver point, and the
+    shared map marker contract should carry optional heading into Tencent
+    marker style rotation.
+  - Movement/heading implementation result:
+    fake Caocao now advances simulated driver movement on successful route
+    polling, keeps driver location and remaining route aligned, resets movement
+    ticks on phase changes, and exposes calculated heading. Frontend map marker
+    data now carries optional heading, and Tencent route-driver marker styles
+    convert Caocao clockwise heading to Tencent counter-clockwise rotation
+    without replacing the car icon.
+
+## Previous Segment: Fake Caocao Admin Phase Control Observability
+
+- Observation:
+  Admin advanced the fake provider order to provider live `IN_TRIP`, but Order
+  Detail still displayed `派单中`.
+- Diagnosis:
+  Order Detail intentionally renders local persisted
+  `rideHailing.executionPhase`, not provider `rideHailing.live.phase`. For the
+  reported order, local `executionPhase` remained `DISPATCHING`; therefore the
+  UI was rendering the canonical local lifecycle correctly.
+- Root problem:
+  fake provider phase control could update fake provider state while the
+  callback delivery to backend failed or was rejected without being surfaced to
+  the Admin user. That creates visible drift between provider live state and
+  local lifecycle.
+- Repair direction:
+  keep Order Detail UI driven by local lifecycle; make fake Caocao/Admin phase
+  controls expose callback delivery success/failure explicitly.
+- Added scope:
+  provide both advance and retreat controls for the latest fake Caocao order.
+  `CANCELLED` is not retreatable because fake state has no previous-phase
+  history.
+- Runtime finding:
+  `Missing Caocao sign` on the new retreat control means the running fake
+  server did not recognize the `__fake_caocao` route and fell through to signed
+  Caocao request verification. Restarting the caocao portless route loaded the
+  new route; an empty fresh fake state now returns
+  `FAKE_CAOCAO_ORDER_NOT_FOUND` instead, which proves the dev-control route is
+  matched.
+
+## Previous Segment: RideHailing Order Detail PuFloatPanel Content
 
 - Result:
   `RideHailingOrderContent` now replaces the raw JSON diagnostic panel with the

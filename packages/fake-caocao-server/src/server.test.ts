@@ -1,3 +1,5 @@
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, test } from "vitest";
 import { type StartedFakeCaocaoServer, startFakeCaocaoServer } from "./server";
 import { createFakeCaocaoSignature } from "./signature";
@@ -18,6 +20,83 @@ const signedSearchParams = (input: {
       signKey: input.signKey,
     }),
   });
+};
+
+const closeServer = (server: Server): Promise<void> =>
+  new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+
+const countPolylineCoordinates = (coords: string | undefined): number =>
+  coords
+    ?.split(";")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0).length ?? 0;
+
+const parsePolylineCoordinates = (
+  coords: string | undefined,
+): Array<{ latitude: number; longitude: number }> =>
+  coords
+    ?.split(";")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .map((item) => {
+      const [latitudeRaw, longitudeRaw] = item.split(",");
+      return {
+        latitude: Number(latitudeRaw),
+        longitude: Number(longitudeRaw),
+      };
+    }) ?? [];
+
+const coordinateDelta = (
+  first: { latitude: number; longitude: number },
+  second: { latitude: number; longitude: number },
+): number =>
+  Math.abs(first.latitude - second.latitude) + Math.abs(first.longitude - second.longitude);
+
+const startCallbackResponseServer = async (input: {
+  body: string;
+  status: number;
+}): Promise<{
+  readonly origin: string;
+  readonly receivedBodies: string[];
+  close(): Promise<void>;
+}> => {
+  const receivedBodies: string[] = [];
+  const server = createServer((req, res) => {
+    let body = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk: string) => {
+      body += chunk;
+    });
+    req.on("end", () => {
+      receivedBodies.push(body);
+      res.writeHead(input.status, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(input.body);
+    });
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Callback response server did not expose a TCP address");
+  }
+
+  return {
+    close: () => closeServer(server),
+    origin: `http://127.0.0.1:${(address as AddressInfo).port}`,
+    receivedBodies,
+  };
 };
 
 describe("startFakeCaocaoServer", () => {
@@ -159,11 +238,13 @@ describe("startFakeCaocaoServer", () => {
     expect(driverLocationBody.success).toBe(true);
     expect(driverLocationBody.data.latitude).toBeTypeOf("number");
     expect(driverLocationBody.data.longitude).toBeTypeOf("number");
+    expect(driverLocationBody.data.direction).toBeTypeOf("number");
 
     const driverPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          navigation_polyline_type: "1",
           order_id: createBody.data.orderNo,
           timestamp: "3-driver-polyline",
         },
@@ -177,7 +258,7 @@ describe("startFakeCaocaoServer", () => {
     const driverPolylineBody = (await driverPolylineResponse.json()) as {
       code: number;
       data: {
-        driverEtaInfoVO: { lat: number; lng: number };
+        driverEtaInfoVO: { direction: number; lat: number; lng: number };
         navigationPolylineType: number;
         steps: Array<{ links: Array<{ coords: string }> }>;
       };
@@ -188,6 +269,148 @@ describe("startFakeCaocaoServer", () => {
     expect(driverPolylineBody.success).toBe(true);
     expect(driverPolylineBody.data.navigationPolylineType).toBe(1);
     expect(driverPolylineBody.data.steps[0]?.links[0]?.coords).toContain(";");
+    expect(
+      countPolylineCoordinates(driverPolylineBody.data.steps[0]?.links[0]?.coords),
+    ).toBeGreaterThan(2);
+    const pickupRoute = parsePolylineCoordinates(
+      driverPolylineBody.data.steps[0]?.links[0]?.coords,
+    );
+    expect(pickupRoute[0]?.latitude).toBeCloseTo(driverLocationBody.data.latitude, 6);
+    expect(pickupRoute[0]?.longitude).toBeCloseTo(driverLocationBody.data.longitude, 6);
+    expect(driverPolylineBody.data.driverEtaInfoVO.lat).toBeCloseTo(
+      driverLocationBody.data.latitude,
+      6,
+    );
+    expect(driverPolylineBody.data.driverEtaInfoVO.lng).toBeCloseTo(
+      driverLocationBody.data.longitude,
+      6,
+    );
+
+    const advancedDriverLocationResponse = await fetch(
+      `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "3-driver-location-after-route",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const advancedDriverLocationBody = (await advancedDriverLocationResponse.json()) as {
+      data: { direction: number; latitude: number; longitude: number };
+      success: boolean;
+    };
+    expect(advancedDriverLocationBody.success).toBe(true);
+    expect(
+      coordinateDelta(driverLocationBody.data, advancedDriverLocationBody.data),
+    ).toBeGreaterThan(0.00001);
+
+    const missingNavigationTypeResponse = await fetch(
+      `${server.origin}/common/queryDriverPolylineV2`,
+      {
+        body: signedSearchParams({
+          clientId: server.fixture.clientId,
+          params: {
+            order_id: createBody.data.orderNo,
+            timestamp: "3-driver-polyline-missing-type",
+          },
+          signKey: server.fixture.signKey,
+        }).toString(),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method: "POST",
+      },
+    );
+    const missingNavigationTypeBody = (await missingNavigationTypeResponse.json()) as {
+      code: number;
+      success: boolean;
+    };
+    expect(missingNavigationTypeResponse.ok).toBe(true);
+    expect(missingNavigationTypeBody.success).toBe(false);
+    expect(missingNavigationTypeBody.code).toBe(40001);
+
+    const arrivedPhaseResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/advance`,
+      {
+        method: "POST",
+      },
+    );
+    const arrivedPhaseBody = (await arrivedPhaseResponse.json()) as {
+      ok: boolean;
+      order: { phase: string };
+    };
+    expect(arrivedPhaseResponse.ok).toBe(true);
+    expect(arrivedPhaseBody.ok).toBe(true);
+    expect(arrivedPhaseBody.order.phase).toBe("ARRIVED_AT_PICKUP");
+
+    const inTripPhaseResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/advance`,
+      {
+        method: "POST",
+      },
+    );
+    const inTripPhaseBody = (await inTripPhaseResponse.json()) as {
+      ok: boolean;
+      order: { phase: string };
+    };
+
+    expect(inTripPhaseResponse.ok).toBe(true);
+    expect(inTripPhaseBody.ok).toBe(true);
+    expect(inTripPhaseBody.order.phase).toBe("IN_TRIP");
+
+    const inTripDriverLocationResponse = await fetch(
+      `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "3-driver-location-in-trip",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const inTripDriverLocationBody = (await inTripDriverLocationResponse.json()) as {
+      data: { direction: number; latitude: number; longitude: number };
+      success: boolean;
+    };
+    expect(inTripDriverLocationBody.success).toBe(true);
+
+    const inTripPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          navigation_polyline_type: "3",
+          order_id: createBody.data.orderNo,
+          timestamp: "3-driver-polyline-in-trip",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const inTripPolylineBody = (await inTripPolylineResponse.json()) as {
+      code: number;
+      data: {
+        driverEtaInfoVO: { direction: number; lat: number; lng: number };
+        navigationPolylineType: number;
+        steps: Array<{ links: Array<{ coords: string }> }>;
+      };
+      success: boolean;
+    };
+
+    expect(inTripPolylineResponse.ok).toBe(true);
+    expect(inTripPolylineBody.success).toBe(true);
+    expect(inTripPolylineBody.data.navigationPolylineType).toBe(3);
+    expect(
+      countPolylineCoordinates(inTripPolylineBody.data.steps[0]?.links[0]?.coords),
+    ).toBeGreaterThan(2);
+    const inTripRoute = parsePolylineCoordinates(
+      inTripPolylineBody.data.steps[0]?.links[0]?.coords,
+    );
+    expect(inTripRoute[0]?.latitude).toBeCloseTo(inTripDriverLocationBody.data.latitude, 6);
+    expect(inTripRoute[0]?.longitude).toBeCloseTo(inTripDriverLocationBody.data.longitude, 6);
 
     const invalidPhaseResponse = await fetch(
       `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/phase?phase=BOARDING`,
@@ -202,6 +425,194 @@ describe("startFakeCaocaoServer", () => {
 
     expect(invalidPhaseResponse.status).toBe(400);
     expect(invalidPhaseBody.code).toBe("FAKE_CAOCAO_UNSUPPORTED_ORDER_PHASE");
+  });
+
+  test("supports admin retreat controls", async () => {
+    server = await startFakeCaocaoServer();
+
+    const created = server.state.createOrder({
+      carType: "EXPRESS",
+      externalOrderId: "external-order-retreat",
+    });
+    server.state.setOrderPhase(created.providerOrderId, "ARRIVED_AT_PICKUP");
+
+    const retreatResponse = await fetch(`${server.origin}/__fake_caocao/orders/latest/retreat`, {
+      method: "POST",
+    });
+    const retreatBody = (await retreatResponse.json()) as {
+      callback: { skipped: boolean };
+      ok: boolean;
+      order: { phase: string; providerOrderId: string };
+    };
+
+    expect(retreatResponse.ok).toBe(true);
+    expect(retreatBody.ok).toBe(true);
+    expect(retreatBody.callback.skipped).toBe(true);
+    expect(retreatBody.order.providerOrderId).toBe(created.providerOrderId);
+    expect(retreatBody.order.phase).toBe("ACCEPTED");
+
+    const secondRetreatResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${created.providerOrderId}/retreat`,
+      { method: "POST" },
+    );
+    const secondRetreatBody = (await secondRetreatResponse.json()) as {
+      order: { phase: string; providerOrderId: string };
+    };
+
+    expect(secondRetreatResponse.ok).toBe(true);
+    expect(secondRetreatBody.order.phase).toBe("CREATED");
+
+    const nonRetreatableResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${created.providerOrderId}/retreat`,
+      { method: "POST" },
+    );
+    const nonRetreatableBody = (await nonRetreatableResponse.json()) as {
+      code: string;
+    };
+
+    expect(nonRetreatableResponse.status).toBe(409);
+    expect(nonRetreatableBody.code).toBe("FAKE_CAOCAO_ORDER_PHASE_NOT_RETREATABLE");
+  });
+
+  test("uses cached planned routes for driver movement geometry", async () => {
+    const plannerCalls: Array<{
+      routeKind: string;
+      from: { latitude: number; longitude: number };
+      to: { latitude: number; longitude: number };
+    }> = [];
+    server = await startFakeCaocaoServer({
+      routePlanner: async (input) => {
+        plannerCalls.push({
+          from: input.from,
+          routeKind: input.routeKind,
+          to: input.to,
+        });
+        return {
+          coordinates: [
+            input.from,
+            { latitude: input.from.latitude + 0.03, longitude: input.from.longitude + 0.001 },
+            { latitude: input.to.latitude - 0.01, longitude: input.to.longitude - 0.02 },
+            input.to,
+          ],
+          distanceMeters: 4200,
+          durationSeconds: 900,
+        };
+      },
+    });
+
+    const created = server.state.createOrder({
+      carType: "EXPRESS",
+      destination: { latitude: 30.35, longitude: 120.3 },
+      externalOrderId: "external-order-planned-route",
+      origin: { latitude: 30.25, longitude: 120.2 },
+    });
+    server.state.setOrderPhase(created.providerOrderId, "IN_TRIP");
+
+    const firstResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          navigation_polyline_type: "3",
+          order_id: created.providerOrderId,
+          timestamp: "planned-route-1",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const firstBody = (await firstResponse.json()) as {
+      data: {
+        steps: Array<{ links: Array<{ coords: string }> }>;
+      };
+      success: boolean;
+    };
+    const firstRoute = parsePolylineCoordinates(firstBody.data.steps[0]?.links[0]?.coords);
+
+    expect(firstBody.success).toBe(true);
+    expect(plannerCalls).toHaveLength(1);
+    expect(plannerCalls[0]?.routeKind).toBe("DROPOFF");
+    expect(firstRoute).toHaveLength(4);
+    expect(firstRoute[1]?.latitude).toBeCloseTo(30.28, 6);
+    expect(firstRoute[1]?.longitude).toBeCloseTo(120.201, 6);
+
+    const secondResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          navigation_polyline_type: "3",
+          order_id: created.providerOrderId,
+          timestamp: "planned-route-2",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const secondBody = (await secondResponse.json()) as {
+      data: {
+        steps: Array<{ links: Array<{ coords: string }> }>;
+      };
+      success: boolean;
+    };
+    const secondRoute = parsePolylineCoordinates(secondBody.data.steps[0]?.links[0]?.coords);
+
+    expect(secondBody.success).toBe(true);
+    expect(plannerCalls).toHaveLength(1);
+    expect(firstRoute[0]).not.toEqual(secondRoute[0]);
+    expect(secondRoute.at(-1)).toEqual({
+      latitude: 30.35,
+      longitude: 120.3,
+    });
+  });
+
+  test("reports admin callback delivery failures", async () => {
+    server = await startFakeCaocaoServer();
+    const callbackServer = await startCallbackResponseServer({
+      body: JSON.stringify({ error: "backend callback rejected" }),
+      status: 503,
+    });
+
+    try {
+      const created = server.state.createOrder({
+        callbackUrl: `${callbackServer.origin}/callback`,
+        carType: "EXPRESS",
+        externalOrderId: "external-order-callback-failure",
+      });
+
+      const advanceResponse = await fetch(
+        `${server.origin}/__fake_caocao/orders/${created.providerOrderId}/advance`,
+        { method: "POST" },
+      );
+      const advanceBody = (await advanceResponse.json()) as {
+        callback: {
+          bodyPreview: string | null;
+          callbackUrl: string;
+          ok: boolean;
+          status: number | null;
+        };
+        code: string;
+        message: string;
+        order: { phase: string; providerOrderId: string };
+      };
+
+      expect(advanceResponse.status).toBe(502);
+      expect(advanceBody.code).toBe("FAKE_CAOCAO_CALLBACK_DELIVERY_FAILED");
+      expect(advanceBody.callback.ok).toBe(false);
+      expect(advanceBody.callback.callbackUrl).toBe(`${callbackServer.origin}/callback`);
+      expect(advanceBody.callback.status).toBe(503);
+      expect(advanceBody.callback.bodyPreview).toContain("backend callback rejected");
+      expect(advanceBody.order.providerOrderId).toBe(created.providerOrderId);
+      expect(advanceBody.order.phase).toBe("ACCEPTED");
+      expect(server.state.findOrder(created.providerOrderId)?.phase).toBe("ACCEPTED");
+      expect(callbackServer.receivedBodies[0]).toContain("order_id=");
+    } finally {
+      await callbackServer.close();
+    }
   });
 
   test("supports admin estimate controls", async () => {

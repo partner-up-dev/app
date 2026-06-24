@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { throwHttpProblem } from "../../../lib/problem-details";
 import type { RideHailingProviderInstance } from "../../../entities/ride-hailing-provider";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
   CaocaoOrderStatusCallback,
   CaocaoOrderStatusCallbackEvent,
@@ -13,10 +13,11 @@ import type {
   RideHailingProviderEstimateInput,
   RideHailingProviderNavigationRoute,
   RideHailingProviderNavigationRouteKind,
+  RideHailingProviderNavigationRouteQueryKind,
   RideHailingProviderOrderDetail,
-  RideHailingProviderVehicleQuote,
-  RideHailingProviderVehicleLocation,
   RideHailingProviderPort,
+  RideHailingProviderVehicleLocation,
+  RideHailingProviderVehicleQuote,
 } from "../model";
 
 type CaocaoParamValue = string | number | boolean | null | undefined;
@@ -102,7 +103,8 @@ const buildCaocaoStatusLabel = (phase: string): string => {
   if (phase === "FINISHED" || ["5", "6", "7", "8"].includes(phase)) return "待支付";
   if (phase === "IN_TRIP" || phase === "3") return "行程中";
   if (phase === "ARRIVED_AT_PICKUP" || phase === "12") return "司机已到达";
-  if (phase === "ACCEPTED" || ["2", "9"].includes(phase)) return "已接单";
+  if (phase === "ACCEPTED" || phase === "9") return "接客中";
+  if (phase === "2") return "已派单";
   if (phase === "CANCELLED" || ["4", "10", "13", "14", "20", "21", "26", "27"].includes(phase)) {
     return "已取消";
   }
@@ -177,6 +179,10 @@ const mapCaocaoNavigationRouteKind = (
   if (value === 3) return "DROPOFF";
   return "UNKNOWN";
 };
+
+const toCaocaoNavigationPolylineType = (
+  routeKind: RideHailingProviderNavigationRouteQueryKind,
+): number => (routeKind === "PICKUP" ? 1 : 3);
 
 const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
   const basicOrder = readOptionalRecordField(data, ["basicOrderVO", "basicOrderVo", "basic_order"]);
@@ -527,11 +533,13 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
 
   async queryDriverRoute(input: {
     providerOrderId: string;
+    routeKind: RideHailingProviderNavigationRouteQueryKind;
   }): Promise<RideHailingProviderNavigationRoute | null> {
     const data = await this.request<Record<string, unknown>>(
       "POST",
       "/common/queryDriverPolylineV2",
       {
+        navigation_polyline_type: toCaocaoNavigationPolylineType(input.routeKind),
         order_id: input.providerOrderId,
       },
     );

@@ -1,12 +1,14 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createFakeCaocaoFixture } from "./fixtures";
+import type { FakeCaocaoRoutePlanner } from "./route-planning";
 import { handleFakeCaocaoRequest } from "./routes";
 import { FakeCaocaoState } from "./state";
 
 export type FakeCaocaoServerOptions = {
   hostname?: string;
   port?: number;
+  routePlanner?: FakeCaocaoRoutePlanner | null;
   verifyRequests?: boolean;
 };
 
@@ -37,6 +39,7 @@ export async function startFakeCaocaoServer(
   const server = createServer((req, res) => {
     void handleFakeCaocaoRequest(req, res, {
       fixture,
+      routePlanner: options.routePlanner,
       state,
       verifyRequests,
     });

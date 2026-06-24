@@ -109,6 +109,8 @@ export type RideHailingProviderNavigationRouteKind =
   | "RELAY_PREVIOUS_DROPOFF"
   | "UNKNOWN";
 
+export type RideHailingProviderNavigationRouteQueryKind = "PICKUP" | "DROPOFF";
+
 export type RideHailingProviderNavigationRoute = {
   routeKind: RideHailingProviderNavigationRouteKind;
   polyline: RideHailingProviderCoordinate[];
@@ -169,6 +171,7 @@ export type RideHailingProviderPort = {
   }): Promise<RideHailingProviderVehicleLocation | null>;
   queryDriverRoute(input: {
     providerOrderId: string;
+    routeKind: RideHailingProviderNavigationRouteQueryKind;
   }): Promise<RideHailingProviderNavigationRoute | null>;
   cancelRide(input: RideHailingProviderCancelInput): Promise<{
     providerOrderId: string;

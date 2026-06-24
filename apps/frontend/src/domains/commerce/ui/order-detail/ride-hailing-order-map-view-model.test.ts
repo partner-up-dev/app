@@ -47,6 +47,7 @@ describe("buildRideHailingOrderMapViewModel", () => {
       route: route(),
       live: {
         vehicleLocation: {
+          headingDegrees: 90,
           latitude: 30.286,
           longitude: 120.19,
         },
@@ -54,6 +55,8 @@ describe("buildRideHailingOrderMapViewModel", () => {
           routeKind: "PICKUP",
           polyline: [
             { latitude: 30.286, longitude: 120.19 },
+            { latitude: 30.2871, longitude: 120.197 },
+            { latitude: 30.2893, longitude: 120.203 },
             { latitude: 30.2912, longitude: 120.212 },
           ],
         },
@@ -67,9 +70,12 @@ describe("buildRideHailingOrderMapViewModel", () => {
     });
     expect(viewModel.extraMarkers).toHaveLength(1);
     expect(viewModel.extraMarkers[0]?.icon).toBe("routeDriver");
+    expect(viewModel.extraMarkers[0]?.headingDegrees).toBe(90);
     expect(viewModel.extraPolylines).toHaveLength(1);
     expect(viewModel.extraPolylines[0]?.path).toEqual([
       { lat: 30.286, lng: 120.19 },
+      { lat: 30.2871, lng: 120.197 },
+      { lat: 30.2893, lng: 120.203 },
       { lat: 30.2912, lng: 120.212 },
     ]);
     expect(viewModel.plannedPolyline).toBeNull();

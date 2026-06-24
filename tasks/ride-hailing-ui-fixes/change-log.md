@@ -40,8 +40,126 @@ Archived full history:
   Status Hero remains a single row on narrow screens; the actions side does not
   shrink, and the status copy side takes compression.
 
+## Uncommitted Slice: Fake Caocao Admin Phase Control Observability
+
+- Added fake Caocao phase retreat state support:
+  - `ACCEPTED -> CREATED`
+  - `ARRIVED_AT_PICKUP -> ACCEPTED`
+  - `IN_TRIP -> ARRIVED_AT_PICKUP`
+  - `FINISHED -> IN_TRIP`
+  - `CREATED` and `CANCELLED` are not retreatable
+- Added dev-control routes:
+  - `POST /__fake_caocao/orders/latest/retreat`
+  - `POST /__fake_caocao/orders/:providerOrderId/retreat`
+- Changed phase control routes to include callback delivery details in success
+  responses.
+- Changed phase control routes to return
+  `502 FAKE_CAOCAO_CALLBACK_DELIVERY_FAILED` when backend callback delivery
+  returns non-2xx or cannot be delivered.
+- Callback failure responses include the already-mutated fake order so the
+  provider/local lifecycle drift is visible from Admin/network diagnostics.
+- Updated RideHailing Provider Instance Admin dev tools:
+  - added a "回退最新订单状态" button
+  - shared loading and feedback for advance/retreat
+  - success feedback now reports callback delivery status
+  - error feedback now includes callback failure details
+
+## Current Slice: RideHailing Order Detail Driver Card And Live Geometry
+
+- Added a Driver Card to `RideHailingOrderContent` when projected
+  `ride.driver` or `ride.vehicle` exists.
+- The Driver Card displays driver avatar/name, vehicle plate/description, and a
+  call action backed by `driverPhone`.
+- Manual review correction: the Driver Card call action uses normal rect shape,
+  outline variant, and primary tone.
+- Manual review correction: the Driver Card call icon now uses the `PuButton`
+  `#leading` slot.
+- Clarified that `曹操测试司机` is fake/provider example data flowing through
+  `driverName` / callback `driver_name`, not a UI field name.
+- Corrected Driver Card action wording: the right-side button is `Call`, not
+  `Phone`.
+- Changed shared Tencent marker style resolution so explicit marker icons, such
+  as `routeDriver`, are preserved even when the marker is active.
+- Changed fake Caocao pickup and in-trip driver routes from endpoint-only /
+  simple interpolation output to multi-point curved polylines for manual map
+  review.
+- Changed Caocao `ACCEPTED` / status `9` user-facing copy to `接客中` in the
+  current simplified phase model.
+- Added focused backend, fake-provider, and system scenario coverage for the
+  new behavior.
+
+## Opened Slice: Caocao Driver Movement Mock
+
+- Created `caocao-driver-movement-mock-research.md`.
+- Confirmed this slice should start from adapter conversion diagnosis:
+  Caocao `coords` -> backend provider route projection -> frontend map
+  view-model -> Tencent `MultiPolyline`.
+- Confirmed fake Caocao should remain Caocao-shaped and should not emit
+  Tencent-specific route data.
+- First chain diagnosis result:
+  - fake server raw `coords` preserved 5 points
+  - `CaocaoProviderAdapter.queryDriverRoute` preserved the same 5 points
+  - frontend order map view-model preserved the same 5 points as `{ lat, lng }`
+  - Tencent provider assembles `geometries[].paths` with
+    `new TMap.LatLng(lat, lng)`
+- Found adapter contract risk:
+  `queryDriverRoute` does not send required `navigation_polyline_type`.
+- Implemented route-query contract guardrail:
+  - provider route query now carries `PICKUP` / `DROPOFF`
+  - trade live projection maps local execution phase to route kind
+  - Caocao adapter sends `navigation_polyline_type=1` for pickup and `3` for
+    dropoff
+  - fake Caocao route endpoint validates required route type and rejects
+    missing/mismatched requests
+  - backend adapter, fake server, frontend view-model, typecheck, and system
+    scenario tests pass
+- Captured candidate implementation models:
+  - realistic Caocao-shaped fixtures
+  - geospatial library such as Turf modular packages or `geolib`
+  - narrow local geometry helper
+- Implemented driver movement and heading marker segment:
+  - added fake Caocao movement helper for distance, heading, and remaining-route
+    snapshots
+  - made fake driver location and route polyline progress with successful route
+    polling
+  - reset movement ticks on phase changes
+  - returned remaining pickup/dropoff geometry from the current driver point
+  - added optional shared map marker `headingDegrees`
+  - passed RideHailing provider heading into driver marker
+  - rendered Tencent `routeDriver` marker with heading-aware rotated styles
+    while preserving the car icon
+- Implemented Tencent marker smoothing follow-up:
+  - shared Tencent map provider now uses `MultiMarker.moveAlong` for
+    `routeDriver` coordinate changes
+  - route-driver marker style uses `faceTo: "map"` for Tencent auto-rotation
+  - non-driver route markers still update directly
+
 ## Verification
 
+- Current in-progress slice:
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm exec vitest run --config vitest.config.ts --project frontend-unit apps/frontend/src/shared/map/tencent/tencent-lbs-provider.test.ts apps/frontend/src/domains/commerce/queries/useCommerce.test.ts apps/frontend/src/domains/commerce/ui/order-detail/ride-hailing-order-map-view-model.test.ts`
+  - `pnpm exec vitest run --config vitest.config.ts --project frontend-unit apps/frontend/src/domains/commerce/ui/order-detail/ride-hailing-order-map-view-model.test.ts apps/frontend/src/shared/map/tencent/tencent-lbs-provider.test.ts`
+  - `pnpm exec vitest run --config vitest.config.ts --project backend-unit apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
+  - `pnpm exec vitest run --config vitest.config.ts --project frontend-unit apps/frontend/src/domains/commerce/ui/order-detail/ride-hailing-order-map-view-model.test.ts`
+  - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+  - `pnpm exec biome check apps/backend/src/domains/ride-hailing/model/provider.ts apps/backend/src/domains/ride-hailing/services/caocao-provider.ts apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts apps/backend/src/domains/trade/use-cases/ride-hailing-ordering-flow.ts apps/frontend/src/domains/commerce/ui/order-detail/ride-hailing-order-map-view-model.ts apps/frontend/src/domains/commerce/ui/order-detail/ride-hailing-order-map-view-model.test.ts apps/frontend/src/shared/map/types.ts apps/frontend/src/shared/map/tencent/types.ts apps/frontend/src/shared/map/tencent/tencent-lbs-provider.ts apps/frontend/src/shared/map/tencent/tencent-lbs-provider.test.ts packages/fake-caocao-server/src/movement.ts packages/fake-caocao-server/src/movement.test.ts packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/server.test.ts packages/fake-caocao-server/src/state.ts packages/fake-caocao-server/src/state.test.ts`
+- Current Driver Card / live geometry slice:
+  - `pnpm exec biome check apps/backend/src/domains/ride-hailing/services/caocao-provider.ts apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue apps/frontend/src/shared/map/tencent/tencent-lbs-provider.ts apps/frontend/src/pages/AdminRideHailingPage.vue packages/fake-caocao-server/src/routes.ts packages/fake-caocao-server/src/server.test.ts tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts tasks/ride-hailing-ui-fixes/control.md tasks/ride-hailing-ui-fixes/discussion-log.md tasks/ride-hailing-ui-fixes/change-log.md`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
+  - `pnpm exec vitest run --config vitest.config.ts --project backend-unit apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
+  - `pnpm exec vitest run --config vitest.config.ts --project system-scenario -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+  - `git diff --check`
+- Driver Card Call slot correction:
+  - `pnpm exec biome check apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue`
+  - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
+  - `git diff --check -- apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue tasks/ride-hailing-ui-fixes`
 - `pnpm --dir apps/backend exec tsc --noEmit -p tsconfig.json`
 - `pnpm --dir apps/frontend exec vue-tsc --noEmit`
 - `pnpm exec biome check apps/backend/src/domains/trade/use-cases/ride-hailing-ordering-flow.ts apps/frontend/src/domains/commerce/ui/ordering/RideHailingSkuCard.vue apps/frontend/src/domains/commerce/ui/order-detail/RideHailingOrderContent.vue tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts tasks/ride-hailing-ui-fixes`

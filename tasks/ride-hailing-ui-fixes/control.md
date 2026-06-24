@@ -19,13 +19,18 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` for RideHailing Order Detail `PuFloatPanel` content
-  correction
+- Active mode: `Diagnose` for RideHailing Order Detail accepted/pickup driver
+  card, vehicle marker, fake provider route geometry, and Caocao phase semantics
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
-  lifecycle control committed; current slice replaces the RideHailing Order
-  Detail `PuFloatPanel` diagnostic content and awaits manual browser review
+  lifecycle control committed; current slice adds accepted/pickup Driver Card
+  behavior, preserves driver marker icons, improves fake provider route
+  geometry, aligns `ACCEPTED` user-facing copy with `接客中`, and corrected the
+  Driver Card Call button icon slot; current Caocao route diagnosis found no
+  intermediate-point loss in the fake -> backend -> frontend -> Tencent chain,
+  fixed the stronger `navigation_polyline_type` provider contract gap, and added
+  deterministic fake driver movement plus heading-aware vehicle marker rotation
 
 ## Inherited Effective Truth
 
@@ -71,6 +76,30 @@ Hypothesis:
     card facts from the persisted choice-set item
   - cancel/more controls in the Status Hero are disabled visual controls until
     RideHailing cancellation/more-operation use cases exist
+  - Order Detail phase display remains driven by local persisted
+    `ride.executionPhase`, not provider `live.phase`
+  - fake Caocao Admin phase controls must expose callback delivery failure
+    rather than silently allowing provider/local lifecycle drift
+  - Driver Card should render from `ride.driver` / `ride.vehicle` when either
+    exists; `driverName` is display data, and call action labels should be
+    action-oriented (`Call`) rather than data-oriented (`Phone`)
+  - the shared map provider must preserve the `routeDriver` icon style for
+    driver markers even when the marker is active
+  - fake Caocao pickup/in-trip route geometry must include enough route points
+    to support meaningful map review; two endpoint-only points are insufficient
+  - in the current simplified phase model, Caocao event `1` / order status `9`
+    maps to local `ACCEPTED`, but user-facing copy should treat that phase as
+    `接客中`
+  - provider live route query must carry the Caocao route kind explicitly:
+    pickup navigation uses `navigation_polyline_type=1`, and dropoff navigation
+    uses `navigation_polyline_type=3`
+  - fake Caocao driver movement is deterministic and route-query driven:
+    successful route polling advances a phase-local movement tick, driver
+    location and returned route start agree on the same simulated point, and
+    phase changes reset movement progress
+  - shared map marker heading is optional; RideHailing driver marker is the
+    first consumer, and Tencent conversion must account for Caocao clockwise
+    heading versus Tencent counter-clockwise marker rotation
   - standalone plan:
     `tasks/ride-hailing-ui-fixes/order-detail-ride-hailing-map-plan.md`
 - `RouteMap.vue` / shared map code are relevant when a UI issue concerns route
@@ -218,7 +247,26 @@ Choose the narrowest sufficient proof per approved slice:
     `price(estimated text, amount, checkbox)`
   - checkbox belongs below price amount and is right-aligned
   - card does not expose separate `vehicle summary` or `status/reason`
-    concepts
+- Current implementation slice:
+  - fake Caocao phase-control responses include callback delivery details
+  - callback non-2xx/network failures return
+    `FAKE_CAOCAO_CALLBACK_DELIVERY_FAILED`
+  - Admin Provider Instance dev tools expose both advance and retreat latest
+    order phase controls
+  - Driver Card renders from projected driver/vehicle data when present
+  - active driver markers preserve the explicit `routeDriver` icon style
+  - fake Caocao pickup/in-trip route output has multi-point curved geometry
+  - accepted/provider status `9` copy is user-facing `接客中`
+  - Driver Card Call action renders its icon via `PuButton` `#leading`
+  - next separate slice: Caocao Fake Server driver-movement mock should start
+    by verifying Caocao `coords` parsing and Tencent Map SDK path input rather
+    than changing fake server away from Caocao API semantics
+  - slice research file:
+    `tasks/ride-hailing-ui-fixes/caocao-driver-movement-mock-research.md`
+  - current diagnosis result: fake server raw `coords`, backend adapter
+    projection, frontend view-model path, and Tencent `paths` assembly preserve
+    the same multi-point latitude/longitude route shape; a stronger adapter
+    issue is missing `navigation_polyline_type` in `queryDriverRoute`
 - Implemented scenario coverage:
   - fake Caocao can mutate vehicle estimates through an admin-only test route
   - fake Caocao can mark per-car-type estimates unavailable for dynamic

@@ -6,6 +6,7 @@ import { RideHailingProviderInstanceRepository } from "../../../repositories/Rid
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type {
   RideHailingProviderNavigationRoute,
+  RideHailingProviderNavigationRouteQueryKind,
   RideHailingProviderOrderDetail,
   RideHailingProviderVehicleLocation,
 } from "../../ride-hailing";
@@ -121,6 +122,14 @@ const projectProviderNavigationRoute = (
 const shouldQueryProviderLiveGeometry = (phase: RideHailingExecutionPhase): boolean =>
   phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP" || phase === "IN_TRIP";
 
+const resolveProviderNavigationRouteQueryKind = (
+  phase: RideHailingExecutionPhase,
+): RideHailingProviderNavigationRouteQueryKind | null => {
+  if (phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP") return "PICKUP";
+  if (phase === "IN_TRIP") return "DROPOFF";
+  return null;
+};
+
 const queryOptionalProviderLive = async <T>(operation: () => Promise<T>): Promise<T | null> => {
   try {
     return await operation();
@@ -171,6 +180,9 @@ export async function buildRideHailingDetailProjection(input: {
         providerOrderId: providerBinding.providerOrderId,
       });
       const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
+      const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(
+        rideOrder.executionPhase,
+      );
       const vehicleLocation = shouldQueryLiveGeometry
         ? await queryOptionalProviderLive(() =>
             port.queryDriverLocation({
@@ -178,10 +190,11 @@ export async function buildRideHailingDetailProjection(input: {
             }),
           )
         : null;
-      const navigationRoute = shouldQueryLiveGeometry
+      const navigationRoute = navigationRouteQueryKind
         ? await queryOptionalProviderLive(() =>
             port.queryDriverRoute({
               providerOrderId: providerBinding.providerOrderId,
+              routeKind: navigationRouteQueryKind,
             }),
           )
         : null;

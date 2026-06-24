@@ -95,4 +95,48 @@ describe("FakeCaocaoState", () => {
     expect(feeConfirm.providerOrderId).toBe(created.providerOrderId);
     expect(state.snapshot().feeConfirms).toHaveLength(1);
   });
+
+  test("retreats only phases with a deterministic previous phase", () => {
+    const state = new FakeCaocaoState();
+    const created = state.createOrder({
+      carType: "EXPRESS",
+      externalOrderId: "external-order-3",
+    });
+
+    expect(state.retreatOrderPhase(created.providerOrderId)).toBeNull();
+
+    const accepted = state.advanceOrderPhase(created.providerOrderId);
+    expect(accepted?.phase).toBe("ACCEPTED");
+
+    const retreated = state.retreatOrderPhase(created.providerOrderId);
+    expect(retreated?.phase).toBe("CREATED");
+
+    state.setOrderPhase(created.providerOrderId, "FINISHED");
+    const latestRetreated = state.retreatLatestOrder();
+    expect(latestRetreated?.phase).toBe("IN_TRIP");
+
+    state.setOrderPhase(created.providerOrderId, "CANCELLED");
+    expect(state.retreatLatestOrder()).toBeNull();
+  });
+
+  test("tracks movement ticks and resets them across phase changes", () => {
+    const state = new FakeCaocaoState();
+    const created = state.createOrder({
+      carType: "EXPRESS",
+      externalOrderId: "external-order-movement",
+    });
+
+    state.advanceOrderMovement(created.providerOrderId);
+    state.advanceOrderMovement(created.providerOrderId);
+    expect(state.findOrder(created.providerOrderId)?.queryCount).toBe(2);
+
+    state.setOrderPhase(created.providerOrderId, "ACCEPTED");
+    expect(state.findOrder(created.providerOrderId)?.queryCount).toBe(0);
+
+    state.advanceOrderMovement(created.providerOrderId);
+    expect(state.findOrder(created.providerOrderId)?.queryCount).toBe(1);
+
+    state.setOrderPhase(created.providerOrderId, "ACCEPTED");
+    expect(state.findOrder(created.providerOrderId)?.queryCount).toBe(1);
+  });
 });

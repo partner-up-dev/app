@@ -1,11 +1,12 @@
-import type {
-  MapCoordinate,
-  MapFitPadding,
-  MapMarker,
-  MapPolyline,
-} from "@/shared/map/types";
+import type { MapCoordinate, MapFitPadding, MapMarker, MapPolyline } from "@/shared/map/types";
 
-export type TencentLBSLibrary = "visualization" | "tools" | "geometry" | "model" | "view" | "service";
+export type TencentLBSLibrary =
+  | "visualization"
+  | "tools"
+  | "geometry"
+  | "model"
+  | "view"
+  | "service";
 
 export type TencentFitBoundsOptions = {
   padding?: MapFitPadding;
@@ -52,10 +53,7 @@ export type TencentMap = {
   setCenter(center: TencentLatLng): TencentMap;
   setZoom(zoom: number): TencentMap;
   getZoom(): number;
-  fitBounds(
-    bounds: TencentLatLngBounds,
-    options?: TencentFitBoundsOptions,
-  ): TencentMap;
+  fitBounds(bounds: TencentLatLngBounds, options?: TencentFitBoundsOptions): TencentMap;
   easeTo(
     status: { center?: TencentLatLng; zoom?: number },
     options?: { duration?: number },
@@ -72,6 +70,8 @@ export type TencentMarkerStyleOptions = {
   height: number;
   anchor?: { x: number; y: number };
   src?: string;
+  faceTo?: "map" | "screen";
+  rotate?: number;
   color?: string;
   strokeColor?: string;
   strokeWidth?: number;
@@ -95,17 +95,26 @@ export type TencentPointGeometry = {
   properties?: Record<string, string>;
 };
 
+export type TencentMoveAlongParam = {
+  path: TencentLatLng[];
+  duration?: number;
+  speed?: number;
+};
+
+export type TencentMoveAlongParamSet = Record<string, TencentMoveAlongParam>;
+
+export type TencentMoveAlongOptions = {
+  autoRotation?: boolean;
+};
+
 export type TencentMultiMarker = {
   setGeometries(geometries: TencentPointGeometry[]): TencentMultiMarker;
+  setStyles(styles: Record<string, TencentMarkerStyle>): TencentMultiMarker;
+  moveAlong(param: TencentMoveAlongParamSet, options?: TencentMoveAlongOptions): TencentMultiMarker;
+  stopMove(): TencentMultiMarker;
   setMap(map: TencentMap | null): TencentMultiMarker;
-  on(
-    eventName: "click",
-    handler: (event: TencentMarkerClickEvent) => void,
-  ): TencentMultiMarker;
-  off(
-    eventName: "click",
-    handler: (event: TencentMarkerClickEvent) => void,
-  ): TencentMultiMarker;
+  on(eventName: "click", handler: (event: TencentMarkerClickEvent) => void): TencentMultiMarker;
+  off(eventName: "click", handler: (event: TencentMarkerClickEvent) => void): TencentMultiMarker;
 };
 
 export type TencentMarkerClickEvent = {
@@ -198,10 +207,7 @@ export type TencentLBSMapProvider = {
     padding?: MapFitPadding;
     maxZoom?: number;
   }): void;
-  setViewport(input: {
-    center?: MapCoordinate;
-    zoom?: number;
-  }): void;
+  setViewport(input: { center?: MapCoordinate; zoom?: number }): void;
   zoomIn(): void;
   zoomOut(): void;
   destroy(): void;

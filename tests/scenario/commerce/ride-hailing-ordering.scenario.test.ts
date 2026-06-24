@@ -652,6 +652,26 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     });
     assert.equal(acceptedOrder.phase, "ACCEPTED");
     await waitForRideHailingMapMode(page, "PICKING_UP");
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
+      expected: "接客中",
+      label: "RideHailing accepted status hero",
+    });
+    const driverCard = page.getByTestId("order-detail.ride-hailing.driver-card");
+    await driverCard.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: driverCard.textContent(),
+      expected: "曹操测试司机",
+      label: "RideHailing driver card driver name",
+    });
+    await assertLocatorTextIncludes({
+      actual: driverCard.textContent(),
+      expected: "浙A·TEST",
+      label: "RideHailing driver card vehicle plate",
+    });
 
     const arrivedOrder = await advanceLatestFakeCaocaoOrder();
     assert.equal(arrivedOrder.phase, "ARRIVED_AT_PICKUP");

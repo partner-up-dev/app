@@ -219,7 +219,8 @@ describe("Caocao callback verification", () => {
 describe("Caocao live order projection", () => {
   it("normalizes order detail, driver location, and navigation route responses", async () => {
     const requestPaths: string[] = [];
-    const fetchImpl: typeof fetch = async (input) => {
+    const routeRequestBodies: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
       const requestUrl =
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       const url = new URL(requestUrl);
@@ -270,6 +271,7 @@ describe("Caocao live order projection", () => {
       }
 
       if (url.pathname.endsWith("/common/queryDriverPolylineV2")) {
+        routeRequestBodies.push(init?.body?.toString() ?? "");
         return new Response(
           JSON.stringify({
             code: 200,
@@ -289,7 +291,10 @@ describe("Caocao live order projection", () => {
                 {
                   links: [
                     {
-                      coords: "30.270000,120.160000;30.268800,120.160800",
+                      coords: "30.270000,120.160000;30.269700,120.160600;30.269100,120.160900",
+                    },
+                    {
+                      coords: "30.268900,120.160850;30.268800,120.160800",
                     },
                   ],
                 },
@@ -310,7 +315,10 @@ describe("Caocao live order projection", () => {
 
     const detail = await adapter.queryOrderDetail({ providerOrderId: "CC123456" });
     const location = await adapter.queryDriverLocation({ providerOrderId: "CC123456" });
-    const route = await adapter.queryDriverRoute({ providerOrderId: "CC123456" });
+    const route = await adapter.queryDriverRoute({
+      providerOrderId: "CC123456",
+      routeKind: "PICKUP",
+    });
 
     expect(detail.phase).toBe("12");
     expect(detail.statusLabel).toBe("司机已到达");
@@ -323,12 +331,42 @@ describe("Caocao live order projection", () => {
     expect(route?.trafficLightCount).toBe(2);
     expect(route?.polyline).toEqual([
       { latitude: 30.27, longitude: 120.16 },
+      { latitude: 30.2697, longitude: 120.1606 },
+      { latitude: 30.2691, longitude: 120.1609 },
+      { latitude: 30.2689, longitude: 120.16085 },
       { latitude: 30.2688, longitude: 120.1608 },
     ]);
+    expect(routeRequestBodies).toHaveLength(1);
+    expect(new URLSearchParams(routeRequestBodies[0]).get("navigation_polyline_type")).toBe("1");
     expect(requestPaths).toEqual([
       "/v2/common/queryOrderDetailV2",
       "/v2/common/queryDriverLocationByOrderId",
       "/v2/common/queryDriverPolylineV2",
     ]);
+  });
+
+  it("labels realtime accepted status as picking up", async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          code: 200,
+          data: {
+            basicOrderVO: {
+              status: "9",
+            },
+          },
+          success: true,
+        }),
+        { status: 200 },
+      );
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const detail = await adapter.queryOrderDetail({ providerOrderId: "CC123456" });
+
+    expect(detail.phase).toBe("9");
+    expect(detail.statusLabel).toBe("接客中");
   });
 });
