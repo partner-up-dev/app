@@ -5,7 +5,35 @@
       class="map-shell__canvas"
       :style="canvasStyle"
       aria-hidden="true"
+      @wheel.passive="handleUserViewportInteraction"
     ></div>
+
+    <div
+      v-if="viewportFollowControlsVisible"
+      class="map-shell__viewport-controls"
+      aria-label="地图视野"
+    >
+      <button
+        v-if="followPausedByUser"
+        type="button"
+        class="map-shell__viewport-button"
+        data-testid="shared-map.follow.resume"
+        @click.stop="resumeViewportFollow"
+      >
+        <span class="i-mdi-crosshairs-gps" aria-hidden="true"></span>
+        <span>{{ resumeFollowLabel }}</span>
+      </button>
+      <button
+        v-else
+        type="button"
+        class="map-shell__viewport-button"
+        data-testid="shared-map.follow.overview"
+        @click.stop="showAllGeometry"
+      >
+        <span class="i-mdi-map-marker-path" aria-hidden="true"></span>
+        <span>{{ overviewLabel }}</span>
+      </button>
+    </div>
 
     <div
       v-if="customZoomControlsVisible"
@@ -50,14 +78,16 @@
 
 <script setup lang="ts">
 import {
+  type CSSProperties,
   computed,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
   watch,
-  type CSSProperties,
 } from "vue";
+import { createTencentLBSMapProvider } from "@/shared/map/tencent/tencent-lbs-provider";
+import type { TencentLBSLibrary, TencentLBSMapProvider } from "@/shared/map/tencent/types";
 import type {
   MapActiveGeometry,
   MapCoordinate,
@@ -65,12 +95,12 @@ import type {
   MapMarker,
   MapPolyline,
   MapProviderStatus,
+  MapViewportFollowMode,
 } from "@/shared/map/types";
-import { createTencentLBSMapProvider } from "@/shared/map/tencent/tencent-lbs-provider";
-import type {
-  TencentLBSLibrary,
-  TencentLBSMapProvider,
-} from "@/shared/map/tencent/types";
+import {
+  type MapAutomaticViewportSource,
+  resolveMapAutomaticViewportAction,
+} from "./viewport-follow";
 
 const props = withDefaults(
   defineProps<{
@@ -83,6 +113,14 @@ const props = withDefaults(
     maxZoom?: number;
     fitPadding?: MapFitPadding;
     activeGeometry?: MapActiveGeometry;
+    overviewGeometry?: MapActiveGeometry;
+    viewportFollowMode?: MapViewportFollowMode;
+    fitOnGeometryChange?: boolean;
+    followResetKey?: string | number | null;
+    followZoom?: number;
+    showViewportFollowControls?: boolean;
+    resumeFollowLabel?: string;
+    overviewLabel?: string;
     libraries?: readonly TencentLBSLibrary[];
     interactive?: boolean;
     variant?: "inline" | "immersive";
@@ -103,6 +141,14 @@ const props = withDefaults(
     maxZoom: undefined,
     fitPadding: 28,
     activeGeometry: null,
+    overviewGeometry: null,
+    viewportFollowMode: "none",
+    fitOnGeometryChange: true,
+    followResetKey: null,
+    followZoom: 17,
+    showViewportFollowControls: false,
+    resumeFollowLabel: "回到跟随",
+    overviewLabel: "查看全程",
     libraries: () => [],
     interactive: true,
     variant: "inline",
@@ -128,11 +174,10 @@ const containerRef = ref<HTMLElement | null>(null);
 const provider = ref<TencentLBSMapProvider | null>(null);
 const status = ref<MapProviderStatus>("idle");
 const isInitializing = ref(false);
+const followPausedByUser = ref(false);
 let initFrameId: number | null = null;
 let initRetryTimeoutId: number | null = null;
-const hiddenBottomAttributionBleedPx = computed(() =>
-  props.hideBottomAttribution ? 20 : 0,
-);
+const hiddenBottomAttributionBleedPx = computed(() => (props.hideBottomAttribution ? 20 : 0));
 
 const canvasStyle = computed<CSSProperties>(() => ({
   bottom: `-${hiddenBottomAttributionBleedPx.value}px`,
@@ -185,12 +230,37 @@ const customZoomControlsVisible = computed(
   () => props.showZoomControls && props.interactive && !overlayVisible.value,
 );
 
+const resolvedMaxZoom = computed(() => {
+  if (props.viewportFollowMode === "none") {
+    return props.maxZoom;
+  }
+
+  return Math.max(props.maxZoom ?? props.followZoom, props.followZoom);
+});
+
+const activeFollowMarker = computed(() => {
+  const activeGeometry = props.activeGeometry;
+  if (activeGeometry?.kind !== "marker") {
+    return null;
+  }
+  return props.markers.find((marker) => marker.id === activeGeometry.id) ?? null;
+});
+
+const viewportFollowControlsVisible = computed(
+  () =>
+    props.showViewportFollowControls &&
+    props.viewportFollowMode !== "none" &&
+    (!followPausedByUser.value || activeFollowMarker.value !== null) &&
+    props.interactive &&
+    !overlayVisible.value,
+);
+
 const hasUsableContainerSize = (container: HTMLElement): boolean => {
   const rect = container.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
 };
 
-const applyMapData = () => {
+const syncMapData = () => {
   const currentProvider = provider.value;
   if (!currentProvider) {
     return;
@@ -202,13 +272,55 @@ const applyMapData = () => {
     center: props.center,
     zoom: props.zoom,
   });
-  currentProvider.fitGeometry({
+};
+
+const fitActiveGeometry = (
+  activeGeometry: MapActiveGeometry = props.activeGeometry ?? { kind: "all" },
+) => {
+  provider.value?.fitGeometry({
     markers: props.markers,
     polylines: props.polylines,
-    activeGeometry: props.activeGeometry ?? { kind: "all" },
+    activeGeometry,
     padding: compensatedFitPadding.value,
-    maxZoom: props.maxZoom,
+    maxZoom: resolvedMaxZoom.value,
   });
+};
+
+const followActiveMarker = (markerId: string) => {
+  const marker = props.markers.find((item) => item.id === markerId);
+  if (!marker) {
+    return;
+  }
+
+  provider.value?.fitMarker({
+    marker,
+    padding: compensatedFitPadding.value,
+    zoom: props.followZoom,
+  });
+};
+
+const applyAutomaticViewport = (source: MapAutomaticViewportSource) => {
+  const action = resolveMapAutomaticViewportAction({
+    activeGeometry: props.activeGeometry ?? { kind: "all" },
+    fitOnGeometryChange: props.fitOnGeometryChange,
+    followPausedByUser: followPausedByUser.value,
+    source,
+    viewportFollowMode: props.viewportFollowMode,
+  });
+
+  if (action.kind === "fit-geometry") {
+    fitActiveGeometry();
+    return;
+  }
+
+  if (action.kind === "follow-active-marker") {
+    followActiveMarker(action.markerId);
+  }
+};
+
+const applyMapData = (source: MapAutomaticViewportSource) => {
+  syncMapData();
+  applyAutomaticViewport(source);
 };
 
 const initMap = async () => {
@@ -237,17 +349,19 @@ const initMap = async () => {
       center: props.center,
       zoom: props.zoom,
       minZoom: props.minZoom,
-      maxZoom: props.maxZoom,
+      maxZoom: resolvedMaxZoom.value,
       interactive: props.interactive,
       showDefaultControls: props.showDefaultControls,
       onMarkerClick: (markerId) => emit("markerClick", markerId),
+      onUserViewportInteraction: () => {
+        handleUserViewportInteraction();
+      },
     });
     status.value = "ready";
-    applyMapData();
+    applyMapData("init");
     emit("ready");
   } catch (error) {
-    const normalizedError =
-      error instanceof Error ? error : new Error(String(error));
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
     status.value = "error";
     emit("error", normalizedError);
   } finally {
@@ -256,11 +370,30 @@ const initMap = async () => {
 };
 
 const zoomIn = () => {
+  handleUserViewportInteraction();
   provider.value?.zoomIn();
 };
 
 const zoomOut = () => {
+  handleUserViewportInteraction();
   provider.value?.zoomOut();
+};
+
+const handleUserViewportInteraction = () => {
+  if (props.viewportFollowMode === "none" || !props.interactive || status.value !== "ready") {
+    return;
+  }
+  followPausedByUser.value = true;
+};
+
+const resumeViewportFollow = () => {
+  followPausedByUser.value = false;
+  applyAutomaticViewport("reset");
+};
+
+const showAllGeometry = () => {
+  followPausedByUser.value = true;
+  fitActiveGeometry(props.overviewGeometry ?? { kind: "all" });
 };
 
 const clearScheduledInitialMapInit = () => {
@@ -315,16 +448,9 @@ const scheduleInitialMapInit = async (attempt = 0) => {
     initFrameId = null;
     const container = containerRef.value;
     const waitingForSize =
-      container !== null &&
-      normalizedApiKey.value.length > 0 &&
-      !hasUsableContainerSize(container);
+      container !== null && normalizedApiKey.value.length > 0 && !hasUsableContainerSize(container);
 
-    if (
-      !provider.value &&
-      !isInitializing.value &&
-      waitingForSize &&
-      attempt < MAX_INIT_ATTEMPTS
-    ) {
+    if (!provider.value && !isInitializing.value && waitingForSize && attempt < MAX_INIT_ATTEMPTS) {
       status.value = "loading";
       scheduleInitialMapInitRetry(attempt + 1);
       return;
@@ -345,20 +471,36 @@ onBeforeUnmount(() => {
 });
 
 watch(
+  () => [props.markers, props.polylines, props.center, props.zoom],
+  () => {
+    applyMapData("geometry");
+  },
+  { deep: true },
+);
+
+watch(
   () => [
-    props.markers,
-    props.polylines,
-    props.center,
-    props.zoom,
     props.fitPadding,
     props.hideBottomAttribution,
     props.activeGeometry,
-    props.maxZoom,
+    props.overviewGeometry,
+    resolvedMaxZoom.value,
+    props.viewportFollowMode,
+    props.fitOnGeometryChange,
+    props.followZoom,
   ],
   () => {
-    applyMapData();
+    applyAutomaticViewport("view-context");
   },
   { deep: true },
+);
+
+watch(
+  () => props.followResetKey,
+  () => {
+    followPausedByUser.value = false;
+    applyAutomaticViewport("reset");
+  },
 );
 </script>
 
@@ -404,6 +546,39 @@ watch(
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface);
   box-shadow: var(--sys-shadow-2);
+}
+
+.map-shell__viewport-controls {
+  position: absolute;
+  left: var(--sys-spacing-small);
+  top: var(--sys-spacing-small);
+  z-index: 10;
+  display: flex;
+  max-width: calc(100% - var(--sys-spacing-small) * 2);
+}
+
+.map-shell__viewport-button {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-pill);
+  background: var(--sys-color-surface);
+  color: var(--sys-color-on-surface);
+  box-shadow: var(--sys-shadow-2);
+  cursor: pointer;
+  font-size: var(--sys-typo-caption-size);
+  font-weight: var(--sys-typo-caption-weight);
+  line-height: var(--sys-typo-caption-line-height);
+
+  span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .map-shell__zoom-button {

@@ -6,6 +6,14 @@
       :markers="markers"
       :polylines="polylines"
       :active-geometry="activeGeometry ?? { kind: 'all' }"
+      :overview-geometry="overviewGeometry"
+      :viewport-follow-mode="viewportFollowMode"
+      :fit-on-geometry-change="fitOnGeometryChange"
+      :follow-reset-key="followResetKey"
+      :follow-zoom="followZoom"
+      :show-viewport-follow-controls="showViewportFollowControls"
+      :resume-follow-label="resumeFollowLabel"
+      :overview-label="overviewLabel"
       :fit-padding="fitPadding"
       :max-zoom="maxZoom"
       :interactive="interactive"
@@ -71,7 +79,14 @@ import type {
   MapFitPadding,
   MapMarker,
   MapPolyline,
+  MapPolylineTone,
+  MapViewportFollowMode,
 } from "@/shared/map/types";
+import {
+  normalizeRouteMapExtraPolylines,
+  ROUTE_MAP_FALLBACK_POLYLINE_TONE,
+  resolveRouteMapPlannedPolylineTone,
+} from "./route-map-polylines";
 
 const props = withDefaults(
   defineProps<{
@@ -82,6 +97,14 @@ const props = withDefaults(
     planRoute?: boolean;
     planningApiKey?: string;
     activeGeometry?: MapActiveGeometry;
+    overviewGeometry?: MapActiveGeometry;
+    viewportFollowMode?: MapViewportFollowMode;
+    fitOnGeometryChange?: boolean;
+    followResetKey?: string | number | null;
+    followZoom?: number;
+    showViewportFollowControls?: boolean;
+    resumeFollowLabel?: string;
+    overviewLabel?: string;
     fitPadding?: MapFitPadding;
     maxZoom?: number;
     apiKey?: string;
@@ -100,6 +123,14 @@ const props = withDefaults(
     planRoute: true,
     planningApiKey: undefined,
     activeGeometry: null,
+    overviewGeometry: null,
+    viewportFollowMode: "none",
+    fitOnGeometryChange: true,
+    followResetKey: null,
+    followZoom: 17,
+    showViewportFollowControls: false,
+    resumeFollowLabel: "回到跟随",
+    overviewLabel: "查看全程",
     fitPadding: 28,
     maxZoom: 16,
     apiKey: undefined,
@@ -257,7 +288,7 @@ const routePolylines = computed<MapPolyline[]>(() => {
         id: "route",
         path: externalPlannedPolyline.value,
         title: buildRouteSummary(props.route) ?? undefined,
-        tone: "routePrimary",
+        tone: resolveRouteMapPlannedPolylineTone(0),
       },
     ];
   }
@@ -269,7 +300,7 @@ const routePolylines = computed<MapPolyline[]>(() => {
             id: plan.id,
             path: plan.polyline,
             title: buildRouteSummary(props.route) ?? undefined,
-            tone: index === 0 ? "routePrimary" : "routeSecondary",
+            tone: resolveRouteMapPlannedPolylineTone(index),
           }
         : null,
     )
@@ -288,11 +319,24 @@ const routePolylines = computed<MapPolyline[]>(() => {
 
   return projection.value.polylines.map((polyline) => ({
     ...polyline,
-    tone: "routeInvalid",
+    tone: ROUTE_MAP_FALLBACK_POLYLINE_TONE,
   }));
 });
 
-const polylines = computed<MapPolyline[]>(() => [...routePolylines.value, ...props.extraPolylines]);
+const polylines = computed<MapPolyline[]>(() => {
+  const usedTones = new Set(
+    routePolylines.value
+      .map((polyline) => polyline.tone)
+      .filter((tone): tone is MapPolylineTone => Boolean(tone)),
+  );
+  return [
+    ...routePolylines.value,
+    ...normalizeRouteMapExtraPolylines({
+      polylines: props.extraPolylines,
+      usedTones,
+    }),
+  ];
+});
 
 const hasGeometry = computed(() => markers.value.length > 0 || polylines.value.length > 0);
 

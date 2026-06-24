@@ -20,6 +20,7 @@ export type TencentFitBoundsOptions = {
 export type TencentMapOptions = {
   center: TencentLatLng;
   zoom?: number;
+  rotation?: number;
   minZoom?: number;
   maxZoom?: number;
   mapStyleId?: string;
@@ -52,14 +53,20 @@ export type TencentLatLngBoundsConstructor = {
 export type TencentMap = {
   setCenter(center: TencentLatLng): TencentMap;
   setZoom(zoom: number): TencentMap;
+  setRotation(rotation: number): TencentMap;
   getZoom(): number;
+  getRotation(): number;
   fitBounds(bounds: TencentLatLngBounds, options?: TencentFitBoundsOptions): TencentMap;
   easeTo(
-    status: { center?: TencentLatLng; zoom?: number },
+    status: { center?: TencentLatLng; zoom?: number; rotation?: number },
     options?: { duration?: number },
   ): TencentMap;
+  on(eventName: TencentMapEventName, listener: () => void): TencentMap;
+  off(eventName: TencentMapEventName, listener: () => void): TencentMap;
   destroy(): void;
 };
+
+export type TencentMapEventName = "dragstart" | "touchmove" | "dblclick" | "zoom";
 
 export type TencentMapConstructor = {
   new (container: HTMLElement | string, options: TencentMapOptions): TencentMap;
@@ -72,12 +79,6 @@ export type TencentMarkerStyleOptions = {
   src?: string;
   faceTo?: "map" | "screen";
   rotate?: number;
-  color?: string;
-  strokeColor?: string;
-  strokeWidth?: number;
-  size?: number;
-  direction?: "center" | "top" | "bottom" | "left" | "right";
-  offset?: { x: number; y: number };
 };
 
 export type TencentMarkerStyle = object;
@@ -91,7 +92,6 @@ export type TencentPointGeometry = {
   styleId: string;
   position: TencentLatLng;
   rank?: number;
-  content?: string;
   properties?: Record<string, string>;
 };
 
@@ -195,6 +195,7 @@ export type TencentLBSMapProviderInput = {
   interactive?: boolean;
   showDefaultControls?: boolean;
   onMarkerClick?: (markerId: string) => void;
+  onUserViewportInteraction?: () => void;
 };
 
 export type TencentLBSMapProvider = {
@@ -207,6 +208,7 @@ export type TencentLBSMapProvider = {
     padding?: MapFitPadding;
     maxZoom?: number;
   }): void;
+  fitMarker(input: { marker: MapMarker; padding?: MapFitPadding; zoom: number }): void;
   setViewport(input: { center?: MapCoordinate; zoom?: number }): void;
   zoomIn(): void;
   zoomOut(): void;

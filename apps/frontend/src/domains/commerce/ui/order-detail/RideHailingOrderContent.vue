@@ -16,6 +16,11 @@
       :plan-route="orderMapViewModel.planRoute"
       :show-fallback-polyline="orderMapViewModel.showFallbackPolyline"
       :active-geometry="orderMapViewModel.activeGeometry"
+      :overview-geometry="orderMapViewModel.overviewGeometry"
+      :viewport-follow-mode="routeMapViewportFollowMode"
+      :follow-reset-key="orderMapViewModel.mode"
+      :follow-zoom="15"
+      :show-viewport-follow-controls="routeMapViewportFollowMode !== 'none'"
       :fit-padding="routeMapFitPadding"
       :interactive="true"
       variant="immersive"
@@ -200,7 +205,7 @@ import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCar
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
-import type { MapFitPadding } from "@/shared/map/types";
+import type { MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
 import { buildRideHailingOrderMapViewModel } from "./ride-hailing-order-map-view-model";
 
 type RideHailingDetail = NonNullable<CommerceOrderDetailResponse["rideHailing"]>;
@@ -365,6 +370,13 @@ const orderMapViewModel = computed(() =>
     live: props.ride.live,
     route: props.ride.route,
   }),
+);
+
+const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
+  orderMapViewModel.value.activeGeometry?.kind === "marker" &&
+  (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
+    ? "active-marker"
+    : "none",
 );
 
 const directImageSrc = (value: string | null | undefined): string | null => {

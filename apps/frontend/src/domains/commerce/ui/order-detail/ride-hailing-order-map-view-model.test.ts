@@ -65,8 +65,13 @@ describe("buildRideHailingOrderMapViewModel", () => {
 
     expect(viewModel.mode).toBe("PICKING_UP");
     expect(viewModel.activeGeometry).toEqual({
-      kind: "polyline",
-      id: "ride-hailing-provider-route",
+      kind: "marker",
+      id: "ride-hailing-driver",
+    });
+    expect(viewModel.overviewGeometry).toEqual({
+      kind: "selection",
+      markerIds: ["route-point-0", "ride-hailing-driver"],
+      polylineIds: ["ride-hailing-provider-route"],
     });
     expect(viewModel.extraMarkers).toHaveLength(1);
     expect(viewModel.extraMarkers[0]?.icon).toBe("routeDriver");
@@ -78,6 +83,8 @@ describe("buildRideHailingOrderMapViewModel", () => {
       { lat: 30.2893, lng: 120.203 },
       { lat: 30.2912, lng: 120.212 },
     ]);
+    expect(viewModel.extraPolylines[0]?.tone).toBe("secondary");
+    expect(viewModel.extraPolylines[0]?.active).toBeUndefined();
     expect(viewModel.plannedPolyline).toBeNull();
   });
 
@@ -160,10 +167,41 @@ describe("buildRideHailingOrderMapViewModel", () => {
           { lat: 30.24, lng: 120.102 },
         ],
         title: "原始规划路线",
-        tone: "muted",
+        tone: "tertiary",
       },
     ]);
     expect(viewModel.plannedPolyline).toBeNull();
+  });
+
+  test("follows driver marker during trip even when provider route exists", () => {
+    const viewModel = buildRideHailingOrderMapViewModel({
+      executionPhase: "IN_TRIP",
+      route: route(),
+      live: {
+        vehicleLocation: {
+          headingDegrees: 180,
+          latitude: 30.27,
+          longitude: 120.16,
+        },
+        navigationRoute: {
+          routeKind: "DROPOFF",
+          polyline: [
+            { latitude: 30.27, longitude: 120.16 },
+            { latitude: 30.255, longitude: 120.13 },
+            { latitude: 30.24, longitude: 120.102 },
+          ],
+        },
+      },
+    });
+
+    expect(viewModel.mode).toBe("IN_TRIP");
+    expect(viewModel.activeGeometry).toEqual({
+      kind: "marker",
+      id: "ride-hailing-driver",
+    });
+    expect(viewModel.overviewGeometry).toEqual({ kind: "all" });
+    expect(viewModel.extraPolylines[0]?.id).toBe("ride-hailing-provider-route");
+    expect(viewModel.extraPolylines[0]?.tone).toBe("secondary");
   });
 
   test("keeps planned route for terminal phases", () => {

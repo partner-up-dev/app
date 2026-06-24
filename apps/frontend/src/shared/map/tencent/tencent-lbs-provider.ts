@@ -6,6 +6,7 @@ import type {
   MapMarker,
   MapMarkerIcon,
   MapPolyline,
+  MapPolylineTone,
 } from "@/shared/map/types";
 import { loadTencentLBSSdk } from "./tencent-lbs-loader";
 import type {
@@ -14,6 +15,7 @@ import type {
   TencentLBSMapProvider,
   TencentLBSMapProviderInput,
   TencentMap,
+  TencentMapEventName,
   TencentMapOptions,
   TencentMapSdk,
   TencentMarkerClickEvent,
@@ -36,25 +38,31 @@ const SINGLE_POINT_BOUNDS_DELTA = 0.0001;
 const TENCENT_MAP_STYLE_ID = "style1";
 const DRIVER_MARKER_MOVE_DURATION_MS = 1_900;
 const MARKER_MOVE_COORDINATE_EPSILON = 0.000001;
+const PROGRAMMATIC_VIEWPORT_CHANGE_SUPPRESSION_MS = 360;
+const DIRECT_USER_VIEWPORT_INTERACTION_EVENTS: readonly TencentMapEventName[] = [
+  "dragstart",
+  "touchmove",
+  "dblclick",
+];
 
-const MARKER_COLORS: Record<MapGeometryTone | "active", string> = {
-  primary: "#1D63ED",
-  secondary: "#008765",
-  muted: "#5F6B7A",
-  routePrimary: "#85976e",
-  routeSecondary: "#dbe7c8",
-  routeInvalid: "#abaca5",
-  active: "#C7472F",
+type TencentMapDesignColorRole = MapPolylineTone | "muted" | "active";
+
+const DESIGN_COLOR_VARIABLES: Record<TencentMapDesignColorRole, string> = {
+  primary: "--sys-color-primary",
+  secondary: "--sys-color-secondary",
+  tertiary: "--sys-color-tertiary",
+  danger: "--sys-color-error",
+  muted: "--sys-color-on-surface-variant",
+  active: "--sys-color-primary",
 };
 
-const POLYLINE_COLORS: Record<MapGeometryTone | "active", string> = {
-  primary: "#1D63ED",
-  secondary: "#008765",
-  muted: "#5F6B7A",
-  routePrimary: "#85976e",
-  routeSecondary: "#dbe7c8",
-  routeInvalid: "#abaca5",
-  active: "#C7472F",
+const DESIGN_COLOR_FALLBACKS: Record<TencentMapDesignColorRole, string> = {
+  primary: "#96d945",
+  secondary: "#85976e",
+  tertiary: "#4c9e99",
+  danger: "#d32f2f",
+  muted: "#44483d",
+  active: "#96d945",
 };
 
 const ROUTE_MARKER_ICON_SRC: Record<MapMarkerIcon, string> = {
@@ -69,6 +77,39 @@ const createMarkerSvg = (color: string): string => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path fill="${color}" d="M14 0C6.7 0 .8 5.9.8 13.2c0 9.9 13.2 22.8 13.2 22.8s13.2-12.9 13.2-22.8C27.2 5.9 21.3 0 14 0Z"/><circle cx="14" cy="13.2" r="5.2" fill="white"/></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
+
+const readDocumentCssVariable = (variableName: string): string | null => {
+  if (
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    typeof window.getComputedStyle !== "function"
+  ) {
+    return null;
+  }
+
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(variableName);
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : null;
+};
+
+export const resolveTencentMapDesignColor = (role: TencentMapDesignColorRole): string =>
+  readDocumentCssVariable(DESIGN_COLOR_VARIABLES[role]) ?? DESIGN_COLOR_FALLBACKS[role];
+
+const resolveMarkerColors = (): Record<MapGeometryTone | "active", string> => ({
+  primary: resolveTencentMapDesignColor("primary"),
+  secondary: resolveTencentMapDesignColor("secondary"),
+  tertiary: resolveTencentMapDesignColor("tertiary"),
+  danger: resolveTencentMapDesignColor("danger"),
+  muted: resolveTencentMapDesignColor("muted"),
+  active: resolveTencentMapDesignColor("active"),
+});
+
+const resolvePolylineColors = (): Record<MapPolylineTone, string> => ({
+  primary: resolveTencentMapDesignColor("primary"),
+  secondary: resolveTencentMapDesignColor("secondary"),
+  tertiary: resolveTencentMapDesignColor("tertiary"),
+  danger: resolveTencentMapDesignColor("danger"),
+});
 
 const isFiniteCoordinate = (coordinate: MapCoordinate): boolean =>
   Number.isFinite(coordinate.lat) && Number.isFinite(coordinate.lng);
@@ -117,8 +158,8 @@ export const resolveTencentMarkerStyleId = (
   return marker.icon ?? (marker.active ? "active" : (marker.tone ?? "primary"));
 };
 
-const resolvePolylineStyleId = (polyline: MapPolyline): MapGeometryTone | "active" =>
-  polyline.active ? "active" : (polyline.tone ?? "primary");
+const resolvePolylineStyleId = (polyline: MapPolyline): MapPolylineTone =>
+  polyline.tone ?? "primary";
 
 const createRouteDriverMarkerStyle = (
   sdk: TencentMapSdk,
@@ -141,50 +182,43 @@ const createMarkerStyles = (
   sdk: TencentMapSdk,
   markers: readonly MapMarker[] = [],
 ): Record<string, TencentMarkerStyle> => {
+  const markerColors = resolveMarkerColors();
   const styles: Record<string, TencentMarkerStyle> = {
     primary: new sdk.MarkerStyle({
       width: 28,
       height: 36,
       anchor: { x: 14, y: 36 },
-      src: createMarkerSvg(MARKER_COLORS.primary),
-      color: "#FFFFFF",
-      strokeColor: "rgba(0,0,0,0)",
-      size: 12,
-      direction: "center",
-      offset: { x: 0, y: -7 },
+      src: createMarkerSvg(markerColors.primary),
     }),
     secondary: new sdk.MarkerStyle({
       width: 28,
       height: 36,
       anchor: { x: 14, y: 36 },
-      src: createMarkerSvg(MARKER_COLORS.secondary),
-      color: "#FFFFFF",
-      strokeColor: "rgba(0,0,0,0)",
-      size: 12,
-      direction: "center",
-      offset: { x: 0, y: -7 },
+      src: createMarkerSvg(markerColors.secondary),
+    }),
+    tertiary: new sdk.MarkerStyle({
+      width: 28,
+      height: 36,
+      anchor: { x: 14, y: 36 },
+      src: createMarkerSvg(markerColors.tertiary),
+    }),
+    danger: new sdk.MarkerStyle({
+      width: 28,
+      height: 36,
+      anchor: { x: 14, y: 36 },
+      src: createMarkerSvg(markerColors.danger),
     }),
     muted: new sdk.MarkerStyle({
       width: 28,
       height: 36,
       anchor: { x: 14, y: 36 },
-      src: createMarkerSvg(MARKER_COLORS.muted),
-      color: "#FFFFFF",
-      strokeColor: "rgba(0,0,0,0)",
-      size: 12,
-      direction: "center",
-      offset: { x: 0, y: -7 },
+      src: createMarkerSvg(markerColors.muted),
     }),
     active: new sdk.MarkerStyle({
       width: 32,
       height: 40,
       anchor: { x: 16, y: 40 },
-      src: createMarkerSvg(MARKER_COLORS.active),
-      color: "#FFFFFF",
-      strokeColor: "rgba(0,0,0,0)",
-      size: 12,
-      direction: "center",
-      offset: { x: 0, y: -8 },
+      src: createMarkerSvg(markerColors.active),
     }),
     routeStart: new sdk.MarkerStyle({
       width: 24,
@@ -218,61 +252,43 @@ const createMarkerStyles = (
   return styles;
 };
 
-const createPolylineStyles = (sdk: TencentMapSdk) => ({
-  primary: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.primary,
-    width: 5,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.9)",
-    lineCap: "round",
-  }),
-  secondary: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.secondary,
-    width: 5,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.9)",
-    lineCap: "round",
-  }),
-  muted: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.muted,
-    width: 4,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.88)",
-    lineCap: "round",
-    dashArray: [8, 8],
-  }),
-  routePrimary: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.routePrimary,
-    width: 7,
-    borderWidth: 1,
-    borderColor: "#ffffff",
-    lineCap: "round",
-    showArrow: true,
-  }),
-  routeSecondary: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.routeSecondary,
-    width: 7,
-    borderWidth: 1,
-    borderColor: "#ffffff",
-    lineCap: "round",
-    showArrow: true,
-  }),
-  routeInvalid: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.routeInvalid,
-    width: 7,
-    borderWidth: 1,
-    borderColor: "#5e5f59",
-    lineCap: "round",
-    showArrow: true,
-  }),
-  active: new sdk.PolylineStyle({
-    color: POLYLINE_COLORS.active,
-    width: 6,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.95)",
-    lineCap: "round",
-  }),
-});
+const createPolylineStyles = (sdk: TencentMapSdk) => {
+  const polylineColors = resolvePolylineColors();
+  return {
+    primary: new sdk.PolylineStyle({
+      color: polylineColors.primary,
+      width: 7,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.95)",
+      lineCap: "round",
+      showArrow: true,
+    }),
+    secondary: new sdk.PolylineStyle({
+      color: polylineColors.secondary,
+      width: 7,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.95)",
+      lineCap: "round",
+      showArrow: true,
+    }),
+    tertiary: new sdk.PolylineStyle({
+      color: polylineColors.tertiary,
+      width: 7,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.95)",
+      lineCap: "round",
+      showArrow: true,
+    }),
+    danger: new sdk.PolylineStyle({
+      color: polylineColors.danger,
+      width: 7,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.95)",
+      lineCap: "round",
+      showArrow: true,
+    }),
+  };
+};
 
 const toMarkerGeometries = (
   sdk: TencentMapSdk,
@@ -290,10 +306,6 @@ const toMarkerGeometries = (
           title: marker.title ?? marker.label ?? marker.id,
         },
       };
-      const content = marker.calloutLabel ?? marker.label ?? "";
-      if (content.length > 0) {
-        geometry.content = content;
-      }
       return geometry;
     });
 
@@ -380,6 +392,17 @@ const collectActiveCoordinates = ({
     return marker && isFiniteCoordinate(marker.position) ? [marker.position] : [];
   }
 
+  if (activeGeometry.kind === "selection") {
+    const markerIds = new Set(activeGeometry.markerIds ?? []);
+    const polylineIds = new Set(activeGeometry.polylineIds ?? []);
+    return [
+      ...markers.filter((marker) => markerIds.has(marker.id)).map((marker) => marker.position),
+      ...polylines
+        .filter((polyline) => polylineIds.has(polyline.id))
+        .flatMap((polyline) => polyline.path),
+    ].filter(isFiniteCoordinate);
+  }
+
   const polyline = polylines.find((item) => item.id === activeGeometry.id);
   return polyline ? polyline.path.filter(isFiniteCoordinate) : [];
 };
@@ -390,12 +413,14 @@ const fitCoordinates = ({
   coordinates,
   padding,
   maxZoom,
+  singlePointMaxZoom,
 }: {
   sdk: TencentMapSdk;
   map: TencentMap;
   coordinates: readonly MapCoordinate[];
   padding?: MapFitPadding;
   maxZoom?: number;
+  singlePointMaxZoom?: number;
 }) => {
   const validCoordinates = coordinates.filter(isFiniteCoordinate);
   const firstCoordinate = validCoordinates[0];
@@ -413,11 +438,12 @@ const fitCoordinates = ({
       bounds.extend(toTencentLatLng(sdk, coordinate));
     });
   }
+  const resolvedSinglePointMaxZoom = singlePointMaxZoom ?? SINGLE_POINT_ZOOM;
   map.fitBounds(bounds, {
     padding,
     maxZoom:
       validCoordinates.length === 1
-        ? Math.min(maxZoom ?? SINGLE_POINT_ZOOM, SINGLE_POINT_ZOOM)
+        ? Math.min(maxZoom ?? resolvedSinglePointMaxZoom, resolvedSinglePointMaxZoom)
         : maxZoom,
     ease: { duration: 240 },
   });
@@ -434,6 +460,7 @@ export const createTencentLBSMapProvider = async ({
   interactive = true,
   showDefaultControls = true,
   onMarkerClick,
+  onUserViewportInteraction,
 }: TencentLBSMapProviderInput): Promise<TencentLBSMapProvider> => {
   const sdk = await loadTencentLBSSdk({ key: apiKey, libraries });
   const mapOptions: TencentMapOptions = {
@@ -454,6 +481,24 @@ export const createTencentLBSMapProvider = async ({
     mapOptions.maxZoom = maxZoom;
   }
   const map = new sdk.Map(container, mapOptions);
+  let suppressUserViewportInteractionUntil = 0;
+  const runProgrammaticViewportChange = (callback: () => void) => {
+    suppressUserViewportInteractionUntil = Date.now() + PROGRAMMATIC_VIEWPORT_CHANGE_SUPPRESSION_MS;
+    callback();
+  };
+  const emitUserViewportInteraction = () => {
+    onUserViewportInteraction?.();
+  };
+  const handleMaybeUserViewportInteraction = () => {
+    if (Date.now() < suppressUserViewportInteractionUntil) {
+      return;
+    }
+    emitUserViewportInteraction();
+  };
+  for (const eventName of DIRECT_USER_VIEWPORT_INTERACTION_EVENTS) {
+    map.on(eventName, emitUserViewportInteraction);
+  }
+  map.on("zoom", handleMaybeUserViewportInteraction);
 
   let markerLayer: TencentMultiMarker | null = new sdk.MultiMarker({
     id: "partner-up-marker-layer",
@@ -501,33 +546,59 @@ export const createTencentLBSMapProvider = async ({
       polylineLayer?.setGeometries(toPolylineGeometries(sdk, polylines));
     },
     fitGeometry({ markers, polylines, activeGeometry, padding, maxZoom }) {
-      fitCoordinates({
-        sdk,
-        map,
-        coordinates: collectActiveCoordinates({
-          markers,
-          polylines,
-          activeGeometry,
-        }),
-        padding,
-        maxZoom,
+      runProgrammaticViewportChange(() => {
+        fitCoordinates({
+          sdk,
+          map,
+          coordinates: collectActiveCoordinates({
+            markers,
+            polylines,
+            activeGeometry,
+          }),
+          padding,
+          maxZoom,
+        });
+      });
+    },
+    fitMarker({ marker, zoom: markerZoom }) {
+      runProgrammaticViewportChange(() => {
+        if (!isFiniteCoordinate(marker.position)) {
+          return;
+        }
+        map.easeTo(
+          {
+            center: toTencentLatLng(sdk, marker.position),
+            zoom: markerZoom,
+          },
+          { duration: 240 },
+        );
       });
     },
     setViewport({ center: nextCenter, zoom: nextZoom }) {
-      if (nextCenter) {
-        map.setCenter(toTencentLatLng(sdk, nextCenter));
-      }
-      if (typeof nextZoom === "number") {
-        map.setZoom(nextZoom);
-      }
+      runProgrammaticViewportChange(() => {
+        if (nextCenter) {
+          map.setCenter(toTencentLatLng(sdk, nextCenter));
+        }
+        if (typeof nextZoom === "number") {
+          map.setZoom(nextZoom);
+        }
+      });
     },
     zoomIn() {
-      map.setZoom(Math.min(map.getZoom() + 1, maxZoom ?? 20));
+      runProgrammaticViewportChange(() => {
+        map.setZoom(Math.min(map.getZoom() + 1, maxZoom ?? 20));
+      });
     },
     zoomOut() {
-      map.setZoom(Math.max(map.getZoom() - 1, minZoom ?? 3));
+      runProgrammaticViewportChange(() => {
+        map.setZoom(Math.max(map.getZoom() - 1, minZoom ?? 3));
+      });
     },
     destroy() {
+      for (const eventName of DIRECT_USER_VIEWPORT_INTERACTION_EVENTS) {
+        map.off(eventName, emitUserViewportInteraction);
+      }
+      map.off("zoom", handleMaybeUserViewportInteraction);
       markerLayer?.off("click", handleMarkerClick);
       markerLayer?.stopMove();
       markerLayer?.setMap(null);

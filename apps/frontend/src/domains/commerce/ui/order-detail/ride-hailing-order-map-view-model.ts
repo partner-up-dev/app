@@ -53,6 +53,7 @@ export type RideHailingOrderMapViewModel = {
   extraMarkers: MapMarker[];
   extraPolylines: MapPolyline[];
   activeGeometry: MapActiveGeometry;
+  overviewGeometry: MapActiveGeometry;
 };
 
 const DRIVER_MARKER_ID = "ride-hailing-driver";
@@ -105,20 +106,43 @@ const buildProviderRoutePolyline = (path: MapCoordinate[] | null): MapPolyline |
         id: PROVIDER_ROUTE_POLYLINE_ID,
         path,
         title: "服务商实时路线",
-        tone: "routePrimary",
-        active: true,
+        tone: "secondary",
       }
     : null;
 
-const buildMutedPlannedFallbackPolyline = (path: MapCoordinate[] | null): MapPolyline | null =>
+const buildPlannedFallbackPolyline = (path: MapCoordinate[] | null): MapPolyline | null =>
   path
     ? {
         id: PLANNED_FALLBACK_POLYLINE_ID,
         path,
         title: "原始规划路线",
-        tone: "muted",
+        tone: "tertiary",
       }
     : null;
+
+const buildRideHailingLiveOverviewGeometry = ({
+  includeOrigin,
+  driverMarker,
+  providerRoutePolyline,
+}: {
+  includeOrigin: boolean;
+  driverMarker: MapMarker | null;
+  providerRoutePolyline: MapPolyline | null;
+}): MapActiveGeometry => {
+  const markerIds = [
+    ...(includeOrigin ? [ORIGIN_MARKER_ID] : []),
+    ...(driverMarker ? [DRIVER_MARKER_ID] : []),
+  ];
+  const polylineIds = providerRoutePolyline ? [PROVIDER_ROUTE_POLYLINE_ID] : [];
+
+  return markerIds.length > 0 || polylineIds.length > 0
+    ? {
+        kind: "selection",
+        markerIds,
+        polylineIds,
+      }
+    : { kind: "all" };
+};
 
 const resolveMode = (phase: RideHailingMapExecutionPhase): RideHailingOrderMapMode => {
   if (phase === "ACCEPTED") return "PICKING_UP";
@@ -146,6 +170,7 @@ export function buildRideHailingOrderMapViewModel(input: {
   if (mode === "SEARCHING_ORIGIN") {
     return {
       activeGeometry: { kind: "marker", id: ORIGIN_MARKER_ID },
+      overviewGeometry: { kind: "marker", id: ORIGIN_MARKER_ID },
       extraMarkers: [],
       extraPolylines: [],
       mode,
@@ -158,11 +183,16 @@ export function buildRideHailingOrderMapViewModel(input: {
   if (mode === "PICKING_UP") {
     const hasLiveGeometry = Boolean(providerRoutePolyline || driverMarker);
     return {
-      activeGeometry: providerRoutePolyline
-        ? { kind: "polyline", id: PROVIDER_ROUTE_POLYLINE_ID }
-        : driverMarker
-          ? { kind: "marker", id: DRIVER_MARKER_ID }
+      activeGeometry: driverMarker
+        ? { kind: "marker", id: DRIVER_MARKER_ID }
+        : providerRoutePolyline
+          ? { kind: "polyline", id: PROVIDER_ROUTE_POLYLINE_ID }
           : { kind: "all" },
+      overviewGeometry: buildRideHailingLiveOverviewGeometry({
+        includeOrigin: true,
+        driverMarker,
+        providerRoutePolyline,
+      }),
       extraMarkers: driverMarker ? [driverMarker] : [],
       extraPolylines: providerRoutePolyline ? [providerRoutePolyline] : [],
       mode,
@@ -177,6 +207,12 @@ export function buildRideHailingOrderMapViewModel(input: {
       activeGeometry: driverMarker
         ? { kind: "marker", id: DRIVER_MARKER_ID }
         : { kind: "marker", id: ORIGIN_MARKER_ID },
+      overviewGeometry: driverMarker
+        ? {
+            kind: "selection",
+            markerIds: [ORIGIN_MARKER_ID, DRIVER_MARKER_ID],
+          }
+        : { kind: "marker", id: ORIGIN_MARKER_ID },
       extraMarkers: driverMarker ? [driverMarker] : [],
       extraPolylines: [],
       mode,
@@ -187,18 +223,19 @@ export function buildRideHailingOrderMapViewModel(input: {
   }
 
   if (mode === "IN_TRIP") {
-    const mutedPlannedFallback = providerRoutePolyline
+    const plannedFallback = providerRoutePolyline
       ? null
-      : buildMutedPlannedFallbackPolyline(plannedPolyline);
+      : buildPlannedFallbackPolyline(plannedPolyline);
     return {
-      activeGeometry: providerRoutePolyline
-        ? { kind: "polyline", id: PROVIDER_ROUTE_POLYLINE_ID }
-        : driverMarker
-          ? { kind: "marker", id: DRIVER_MARKER_ID }
+      activeGeometry: driverMarker
+        ? { kind: "marker", id: DRIVER_MARKER_ID }
+        : providerRoutePolyline
+          ? { kind: "polyline", id: PROVIDER_ROUTE_POLYLINE_ID }
           : { kind: "all" },
+      overviewGeometry: { kind: "all" },
       extraMarkers: driverMarker ? [driverMarker] : [],
       extraPolylines: [
-        ...(mutedPlannedFallback ? [mutedPlannedFallback] : []),
+        ...(plannedFallback ? [plannedFallback] : []),
         ...(providerRoutePolyline ? [providerRoutePolyline] : []),
       ],
       mode,
@@ -210,6 +247,7 @@ export function buildRideHailingOrderMapViewModel(input: {
 
   return {
     activeGeometry: { kind: "all" },
+    overviewGeometry: { kind: "all" },
     extraMarkers: [],
     extraPolylines: [],
     mode,

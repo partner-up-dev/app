@@ -133,6 +133,41 @@ Archived full history:
     `routeDriver` coordinate changes
   - route-driver marker style uses `faceTo: "map"` for Tencent auto-rotation
   - non-driver route markers still update directly
+- Implemented route map polyline tone correction:
+  - moved route-specific polyline tone policy into `RouteMap`
+  - route polylines now use `secondary` by default
+  - multiple planned polylines allocate `secondary` / `tertiary` / `primary`
+    to reduce same-color overlap
+  - fallback straight-line geometry uses `danger`
+  - RideHailing provider live route is no longer recolored by `active`
+    polyline state
+- Corrected map tone colors to design-system tokens:
+  - Tencent map provider now resolves tone colors from `--sys-color-*`
+    variables
+  - `danger` maps to `--sys-color-error`
+  - fallback values match the current `@partner-up-dev/design-web` sys tokens
+    instead of private map hex values
+- Implemented route map viewport follow mode:
+  - `SharedMap` now supports active-marker following, user-paused follow, resume
+    follow, and "view full route" controls
+  - `RouteMap` exposes generic follow-mode props without coupling to RideHailing
+    lifecycle state
+  - RideHailing order detail follows the driver marker during pickup and trip
+    phases at a fixed follow zoom
+  - RideHailing order detail follow zoom was reduced from `17` to `15` to keep
+    more surrounding route context visible
+  - live route or driver geometry updates no longer force full-route fit while
+    the user is browsing the map
+  - follow resume now restores the configured zoom and recenters on the driver
+    marker
+  - follow marker recenter now uses `easeTo(center, zoom)` instead of
+    `fitBounds` followed by `setZoom`, avoiding zoom-only resume failures
+  - follow mode now raises the map provider max zoom to at least the configured
+    follow zoom, avoiding SDK clamp from the generic RouteMap max zoom
+  - map-level driver-heading rotation was reverted; the map stays north-up while
+    the vehicle marker itself still uses heading-aware rendering
+  - pickup overview now fits the provider route, driver marker, and origin
+    marker instead of every route point
 
 ## Verification
 
