@@ -1,13 +1,25 @@
 <template>
   <PuPageScaffold class="me-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('mePage.title')"
         :subtitle="t('mePage.description')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="me-page__body">
@@ -275,10 +287,10 @@ import {
   PuCard,
   PuFileUpload,
   PuFormItem,
+  PuHeader,
   PuImg,
   PuInlineNotice,
   PuLoadingState,
-  PuPageHeader,
   PuPageScaffold,
   PuTag,
   type PuFileUploadItem,

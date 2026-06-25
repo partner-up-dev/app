@@ -22,7 +22,6 @@
           <PuCheckbox
             :model-value="selected"
             :disabled="!isSelectable"
-            size="sm"
             tabindex="-1"
             aria-label="选择账单行"
           />

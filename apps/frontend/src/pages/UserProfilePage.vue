@@ -1,13 +1,25 @@
 <template>
   <PuPageScaffold class="user-profile-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('userProfilePage.title')"
         :subtitle="subtitle"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <PuLoadingState
@@ -69,12 +81,13 @@ import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import {
+  PuButton,
   PuCard,
   PuEmptyState,
+  PuHeader,
   PuImg,
   PuInlineNotice,
   PuLoadingState,
-  PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";

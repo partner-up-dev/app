@@ -4,12 +4,24 @@
     class="bill-detail-page"
     data-testid="bill-detail.page"
   >
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         title="账单详情"
-        show-back
-        @back="handleBack"
+        title-as="h1"
       >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="返回上一页"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
         <template v-if="detail" #actions>
           <PuButton
             :action="{ to: { path: `/orders/${detail.order.id}` } }"
@@ -41,7 +53,7 @@
             </span>
           </div>
         </template>
-      </PuPageHeader>
+      </PuHeader>
     </template>
 
     <div class="bill-detail-page__body">
@@ -98,8 +110,8 @@
 <script setup lang="ts">
 import {
   PuButton,
+  PuHeader,
   PuInlineNotice,
-  PuPageHeader,
   PuPageScaffold,
   PuTag,
   usePuSelect,
@@ -193,7 +205,6 @@ const selectedPayableLineAmountLabel = computed(() =>
 .bill-detail-page {
   min-width: 0;
   --pu-page-max-width: 44rem;
-  --pu-page-padding-bottom: 0;
 }
 
 .bill-detail-page__body {

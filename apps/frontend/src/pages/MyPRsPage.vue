@@ -1,13 +1,25 @@
 <template>
   <PuPageScaffold class="my-prs-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('myPrsPage.title')"
         :subtitle="t('myPrsPage.description')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="my-prs-page__body">
@@ -83,7 +95,7 @@ import { useMyCreatedPRs } from "@/domains/pr/queries/useMyCreatedPRs";
 import { useMyJoinedPRs } from "@/domains/pr/queries/useMyJoinedPRs";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import { PuLoadingState, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { handleBack } = useFallbackBack();

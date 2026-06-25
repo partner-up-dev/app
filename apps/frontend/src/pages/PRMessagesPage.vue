@@ -3,13 +3,25 @@
     class="pr-messages-page"
     data-page="pr-messages"
   >
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('prPage.messagePage.title')"
-        :back-label="t('prPage.messagePage.backToDetail')"
-        show-back
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('prPage.messagePage.backToDetail')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <PuInlineNotice tone="error"
@@ -38,7 +50,7 @@ import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import { PuInlineNotice, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const id = usePRRouteId();

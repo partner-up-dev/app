@@ -1,12 +1,24 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-author-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('contactAuthorPage.title')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <PuLoadingState
@@ -48,7 +60,7 @@ import {
   usePublicConfig,
 } from "@/shared/config/queries/usePublicConfig";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import { PuInlineNotice, PuLoadingState, PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const DEFAULT_AUTHOR_QR_CODE_URL =
   "https://oss-app.partner-up.cn/5264495b163398842ad04ee5ee42a3df.jpg";

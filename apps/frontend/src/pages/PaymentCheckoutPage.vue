@@ -4,13 +4,26 @@
     class="payment-checkout-page"
     data-testid="payment-checkout.page"
   >
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         title="支付"
         subtitle="本页只支付当前这一条账单行"
-        show-back
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="返回上一页"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="payment-checkout-page__body">
@@ -162,8 +175,8 @@
 import {
   PuButton,
   PuCard,
+  PuHeader,
   PuInlineNotice,
-  PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";

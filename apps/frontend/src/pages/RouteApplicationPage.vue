@@ -1,13 +1,25 @@
 <template>
   <PuPageScaffold class="route-application-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('routeApplicationPage.title')"
         :subtitle="t('routeApplicationPage.subtitle')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="route-application-page__body">
@@ -108,9 +120,9 @@ import {
   PuButton,
   PuCard,
   PuFormItem,
+  PuHeader,
   PuInlineNotice,
   PuLoadingState,
-  PuPageHeader,
   PuPageScaffold,
   PuTag,
 } from "@partner-up-dev/design-web";

@@ -1,7 +1,21 @@
 <template>
   <PuPageScaffold class="pr-create-page" data-page="pr-create">
-    <template #header>
-      <PRCreateHeader @back="goHome" />
+    <template #pageHeader>
+      <PuHeader :title="t('createPage.title')" title-as="h1">
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="goHome"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="pr-create-page__body">
@@ -67,10 +81,9 @@ import { useRoute, useRouter } from "vue-router";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
 import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
-import { PuPageScaffold, PuTabs } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuPageScaffold, PuTabs } from "@partner-up-dev/design-web";
 
 const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
   if (value === "nl" || value === "form") return value;

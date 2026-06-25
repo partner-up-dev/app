@@ -1,16 +1,26 @@
 <template>
   <PuPageScaffold class="pr-page" data-page="pr-detail">
-    <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
-    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
-
-    <template v-else-if="prDetail">
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
+        v-if="prDetail"
         :title="prDisplayTitle"
         data-region="summary"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
+        title-as="h1"
       >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+
         <template #actions>
           <div v-if="showHeaderQuickActions" class="header-quick-actions">
             <PuButton
@@ -54,8 +64,13 @@
             />
           </div>
         </template>
-      </PuPageHeader>
+      </PuHeader>
+    </template>
 
+    <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
+    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
+
+    <template v-else-if="prDetail">
       <PuModal
         v-if="showEditContentModal && id !== null"
         :open="showEditContentModal"
@@ -192,10 +207,10 @@
 import type { PRStatusManual } from "@partner-up-dev/backend";
 import {
   PuButton,
+  PuHeader,
   PuInlineNotice,
   PuLoadingState,
   PuModal,
-  PuPageHeader,
   PuPageScaffold,
   PuTag,
 } from "@partner-up-dev/design-web";

@@ -1,21 +1,22 @@
 <template>
   <PuPageScaffold viewport="screen" class="location-picker-page">
-    <template #header>
-      <div class="location-picker-page__header">
-        <PuButton
-
-          tone="neutral" variant="ghost"
-          size="sm"
-          data-testid="location-picker-page.back"
-          @click="goBack"
-        >
-          <template #leading>
-            <span class="i-mdi-arrow-left" aria-hidden="true"></span>
-          </template>
-          {{ t("common.backToPrevious") }}
-        </PuButton>
-        <h1>{{ t("locationPicker.title") }}</h1>
-      </div>
+    <template #pageHeader>
+      <PuHeader :title="t('locationPicker.title')" title-as="h1">
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            data-testid="location-picker-page.back"
+            @click="goBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+            {{ t("common.backToPrevious") }}
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <LocationPickerPanel
@@ -33,7 +34,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
-import { PuButton, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   readLastPickedLocation,
   saveLastPickedLocation,
@@ -54,20 +55,6 @@ const handlePick = (location: PickedLocation) => {
 </script>
 
 <style scoped lang="scss">
-.location-picker-page__header {
-  display: flex;
-  align-items: center;
-  gap: var(--sys-spacing-small);
-  padding: var(--sys-spacing-small) 0;
-}
-
-.location-picker-page__header h1 {
-  @include mx.pu-font(title);
-  min-width: 0;
-  margin: 0;
-  color: var(--sys-color-on-surface);
-}
-
 .location-picker-page__panel {
   flex: 1 1 auto;
   min-height: 0;

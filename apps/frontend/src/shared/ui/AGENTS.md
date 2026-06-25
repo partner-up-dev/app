@@ -20,6 +20,7 @@ Containers and layout:
 - `PuCard` from `@partner-up-dev/design-web`: standard card shell for reusable grouped content, outline surfaces, and collapsible sections. Use `variant` for treatment and `keep-content-mounted` only when collapsed content owns local state that must survive collapse.
 - `PuCard` from `@partner-up-dev/design-web`: use `selectable` for button-like choices and `action` for route or href card targets instead of adding a local choice-card wrapper.
 - `PuPageScaffold` from `@partner-up-dev/design-web`: page scaffold for route pages, centered flows, full-screen flows, desktop aside pages, and reveal-footer layouts. Prefer direct package usage instead of recreating safe-area page chrome locally.
+- `PuHeader` from `@partner-up-dev/design-web`: standard page, panel, and surface header. For route pages inside `PuPageScaffold`, use the scaffold `pageHeader` slot so the scaffold keeps owning standard inset and spacing; reserve raw `header` for custom header structures with consumer-owned spacing.
 - `sections/PageFooter.vue`: product page footer chrome with `variant="minimal"` for compact support/navigation footers and `variant="brand"` for landing-style brand/legal footers. Prefer extending this variant API over creating another page footer component.
 
 Forms and controls:

@@ -1,13 +1,25 @@
 <template>
   <PuPageScaffold content-placement="center" class="about-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('aboutPage.title')"
         :subtitle="t('aboutPage.description')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <section class="about-body" :aria-label="t('aboutPage.sectionTitle')">
@@ -148,8 +160,8 @@ import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
 import {
   PuButton,
+  PuHeader,
   PuModal,
-  PuPageHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 

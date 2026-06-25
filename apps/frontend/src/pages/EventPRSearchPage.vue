@@ -1,23 +1,37 @@
 <template>
   <PuPageScaffold class="event-pr-search-page" data-page="event-pr-search">
-    <PuPageHeader
-      :title="pageTitle"
-      :subtitle="pageSubtitle"
-      show-back
-      :back-label="t('common.backToHome')"
-      @back="handleBack"
-    >
-      <template #actions>
-        <PuButton
-          v-if="isResultMode"
-          tone="neutral" variant="ghost"
-          size="sm"
-          @click="showCriteriaDrawer = true"
-        >
-          {{ t("eventPRSearch.actions.modifyCriteria") }}
-        </PuButton>
-      </template>
-    </PuPageHeader>
+    <template #pageHeader>
+      <PuHeader
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+
+        <template #actions>
+          <PuButton
+            v-if="isResultMode"
+            tone="neutral" variant="ghost"
+            size="sm"
+            @click="showCriteriaDrawer = true"
+          >
+            {{ t("eventPRSearch.actions.modifyCriteria") }}
+          </PuButton>
+        </template>
+      </PuHeader>
+    </template>
 
     <div v-if="eventsQuery.isLoading.value" class="event-pr-search-page__state">
       {{ t("common.loading") }}
@@ -168,7 +182,7 @@ import {
   PuButton,
   PuDrawer,
   PuEmptyState,
-  PuPageHeader,
+  PuHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";

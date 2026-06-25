@@ -9,16 +9,27 @@
     data-testid="anchor-event-landing.page"
     :content-placement="pageStatePlacement"
   >
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         v-if="detail"
         class="anchor-event-landing-page__header"
         :title="detail.title"
         :subtitle="detail.description ?? undefined"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleLandingBack"
+        title-as="h1"
       >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleLandingBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
         <template #actions>
           <PuButton
             shape="pill"
@@ -31,7 +42,7 @@
             {{ t("anchorEvent.otherEvents.action") }}
           </PuButton>
         </template>
-      </PuPageHeader>
+      </PuHeader>
     </template>
 
     <div v-if="isLoading" class="loading-state">
@@ -208,8 +219,8 @@ import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import {
   PuButton,
   PuDrawer,
+  PuHeader,
   PuLoadingState,
-  PuPageHeader,
   PuPageScaffold,
   PuSegmented,
   PuSegmentedItem,

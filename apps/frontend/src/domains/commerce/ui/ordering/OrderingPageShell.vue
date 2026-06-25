@@ -1,22 +1,34 @@
 <template>
   <PuPageScaffold
     viewport="screen"
+    :padding="noPadding ? 'none' : undefined"
     class="ordering-page-shell"
-    :class="{ 'ordering-page-shell--no-padding': noPadding }"
     :data-testid="dataTestid"
   >
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="title"
         :subtitle="subtitle"
+        title-as="h1"
         size="sm"
-        show-back
-        @back="handleBack"
       >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToPrevious')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
         <template v-if="$slots.actions" #actions>
           <slot name="actions" />
         </template>
-      </PuPageHeader>
+      </PuHeader>
     </template>
 
     <main class="ordering-page-shell__body">
@@ -33,7 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { PuPageHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useI18n } from "vue-i18n";
 import type { RouteLocationRaw } from "vue-router";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
@@ -45,6 +58,7 @@ const props = defineProps<{
   noPadding?: boolean;
 }>();
 
+const { t } = useI18n();
 const { handleBack } = useFallbackBack(() => props.backFallbackTo);
 </script>
 
@@ -54,13 +68,7 @@ const { handleBack } = useFallbackBack(() => props.backFallbackTo);
   min-width: 0;
   --pu-page-max-width: 44rem;
   --pu-page-padding-bottom: 0;
-}
-
-.ordering-page-shell--no-padding {
-  --pu-page-padding-top: 0;
-  --pu-page-padding-right: 0;
-  --pu-page-padding-bottom: 0;
-  --pu-page-padding-left: 0;
+  --pu-page-scaffold-region-gap: 0;
 }
 
 .ordering-page-shell :deep(.pu-page-scaffold__footer) {

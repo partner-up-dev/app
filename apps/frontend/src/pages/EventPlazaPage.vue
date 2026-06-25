@@ -1,25 +1,39 @@
 <template>
   <PuPageScaffold class="event-plaza-page">
-    <PuPageHeader
-      :title="t('eventPlaza.title')"
-      :subtitle="t('eventPlaza.subtitle')"
-      show-back
-      :back-label="t('common.backToHome')"
-      @back="handleBack"
-    >
-      <template #actions>
-        <PuButton
-          :action="{ to: { name: 'event-pr-search' } }"
-          class="event-plaza-page__search-link"
-          shape="pill"
-          tone="primary"
-          variant="outline"
-          size="sm"
-        >
-          {{ t("eventPlaza.searchAction") }}
-        </PuButton>
-      </template>
-    </PuPageHeader>
+    <template #pageHeader>
+      <PuHeader
+        :title="t('eventPlaza.title')"
+        :subtitle="t('eventPlaza.subtitle')"
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+
+        <template #actions>
+          <PuButton
+            :action="{ to: { name: 'event-pr-search' } }"
+            class="event-plaza-page__search-link"
+            shape="pill"
+            tone="primary"
+            variant="outline"
+            size="sm"
+          >
+            {{ t("eventPlaza.searchAction") }}
+          </PuButton>
+        </template>
+      </PuHeader>
+    </template>
 
     <div v-if="isLoading" class="loading-state">
       {{ t("common.loading") }}
@@ -52,7 +66,7 @@ import type { AnchorEventListResponse } from "@/domains/event/model/types";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   PuButton,
-  PuPageHeader,
+  PuHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 

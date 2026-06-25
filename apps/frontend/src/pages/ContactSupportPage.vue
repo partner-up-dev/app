@@ -1,12 +1,24 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-support-page">
-    <template #header>
-      <PuPageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('contactSupportPage.title')"
-        show-back
-        :back-label="t('common.backToHome')"
-        @back="handleBack"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <section
@@ -94,7 +106,7 @@ import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   PuButton,
   PuChip,
-  PuPageHeader,
+  PuHeader,
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 
