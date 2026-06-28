@@ -77,7 +77,7 @@
               :to="{ name: 'event-plaza' }"
               class="state-action-link"
             >
-              {{ t("anchorEvent.discoverOthers") }}
+              {{ t("anchorEvent.otherEvents.action") }}
             </router-link>
           </template>
         </PuEmptyState>

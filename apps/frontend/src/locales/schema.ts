@@ -772,7 +772,6 @@ export interface MessageSchema {
       locationPlaceholder: string;
       otherEventsLoadFailed: string;
     };
-    discoverOthers: string;
     createCard: {
       title: string;
       titleWhenNoAvailablePR: string;
