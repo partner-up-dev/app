@@ -37,6 +37,7 @@ export type FakeCaocaoOrderState = {
   providerOrderId: string;
   externalOrderId: string;
   callbackUrl: string | null;
+  callbackInfo: string | null;
   carType: string;
   phase: FakeCaocaoOrderPhase;
   origin: FakeCaocaoCoordinate;
@@ -224,6 +225,7 @@ export class FakeCaocaoState {
   createOrder(input: {
     externalOrderId: string;
     carType: string;
+    callbackInfo?: string | null;
     callbackUrl?: string | null;
     origin?: FakeCaocaoCoordinate | null;
     destination?: FakeCaocaoCoordinate | null;
@@ -237,6 +239,7 @@ export class FakeCaocaoState {
     const timestamp = nowIso();
     const order: FakeCaocaoOrderState = {
       cancelFeeFen: 0,
+      callbackInfo: input.callbackInfo ?? null,
       callbackUrl: input.callbackUrl ?? null,
       carType: estimate.carType,
       createdAt: timestamp,

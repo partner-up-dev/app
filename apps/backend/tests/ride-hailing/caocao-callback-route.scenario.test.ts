@@ -9,7 +9,11 @@ import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOr
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { BillRepository } from "../../src/repositories/BillRepository";
-import { createCaocaoSignature, encodeCaocaoExternalOrderId } from "../../src/domains/ride-hailing";
+import {
+  buildCaocaoCallbackInfo,
+  createCaocaoSignature,
+  encodeCaocaoExternalOrderId,
+} from "../../src/domains/ride-hailing";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
@@ -24,9 +28,11 @@ const buildCallbackForm = (input: {
   providerOrderId?: string;
   event?: string;
   finalAmountFen?: string;
+  callbackInfo?: string;
 }): URLSearchParams => {
   const unsigned = {
     timestamp: "1700000000000",
+    ...(input.callbackInfo ? { callback_info: input.callbackInfo } : {}),
     order_id: input.providerOrderId ?? "CC123456",
     ext_order_id: encodeCaocaoExternalOrderId(
       input.orderId ?? "123e4567-e89b-12d3-a456-426614174000",
@@ -64,7 +70,7 @@ scenario("legacy Caocao callback alias resolves provider and requires local orde
     createdAt: new Date("2020-01-01T00:00:00.000Z"),
     updatedAt: new Date("2020-01-01T00:00:00.000Z"),
   });
-  await providerRepo.create({
+  const secondProvider = await providerRepo.create({
     providerType: "CAOCAO",
     instanceKey: "scenario-caocao-second",
     status: "ACTIVE",
@@ -107,6 +113,26 @@ scenario("legacy Caocao callback alias resolves provider and requires local orde
   );
 
   assert.equal(wrongInstanceResponse.status, 400);
+
+  const secondViaCallbackInfoResponse = await requestJson(
+    "/api/v1/service_provider/caocao/callback/order",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: buildCallbackForm({
+        callbackInfo: buildCaocaoCallbackInfo({
+          providerInstance: secondProvider,
+          routingToken: "stg",
+        }),
+        signKey: "scenario-caocao-secret-second",
+        providerOrderId: "CC654321",
+      }).toString(),
+    },
+  );
+
+  assert.equal(secondViaCallbackInfoResponse.status, 404);
 });
 
 scenario("Caocao callback updates ride execution and creates final bill", async () => {
@@ -302,6 +328,10 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
         "content-type": "application/x-www-form-urlencoded",
       },
       body: buildCallbackForm({
+        callbackInfo: buildCaocaoCallbackInfo({
+          providerInstance: provider,
+          routingToken: "stg",
+        }),
         signKey: "scenario-caocao-callback-secret",
         orderId: order.id,
         providerOrderId: "CC-FINAL-123",
@@ -312,6 +342,14 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
   );
 
   assert.equal(response.status, 200);
+  const responseBody = (await response.json()) as {
+    code: number;
+    success: boolean;
+  };
+  assert.deepEqual(responseBody, {
+    code: 200,
+    success: true,
+  });
   const updatedOrder = await tradeOrderRepo.findById(order.id);
   assert.equal(updatedOrder?.status, "OPEN");
   const updatedRide = await rideOrderRepo.findByOrderId(order.id as TradeOrderId);

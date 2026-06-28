@@ -25,10 +25,20 @@ type CaocaoParamInput = Record<string, CaocaoParamValue>;
 
 const EXTERNAL_ORDER_ID_PREFIX = "rh";
 const UUID_BASE36_ALPHABET = /^[0-9a-z]+$/;
+const CAOCAO_CALLBACK_INFO_PREFIX = "pu.rhc.v1";
+const CAOCAO_CALLBACK_INFO_PROVIDER_INSTANCE_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CAOCAO_ORDER_STATUS_CALLBACK_EVENTS: ReadonlySet<number> = new Set([
   1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 14, 20, 21, 22, 23, 24, 25, 26, 27, 40, 41, 42, 43, 44, 45, 46,
   47, 48, 49, 50,
 ]);
+
+export type CaocaoCallbackRoutingToken = "dev" | "prod" | "stg";
+
+export type CaocaoCallbackInfoRoute = {
+  providerInstanceId: string;
+  routingToken: CaocaoCallbackRoutingToken;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -322,6 +332,57 @@ export function buildCaocaoSignedParams(input: {
       signKey: input.signKey,
     }),
   };
+}
+
+export function resolveCurrentCaocaoCallbackRoutingToken(): CaocaoCallbackRoutingToken {
+  if (process.env.PARTNERUP_ENVIRONMENT === "production") return "prod";
+  if (process.env.PARTNERUP_ENVIRONMENT === "staging") return "stg";
+  return "dev";
+}
+
+export function buildCaocaoCallbackInfo(input: {
+  providerInstance: RideHailingProviderInstance;
+  routingToken?: CaocaoCallbackRoutingToken;
+}): string {
+  if (input.providerInstance.providerType !== "CAOCAO") {
+    throw new Error("Caocao callback_info requires a CAOCAO provider instance");
+  }
+
+  return [
+    CAOCAO_CALLBACK_INFO_PREFIX,
+    input.routingToken ?? resolveCurrentCaocaoCallbackRoutingToken(),
+    input.providerInstance.id,
+  ].join(".");
+}
+
+export function parseCaocaoCallbackInfo(
+  value: string | null | undefined,
+): CaocaoCallbackInfoRoute | null {
+  const normalized = value?.trim() ?? "";
+  if (normalized.length === 0) return null;
+
+  const parts = normalized.split(".");
+  if (parts.length !== 5) return null;
+  const [prefixNamespace, prefixDomain, prefixVersion, routingToken, providerInstanceId] = parts;
+  if (
+    `${prefixNamespace}.${prefixDomain}.${prefixVersion}` !== CAOCAO_CALLBACK_INFO_PREFIX ||
+    (routingToken !== "dev" && routingToken !== "prod" && routingToken !== "stg") ||
+    !providerInstanceId ||
+    !CAOCAO_CALLBACK_INFO_PROVIDER_INSTANCE_ID.test(providerInstanceId)
+  ) {
+    return null;
+  }
+
+  return {
+    providerInstanceId,
+    routingToken,
+  };
+}
+
+export function caocaoCallbackRoutingTokenMatchesCurrent(
+  routingToken: CaocaoCallbackRoutingToken,
+): boolean {
+  return routingToken === resolveCurrentCaocaoCallbackRoutingToken();
 }
 
 export const serializeCaocaoFormBody = (params: CaocaoSignedParams): URLSearchParams => {

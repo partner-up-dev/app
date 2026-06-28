@@ -583,6 +583,7 @@ const orderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
         }
       : null,
     event: phaseEvent(order.phase),
+    ...(order.callbackInfo ? { callback_info: order.callbackInfo } : {}),
     ext_order_id: order.externalOrderId,
     finalAmountFen: order.phase === "FINISHED" ? order.finalAmountFen : null,
     orderFeeVO: {
@@ -616,6 +617,7 @@ const buildCallbackForm = (input: {
       : null;
   const unsigned: FakeCaocaoSignedParams = {
     event: String(input.event),
+    ...(input.order.callbackInfo ? { callback_info: input.order.callbackInfo } : {}),
     ext_order_id: input.order.externalOrderId,
     order_id: input.order.providerOrderId,
     timestamp: String(Date.now()),
@@ -689,6 +691,23 @@ const readResponseBodyPreview = async (response: Response): Promise<string | nul
   return trimmed.length > 500 ? `${trimmed.slice(0, 500)}...` : trimmed;
 };
 
+const isSuccessfulCallbackAck = (bodyPreview: string | null): boolean => {
+  if (!bodyPreview) return false;
+  try {
+    const parsed = JSON.parse(bodyPreview) as unknown;
+    return (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "code" in parsed &&
+      "success" in parsed &&
+      (parsed as { code: unknown }).code === 200 &&
+      (parsed as { success: unknown }).success === true
+    );
+  } catch {
+    return false;
+  }
+};
+
 const postCallback = async (input: {
   callbackUrl: string;
   fixture: FakeCaocaoFixture;
@@ -704,7 +723,7 @@ const postCallback = async (input: {
       method: "POST",
     });
     const bodyPreview = await readResponseBodyPreview(response);
-    if (response.ok) {
+    if (response.ok && isSuccessfulCallbackAck(bodyPreview)) {
       return {
         bodyPreview,
         callbackUrl: input.callbackUrl,
@@ -717,7 +736,9 @@ const postCallback = async (input: {
     return {
       bodyPreview,
       callbackUrl: input.callbackUrl,
-      message: `Fake Caocao callback POST failed with HTTP ${response.status}`,
+      message: response.ok
+        ? "Fake Caocao callback response did not acknowledge success"
+        : `Fake Caocao callback POST failed with HTTP ${response.status}`,
       ok: false,
       skipped: false,
       status: response.status,
@@ -1009,7 +1030,9 @@ export async function handleFakeCaocaoRequest(
         "notifyUrl",
         "order_status_callback_url",
       ]);
+      const callbackInfo = readFirstParam(params, ["callback_info", "callbackInfo"]);
       const order = input.state.createOrder({
+        callbackInfo,
         callbackUrl,
         carType,
         destination: readOptionalCoordinateParam(params, {

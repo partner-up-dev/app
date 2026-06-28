@@ -144,6 +144,7 @@ describe("startFakeCaocaoServer", () => {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          callback_info: "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
           car_type: "PREMIER",
           ext_order_id: "external-order-1",
           timestamp: "2",
@@ -164,6 +165,9 @@ describe("startFakeCaocaoServer", () => {
     expect(createResponse.ok).toBe(true);
     expect(createBody.success).toBe(true);
     expect(createBody.data.orderNo).toBe("CCexternalorder1");
+    expect(server.state.findOrder(createBody.data.orderNo)?.callbackInfo).toBe(
+      "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
+    );
 
     const detailResponse = await fetch(
       `${server.origin}/common/queryOrderDetailV2?${signedSearchParams({
@@ -610,6 +614,51 @@ describe("startFakeCaocaoServer", () => {
       expect(advanceBody.order.phase).toBe("ACCEPTED");
       expect(server.state.findOrder(created.providerOrderId)?.phase).toBe("ACCEPTED");
       expect(callbackServer.receivedBodies[0]).toContain("order_id=");
+    } finally {
+      await callbackServer.close();
+    }
+  });
+
+  test("posts callback_info during successful callback delivery", async () => {
+    server = await startFakeCaocaoServer();
+    const callbackServer = await startCallbackResponseServer({
+      body: JSON.stringify({ code: 200, success: true }),
+      status: 200,
+    });
+
+    try {
+      const callbackInfo = "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501";
+      const created = server.state.createOrder({
+        callbackInfo,
+        callbackUrl: `${callbackServer.origin}/callback`,
+        carType: "EXPRESS",
+        externalOrderId: "external-order-callback-success",
+      });
+
+      const advanceResponse = await fetch(
+        `${server.origin}/__fake_caocao/orders/${created.providerOrderId}/advance`,
+        { method: "POST" },
+      );
+      const advanceBody = (await advanceResponse.json()) as {
+        callback: {
+          callbackUrl: string;
+          ok: boolean;
+          status: number | null;
+        };
+        ok: boolean;
+        order: { phase: string; providerOrderId: string };
+      };
+
+      expect(advanceResponse.ok).toBe(true);
+      expect(advanceBody.ok).toBe(true);
+      expect(advanceBody.callback.ok).toBe(true);
+      expect(advanceBody.callback.callbackUrl).toBe(`${callbackServer.origin}/callback`);
+      expect(advanceBody.callback.status).toBe(200);
+      expect(advanceBody.order.providerOrderId).toBe(created.providerOrderId);
+      expect(advanceBody.order.phase).toBe("ACCEPTED");
+      expect(new URLSearchParams(callbackServer.receivedBodies[0]).get("callback_info")).toBe(
+        callbackInfo,
+      );
     } finally {
       await callbackServer.close();
     }

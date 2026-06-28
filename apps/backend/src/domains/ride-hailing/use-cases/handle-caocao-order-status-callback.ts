@@ -12,7 +12,11 @@ import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrd
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
-import { createRideHailingProviderPort } from "../services";
+import {
+  caocaoCallbackRoutingTokenMatchesCurrent,
+  createRideHailingProviderPort,
+  parseCaocaoCallbackInfo,
+} from "../services";
 import type { CaocaoOrderStatusCallback } from "../model/provider";
 import { getRideHailingChoiceSetItem, getRideHailingProviderBinding } from "../../trade/services";
 import type { RideHailingExecutionPhase } from "../../trade/model";
@@ -20,6 +24,11 @@ import type { RideHailingExecutionPhase } from "../../trade/model";
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
+
+export type CaocaoOrderStatusCallbackAck = {
+  code: 200;
+  success: true;
+};
 
 const readString = (value: Record<string, string>, keys: string[]): string | null => {
   for (const key of keys) {
@@ -128,10 +137,62 @@ async function loadFirstActiveCaocaoProviderInstance(): Promise<RideHailingProvi
   return providerInstance;
 }
 
+const readCallbackInfoRoute = (form: Record<string, string>) => {
+  const callbackInfo = readString(form, ["callback_info", "callbackInfo"]);
+  if (!callbackInfo) return null;
+  const route = parseCaocaoCallbackInfo(callbackInfo);
+  if (!route) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Caocao callback_info is invalid",
+    });
+  }
+  return route;
+};
+
+async function loadCaocaoProviderInstanceFromCallbackInfo(
+  form: Record<string, string>,
+): Promise<RideHailingProviderInstance | null> {
+  const route = readCallbackInfoRoute(form);
+  if (!route) return null;
+  if (!caocaoCallbackRoutingTokenMatchesCurrent(route.routingToken)) {
+    return throwHttpProblem({
+      status: 404,
+      detail: "Caocao callback_info does not belong to this backend environment",
+    });
+  }
+  return loadActiveCaocaoProviderInstance(route.providerInstanceId);
+}
+
+const assertCallbackInfoMatchesProviderInstance = (input: {
+  form: Record<string, string>;
+  providerInstance: RideHailingProviderInstance;
+}): void => {
+  const route = readCallbackInfoRoute(input.form);
+  if (!route) return;
+  if (!caocaoCallbackRoutingTokenMatchesCurrent(route.routingToken)) {
+    return throwHttpProblem({
+      status: 404,
+      detail: "Caocao callback_info does not belong to this backend environment",
+    });
+  }
+  if (route.providerInstanceId !== input.providerInstance.id) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Caocao callback_info provider instance does not match callback route",
+    });
+  }
+};
+
 async function applyCaocaoCallbackWithProviderInstance(input: {
   providerInstance: RideHailingProviderInstance;
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
+  assertCallbackInfoMatchesProviderInstance({
+    form: input.form,
+    providerInstance: input.providerInstance,
+  });
+
   const port = createRideHailingProviderPort({
     providerInstance: input.providerInstance,
   });
@@ -221,15 +282,15 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
   }
 
   return {
-    code: "SUCCESS",
-    message: "成功",
+    code: 200,
+    success: true,
   };
 }
 
 export async function handleCaocaoOrderStatusCallback(input: {
   providerInstanceId: string;
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
   return applyCaocaoCallbackWithProviderInstance({
     providerInstance: await loadActiveCaocaoProviderInstance(input.providerInstanceId),
     form: input.form,
@@ -238,9 +299,11 @@ export async function handleCaocaoOrderStatusCallback(input: {
 
 export async function handleLegacyCaocaoOrderStatusCallback(input: {
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
   return applyCaocaoCallbackWithProviderInstance({
-    providerInstance: await loadFirstActiveCaocaoProviderInstance(),
+    providerInstance:
+      (await loadCaocaoProviderInstanceFromCallbackInfo(input.form)) ??
+      (await loadFirstActiveCaocaoProviderInstance()),
     form: input.form,
   });
 }

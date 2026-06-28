@@ -32,6 +32,7 @@ import {
   type RideHailingSkuFacts,
 } from "../../merchandising";
 import {
+  buildCaocaoCallbackInfo,
   createRideHailingProviderPort,
   resolveCaocaoOrderStatusCallbackUrl,
 } from "../../ride-hailing";
@@ -862,6 +863,7 @@ async function createRideHailingOrderBranch(input: {
         created = await port.createRide({
           orderId: base.order.id,
           params: {
+            callback_info: buildCaocaoCallbackInfo({ providerInstance: provider }),
             callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
             car_type: input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
             price_token: input.selected.dispatchCandidate.fulfillmentQuote.providerQuoteId,

@@ -4,11 +4,13 @@ import type {
   RideHailingProviderInstanceId,
 } from "../../../entities/ride-hailing-provider";
 import {
+  buildCaocaoCallbackInfo,
   buildCaocaoSignedParams,
   CaocaoProviderAdapter,
   createCaocaoSignature,
   decodeCaocaoExternalOrderId,
   encodeCaocaoExternalOrderId,
+  parseCaocaoCallbackInfo,
   parseRideHailingProviderRegistrationConfig,
   resolveCaocaoOrderStatusCallbackUrl,
 } from ".";
@@ -144,12 +146,30 @@ describe("Caocao external order id", () => {
 });
 
 describe("Caocao callback verification", () => {
+  it("builds and parses callback_info routing tokens", () => {
+    const callbackInfo = buildCaocaoCallbackInfo({
+      providerInstance: caocaoProviderInstance(),
+      routingToken: "stg",
+    });
+
+    expect(callbackInfo).toBe("pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501");
+    expect(parseCaocaoCallbackInfo(callbackInfo)).toEqual({
+      providerInstanceId,
+      routingToken: "stg",
+    });
+    expect(parseCaocaoCallbackInfo("pu.rhc.v1.prod.not-a-uuid")).toBeNull();
+  });
+
   it("verifies callback signature and resolves local order id", () => {
     const adapter = new CaocaoProviderAdapter({
       providerInstance: caocaoProviderInstance(),
     });
     const unsigned = {
       timestamp: "1700000000000",
+      callback_info: buildCaocaoCallbackInfo({
+        providerInstance: caocaoProviderInstance(),
+        routingToken: "stg",
+      }),
       order_id: "CC123456",
       ext_order_id: adapter.buildExternalOrderId(orderId),
       event: "20",
@@ -169,6 +189,7 @@ describe("Caocao callback verification", () => {
     expect(parsed.localOrderId).toBe(orderId);
     expect(parsed.event).toBe(20);
     expect(parsed.timestampMs).toBe(1700000000000);
+    expect(parsed.raw.callback_info).toBe("pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501");
   });
 
   it("rejects callbacks with invalid signatures or unsupported events", () => {
