@@ -39,6 +39,9 @@
   - `ride-hailing1.test.sz.partner-up.ltd /api/v1 -> http://127.0.0.1:6070/v1`
 - Current backend service on `127.0.0.1:6070` exposes:
   `/v1/service_provider/caocao/callback/order`.
+- Runtime preparation:
+  - installed nvm `0.40.3` for root on ec1
+  - installed Node `v22.23.1` through nvm
 
 ## Proposed Topology
 
@@ -137,5 +140,17 @@ The existing catch-all `/api/v1` proxy remains unchanged.
   - `pnpm build:backend` passed and produced
     `apps/backend/dist/caocao-callback-router.js`.
   - compiled router short-start check passed with SIGTERM shutdown.
-- After local verification, perform a remote dry-run only after explicit
-  deployment confirmation.
+- Remote dry-run on ec1 without nginx cutover:
+  - uploaded repo-built router bundle from commit `5e457335` to
+    `/opt/partner-up/caocao-callback-router`
+  - started router on `127.0.0.1:6080`
+  - `pu.rhc.v1.stg.*` routed to staging with
+    `targetEnvironment:"staging"`
+  - `pu.rhc.v1.prod.*` routed to production with
+    `targetEnvironment:"production"`
+  - invalid present `callback_info` returned `400` and did not reach upstream
+- Dry-run exposed a deployment-template gap: backend CI computed
+  `PARTNERUP_ENVIRONMENT`, but `apps/backend/s.yaml` did not pass it into the
+  backend runtime. Staging runtime therefore treated itself as `dev`, which
+  would make real staging order callbacks incompatible with the router. Fix the
+  runtime env injection before nginx cutover.

@@ -195,6 +195,16 @@ WeChatPay can reach for unauthenticated payment callbacks. Do not point it at
 the frontend origin unless that origin also routes `/api/payment/*` to the
 backend.
 
+Backend deploy maps the Git branch into `PARTNERUP_ENVIRONMENT` and passes that
+value to both the migration function and the backend runtime:
+
+- `develop`: `staging`
+- `master`: `production`
+
+Runtime code that needs to separate staging and production behavior must use
+`PARTNERUP_ENVIRONMENT`, not `NODE_ENV`, because both deployed backend runtimes
+use `NODE_ENV=production`.
+
 ## CaoCao Callback Edge Routing
 
 CaoCao order-status callbacks use a fixed callback URL configured on the CaoCao
