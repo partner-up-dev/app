@@ -244,18 +244,8 @@ const readHeader = (headers: IncomingHttpHeaders, name: string): string | null =
 
 const buildForwardHeaders = (headers: IncomingHttpHeaders, bodyLength: number): Headers => {
   const forwarded = new Headers();
-  const copyHeaderNames = [
-    "content-type",
-    "user-agent",
-    "x-request-id",
-    "x-correlation-id",
-    "x-real-ip",
-    "x-forwarded-for",
-    "x-forwarded-proto",
-    "x-forwarded-host",
-    "x-forwarded-port",
-    "forwarded",
-  ];
+  // Upstream origin is selected by this router; edge host metadata must not leak across environments.
+  const copyHeaderNames = ["content-type", "user-agent", "x-request-id", "x-correlation-id"];
 
   for (const name of copyHeaderNames) {
     const value = readHeader(headers, name);

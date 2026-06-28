@@ -77,6 +77,8 @@ sequenceDiagram
   - `pu.rhc.v1.prod.*` -> production origin
   - any other present `callback_info` -> `400 Bad Request`
 - Forward method, path, query, content type, and raw body to the selected backend.
+- Do not forward the public edge `Host`, `Forwarded`, or `X-Forwarded-*`
+  metadata to the selected backend origin.
 - Do not connect to the database.
 - Do not verify CaoCao signature.
 - Do not know provider instance semantics beyond token prefix routing.
@@ -154,3 +156,8 @@ The existing catch-all `/api/v1` proxy remains unchanged.
   backend runtime. Staging runtime therefore treated itself as `dev`, which
   would make real staging order callbacks incompatible with the router. Fix the
   runtime env injection before nginx cutover.
+- Nginx cutover exposed an edge-header leak: when nginx passed
+  `X-Forwarded-Host: ride-hailing1...` to the router and the router forwarded it
+  to FC, staging returned a generic `500`. Clearing edge forwarded headers made
+  the same `stg` dry-run return the expected provider-not-found `404`; the
+  repo-owned router must sanitize those headers itself so nginx can stay simple.

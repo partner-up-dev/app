@@ -262,6 +262,11 @@ The router binds only to `127.0.0.1:6080`, accepts only
 - missing `callback_info`: `https://api-app.partner-up.cn`
 - present but invalid `callback_info`: `400 Bad Request`
 
+The router must not forward the public edge `Host`, `Forwarded`, or
+`X-Forwarded-*` headers to the selected backend origin. Those headers describe
+the CaoCao-facing callback edge, not the FC backend origin, and can cause the
+upstream backend to resolve request metadata against the wrong environment.
+
 During the compatibility window, callbacks with no `callback_info` may continue
 to default to production if there are already CaoCao orders created before this
 contract was deployed. New staging test orders must carry `stg` so the edge can

@@ -160,6 +160,12 @@ test("router forwards stg callback_info requests to the staging origin with raw 
       body: rawBody,
       headers: {
         "content-type": "application/x-www-form-urlencoded",
+        forwarded: "for=203.0.113.10;host=ride-hailing1.sz.partner-up.ltd;proto=https",
+        "x-forwarded-for": "203.0.113.10",
+        "x-forwarded-host": "ride-hailing1.sz.partner-up.ltd",
+        "x-forwarded-port": "443",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "203.0.113.10",
         "x-request-id": "stg-request",
       },
       method: "POST",
@@ -177,6 +183,13 @@ test("router forwards stg callback_info requests to the staging origin with raw 
   assert.equal(staging.requests[0].method, "POST");
   assert.deepEqual(staging.requests[0].body, rawBody);
   assert.equal(staging.requests[0].headers["content-type"], "application/x-www-form-urlencoded");
+  assert.equal(staging.requests[0].headers["x-request-id"], "stg-request");
+  assert.equal(staging.requests[0].headers.forwarded, undefined);
+  assert.equal(staging.requests[0].headers["x-forwarded-for"], undefined);
+  assert.equal(staging.requests[0].headers["x-forwarded-host"], undefined);
+  assert.equal(staging.requests[0].headers["x-forwarded-port"], undefined);
+  assert.equal(staging.requests[0].headers["x-forwarded-proto"], undefined);
+  assert.equal(staging.requests[0].headers["x-real-ip"], undefined);
   assert.equal(logs.at(-1)?.targetEnvironment, "staging");
   assert.equal(logs.at(-1)?.routingReason, "stg-token");
 });
