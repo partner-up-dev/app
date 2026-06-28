@@ -230,7 +230,7 @@ import {
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 import { storeToRefs } from "pinia";
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   type CommerceOrderDetailResponse,
@@ -428,21 +428,6 @@ const simulateBookingConfirmation = async (): Promise<void> => {
   if (!orderId.value) return;
   await confirmationMutation.mutateAsync(orderId.value);
 };
-
-let ridePollingTimer: number | undefined;
-
-onMounted(() => {
-  ridePollingTimer = window.setInterval(() => {
-    if (detail.value?.order.family !== "RIDE_HAILING" || detail.value.bill) return;
-    void orderQuery.refetch();
-  }, 1500);
-});
-
-onUnmounted(() => {
-  if (ridePollingTimer !== undefined) {
-    window.clearInterval(ridePollingTimer);
-  }
-});
 </script>
 
 <style scoped lang="scss">

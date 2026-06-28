@@ -20,8 +20,8 @@ Hypothesis:
 
 - Primary route: `Reality`
 - Active mode: `Explore`; RideHailing cancellation + departure-time
-  short-circuit is now completed and verified, and the packet is ready for the
-  next slice
+  short-circuit and the follow-up polling / PR-ready recovery slice are now
+  completed and verified, and the packet is ready for the next slice
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -61,6 +61,17 @@ Hypothesis:
       transport during `DISPATCHING`
     - RideHailing Ordering now short-circuits departure-time UX to fixed
       `现在出发`
+  - the next requested slice:
+    - terminal RideHailing orders such as `CANCELLED` / `FINISHED` should stop
+      frontend order-detail polling
+    - when create-order is blocked by `PR_NOT_READY`, the ordering blocked
+      dialog should offer a fast path to mark the PR `READY` after a second
+      confirmation and then retry from the same Ordering flow
+  - the latest completed slice:
+    - `CommerceOrderDetailPage.vue` no longer adds bill-existence-based
+      RideHailing polling on top of `useCommerceOrderDetail()`
+    - `OrderingPage.vue` now turns `PR_NOT_READY` into a two-step recovery
+      dialog backed by `useUpdatePRStatus()`
 
 ## Inherited Effective Truth
 
@@ -151,8 +162,23 @@ Hypothesis:
   - Offer Listing currently always sees `departureAt = null`
   - backend `departureAt` contract is intentionally preserved for later
     restoration
-- Standalone planning artifact for the new slice:
-  `tasks/ride-hailing-ui-fixes/ride-hailing-cancel-and-departure-short-circuit-plan.md`
+- Current polling truth for RideHailing Order Detail is split:
+  - `useCommerceOrderDetail()` now remains the only RideHailing order-detail
+    polling owner
+  - terminal phases such as `CANCELLED` and `FINISHED` no longer keep polling
+    through page-local timers
+- Current create-order blocked-dialog truth:
+  - backend `create-order` already returns business problem code
+    `PR_NOT_READY` with detail `订单创建需要 PR 处于 READY 状态。`
+  - the recovery dialog is owned by `OrderingPage.vue`, not by the structural
+    `OrderingPageShell.vue`
+  - frontend now uses `useUpdatePRStatus()` for the creator-owned fast path to
+    `READY`
+- Standalone planning artifacts:
+  - completed previous slice:
+    `tasks/ride-hailing-ui-fixes/ride-hailing-cancel-and-departure-short-circuit-plan.md`
+  - completed current slice:
+  `tasks/ride-hailing-ui-fixes/order-detail-terminal-polling-and-pr-ready-recovery-plan.md`
 - RideHailing order-detail back navigation currently uses generic
   `useFallbackBack` and therefore returns to the immediate previous page when a
   router back entry exists; for the standard PR -> Ordering -> Order Detail

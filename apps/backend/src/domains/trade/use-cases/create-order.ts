@@ -109,15 +109,15 @@ export type OrderingActionProblem = {
 
 export type CreateOrderCommandResult =
   | {
-      outcome: "CREATED";
-      orderId: string;
-      billId?: string | null;
-    }
+    outcome: "CREATED";
+    orderId: string;
+    billId?: string | null;
+  }
   | {
-      outcome: "CANCELLED";
-      orderId: string;
-      reason: OrderingActionProblem;
-    };
+    outcome: "CANCELLED";
+    orderId: string;
+    reason: OrderingActionProblem;
+  };
 
 type RideQuoteOption = {
   skuId: number;
@@ -249,7 +249,7 @@ async function validatePrAttachmentForEvaluation(input: {
     return actionProblem({
       code: "PR_NOT_READY",
       title: "暂不能创建订单",
-      detail: "订单创建需要 PR 处于 READY 状态。",
+      detail: "创建订单需要搭子请求「已成团」",
     });
   }
   if (!input.viewerUserId || pr.createdBy !== input.viewerUserId) {

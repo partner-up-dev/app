@@ -43,7 +43,7 @@ begin
       'CAOCAO',
       provider_instance_key,
       'ACTIVE',
-      '系统曹操',
+      '曹操出行',
       jsonb_build_object(
         'adapterMode', 'CAOCAO_OPEN_API',
         'caocaoClientId', 'fake-caocao-client',
@@ -59,7 +59,7 @@ begin
   else
     update ride_hailing_provider_instances
        set status = 'ACTIVE',
-           display_name = '系统曹操',
+           display_name = '曹操出行',
            config = jsonb_build_object(
              'adapterMode', 'CAOCAO_OPEN_API',
              'caocaoClientId', 'fake-caocao-client',
@@ -76,7 +76,7 @@ begin
     into v_spu_id
     from product_spus
    where product_type = 'RIDE_HAILING'
-     and name = '系统曹操出行'
+     and name = '曹操出行'
    order by created_at asc
    limit 1;
 
@@ -96,11 +96,11 @@ begin
     values (
       1,
       'ACTIVE',
-      '系统曹操出行',
+      '曹操出行',
       'RIDE_HAILING',
       '{"quantityPolicy":{"type":"FIXED","quantity":1},"skuSelectionPolicy":{"type":"EXACTLY_ONE"}}'::jsonb,
       '{"type":"RIDE_HAILING"}'::jsonb,
-      '{"detailImageAssetIds":[],"heroImageAssetIds":[],"noticeBlocks":[],"parameterGroups":[],"sellingPoints":["曹操实时预估","行程结束后按实际费用结算"]}'::jsonb,
+      '{"detailImageAssetIds":[],"heroImageAssetIds":[],"noticeBlocks":[],"parameterGroups":[],"sellingPoints":["实时预估","行程结束后按实际费用结算"]}'::jsonb,
       '{}'::jsonb,
       now(),
       now()
@@ -112,7 +112,7 @@ begin
            status = 'ACTIVE',
            sales_policy = '{"quantityPolicy":{"type":"FIXED","quantity":1},"skuSelectionPolicy":{"type":"EXACTLY_ONE"}}'::jsonb,
            service_policy = '{"type":"RIDE_HAILING"}'::jsonb,
-           presentation = '{"detailImageAssetIds":[],"heroImageAssetIds":[],"noticeBlocks":[],"parameterGroups":[],"sellingPoints":["曹操实时预估","行程结束后按实际费用结算"]}'::jsonb,
+           presentation = '{"detailImageAssetIds":[],"heroImageAssetIds":[],"noticeBlocks":[],"parameterGroups":[],"sellingPoints":["实时预估","行程结束后按实际费用结算"]}'::jsonb,
            facts = '{}'::jsonb,
            updated_at = now()
      where id = v_spu_id;
@@ -148,7 +148,7 @@ begin
         'rideHailingProviderInstanceId', v_provider_instance_id::text,
         'providerVehicleTypeCode', 'EXPRESS'
       ),
-      '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"曹操预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
+      '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
       now(),
       now()
     )
@@ -162,7 +162,7 @@ begin
              'rideHailingProviderInstanceId', v_provider_instance_id::text,
              'providerVehicleTypeCode', 'EXPRESS'
            ),
-           pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"曹操预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
+           pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
            cancellation_policy_ref = null,
            updated_at = now()
      where id = v_express_sku_id;
@@ -212,7 +212,7 @@ begin
              'rideHailingProviderInstanceId', v_provider_instance_id::text,
              'providerVehicleTypeCode', 'PREMIER'
            ),
-           pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"曹操预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
+           pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
            cancellation_policy_ref = null,
            updated_at = now()
      where id = v_premier_sku_id;
@@ -282,7 +282,7 @@ begin
      and (
        matching_rule::text like '%' || placement_pr_type || '%'
        or matching_rule::text like '%' || old_task_private_pr_type || '%'
-       or creative ->> 'ctaLabel' = '叫曹操'
+       or creative ->> 'ctaLabel' = '打车'
      )
    order by
      case
@@ -315,7 +315,7 @@ begin
       10000,
       now() - interval '1 minute',
       null,
-      '{"ctaLabel":"叫曹操","description":"按当前路线预估网约车费用"}'::jsonb,
+      '{"ctaLabel":"打车","description":"按当前路线预估网约车费用"}'::jsonb,
       '[{"fieldKey":"route","contextPath":"route","lock":true}]'::jsonb,
       now(),
       now()
@@ -330,7 +330,7 @@ begin
            priority = 10000,
            effective_from = now() - interval '1 minute',
            effective_to = null,
-           creative = '{"ctaLabel":"叫曹操","description":"按当前路线预估网约车费用"}'::jsonb,
+           creative = '{"ctaLabel":"打车","description":"按当前路线预估网约车费用"}'::jsonb,
            binding_rules = '[{"fieldKey":"route","contextPath":"route","lock":true}]'::jsonb,
            updated_at = now()
      where id = v_placement_id;

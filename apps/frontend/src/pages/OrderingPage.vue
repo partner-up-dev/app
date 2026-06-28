@@ -93,7 +93,7 @@
       cancel-text="取消"
       :show-cancel="orderingDialog.showCancel"
       :show-confirm="true"
-      :confirm-loading="createOrderMutation.isPending.value"
+      :confirm-loading="orderingDialogConfirmLoading"
       tone="info"
       @close="closeOrderingDialog"
       @cancel="closeOrderingDialog"
@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import { PuButton, PuDialog, PuInlineNotice } from "@partner-up-dev/design-web";
 import { storeToRefs } from "pinia";
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import type {
@@ -121,9 +121,14 @@ import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPr
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
 import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
+import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import { useUpdatePRStatus } from "@/domains/pr/queries/usePRActions";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
-type OrderingDialogKind = "blocked";
+type OrderingDialogKind =
+  | "info"
+  | "blocked-pr-not-ready"
+  | "confirm-mark-pr-ready";
 type OrderingDialogState = {
   open: boolean;
   kind: OrderingDialogKind;
@@ -144,8 +149,11 @@ const { orderingEntry } = storeToRefs(orderingHandoff);
 const missingInput = computed(() => orderingEntry.value === null);
 
 const createOrderMutation = useCreateOrder();
+const updatePrStatusMutation = useUpdatePRStatus();
 
 const ordering = computed(() => orderingEntry.value?.offerDetail ?? null);
+const orderingPrId = computed(() => orderingEntry.value?.prId ?? null);
+const orderingPrDetailQuery = usePRDetail(orderingPrId);
 const rentalOrdering = computed<OrderingOfferDetail | null>(() =>
   ordering.value?.productType === "RENTAL" ? ordering.value : null,
 );
@@ -162,7 +170,7 @@ const listingRefreshKey = ref(0);
 const priceDetailOpen = ref(false);
 const orderingDialog = ref<OrderingDialogState>({
   open: false,
-  kind: "blocked",
+  kind: "info",
   title: "",
   description: "",
   confirmText: "我知道了",
@@ -215,6 +223,17 @@ const priceDisplayLabel = computed(() => {
 const backFallbackTo = computed(() =>
   orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
+const orderingViewerIsCreator = computed(
+  () => orderingPrDetailQuery.data.value?.partnerSection.viewer.isCreator === true,
+);
+const canOfferPrReadyRecovery = computed(
+  () => orderingPrId.value !== null && orderingViewerIsCreator.value,
+);
+const orderingDialogConfirmLoading = computed(() =>
+  orderingDialog.value.kind === "confirm-mark-pr-ready"
+    ? updatePrStatusMutation.isPending.value
+    : createOrderMutation.isPending.value,
+);
 
 const formatYuan = (amountFen: number): string => (amountFen / 100).toFixed(2);
 
@@ -226,10 +245,47 @@ const formatPriceAmount = (amountFen: number | null | undefined): string =>
 const openBlockedDialog = (problem: Partial<OrderingActionProblem>): void => {
   orderingDialog.value = {
     open: true,
-    kind: "blocked",
+    kind: "info",
     title: problem.title ?? "暂不能创建订单",
     description: problem.detail ?? "请稍后重试。",
     confirmText: "我知道了",
+    showCancel: false,
+  };
+};
+
+const openPrNotReadyRecoveryDialog = (problem: Partial<OrderingActionProblem>): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "blocked-pr-not-ready",
+    title: problem.title ?? "暂不能创建订单",
+    description: problem.detail ?? "创建订单需要搭子请求「已成团」",
+    confirmText: "切换到已成团",
+    showCancel: true,
+  };
+};
+
+const openPrReadyConfirmationDialog = (): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "confirm-mark-pr-ready",
+    title: "确认标记为已成团？",
+    description: "将当前搭子请求切换到「已成团」，此状态下不可以加入/退出。确认后请重新点击下单。",
+    confirmText: "确认成团",
+    showCancel: true,
+  };
+};
+
+const openInfoDialog = (input: {
+  title: string;
+  description: string;
+  confirmText?: string;
+}): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "info",
+    title: input.title,
+    description: input.description,
+    confirmText: input.confirmText ?? "我知道了",
     showCancel: false,
   };
 };
@@ -263,6 +319,13 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       });
       return;
     }
+    if (apiError.code === "PR_NOT_READY" && canOfferPrReadyRecovery.value) {
+      openPrNotReadyRecoveryDialog({
+        title: "暂不能创建订单",
+        detail: apiError.message ?? "订单创建需要 PR 处于 READY 状态。",
+      });
+      return;
+    }
     openBlockedDialog({
       title: "暂不能创建订单",
       detail: error instanceof Error ? error.message : "请稍后重试。",
@@ -278,6 +341,7 @@ watch(
     priceDetailOpen.value = false;
     closeOrderingDialog();
     createOrderMutation.reset();
+    updatePrStatusMutation.reset();
   },
 );
 
@@ -298,7 +362,51 @@ const submitOrder = async (): Promise<void> => {
   await createOrderFromQuoteDraft(input);
 };
 
+const markCurrentPrReady = async (): Promise<void> => {
+  const prId = orderingPrId.value;
+  if (prId === null) {
+    closeOrderingDialog();
+    openInfoDialog({
+      title: "无法修改成团状态",
+      description: "当前订单入口没有关联 PR。",
+    });
+    return;
+  }
+
+  try {
+    await updatePrStatusMutation.mutateAsync({
+      id: prId,
+      status: "READY",
+    });
+    closeOrderingDialog();
+    await nextTick();
+    openInfoDialog({
+      title: "已成团",
+      description: "PR 已标记为已成团，请重新点击下单。",
+    });
+  } catch (error) {
+    closeOrderingDialog();
+    await nextTick();
+    openInfoDialog({
+      title: "无法修改成团状态",
+      description: error instanceof Error ? error.message : "请稍后重试。",
+    });
+  }
+};
+
 const handleOrderingDialogConfirm = async (): Promise<void> => {
+  if (orderingDialog.value.kind === "blocked-pr-not-ready") {
+    closeOrderingDialog();
+    await nextTick();
+    openPrReadyConfirmationDialog();
+    return;
+  }
+
+  if (orderingDialog.value.kind === "confirm-mark-pr-ready") {
+    await markCurrentPrReady();
+    return;
+  }
+
   closeOrderingDialog();
 };
 </script>

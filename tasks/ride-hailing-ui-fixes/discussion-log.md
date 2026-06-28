@@ -7,6 +7,35 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
+## Current Segment: Terminal Polling Stop + PR-Ready Recovery CTA
+
+- Requested slice:
+  - stop polling terminal RideHailing orders such as `CANCELLED` / `FINISHED`
+  - when create-order is blocked by `PR_NOT_READY`, the blocked dialog should
+    offer a fast path to mark the PR `READY` after a second confirmation
+- Implementation result:
+  - removed the page-local RideHailing `ridePollingTimer` from
+    `CommerceOrderDetailPage.vue`, so terminal orders no longer keep refetching
+    on bill-existence heuristics
+  - kept polling ownership solely inside `useCommerceOrderDetail()`
+  - kept dialog ownership in `OrderingPage.vue` rather than promoting it into
+    `OrderingPageShell.vue`
+  - added a `PR_NOT_READY` recovery dialog flow:
+    - blocked dialog shows `去成团` for creator-owned PR ordering
+    - confirming closes the original dialog first
+    - a second confirmation dialog asks whether to mark the PR `READY`
+    - success keeps the user in Ordering and asks them to click create-order
+      again explicitly
+  - recovery path reuses existing frontend `useUpdatePRStatus()` transport
+- Verification result:
+  - `pnpm check:type:frontend`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/rental-ordering.scenario.test.ts`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+- Opened slice artifact:
+  - `order-detail-terminal-polling-and-pr-ready-recovery-plan.md`
+- Next step:
+  - packet is ready for the next ride-hailing / ordering slice by your direction
+
 ## Current Segment: RideHailing Cancel + Departure-Time Short-Circuit
 
 - Requested slice:

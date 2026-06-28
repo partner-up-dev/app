@@ -7,6 +7,30 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
+## Current Slice: Terminal Polling Stop + PR-Ready Recovery CTA
+
+- Requested slice:
+  - stop polling terminal RideHailing orders
+  - add a PR-ready recovery path when create-order is blocked by `PR_NOT_READY`
+- Implementation result:
+  - removed the extra page-local RideHailing order-detail polling timer from
+    `CommerceOrderDetailPage.vue`
+  - kept polling ownership solely inside `useCommerceOrderDetail()`
+  - extended `OrderingPage.vue` dialog orchestration so `PR_NOT_READY` can
+    branch into:
+    - `去成团`
+    - close original dialog
+    - second confirmation
+    - `useUpdatePRStatus()` mutation
+    - explicit user retry from the same Ordering page
+  - kept the recovery UI in `OrderingPage.vue` instead of promoting dialog
+    ownership into `OrderingPageShell.vue`
+  - added a Rental system scenario covering the new recovery flow end-to-end
+- Verification result:
+  - frontend typecheck passed
+  - Rental ordering system scenario file passed
+  - RideHailing ordering system scenario file passed
+
 ## Current Slice: RideHailing Cancel + Departure-Time Short-Circuit
 
 - Requested slice:

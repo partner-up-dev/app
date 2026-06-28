@@ -504,6 +504,70 @@ scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
   });
 });
 
+scenario("commerce_rental_ordering_recovers_non_ready_pr_by_marking_ready", async (ctx) => {
+  const creator = await givenUser("system-commerce-non-ready-recovery-creator");
+  const joiner = await givenUser("system-commerce-non-ready-recovery-joiner");
+  const pr = await givenCommerceRentalPr({
+    creator,
+    minPartners: 2,
+    maxPartners: null,
+    title: "System commerce non ready recovery rental PR",
+  });
+  await addJoinedParticipant({ pr, user: joiner });
+  const placement = await givenRentalOrderingPlacement();
+
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.getByTestId("ordering.rental.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await fillRentalOrderingRequiredFields(page);
+    await waitForRentalQuoteReady(page);
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertOrderingBlockedDialog({
+      page,
+      expectedDetail: "订单创建需要 PR 处于 READY 状态",
+    });
+
+    await page.getByRole("button", { name: "去成团" }).click();
+    const confirmDialog = page.getByRole("dialog", { name: "确认标记为已成团？" });
+    await confirmDialog.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await confirmDialog.getByText("这会立即将当前 PR 标记为已成团。确认后请重新点击下单。").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await confirmDialog.getByRole("button", { name: "确认成团" }).click();
+
+    const successDialog = page.getByRole("dialog", { name: "已成团" });
+    await successDialog.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await successDialog.getByText("PR 已标记为已成团，请重新点击下单。").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await successDialog.getByRole("button", { name: "我知道了" }).click();
+
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertRentalOrderDetail({
+      page,
+      expectedItemName: "烘焙区 A · 2人 · 2小时",
+    });
+  });
+});
+
 scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
   const creator = await givenUser("system-commerce-non-creator-creator");
   const joiner = await givenUser("system-commerce-non-creator-joiner");
