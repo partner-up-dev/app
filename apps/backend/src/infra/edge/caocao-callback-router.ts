@@ -13,8 +13,8 @@ export const CAOCAO_CALLBACK_ROUTER_DEFAULT_HOST = "127.0.0.1";
 export const CAOCAO_CALLBACK_ROUTER_DEFAULT_PORT = 6080;
 export const CAOCAO_CALLBACK_ROUTER_DEFAULT_MAX_BODY_BYTES = 16 * 1024;
 export const CAOCAO_CALLBACK_ROUTER_DEFAULT_UPSTREAM_TIMEOUT_MS = 15_000;
-export const CAOCAO_CALLBACK_ROUTER_DEFAULT_STAGING_ORIGIN = "https://test.app-api.partner-up.cn";
-export const CAOCAO_CALLBACK_ROUTER_DEFAULT_PRODUCTION_ORIGIN = "https://app-api.partner-up.cn";
+export const CAOCAO_CALLBACK_ROUTER_DEFAULT_STAGING_ORIGIN = "https://test.api-app.partner-up.cn";
+export const CAOCAO_CALLBACK_ROUTER_DEFAULT_PRODUCTION_ORIGIN = "https://api-app.partner-up.cn";
 
 export type CaocaoCallbackRouterTargetEnvironment = "production" | "staging";
 

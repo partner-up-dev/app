@@ -22,8 +22,8 @@
   - `stg`: staging backend
   - `prod`: production backend
   - `dev`: local or non-shared development callbacks
-- Confirmed staging backend origin: `https://test.app-api.partner-up.cn`.
-- Confirmed production backend origin: `https://app-api.partner-up.cn`.
+- Confirmed staging backend origin: `https://test.api-app.partner-up.cn`.
+- Confirmed production backend origin: `https://api-app.partner-up.cn`.
 - CaoCao public callback path remains:
   `/api/v1/service_provider/caocao/callback/order`.
 - The router must preserve the original request body byte-for-byte for upstream forwarding. `callback_info` participates in CaoCao signature calculation, so the router must not rewrite, remove, append, or re-encode form fields.
@@ -54,9 +54,9 @@ sequenceDiagram
   N->>R: proxy exact callback path to 127.0.0.1:6080
   R->>R: read callback_info from form body only for routing
   alt callback_info starts with pu.rhc.v1.stg.
-    R->>S: forward original request to test.app-api.partner-up.cn
+    R->>S: forward original request to test.api-app.partner-up.cn
   else callback_info starts with pu.rhc.v1.prod. or callback_info is absent
-    R->>P: forward original request to app-api.partner-up.cn
+    R->>P: forward original request to api-app.partner-up.cn
   else callback_info is present but invalid
     R-->>C: 400
   end

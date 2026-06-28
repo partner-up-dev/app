@@ -247,9 +247,9 @@ The router binds only to `127.0.0.1:6080`, accepts only
 `POST /api/v1/service_provider/caocao/callback/order`, reads
 `callback_info`, and forwards the original body to:
 
-- `pu.rhc.v1.stg.*`: `https://test.app-api.partner-up.cn`
-- `pu.rhc.v1.prod.*`: `https://app-api.partner-up.cn`
-- missing `callback_info`: `https://app-api.partner-up.cn`
+- `pu.rhc.v1.stg.*`: `https://test.api-app.partner-up.cn`
+- `pu.rhc.v1.prod.*`: `https://api-app.partner-up.cn`
+- missing `callback_info`: `https://api-app.partner-up.cn`
 - present but invalid `callback_info`: `400 Bad Request`
 
 During the compatibility window, callbacks with no `callback_info` may continue
