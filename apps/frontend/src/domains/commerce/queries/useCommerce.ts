@@ -34,8 +34,8 @@ export type CommerceOrderDetailResponse = InferResponseType<
 
 export type BillDetailResponse = InferResponseType<CommerceApi["bills"][":billId"]["$get"]>;
 
-export type PaymentCheckoutResponse = InferResponseType<
-  CommerceApi["bill-lines"][":billLineId"]["checkout"]["$get"]
+export type BillLineCheckoutTargetResponse = InferResponseType<
+  CommerceApi["bill-lines"][":billLineId"]["$get"]
 >;
 
 const ACTIVE_RIDE_HAILING_DETAIL_POLLING_MS = 2_000;
@@ -285,15 +285,15 @@ export const useBillDetail = (billId: Ref<string | null>) =>
     refetchOnMount: "always",
   });
 
-export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
-  useQuery<PaymentCheckoutResponse>({
-    queryKey: computed(() => queryKeys.commerce.paymentCheckout(billLineId.value)),
+export const useBillLineCheckoutTarget = (billLineId: Ref<string | null>) =>
+  useQuery<BillLineCheckoutTargetResponse>({
+    queryKey: computed(() => queryKeys.commerce.billLineCheckoutTarget(billLineId.value)),
     queryFn: async () => {
       if (billLineId.value === null) {
         throw new Error("Missing bill line id");
       }
 
-      const response = await client.api.commerce["bill-lines"][":billLineId"].checkout.$get(
+      const response = await client.api.commerce["bill-lines"][":billLineId"].$get(
         {
           param: {
             billLineId: billLineId.value,
@@ -305,69 +305,13 @@ export const usePaymentCheckout = (billLineId: Ref<string | null>) =>
           },
         },
       );
-      return readJsonOrThrow<PaymentCheckoutResponse>(response, "Failed to load checkout");
+      return readJsonOrThrow<BillLineCheckoutTargetResponse>(
+        response,
+        "Failed to load bill line checkout target",
+      );
     },
     enabled: () => billLineId.value !== null,
   });
-
-export const useCreateChargeForBillLine = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (billLineId: string) => {
-      const response = await client.api.commerce["bill-lines"][":billLineId"].charges.$post(
-        {
-          param: { billLineId },
-        },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<
-        InferResponseType<CommerceApi["bill-lines"][":billLineId"]["charges"]["$post"]>
-      >(response, "Failed to create charge");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["commerce"],
-      });
-    },
-  });
-};
-
-export const useSyncBillLinePayment = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (billLineId: string) => {
-      const response = await client.api.commerce["bill-lines"][":billLineId"].payment.sync.$post(
-        {
-          param: {
-            billLineId,
-          },
-        },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<
-        InferResponseType<CommerceApi["bill-lines"][":billLineId"]["payment"]["sync"]["$post"]>
-      >(response, "Failed to sync payment");
-    },
-    onSuccess: (_, billLineId) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.commerce.billLinePayment(billLineId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["commerce"],
-      });
-    },
-  });
-};
 
 export const useCancelRentalOrder = () => {
   const queryClient = useQueryClient();

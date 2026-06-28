@@ -1,13 +1,5 @@
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type {
   PaymentProviderInstanceConfig,
   PaymentProviderInstanceStatus,
@@ -21,16 +13,10 @@ export type PaymentProviderInstanceId = string & {
 export const paymentProviderInstances = pgTable(
   "payment_provider_instances",
   {
-    id: uuid("id")
-      .$type<PaymentProviderInstanceId>()
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
+    id: uuid("id").$type<PaymentProviderInstanceId>().primaryKey().default(sql`gen_random_uuid()`),
     providerType: text("provider_type").$type<PaymentProviderType>().notNull(),
     instanceKey: text("instance_key").notNull(),
-    status: text("status")
-      .$type<PaymentProviderInstanceStatus>()
-      .notNull()
-      .default("ACTIVE"),
+    status: text("status").$type<PaymentProviderInstanceStatus>().notNull().default("ACTIVE"),
     displayName: text("display_name").notNull(),
     clientId: text("client_id").notNull(),
     config: jsonb("config").$type<PaymentProviderInstanceConfig>().notNull(),
@@ -42,18 +28,12 @@ export const paymentProviderInstances = pgTable(
       table.providerType,
       table.status,
     ),
-    providerInstanceUnique: uniqueIndex(
-      "payment_provider_instances_type_key_unique",
-    ).on(table.providerType, table.instanceKey),
-    activeClientUnique: uniqueIndex(
-      "payment_provider_instances_active_client_unique",
-    )
-      .on(table.clientId)
-      .where(sql`${table.status} = 'ACTIVE'`),
+    providerInstanceUnique: uniqueIndex("payment_provider_instances_type_key_unique").on(
+      table.providerType,
+      table.instanceKey,
+    ),
   }),
 );
 
-export type PaymentProviderInstance =
-  typeof paymentProviderInstances.$inferSelect;
-export type NewPaymentProviderInstance =
-  typeof paymentProviderInstances.$inferInsert;
+export type PaymentProviderInstance = typeof paymentProviderInstances.$inferSelect;
+export type NewPaymentProviderInstance = typeof paymentProviderInstances.$inferInsert;

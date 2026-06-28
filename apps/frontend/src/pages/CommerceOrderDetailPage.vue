@@ -9,7 +9,6 @@
     <template #pageHeader>
       <PuHeader
         title="订单详情"
-        subtitle="查看支付、账单和预约进度"
         title-as="h1"
       >
         <template #leading>
@@ -449,6 +448,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .order-detail-page {
   min-width: 0;
+  --pu-page-scaffold-region-gap: var(--sys-spacing-small);
 }
 
 .order-detail-page__body {

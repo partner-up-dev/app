@@ -56,7 +56,6 @@ export type BillDetailProjection = {
     paidFen: number;
     refundedFen: number;
     payableByViewer: boolean;
-    checkoutHref: string | null;
     paymentProviderInstanceId: string | null;
     attemptCount: number;
     settledAt: string | null;
@@ -163,7 +162,6 @@ async function buildBillDetail(input: {
         paidFen: payment?.paidFen ?? 0,
         refundedFen: payment?.refundableFen ?? 0,
         payableByViewer,
-        checkoutHref: payableByViewer ? `/bill-lines/${line.id}/checkout` : null,
         paymentProviderInstanceId: line.paymentProviderInstanceId,
         attemptCount: line.attemptCount,
         settledAt: line.settledAt?.toISOString() ?? null,

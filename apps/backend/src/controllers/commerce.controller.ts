@@ -1,9 +1,8 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
 import { z } from "zod";
-import { authMiddleware, type AuthEnv } from "../auth/middleware";
-import { requireAuthenticatedUserId } from "./pr-controller.shared";
-import { throwHttpProblem } from "../lib/problem-details";
+import { type AuthEnv, authMiddleware } from "../auth/middleware";
+import { getBillDetail, getBillDetailByOrderId, getBillLineCheckoutTarget } from "../domains/bill";
 import {
   cancelRentalOrderFromOrderDetail,
   createOrderCommand,
@@ -11,13 +10,7 @@ import {
   listOfferListing,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
-import {
-  createOrReuseChargeForBillLine,
-  getBillDetail,
-  getBillDetailByOrderId,
-  getPaymentCheckout,
-  syncPaymentForBillLine,
-} from "../domains/payment";
+import { requireAuthenticatedUserId } from "./pr-controller.shared";
 
 const app = new Hono<AuthEnv>();
 
@@ -32,8 +25,6 @@ const billIdParamSchema = z.object({
 const billLineIdParamSchema = z.object({
   billLineId: z.string().uuid(),
 });
-
-const CLIENT_ID_HEADER = "x-client-id";
 
 const registrantSchema = z.object({
   fullName: z.string().trim().min(1),
@@ -115,17 +106,6 @@ const offerListingInputSchema = z.union([
   }),
 ]);
 
-const readClientId = (headerValue: string | undefined): string => {
-  const clientId = headerValue?.trim();
-  if (!clientId) {
-    return throwHttpProblem({
-      status: 400,
-      detail: "Missing x-client-id header",
-    });
-  }
-  return clientId;
-};
-
 type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
@@ -133,7 +113,6 @@ type JsonEndpoint<Input, Output, Status extends number = 200> = {
   status: Status;
 };
 
-type EmptyInput = {};
 type UuidParam<Key extends string> = {
   param: Record<Key, string>;
 };
@@ -161,30 +140,21 @@ type CommerceRouteSchema = {
   "/bills/:billId": {
     $get: JsonEndpoint<UuidParam<"billId">, Awaited<ReturnType<typeof getBillDetail>>>;
   };
-  "/bill-lines/:billLineId/checkout": {
-    $get: JsonEndpoint<UuidParam<"billLineId">, Awaited<ReturnType<typeof getPaymentCheckout>>>;
-  };
-  "/bill-lines/:billLineId/charges": {
-    $post: JsonEndpoint<
-      UuidParam<"billLineId"> & EmptyInput,
-      Awaited<ReturnType<typeof createOrReuseChargeForBillLine>>
-    >;
-  };
-  "/bill-lines/:billLineId/payment/sync": {
-    $post: JsonEndpoint<
-      UuidParam<"billLineId"> & EmptyInput,
-      Awaited<ReturnType<typeof syncPaymentForBillLine>>
+  "/bill-lines/:billLineId": {
+    $get: JsonEndpoint<
+      UuidParam<"billLineId">,
+      Awaited<ReturnType<typeof getBillLineCheckoutTarget>>
     >;
   };
   "/orders/:orderId/cancel-rental": {
     $post: JsonEndpoint<
-      UuidParam<"orderId"> & EmptyInput,
+      UuidParam<"orderId">,
       Awaited<ReturnType<typeof cancelRentalOrderFromOrderDetail>>
     >;
   };
   "/orders/:orderId/mock-rental-booking-confirmation": {
     $post: JsonEndpoint<
-      UuidParam<"orderId"> & EmptyInput,
+      UuidParam<"orderId">,
       Awaited<ReturnType<typeof simulateRentalBookingConfirmation>>
     >;
   };
@@ -244,46 +214,15 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     });
     return c.json(result);
   })
-  .get(
-    "/bill-lines/:billLineId/checkout",
-    zValidator("param", billLineIdParamSchema),
-    async (c) => {
-      const { billLineId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await getPaymentCheckout({
-        billLineId,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/bill-lines/:billLineId/charges",
-    zValidator("param", billLineIdParamSchema),
-    async (c) => {
-      const { billLineId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await createOrReuseChargeForBillLine({
-        billLineId,
-        viewerUserId: auth.userId,
-        clientId: readClientId(c.req.header(CLIENT_ID_HEADER)),
-      });
-      return c.json(result);
-    },
-  )
-  .post(
-    "/bill-lines/:billLineId/payment/sync",
-    zValidator("param", billLineIdParamSchema),
-    async (c) => {
-      const { billLineId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await syncPaymentForBillLine({
-        billLineId,
-        viewerUserId: auth.userId,
-      });
-      return c.json(result);
-    },
-  )
+  .get("/bill-lines/:billLineId", zValidator("param", billLineIdParamSchema), async (c) => {
+    const { billLineId } = c.req.valid("param");
+    const auth = c.get("auth");
+    const result = await getBillLineCheckoutTarget({
+      billLineId,
+      viewerUserId: auth.userId,
+    });
+    return c.json(result);
+  })
   .post("/orders/:orderId/cancel-rental", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const userId = requireAuthenticatedUserId(c);

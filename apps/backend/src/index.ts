@@ -33,6 +33,7 @@ import { adminCommerceManagementRoute } from "./controllers/admin-commerce-manag
 import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
 import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
+import { paymentRoute } from "./controllers/payment.controller";
 import { placementRoute } from "./controllers/placement.controller";
 import { studySprintRoute } from "./controllers/study-sprint.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
@@ -207,6 +208,7 @@ export const routes = app
   .route("/api/commerce", commerceRoute)
   .route("/api/placements", placementRoute)
   .route("/api/study-sprint", studySprintRoute)
+  .route("/api/payment", paymentRoute)
   .route("/api/payment", paymentProviderRoute)
   .route("/api/ride-hailing", rideHailingProviderRoute)
   .route("/api/v1/service_provider", legacyRideHailingProviderRoute)

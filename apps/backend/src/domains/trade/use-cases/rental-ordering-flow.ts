@@ -4,9 +4,9 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { deriveBillPaymentState } from "../../bill";
 import { requestRentalCancellationHandling } from "../../fulfillment";
 import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental-booking";
-import { deriveBillPaymentState } from "../../payment";
 import {
   canRequestOrderTermination,
   resolveRentalTerminationPolicy,

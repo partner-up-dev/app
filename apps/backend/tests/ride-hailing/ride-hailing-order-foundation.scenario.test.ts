@@ -249,6 +249,8 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
   assert.equal(baseOrder.family, "RIDE_HAILING");
   assert.equal(baseOrder.offerId, offer.id);
   assert.equal(baseOrder.status, "INITIATING");
+  assert.equal(baseOrder.timeout.defaultWindowMinutes, 0);
+  assert.equal(baseOrder.timeout.unpaidExpiresAt, "9999-12-31T23:59:59.999Z");
   assert.equal(baseOrder.items[0]?.kind, "CHOICE_SET");
   const choiceSetItem = baseOrder.items[0]?.kind === "CHOICE_SET" ? baseOrder.items[0] : null;
   assert.ok(choiceSetItem, "RideHailing base item should be a choice set");

@@ -1,13 +1,5 @@
 import type { BillLine, BillLineId } from "../../../entities/bill";
-
-export type BillLineSettlementStatus =
-  | "UNPAID"
-  | "ACTION_REQUIRED"
-  | "PROCESSING"
-  | "PAID"
-  | "FAILED"
-  | "REFUND_PENDING"
-  | "REFUNDED";
+import type { BillLineSettlementStatus } from "../model";
 
 export type BillLinePaymentProjection = {
   billLineId: BillLineId;
@@ -31,24 +23,22 @@ const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
     const refundedFen = line.settledAt ? line.amountFen : 0;
     return {
       billLineId: line.id,
-      status:
-        line.settledAt
-          ? "REFUNDED"
-          : line.paymentProviderInstanceId
-            ? "REFUND_PENDING"
-            : "UNPAID",
+      status: line.settledAt
+        ? "REFUNDED"
+        : line.paymentProviderInstanceId
+          ? "REFUND_PENDING"
+          : "UNPAID",
       paidFen: 0,
       refundableFen: refundedFen,
     };
   }
 
   const paidFen = line.settledAt ? line.amountFen : 0;
-  const status: BillLineSettlementStatus =
-    line.settledAt
-      ? "PAID"
-      : line.paymentProviderInstanceId
-        ? "PROCESSING"
-        : "UNPAID";
+  const status: BillLineSettlementStatus = line.settledAt
+    ? "PAID"
+    : line.paymentProviderInstanceId
+      ? "PROCESSING"
+      : "UNPAID";
 
   return {
     billLineId: line.id,
@@ -58,9 +48,7 @@ const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
   };
 };
 
-export function deriveBillPaymentState(input: {
-  lines: BillLine[];
-}): BillPaymentState {
+export function deriveBillPaymentState(input: { lines: BillLine[] }): BillPaymentState {
   const projections = input.lines.map((line) => toLinePaymentProjection(line));
   const projectionByLineId = new Map(
     projections.map((projection) => [projection.billLineId, projection]),
@@ -89,9 +77,7 @@ export function deriveBillPaymentState(input: {
         (line) => (projectionByLineId.get(line.id)?.paidFen ?? 0) >= line.amountFen,
       ),
     hasPendingPayment: projections.some((projection) =>
-      ["ACTION_REQUIRED", "PROCESSING", "REFUND_PENDING"].includes(
-        projection.status,
-      ),
+      ["ACTION_REQUIRED", "PROCESSING", "REFUND_PENDING"].includes(projection.status),
     ),
     lines: projections,
   };

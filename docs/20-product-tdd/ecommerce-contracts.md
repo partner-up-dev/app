@@ -100,6 +100,10 @@ Owns:
 
 - charge/refund obligation lines
 - BillLine-local provider execution slot identity
+- checkout target truth for a concrete bill line, including:
+  - whether the line is payable by the current viewer
+  - which provider instance is currently bound to an unfinished execution slot
+  - hero facts needed by checkout UI
 - BillLine settlement confirmation
 - settlement derivation over successful payment movements
 - reconciliation from current buyer-side total to target buyer-side total
@@ -117,11 +121,15 @@ Owns:
 - gateway callback verification and provider queries
 - provider-specific merchant order/refund reference derivation and parsing
 - payment provider registry and routing credentials
+- provider catalog discovery for a concrete client runtime
+- transient `PaymentTx` API resource reconstruction for polling current provider
+  execution state
 
 Does not own:
 
 - bill obligation semantics
 - persisted provider transaction lifecycle truth
+- synthetic checkout-target aggregate reads
 - service execution semantics
 
 Payment provider systems own gateway-facing payment lifecycle truth. Backend
@@ -139,6 +147,22 @@ BillLine owns the local provider execution slot for an obligation line:
   means paid; for `REFUND` lines it means refunded.
 - provider-specific merchant order/refund numbers are derived by the provider
   adapter from BillLine-local key material and are not persisted as Bill truth.
+
+Current checkout interaction contract:
+
+- billing-owned reads provide checkout target truth
+- payment-owned writes and polling provide provider execution truth
+- `GET /api/payment/providers` returns the current client-scoped provider
+  catalog and must stay target-agnostic
+- `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...` initiates
+  or resumes charge execution for one bill line using an explicit provider
+  choice
+- `GET /api/payment/:paymentTxId` returns a transient `PaymentTx` resource view
+  reconstructed from BillLine execution-slot state plus live provider query
+  truth
+- if a bill line already has an unfinished provider binding, selecting a
+  different provider is rejected at charge-initiation time rather than hidden in
+  provider discovery
 
 ## User-Facing Route Spine
 
@@ -360,12 +384,16 @@ Rental:
 
 - prepaid
 - Bill exists before execution begins
+- typed order creation keeps the standard unpaid payment window on the base
+  Order timeout snapshot
 - Rental execution state is stored on `rental_orders`
 - booking state becomes actionable after prepaid settlement
 
 RideHailing:
 
 - usage-based final settlement
+- typed order creation overrides the base Order timeout snapshot so final-bill
+  payment is not constrained by the standard unpaid payment window
 - Order is created from candidate quote snapshots. For RideHailing, the user
   orders one unresolved choice-set item: several acceptable vehicle SKU
   candidates, with one final resolution.

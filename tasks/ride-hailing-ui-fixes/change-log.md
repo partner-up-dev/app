@@ -7,7 +7,379 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
-## Current Slice: Bill Detail Page Reset And Backend Contract Segment
+## Current Slice: Payment Client UI / Attempt Identity
+
+- Requested slice:
+  - turn the checkout repair into a usable local payment-client loop
+  - diagnose whether the long `paymentTxId` means the system has two competing
+    payment-transaction identities
+- Implementation result:
+  - repaired the runtime fake `WeixinJSBridge` by binding native browser
+    `fetch` before the bridge calls the fake payment provider
+  - widened the fake bridge into a dev-only payment-client overlay with:
+    - `支付成功`
+    - `取消支付`
+    - `模拟失败`
+  - added fake-provider prepay-keyed transitions for:
+    - `succeed`
+    - `close`
+    - `fail`
+  - changed `launch-payment-client-action` to return structured client result
+    semantics instead of discarding bridge callback `err_msg`
+  - refactored `PaymentCheckoutFlow` from request-level loading into
+    attempt-phase orchestration with:
+    - stable CTA labels
+    - polling dialog + spinner
+    - no CTA loading flicker during reconciliation
+    - backend-authoritative terminal handling
+  - ratified the current attempt identity model instead of forcing convergence:
+    - canonical tuple:
+      `kind + billLineId + paymentProviderInstanceId + attemptCount`
+    - backend projection: `paymentTxId`
+    - provider projection: `merchantOrderNo / out_trade_no`
+- Verification result:
+  - focused frontend unit tests passed:
+    - `apps/frontend/src/shared/wechat/fake-wechatpay-bridge.test.ts`
+    - `apps/frontend/src/domains/payment/use-cases/launch-payment-client-action.test.ts`
+  - fake WeChatPay server unit tests passed
+  - frontend typecheck passed
+  - focused RideHailing system scenario passed:
+    `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts -t commerce_ride_hailing_ordering_reaches_order_detail`
+
+## Current Slice: Typed-Order Timeout Override For RideHailing Final-Bill Payment
+
+- Requested slice:
+  - fix RideHailing final-bill payment without introducing payment-side family
+    branching
+  - keep timeout override owned by typed order creation
+- Implementation result:
+  - `createBaseOrder` now accepts a full timeout snapshot from the typed-order
+    caller
+  - Rental creation paths still write the standard 30-minute unpaid-window
+    timeout
+  - RideHailing creation paths now write a non-expiring timeout snapshot:
+    - `unpaidExpiresAt = 9999-12-31T23:59:59.999Z`
+    - `defaultWindowMinutes = 0`
+  - payment-side timeout readers remain family-agnostic
+  - durable contract wording now records the owner split:
+    - Rental keeps the standard unpaid payment window on the base-order timeout
+      snapshot
+    - RideHailing overrides that snapshot so final-bill payment is not bounded
+      by the standard unpaid window
+- Verification result:
+  - backend typecheck passed
+  - focused backend scenarios for RideHailing foundation and Rental persistence
+    passed
+  - focused RideHailing system scenario passed
+  - `git diff --check` passed
+
+## Current Slice: Payment Checkout Interaction / UI Implementation
+
+- Requested slice:
+  - replace the legacy commerce checkout aggregate with Billing-owned
+    bill-line target reads plus Payment-owned provider / `PaymentTx` facts
+  - implement the real checkout interaction:
+    provider single-select, JSAPI launch, backend reconciliation, and
+    success auto-return
+- Implementation result:
+  - removed legacy frontend checkout data hooks:
+    - `usePaymentCheckout`
+    - `useCreateChargeForBillLine`
+    - `useSyncBillLinePayment`
+  - removed legacy backend compatibility implementation files:
+    - `domains/payment/use-cases/payment-checkout.ts`
+    - `domains/payment/use-cases/get-bill-detail.ts`
+    - `domains/payment/services/bill-payment-state.ts`
+  - frontend checkout now reads:
+    - Billing-owned `GET /api/commerce/bill-lines/:billLineId`
+    - Payment-owned `GET /api/payment/providers`
+    - Payment-owned `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...`
+    - Payment-owned `GET /api/payment/:paymentTxId`
+  - added checkout feature files:
+    - `apps/frontend/src/domains/payment/queries/usePayment.ts`
+    - `apps/frontend/src/domains/payment/use-cases/launch-payment-client-action.ts`
+    - `apps/frontend/src/domains/payment/ui/primitives/PaymentCheckoutHero.vue`
+    - `apps/frontend/src/domains/payment/ui/surfaces/PaymentCheckoutFlow.vue`
+  - `PaymentCheckoutPage.vue` is now a route-only entrypoint that delegates to
+    the payment-domain surface
+  - checkout UI now provides:
+    - `PuCell + PuRadio + usePuSelect` provider selection
+    - checkout-specific BillLine hero
+    - bottom-anchored CTA
+    - generic provider-conflict dialog
+    - backend-authoritative payment status reconciliation after bridge return
+    - short success state followed by automatic return to Bill Detail
+  - focused RideHailing scenario now:
+    - installs fake WeChatPay bridge
+    - clicks the checkout pay CTA
+    - verifies automatic return to Bill Detail
+    - waits for post-payment Bill Detail state convergence before asserting
+- Verification result:
+  - backend typecheck passed
+  - frontend typecheck passed
+  - bill payment-state unit test passed
+  - focused RideHailing system scenario passed
+
+## Current Slice: Payment Checkout Page Reset And IA Grounding
+
+- Requested next slice:
+  - user-facing route should become `/payment/checkout?bill-line=`
+  - checkout page semantics should be payment-first instead of bill-line-first
+  - first action should mirror the Bill Detail workflow:
+    reset the current page body before redesign
+- Confirmed current implementation facts:
+  - current route is `/bill-lines/:billLineId/checkout`
+  - current frontend page parses `route.params.billLineId`
+  - current query owner is `usePaymentCheckout(billLineId)`
+  - current backend route is `GET /api/commerce/bill-lines/:billLineId/checkout`
+  - current Bill Detail CTA uses backend-authored
+    `lines[].checkoutHref = /bill-lines/:billLineId/checkout`
+  - current system scenario asserts the same route shape
+  - local prerequisite reset is partially done by user:
+    `PaymentCheckoutPage.vue` subtitle removed, not yet committed
+- Confirmed design/ownership decisions:
+  - Bill Detail CTA should stop depending on backend-authored checkout hrefs
+  - frontend should own the eventual `/payment/checkout?...` route shape
+  - backend should instead own payable-target facts, not user-facing route text
+- Confirmed dev-environment decisions:
+  - local mock payment provider baseline belongs in
+    `apps/backend/data-migrations/` with `-- migration: environments=development`
+  - it must not use `apps/backend/drizzle/`
+  - that seed depends on stabilizing the fake WeChatPay fixture first, because
+    the current fake server generates merchant credentials per boot
+- Opened slice artifact:
+  - `payment-checkout-page-reset-plan.md`
+- Frontend reset implementation:
+  - removed the current `PaymentCheckoutPage` successful-state body content
+  - preserved invalid-id, loading, error, and back-navigation shell behavior
+  - intentionally cleared the old bill-line-first amount/provider UI
+- Scenario adjustment:
+  - removed old checkout body assertions for amount and return-to-bill action
+  - scenario now asserts checkout page reachability and back-navigation to Bill
+    Detail
+  - aligned one stale order-detail back-button locator to the real accessible
+    label `返回上一页`
+- Verification result:
+  - focused biome check passed
+  - frontend typecheck passed
+  - focused RideHailing system scenario passed
+
+## Current Slice: Payment Checkout Route / Ownership
+
+- Requested segment:
+  - move the user-facing checkout route to `/payment/checkout?bill-line=`
+  - frontend should own route topology; backend should stop returning
+    `checkoutHref`
+- Confirmed implementation direction:
+  - keep backend checkout/charge/sync endpoints bill-line-scoped for now
+  - keep checkout page reset shell intact
+  - use a frontend-owned route helper instead of scattering path strings
+- Planned address:
+  - frontend router, checkout page, bill-detail page, bill-line card
+  - backend bill-detail projection
+  - focused RideHailing system scenario
+- Open next implementation artifact inside:
+  - `payment-checkout-page-reset-plan.md`
+- Implementation result:
+  - added frontend-owned checkout route helper at
+    `apps/frontend/src/domains/commerce/routing/payment-checkout-route.ts`
+  - moved frontend checkout route to `/payment/checkout`
+  - switched checkout page target parsing from route param to `bill-line` query
+  - removed backend `checkoutHref` from bill-detail projection
+  - switched Bill Detail CTA to frontend-built checkout navigation
+  - simplified BillLine Card selectable gating to `payableByViewer`
+- Verification result:
+  - focused biome check passed
+  - frontend typecheck passed
+  - backend typecheck passed
+  - focused RideHailing system scenario passed
+
+## Current Slice: Payment Checkout Interaction / Contract Planning
+
+- Requested planning update:
+  - lock checkout runtime behavior before wireframe
+  - define CTA behavior and payment-method ownership/source
+- Confirmed runtime findings:
+  - current CTA backend path is `POST /api/commerce/bill-lines/:billLineId/charges`
+  - current payment sync path is
+    `POST /api/commerce/bill-lines/:billLineId/payment/sync`
+  - current provider client actions are `WECHAT_BRIDGE` and
+    `PAYMENT_REDIRECT`
+  - current frontend has no checkout-specific WeChat bridge execution layer yet
+  - backend currently owns provider selection by `clientId` or existing line
+    execution slot
+  - backend model currently supports only one active provider instance per
+    `clientId`
+  - provider config currently supports only one `chargeMode` per provider
+    instance
+  - local fake WeChatPay server exists, but runtime dev frontend does not yet
+    have a fake JSAPI bridge adapter; only scenario stub exists
+- Confirmed contract conflict:
+  - older schema created `payment_txs`
+  - later migration `0078_bill_line_payment_slot.sql` removed `payment_txs`
+  - current durable doc says provider transaction lifecycle truth is not
+    persisted as backend payment transaction truth
+- Latest human-corrected direction:
+  - `PaymentTx` concept stays, but the deleted historical `payment_txs` table
+    must not return
+  - payment initiation should move under `/api/payment/*`
+  - initiation should return `PaymentTx`
+  - payment result polling should become `GET /api/payment/:paymentTxId`
+  - provider discovery should become a separate backend query surface
+  - active-provider-per-client uniqueness should be removed
+- Confirmed planning direction:
+  - the next slice is a backend contract reset, not UI-only implementation
+  - provider choice should not be pre-restricted in UI
+  - if an in-progress `PaymentTx` already binds a provider, mismatched choice
+    should fail at charge-initiation time and be handled by dialog
+  - recommended `PaymentTx` direction is an explicit API/domain resource with
+    opaque id resolution, not a restoration of the old `payment_txs` table
+  - checkout target truth should remain on billing-owned reads rather than a
+    new synthetic payment checkout read
+  - provider discovery does not need stable default-provider semantics
+  - preferred charge-initiation path shape is now
+    `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...`
+  - wireframe discussion should happen after the `PaymentTx` contract direction
+    is agreed
+- Standalone artifact opened:
+  - `payment-checkout-backend-contract-plan.md`
+- Implementation result:
+  - durable contract doc now explicitly states:
+    - Billing owns checkout target truth
+    - Payment owns provider discovery and transient `PaymentTx`
+  - removed the single-active-provider-per-client constraint from payment
+    provider instances
+  - added schema migration:
+    `apps/backend/drizzle/0082_payment_provider_multi_active_per_client.sql`
+  - added authenticated payment routes:
+    - `GET /api/payment/providers`
+    - `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...`
+    - `GET /api/payment/:paymentTxId`
+  - added transient `PaymentTx` id encoding/decoding and provider-query-backed
+    polling
+  - charge initiation now rejects unfinished mismatched-provider choice with
+    `PAYMENT_PROVIDER_CONFLICT`
+  - provider notify routes stay unchanged under `/api/payment/wechat-pay/*`
+  - legacy commerce checkout endpoints remain for compatibility while frontend
+    migrates
+- Verification result:
+  - backend typecheck passed
+  - backend migration lint/check passed
+  - focused backend payment scenario passed against the new `/api/payment/*`
+    contract
+  - scenario proves multi-provider support, charge-time conflict, transient
+    `PaymentTx` polling, and absence of `payment_txs`
+
+## Opened Slice: Payment Checkout Fake JSAPI Bridge Planning
+
+- Requested segment:
+  - verify fake runtime direction against official WeChatPay v3 JSAPI docs
+  - update task packet before implementation
+- Confirmed doc-aligned direction:
+  - frontend payment invocation must model
+    `WeixinJSBridge.invoke("getBrandWCPayRequest", payload, callback)`
+  - payload field names and casing must stay exactly:
+    `appId / timeStamp / nonceStr / package / signType / paySign`
+  - `WeixinJSBridgeReady` remains the correct structural readiness event
+  - bridge callback result is not final payment truth; checkout must still poll
+    backend `PaymentTx`
+- Confirmed local-runtime findings:
+  - scenario-only fake bridge already exists at
+    `tests/scenario/_infra/browser/wechatpay.ts`
+  - fake WeChatPay server already supports
+    `POST /__fake_wechatpay/prepays/:prepayId/succeed`
+  - runtime frontend still has no dev-only fake `WeixinJSBridge`
+- Opened slice artifact:
+  - `payment-checkout-fake-jsapi-bridge-plan.md`
+- Recommended segment boundary:
+  - dev-only fake bridge shim only
+  - no backend contract mutation
+  - no page IA or wireframe mutation
+  - no H5 mocking
+- Implementation result:
+  - added frontend fake bridge module:
+    `apps/frontend/src/shared/wechat/fake-wechatpay-bridge.ts`
+  - installed the bridge from app bootstrap:
+    `apps/frontend/src/app/create-app.ts`
+  - added env typing and example vars for:
+    - `VITE_FAKE_WECHATPAY_BRIDGE_ENABLED`
+    - `VITE_FAKE_WECHATPAY_ORIGIN`
+  - refined `window.WeixinJSBridge` typing
+  - added focused frontend unit tests
+  - local ignored `apps/frontend/.env` is now enabled for this bridge against
+    `https://wechatpay.partner-up.localhost`
+- Verification result:
+  - frontend typecheck passed
+  - focused frontend unit tests passed
+  - bridge module now proves install, supported invoke, unsupported invoke,
+    non-override behavior, and invalid prepay package failure handling
+  - remaining gap: Payment Checkout page still lacks the user-visible JSAPI
+    invocation path, so local manual button-flow proof belongs to the next UI
+    slice
+
+## Opened Slice: Payment Checkout Interaction / UI Planning
+
+- Requested planning correction:
+  - stop treating IA / wireframe as separable from interaction and contract
+    alignment
+  - revisit the page against the approved backend contract changes
+  - prepare a standalone segment plan file
+- Confirmed corrections:
+  - provider discovery must stay target-agnostic
+  - checkout UI must not pre-announce unfinished provider binding from the
+    provider list
+  - channel implementation details such as `JSAPI` / `H5` should not be shown
+    in the primary method list
+  - current frontend still depends on the legacy commerce checkout aggregate,
+    which is the wrong assembly direction for the approved owner model
+- New standalone artifact:
+  - `payment-checkout-interaction-ui-plan.md`
+- Planned direction:
+  - likely merge route shape adjustment, frontend query-owner migration, page
+    IA, pay-action state machine, and minimal backend conflict-payload
+    alignment into one implementation slice
+  - corrected route conclusion:
+    `billLineId` itself is enough for the user-facing checkout route; the real
+    owner-alignment gap is the absence of a Billing-owned bill-line read
+    surface that can replace the legacy checkout aggregate
+
+## Opened Slice: Local Mock Payment Provider Baseline Planning
+
+- Requested segment:
+  - create a stable local payment-provider baseline for checkout development
+- Confirmed planning direction:
+  - baseline should target `clientId = web`
+  - baseline should prefer `chargeMode = JSAPI`
+  - stable fake fixture source must land before provider-instance seed
+  - development-only seed belongs in `apps/backend/data-migrations/`
+- Confirmed implementation decisions:
+  - stable fake fixture will be stored as a committed asset
+  - development-only seed will rely on runtime platform-certificate refresh
+- Opened slice artifact:
+  - `local-mock-payment-provider-baseline-plan.md`
+- Implementation result:
+  - added committed fake fixture asset at
+    `packages/fake-wechatpay-server/src/fixtures/stable-dev-fixture.json`
+  - changed fake WeChatPay fixture loading to parse that committed asset
+  - added development-only provider baseline migration:
+    `apps/backend/data-migrations/0081_dev_mock_payment_provider_baseline.sql`
+  - baseline seeds active client `web` provider
+    `dev-fake-wechatpay-web` with `JSAPI` mode and
+    `https://wechatpay.partner-up.localhost`
+  - baseline leaves `platformCertificates = null` for runtime refresh
+  - baseline disables conflicting active `web` payment-provider rows before
+    activating the seeded row
+- Verification result:
+  - fake WeChatPay package typecheck passed
+  - fake WeChatPay package tests passed
+  - backend typecheck passed
+  - migration lint passed
+  - `git diff --check` passed
+  - current local `db:migrate:dev` remains blocked by a pre-existing local
+    issue in historical migration `0061_user_telemetry_v2.sql`
+  - isolated temporary-database `db:migrate:dev` passed and applied `0081`
+
+## Previous Slice: Bill Detail Page Reset And Backend Contract Segment
 
 - Requested first mutation for the next slice:
   - remove Bill Detail page body content

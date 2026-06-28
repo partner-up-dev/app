@@ -5,12 +5,13 @@
     class="ordering-page-shell"
     :data-testid="dataTestid"
   >
-    <template #pageHeader>
+    <template #header>
       <PuHeader
         :title="title"
         :subtitle="subtitle"
         title-as="h1"
         size="sm"
+        class="ordering-page-shell__header"
       >
         <template #leading>
           <PuButton
@@ -69,6 +70,10 @@ const { handleBack } = useFallbackBack(() => props.backFallbackTo);
   --pu-page-max-width: 44rem;
   --pu-page-padding-bottom: 0;
   --pu-page-scaffold-region-gap: 0;
+
+  :deep(.ordering-page-shell__header) {
+    padding: var(--sys-spacing-small) var(--sys-spacing-small);
+  }
 }
 
 .ordering-page-shell :deep(.pu-page-scaffold__footer) {

@@ -91,7 +91,9 @@
 
         <div v-if="selectedPayableLine" class="bill-detail-page__footer">
           <PuButton
-            :action="{ to: { path: selectedPayableLine.checkoutHref } }"
+            :action="{
+              to: buildPaymentCheckoutRouteLocation({ billLineId: selectedPayableLine.id }),
+            }"
             shape="rect"
             tone="primary"
             variant="solid"
@@ -124,6 +126,7 @@ import {
 } from "@/domains/commerce/model/bill-display";
 import type { BillDetailResponse } from "@/domains/commerce/queries/useCommerce";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
+import { buildPaymentCheckoutRouteLocation } from "@/domains/commerce/routing/payment-checkout-route";
 import BillLineCard from "@/domains/commerce/ui/bill-detail/BillLineCard.vue";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
@@ -159,14 +162,10 @@ const totalAmountLabel = computed(() =>
     : "待确认",
 );
 
-type PayableBillLine = BillDetailResponse["lines"][number] & {
-  checkoutHref: string;
-};
+const isPayableBillLine = (line: BillDetailResponse["lines"][number]): boolean =>
+  line.payableByViewer;
 
-const isPayableBillLine = (line: BillDetailResponse["lines"][number]): line is PayableBillLine =>
-  line.payableByViewer && typeof line.checkoutHref === "string" && line.checkoutHref.length > 0;
-
-const payableLines = computed<PayableBillLine[]>(() =>
+const payableLines = computed<BillDetailResponse["lines"][number][]>(() =>
   (detail.value?.lines ?? []).filter(isPayableBillLine),
 );
 

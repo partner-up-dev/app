@@ -160,7 +160,7 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/bill-lines/:billLineId/checkout",
+    path: "/payment/checkout",
     name: "payment-checkout",
     component: PaymentCheckoutPage,
     meta: {

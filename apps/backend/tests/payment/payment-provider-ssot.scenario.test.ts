@@ -18,20 +18,32 @@ type PaymentClientActionProjection = {
   package?: string;
 };
 
-type PaymentCheckoutProjection = {
-  payment: {
-    status: string;
-    providerStatus: string | null;
-    clientAction: PaymentClientActionProjection | null;
-    attemptCount: number;
-  } | null;
+type PaymentProviderCatalogProjection = {
+  providers: Array<{
+    paymentProviderInstanceId: string;
+    label: string;
+  }>;
 };
 
-type PaymentExecutionProjection = {
+type PaymentChargeProjection = {
+  paymentTx: {
+    paymentTxId: string;
+    status: string;
+    providerStatus: string | null;
+    attemptCount: number;
+  };
+  clientAction: PaymentClientActionProjection;
+};
+
+type PaymentTxProjection = {
   status: string;
   providerStatus: string | null;
   attemptCount: number;
   settledAt: string | null;
+};
+
+type ProblemDetailsResponse = {
+  code?: string;
 };
 
 const billLineRepo = new BillLineRepository();
@@ -146,10 +158,10 @@ async function givenRentalBillLineForPayment(input: { userId: string }): Promise
   return chargeLine.id;
 }
 
-const readPrepayId = (projection: PaymentCheckoutProjection): string => {
-  const clientAction = projection.payment?.clientAction;
+const readPrepayId = (projection: PaymentChargeProjection): string => {
+  const clientAction = projection.clientAction;
   assert.equal(clientAction?.type, "WECHAT_BRIDGE");
-  assert.equal(projection.payment?.status, "ACTION_REQUIRED");
+  assert.equal(projection.paymentTx.status, "ACTION_REQUIRED");
   const packageValue = clientAction?.package ?? "";
   assert.ok(
     packageValue.startsWith("prepay_id="),
@@ -158,124 +170,198 @@ const readPrepayId = (projection: PaymentCheckoutProjection): string => {
   return packageValue.slice("prepay_id=".length);
 };
 
-scenario("payment_provider_ssot_charge_retry_and_settlement_uses_provider_query", async (ctx) => {
-  const fakeWeChatPay = await startFakeWeChatPayServer();
-  try {
-    const payer = await givenUser("provider-ssot-payer");
-    await bindScenarioWeChatOpenId({
-      user: payer,
-      openId: "fake-openid-provider-ssot-payer",
-    });
-    await registerPaymentProviderInstance({
-      providerType: "WECHAT_PAY",
-      instanceKey: `provider-ssot-${randomUUID()}`,
-      displayName: "Provider SSOT Fake WeChatPay",
-      clientId: "web",
-      config: {
-        adapterMode: "WECHAT_PAY_API_V3",
-        appId: fakeWeChatPay.fixture.appId,
-        mchId: fakeWeChatPay.fixture.mchId,
-        chargeMode: "JSAPI",
-        endpointBaseUrl: fakeWeChatPay.origin,
-        apiV3Key: fakeWeChatPay.fixture.apiV3Key,
-        merchantCertificate: fakeWeChatPay.fixture.merchantCertificate,
-        platformCertificates: null,
-      },
-    });
-    const billLineId = await givenRentalBillLineForPayment({
-      userId: payer.user.id,
-    });
-
-    const firstCharge = await expectJsonResponse<PaymentCheckoutProjection>(
-      await requestJson(`/api/commerce/bill-lines/${billLineId}/charges`, {
-        method: "POST",
-        token: payer.token,
-        headers: {
-          "x-client-id": "web",
+scenario(
+  "payment_provider_contract_supports_multi_provider_conflict_and_transient_payment_tx_polling",
+  async (ctx) => {
+    const fakeWeChatPay = await startFakeWeChatPayServer();
+    try {
+      const payer = await givenUser("provider-ssot-payer");
+      await bindScenarioWeChatOpenId({
+        user: payer,
+        openId: "fake-openid-provider-ssot-payer",
+      });
+      const providerOne = await registerPaymentProviderInstance({
+        providerType: "WECHAT_PAY",
+        instanceKey: `provider-ssot-one-${randomUUID()}`,
+        displayName: "Provider SSOT Fake WeChatPay One",
+        clientId: "web",
+        config: {
+          adapterMode: "WECHAT_PAY_API_V3",
+          appId: fakeWeChatPay.fixture.appId,
+          mchId: fakeWeChatPay.fixture.mchId,
+          chargeMode: "JSAPI",
+          endpointBaseUrl: fakeWeChatPay.origin,
+          apiV3Key: fakeWeChatPay.fixture.apiV3Key,
+          merchantCertificate: fakeWeChatPay.fixture.merchantCertificate,
+          platformCertificates: null,
         },
-      }),
-      200,
-    );
-    const firstPrepayId = readPrepayId(firstCharge);
-    const firstTransaction = fakeWeChatPay.state
-      .snapshot()
-      .transactions.find((transaction) => transaction.prepayId === firstPrepayId);
-    assert.ok(firstTransaction, "Fake WeChatPay should create first transaction");
-    assert.equal(firstTransaction.outTradeNo.length, 32);
-    assert.equal(firstTransaction.amount.total, 1200);
-    ctx.record("firstOutTradeNo", firstTransaction.outTradeNo);
-
-    await fetch(
-      `${fakeWeChatPay.origin}/__fake_wechatpay/transactions/${firstTransaction.outTradeNo}/fail`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+      });
+      const providerTwo = await registerPaymentProviderInstance({
+        providerType: "WECHAT_PAY",
+        instanceKey: `provider-ssot-two-${randomUUID()}`,
+        displayName: "Provider SSOT Fake WeChatPay Two",
+        clientId: "web",
+        config: {
+          adapterMode: "WECHAT_PAY_API_V3",
+          appId: fakeWeChatPay.fixture.appId,
+          mchId: fakeWeChatPay.fixture.mchId,
+          chargeMode: "JSAPI",
+          endpointBaseUrl: fakeWeChatPay.origin,
+          apiV3Key: fakeWeChatPay.fixture.apiV3Key,
+          merchantCertificate: fakeWeChatPay.fixture.merchantCertificate,
+          platformCertificates: null,
         },
-        body: JSON.stringify({ reason: "scenario retry" }),
-      },
-    );
-    const failedSync = await expectJsonResponse<PaymentExecutionProjection>(
-      await requestJson(`/api/commerce/bill-lines/${billLineId}/payment/sync`, {
-        method: "POST",
-        token: payer.token,
-      }),
-      200,
-    );
-    assert.equal(failedSync.status, "FAILED");
-    assert.equal(failedSync.attemptCount, 1);
+      });
+      const billLineId = await givenRentalBillLineForPayment({
+        userId: payer.user.id,
+      });
 
-    const afterFailure = await billLineRepo.findById(billLineId);
-    assert.ok(afterFailure, "BillLine should still exist after failed attempt");
-    assert.equal(afterFailure.paymentProviderInstanceId, null);
-    assert.equal(afterFailure.attemptCount, 1);
-    assert.equal(afterFailure.settledAt, null);
+      const providerCatalog = await expectJsonResponse<PaymentProviderCatalogProjection>(
+        await requestJson("/api/payment/providers", {
+          method: "GET",
+          token: payer.token,
+          headers: {
+            "x-client-id": "web",
+          },
+        }),
+        200,
+      );
+      assert.equal(providerCatalog.providers.length, 2);
+      assert.deepEqual(
+        providerCatalog.providers.map((provider) => provider.paymentProviderInstanceId).sort(),
+        [providerOne.providerInstanceId, providerTwo.providerInstanceId].sort(),
+      );
 
-    const secondCharge = await expectJsonResponse<PaymentCheckoutProjection>(
-      await requestJson(`/api/commerce/bill-lines/${billLineId}/charges`, {
-        method: "POST",
-        token: payer.token,
-        headers: {
-          "x-client-id": "web",
+      const firstCharge = await expectJsonResponse<PaymentChargeProjection>(
+        await requestJson(
+          `/api/payment/${providerOne.providerInstanceId}/charge?bill-line=${billLineId}`,
+          {
+            method: "POST",
+            token: payer.token,
+            headers: {
+              "x-client-id": "web",
+            },
+          },
+        ),
+        200,
+      );
+      const firstPaymentTxId = firstCharge.paymentTx.paymentTxId;
+      const firstPrepayId = readPrepayId(firstCharge);
+      const firstTransaction = fakeWeChatPay.state
+        .snapshot()
+        .transactions.find((transaction) => transaction.prepayId === firstPrepayId);
+      assert.ok(firstTransaction, "Fake WeChatPay should create first transaction");
+      assert.equal(firstTransaction.outTradeNo.length, 32);
+      assert.equal(firstTransaction.amount.total, 1200);
+      ctx.record("firstOutTradeNo", firstTransaction.outTradeNo);
+
+      const conflict = await expectJsonResponse<ProblemDetailsResponse>(
+        await requestJson(
+          `/api/payment/${providerTwo.providerInstanceId}/charge?bill-line=${billLineId}`,
+          {
+            method: "POST",
+            token: payer.token,
+            headers: {
+              "x-client-id": "web",
+            },
+          },
+        ),
+        409,
+      );
+      assert.equal(conflict.code, "PAYMENT_PROVIDER_CONFLICT");
+
+      await fetch(
+        `${fakeWeChatPay.origin}/__fake_wechatpay/transactions/${firstTransaction.outTradeNo}/fail`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ reason: "scenario retry" }),
         },
-      }),
-      200,
-    );
-    const secondPrepayId = readPrepayId(secondCharge);
-    const secondTransaction = fakeWeChatPay.state
-      .snapshot()
-      .transactions.find((transaction) => transaction.prepayId === secondPrepayId);
-    assert.ok(secondTransaction, "Fake WeChatPay should create second transaction");
-    assert.notEqual(secondTransaction.outTradeNo, firstTransaction.outTradeNo);
-    assert.equal(secondTransaction.outTradeNo.length, 32);
-    ctx.record("secondOutTradeNo", secondTransaction.outTradeNo);
+      );
+      const failedTx = await expectJsonResponse<PaymentTxProjection>(
+        await requestJson(`/api/payment/${firstPaymentTxId}`, {
+          method: "GET",
+          token: payer.token,
+        }),
+        200,
+      );
+      assert.equal(failedTx.status, "FAILED");
+      assert.equal(failedTx.attemptCount, 1);
+      assert.equal(failedTx.settledAt, null);
 
-    fakeWeChatPay.state.markTransaction({
-      outTradeNo: secondTransaction.outTradeNo,
-      tradeState: "SUCCESS",
-    });
-    const settledSync = await expectJsonResponse<PaymentExecutionProjection>(
-      await requestJson(`/api/commerce/bill-lines/${billLineId}/payment/sync`, {
-        method: "POST",
-        token: payer.token,
-      }),
-      200,
-    );
-    assert.equal(settledSync.status, "SUCCEEDED");
-    assert.equal(settledSync.attemptCount, 2);
-    assert.ok(settledSync.settledAt, "Sync should project settledAt");
+      const afterFailure = await billLineRepo.findById(billLineId);
+      assert.ok(afterFailure, "BillLine should still exist after failed attempt");
+      assert.equal(afterFailure.paymentProviderInstanceId, null);
+      assert.equal(afterFailure.attemptCount, 1);
+      assert.equal(afterFailure.settledAt, null);
 
-    const settledLine = await billLineRepo.findById(billLineId);
-    assert.ok(settledLine, "BillLine should exist after settlement");
-    assert.ok(settledLine.paymentProviderInstanceId);
-    assert.equal(settledLine.attemptCount, 2);
-    assert.ok(settledLine.settledAt);
+      const secondCharge = await expectJsonResponse<PaymentChargeProjection>(
+        await requestJson(
+          `/api/payment/${providerTwo.providerInstanceId}/charge?bill-line=${billLineId}`,
+          {
+            method: "POST",
+            token: payer.token,
+            headers: {
+              "x-client-id": "web",
+            },
+          },
+        ),
+        200,
+      );
+      const secondPaymentTxId = secondCharge.paymentTx.paymentTxId;
+      const secondPrepayId = readPrepayId(secondCharge);
+      const secondTransaction = fakeWeChatPay.state
+        .snapshot()
+        .transactions.find((transaction) => transaction.prepayId === secondPrepayId);
+      assert.ok(secondTransaction, "Fake WeChatPay should create second transaction");
+      assert.notEqual(secondTransaction.outTradeNo, firstTransaction.outTradeNo);
+      assert.equal(secondTransaction.outTradeNo.length, 32);
+      ctx.record("secondOutTradeNo", secondTransaction.outTradeNo);
 
-    const txTableRows = await db.execute<{ payment_txs: string | null }>(
-      sql`select to_regclass('public.payment_txs')::text as payment_txs`,
-    );
-    assert.equal(txTableRows[0]?.payment_txs ?? null, null);
-  } finally {
-    await fakeWeChatPay.close();
-  }
-});
+      fakeWeChatPay.state.markTransaction({
+        outTradeNo: secondTransaction.outTradeNo,
+        tradeState: "SUCCESS",
+      });
+      const settledTx = await expectJsonResponse<PaymentTxProjection>(
+        await requestJson(`/api/payment/${secondPaymentTxId}`, {
+          method: "GET",
+          token: payer.token,
+        }),
+        200,
+      );
+      assert.equal(settledTx.status, "SUCCEEDED");
+      assert.equal(settledTx.attemptCount, 2);
+      assert.ok(settledTx.settledAt, "PaymentTx poll should project settledAt");
+
+      const historicalFailedTx = await expectJsonResponse<PaymentTxProjection>(
+        await requestJson(`/api/payment/${firstPaymentTxId}`, {
+          method: "GET",
+          token: payer.token,
+        }),
+        200,
+      );
+      assert.equal(historicalFailedTx.status, "FAILED");
+      assert.equal(historicalFailedTx.attemptCount, 1);
+      assert.equal(
+        historicalFailedTx.settledAt,
+        null,
+        "Historical failed tx should not inherit later settledAt",
+      );
+
+      const settledLine = await billLineRepo.findById(billLineId);
+      assert.ok(settledLine, "BillLine should exist after settlement");
+      assert.equal(settledLine.paymentProviderInstanceId, providerTwo.providerInstanceId);
+      assert.equal(settledLine.attemptCount, 2);
+      assert.ok(settledLine.settledAt);
+
+      const txTableRows = await db.execute<{ payment_txs: string | null }>(
+        sql`select to_regclass('public.payment_txs')::text as payment_txs`,
+      );
+      assert.equal(txTableRows[0]?.payment_txs ?? null, null);
+    } finally {
+      await fakeWeChatPay.close();
+    }
+  },
+);

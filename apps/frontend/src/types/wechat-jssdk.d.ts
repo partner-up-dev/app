@@ -19,6 +19,27 @@ declare global {
     getEnv: (callback: (res: WeChatMiniProgramEnv) => void) => void;
   };
 
+  type WeChatPayBridgePayload = {
+    appId: string;
+    timeStamp: string;
+    nonceStr: string;
+    package: string;
+    signType: "RSA";
+    paySign: string;
+  };
+
+  type WeixinJsBridgeCallbackPayload = {
+    err_msg?: string;
+  };
+
+  type WeixinJsBridgeApi = {
+    invoke: (
+      method: string,
+      payload: WeChatPayBridgePayload,
+      callback: (response: WeixinJsBridgeCallbackPayload) => void,
+    ) => void;
+  };
+
   type WeChatConfigPayload = {
     debug?: boolean;
     appId: string;
@@ -61,9 +82,7 @@ declare global {
       success?: (res: { localId: string }) => void;
       fail?: (error: unknown) => void;
     }) => void;
-    onVoiceRecordEnd: (callbacks: {
-      complete: (res: { localId: string }) => void;
-    }) => void;
+    onVoiceRecordEnd: (callbacks: { complete: (res: { localId: string }) => void }) => void;
     translateVoice: (payload: {
       localId: string;
       isShowProgressTips?: 0 | 1;
@@ -75,9 +94,7 @@ declare global {
 
   interface Window {
     __wxjs_environment?: string;
-    WeixinJSBridge?: {
-      invoke?: unknown;
-    };
+    WeixinJSBridge?: WeixinJsBridgeApi;
   }
 
   const wx: WeChatJssdk | undefined;

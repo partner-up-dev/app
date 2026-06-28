@@ -3,8 +3,8 @@ import type { BillId } from "../../../entities/bill";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { deriveBillPaymentState } from "../../bill";
 import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
-import { deriveBillPaymentState } from "../../payment/services";
 import { confirmRideHailingProviderFeeAfterPayment } from "./ride-hailing-ordering-flow";
 
 const billRepo = new BillRepository();

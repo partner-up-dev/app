@@ -234,6 +234,13 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   assert.equal(baseOrder.family, "RENTAL");
   assert.equal(baseOrder.offerId, offer.id);
   assert.equal(baseOrder.createdBy, creator.user.id);
+  assert.equal(baseOrder.timeout.defaultWindowMinutes, 30);
+  const unpaidExpiresAtMs = new Date(baseOrder.timeout.unpaidExpiresAt).getTime();
+  const unpaidWindowMs = unpaidExpiresAtMs - baseOrder.createdAt.getTime();
+  assert.ok(
+    unpaidWindowMs >= 29 * 60 * 1000 && unpaidWindowMs <= 31 * 60 * 1000,
+    "Rental base order should keep a 30-minute unpaid window",
+  );
   assert.equal(hasOwnKey(baseOrder, "selectedZoneCodes"), false);
   assert.equal(hasOwnKey(baseOrder, "serviceStartAt"), false);
   assert.equal(hasOwnKey(baseOrder, "serviceEndAt"), false);

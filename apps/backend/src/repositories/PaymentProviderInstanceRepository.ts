@@ -1,26 +1,23 @@
 import { and, asc, eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import {
-  paymentProviderInstances,
-  type NewPaymentProviderInstance,
-  type PaymentProviderInstance,
-  type PaymentProviderInstanceId,
-} from "../entities/payment";
 import type {
   PaymentProviderInstanceConfig,
   PaymentProviderInstanceStatus,
   PaymentProviderType,
 } from "../domains/payment/model";
+import {
+  type NewPaymentProviderInstance,
+  type PaymentProviderInstance,
+  type PaymentProviderInstanceId,
+  paymentProviderInstances,
+} from "../entities/payment";
+import { db } from "../lib/db";
 import type { RepositoryExecutor } from "./_executor";
 
 export class PaymentProviderInstanceRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewPaymentProviderInstance): Promise<PaymentProviderInstance> {
-    const result = await this.executor
-      .insert(paymentProviderInstances)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(paymentProviderInstances).values(data).returning();
     return result[0]!;
   }
 
@@ -36,9 +33,7 @@ export class PaymentProviderInstanceRepository {
       );
   }
 
-  async findById(
-    id: PaymentProviderInstanceId,
-  ): Promise<PaymentProviderInstance | null> {
+  async findById(id: PaymentProviderInstanceId): Promise<PaymentProviderInstance | null> {
     const result = await this.executor
       .select()
       .from(paymentProviderInstances)
@@ -64,6 +59,11 @@ export class PaymentProviderInstanceRepository {
   }
 
   async findActiveByClientId(clientId: string): Promise<PaymentProviderInstance | null> {
+    const providers = await this.listActiveByClientId(clientId);
+    return providers[0] ?? null;
+  }
+
+  async listActiveByClientId(clientId: string): Promise<PaymentProviderInstance[]> {
     const result = await this.executor
       .select()
       .from(paymentProviderInstances)
@@ -74,7 +74,7 @@ export class PaymentProviderInstanceRepository {
         ),
       )
       .orderBy(asc(paymentProviderInstances.createdAt));
-    return result[0] ?? null;
+    return result;
   }
 
   async updateRegistration(input: {

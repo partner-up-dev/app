@@ -27,6 +27,7 @@ import {
 import { withScenarioPage } from "../_infra/browser/browser";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
+import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
 import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
 import { scenario } from "../_infra/scenario/scenario";
 
@@ -407,6 +408,30 @@ async function assertLocatorTextMatches(input: {
   assert.match(actual, input.pattern, input.label);
 }
 
+async function waitForTextIncludes(input: {
+  read: () => Promise<string | null>;
+  expected: string;
+  label: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  const timeoutMs = input.timeoutMs ?? 5_000;
+  const startedAt = Date.now();
+  let actual = "";
+
+  while (Date.now() - startedAt < timeoutMs) {
+    actual = (await input.read()) ?? "";
+    if (actual.includes(input.expected)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  assert.ok(
+    actual.includes(input.expected),
+    `${input.label}: expected text to include "${input.expected}", got "${actual}"`,
+  );
+}
+
 async function openRideHailingOrderingFromPr(input: { page: Page; prId: number }): Promise<void> {
   await input.page.goto(`/pr/${input.prId}`);
   await input.page.getByTestId("pr-detail.commerce-placement.open").click();
@@ -680,17 +705,38 @@ async function assertRideHailingBillDetailPage(input: {
   page: Page;
   viewerPayerName: string;
   otherPayerName: string;
+  expectedBillStatus?: string;
+  expectedViewerSettlementStatus?: string;
+  expectedOtherSettlementStatus?: string;
+  expectedViewerPayable?: boolean;
+  expectedOtherPayable?: boolean;
+  expectPayCta?: boolean;
+  expectedViewerSelected?: boolean;
+  expectedOtherSelected?: boolean;
 }): Promise<void> {
   const { page } = input;
   const billLines = page.getByTestId("bill-detail.line");
+  const expectedBillStatus = input.expectedBillStatus ?? "待支付";
+  const expectedViewerSettlementStatus = input.expectedViewerSettlementStatus ?? "待支付";
+  const expectedOtherSettlementStatus = input.expectedOtherSettlementStatus ?? "待支付";
+  const expectedViewerPayable = input.expectedViewerPayable ?? true;
+  const expectedOtherPayable = input.expectedOtherPayable ?? false;
+  const expectPayCta = input.expectPayCta ?? true;
+  const expectedViewerSelected = input.expectedViewerSelected ?? expectPayCta;
+  const expectedOtherSelected = input.expectedOtherSelected ?? false;
 
   await page.getByTestId("bill-detail.page").waitFor({
     state: "visible",
     timeout: 10_000,
   });
+  await waitForTextIncludes({
+    read: () => page.getByTestId("bill-detail.status").textContent(),
+    expected: expectedBillStatus,
+    label: "RideHailing bill detail settlement status",
+  });
   await assertLocatorTextIncludes({
     actual: page.getByTestId("bill-detail.status").textContent(),
-    expected: "待支付",
+    expected: expectedBillStatus,
     label: "RideHailing bill detail settlement status",
   });
   await assertLocatorTextMatches({
@@ -740,18 +786,52 @@ async function assertRideHailingBillDetailPage(input: {
   const viewerLineControl = viewerLine.locator('[role="button"]');
   const otherLineControl = otherLine.locator('[role="button"]');
 
-  assert.equal(await viewerLine.getAttribute("data-payable"), "true");
-  assert.equal(await viewerLine.getAttribute("data-selected"), "true");
-  assert.equal(await viewerLineControl.getAttribute("aria-disabled"), null);
-  assert.equal(await otherLine.getAttribute("data-payable"), "false");
-  assert.equal(await otherLine.getAttribute("data-selected"), "false");
-  assert.equal(await otherLineControl.getAttribute("aria-disabled"), "true");
-
-  await assertLocatorTextMatches({
-    actual: page.getByTestId("bill-detail.pay-selected").textContent(),
-    pattern: /支付\s*[¥￥]20\.00/,
-    label: "RideHailing bill detail pay selected CTA",
+  await assertLocatorTextIncludes({
+    actual: viewerLine.getByTestId("bill-detail.line-status").textContent(),
+    expected: expectedViewerSettlementStatus,
+    label: "RideHailing bill detail viewer line status",
   });
+  await assertLocatorTextIncludes({
+    actual: otherLine.getByTestId("bill-detail.line-status").textContent(),
+    expected: expectedOtherSettlementStatus,
+    label: "RideHailing bill detail other line status",
+  });
+
+  assert.equal(
+    await viewerLine.getAttribute("data-payable"),
+    expectedViewerPayable ? "true" : "false",
+  );
+  assert.equal(
+    await viewerLine.getAttribute("data-selected"),
+    expectedViewerSelected ? "true" : "false",
+  );
+  assert.equal(
+    await viewerLineControl.getAttribute("aria-disabled"),
+    expectedViewerPayable ? null : "true",
+  );
+  assert.equal(
+    await otherLine.getAttribute("data-payable"),
+    expectedOtherPayable ? "true" : "false",
+  );
+  assert.equal(
+    await otherLine.getAttribute("data-selected"),
+    expectedOtherSelected ? "true" : "false",
+  );
+  assert.equal(
+    await otherLineControl.getAttribute("aria-disabled"),
+    expectedOtherPayable ? null : "true",
+  );
+
+  if (expectPayCta) {
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("bill-detail.pay-selected").textContent(),
+      pattern: /支付\s*[¥￥]20\.00/,
+      label: "RideHailing bill detail pay selected CTA",
+    });
+    return;
+  }
+
+  assert.equal(await page.getByTestId("bill-detail.pay-selected").count(), 0);
 }
 
 async function waitForRideHailingMapMode(
@@ -800,6 +880,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
   await withScenarioPage(async (page) => {
     await installScenarioUserSession(page, creator);
     await installDeterministicShareSidecarStubs(page);
+    await installFakeWeChatPayBridge(page, getScenarioEnvironment().fakeWeChatPay.origin);
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
@@ -864,7 +945,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     const orderDetailPath = new URL(page.url()).pathname;
     orderPath = orderDetailPath;
-    await page.getByLabel("Back").click();
+    await page.getByRole("button", { name: "返回上一页" }).click();
     await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
       timeout: 10_000,
     });
@@ -885,7 +966,13 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     });
     await page.getByTestId("bill-detail.pay-selected").click();
     await page.waitForURL(
-      (url) => /^\/bill-lines\/[0-9a-f-]+\/checkout$/.test(new URL(url).pathname),
+      (url) => {
+        const checkoutUrl = new URL(url);
+        return (
+          checkoutUrl.pathname === "/payment/checkout" &&
+          /^[0-9a-f-]+$/.test(checkoutUrl.searchParams.get("bill-line") ?? "")
+        );
+      },
       {
         timeout: 10_000,
       },
@@ -894,18 +981,20 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
       state: "visible",
       timeout: 10_000,
     });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("payment-checkout.amount").textContent(),
-      pattern: /[¥￥]20\.00/,
-      label: "RideHailing payment checkout amount",
-    });
-    await page.getByTestId("payment-checkout.bill-link").click();
+    await page.getByTestId("payment-checkout.pay").click();
     await page.waitForURL((url) => new URL(url).pathname === billDetailPath, {
-      timeout: 10_000,
+      timeout: 15_000,
     });
-    await page.getByTestId("bill-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
+    await assertRideHailingBillDetailPage({
+      page,
+      viewerPayerName: "scenario-system-ride-hailing-creator",
+      otherPayerName: "scenario-system-ride-hailing-passenger",
+      expectedBillStatus: "部分已支付",
+      expectedViewerSettlementStatus: "已支付",
+      expectedOtherSettlementStatus: "待支付",
+      expectedViewerPayable: false,
+      expectPayCta: false,
+      expectedViewerSelected: false,
     });
     await page.getByTestId("bill-detail.order-link").click();
     await page.waitForURL((url) => new URL(url).pathname === orderDetailPath, {

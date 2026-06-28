@@ -43,6 +43,7 @@ import type {
   OrderParticipantSnapshot,
   OrderPricingSnapshot,
   OrderStatus,
+  OrderTimeout,
   RentalRegistrant,
   RideHailingChoiceSetCandidateSnapshot,
   RideHailingChoiceSetResolutionSnapshot,
@@ -66,7 +67,7 @@ const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 
 const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
-const DEFAULT_INITIATING_WINDOW_MINUTES = 30;
+const NON_EXPIRING_UNPAID_EXPIRES_AT = "9999-12-31T23:59:59.999Z";
 
 export type OrderItemInput = QuoteBoundOrderItemInput;
 
@@ -552,11 +553,18 @@ async function buildRideChoiceSetItemSnapshot(input: {
   };
 }
 
-function buildTimeout(minutes: number) {
+function buildTimeout(minutes: number): OrderTimeout {
   const now = new Date();
   return {
     unpaidExpiresAt: new Date(now.getTime() + minutes * 60 * 1000).toISOString(),
     defaultWindowMinutes: minutes,
+  };
+}
+
+function buildNonExpiringTimeout(): OrderTimeout {
+  return {
+    unpaidExpiresAt: NON_EXPIRING_UNPAID_EXPIRES_AT,
+    defaultWindowMinutes: 0,
   };
 }
 
@@ -567,7 +575,7 @@ async function createBaseOrder(input: {
   createdBy: string;
   participants: OrderParticipantSnapshot[];
   items: OrderItemSnapshot[];
-  unpaidWindowMinutes: number;
+  timeout: OrderTimeout;
 }) {
   const participantError = validateOrderParticipants({
     participants: input.participants,
@@ -589,7 +597,7 @@ async function createBaseOrder(input: {
     participants: input.participants,
     splitRuleSnapshot,
     items: input.items,
-    timeout: buildTimeout(input.unpaidWindowMinutes),
+    timeout: input.timeout,
   });
 
   return {
@@ -635,7 +643,7 @@ async function createRentalOrderInExecutor(
     createdBy: input.createdBy,
     participants: input.participants,
     items: input.items,
-    unpaidWindowMinutes: DEFAULT_UNPAID_WINDOW_MINUTES,
+    timeout: buildTimeout(DEFAULT_UNPAID_WINDOW_MINUTES),
   });
 
   const rentalOrderRepo = new RentalOrderRepository(executor);
@@ -701,7 +709,7 @@ async function createRideHailingOrderFoundationInExecutor(
     createdBy: input.createdBy,
     participants: input.participants,
     items: input.items,
-    unpaidWindowMinutes: DEFAULT_INITIATING_WINDOW_MINUTES,
+    timeout: buildNonExpiringTimeout(),
   });
 
   const rideRepo = new RideHailingOrderRepository(executor);
@@ -749,7 +757,7 @@ async function createRentalOrderBranch(input: {
       createdBy: input.createdBy,
       participants,
       items: [item],
-      unpaidWindowMinutes: DEFAULT_UNPAID_WINDOW_MINUTES,
+      timeout: buildTimeout(DEFAULT_UNPAID_WINDOW_MINUTES),
     });
 
     await attachPrIfPresent({
@@ -826,7 +834,7 @@ async function createRideHailingOrderBranch(input: {
         createdBy: input.createdBy,
         participants,
         items: [unresolvedItem],
-        unpaidWindowMinutes: DEFAULT_INITIATING_WINDOW_MINUTES,
+        timeout: buildNonExpiringTimeout(),
       });
 
       await attachPrIfPresent({

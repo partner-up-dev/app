@@ -19,7 +19,9 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` for Bill Detail page reset and backend-contract segment
+- Active mode: `Execute` completed for the Payment Checkout interaction/UI
+  slice; backend contract, fake JSAPI bridge groundwork, and checkout runtime
+  interaction are now connected end-to-end
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -34,9 +36,26 @@ Hypothesis:
   treated as an action, not as a required visible `Call` text label; current
   implementation slice covers order-detail back-navigation semantics and a
   resolved-vehicle section above route facts; Bill Card integration is now
-  committed; current slice resets and rebuilds Bill Detail page around
+  committed; previous slice reset and rebuilt Bill Detail page around
   backend-owned bill totals, payer-enriched bill lines, single-select checkout,
-  and verified RideHailing bill-detail -> checkout routing
+  and verified RideHailing bill-detail -> checkout routing; current workstream
+  moved to Payment Checkout reset, route decoupling, and IA/wireframe
+  grounding; local mock payment provider baseline is now prepared, checkout
+  route ownership is already frontend-owned, checkout runtime now uses
+  Billing-owned bill-line target reads plus Payment-owned provider /
+  `PaymentTx` execution facts, and focused RideHailing checkout success flow is
+  verified end-to-end; typed-order timeout override is now corrected so
+  RideHailing writes a non-expiring base-order timeout snapshot at create time
+  while Rental keeps the standard unpaid window; the widened payment-client
+  repair slice is now also implemented and verified:
+  - runtime fake `WeixinJSBridge` no longer breaks on detached native `fetch`
+  - local development now has a dev-only fake payment-client UI with
+    `支付成功 / 取消支付 / 模拟失败`
+  - checkout reconciliation is now attempt-phase-based with a blocking dialog
+    instead of request-level CTA flicker
+  - WeChatPay attempt identity is now explicitly treated as one canonical
+    attempt tuple with backend/provider string projections, not as two separate
+    business truths
 
 ## Inherited Effective Truth
 
@@ -144,6 +163,93 @@ Hypothesis:
 - Bill Detail page reset slice already removed the old header subtitle and the
   old successful-state body content; the page is now rebuilt from the real
   Bill / BillLine projection with card-based payable-line selection.
+- Payment Checkout page currently has:
+  - user-facing route `/bill-lines/:billLineId/checkout`
+  - path-param parsing from `route.params.billLineId`
+  - a bill-line-first projection and page layout
+  - local uncommitted prerequisite change removing the header subtitle
+- Current Payment Checkout query and mutation contracts remain bill-line-scoped,
+  but the requested next slice wants the user-facing route and page semantics
+  to be payment-first rather than bill-line-resource-first.
+- Current direction for checkout route ownership:
+  - backend should not own user-facing checkout href topology
+  - bill detail no longer depends on backend-authored `checkoutHref`
+  - frontend now builds `/payment/checkout?bill-line=...` from stable
+    payable-target facts
+- Current checkout payment contract remains intentionally unstable:
+  - current source still uses BillLine-local execution slot endpoints
+  - human direction now wants a `PaymentTx`-centric backend contract instead
+  - durable docs and historical schema currently disagree with that direction,
+    so an explicit backend contract segment is required before UI build-out
+  - `PaymentTx` should be treated as a real domain concept, but not by
+    reintroducing the deleted `payment_txs` table
+  - current recommended implementation direction is a pollable opaque
+    `paymentTxId` resource over approved payment-domain contracts, not a
+    restoration of the removed historical table
+  - checkout target truth should stay on billing-owned reads; payment domain
+    should not introduce a synthetic target aggregate read
+  - backend contract reset is tracked in standalone artifact:
+    `tasks/ride-hailing-ui-fixes/payment-checkout-backend-contract-plan.md`
+  - backend contract reset is now implemented:
+    - multiple active providers per client are allowed
+    - `/api/payment/providers` is available for client-scoped provider
+      discovery
+    - `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...`
+      returns `paymentTx + clientAction`
+    - `GET /api/payment/:paymentTxId` polls transient provider-backed payment
+      state
+    - legacy commerce checkout endpoints remain temporarily for compatibility
+- official WeChatPay v3 JSAPI contract is now re-verified:
+  - frontend invocation entry is
+    `WeixinJSBridge.invoke("getBrandWCPayRequest", payload, callback)`
+  - payload fields are
+    `appId / timeStamp / nonceStr / package / signType / paySign`
+  - `WeixinJSBridgeReady` remains the right structural readiness event
+  - frontend callback result is not final payment truth; backend poll/query is
+    still authoritative
+- current local runtime still lacks a development-only fake JSAPI bridge even
+  though:
+  - scenario-only bridge stub already exists
+  - fake WeChatPay server already supports `prepay -> succeed`
+  - local seeded fake provider baseline already targets `JSAPI`
+- new active planning artifact:
+- completed bridge artifact:
+  `tasks/ride-hailing-ui-fixes/payment-checkout-fake-jsapi-bridge-plan.md`
+- fake JSAPI bridge segment is now implemented:
+  - app bootstrap installs a dev-only fake `WeixinJSBridge` when enabled
+  - fake bridge supports only `getBrandWCPayRequest`
+  - fake bridge now owns a dev-only payment-client overlay and drives the fake
+    provider through `prepay -> succeed / close / fail`
+  - existing real bridge is never overridden
+  - frontend type and unit coverage are in place
+- standalone next-slice artifact:
+  `tasks/ride-hailing-ui-fixes/payment-checkout-interaction-ui-plan.md`
+- current planning correction:
+  interaction, IA, route shape, frontend data assembly, and minimal backend
+  conflict-dialog alignment should be treated as one slice rather than split
+  into fake-independent subsegments
+- new active planning artifact:
+  `tasks/ride-hailing-ui-fixes/payment-client-ui-attempt-identity-plan.md`
+- current planning correction:
+  the widened checkout repair segment is now completed:
+  - fake `WeixinJSBridge` runtime repair is implemented
+  - dev-only payment-client UI is implemented
+  - checkout reconciliation UX is stabilized
+  - WeChatPay attempt-id topology is reviewed and ratified as canonical tuple
+    plus backend/provider projections
+- Local payment development readiness also needs a separate dev-infra segment:
+  - fake WeChatPay fixture is currently process-ephemeral
+  - a development-only provider-instance seed must therefore be paired with a
+    stable fake fixture source
+  - this belongs in `data-migrations/`, not `drizzle/`
+- PaymentTx identity diagnosis now has an explicit effective truth:
+  - current provider-facing `merchantOrderNo / out_trade_no` is already a short
+    WeChatPay-safe token and is not blocked by the long backend `paymentTxId`
+  - the long `paymentTxId` is the backend resource-id projection of the same
+    canonical attempt tuple
+  - no provider-side id regression exists in the current runtime path; the
+    current pressure is naming/architecture clarity, not broken provider
+    length compliance
 
 ## Collaboration Protocol
 
@@ -151,6 +257,21 @@ Hypothesis:
 - Codex is expected to raise objections before implementation when a requested
   slice appears likely to damage functionality, ownership boundaries,
   maintainability, readability, or established UI contracts.
+- Apply shift-left packet discipline:
+  - before production-code implementation starts, the active task packet must
+    already contain:
+    - overall objective and active segment objective
+    - confirmed truth sufficient to constrain mutation
+    - Address and Object
+    - State Diff
+    - Blast Radius Forecast
+    - Invariants Check
+    - explicit Verification Plan
+    - implementation steps for the active segment
+  - implementation result and verification result are append-only follow-up
+    records; they do not replace pre-implementation planning
+  - if new evidence changes the plan materially during implementation, pause
+    and update the packet before continuing broader mutation
 - Before every production-code fix, perform an Impact Handshake covering:
   - Address and Object: exact files, anchors, components, symbols, or test IDs
     expected to change
@@ -213,8 +334,99 @@ Choose the narrowest sufficient proof per approved slice:
 
 ## Current State
 
-- Implemented slice: Bill Detail page reset and backend-contract segment
-  (uncommitted).
+- Completed segment: typed-order timeout override for RideHailing final-bill
+  payment.
+  - current diagnosis:
+    - RideHailing is already modeled durably as `trip finish -> final bill ->
+      user pays bill lines`
+    - payment-side readers currently consume persisted `order.timeout` without
+      family awareness:
+      - `apps/backend/src/domains/payment/use-cases/payment-contract.ts`
+        gates payment initiation by `basis.order.timeout.unpaidExpiresAt`
+    - the current owner mistake is upstream:
+      - RideHailing order creation still writes the same unpaid-window-style
+        timeout shape as prepaid flows
+      - `apps/backend/src/domains/trade/use-cases/create-order.ts` currently
+        passes `DEFAULT_INITIATING_WINDOW_MINUTES` into RideHailing base-order
+        creation
+    - current segment direction:
+      - keep payment family-agnostic
+      - keep shared `TradeOrder.timeout` shape unchanged for now
+      - let typed order sub-domains override base-order timeout at create time
+  - approved handshake for the next production-code segment:
+    - Address and Object:
+      - `docs/20-product-tdd/ecommerce-contracts.md`
+      - `apps/backend/src/domains/trade/use-cases/create-order.ts`
+      - focused tests that prove family-specific timeout snapshots at order
+        creation and RideHailing final-bill payment behavior
+    - State Diff:
+      - from:
+        RideHailing orders are created with the same unpaid-window-style timeout
+        defaults as prepaid flows, so later timeout readers can reject final
+        bill payment as expired
+      - to:
+        typed order creation owns timeout override; Rental keeps current unpaid
+        window semantics, while RideHailing writes a non-expiring override value
+        suitable for final-bill payment, and downstream payment continues to
+        read `order.timeout` without family branches
+    - Blast Radius Forecast:
+      - order creation snapshots for Rental and RideHailing
+      - Payment Checkout only insofar as it consumes persisted timeout facts
+      - RideHailing `FINISHED -> bill detail -> checkout -> payment` flow
+      - potential Rental regression if default unpaid-window behavior changes
+        accidentally
+    - Invariants Check:
+      - do not add `order.family` branching to payment checkout logic in this
+        segment
+      - do not introduce prepaid/postpaid technical fields onto `Bill`
+      - do not change the shared `TradeOrder.timeout` shape in this segment
+      - do not loosen Rental unpaid-window behavior
+      - do not change checkout route shape
+      - RideHailing final bill creation stays callback-driven after provider
+        final settlement input
+    - Verification Plan:
+      - `pnpm check:type:backend`
+      - focused backend tests for family-specific timeout snapshots at create
+        time
+      - focused RideHailing system scenario covering `FINISHED -> bill detail ->
+        checkout -> payment`
+      - regression proof that Rental still keeps current unpaid-window semantics
+  - implementation result:
+    - `apps/backend/src/domains/trade/use-cases/create-order.ts` now lets
+      typed order creation pass a complete timeout snapshot into base-order
+      creation instead of always deriving it from a minute count
+    - Rental creation paths still write the standard 30-minute unpaid-window
+      timeout
+    - RideHailing creation paths now override the base-order timeout with a
+      non-expiring snapshot:
+      - `unpaidExpiresAt = 9999-12-31T23:59:59.999Z`
+      - `defaultWindowMinutes = 0`
+    - payment-side timeout readers remain family-agnostic
+    - durable contract wording now states:
+      - Rental keeps the standard unpaid payment window on the base-order
+        timeout snapshot
+      - RideHailing overrides the base-order timeout so final-bill payment is
+        not constrained by that standard window
+  - verification result:
+    - `pnpm check:type:backend` passed
+    - `pnpm exec vitest run --project backend-scenario apps/backend/tests/ride-hailing/ride-hailing-order-foundation.scenario.test.ts apps/backend/tests/commerce/rental-order-persistence.scenario.test.ts`
+      passed
+    - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts -t "commerce_ride_hailing_ordering_reaches_order_detail"`
+      passed
+    - `git diff --check` passed
+- Active slice: Local mock payment provider baseline
+  (`tasks/ride-hailing-ui-fixes/local-mock-payment-provider-baseline-plan.md`).
+  - implementation completed
+  - verification passed in isolated temporary database
+  - current local `db:migrate:dev` remains blocked by an unrelated pre-existing
+    historical migration/index collision
+- Payment Checkout workstream packet:
+  (`tasks/ride-hailing-ui-fixes/payment-checkout-page-reset-plan.md`).
+  - reset prerequisite is implemented
+  - next checkout product step remains IA / wireframe discussion on the cleared
+    shell
+- Committed slice: Bill Detail page reset and backend-contract segment
+  (`ea343509`).
 - Committed slice: RideHailing Order Detail Bill Card
   (`0bcfdc29`).
 
@@ -587,3 +799,69 @@ Choose the narrowest sufficient proof per approved slice:
     in `tasks/ride-hailing-ui-fixes/choice-set-sku-float-panel-plan.md`
   - choice-set SKU / float-panel implementation has been committed in
     `42eb1a61`
+  - payment checkout runtime diagnosis:
+    - current local `apps/backend/.env` is missing `PAYMENT_NOTIFY_BASE_URL`
+    - WeChatPay notify URLs are runtime-derived from
+      `PAYMENT_NOTIFY_BASE_URL + /api/payment/wechat-pay/:providerInstanceId/notify/*`
+    - Admin Payment Provider Instance `Charge Notify URL` / `Refund Notify URL`
+      are read-only projections of that runtime env and therefore display empty
+      when the env is absent
+    - provider `config.endpointBaseUrl` is upstream WeChatPay API origin
+      ownership, not callback ownership, so `0081` does not and should not
+      persist notify URLs
+    - current `500 PAYMENT_NOTIFY_BASE_URL is required for WeChatPay
+      notifications` is an environment baseline gap, not a provider-instance
+      config mutation failure
+  - current payment checkout diagnosis after notify-base-url repair:
+    - current `paymentTxId` encoding is confirmed as JSON payload +
+      base64url token and produces very long ids, but provider-facing
+      `merchantOrderNo` / WeChatPay `out_trade_no` is already a separate
+      32-character short reference
+    - current local runtime is in `.local` portless mode:
+      `https://api.partner-up.local/health` and
+      `https://wechatpay.partner-up.local/health` respond `200`
+    - current frontend fake bridge still targets
+      `https://wechatpay.partner-up.localhost`, while the active seeded local
+      provider instance and backend notify base use `.local`
+    - this `.local` / `.localhost` split is the leading diagnosis for local
+      "payment stays unpaid" behavior despite the mainline scenario passing
+    - fake JSAPI bridge currently supports only the happy path
+      `POST /__fake_wechatpay/prepays/:prepayId/succeed`; there is still no
+      payment-sheet mock or user-selectable cancel/fail/escape path
+    - `PaymentCheckoutFlow.vue` currently renders polling state through
+      `PuInlineNotice`, and the footer button `loading` state is tied to each
+      reconciliation request; because `shouldPollPaymentTx` becomes false while
+      `isReconcilingPaymentTx` is true, the notice/label/timer all oscillate
+      during polling
+    - latest human runtime verification:
+      - `VITE_FAKE_WECHATPAY_ORIGIN` has been corrected and local servers were
+        restarted
+      - local "payment stays unpaid after 5-6 seconds" still reproduces
+    - therefore the previous `.local` / `.localhost` split is no longer
+      sufficient to explain the unpaid symptom and should be treated as a
+      downgraded / partially falsified diagnosis rather than the current lead
+    - next diagnosis focus should move deeper into:
+      - fake bridge success call actually reaching the active fake-provider
+      - fake-provider transaction state after bridge success
+      - backend `GET /api/payment/:paymentTxId` reconciliation path
+      - client-side polling state machine stability
+    - deeper diagnosis result:
+      - fake provider state proves charge creation succeeds but browser-side
+        payment completion does not:
+        latest transaction was created with `tradeState = NOTPAY`
+      - hand-triggering
+        `POST /__fake_wechatpay/prepays/:prepayId/succeed`
+        moves the fake provider transaction to `SUCCESS`
+      - the corresponding `bill_lines` row is then marked settled immediately,
+        which proves backend notify / settlement is healthy once the fake
+        provider is actually advanced
+      - real-browser runtime probe on `https://partner-up.local/` confirms
+        `window.WeixinJSBridge.invoke(...)` currently returns:
+        `get_brand_wcpay_request:fail Failed to execute 'fetch' on 'Window': Illegal invocation`
+      - control probe shows the same browser can reach the fake provider when
+        `window.fetch` is explicitly bound, so the failure is the fake bridge's
+        detached native `fetch` invocation rather than network reachability
+      - current `launchPaymentClientAction()` resolves on any WeixinJSBridge
+        callback and discards `err_msg`, so the bridge failure is swallowed and
+        checkout falls through into polling against a provider transaction that
+        never left `NOTPAY`

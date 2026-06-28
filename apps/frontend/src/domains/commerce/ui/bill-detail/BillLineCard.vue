@@ -82,7 +82,7 @@ const emit = defineEmits<{
   select: [];
 }>();
 
-const isSelectable = computed(() => props.line.payableByViewer && Boolean(props.line.checkoutHref));
+const isSelectable = computed(() => props.line.payableByViewer);
 
 const signedAmountFen = computed(() =>
   props.line.kind === "REFUND" ? -props.line.amountFen : props.line.amountFen,
