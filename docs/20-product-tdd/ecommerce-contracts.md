@@ -310,9 +310,10 @@ Pricing ownership:
 - For RideHailing, listing uses route/departureAt to query provider vehicle
   availability/estimates, joins provider results to local ACTIVE SKUs, and does
   not return unavailable SKUs.
-- RideHailing `departureAt` bindings are not silently applied. Ordering starts
-  from depart-now by default, shows the imported concrete time value, and keeps
-  one-tap actions for using the imported time or switching back to depart-now.
+- RideHailing `departureAt` remains part of the backend listing/order contract,
+  but the current Ordering UI short-circuits the user-facing behavior to
+  `现在出发`; PR-derived time is not imported into the active ordering surface
+  for this slice.
 - For Rental, listing issues fixed quotes for the available rental SKUs matching
   the current listing facts.
 - Ordering Page owns create-order orchestration. Ordering Content must not call

@@ -24,8 +24,18 @@
           </div>
 
           <div class="ride-hailing-order-content__status-actions">
-            <PuButton v-if="showsCancelAction" type="button" size="sm" shape="pill" tone="neutral" variant="outline"
-              disabled title="取消订单能力待接入" data-testid="order-detail.ride-hailing.cancel">
+            <PuButton
+              v-if="showsCancelAction"
+              type="button"
+              size="sm"
+              shape="pill"
+              tone="neutral"
+              variant="outline"
+              :loading="cancelMutation.isPending.value"
+              :disabled="!canRequestCancellation"
+              data-testid="order-detail.ride-hailing.cancel"
+              @click="cancelRideHailingOrder"
+            >
               取消订单
             </PuButton>
             <PuButton type="button" size="sm" shape="circle" tone="neutral" variant="ghost" disabled aria-label="更多操作"
@@ -34,6 +44,14 @@
             </PuButton>
           </div>
         </header>
+
+        <PuInlineNotice
+          v-if="cancelErrorMessage"
+          tone="error"
+          title="取消失败"
+          :message="cancelErrorMessage"
+          data-testid="order-detail.ride-hailing.cancel-error"
+        />
 
         <PuCard v-if="showsDriverCard" as="section" class="ride-hailing-order-content__driver-card" variant="soft"
           tone="neutral" padding="sm" gap="sm" data-testid="order-detail.ride-hailing.driver-card">
@@ -120,11 +138,12 @@ import {
   PuButton,
   PuCard,
   PuFloatPanel,
+  PuInlineNotice,
   type PuFloatPanelStop,
   PuImg,
 } from "@partner-up-dev/design-web";
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import type { CommerceOrderDetailResponse } from "@/domains/commerce/queries/useCommerce";
+import { useCancelOrder, type CommerceOrderDetailResponse } from "@/domains/commerce/queries/useCommerce";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
@@ -154,6 +173,8 @@ const props = defineProps<{
   detail: CommerceOrderDetailResponse;
   ride: RideHailingDetail;
 }>();
+
+const cancelMutation = useCancelOrder();
 
 const DEFAULT_CONTENT_HEIGHT = 720;
 
@@ -265,7 +286,15 @@ const statusCopyByPhase: Record<
 
 const statusHero = computed(() => statusCopyByPhase[props.ride.executionPhase]);
 
-const showsCancelAction = computed(() => props.ride.executionPhase === "DISPATCHING");
+const canRequestCancellation = computed(() => props.detail.cancellation.canRequest);
+
+const showsCancelAction = computed(
+  () => props.ride.executionPhase === "DISPATCHING" && canRequestCancellation.value,
+);
+
+const cancelErrorMessage = computed(() =>
+  cancelMutation.error.value instanceof Error ? cancelMutation.error.value.message : null,
+);
 
 const firstPresentString = (values: readonly (string | null | undefined)[]): string | null => {
   for (const value of values) {
@@ -338,6 +367,10 @@ const billId = computed(() => {
   const value = props.detail.bill?.id?.trim() ?? "";
   return value.length > 0 ? value : null;
 });
+
+const cancelRideHailingOrder = async (): Promise<void> => {
+  await cancelMutation.mutateAsync(props.detail.order.id);
+};
 
 const orderMapViewModel = computed(() =>
   buildRideHailingOrderMapViewModel({

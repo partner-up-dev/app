@@ -252,7 +252,7 @@ export async function resolvePlacementOrderingEntry(input: {
       ...(typeof activeParticipantCount === "number"
         ? { participantCount: activeParticipantCount }
         : {}),
-      ...(startAt ? { serviceStartAt: startAt, departureAt: startAt } : {}),
+      ...(startAt ? { serviceStartAt: startAt } : {}),
       ...(endAt ? { serviceEndAt: endAt } : {}),
       ...(routeSnapshot ? { route: routeSnapshot } : {}),
       ...(viewerParticipant?.phoneNumber?.trim()

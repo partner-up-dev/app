@@ -22,7 +22,7 @@ import {
   buildRideHailingDetailProjection,
   type RideHailingOrderDetailProjection,
 } from "./ride-hailing-ordering-flow";
-import { requestRentalOrderTermination } from "./request-rental-order-termination";
+import { requestOrderTermination } from "./request-order-termination";
 
 const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
@@ -214,7 +214,7 @@ export async function cancelRentalOrderFromOrderDetail(input: {
   const requiresFulfillmentGate =
     policyResolution.requiresOperatorHandling && paymentState.paidChargeFen > 0;
 
-  const requested = await requestRentalOrderTermination({
+  const requested = await requestOrderTermination({
     orderId: input.orderId,
     requestedBy: input.actorUserId,
     requestedAt,

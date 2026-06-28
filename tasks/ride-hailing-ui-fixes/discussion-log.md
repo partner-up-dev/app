@@ -7,6 +7,36 @@ Archived full history:
 
 - `archive/discussion-log-ordering-through-order-detail-map.md`
 
+## Current Segment: RideHailing Cancel + Departure-Time Short-Circuit
+
+- Requested slice:
+  - implement RideHailing order cancellation
+  - short-circuit RideHailing departure-time binding so ordering always uses
+    `现在出发`
+- Implementation result:
+  - backend cancellation transport is now generic:
+    `POST /api/commerce/orders/:orderId/cancel`
+  - trade cancellation now dispatches by order family:
+    - Rental reuses the existing cancellation flow
+    - RideHailing calls provider `cancelRide`, then converges local trade
+      termination state plus RideHailing `executionPhase = CANCELLED`
+  - RideHailing Order Detail cancel CTA is now live during `DISPATCHING`
+  - ordering-entry no longer injects PR `time.startAt` into RideHailing
+    `departureAt`
+  - `RideHailingOrderingContent.vue` no longer exposes imported-time prompt,
+    drawer actions, or manual departure-time editing
+  - RideHailing Offer Listing now always sees `departureAt = null`, so the
+    visible ordering behavior is fixed to `现在出发`
+  - durable docs now match the shipped short-circuit behavior
+- Verification result:
+  - `pnpm check:type:backend`
+  - `pnpm check:type:frontend`
+  - `pnpm exec vitest run --project system-scenario tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts`
+- Opened slice artifact:
+  - `ride-hailing-cancel-and-departure-short-circuit-plan.md`
+- Next step:
+  - return to the next RideHailing / payment slice by explicit user direction
+
 ## Current Segment: Payment Client UI / Attempt Identity
 
 - Requested segment:

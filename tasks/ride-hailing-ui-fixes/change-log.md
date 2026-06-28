@@ -7,6 +7,32 @@ Archived full history:
 
 - `archive/change-log-ordering-through-order-detail-map.md`
 
+## Current Slice: RideHailing Cancel + Departure-Time Short-Circuit
+
+- Requested slice:
+  - implement RideHailing order cancellation from Order Detail
+  - short-circuit RideHailing departure-time binding so ordering always uses
+    `现在出发`
+- Implementation result:
+  - added generic order-detail cancellation transport:
+    `POST /api/commerce/orders/:orderId/cancel`
+  - added family-dispatched trade cancellation so Rental keeps its existing
+    path while RideHailing calls provider `cancelRide` and converges local
+    termination state plus `executionPhase = CANCELLED`
+  - enabled the RideHailing Order Detail cancel CTA during `DISPATCHING`
+  - removed PR-time import and manual editing from RideHailing departure-time
+    UX; ordering now visibly stays on `现在出发`
+  - stopped injecting RideHailing `departureAt` from ordering-entry and stopped
+    sending it into Offer Listing
+  - updated RideHailing system scenarios to cover:
+    - dispatching-order cancellation
+    - fixed `现在出发` ordering assertions
+    - variable dispatching candidate-card counts driven by selected vehicles
+- Verification result:
+  - backend typecheck passed
+  - frontend typecheck passed
+  - focused RideHailing system scenario file passed
+
 ## Current Slice: Payment Client UI / Attempt Identity
 
 - Requested slice:

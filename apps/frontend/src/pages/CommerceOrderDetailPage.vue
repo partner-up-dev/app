@@ -159,8 +159,8 @@
               tone="danger"
               variant="outline"
               :loading="cancelMutation.isPending.value"
-              data-testid="order-detail.cancel-rental"
-              @click="cancelRentalOrder"
+              data-testid="order-detail.cancel"
+              @click="cancelOrder"
             >
               取消订单
             </PuButton>
@@ -234,7 +234,7 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   type CommerceOrderDetailResponse,
-  useCancelRentalOrder,
+  useCancelOrder,
   useCommerceOrderDetail,
   useMockRentalBookingConfirmation,
 } from "@/domains/commerce/queries/useCommerce";
@@ -260,7 +260,7 @@ const orderId = computed(() => {
 });
 
 const orderQuery = useCommerceOrderDetail(orderId);
-const cancelMutation = useCancelRentalOrder();
+const cancelMutation = useCancelOrder();
 const confirmationMutation = useMockRentalBookingConfirmation();
 
 const detail = computed(() => orderQuery.data.value ?? null);
@@ -419,7 +419,7 @@ const formatDateTime = (value: string | null): string => {
   }).format(new Date(value));
 };
 
-const cancelRentalOrder = async (): Promise<void> => {
+const cancelOrder = async (): Promise<void> => {
   if (!orderId.value) return;
   await cancelMutation.mutateAsync(orderId.value);
 };

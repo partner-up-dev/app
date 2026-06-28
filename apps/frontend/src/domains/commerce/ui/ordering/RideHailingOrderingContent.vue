@@ -82,18 +82,15 @@
           <strong>{{ riderSummary }}</strong>
           <i class="i-mdi-chevron-right" aria-hidden="true"></i>
         </button>
-        <button
-          type="button"
-          class="ride-hailing-ordering-content__control"
-          data-testid="ordering.ride-hailing.departure-time.open"
-          @click="departureDrawerOpen = true"
+        <div
+          class="ride-hailing-ordering-content__control ride-hailing-ordering-content__control--static"
+          data-testid="ordering.ride-hailing.departure-time.row"
         >
           <span>出发时间</span>
           <strong data-testid="ordering.ride-hailing.departure-time">
             {{ rideDepartureLabel }}
           </strong>
-          <i class="i-mdi-chevron-right" aria-hidden="true"></i>
-        </button>
+        </div>
       </div>
 
       <PuDrawer
@@ -135,81 +132,16 @@
           </div>
         </div>
       </PuDrawer>
-
-      <PuDrawer
-        v-model:visible="departureDrawerOpen"
-        title="出发时间"
-        max-width="44rem"
-      >
-        <div class="ride-hailing-ordering-content__drawer-content">
-          <PuInlineNotice
-            v-if="departureLocked"
-            tone="info"
-            message="出发时间由当前搭子请求锁定。"
-          />
-          <PuButton
-            v-if="rideDepartureAt && editableDepartureAt !== rideDepartureAt"
-            type="button"
-            variant="soft"
-            tone="neutral"
-            data-testid="ordering.ride-hailing.departure-time.apply-imported"
-            @click="applyImportedDepartureAt"
-          >
-            使用带入时间
-          </PuButton>
-          <PuButton
-            v-if="editableDepartureAt"
-            type="button"
-            variant="soft"
-            tone="neutral"
-            data-testid="ordering.ride-hailing.departure-time.use-now"
-            @click="keepDepartNow"
-          >
-            现在出发
-          </PuButton>
-          <PuFormItem
-            label="出发时间"
-            for-id="ride-hailing-departure-at"
-            required
-          >
-            <PuInput
-              id="ride-hailing-departure-at"
-              :model-value="editableDepartureInput"
-              native-type="datetime-local"
-              :disabled="departureLocked"
-              data-testid="ordering.ride-hailing.departure-time.input"
-              @update:model-value="handleDepartureInput"
-            />
-          </PuFormItem>
-        </div>
-      </PuDrawer>
-
-      <PuDialog
-        :open="departureImportDialogOpen"
-        title="使用带入的出发时间？"
-        :description="departureImportDialogDescription"
-        confirm-text="使用"
-        cancel-text="现在出发"
-        :show-cancel="true"
-        :show-confirm="true"
-        @confirm="applyImportedDepartureAt"
-        @cancel="keepDepartNow"
-        @close="keepDepartNow"
-      />
     </div>
   </template>
 </template>
 
 <script setup lang="ts">
 import {
-  PuButton,
-  PuDialog,
   PuDrawer,
   PuFloatPanel,
   type PuFloatPanelStop,
-  PuFormItem,
   PuInlineNotice,
-  PuInput,
   PuSkeleton,
   usePuSelect,
 } from "@partner-up-dev/design-web";
@@ -276,10 +208,6 @@ const editableRoute = ref<Route | null>(null);
 const routePointDrawerOpen = ref(false);
 const selectedRoutePointIndex = ref<number | null>(null);
 const ridersDrawerOpen = ref(false);
-const departureDrawerOpen = ref(false);
-const editableDepartureAt = ref<string | null>(null);
-const departureImportDialogOpen = ref(false);
-const importedDeparturePromptSeen = ref(false);
 
 const rideOffer = computed<RideOffer | null>(() =>
   props.input.offerDetail.productType === "RIDE_HAILING" ? props.input.offerDetail : null,
@@ -324,11 +252,6 @@ const rideRoute = computed<RideRouteSnapshot | null>(() => {
   return isRideRouteSnapshot(value) ? value : null;
 });
 
-const rideDepartureAt = computed(() => {
-  const value = bindingValue("departureAt");
-  return typeof value === "string" ? value : null;
-});
-
 const boundContactPhone = computed(() => {
   const value = bindingValue("contactPhone");
   return typeof value === "string" ? value.trim() : "";
@@ -336,7 +259,6 @@ const boundContactPhone = computed(() => {
 
 const routeEditable = computed(() => !isBindingLocked(props.input, "route"));
 const ridersLocked = computed(() => isBindingLocked(props.input, "orderParticipants"));
-const departureLocked = computed(() => isBindingLocked(props.input, "departureAt"));
 
 const rideRiders = computed<BoundOrderParticipant[]>(() =>
   readBoundOrderParticipants(props.input.bindings),
@@ -529,7 +451,7 @@ const offerListingInput = computed<OfferListingInput | null>(() => {
     productType: "RIDE_HAILING",
     participants: rideRiders.value,
     route,
-    departureAt: editableDepartureAt.value,
+    departureAt: null,
     riders: rideRiders.value,
     contactPhone: phone,
   };
@@ -590,23 +512,7 @@ const selectedCandidateQuoteIds = computed<string[]>(() =>
   selectedRideQuoteOptions.value.map((option) => option.quoteId),
 );
 
-const rideDepartureLabel = computed(() => {
-  const departureAt = editableDepartureAt.value;
-  if (!departureAt) return "现在出发";
-  return `${formatTime(departureAt)}出发`;
-});
-
-const importedDepartureLabel = computed(() =>
-  rideDepartureAt.value ? formatDateTime(rideDepartureAt.value) : "未确定",
-);
-
-const departureImportDialogDescription = computed(
-  () => `当前搭子请求带入出发时间：${importedDepartureLabel.value}。`,
-);
-
-const editableDepartureInput = computed(() =>
-  editableDepartureAt.value ? toDateTimeLocalValue(editableDepartureAt.value) : "",
-);
+const rideDepartureLabel = computed(() => "现在出发");
 
 const output = computed<OrderingContentOutput | null>(() => {
   if (
@@ -690,59 +596,6 @@ const handleRoutePointPicked = (location: PickedLocation) => {
   closeRoutePointDrawer();
 };
 
-const formatTime = (value: string): string =>
-  new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(value));
-
-const formatDateTime = (value: string): string =>
-  new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(value));
-
-const toDateTimeLocalValue = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (input: number) => input.toString().padStart(2, "0");
-  return [
-    date.getFullYear(),
-    "-",
-    pad(date.getMonth() + 1),
-    "-",
-    pad(date.getDate()),
-    "T",
-    pad(date.getHours()),
-    ":",
-    pad(date.getMinutes()),
-  ].join("");
-};
-
-const handleDepartureInput = (value: string) => {
-  if (departureLocked.value) return;
-  editableDepartureAt.value = value.length > 0 ? new Date(value).toISOString() : null;
-};
-
-const applyImportedDepartureAt = () => {
-  if (rideDepartureAt.value) {
-    editableDepartureAt.value = rideDepartureAt.value;
-  }
-  importedDeparturePromptSeen.value = true;
-  departureImportDialogOpen.value = false;
-};
-
-const keepDepartNow = () => {
-  editableDepartureAt.value = null;
-  importedDeparturePromptSeen.value = true;
-  departureImportDialogOpen.value = false;
-};
-
 watch(
   visibleRideQuoteOptions,
   (next) => {
@@ -772,24 +625,13 @@ watch(
 );
 
 watch(
-  rideDepartureAt,
-  (next) => {
-    if (!next) {
-      editableDepartureAt.value = null;
-      return;
-    }
-    if (!importedDeparturePromptSeen.value) {
-      editableDepartureAt.value = null;
-      departureImportDialogOpen.value = true;
-    }
-  },
-  { immediate: true },
-);
-
-watch(output, (next) => emit("update:output", next), {
+  output,
+  (next) => emit("update:output", next),
+  {
   immediate: true,
   deep: true,
-});
+  },
+);
 
 watch(summary, (next) => emit("update:summary", next), {
   immediate: true,
@@ -942,6 +784,10 @@ watch(
     flex: 0 0 auto;
     color: var(--sys-color-on-surface-variant);
   }
+}
+
+.ride-hailing-ordering-content__control--static {
+  cursor: default;
 }
 
 .ride-hailing-ordering-content__drawer-content {

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { type AuthEnv, authMiddleware } from "../auth/middleware";
 import { getBillDetail, getBillDetailByOrderId, getBillLineCheckoutTarget } from "../domains/bill";
 import {
-  cancelRentalOrderFromOrderDetail,
+  cancelOrderFromOrderDetail,
   createOrderCommand,
   getCommerceOrderDetail,
   listOfferListing,
@@ -146,10 +146,10 @@ type CommerceRouteSchema = {
       Awaited<ReturnType<typeof getBillLineCheckoutTarget>>
     >;
   };
-  "/orders/:orderId/cancel-rental": {
+  "/orders/:orderId/cancel": {
     $post: JsonEndpoint<
       UuidParam<"orderId">,
-      Awaited<ReturnType<typeof cancelRentalOrderFromOrderDetail>>
+      Awaited<ReturnType<typeof cancelOrderFromOrderDetail>>
     >;
   };
   "/orders/:orderId/mock-rental-booking-confirmation": {
@@ -223,10 +223,10 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     });
     return c.json(result);
   })
-  .post("/orders/:orderId/cancel-rental", zValidator("param", orderIdParamSchema), async (c) => {
+  .post("/orders/:orderId/cancel", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const userId = requireAuthenticatedUserId(c);
-    const result = await cancelRentalOrderFromOrderDetail({
+    const result = await cancelOrderFromOrderDetail({
       orderId,
       actorUserId: userId,
     });

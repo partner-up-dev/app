@@ -19,9 +19,9 @@ Hypothesis:
 ## Classification
 
 - Primary route: `Reality`
-- Active mode: `Execute` completed for the Payment Checkout interaction/UI
-  slice; backend contract, fake JSAPI bridge groundwork, and checkout runtime
-  interaction are now connected end-to-end
+- Active mode: `Explore`; RideHailing cancellation + departure-time
+  short-circuit is now completed and verified, and the packet is ready for the
+  next slice
 - Current collaboration state: choice-set backend/domain foundation, Ordering
   UI primitive/control, SKU Card layout remediation, Offer Listing / quote
   identity, Ordering entry decoupling, durable docs promotion, and fake provider
@@ -56,6 +56,11 @@ Hypothesis:
   - WeChatPay attempt identity is now explicitly treated as one canonical
     attempt tuple with backend/provider string projections, not as two separate
     business truths
+  - the latest completed slice:
+    - RideHailing Order Detail now cancels through a generic order cancel
+      transport during `DISPATCHING`
+    - RideHailing Ordering now short-circuits departure-time UX to fixed
+      `现在出发`
 
 ## Inherited Effective Truth
 
@@ -133,6 +138,21 @@ Hypothesis:
   geometry, marker behavior, or zoom/pan behavior.
 - `RideHailingSkuCard.vue` is reusable for order detail dispatching candidate
   SKU display only if it supports a readonly shape without checkbox.
+- RideHailing cancellation slice is now implemented:
+  - Order Detail cancel CTA is live during `DISPATCHING`
+  - backend cancellation transport is now generic:
+    `POST /api/commerce/orders/:orderId/cancel`
+  - trade cancellation dispatches by order family
+  - fake Caocao and local order state both converge to `CANCELLED`
+- RideHailing departure-time short-circuit is now implemented:
+  - placement ordering entry no longer injects RideHailing `departureAt`
+  - Ordering UI no longer exposes imported-time or manual departure-time
+    controls
+  - Offer Listing currently always sees `departureAt = null`
+  - backend `departureAt` contract is intentionally preserved for later
+    restoration
+- Standalone planning artifact for the new slice:
+  `tasks/ride-hailing-ui-fixes/ride-hailing-cancel-and-departure-short-circuit-plan.md`
 - RideHailing order-detail back navigation currently uses generic
   `useFallbackBack` and therefore returns to the immediate previous page when a
   router back entry exists; for the standard PR -> Ordering -> Order Detail

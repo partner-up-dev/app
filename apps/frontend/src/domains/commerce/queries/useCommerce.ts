@@ -313,12 +313,12 @@ export const useBillLineCheckoutTarget = (billLineId: Ref<string | null>) =>
     enabled: () => billLineId.value !== null,
   });
 
-export const useCancelRentalOrder = () => {
+export const useCancelOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (orderId: string) => {
-      const response = await client.api.commerce.orders[":orderId"]["cancel-rental"].$post(
+      const response = await client.api.commerce.orders[":orderId"].cancel.$post(
         {
           param: {
             orderId,
@@ -331,12 +331,15 @@ export const useCancelRentalOrder = () => {
         },
       );
       return readJsonOrThrow<
-        InferResponseType<CommerceApi["orders"][":orderId"]["cancel-rental"]["$post"]>
-      >(response, "Failed to cancel rental order");
+        InferResponseType<CommerceApi["orders"][":orderId"]["cancel"]["$post"]>
+      >(response, "Failed to cancel order");
     },
     onSuccess: (_, orderId) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.commerce.orderDetail(orderId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["commerce"],
       });
     },
   });

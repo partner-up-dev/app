@@ -223,6 +223,32 @@ async function waitForCommerceQuoteCountAtLeast(expected: number): Promise<void>
   );
 }
 
+async function waitForFakeCaocaoOrderCount(expected: number): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if ((await readFakeCaocaoOrderCount()) === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.equal(await readFakeCaocaoOrderCount(), expected);
+}
+
+async function waitForFakeCaocaoOrderPhase(input: {
+  providerOrderId: string;
+  phase: string;
+}): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  let latestPhase: string | null = null;
+  while (Date.now() < deadline) {
+    const order = (await readFakeCaocaoOrders()).find(
+      (candidate) => candidate.providerOrderId === input.providerOrderId,
+    );
+    latestPhase = order?.phase ?? null;
+    if (latestPhase === input.phase) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  assert.equal(latestPhase, input.phase);
+}
+
 async function givenRideHailingPr(input: {
   creator: ScenarioUser;
   title: string;
@@ -473,27 +499,6 @@ async function waitForVehicleCardCount(page: Page, expected: number): Promise<vo
   assert.equal(await vehicleCards.count(), expected);
 }
 
-async function keepDepartNowIfPrompted(page: Page): Promise<void> {
-  const dialog = page.getByRole("dialog").filter({ hasText: "使用带入的出发时间？" });
-  const visible = await dialog
-    .waitFor({
-      state: "visible",
-      timeout: 1_000,
-    })
-    .then(() => true)
-    .catch(() => false);
-  if (!visible) return;
-  await dialog.getByText(/2031\/04\/01.*10:00/).waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await dialog.getByRole("button", { name: "现在出发", exact: true }).click();
-  await dialog.waitFor({
-    state: "hidden",
-    timeout: 10_000,
-  });
-}
-
 async function assertRideHailingOrderingContent(page: Page): Promise<void> {
   await page.getByTestId("ordering.ride-hailing.route-map").waitFor({
     state: "visible",
@@ -503,10 +508,10 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
-  await assertLocatorTextMatches({
+  await assertLocatorTextIncludes({
     actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
     label: "RideHailing departure row",
-    pattern: /(现在|\d{2}:\d{2})出发/,
+    expected: "现在出发",
   });
   await assertLocatorTextIncludes({
     actual: page.getByTestId("ordering.ride-hailing.riders").textContent(),
@@ -517,28 +522,9 @@ async function assertRideHailingOrderingContent(page: Page): Promise<void> {
     state: "visible",
     timeout: 10_000,
   });
-  await keepDepartNowIfPrompted(page);
-}
-
-async function assertDepartureDrawerCanSwitchBetweenImportedAndNow(page: Page): Promise<void> {
-  await page.getByTestId("ordering.ride-hailing.departure-time.open").click();
-  await page.getByTestId("ordering.ride-hailing.departure-time.apply-imported").click();
-  await assertLocatorTextMatches({
-    actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
-    label: "RideHailing imported departure row",
-    pattern: /10:00出发/,
-  });
-  await page.getByTestId("ordering.ride-hailing.departure-time.use-now").click();
-  await assertLocatorTextIncludes({
-    actual: page.getByTestId("ordering.ride-hailing.departure-time").textContent(),
-    expected: "现在出发",
-    label: "RideHailing depart now row",
-  });
-  await page.keyboard.press("Escape");
 }
 
 async function selectPremierAsAdditionalCandidate(page: Page): Promise<void> {
-  await keepDepartNowIfPrompted(page);
   const vehicleCards = page.getByTestId("ordering.ride-hailing.vehicle-card");
   await vehicleCards.first().waitFor({
     state: "visible",
@@ -574,8 +560,18 @@ async function selectPremierAsAdditionalCandidate(page: Page): Promise<void> {
 
 async function assertRideHailingOrderDetail(
   page: Page,
-  expectedRiderNames: string[] = ["scenario-system-ride-hailing-creator"],
+  input: {
+    expectedDispatchingVehicleLabels?: string[];
+    expectedResolvedVehicleLabel?: string;
+    expectedRiderNames?: string[];
+  } = {},
 ): Promise<void> {
+  const expectedDispatchingVehicleLabels = input.expectedDispatchingVehicleLabels ?? [
+    "系统曹操快车",
+  ];
+  const expectedResolvedVehicleLabel = input.expectedResolvedVehicleLabel ?? "系统曹操快车";
+  const expectedRiderNames = input.expectedRiderNames ?? [];
+
   await page.getByTestId("order-detail.page").waitFor({
     state: "visible",
     timeout: 10_000,
@@ -598,15 +594,13 @@ async function assertRideHailingOrderDetail(
   const dispatchingVehicleCards = dispatchingVehicleSection.getByTestId(
     "order-detail.ride-hailing.vehicle-card",
   );
-  assert.equal(await dispatchingVehicleCards.count(), 2);
-  await dispatchingVehicleCards.filter({ hasText: "系统曹操快车" }).waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await dispatchingVehicleCards.filter({ hasText: "系统曹操专车" }).waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
+  assert.equal(await dispatchingVehicleCards.count(), expectedDispatchingVehicleLabels.length);
+  for (const label of expectedDispatchingVehicleLabels) {
+    await dispatchingVehicleCards.filter({ hasText: label }).waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+  }
   const resolvedVehicleSection = page.getByTestId(
     "order-detail.ride-hailing.resolved-vehicle-section",
   );
@@ -625,7 +619,7 @@ async function assertRideHailingOrderDetail(
   });
   await assertLocatorTextIncludes({
     actual: resolvedVehicleSection.textContent(),
-    expected: "系统曹操快车",
+    expected: expectedResolvedVehicleLabel,
     label: "RideHailing resolved vehicle section item",
   });
   await assertLocatorTextIncludes({
@@ -884,14 +878,16 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     await openRideHailingOrderingFromPr({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
-    await assertDepartureDrawerCanSwitchBetweenImportedAndNow(page);
     await selectPremierAsAdditionalCandidate(page);
 
     await page.getByTestId("ordering.ride-hailing.create-order").click();
-    await assertRideHailingOrderDetail(page, [
-      "scenario-system-ride-hailing-creator",
-      "scenario-system-ride-hailing-passenger",
-    ]);
+    await assertRideHailingOrderDetail(page, {
+      expectedDispatchingVehicleLabels: ["系统曹操快车", "系统曹操专车"],
+      expectedRiderNames: [
+        "scenario-system-ride-hailing-creator",
+        "scenario-system-ride-hailing-passenger",
+      ],
+    });
     await page.waitForTimeout(3500);
     const fakeOrders = await readFakeCaocaoOrders();
     assert.equal(fakeOrders.length, 1);
@@ -1010,6 +1006,57 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
   assert.match(createdOrderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
 });
 
+scenario("commerce_ride_hailing_order_detail_cancel_dispatching_order", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-cancel-creator", {
+    phoneNumber: "13800138006",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-cancel-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing cancel PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+  ctx.record("providerInstanceId", placement.providerInstanceId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    await waitForFakeCaocaoOrderCount(1);
+
+    const fakeOrders = await readFakeCaocaoOrders();
+    assert.equal(fakeOrders.length, 1);
+    const providerOrderId = fakeOrders[0]?.providerOrderId;
+    assert.ok(providerOrderId);
+
+    await page.getByTestId("order-detail.ride-hailing.cancel").click();
+    await waitForTextIncludes({
+      read: () => page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
+      expected: "已取消",
+      label: "RideHailing cancelled status hero",
+    });
+    await waitForFakeCaocaoOrderPhase({
+      providerOrderId,
+      phase: "CANCELLED",
+    });
+    assert.equal(await page.getByTestId("order-detail.ride-hailing.cancel").count(), 0);
+  });
+});
+
 scenario("commerce_ride_hailing_provider_create_failure_stays_on_ordering_page", async (ctx) => {
   await resetFakeCaocao();
   await armFakeCaocaoCreateFailure();
@@ -1083,7 +1130,6 @@ scenario("commerce_ride_hailing_unavailable_provider_vehicle_is_hidden", async (
 
     await openRideHailingOrderingFromPrAndWaitForListing({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
-    await keepDepartNowIfPrompted(page);
 
     await waitForVehicleCardCount(page, 1);
     await page
@@ -1164,7 +1210,9 @@ scenario("commerce_ride_hailing_quote_expired_refreshes_and_preserves_selection"
     });
     assert.equal(await selectedMarkers.count(), 2);
     await page.getByTestId("ordering.ride-hailing.create-order").click();
-    await assertRideHailingOrderDetail(page);
+    await assertRideHailingOrderDetail(page, {
+      expectedDispatchingVehicleLabels: ["系统曹操快车", "系统曹操专车"],
+    });
     assert.equal(await readFakeCaocaoOrderCount(), 1);
   });
 });
@@ -1277,7 +1325,6 @@ scenario("commerce_ride_hailing_all_provider_vehicles_unavailable_blocks_orderin
 
     await openRideHailingOrderingFromPrAndWaitForListing({ page, prId: pr.id });
     await assertRideHailingOrderingContent(page);
-    await keepDepartNowIfPrompted(page);
     await waitForVehicleCardCount(page, 0);
     await assertLocatorTextIncludes({
       actual: page.getByTestId("ordering.ride-hailing.quote-price-range").textContent(),
