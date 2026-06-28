@@ -28,7 +28,9 @@
     "db:next-migration": "tsx src/scripts/db/next-migration.ts",
     "db:studio": "drizzle-kit studio",
     "payment:register-provider": "tsx src/scripts/payment/register-provider.ts",
-    "ride-hailing:register-provider": "tsx src/scripts/ride-hailing/register-provider.ts"
+    "ride-hailing:register-provider": "tsx src/scripts/ride-hailing/register-provider.ts",
+    "ride-hailing:caocao-callback-router": "tsx src/scripts/ride-hailing/caocao-callback-router.ts",
+    "start:caocao-callback-router": "node dist/caocao-callback-router.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",
