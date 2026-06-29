@@ -292,6 +292,18 @@ const normalizeCaocaoParams = (params: CaocaoParamInput): CaocaoSignedParams => 
   return normalized;
 };
 
+const parseCaocaoResponseJson = async (response: Response): Promise<unknown> => {
+  const text = await response.text();
+  if (text.trim().length === 0) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return {
+      unparseableBody: text,
+    };
+  }
+};
+
 export function createCaocaoSignature(input: {
   params: CaocaoSignedParams;
   signKey: string;
@@ -714,6 +726,18 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
             },
             body: serializeCaocaoFormBody(signedParams),
           });
+    const responseBody = await parseCaocaoResponseJson(response);
+    if (endpointPath === "/common/estimatePriceWithDetail") {
+      console.info("[RideHailingProviderEstimate] Caocao response", {
+        endpointPath,
+        httpStatus: response.status,
+        ok: response.ok,
+        params: normalizeCaocaoParams(params),
+        providerInstanceId: this.input.providerInstance.id,
+        providerType: this.input.providerInstance.providerType,
+        responseBody,
+      });
+    }
     if (!response.ok) {
       return throwHttpProblem({
         status: 502,
@@ -721,6 +745,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       });
     }
 
-    return assertCaocaoSuccess(parseCaocaoResponseBody<TData>(await response.json()));
+    return assertCaocaoSuccess(parseCaocaoResponseBody<TData>(responseBody));
   }
 }
