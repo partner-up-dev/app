@@ -121,14 +121,11 @@ import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPr
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
 import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
-import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { useUpdatePRStatus } from "@/domains/pr/queries/usePRActions";
+import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
-type OrderingDialogKind =
-  | "info"
-  | "blocked-pr-not-ready"
-  | "confirm-mark-pr-ready";
+type OrderingDialogKind = "info" | "blocked-pr-not-ready" | "confirm-mark-pr-ready";
 type OrderingDialogState = {
   open: boolean;
   kind: OrderingDialogKind;
@@ -322,7 +319,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
     if (apiError.code === "PR_NOT_READY" && canOfferPrReadyRecovery.value) {
       openPrNotReadyRecoveryDialog({
         title: "暂不能创建订单",
-        detail: apiError.message ?? "订单创建需要 PR 处于 READY 状态。",
+        detail: apiError.message ?? "创建订单需要搭子请求「已成团」",
       });
       return;
     }

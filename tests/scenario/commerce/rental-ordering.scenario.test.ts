@@ -1,19 +1,5 @@
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
-import { installScenarioUserSession } from "../_infra/browser/session";
-import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
-import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
-import { withScenarioPage } from "../_infra/browser/browser";
-import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
-import { scenario } from "../_infra/scenario/scenario";
-import {
-  bindScenarioWeChatOpenId,
-  configurePRStatus,
-} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
-import {
-  givenUser,
-  type ScenarioUser,
-} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
 import {
   createOffer,
   createPlacement,
@@ -24,6 +10,20 @@ import {
 import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
 import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
+import {
+  bindScenarioWeChatOpenId,
+  configurePRStatus,
+} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
+import {
+  givenUser,
+  type ScenarioUser,
+} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+import { withScenarioPage } from "../_infra/browser/browser";
+import { installScenarioUserSession } from "../_infra/browser/session";
+import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
+import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
+import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
+import { scenario } from "../_infra/scenario/scenario";
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
@@ -498,7 +498,7 @@ scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
     await page.getByTestId("ordering.rental.create-order").click();
     await assertOrderingBlockedDialog({
       page,
-      expectedDetail: "订单创建需要 PR 处于 READY 状态",
+      expectedDetail: "创建订单需要搭子请求「已成团」",
     });
     assert.equal(new URL(page.url()).pathname, "/order/new");
   });
@@ -534,19 +534,21 @@ scenario("commerce_rental_ordering_recovers_non_ready_pr_by_marking_ready", asyn
     await page.getByTestId("ordering.rental.create-order").click();
     await assertOrderingBlockedDialog({
       page,
-      expectedDetail: "订单创建需要 PR 处于 READY 状态",
+      expectedDetail: "创建订单需要搭子请求「已成团」",
     });
 
-    await page.getByRole("button", { name: "去成团" }).click();
+    await page.getByRole("button", { name: "切换到已成团" }).click();
     const confirmDialog = page.getByRole("dialog", { name: "确认标记为已成团？" });
     await confirmDialog.waitFor({
       state: "visible",
       timeout: 10_000,
     });
-    await confirmDialog.getByText("这会立即将当前 PR 标记为已成团。确认后请重新点击下单。").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
+    await confirmDialog
+      .getByText("将当前搭子请求切换到「已成团」，此状态下不可以加入/退出。确认后请重新点击下单。")
+      .waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
     await confirmDialog.getByRole("button", { name: "确认成团" }).click();
 
     const successDialog = page.getByRole("dialog", { name: "已成团" });
