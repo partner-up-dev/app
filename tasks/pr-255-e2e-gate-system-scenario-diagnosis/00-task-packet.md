@@ -214,6 +214,77 @@ Results:
 - Frontend type check: passed.
 - Full system scenario gate: 10 passed / 45 tests passed.
 
+## Follow-up CI Failure: PR Detail Edit Timezone
+
+New failed job:
+
+- Run: `https://github.com/partner-up-dev/mvp-HA/actions/runs/28355567358`
+- Job: `https://github.com/partner-up-dev/mvp-HA/actions/runs/28355567358/job/83997627722?pr=255`
+- Checkout ref: `99f043b908f3dcd73ceedb067caf3a75081ba485`
+- Checkout meaning: `Merge f64f2decf5005107e7a8c221b2d640344696ffc1 into fc79564d13a56f17d88104fde2599cf321a18091`
+- `develop` and `pull/255/head` are identical at `f64f2decf5005107e7a8c221b2d640344696ffc1`.
+
+Failure:
+
+- File: `tests/scenario/pr-core/pr-detail-edit.scenario.test.ts`
+- Test: `pr_detail_ready_creator_edits_time_window_from_pr_page`
+- Error: `page.waitForFunction: Timeout 10000ms exceeded`
+- Location: wait for edit form initial values:
+  - `startDate === "2030-01-01"`
+  - `startTime === "00:00"`
+  - `endDate === "2030-01-02"`
+  - `endTime === "00:00"`
+
+Diagnosis:
+
+- The test fixture stores the time window as `2030-01-01T00:00:00+08:00` to `2030-01-02T00:00:00+08:00`.
+- `DateTimeRangePicker` deserializes instants through `new Date(...)` and local browser time, by design.
+- CI runner/browser context uses UTC unless pinned, so the first instant renders as `2029-12-31 16:00` instead of `2030-01-01 00:00`.
+- Local reproduction confirms the root cause:
+
+```bash
+TZ=UTC pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+TZ=Asia/Shanghai pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+```
+
+Results:
+
+- `TZ=UTC`: failed with the same timeout.
+- `TZ=Asia/Shanghai`: passed.
+
+Corrected fix direction:
+
+- Do not change the scenario browser timezone to match the test.
+- Keep the browser context as the runtime truth for local date-time rendering.
+- Update `tests/scenario/pr-core/pr-detail-edit.scenario.test.ts` so expected date/time input values are derived in the browser context from the fixture instants.
+- The assertion should use browser-side `new Date(instant)` / local getters, matching `DateTimeRangePicker` behavior.
+- This keeps the scenario valid under both CI UTC and local `Asia/Shanghai` browser contexts.
+- Re-run:
+
+```bash
+TZ=UTC pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+TZ=UTC pnpm test:scenario:system
+TZ=Asia/Shanghai pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+```
+
+Implementation:
+
+- Updated `tests/scenario/pr-core/pr-detail-edit.scenario.test.ts` to derive initial form input expectations from the browser context with `new Date(instant)` local getters.
+- Updated the post-submit detail assertion to wait for the browser-local edited start date instead of hard-coding `2030-01-02`.
+- Kept scenario browser timezone unchanged.
+
+Verification:
+
+```bash
+TZ=UTC pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+TZ=Asia/Shanghai pnpm exec vitest run --project system-scenario tests/scenario/pr-core/pr-detail-edit.scenario.test.ts
+```
+
+Results:
+
+- UTC target scenario: passed.
+- Asia/Shanghai target scenario: passed.
+
 ## Notes For Next Agent
 
 - The user asked for diagnosis only for the last turn, then asked to write this task packet because context is low.
