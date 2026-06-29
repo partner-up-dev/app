@@ -1,8 +1,11 @@
 import type {
   PriceExplanation,
   PricingModel,
+  PricingRule,
   ProductPresentation,
+  ProductType,
   SkuFacts,
+  SpuSalesPolicy,
 } from "../../merchandising";
 
 export type OrderFamily = "RENTAL" | "RIDE_HAILING";
@@ -37,6 +40,43 @@ export type SkuSnapshot = {
   factsSnapshot: SkuFacts;
   pricingModelSnapshot: PricingModel;
   cancellationPolicySnapshot?: CancellationPolicySnapshot | null;
+};
+
+export type OrderPricingSkuSnapshot = {
+  id: number;
+  version: number;
+  name: string;
+  factsSnapshot: SkuFacts;
+  pricingModelSnapshot: PricingModel;
+};
+
+export type OrderPricingSpuSnapshot = {
+  id: number;
+  version: number;
+  productType: ProductType;
+  factsSnapshot: Record<string, unknown>;
+  salesPolicySnapshot: SpuSalesPolicy;
+};
+
+export type OrderPricingExecutionSnapshot = {
+  version: 1;
+  offer: {
+    id: number;
+    productType: ProductType;
+    termsVersion: number;
+    pricingPolicySnapshot: {
+      rules: PricingRule[];
+    };
+  };
+  items: Array<{
+    itemId: string;
+    quantity: number;
+    spu: OrderPricingSpuSnapshot;
+    sku: OrderPricingSkuSnapshot;
+  }>;
+  orderContext: {
+    serviceTime?: string | null;
+  };
 };
 
 export type FixedOrderItemSnapshot = {
@@ -179,6 +219,7 @@ export type TradeOrder = {
   status: OrderStatus;
   participants: OrderParticipantSnapshot[];
   splitRuleSnapshot: SplitRuleSnapshot;
+  pricingExecutionSnapshot?: OrderPricingExecutionSnapshot | null;
   items: OrderItemSnapshot[];
   timeout: OrderTimeout;
   terminationAttempts: OrderTerminationAttempt[];

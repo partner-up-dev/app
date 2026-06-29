@@ -42,6 +42,7 @@ import type {
   FixedOrderItemSnapshot,
   OrderItemSnapshot,
   OrderParticipantSnapshot,
+  OrderPricingExecutionSnapshot,
   OrderPricingSnapshot,
   OrderStatus,
   OrderTimeout,
@@ -54,7 +55,11 @@ import type {
   RideHailingRouteSnapshot,
   SkuSnapshot,
 } from "../model";
-import { buildEqualRelativeSplitRule, validateOrderParticipants } from "../services";
+import {
+  buildEqualRelativeSplitRule,
+  buildOrderPricingExecutionSnapshot,
+  validateOrderParticipants,
+} from "../services";
 import {
   resolveQuoteBoundOrderItems,
   type QuoteBoundOrderItemInput,
@@ -110,15 +115,15 @@ export type OrderingActionProblem = {
 
 export type CreateOrderCommandResult =
   | {
-    outcome: "CREATED";
-    orderId: string;
-    billId?: string | null;
-  }
+      outcome: "CREATED";
+      orderId: string;
+      billId?: string | null;
+    }
   | {
-    outcome: "CANCELLED";
-    orderId: string;
-    reason: OrderingActionProblem;
-  };
+      outcome: "CANCELLED";
+      orderId: string;
+      reason: OrderingActionProblem;
+    };
 
 type RideQuoteOption = {
   skuId: number;
@@ -576,6 +581,7 @@ async function createBaseOrder(input: {
   createdBy: string;
   participants: OrderParticipantSnapshot[];
   items: OrderItemSnapshot[];
+  pricingExecutionSnapshot?: OrderPricingExecutionSnapshot | null;
   timeout: OrderTimeout;
 }) {
   const participantError = validateOrderParticipants({
@@ -597,6 +603,7 @@ async function createBaseOrder(input: {
     ...(input.status ? { status: input.status } : {}),
     participants: input.participants,
     splitRuleSnapshot,
+    pricingExecutionSnapshot: input.pricingExecutionSnapshot ?? null,
     items: input.items,
     timeout: input.timeout,
   });
@@ -752,12 +759,27 @@ async function createRentalOrderBranch(input: {
       quantity: input.selected.quantity,
       cancellationPolicySnapshot: input.selected.cancellationPolicySnapshot,
     });
+    const pricingExecutionSnapshot = buildOrderPricingExecutionSnapshot({
+      offer: input.selected.offer,
+      items: [
+        {
+          itemId: input.selected.itemId,
+          spu: input.selected.spu,
+          sku: input.selected.sku,
+          quantity: input.selected.quantity,
+        },
+      ],
+      orderContext: {
+        serviceTime: input.selected.listingContext.serviceStartAt,
+      },
+    });
     const base = await createBaseOrder({
       executor: tx,
       offer: input.selected.offer,
       createdBy: input.createdBy,
       participants,
       items: [item],
+      pricingExecutionSnapshot,
       timeout: buildTimeout(DEFAULT_UNPAID_WINDOW_MINUTES),
     });
 
@@ -828,6 +850,20 @@ async function createRideHailingOrderBranch(input: {
         selected: input.selected,
         resolution: null,
       });
+      const pricingExecutionSnapshot = buildOrderPricingExecutionSnapshot({
+        offer: input.selected.offer,
+        items: [
+          {
+            itemId: input.selected.itemId,
+            spu: input.selected.dispatchCandidate.spu,
+            sku: input.selected.dispatchCandidate.sku,
+            quantity: input.selected.dispatchCandidate.quantity,
+          },
+        ],
+        orderContext: {
+          serviceTime: input.selected.listingContext.departureAt,
+        },
+      });
       const base = await createBaseOrder({
         executor: tx,
         offer: input.selected.offer,
@@ -835,6 +871,7 @@ async function createRideHailingOrderBranch(input: {
         createdBy: input.createdBy,
         participants,
         items: [unresolvedItem],
+        pricingExecutionSnapshot,
         timeout: buildNonExpiringTimeout(),
       });
 

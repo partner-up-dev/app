@@ -16,6 +16,7 @@ export function toTradeOrderModel(record: TradeOrderRecord): TradeOrder {
     status: record.status,
     participants: record.participants,
     splitRuleSnapshot: record.splitRuleSnapshot,
+    pricingExecutionSnapshot: record.pricingExecutionSnapshot,
     items: record.items,
     timeout: record.timeout,
     terminationAttempts: record.terminationAttempts,

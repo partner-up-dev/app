@@ -10,10 +10,7 @@ import type {
   PricingRule,
   PricingRuleTarget,
 } from "../../merchandising";
-import type {
-  OrderItemPricingSnapshot,
-  OrderPricingSnapshot,
-} from "../model";
+import type { OrderItemPricingSnapshot, OrderPricingSnapshot } from "../model";
 
 const jsonLogicModule = jsonLogicNamespace as typeof jsonLogicNamespace & {
   default?: typeof jsonLogicNamespace;
@@ -44,13 +41,13 @@ type PricingTargetData = {
 
 type PricingItemInput = {
   itemId: string;
-  spu: ProductSpu;
-  sku: ProductSku;
+  spu: Pick<ProductSpu, "id" | "facts" | "salesPolicy">;
+  sku: Pick<ProductSku, "id" | "name" | "facts" | "pricingModel">;
   quantity: number;
 };
 
 export type PricingApplicationInput = {
-  offer: Offer;
+  offer: Pick<Offer, "pricingPolicy">;
   items: PricingItemInput[];
   orderContext?: {
     serviceTime?: string | null;
@@ -74,9 +71,8 @@ const isJsonLogicRule = (value: unknown): value is RulesLogic =>
   typeof value === "string" ||
   (isRecord(value) && jsonLogic.is_logic(value));
 
-const isFixedTotalPricingModel = (
-  value: PricingModel,
-): value is FixedTotalPricingModel => value.type === "FIXED_TOTAL";
+const isFixedTotalPricingModel = (value: PricingModel): value is FixedTotalPricingModel =>
+  value.type === "FIXED_TOTAL";
 
 function resolvePricingModelAmount(pricingModel: PricingModel): number {
   if (isFixedTotalPricingModel(pricingModel)) {
@@ -86,10 +82,7 @@ function resolvePricingModelAmount(pricingModel: PricingModel): number {
   throw new Error("Dynamic quote pricing requires a resolved quote input");
 }
 
-function matchesTarget(
-  ruleTarget: PricingRuleTarget,
-  candidateTarget: PricingRuleTarget,
-): boolean {
+function matchesTarget(ruleTarget: PricingRuleTarget, candidateTarget: PricingRuleTarget): boolean {
   if (ruleTarget.level !== candidateTarget.level) return false;
 
   if (ruleTarget.level === "SKU" && candidateTarget.level === "SKU") {
@@ -108,9 +101,7 @@ function doesRuleMatch(rule: PricingRule, targetData: PricingTargetData): boolea
   if (!isJsonLogicRule(rule.conditionRule)) return false;
 
   try {
-    return jsonLogic.truthy(
-      jsonLogic.apply(rule.conditionRule as RulesLogic, targetData),
-    );
+    return jsonLogic.truthy(jsonLogic.apply(rule.conditionRule as RulesLogic, targetData));
   } catch {
     return false;
   }
@@ -132,16 +123,11 @@ function applyPricingRule(input: {
   }
 
   if (input.rule.action.type === "MINUS") {
-    nextAmountFen = Math.max(
-      0,
-      beforeAmountFen - input.rule.action.payload.amountFen,
-    );
+    nextAmountFen = Math.max(0, beforeAmountFen - input.rule.action.payload.amountFen);
   }
 
   if (input.rule.action.type === "RATIO") {
-    nextAmountFen = Math.round(
-      (beforeAmountFen * input.rule.action.payload.ratioBps) / 10_000,
-    );
+    nextAmountFen = Math.round((beforeAmountFen * input.rule.action.payload.ratioBps) / 10_000);
   }
 
   return {
@@ -216,9 +202,7 @@ function buildSkuBaseState(input: {
         sourceId: `sku:${input.item.sku.id}`,
         label: input.item.sku.name,
         description:
-          input.item.sku.pricingModel.type === "DYNAMIC_QUOTE"
-            ? "实时预估价"
-            : "固定总价",
+          input.item.sku.pricingModel.type === "DYNAMIC_QUOTE" ? "实时预估价" : "固定总价",
         deltaFen: amountFen,
         resultAmountFen: amountFen,
       },
@@ -301,10 +285,7 @@ export class PricingApplication {
       });
     }
 
-    const subtotalFen = itemBreakdowns.reduce(
-      (sum, item) => sum + item.resolvedAmountFen,
-      0,
-    );
+    const subtotalFen = itemBreakdowns.reduce((sum, item) => sum + item.resolvedAmountFen, 0);
     const orderInitialState: PricingState = {
       pricingModel: {
         type: "FIXED_TOTAL",

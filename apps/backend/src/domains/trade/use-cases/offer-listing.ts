@@ -394,6 +394,7 @@ async function quoteRideSku(input: {
       },
     ],
     orderContext: {
+      serviceTime: input.departureAt,
       quoteTotalFen: providerQuote.estimateAmountFen,
     },
   });

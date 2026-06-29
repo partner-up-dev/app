@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import type {
   OrderFamily,
   OrderParticipantSnapshot,
+  OrderPricingExecutionSnapshot,
   OrderStatus,
   OrderTerminationAttempt,
   OrderTimeout,
@@ -17,10 +18,7 @@ export type TradeOrderId = string & { readonly __brand: "TradeOrderId" };
 export const tradeOrders = pgTable(
   "trade_orders",
   {
-    id: uuid("id")
-      .$type<TradeOrderId>()
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
+    id: uuid("id").$type<TradeOrderId>().primaryKey().default(sql`gen_random_uuid()`),
     family: text("family").$type<OrderFamily>().notNull(),
     offerId: bigint("offer_id", { mode: "number" })
       .$type<OfferId>()
@@ -33,6 +31,9 @@ export const tradeOrders = pgTable(
     status: text("status").$type<OrderStatus>().notNull().default("OPEN"),
     participants: jsonb("participants").$type<OrderParticipantSnapshot[]>().notNull(),
     splitRuleSnapshot: jsonb("split_rule_snapshot").$type<SplitRuleSnapshot>().notNull(),
+    pricingExecutionSnapshot: jsonb("pricing_execution_snapshot")
+      .$type<OrderPricingExecutionSnapshot | null>()
+      .default(null),
     items: jsonb("items").$type<OrderItemSnapshot[]>().notNull(),
     timeout: jsonb("timeout").$type<OrderTimeout>().notNull(),
     terminationAttempts: jsonb("termination_attempts")
@@ -44,14 +45,8 @@ export const tradeOrders = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    familyStatusIdx: index("trade_orders_family_status_idx").on(
-      table.family,
-      table.status,
-    ),
-    offerStatusIdx: index("trade_orders_offer_status_idx").on(
-      table.offerId,
-      table.status,
-    ),
+    familyStatusIdx: index("trade_orders_family_status_idx").on(table.family, table.status),
+    offerStatusIdx: index("trade_orders_offer_status_idx").on(table.offerId, table.status),
   }),
 );
 
