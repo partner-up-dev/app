@@ -75,7 +75,7 @@ async function givenRideQuoteCatalog(input: {
   });
   const sku = await createProductSku({
     facts: {
-      providerVehicleTypeCode: input.providerVehicleTypeCode ?? "EXPRESS",
+      providerVehicleTypeCode: input.providerVehicleTypeCode ?? "3",
       rideHailingProviderInstanceId: randomUUID(),
     },
     name: input.skuName ?? "Quote resolver ride SKU",
@@ -117,7 +117,7 @@ async function createRideCandidateQuote(input: {
       providerQuoteExpiresAt: null,
       providerQuoteId: `fake_quote_${input.sku.id}`,
       providerSnapshot: {},
-      providerVehicleTypeCode: "EXPRESS",
+      providerVehicleTypeCode: "3",
       providerVehicleTypeName: input.sku.name,
     },
     id: quoteId,
@@ -185,7 +185,7 @@ async function assertProblemCode(run: () => Promise<unknown>, expectedCode: stri
 scenario("commerce_quote_validity_rejects_inactive_offer_and_sku", async () => {
   const inactiveOfferCatalog = await givenRideQuoteCatalog({
     skuName: "快车",
-    providerVehicleTypeCode: "EXPRESS",
+    providerVehicleTypeCode: "3",
   });
   const inactiveOfferQuote = await createRideCandidateQuote(inactiveOfferCatalog);
   await offerRepo.updateById(inactiveOfferCatalog.offer.id, {
@@ -205,7 +205,7 @@ scenario("commerce_quote_validity_rejects_inactive_offer_and_sku", async () => {
 
   const inactiveSkuCatalog = await givenRideQuoteCatalog({
     skuName: "专车",
-    providerVehicleTypeCode: "PREMIER",
+    providerVehicleTypeCode: "5",
   });
   const inactiveSkuQuote = await createRideCandidateQuote(inactiveSkuCatalog);
   await productSkuRepo.updateById(inactiveSkuCatalog.sku.id, {
@@ -227,11 +227,11 @@ scenario("commerce_quote_validity_rejects_inactive_offer_and_sku", async () => {
 scenario("commerce_choice_set_quotes_must_share_one_listing_session", async () => {
   const expressCatalog = await givenRideQuoteCatalog({
     skuName: "快车",
-    providerVehicleTypeCode: "EXPRESS",
+    providerVehicleTypeCode: "3",
   });
   const premierSku = await createProductSku({
     facts: {
-      providerVehicleTypeCode: "PREMIER",
+      providerVehicleTypeCode: "5",
       rideHailingProviderInstanceId: randomUUID(),
     },
     name: "专车",

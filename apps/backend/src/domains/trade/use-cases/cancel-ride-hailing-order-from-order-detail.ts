@@ -131,9 +131,9 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
   const port = createRideHailingProviderPort({ providerInstance });
   const providerCancellation = await port.cancelRide({
     providerOrderId: providerBinding.providerOrderId,
-    cancelCode: "USER_CANCEL",
+    cancelCode: 12,
     cancelReason: "用户取消订单",
-    whoCancel: "USER",
+    whoCancel: 1,
   });
   const decidedAt = new Date().toISOString();
 

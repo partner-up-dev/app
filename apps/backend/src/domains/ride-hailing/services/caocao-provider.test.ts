@@ -162,7 +162,7 @@ describe("Caocao signer", () => {
     });
   });
 
-  it("queries city code and normalizes legacy route params before estimating", async () => {
+  it("queries city code when estimate params omit city_code", async () => {
     const requestUrls: string[] = [];
     const fetchImpl: typeof fetch = async (input) => {
       const requestUrl =
@@ -202,10 +202,10 @@ describe("Caocao signer", () => {
       params: {
         car_type: "3",
         departure_at: "2026-06-29T03:00:00.000Z",
-        flat: 23.12908,
-        flng: 113.26436,
-        tlat: 23.063968,
-        tlng: 113.397681,
+        from_latitude: 23.12908,
+        from_longitude: 113.26436,
+        to_latitude: 23.063968,
+        to_longitude: 113.397681,
       },
     });
 
@@ -245,14 +245,15 @@ describe("Caocao signer", () => {
       adapter.estimate({
         params: {
           car_type: "3",
-          flat: 23.12908,
-          flng: 113.26436,
-          tlat: 23.063968,
-          tlng: 113.397681,
+          from_latitude: 23.12908,
+          from_longitude: 113.26436,
+          to_latitude: 23.063968,
+          to_longitude: 113.397681,
         },
       }),
     ).rejects.toThrow("Caocao API failed: 10002 参数签名错误");
   });
+
 });
 
 describe("Caocao external order id", () => {
@@ -418,7 +419,7 @@ describe("Caocao live order projection", () => {
       }
 
       if (url.pathname.endsWith("/common/queryDriverPolylineV2")) {
-        routeRequestBodies.push(init?.body?.toString() ?? "");
+      routeRequestBodies.push(init?.body?.toString() ?? "");
         return new Response(
           JSON.stringify({
             code: 200,
@@ -484,7 +485,7 @@ describe("Caocao live order projection", () => {
       { latitude: 30.2688, longitude: 120.1608 },
     ]);
     expect(routeRequestBodies).toHaveLength(1);
-    expect(new URLSearchParams(routeRequestBodies[0]).get("navigation_polyline_type")).toBe("1");
+    expect(new URLSearchParams(routeRequestBodies[0]).get("navigation_polyline_type")).toBeNull();
     expect(requestPaths).toEqual([
       "/v2/common/queryOrderDetailV2",
       "/v2/common/queryDriverLocationByOrderId",

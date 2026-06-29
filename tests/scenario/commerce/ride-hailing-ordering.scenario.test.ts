@@ -175,14 +175,10 @@ async function setFakeCaocaoOrderPhase(input: {
   const { fakeCaocao } = getScenarioEnvironment();
   const response = await fetch(
     new URL(
-      `/__fake_caocao/orders/${encodeURIComponent(input.providerOrderId)}/phase`,
+      `/__fake_caocao/orders/${encodeURIComponent(input.providerOrderId)}/phase?phase=${encodeURIComponent(input.phase)}`,
       fakeCaocao.origin,
     ),
     {
-      body: new URLSearchParams({ phase: input.phase }).toString(),
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
       method: "POST",
     },
   );
@@ -350,7 +346,7 @@ async function givenRideHailingOrderingPlacement(): Promise<{
 
   await productSkuRepo.create({
     facts: asCurrentSkuFacts({
-      providerVehicleTypeCode: "EXPRESS",
+      providerVehicleTypeCode: "3",
       rideHailingProviderInstanceId: provider.providerInstanceId,
     }),
     name: "快车",
@@ -362,7 +358,7 @@ async function givenRideHailingOrderingPlacement(): Promise<{
 
   await productSkuRepo.create({
     facts: asCurrentSkuFacts({
-      providerVehicleTypeCode: "PREMIER",
+      providerVehicleTypeCode: "5",
       rideHailingProviderInstanceId: provider.providerInstanceId,
     }),
     name: "专车",
@@ -1108,7 +1104,7 @@ scenario("commerce_ride_hailing_provider_create_failure_stays_on_ordering_page",
 scenario("commerce_ride_hailing_unavailable_provider_vehicle_is_hidden", async (ctx) => {
   await resetFakeCaocao();
   await setFakeCaocaoEstimateAvailability({
-    carType: "PREMIER",
+    carType: "5",
     available: false,
   });
   const creator = await givenUser("system-ride-hailing-unavailable-vehicle-creator", {
@@ -1255,7 +1251,7 @@ scenario("commerce_ride_hailing_quote_refresh_prunes_unavailable_selected_vehicl
 
     const quoteCountBeforeExpire = await expireCommerceQuotes();
     await setFakeCaocaoEstimateAvailability({
-      carType: "PREMIER",
+      carType: "5",
       available: false,
     });
 
@@ -1299,11 +1295,11 @@ scenario("commerce_ride_hailing_quote_refresh_prunes_unavailable_selected_vehicl
 scenario("commerce_ride_hailing_all_provider_vehicles_unavailable_blocks_ordering", async (ctx) => {
   await resetFakeCaocao();
   await setFakeCaocaoEstimateAvailability({
-    carType: "EXPRESS",
+    carType: "3",
     available: false,
   });
   await setFakeCaocaoEstimateAvailability({
-    carType: "PREMIER",
+    carType: "5",
     available: false,
   });
   const creator = await givenUser("system-ride-hailing-no-vehicles-creator", {

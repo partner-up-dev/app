@@ -1,15 +1,21 @@
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { serve, type ServerType } from "@hono/node-server";
+import { z } from "zod";
 import { createFakeCaocaoFixture } from "./fixtures";
 import type { FakeCaocaoRoutePlanner } from "./route-planning";
-import { handleFakeCaocaoRequest } from "./routes";
+import { createFakeCaocaoApp } from "./routes";
 import { FakeCaocaoState } from "./state";
 
-export type FakeCaocaoServerOptions = {
-  hostname?: string;
-  port?: number;
+export const fakeCaocaoServerOptionsSchema = z.object({
+  callbackBaseUrl: z.string().url().nullable().optional(),
+  hostname: z.string().min(1).default("127.0.0.1"),
+  port: z.number().int().nonnegative().default(0),
+  verifyRequests: z.boolean().default(true),
+});
+
+export type FakeCaocaoServerOptions = Partial<
+  z.input<typeof fakeCaocaoServerOptionsSchema>
+> & {
   routePlanner?: FakeCaocaoRoutePlanner | null;
-  verifyRequests?: boolean;
 };
 
 export type StartedFakeCaocaoServer = {
@@ -19,35 +25,38 @@ export type StartedFakeCaocaoServer = {
   close(): Promise<void>;
 };
 
-const resolveServerOrigin = (server: Server, hostname: string): string => {
+const resolveServerOrigin = (server: ServerType, hostname: string): string => {
   const address = server.address();
   if (!address || typeof address === "string") {
     throw new Error("Fake Caocao server did not expose a TCP address");
   }
-  return `http://${hostname}:${(address as AddressInfo).port}`;
+  return `http://${hostname}:${address.port}`;
 };
 
 export async function startFakeCaocaoServer(
-  options: FakeCaocaoServerOptions = {},
+  rawOptions: FakeCaocaoServerOptions = {},
 ): Promise<StartedFakeCaocaoServer> {
-  const hostname = options.hostname ?? "127.0.0.1";
-  const port = options.port ?? 0;
+  const options = fakeCaocaoServerOptionsSchema.parse(rawOptions);
   const fixture = createFakeCaocaoFixture();
   const state = new FakeCaocaoState();
-  const verifyRequests = options.verifyRequests ?? true;
-
-  const server = createServer((req, res) => {
-    void handleFakeCaocaoRequest(req, res, {
-      fixture,
-      routePlanner: options.routePlanner,
-      state,
-      verifyRequests,
-    });
+  const app = createFakeCaocaoApp({
+    callbackBaseUrl: options.callbackBaseUrl ?? null,
+    fixture,
+    routePlanner: rawOptions.routePlanner,
+    state,
+    verifyRequests: options.verifyRequests,
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, hostname, resolve);
+  const server = await new Promise<ServerType>((resolve, reject) => {
+    const startedServer = serve(
+      {
+        fetch: app.fetch,
+        hostname: options.hostname,
+        port: options.port,
+      },
+      () => resolve(startedServer),
+    );
+    startedServer.once("error", reject);
   });
 
   return {
@@ -64,7 +73,7 @@ export async function startFakeCaocaoServer(
       });
     },
     fixture,
-    origin: resolveServerOrigin(server, hostname),
+    origin: resolveServerOrigin(server, options.hostname),
     state,
   };
 }

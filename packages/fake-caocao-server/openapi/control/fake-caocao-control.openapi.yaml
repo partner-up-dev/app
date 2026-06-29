@@ -1,0 +1,513 @@
+openapi: 3.1.0
+info:
+  title: Fake Caocao Control API
+  version: 0.0.0
+  description: Fake-server-only control surface for deterministic tests.
+paths:
+  /__fake_caocao/reset:
+    post:
+      operationId: controlReset
+      responses:
+        '200':
+          description: Reset success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /__fake_caocao/create-failure/next:
+    post:
+      operationId: controlNextCreateFailure
+      responses:
+        '200':
+          description: Configure next-create failure success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /__fake_caocao/estimates:
+    post:
+      operationId: controlUpdateEstimate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEstimateRequest'
+      responses:
+        '200':
+          description: Update estimate success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimateMutationResponse'
+  /__fake_caocao/estimates/availability:
+    post:
+      operationId: controlEstimateAvailability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstimateAvailabilityRequest'
+      responses:
+        '200':
+          description: Estimate availability success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimateMutationResponse'
+  /__fake_caocao/state:
+    get:
+      operationId: controlState
+      responses:
+        '200':
+          description: State snapshot success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FakeCaocaoStateSnapshot'
+  /__fake_caocao/orders/latest/advance:
+    post:
+      operationId: controlAdvanceLatestOrder
+      responses:
+        '200':
+          description: Advance latest order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMutationResponse'
+  /__fake_caocao/orders/latest/retreat:
+    post:
+      operationId: controlRetreatLatestOrder
+      responses:
+        '200':
+          description: Retreat latest order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMutationResponse'
+  /__fake_caocao/orders/{providerOrderId}/advance:
+    post:
+      operationId: controlAdvanceOrder
+      parameters:
+        - $ref: '#/components/parameters/ProviderOrderId'
+      responses:
+        '200':
+          description: Advance one order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMutationResponse'
+  /__fake_caocao/orders/{providerOrderId}/retreat:
+    post:
+      operationId: controlRetreatOrder
+      parameters:
+        - $ref: '#/components/parameters/ProviderOrderId'
+      responses:
+        '200':
+          description: Retreat one order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMutationResponse'
+  /__fake_caocao/orders/{providerOrderId}/phase:
+    post:
+      operationId: controlSetOrderPhase
+      parameters:
+        - $ref: '#/components/parameters/ProviderOrderId'
+        - name: phase
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Set one order phase success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMutationResponse'
+components:
+  parameters:
+    ProviderOrderId:
+      name: providerOrderId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+  schemas:
+    CarType:
+      type: string
+      enum: ['2', '3', '4', '5', '7', '12', '14', '15']
+    IsoDateTime:
+      type: string
+      format: date-time
+    Coordinate:
+      type: object
+      additionalProperties: false
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+    OrderPhase:
+      type: string
+      enum: ['CREATED', 'ACCEPTED', 'ARRIVED_AT_PICKUP', 'IN_TRIP', 'FINISHED', 'CANCELLED']
+    FakeCaocaoVehicleEstimate:
+      type: object
+      additionalProperties: false
+      required:
+        - carType
+        - carTypeName
+        - distanceMeters
+        - durationSeconds
+        - estimateAmountFen
+      properties:
+        carType:
+          $ref: '#/components/schemas/CarType'
+        carTypeName:
+          type: string
+          minLength: 1
+        distanceMeters:
+          type: integer
+        durationSeconds:
+          type: integer
+        estimateAmountFen:
+          type: integer
+    CallbackSkipped:
+      type: object
+      additionalProperties: false
+      required:
+        - callbackUrl
+        - message
+        - ok
+        - skipped
+      properties:
+        callbackUrl:
+          type: 'null'
+        message:
+          type: string
+          minLength: 1
+        ok:
+          type: boolean
+          const: true
+        skipped:
+          type: boolean
+          const: true
+    CallbackDelivered:
+      type: object
+      additionalProperties: false
+      required:
+        - bodyPreview
+        - callbackUrl
+        - ok
+        - skipped
+        - status
+        - statusText
+      properties:
+        bodyPreview:
+          type:
+            - string
+            - 'null'
+        callbackUrl:
+          type: string
+          format: uri
+        ok:
+          type: boolean
+          const: true
+        skipped:
+          type: boolean
+          const: false
+        status:
+          type: integer
+        statusText:
+          type: string
+          minLength: 1
+    CallbackFailed:
+      type: object
+      additionalProperties: false
+      required:
+        - bodyPreview
+        - callbackUrl
+        - message
+        - ok
+        - skipped
+        - status
+        - statusText
+      properties:
+        bodyPreview:
+          type:
+            - string
+            - 'null'
+        callbackUrl:
+          type: string
+          format: uri
+        message:
+          type: string
+          minLength: 1
+        ok:
+          type: boolean
+          const: false
+        skipped:
+          type: boolean
+          const: false
+        status:
+          type:
+            - integer
+            - 'null'
+        statusText:
+          type:
+            - string
+            - 'null'
+    CallbackDelivery:
+      type:
+        - object
+      anyOf:
+        - $ref: '#/components/schemas/CallbackSkipped'
+        - $ref: '#/components/schemas/CallbackDelivered'
+        - $ref: '#/components/schemas/CallbackFailed'
+    FakeCaocaoOrderState:
+      type: object
+      additionalProperties: false
+      required:
+        - acceptedAt
+        - arrivedAt
+        - callbackInfo
+        - callbackUrl
+        - cancelFeeFen
+        - callerPhone
+        - canceledAt
+        - carType
+        - cityCode
+        - createdAt
+        - departureTime
+        - destination
+        - endAddress
+        - endName
+        - estimatePriceFen
+        - externalOrderId
+        - finalAmountFen
+        - finishedAt
+        - orderType
+        - origin
+        - passengerName
+        - passengerPhone
+        - phase
+        - providerOrderId
+        - queryCount
+        - serviceStartedAt
+        - startAddress
+        - startName
+        - updatedAt
+      properties:
+        acceptedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        arrivedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        callbackInfo:
+          type:
+            - string
+            - 'null'
+        callbackUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+        cancelFeeFen:
+          type: integer
+        callerPhone:
+          type: string
+          pattern: '^1\d{10}$'
+        canceledAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        carType:
+          $ref: '#/components/schemas/CarType'
+        cityCode:
+          type: string
+          pattern: '^\d+$'
+        createdAt:
+          $ref: '#/components/schemas/IsoDateTime'
+        departureTime:
+          type:
+            - string
+            - 'null'
+        destination:
+          $ref: '#/components/schemas/Coordinate'
+        endAddress:
+          type: string
+          minLength: 1
+        endName:
+          type: string
+          minLength: 1
+        estimatePriceFen:
+          type: integer
+        externalOrderId:
+          type: string
+          minLength: 1
+        finalAmountFen:
+          type: integer
+        finishedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        orderType:
+          type: integer
+          enum: [1, 2, 3, 4, 5, 6]
+        origin:
+          $ref: '#/components/schemas/Coordinate'
+        passengerName:
+          type: string
+          minLength: 1
+        passengerPhone:
+          type: string
+          pattern: '^1\d{10}$'
+        phase:
+          $ref: '#/components/schemas/OrderPhase'
+        providerOrderId:
+          type: string
+          minLength: 1
+        queryCount:
+          type: integer
+        serviceStartedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+        startAddress:
+          type: string
+          minLength: 1
+        startName:
+          type: string
+          minLength: 1
+        updatedAt:
+          $ref: '#/components/schemas/IsoDateTime'
+    FakeCaocaoFeeConfirmState:
+      type: object
+      additionalProperties: false
+      required:
+        - allowanceAmountFen
+        - caocaoAllowanceAmountFen
+        - confirmedAt
+        - providerOrderId
+      properties:
+        allowanceAmountFen:
+          type:
+            - integer
+            - 'null'
+        caocaoAllowanceAmountFen:
+          type:
+            - integer
+            - 'null'
+        confirmedAt:
+          $ref: '#/components/schemas/IsoDateTime'
+        providerOrderId:
+          type: string
+          minLength: 1
+    FakeCaocaoStateSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - estimates
+        - failNextCreate
+        - feeConfirms
+        - orders
+        - unavailableEstimateCarTypes
+      properties:
+        estimates:
+          type: array
+          items:
+            $ref: '#/components/schemas/FakeCaocaoVehicleEstimate'
+        failNextCreate:
+          type: boolean
+        feeConfirms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FakeCaocaoFeeConfirmState'
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/FakeCaocaoOrderState'
+        unavailableEstimateCarTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarType'
+    UpdateEstimateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - carType
+        - estimateAmountFen
+      properties:
+        carType:
+          $ref: '#/components/schemas/CarType'
+        carTypeName:
+          type: string
+          minLength: 1
+        distanceMeters:
+          type: integer
+        durationSeconds:
+          type: integer
+        estimateAmountFen:
+          type: integer
+    EstimateAvailabilityRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - available
+        - carType
+      properties:
+        available:
+          type: boolean
+        carType:
+          $ref: '#/components/schemas/CarType'
+    OkResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          const: true
+    EstimateMutationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - estimate
+        - ok
+      properties:
+        estimate:
+          $ref: '#/components/schemas/FakeCaocaoVehicleEstimate'
+        ok:
+          type: boolean
+          const: true
+    OrderMutationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - callback
+        - ok
+        - order
+      properties:
+        callback:
+          $ref: '#/components/schemas/CallbackDelivery'
+        ok:
+          type: boolean
+          const: true
+        order:
+          $ref: '#/components/schemas/FakeCaocaoOrderState'

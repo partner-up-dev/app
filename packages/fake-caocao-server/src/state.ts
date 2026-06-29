@@ -34,17 +34,33 @@ export type FakeCaocaoOrderPhase =
   | "CANCELLED";
 
 export type FakeCaocaoOrderState = {
+  acceptedAt: string | null;
+  arrivedAt: string | null;
   providerOrderId: string;
   externalOrderId: string;
   callbackUrl: string | null;
   callbackInfo: string | null;
+  callerPhone: string;
+  canceledAt: string | null;
   carType: string;
+  cityCode: string;
+  departureTime: string | null;
+  endAddress: string;
+  endName: string;
+  estimatePriceFen: number;
+  finishedAt: string | null;
+  orderType: number;
   phase: FakeCaocaoOrderPhase;
+  passengerName: string;
+  passengerPhone: string;
   origin: FakeCaocaoCoordinate;
   destination: FakeCaocaoCoordinate;
   queryCount: number;
   finalAmountFen: number;
   cancelFeeFen: number;
+  serviceStartedAt: string | null;
+  startAddress: string;
+  startName: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -71,18 +87,60 @@ const sanitizeProviderId = (value: string): string =>
 
 const defaultEstimates = (): FakeCaocaoVehicleEstimate[] => [
   {
-    carType: "EXPRESS",
+    carType: "2",
+    carTypeName: "新能源",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 3200,
+  },
+  {
+    carType: "3",
     carTypeName: "快车",
     distanceMeters: 8200,
     durationSeconds: 1500,
     estimateAmountFen: 3600,
   },
   {
-    carType: "PREMIER",
+    carType: "4",
+    carTypeName: "豪华型",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 4800,
+  },
+  {
+    carType: "5",
     carTypeName: "专车",
     distanceMeters: 8200,
     durationSeconds: 1500,
     estimateAmountFen: 5200,
+  },
+  {
+    carType: "7",
+    carTypeName: "优选",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 4100,
+  },
+  {
+    carType: "12",
+    carTypeName: "超惠",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 3000,
+  },
+  {
+    carType: "14",
+    carTypeName: "智能大白车",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 3900,
+  },
+  {
+    carType: "15",
+    carTypeName: "礼帽专车",
+    distanceMeters: 8200,
+    durationSeconds: 1500,
+    estimateAmountFen: 6800,
   },
 ];
 
@@ -98,6 +156,13 @@ const defaultDestination = (): FakeCaocaoCoordinate => ({
 
 const terminalOrderPhases = new Set<FakeCaocaoOrderPhase>(["FINISHED", "CANCELLED"]);
 const nonRetreatableOrderPhases = new Set<FakeCaocaoOrderPhase>(["CREATED", "CANCELLED"]);
+const activeOrderPhases: FakeCaocaoOrderPhase[] = [
+  "CREATED",
+  "ACCEPTED",
+  "ARRIVED_AT_PICKUP",
+  "IN_TRIP",
+  "FINISHED",
+];
 
 const nextOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase => {
   if (phase === "CREATED") return "ACCEPTED";
@@ -113,6 +178,64 @@ const previousOrderPhase = (phase: FakeCaocaoOrderPhase): FakeCaocaoOrderPhase =
   if (phase === "IN_TRIP") return "ARRIVED_AT_PICKUP";
   if (phase === "FINISHED") return "IN_TRIP";
   return phase;
+};
+
+const phaseRank = (phase: FakeCaocaoOrderPhase): number => {
+  if (phase === "CANCELLED") return activeOrderPhases.length;
+  return activeOrderPhases.indexOf(phase);
+};
+
+const syncPhaseTimestamps = (
+  order: FakeCaocaoOrderState,
+  phase: FakeCaocaoOrderPhase,
+  timestamp: string,
+): Pick<
+  FakeCaocaoOrderState,
+  "acceptedAt" | "arrivedAt" | "canceledAt" | "finishedAt" | "serviceStartedAt"
+> => {
+  const next: Pick<
+    FakeCaocaoOrderState,
+    "acceptedAt" | "arrivedAt" | "canceledAt" | "finishedAt" | "serviceStartedAt"
+  > = {
+    acceptedAt: order.acceptedAt,
+    arrivedAt: order.arrivedAt,
+    canceledAt: order.canceledAt,
+    finishedAt: order.finishedAt,
+    serviceStartedAt: order.serviceStartedAt,
+  };
+
+  if (phase === "CREATED") {
+    return {
+      acceptedAt: null,
+      arrivedAt: null,
+      canceledAt: null,
+      finishedAt: null,
+      serviceStartedAt: null,
+    };
+  }
+
+  if (phase === "CANCELLED") {
+    if (!next.canceledAt) next.canceledAt = timestamp;
+    if (phaseRank(order.phase) >= phaseRank("ACCEPTED") && !next.acceptedAt) {
+      next.acceptedAt = timestamp;
+    }
+    return next;
+  }
+
+  next.canceledAt = null;
+  if (phaseRank(phase) < phaseRank("FINISHED")) next.finishedAt = null;
+  if (phaseRank(phase) < phaseRank("IN_TRIP")) next.serviceStartedAt = null;
+  if (phaseRank(phase) < phaseRank("ARRIVED_AT_PICKUP")) next.arrivedAt = null;
+
+  if (phaseRank(phase) >= phaseRank("ACCEPTED") && !next.acceptedAt) next.acceptedAt = timestamp;
+  if (phaseRank(phase) >= phaseRank("ARRIVED_AT_PICKUP") && !next.arrivedAt) {
+    next.arrivedAt = timestamp;
+  }
+  if (phaseRank(phase) >= phaseRank("IN_TRIP") && !next.serviceStartedAt) {
+    next.serviceStartedAt = timestamp;
+  }
+  if (phaseRank(phase) >= phaseRank("FINISHED") && !next.finishedAt) next.finishedAt = timestamp;
+  return next;
 };
 
 export class FakeCaocaoState {
@@ -163,7 +286,7 @@ export class FakeCaocaoState {
   }
 
   findEstimate(carType: string): FakeCaocaoVehicleEstimate {
-    return this.estimates.get(carType) ?? this.estimates.get("EXPRESS") ?? defaultEstimates()[0]!;
+    return this.estimates.get(carType) ?? this.estimates.get("3") ?? defaultEstimates()[0]!;
   }
 
   findAvailableEstimate(carType: string): FakeCaocaoVehicleEstimate | null {
@@ -227,8 +350,19 @@ export class FakeCaocaoState {
     carType: string;
     callbackInfo?: string | null;
     callbackUrl?: string | null;
+    callerPhone?: string | null;
+    cityCode?: string | null;
+    departureTime?: string | null;
+    endAddress?: string | null;
+    endName?: string | null;
+    estimatePriceFen?: number | null;
+    orderType?: number | null;
     origin?: FakeCaocaoCoordinate | null;
     destination?: FakeCaocaoCoordinate | null;
+    passengerName?: string | null;
+    passengerPhone?: string | null;
+    startAddress?: string | null;
+    startName?: string | null;
   }): FakeCaocaoOrderState {
     const existing = [...this.orders.values()].find(
       (order) => order.externalOrderId === input.externalOrderId,
@@ -237,19 +371,42 @@ export class FakeCaocaoState {
 
     const estimate = this.findEstimate(input.carType);
     const timestamp = nowIso();
+    const estimatePriceFen =
+      typeof input.estimatePriceFen === "number" && Number.isFinite(input.estimatePriceFen)
+        ? Math.round(input.estimatePriceFen)
+        : estimate.estimateAmountFen;
     const order: FakeCaocaoOrderState = {
+      acceptedAt: null,
+      arrivedAt: null,
       cancelFeeFen: 0,
       callbackInfo: input.callbackInfo ?? null,
       callbackUrl: input.callbackUrl ?? null,
+      callerPhone: input.callerPhone?.trim() || "13800138000",
+      canceledAt: null,
       carType: estimate.carType,
+      cityCode: input.cityCode?.trim() || "0571",
       createdAt: timestamp,
+      departureTime: input.departureTime?.trim() || null,
       destination: input.destination ?? defaultDestination(),
+      endAddress: input.endAddress?.trim() || "Fake Destination Address",
+      endName: input.endName?.trim() || "Fake Destination",
+      estimatePriceFen,
       externalOrderId: input.externalOrderId,
-      finalAmountFen: estimate.estimateAmountFen + 400,
+      finalAmountFen: estimatePriceFen + 400,
+      finishedAt: null,
+      orderType:
+        typeof input.orderType === "number" && Number.isInteger(input.orderType)
+          ? input.orderType
+          : 1,
       origin: input.origin ?? defaultOrigin(),
+      passengerName: input.passengerName?.trim() || "测试乘客",
+      passengerPhone: input.passengerPhone?.trim() || input.callerPhone?.trim() || "13800138000",
       phase: "CREATED",
       providerOrderId: `CC${sanitizeProviderId(input.externalOrderId)}`,
       queryCount: 0,
+      serviceStartedAt: null,
+      startAddress: input.startAddress?.trim() || "Fake Origin Address",
+      startName: input.startName?.trim() || "Fake Origin",
       updatedAt: timestamp,
     };
     this.orders.set(order.providerOrderId, order);
@@ -301,12 +458,14 @@ export class FakeCaocaoState {
   setOrderPhase(providerOrderId: string, phase: FakeCaocaoOrderPhase): FakeCaocaoOrderState | null {
     const order = this.orders.get(providerOrderId);
     if (!order) return null;
+    const timestamp = nowIso();
 
     const updated: FakeCaocaoOrderState = {
       ...order,
       phase,
       queryCount: phase === order.phase ? order.queryCount : 0,
-      updatedAt: nowIso(),
+      updatedAt: timestamp,
+      ...syncPhaseTimestamps(order, phase, timestamp),
     };
     this.orders.set(providerOrderId, updated);
     return updated;
@@ -351,12 +510,15 @@ export class FakeCaocaoState {
   cancelOrder(providerOrderId: string): FakeCaocaoOrderState | null {
     const order = this.orders.get(providerOrderId);
     if (!order) return null;
+    const timestamp = nowIso();
 
     const updated: FakeCaocaoOrderState = {
       ...order,
       cancelFeeFen: order.phase === "ACCEPTED" || order.phase === "ARRIVED_AT_PICKUP" ? 800 : 0,
       phase: "CANCELLED",
-      updatedAt: nowIso(),
+      queryCount: 0,
+      updatedAt: timestamp,
+      ...syncPhaseTimestamps(order, "CANCELLED", timestamp),
     };
     this.orders.set(providerOrderId, updated);
     return updated;

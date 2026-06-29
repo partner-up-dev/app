@@ -93,7 +93,7 @@ const buildSku = (): ProductSku => ({
   },
   facts: {
     rideHailingProviderInstanceId: "provider-1",
-    providerVehicleTypeCode: "EXPRESS",
+    providerVehicleTypeCode: "3",
   },
   pricingModel: {
     type: "DYNAMIC_QUOTE",

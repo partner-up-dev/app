@@ -1,0 +1,1207 @@
+openapi: 3.1.0
+info:
+  title: Fake Caocao Provider Minimal API
+  version: 0.0.0
+  description: >
+    Minimal CaoCao OpenAPI surface implemented by the fake server. The covered
+    routes align to the official travel OpenAPI contract for the system-tested
+    ride-hailing flow.
+paths:
+  /common/queryCity:
+    get:
+      operationId: queryCity
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Sign'
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+      responses:
+        '200':
+          description: Query city success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryCitySuccessResponse'
+  /common/estimatePriceWithDetail:
+    get:
+      operationId: estimatePriceWithDetail
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Sign'
+        - name: city_code
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/CityCode'
+        - name: car_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ['2', '3', '5', '7', '14', '15']
+        - name: from_latitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+        - name: from_longitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+        - name: to_latitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+        - name: to_longitude
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DecimalString'
+        - name: order_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ['1', '2', '3', '4', '5', '6']
+        - name: departure_time
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CaocaoDateTimeString'
+        - name: carpool_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ['0', '1']
+        - name: count_person
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^\d+$'
+        - name: order_tags
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+        - name: passenger_phone
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PhoneNumber'
+        - name: route_strategy
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+        - name: waypointList
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Estimate success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimatePriceSuccessResponse'
+  /common/orderCarV2:
+    post:
+      operationId: orderCarV2
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderCarV2Request'
+      responses:
+        '200':
+          description: Create order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCarV2SuccessResponse'
+  /common/queryOrderDetailV2:
+    get:
+      operationId: queryOrderDetailV2
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Sign'
+        - name: order_id
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Query order detail success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryOrderDetailSuccessResponse'
+  /common/queryDriverLocationByOrderId:
+    get:
+      operationId: queryDriverLocationByOrderId
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Sign'
+        - name: order_id
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Query driver location success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryDriverLocationSuccessResponse'
+  /common/queryDriverPolylineV2:
+    post:
+      operationId: queryDriverPolylineV2
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QueryDriverPolylineV2Request'
+      responses:
+        '200':
+          description: Query driver polyline success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryDriverPolylineSuccessResponse'
+  /common/cancelOrderV3:
+    post:
+      operationId: cancelOrderV3
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CancelOrderV3Request'
+      responses:
+        '200':
+          description: Cancel order success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderSuccessResponse'
+  /common/queryCancelFee:
+    get:
+      operationId: queryCancelFee
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Sign'
+        - name: order_no
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Query cancel fee success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryCancelFeeSuccessResponse'
+  /common/feeConfirm:
+    post:
+      operationId: feeConfirm
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FeeConfirmRequest'
+      responses:
+        '200':
+          description: Fee confirm success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeConfirmSuccessResponse'
+webhooks:
+  notifyOrderStatus:
+    post:
+      operationId: notifyOrderStatus
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotifyOrderStatusForm'
+      responses:
+        '200':
+          description: Callback ack
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackAckResponse'
+components:
+  parameters:
+    ClientId:
+      name: client_id
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    Timestamp:
+      name: timestamp
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: '^\d+$'
+    Sign:
+      name: sign
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
+  schemas:
+    DecimalString:
+      type: string
+      pattern: '^-?\d+(\.\d+)?$'
+    IntegerString:
+      type: string
+      pattern: '^\d+$'
+    PhoneNumber:
+      type: string
+      pattern: '^1\d{10}$'
+    CityCode:
+      type: string
+      pattern: '^\d+$'
+    CaocaoDateTimeString:
+      type: string
+      pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+    Coordinate:
+      type: object
+      additionalProperties: false
+      required:
+        - lat
+        - lng
+      properties:
+        lat:
+          type: number
+        lng:
+          type: number
+    DriverLocation:
+      type: object
+      additionalProperties: false
+      required:
+        - direction
+        - latitude
+        - longitude
+        - speed
+        - travelKm
+        - travelMinute
+      properties:
+        direction:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        speed:
+          type: number
+        travelKm:
+          type: integer
+        travelMinute:
+          type: integer
+    DriverInfoLocation:
+      type: object
+      additionalProperties: false
+      required:
+        - direction
+        - lat
+        - lng
+        - speed
+      properties:
+        direction:
+          type: number
+        lat:
+          type: number
+        lng:
+          type: number
+        speed:
+          type: number
+    DriverInfoVo:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required:
+        - driverName
+        - driverPhone
+        - driverNo
+        - carNo
+        - carBrand
+        - color
+        - location
+      properties:
+        driverName:
+          type: string
+          minLength: 1
+        driverPhone:
+          $ref: '#/components/schemas/PhoneNumber'
+        driverNo:
+          type: string
+          minLength: 1
+        carNo:
+          type: string
+          minLength: 1
+        carBrand:
+          type: string
+          minLength: 1
+        color:
+          type: string
+          minLength: 1
+        location:
+          $ref: '#/components/schemas/DriverInfoLocation'
+    OrderFeeVo:
+      type: object
+      additionalProperties: false
+      required:
+        - totalFee
+      properties:
+        totalFee:
+          type:
+            - integer
+            - 'null'
+    DriverPolylineLink:
+      type: object
+      additionalProperties: false
+      required:
+        - coords
+        - length
+        - time
+      properties:
+        coords:
+          type: string
+          minLength: 1
+        length:
+          type: integer
+        time:
+          type: integer
+    DriverPolylineStep:
+      type: object
+      additionalProperties: false
+      required:
+        - length
+        - links
+        - time
+      properties:
+        length:
+          type: integer
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverPolylineLink'
+        time:
+          type: integer
+    DriverEtaInfoVO:
+      type: object
+      additionalProperties: false
+      required:
+        - curLinkIndex
+        - curPointIndex
+        - curStepIndex
+        - direction
+        - isMatchNaviPath
+        - lat
+        - lng
+        - remainDistance
+        - remainLightCount
+        - remainTime
+        - speed
+        - timestamp
+      properties:
+        curLinkIndex:
+          type: integer
+        curPointIndex:
+          type: integer
+        curStepIndex:
+          type: integer
+        direction:
+          type: number
+        isMatchNaviPath:
+          type: integer
+          enum: [0, 1]
+        lat:
+          type: number
+        lng:
+          type: number
+        remainDistance:
+          type: integer
+        remainLightCount:
+          type: integer
+        remainTime:
+          type: integer
+        speed:
+          type: number
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+    EstimateChargeDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - chargeCode
+        - chargeDesc
+      properties:
+        amount:
+          type: integer
+        chargeCode:
+          type: string
+          minLength: 1
+        chargeDesc:
+          type: string
+          minLength: 1
+    QueryCityData:
+      type: object
+      additionalProperties: false
+      required:
+        - city_code
+        - city_name
+      properties:
+        city_code:
+          $ref: '#/components/schemas/CityCode'
+        city_name:
+          type: string
+          minLength: 1
+    EstimatePriceData:
+      type: object
+      additionalProperties: false
+      required:
+        - carType
+        - detail
+        - distance
+        - duration
+        - lineType
+        - name
+        - originPrice
+        - price
+        - priceKey
+      properties:
+        carType:
+          type: integer
+          enum: [2, 3, 5, 7, 14, 15]
+        detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstimateChargeDetail'
+        distance:
+          type: integer
+        duration:
+          type: integer
+        lineType:
+          type: integer
+          enum: [0, 1]
+        name:
+          type: string
+          minLength: 1
+        originPrice:
+          type: integer
+        price:
+          type: integer
+        priceKey:
+          type: string
+          minLength: 1
+    OrderCarV2Data:
+      type: object
+      additionalProperties: false
+      required:
+        - orderNo
+      properties:
+        orderNo:
+          type: string
+          minLength: 1
+    QueryOrderDetailBasicOrderVO:
+      type: object
+      additionalProperties: false
+      required:
+        - acceptCPDriver
+        - allowModifyDest
+        - beginChargeTime
+        - callbackInfo
+        - callerPhone
+        - cityCode
+        - departureTime
+        - endAddress
+        - endName
+        - estimatePrice
+        - extOrderId
+        - fromLocation
+        - invoiceStatus
+        - invoiced
+        - isRelayOrder
+        - orderId
+        - orderLocation
+        - orderTime
+        - passengerName
+        - passengerPhone
+        - preOrderEndFlag
+        - realEndLocation
+        - realStartLocation
+        - requireLevel
+        - startAddress
+        - startName
+        - startServiceTime
+        - status
+        - toLocation
+        - type
+      properties:
+        acceptCPDriver:
+          type: integer
+          enum: [0, 1]
+        allowModifyDest:
+          type: integer
+          enum: [0, 1]
+        beginChargeTime:
+          type:
+            - string
+            - 'null'
+          pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+        callbackInfo:
+          type:
+            - string
+            - 'null'
+        callerPhone:
+          $ref: '#/components/schemas/PhoneNumber'
+        cityCode:
+          $ref: '#/components/schemas/CityCode'
+        departureTime:
+          type:
+            - string
+            - 'null'
+          pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+        endAddress:
+          type: string
+          minLength: 1
+        endName:
+          type: string
+          minLength: 1
+        estimatePrice:
+          type: integer
+        extOrderId:
+          type: string
+          minLength: 1
+        fromLocation:
+          $ref: '#/components/schemas/Coordinate'
+        invoiceStatus:
+          type: integer
+          enum: [0, 1]
+        invoiced:
+          type: integer
+          enum: [0, 1]
+        isRelayOrder:
+          type: integer
+          enum: [0, 1]
+        orderId:
+          type: string
+          minLength: 1
+        orderLocation:
+          $ref: '#/components/schemas/Coordinate'
+        orderTime:
+          $ref: '#/components/schemas/CaocaoDateTimeString'
+        passengerName:
+          type: string
+          minLength: 1
+        passengerPhone:
+          $ref: '#/components/schemas/PhoneNumber'
+        preOrderEndFlag:
+          type: integer
+          enum: [0, 1]
+        realEndLocation:
+          $ref: '#/components/schemas/Coordinate'
+        realStartLocation:
+          $ref: '#/components/schemas/Coordinate'
+        requireLevel:
+          type: integer
+          enum: [0, 1]
+        startAddress:
+          type: string
+          minLength: 1
+        startName:
+          type: string
+          minLength: 1
+        startServiceTime:
+          type:
+            - string
+            - 'null'
+          pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+        status:
+          type: string
+          enum: ['1', '3', '5', '9', '12', '20']
+        toLocation:
+          $ref: '#/components/schemas/Coordinate'
+        type:
+          type: integer
+          enum: [1, 2, 3, 4, 5, 6]
+    QueryOrderDetailData:
+      type: object
+      additionalProperties: false
+      required:
+        - basicOrderVO
+        - driverInfoVo
+        - orderFeeVo
+      properties:
+        basicOrderVO:
+          $ref: '#/components/schemas/QueryOrderDetailBasicOrderVO'
+        driverInfoVo:
+          $ref: '#/components/schemas/DriverInfoVo'
+        orderFeeVo:
+          $ref: '#/components/schemas/OrderFeeVo'
+    QueryDriverPolylineData:
+      type: object
+      additionalProperties: false
+      required:
+        - allLength
+        - allTime
+        - driverEtaInfoVO
+        - driverNo
+        - navigationPolylineType
+        - orderNo
+        - pathId
+        - steps
+      properties:
+        allLength:
+          type: integer
+        allTime:
+          type: integer
+        driverEtaInfoVO:
+          $ref: '#/components/schemas/DriverEtaInfoVO'
+        driverNo:
+          type: string
+          minLength: 1
+        navigationPolylineType:
+          type: integer
+          enum: [0, 1, 2, 3]
+        orderNo:
+          type: string
+          minLength: 1
+        pathId:
+          type: string
+          minLength: 1
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverPolylineStep'
+    CancelFeeData:
+      type: object
+      additionalProperties: false
+      required:
+        - cancelFee
+        - orderNo
+      properties:
+        cancelFee:
+          type: integer
+        orderNo:
+          type: string
+          minLength: 1
+    SuccessEnvelopeBase:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data: {}
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    FailureEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+        data:
+          type: 'null'
+        msg:
+          type: string
+          minLength: 1
+        success:
+          type: boolean
+          const: false
+    QueryCitySuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/QueryCityData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    EstimatePriceSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/EstimatePriceData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    OrderCarV2SuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/OrderCarV2Data'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    QueryOrderDetailSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/QueryOrderDetailData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    QueryDriverLocationSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/DriverLocation'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    QueryDriverPolylineSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/QueryDriverPolylineData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    CancelOrderSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/CancelFeeData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    QueryCancelFeeSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/CancelFeeData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    FeeConfirmSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          type: 'null'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    CallbackAckResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        success:
+          type: boolean
+          const: true
+    OrderCarV2Request:
+      type: object
+      additionalProperties: false
+      required:
+        - callback_info
+        - caller_phone
+        - car_type
+        - city_code
+        - client_id
+        - end_address
+        - end_name
+        - estimate_price
+        - estimate_price_key
+        - ext_order_id
+        - from_latitude
+        - from_longitude
+        - is_simultaneously_call
+        - order_type
+        - sign
+        - start_address
+        - start_name
+        - timestamp
+        - to_latitude
+        - to_longitude
+      properties:
+        accept_cp_driver:
+          type: string
+          enum: ['0', '1']
+        accept_relay_order:
+          type: string
+          enum: ['0', '1']
+        callback_info:
+          type: string
+          minLength: 1
+        caller_phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        car_type:
+          type: string
+          enum: ['2', '3', '4', '5', '7', '12', '14', '15']
+        city_code:
+          $ref: '#/components/schemas/CityCode'
+        client_id:
+          type: string
+          minLength: 1
+        count_person:
+          $ref: '#/components/schemas/IntegerString'
+        departure_time:
+          $ref: '#/components/schemas/CaocaoDateTimeString'
+        dynamic_rule_id:
+          type: string
+        end_address:
+          type: string
+          minLength: 1
+        end_name:
+          type: string
+          minLength: 1
+        end_poi_id:
+          type: string
+        estimate_price:
+          $ref: '#/components/schemas/IntegerString'
+        estimate_price_key:
+          type: string
+          minLength: 1
+        ext_order_id:
+          type: string
+          minLength: 1
+        ext_uid:
+          type: string
+        extra_info:
+          type: string
+        flight_no:
+          type: string
+        flt_takeoff_time:
+          $ref: '#/components/schemas/CaocaoDateTimeString'
+        from_latitude:
+          $ref: '#/components/schemas/DecimalString'
+        from_longitude:
+          $ref: '#/components/schemas/DecimalString'
+        is_simultaneously_call:
+          type: string
+          enum: ['0', '1']
+        line_type:
+          type: string
+          pattern: '^\d+$'
+        order_latitude:
+          $ref: '#/components/schemas/DecimalString'
+        order_longitude:
+          $ref: '#/components/schemas/DecimalString'
+        order_tags:
+          type: string
+        order_type:
+          type: string
+          enum: ['1', '2', '3', '4', '5', '6']
+        passenger_hide_phone:
+          type: string
+          enum: ['0', '1']
+        passenger_name:
+          type: string
+        passenger_phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        sign:
+          type: string
+          minLength: 1
+        sms_policy:
+          type: string
+        start_address:
+          type: string
+          minLength: 1
+        start_name:
+          type: string
+          minLength: 1
+        start_poi_id:
+          type: string
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+        to_latitude:
+          $ref: '#/components/schemas/DecimalString'
+        to_longitude:
+          $ref: '#/components/schemas/DecimalString'
+        waypointList:
+          type: string
+    QueryDriverPolylineV2Request:
+      type: object
+      additionalProperties: false
+      required:
+        - client_id
+        - order_id
+        - sign
+        - timestamp
+      properties:
+        client_id:
+          type: string
+          minLength: 1
+        order_id:
+          type: string
+          minLength: 1
+        sign:
+          type: string
+          minLength: 1
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+    CancelOrderV3Request:
+      type: object
+      additionalProperties: false
+      required:
+        - cancel_code
+        - cancel_reason
+        - client_id
+        - order_id
+        - sign
+        - timestamp
+        - who_cancel
+      properties:
+        cancel_code:
+          type: string
+          enum: ['1', '2', '3', '4', '5', '6', '8', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '24', '25']
+        cancel_reason:
+          type: string
+          minLength: 1
+        client_id:
+          type: string
+          minLength: 1
+        order_id:
+          type: string
+          minLength: 1
+        sign:
+          type: string
+          minLength: 1
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+        who_cancel:
+          type: string
+          enum: ['1', '2']
+    FeeConfirmRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - allowance_amount
+        - cao_allowance_amount
+        - client_id
+        - order_id
+        - sign
+        - timestamp
+      properties:
+        allowance_amount:
+          $ref: '#/components/schemas/IntegerString'
+        cao_allowance_amount:
+          $ref: '#/components/schemas/IntegerString'
+        client_id:
+          type: string
+          minLength: 1
+        order_id:
+          type: string
+          minLength: 1
+        sign:
+          type: string
+          minLength: 1
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+    NotifyOrderStatusForm:
+      type: object
+      additionalProperties: false
+      required:
+        - event
+        - ext_order_id
+        - order_id
+        - sign
+        - timestamp
+      properties:
+        callback_info:
+          type: string
+          minLength: 1
+        car_no:
+          type: string
+          minLength: 1
+        driver_name:
+          type: string
+          minLength: 1
+        driver_phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        event:
+          type: string
+          enum: ['1', '2', '3', '4', '5', '6', '9', '11', '12', '13', '14', '20', '21', '22', '23', '24', '25', '26', '27', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50']
+        ext_order_id:
+          type: string
+          minLength: 1
+        final_amount_fen:
+          $ref: '#/components/schemas/IntegerString'
+        order_id:
+          type: string
+          minLength: 1
+        sign:
+          type: string
+          minLength: 1
+        timestamp:
+          type: string
+          pattern: '^\d+$'
+        vehicle_brand:
+          type: string
+          minLength: 1
+        vehicle_color:
+          type: string
+          minLength: 1

@@ -39,7 +39,7 @@ describe("catalog contract guards", () => {
         spu: { productType: "RENTAL" },
         facts: {
           rideHailingProviderInstanceId: "caocao-main",
-          providerVehicleTypeCode: "EXPRESS",
+          providerVehicleTypeCode: "3",
         },
       }),
     ).toThrow("Rental SKU facts must match SPU productType");

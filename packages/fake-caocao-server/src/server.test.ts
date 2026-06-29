@@ -22,6 +22,39 @@ const signedSearchParams = (input: {
   });
 };
 
+const defaultEstimateParams = (input: Partial<Record<string, string>> = {}): Record<string, string> => ({
+  car_type: "5",
+  city_code: "0571",
+  from_latitude: "30.2500",
+  from_longitude: "120.2000",
+  timestamp: "1",
+  to_latitude: "30.3000",
+  to_longitude: "120.2500",
+  ...input,
+});
+
+const defaultCreateParams = (input: Partial<Record<string, string>> = {}): Record<string, string> => ({
+  callback_info: "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
+  caller_phone: "13800138000",
+  car_type: "5",
+  city_code: "0571",
+  end_address: "杭州市西湖区灵隐路1号",
+  end_name: "灵隐寺",
+  estimate_price: "5200",
+  estimate_price_key: "fake_quote_5_5200",
+  ext_order_id: "external-order-1",
+  from_latitude: "30.2500",
+  from_longitude: "120.2000",
+  is_simultaneously_call: "0",
+  order_type: "1",
+  start_address: "杭州市上城区全福桥路2号",
+  start_name: "杭州东站",
+  timestamp: "2",
+  to_latitude: "30.3000",
+  to_longitude: "120.2500",
+  ...input,
+});
+
 const closeServer = (server: Server): Promise<void> =>
   new Promise((resolve, reject) => {
     server.close((error) => {
@@ -123,32 +156,24 @@ describe("startFakeCaocaoServer", () => {
     const estimateResponse = await fetch(
       `${server.origin}/common/estimatePriceWithDetail?${signedSearchParams({
         clientId: server.fixture.clientId,
-        params: {
-          car_type: "PREMIER",
-          timestamp: "1",
-        },
+        params: defaultEstimateParams(),
         signKey: server.fixture.signKey,
       }).toString()}`,
     );
     const estimateBody = (await estimateResponse.json()) as {
       code: number;
-      data: { estimateAmountFen: number };
+      data: { price: number };
       success: boolean;
     };
 
     expect(estimateResponse.ok).toBe(true);
     expect(estimateBody.success).toBe(true);
-    expect(estimateBody.data.estimateAmountFen).toBe(5200);
+    expect(estimateBody.data.price).toBe(5200);
 
     const createResponse = await fetch(`${server.origin}/common/orderCarV2`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
-        params: {
-          callback_info: "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
-          car_type: "PREMIER",
-          ext_order_id: "external-order-1",
-          timestamp: "2",
-        },
+        params: defaultCreateParams(),
         signKey: server.fixture.signKey,
       }).toString(),
       headers: {
@@ -181,13 +206,13 @@ describe("startFakeCaocaoServer", () => {
     );
     const detailBody = (await detailResponse.json()) as {
       code: number;
-      data: { phase: string };
+      data: { basicOrderVO: { status: string } };
       success: boolean;
     };
 
     expect(detailResponse.ok).toBe(true);
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.phase).toBe("CREATED");
+    expect(detailBody.data.basicOrderVO.status).toBe("1");
 
     const advanceResponse = await fetch(`${server.origin}/__fake_caocao/orders/latest/advance`, {
       method: "POST",
@@ -207,27 +232,27 @@ describe("startFakeCaocaoServer", () => {
         clientId: server.fixture.clientId,
         params: {
           order_id: createBody.data.orderNo,
-          timestamp: "3-after-advance",
+          timestamp: "31",
         },
         signKey: server.fixture.signKey,
       }).toString()}`,
     );
     const detailAfterAdvanceBody = (await detailAfterAdvanceResponse.json()) as {
       code: number;
-      data: { phase: string };
+      data: { basicOrderVO: { status: string } };
       success: boolean;
     };
 
     expect(detailAfterAdvanceResponse.ok).toBe(true);
     expect(detailAfterAdvanceBody.success).toBe(true);
-    expect(detailAfterAdvanceBody.data.phase).toBe("ACCEPTED");
+    expect(detailAfterAdvanceBody.data.basicOrderVO.status).toBe("9");
 
     const driverLocationResponse = await fetch(
       `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
           order_id: createBody.data.orderNo,
-          timestamp: "3-driver-location",
+          timestamp: "32",
         },
         signKey: server.fixture.signKey,
       }).toString()}`,
@@ -248,9 +273,8 @@ describe("startFakeCaocaoServer", () => {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
-          navigation_polyline_type: "1",
           order_id: createBody.data.orderNo,
-          timestamp: "3-driver-polyline",
+          timestamp: "33",
         },
         signKey: server.fixture.signKey,
       }).toString(),
@@ -295,7 +319,7 @@ describe("startFakeCaocaoServer", () => {
         clientId: server.fixture.clientId,
         params: {
           order_id: createBody.data.orderNo,
-          timestamp: "3-driver-location-after-route",
+          timestamp: "34",
         },
         signKey: server.fixture.signKey,
       }).toString()}`,
@@ -308,31 +332,6 @@ describe("startFakeCaocaoServer", () => {
     expect(
       coordinateDelta(driverLocationBody.data, advancedDriverLocationBody.data),
     ).toBeGreaterThan(0.00001);
-
-    const missingNavigationTypeResponse = await fetch(
-      `${server.origin}/common/queryDriverPolylineV2`,
-      {
-        body: signedSearchParams({
-          clientId: server.fixture.clientId,
-          params: {
-            order_id: createBody.data.orderNo,
-            timestamp: "3-driver-polyline-missing-type",
-          },
-          signKey: server.fixture.signKey,
-        }).toString(),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        method: "POST",
-      },
-    );
-    const missingNavigationTypeBody = (await missingNavigationTypeResponse.json()) as {
-      code: number;
-      success: boolean;
-    };
-    expect(missingNavigationTypeResponse.ok).toBe(true);
-    expect(missingNavigationTypeBody.success).toBe(false);
-    expect(missingNavigationTypeBody.code).toBe(40001);
 
     const arrivedPhaseResponse = await fetch(
       `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/advance`,
@@ -368,7 +367,7 @@ describe("startFakeCaocaoServer", () => {
         clientId: server.fixture.clientId,
         params: {
           order_id: createBody.data.orderNo,
-          timestamp: "3-driver-location-in-trip",
+          timestamp: "35",
         },
         signKey: server.fixture.signKey,
       }).toString()}`,
@@ -383,9 +382,8 @@ describe("startFakeCaocaoServer", () => {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
-          navigation_polyline_type: "3",
           order_id: createBody.data.orderNo,
-          timestamp: "3-driver-polyline-in-trip",
+          timestamp: "36",
         },
         signKey: server.fixture.signKey,
       }).toString(),
@@ -435,7 +433,7 @@ describe("startFakeCaocaoServer", () => {
     server = await startFakeCaocaoServer();
 
     const created = server.state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-retreat",
     });
     server.state.setOrderPhase(created.providerOrderId, "ARRIVED_AT_PICKUP");
@@ -505,7 +503,7 @@ describe("startFakeCaocaoServer", () => {
     });
 
     const created = server.state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       destination: { latitude: 30.35, longitude: 120.3 },
       externalOrderId: "external-order-planned-route",
       origin: { latitude: 30.25, longitude: 120.2 },
@@ -516,9 +514,8 @@ describe("startFakeCaocaoServer", () => {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
-          navigation_polyline_type: "3",
           order_id: created.providerOrderId,
-          timestamp: "planned-route-1",
+          timestamp: "41",
         },
         signKey: server.fixture.signKey,
       }).toString(),
@@ -546,9 +543,8 @@ describe("startFakeCaocaoServer", () => {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
-          navigation_polyline_type: "3",
           order_id: created.providerOrderId,
-          timestamp: "planned-route-2",
+          timestamp: "42",
         },
         signKey: server.fixture.signKey,
       }).toString(),
@@ -584,7 +580,7 @@ describe("startFakeCaocaoServer", () => {
     try {
       const created = server.state.createOrder({
         callbackUrl: `${callbackServer.origin}/callback`,
-        carType: "EXPRESS",
+        carType: "3",
         externalOrderId: "external-order-callback-failure",
       });
 
@@ -631,7 +627,7 @@ describe("startFakeCaocaoServer", () => {
       const created = server.state.createOrder({
         callbackInfo,
         callbackUrl: `${callbackServer.origin}/callback`,
-        carType: "EXPRESS",
+        carType: "3",
         externalOrderId: "external-order-callback-success",
       });
 
@@ -669,7 +665,7 @@ describe("startFakeCaocaoServer", () => {
 
     const updateResponse = await fetch(`${server.origin}/__fake_caocao/estimates`, {
       body: JSON.stringify({
-        carType: "EXPRESS",
+        carType: "3",
         estimateAmountFen: 4100,
       }),
       headers: {
@@ -689,20 +685,20 @@ describe("startFakeCaocaoServer", () => {
     const estimateResponse = await fetch(
       `${server.origin}/common/estimatePriceWithDetail?${signedSearchParams({
         clientId: server.fixture.clientId,
-        params: {
-          car_type: "EXPRESS",
-          timestamp: "estimate-after-admin-update",
-        },
+        params: defaultEstimateParams({
+          car_type: "3",
+          timestamp: "51",
+        }),
         signKey: server.fixture.signKey,
       }).toString()}`,
     );
     const estimateBody = (await estimateResponse.json()) as {
-      data: { estimateAmountFen: number };
+      data: { price: number };
       success: boolean;
     };
 
     expect(estimateBody.success).toBe(true);
-    expect(estimateBody.data.estimateAmountFen).toBe(4100);
+    expect(estimateBody.data.price).toBe(4100);
   });
 
   test("supports admin reset and next-create failure controls", async () => {
@@ -716,11 +712,13 @@ describe("startFakeCaocaoServer", () => {
     const createResponse = await fetch(`${server.origin}/common/orderCarV2`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
-        params: {
-          car_type: "EXPRESS",
+        params: defaultCreateParams({
+          car_type: "3",
+          estimate_price: "3600",
+          estimate_price_key: "fake_quote_3_3600",
           ext_order_id: "external-order-2",
           timestamp: "4",
-        },
+        }),
         signKey: server.fixture.signKey,
       }).toString(),
       headers: {

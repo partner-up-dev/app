@@ -146,7 +146,7 @@ begin
       10,
       jsonb_build_object(
         'rideHailingProviderInstanceId', v_provider_instance_id::text,
-        'providerVehicleTypeCode', 'EXPRESS'
+        'providerVehicleTypeCode', '3'
       ),
       '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
       now(),
@@ -160,7 +160,7 @@ begin
            sort_order = 10,
            facts = jsonb_build_object(
              'rideHailingProviderInstanceId', v_provider_instance_id::text,
-             'providerVehicleTypeCode', 'EXPRESS'
+             'providerVehicleTypeCode', '3'
            ),
            pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
            cancellation_policy_ref = null,
@@ -196,7 +196,7 @@ begin
       20,
       jsonb_build_object(
         'rideHailingProviderInstanceId', v_provider_instance_id::text,
-        'providerVehicleTypeCode', 'PREMIER'
+        'providerVehicleTypeCode', '5'
       ),
       '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"曹操预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
       now(),
@@ -210,7 +210,7 @@ begin
            sort_order = 20,
            facts = jsonb_build_object(
              'rideHailingProviderInstanceId', v_provider_instance_id::text,
-             'providerVehicleTypeCode', 'PREMIER'
+             'providerVehicleTypeCode', '5'
            ),
            pricing_model = '{"type":"DYNAMIC_QUOTE","calculatorSpec":{"version":1,"currency":"CNY","components":[{"id":"caocao-provider-estimate","label":"预估价","amount":{"type":"INPUT","path":"provider.estimateAmountFen"}}]}}'::jsonb,
            cancellation_policy_ref = null,

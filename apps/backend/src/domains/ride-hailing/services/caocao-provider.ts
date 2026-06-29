@@ -262,10 +262,6 @@ const mapCaocaoNavigationRouteKind = (
   return "UNKNOWN";
 };
 
-const toCaocaoNavigationPolylineType = (
-  routeKind: RideHailingProviderNavigationRouteQueryKind,
-): number => (routeKind === "PICKUP" ? 1 : 3);
-
 const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
   const basicOrder = readOptionalRecordField(data, ["basicOrderVO", "basicOrderVo", "basic_order"]);
   const driverRaw = readOptionalRecordField(data, [
@@ -664,7 +660,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       providerQuoteId: readOptionalStringField(estimateData, [
         "priceKey",
         "price_key",
-        "price_token",
         "quoteId",
         "quote_id",
       ]),
@@ -682,10 +677,15 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     providerSnapshot: unknown;
   }> {
     const externalOrderId = this.buildExternalOrderId(input.orderId);
-    const data = await this.request<Record<string, unknown>>("POST", "/common/orderCarV2", {
+    const requestParams = await this.buildCreateRideRequestParams({
       ...input.params,
       ext_order_id: externalOrderId,
     });
+    const data = await this.request<Record<string, unknown>>(
+      "POST",
+      "/common/orderCarV2",
+      requestParams,
+    );
     return {
       providerOrderId: readRequiredStringField(data, "orderNo"),
       externalOrderId,
@@ -723,7 +723,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       "POST",
       "/common/queryDriverPolylineV2",
       {
-        navigation_polyline_type: toCaocaoNavigationPolylineType(input.routeKind),
         order_id: input.providerOrderId,
       },
     );
@@ -818,12 +817,8 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
   private async buildEstimateRequestParams(
     params: CaocaoParamInput,
   ): Promise<RequiredCaocaoEstimateParams & CaocaoParamInput> {
-    const fromLatitude = readRequiredParamNumber(params, ["from_latitude", "fromLatitude", "flat"]);
-    const fromLongitude = readRequiredParamNumber(params, [
-      "from_longitude",
-      "fromLongitude",
-      "flng",
-    ]);
+    const fromLatitude = readRequiredParamNumber(params, ["from_latitude"]);
+    const fromLongitude = readRequiredParamNumber(params, ["from_longitude"]);
     const cityCode =
       readOptionalParamString(params, ["city_code", "cityCode"]) ??
       (await this.queryCityCode({
@@ -836,8 +831,8 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       from_latitude: fromLatitude,
       from_longitude: fromLongitude,
       order_type: readOptionalParamNumber(params, ["order_type", "orderType"]) ?? 1,
-      to_latitude: readRequiredParamNumber(params, ["to_latitude", "toLatitude", "tlat"]),
-      to_longitude: readRequiredParamNumber(params, ["to_longitude", "toLongitude", "tlng"]),
+      to_latitude: readRequiredParamNumber(params, ["to_latitude"]),
+      to_longitude: readRequiredParamNumber(params, ["to_longitude"]),
     };
     const departureTime =
       readOptionalParamString(params, ["departure_time", "departureTime"]) ??
@@ -856,6 +851,75 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       const value = params[key];
       if (value !== null && value !== undefined) requestParams[key] = value;
     }
+    return requestParams;
+  }
+
+  private async buildCreateRideRequestParams(params: CaocaoParamInput): Promise<CaocaoParamInput> {
+    const fromLatitude = readRequiredParamNumber(params, ["from_latitude"]);
+    const fromLongitude = readRequiredParamNumber(params, ["from_longitude"]);
+    const cityCode =
+      readOptionalParamString(params, ["city_code", "cityCode"]) ??
+      (await this.queryCityCode({
+        latitude: fromLatitude,
+        longitude: fromLongitude,
+      }));
+
+    const requestParams: CaocaoParamInput = {
+      callback_info: readOptionalParamString(params, ["callback_info"]),
+      caller_phone: readRequiredParamString(params, ["caller_phone"]),
+      car_type: readRequiredParamString(params, ["car_type"]),
+      city_code: cityCode,
+      end_address: readRequiredParamString(params, ["end_address"]),
+      end_name: readRequiredParamString(params, ["end_name"]),
+      estimate_price: readRequiredParamNumber(params, ["estimate_price"]),
+      estimate_price_key: readRequiredParamString(params, ["estimate_price_key"]),
+      ext_order_id: readRequiredParamString(params, ["ext_order_id"]),
+      from_latitude: fromLatitude,
+      from_longitude: fromLongitude,
+      is_simultaneously_call:
+        readOptionalParamString(params, ["is_simultaneously_call"]) ?? "0",
+      order_type: readOptionalParamNumber(params, ["order_type"]) ?? 1,
+      start_address: readRequiredParamString(params, ["start_address"]),
+      start_name: readRequiredParamString(params, ["start_name"]),
+      to_latitude: readRequiredParamNumber(params, ["to_latitude"]),
+      to_longitude: readRequiredParamNumber(params, ["to_longitude"]),
+    };
+
+    const departureTime =
+      readOptionalParamString(params, ["departure_time"]) ??
+      formatCaocaoDateTime(params.departure_at ?? params.departureAt);
+    if (departureTime) requestParams.departure_time = departureTime;
+
+    const passengerPhone =
+      readOptionalParamString(params, ["passenger_phone"]) ?? requestParams.caller_phone;
+    if (passengerPhone) requestParams.passenger_phone = passengerPhone;
+
+    for (const key of [
+      "accept_cp_driver",
+      "accept_relay_order",
+      "count_person",
+      "dynamic_rule_id",
+      "end_poi_id",
+      "ext_uid",
+      "extra_info",
+      "flight_no",
+      "flt_takeoff_time",
+      "line_type",
+      "order_latitude",
+      "order_longitude",
+      "order_tags",
+      "passenger_hide_phone",
+      "passenger_name",
+      "sms_policy",
+      "start_poi_id",
+      "waypointList",
+    ] as const) {
+      const value = params[key];
+      if (value !== null && value !== undefined) {
+        requestParams[key] = value;
+      }
+    }
+
     return requestParams;
   }
 

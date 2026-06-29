@@ -34,7 +34,6 @@ import {
 import {
   buildCaocaoCallbackInfo,
   createRideHailingProviderPort,
-  resolveCaocaoOrderStatusCallbackUrl,
 } from "../../ride-hailing";
 import { attachOrderToPr } from "../../pr-core";
 import type {
@@ -901,13 +900,21 @@ async function createRideHailingOrderBranch(input: {
           orderId: base.order.id,
           params: {
             callback_info: buildCaocaoCallbackInfo({ providerInstance: provider }),
-            callback_url: resolveCaocaoOrderStatusCallbackUrl(provider),
             car_type: input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
-            price_token: input.selected.dispatchCandidate.fulfillmentQuote.providerQuoteId,
-            flat: input.selected.listingContext.route.origin.latitude,
-            flng: input.selected.listingContext.route.origin.longitude,
-            tlat: input.selected.listingContext.route.destination.latitude,
-            tlng: input.selected.listingContext.route.destination.longitude,
+            caller_phone: input.selected.listingContext.contactPhone,
+            departure_at: input.selected.listingContext.departureAt,
+            end_address: input.selected.listingContext.route.destination.address,
+            end_name: input.selected.listingContext.route.destination.name,
+            estimate_price: input.selected.dispatchCandidate.fulfillmentQuote.estimateAmountFen,
+            estimate_price_key: input.selected.dispatchCandidate.fulfillmentQuote.providerQuoteId,
+            from_latitude: input.selected.listingContext.route.origin.latitude,
+            from_longitude: input.selected.listingContext.route.origin.longitude,
+            passenger_name: input.selected.listingContext.riders[0]?.displayName ?? "乘客",
+            passenger_phone: input.selected.listingContext.contactPhone,
+            start_address: input.selected.listingContext.route.origin.address,
+            start_name: input.selected.listingContext.route.origin.name,
+            to_latitude: input.selected.listingContext.route.destination.latitude,
+            to_longitude: input.selected.listingContext.route.destination.longitude,
           },
         });
       } catch (error) {
@@ -973,9 +980,9 @@ async function createRideHailingOrderBranch(input: {
       try {
         await port.cancelRide({
           providerOrderId: providerOrderIdToCompensate,
-          cancelCode: "LOCAL_CREATE_ROLLBACK",
+          cancelCode: 20,
           cancelReason: "Local create-order transaction failed after provider creation",
-          whoCancel: "SYSTEM",
+          whoCancel: 2,
         });
       } catch {
         // Best-effort compensation. The original create failure remains the

@@ -440,11 +440,11 @@ async function quoteRideSku(input: {
   const providerQuote = await port.estimate({
     params: {
       car_type: input.context.sku.facts.providerVehicleTypeCode,
-      flat: input.route.origin.latitude,
-      flng: input.route.origin.longitude,
-      tlat: input.route.destination.latitude,
-      tlng: input.route.destination.longitude,
+      from_latitude: input.route.origin.latitude,
+      from_longitude: input.route.origin.longitude,
       departure_at: input.departureAt,
+      to_latitude: input.route.destination.latitude,
+      to_longitude: input.route.destination.longitude,
     },
   });
   const pricingSnapshot = pricingApplication.resolve({

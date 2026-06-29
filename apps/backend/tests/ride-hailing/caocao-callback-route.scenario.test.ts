@@ -271,7 +271,7 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
       },
       factsSnapshot: {
         rideHailingProviderInstanceId: provider.id,
-        providerVehicleTypeCode: "EXPRESS",
+        providerVehicleTypeCode: "3",
       },
       pricingModelSnapshot: {
         type: "DYNAMIC_QUOTE" as const,
@@ -352,7 +352,7 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
           ],
           resolution: {
             sku: skuSnapshot,
-            providerVehicleTypeCode: "EXPRESS",
+            providerVehicleTypeCode: "3",
             providerVehicleTypeName: "Scenario Caocao Express",
             quoteSnapshot: {
               amountFen: 3600,
@@ -535,7 +535,7 @@ scenario("Caocao callback returns retryable failure when provider detail query f
       },
       factsSnapshot: {
         rideHailingProviderInstanceId: provider.id,
-        providerVehicleTypeCode: "EXPRESS",
+        providerVehicleTypeCode: "3",
       },
       pricingModelSnapshot: {
         type: "DYNAMIC_QUOTE" as const,
@@ -584,7 +584,7 @@ scenario("Caocao callback returns retryable failure when provider detail query f
           ],
           resolution: {
             sku: skuSnapshot,
-            providerVehicleTypeCode: "EXPRESS",
+            providerVehicleTypeCode: "3",
             providerVehicleTypeName: "Scenario Caocao Query Failure Express",
             quoteSnapshot: {
               amountFen: 3600,

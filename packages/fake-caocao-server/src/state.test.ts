@@ -6,11 +6,11 @@ describe("FakeCaocaoState", () => {
     const state = new FakeCaocaoState();
 
     const created = state.createOrder({
-      carType: "PREMIER",
+      carType: "5",
       externalOrderId: "external-order-1",
     });
     const duplicate = state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-1",
     });
 
@@ -35,11 +35,11 @@ describe("FakeCaocaoState", () => {
     const state = new FakeCaocaoState();
 
     const older = state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-older",
     });
     const newer = state.createOrder({
-      carType: "PREMIER",
+      carType: "5",
       externalOrderId: "external-order-newer",
     });
 
@@ -54,20 +54,20 @@ describe("FakeCaocaoState", () => {
     const state = new FakeCaocaoState();
 
     const updated = state.updateEstimate({
-      carType: "PREMIER",
+      carType: "5",
       estimateAmountFen: 6100,
     });
     const created = state.createOrder({
-      carType: "PREMIER",
+      carType: "5",
       externalOrderId: "external-order-price-change",
     });
 
     expect(updated.estimateAmountFen).toBe(6100);
-    expect(state.findEstimate("PREMIER").estimateAmountFen).toBe(6100);
+    expect(state.findEstimate("5").estimateAmountFen).toBe(6100);
     expect(created.finalAmountFen).toBe(6500);
 
     state.reset();
-    expect(state.findEstimate("PREMIER").estimateAmountFen).toBe(5200);
+    expect(state.findEstimate("5").estimateAmountFen).toBe(5200);
   });
 
   test("supports next-create failure, cancellation, and fee confirmation", () => {
@@ -79,7 +79,7 @@ describe("FakeCaocaoState", () => {
 
     const created = state.createOrder({
       callbackUrl: "http://127.0.0.1:4000/callback",
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-2",
     });
     state.advanceOrderPhase(created.providerOrderId);
@@ -99,7 +99,7 @@ describe("FakeCaocaoState", () => {
   test("retreats only phases with a deterministic previous phase", () => {
     const state = new FakeCaocaoState();
     const created = state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-3",
     });
 
@@ -122,7 +122,7 @@ describe("FakeCaocaoState", () => {
   test("tracks movement ticks and resets them across phase changes", () => {
     const state = new FakeCaocaoState();
     const created = state.createOrder({
-      carType: "EXPRESS",
+      carType: "3",
       externalOrderId: "external-order-movement",
     });
 
