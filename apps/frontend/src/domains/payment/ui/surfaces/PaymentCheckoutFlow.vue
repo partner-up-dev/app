@@ -641,7 +641,7 @@ const handlePay = async (): Promise<void> => {
 .payment-checkout-page__provider-cell {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--sys-color-outline-muted);
+  border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-small);
   background: var(--sys-color-surface);
   text-align: left;
@@ -653,7 +653,7 @@ const handlePay = async (): Promise<void> => {
 
 .payment-checkout-page__provider-cell.is-selected {
   border-color: var(--sys-color-primary);
-  background: color-mix(in srgb, var(--sys-color-primary-container) 24%, var(--sys-color-surface));
+  background: var(--sys-color-primary-container);
 }
 
 .payment-checkout-page__provider-cell.is-disabled {
