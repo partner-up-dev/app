@@ -89,8 +89,8 @@ For `missing-contact-phone`:
 - Show an in-place `PuInlineNotice` in the RideHailing vehicle panel.
 - Provide a telephone input in-place so the user can complete the missing
   contact phone without leaving the page.
-- Once filled, listing should request automatically through the existing query
-  path.
+- The typed phone is only a draft. Listing may start only after the user
+  explicitly confirms the complete phone value.
 
 For `missing-route`:
 
@@ -136,8 +136,9 @@ Planned verification after implementation starts:
   - `ready`
 - `RideHailingOrderingContent` now shows skeletons only when listing input exists
   and the listing query is pending.
-- Missing contact phone is recoverable in-place through a telephone input in the
-  RideHailing vehicle panel.
+- Missing contact phone is recoverable in-place through a telephone input plus
+  explicit confirm action in the RideHailing vehicle panel. The live draft does
+  not participate in listing input.
 - Missing route / missing riders / missing offer surface blocking notices with
   action paths into the parent `PuDialog` recovery flow.
 - Successful listing with zero visible vehicle candidates is treated as an error

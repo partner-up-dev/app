@@ -50,18 +50,33 @@
             v-if="listingBlocker.reason === 'missing-contact-phone'"
             label="联系人电话"
             for-id="ride-hailing-contact-phone"
+            :hint="rideContactPhoneHint"
+            :error="rideContactPhoneDraftError ?? undefined"
             required
           >
             <PuInput
               id="ride-hailing-contact-phone"
-              v-model="rideContactPhone"
+              v-model="rideContactPhoneDraft"
               native-type="tel"
-              inputmode="tel"
+              inputmode="numeric"
               autocomplete="tel"
+              :maxlength="11"
               clearable
               placeholder="请输入联系人手机号"
               data-testid="ordering.ride-hailing.contact-phone"
             />
+            <template #labelTrailing>
+              <PuButton
+                size="sm"
+                tone="primary"
+                variant="soft"
+                :disabled="!canCommitRideContactPhone"
+                data-testid="ordering.ride-hailing.contact-phone.confirm"
+                @click="commitRideContactPhone"
+              >
+                确认并加载
+              </PuButton>
+            </template>
           </PuFormItem>
         </div>
         <div
@@ -265,6 +280,7 @@ import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import type { MapFitPadding } from "@/shared/map/types";
 import RideHailingSkuCard from "./RideHailingSkuCard.vue";
 import {
+  isRideHailingContactPhoneComplete,
   type RideHailingListingBlocker,
   resolveRideHailingListingBlocker,
   resolveRideHailingListingSurfaceState,
@@ -298,6 +314,7 @@ const contentRoot = ref<HTMLElement | null>(null);
 const contentHeight = ref(DEFAULT_CONTENT_HEIGHT);
 const ridePanelStop = ref<RidePanelStopValue>("normal");
 const rideContactPhone = ref("");
+const rideContactPhoneDraft = ref("");
 const editableRoute = ref<Route | null>(null);
 const routePointDrawerOpen = ref(false);
 const selectedRoutePointIndex = ref<number | null>(null);
@@ -545,6 +562,29 @@ const listingBlocker = computed<RideHailingListingBlocker | null>(() => {
   });
 });
 
+const normalizedRideContactPhoneDraft = computed(() => rideContactPhoneDraft.value.trim());
+
+const rideContactPhoneDraftError = computed(() => {
+  const phone = normalizedRideContactPhoneDraft.value;
+  if (!phone) return null;
+  return isRideHailingContactPhoneComplete(phone) ? null : "请输入 11 位大陆手机号";
+});
+
+const rideContactPhoneHint = computed(
+  () => rideContactPhoneDraftError.value ?? "输入 11 位大陆手机号后点击确认加载车型。",
+);
+
+const canCommitRideContactPhone = computed(
+  () =>
+    isRideHailingContactPhoneComplete(normalizedRideContactPhoneDraft.value) &&
+    normalizedRideContactPhoneDraft.value !== rideContactPhone.value.trim(),
+);
+
+const commitRideContactPhone = (): void => {
+  if (!canCommitRideContactPhone.value) return;
+  rideContactPhone.value = normalizedRideContactPhoneDraft.value;
+};
+
 const offerListingInput = computed<OfferListingInput | null>(() => {
   const route = rideRouteForSubmit.value;
   if (listingBlocker.value || !rideOffer.value || !route) return null;
@@ -764,6 +804,9 @@ watch(
   (next) => {
     if (rideContactPhone.value.trim().length === 0) {
       rideContactPhone.value = next;
+    }
+    if (rideContactPhoneDraft.value.trim().length === 0) {
+      rideContactPhoneDraft.value = next;
     }
   },
   { immediate: true },
