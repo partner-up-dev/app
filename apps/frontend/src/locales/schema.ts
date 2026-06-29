@@ -1689,6 +1689,7 @@ export interface MessageSchema {
     placementEffectiveFromLabel: string;
     placementEffectiveToLabel: string;
     offerIdLabel: string;
+    offerIdRequiredMessage: string;
     ctaLabel: string;
     creativeDescriptionLabel: string;
     matchingRuleLabel: string;

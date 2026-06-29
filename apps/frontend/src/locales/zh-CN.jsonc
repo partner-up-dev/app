@@ -1069,6 +1069,7 @@
     "placementEffectiveFromLabel": "Placement 生效开始（ISO 8601，可留空）",
     "placementEffectiveToLabel": "Placement 生效结束（ISO 8601，可留空）",
     "offerIdLabel": "Offer ID",
+    "offerIdRequiredMessage": "请先填写 Offer ID。",
     "ctaLabel": "CTA 文案",
     "creativeDescriptionLabel": "按钮说明",
     "matchingRuleLabel": "Matching Rule",

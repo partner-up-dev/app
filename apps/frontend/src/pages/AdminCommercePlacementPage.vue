@@ -112,9 +112,10 @@
                   t("adminCommercePlacementOffer.offerIdLabel")
                 }}</span>
                 <input
-                  v-model.number="placementForm.offerId"
+                  :value="placementForm.offerId ?? ''"
                   class="text-input"
                   type="number"
+                  @input="handleOfferIdInput"
                 />
               </label>
 
@@ -305,7 +306,7 @@ type PlacementEditorForm = {
   priority: number;
   effectiveFrom: string;
   effectiveTo: string;
-  offerId: number;
+  offerId: number | null;
   ctaLabel: string;
   creativeDescription: string;
   matchingRule: JsonLogicRuleDraft;
@@ -321,46 +322,17 @@ const createBindingRuleDraft = (
   id: `binding-${++bindingRuleIdSequence}`,
 });
 
-const defaultPlacementBindingRules = (): PlacementBindingRuleDraft[] => [
-  createBindingRuleDraft({
-    fieldKey: "participantCount",
-    contextPath: "activeParticipantCount",
-    lock: true,
-  }),
-  createBindingRuleDraft({
-    fieldKey: "serviceStartAt",
-    contextPath: "time.startAt",
-    lock: true,
-  }),
-  createBindingRuleDraft({
-    fieldKey: "serviceEndAt",
-    contextPath: "time.endAt",
-    lock: true,
-  }),
-];
-
-const bindingRulesForOfferId = (
-  offerId: number,
-): PlacementBindingRuleDraft[] => {
-  const offer = offers.value.find((item) => item.id === offerId) ?? null;
-  if (offer?.productType !== "RENTAL") return [];
-  return defaultPlacementBindingRules();
-};
-
-const emptyPlacementForm = (): PlacementEditorForm => {
-  const offerId = offers.value[0]?.id ?? 0;
-  return {
-    status: "DRAFT",
-    priority: 0,
-    effectiveFrom: "",
-    effectiveTo: "",
-    offerId,
-    ctaLabel: "",
-    creativeDescription: "",
-    matchingRule: createPlacementMatchingRuleDraft(),
-    bindingRules: bindingRulesForOfferId(offerId),
-  };
-};
+const emptyPlacementForm = (): PlacementEditorForm => ({
+  status: "DRAFT",
+  priority: 0,
+  effectiveFrom: "",
+  effectiveTo: "",
+  offerId: null,
+  ctaLabel: "",
+  creativeDescription: "",
+  matchingRule: createPlacementMatchingRuleDraft(),
+  bindingRules: [],
+});
 
 const placementForm = ref<PlacementEditorForm>(emptyPlacementForm());
 
@@ -419,26 +391,12 @@ watch(
       ctaLabel: placement.creative.ctaLabel,
       creativeDescription: placement.creative.description ?? "",
       matchingRule: toPlacementMatchingRuleDraft(placement.matchingRule),
-      bindingRules:
-        placement.bindingRules.length > 0
-          ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
-          : bindingRulesForOfferId(placement.offerId),
+      bindingRules: placement.bindingRules.map((rule) =>
+        createBindingRuleDraft(rule),
+      ),
     };
   },
   { immediate: true },
-);
-
-watch(
-  () =>
-    [
-      isCreatingPlacement.value,
-      placementForm.value.offerId,
-      placementForm.value.bindingRules.length,
-    ] as const,
-  ([creating, offerId, bindingRuleCount]) => {
-    if (!creating || bindingRuleCount > 0) return;
-    placementForm.value.bindingRules = bindingRulesForOfferId(offerId);
-  },
 );
 
 const prepareNewPlacement = () => {
@@ -466,24 +424,43 @@ const removeBindingRule = (id: string) => {
   );
 };
 
-const buildPlacementInput = (): AdminPlacementInput => ({
-  placementType: "BUTTON",
-  offerId: placementForm.value.offerId,
-  status: placementForm.value.status,
-  priority: placementForm.value.priority,
-  effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
-  effectiveTo: placementForm.value.effectiveTo.trim() || null,
-  matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
-  creative: {
-    ctaLabel: placementForm.value.ctaLabel.trim(),
-    description: placementForm.value.creativeDescription.trim() || null,
-  },
-  bindingRules: placementForm.value.bindingRules.map((rule) => ({
-    fieldKey: rule.fieldKey.trim(),
-    contextPath: rule.contextPath.trim(),
-    lock: true,
-  })),
-});
+const handleOfferIdInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return;
+  const rawValue = event.target.value.trim();
+  if (!rawValue) {
+    placementForm.value.offerId = null;
+    return;
+  }
+
+  const parsed = Number(rawValue);
+  placementForm.value.offerId =
+    Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const buildPlacementInput = (): AdminPlacementInput => {
+  if (placementForm.value.offerId === null) {
+    throw new Error(t("adminCommercePlacementOffer.offerIdRequiredMessage"));
+  }
+
+  return {
+    placementType: "BUTTON",
+    offerId: placementForm.value.offerId,
+    status: placementForm.value.status,
+    priority: placementForm.value.priority,
+    effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
+    effectiveTo: placementForm.value.effectiveTo.trim() || null,
+    matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
+    creative: {
+      ctaLabel: placementForm.value.ctaLabel.trim(),
+      description: placementForm.value.creativeDescription.trim() || null,
+    },
+    bindingRules: placementForm.value.bindingRules.map((rule) => ({
+      fieldKey: rule.fieldKey.trim(),
+      contextPath: rule.contextPath.trim(),
+      lock: true,
+    })),
+  };
+};
 
 const handleSavePlacement = async () => {
   localErrorMessage.value = null;
