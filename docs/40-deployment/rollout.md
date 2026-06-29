@@ -200,21 +200,28 @@ Release after production ESA deployment succeeds.
 
 `@partner-up-dev/design-web` publishes its TanStack Intent agent skill inside
 the package under `skills/design-web`. Updating the package dependency is the
-skill update mechanism; do not manually edit local copies such as
+skill update mechanism. Do not manually edit local copies such as
 `~/.codex/skills/design-web`.
 
-After changing the installed design-web version, run these checks from the
-repository root:
+After changing the installed design-web version, run this single command from
+the repository root:
 
 ```powershell
-pnpm dlx @tanstack/intent@latest list --json
-pnpm dlx @tanstack/intent@latest load @partner-up-dev/design-web#design-web
-pnpm dlx @tanstack/intent@latest validate apps/frontend/node_modules/@partner-up-dev/design-web/skills/design-web
+node scripts/sync-design-web-package.mjs [<version-or-spec>]
 ```
 
-The `load` command is the agent-facing source of truth for the current
-package-shipped skill. Do not run `intent install` or add an `intent-skills`
-managed block unless the repository intentionally adopts that mapping format.
+The script also installs/refreshes the `codex` `SessionStart` hook (no
+`PreToolUse` hook), so Codex sessions inherit the same skill catalog on startup.
+
+`load` remains the agent-facing source of truth for the current package-shipped
+skill. Do not run `intent install` or add an `intent-skills` managed block unless
+the repository intentionally adopts that mapping format.
+
+To skip hook refresh only (not recommended), pass:
+
+```powershell
+node scripts/sync-design-web-package.mjs --skip-hooks
+```
 
 ## Manual Rollout Reality
 

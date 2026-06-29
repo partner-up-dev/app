@@ -30,6 +30,7 @@ Useful commands:
 - `pnpm check:lint:frontend`
 - `pnpm check:type:frontend`
 - `pnpm check:build:frontend`
+- Package maintenance: `node scripts/sync-design-web-package.mjs` (or `node scripts/sync-design-web-package.mjs <version>`) for install/upgrade `@partner-up-dev/design-web`, Codex hook refresh, and packaged Agent Skill checks.
 
 Focused local checks:
 
