@@ -22,6 +22,15 @@ import type {
 
 type CaocaoParamValue = string | number | boolean | null | undefined;
 type CaocaoParamInput = Record<string, CaocaoParamValue>;
+type RequiredCaocaoEstimateParams = {
+  car_type: string;
+  city_code: string;
+  from_latitude: number;
+  from_longitude: number;
+  order_type: number;
+  to_latitude: number;
+  to_longitude: number;
+};
 
 const EXTERNAL_ORDER_ID_PREFIX = "rh";
 const UUID_BASE36_ALPHABET = /^[0-9a-z]+$/;
@@ -108,6 +117,69 @@ const readOptionalNumberFromRecord = (
   value: Record<string, unknown> | null,
   keys: string[],
 ): number | null => readOptionalNumberField(value, keys);
+
+const readOptionalParamString = (params: CaocaoParamInput, keys: string[]): string | null => {
+  for (const key of keys) {
+    const candidate = params[key];
+    if (typeof candidate === "string" && candidate.trim().length > 0) return candidate.trim();
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return String(candidate);
+  }
+  return null;
+};
+
+const readOptionalParamNumber = (params: CaocaoParamInput, keys: string[]): number | null => {
+  for (const key of keys) {
+    const candidate = params[key];
+    if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+};
+
+const readRequiredParamString = (params: CaocaoParamInput, keys: string[]): string => {
+  const value = readOptionalParamString(params, keys);
+  if (value) return value;
+  throw new Error(`Expected Caocao request param ${keys.join("/")}`);
+};
+
+const readRequiredParamNumber = (params: CaocaoParamInput, keys: string[]): number => {
+  const value = readOptionalParamNumber(params, keys);
+  if (value !== null) return value;
+  throw new Error(`Expected numeric Caocao request param ${keys.join("/")}`);
+};
+
+const formatCaocaoDateTime = (value: CaocaoParamValue): string | null => {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
+    return value;
+  }
+  if (value === null || value === undefined || value === false) return null;
+  const date =
+    typeof value === "number"
+      ? new Date(value)
+      : typeof value === "string" && value.trim().length > 0
+        ? new Date(value)
+        : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "2-digit",
+    second: "2-digit",
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+  })
+    .formatToParts(date)
+    .reduce<Record<string, string>>((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+};
 
 const buildCaocaoStatusLabel = (phase: string): string => {
   if (phase === "FINISHED" || ["5", "6", "7", "8"].includes(phase)) return "待支付";
@@ -281,6 +353,21 @@ const parseCaocaoDriverRoute = (
     trafficLightCount: readOptionalNumberFromRecord(etaRaw, ["remainLightCount"]),
     vehicleLocation: etaRaw ? parseCaocaoVehicleLocation(etaRaw) : null,
   };
+};
+
+const selectCaocaoEstimateItem = (
+  data: unknown,
+  providerVehicleTypeCode: string,
+): Record<string, unknown> => {
+  if (Array.isArray(data)) {
+    const matching = data.find(
+      (item) => readOptionalStringField(item, ["carType", "car_type"]) === providerVehicleTypeCode,
+    );
+    const selected = matching ?? data[0];
+    if (isRecord(selected)) return selected;
+  }
+  if (isRecord(data)) return data;
+  throw new Error("Caocao estimate response data must be an object or object array");
 };
 
 const normalizeCaocaoParams = (params: CaocaoParamInput): CaocaoSignedParams => {
@@ -545,32 +632,43 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
   async estimate(
     input: RideHailingProviderEstimateInput,
   ): Promise<RideHailingProviderVehicleQuote> {
-    const data = await this.request<Record<string, unknown>>(
+    const requestParams = await this.buildEstimateRequestParams(input.params);
+    const data = await this.request<unknown>(
       "GET",
       "/common/estimatePriceWithDetail",
-      input.params,
+      requestParams,
     );
+    const estimateData = selectCaocaoEstimateItem(data, requestParams.car_type);
     const providerVehicleTypeCode =
-      readOptionalStringField(data, ["carType", "car_type", "vehicle_type"]) ??
-      (typeof input.params.car_type === "string" ? input.params.car_type : null) ??
-      (typeof input.params.carType === "string" ? input.params.carType : null) ??
-      "UNKNOWN";
+      readOptionalStringField(estimateData, ["carType", "car_type", "vehicle_type"]) ??
+      requestParams.car_type;
     return {
       providerVehicleTypeCode,
       providerVehicleTypeName:
-        readOptionalStringField(data, ["carTypeName", "car_type_name"]) ?? providerVehicleTypeCode,
+        readOptionalStringField(estimateData, ["carTypeName", "car_type_name", "name"]) ??
+        providerVehicleTypeCode,
       estimateAmountFen:
-        readOptionalNumberField(data, [
+        readOptionalNumberField(estimateData, [
           "estimateAmountFen",
           "estimatePriceFen",
           "estimate_price",
           "price",
+          "originPrice",
         ]) ?? 0,
-      distanceMeters: readOptionalNumberField(data, ["distanceMeters", "distance"]),
-      durationSeconds: readOptionalNumberField(data, ["durationSeconds", "duration"]),
-      providerQuoteId: readOptionalStringField(data, ["price_token", "quoteId", "quote_id"]),
-      providerQuoteExpiresAt: readOptionalStringField(data, ["quoteExpiresAt", "quote_expires_at"]),
-      providerSnapshot: data,
+      distanceMeters: readOptionalNumberField(estimateData, ["distanceMeters", "distance"]),
+      durationSeconds: readOptionalNumberField(estimateData, ["durationSeconds", "duration"]),
+      providerQuoteId: readOptionalStringField(estimateData, [
+        "priceKey",
+        "price_key",
+        "price_token",
+        "quoteId",
+        "quote_id",
+      ]),
+      providerQuoteExpiresAt: readOptionalStringField(estimateData, [
+        "quoteExpiresAt",
+        "quote_expires_at",
+      ]),
+      providerSnapshot: estimateData,
     };
   }
 
@@ -711,6 +809,62 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       signKey: this.config.signKey,
       timestampMs: input.timestampMs,
     });
+  }
+
+  private async buildEstimateRequestParams(
+    params: CaocaoParamInput,
+  ): Promise<RequiredCaocaoEstimateParams & CaocaoParamInput> {
+    const fromLatitude = readRequiredParamNumber(params, ["from_latitude", "fromLatitude", "flat"]);
+    const fromLongitude = readRequiredParamNumber(params, [
+      "from_longitude",
+      "fromLongitude",
+      "flng",
+    ]);
+    const cityCode =
+      readOptionalParamString(params, ["city_code", "cityCode"]) ??
+      (await this.queryCityCode({
+        latitude: fromLatitude,
+        longitude: fromLongitude,
+      }));
+    const requestParams: RequiredCaocaoEstimateParams & CaocaoParamInput = {
+      car_type: readRequiredParamString(params, ["car_type", "carType", "vehicle_type"]),
+      city_code: cityCode,
+      from_latitude: fromLatitude,
+      from_longitude: fromLongitude,
+      order_type: readOptionalParamNumber(params, ["order_type", "orderType"]) ?? 1,
+      to_latitude: readRequiredParamNumber(params, ["to_latitude", "toLatitude", "tlat"]),
+      to_longitude: readRequiredParamNumber(params, ["to_longitude", "toLongitude", "tlng"]),
+    };
+    const departureTime =
+      readOptionalParamString(params, ["departure_time", "departureTime"]) ??
+      formatCaocaoDateTime(params.departure_at ?? params.departureAt);
+    if (departureTime) requestParams.departure_time = departureTime;
+    requestParams.carpool_type =
+      readOptionalParamNumber(params, ["carpool_type", "carpoolType"]) ?? 0;
+    requestParams.count_person =
+      readOptionalParamNumber(params, ["count_person", "countPerson"]) ?? 2;
+    for (const key of [
+      "order_tags",
+      "passenger_phone",
+      "route_strategy",
+      "waypointList",
+    ] as const) {
+      const value = params[key];
+      if (value !== null && value !== undefined) requestParams[key] = value;
+    }
+    return requestParams;
+  }
+
+  private async queryCityCode(input: { latitude: number; longitude: number }): Promise<string> {
+    const data = await this.request<Record<string, unknown>>("GET", "/common/queryCity", {
+      latitude: input.latitude,
+      longitude: input.longitude,
+    });
+    const cityCode = readOptionalStringField(data, ["city_code", "cityCode"]);
+    if (!cityCode) {
+      throw new Error("Caocao queryCity response is missing city_code");
+    }
+    return cityCode;
   }
 
   private async request<TData = unknown>(

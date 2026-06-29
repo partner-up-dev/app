@@ -97,7 +97,7 @@ describe("Caocao signer", () => {
     expect(signed).not.toHaveProperty("sign_key");
   });
 
-  it("serializes signed GET requests without leaking sign_key", async () => {
+  it("serializes official estimate params without leaking sign_key", async () => {
     let requestUrl: string | null = null;
     const fetchImpl: typeof fetch = async (input) => {
       requestUrl =
@@ -106,7 +106,16 @@ describe("Caocao signer", () => {
         JSON.stringify({
           code: 200,
           success: true,
-          data: { quoted: true },
+          data: [
+            {
+              carType: 3,
+              distance: 15100,
+              duration: 1800,
+              name: "曹操快车",
+              price: 4200,
+              priceKey: "price-key-3",
+            },
+          ],
         }),
         { status: 200 },
       );
@@ -116,16 +125,106 @@ describe("Caocao signer", () => {
       fetchImpl,
     });
 
-    await adapter.estimate({ params: { city_code: "0571" } });
+    const quote = await adapter.estimate({
+      params: {
+        car_type: "3",
+        city_code: "020",
+        from_latitude: 23.12908,
+        from_longitude: 113.26436,
+        to_latitude: 23.063968,
+        to_longitude: 113.397681,
+      },
+    });
 
     expect(requestUrl).not.toBeNull();
     const url = new URL(requestUrl ?? "");
     expect(url.pathname).toBe("/v2/common/estimatePriceWithDetail");
     expect(url.searchParams.get("client_id")).toBe("caocao-client");
-    expect(url.searchParams.get("city_code")).toBe("0571");
+    expect(url.searchParams.get("city_code")).toBe("020");
+    expect(url.searchParams.get("from_latitude")).toBe("23.12908");
+    expect(url.searchParams.get("from_longitude")).toBe("113.26436");
+    expect(url.searchParams.get("to_latitude")).toBe("23.063968");
+    expect(url.searchParams.get("to_longitude")).toBe("113.397681");
+    expect(url.searchParams.has("flat")).toBe(false);
+    expect(url.searchParams.has("flng")).toBe(false);
+    expect(url.searchParams.has("tlat")).toBe(false);
+    expect(url.searchParams.has("tlng")).toBe(false);
     expect(url.searchParams.has("timestamp")).toBe(true);
     expect(url.searchParams.has("sign")).toBe(true);
     expect(url.searchParams.has("sign_key")).toBe(false);
+    expect(quote).toMatchObject({
+      distanceMeters: 15100,
+      durationSeconds: 1800,
+      estimateAmountFen: 4200,
+      providerQuoteId: "price-key-3",
+      providerVehicleTypeCode: "3",
+      providerVehicleTypeName: "曹操快车",
+    });
+  });
+
+  it("queries city code and normalizes legacy route params before estimating", async () => {
+    const requestUrls: string[] = [];
+    const fetchImpl: typeof fetch = async (input) => {
+      const requestUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      requestUrls.push(requestUrl);
+      const url = new URL(requestUrl);
+      if (url.pathname.endsWith("/common/queryCity")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: { city_code: "020" },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          code: 200,
+          data: {
+            carType: "3",
+            name: "曹操快车",
+            price: 4200,
+            priceKey: "price-key-3",
+          },
+          success: true,
+        }),
+        { status: 200 },
+      );
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    await adapter.estimate({
+      params: {
+        car_type: "3",
+        departure_at: "2026-06-29T03:00:00.000Z",
+        flat: 23.12908,
+        flng: 113.26436,
+        tlat: 23.063968,
+        tlng: 113.397681,
+      },
+    });
+
+    expect(requestUrls).toHaveLength(2);
+    const queryCityUrl = new URL(requestUrls[0]);
+    expect(queryCityUrl.pathname).toBe("/v2/common/queryCity");
+    expect(queryCityUrl.searchParams.get("latitude")).toBe("23.12908");
+    expect(queryCityUrl.searchParams.get("longitude")).toBe("113.26436");
+    const estimateUrl = new URL(requestUrls[1]);
+    expect(estimateUrl.pathname).toBe("/v2/common/estimatePriceWithDetail");
+    expect(estimateUrl.searchParams.get("city_code")).toBe("020");
+    expect(estimateUrl.searchParams.get("from_latitude")).toBe("23.12908");
+    expect(estimateUrl.searchParams.get("from_longitude")).toBe("113.26436");
+    expect(estimateUrl.searchParams.get("to_latitude")).toBe("23.063968");
+    expect(estimateUrl.searchParams.get("to_longitude")).toBe("113.397681");
+    expect(estimateUrl.searchParams.get("departure_time")).toBe("2026-06-29 11:00:00");
+    expect(estimateUrl.searchParams.get("order_type")).toBe("1");
+    expect(estimateUrl.searchParams.get("carpool_type")).toBe("0");
+    expect(estimateUrl.searchParams.get("count_person")).toBe("2");
   });
 });
 
