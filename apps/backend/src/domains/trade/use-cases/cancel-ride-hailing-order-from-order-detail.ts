@@ -6,7 +6,11 @@ import type { UserId } from "../../../entities/user";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { createRideHailingProviderPort } from "../../ride-hailing";
+import {
+  createRideHailingProviderPort,
+  RideHailingProviderSyncQueryError,
+  syncRideHailingOrderWithProvider,
+} from "../../ride-hailing";
 import {
   appendTerminationAttempt,
   approveTerminationAttempt,
@@ -21,7 +25,7 @@ const rideOrderRepo = new RideHailingOrderRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 
 const isCancellableRideHailingExecutionPhase = (phase: string): boolean =>
-  phase === "DISPATCHING";
+  phase === "DISPATCHING" || phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP";
 
 function createAttemptId(): string {
   return `term_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -47,29 +51,66 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       detail: "Only order creator can cancel this order",
     });
   }
-  if (orderRecord.status !== "OPEN") {
+  if (orderRecord.status !== "OPEN" && orderRecord.status !== "INITIATING") {
     return throwHttpProblem({
       status: 409,
       detail: "Order cannot be cancelled from its current status",
     });
   }
 
-  const rideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
-  if (!rideOrder) {
+  const initialRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
+  if (!initialRideOrder) {
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
     });
   }
-  if (!isCancellableRideHailingExecutionPhase(rideOrder.executionPhase)) {
+
+  try {
+    await syncRideHailingOrderWithProvider({
+      orderId: orderRecord.id,
+      trigger: "CANCEL_REQUEST",
+    });
+  } catch (error) {
+    if (error instanceof RideHailingProviderSyncQueryError) {
+      return throwHttpProblem({
+        status: 503,
+        detail: "RideHailing provider detail query failed before cancellation",
+        code: "RIDE_HAILING_PROVIDER_DETAIL_QUERY_FAILED",
+      });
+    }
+    throw error;
+  }
+
+  const syncedOrderRecord = await tradeOrderRepo.findById(orderRecord.id);
+  if (!syncedOrderRecord) {
+    return throwHttpProblem({ status: 404, detail: "Order not found" });
+  }
+  if (syncedOrderRecord.status !== "OPEN") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Order cannot be cancelled from its current status",
+    });
+  }
+
+  const syncedRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
+  if (!syncedRideOrder) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "RideHailing order facts are missing",
+    });
+  }
+  if (!isCancellableRideHailingExecutionPhase(syncedRideOrder.executionPhase)) {
     return throwHttpProblem({
       status: 409,
       detail: "RideHailing order cannot be cancelled from its current phase",
     });
   }
 
-  const rideChoiceSetItem = getRideHailingChoiceSetItem(orderRecord.items);
-  const providerBinding = rideChoiceSetItem ? getRideHailingProviderBinding(rideChoiceSetItem) : null;
+  const rideChoiceSetItem = getRideHailingChoiceSetItem(syncedOrderRecord.items);
+  const providerBinding = rideChoiceSetItem
+    ? getRideHailingProviderBinding(rideChoiceSetItem)
+    : null;
   if (!providerBinding?.providerOrderId) {
     return throwHttpProblem({
       status: 409,
@@ -169,9 +210,12 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       });
     }
 
-    const updatedRideOrder = await transactionalRideOrderRepo.updateByOrderId(order.id as TradeOrderId, {
-      executionPhase: "CANCELLED",
-    });
+    const updatedRideOrder = await transactionalRideOrderRepo.updateByOrderId(
+      order.id as TradeOrderId,
+      {
+        executionPhase: "CANCELLED",
+      },
+    );
     if (!updatedRideOrder) {
       return throwHttpProblem({
         status: 500,
@@ -183,7 +227,8 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       orderId: persisted.id,
       attemptId,
       status: persisted.status,
-      effectKind: providerCancellation.cancelFeeFen > 0 ? ("ABORT_FEE" as const) : ("NONE" as const),
+      effectKind:
+        providerCancellation.cancelFeeFen > 0 ? ("ABORT_FEE" as const) : ("NONE" as const),
       effectAmountFen: providerCancellation.cancelFeeFen,
       refunds: [],
     };

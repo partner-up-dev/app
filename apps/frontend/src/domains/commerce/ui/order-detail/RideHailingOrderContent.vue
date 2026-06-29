@@ -143,7 +143,10 @@ import {
   PuImg,
 } from "@partner-up-dev/design-web";
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useCancelOrder, type CommerceOrderDetailResponse } from "@/domains/commerce/queries/useCommerce";
+import {
+  useCancelOrder,
+  type CommerceOrderDetailResponse,
+} from "@/domains/commerce/queries/useCommerce";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
@@ -289,7 +292,9 @@ const statusHero = computed(() => statusCopyByPhase[props.ride.executionPhase]);
 const canRequestCancellation = computed(() => props.detail.cancellation.canRequest);
 
 const showsCancelAction = computed(
-  () => props.ride.executionPhase === "DISPATCHING" && canRequestCancellation.value,
+  () =>
+    ["DISPATCHING", "ACCEPTED", "ARRIVED_AT_PICKUP"].includes(props.ride.executionPhase) &&
+    canRequestCancellation.value,
 );
 
 const cancelErrorMessage = computed(() =>

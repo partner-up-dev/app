@@ -564,6 +564,7 @@ async function assertRideHailingOrderDetail(
     expectedDispatchingVehicleLabels?: string[];
     expectedResolvedVehicleLabel?: string;
     expectedRiderNames?: string[];
+    expectedStatusTitle?: string;
   } = {},
 ): Promise<void> {
   const expectedDispatchingVehicleLabels = input.expectedDispatchingVehicleLabels ?? [
@@ -571,6 +572,7 @@ async function assertRideHailingOrderDetail(
   ];
   const expectedResolvedVehicleLabel = input.expectedResolvedVehicleLabel ?? "系统曹操快车";
   const expectedRiderNames = input.expectedRiderNames ?? [];
+  const expectedStatusTitle = input.expectedStatusTitle ?? "接客中";
 
   await page.getByTestId("order-detail.page").waitFor({
     state: "visible",
@@ -583,23 +585,27 @@ async function assertRideHailingOrderDetail(
   });
   await assertLocatorTextIncludes({
     actual: page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
-    expected: "派单中",
+    expected: expectedStatusTitle,
     label: "RideHailing status hero title",
   });
-  const dispatchingVehicleSection = page.getByTestId("order-detail.ride-hailing.dispatching-skus");
-  await dispatchingVehicleSection.waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  const dispatchingVehicleCards = dispatchingVehicleSection.getByTestId(
-    "order-detail.ride-hailing.vehicle-card",
-  );
-  assert.equal(await dispatchingVehicleCards.count(), expectedDispatchingVehicleLabels.length);
-  for (const label of expectedDispatchingVehicleLabels) {
-    await dispatchingVehicleCards.filter({ hasText: label }).waitFor({
+  if (expectedStatusTitle === "派单中") {
+    const dispatchingVehicleSection = page.getByTestId(
+      "order-detail.ride-hailing.dispatching-skus",
+    );
+    await dispatchingVehicleSection.waitFor({
       state: "visible",
       timeout: 10_000,
     });
+    const dispatchingVehicleCards = dispatchingVehicleSection.getByTestId(
+      "order-detail.ride-hailing.vehicle-card",
+    );
+    assert.equal(await dispatchingVehicleCards.count(), expectedDispatchingVehicleLabels.length);
+    for (const label of expectedDispatchingVehicleLabels) {
+      await dispatchingVehicleCards.filter({ hasText: label }).waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+    }
   }
   const resolvedVehicleSection = page.getByTestId(
     "order-detail.ride-hailing.resolved-vehicle-section",
@@ -892,7 +898,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     const fakeOrders = await readFakeCaocaoOrders();
     assert.equal(fakeOrders.length, 1);
     assert.equal(fakeOrders[0]?.phase, "ACCEPTED");
-    await waitForRideHailingMapMode(page, "SEARCHING_ORIGIN");
+    await waitForRideHailingMapMode(page, "PICKING_UP");
 
     const acceptedOrder = await setFakeCaocaoOrderPhase({
       providerOrderId: fakeOrders[0].providerOrderId,

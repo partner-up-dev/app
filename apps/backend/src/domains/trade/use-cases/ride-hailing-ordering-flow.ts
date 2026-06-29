@@ -10,7 +10,11 @@ import type {
   RideHailingProviderOrderDetail,
   RideHailingProviderVehicleLocation,
 } from "../../ride-hailing";
-import { createRideHailingProviderPort } from "../../ride-hailing";
+import {
+  createRideHailingProviderPort,
+  RideHailingProviderSyncQueryError,
+  syncRideHailingOrderWithProvider,
+} from "../../ride-hailing";
 import type {
   RideHailingChoiceSetCandidateSnapshot,
   RideHailingDriverSnapshot,
@@ -159,7 +163,35 @@ const projectProviderDetail = (input: {
 export async function buildRideHailingDetailProjection(input: {
   order: TradeOrder;
 }): Promise<RideHailingOrderDetailProjection> {
-  const rideOrder = await rideOrderRepo.findByOrderId(input.order.id);
+  let order = input.order;
+  let choiceSetItem = getRideHailingChoiceSetItem(order.items);
+  let providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
+  let syncedProviderDetail: RideHailingProviderOrderDetail | null = null;
+  if (providerBinding?.providerOrderId) {
+    try {
+      const syncResult = await syncRideHailingOrderWithProvider({
+        orderId: order.id,
+        expectedProviderInstanceId: providerBinding.providerInstanceId,
+        expectedProviderOrderId: providerBinding.providerOrderId,
+        trigger: "ORDER_DETAIL_POLL",
+      });
+      syncedProviderDetail = syncResult.providerDetail;
+      if (syncResult.mutated) {
+        const reloadedOrder = await tradeOrderRepo.findById(order.id);
+        if (reloadedOrder) {
+          order = reloadedOrder;
+          choiceSetItem = getRideHailingChoiceSetItem(order.items);
+          providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
+        }
+      }
+    } catch (error) {
+      if (!(error instanceof RideHailingProviderSyncQueryError)) {
+        throw error;
+      }
+    }
+  }
+
+  const rideOrder = await rideOrderRepo.findByOrderId(order.id);
   if (!rideOrder) {
     return throwHttpProblem({
       status: 500,
@@ -167,18 +199,13 @@ export async function buildRideHailingDetailProjection(input: {
     });
   }
 
-  const choiceSetItem = getRideHailingChoiceSetItem(input.order.items);
-  const providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
   let providerDetail: ProviderDetailProjection | null = null;
-  if (providerBinding?.providerOrderId) {
+  if (providerBinding?.providerOrderId && syncedProviderDetail) {
     const provider = await providerRepo.findById(
       providerBinding.providerInstanceId as RideHailingProviderInstanceId,
     );
     if (provider) {
       const port = createRideHailingProviderPort({ providerInstance: provider });
-      const detail = await port.queryOrderDetail({
-        providerOrderId: providerBinding.providerOrderId,
-      });
       const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
       const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(
         rideOrder.executionPhase,
@@ -199,7 +226,7 @@ export async function buildRideHailingDetailProjection(input: {
           )
         : null;
       providerDetail = projectProviderDetail({
-        detail,
+        detail: syncedProviderDetail,
         navigationRoute,
         vehicleLocation,
       });
@@ -213,8 +240,8 @@ export async function buildRideHailingDetailProjection(input: {
     contactPhone: rideOrder.contactPhone,
     selectedVehicleName: choiceSetItem
       ? getOrderItemSkuName(choiceSetItem)
-      : input.order.items[0]
-        ? getOrderItemSkuName(input.order.items[0])
+      : order.items[0]
+        ? getOrderItemSkuName(order.items[0])
         : "曹操出行",
     candidateVehicles: choiceSetItem?.candidates.map(projectCandidateVehicle) ?? [],
     provider: {
