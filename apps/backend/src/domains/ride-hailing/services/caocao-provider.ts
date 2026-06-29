@@ -304,6 +304,15 @@ const parseCaocaoResponseJson = async (response: Response): Promise<unknown> => 
   }
 };
 
+const writeCaocaoDiagnosticLog = (payload: Record<string, unknown>): void => {
+  process.stdout.write(
+    `${JSON.stringify({
+      marker: "RideHailingProviderEstimate",
+      ...payload,
+    })}\n`,
+  );
+};
+
 export function createCaocaoSignature(input: {
   params: CaocaoSignedParams;
   signKey: string;
@@ -728,7 +737,8 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
           });
     const responseBody = await parseCaocaoResponseJson(response);
     if (endpointPath === "/common/estimatePriceWithDetail") {
-      console.info("[RideHailingProviderEstimate] Caocao response", {
+      writeCaocaoDiagnosticLog({
+        event: "caocao_estimate_response",
         endpointPath,
         httpStatus: response.status,
         ok: response.ok,
