@@ -172,7 +172,7 @@
           </p>
         </section>
 
-        <PuDescriptionItem :label="t('prCard.time')" value-align="end">
+        <PuDescriptionItem :label="t('prCard.time')" value-align="start">
           <span class="facts-inline-value">
             <span data-testid="pr-detail.facts.time-value">
               {{ localizedTimeText }}
