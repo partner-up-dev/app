@@ -539,9 +539,13 @@ const parseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData>
   if (!isRecord(body)) {
     throw new Error("Caocao response must be a JSON object");
   }
-  const code = readRequiredNumberField(body, "code");
+  const code = readOptionalNumberField(body, ["code"]) ?? readOptionalNumberField(body, ["errno"]);
+  if (code === null) {
+    throw new Error("Caocao response is missing code/errno");
+  }
   const success = typeof body.success === "boolean" ? body.success : null;
-  const msg = typeof body.msg === "string" ? body.msg : null;
+  const msg =
+    typeof body.msg === "string" ? body.msg : typeof body.errmsg === "string" ? body.errmsg : null;
 
   return {
     code,
@@ -890,11 +894,18 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
             body: serializeCaocaoFormBody(signedParams),
           });
     const responseBody = await parseCaocaoResponseJson(response);
-    if (endpointPath === "/common/estimatePriceWithDetail") {
+    if (
+      endpointPath === "/common/queryCity" ||
+      endpointPath === "/common/estimatePriceWithDetail"
+    ) {
       writeCaocaoDiagnosticLog({
-        event: "caocao_estimate_response",
+        event:
+          endpointPath === "/common/estimatePriceWithDetail"
+            ? "caocao_estimate_response"
+            : "caocao_response",
         endpointPath,
         httpStatus: response.status,
+        method,
         ok: response.ok,
         params: normalizeCaocaoParams(params),
         providerInstanceId: this.input.providerInstance.id,

@@ -226,6 +226,33 @@ describe("Caocao signer", () => {
     expect(estimateUrl.searchParams.get("carpool_type")).toBe("0");
     expect(estimateUrl.searchParams.get("count_person")).toBe("2");
   });
+
+  it("surfaces Caocao errno error bodies from city code lookup", async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          errno: 10002,
+          errmsg: "参数签名错误",
+        }),
+        { status: 200 },
+      );
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    await expect(
+      adapter.estimate({
+        params: {
+          car_type: "3",
+          flat: 23.12908,
+          flng: 113.26436,
+          tlat: 23.063968,
+          tlng: 113.397681,
+        },
+      }),
+    ).rejects.toThrow("Caocao API failed: 10002 参数签名错误");
+  });
 });
 
 describe("Caocao external order id", () => {
