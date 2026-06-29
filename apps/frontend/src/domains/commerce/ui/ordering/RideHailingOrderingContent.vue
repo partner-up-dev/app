@@ -1,147 +1,235 @@
 <template>
-  <template v-if="rideOffer">
-    <div ref="contentRoot" class="ride-hailing-ordering-content">
-      <RouteMap
-        class="ride-hailing-ordering-content__route-map"
-        data-testid="ordering.ride-hailing.route-map"
-        :route="routeForMap"
-        :fit-padding="routeMapFitPadding"
-        :interactive="true"
-        :route-points-editable="routeEditable"
-        variant="immersive"
-        hide-bottom-attribution
-        @route-point-click="openRoutePointDrawer"
-      />
+  <div ref="contentRoot" class="ride-hailing-ordering-content">
+    <RouteMap
+      class="ride-hailing-ordering-content__route-map"
+      data-testid="ordering.ride-hailing.route-map"
+      :route="routeForMap"
+      :fit-padding="routeMapFitPadding"
+      :interactive="true"
+      :route-points-editable="routeEditable"
+      variant="immersive"
+      hide-bottom-attribution
+      @route-point-click="openRoutePointDrawer"
+    />
 
-      <PuFloatPanel
-        v-model="ridePanelStop"
-        class="ride-hailing-ordering-content__sheet"
-        data-testid="ordering.ride-hailing.bottom-sheet"
-        :stops="ridePanelStops"
-        position="absolute"
-        :content-padding="false"
-        aria-label="车型面板"
-        :z-index="20"
-      >
-        <div class="ride-hailing-ordering-content__vehicles">
-          <template v-if="showsRideQuoteSkeleton">
-            <div
-              v-for="index in 2"
-              :key="index"
-              class="ride-hailing-ordering-content__vehicle-skeleton"
-              data-testid="ordering.ride-hailing.vehicle-card.skeleton"
-            >
-              <div class="ride-hailing-ordering-content__vehicle-skeleton-meta">
-                <div class="ride-hailing-ordering-content__vehicle-skeleton-name">
-                  <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
-                  <PuSkeleton width="8.5rem" height="1.125rem" radius="pill" />
-                </div>
-                <PuSkeleton
-                  class="ride-hailing-ordering-content__vehicle-skeleton-preview"
-                  width="min(13.5rem, 100%)"
-                  height="5rem"
-                  radius="sm"
-                  block
-                />
-              </div>
-              <div class="ride-hailing-ordering-content__vehicle-skeleton-price">
-                <PuSkeleton width="2.5rem" height="0.875rem" radius="pill" />
-                <div class="ride-hailing-ordering-content__vehicle-skeleton-amount">
-                  <PuSkeleton width="4.25rem" height="1.25rem" radius="pill" />
-                  <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
-                </div>
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <RideHailingSkuCard
-              v-for="option in visibleRideQuoteOptions"
-              :key="option.quoteId"
-              :display-name="option.displayName"
-              :price-label="formatFen(option.price.totalFen)"
-              :selectable="true"
-              :selected="rideSkuSelection.isSelected(option.skuId)"
-              :preview-src="skuPreviewSrc(option.skuId)"
-              @select="rideSkuSelection.toggle(option.skuId)"
-            />
-          </template>
-        </div>
-      </PuFloatPanel>
-
-      <div
-        class="ride-hailing-ordering-content__controls"
-        data-testid="ordering.ride-hailing.drawer-control-row"
-      >
-        <button
-          type="button"
-          class="ride-hailing-ordering-content__control"
-          data-testid="ordering.ride-hailing.riders.open"
-          @click="ridersDrawerOpen = true"
-        >
-          <span data-testid="ordering.ride-hailing.riders">同乘人</span>
-          <strong>{{ riderSummary }}</strong>
-          <i class="i-mdi-chevron-right" aria-hidden="true"></i>
-        </button>
+    <PuFloatPanel
+      v-model="ridePanelStop"
+      class="ride-hailing-ordering-content__sheet"
+      data-testid="ordering.ride-hailing.bottom-sheet"
+      :stops="ridePanelStops"
+      position="absolute"
+      :content-padding="false"
+      aria-label="车型面板"
+      :z-index="20"
+    >
+      <div class="ride-hailing-ordering-content__vehicles">
         <div
-          class="ride-hailing-ordering-content__control ride-hailing-ordering-content__control--static"
-          data-testid="ordering.ride-hailing.departure-time.row"
+          v-if="listingBlocker"
+          class="ride-hailing-ordering-content__listing-state"
+          data-testid="ordering.ride-hailing.listing-blocker"
+          :data-reason="listingBlocker.reason"
         >
-          <span>出发时间</span>
-          <strong data-testid="ordering.ride-hailing.departure-time">
-            {{ rideDepartureLabel }}
-          </strong>
-        </div>
-      </div>
-
-      <PuDrawer
-        :visible="routePointDrawerOpen"
-        :title="routePointDrawerTitle"
-        max-width="44rem"
-        @close="closeRoutePointDrawer"
-      >
-        <LocationPickerPanel
-          v-if="selectedRoutePoint"
-          :initial-location="selectedRoutePointInitialLocation"
-          data-testid="ordering.ride-hailing.route-point.drawer"
-          @pick="handleRoutePointPicked"
-          @cancel="closeRoutePointDrawer"
-        />
-      </PuDrawer>
-
-      <PuDrawer
-        v-model:visible="ridersDrawerOpen"
-        title="同乘人"
-        max-width="44rem"
-      >
-        <div class="ride-hailing-ordering-content__drawer-content">
           <PuInlineNotice
-            v-if="ridersLocked"
-            tone="info"
-            message="同乘人由当前搭子请求锁定。"
-          />
-          <div
-            v-for="rider in rideRiders"
-            :key="rider.userId"
-            class="ride-hailing-ordering-content__rider-row"
+            tone="error"
+            :title="listingBlocker.title"
+            :message="listingBlocker.message"
           >
-            <span class="i-mdi-account-circle" aria-hidden="true"></span>
-            <div>
-              <strong>{{ rider.displayName }}</strong>
-              <small>{{ rider.phoneMasked ?? "暂无手机号" }}</small>
+            <template v-if="listingBlocker.actionLabel" #actions>
+              <PuButton
+                size="sm"
+                tone="primary"
+                variant="soft"
+                data-testid="ordering.ride-hailing.listing-blocker.action"
+                @click="emit('resolve:blocker', listingBlocker)"
+              >
+                {{ listingBlocker.actionLabel }}
+              </PuButton>
+            </template>
+          </PuInlineNotice>
+          <PuFormItem
+            v-if="listingBlocker.reason === 'missing-contact-phone'"
+            label="联系人电话"
+            for-id="ride-hailing-contact-phone"
+            required
+          >
+            <PuInput
+              id="ride-hailing-contact-phone"
+              v-model="rideContactPhone"
+              native-type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              clearable
+              placeholder="请输入联系人手机号"
+              data-testid="ordering.ride-hailing.contact-phone"
+            />
+          </PuFormItem>
+        </div>
+        <div
+          v-else-if="showsRideListingError"
+          class="ride-hailing-ordering-content__listing-state"
+          data-testid="ordering.ride-hailing.listing-error"
+        >
+          <PuInlineNotice
+            tone="error"
+            title="车型报价加载失败"
+            :message="rideListingErrorMessage"
+          >
+            <template #actions>
+              <PuButton
+                size="sm"
+                tone="primary"
+                variant="soft"
+                data-testid="ordering.ride-hailing.listing.retry"
+                @click="refetchRideListing"
+              >
+                重新加载
+              </PuButton>
+            </template>
+          </PuInlineNotice>
+        </div>
+        <div
+          v-else-if="showsEmptyRideListing"
+          class="ride-hailing-ordering-content__listing-state"
+          data-testid="ordering.ride-hailing.listing-empty"
+        >
+          <PuInlineNotice
+            tone="error"
+            title="未加载到可下单车型"
+            message="当前路线没有返回可下单车型，请重新加载或联系支持。"
+          >
+            <template #actions>
+              <PuButton
+                size="sm"
+                tone="primary"
+                variant="soft"
+                data-testid="ordering.ride-hailing.listing.retry"
+                @click="refetchRideListing"
+              >
+                重新加载
+              </PuButton>
+            </template>
+          </PuInlineNotice>
+        </div>
+        <template v-else-if="showsRideQuoteSkeleton">
+          <div
+            v-for="index in 2"
+            :key="index"
+            class="ride-hailing-ordering-content__vehicle-skeleton"
+            data-testid="ordering.ride-hailing.vehicle-card.skeleton"
+          >
+            <div class="ride-hailing-ordering-content__vehicle-skeleton-meta">
+              <div class="ride-hailing-ordering-content__vehicle-skeleton-name">
+                <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
+                <PuSkeleton width="8.5rem" height="1.125rem" radius="pill" />
+              </div>
+              <PuSkeleton
+                class="ride-hailing-ordering-content__vehicle-skeleton-preview"
+                width="min(13.5rem, 100%)"
+                height="5rem"
+                radius="sm"
+                block
+              />
+            </div>
+            <div class="ride-hailing-ordering-content__vehicle-skeleton-price">
+              <PuSkeleton width="2.5rem" height="0.875rem" radius="pill" />
+              <div class="ride-hailing-ordering-content__vehicle-skeleton-amount">
+                <PuSkeleton width="4.25rem" height="1.25rem" radius="pill" />
+                <PuSkeleton width="1.25rem" height="1.25rem" radius="sm" />
+              </div>
             </div>
           </div>
-        </div>
-      </PuDrawer>
+        </template>
+        <template v-else>
+          <RideHailingSkuCard
+            v-for="option in visibleRideQuoteOptions"
+            :key="option.quoteId"
+            :display-name="option.displayName"
+            :price-label="formatFen(option.price.totalFen)"
+            :selectable="true"
+            :selected="rideSkuSelection.isSelected(option.skuId)"
+            :preview-src="skuPreviewSrc(option.skuId)"
+            @select="rideSkuSelection.toggle(option.skuId)"
+          />
+        </template>
+      </div>
+    </PuFloatPanel>
+
+    <div
+      class="ride-hailing-ordering-content__controls"
+      data-testid="ordering.ride-hailing.drawer-control-row"
+    >
+      <button
+        type="button"
+        class="ride-hailing-ordering-content__control"
+        data-testid="ordering.ride-hailing.riders.open"
+        @click="ridersDrawerOpen = true"
+      >
+        <span data-testid="ordering.ride-hailing.riders">同乘人</span>
+        <strong>{{ riderSummary }}</strong>
+        <i class="i-mdi-chevron-right" aria-hidden="true"></i>
+      </button>
+      <div
+        class="ride-hailing-ordering-content__control ride-hailing-ordering-content__control--static"
+        data-testid="ordering.ride-hailing.departure-time.row"
+      >
+        <span>出发时间</span>
+        <strong data-testid="ordering.ride-hailing.departure-time">
+          {{ rideDepartureLabel }}
+        </strong>
+      </div>
     </div>
-  </template>
+
+    <PuDrawer
+      :visible="routePointDrawerOpen"
+      :title="routePointDrawerTitle"
+      max-width="44rem"
+      @close="closeRoutePointDrawer"
+    >
+      <LocationPickerPanel
+        v-if="selectedRoutePoint"
+        :initial-location="selectedRoutePointInitialLocation"
+        data-testid="ordering.ride-hailing.route-point.drawer"
+        @pick="handleRoutePointPicked"
+        @cancel="closeRoutePointDrawer"
+      />
+    </PuDrawer>
+
+    <PuDrawer
+      v-model:visible="ridersDrawerOpen"
+      title="同乘人"
+      max-width="44rem"
+    >
+      <div class="ride-hailing-ordering-content__drawer-content">
+        <PuInlineNotice
+          v-if="ridersLocked"
+          tone="info"
+          message="同乘人由当前搭子请求锁定。"
+        />
+        <div
+          v-for="rider in rideRiders"
+          :key="rider.userId"
+          class="ride-hailing-ordering-content__rider-row"
+        >
+          <span class="i-mdi-account-circle" aria-hidden="true"></span>
+          <div>
+            <strong>{{ rider.displayName }}</strong>
+            <small>{{ rider.phoneMasked ?? "暂无手机号" }}</small>
+          </div>
+        </div>
+      </div>
+    </PuDrawer>
+  </div>
 </template>
 
 <script setup lang="ts">
 import {
+  PuButton,
   PuDrawer,
   PuFloatPanel,
   type PuFloatPanelStop,
+  PuFormItem,
   PuInlineNotice,
+  PuInput,
   PuSkeleton,
   usePuSelect,
 } from "@partner-up-dev/design-web";
@@ -176,6 +264,11 @@ import {
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import type { MapFitPadding } from "@/shared/map/types";
 import RideHailingSkuCard from "./RideHailingSkuCard.vue";
+import {
+  type RideHailingListingBlocker,
+  resolveRideHailingListingBlocker,
+  resolveRideHailingListingSurfaceState,
+} from "./ride-hailing-listing-state";
 
 export type RideVehicleOption = Extract<
   OfferListingResponse["items"][number],
@@ -195,6 +288,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:output": [value: OrderingContentOutput | null];
   "update:summary": [value: OrderingContentSummary];
+  "resolve:blocker": [value: RideHailingListingBlocker];
 }>();
 
 const CONTROL_ROW_HEIGHT = 44;
@@ -442,11 +536,19 @@ const skuPreviewSrc = (skuId: number): string | null => {
   );
 };
 
+const listingBlocker = computed<RideHailingListingBlocker | null>(() => {
+  return resolveRideHailingListingBlocker({
+    hasRideOffer: rideOffer.value !== null,
+    hasRoute: rideRouteForSubmit.value !== null,
+    contactPhone: rideContactPhone.value,
+    riderCount: rideRiders.value.length,
+  });
+});
+
 const offerListingInput = computed<OfferListingInput | null>(() => {
   const route = rideRouteForSubmit.value;
-  if (!rideOffer.value || !route) return null;
+  if (listingBlocker.value || !rideOffer.value || !route) return null;
   const phone = rideContactPhone.value.trim();
-  if (!phone || rideRiders.value.length === 0) return null;
   return {
     productType: "RIDE_HAILING",
     participants: rideRiders.value,
@@ -485,9 +587,32 @@ const rideQuoteOptions = computed<RideVehicleOption[]>(() =>
 
 const visibleRideQuoteOptions = computed<RideVehicleOption[]>(() => rideQuoteOptions.value);
 
-const showsRideQuoteSkeleton = computed(
-  () => offerListingQuery.isPending.value && visibleRideQuoteOptions.value.length === 0,
+const rideListingSurfaceState = computed(() =>
+  resolveRideHailingListingSurfaceState({
+    blocker: listingBlocker.value,
+    hasListingInput: offerListingQueryInput.value !== null,
+    isPending: offerListingQuery.isPending.value,
+    isError: offerListingQuery.isError.value,
+    isSuccess: offerListingQuery.isSuccess.value,
+    visibleOptionCount: visibleRideQuoteOptions.value.length,
+  }),
 );
+
+const showsRideQuoteSkeleton = computed(() => rideListingSurfaceState.value === "loading");
+
+const showsRideListingError = computed(() => rideListingSurfaceState.value === "error");
+
+const showsEmptyRideListing = computed(() => rideListingSurfaceState.value === "empty");
+
+const rideListingErrorMessage = computed(() => {
+  const error = offerListingQuery.error.value;
+  return error instanceof Error ? error.message : "请稍后重试或联系支持。";
+});
+
+const refetchRideListing = (): void => {
+  if (!offerListingQueryInput.value) return;
+  void offerListingQuery.refetch();
+};
 
 const rideSkuSelection = usePuSelect<number>({
   multiple: true,
@@ -624,14 +749,10 @@ watch(
   { immediate: true },
 );
 
-watch(
-  output,
-  (next) => emit("update:output", next),
-  {
+watch(output, (next) => emit("update:output", next), {
   immediate: true,
   deep: true,
-  },
-);
+});
 
 watch(summary, (next) => emit("update:summary", next), {
   immediate: true,
@@ -681,6 +802,13 @@ watch(
   gap: var(--sys-spacing-small);
   min-height: 0;
   padding: 0 var(--sys-spacing-medium) var(--sys-spacing-small);
+}
+
+.ride-hailing-ordering-content__listing-state {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
 }
 
 .ride-hailing-ordering-content__vehicle-skeleton {

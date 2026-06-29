@@ -40,6 +40,7 @@
         :listing-refresh-key="listingRefreshKey"
         @update:output="contentOutput = $event"
         @update:summary="contentSummary = $event"
+        @resolve:blocker="handleRideListingBlocker"
       />
     </div>
 
@@ -120,12 +121,18 @@ import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
 import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
 import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
+import type { RideHailingListingBlocker } from "@/domains/commerce/ui/ordering/ride-hailing-listing-state";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
 import { useUpdatePRStatus } from "@/domains/pr/queries/usePRActions";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 
 type OrderingOfferDetail = OrderingEntryPayload["offerDetail"];
-type OrderingDialogKind = "info" | "blocked-pr-not-ready" | "confirm-mark-pr-ready";
+type OrderingDialogKind =
+  | "info"
+  | "blocked-pr-not-ready"
+  | "confirm-mark-pr-ready"
+  | "return-to-pr"
+  | "contact-support";
 type OrderingDialogState = {
   open: boolean;
   kind: OrderingDialogKind;
@@ -287,6 +294,36 @@ const openInfoDialog = (input: {
   };
 };
 
+const openReturnToPrDialog = (input: {
+  title: string;
+  description: string;
+  confirmText?: string;
+}): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "return-to-pr",
+    title: input.title,
+    description: input.description,
+    confirmText: input.confirmText ?? "返回搭子请求",
+    showCancel: true,
+  };
+};
+
+const openContactSupportDialog = (input: {
+  title: string;
+  description: string;
+  confirmText?: string;
+}): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "contact-support",
+    title: input.title,
+    description: input.description,
+    confirmText: input.confirmText ?? "联系支持",
+    showCancel: true,
+  };
+};
+
 const closeOrderingDialog = (): void => {
   orderingDialog.value = {
     ...orderingDialog.value,
@@ -359,6 +396,40 @@ const submitOrder = async (): Promise<void> => {
   await createOrderFromQuoteDraft(input);
 };
 
+const handleRideListingBlocker = (blocker: RideHailingListingBlocker): void => {
+  if (blocker.reason === "missing-riders" && canOfferPrReadyRecovery.value) {
+    openPrNotReadyRecoveryDialog({
+      title: blocker.title,
+      detail: "当前没有可用于下单的搭子参与者。可以先将搭子请求切换到「已成团」，再重新进入下单。",
+    });
+    return;
+  }
+
+  if (blocker.reason === "missing-route" || blocker.reason === "missing-riders") {
+    openReturnToPrDialog({
+      title: blocker.title,
+      description:
+        blocker.reason === "missing-route"
+          ? "请回到搭子请求补全上车点和目的地，再重新进入下单。"
+          : "请回到搭子请求确认成员和状态，再重新进入下单。",
+    });
+    return;
+  }
+
+  if (blocker.reason === "missing-offer") {
+    openContactSupportDialog({
+      title: blocker.title,
+      description: blocker.message,
+    });
+    return;
+  }
+
+  openInfoDialog({
+    title: blocker.title,
+    description: blocker.message,
+  });
+};
+
 const markCurrentPrReady = async (): Promise<void> => {
   const prId = orderingPrId.value;
   if (prId === null) {
@@ -396,6 +467,18 @@ const handleOrderingDialogConfirm = async (): Promise<void> => {
     closeOrderingDialog();
     await nextTick();
     openPrReadyConfirmationDialog();
+    return;
+  }
+
+  if (orderingDialog.value.kind === "return-to-pr") {
+    closeOrderingDialog();
+    await router.push(backFallbackTo.value);
+    return;
+  }
+
+  if (orderingDialog.value.kind === "contact-support") {
+    closeOrderingDialog();
+    await router.push({ name: "contact-support" });
     return;
   }
 
