@@ -69,6 +69,7 @@
           v-if="rideHailingDetail"
           :detail="detail"
           :ride="rideHailingDetail"
+          :route-order-id="orderId"
         />
 
         <div v-else class="order-detail-page__document-body">
@@ -230,7 +231,7 @@ import {
   PuPageScaffold,
 } from "@partner-up-dev/design-web";
 import { storeToRefs } from "pinia";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   type CommerceOrderDetailResponse,
@@ -239,6 +240,7 @@ import {
   useMockRentalBookingConfirmation,
 } from "@/domains/commerce/queries/useCommerce";
 import RideHailingOrderContent from "@/domains/commerce/ui/order-detail/RideHailingOrderContent.vue";
+import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
 
 type OrderItemSnapshot = CommerceOrderDetailResponse["order"]["items"][number];
@@ -265,6 +267,30 @@ const confirmationMutation = useMockRentalBookingConfirmation();
 
 const detail = computed(() => orderQuery.data.value ?? null);
 const rideHailingDetail = computed(() => detail.value?.rideHailing ?? null);
+
+watch(
+  () => ({
+    routeOrderId: orderId.value,
+    queryStatus: orderQuery.status.value,
+    fetchStatus: orderQuery.fetchStatus.value,
+    isPending: orderQuery.isPending.value,
+    isFetching: orderQuery.isFetching.value,
+    dataOrderId: detail.value?.order.id ?? null,
+    dataOrderStatus: detail.value?.order.status ?? null,
+    dataOrderFamily: detail.value?.order.family ?? null,
+    rideProviderOrderId: rideHailingDetail.value?.provider.providerOrderId ?? null,
+    rideExecutionPhase: rideHailingDetail.value?.executionPhase ?? null,
+    rideDriverName: rideHailingDetail.value?.driver?.driverName ?? null,
+    rideVehiclePlate: rideHailingDetail.value?.vehicle?.plate ?? null,
+    billId: detail.value?.bill?.id ?? null,
+    billStatus: detail.value?.bill?.status ?? null,
+    error: orderQuery.error.value instanceof Error ? orderQuery.error.value.message : null,
+  }),
+  (snapshot) => {
+    logCommerceOrderDetailDebug("page.snapshot", snapshot);
+  },
+  { immediate: true },
+);
 
 const readOrderItemSku = (item: OrderItemSnapshot): OrderSkuSnapshot | null => {
   if ("sku" in item) return item.sku;

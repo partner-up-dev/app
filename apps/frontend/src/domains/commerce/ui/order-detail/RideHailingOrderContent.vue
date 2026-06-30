@@ -94,7 +94,7 @@
           <section v-if="billId" class="ride-hailing-order-content__fact-section"
             data-testid="order-detail.ride-hailing.bill-section">
             <h3>账单</h3>
-            <BillCard :bill-id="billId" />
+            <BillCard :bill-id="billId" :order-id="props.detail.order.id" :route-order-id="props.routeOrderId" />
           </section>
 
           <section v-if="resolvedServiceVehicles.length > 0" class="ride-hailing-order-content__fact-section"
@@ -138,17 +138,18 @@ import {
   PuButton,
   PuCard,
   PuFloatPanel,
-  PuInlineNotice,
   type PuFloatPanelStop,
   PuImg,
+  PuInlineNotice,
 } from "@partner-up-dev/design-web";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import {
-  useCancelOrder,
   type CommerceOrderDetailResponse,
+  useCancelOrder,
 } from "@/domains/commerce/queries/useCommerce";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
+import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
@@ -175,6 +176,7 @@ type ResolvedRideHailingVehicleCard = {
 const props = defineProps<{
   detail: CommerceOrderDetailResponse;
   ride: RideHailingDetail;
+  routeOrderId: string | null;
 }>();
 
 const cancelMutation = useCancelOrder();
@@ -374,6 +376,12 @@ const billId = computed(() => {
 });
 
 const cancelRideHailingOrder = async (): Promise<void> => {
+  logCommerceOrderDetailDebug("ride-content.cancel.click", {
+    routeOrderId: props.routeOrderId,
+    detailOrderId: props.detail.order.id,
+    providerOrderId: props.ride.provider.providerOrderId,
+    executionPhase: props.ride.executionPhase,
+  });
   await cancelMutation.mutateAsync(props.detail.order.id);
 };
 
@@ -414,6 +422,26 @@ const formatFen = (amountFen: number | null | undefined): string => {
     currency: "CNY",
   }).format(amountFen / 100);
 };
+
+watch(
+  () => ({
+    routeOrderId: props.routeOrderId,
+    detailOrderId: props.detail.order.id,
+    detailOrderStatus: props.detail.order.status,
+    providerOrderId: props.ride.provider.providerOrderId,
+    executionPhase: props.ride.executionPhase,
+    driverName: props.ride.driver?.driverName ?? null,
+    vehiclePlate: props.ride.vehicle?.plate ?? null,
+    billId: billId.value,
+    mapMode: orderMapViewModel.value.mode,
+    viewportFollowMode: routeMapViewportFollowMode.value,
+    panelStop: panelStop.value,
+  }),
+  (snapshot) => {
+    logCommerceOrderDetailDebug("ride-content.snapshot", snapshot);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="scss">

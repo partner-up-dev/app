@@ -44,15 +44,18 @@
 
 <script setup lang="ts">
 import { PuButton, PuCard, PuTag } from "@partner-up-dev/design-web";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import {
   formatCurrencyAmount,
   resolveBillSettlementTag,
 } from "@/domains/commerce/model/bill-display";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
+import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
 
 const props = defineProps<{
   billId: string;
+  orderId?: string | null;
+  routeOrderId?: string | null;
 }>();
 
 const normalizedBillId = computed(() => {
@@ -60,7 +63,11 @@ const normalizedBillId = computed(() => {
   return value.length > 0 ? value : null;
 });
 
-const billQuery = useBillDetail(normalizedBillId);
+const billQuery = useBillDetail(normalizedBillId, {
+  source: "BillCard",
+  orderId: computed(() => props.orderId ?? null),
+  routeOrderId: computed(() => props.routeOrderId ?? null),
+});
 const detail = computed(() => billQuery.data.value ?? null);
 
 const settlementTag = computed(() =>
@@ -78,6 +85,27 @@ const amountLabel = computed(() => {
 
 const billLinkAction = computed(() =>
   normalizedBillId.value ? { to: { path: `/bills/${normalizedBillId.value}` } } : undefined,
+);
+
+watch(
+  () => ({
+    routeOrderId: props.routeOrderId ?? null,
+    detailOrderId: props.orderId ?? null,
+    billId: normalizedBillId.value,
+    queryStatus: billQuery.status.value,
+    fetchStatus: billQuery.fetchStatus.value,
+    isPending: billQuery.isPending.value,
+    isFetching: billQuery.isFetching.value,
+    responseBillId: detail.value?.bill.id ?? null,
+    responseOrderId: detail.value?.order.id ?? null,
+    responseBillStatus: detail.value?.bill.status ?? null,
+    settlementStatus: detail.value?.bill.settlementStatus ?? null,
+    amountLabel: amountLabel.value,
+  }),
+  (snapshot) => {
+    logCommerceOrderDetailDebug("bill-card.snapshot", snapshot);
+  },
+  { immediate: true },
 );
 </script>
 
