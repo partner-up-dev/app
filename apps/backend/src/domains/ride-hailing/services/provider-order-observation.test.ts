@@ -6,19 +6,41 @@ import {
 } from "./provider-order-observation";
 
 describe("RideHailing provider order observation", () => {
-  it("maps provider detail phase into local execution phase", () => {
-    expect(mapProviderDetailPhaseToExecutionPhase({ phase: "9", finalAmountFen: null })).toBe(
-      "ACCEPTED",
-    );
-    expect(mapProviderDetailPhaseToExecutionPhase({ phase: "12", finalAmountFen: null })).toBe(
-      "ARRIVED_AT_PICKUP",
-    );
-    expect(mapProviderDetailPhaseToExecutionPhase({ phase: "3", finalAmountFen: null })).toBe(
-      "IN_TRIP",
-    );
-    expect(
-      mapProviderDetailPhaseToExecutionPhase({ phase: "FINISHED", finalAmountFen: null }),
-    ).toBe("FINISHED");
+  it.each([
+    { phase: "1", finalAmountFen: null, expected: "DISPATCHING" },
+    { phase: "11", finalAmountFen: null, expected: "DISPATCHING" },
+    { phase: "DISPATCHING", finalAmountFen: null, expected: "DISPATCHING" },
+    { phase: "2", finalAmountFen: null, expected: "ACCEPTED" },
+    { phase: "9", finalAmountFen: null, expected: "ACCEPTED" },
+    { phase: "ACCEPTED", finalAmountFen: null, expected: "ACCEPTED" },
+    { phase: "12", finalAmountFen: null, expected: "ARRIVED_AT_PICKUP" },
+    { phase: "ARRIVED_AT_PICKUP", finalAmountFen: null, expected: "ARRIVED_AT_PICKUP" },
+    { phase: "3", finalAmountFen: null, expected: "IN_TRIP" },
+    { phase: "IN_TRIP", finalAmountFen: null, expected: "IN_TRIP" },
+    { phase: "8", finalAmountFen: null, expected: "FINISHED" },
+    { phase: "5", finalAmountFen: null, expected: "FINISHED" },
+    { phase: "7", finalAmountFen: null, expected: "FINISHED" },
+    { phase: "6", finalAmountFen: null, expected: "FINISHED" },
+    { phase: "FINISHED", finalAmountFen: null, expected: "FINISHED" },
+    { phase: "4", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "10", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "13", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "14", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "20", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "21", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "26", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "27", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "CANCELLED", finalAmountFen: null, expected: "CANCELLED" },
+    { phase: "FAILED", finalAmountFen: null, expected: "FAILED" },
+  ])("maps provider detail phase $phase into local execution phase $expected", ({
+    phase,
+    finalAmountFen,
+    expected,
+  }) => {
+    expect(mapProviderDetailPhaseToExecutionPhase({ phase, finalAmountFen })).toBe(expected);
+  });
+
+  it("still treats unmapped provider phases with a final amount as finished", () => {
     expect(mapProviderDetailPhaseToExecutionPhase({ phase: "UNKNOWN", finalAmountFen: 4800 })).toBe(
       "FINISHED",
     );

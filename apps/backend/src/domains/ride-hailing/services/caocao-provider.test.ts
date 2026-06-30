@@ -37,6 +37,28 @@ const caocaoProviderInstance = (): RideHailingProviderInstance => ({
   updatedAt: now,
 });
 
+const queryCaocaoDetailForStatus = async (status: string | number) => {
+  const fetchImpl: typeof fetch = async () =>
+    new Response(
+      JSON.stringify({
+        code: 200,
+        data: {
+          basicOrderVO: {
+            status,
+          },
+        },
+        success: true,
+      }),
+      { status: 200 },
+    );
+  const adapter = new CaocaoProviderAdapter({
+    providerInstance: caocaoProviderInstance(),
+    fetchImpl,
+  });
+
+  return adapter.queryOrderDetail({ providerOrderId: "CC123456" });
+};
+
 describe("Caocao provider config", () => {
   it("validates registration config from stored provider config", () => {
     const parsed = parseRideHailingProviderRegistrationConfig({
@@ -253,7 +275,6 @@ describe("Caocao signer", () => {
       }),
     ).rejects.toThrow("Caocao API failed: 10002 参数签名错误");
   });
-
 });
 
 describe("Caocao external order id", () => {
@@ -365,6 +386,32 @@ describe("Caocao callback verification", () => {
 });
 
 describe("Caocao live order projection", () => {
+  it.each([
+    { label: "未派单", status: 1 },
+    { label: "已派单", status: "2" },
+    { label: "行程中", status: "3" },
+    { label: "系统取消", status: "4" },
+    { label: "待支付", status: "5" },
+    { label: "已评价", status: "6" },
+    { label: "已支付待评价", status: "7" },
+    { label: "计费结束", status: "8" },
+    { label: "接客中", status: "9" },
+    { label: "取消待付款", status: "10" },
+    { label: "改派中", status: "11" },
+    { label: "司机已到达", status: "12" },
+    { label: "取消已支付", status: "13" },
+    { label: "免责取消", status: "14" },
+    { label: "用户取消", status: "20" },
+    { label: "客服取消", status: "21" },
+    { label: "司机取消", status: "26" },
+    { label: "第三方取消", status: "27" },
+  ])("labels official order status $status as $label", async ({ status, label }) => {
+    const detail = await queryCaocaoDetailForStatus(status);
+
+    expect(detail.phase).toBe(String(status));
+    expect(detail.statusLabel).toBe(label);
+  });
+
   it("normalizes order detail, driver location, and navigation route responses", async () => {
     const requestPaths: string[] = [];
     const routeRequestBodies: string[] = [];
@@ -419,7 +466,7 @@ describe("Caocao live order projection", () => {
       }
 
       if (url.pathname.endsWith("/common/queryDriverPolylineV2")) {
-      routeRequestBodies.push(init?.body?.toString() ?? "");
+        routeRequestBodies.push(init?.body?.toString() ?? "");
         return new Response(
           JSON.stringify({
             code: 200,
@@ -519,9 +566,7 @@ describe("Caocao live order projection", () => {
   });
 
   it("logs provider diagnostics for failed route queries", async () => {
-    const stdoutWrite = vi
-      .spyOn(process.stdout, "write")
-      .mockImplementation(() => true);
+    const stdoutWrite = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     try {
       const fetchImpl: typeof fetch = async () =>
         new Response(
@@ -544,9 +589,7 @@ describe("Caocao live order projection", () => {
         }),
       ).rejects.toThrow("Caocao API failed: 25011 订单状态不正确");
 
-      const logOutput = stdoutWrite.mock.calls
-        .map(([chunk]) => String(chunk))
-        .join("");
+      const logOutput = stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join("");
       expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
       expect(logOutput).toContain('"event":"caocao_provider_failure"');
       expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolylineV2"');

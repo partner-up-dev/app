@@ -181,17 +181,35 @@ const formatCaocaoDateTime = (value: CaocaoParamValue): string | null => {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 };
 
-const buildCaocaoStatusLabel = (phase: string): string => {
-  if (phase === "FINISHED" || ["5", "6", "7", "8"].includes(phase)) return "待支付";
-  if (phase === "IN_TRIP" || phase === "3") return "行程中";
-  if (phase === "ARRIVED_AT_PICKUP" || phase === "12") return "司机已到达";
-  if (phase === "ACCEPTED" || phase === "9") return "接客中";
-  if (phase === "2") return "已派单";
-  if (phase === "CANCELLED" || ["4", "10", "13", "14", "20", "21", "26", "27"].includes(phase)) {
-    return "已取消";
-  }
-  return "正在呼叫";
+const CAOCAO_ORDER_STATUS_LABELS: Readonly<Record<string, string>> = {
+  "1": "未派单",
+  "2": "已派单",
+  "3": "行程中",
+  "4": "系统取消",
+  "5": "待支付",
+  "6": "已评价",
+  "7": "已支付待评价",
+  "8": "计费结束",
+  "9": "接客中",
+  "10": "取消待付款",
+  "11": "改派中",
+  "12": "司机已到达",
+  "13": "取消已支付",
+  "14": "免责取消",
+  "20": "用户取消",
+  "21": "客服取消",
+  "26": "司机取消",
+  "27": "第三方取消",
+  ACCEPTED: "接客中",
+  ARRIVED_AT_PICKUP: "司机已到达",
+  CANCELLED: "已取消",
+  DISPATCHING: "正在呼叫",
+  FINISHED: "行程已结束",
+  IN_TRIP: "行程中",
 };
+
+const buildCaocaoStatusLabel = (phase: string): string =>
+  CAOCAO_ORDER_STATUS_LABELS[phase.trim().toUpperCase()] ?? "正在呼叫";
 
 const parseCaocaoVehicleLocation = (raw: unknown): RideHailingProviderVehicleLocation | null => {
   if (!isRecord(raw)) return null;
@@ -921,8 +939,7 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       ext_order_id: readRequiredParamString(params, ["ext_order_id"]),
       from_latitude: fromLatitude,
       from_longitude: fromLongitude,
-      is_simultaneously_call:
-        readOptionalParamString(params, ["is_simultaneously_call"]) ?? "0",
+      is_simultaneously_call: readOptionalParamString(params, ["is_simultaneously_call"]) ?? "0",
       order_type: readOptionalParamNumber(params, ["order_type"]) ?? 1,
       start_address: readRequiredParamString(params, ["start_address"]),
       start_name: readRequiredParamString(params, ["start_name"]),

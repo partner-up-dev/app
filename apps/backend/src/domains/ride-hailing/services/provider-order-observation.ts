@@ -15,23 +15,35 @@ export type RideHailingProviderOrderObservation = {
 
 const normalizePhase = (phase: string): string => phase.trim().toUpperCase();
 
+const providerFinishedPhases = new Set(["FINISHED", "5", "6", "7", "8"]);
+const providerInTripPhases = new Set(["IN_TRIP", "3"]);
+const providerArrivedAtPickupPhases = new Set(["ARRIVED_AT_PICKUP", "12"]);
+const providerAcceptedPhases = new Set(["ACCEPTED", "2", "9"]);
+const providerDispatchingPhases = new Set(["DISPATCHING", "1", "11"]);
+const providerCancelledPhases = new Set([
+  "CANCELLED",
+  "4",
+  "10",
+  "13",
+  "14",
+  "20",
+  "21",
+  "26",
+  "27",
+]);
+const providerFailedPhases = new Set(["FAILED", "FAIL", "FAILURE"]);
+
 export function mapProviderDetailPhaseToExecutionPhase(
   detail: Pick<RideHailingProviderOrderDetail, "phase" | "finalAmountFen">,
 ): RideHailingExecutionPhase | null {
   const phase = normalizePhase(detail.phase);
-  if (phase === "FINISHED" || ["5", "6", "7", "8"].includes(phase)) {
-    return "FINISHED";
-  }
-  if (phase === "IN_TRIP" || phase === "3") return "IN_TRIP";
-  if (phase === "ARRIVED_AT_PICKUP" || phase === "12") return "ARRIVED_AT_PICKUP";
-  if (phase === "ACCEPTED" || phase === "9") return "ACCEPTED";
-  if (phase === "DISPATCHING" || phase === "2") return "DISPATCHING";
-  if (phase === "CANCELLED" || ["4", "10", "13", "14", "20", "21", "26", "27"].includes(phase)) {
-    return "CANCELLED";
-  }
-  if (phase === "FAILED" || phase === "FAIL" || phase === "FAILURE") {
-    return "FAILED";
-  }
+  if (providerFinishedPhases.has(phase)) return "FINISHED";
+  if (providerInTripPhases.has(phase)) return "IN_TRIP";
+  if (providerArrivedAtPickupPhases.has(phase)) return "ARRIVED_AT_PICKUP";
+  if (providerAcceptedPhases.has(phase)) return "ACCEPTED";
+  if (providerDispatchingPhases.has(phase)) return "DISPATCHING";
+  if (providerCancelledPhases.has(phase)) return "CANCELLED";
+  if (providerFailedPhases.has(phase)) return "FAILED";
   if (detail.finalAmountFen !== null) return "FINISHED";
   return null;
 }
