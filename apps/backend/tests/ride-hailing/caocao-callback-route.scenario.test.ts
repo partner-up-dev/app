@@ -2,15 +2,18 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { createOffer, createProductSpu, type PricingRule } from "../../src/domains/merchandising";
+import { applyPaymentSettlementConsequence } from "../../src/domains/payment";
 import {
   buildCaocaoCallbackInfo,
   createCaocaoSignature,
   encodeCaocaoExternalOrderId,
 } from "../../src/domains/ride-hailing";
 import type { RideHailingExecutionPhase } from "../../src/domains/trade/model";
+import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { BillRepository } from "../../src/repositories/BillRepository";
+import { PaymentProviderInstanceRepository } from "../../src/repositories/PaymentProviderInstanceRepository";
 import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../src/repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
@@ -19,6 +22,7 @@ import { scenario } from "../_infra/scenario/scenario";
 import { givenUser } from "../pr-core/_kit/builders/users";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
+const paymentProviderRepo = new PaymentProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const billRepo = new BillRepository();
@@ -704,6 +708,7 @@ scenario(
     const creator = await givenUser("caocao-callback-cancelled-order-owner");
     let detailQueryCount = 0;
     let billQueryCount = 0;
+    let confirmFeeCount = 0;
     const fakeCaocao = createServer((request, response) => {
       if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
         detailQueryCount += 1;
@@ -739,6 +744,18 @@ scenario(
               personalFee: 0,
               totalFee: 1270,
             },
+            success: true,
+          }),
+        );
+        return;
+      }
+      if (request.url?.startsWith("/v2/common/feeConfirm")) {
+        confirmFeeCount += 1;
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            code: 200,
+            data: {},
             success: true,
           }),
         );
@@ -808,6 +825,17 @@ scenario(
       assert.equal(response.status, 200);
       assert.equal(detailQueryCount, 1);
       assert.equal(billQueryCount, 1);
+      const updatedOrder = await tradeOrderRepo.findById(orderSeed.order.id);
+      assert.ok(updatedOrder);
+      assert.equal(updatedOrder.status, "CANCELLED");
+      assert.ok(updatedOrder.closedAt);
+      assert.equal(updatedOrder.terminationAttempts.length, 1);
+      assert.equal(
+        updatedOrder.terminationAttempts[0]?.requestedBy,
+        "system:ride-hailing-provider",
+      );
+      assert.equal(updatedOrder.terminationAttempts[0]?.status, "APPROVED");
+      assert.equal(updatedOrder.terminationAttempts[0]?.resolutionPath, "RIDE_HAILING_FULFILLMENT");
       const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
       assert.equal(updatedRide?.executionPhase, "CANCELLED");
       assert.equal(updatedRide?.finalSettlementInput?.amountFen, 1270);
@@ -819,6 +847,47 @@ scenario(
       const lines = await billLineRepo.listByBillId(bill.id);
       assert.equal(lines.length, 1);
       assert.equal(lines[0]?.amountFen, 635);
+      const chargeLine = lines[0];
+      assert.ok(chargeLine);
+      const paymentProvider = await paymentProviderRepo.create({
+        providerType: "WECHAT_PAY",
+        instanceKey: `scenario-cancelled-ride-final-bill-${randomUUID()}`,
+        status: "ACTIVE",
+        displayName: "Scenario cancelled ride final bill payment provider",
+        clientId: `scenario-cancelled-ride-final-bill-${randomUUID()}`,
+        config: {
+          adapterMode: "WECHAT_PAY_API_V3",
+          appId: "wx-cancelled-ride-final-bill",
+          mchId: "mch-cancelled-ride-final-bill",
+          chargeMode: "H5",
+          endpointBaseUrl: null,
+          apiV3Key: "0123456789abcdef0123456789abcdef",
+          merchantCertificate: {
+            serialNo: "cancelled-ride-final-bill-serial",
+            privateKeyPem: "unused-in-this-scenario",
+            certificatePem: null,
+          },
+        },
+      });
+      const paymentProviderInstanceId = paymentProvider.id as PaymentProviderInstanceId;
+      const settledLine = await billLineRepo.markSettledFromProvider({
+        id: chargeLine.id,
+        paymentProviderInstanceId,
+        attemptCount: chargeLine.attemptCount,
+        settledAt: new Date(),
+      });
+      assert.ok(settledLine);
+
+      const settlementConsequence = await applyPaymentSettlementConsequence({
+        billLineId: chargeLine.id,
+      });
+
+      assert.deepEqual(settlementConsequence, {
+        applied: true,
+        reason: "RideHailing provider fee confirmed",
+        orderId: orderSeed.order.id,
+      });
+      assert.equal(confirmFeeCount, 1);
     } finally {
       await closeServer(fakeCaocao);
     }
@@ -913,6 +982,10 @@ scenario(
       assert.equal(response.status, 200);
       assert.equal(detailQueryCount, 1);
       assert.equal(billQueryCount, 1);
+      const updatedOrder = await tradeOrderRepo.findById(orderSeed.order.id);
+      assert.ok(updatedOrder);
+      assert.equal(updatedOrder.status, "CANCELLED");
+      assert.ok(updatedOrder.closedAt);
       const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
       assert.equal(updatedRide?.executionPhase, "CANCELLED");
       assert.equal(updatedRide?.finalSettlementInput, null);

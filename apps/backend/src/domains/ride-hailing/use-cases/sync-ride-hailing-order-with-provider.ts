@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { NewRideHailingOrder } from "../../../entities/ride-hailing-order";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import {
@@ -8,6 +9,7 @@ import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { closeRideHailingOrderFromProviderCancellation } from "../../trade/services";
 import type {
   RideHailingProviderFinalSettlementResult,
   RideHailingProviderOrderDetail,
@@ -55,6 +57,8 @@ const shouldAttemptTerminalFinalSettlementQuery = (input: {
   finalSettlementInputCommitted: boolean;
 }): boolean =>
   isTerminalFinalSettlementPhase(input.executionPhase) && !input.finalSettlementInputCommitted;
+
+const buildProviderCancellationAttemptId = (): string => `term_provider_cancel_${randomUUID()}`;
 
 export async function syncRideHailingOrderWithProvider(input: {
   orderId: TradeOrderId;
@@ -196,6 +200,8 @@ export async function syncRideHailingOrderWithProvider(input: {
     });
 
     let mutatedInTransaction = false;
+    const effectiveExecutionPhase =
+      patch.executionPhase ?? transactionalContext.rideOrder.executionPhase;
     if (Object.keys(patch).length > 0) {
       const updated = await rideOrderRepo.updateByOrderId(
         transactionalContext.rideOrder.orderId,
@@ -215,7 +221,35 @@ export async function syncRideHailingOrderWithProvider(input: {
       });
     }
 
-    if (transactionalContext.order.status === "INITIATING") {
+    if (
+      effectiveExecutionPhase === "CANCELLED" &&
+      (transactionalContext.order.status === "INITIATING" ||
+        transactionalContext.order.status === "OPEN")
+    ) {
+      const closedAt = new Date();
+      const closedOrder = closeRideHailingOrderFromProviderCancellation(
+        transactionalContext.order,
+        {
+          attemptId: buildProviderCancellationAttemptId(),
+          decidedAt: closedAt.toISOString(),
+          reason: `RideHailing provider reported cancellation for ${transactionalContext.providerOrderId}`,
+        },
+      );
+      await tradeOrderRepo.applyTerminationState({
+        id: transactionalContext.order.id,
+        status: closedOrder.status,
+        terminationAttempts: closedOrder.terminationAttempts,
+        closedAt,
+      });
+      mutatedInTransaction = true;
+      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.close-order-status", {
+        localOrderId: transactionalContext.order.id,
+        fromStatus: transactionalContext.order.status,
+        toStatus: closedOrder.status,
+        trigger: input.trigger,
+        providerOrderId: transactionalContext.providerOrderId,
+      });
+    } else if (transactionalContext.order.status === "INITIATING") {
       await tradeOrderRepo.updateStatus(transactionalContext.order.id, "OPEN");
       mutatedInTransaction = true;
       logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.promote-order-status", {
