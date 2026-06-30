@@ -77,4 +77,5 @@
 - let operator tooling publish or reject user-submitted POI location applications
 - let operator tooling upload and maintain POI gallery images, Anchor Event cover images, and event beta-group QR images
 - let operator tooling select Anchor Event feedback questionnaire templates and override a PR's mounted questionnaire instance pointer
+- let operator tooling inspect and cancel cancellable RideHailing orders from dedicated admin tooling
 - let configuration materially shape the real user experience

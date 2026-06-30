@@ -1247,6 +1247,8 @@ export interface MessageSchema {
     navRideHailingGroup: string;
     navRideHailingProviderInstances: string;
     navRideHailingProviderInstancesSubtitle: string;
+    navRideHailingOrders: string;
+    navRideHailingOrdersSubtitle: string;
     navFeedbackQuestionnairesGroup: string;
     navFeedbackQuestionnaireTemplates: string;
     navFeedbackQuestionnaireTemplatesSubtitle: string;

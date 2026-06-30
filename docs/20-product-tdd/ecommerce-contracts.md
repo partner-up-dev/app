@@ -40,6 +40,8 @@ Frontend should reflect the same coarse grouping on admin navigation:
 - `Merchandising`
 - `Trade`
 - `Payment`
+- `RideHailing` for provider-instance configuration and ride-hailing-specific
+  operator tools
 
 Rental execution operations belong under `Trade`-adjacent operator work rather
 than under Merchandising configuration.

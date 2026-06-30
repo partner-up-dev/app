@@ -15,9 +15,13 @@ const readErrorMessage = async (
 type AdminApi = typeof adminClient.api.admin;
 type RideHailingApi = AdminApi["ride-hailing"];
 type ProviderInstancesApi = RideHailingApi["provider-instances"];
+type OrdersApi = RideHailingApi["orders"];
 
 export type AdminRideHailingProviderWorkspaceResponse = InferResponseType<
   ProviderInstancesApi["workspace"]["$get"]
+>;
+export type AdminRideHailingOrderWorkspaceResponse = InferResponseType<
+  OrdersApi["workspace"]["$get"]
 >;
 
 export type AdminRideHailingProviderInstanceInput = {
@@ -51,6 +55,21 @@ export const useAdminRideHailingProviderWorkspace = (
     enabled: computed(() => unref(enabled)),
   });
 
+export const useAdminRideHailingOrderWorkspace = (
+  enabled: MaybeRef<boolean> = true,
+) =>
+  useQuery<AdminRideHailingOrderWorkspaceResponse>({
+    queryKey: queryKeys.admin.rideHailingOrdersWorkspace(),
+    queryFn: async () => {
+      const res = await adminClient.api.admin["ride-hailing"].orders.workspace.$get();
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "获取网约车订单工作台失败"));
+      }
+      return await res.json();
+    },
+    enabled: computed(() => unref(enabled)),
+  });
+
 export const useCreateAdminRideHailingProviderInstance = () => {
   const queryClient = useQueryClient();
 
@@ -68,6 +87,27 @@ export const useCreateAdminRideHailingProviderInstance = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.rideHailingProviderInstances(),
+      });
+    },
+  });
+};
+
+export const useCancelAdminRideHailingOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      const res = await adminClient.api.admin["ride-hailing"].orders[":orderId"].cancel.$post({
+        param: { orderId },
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "取消网约车订单失败"));
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.rideHailingOrdersWorkspace(),
       });
     },
   });

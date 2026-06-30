@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
+  cancelAdminRideHailingOrder,
+  getAdminRideHailingOrderWorkspace,
   createAdminRideHailingProviderInstance,
   getAdminRideHailingProviderWorkspace,
   updateAdminRideHailingProviderInstance,
@@ -40,6 +42,10 @@ const nullablePositiveIntSchema = z.preprocess(
 
 const providerInstanceIdParamSchema = z.object({
   providerInstanceId: z.string().uuid(),
+});
+
+const orderIdParamSchema = z.object({
+  orderId: z.string().uuid(),
 });
 
 const adminRideHailingProviderInstanceInputSchema = z.object({
@@ -94,6 +100,18 @@ type AdminRideHailingManagementSchema = {
       Awaited<ReturnType<typeof updateAdminRideHailingProviderInstance>>
     >;
   };
+  "/ride-hailing/orders/workspace": {
+    $get: JsonEndpoint<
+      EmptyInput,
+      Awaited<ReturnType<typeof getAdminRideHailingOrderWorkspace>>
+    >;
+  };
+  "/ride-hailing/orders/:orderId/cancel": {
+    $post: JsonEndpoint<
+      UuidParam<"orderId">,
+      Awaited<ReturnType<typeof cancelAdminRideHailingOrder>>
+    >;
+  };
 };
 
 export const adminRideHailingManagementRoute: Hono<
@@ -103,6 +121,10 @@ export const adminRideHailingManagementRoute: Hono<
   .use("*", adminAuthMiddleware)
   .get("/ride-hailing/provider-instances/workspace", async (c) => {
     const result = await getAdminRideHailingProviderWorkspace();
+    return c.json(result);
+  })
+  .get("/ride-hailing/orders/workspace", async (c) => {
+    const result = await getAdminRideHailingOrderWorkspace();
     return c.json(result);
   })
   .post(
@@ -125,6 +147,19 @@ export const adminRideHailingManagementRoute: Hono<
         providerInstanceId:
           providerInstanceId as RideHailingProviderInstanceId,
         payload,
+      });
+      return c.json(result);
+    },
+  )
+  .post(
+    "/ride-hailing/orders/:orderId/cancel",
+    zValidator("param", orderIdParamSchema),
+    async (c) => {
+      const { orderId } = c.req.valid("param");
+      const auth = c.get("auth");
+      const result = await cancelAdminRideHailingOrder({
+        orderId,
+        actorUserId: auth.userId!,
       });
       return c.json(result);
     },

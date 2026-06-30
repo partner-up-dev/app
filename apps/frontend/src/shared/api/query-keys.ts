@@ -70,6 +70,7 @@ export const queryKeys = {
     commerceFulfillmentWorkspace: () => ["admin", "commerce", "fulfillments", "workspace"] as const,
     paymentProviderInstances: () => ["admin", "payment", "provider-instances"] as const,
     rideHailingProviderInstances: () => ["admin", "ride-hailing", "provider-instances"] as const,
+    rideHailingOrdersWorkspace: () => ["admin", "ride-hailing", "orders", "workspace"] as const,
     anchorEventLandingConfig: (eventId: number | null) =>
       ["admin", "anchor-events", "landing-config", eventId] as const,
     anchorEventPreferenceTags: (eventId: number | null) =>

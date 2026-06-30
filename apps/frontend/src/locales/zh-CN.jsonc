@@ -638,6 +638,8 @@
     "navRideHailingGroup": "RideHailing",
     "navRideHailingProviderInstances": "Provider Instance",
     "navRideHailingProviderInstancesSubtitle": "维护曹操服务商实例",
+    "navRideHailingOrders": "Order Admin",
+    "navRideHailingOrdersSubtitle": "查看并取消网约车订单",
     "navFeedbackQuestionnairesGroup": "反馈问卷",
     "navFeedbackQuestionnaireTemplates": "反馈问卷模板",
     "navFeedbackQuestionnaireTemplatesSubtitle": "维护可挂载到活动的问卷模板。",

@@ -27,13 +27,36 @@ const providerRepo = new RideHailingProviderInstanceRepository();
 const isCancellableRideHailingExecutionPhase = (phase: string): boolean =>
   phase === "DISPATCHING" || phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP";
 
+type RideHailingCancellationActor = {
+  actorUserId: string;
+  authority: "ORDER_CREATOR" | "ADMIN";
+  providerCancelReason: string;
+  providerWhoCancel: 1 | 2;
+  terminationReason: string;
+};
+
 function createAttemptId(): string {
   return `term_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export async function cancelRideHailingOrderFromOrderDetail(input: {
+const assertActorMayCancelRideHailingOrder = (
+  orderRecord: { createdBy: string },
+  actor: RideHailingCancellationActor,
+) => {
+  if (
+    actor.authority === "ORDER_CREATOR" &&
+    orderRecord.createdBy !== actor.actorUserId
+  ) {
+    return throwHttpProblem({
+      status: 403,
+      detail: "Only order creator can cancel this order",
+    });
+  }
+};
+
+async function cancelRideHailingOrder(input: {
   orderId: string;
-  actorUserId: string;
+  actor: RideHailingCancellationActor;
 }) {
   const orderRecord = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
   if (!orderRecord) {
@@ -45,12 +68,7 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       detail: "Only RideHailing orders can use this cancellation flow",
     });
   }
-  if (orderRecord.createdBy !== input.actorUserId) {
-    return throwHttpProblem({
-      status: 403,
-      detail: "Only order creator can cancel this order",
-    });
-  }
+  assertActorMayCancelRideHailingOrder(orderRecord, input.actor);
   if (orderRecord.status !== "OPEN" && orderRecord.status !== "INITIATING") {
     return throwHttpProblem({
       status: 409,
@@ -132,8 +150,8 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
   const providerCancellation = await port.cancelRide({
     providerOrderId: providerBinding.providerOrderId,
     cancelCode: 12,
-    cancelReason: "用户取消订单",
-    whoCancel: 1,
+    cancelReason: input.actor.providerCancelReason,
+    whoCancel: input.actor.providerWhoCancel,
   });
   const decidedAt = new Date().toISOString();
 
@@ -151,12 +169,7 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
         detail: "Only RideHailing orders can use this cancellation flow",
       });
     }
-    if (currentOrderRecord.createdBy !== input.actorUserId) {
-      return throwHttpProblem({
-        status: 403,
-        detail: "Only order creator can cancel this order",
-      });
-    }
+    assertActorMayCancelRideHailingOrder(currentOrderRecord, input.actor);
     if (currentOrderRecord.status !== "OPEN") {
       return throwHttpProblem({
         status: 409,
@@ -183,7 +196,7 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
     const appended = appendTerminationAttempt(order, {
       attemptId,
       requestedAt: decidedAt,
-      requestedBy: input.actorUserId as UserId,
+      requestedBy: input.actor.actorUserId as UserId,
     });
     const resolving = markTerminationAttemptResolving(
       appended,
@@ -193,7 +206,7 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
     const approved = approveTerminationAttempt(resolving, {
       attemptId,
       decidedAt,
-      reason: "用户取消订单",
+      reason: input.actor.terminationReason,
       effectKind: providerCancellation.cancelFeeFen > 0 ? "ABORT_FEE" : "NONE",
       effectAmountFen: providerCancellation.cancelFeeFen,
     });
@@ -232,5 +245,37 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       effectAmountFen: providerCancellation.cancelFeeFen,
       refunds: [],
     };
+  });
+}
+
+export async function cancelRideHailingOrderFromOrderDetail(input: {
+  orderId: string;
+  actorUserId: string;
+}) {
+  return cancelRideHailingOrder({
+    orderId: input.orderId,
+    actor: {
+      actorUserId: input.actorUserId,
+      authority: "ORDER_CREATOR",
+      providerCancelReason: "用户取消订单",
+      providerWhoCancel: 1,
+      terminationReason: "用户取消订单",
+    },
+  });
+}
+
+export async function cancelRideHailingOrderFromAdmin(input: {
+  orderId: string;
+  actorUserId: string;
+}) {
+  return cancelRideHailingOrder({
+    orderId: input.orderId,
+    actor: {
+      actorUserId: input.actorUserId,
+      authority: "ADMIN",
+      providerCancelReason: "管理员取消订单",
+      providerWhoCancel: 2,
+      terminationReason: "管理员取消订单",
+    },
   });
 }
