@@ -923,6 +923,12 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
       expected: "接客中",
       label: "RideHailing accepted status hero",
     });
+    await assertRideHailingOrderDetail(page, {
+      expectedRiderNames: [
+        "scenario-system-ride-hailing-creator",
+        "scenario-system-ride-hailing-passenger",
+      ],
+    });
     const driverCard = page.getByTestId("order-detail.ride-hailing.driver-card");
     await driverCard.waitFor({
       state: "visible",
