@@ -1,6 +1,10 @@
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
-import { throwHttpProblem } from "../../../lib/problem-details";
+import {
+  type CommerceOrderDetailDebugContext,
+  logCommerceOrderDetailDebug,
+} from "../../../lib/commerce-order-detail-debug";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
@@ -134,10 +138,57 @@ const resolveProviderNavigationRouteQueryKind = (
   return null;
 };
 
-const queryOptionalProviderLive = async <T>(operation: () => Promise<T>): Promise<T | null> => {
+const summarizeProviderLiveError = (error: unknown): Record<string, unknown> => {
+  if (error instanceof ProblemDetailsError) {
+    return {
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStatus: error.status,
+      errorType: error.type,
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStack: error.stack ?? null,
+    };
+  }
+  return {
+    errorValue: error,
+  };
+};
+
+const summarizeProviderDetailProjection = (
+  detail: ProviderDetailProjection | null,
+): Record<string, unknown> => ({
+  providerPhase: detail?.phase ?? null,
+  providerStatusLabel: detail?.statusLabel ?? null,
+  providerDriverName: detail?.driver?.driverName ?? null,
+  providerVehiclePlate: detail?.vehicle?.plate ?? null,
+  providerHasVehicleLocation: detail?.vehicleLocation != null,
+  providerHasNavigationRoute: detail?.navigationRoute != null,
+  providerFinalAmountFen: detail?.finalAmountFen ?? null,
+});
+
+const writeRideHailingLiveRouteQueryErrorLog = (payload: Record<string, unknown>): void => {
+  process.stdout.write(
+    `${JSON.stringify({
+      marker: "RideHailingLiveRouteQueryError",
+      ...payload,
+    })}\n`,
+  );
+};
+
+const queryOptionalProviderLive = async <T>(input: {
+  onError?: (error: unknown) => void;
+  operation: () => Promise<T>;
+}): Promise<T | null> => {
   try {
-    return await operation();
-  } catch {
+    return await input.operation();
+  } catch (error) {
+    input.onError?.(error);
     return null;
   }
 };
@@ -162,37 +213,75 @@ const projectProviderDetail = (input: {
 
 export async function buildRideHailingDetailProjection(input: {
   order: TradeOrder;
+  debug?: CommerceOrderDetailDebugContext;
 }): Promise<RideHailingOrderDetailProjection> {
   let order = input.order;
   let choiceSetItem = getRideHailingChoiceSetItem(order.items);
   let providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
   let syncedProviderDetail: RideHailingProviderOrderDetail | null = null;
+
+  logCommerceOrderDetailDebug(input.debug, "ride-detail.build.start", {
+    localOrderId: order.id,
+    localOrderStatus: order.status,
+    providerInstanceId: providerBinding?.providerInstanceId ?? null,
+    providerOrderId: providerBinding?.providerOrderId ?? null,
+  });
+
   if (providerBinding?.providerOrderId) {
+    const syncProviderInstanceId = providerBinding.providerInstanceId;
+    const syncProviderOrderId = providerBinding.providerOrderId;
     try {
       const syncResult = await syncRideHailingOrderWithProvider({
         orderId: order.id,
-        expectedProviderInstanceId: providerBinding.providerInstanceId,
-        expectedProviderOrderId: providerBinding.providerOrderId,
+        expectedProviderInstanceId: syncProviderInstanceId,
+        expectedProviderOrderId: syncProviderOrderId,
         trigger: "ORDER_DETAIL_POLL",
+        debug: input.debug,
       });
       syncedProviderDetail = syncResult.providerDetail;
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.sync-result", {
+        localOrderId: order.id,
+        providerInstanceId: syncProviderInstanceId,
+        providerOrderId: syncProviderOrderId,
+        syncMutated: syncResult.mutated,
+        providerPhase: syncedProviderDetail.phase,
+        providerStatusLabel: syncedProviderDetail.statusLabel,
+        providerDriverName: syncedProviderDetail.driver?.driverName ?? null,
+        providerVehiclePlate: syncedProviderDetail.vehicle?.plate ?? null,
+      });
       if (syncResult.mutated) {
         const reloadedOrder = await tradeOrderRepo.findById(order.id);
         if (reloadedOrder) {
           order = reloadedOrder;
           choiceSetItem = getRideHailingChoiceSetItem(order.items);
           providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
+          logCommerceOrderDetailDebug(input.debug, "ride-detail.build.reload-after-sync", {
+            localOrderId: order.id,
+            localOrderStatus: order.status,
+            providerInstanceId: providerBinding?.providerInstanceId ?? null,
+            providerOrderId: providerBinding?.providerOrderId ?? null,
+          });
         }
       }
     } catch (error) {
       if (!(error instanceof RideHailingProviderSyncQueryError)) {
         throw error;
       }
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.sync-query-error", {
+        localOrderId: order.id,
+        providerInstanceId: syncProviderInstanceId,
+        providerOrderId: syncProviderOrderId,
+        error: summarizeProviderLiveError(error.originalError),
+      });
     }
   }
 
   const rideOrder = await rideOrderRepo.findByOrderId(order.id);
   if (!rideOrder) {
+    logCommerceOrderDetailDebug(input.debug, "ride-detail.build.ride-order-missing", {
+      localOrderId: order.id,
+      localOrderStatus: order.status,
+    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
@@ -210,30 +299,84 @@ export async function buildRideHailingDetailProjection(input: {
       const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(
         rideOrder.executionPhase,
       );
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.live-query-plan", {
+        localOrderId: order.id,
+        rideExecutionPhase: rideOrder.executionPhase,
+        providerInstanceId: providerBinding.providerInstanceId,
+        providerOrderId: providerBinding.providerOrderId,
+        shouldQueryLiveGeometry,
+        navigationRouteQueryKind,
+      });
       const vehicleLocation = shouldQueryLiveGeometry
-        ? await queryOptionalProviderLive(() =>
-            port.queryDriverLocation({
-              providerOrderId: providerBinding.providerOrderId,
-            }),
-          )
+        ? await queryOptionalProviderLive({
+            onError: (error) => {
+              logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-location.error", {
+                localOrderId: order.id,
+                rideExecutionPhase: rideOrder.executionPhase,
+                providerInstanceId: providerBinding?.providerInstanceId ?? null,
+                providerOrderId: providerBinding?.providerOrderId ?? null,
+                ...summarizeProviderLiveError(error),
+              });
+            },
+            operation: () =>
+              port.queryDriverLocation({
+                providerOrderId: providerBinding.providerOrderId,
+              }),
+          })
         : null;
       const navigationRoute = navigationRouteQueryKind
-        ? await queryOptionalProviderLive(() =>
-            port.queryDriverRoute({
-              providerOrderId: providerBinding.providerOrderId,
-              routeKind: navigationRouteQueryKind,
-            }),
-          )
+        ? await queryOptionalProviderLive({
+            onError: (error) => {
+              writeRideHailingLiveRouteQueryErrorLog({
+                executionPhase: rideOrder.executionPhase,
+                orderId: order.id,
+                providerInstanceId: providerBinding?.providerInstanceId ?? null,
+                providerOrderId: providerBinding?.providerOrderId ?? null,
+                routeKind: navigationRouteQueryKind,
+                ...summarizeProviderLiveError(error),
+              });
+              logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-route.error", {
+                localOrderId: order.id,
+                rideExecutionPhase: rideOrder.executionPhase,
+                providerInstanceId: providerBinding?.providerInstanceId ?? null,
+                providerOrderId: providerBinding?.providerOrderId ?? null,
+                routeKind: navigationRouteQueryKind,
+                ...summarizeProviderLiveError(error),
+              });
+            },
+            operation: () =>
+              port.queryDriverRoute({
+                providerOrderId: providerBinding.providerOrderId,
+                routeKind: navigationRouteQueryKind,
+              }),
+          })
         : null;
       providerDetail = projectProviderDetail({
         detail: syncedProviderDetail,
         navigationRoute,
         vehicleLocation,
       });
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.live-query-result", {
+        localOrderId: order.id,
+        rideExecutionPhase: rideOrder.executionPhase,
+        providerInstanceId: providerBinding.providerInstanceId,
+        providerOrderId: providerBinding.providerOrderId,
+        shouldQueryLiveGeometry,
+        navigationRouteQueryKind,
+        vehicleLocationCapturedAt: vehicleLocation?.capturedAt ?? null,
+        navigationRouteKind: navigationRoute?.routeKind ?? null,
+        ...summarizeProviderDetailProjection(providerDetail),
+      });
+    } else {
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.provider-instance-missing", {
+        localOrderId: order.id,
+        providerInstanceId: providerBinding.providerInstanceId,
+        providerOrderId: providerBinding.providerOrderId,
+      });
     }
   }
 
-  return {
+  const result = {
     route: rideOrder.routeSnapshot,
     departureAt: rideOrder.departureAt?.toISOString() ?? null,
     riders: rideOrder.riders,
@@ -252,6 +395,20 @@ export async function buildRideHailingDetailProjection(input: {
     vehicle: rideOrder.vehicleSnapshot ?? providerDetail?.vehicle ?? null,
     live: providerDetail,
   };
+
+  logCommerceOrderDetailDebug(input.debug, "ride-detail.build.complete", {
+    localOrderId: order.id,
+    localOrderStatus: order.status,
+    rideExecutionPhase: result.executionPhase,
+    rideDriverName: result.driver?.driverName ?? null,
+    rideVehiclePlate: result.vehicle?.plate ?? null,
+    candidateVehicleCount: result.candidateVehicles.length,
+    providerInstanceId: providerBinding?.providerInstanceId ?? null,
+    providerOrderId: result.provider.providerOrderId,
+    ...summarizeProviderDetailProjection(result.live),
+  });
+
+  return result;
 }
 
 export async function confirmRideHailingProviderFeeAfterPayment(input: { orderId: string }) {

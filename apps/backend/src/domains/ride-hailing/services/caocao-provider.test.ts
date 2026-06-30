@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type {
   RideHailingProviderInstance,
   RideHailingProviderInstanceId,
@@ -516,5 +516,44 @@ describe("Caocao live order projection", () => {
 
     expect(detail.phase).toBe("9");
     expect(detail.statusLabel).toBe("接客中");
+  });
+
+  it("logs provider diagnostics for failed route queries", async () => {
+    const stdoutWrite = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      const fetchImpl: typeof fetch = async () =>
+        new Response(
+          JSON.stringify({
+            code: 25011,
+            msg: "订单状态不正确",
+            success: false,
+          }),
+          { status: 200 },
+        );
+      const adapter = new CaocaoProviderAdapter({
+        providerInstance: caocaoProviderInstance(),
+        fetchImpl,
+      });
+
+      await expect(
+        adapter.queryDriverRoute({
+          providerOrderId: "CC123456",
+          routeKind: "PICKUP",
+        }),
+      ).rejects.toThrow("Caocao API failed: 25011 订单状态不正确");
+
+      const logOutput = stdoutWrite.mock.calls
+        .map(([chunk]) => String(chunk))
+        .join("");
+      expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
+      expect(logOutput).toContain('"event":"caocao_provider_failure"');
+      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolylineV2"');
+      expect(logOutput).toContain('"providerCode":25011');
+      expect(logOutput).toContain('"providerMsg":"订单状态不正确"');
+    } finally {
+      stdoutWrite.mockRestore();
+    }
   });
 });

@@ -390,11 +390,56 @@ const parseCaocaoResponseJson = async (response: Response): Promise<unknown> => 
 const writeCaocaoDiagnosticLog = (payload: Record<string, unknown>): void => {
   process.stdout.write(
     `${JSON.stringify({
-      marker: "RideHailingProviderEstimate",
+      marker: "RideHailingProviderCaocao",
       ...payload,
     })}\n`,
   );
 };
+
+const tryParseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData> | null => {
+  try {
+    return parseCaocaoResponseBody<TData>(body);
+  } catch {
+    return null;
+  }
+};
+
+const buildCaocaoResponseDiagnostic = (input: {
+  endpointPath: string;
+  httpStatus: number;
+  method: "GET" | "POST";
+  params: CaocaoParamInput;
+  providerInstanceId: string;
+  providerType: RideHailingProviderInstance["providerType"];
+  responseBody: unknown;
+}) => {
+  const parsed = tryParseCaocaoResponseBody(input.responseBody);
+  return {
+    endpointPath: input.endpointPath,
+    event:
+      input.httpStatus !== 200 || parsed?.code !== 200 || parsed?.success !== true
+        ? "caocao_provider_failure"
+        : input.endpointPath === "/common/estimatePriceWithDetail"
+          ? "caocao_estimate_response"
+          : "caocao_response",
+    httpStatus: input.httpStatus,
+    method: input.method,
+    params: normalizeCaocaoParams(input.params),
+    providerCode: parsed?.code ?? null,
+    providerInstanceId: input.providerInstanceId,
+    providerMsg: parsed?.msg ?? null,
+    providerSuccess: parsed?.success ?? null,
+    providerType: input.providerType,
+    responseBody: input.responseBody,
+  };
+};
+
+const shouldLogCaocaoDiagnostic = (input: {
+  diagnostic: ReturnType<typeof buildCaocaoResponseDiagnostic>;
+}): boolean =>
+  input.diagnostic.event === "caocao_provider_failure" ||
+  input.diagnostic.endpointPath === "/common/queryCity" ||
+  input.diagnostic.endpointPath === "/common/estimatePriceWithDetail";
 
 export function createCaocaoSignature(input: {
   params: CaocaoSignedParams;
@@ -958,24 +1003,17 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
             body: serializeCaocaoFormBody(signedParams),
           });
     const responseBody = await parseCaocaoResponseJson(response);
-    if (
-      endpointPath === "/common/queryCity" ||
-      endpointPath === "/common/estimatePriceWithDetail"
-    ) {
-      writeCaocaoDiagnosticLog({
-        event:
-          endpointPath === "/common/estimatePriceWithDetail"
-            ? "caocao_estimate_response"
-            : "caocao_response",
-        endpointPath,
-        httpStatus: response.status,
-        method,
-        ok: response.ok,
-        params: normalizeCaocaoParams(params),
-        providerInstanceId: this.input.providerInstance.id,
-        providerType: this.input.providerInstance.providerType,
-        responseBody,
-      });
+    const diagnostic = buildCaocaoResponseDiagnostic({
+      endpointPath,
+      httpStatus: response.status,
+      method,
+      params,
+      providerInstanceId: this.input.providerInstance.id,
+      providerType: this.input.providerInstance.providerType,
+      responseBody,
+    });
+    if (shouldLogCaocaoDiagnostic({ diagnostic })) {
+      writeCaocaoDiagnosticLog(diagnostic);
     }
     if (!response.ok) {
       return throwHttpProblem({
