@@ -230,6 +230,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryCancelFeeSuccessResponse'
+  /common/queryCalculateBill:
+    post:
+      operationId: queryCalculateBill
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QueryCalculateBillRequest'
+      responses:
+        '200':
+          description: Query calculate bill success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryCalculateBillSuccessResponse'
   /common/feeConfirm:
     post:
       operationId: feeConfirm
@@ -919,6 +935,60 @@ components:
           const: 200
         data:
           $ref: '#/components/schemas/CancelFeeData'
+        msg:
+          type: string
+          const: OK
+        success:
+          type: boolean
+          const: true
+    QueryCalculateBillRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - client_id
+        - order_id
+        - sign
+        - timestamp
+      properties:
+        client_id:
+          type: string
+          minLength: 1
+        order_id:
+          type: string
+          minLength: 1
+        sign:
+          type: string
+          minLength: 1
+        timestamp:
+          $ref: '#/components/schemas/IntegerString'
+    QueryCalculateBillData:
+      type: object
+      additionalProperties: false
+      required:
+        - companyFee
+        - personalFee
+        - totalFee
+      properties:
+        companyFee:
+          type: integer
+        personalFee:
+          type: integer
+        totalFee:
+          type: integer
+    QueryCalculateBillSuccessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - data
+        - msg
+        - success
+      properties:
+        code:
+          type: integer
+          const: 200
+        data:
+          $ref: '#/components/schemas/QueryCalculateBillData'
         msg:
           type: string
           const: OK

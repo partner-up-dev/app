@@ -22,7 +22,9 @@ const signedSearchParams = (input: {
   });
 };
 
-const defaultEstimateParams = (input: Partial<Record<string, string>> = {}): Record<string, string> => ({
+const defaultEstimateParams = (
+  input: Partial<Record<string, string>> = {},
+): Record<string, string> => ({
   car_type: "5",
   city_code: "0571",
   from_latitude: "30.2500",
@@ -33,7 +35,9 @@ const defaultEstimateParams = (input: Partial<Record<string, string>> = {}): Rec
   ...input,
 });
 
-const defaultCreateParams = (input: Partial<Record<string, string>> = {}): Record<string, string> => ({
+const defaultCreateParams = (
+  input: Partial<Record<string, string>> = {},
+): Record<string, string> => ({
   callback_info: "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
   caller_phone: "13800138000",
   car_type: "5",
@@ -150,7 +154,7 @@ describe("startFakeCaocaoServer", () => {
     expect(response.ok).toBe(true);
   });
 
-  test("serves signed estimate, create, and detail routes", async () => {
+  test("serves signed estimate, create, detail, and authoritative payable routes", async () => {
     server = await startFakeCaocaoServer();
 
     const estimateResponse = await fetch(
@@ -413,6 +417,51 @@ describe("startFakeCaocaoServer", () => {
     );
     expect(inTripRoute[0]?.latitude).toBeCloseTo(inTripDriverLocationBody.data.latitude, 6);
     expect(inTripRoute[0]?.longitude).toBeCloseTo(inTripDriverLocationBody.data.longitude, 6);
+
+    const finishedPhaseResponse = await fetch(
+      `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/advance`,
+      {
+        method: "POST",
+      },
+    );
+    const finishedPhaseBody = (await finishedPhaseResponse.json()) as {
+      ok: boolean;
+      order: { phase: string };
+    };
+
+    expect(finishedPhaseResponse.ok).toBe(true);
+    expect(finishedPhaseBody.ok).toBe(true);
+    expect(finishedPhaseBody.order.phase).toBe("FINISHED");
+
+    const queryCalculateBillResponse = await fetch(`${server.origin}/common/queryCalculateBill`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "37",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const queryCalculateBillBody = (await queryCalculateBillResponse.json()) as {
+      code: number;
+      data: {
+        companyFee: number;
+        personalFee: number;
+        totalFee: number;
+      };
+      success: boolean;
+    };
+
+    expect(queryCalculateBillResponse.ok).toBe(true);
+    expect(queryCalculateBillBody.success).toBe(true);
+    expect(queryCalculateBillBody.data.companyFee).toBe(5600);
+    expect(queryCalculateBillBody.data.personalFee).toBe(0);
+    expect(queryCalculateBillBody.data.totalFee).toBe(5600);
 
     const invalidPhaseResponse = await fetch(
       `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/phase?phase=BOARDING`,

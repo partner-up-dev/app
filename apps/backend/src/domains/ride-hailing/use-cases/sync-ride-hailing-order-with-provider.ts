@@ -8,7 +8,10 @@ import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import type { RideHailingProviderOrderDetail } from "../model";
+import type {
+  RideHailingProviderFinalSettlementResult,
+  RideHailingProviderOrderDetail,
+} from "../model";
 import { mergeDriverSnapshot, mergeVehicleSnapshot, observeProviderOrderDetail } from "../services";
 import { applyRideHailingFinalSettlementConsequence } from "./apply-ride-hailing-final-settlement-consequence";
 import { loadRideHailingProviderExecutionContext } from "./provider-execution-context";
@@ -39,8 +42,18 @@ const summarizeProviderDetail = (
   providerDriverName: detail.driver?.driverName ?? null,
   providerVehiclePlate: detail.vehicle?.plate ?? null,
   providerHasVehicleLocation: detail.vehicleLocation != null,
-  providerFinalAmountFen: detail.finalAmountFen,
 });
+
+const terminalFinalSettlementPhases = new Set(["FINISHED", "CANCELLED"]);
+
+const isTerminalFinalSettlementPhase = (phase: string | null | undefined): boolean =>
+  phase !== null && phase !== undefined && terminalFinalSettlementPhases.has(phase);
+
+const shouldAttemptTerminalFinalSettlementQuery = (input: {
+  executionPhase: string | null;
+  finalSettlementInputCommitted: boolean;
+}): boolean =>
+  isTerminalFinalSettlementPhase(input.executionPhase) && !input.finalSettlementInputCommitted;
 
 export async function syncRideHailingOrderWithProvider(input: {
   orderId: TradeOrderId;
@@ -112,7 +125,6 @@ export async function syncRideHailingOrderWithProvider(input: {
 
   const observation = observeProviderOrderDetail({
     detail: providerDetail,
-    providerOrderId: context.providerOrderId,
   });
 
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.observation", {
@@ -122,12 +134,9 @@ export async function syncRideHailingOrderWithProvider(input: {
     observedExecutionPhase: observation.executionPhase ?? null,
     observedDriverName: observation.driverSnapshot?.driverName ?? null,
     observedVehiclePlate: observation.vehicleSnapshot?.plate ?? null,
-    observedFinalSettlementProviderOrderId:
-      observation.finalSettlementInput?.providerOrderId ?? null,
-    observedFinalSettlementAmountFen: observation.finalSettlementInput?.amountFen ?? null,
   });
 
-  const mutated = await db.transaction(async (tx) => {
+  const phaseSyncMutated = await db.transaction(async (tx) => {
     const transactionalContext = await loadRideHailingProviderExecutionContext(
       {
         orderId: input.orderId,
@@ -140,14 +149,6 @@ export async function syncRideHailingOrderWithProvider(input: {
     const tradeOrderRepo = new TradeOrderRepository(tx);
     const rideOrderRepo = new RideHailingOrderRepository(tx);
     const patch: Partial<NewRideHailingOrder> = {};
-    let finalSettlementConflict:
-      | {
-          currentAmountFen: number;
-          currentProviderOrderId: string;
-          observedAmountFen: number;
-          observedProviderOrderId: string;
-        }
-      | null = null;
 
     logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.context", {
       localOrderId: transactionalContext.order.id,
@@ -183,39 +184,6 @@ export async function syncRideHailingOrderWithProvider(input: {
       patch.vehicleSnapshot = vehicleSnapshot;
     }
 
-    const shouldEnsureFinalBill =
-      observation.finalSettlementInput !== null ||
-      transactionalContext.rideOrder.finalSettlementInput !== null;
-    if (observation.finalSettlementInput) {
-      const currentFinalSettlementInput = transactionalContext.rideOrder.finalSettlementInput;
-      if (!currentFinalSettlementInput) {
-        patch.finalSettlementInput = {
-          ...observation.finalSettlementInput,
-          committedAt: new Date().toISOString(),
-        };
-      } else if (
-        currentFinalSettlementInput.providerOrderId !==
-          observation.finalSettlementInput.providerOrderId ||
-        currentFinalSettlementInput.amountFen !== observation.finalSettlementInput.amountFen
-      ) {
-        finalSettlementConflict = {
-          currentAmountFen: currentFinalSettlementInput.amountFen,
-          currentProviderOrderId: currentFinalSettlementInput.providerOrderId,
-          observedAmountFen: observation.finalSettlementInput.amountFen,
-          observedProviderOrderId: observation.finalSettlementInput.providerOrderId,
-        };
-        logCommerceOrderDetailDebug(
-          input.debug,
-          "ride-provider-sync.tx.final-settlement-conflict",
-          {
-            localOrderId: transactionalContext.order.id,
-            trigger: input.trigger,
-            ...finalSettlementConflict,
-          },
-        );
-      }
-    }
-
     logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.patch", {
       localOrderId: transactionalContext.order.id,
       trigger: input.trigger,
@@ -224,9 +192,6 @@ export async function syncRideHailingOrderWithProvider(input: {
       executionPhaseAfter: patch.executionPhase ?? transactionalContext.rideOrder.executionPhase,
       driverChanged: "driverSnapshot" in patch,
       vehicleChanged: "vehicleSnapshot" in patch,
-      finalSettlementCommitted: patch.finalSettlementInput !== undefined,
-      finalSettlementConflictDetected: finalSettlementConflict !== null,
-      shouldEnsureFinalBill,
     });
 
     let mutatedInTransaction = false;
@@ -260,24 +225,66 @@ export async function syncRideHailingOrderWithProvider(input: {
       });
     }
 
-    if (shouldEnsureFinalBill) {
-      const consequence = await applyRideHailingFinalSettlementConsequence(
-        {
-          orderId: transactionalContext.order.id,
-        },
-        tx,
-      );
-      mutatedInTransaction = mutatedInTransaction || consequence.applied;
-      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.final-settlement", {
-        localOrderId: transactionalContext.order.id,
+    return mutatedInTransaction;
+  });
+
+  let finalSettlementMutated = false;
+  const effectiveExecutionPhase = observation.executionPhase ?? context.rideOrder.executionPhase;
+  const shouldAttemptFinalSettlementQuery = shouldAttemptTerminalFinalSettlementQuery({
+    executionPhase: effectiveExecutionPhase,
+    finalSettlementInputCommitted: context.rideOrder.finalSettlementInput !== null,
+  });
+
+  logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.post-phase-sync", {
+    localOrderId: context.order.id,
+    providerOrderId: context.providerOrderId,
+    trigger: input.trigger,
+    effectiveExecutionPhase,
+    finalSettlementAlreadyCommitted: context.rideOrder.finalSettlementInput !== null,
+    shouldAttemptFinalSettlementQuery,
+  });
+
+  if (shouldAttemptFinalSettlementQuery) {
+    let finalSettlementResult: RideHailingProviderFinalSettlementResult | null = null;
+    try {
+      finalSettlementResult = await context.port.queryFinalSettlement({
+        providerOrderId: context.providerOrderId,
+      });
+    } catch (error) {
+      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.query-final-settlement.error", {
+        localOrderId: context.order.id,
+        providerInstanceId: context.providerInstance.id,
+        providerOrderId: context.providerOrderId,
         trigger: input.trigger,
-        applied: consequence.applied,
-        reason: consequence.reason ?? null,
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                name: error.name,
+                stack: error.stack ?? null,
+              }
+            : error,
       });
     }
 
-    return mutatedInTransaction;
-  });
+    if (finalSettlementResult) {
+      finalSettlementMutated = await commitRideHailingTerminalFinalSettlement({
+        debug: input.debug,
+        finalSettlement: finalSettlementResult,
+        orderId: input.orderId,
+        trigger: input.trigger,
+      });
+    } else {
+      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.query-final-settlement.miss", {
+        localOrderId: context.order.id,
+        providerOrderId: context.providerOrderId,
+        trigger: input.trigger,
+        effectiveExecutionPhase,
+      });
+    }
+  }
+
+  const mutated = phaseSyncMutated || finalSettlementMutated;
 
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.complete", {
     inputOrderId: input.orderId,
@@ -292,4 +299,79 @@ export async function syncRideHailingOrderWithProvider(input: {
     mutated,
     providerDetail,
   };
+}
+
+async function commitRideHailingTerminalFinalSettlement(input: {
+  orderId: TradeOrderId;
+  finalSettlement: RideHailingProviderFinalSettlementResult;
+  trigger: RideHailingProviderSyncTrigger;
+  debug?: CommerceOrderDetailDebugContext;
+}): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const transactionalContext = await loadRideHailingProviderExecutionContext(
+      {
+        orderId: input.orderId,
+        expectedProviderOrderId: input.finalSettlement.providerOrderId,
+        debug: input.debug,
+      },
+      tx,
+    );
+    if (
+      !shouldAttemptTerminalFinalSettlementQuery({
+        executionPhase: transactionalContext.rideOrder.executionPhase,
+        finalSettlementInputCommitted: transactionalContext.rideOrder.finalSettlementInput !== null,
+      })
+    ) {
+      logCommerceOrderDetailDebug(
+        input.debug,
+        "ride-provider-sync.query-final-settlement.skip-commit",
+        {
+          localOrderId: transactionalContext.order.id,
+          providerOrderId: transactionalContext.providerOrderId,
+          trigger: input.trigger,
+          executionPhase: transactionalContext.rideOrder.executionPhase,
+          finalSettlementAlreadyCommitted:
+            transactionalContext.rideOrder.finalSettlementInput !== null,
+        },
+      );
+      return false;
+    }
+
+    const rideOrderRepo = new RideHailingOrderRepository(tx);
+    const updatedRideOrder = await rideOrderRepo.updateByOrderId(transactionalContext.order.id, {
+      finalSettlementInput: {
+        ...input.finalSettlement,
+        committedAt: new Date().toISOString(),
+      },
+    });
+    if (!updatedRideOrder) {
+      return throwHttpProblem({
+        status: 500,
+        detail: "Failed to persist RideHailing final settlement input",
+      });
+    }
+
+    const consequence = await applyRideHailingFinalSettlementConsequence(
+      {
+        orderId: transactionalContext.order.id,
+      },
+      tx,
+    );
+
+    logCommerceOrderDetailDebug(
+      input.debug,
+      "ride-provider-sync.query-final-settlement.persisted",
+      {
+        localOrderId: transactionalContext.order.id,
+        providerOrderId: transactionalContext.providerOrderId,
+        trigger: input.trigger,
+        executionPhase: transactionalContext.rideOrder.executionPhase,
+        finalSettlementAmountFen: input.finalSettlement.amountFen,
+        billApplied: consequence.applied,
+        billReason: consequence.reason ?? null,
+      },
+    );
+
+    return true;
+  });
 }

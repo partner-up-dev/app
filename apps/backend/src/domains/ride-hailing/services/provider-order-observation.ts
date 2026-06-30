@@ -1,7 +1,6 @@
 import type {
   RideHailingDriverSnapshot,
   RideHailingExecutionPhase,
-  RideHailingFinalSettlementInput,
   RideHailingVehicleSnapshot,
 } from "../../trade/model";
 import type { RideHailingProviderOrderDetail } from "../model";
@@ -10,7 +9,6 @@ export type RideHailingProviderOrderObservation = {
   executionPhase: RideHailingExecutionPhase | null;
   driverSnapshot: RideHailingDriverSnapshot | null;
   vehicleSnapshot: RideHailingVehicleSnapshot | null;
-  finalSettlementInput: Omit<RideHailingFinalSettlementInput, "committedAt"> | null;
 };
 
 const normalizePhase = (phase: string): string => phase.trim().toUpperCase();
@@ -34,7 +32,7 @@ const providerCancelledPhases = new Set([
 const providerFailedPhases = new Set(["FAILED", "FAIL", "FAILURE"]);
 
 export function mapProviderDetailPhaseToExecutionPhase(
-  detail: Pick<RideHailingProviderOrderDetail, "phase" | "finalAmountFen">,
+  detail: Pick<RideHailingProviderOrderDetail, "phase">,
 ): RideHailingExecutionPhase | null {
   const phase = normalizePhase(detail.phase);
   if (providerFinishedPhases.has(phase)) return "FINISHED";
@@ -44,7 +42,6 @@ export function mapProviderDetailPhaseToExecutionPhase(
   if (providerDispatchingPhases.has(phase)) return "DISPATCHING";
   if (providerCancelledPhases.has(phase)) return "CANCELLED";
   if (providerFailedPhases.has(phase)) return "FAILED";
-  if (detail.finalAmountFen !== null) return "FINISHED";
   return null;
 }
 
@@ -83,21 +80,11 @@ const normalizeVehicleSnapshot = (
 
 export function observeProviderOrderDetail(input: {
   detail: RideHailingProviderOrderDetail;
-  providerOrderId: string;
 }): RideHailingProviderOrderObservation {
   return {
     executionPhase: mapProviderDetailPhaseToExecutionPhase(input.detail),
     driverSnapshot: normalizeDriverSnapshot(input.detail.driver),
     vehicleSnapshot: normalizeVehicleSnapshot(input.detail.vehicle),
-    finalSettlementInput:
-      input.detail.finalAmountFen !== null
-        ? {
-            amountFen: input.detail.finalAmountFen,
-            currency: "CNY",
-            providerOrderId: input.providerOrderId,
-            providerSnapshot: input.detail.providerSnapshot,
-          }
-        : null,
   };
 }
 

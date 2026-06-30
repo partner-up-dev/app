@@ -540,6 +540,72 @@ describe("Caocao live order projection", () => {
     ]);
   });
 
+  it("queries authoritative final settlement from queryCalculateBill companyFee", async () => {
+    const requestPaths: string[] = [];
+    const requestBodies: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const requestUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const url = new URL(requestUrl);
+      requestPaths.push(url.pathname);
+
+      if (url.pathname.endsWith("/common/queryCalculateBill")) {
+        requestBodies.push(init?.body?.toString() ?? "");
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              companyFee: 1200,
+              personalFee: 200,
+              totalFee: 1400,
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response(JSON.stringify({ code: 404, success: false }), { status: 200 });
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const bill = await adapter.queryFinalSettlement({ providerOrderId: "CC123456" });
+
+    expect(requestPaths).toEqual(["/v2/common/queryCalculateBill"]);
+    expect(new URLSearchParams(requestBodies[0] ?? "").get("order_id")).toBe("CC123456");
+    expect(bill).toEqual({
+      amountFen: 1200,
+      currency: "CNY",
+      providerOrderId: "CC123456",
+      providerSnapshot: {
+        companyFee: 1200,
+        personalFee: 200,
+        totalFee: 1400,
+      },
+    });
+  });
+
+  it("treats queryCalculateBill status-not-ready failures as no authoritative final settlement yet", async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          code: 25011,
+          msg: "订单状态不正确",
+          success: false,
+        }),
+        { status: 200 },
+      );
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    await expect(adapter.queryFinalSettlement({ providerOrderId: "CC123456" })).resolves.toBeNull();
+  });
+
   it("labels realtime accepted status as picking up", async () => {
     const fetchImpl: typeof fetch = async () =>
       new Response(

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { RideHailingProviderInstance } from "../../../entities/ride-hailing-provider";
-import { throwHttpProblem } from "../../../lib/problem-details";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import type {
   CaocaoOrderStatusCallback,
   CaocaoOrderStatusCallbackEvent,
@@ -11,6 +11,7 @@ import type {
   RideHailingProviderConfirmFeeInput,
   RideHailingProviderCreateRideInput,
   RideHailingProviderEstimateInput,
+  RideHailingProviderFinalSettlementResult,
   RideHailingProviderNavigationRoute,
   RideHailingProviderNavigationRouteKind,
   RideHailingProviderNavigationRouteQueryKind,
@@ -315,12 +316,6 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
     "carBrand",
   ]);
   const color = readOptionalStringField(vehicleRaw, ["color", "vehicleColor", "vehicle_color"]);
-  const finalAmountFen =
-    readOptionalNumberField(data, ["finalAmountFen", "actual_price"]) ??
-    readOptionalNumberField(
-      readOptionalRecordField(data, ["orderFeeVO", "orderFeeVo", "order_fee"]),
-      ["totalFee", "actualPrice", "actual_price"],
-    );
 
   return {
     driver:
@@ -330,7 +325,6 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
             driverPhone: driverPhone ?? "",
           }
         : null,
-    finalAmountFen,
     phase,
     providerSnapshot: data,
     statusLabel: buildCaocaoStatusLabel(phase),
@@ -344,6 +338,47 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
         : null,
     vehicleLocation: driverRaw ? parseCaocaoVehicleLocation(driverRaw) : null,
   };
+};
+
+const normalizeFenAmount = (value: number): number => Math.round(value);
+
+const isCaocaoFinalSettlementNotReadyMessage = (message: string | null): boolean => {
+  if (!message) return false;
+  return (
+    message.includes("Caocao API failed: 25011") ||
+    message.includes("订单未支付") ||
+    message.includes("未支付") ||
+    message.includes("待支付") ||
+    message.includes("订单状态不正确") ||
+    message.includes("暂无账单") ||
+    message.includes("账单未生成")
+  );
+};
+
+const parseCaocaoCalculateBillResult = (input: {
+  data: Record<string, unknown>;
+  providerOrderId: string;
+}): RideHailingProviderFinalSettlementResult => {
+  const companyFee = readOptionalNumberField(input.data, ["companyFee", "company_fee"]);
+  if (companyFee === null) {
+    throw new Error("Caocao queryCalculateBill response is missing companyFee");
+  }
+  return {
+    amountFen: normalizeFenAmount(companyFee),
+    currency: "CNY",
+    providerOrderId: input.providerOrderId,
+    providerSnapshot: input.data,
+  };
+};
+
+const isCaocaoFinalSettlementNotReadyError = (error: unknown): boolean => {
+  const message =
+    error instanceof ProblemDetailsError
+      ? error.message
+      : error instanceof Error
+        ? error.message
+        : null;
+  return isCaocaoFinalSettlementNotReadyMessage(message);
 };
 
 const parseCaocaoDriverRoute = (
@@ -763,6 +798,29 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       order_id: input.providerOrderId,
     });
     return parseCaocaoOrderDetail(data);
+  }
+
+  async queryFinalSettlement(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderFinalSettlementResult | null> {
+    try {
+      const data = await this.request<Record<string, unknown>>(
+        "POST",
+        "/common/queryCalculateBill",
+        {
+          order_id: input.providerOrderId,
+        },
+      );
+      return parseCaocaoCalculateBillResult({
+        data,
+        providerOrderId: input.providerOrderId,
+      });
+    } catch (error) {
+      if (isCaocaoFinalSettlementNotReadyError(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async queryDriverLocation(input: {

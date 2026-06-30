@@ -124,7 +124,6 @@ export type RideHailingProviderNavigationRoute = {
 export type RideHailingProviderOrderDetail = {
   phase: string;
   statusLabel: string;
-  finalAmountFen: number | null;
   driver: {
     driverName: string;
     driverPhone: string;
@@ -135,6 +134,13 @@ export type RideHailingProviderOrderDetail = {
     color: string;
   } | null;
   vehicleLocation: RideHailingProviderVehicleLocation | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderFinalSettlementResult = {
+  amountFen: number;
+  currency: "CNY";
+  providerOrderId: string;
   providerSnapshot: unknown;
 };
 
@@ -166,6 +172,9 @@ export type RideHailingProviderPort = {
     providerSnapshot: unknown;
   }>;
   queryOrderDetail(input: { providerOrderId: string }): Promise<RideHailingProviderOrderDetail>;
+  queryFinalSettlement(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderFinalSettlementResult | null>;
   queryDriverLocation(input: {
     providerOrderId: string;
   }): Promise<RideHailingProviderVehicleLocation | null>;

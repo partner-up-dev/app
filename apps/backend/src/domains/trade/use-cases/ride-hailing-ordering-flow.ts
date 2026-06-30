@@ -169,7 +169,6 @@ const summarizeProviderDetailProjection = (
   providerVehiclePlate: detail?.vehicle?.plate ?? null,
   providerHasVehicleLocation: detail?.vehicleLocation != null,
   providerHasNavigationRoute: detail?.navigationRoute != null,
-  providerFinalAmountFen: detail?.finalAmountFen ?? null,
 });
 
 const writeRideHailingLiveRouteQueryErrorLog = (payload: Record<string, unknown>): void => {
@@ -200,7 +199,6 @@ const projectProviderDetail = (input: {
 }): ProviderDetailProjection => {
   return {
     driver: input.detail.driver,
-    finalAmountFen: input.detail.finalAmountFen,
     navigationRoute: projectProviderNavigationRoute(input.navigationRoute),
     phase: input.detail.phase,
     statusLabel: input.detail.statusLabel,

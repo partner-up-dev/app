@@ -39,9 +39,7 @@ const providerContract = OpenApiContract.load(
   ),
 );
 const controlContract = OpenApiContract.load(
-  fileURLToPath(
-    new URL("../openapi/control/fake-caocao-control.openapi.yaml", import.meta.url),
-  ),
+  fileURLToPath(new URL("../openapi/control/fake-caocao-control.openapi.yaml", import.meta.url)),
 );
 
 const defaultControlCorsHeaders = {
@@ -491,7 +489,11 @@ const phaseStatusCode = (phase: FakeCaocaoOrderState["phase"]): string => {
 };
 
 const hasDriverInfo = (order: FakeCaocaoOrderState): boolean =>
-  order.acceptedAt !== null || order.phase === "ACCEPTED" || order.phase === "ARRIVED_AT_PICKUP" || order.phase === "IN_TRIP" || order.phase === "FINISHED";
+  order.acceptedAt !== null ||
+  order.phase === "ACCEPTED" ||
+  order.phase === "ARRIVED_AT_PICKUP" ||
+  order.phase === "IN_TRIP" ||
+  order.phase === "FINISHED";
 
 const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
   const driver = hasDriverInfo(order) ? driverSnapshot(order) : null;
@@ -562,6 +564,24 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
     orderFeeVo: {
       totalFee: order.phase === "FINISHED" ? order.finalAmountFen : null,
     },
+  };
+};
+
+const queryCalculateBillAmountFen = (order: FakeCaocaoOrderState): number | null => {
+  if (order.phase === "FINISHED") return order.finalAmountFen;
+  if (order.phase === "CANCELLED" && order.cancelFeeFen > 0) return order.cancelFeeFen;
+  return null;
+};
+
+const queryCalculateBillPayload = (order: FakeCaocaoOrderState): unknown => {
+  const companyFee = queryCalculateBillAmountFen(order);
+  if (companyFee === null) {
+    throw new FakeCaocaoProviderError(25011, "订单状态不正确");
+  }
+  return {
+    companyFee,
+    personalFee: 0,
+    totalFee: companyFee,
   };
 };
 
@@ -721,11 +741,7 @@ const isSuccessfulCallbackAck = (bodyPreview: string | null): boolean => {
   if (!bodyPreview) return false;
   try {
     const parsed = JSON.parse(bodyPreview) as unknown;
-    return (
-      isRecord(parsed) &&
-      parsed.code === 200 &&
-      parsed.success === true
-    );
+    return isRecord(parsed) && parsed.code === 200 && parsed.success === true;
   } catch {
     return false;
   }
@@ -841,20 +857,12 @@ const maybePostCreateCallback = (input: {
   }, 0);
 };
 
-const providerJson = (
-  c: Context,
-  operationId: string,
-  payload: unknown,
-): Response => {
+const providerJson = (c: Context, operationId: string, payload: unknown): Response => {
   providerContract.validateResponse(operationId, 200, payload);
   return c.json(payload, 200);
 };
 
-const controlJson = (
-  c: Context,
-  operationId: string,
-  payload: unknown,
-): Response => {
+const controlJson = (c: Context, operationId: string, payload: unknown): Response => {
   controlContract.validateResponse(operationId, 200, payload);
   return c.json(payload, 200);
 };
@@ -882,10 +890,10 @@ const parseProviderRequest = async (
 
   if (operation.requestBody.contentType === "application/x-www-form-urlencoded") {
     const bodyText = await c.req.text();
-    const form = providerContract.validateBody(operation.operationId, readFormBody(bodyText)) as Record<
-      string,
-      string
-    >;
+    const form = providerContract.validateBody(
+      operation.operationId,
+      readFormBody(bodyText),
+    ) as Record<string, string>;
     return {
       body: form,
       path,
@@ -1290,6 +1298,30 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
   );
 
   app.post(
+    "/common/queryCalculateBill",
+    providerRoute(
+      "queryCalculateBill",
+      "/common/queryCalculateBill",
+      async ({ body }) => {
+        const form = body as Record<string, string>;
+        const providerOrderId = readFirst(form, "order_id");
+        if (!providerOrderId) {
+          throw new FakeCaocaoProviderError(40001, "Missing order_id");
+        }
+        const order = state.findOrder(providerOrderId);
+        if (!order) {
+          throw new FakeCaocaoProviderError(40401, "Fake Caocao order not found");
+        }
+        return caocaoSuccess(queryCalculateBillPayload(order));
+      },
+      {
+        fixture: input.fixture,
+        verifyRequests,
+      },
+    ),
+  );
+
+  app.post(
     "/common/feeConfirm",
     providerRoute(
       "feeConfirm",
@@ -1329,39 +1361,31 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
 
   app.post(
     "/__fake_caocao/create-failure/next",
-    controlRoute(
-      "controlNextCreateFailure",
-      "/__fake_caocao/create-failure/next",
-      async () => {
-        state.configureNextCreateFailure();
-        return {
-          ok: true,
-        };
-      },
-    ),
+    controlRoute("controlNextCreateFailure", "/__fake_caocao/create-failure/next", async () => {
+      state.configureNextCreateFailure();
+      return {
+        ok: true,
+      };
+    }),
   );
 
   app.post(
     "/__fake_caocao/estimates",
-    controlRoute(
-      "controlUpdateEstimate",
-      "/__fake_caocao/estimates",
-      async ({ body }) => {
-        const json = body as Record<string, unknown>;
-        const estimate = state.updateEstimate({
-          carType: String(json.carType),
-          carTypeName: typeof json.carTypeName === "string" ? json.carTypeName : undefined,
-          distanceMeters: typeof json.distanceMeters === "number" ? json.distanceMeters : undefined,
-          durationSeconds:
-            typeof json.durationSeconds === "number" ? json.durationSeconds : undefined,
-          estimateAmountFen: Number(json.estimateAmountFen),
-        });
-        return {
-          estimate,
-          ok: true,
-        };
-      },
-    ),
+    controlRoute("controlUpdateEstimate", "/__fake_caocao/estimates", async ({ body }) => {
+      const json = body as Record<string, unknown>;
+      const estimate = state.updateEstimate({
+        carType: String(json.carType),
+        carTypeName: typeof json.carTypeName === "string" ? json.carTypeName : undefined,
+        distanceMeters: typeof json.distanceMeters === "number" ? json.distanceMeters : undefined,
+        durationSeconds:
+          typeof json.durationSeconds === "number" ? json.durationSeconds : undefined,
+        estimateAmountFen: Number(json.estimateAmountFen),
+      });
+      return {
+        estimate,
+        ok: true,
+      };
+    }),
   );
 
   app.post(
@@ -1390,58 +1414,50 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
 
   app.post(
     "/__fake_caocao/orders/latest/advance",
-    controlRoute(
-      "controlAdvanceLatestOrder",
-      "/__fake_caocao/orders/latest/advance",
-      async () => {
-        const order = state.advanceLatestNonTerminalOrder();
-        if (!order) {
-          throw new FakeCaocaoControlError(
-            "FAKE_CAOCAO_ORDER_NOT_FOUND",
-            404,
-            "No non-terminal fake Caocao order found",
-          );
-        }
-        const callback = await postOrderPhaseCallback({
-          fixture: input.fixture,
-          order,
-        });
-        assertCallbackDelivered(callback, order);
-        return {
-          callback,
-          ok: true,
-          order,
-        };
-      },
-    ),
+    controlRoute("controlAdvanceLatestOrder", "/__fake_caocao/orders/latest/advance", async () => {
+      const order = state.advanceLatestNonTerminalOrder();
+      if (!order) {
+        throw new FakeCaocaoControlError(
+          "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          404,
+          "No non-terminal fake Caocao order found",
+        );
+      }
+      const callback = await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      assertCallbackDelivered(callback, order);
+      return {
+        callback,
+        ok: true,
+        order,
+      };
+    }),
   );
 
   app.post(
     "/__fake_caocao/orders/latest/retreat",
-    controlRoute(
-      "controlRetreatLatestOrder",
-      "/__fake_caocao/orders/latest/retreat",
-      async () => {
-        const order = state.retreatLatestOrder();
-        if (!order) {
-          throw new FakeCaocaoControlError(
-            "FAKE_CAOCAO_ORDER_NOT_FOUND",
-            404,
-            "No retreatable fake Caocao order found",
-          );
-        }
-        const callback = await postOrderPhaseCallback({
-          fixture: input.fixture,
-          order,
-        });
-        assertCallbackDelivered(callback, order);
-        return {
-          callback,
-          ok: true,
-          order,
-        };
-      },
-    ),
+    controlRoute("controlRetreatLatestOrder", "/__fake_caocao/orders/latest/retreat", async () => {
+      const order = state.retreatLatestOrder();
+      if (!order) {
+        throw new FakeCaocaoControlError(
+          "FAKE_CAOCAO_ORDER_NOT_FOUND",
+          404,
+          "No retreatable fake Caocao order found",
+        );
+      }
+      const callback = await postOrderPhaseCallback({
+        fixture: input.fixture,
+        order,
+      });
+      assertCallbackDelivered(callback, order);
+      return {
+        callback,
+        ok: true,
+        order,
+      };
+    }),
   );
 
   app.post(
