@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import type { OrderingEntryPayload } from "@/domains/commerce/model/ordering-entry-storage";
 import {
   listPrOrdersForOffer,
   type PlacementInstanceProjection,
@@ -38,7 +39,14 @@ export const usePlacementOrderingEntryFlow = () => {
         placementInstanceId: input.placement.id,
         matchingContext: input.matchingContext,
       });
-      orderingHandoff.setOrderingEntry(orderingEntry);
+      const orderingEntryPayload: OrderingEntryPayload = {
+        ...orderingEntry,
+        placementContext: {
+          placementInstanceId: input.placement.id,
+          matchingContext: input.matchingContext,
+        },
+      };
+      orderingHandoff.setOrderingEntry(orderingEntryPayload);
       await router.push({ path: "/order/new" });
     } finally {
       pendingPlacementId.value = null;

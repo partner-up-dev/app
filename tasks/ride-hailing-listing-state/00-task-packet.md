@@ -87,10 +87,11 @@ This prevents disabled queries from being rendered as loading.
 For `missing-contact-phone`:
 
 - Show an in-place `PuInlineNotice` in the RideHailing vehicle panel.
-- Provide a telephone input in-place so the user can complete the missing
-  contact phone without leaving the page.
-- The typed phone is only a draft. Listing may start only after the user
-  explicitly confirms the complete phone value.
+- Reuse the user-domain phone editor in-place so the user can update their
+  profile phone without leaving the page.
+- After phone save succeeds, re-resolve ordering-entry from the original
+  placement context. Listing may start only from the refreshed ordering-entry
+  bindings.
 
 For `missing-route`:
 
@@ -136,25 +137,50 @@ Planned verification after implementation starts:
   - `ready`
 - `RideHailingOrderingContent` now shows skeletons only when listing input exists
   and the listing query is pending.
-- Missing contact phone is recoverable in-place through a telephone input plus
-  explicit confirm action in the RideHailing vehicle panel. The live draft does
-  not participate in listing input.
+- Missing contact phone is recoverable in-place through the same user-domain
+  phone editor used by Me Page.
+- The RideHailing page does not commit a page-local contact phone. Phone save
+  updates current-user profile truth, then the page refreshes ordering-entry and
+  lets the normal listing query start from refreshed `bindings.contactPhone`.
 - Missing route / missing riders / missing offer surface blocking notices with
   action paths into the parent `PuDialog` recovery flow.
 - Successful listing with zero visible vehicle candidates is treated as an error
   surface, not as loading.
 
+## Correction: Phone Owner Boundary
+
+The in-place phone recovery should not write a page-local listing phone at all.
+`contactPhone` in ordering-entry is a derived binding from current user /
+participant profile truth. The correct recovery chain is:
+
+1. User edits and submits their profile phone number through the same user-domain
+   phone edit capability used by Me Page.
+2. Frontend re-resolves `POST /api/placements/:instanceId/ordering-entry` with
+   the original placement id and matching context.
+3. Ordering handoff store is replaced with the fresh ordering-entry.
+4. RideHailing listing input becomes available from refreshed bindings and the
+   normal listing query starts.
+
+Implication:
+
+- A reusable high-cohesion user phone editor should own phone draft validation,
+  submit button, backend mutation, loading/error state, and current-phone hint.
+- Me Page should consume that component instead of duplicating phone-edit logic.
+- RideHailing ordering should consume the same component and, on successful
+  phone save, refresh ordering-entry rather than committing a local contact
+  phone into listing input.
+
 ## Verification Run
 
-- `pnpm --filter @partner-up-dev/frontend test:unit -- src/domains/commerce/ui/ordering/ride-hailing-listing-state.test.ts`
-  - passed; Vitest selected the frontend project and reported 35 files / 159
+- `pnpm --filter @partner-up-dev/frontend test:unit -- src/domains/commerce/ui/ordering/ride-hailing-listing-state.test.ts src/domains/commerce/model/ordering-entry-storage.test.ts src/domains/user/model/phone-number.test.ts`
+  - passed; Vitest selected the frontend project and reported 37 files / 163
     tests passed.
 - `pnpm check:type:frontend`
   - passed.
 - `pnpm check:lint:frontend`
   - passed; naming audit still reports the pre-existing weak-name findings for
     `RideHailingOrderContent` and `RideHailingOrderingContent`.
-- Direct file Biome check over touched frontend files and this packet passed.
+- Direct file Biome check over touched frontend files passed.
 
 ## Next Step
 

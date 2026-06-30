@@ -38,9 +38,11 @@
         v-else-if="rideOrdering && orderingContentInput"
         :input="orderingContentInput"
         :listing-refresh-key="listingRefreshKey"
+        :ordering-entry-refreshing="orderingEntryRefreshPending"
         @update:output="contentOutput = $event"
         @update:summary="contentSummary = $event"
         @resolve:blocker="handleRideListingBlocker"
+        @refresh:ordering-entry="refreshOrderingEntryFromPlacementContext"
       />
     </div>
 
@@ -115,7 +117,11 @@ import type {
   OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
 import type { OrderingEntryPayload } from "@/domains/commerce/model/ordering-entry-storage";
-import { type CreateOrderInput, useCreateOrder } from "@/domains/commerce/queries/useCommerce";
+import {
+  type CreateOrderInput,
+  resolvePlacementOrderingEntry,
+  useCreateOrder,
+} from "@/domains/commerce/queries/useCommerce";
 import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
@@ -172,6 +178,7 @@ const contentOutput = ref<OrderingContentOutput | null>(null);
 const contentSummary = ref<OrderingContentSummary>({ price: null });
 const listingRefreshKey = ref(0);
 const priceDetailOpen = ref(false);
+const orderingEntryRefreshPending = ref(false);
 const orderingDialog = ref<OrderingDialogState>({
   open: false,
   kind: "info",
@@ -205,7 +212,12 @@ const createOrderInput = computed<CreateOrderInput | null>(() =>
   buildOrderInput(contentOutput.value),
 );
 
-const canCreate = computed(() => !!createOrderInput.value && !createOrderMutation.isPending.value);
+const canCreate = computed(
+  () =>
+    !!createOrderInput.value &&
+    !createOrderMutation.isPending.value &&
+    !orderingEntryRefreshPending.value,
+);
 
 const priceSummary = computed(() => contentSummary.value.price);
 
@@ -394,6 +406,36 @@ const submitOrder = async (): Promise<void> => {
   if (!input) return;
 
   await createOrderFromQuoteDraft(input);
+};
+
+const refreshOrderingEntryFromPlacementContext = async (): Promise<void> => {
+  const placementContext = orderingEntry.value?.placementContext ?? null;
+  if (!placementContext) {
+    openReturnToPrDialog({
+      title: "无法刷新下单信息",
+      description: "当前下单入口缺少刷新上下文，请返回搭子请求后重新进入下单。",
+    });
+    return;
+  }
+
+  orderingEntryRefreshPending.value = true;
+  try {
+    const refreshedEntry = await resolvePlacementOrderingEntry({
+      placementInstanceId: placementContext.placementInstanceId,
+      matchingContext: placementContext.matchingContext,
+    });
+    orderingHandoff.setOrderingEntry({
+      ...refreshedEntry,
+      placementContext,
+    });
+  } catch (error) {
+    openInfoDialog({
+      title: "无法刷新下单信息",
+      description: error instanceof Error ? error.message : "请稍后重试。",
+    });
+  } finally {
+    orderingEntryRefreshPending.value = false;
+  }
 };
 
 const handleRideListingBlocker = (blocker: RideHailingListingBlocker): void => {

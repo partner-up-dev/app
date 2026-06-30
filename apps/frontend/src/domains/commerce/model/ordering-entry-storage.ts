@@ -10,6 +10,12 @@ export type OrderingEntryPayload = {
   prId?: number;
   bindings: Record<string, unknown>;
   bindingLocks: Record<string, true>;
+  placementContext?: OrderingEntryPlacementContext;
+};
+
+export type OrderingEntryPlacementContext = {
+  placementInstanceId: number;
+  matchingContext: unknown;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -22,11 +28,27 @@ const normalizeBindingLocks = (value: unknown): Record<string, true> => {
   );
 };
 
+const normalizePlacementContext = (value: unknown): OrderingEntryPlacementContext | undefined => {
+  if (!isRecord(value)) return undefined;
+  if (
+    typeof value.placementInstanceId !== "number" ||
+    !Number.isInteger(value.placementInstanceId) ||
+    value.placementInstanceId <= 0
+  ) {
+    return undefined;
+  }
+  return {
+    placementInstanceId: value.placementInstanceId,
+    matchingContext: value.matchingContext,
+  };
+};
+
 export const normalizeOrderingEntryPayload = (value: unknown): OrderingEntryPayload | null => {
   if (!isRecord(value)) return null;
   const source = value.source;
   if (!isRecord(source) || typeof source.offerId !== "number") return null;
   if (!isRecord(value.offerDetail)) return null;
+  const placementContext = normalizePlacementContext(value.placementContext);
 
   return {
     source: {
@@ -36,6 +58,7 @@ export const normalizeOrderingEntryPayload = (value: unknown): OrderingEntryPayl
     prId: typeof value.prId === "number" ? value.prId : undefined,
     bindings: isRecord(value.bindings) ? value.bindings : {},
     bindingLocks: normalizeBindingLocks(value.bindingLocks),
+    ...(placementContext ? { placementContext } : {}),
   };
 };
 

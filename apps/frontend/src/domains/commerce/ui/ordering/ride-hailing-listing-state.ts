@@ -34,9 +34,6 @@ export type RideHailingListingSurfaceStateInput = {
   visibleOptionCount: number;
 };
 
-export const isRideHailingContactPhoneComplete = (value: string): boolean =>
-  /^1\d{10}$/.test(value.trim());
-
 export const resolveRideHailingListingBlocker = (
   input: RideHailingListingBlockerInput,
 ): RideHailingListingBlocker | null => {

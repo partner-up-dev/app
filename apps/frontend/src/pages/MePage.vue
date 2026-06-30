@@ -94,26 +94,13 @@
               />
             </PuFormItem>
 
-            <PuFormItem
-              :label="t('mePage.profile.phoneLabel')"
-              for-id="me-profile-phone"
-            >
-              <input
-                id="me-profile-phone"
-                v-model="phoneDraft"
-                class="text-input"
-                type="tel"
-                data-testid="me.profile.phone.input"
-                inputmode="numeric"
-                maxlength="11"
-                :placeholder="t('mePage.profile.phonePlaceholder')"
-                :disabled="!canEditProfile"
-                @keydown.enter.prevent="handleSavePhoneNumber"
-              />
-            </PuFormItem>
-            <p v-if="phoneHintText" class="profile-field-hint">
-              {{ phoneHintText }}
-            </p>
+            <UserPhoneNumberEditor
+              id="me-profile-phone"
+              data-testid-prefix="me.profile.phone"
+              :current-phone-masked="currentUser?.phoneMasked ?? null"
+              :has-phone-number="currentUser?.hasPhoneNumber ?? false"
+              :disabled="!canEditProfile"
+            />
 
             <div class="profile-actions">
               <PuButton
@@ -127,17 +114,6 @@
                 {{ t("mePage.profile.saveNickname") }}
               </PuButton>
 
-              <PuButton
-                shape="pill"
-                size="sm"
-
-                data-testid="me.profile.phone.save"
-                :disabled="!canSavePhoneNumber"
-                :loading="updatePhoneNumberMutation.isPending.value"
-                @click="handleSavePhoneNumber"
-              >
-                {{ t("mePage.profile.savePhone") }}
-              </PuButton>
             </div>
 
             <PuFileUpload
@@ -278,14 +254,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { RouterLink, useRoute } from "vue-router";
-import { useI18n } from "vue-i18n";
-import { useQueryClient } from "@tanstack/vue-query";
 import {
   PuButton,
   PuCard,
   PuFileUpload,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
   PuFormItem,
   PuHeader,
   PuImg,
@@ -293,26 +268,27 @@ import {
   PuLoadingState,
   PuPageScaffold,
   PuTag,
-  type PuFileUploadItem,
-  type PuFileUploadRejection,
-  type PuFileUploadValue,
 } from "@partner-up-dev/design-web";
-import { IMAGE_UPLOAD_ACCEPT } from "@/shared/upload/useDesignWebImageUpload";
-import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
-import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { useQueryClient } from "@tanstack/vue-query";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { RouterLink, useRoute } from "vue-router";
 import { useCurrentUserProfile } from "@/domains/user/queries/useCurrentUserProfile";
-import { useUpdateCurrentUserProfile } from "@/domains/user/queries/useUpdateCurrentUserProfile";
-import { useUpdateCurrentUserAvatar } from "@/domains/user/queries/useUpdateCurrentUserAvatar";
-import { useUpdateCurrentUserPhoneNumber } from "@/domains/user/queries/useUpdateCurrentUserPhoneNumber";
 import { useStartWeChatBind } from "@/domains/user/queries/useStartWeChatBind";
-import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
+import { useUpdateCurrentUserAvatar } from "@/domains/user/queries/useUpdateCurrentUserAvatar";
+import { useUpdateCurrentUserProfile } from "@/domains/user/queries/useUpdateCurrentUserProfile";
+import UserPhoneNumberEditor from "@/domains/user/ui/UserPhoneNumberEditor.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { redirectToWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { resetAuthSessionToFreshAnonymous } from "@/processes/auth/useAuthSessionBootstrap";
+import { redirectToWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { queryKeys } from "@/shared/api/query-keys";
+import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
+import { IMAGE_UPLOAD_ACCEPT } from "@/shared/upload/useDesignWebImageUpload";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -323,13 +299,11 @@ const queryClient = useQueryClient();
 const currentUserQuery = useCurrentUserProfile();
 const updateProfileMutation = useUpdateCurrentUserProfile();
 const updateAvatarMutation = useUpdateCurrentUserAvatar();
-const updatePhoneNumberMutation = useUpdateCurrentUserPhoneNumber();
 const startWeChatBindMutation = useStartWeChatBind();
 
 const avatarUploadValue = ref<PuFileUploadValue>(null);
 const avatarUploadError = ref<string | null>(null);
 const nicknameDraft = ref("");
-const phoneDraft = ref("");
 const copiedField = ref<"userId" | null>(null);
 const copyErrorMessage = ref<string | null>(null);
 const logoutErrorMessage = ref<string | null>(null);
@@ -349,9 +323,7 @@ const storedUserId = computed(() => userSessionStore.userId ?? null);
 const storedUserIdLabel = computed(
   () => storedUserId.value ?? t("mePage.credentials.missingUserId"),
 );
-const isWeChatEnv = computed(() =>
-  typeof navigator === "undefined" ? false : isWeChatBrowser(),
-);
+const isWeChatEnv = computed(() => (typeof navigator === "undefined" ? false : isWeChatBrowser()));
 const bindFeedbackCode = computed(() => {
   const raw = route.query.wechatBind;
   if (typeof raw === "string") return raw;
@@ -384,35 +356,6 @@ const canSaveNickname = computed(() => {
     normalizedDraft !== normalizedCurrent &&
     !updateProfileMutation.isPending.value
   );
-});
-const normalizedPhoneDraft = computed(() => phoneDraft.value.trim());
-const currentPhoneLabel = computed(() => currentUser.value?.phoneMasked ?? "");
-const phoneDraftError = computed(() => {
-  const value = normalizedPhoneDraft.value;
-  if (!value) return null;
-  return /^1\d{10}$/.test(value)
-    ? null
-    : t("mePage.profile.phoneInvalid");
-});
-const canSavePhoneNumber = computed(() => {
-  const value = normalizedPhoneDraft.value;
-  const hasPhone = currentUser.value?.hasPhoneNumber ?? false;
-  return (
-    canEditProfile.value &&
-    !phoneDraftError.value &&
-    (value.length > 0 || hasPhone) &&
-    value !== currentPhoneLabel.value &&
-    !updatePhoneNumberMutation.isPending.value
-  );
-});
-const phoneHintText = computed(() => {
-  if (phoneDraftError.value) return phoneDraftError.value;
-  if (currentUser.value?.phoneMasked) {
-    return t("mePage.profile.phoneCurrent", {
-      phone: currentUser.value.phoneMasked,
-    });
-  }
-  return t("mePage.profile.phoneHint");
 });
 const wechatIdentityActionPending = computed(() =>
   userSessionStore.isAuthenticated
@@ -449,7 +392,6 @@ const errorMessage = computed(() => {
     currentUserQuery.error.value,
     updateProfileMutation.error.value,
     updateAvatarMutation.error.value,
-    updatePhoneNumberMutation.error.value,
     startWeChatBindMutation.error.value,
     notificationSubscriptionsPanelError.value,
   ];
@@ -477,22 +419,12 @@ const handleSaveNickname = async () => {
   });
 };
 
-const handleSavePhoneNumber = async () => {
-  if (!canSavePhoneNumber.value) return;
-  await updatePhoneNumberMutation.mutateAsync({
-    phoneNumber: normalizedPhoneDraft.value || null,
-  });
-  phoneDraft.value = "";
-};
-
 const handleAvatarUploadUpdate = (value: PuFileUploadValue) => {
   avatarUploadValue.value = value;
   avatarUploadError.value = null;
 };
 
-const handleAvatarUploadAdd = async (
-  item: PuFileUploadItem,
-): Promise<void> => {
+const handleAvatarUploadAdd = async (item: PuFileUploadItem): Promise<void> => {
   if (!item.file) {
     avatarUploadValue.value = item;
     return;
@@ -569,10 +501,8 @@ const handleLogout = async () => {
     queryClient.setQueryData(queryKeys.user.me(), null);
     queryClient.removeQueries({ queryKey: queryKeys.user.me() });
     nicknameDraft.value = "";
-    phoneDraft.value = "";
   } catch (error) {
-    logoutErrorMessage.value =
-      error instanceof Error ? error.message : t("mePage.logout.failed");
+    logoutErrorMessage.value = error instanceof Error ? error.message : t("mePage.logout.failed");
   } finally {
     logoutPending.value = false;
   }
@@ -595,8 +525,7 @@ const handleCopyCredential = async (value: string | null) => {
       }
     }, 1500);
   } catch (error) {
-    copyErrorMessage.value =
-      error instanceof Error ? error.message : t("common.copyFailed");
+    copyErrorMessage.value = error instanceof Error ? error.message : t("common.copyFailed");
   }
 };
 </script>
