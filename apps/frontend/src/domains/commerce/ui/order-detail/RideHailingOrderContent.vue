@@ -206,7 +206,7 @@ import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
-import type { MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
+import type { MapActiveGeometry, MapCoordinate, MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
 import { buildRideHailingOrderMapViewModel } from "./ride-hailing-order-map-view-model";
 
 type RideHailingDetail = NonNullable<CommerceOrderDetailResponse["rideHailing"]>;
@@ -224,6 +224,55 @@ type ResolvedRideHailingVehicleCard = {
   displayName: string;
   previewSrc: string | null;
   priceLabel: string;
+};
+
+const summarizeMapCoordinate = (
+  point: MapCoordinate | null | undefined,
+): { lat: number; lng: number } | null =>
+  point
+    ? {
+        lat: point.lat,
+        lng: point.lng,
+      }
+    : null;
+
+const summarizeActiveGeometry = (
+  geometry: MapActiveGeometry | null | undefined,
+): Record<string, unknown> => {
+  if (!geometry) {
+    return {
+      kind: null,
+    };
+  }
+  switch (geometry.kind) {
+    case "marker":
+      return {
+        kind: geometry.kind,
+        markerId: geometry.id,
+      };
+    case "polyline":
+      return {
+        kind: geometry.kind,
+        polylineId: geometry.id,
+      };
+    case "selection":
+      return {
+        kind: geometry.kind,
+        markerIds: geometry.markerIds ?? [],
+        polylineIds: geometry.polylineIds ?? [],
+      };
+    default:
+      return {
+        kind: geometry.kind,
+      };
+  }
+};
+
+const writeRideHailingOrderMapRenderLog = (payload: Record<string, unknown>): void => {
+  console.info("[RideHailingOrderMapRender]", {
+    at: new Date().toISOString(),
+    ...payload,
+  });
 };
 
 const props = defineProps<{
@@ -503,6 +552,54 @@ const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
   (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
     ? "active-marker"
     : "none",
+);
+
+const rideHailingOrderMapRenderDiagnostics = computed(() => {
+  const providerPolyline = props.ride.live?.navigationRoute?.polyline ?? null;
+  const plannedPolyline = props.ride.route.drivingPlan?.polyline ?? null;
+  return {
+    activeGeometry: summarizeActiveGeometry(orderMapViewModel.value.activeGeometry),
+    executionPhase: props.ride.executionPhase,
+    extraMarkerCount: orderMapViewModel.value.extraMarkers.length,
+    extraPolylineCount: orderMapViewModel.value.extraPolylines.length,
+    extraPolylineIds: orderMapViewModel.value.extraPolylines.map((polyline) => polyline.id),
+    livePhase: props.ride.live?.phase ?? null,
+    mapMode: orderMapViewModel.value.mode,
+    orderId: props.detail.order.id,
+    overviewGeometry: summarizeActiveGeometry(orderMapViewModel.value.overviewGeometry),
+    planRoute: orderMapViewModel.value.planRoute,
+    plannedPolylinePointCount: plannedPolyline?.length ?? 0,
+    providerPolylineFirstPoint: summarizeMapCoordinate(
+      providerPolyline?.[0]
+        ? {
+          lat: providerPolyline[0]?.latitude ?? Number.NaN,
+          lng: providerPolyline[0]?.longitude ?? Number.NaN,
+        }
+        : null,
+    ),
+    providerPolylineLastPoint: summarizeMapCoordinate(
+      providerPolyline && providerPolyline.length > 0
+        ? {
+            lat: providerPolyline[providerPolyline.length - 1]?.latitude ?? Number.NaN,
+            lng: providerPolyline[providerPolyline.length - 1]?.longitude ?? Number.NaN,
+          }
+        : null,
+    ),
+    providerPolylinePointCount: providerPolyline?.length ?? 0,
+    providerRouteKind: props.ride.live?.navigationRoute?.routeKind ?? null,
+    routeOrderId: props.routeOrderId,
+    showFallbackPolyline: orderMapViewModel.value.showFallbackPolyline,
+  };
+});
+
+watch(
+  rideHailingOrderMapRenderDiagnostics,
+  (payload) => {
+    writeRideHailingOrderMapRenderLog(payload);
+  },
+  {
+    immediate: true,
+  },
 );
 
 const directImageSrc = (value: string | null | undefined): string | null => {

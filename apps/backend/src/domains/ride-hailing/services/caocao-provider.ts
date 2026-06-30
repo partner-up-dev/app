@@ -306,6 +306,19 @@ const toCaocaoNavigationPolylineType = (
   routeKind: RideHailingProviderNavigationRouteQueryKind,
 ): number => (routeKind === "PICKUP" ? 1 : 3);
 
+const summarizeNavigationRouteEndpoint = (
+  polyline: RideHailingProviderNavigationRoute["polyline"],
+  position: "first" | "last",
+): { latitude: number; longitude: number } | null => {
+  const point = position === "first" ? polyline[0] : polyline[polyline.length - 1];
+  return point
+    ? {
+        latitude: point.latitude,
+        longitude: point.longitude,
+      }
+    : null;
+};
+
 const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
   const basicOrder = readOptionalRecordField(data, ["basicOrderVO"]);
   const driverRaw = readOptionalRecordField(data, ["driverInfoVo"]);
@@ -485,6 +498,42 @@ const writeCaocaoDiagnosticLog = (payload: Record<string, unknown>): void => {
       ...payload,
     })}\n`,
   );
+};
+
+const writeCaocaoRouteQuerySuccessLog = (input: {
+  endpointPath: string;
+  providerInstanceId: string;
+  providerOrderId: string;
+  requestedNavigationPolylineType: number;
+  requestedRouteKind: RideHailingProviderNavigationRouteQueryKind;
+  route: RideHailingProviderNavigationRoute;
+  returnedNavigationPolylineType: number | null;
+}): void => {
+  writeCaocaoDiagnosticLog({
+    endpointPath: input.endpointPath,
+    event: "caocao_route_query_success",
+    polylineFirstPoint: summarizeNavigationRouteEndpoint(input.route.polyline, "first"),
+    polylineLastPoint: summarizeNavigationRouteEndpoint(input.route.polyline, "last"),
+    polylinePointCount: input.route.polyline.length,
+    providerInstanceId: input.providerInstanceId,
+    providerOrderId: input.providerOrderId,
+    remainingDistanceMeters: input.route.remainingDistanceMeters,
+    remainingDurationSeconds: input.route.remainingDurationSeconds,
+    requestedNavigationPolylineType: input.requestedNavigationPolylineType,
+    requestedRouteKind: input.requestedRouteKind,
+    returnedNavigationPolylineType: input.returnedNavigationPolylineType,
+    returnedRouteKind: input.route.routeKind,
+    trafficLightCount: input.route.trafficLightCount,
+    vehicleLocation: input.route.vehicleLocation
+      ? {
+          capturedAt: input.route.vehicleLocation.capturedAt,
+          headingDegrees: input.route.vehicleLocation.headingDegrees,
+          latitude: input.route.vehicleLocation.latitude,
+          longitude: input.route.vehicleLocation.longitude,
+          speedKph: input.route.vehicleLocation.speedKph,
+        }
+      : null,
+  });
 };
 
 const tryParseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData> | null => {
@@ -892,15 +941,26 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     routeKind: RideHailingProviderNavigationRouteQueryKind;
   }): Promise<RideHailingProviderNavigationRoute | null> {
     // Staging CaoCao credentials currently expose the v1 polyline route API only.
+    const requestedNavigationPolylineType = toCaocaoNavigationPolylineType(input.routeKind);
     const data = await this.request<Record<string, unknown>>(
       "POST",
       "/common/queryDriverPolyline",
       {
-        navigation_polyline_type: toCaocaoNavigationPolylineType(input.routeKind),
+        navigation_polyline_type: requestedNavigationPolylineType,
         order_id: input.providerOrderId,
       },
     );
-    return parseCaocaoDriverRoute(data);
+    const route = parseCaocaoDriverRoute(data);
+    writeCaocaoRouteQuerySuccessLog({
+      endpointPath: "/common/queryDriverPolyline",
+      providerInstanceId: this.input.providerInstance.id,
+      providerOrderId: input.providerOrderId,
+      requestedNavigationPolylineType,
+      requestedRouteKind: input.routeKind,
+      route,
+      returnedNavigationPolylineType: readOptionalNumberField(data, ["navigationPolylineType"]),
+    });
+    return route;
   }
 
   async cancelRide(input: RideHailingProviderCancelInput): Promise<{

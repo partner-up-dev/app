@@ -882,4 +882,65 @@ describe("Caocao live order projection", () => {
       stdoutWrite.mockRestore();
     }
   });
+
+  it("logs route query success summaries with requested and returned route metadata", async () => {
+    const stdoutWrite = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      const fetchImpl: typeof fetch = async () =>
+        new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              driverEtaInfoVO: {
+                direction: 88,
+                lat: 30.27,
+                lng: 120.16,
+                remainDistance: 820,
+                remainLightCount: 2,
+                remainTime: 240,
+                speed: 12,
+                timestamp: "1755571305064",
+              },
+              navigationPolylineType: 1,
+              steps: [
+                {
+                  links: [
+                    {
+                      coords: "30.270000,120.160000;30.269700,120.160600;30.269100,120.160900",
+                    },
+                    {
+                      coords: "30.268900,120.160850;30.268800,120.160800",
+                    },
+                  ],
+                },
+              ],
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      const adapter = new CaocaoProviderAdapter({
+        providerInstance: caocaoProviderInstance(),
+        fetchImpl,
+      });
+
+      await adapter.queryDriverRoute({
+        providerOrderId: "CC123456",
+        routeKind: "PICKUP",
+      });
+
+      const logOutput = stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join("");
+      expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
+      expect(logOutput).toContain('"event":"caocao_route_query_success"');
+      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolyline"');
+      expect(logOutput).toContain('"providerOrderId":"CC123456"');
+      expect(logOutput).toContain('"requestedRouteKind":"PICKUP"');
+      expect(logOutput).toContain('"requestedNavigationPolylineType":1');
+      expect(logOutput).toContain('"returnedNavigationPolylineType":1');
+      expect(logOutput).toContain('"returnedRouteKind":"PICKUP"');
+      expect(logOutput).toContain('"polylinePointCount":5');
+    } finally {
+      stdoutWrite.mockRestore();
+    }
+  });
 });

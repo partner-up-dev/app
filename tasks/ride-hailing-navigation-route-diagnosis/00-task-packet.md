@@ -54,9 +54,25 @@
   - adapter request includes `navigation_polyline_type`
   - fake CaoCao server contract now requires `navigation_polyline_type`
   - fake CaoCao route endpoint no longer models V2-only route querying
+  - backend now emits route-query success summaries with:
+    - requested route kind / requested navigation polyline type
+    - returned route kind / returned navigation polyline type
+    - polyline point count and first/last point
+  - backend now emits route-query projection decisions with:
+    - routeQueryAttempted
+    - routeQuerySucceeded
+    - routeQuerySkippedReason
+  - frontend order-detail map now emits render summaries with:
+    - providerPolylinePointCount
+    - plannedPolylinePointCount
+    - extraPolylineCount / extraPolylineIds
+    - showFallbackPolyline
+    - activeGeometry / overviewGeometry
 - Targeted validation completed:
   - `pnpm test:unit:backend -- apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
   - `pnpm --filter @partner-up-dev/fake-caocao-server test -- src/server.test.ts`
+  - `pnpm check:type:backend`
+  - `pnpm check:type:frontend`
 
 ## Current Understanding
 
@@ -107,11 +123,14 @@
     - message: `app api config not existed or disabled`
     - conclusion: current staging provider credentials do not expose the V2
       polyline API capability
-  - implementation decision:
-    - stop using `queryDriverPolylineV2`
-    - pin PartnerUp to `POST /common/queryDriverPolyline`
-    - explicitly send `navigation_polyline_type`
-    - treat this as a provider technical limitation, not a parser bug
+- implementation decision:
+  - stop using `queryDriverPolylineV2`
+  - pin PartnerUp to `POST /common/queryDriverPolyline`
+  - explicitly send `navigation_polyline_type`
+  - treat this as a provider technical limitation, not a parser bug
+  - add route-observability guardrails before further staging diagnosis so
+    “not queried”, “provider failed”, “queried but empty”, and “frontend
+    rendered fallback” are distinguishable from logs alone
 
 ## Next Step
 

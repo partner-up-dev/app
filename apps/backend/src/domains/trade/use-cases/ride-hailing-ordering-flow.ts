@@ -180,6 +180,15 @@ const writeRideHailingLiveRouteQueryErrorLog = (payload: Record<string, unknown>
   );
 };
 
+const writeRideHailingLiveRouteQueryDecisionLog = (payload: Record<string, unknown>): void => {
+  process.stdout.write(
+    `${JSON.stringify({
+      marker: "RideHailingLiveRouteQueryDecision",
+      ...payload,
+    })}\n`,
+  );
+};
+
 const queryOptionalProviderLive = async <T>(input: {
   onError?: (error: unknown) => void;
   operation: () => Promise<T>;
@@ -291,16 +300,17 @@ export async function buildRideHailingDetailProjection(input: {
   }
 
   let providerDetail: ProviderDetailProjection | null = null;
+  const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
+  const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(rideOrder.executionPhase);
+  let routeQueryAttempted = false;
+  let routeQuerySucceeded = false;
+  let routeQuerySkippedReason: string | null = null;
   if (dispatchBinding?.providerOrderId && syncedProviderDetail) {
     const provider = await providerRepo.findById(
       dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
     );
     if (provider) {
       const port = createRideHailingProviderPort({ providerInstance: provider });
-      const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
-      const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(
-        rideOrder.executionPhase,
-      );
       logCommerceOrderDetailDebug(input.debug, "ride-detail.build.live-query-plan", {
         localOrderId: order.id,
         rideExecutionPhase: rideOrder.executionPhase,
@@ -326,33 +336,40 @@ export async function buildRideHailingDetailProjection(input: {
               }),
           })
         : null;
-      const navigationRoute = navigationRouteQueryKind
-        ? await queryOptionalProviderLive({
-            onError: (error) => {
-              writeRideHailingLiveRouteQueryErrorLog({
-                executionPhase: rideOrder.executionPhase,
-                orderId: order.id,
-                providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
-                providerOrderId: dispatchBinding?.providerOrderId ?? null,
-                routeKind: navigationRouteQueryKind,
-                ...summarizeProviderLiveError(error),
-              });
-              logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-route.error", {
-                localOrderId: order.id,
-                rideExecutionPhase: rideOrder.executionPhase,
-                providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
-                providerOrderId: dispatchBinding?.providerOrderId ?? null,
-                routeKind: navigationRouteQueryKind,
-                ...summarizeProviderLiveError(error),
-              });
-            },
-            operation: () =>
-              port.queryDriverRoute({
-                providerOrderId: dispatchBinding.providerOrderId,
-                routeKind: navigationRouteQueryKind,
-              }),
-          })
-        : null;
+      let navigationRoute: RideHailingProviderNavigationRoute | null = null;
+      if (!shouldQueryLiveGeometry) {
+        routeQuerySkippedReason = "execution_phase_not_live_geometry";
+      } else if (!navigationRouteQueryKind) {
+        routeQuerySkippedReason = "route_kind_not_resolved";
+      } else {
+        routeQueryAttempted = true;
+        navigationRoute = await queryOptionalProviderLive({
+          onError: (error) => {
+            writeRideHailingLiveRouteQueryErrorLog({
+              executionPhase: rideOrder.executionPhase,
+              orderId: order.id,
+              providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+              providerOrderId: dispatchBinding?.providerOrderId ?? null,
+              routeKind: navigationRouteQueryKind,
+              ...summarizeProviderLiveError(error),
+            });
+            logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-route.error", {
+              localOrderId: order.id,
+              rideExecutionPhase: rideOrder.executionPhase,
+              providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+              providerOrderId: dispatchBinding?.providerOrderId ?? null,
+              routeKind: navigationRouteQueryKind,
+              ...summarizeProviderLiveError(error),
+            });
+          },
+          operation: () =>
+            port.queryDriverRoute({
+              providerOrderId: dispatchBinding.providerOrderId,
+              routeKind: navigationRouteQueryKind,
+            }),
+        });
+        routeQuerySucceeded = navigationRoute !== null;
+      }
       providerDetail = projectProviderDetail({
         detail: syncedProviderDetail,
         navigationRoute,
@@ -370,13 +387,31 @@ export async function buildRideHailingDetailProjection(input: {
         ...summarizeProviderDetailProjection(providerDetail),
       });
     } else {
+      routeQuerySkippedReason = "provider_instance_missing";
       logCommerceOrderDetailDebug(input.debug, "ride-detail.build.provider-instance-missing", {
         localOrderId: order.id,
         providerInstanceId: dispatchBinding.providerInstanceId,
         providerOrderId: dispatchBinding.providerOrderId,
       });
     }
+  } else if (!dispatchBinding?.providerOrderId) {
+    routeQuerySkippedReason = "provider_order_missing";
+  } else {
+    routeQuerySkippedReason = "provider_detail_unavailable";
   }
+
+  writeRideHailingLiveRouteQueryDecisionLog({
+    executionPhase: rideOrder.executionPhase,
+    orderId: order.id,
+    providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+    providerOrderId: dispatchBinding?.providerOrderId ?? null,
+    routeKind: navigationRouteQueryKind,
+    routeQueryAttempted,
+    routeQuerySkippedReason,
+    routeQuerySucceeded,
+    shouldQueryLiveGeometry,
+    syncedProviderDetailAvailable: syncedProviderDetail !== null,
+  });
 
   const result = {
     route: rideOrder.routeSnapshot,
