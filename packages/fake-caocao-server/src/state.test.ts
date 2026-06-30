@@ -82,7 +82,9 @@ describe("FakeCaocaoState", () => {
       carType: "3",
       externalOrderId: "external-order-2",
     });
+    expect(state.previewCancelFee(created.providerOrderId)).toBe(0);
     state.advanceOrderPhase(created.providerOrderId);
+    expect(state.previewCancelFee(created.providerOrderId)).toBe(800);
     const cancelled = state.cancelOrder(created.providerOrderId);
     const feeConfirm = state.confirmFee({
       allowanceAmountFen: 120,
@@ -92,6 +94,7 @@ describe("FakeCaocaoState", () => {
 
     expect(cancelled?.phase).toBe("CANCELLED");
     expect(cancelled?.cancelFeeFen).toBe(800);
+    expect(state.previewCancelFee(created.providerOrderId)).toBe(800);
     expect(feeConfirm.providerOrderId).toBe(created.providerOrderId);
     expect(state.snapshot().feeConfirms).toHaveLength(1);
   });

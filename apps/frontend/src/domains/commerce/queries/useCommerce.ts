@@ -41,6 +41,10 @@ export type CommerceOrderDetailResponse = InferResponseType<
   CommerceApi["orders"][":orderId"]["$get"]
 >;
 
+export type RideHailingCancellationFeePreviewResponse = InferResponseType<
+  CommerceApi["orders"][":orderId"]["cancel-fee-preview"]["$get"]
+>;
+
 export type BillDetailResponse = InferResponseType<CommerceApi["bills"][":billId"]["$get"]>;
 
 export type BillLineCheckoutTargetResponse = InferResponseType<
@@ -589,6 +593,63 @@ export const useCancelOrder = () => {
     },
   });
 };
+
+export const useRideHailingCancellationFeePreview = () =>
+  useMutation({
+    mutationFn: async (orderId: string) => {
+      const requestId = createCommerceOrderDetailDebugId("cancel-fee-preview");
+      const startedAtMs = Date.now();
+
+      logCommerceOrderDetailDebug("cancel-fee-preview.mutation.start", {
+        requestId,
+        orderId,
+      });
+
+      try {
+        const response = await client.api.commerce.orders[":orderId"][
+          "cancel-fee-preview"
+        ].$get(
+          {
+            param: {
+              orderId,
+            },
+          },
+          {
+            init: {
+              credentials: "include",
+              headers: createCommerceOrderDetailDebugHeaders({
+                channel: "cancel",
+                source: "useRideHailingCancellationFeePreview",
+                requestId,
+                orderId,
+                routeOrderId: orderId,
+                trigger: "mutation",
+              }),
+            },
+          },
+        );
+        const result = await readJsonOrThrow<RideHailingCancellationFeePreviewResponse>(
+          response,
+          "Failed to query cancellation fee",
+        );
+        logCommerceOrderDetailDebug("cancel-fee-preview.mutation.success", {
+          requestId,
+          orderId,
+          durationMs: Date.now() - startedAtMs,
+          cancelFeeFen: result.cancelFeeFen,
+        });
+        return result;
+      } catch (error) {
+        logCommerceOrderDetailDebug("cancel-fee-preview.mutation.error", {
+          requestId,
+          orderId,
+          durationMs: Date.now() - startedAtMs,
+          error: describeCommerceOrderDetailDebugError(error),
+        });
+        throw error;
+      }
+    },
+  });
 
 export const useMockRentalBookingConfirmation = () => {
   const queryClient = useQueryClient();

@@ -440,6 +440,10 @@ RideHailing:
   committed, not lazily from Order Detail reads
 - cancellation-fee query is a separate pre-cancel decision surface:
   - it may inform whether cancellation is acceptable before cancellation
+  - user-side RideHailing cancellation from Order Detail must query this
+    surface before sending the destructive cancellation command
+  - if the previewed cancellation fee is greater than zero, frontend must show
+    the amount and require explicit confirmation before cancellation
   - it must not be reused as post-cancel final settlement truth
 - for cancelled RideHailing orders, if the provider authoritative payable query
   later returns a non-zero `companyFee`, backend may still materialize that

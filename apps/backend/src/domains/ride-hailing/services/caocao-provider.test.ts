@@ -588,6 +588,49 @@ describe("Caocao live order projection", () => {
     });
   });
 
+  it("queries cancellation fee preview from queryCancelFee", async () => {
+    const requestPaths: string[] = [];
+    const fetchImpl: typeof fetch = async (input) => {
+      const requestUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const url = new URL(requestUrl);
+      requestPaths.push(url.pathname);
+
+      if (url.pathname.endsWith("/common/queryCancelFee")) {
+        expect(url.searchParams.get("order_no")).toBe("CC123456");
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: {
+              cancelFee: 800,
+              orderNo: "CC123456",
+            },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response(JSON.stringify({ code: 404, success: false }), { status: 200 });
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const preview = await adapter.queryCancelFee({ providerOrderId: "CC123456" });
+
+    expect(requestPaths).toEqual(["/v2/common/queryCancelFee"]);
+    expect(preview).toEqual({
+      cancelFeeFen: 800,
+      providerOrderId: "CC123456",
+      providerSnapshot: {
+        cancelFee: 800,
+        orderNo: "CC123456",
+      },
+    });
+  });
+
   it("treats queryCalculateBill status-not-ready failures as no authoritative final settlement yet", async () => {
     const fetchImpl: typeof fetch = async () =>
       new Response(

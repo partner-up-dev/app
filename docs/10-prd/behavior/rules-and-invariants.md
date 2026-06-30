@@ -137,6 +137,7 @@
 - RideHailing visible vehicle candidates depend on route and departure time. Provider-unavailable candidates should be absent from the list, not shown as disabled options with reasons.
 - RideHailing displayed price before create is the selected candidate range, not the final bill cap.
 - RideHailing final bill follows the resolved provider settlement. A provider upgrade or substitution outside the selected candidate set is recorded rather than rejected, and the final settlement remains the bill basis.
+- Before a user cancels an active RideHailing order from Order Detail, the product should query the provider's current cancellation-fee preview and show the fee before the user confirms cancellation. If the previewed fee is greater than zero, the user must explicitly accept that fee before the cancellation request is sent.
 - If RideHailing provider dispatch fails during create-order, the domain may create and cancel an order, but the user experience remains an ordering failure dialog on `/order/new` rather than navigation to Order Detail.
 
 ## 4. Identity And Authentication Rules

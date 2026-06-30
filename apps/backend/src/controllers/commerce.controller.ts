@@ -8,6 +8,7 @@ import {
   createOrderCommand,
   getCommerceOrderDetail,
   listOfferListing,
+  queryRideHailingCancellationFeeFromOrderDetail,
   simulateRentalBookingConfirmation,
 } from "../domains/trade";
 import {
@@ -155,6 +156,12 @@ type CommerceRouteSchema = {
     $post: JsonEndpoint<
       UuidParam<"orderId">,
       Awaited<ReturnType<typeof cancelOrderFromOrderDetail>>
+    >;
+  };
+  "/orders/:orderId/cancel-fee-preview": {
+    $get: JsonEndpoint<
+      UuidParam<"orderId">,
+      Awaited<ReturnType<typeof queryRideHailingCancellationFeeFromOrderDetail>>
     >;
   };
   "/orders/:orderId/mock-rental-booking-confirmation": {
@@ -319,6 +326,42 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       throw error;
     }
   })
+  .get(
+    "/orders/:orderId/cancel-fee-preview",
+    zValidator("param", orderIdParamSchema),
+    async (c) => {
+      const { orderId } = c.req.valid("param");
+      const userId = requireAuthenticatedUserId(c);
+      const debug = withCommerceOrderDetailDebugContext(
+        readCommerceOrderDetailDebugContext(c.req.raw.headers),
+        { orderId, routeOrderId: orderId, source: "commerce.controller.cancel-fee-preview" },
+      );
+      const startedAtMs = Date.now();
+
+      logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.request", {
+        actorUserId: userId,
+      });
+
+      try {
+        const result = await queryRideHailingCancellationFeeFromOrderDetail({
+          orderId,
+          actorUserId: userId,
+          debug,
+        });
+        logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.response", {
+          durationMs: Date.now() - startedAtMs,
+          cancelFeeFen: result.cancelFeeFen,
+        });
+        return c.json(result);
+      } catch (error) {
+        logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.error", {
+          durationMs: Date.now() - startedAtMs,
+          error: error instanceof Error ? error.message : "unknown error",
+        });
+        throw error;
+      }
+    },
+  )
   .post(
     "/orders/:orderId/mock-rental-booking-confirmation",
     zValidator("param", orderIdParamSchema),

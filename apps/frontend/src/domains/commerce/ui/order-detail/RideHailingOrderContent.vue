@@ -29,12 +29,12 @@
               type="button"
               size="sm"
               shape="pill"
-              tone="neutral"
+              tone="danger"
               variant="outline"
-              :loading="cancelMutation.isPending.value"
-              :disabled="!canRequestCancellation"
+              :loading="cancelActionPending"
+              :disabled="!canRequestCancellation || cancelActionPending"
               data-testid="order-detail.ride-hailing.cancel"
-              @click="cancelRideHailingOrder"
+              @click="previewRideHailingCancellationFee"
             >
               取消订单
             </PuButton>
@@ -130,6 +130,57 @@
         </div>
       </div>
     </PuFloatPanel>
+
+    <PuDialog
+      :open="showCancelConfirmDialog"
+      tone="error"
+      title="确认取消订单"
+      :description="cancelConfirmDescription"
+      :show-cancel="false"
+      :show-confirm="false"
+      :close-on-overlay="!cancelMutation.isPending.value"
+      :close-on-escape="!cancelMutation.isPending.value"
+      @close="closeCancelConfirmDialog"
+      @cancel="closeCancelConfirmDialog"
+      @confirm="confirmRideHailingCancellation"
+    >
+      <div
+        class="ride-hailing-order-content__cancel-confirm"
+        data-testid="order-detail.ride-hailing.cancel-confirm"
+      >
+        <div data-testid="order-detail.ride-hailing.cancel-fee">
+          <PuInlineNotice
+            :tone="cancelFeeFen > 0 ? 'warning' : 'info'"
+            :title="cancelFeeFen > 0 ? '将产生取消费' : '本次取消无取消费'"
+            :message="cancelFeeMessage"
+          />
+        </div>
+      </div>
+
+      <template #actions>
+        <PuButton
+          type="button"
+          tone="neutral"
+          variant="ghost"
+          :disabled="cancelMutation.isPending.value"
+          data-testid="order-detail.ride-hailing.cancel-confirm.dismiss"
+          @click="closeCancelConfirmDialog"
+        >
+          再想想
+        </PuButton>
+        <PuButton
+          type="button"
+          tone="danger"
+          variant="solid"
+          :loading="cancelMutation.isPending.value"
+          :disabled="cancelMutation.isPending.value"
+          data-testid="order-detail.ride-hailing.cancel-confirm.confirm"
+          @click="confirmRideHailingCancellation"
+        >
+          确认取消
+        </PuButton>
+      </template>
+    </PuDialog>
   </section>
 </template>
 
@@ -137,6 +188,7 @@
 import {
   PuButton,
   PuCard,
+  PuDialog,
   PuFloatPanel,
   type PuFloatPanelStop,
   PuImg,
@@ -146,6 +198,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import {
   type CommerceOrderDetailResponse,
   useCancelOrder,
+  useRideHailingCancellationFeePreview,
 } from "@/domains/commerce/queries/useCommerce";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
@@ -180,12 +233,14 @@ const props = defineProps<{
 }>();
 
 const cancelMutation = useCancelOrder();
+const cancelFeePreviewMutation = useRideHailingCancellationFeePreview();
 
 const DEFAULT_CONTENT_HEIGHT = 720;
 
 const contentRoot = ref<HTMLElement | null>(null);
 const contentHeight = ref(DEFAULT_CONTENT_HEIGHT);
 const panelStop = ref<RidePanelStopValue>("normal");
+const showCancelConfirmDialog = ref(false);
 
 let contentResizeObserver: ResizeObserver | null = null;
 
@@ -300,7 +355,15 @@ const showsCancelAction = computed(
 );
 
 const cancelErrorMessage = computed(() =>
-  cancelMutation.error.value instanceof Error ? cancelMutation.error.value.message : null,
+  cancelFeePreviewMutation.error.value instanceof Error
+    ? cancelFeePreviewMutation.error.value.message
+    : cancelMutation.error.value instanceof Error
+      ? cancelMutation.error.value.message
+      : null,
+);
+
+const cancelActionPending = computed(
+  () => cancelFeePreviewMutation.isPending.value || cancelMutation.isPending.value,
 );
 
 const firstPresentString = (values: readonly (string | null | undefined)[]): string | null => {
@@ -375,14 +438,56 @@ const billId = computed(() => {
   return value.length > 0 ? value : null;
 });
 
-const cancelRideHailingOrder = async (): Promise<void> => {
-  logCommerceOrderDetailDebug("ride-content.cancel.click", {
+const cancelFeeFen = computed(() => cancelFeePreviewMutation.data.value?.cancelFeeFen ?? 0);
+
+const cancelFeeMessage = computed(() => {
+  if (cancelFeeFen.value > 0) {
+    return `服务商预估本次取消将收取 ${formatFen(cancelFeeFen.value)}，确认后将提交取消请求。`;
+  }
+  return "服务商预估本次取消不收取取消费，确认后将提交取消请求。";
+});
+
+const cancelConfirmDescription = computed(() =>
+  cancelFeeFen.value > 0 ? "取消后仍需承担取消费。" : "取消后订单将结束。",
+);
+
+const closeCancelConfirmDialog = (): void => {
+  if (cancelMutation.isPending.value) return;
+  showCancelConfirmDialog.value = false;
+};
+
+const previewRideHailingCancellationFee = async (): Promise<void> => {
+  logCommerceOrderDetailDebug("ride-content.cancel-preview.click", {
     routeOrderId: props.routeOrderId,
     detailOrderId: props.detail.order.id,
     providerOrderId: props.ride.provider.providerOrderId,
     executionPhase: props.ride.executionPhase,
   });
+  const preview = await cancelFeePreviewMutation.mutateAsync(props.detail.order.id);
+  if (preview.cancelFeeFen <= 0) {
+    await executeRideHailingCancellation("no-fee-preview");
+    return;
+  }
+  showCancelConfirmDialog.value = true;
+};
+
+const executeRideHailingCancellation = async (
+  source: "fee-confirm" | "no-fee-preview",
+): Promise<void> => {
+  logCommerceOrderDetailDebug("ride-content.cancel.execute", {
+    source,
+    routeOrderId: props.routeOrderId,
+    detailOrderId: props.detail.order.id,
+    providerOrderId: props.ride.provider.providerOrderId,
+    executionPhase: props.ride.executionPhase,
+    cancelFeeFen: cancelFeeFen.value,
+  });
   await cancelMutation.mutateAsync(props.detail.order.id);
+  showCancelConfirmDialog.value = false;
+};
+
+const confirmRideHailingCancellation = async (): Promise<void> => {
+  await executeRideHailingCancellation("fee-confirm");
 };
 
 const orderMapViewModel = computed(() =>

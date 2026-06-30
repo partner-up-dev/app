@@ -13,6 +13,7 @@ import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository
 import {
   createRideHailingProviderPort,
   RideHailingProviderSyncQueryError,
+  type RideHailingProviderSyncTrigger,
   syncRideHailingOrderWithProvider,
 } from "../../ride-hailing";
 import {
@@ -80,6 +81,195 @@ const assertActorMayCancelRideHailingOrder = (
     });
   }
 };
+
+async function syncRideHailingOrderBeforeCancellationDecision(input: {
+  orderId: TradeOrderId;
+  debug?: CommerceOrderDetailDebugContext;
+  trigger: RideHailingProviderSyncTrigger;
+}) {
+  try {
+    await syncRideHailingOrderWithProvider({
+      orderId: input.orderId,
+      trigger: input.trigger,
+      debug: input.debug,
+    });
+  } catch (error) {
+    if (error instanceof RideHailingProviderSyncQueryError) {
+      return throwHttpProblem({
+        status: 503,
+        detail: "RideHailing provider detail query failed before cancellation",
+        code: "RIDE_HAILING_PROVIDER_DETAIL_QUERY_FAILED",
+      });
+    }
+    throw error;
+  }
+}
+
+export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
+  orderId: string;
+  actorUserId: string;
+  debug?: CommerceOrderDetailDebugContext;
+}) {
+  logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.start", {
+    inputOrderId: input.orderId,
+    actorUserId: input.actorUserId,
+  });
+
+  const orderRecord = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
+  if (!orderRecord) {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.order-not-found", {
+      inputOrderId: input.orderId,
+      actorUserId: input.actorUserId,
+    });
+    return throwHttpProblem({ status: 404, detail: "Order not found" });
+  }
+  if (orderRecord.family !== "RIDE_HAILING") {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.family-mismatch", {
+      ...summarizeOrderRecord(orderRecord),
+      actorUserId: input.actorUserId,
+    });
+    return throwHttpProblem({
+      status: 409,
+      detail: "Only RideHailing orders can use this cancellation flow",
+    });
+  }
+  assertActorMayCancelRideHailingOrder(orderRecord, {
+    actorUserId: input.actorUserId,
+    authority: "ORDER_CREATOR",
+    providerCancelReason: "用户取消订单",
+    providerWhoCancel: 1,
+    terminationReason: "用户取消订单",
+  });
+  if (orderRecord.status !== "OPEN" && orderRecord.status !== "INITIATING") {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.order-status-blocked", {
+      ...summarizeOrderRecord(orderRecord),
+      actorUserId: input.actorUserId,
+    });
+    return throwHttpProblem({
+      status: 409,
+      detail: "Order cannot be cancelled from its current status",
+    });
+  }
+
+  const initialRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
+  if (!initialRideOrder) {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.ride-order-missing", {
+      ...summarizeOrderRecord(orderRecord),
+    });
+    return throwHttpProblem({
+      status: 500,
+      detail: "RideHailing order facts are missing",
+    });
+  }
+
+  await syncRideHailingOrderBeforeCancellationDecision({
+    orderId: orderRecord.id,
+    trigger: "CANCEL_FEE_PREVIEW",
+    debug: input.debug,
+  });
+
+  const syncedOrderRecord = await tradeOrderRepo.findById(orderRecord.id);
+  if (!syncedOrderRecord) {
+    return throwHttpProblem({ status: 404, detail: "Order not found" });
+  }
+  if (syncedOrderRecord.status !== "OPEN") {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.synced-status-blocked", {
+      ...summarizeOrderRecord(syncedOrderRecord),
+      actorUserId: input.actorUserId,
+    });
+    return throwHttpProblem({
+      status: 409,
+      detail: "Order cannot be cancelled from its current status",
+    });
+  }
+
+  const syncedRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
+  if (!syncedRideOrder) {
+    return throwHttpProblem({
+      status: 500,
+      detail: "RideHailing order facts are missing",
+    });
+  }
+  if (!isCancellableRideHailingExecutionPhase(syncedRideOrder.executionPhase)) {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.phase-blocked", {
+      ...summarizeOrderRecord(syncedOrderRecord),
+      ...summarizeRideOrder(syncedRideOrder),
+      actorUserId: input.actorUserId,
+    });
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing order cannot be cancelled from its current phase",
+    });
+  }
+
+  const rideChoiceSetItem = getRideHailingChoiceSetItem(syncedOrderRecord.items);
+  const providerBinding = rideChoiceSetItem
+    ? getRideHailingProviderBinding(rideChoiceSetItem)
+    : null;
+  if (!providerBinding?.providerOrderId) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "RideHailing order is missing provider binding",
+    });
+  }
+
+  const providerInstance = await providerRepo.findById(
+    providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+  );
+  if (!providerInstance || providerInstance.status !== "ACTIVE") {
+    return throwHttpProblem({
+      status: 404,
+      detail: "RideHailing provider instance not found",
+    });
+  }
+
+  const port = createRideHailingProviderPort({ providerInstance });
+  logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.start", {
+    ...summarizeOrderRecord(syncedOrderRecord),
+    ...summarizeRideOrder(syncedRideOrder),
+    providerInstanceId: providerBinding.providerInstanceId,
+    providerOrderId: providerBinding.providerOrderId,
+  });
+
+  try {
+    const preview = await port.queryCancelFee({
+      providerOrderId: providerBinding.providerOrderId,
+    });
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.success", {
+      ...summarizeOrderRecord(syncedOrderRecord),
+      ...summarizeRideOrder(syncedRideOrder),
+      providerInstanceId: providerBinding.providerInstanceId,
+      providerOrderId: providerBinding.providerOrderId,
+      cancelFeeFen: preview.cancelFeeFen,
+    });
+
+    return {
+      orderId: syncedOrderRecord.id,
+      cancelFeeFen: preview.cancelFeeFen,
+      currency: "CNY" as const,
+    };
+  } catch (error) {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.error", {
+      ...summarizeOrderRecord(syncedOrderRecord),
+      ...summarizeRideOrder(syncedRideOrder),
+      providerInstanceId: providerBinding.providerInstanceId,
+      providerOrderId: providerBinding.providerOrderId,
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              name: error.name,
+              stack: error.stack ?? null,
+            }
+          : error,
+    });
+    return throwHttpProblem({
+      status: 503,
+      detail: "RideHailing cancellation fee query failed",
+      code: "RIDE_HAILING_CANCELLATION_FEE_QUERY_FAILED",
+    });
+  }
+}
 
 async function cancelRideHailingOrder(input: {
   orderId: string;

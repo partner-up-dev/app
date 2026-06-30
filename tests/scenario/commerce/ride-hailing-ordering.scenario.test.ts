@@ -167,7 +167,7 @@ async function advanceLatestFakeCaocaoOrder(): Promise<{
 
 async function setFakeCaocaoOrderPhase(input: {
   providerOrderId: string;
-  phase: "ACCEPTED" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "FINISHED";
+  phase: "CREATED" | "ACCEPTED" | "ARRIVED_AT_PICKUP" | "IN_TRIP" | "FINISHED";
 }): Promise<{
   providerOrderId: string;
   phase: string;
@@ -1045,6 +1045,11 @@ scenario("commerce_ride_hailing_order_detail_cancel_dispatching_order", async (c
     const providerOrderId = fakeOrders[0]?.providerOrderId;
     assert.ok(providerOrderId);
 
+    await setFakeCaocaoOrderPhase({
+      providerOrderId,
+      phase: "CREATED",
+    });
+
     await page.getByTestId("order-detail.ride-hailing.cancel").click();
     await waitForTextIncludes({
       read: () => page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
@@ -1056,6 +1061,72 @@ scenario("commerce_ride_hailing_order_detail_cancel_dispatching_order", async (c
       phase: "CANCELLED",
     });
     assert.equal(await page.getByTestId("order-detail.ride-hailing.cancel").count(), 0);
+  });
+});
+
+scenario("commerce_ride_hailing_order_detail_prompts_positive_cancel_fee", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-ride-hailing-cancel-fee-creator", {
+    phoneNumber: "13800138007",
+  });
+  await bindScenarioWeChatOpenId({
+    openId: "fake-openid-commerce-ride-hailing-cancel-fee-creator",
+    user: creator,
+  });
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System ride hailing cancel fee PR",
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+  ctx.record("providerInstanceId", placement.providerInstanceId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    await assertRideHailingOrderingContent(page);
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    await waitForFakeCaocaoOrderCount(1);
+
+    const fakeOrders = await readFakeCaocaoOrders();
+    assert.equal(fakeOrders.length, 1);
+    const providerOrderId = fakeOrders[0]?.providerOrderId;
+    assert.ok(providerOrderId);
+
+    await setFakeCaocaoOrderPhase({
+      providerOrderId,
+      phase: "ACCEPTED",
+    });
+
+    await page.getByTestId("order-detail.ride-hailing.cancel").click();
+    await page.getByTestId("order-detail.ride-hailing.cancel-confirm").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextMatches({
+      actual: page.getByTestId("order-detail.ride-hailing.cancel-fee").textContent(),
+      pattern: /[¥￥]8\.00/,
+      label: "RideHailing positive cancellation fee preview",
+    });
+
+    await page.getByTestId("order-detail.ride-hailing.cancel-confirm.confirm").click();
+    await waitForTextIncludes({
+      read: () => page.getByTestId("order-detail.ride-hailing.status-title").textContent(),
+      expected: "已取消",
+      label: "RideHailing positive-fee cancelled status hero",
+    });
+    await waitForFakeCaocaoOrderPhase({
+      providerOrderId,
+      phase: "CANCELLED",
+    });
   });
 });
 

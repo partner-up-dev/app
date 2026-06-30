@@ -29,6 +29,7 @@ export class RideHailingProviderSyncQueryError extends Error {
 export type RideHailingProviderSyncTrigger =
   | "ORDER_DETAIL_POLL"
   | "CAOCAO_CALLBACK"
+  | "CANCEL_FEE_PREVIEW"
   | "CANCEL_REQUEST";
 
 const jsonEqual = (left: unknown, right: unknown): boolean =>

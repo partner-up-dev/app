@@ -1282,11 +1282,12 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
       async ({ query }) => {
         const providerOrderId = readFirst(query, "order_no");
         const order = providerOrderId ? state.findOrder(providerOrderId) : null;
-        if (!order) {
+        const cancelFeeFen = providerOrderId ? state.previewCancelFee(providerOrderId) : null;
+        if (!order || cancelFeeFen === null) {
           throw new FakeCaocaoProviderError(40401, "Fake Caocao order not found");
         }
         return caocaoSuccess({
-          cancelFee: order.cancelFeeFen,
+          cancelFee: cancelFeeFen,
           orderNo: order.providerOrderId,
         });
       },

@@ -156,6 +156,9 @@ const defaultDestination = (): FakeCaocaoCoordinate => ({
 
 const terminalOrderPhases = new Set<FakeCaocaoOrderPhase>(["FINISHED", "CANCELLED"]);
 const nonRetreatableOrderPhases = new Set<FakeCaocaoOrderPhase>(["CREATED", "CANCELLED"]);
+
+const calculateCancelFeeFen = (phase: FakeCaocaoOrderPhase): number =>
+  phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP" ? 800 : 0;
 const activeOrderPhases: FakeCaocaoOrderPhase[] = [
   "CREATED",
   "ACCEPTED",
@@ -514,7 +517,7 @@ export class FakeCaocaoState {
 
     const updated: FakeCaocaoOrderState = {
       ...order,
-      cancelFeeFen: order.phase === "ACCEPTED" || order.phase === "ARRIVED_AT_PICKUP" ? 800 : 0,
+      cancelFeeFen: calculateCancelFeeFen(order.phase),
       phase: "CANCELLED",
       queryCount: 0,
       updatedAt: timestamp,
@@ -522,6 +525,13 @@ export class FakeCaocaoState {
     };
     this.orders.set(providerOrderId, updated);
     return updated;
+  }
+
+  previewCancelFee(providerOrderId: string): number | null {
+    const order = this.orders.get(providerOrderId);
+    if (!order) return null;
+    if (order.phase === "CANCELLED") return order.cancelFeeFen;
+    return calculateCancelFeeFen(order.phase);
   }
 
   confirmFee(input: {
