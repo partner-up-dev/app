@@ -140,6 +140,14 @@ export async function syncRideHailingOrderWithProvider(input: {
     const tradeOrderRepo = new TradeOrderRepository(tx);
     const rideOrderRepo = new RideHailingOrderRepository(tx);
     const patch: Partial<NewRideHailingOrder> = {};
+    let finalSettlementConflict:
+      | {
+          currentAmountFen: number;
+          currentProviderOrderId: string;
+          observedAmountFen: number;
+          observedProviderOrderId: string;
+        }
+      | null = null;
 
     logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.context", {
       localOrderId: transactionalContext.order.id,
@@ -190,10 +198,21 @@ export async function syncRideHailingOrderWithProvider(input: {
           observation.finalSettlementInput.providerOrderId ||
         currentFinalSettlementInput.amountFen !== observation.finalSettlementInput.amountFen
       ) {
-        return throwHttpProblem({
-          status: 409,
-          detail: "RideHailing final settlement input conflicts with committed value",
-        });
+        finalSettlementConflict = {
+          currentAmountFen: currentFinalSettlementInput.amountFen,
+          currentProviderOrderId: currentFinalSettlementInput.providerOrderId,
+          observedAmountFen: observation.finalSettlementInput.amountFen,
+          observedProviderOrderId: observation.finalSettlementInput.providerOrderId,
+        };
+        logCommerceOrderDetailDebug(
+          input.debug,
+          "ride-provider-sync.tx.final-settlement-conflict",
+          {
+            localOrderId: transactionalContext.order.id,
+            trigger: input.trigger,
+            ...finalSettlementConflict,
+          },
+        );
       }
     }
 
@@ -206,6 +225,7 @@ export async function syncRideHailingOrderWithProvider(input: {
       driverChanged: "driverSnapshot" in patch,
       vehicleChanged: "vehicleSnapshot" in patch,
       finalSettlementCommitted: patch.finalSettlementInput !== undefined,
+      finalSettlementConflictDetected: finalSettlementConflict !== null,
       shouldEnsureFinalBill,
     });
 
