@@ -11,7 +11,7 @@ Objective:
 - turn the diagnosis into two executable invariants for the RideHailing
   fulfillment mechanism:
   1. final settlement input must come from the ride-hailing provider's
-     authoritative payable-query result
+     authoritative query result available in the current integration boundary
   2. cancellation-fee query is pre-cancellation only and must not be reused as
      post-cancellation settlement truth
 
@@ -22,13 +22,14 @@ Hypothesis:
   `queryOrderDetailV2`-derived amount parsing and cancellation-fee querying
 - the correct durable fix is not "cancel => 0", but aligning
   `ride_orders.final_settlement_input` to the provider's authoritative final
-  settlement payable-query path and restricting cancellation-fee queries to
+  settlement source that is actually available in the current CaoCao
+  integration boundary, while restricting cancellation-fee queries to
   pre-cancellation decision support
 
 ## Guardrails Touched
 
 - Typed input route: `Reality`
-- Active mode: `Execute` after correcting the authoritative provider contract
+- Active mode: `Execute`
 - Durable owners under inspection:
   - `apps/backend/src/domains/ride-hailing/`
   - `apps/backend/src/domains/trade/`
@@ -36,24 +37,22 @@ Hypothesis:
 - Mutation boundary:
   - task packet
   - durable contract doc
-  - RideHailing provider adapter, observation, sync use-case, and test fixtures
 
 ## Verification
 
 - source trace completed for cancellation path and final-bill creation path
 - durable contract updated in `docs/20-product-tdd/ecommerce-contracts.md`
-- official CaoCao doc correction confirmed:
-  - `2.26 queryCalculateBill` is the payable source
-  - `2.15 queryBill` is payment/reconciliation truth, not the payable source
-- targeted verification completed:
-  - `pnpm --filter @partner-up-dev/backend typecheck`
-  - `pnpm --filter @partner-up-dev/fake-caocao-server typecheck`
-  - backend unit:
-    `provider-order-observation.test.ts`, `caocao-provider.test.ts`
-  - fake provider unit:
-    `packages/fake-caocao-server/src/server.test.ts`
-  - backend scenario:
-    `apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
+- latest pre-environment evidence confirmed:
+  - `queryOrderDetailV2` succeeds for finished orders and exposes provider phase
+    / status label
+  - `queryCalculateBill` is not usable for the current CaoCao app credentials;
+    observed provider failure:
+    `453 app api config not existed or disabled`
+  - current durable target therefore falls back to:
+    `queryOrderDetailV2.orderFeeVo.totalFee`
+- current implementation verification completed:
+  - `pnpm exec vitest run --config vitest.backend.config.ts --project backend-unit apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
+  - `pnpm exec vitest run --config vitest.backend.config.ts --project backend-scenario apps/backend/tests/ride-hailing/caocao-callback-route.scenario.test.ts`
 
 ## Current Understanding
 
@@ -80,87 +79,113 @@ Hypothesis:
   - observer output `executionPhase = CANCELLED` and
     `finalSettlementInput.amountFen = 1270` at the same time
 - latest source correction:
-  - earlier diagnosis used the wrong CaoCao source page
-  - the authoritative source for local final settlement input should be
-    `queryCalculateBill`, not `queryBill`
+  - earlier diagnosis first corrected from `queryBill` to
+    `queryCalculateBill`
+  - latest pre-environment log evidence then showed that
+    `queryCalculateBill` is not enabled for the current CaoCao app
+    credentials, so it is not part of the implementable contract for this
+    integration slice
 - user-aligned target invariant is now:
-  - provider authoritative final settlement truth must come from the provider
-    payable query rather than current order-detail fallback parsing
+  - provider authoritative final settlement truth must still come from a
+    provider query result
+  - for the current CaoCao integration surface, that source is
+    `queryOrderDetailV2.orderFeeVo.totalFee`
   - cancellation fee remains a pre-cancel decision/query surface only
 - current frontend order-detail polling stops on terminal RideHailing phases, so
   `FINISHED` / `CANCELLED` do not create a high-frequency post-terminal retry
   loop by default
 - for this slice, automatic background retry is not required yet; the simpler
   accepted model is:
-  - terminal phase sync may best-effort call `queryCalculateBill`
-  - if `queryCalculateBill` has no authoritative result yet, keep
-    `finalSettlementInput = null`
+  - each natural sync first reads provider order detail for execution truth
+  - if the order is terminal and `finalSettlementInput` is still null, backend
+    then calls `queryFinalSettlement()`
+  - for CaoCao, that adapter method internally rereads `queryOrderDetailV2`
+    and extracts `orderFeeVo.totalFee`
+  - if `orderFeeVo.totalFee` is still absent, keep `finalSettlementInput = null`
   - rely on the next natural sync trigger rather than introducing a
     job-backed retry mechanism now
-- implementation now matches durable truth:
-  - provider order-detail sync only updates execution truth
-  - CaoCao final settlement now uses `queryCalculateBill`
-  - `finalSettlementInput.amountFen` now binds `companyFee`
-  - status-not-ready provider responses are normalized to `null`
-    final-settlement input rather than blocking terminal sync
+- implementation now matches the revised durable truth:
+  - `RideHailingProviderPort` remains unchanged
+  - CaoCao adapter `queryFinalSettlement()` now internally rereads
+    `queryOrderDetailV2`
+  - for CaoCao, `finalSettlementInput.amountFen` now binds
+    `orderFeeVo.totalFee`
+  - missing `orderFeeVo.totalFee` returns `null` final settlement without
+    blocking terminal phase sync
+- `orderFeeVo.companyPayAmount` exists in the legacy CaoCao schema but is not
+  the accepted target for this slice:
+  - legacy code still reads `orderFeeVo.totalFee`
+  - available schema comments describe `companyPayAmount` as enterprise-paid
+    amount, which is too late-bound for the current bill-creation flow
 
 ## Ranked Hypotheses
 
-1. Current final-settlement source is wrong: local code derives settlement from
-   order-detail parsing, while the intended provider-authoritative source should
-   be the dedicated payable query path.
-2. Current cancellation-fee surface is semantically narrow and should stay
-   pre-cancel only; comparing it with post-cancel order payable truth produces
-   a false contradiction.
-3. Even if `orderFeeVO.totalFee` can sometimes match provider truth, the local
-   mechanism is still structurally wrong because it does not bind
-   `finalSettlementInput` to the authoritative query contract.
+1. The current missing-bill case for finished orders is caused by an
+   integration-boundary mismatch: code attempts `queryCalculateBill`, but the
+   current CaoCao app credentials cannot use that API.
+2. The correct CaoCao source for the current slice is therefore not a separate
+   payable API but the amount field already returned by
+   `queryOrderDetailV2.orderFeeVo.totalFee`.
+3. The cancellation-fee surface remains semantically narrow and should stay
+   pre-cancel only; comparing it with post-cancel order payable truth still
+   produces a false contradiction.
 
 ## Evidence Notes
 
-- Adapter fallback:
+- Adapter implementation:
   `apps/backend/src/domains/ride-hailing/services/caocao-provider.ts`
-  reads `orderFeeVO.totalFee` into `finalAmountFen`
-- Observation bug:
-  `apps/backend/src/domains/ride-hailing/services/provider-order-observation.ts`
-  emits `finalSettlementInput` on any non-null `finalAmountFen`, even when
-  phase maps to `CANCELLED`
-- Bill-creation gate:
+  now maps `queryFinalSettlement()` to
+  `queryOrderDetailV2.orderFeeVo.totalFee`
+- Execution and settlement split:
   `apps/backend/src/domains/ride-hailing/use-cases/sync-ride-hailing-order-with-provider.ts`
-  plus
-  `apps/backend/src/domains/ride-hailing/use-cases/apply-ride-hailing-final-settlement-consequence.ts`
-  only check presence of `finalSettlementInput`, not ride execution phase or
-  cancelled order status
+  first persists execution truth from `queryOrderDetail()`, then separately
+  attempts terminal final settlement through `queryFinalSettlement()`
 - Test gap:
   `tests/scenario/commerce/ride-hailing-ordering.scenario.test.ts` verifies
   cancellation UI state but does not assert bill absence
+- Current pre-environment log evidence:
+  `scratch/log-20260630.txt`
+  shows:
+  - `queryOrderDetailV2` success with `providerPhase = "5"` and
+    `providerStatusLabel = "待支付"`
+  - local terminal sync attempting final settlement
+  - `queryCalculateBill` failure with provider code `453`
+    `app api config not existed or disabled`
 
 ## Agreed Target Invariants
 
 1. `ride_orders.final_settlement_input` must be derived from the
-   ride-hailing provider's authoritative final payable query result.
-   For CaoCao, that means `queryCalculateBill`, not the current
-   `queryOrderDetailV2` amount fallback and not `queryBill`.
-2. For CaoCao, `ride_orders.final_settlement_input.amountFen` must bind
-   `companyFee`:
-   `companyFee` is the amount PartnerUp owes CaoCao, so it is also the amount
-   PartnerUp should charge the user.
-3. Cancellation-fee query is only used before cancellation to inform the
+   ride-hailing provider's authoritative query result available in the current
+   integration boundary.
+   For CaoCao in this slice, that means
+   `queryOrderDetailV2.orderFeeVo.totalFee`, not `queryCalculateBill`,
+   not `queryBill`, and not cancellation-fee preview output.
+2. For CaoCao in this slice,
+   `ride_orders.final_settlement_input.amountFen` must bind
+   `orderFeeVo.totalFee`.
+3. For CaoCao in this slice, `settlement-ready` means:
+   - the local RideHailing execution phase is terminal
+   - `queryFinalSettlement()` has been attempted on that sync path
+   - the query result exposes non-null `queryOrderDetailV2.orderFeeVo.totalFee`
+4. Cancellation-fee query is only used before cancellation to inform the
    cancellation decision; it must not be treated as post-cancellation final
    settlement truth.
-4. Local terminal RideHailing phases that may trigger `queryCalculateBill` are
-   only `FINISHED` and `CANCELLED`.
-5. `queryCalculateBill` failure or no-result must not roll back or block local
-   terminal phase synchronization.
+5. Local terminal RideHailing phases that may trigger final-settlement capture
+   are only `FINISHED` and `CANCELLED`.
+6. Absence of `orderFeeVo.totalFee` must not roll back or block local terminal
+   phase synchronization.
 
 ## Accepted Retry Model
 
 - This slice does not introduce a new job-backed retry mechanism.
-- `queryCalculateBill` runs as a best-effort follow-up when a local
-  RideHailing order is observed in `FINISHED` or `CANCELLED` and
-  `finalSettlementInput` is still `null`.
-- If `queryCalculateBill` returns no authoritative result yet, persist nothing
-  and keep `finalSettlementInput = null`.
+- When a local RideHailing order is observed in `FINISHED` or `CANCELLED` and
+  `finalSettlementInput` is still `null`, backend may call
+  `queryFinalSettlement()`.
+- For CaoCao in this slice, `queryFinalSettlement()` internally rereads
+  `queryOrderDetailV2` and commits final settlement only if
+  `orderFeeVo.totalFee` is present.
+- If that final-settlement query does not expose `orderFeeVo.totalFee`, persist
+  nothing and keep `finalSettlementInput = null`.
 - Later natural sync triggers may retry implicitly, for example:
   - provider callback
   - user reopening order detail
@@ -180,7 +205,7 @@ sequenceDiagram
 
   Trigger->>Sync: sync(orderId)
   Sync->>Provider: queryOrderDetail(providerOrderId)
-  Provider-->>Sync: execution truth only
+  Provider-->>Sync: execution truth
   Sync->>RideOrder: persist executionPhase / driver / vehicle
 
   alt executionPhase not terminal
@@ -189,13 +214,14 @@ sequenceDiagram
     alt finalSettlementInput already committed
       Sync-->>Trigger: complete
     else finalSettlementInput is null
-      Sync->>Provider: queryCalculateBill(providerOrderId)
-      alt authoritative result not ready
+      Sync->>Provider: queryFinalSettlement(providerOrderId)
+      Note over Provider: CaoCao adapter internally calls queryOrderDetailV2
+      alt orderFeeVo.totalFee absent
         Provider-->>Sync: null
         Sync-->>Trigger: keep terminal phase, no settlement write
-      else authoritative result returned
-        Provider-->>Sync: companyFee
-        Sync->>RideOrder: persist finalSettlementInput.amountFen = companyFee
+      else orderFeeVo.totalFee present
+        Provider-->>Sync: finalSettlementInput.amountFen = orderFeeVo.totalFee
+        Sync->>RideOrder: persist finalSettlementInput
         Sync->>Bill: applyRideHailingFinalSettlementConsequence()
         Bill-->>Sync: final bill materialized if applicable
         Sync-->>Trigger: complete
@@ -206,9 +232,7 @@ sequenceDiagram
 
 ## Next Step
 
-1. Durable contract and production code are now aligned on
-   `queryCalculateBill -> companyFee -> finalSettlementInput.amountFen`.
-2. Deferred by user choice for a later slice:
+1. Deferred by user choice for a later slice:
    - `FAILED` semantic cleanup
    - provider-driven vehicle type / order item resolution synchronization
    - dedicated retry/backoff mechanism beyond natural sync triggers

@@ -52,6 +52,7 @@ const DRIVER_NO = "FAKE_DRIVER_001";
 const DRIVER_NAME = "曹操测试司机";
 const DRIVER_PHONE = "13900139000";
 const VEHICLE_BRAND = "几何";
+const VEHICLE_MODEL = "几何A";
 const VEHICLE_COLOR = "白色";
 const VEHICLE_PLATE = "浙A·TEST";
 const CALLBACK_INFO_PATTERN =
@@ -559,7 +560,6 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
       beginChargeTime: fromIsoToCaocaoDateTime(order.serviceStartedAt),
       callbackInfo: order.callbackInfo,
       callerPhone: order.callerPhone,
-      carType: Number(order.carType),
       cityCode: order.cityCode,
       departureTime: order.departureTime,
       endAddress: order.endAddress,
@@ -590,7 +590,7 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
         lat: order.origin.latitude,
         lng: order.origin.longitude,
       },
-      requireLevel: 0,
+      requireLevel: Number(order.carType),
       startAddress: order.startAddress,
       startName: order.startName,
       startServiceTime: fromIsoToCaocaoDateTime(order.acceptedAt),
@@ -604,6 +604,7 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
     driverInfoVo: driver
       ? {
           carBrand: driver.vehicleBrand,
+          carType: VEHICLE_MODEL,
           carNo: driver.vehiclePlate,
           color: driver.vehicleColor,
           driverName: driver.driverName,
@@ -615,6 +616,7 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
             lng: driver.longitude,
             speed: driver.speedKph,
           },
+          serviceType: Number(order.carType),
         }
       : null,
     orderFeeVo: {

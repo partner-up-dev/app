@@ -547,20 +547,23 @@ describe("Caocao live order projection", () => {
             code: 200,
             data: {
               basicOrderVO: {
+                requireLevel: 3,
                 status: "12",
               },
-              driverInfoVO: {
+              driverInfoVo: {
                 carBrand: "几何",
-                card: "浙A12345",
+                carNo: "浙A12345",
+                carType: "几何A",
                 color: "白色",
+                driverName: "张师傅",
+                driverPhone: "13800138001",
                 location: {
                   direction: 90,
-                  latitude: 30.2688,
-                  longitude: 120.1608,
+                  lat: 30.2688,
+                  lng: 120.1608,
                   speed: 0,
                 },
-                name: "张师傅",
-                phone: "13800138001",
+                serviceType: 7,
               },
             },
             success: true,
@@ -637,6 +640,8 @@ describe("Caocao live order projection", () => {
 
     expect(detail.phase).toBe("12");
     expect(detail.statusLabel).toBe("司机已到达");
+    expect(detail.providerVehicleTypeCode).toBe("3");
+    expect(detail.providerVehicleTypeName).toBeNull();
     expect(detail.driver?.driverName).toBe("张师傅");
     expect(detail.vehicle?.plate).toBe("浙A12345");
     expect(detail.vehicleLocation?.headingDegrees).toBe(90);
@@ -660,24 +665,64 @@ describe("Caocao live order projection", () => {
     ]);
   });
 
-  it("queries authoritative final settlement from queryCalculateBill companyFee", async () => {
+  it("does not infer provider vehicle type from non-requireLevel detail fields", async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          code: 200,
+          data: {
+            basicOrderVO: {
+              carType: 3,
+              serviceType: 3,
+              status: "9",
+            },
+            driverInfoVo: {
+              carBrand: "几何",
+              carNo: "浙A12345",
+              carType: "几何A",
+              color: "白色",
+              driverName: "张师傅",
+              driverPhone: "13800138001",
+              serviceType: 3,
+            },
+          },
+          success: true,
+        }),
+        { status: 200 },
+      );
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const detail = await adapter.queryOrderDetail({ providerOrderId: "CC123456" });
+
+    expect(detail.phase).toBe("9");
+    expect(detail.providerVehicleTypeCode).toBeNull();
+    expect(detail.providerVehicleTypeName).toBeNull();
+  });
+
+  it("queries authoritative final settlement from queryOrderDetailV2 orderFeeVo.totalFee", async () => {
     const requestPaths: string[] = [];
-    const requestBodies: string[] = [];
     const fetchImpl: typeof fetch = async (input, init) => {
       const requestUrl =
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       const url = new URL(requestUrl);
       requestPaths.push(url.pathname);
 
-      if (url.pathname.endsWith("/common/queryCalculateBill")) {
-        requestBodies.push(init?.body?.toString() ?? "");
+      if (url.pathname.endsWith("/common/queryOrderDetailV2")) {
+        expect(init).toBeUndefined();
+        expect(url.searchParams.get("order_id")).toBe("CC123456");
         return new Response(
           JSON.stringify({
             code: 200,
             data: {
-              companyFee: 1200,
-              personalFee: 200,
-              totalFee: 1400,
+              basicOrderVO: {
+                status: "5",
+              },
+              orderFeeVo: {
+                totalFee: 1200,
+              },
             },
             success: true,
           }),
@@ -694,16 +739,18 @@ describe("Caocao live order projection", () => {
 
     const bill = await adapter.queryFinalSettlement({ providerOrderId: "CC123456" });
 
-    expect(requestPaths).toEqual(["/v2/common/queryCalculateBill"]);
-    expect(new URLSearchParams(requestBodies[0] ?? "").get("order_id")).toBe("CC123456");
+    expect(requestPaths).toEqual(["/v2/common/queryOrderDetailV2"]);
     expect(bill).toEqual({
       amountFen: 1200,
       currency: "CNY",
       providerOrderId: "CC123456",
       providerSnapshot: {
-        companyFee: 1200,
-        personalFee: 200,
-        totalFee: 1400,
+        basicOrderVO: {
+          status: "5",
+        },
+        orderFeeVo: {
+          totalFee: 1200,
+        },
       },
     });
   });
@@ -751,13 +798,20 @@ describe("Caocao live order projection", () => {
     });
   });
 
-  it("treats queryCalculateBill status-not-ready failures as no authoritative final settlement yet", async () => {
+  it("treats missing orderFeeVo.totalFee as no authoritative final settlement yet", async () => {
     const fetchImpl: typeof fetch = async () =>
       new Response(
         JSON.stringify({
-          code: 25011,
-          msg: "订单状态不正确",
-          success: false,
+          code: 200,
+          data: {
+            basicOrderVO: {
+              status: "5",
+            },
+            orderFeeVo: {
+              totalFee: null,
+            },
+          },
+          success: true,
         }),
         { status: 200 },
       );

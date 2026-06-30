@@ -379,8 +379,10 @@ components:
         - driverNo
         - carNo
         - carBrand
+        - carType
         - color
         - location
+        - serviceType
       properties:
         driverName:
           type: string
@@ -396,11 +398,17 @@ components:
         carBrand:
           type: string
           minLength: 1
+        carType:
+          type: string
+          minLength: 1
         color:
           type: string
           minLength: 1
         location:
           $ref: '#/components/schemas/DriverInfoLocation'
+        serviceType:
+          type: integer
+          enum: [2, 3, 4, 5, 7, 12, 14, 15]
     OrderFeeVo:
       type: object
       additionalProperties: false
@@ -612,9 +620,6 @@ components:
             - 'null'
         callerPhone:
           $ref: '#/components/schemas/PhoneNumber'
-        carType:
-          type: integer
-          enum: [2, 3, 4, 5, 7, 12, 14, 15]
         cityCode:
           $ref: '#/components/schemas/CityCode'
         departureTime:
@@ -665,7 +670,7 @@ components:
           $ref: '#/components/schemas/Coordinate'
         requireLevel:
           type: integer
-          enum: [0, 1]
+          enum: [2, 3, 4, 5, 7, 12, 14, 15]
         startAddress:
           type: string
           minLength: 1

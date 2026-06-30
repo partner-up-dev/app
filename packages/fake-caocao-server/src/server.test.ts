@@ -211,13 +211,15 @@ describe("startFakeCaocaoServer", () => {
     );
     const detailBody = (await detailResponse.json()) as {
       code: number;
-      data: { basicOrderVO: { status: string } };
+      data: { basicOrderVO: { requireLevel: number; status: string }; driverInfoVo: null };
       success: boolean;
     };
 
     expect(detailResponse.ok).toBe(true);
     expect(detailBody.success).toBe(true);
     expect(detailBody.data.basicOrderVO.status).toBe("1");
+    expect(detailBody.data.basicOrderVO.requireLevel).toBe(5);
+    expect(detailBody.data.driverInfoVo).toBeNull();
 
     const advanceResponse = await fetch(`${server.origin}/__fake_caocao/orders/latest/advance`, {
       method: "POST",
@@ -244,13 +246,19 @@ describe("startFakeCaocaoServer", () => {
     );
     const detailAfterAdvanceBody = (await detailAfterAdvanceResponse.json()) as {
       code: number;
-      data: { basicOrderVO: { status: string } };
+      data: {
+        basicOrderVO: { requireLevel: number; status: string };
+        driverInfoVo: { carType: string; serviceType: number };
+      };
       success: boolean;
     };
 
     expect(detailAfterAdvanceResponse.ok).toBe(true);
     expect(detailAfterAdvanceBody.success).toBe(true);
     expect(detailAfterAdvanceBody.data.basicOrderVO.status).toBe("9");
+    expect(detailAfterAdvanceBody.data.basicOrderVO.requireLevel).toBe(5);
+    expect(detailAfterAdvanceBody.data.driverInfoVo.carType).toBe("几何A");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.serviceType).toBe(5);
 
     const driverLocationResponse = await fetch(
       `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
@@ -527,6 +535,24 @@ describe("startFakeCaocaoServer", () => {
     expect(order?.carType).toBe("3");
     expect(order?.estimatePriceFen).toBe(3600);
     expect(order?.submittedCarTypes).toEqual(["3", "5"]);
+
+    const detailResponse = await fetch(
+      `${server.origin}/common/queryOrderDetailV2?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "42",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const detailBody = (await detailResponse.json()) as {
+      data: { basicOrderVO: { requireLevel: number } };
+      success: boolean;
+    };
+    expect(detailResponse.ok).toBe(true);
+    expect(detailBody.success).toBe(true);
+    expect(detailBody.data.basicOrderVO.requireLevel).toBe(3);
   });
 
   test("supports admin retreat controls", async () => {

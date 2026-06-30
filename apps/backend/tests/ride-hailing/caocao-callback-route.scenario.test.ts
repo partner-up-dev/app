@@ -392,7 +392,6 @@ scenario("legacy Caocao callback alias resolves provider and requires local orde
 scenario("Caocao callback updates ride execution and creates final bill", async () => {
   const creator = await givenUser("caocao-callback-order-owner");
   let detailQueryCount = 0;
-  let billQueryCount = 0;
   const fakeCaocao = createServer((request, response) => {
     if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
       detailQueryCount += 1;
@@ -401,32 +400,22 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
         JSON.stringify({
           code: 200,
           data: {
-            phase: "FINISHED",
-            driver: {
+            basicOrderVO: {
+              requireLevel: 3,
+              status: "5",
+            },
+            driverInfoVo: {
+              carBrand: "曹操快车",
+              carNo: "浙B99999",
+              carType: "曹操快车",
+              color: "蓝色",
               driverName: "李师傅",
               driverPhone: "13900139000",
+              serviceType: 3,
             },
-            vehicle: {
-              brand: "曹操快车",
-              color: "蓝色",
-              plate: "浙B99999",
+            orderFeeVo: {
+              totalFee: 5000,
             },
-          },
-          success: true,
-        }),
-      );
-      return;
-    }
-    if (request.url?.startsWith("/v2/common/queryCalculateBill")) {
-      billQueryCount += 1;
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(
-        JSON.stringify({
-          code: 200,
-          data: {
-            companyFee: 5000,
-            personalFee: 0,
-            totalFee: 5000,
           },
           success: true,
         }),
@@ -684,8 +673,7 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
     );
 
     assert.equal(response.status, 200);
-    assert.equal(detailQueryCount, 1);
-    assert.equal(billQueryCount, 1);
+    assert.equal(detailQueryCount, 2);
     const responseBody = (await response.json()) as {
       code: number;
       success: boolean;
@@ -713,11 +701,10 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
 });
 
 scenario(
-  "Caocao callback creates final bill for cancelled ride when queryCalculateBill returns non-zero companyFee",
+  "Caocao callback creates final bill for cancelled ride when queryOrderDetailV2 exposes non-zero totalFee",
   async () => {
     const creator = await givenUser("caocao-callback-cancelled-order-owner");
     let detailQueryCount = 0;
-    let billQueryCount = 0;
     let confirmFeeCount = 0;
     const fakeCaocao = createServer((request, response) => {
       if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
@@ -727,32 +714,22 @@ scenario(
           JSON.stringify({
             code: 200,
             data: {
-              phase: "CANCELLED",
-              driver: {
+              basicOrderVO: {
+                requireLevel: 3,
+                status: "20",
+              },
+              driverInfoVo: {
+                carBrand: "曹操快车",
+                carNo: "浙C88888",
+                carType: "曹操快车",
+                color: "白色",
                 driverName: "王师傅",
                 driverPhone: "13700137000",
+                serviceType: 3,
               },
-              vehicle: {
-                brand: "曹操快车",
-                color: "白色",
-                plate: "浙C88888",
+              orderFeeVo: {
+                totalFee: 1270,
               },
-            },
-            success: true,
-          }),
-        );
-        return;
-      }
-      if (request.url?.startsWith("/v2/common/queryCalculateBill")) {
-        billQueryCount += 1;
-        response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(
-          JSON.stringify({
-            code: 200,
-            data: {
-              companyFee: 1270,
-              personalFee: 0,
-              totalFee: 1270,
             },
             success: true,
           }),
@@ -833,8 +810,7 @@ scenario(
       );
 
       assert.equal(response.status, 200);
-      assert.equal(detailQueryCount, 1);
-      assert.equal(billQueryCount, 1);
+      assert.equal(detailQueryCount, 2);
       const updatedOrder = await tradeOrderRepo.findById(orderSeed.order.id);
       assert.ok(updatedOrder);
       assert.equal(updatedOrder.status, "CANCELLED");
@@ -905,11 +881,10 @@ scenario(
 );
 
 scenario(
-  "Caocao callback keeps terminal sync when queryCalculateBill has no authoritative result yet",
+  "Caocao callback keeps terminal sync when queryOrderDetailV2 has no authoritative totalFee yet",
   async () => {
     const creator = await givenUser("caocao-callback-bill-miss-owner");
     let detailQueryCount = 0;
-    let billQueryCount = 0;
     const fakeCaocao = createServer((request, response) => {
       if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
         detailQueryCount += 1;
@@ -918,30 +893,24 @@ scenario(
           JSON.stringify({
             code: 200,
             data: {
-              phase: "CANCELLED",
-              driver: {
+              basicOrderVO: {
+                requireLevel: 3,
+                status: "20",
+              },
+              driverInfoVo: {
+                carBrand: "曹操快车",
+                carNo: "浙D66666",
+                carType: "曹操快车",
+                color: "黑色",
                 driverName: "赵师傅",
                 driverPhone: "13600136000",
+                serviceType: 3,
               },
-              vehicle: {
-                brand: "曹操快车",
-                color: "黑色",
-                plate: "浙D66666",
+              orderFeeVo: {
+                totalFee: null,
               },
             },
             success: true,
-          }),
-        );
-        return;
-      }
-      if (request.url?.startsWith("/v2/common/queryCalculateBill")) {
-        billQueryCount += 1;
-        response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(
-          JSON.stringify({
-            code: 25011,
-            msg: "订单状态不正确",
-            success: false,
           }),
         );
         return;
@@ -990,8 +959,7 @@ scenario(
       );
 
       assert.equal(response.status, 200);
-      assert.equal(detailQueryCount, 1);
-      assert.equal(billQueryCount, 1);
+      assert.equal(detailQueryCount, 2);
       const updatedOrder = await tradeOrderRepo.findById(orderSeed.order.id);
       assert.ok(updatedOrder);
       assert.equal(updatedOrder.status, "CANCELLED");
@@ -1008,38 +976,42 @@ scenario(
   },
 );
 
-scenario("Caocao callback does not block terminal sync when queryCalculateBill fails", async () => {
+scenario("Caocao callback does not block terminal sync when final settlement detail reread fails", async () => {
   const creator = await givenUser("caocao-callback-bill-failure-owner");
   let detailQueryCount = 0;
-  let billQueryCount = 0;
   const fakeCaocao = createServer((request, response) => {
     if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
       detailQueryCount += 1;
+      if (detailQueryCount > 1) {
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ code: 500, success: false }));
+        return;
+      }
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(
         JSON.stringify({
           code: 200,
           data: {
-            phase: "FINISHED",
-            driver: {
+            basicOrderVO: {
+              requireLevel: 3,
+              status: "5",
+            },
+            driverInfoVo: {
+              carBrand: "曹操快车",
+              carNo: "浙E55555",
+              carType: "曹操快车",
+              color: "银色",
               driverName: "周师傅",
               driverPhone: "13500135000",
+              serviceType: 3,
             },
-            vehicle: {
-              brand: "曹操快车",
-              color: "银色",
-              plate: "浙E55555",
+            orderFeeVo: {
+              totalFee: null,
             },
           },
           success: true,
         }),
       );
-      return;
-    }
-    if (request.url?.startsWith("/v2/common/queryCalculateBill")) {
-      billQueryCount += 1;
-      response.writeHead(500, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ code: 500, success: false }));
       return;
     }
     response.writeHead(404, { "Content-Type": "application/json" });
@@ -1086,8 +1058,7 @@ scenario("Caocao callback does not block terminal sync when queryCalculateBill f
     );
 
     assert.equal(response.status, 200);
-    assert.equal(detailQueryCount, 1);
-    assert.equal(billQueryCount, 1);
+    assert.equal(detailQueryCount, 2);
     const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
     assert.equal(updatedRide?.executionPhase, "FINISHED");
     assert.equal(updatedRide?.finalSettlementInput, null);

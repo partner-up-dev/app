@@ -417,32 +417,33 @@ RideHailing:
 - provider adapter computes external order id dynamically; the provider-side
   order id returned by create is stored in the RideHailing dispatch binding
   together with provider instance identity
-- provider detail sync owns execution truth only: execution phase, driver
+- provider order-detail reads own execution truth: execution phase, driver
   snapshot, vehicle snapshot, and other ride-lifecycle facts come from
-  provider order-detail reads rather than from billing queries
-- provider authoritative final settlement truth is a separate source from
-  execution truth:
-  - provider order-detail reads must not directly materialize
-    `finalSettlementInput`
-  - `ride_hailing_orders.finalSettlementInput` must be derived only from the
-    provider's authoritative payable query
-  - for CaoCao, that source is `queryCalculateBill`
-  - for CaoCao, `finalSettlementInput.amountFen` binds `companyFee` rather
-    than `totalFee`:
-    `companyFee` is the amount the PartnerUp platform owes CaoCao, and
-    therefore the amount PartnerUp should charge the user for the fulfilled
-    ride or cancellation
+  provider order-detail reads
+- provider final settlement truth must come from a provider query result, but
+  the concrete source depends on the provider's currently integrated API
+  surface
+- for the currently integrated CaoCao surface:
+  - `ride_hailing_orders.finalSettlementInput` is derived from
+    `queryOrderDetailV2.orderFeeVo.totalFee`
+  - `finalSettlementInput.amountFen` binds `orderFeeVo.totalFee`
+  - `orderFeeVo.companyPayAmount` is not the current settlement source
 - local RideHailing terminal phases that may trigger final-settlement capture
   are only `FINISHED` and `CANCELLED`
 - terminal final-settlement capture is best-effort:
   - when a local RideHailing order is observed in `FINISHED` or `CANCELLED`
-    and `finalSettlementInput` is still null, backend may attempt the provider
-    payable query inline on that natural sync path
-  - if the provider payable query does not yet return an authoritative
-    result, backend keeps `finalSettlementInput = null` and relies on a later
-    natural sync trigger rather than fabricating settlement truth
-  - failure or no-result from the provider payable query must not block or
-    roll back the local terminal execution-phase sync
+    and `finalSettlementInput` is still null, backend may issue the provider
+    final-settlement query inline on that natural sync path
+  - for the currently integrated CaoCao surface, `queryFinalSettlement()` is a
+    dedicated adapter read that internally calls `queryOrderDetailV2` and reads
+    `orderFeeVo.totalFee`
+  - if that final-settlement query does not yet return an authoritative
+    `orderFeeVo.totalFee`, backend keeps `finalSettlementInput = null` and
+    relies on a later natural sync trigger rather than fabricating settlement truth
+  - provider order-detail sync must not directly materialize
+    `finalSettlementInput`; terminal settlement capture still goes through the
+    provider final-settlement query contract, even if the adapter reuses the
+    same provider endpoint under the hood
 - final Bill is created only after provider final settlement input is
   committed, not lazily from Order Detail reads
 - cancellation-fee query is a separate pre-cancel decision surface:
@@ -452,9 +453,9 @@ RideHailing:
   - if the previewed cancellation fee is greater than zero, frontend must show
     the amount and require explicit confirmation before cancellation
   - it must not be reused as post-cancel final settlement truth
-- for cancelled RideHailing orders, if the provider authoritative payable query
-  later returns a non-zero `companyFee`, backend may still materialize that
-  result through the same final Bill model
+- for cancelled RideHailing orders, if the provider final-settlement query
+  later returns a non-zero `orderFeeVo.totalFee`, backend may still materialize
+  that result through the same final Bill model
 
 ## Termination Contract
 

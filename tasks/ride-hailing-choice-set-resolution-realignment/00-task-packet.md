@@ -141,6 +141,16 @@ introduced in this slice.
 - fake CaoCao server supports multi-vehicle `orderCarV2` and records submitted
   car types so system scenarios can prove adapter behavior through the real
   provider HTTP boundary.
+- 2026-06-30 preview regression follow-up:
+  - `RideHailingProviderOrderDetail.providerVehicleTypeCode` for CaoCao must be
+    sourced only from official `basicOrderVO.requireLevel`;
+  - fake CaoCao `queryOrderDetailV2` must expose `basicOrderVO.requireLevel` as
+    the submitted/winning service vehicle code, not `0`;
+  - `driverInfoVo.carType` is a vehicle model string in the fake server and must
+    not be treated as a service vehicle code;
+  - non-`requireLevel` fields such as `basicOrderVO.carType`,
+    `basicOrderVO.serviceType`, and `driverInfoVo.serviceType` are not accepted
+    as `providerVehicleTypeCode` inputs in this adapter slice.
 - Order Detail therefore hides "服务车型" while the order is still
   `DISPATCHING`, but may show it after provider acceptance.
 
