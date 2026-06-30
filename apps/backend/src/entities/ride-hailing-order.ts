@@ -2,6 +2,7 @@ import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-cor
 import { sql } from "drizzle-orm";
 import type {
   RideHailingDriverSnapshot,
+  RideHailingDispatchBindingSnapshot,
   RideHailingExecutionPhase,
   RideHailingFinalSettlementInput,
   RideHailingRiderSnapshot,
@@ -30,6 +31,9 @@ export const rideHailingOrders = pgTable(
       .default(null),
     vehicleSnapshot: jsonb("vehicle_snapshot")
       .$type<RideHailingVehicleSnapshot | null>()
+      .default(null),
+    dispatchBinding: jsonb("dispatch_binding")
+      .$type<RideHailingDispatchBindingSnapshot | null>()
       .default(null),
     finalSettlementInput: jsonb("final_settlement_input")
       .$type<RideHailingFinalSettlementInput | null>()

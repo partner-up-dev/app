@@ -13,7 +13,6 @@ import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { getRideHailingChoiceSetItem, getRideHailingProviderBinding } from "../../trade/services";
 import type { RideHailingProviderPort } from "../model";
 import { createRideHailingProviderPort } from "../services";
 
@@ -87,31 +86,30 @@ export async function loadRideHailingProviderExecutionContext(
     });
   }
 
-  const choiceSetItem = getRideHailingChoiceSetItem(order.items);
-  const providerBinding = choiceSetItem ? getRideHailingProviderBinding(choiceSetItem) : null;
-  if (!providerBinding?.providerOrderId) {
+  const dispatchBinding = rideOrder.dispatchBinding;
+  if (!dispatchBinding?.providerOrderId) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.binding-missing", {
       localOrderId: order.id,
       localOrderStatus: order.status,
       rideExecutionPhase: rideOrder.executionPhase,
-      providerInstanceId: providerBinding?.providerInstanceId ?? null,
-      providerOrderId: providerBinding?.providerOrderId ?? null,
+      providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+      providerOrderId: dispatchBinding?.providerOrderId ?? null,
     });
     return throwHttpProblem({
       status: 409,
-      detail: "RideHailing order is missing provider binding",
+      detail: "RideHailing order is missing dispatch binding",
     });
   }
 
   if (
     input.expectedProviderInstanceId &&
-    providerBinding.providerInstanceId !== input.expectedProviderInstanceId
+    dispatchBinding.providerInstanceId !== input.expectedProviderInstanceId
   ) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.instance-mismatch", {
       localOrderId: order.id,
       expectedProviderInstanceId: input.expectedProviderInstanceId,
-      actualProviderInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      actualProviderInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
     });
     return throwHttpProblem({
       status: 409,
@@ -121,13 +119,13 @@ export async function loadRideHailingProviderExecutionContext(
 
   if (
     input.expectedProviderOrderId &&
-    providerBinding.providerOrderId !== input.expectedProviderOrderId
+    dispatchBinding.providerOrderId !== input.expectedProviderOrderId
   ) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.order-mismatch", {
       localOrderId: order.id,
-      providerInstanceId: providerBinding.providerInstanceId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
       expectedProviderOrderId: input.expectedProviderOrderId,
-      actualProviderOrderId: providerBinding.providerOrderId,
+      actualProviderOrderId: dispatchBinding.providerOrderId,
     });
     return throwHttpProblem({
       status: 409,
@@ -136,13 +134,13 @@ export async function loadRideHailingProviderExecutionContext(
   }
 
   const providerInstance = await providerRepo.findById(
-    providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+    dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
   );
   if (!providerInstance || providerInstance.status !== "ACTIVE") {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.provider-missing", {
       localOrderId: order.id,
-      providerInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
       foundProviderId: providerInstance?.id ?? null,
       foundProviderStatus: providerInstance?.status ?? null,
     });
@@ -156,7 +154,7 @@ export async function loadRideHailingProviderExecutionContext(
     order,
     rideOrder,
     providerInstance,
-    providerOrderId: providerBinding.providerOrderId,
+    providerOrderId: dispatchBinding.providerOrderId,
     port: createRideHailingProviderPort({ providerInstance }),
   };
 

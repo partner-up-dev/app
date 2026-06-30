@@ -90,6 +90,30 @@ export type RideHailingProviderVehicleQuote = {
   providerSnapshot: unknown;
 };
 
+export type RideHailingProviderCreateRidePlace = {
+  name: string;
+  address?: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+export type RideHailingProviderCreateRideCandidate = {
+  candidateId: string;
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  estimateAmountFen: number;
+  providerQuoteId: string | null;
+  providerQuoteExpiresAt?: string | null;
+  quoteAmountFen?: number | null;
+  providerSnapshot?: unknown;
+};
+
+export type RideHailingProviderCreateRideSubmission = {
+  submissionMode: "SINGLE_CANDIDATE" | "MULTI_CANDIDATE";
+  submittedCandidateIds: string[];
+  providerVehicleTypeCodes: string[];
+};
+
 export type RideHailingProviderCoordinate = {
   latitude: number;
   longitude: number;
@@ -124,6 +148,8 @@ export type RideHailingProviderNavigationRoute = {
 export type RideHailingProviderOrderDetail = {
   phase: string;
   statusLabel: string;
+  providerVehicleTypeCode?: string | null;
+  providerVehicleTypeName?: string | null;
   driver: {
     driverName: string;
     driverPhone: string;
@@ -146,7 +172,19 @@ export type RideHailingProviderFinalSettlementResult = {
 
 export type RideHailingProviderCreateRideInput = {
   orderId: string;
-  params: Record<string, string | number | boolean | null | undefined>;
+  callbackInfo?: string | null;
+  contactPhone: string;
+  departureAt: string | null;
+  passenger: {
+    name: string;
+    phone: string;
+  };
+  route: {
+    origin: RideHailingProviderCreateRidePlace;
+    waypoints: RideHailingProviderCreateRidePlace[];
+    destination: RideHailingProviderCreateRidePlace;
+  };
+  candidates: RideHailingProviderCreateRideCandidate[];
 };
 
 export type RideHailingProviderCancelInput = {
@@ -169,6 +207,7 @@ export type RideHailingProviderPort = {
   createRide(input: RideHailingProviderCreateRideInput): Promise<{
     providerOrderId: string;
     externalOrderId: string;
+    dispatchSubmission: RideHailingProviderCreateRideSubmission;
     providerSnapshot: unknown;
   }>;
   queryOrderDetail(input: { providerOrderId: string }): Promise<RideHailingProviderOrderDetail>;

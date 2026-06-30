@@ -1,4 +1,4 @@
-import type { TradeOrder } from "./order";
+import type { RideHailingQuoteSnapshot, TradeOrder } from "./order";
 
 export type RideHailingCoordinateSnapshot = {
   latitude: number;
@@ -57,6 +57,26 @@ export type RideHailingFinalSettlementInput = {
   providerSnapshot?: unknown;
 };
 
+export type RideHailingDispatchSubmittedCandidateSnapshot = {
+  skuId: number;
+  spuId: number;
+  displayName: string;
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  quoteSnapshot: RideHailingQuoteSnapshot;
+};
+
+export type RideHailingDispatchBindingSnapshot = {
+  providerInstanceId: string;
+  providerType?: string | null;
+  providerOrderId: string;
+  externalOrderId?: string | null;
+  submittedAt: string;
+  submissionMode: "SINGLE_CANDIDATE" | "MULTI_CANDIDATE";
+  submittedCandidates: RideHailingDispatchSubmittedCandidateSnapshot[];
+  providerSnapshot?: unknown;
+};
+
 export type RideHailingOrder = Omit<TradeOrder, "family"> & {
   family: "RIDE_HAILING";
   routeSnapshot: RideHailingRouteSnapshot;
@@ -66,5 +86,6 @@ export type RideHailingOrder = Omit<TradeOrder, "family"> & {
   executionPhase: RideHailingExecutionPhase;
   driverSnapshot?: RideHailingDriverSnapshot | null;
   vehicleSnapshot?: RideHailingVehicleSnapshot | null;
+  dispatchBinding?: RideHailingDispatchBindingSnapshot | null;
   finalSettlementInput?: RideHailingFinalSettlementInput | null;
 };

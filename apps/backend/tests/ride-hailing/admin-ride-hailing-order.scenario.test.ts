@@ -307,32 +307,30 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
     const choiceSetItem =
       baseOrder.items[0]?.kind === "CHOICE_SET" ? baseOrder.items[0] : null;
     assert.ok(choiceSetItem);
+    const submittedCandidate = choiceSetItem.candidates[0];
+    assert.ok(submittedCandidate);
 
-    const resolvedItems = [
-      {
-        ...choiceSetItem,
-        resolution: {
-          sku: choiceSetItem.candidates[0]?.sku ?? null,
-          providerVehicleTypeCode: "1",
-          providerVehicleTypeName: "Scenario Admin Ride",
-          quoteSnapshot: choiceSetItem.candidates[0]?.quoteSnapshot ?? null,
-          providerBinding: {
-            providerInstanceId: provider.id,
-            providerType: provider.providerType,
-            providerOrderId,
-            providerSnapshot: null,
-          },
-          source: "DISPATCH_POLICY" as const,
-          candidateRelation: "IN_CANDIDATES" as const,
-          reason: "Scenario dispatch",
-          resolvedAt: "2031-03-01T09:01:00.000Z",
-        },
-      },
-    ];
-
-    await tradeOrderRepo.replaceItems(baseOrder.id, resolvedItems);
     await tradeOrderRepo.updateStatus(baseOrder.id, "OPEN");
     await rideOrderRepo.updateByOrderId(baseOrder.id, {
+      dispatchBinding: {
+        providerInstanceId: provider.id,
+        providerType: provider.providerType,
+        providerOrderId,
+        externalOrderId: null,
+        submittedAt: "2031-03-01T09:01:00.000Z",
+        submissionMode: "SINGLE_CANDIDATE",
+        submittedCandidates: [
+          {
+            skuId: submittedCandidate.sku.id,
+            spuId: submittedCandidate.sku.spuId,
+            displayName: "Scenario Admin Ride",
+            providerVehicleTypeCode: "1",
+            providerVehicleTypeName: "Scenario Admin Ride",
+            quoteSnapshot: submittedCandidate.quoteSnapshot,
+          },
+        ],
+        providerSnapshot: null,
+      },
       executionPhase: "DISPATCHING",
     });
 

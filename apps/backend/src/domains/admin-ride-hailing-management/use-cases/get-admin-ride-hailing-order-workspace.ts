@@ -3,7 +3,6 @@ import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrd
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
-import { getRideHailingChoiceSetItem, getRideHailingProviderBinding } from "../../trade/services";
 import {
   toAdminRideHailingOrderRecordView,
   type AdminRideHailingOrderRecordView,
@@ -47,10 +46,7 @@ export async function getAdminRideHailingOrderWorkspace(): Promise<AdminRideHail
       const rideHailingOrder = typedOrderByOrderId.get(order.id);
       if (!rideHailingOrder) return [];
 
-      const rideChoiceSetItem = getRideHailingChoiceSetItem(order.items);
-      const providerBinding = rideChoiceSetItem
-        ? getRideHailingProviderBinding(rideChoiceSetItem)
-        : null;
+      const providerBinding = rideHailingOrder.dispatchBinding ?? null;
 
       return [
         toAdminRideHailingOrderRecordView({

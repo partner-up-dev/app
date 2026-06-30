@@ -2,7 +2,7 @@ import type { Bill } from "../../../entities/bill";
 import type { RideHailingOrder } from "../../../entities/ride-hailing-order";
 import type { RideHailingProviderInstance } from "../../../entities/ride-hailing-provider";
 import type { TradeOrder } from "../../../entities/trade-order";
-import type { RideHailingProviderBindingSnapshot } from "../../trade/model";
+import type { RideHailingDispatchBindingSnapshot } from "../../trade/model";
 
 export type AdminRideHailingProviderInstanceSummaryView = Pick<
   RideHailingProviderInstance,
@@ -17,7 +17,7 @@ export type AdminRideHailingBillSummaryView = Pick<
 export type AdminRideHailingOrderRecordView = {
   order: TradeOrder;
   rideHailingOrder: RideHailingOrder;
-  providerBinding: RideHailingProviderBindingSnapshot | null;
+  providerBinding: RideHailingDispatchBindingSnapshot | null;
   providerInstance: AdminRideHailingProviderInstanceSummaryView | null;
   bill: AdminRideHailingBillSummaryView | null;
 };
@@ -25,7 +25,7 @@ export type AdminRideHailingOrderRecordView = {
 export function toAdminRideHailingOrderRecordView(input: {
   order: TradeOrder;
   rideHailingOrder: RideHailingOrder;
-  providerBinding: RideHailingProviderBindingSnapshot | null;
+  providerBinding: RideHailingDispatchBindingSnapshot | null;
   providerInstance: RideHailingProviderInstance | null;
   bill: Bill | null;
 }): AdminRideHailingOrderRecordView {

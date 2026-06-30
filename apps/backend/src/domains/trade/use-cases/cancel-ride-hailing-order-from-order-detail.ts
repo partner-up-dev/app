@@ -19,8 +19,6 @@ import {
 import {
   appendTerminationAttempt,
   approveTerminationAttempt,
-  getRideHailingChoiceSetItem,
-  getRideHailingProviderBinding,
   markTerminationAttemptResolving,
   toTradeOrderModel,
 } from "../services";
@@ -202,19 +200,16 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     });
   }
 
-  const rideChoiceSetItem = getRideHailingChoiceSetItem(syncedOrderRecord.items);
-  const providerBinding = rideChoiceSetItem
-    ? getRideHailingProviderBinding(rideChoiceSetItem)
-    : null;
-  if (!providerBinding?.providerOrderId) {
+  const dispatchBinding = syncedRideOrder.dispatchBinding;
+  if (!dispatchBinding?.providerOrderId) {
     return throwHttpProblem({
       status: 409,
-      detail: "RideHailing order is missing provider binding",
+      detail: "RideHailing order is missing dispatch binding",
     });
   }
 
   const providerInstance = await providerRepo.findById(
-    providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+    dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
   );
   if (!providerInstance || providerInstance.status !== "ACTIVE") {
     return throwHttpProblem({
@@ -227,19 +222,19 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
   logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.start", {
     ...summarizeOrderRecord(syncedOrderRecord),
     ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: providerBinding.providerInstanceId,
-    providerOrderId: providerBinding.providerOrderId,
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: dispatchBinding.providerOrderId,
   });
 
   try {
     const preview = await port.queryCancelFee({
-      providerOrderId: providerBinding.providerOrderId,
+      providerOrderId: dispatchBinding.providerOrderId,
     });
     logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.success", {
       ...summarizeOrderRecord(syncedOrderRecord),
       ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
       cancelFeeFen: preview.cancelFeeFen,
     });
 
@@ -252,8 +247,8 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.error", {
       ...summarizeOrderRecord(syncedOrderRecord),
       ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
       error:
         error instanceof Error
           ? {
@@ -424,38 +419,35 @@ async function cancelRideHailingOrder(input: {
     });
   }
 
-  const rideChoiceSetItem = getRideHailingChoiceSetItem(syncedOrderRecord.items);
-  const providerBinding = rideChoiceSetItem
-    ? getRideHailingProviderBinding(rideChoiceSetItem)
-    : null;
-  if (!providerBinding?.providerOrderId) {
+  const dispatchBinding = syncedRideOrder.dispatchBinding;
+  if (!dispatchBinding?.providerOrderId) {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.binding-missing", {
       ...summarizeOrderRecord(syncedOrderRecord),
       ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: providerBinding?.providerInstanceId ?? null,
-      providerOrderId: providerBinding?.providerOrderId ?? null,
+      providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+      providerOrderId: dispatchBinding?.providerOrderId ?? null,
     });
     return throwHttpProblem({
       status: 409,
-      detail: "RideHailing order is missing provider binding",
+      detail: "RideHailing order is missing dispatch binding",
     });
   }
 
   logCommerceOrderDetailDebug(input.debug, "ride-cancel.binding-loaded", {
     ...summarizeOrderRecord(syncedOrderRecord),
     ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: providerBinding.providerInstanceId,
-    providerOrderId: providerBinding.providerOrderId,
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: dispatchBinding.providerOrderId,
   });
 
   const providerInstance = await providerRepo.findById(
-    providerBinding.providerInstanceId as RideHailingProviderInstanceId,
+    dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
   );
   if (!providerInstance || providerInstance.status !== "ACTIVE") {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-missing", {
       ...summarizeOrderRecord(syncedOrderRecord),
-      providerInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
       foundProviderId: providerInstance?.id ?? null,
       foundProviderStatus: providerInstance?.status ?? null,
     });
@@ -469,8 +461,8 @@ async function cancelRideHailingOrder(input: {
   logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.start", {
     ...summarizeOrderRecord(syncedOrderRecord),
     ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: providerBinding.providerInstanceId,
-    providerOrderId: providerBinding.providerOrderId,
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: dispatchBinding.providerOrderId,
     actorAuthority: input.actor.authority,
     providerWhoCancel: input.actor.providerWhoCancel,
   });
@@ -478,7 +470,7 @@ async function cancelRideHailingOrder(input: {
   let providerCancellation: Awaited<ReturnType<typeof port.cancelRide>>;
   try {
     providerCancellation = await port.cancelRide({
-      providerOrderId: providerBinding.providerOrderId,
+      providerOrderId: dispatchBinding.providerOrderId,
       cancelCode: 12,
       cancelReason: input.actor.providerCancelReason,
       whoCancel: input.actor.providerWhoCancel,
@@ -486,8 +478,8 @@ async function cancelRideHailingOrder(input: {
   } catch (error) {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.error", {
       ...summarizeOrderRecord(syncedOrderRecord),
-      providerInstanceId: providerBinding.providerInstanceId,
-      providerOrderId: providerBinding.providerOrderId,
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: dispatchBinding.providerOrderId,
       error:
         error instanceof Error
           ? {
@@ -502,8 +494,8 @@ async function cancelRideHailingOrder(input: {
 
   logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.success", {
     ...summarizeOrderRecord(syncedOrderRecord),
-    providerInstanceId: providerBinding.providerInstanceId,
-    providerOrderId: providerBinding.providerOrderId,
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: dispatchBinding.providerOrderId,
     cancelFeeFen: providerCancellation.cancelFeeFen,
   });
   const decidedAt = new Date().toISOString();

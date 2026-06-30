@@ -122,6 +122,7 @@ async function readFakeCaocaoOrders(): Promise<
   Array<{
     providerOrderId: string;
     phase: string;
+    submittedCarTypes: string[];
   }>
 > {
   const { fakeCaocao } = getScenarioEnvironment();
@@ -135,9 +136,14 @@ async function readFakeCaocaoOrders(): Promise<
     const record = order as Record<string, unknown>;
     assert.equal(typeof record.providerOrderId, "string");
     assert.equal(typeof record.phase, "string");
+    assert.ok(Array.isArray(record.submittedCarTypes));
     return {
       phase: record.phase,
       providerOrderId: record.providerOrderId,
+      submittedCarTypes: record.submittedCarTypes.map((carType) => {
+        assert.equal(typeof carType, "string");
+        return carType;
+      }),
     };
   });
 }
@@ -566,9 +572,11 @@ async function assertRideHailingOrderDetail(
   const expectedDispatchingVehicleLabels = input.expectedDispatchingVehicleLabels ?? [
     "系统曹操快车",
   ];
-  const expectedResolvedVehicleLabel = input.expectedResolvedVehicleLabel ?? "系统曹操快车";
   const expectedRiderNames = input.expectedRiderNames ?? [];
   const expectedStatusTitle = input.expectedStatusTitle ?? "接客中";
+  const expectedResolvedVehicleLabel =
+    input.expectedResolvedVehicleLabel ??
+    (expectedStatusTitle === "派单中" ? null : "系统曹操快车");
 
   await page.getByTestId("order-detail.page").waitFor({
     state: "visible",
@@ -606,24 +614,31 @@ async function assertRideHailingOrderDetail(
   const resolvedVehicleSection = page.getByTestId(
     "order-detail.ride-hailing.resolved-vehicle-section",
   );
-  await resolvedVehicleSection.waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  const resolvedVehicleCards = resolvedVehicleSection.getByTestId(
-    "order-detail.ride-hailing.vehicle-card",
-  );
-  assert.equal(await resolvedVehicleCards.count(), 1);
-  await assertLocatorTextIncludes({
-    actual: resolvedVehicleSection.textContent(),
-    expected: "服务车型",
-    label: "RideHailing resolved vehicle section title",
-  });
-  await assertLocatorTextIncludes({
-    actual: resolvedVehicleSection.textContent(),
-    expected: expectedResolvedVehicleLabel,
-    label: "RideHailing resolved vehicle section item",
-  });
+  if (expectedResolvedVehicleLabel === null) {
+    await resolvedVehicleSection.waitFor({
+      state: "hidden",
+      timeout: 10_000,
+    });
+  } else {
+    await resolvedVehicleSection.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    const resolvedVehicleCards = resolvedVehicleSection.getByTestId(
+      "order-detail.ride-hailing.vehicle-card",
+    );
+    assert.equal(await resolvedVehicleCards.count(), 1);
+    await assertLocatorTextIncludes({
+      actual: resolvedVehicleSection.textContent(),
+      expected: "服务车型",
+      label: "RideHailing resolved vehicle section title",
+    });
+    await assertLocatorTextIncludes({
+      actual: resolvedVehicleSection.textContent(),
+      expected: expectedResolvedVehicleLabel,
+      label: "RideHailing resolved vehicle section item",
+    });
+  }
   await assertLocatorTextIncludes({
     actual: page.getByTestId("order-detail.ride-hailing.route-section").textContent(),
     expected: "杭州东站",
@@ -894,6 +909,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     const fakeOrders = await readFakeCaocaoOrders();
     assert.equal(fakeOrders.length, 1);
     assert.equal(fakeOrders[0]?.phase, "ACCEPTED");
+    assert.deepEqual(fakeOrders[0]?.submittedCarTypes, ["3", "5"]);
     await waitForRideHailingMapMode(page, "PICKING_UP");
 
     const acceptedOrder = await setFakeCaocaoOrderPhase({

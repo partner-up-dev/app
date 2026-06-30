@@ -48,7 +48,7 @@ import type {
   RentalRegistrant,
   RideHailingChoiceSetCandidateSnapshot,
   RideHailingChoiceSetResolutionSnapshot,
-  RideHailingProviderBindingSnapshot,
+  RideHailingDispatchBindingSnapshot,
   RideHailingRiderSnapshot,
   RideHailingQuoteSnapshot,
   RideHailingRouteSnapshot,
@@ -167,7 +167,9 @@ type SelectedRideContext = {
   offer: Offer;
   itemId: string;
   candidates: RideCandidateContext[];
-  dispatchCandidate: RideCandidateContext;
+  dispatchProviderCandidates: RideCandidateContext[];
+  dispatchProviderInstanceId: string;
+  pricingCandidate: RideCandidateContext;
   pricingSnapshot: OrderPricingSnapshot;
   listingContext: RideHailingQuoteListingContextSnapshot;
 };
@@ -405,6 +407,13 @@ const rideQuoteOptionFromOfferQuote = (quote: ValidatedOfferQuote): RideQuoteOpt
   };
 };
 
+const compareRideCandidatesByQuoteAmount = (
+  left: RideCandidateContext,
+  right: RideCandidateContext,
+): number =>
+  (left.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY) -
+  (right.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY);
+
 async function resolveRideSelectionFromQuote(input: {
   item: ValidatedQuoteItem;
   itemId: string;
@@ -442,17 +451,13 @@ async function resolveRideSelectionFromQuote(input: {
       };
     }),
   );
-  const dispatchCandidate = [...candidates].sort(
-    (left, right) =>
-      (left.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY) -
-      (right.quote.quoteAmountFen ?? Number.POSITIVE_INFINITY),
-  )[0];
-  if (!dispatchCandidate) {
+  const pricingCandidate = [...candidates].sort(compareRideCandidatesByQuoteAmount)[0];
+  if (!pricingCandidate) {
     return throwHttpProblem({ status: 409, detail: "请选择可用车型" });
   }
   if (
-    !dispatchCandidate.offerQuote ||
-    dispatchCandidate.offerQuote.listingContextSnapshot.productType !== "RIDE_HAILING"
+    !pricingCandidate.offerQuote ||
+    pricingCandidate.offerQuote.listingContextSnapshot.productType !== "RIDE_HAILING"
   ) {
     return throwHttpProblem({
       status: 409,
@@ -460,16 +465,22 @@ async function resolveRideSelectionFromQuote(input: {
       code: "ORDERING_QUOTE_CONTEXT_INVALID",
     });
   }
+  const dispatchProviderInstanceId = pricingCandidate.fulfillmentQuote.providerInstanceId;
+  const dispatchProviderCandidates = candidates.filter(
+    (candidate) => candidate.fulfillmentQuote.providerInstanceId === dispatchProviderInstanceId,
+  );
   return {
-    offer: dispatchCandidate.offer,
+    offer: pricingCandidate.offer,
     itemId: input.itemId,
     candidates,
-    dispatchCandidate,
+    dispatchProviderCandidates,
+    dispatchProviderInstanceId,
+    pricingCandidate,
     pricingSnapshot: pricingSnapshotFromQuote({
       itemId: input.itemId,
-      price: dispatchCandidate.offerQuote.pricingSnapshot,
+      price: pricingCandidate.offerQuote.pricingSnapshot,
     }),
-    listingContext: dispatchCandidate.offerQuote.listingContextSnapshot,
+    listingContext: pricingCandidate.offerQuote.listingContextSnapshot,
   };
 }
 
@@ -557,6 +568,43 @@ async function buildRideChoiceSetItemSnapshot(input: {
     quantity: 1,
   };
 }
+
+const rideProviderCandidateId = (candidate: RideCandidateContext): string => String(candidate.sku.id);
+
+const buildRideDispatchBindingSnapshot = (input: {
+  selected: SelectedRideContext;
+  providerInstanceId: string;
+  providerType?: string | null;
+  created: Awaited<ReturnType<ReturnType<typeof createRideHailingProviderPort>["createRide"]>>;
+}): RideHailingDispatchBindingSnapshot => {
+  const submittedCandidateIds = new Set(input.created.dispatchSubmission.submittedCandidateIds);
+  const submittedCandidates = input.selected.dispatchProviderCandidates.flatMap((candidate) => {
+    if (!submittedCandidateIds.has(rideProviderCandidateId(candidate))) return [];
+    return [
+      {
+        skuId: candidate.sku.id,
+        spuId: candidate.spu.id,
+        displayName: candidate.quote.displayName,
+        providerVehicleTypeCode: candidate.fulfillmentQuote.providerVehicleTypeCode,
+        providerVehicleTypeName: candidate.fulfillmentQuote.providerVehicleTypeName,
+        quoteSnapshot: buildRideQuoteSnapshot(candidate.quote),
+      },
+    ];
+  });
+  if (submittedCandidates.length === 0) {
+    throw new Error("RideHailing provider create returned no recognized submitted candidates");
+  }
+  return {
+    providerInstanceId: input.providerInstanceId,
+    providerType: input.providerType ?? null,
+    providerOrderId: input.created.providerOrderId,
+    externalOrderId: input.created.externalOrderId,
+    submittedAt: new Date().toISOString(),
+    submissionMode: input.created.dispatchSubmission.submissionMode,
+    submittedCandidates,
+    providerSnapshot: input.created.providerSnapshot,
+  };
+};
 
 function buildTimeout(minutes: number): OrderTimeout {
   const now = new Date();
@@ -830,8 +878,7 @@ async function createRideHailingOrderBranch(input: {
   createdBy: string;
 }): Promise<CreateOrderCommandResult> {
   const provider = await providerRepo.findById(
-    input.selected.dispatchCandidate.fulfillmentQuote
-      .providerInstanceId as RideHailingProviderInstanceId,
+    input.selected.dispatchProviderInstanceId as RideHailingProviderInstanceId,
   );
   if (!provider) {
     return throwHttpProblem({
@@ -854,9 +901,9 @@ async function createRideHailingOrderBranch(input: {
         items: [
           {
             itemId: input.selected.itemId,
-            spu: input.selected.dispatchCandidate.spu,
-            sku: input.selected.dispatchCandidate.sku,
-            quantity: input.selected.dispatchCandidate.quantity,
+            spu: input.selected.pricingCandidate.spu,
+            sku: input.selected.pricingCandidate.sku,
+            quantity: input.selected.pricingCandidate.quantity,
           },
         ],
         orderContext: {
@@ -898,24 +945,24 @@ async function createRideHailingOrderBranch(input: {
       try {
         created = await port.createRide({
           orderId: base.order.id,
-          params: {
-            callback_info: buildCaocaoCallbackInfo({ providerInstance: provider }),
-            car_type: input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
-            caller_phone: input.selected.listingContext.contactPhone,
-            departure_at: input.selected.listingContext.departureAt,
-            end_address: input.selected.listingContext.route.destination.address,
-            end_name: input.selected.listingContext.route.destination.name,
-            estimate_price: input.selected.dispatchCandidate.fulfillmentQuote.estimateAmountFen,
-            estimate_price_key: input.selected.dispatchCandidate.fulfillmentQuote.providerQuoteId,
-            from_latitude: input.selected.listingContext.route.origin.latitude,
-            from_longitude: input.selected.listingContext.route.origin.longitude,
-            passenger_name: input.selected.listingContext.riders[0]?.displayName ?? "乘客",
-            passenger_phone: input.selected.listingContext.contactPhone,
-            start_address: input.selected.listingContext.route.origin.address,
-            start_name: input.selected.listingContext.route.origin.name,
-            to_latitude: input.selected.listingContext.route.destination.latitude,
-            to_longitude: input.selected.listingContext.route.destination.longitude,
+          callbackInfo: buildCaocaoCallbackInfo({ providerInstance: provider }),
+          candidates: input.selected.dispatchProviderCandidates.map((candidate) => ({
+            candidateId: rideProviderCandidateId(candidate),
+            providerVehicleTypeCode: candidate.fulfillmentQuote.providerVehicleTypeCode,
+            providerVehicleTypeName: candidate.fulfillmentQuote.providerVehicleTypeName,
+            estimateAmountFen: candidate.fulfillmentQuote.estimateAmountFen,
+            providerQuoteId: candidate.fulfillmentQuote.providerQuoteId,
+            providerQuoteExpiresAt: candidate.fulfillmentQuote.providerQuoteExpiresAt,
+            quoteAmountFen: candidate.quote.quoteAmountFen,
+            providerSnapshot: candidate.fulfillmentQuote.providerSnapshot,
+          })),
+          contactPhone: input.selected.listingContext.contactPhone,
+          departureAt: input.selected.listingContext.departureAt,
+          passenger: {
+            name: input.selected.listingContext.riders[0]?.displayName ?? "乘客",
+            phone: input.selected.listingContext.contactPhone,
           },
+          route: input.selected.listingContext.route,
         });
       } catch (error) {
         await rideRepo.updateByOrderId(base.order.id, {
@@ -935,39 +982,17 @@ async function createRideHailingOrderBranch(input: {
         };
       }
       providerOrderIdToCompensate = created.providerOrderId;
-      const providerBinding: RideHailingProviderBindingSnapshot = {
+      const dispatchBinding = buildRideDispatchBindingSnapshot({
+        selected: input.selected,
         providerInstanceId: provider.id,
         providerType: provider.providerType,
-        providerOrderId: created.providerOrderId,
-      };
-      const resolution: RideHailingChoiceSetResolutionSnapshot = {
-        sku: buildSkuSnapshot({
-          sku: input.selected.dispatchCandidate.sku,
-          name: input.selected.dispatchCandidate.quote.displayName,
-          cancellationPolicySnapshot: await buildCancellationPolicySnapshot(
-            input.selected.dispatchCandidate.sku,
-          ),
-        }),
-        providerVehicleTypeCode:
-          input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeCode,
-        providerVehicleTypeName:
-          input.selected.dispatchCandidate.fulfillmentQuote.providerVehicleTypeName,
-        quoteSnapshot: buildRideQuoteSnapshot(input.selected.dispatchCandidate.quote),
-        providerBinding,
-        source: "DISPATCH_POLICY",
-        candidateRelation: "IN_CANDIDATES",
-        reason: null,
-        resolvedAt: new Date().toISOString(),
-      };
-      const resolvedItem = await buildRideChoiceSetItemSnapshot({
-        selected: input.selected,
-        resolution,
+        created,
       });
       await rideRepo.updateByOrderId(base.order.id, {
+        dispatchBinding,
         executionPhase: "DISPATCHING",
       });
       const orderRepo = new TradeOrderRepository(tx);
-      await orderRepo.replaceItems(base.order.id, [resolvedItem]);
       await orderRepo.updateStatus(base.order.id, "OPEN");
 
       return {

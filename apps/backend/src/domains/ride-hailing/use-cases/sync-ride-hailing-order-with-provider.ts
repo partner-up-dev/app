@@ -9,7 +9,16 @@ import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { closeRideHailingOrderFromProviderCancellation } from "../../trade/services";
+import type {
+  ChoiceSetOrderItemSnapshot,
+  RideHailingChoiceSetResolutionSnapshot,
+  RideHailingDispatchBindingSnapshot,
+  RideHailingExecutionPhase,
+} from "../../trade/model";
+import {
+  closeRideHailingOrderFromProviderCancellation,
+  getRideHailingChoiceSetItem,
+} from "../../trade/services";
 import type {
   RideHailingProviderFinalSettlementResult,
   RideHailingProviderOrderDetail,
@@ -42,12 +51,20 @@ const summarizeProviderDetail = (
 ): Record<string, unknown> => ({
   providerPhase: detail.phase,
   providerStatusLabel: detail.statusLabel,
+  providerVehicleTypeCode: detail.providerVehicleTypeCode ?? null,
+  providerVehicleTypeName: detail.providerVehicleTypeName ?? null,
   providerDriverName: detail.driver?.driverName ?? null,
   providerVehiclePlate: detail.vehicle?.plate ?? null,
   providerHasVehicleLocation: detail.vehicleLocation != null,
 });
 
 const terminalFinalSettlementPhases = new Set(["FINISHED", "CANCELLED"]);
+const providerConfirmedServiceVehiclePhases = new Set<RideHailingExecutionPhase>([
+  "ACCEPTED",
+  "ARRIVED_AT_PICKUP",
+  "IN_TRIP",
+  "FINISHED",
+]);
 
 const isTerminalFinalSettlementPhase = (phase: string | null | undefined): boolean =>
   phase !== null && phase !== undefined && terminalFinalSettlementPhases.has(phase);
@@ -59,6 +76,40 @@ const shouldAttemptTerminalFinalSettlementQuery = (input: {
   isTerminalFinalSettlementPhase(input.executionPhase) && !input.finalSettlementInputCommitted;
 
 const buildProviderCancellationAttemptId = (): string => `term_provider_cancel_${randomUUID()}`;
+
+const buildProviderConfirmedChoiceSetResolution = (input: {
+  choiceSetItem: ChoiceSetOrderItemSnapshot;
+  dispatchBinding: RideHailingDispatchBindingSnapshot;
+  providerDetail: RideHailingProviderOrderDetail;
+  resolvedAt: string;
+}): RideHailingChoiceSetResolutionSnapshot | null => {
+  if (input.choiceSetItem.resolution) return null;
+  const submittedCandidate = input.providerDetail.providerVehicleTypeCode
+    ? input.dispatchBinding.submittedCandidates.find(
+        (candidate) =>
+          candidate.providerVehicleTypeCode === input.providerDetail.providerVehicleTypeCode,
+      )
+    : input.dispatchBinding.submittedCandidates.length === 1
+      ? input.dispatchBinding.submittedCandidates[0]
+      : null;
+  if (!submittedCandidate) {
+    return null;
+  }
+  const candidate = input.choiceSetItem.candidates.find(
+    (item) => item.sku.id === submittedCandidate.skuId,
+  );
+  if (!candidate) return null;
+  return {
+    sku: candidate.sku,
+    providerVehicleTypeCode: submittedCandidate.providerVehicleTypeCode,
+    providerVehicleTypeName: submittedCandidate.providerVehicleTypeName,
+    quoteSnapshot: submittedCandidate.quoteSnapshot,
+    source: "PROVIDER_ACCEPTED",
+    candidateRelation: "IN_CANDIDATES",
+    reason: null,
+    resolvedAt: input.resolvedAt,
+  };
+};
 
 export async function syncRideHailingOrderWithProvider(input: {
   orderId: TradeOrderId;
@@ -219,6 +270,42 @@ export async function syncRideHailingOrderWithProvider(input: {
         trigger: input.trigger,
         patchKeys: Object.keys(patch),
       });
+    }
+
+    const choiceSetItem = getRideHailingChoiceSetItem(transactionalContext.order.items);
+    if (
+      choiceSetItem &&
+      transactionalContext.rideOrder.dispatchBinding &&
+      providerConfirmedServiceVehiclePhases.has(effectiveExecutionPhase)
+    ) {
+      const resolution = buildProviderConfirmedChoiceSetResolution({
+        choiceSetItem,
+        dispatchBinding: transactionalContext.rideOrder.dispatchBinding,
+        providerDetail,
+        resolvedAt: new Date().toISOString(),
+      });
+      if (resolution) {
+        await tradeOrderRepo.replaceItems(
+          transactionalContext.order.id,
+          transactionalContext.order.items.map((item) =>
+            item.kind === "CHOICE_SET" && item.itemId === choiceSetItem.itemId
+              ? {
+                  ...choiceSetItem,
+                  resolution,
+                }
+              : item,
+          ),
+        );
+        mutatedInTransaction = true;
+        logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.persisted-resolution", {
+          localOrderId: transactionalContext.order.id,
+          providerOrderId: transactionalContext.providerOrderId,
+          trigger: input.trigger,
+          executionPhase: effectiveExecutionPhase,
+          providerVehicleTypeCode: resolution.providerVehicleTypeCode ?? null,
+          providerVehicleTypeName: resolution.providerVehicleTypeName ?? null,
+        });
+      }
     }
 
     if (

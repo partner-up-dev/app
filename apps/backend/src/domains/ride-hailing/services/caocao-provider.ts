@@ -9,7 +9,9 @@ import type {
   CaocaoSignedParams,
   RideHailingProviderCancelInput,
   RideHailingProviderConfirmFeeInput,
+  RideHailingProviderCreateRideCandidate,
   RideHailingProviderCreateRideInput,
+  RideHailingProviderCreateRideSubmission,
   RideHailingProviderEstimateInput,
   RideHailingProviderFinalSettlementResult,
   RideHailingProviderNavigationRoute,
@@ -32,6 +34,25 @@ type RequiredCaocaoEstimateParams = {
   to_latitude: number;
   to_longitude: number;
 };
+type CaocaoCreateRideSubmissionParams =
+  | {
+      mode: "SINGLE_CANDIDATE";
+      params: {
+        car_type: string;
+        estimate_price: number;
+        estimate_price_key: string;
+        is_simultaneously_call: "0";
+      };
+      submittedCandidates: RideHailingProviderCreateRideCandidate[];
+    }
+  | {
+      mode: "MULTI_CANDIDATE";
+      params: {
+        is_simultaneously_call: "1";
+        service_type_price: string;
+      };
+      submittedCandidates: RideHailingProviderCreateRideCandidate[];
+    };
 
 const EXTERNAL_ORDER_ID_PREFIX = "rh";
 const UUID_BASE36_ALPHABET = /^[0-9a-z]+$/;
@@ -316,6 +337,18 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
     "carBrand",
   ]);
   const color = readOptionalStringField(vehicleRaw, ["color", "vehicleColor", "vehicle_color"]);
+  const providerVehicleTypeCode = readOptionalStringField(basicOrder, [
+    "serviceType",
+    "service_type",
+    "carType",
+    "car_type",
+  ]);
+  const providerVehicleTypeName = readOptionalStringField(basicOrder, [
+    "serviceTypeName",
+    "service_type_name",
+    "carTypeName",
+    "car_type_name",
+  ]);
 
   return {
     driver:
@@ -326,6 +359,8 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
           }
         : null,
     phase,
+    providerVehicleTypeCode,
+    providerVehicleTypeName,
     providerSnapshot: data,
     statusLabel: buildCaocaoStatusLabel(phase),
     vehicle:
@@ -417,6 +452,65 @@ const selectCaocaoEstimateItem = (
   }
   if (isRecord(data)) return data;
   throw new Error("Caocao estimate response data must be an object or object array");
+};
+
+const assertCaocaoCreateRideCandidate = (
+  candidate: RideHailingProviderCreateRideCandidate,
+): void => {
+  const serviceType = Number(candidate.providerVehicleTypeCode);
+  if (!Number.isInteger(serviceType)) {
+    throw new Error("Caocao createRide requires a numeric provider vehicle type code");
+  }
+  if (!candidate.providerQuoteId) {
+    throw new Error("Caocao createRide requires a provider quote id");
+  }
+};
+
+const caocaoServiceType = (candidate: RideHailingProviderCreateRideCandidate): number =>
+  Number(candidate.providerVehicleTypeCode);
+
+const buildCaocaoServiceTypePrice = (
+  candidates: RideHailingProviderCreateRideCandidate[],
+): string =>
+  JSON.stringify(
+    candidates.map((candidate) => ({
+      estimateKey: candidate.providerQuoteId,
+      estimatePrice: candidate.estimateAmountFen,
+      serviceType: caocaoServiceType(candidate),
+    })),
+  );
+
+const buildCaocaoCreateRideSubmissionParams = (
+  candidates: RideHailingProviderCreateRideCandidate[],
+): CaocaoCreateRideSubmissionParams => {
+  if (candidates.length === 0) {
+    throw new Error("Caocao createRide requires at least one vehicle candidate");
+  }
+  for (const candidate of candidates) {
+    assertCaocaoCreateRideCandidate(candidate);
+  }
+  if (candidates.length === 1) {
+    const candidate = candidates[0]!;
+    return {
+      mode: "SINGLE_CANDIDATE",
+      params: {
+        car_type: candidate.providerVehicleTypeCode,
+        estimate_price: candidate.estimateAmountFen,
+        estimate_price_key: candidate.providerQuoteId!,
+        is_simultaneously_call: "0",
+      },
+      submittedCandidates: candidates,
+    };
+  }
+
+  return {
+    mode: "MULTI_CANDIDATE",
+    params: {
+      is_simultaneously_call: "1",
+      service_type_price: buildCaocaoServiceTypePrice(candidates),
+    },
+    submittedCandidates: candidates,
+  };
 };
 
 const normalizeCaocaoParams = (params: CaocaoParamInput): CaocaoSignedParams => {
@@ -772,12 +866,27 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
   async createRide(input: RideHailingProviderCreateRideInput): Promise<{
     providerOrderId: string;
     externalOrderId: string;
+    dispatchSubmission: RideHailingProviderCreateRideSubmission;
     providerSnapshot: unknown;
   }> {
     const externalOrderId = this.buildExternalOrderId(input.orderId);
+    const submission = buildCaocaoCreateRideSubmissionParams(input.candidates);
     const requestParams = await this.buildCreateRideRequestParams({
-      ...input.params,
+      callback_info: input.callbackInfo,
+      caller_phone: input.contactPhone,
+      departure_at: input.departureAt,
+      end_address: input.route.destination.address,
+      end_name: input.route.destination.name,
       ext_order_id: externalOrderId,
+      from_latitude: input.route.origin.latitude,
+      from_longitude: input.route.origin.longitude,
+      passenger_name: input.passenger.name,
+      passenger_phone: input.passenger.phone,
+      start_address: input.route.origin.address,
+      start_name: input.route.origin.name,
+      to_latitude: input.route.destination.latitude,
+      to_longitude: input.route.destination.longitude,
+      ...submission.params,
     });
     const data = await this.request<Record<string, unknown>>(
       "POST",
@@ -787,6 +896,15 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     return {
       providerOrderId: readRequiredStringField(data, "orderNo"),
       externalOrderId,
+      dispatchSubmission: {
+        submissionMode: submission.mode,
+        submittedCandidateIds: submission.submittedCandidates.map(
+          (candidate) => candidate.candidateId,
+        ),
+        providerVehicleTypeCodes: submission.submittedCandidates.map(
+          (candidate) => candidate.providerVehicleTypeCode,
+        ),
+      },
       providerSnapshot: data,
     };
   }
@@ -985,25 +1103,30 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
         longitude: fromLongitude,
       }));
 
+    const isSimultaneouslyCall = readOptionalParamString(params, ["is_simultaneously_call"]) ?? "0";
     const requestParams: CaocaoParamInput = {
       callback_info: readOptionalParamString(params, ["callback_info"]),
       caller_phone: readRequiredParamString(params, ["caller_phone"]),
-      car_type: readRequiredParamString(params, ["car_type"]),
       city_code: cityCode,
       end_address: readRequiredParamString(params, ["end_address"]),
       end_name: readRequiredParamString(params, ["end_name"]),
-      estimate_price: readRequiredParamNumber(params, ["estimate_price"]),
-      estimate_price_key: readRequiredParamString(params, ["estimate_price_key"]),
       ext_order_id: readRequiredParamString(params, ["ext_order_id"]),
       from_latitude: fromLatitude,
       from_longitude: fromLongitude,
-      is_simultaneously_call: readOptionalParamString(params, ["is_simultaneously_call"]) ?? "0",
+      is_simultaneously_call: isSimultaneouslyCall,
       order_type: readOptionalParamNumber(params, ["order_type"]) ?? 1,
       start_address: readRequiredParamString(params, ["start_address"]),
       start_name: readRequiredParamString(params, ["start_name"]),
       to_latitude: readRequiredParamNumber(params, ["to_latitude"]),
       to_longitude: readRequiredParamNumber(params, ["to_longitude"]),
     };
+    if (isSimultaneouslyCall === "1") {
+      requestParams.service_type_price = readRequiredParamString(params, ["service_type_price"]);
+    } else {
+      requestParams.car_type = readRequiredParamString(params, ["car_type"]);
+      requestParams.estimate_price = readRequiredParamNumber(params, ["estimate_price"]);
+      requestParams.estimate_price_key = readRequiredParamString(params, ["estimate_price_key"]);
+    }
 
     const departureTime =
       readOptionalParamString(params, ["departure_time"]) ??

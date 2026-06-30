@@ -120,6 +120,12 @@ type FakeCaocaoCallbackDelivery =
       bodyPreview: string | null;
     };
 
+type FakeCaocaoServiceTypePriceItem = {
+  estimateKey: string;
+  estimatePriceFen: number;
+  serviceType: string;
+};
+
 class FakeCaocaoCallbackDeliveryError extends Error {
   constructor(
     readonly delivery: Extract<FakeCaocaoCallbackDelivery, { ok: false }>,
@@ -161,6 +167,23 @@ const readFirst = (value: Record<string, string>, key: string): string | null =>
   return raw && raw.length > 0 ? raw : null;
 };
 
+const readStringField = (value: Record<string, unknown>, key: string): string | null => {
+  const raw = value[key];
+  if (typeof raw === "string" && raw.trim().length > 0) return raw.trim();
+  if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
+  return null;
+};
+
+const readIntegerField = (value: Record<string, unknown>, key: string): number | null => {
+  const raw = value[key];
+  if (typeof raw === "number" && Number.isInteger(raw)) return raw;
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const parsed = Number(raw);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const parseInteger = (value: string | null, field: string): number => {
   const parsed = value === null ? Number.NaN : Number(value);
   if (!Number.isInteger(parsed)) {
@@ -175,6 +198,38 @@ const parseNumber = (value: string | null, field: string): number => {
     throw new Error(`Expected numeric field ${field}`);
   }
   return parsed;
+};
+
+const parseServiceTypePrice = (value: string | null): FakeCaocaoServiceTypePriceItem[] => {
+  if (!value) {
+    throw new FakeCaocaoProviderError(40001, "Missing service_type_price");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    throw new FakeCaocaoProviderError(40001, "Invalid service_type_price JSON");
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new FakeCaocaoProviderError(40001, "Invalid service_type_price list");
+  }
+
+  return parsed.map((item) => {
+    if (!isRecord(item)) {
+      throw new FakeCaocaoProviderError(40001, "Invalid service_type_price item");
+    }
+    const serviceType = readStringField(item, "serviceType");
+    const estimateKey = readStringField(item, "estimateKey");
+    const estimatePriceFen = readIntegerField(item, "estimatePrice");
+    if (!serviceType || !estimateKey || estimatePriceFen === null) {
+      throw new FakeCaocaoProviderError(40001, "Incomplete service_type_price item");
+    }
+    return {
+      estimateKey,
+      estimatePriceFen,
+      serviceType,
+    };
+  });
 };
 
 const toCaocaoDateTime = (value: string | null | undefined): string | null => {
@@ -504,6 +559,7 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
       beginChargeTime: fromIsoToCaocaoDateTime(order.serviceStartedAt),
       callbackInfo: order.callbackInfo,
       callerPhone: order.callerPhone,
+      carType: Number(order.carType),
       cityCode: order.cityCode,
       departureTime: order.departureTime,
       endAddress: order.endAddress,
@@ -1122,11 +1178,21 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
           throw new FakeCaocaoProviderError(50001, "Fake Caocao create failed");
         }
 
-        const carType = readFirst(form, "car_type");
         const externalOrderId = readFirst(form, "ext_order_id");
-        if (!carType || !externalOrderId) {
+        if (!externalOrderId) {
           throw new FakeCaocaoProviderError(40001, "Missing create order payload");
         }
+        const isSimultaneouslyCall = readFirst(form, "is_simultaneously_call") === "1";
+        const serviceTypePriceItems = isSimultaneouslyCall
+          ? parseServiceTypePrice(readFirst(form, "service_type_price"))
+          : null;
+        const carType = serviceTypePriceItems?.[0]?.serviceType ?? readFirst(form, "car_type");
+        if (!carType) {
+          throw new FakeCaocaoProviderError(40001, "Missing create order car type");
+        }
+        const estimatePriceFen =
+          serviceTypePriceItems?.[0]?.estimatePriceFen ??
+          parseInteger(readFirst(form, "estimate_price"), "estimate_price");
         const callbackInfo = readFirst(form, "callback_info");
         const callbackUrl = resolveCallbackUrl({
           callbackBaseUrl: input.callbackBaseUrl,
@@ -1145,7 +1211,7 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
           },
           endAddress: readFirst(form, "end_address"),
           endName: readFirst(form, "end_name"),
-          estimatePriceFen: parseInteger(readFirst(form, "estimate_price"), "estimate_price"),
+          estimatePriceFen,
           externalOrderId,
           orderType: parseInteger(readFirst(form, "order_type"), "order_type"),
           origin: {
@@ -1156,6 +1222,7 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
           passengerPhone: readFirst(form, "passenger_phone") ?? readFirst(form, "caller_phone"),
           startAddress: readFirst(form, "start_address"),
           startName: readFirst(form, "start_name"),
+          submittedCarTypes: serviceTypePriceItems?.map((item) => item.serviceType) ?? [carType],
         });
         maybePostCreateCallback({
           fixture: input.fixture,

@@ -277,6 +277,126 @@ describe("Caocao signer", () => {
   });
 });
 
+describe("Caocao create ride", () => {
+  it("submits multiple provider candidates through orderCarV2", async () => {
+    const requests: Array<{ body: string | null; url: string }> = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const requestUrl =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const body =
+        typeof init?.body === "string"
+          ? init.body
+          : init?.body instanceof URLSearchParams
+            ? init.body.toString()
+            : null;
+      requests.push({
+        url: requestUrl,
+        body,
+      });
+      const url = new URL(requestUrl);
+      if (url.pathname.endsWith("/common/queryCity")) {
+        return new Response(
+          JSON.stringify({
+            code: 200,
+            data: { cityCode: "020" },
+            success: true,
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          code: 200,
+          data: {
+            orderNo: "CC123456",
+          },
+          success: true,
+        }),
+        { status: 200 },
+      );
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    const created = await adapter.createRide({
+      orderId,
+      callbackInfo: "callback-info",
+      candidates: [
+        {
+          candidateId: "sku-5",
+          providerVehicleTypeCode: "5",
+          providerVehicleTypeName: "曹操专车",
+          estimateAmountFen: 6800,
+          providerQuoteId: "price-key-5",
+          quoteAmountFen: 6800,
+          providerSnapshot: null,
+        },
+        {
+          candidateId: "sku-3",
+          providerVehicleTypeCode: "3",
+          providerVehicleTypeName: "曹操快车",
+          estimateAmountFen: 4200,
+          providerQuoteId: "price-key-3",
+          quoteAmountFen: 4200,
+          providerSnapshot: null,
+        },
+      ],
+      contactPhone: "13800138000",
+      departureAt: "2026-06-29T03:00:00.000Z",
+      passenger: {
+        name: "乘客",
+        phone: "13800138000",
+      },
+      route: {
+        origin: {
+          name: "杭州东站",
+          address: "天城路1号",
+          latitude: 30.291,
+          longitude: 120.212,
+        },
+        waypoints: [],
+        destination: {
+          name: "灵隐寺",
+          address: "法云弄1号",
+          latitude: 30.24,
+          longitude: 120.102,
+        },
+      },
+    });
+
+    expect(requests).toHaveLength(2);
+    const createRequest = requests[1];
+    expect(createRequest).toBeDefined();
+    expect(new URL(createRequest?.url ?? "").pathname).toBe("/v2/common/orderCarV2");
+    const body = new URLSearchParams(createRequest?.body ?? "");
+    expect(body.get("is_simultaneously_call")).toBe("1");
+    expect(body.get("car_type")).toBeNull();
+    expect(body.get("estimate_price")).toBeNull();
+    expect(body.get("estimate_price_key")).toBeNull();
+    expect(JSON.parse(body.get("service_type_price") ?? "[]")).toEqual([
+      {
+        estimateKey: "price-key-5",
+        estimatePrice: 6800,
+        serviceType: 5,
+      },
+      {
+        estimateKey: "price-key-3",
+        estimatePrice: 4200,
+        serviceType: 3,
+      },
+    ]);
+    expect(body.get("passenger_name")).toBe("乘客");
+    expect(created.providerOrderId).toBe("CC123456");
+    expect(created.dispatchSubmission).toEqual({
+      submissionMode: "MULTI_CANDIDATE",
+      submittedCandidateIds: ["sku-5", "sku-3"],
+      providerVehicleTypeCodes: ["5", "3"],
+    });
+  });
+});
+
 describe("Caocao external order id", () => {
   it("roundtrips order UUID through a Caocao-compatible compact id", () => {
     const externalOrderId = encodeCaocaoExternalOrderId(orderId);

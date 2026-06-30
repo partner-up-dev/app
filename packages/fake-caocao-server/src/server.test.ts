@@ -197,6 +197,7 @@ describe("startFakeCaocaoServer", () => {
     expect(server.state.findOrder(createBody.data.orderNo)?.callbackInfo).toBe(
       "pu.rhc.v1.stg.00000000-0000-0000-0000-000000000501",
     );
+    expect(server.state.findOrder(createBody.data.orderNo)?.submittedCarTypes).toEqual(["5"]);
 
     const detailResponse = await fetch(
       `${server.origin}/common/queryOrderDetailV2?${signedSearchParams({
@@ -476,6 +477,54 @@ describe("startFakeCaocaoServer", () => {
 
     expect(invalidPhaseResponse.status).toBe(400);
     expect(invalidPhaseBody.code).toBe("FAKE_CAOCAO_UNSUPPORTED_ORDER_PHASE");
+  });
+
+  test("serves multi-vehicle orderCarV2 and records submitted car types", async () => {
+    server = await startFakeCaocaoServer();
+
+    const createParams = defaultCreateParams({
+      ext_order_id: "external-order-multi",
+      is_simultaneously_call: "1",
+      service_type_price: JSON.stringify([
+        {
+          estimateKey: "fake_quote_3_3600",
+          estimatePrice: 3600,
+          serviceType: 3,
+        },
+        {
+          estimateKey: "fake_quote_5_5200",
+          estimatePrice: 5200,
+          serviceType: 5,
+        },
+      ]),
+      timestamp: "41",
+    });
+    delete createParams.car_type;
+    delete createParams.estimate_price;
+    delete createParams.estimate_price_key;
+
+    const createResponse = await fetch(`${server.origin}/common/orderCarV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: createParams,
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const createBody = (await createResponse.json()) as {
+      data: { orderNo: string };
+      success: boolean;
+    };
+
+    expect(createResponse.ok).toBe(true);
+    expect(createBody.success).toBe(true);
+    const order = server.state.findOrder(createBody.data.orderNo);
+    expect(order?.carType).toBe("3");
+    expect(order?.estimatePriceFen).toBe(3600);
+    expect(order?.submittedCarTypes).toEqual(["3", "5"]);
   });
 
   test("supports admin retreat controls", async () => {

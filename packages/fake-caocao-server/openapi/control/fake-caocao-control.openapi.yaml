@@ -303,6 +303,7 @@ components:
         - serviceStartedAt
         - startAddress
         - startName
+        - submittedCarTypes
         - updatedAt
       properties:
         acceptedAt:
@@ -394,6 +395,10 @@ components:
         startName:
           type: string
           minLength: 1
+        submittedCarTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarType'
         updatedAt:
           $ref: '#/components/schemas/IsoDateTime'
     FakeCaocaoFeeConfirmState:

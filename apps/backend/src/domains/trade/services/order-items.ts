@@ -3,7 +3,6 @@ import type {
   ChoiceSetOrderItemSnapshot,
   FixedOrderItemSnapshot,
   OrderItemSnapshot,
-  RideHailingProviderBindingSnapshot,
   SkuSnapshot,
 } from "../model";
 import type { FixedTotalPricingModel, PricingModel } from "../../merchandising";
@@ -81,10 +80,4 @@ export function getRideHailingChoiceSetItem(
 
 export function getRideHailingResolvedSku(item: ChoiceSetOrderItemSnapshot): SkuSnapshot | null {
   return item.resolution?.sku ?? null;
-}
-
-export function getRideHailingProviderBinding(
-  item: ChoiceSetOrderItemSnapshot,
-): RideHailingProviderBindingSnapshot | null {
-  return item.resolution?.providerBinding ?? null;
 }

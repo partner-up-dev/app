@@ -17,6 +17,7 @@ describe("FakeCaocaoState", () => {
     expect(duplicate).toEqual(created);
     expect(created.phase).toBe("CREATED");
     expect(created.finalAmountFen).toBe(5600);
+    expect(created.submittedCarTypes).toEqual(["5"]);
 
     expect(state.findOrder(created.providerOrderId)?.phase).toBe("CREATED");
 

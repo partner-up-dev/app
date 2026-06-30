@@ -101,20 +101,12 @@ export type RideHailingChoiceSetCandidateSnapshot = {
   quoteSnapshot: RideHailingQuoteSnapshot;
 };
 
-export type RideHailingProviderBindingSnapshot = {
-  providerInstanceId: string;
-  providerType?: string | null;
-  providerOrderId: string;
-  providerSnapshot?: unknown;
-};
-
 export type RideHailingChoiceSetResolutionSnapshot = {
   sku?: SkuSnapshot | null;
   providerVehicleTypeCode?: string | null;
   providerVehicleTypeName?: string | null;
   quoteSnapshot?: RideHailingQuoteSnapshot | null;
-  providerBinding?: RideHailingProviderBindingSnapshot | null;
-  source: "DISPATCH_POLICY" | "PROVIDER_ACCEPTED" | "PROVIDER_CALLBACK";
+  source: "PROVIDER_ACCEPTED" | "PROVIDER_CALLBACK";
   candidateRelation: "IN_CANDIDATES" | "PROVIDER_UPGRADE" | "PROVIDER_SUBSTITUTION";
   reason?: string | null;
   resolvedAt: string;

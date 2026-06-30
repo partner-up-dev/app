@@ -612,6 +612,9 @@ components:
             - 'null'
         callerPhone:
           $ref: '#/components/schemas/PhoneNumber'
+        carType:
+          type: integer
+          enum: [2, 3, 4, 5, 7, 12, 14, 15]
         cityCode:
           $ref: '#/components/schemas/CityCode'
         departureTime:
@@ -1034,13 +1037,10 @@ components:
       required:
         - callback_info
         - caller_phone
-        - car_type
         - city_code
         - client_id
         - end_address
         - end_name
-        - estimate_price
-        - estimate_price_key
         - ext_order_id
         - from_latitude
         - from_longitude
@@ -1052,6 +1052,19 @@ components:
         - timestamp
         - to_latitude
         - to_longitude
+      oneOf:
+        - required:
+            - car_type
+            - estimate_price
+            - estimate_price_key
+          properties:
+            is_simultaneously_call:
+              const: '0'
+        - required:
+            - service_type_price
+          properties:
+            is_simultaneously_call:
+              const: '1'
       properties:
         accept_cp_driver:
           type: string
@@ -1128,6 +1141,9 @@ components:
           type: string
         passenger_phone:
           $ref: '#/components/schemas/PhoneNumber'
+        service_type_price:
+          type: string
+          minLength: 1
         sign:
           type: string
           minLength: 1

@@ -61,6 +61,7 @@ export type FakeCaocaoOrderState = {
   serviceStartedAt: string | null;
   startAddress: string;
   startName: string;
+  submittedCarTypes: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -84,6 +85,15 @@ const nowIso = (): string => new Date().toISOString();
 
 const sanitizeProviderId = (value: string): string =>
   value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 48);
+
+const normalizeSubmittedCarTypes = (
+  values: string[] | null | undefined,
+  fallback: string,
+): string[] => {
+  const normalized =
+    values?.map((carType) => carType.trim()).filter((carType) => carType.length > 0) ?? [];
+  return normalized.length > 0 ? normalized : [fallback];
+};
 
 const defaultEstimates = (): FakeCaocaoVehicleEstimate[] => [
   {
@@ -351,6 +361,7 @@ export class FakeCaocaoState {
   createOrder(input: {
     externalOrderId: string;
     carType: string;
+    submittedCarTypes?: string[] | null;
     callbackInfo?: string | null;
     callbackUrl?: string | null;
     callerPhone?: string | null;
@@ -410,6 +421,7 @@ export class FakeCaocaoState {
       serviceStartedAt: null,
       startAddress: input.startAddress?.trim() || "Fake Origin Address",
       startName: input.startName?.trim() || "Fake Origin",
+      submittedCarTypes: normalizeSubmittedCarTypes(input.submittedCarTypes, estimate.carType),
       updatedAt: timestamp,
     };
     this.orders.set(order.providerOrderId, order);

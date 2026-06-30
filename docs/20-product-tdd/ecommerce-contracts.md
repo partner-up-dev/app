@@ -400,16 +400,23 @@ RideHailing:
 - Order is created from candidate quote snapshots. For RideHailing, the user
   orders one unresolved choice-set item: several acceptable vehicle SKU
   candidates, with one final resolution.
-- create-order dispatches the cheapest quoted candidate first. Provider create
-  failure cancels the local order without retrying the next candidate/provider
-  and returns the `CANCELLED` create-order result to the Ordering Page.
-- provider binding is stored on the choice-set resolution, not on
-  `ride_hailing_orders`
+- create-order sends the user-authorized candidate set to the selected
+  RideHailing provider port. CaoCao supports multi-candidate dispatch through
+  `/common/orderCarV2` with `is_simultaneously_call=1` and
+  `service_type_price`, so the CaoCao adapter submits all selected candidates
+  instead of choosing a cheapest fallback. When a future provider adapter does
+  not support multi-candidate dispatch, that adapter owns the
+  provider-specific fallback choice. Provider create failure cancels the local
+  order without retrying the next candidate/provider and returns the
+  `CANCELLED` create-order result to the Ordering Page.
+- provider dispatch binding is stored on `ride_hailing_orders`, not on the
+  choice-set resolution. The choice-set resolution represents only the final
+  service vehicle confirmed by the provider lifecycle.
 - execution phase and ride execution snapshots are stored on
   `ride_hailing_orders`
 - provider adapter computes external order id dynamically; the provider-side
-  order id returned by create is stored in the choice-set resolution together
-  with provider instance identity
+  order id returned by create is stored in the RideHailing dispatch binding
+  together with provider instance identity
 - provider detail sync owns execution truth only: execution phase, driver
   snapshot, vehicle snapshot, and other ride-lifecycle facts come from
   provider order-detail reads rather than from billing queries
