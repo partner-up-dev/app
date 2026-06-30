@@ -302,6 +302,10 @@ const mapCaocaoNavigationRouteKind = (
   return "UNKNOWN";
 };
 
+const toCaocaoNavigationPolylineType = (
+  routeKind: RideHailingProviderNavigationRouteQueryKind,
+): number => (routeKind === "PICKUP" ? 1 : 3);
+
 const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
   const basicOrder = readOptionalRecordField(data, ["basicOrderVO", "basicOrderVo", "basic_order"]);
   const driverRaw = readOptionalRecordField(data, [
@@ -958,10 +962,12 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     providerOrderId: string;
     routeKind: RideHailingProviderNavigationRouteQueryKind;
   }): Promise<RideHailingProviderNavigationRoute | null> {
+    // Staging CaoCao credentials currently expose the v1 polyline route API only.
     const data = await this.request<Record<string, unknown>>(
       "POST",
-      "/common/queryDriverPolylineV2",
+      "/common/queryDriverPolyline",
       {
+        navigation_polyline_type: toCaocaoNavigationPolylineType(input.routeKind),
         order_id: input.providerOrderId,
       },
     );

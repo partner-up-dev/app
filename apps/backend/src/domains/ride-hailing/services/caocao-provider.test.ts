@@ -585,7 +585,7 @@ describe("Caocao live order projection", () => {
         );
       }
 
-      if (url.pathname.endsWith("/common/queryDriverPolylineV2")) {
+      if (url.pathname.endsWith("/common/queryDriverPolyline")) {
         routeRequestBodies.push(init?.body?.toString() ?? "");
         return new Response(
           JSON.stringify({
@@ -652,11 +652,11 @@ describe("Caocao live order projection", () => {
       { latitude: 30.2688, longitude: 120.1608 },
     ]);
     expect(routeRequestBodies).toHaveLength(1);
-    expect(new URLSearchParams(routeRequestBodies[0]).get("navigation_polyline_type")).toBeNull();
+    expect(new URLSearchParams(routeRequestBodies[0]).get("navigation_polyline_type")).toBe("1");
     expect(requestPaths).toEqual([
       "/v2/common/queryOrderDetailV2",
       "/v2/common/queryDriverLocationByOrderId",
-      "/v2/common/queryDriverPolylineV2",
+      "/v2/common/queryDriverPolyline",
     ]);
   });
 
@@ -821,7 +821,7 @@ describe("Caocao live order projection", () => {
       const logOutput = stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join("");
       expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
       expect(logOutput).toContain('"event":"caocao_provider_failure"');
-      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolylineV2"');
+      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolyline"');
       expect(logOutput).toContain('"providerCode":25011');
       expect(logOutput).toContain('"providerMsg":"订单状态不正确"');
     } finally {

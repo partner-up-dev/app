@@ -49,11 +49,19 @@
   - route-query failures are fully swallowed and are not logged today, so the
     exact provider-side error code/message is not recoverable from current repo
     instrumentation alone
+- Implemented and verified:
+  - backend adapter now calls `POST /common/queryDriverPolyline`
+  - adapter request includes `navigation_polyline_type`
+  - fake CaoCao server contract now requires `navigation_polyline_type`
+  - fake CaoCao route endpoint no longer models V2-only route querying
+- Targeted validation completed:
+  - `pnpm test:unit:backend -- apps/backend/src/domains/ride-hailing/services/caocao-provider.test.ts`
+  - `pnpm --filter @partner-up-dev/fake-caocao-server test -- src/server.test.ts`
 
 ## Current Understanding
 
 - Input type: Reality.
-- Active mode: Diagnose.
+- Active mode: Execute.
 - User-provided symptom is phase-sensitive:
   - `vehicleLocation` present
   - `navigationRoute` always null in staging
@@ -93,26 +101,22 @@
     - current adapter chooses `next*` only when `steps` is empty, so it cannot
       explicitly project the “next order” route while `steps` is also present
       for the previous order
+  - staging evidence captured after diagnostic logging landed:
+    - provider request reached `POST /common/queryDriverPolylineV2`
+    - CaoCao returned business failure `code=453`
+    - message: `app api config not existed or disabled`
+    - conclusion: current staging provider credentials do not expose the V2
+      polyline API capability
+  - implementation decision:
+    - stop using `queryDriverPolylineV2`
+    - pin PartnerUp to `POST /common/queryDriverPolyline`
+    - explicitly send `navigation_polyline_type`
+    - treat this as a provider technical limitation, not a parser bug
 
 ## Next Step
 
-- if implementation starts:
-  1. add explicit diagnostics around `queryDriverRoute()` so staging captures
-     the provider response code/message instead of silently returning `null`
-  2. add a focused backend test covering the "vehicleLocation present, route
-     query failure -> navigationRoute null" path
-  3. align fake-server/test truth with the current V2 contract surface:
-     - current fake OpenAPI spec requires only `order_id`, matching official V2
-     - current backend unit test still asserts
-       `navigation_polyline_type` is absent, which matches the current official
-       V2 request contract
-     - current fake route handler always returns a success payload for any
-       existing order id and does not model provider-side route-query failures
-       by phase/capability/account
-      - official V2 docs restrict route queries to provider statuses `9`, `12`,
-        and `3`, but the fake route handler does not enforce that restriction,
-        so system scenarios cannot catch a status-window rejection from the real
-        provider
-  4. after one staging sample is captured, decide whether the real fix is
-     provider error handling, status-window alignment, or provider-account
-     capability/config correction
+- implement the v1 route-query contract everywhere it is authoritative:
+  1. backend CaoCao adapter calls `POST /common/queryDriverPolyline`
+  2. request includes `navigation_polyline_type=1|3`
+  3. fake CaoCao server validates the v1 request shape and phase constraints
+  4. tests assert the repo no longer depends on V2 route-query capability

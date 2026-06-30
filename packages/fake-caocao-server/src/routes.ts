@@ -661,6 +661,14 @@ const navigationPolylineType = (order: FakeCaocaoOrderState): number => {
   return 0;
 };
 
+const expectedNavigationPolylineTypeForPhase = (
+  phase: FakeCaocaoOrderState["phase"],
+): number | null => {
+  if (phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP") return 1;
+  if (phase === "IN_TRIP") return 3;
+  return null;
+};
+
 const queryDriverLocationPayload = (
   order: FakeCaocaoOrderState,
   plannedRoute: readonly FakeCaocaoCoordinate[],
@@ -1287,16 +1295,34 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
   );
 
   app.post(
-    "/common/queryDriverPolylineV2",
+    "/common/queryDriverPolyline",
     providerRoute(
-      "queryDriverPolylineV2",
-      "/common/queryDriverPolylineV2",
+      "queryDriverPolyline",
+      "/common/queryDriverPolyline",
       async ({ body }) => {
         const form = body as Record<string, string>;
         const providerOrderId = readFirst(form, "order_id");
+        const navigationPolylineTypeRaw = readFirst(form, "navigation_polyline_type");
         const order = providerOrderId ? state.findOrder(providerOrderId) : null;
         if (!order) {
           throw new FakeCaocaoProviderError(40401, "Fake Caocao order not found");
+        }
+        if (!navigationPolylineTypeRaw) {
+          throw new FakeCaocaoProviderError(40001, "Missing navigation_polyline_type");
+        }
+        const navigationPolylineType = Number(navigationPolylineTypeRaw);
+        if (
+          !Number.isInteger(navigationPolylineType) ||
+          (navigationPolylineType !== 1 && navigationPolylineType !== 3)
+        ) {
+          throw new FakeCaocaoProviderError(40001, "Invalid navigation_polyline_type");
+        }
+        const expectedNavigationPolylineType = expectedNavigationPolylineTypeForPhase(order.phase);
+        if (
+          expectedNavigationPolylineType === null ||
+          navigationPolylineType !== expectedNavigationPolylineType
+        ) {
+          throw new FakeCaocaoProviderError(25011, "订单状态不正确");
         }
         const plannedRoute = await resolveMovementRoute({
           order,

@@ -274,10 +274,11 @@ describe("startFakeCaocaoServer", () => {
     expect(driverLocationBody.data.longitude).toBeTypeOf("number");
     expect(driverLocationBody.data.direction).toBeTypeOf("number");
 
-    const driverPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+    const driverPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolyline`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          navigation_polyline_type: "1",
           order_id: createBody.data.orderNo,
           timestamp: "33",
         },
@@ -383,10 +384,11 @@ describe("startFakeCaocaoServer", () => {
     };
     expect(inTripDriverLocationBody.success).toBe(true);
 
-    const inTripPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+    const inTripPolylineResponse = await fetch(`${server.origin}/common/queryDriverPolyline`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          navigation_polyline_type: "3",
           order_id: createBody.data.orderNo,
           timestamp: "36",
         },
@@ -608,10 +610,11 @@ describe("startFakeCaocaoServer", () => {
     });
     server.state.setOrderPhase(created.providerOrderId, "IN_TRIP");
 
-    const firstResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+    const firstResponse = await fetch(`${server.origin}/common/queryDriverPolyline`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          navigation_polyline_type: "3",
           order_id: created.providerOrderId,
           timestamp: "41",
         },
@@ -637,10 +640,11 @@ describe("startFakeCaocaoServer", () => {
     expect(firstRoute[1]?.latitude).toBeCloseTo(30.28, 6);
     expect(firstRoute[1]?.longitude).toBeCloseTo(120.201, 6);
 
-    const secondResponse = await fetch(`${server.origin}/common/queryDriverPolylineV2`, {
+    const secondResponse = await fetch(`${server.origin}/common/queryDriverPolyline`, {
       body: signedSearchParams({
         clientId: server.fixture.clientId,
         params: {
+          navigation_polyline_type: "3",
           order_id: created.providerOrderId,
           timestamp: "42",
         },
@@ -666,6 +670,41 @@ describe("startFakeCaocaoServer", () => {
       latitude: 30.35,
       longitude: 120.3,
     });
+  });
+
+  test("requires v1 navigation_polyline_type for driver polyline queries", async () => {
+    server = await startFakeCaocaoServer();
+
+    const created = server.state.createOrder({
+      carType: "3",
+      externalOrderId: "external-order-missing-nav-type",
+    });
+    server.state.setOrderPhase(created.providerOrderId, "ACCEPTED");
+
+    const response = await fetch(`${server.origin}/common/queryDriverPolyline`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: created.providerOrderId,
+          timestamp: "43",
+        },
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      method: "POST",
+    });
+    const body = (await response.json()) as {
+      code: number;
+      msg: string;
+      success: boolean;
+    };
+
+    expect(response.ok).toBe(true);
+    expect(body.success).toBe(false);
+    expect(body.code).toBe(40001);
+    expect(body.msg).toBe("body(queryDriverPolyline)/navigation_polyline_type is required");
   });
 
   test("reports admin callback delivery failures", async () => {
