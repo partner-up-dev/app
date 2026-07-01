@@ -49,12 +49,16 @@ const defaultControlCorsHeaders = {
 };
 
 const DRIVER_NO = "FAKE_DRIVER_001";
+const DRIVER_ID = 457026;
 const DRIVER_NAME = "曹操测试司机";
 const DRIVER_PHONE = "13900139000";
+const DRIVER_AVATAR_URL = "https://fake.caocao.partner-up.test/driver/avatar.png";
+const DRIVER_LEVEL = "5.0";
+const DRIVER_ORDER_COUNT = "10753";
 const VEHICLE_BRAND = "几何";
 const VEHICLE_MODEL = "几何A";
 const VEHICLE_COLOR = "白色";
-const VEHICLE_PLATE = "浙A·TEST";
+const VEHICLE_PLATE = "浙A12345";
 const CALLBACK_INFO_PATTERN =
   /^pu\.rhc\.v1\.(dev|stg|prod)\.([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 const HANGZHOU_CITY_CODE = "0571";
@@ -551,46 +555,81 @@ const hasDriverInfo = (order: FakeCaocaoOrderState): boolean =>
   order.phase === "IN_TRIP" ||
   order.phase === "FINISHED";
 
+const queryOrderDetailFeeAmountFen = (order: FakeCaocaoOrderState): number | null =>
+  order.phase === "FINISHED" ? order.finalAmountFen : null;
+
+const queryOrderDetailFeeItems = (
+  amountFen: number | null,
+): Array<{ amount: number; chargeCode: string; chargeDesc: string }> => {
+  if (amountFen === null) return [];
+  const startFee = Math.min(1200, amountFen);
+  const travelFee = amountFen - startFee;
+  return [
+    {
+      amount: startFee,
+      chargeCode: "start_fee",
+      chargeDesc: "订单起步价",
+    },
+    ...(travelFee > 0
+      ? [
+          {
+            amount: travelFee,
+            chargeCode: "travel_km_fee",
+            chargeDesc: "里程费用",
+          },
+        ]
+      : []),
+  ];
+};
+
 const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
   const driver = hasDriverInfo(order) ? driverSnapshot(order) : null;
+  const feeAmountFen = queryOrderDetailFeeAmountFen(order);
   return {
     basicOrderVO: {
-      acceptCPDriver: 0,
-      allowModifyDest: 1,
+      acceptCPDriver: false,
+      allowModifyDest: true,
       beginChargeTime: fromIsoToCaocaoDateTime(order.serviceStartedAt),
       callbackInfo: order.callbackInfo,
       callerPhone: order.callerPhone,
       cityCode: order.cityCode,
+      companyNo: "FAKE_CAOCAO_COMPANY",
       departureTime: order.departureTime,
       endAddress: order.endAddress,
       endName: order.endName,
       estimatePrice: order.estimatePriceFen,
       extOrderId: order.externalOrderId,
+      extraInfo: "",
       fromLocation: {
         lat: order.origin.latitude,
         lng: order.origin.longitude,
       },
       invoiceStatus: 0,
-      invoiced: 0,
-      isRelayOrder: 0,
+      invoiced: false,
+      isRelayOrder: false,
       orderId: order.providerOrderId,
       orderLocation: {
         lat: order.origin.latitude,
         lng: order.origin.longitude,
       },
       orderTime: fromIsoToCaocaoDateTime(order.createdAt),
+      origin: 1,
       passengerName: order.passengerName,
       passengerPhone: order.passengerPhone,
-      preOrderEndFlag: 0,
+      preOrderEndFlag: false,
+      realEndAddress: order.endAddress,
       realEndLocation: {
-        lat: order.destination.latitude,
-        lng: order.destination.longitude,
+        latitude: order.destination.latitude,
+        longitude: order.destination.longitude,
       },
+      realStartAddress: order.startAddress,
       realStartLocation: {
-        lat: order.origin.latitude,
-        lng: order.origin.longitude,
+        latitude: order.origin.latitude,
+        longitude: order.origin.longitude,
       },
       requireLevel: Number(order.carType),
+      routeFixedPrice: false,
+      specialFixedPrice: false,
       startAddress: order.startAddress,
       startName: order.startName,
       startServiceTime: fromIsoToCaocaoDateTime(order.acceptedAt),
@@ -603,24 +642,39 @@ const queryOrderDetailPayload = (order: FakeCaocaoOrderState): unknown => {
     },
     driverInfoVo: driver
       ? {
+          avatar: DRIVER_AVATAR_URL,
           carBrand: driver.vehicleBrand,
           carType: VEHICLE_MODEL,
-          carNo: driver.vehiclePlate,
+          card: driver.vehiclePlate,
           color: driver.vehicleColor,
-          driverName: driver.driverName,
-          driverNo: DRIVER_NO,
-          driverPhone: driver.driverPhone,
+          id: DRIVER_ID,
+          level: DRIVER_LEVEL,
           location: {
-            direction: driver.direction,
             lat: driver.latitude,
             lng: driver.longitude,
-            speed: driver.speedKph,
           },
-          serviceType: Number(order.carType),
+          name: driver.driverName,
+          orderCnt: DRIVER_ORDER_COUNT,
+          phone: driver.driverPhone,
+          phone_passenger: driver.driverPhone,
+          serviceType: order.carType,
         }
       : null,
+    orderInvoiceVo: {
+      companyAmount: feeAmountFen,
+      personalAmount: feeAmountFen === null ? null : 0,
+    },
     orderFeeVo: {
-      totalFee: order.phase === "FINISHED" ? order.finalAmountFen : null,
+      companyPayAmount: feeAmountFen,
+      detailFeeVos: queryOrderDetailFeeItems(feeAmountFen),
+      doubleTollFlag: 0,
+      originTotalFee: feeAmountFen,
+      personalPayAmount: feeAmountFen === null ? null : 0,
+      totalFee: feeAmountFen,
+    },
+    orderPayVo: {
+      giftAmount: feeAmountFen === null ? null : 0,
+      principalAmount: feeAmountFen,
     },
   };
 };

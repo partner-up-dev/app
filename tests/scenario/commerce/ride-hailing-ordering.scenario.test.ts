@@ -941,7 +941,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     });
     await assertLocatorTextIncludes({
       actual: driverCard.textContent(),
-      expected: "浙A·TEST",
+      expected: "浙A12345",
       label: "RideHailing driver card vehicle plate",
     });
 

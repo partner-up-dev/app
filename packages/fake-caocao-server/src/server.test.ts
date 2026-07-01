@@ -247,8 +247,37 @@ describe("startFakeCaocaoServer", () => {
     const detailAfterAdvanceBody = (await detailAfterAdvanceResponse.json()) as {
       code: number;
       data: {
-        basicOrderVO: { requireLevel: number; status: string };
-        driverInfoVo: { carType: string; serviceType: number };
+        basicOrderVO: {
+          requireLevel: number;
+          routeFixedPrice: boolean;
+          specialFixedPrice: boolean;
+          status: string;
+        } & Record<string, unknown>;
+        driverInfoVo: {
+          card: string;
+          carType: string;
+          location: { lat: number; lng: number } & Record<string, unknown>;
+          name: string;
+          phone: string;
+          phone_passenger: string;
+          serviceType: string;
+        } & Record<string, unknown>;
+        orderFeeVo: {
+          companyPayAmount: number | null;
+          detailFeeVos: Array<{ amount: number; chargeCode: string; chargeDesc: string }>;
+          doubleTollFlag: number;
+          originTotalFee: number | null;
+          personalPayAmount: number | null;
+          totalFee: number | null;
+        };
+        orderInvoiceVo: {
+          companyAmount: number | null;
+          personalAmount: number | null;
+        };
+        orderPayVo: {
+          giftAmount: number | null;
+          principalAmount: number | null;
+        };
       };
       success: boolean;
     };
@@ -257,8 +286,32 @@ describe("startFakeCaocaoServer", () => {
     expect(detailAfterAdvanceBody.success).toBe(true);
     expect(detailAfterAdvanceBody.data.basicOrderVO.status).toBe("9");
     expect(detailAfterAdvanceBody.data.basicOrderVO.requireLevel).toBe(5);
+    expect(detailAfterAdvanceBody.data.basicOrderVO.routeFixedPrice).toBe(false);
+    expect(detailAfterAdvanceBody.data.basicOrderVO.specialFixedPrice).toBe(false);
     expect(detailAfterAdvanceBody.data.driverInfoVo.carType).toBe("几何A");
-    expect(detailAfterAdvanceBody.data.driverInfoVo.serviceType).toBe(5);
+    expect(detailAfterAdvanceBody.data.driverInfoVo.card).toBe("浙A12345");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.location.lat).toBeTypeOf("number");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.location.lng).toBeTypeOf("number");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.name).toBe("曹操测试司机");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.phone).toBe("13900139000");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.phone_passenger).toBe("13900139000");
+    expect(detailAfterAdvanceBody.data.driverInfoVo.serviceType).toBe("5");
+    expect(detailAfterAdvanceBody.data.orderFeeVo).toEqual({
+      companyPayAmount: null,
+      detailFeeVos: [],
+      doubleTollFlag: 0,
+      originTotalFee: null,
+      personalPayAmount: null,
+      totalFee: null,
+    });
+    expect(detailAfterAdvanceBody.data.orderInvoiceVo).toEqual({
+      companyAmount: null,
+      personalAmount: null,
+    });
+    expect(detailAfterAdvanceBody.data.orderPayVo).toEqual({
+      giftAmount: null,
+      principalAmount: null,
+    });
 
     const driverLocationResponse = await fetch(
       `${server.origin}/common/queryDriverLocationByOrderId?${signedSearchParams({
@@ -473,6 +526,68 @@ describe("startFakeCaocaoServer", () => {
     expect(queryCalculateBillBody.data.companyFee).toBe(5600);
     expect(queryCalculateBillBody.data.personalFee).toBe(0);
     expect(queryCalculateBillBody.data.totalFee).toBe(5600);
+
+    const finishedDetailResponse = await fetch(
+      `${server.origin}/common/queryOrderDetailV2?${signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: {
+          order_id: createBody.data.orderNo,
+          timestamp: "38",
+        },
+        signKey: server.fixture.signKey,
+      }).toString()}`,
+    );
+    const finishedDetailBody = (await finishedDetailResponse.json()) as {
+      data: {
+        orderFeeVo: {
+          companyPayAmount: number;
+          detailFeeVos: Array<{ amount: number; chargeCode: string; chargeDesc: string }>;
+          doubleTollFlag: number;
+          originTotalFee: number;
+          personalPayAmount: number;
+          totalFee: number;
+        };
+        orderInvoiceVo: {
+          companyAmount: number;
+          personalAmount: number;
+        };
+        orderPayVo: {
+          giftAmount: number;
+          principalAmount: number;
+        };
+      };
+      success: boolean;
+    };
+
+    expect(finishedDetailResponse.ok).toBe(true);
+    expect(finishedDetailBody.success).toBe(true);
+    expect(finishedDetailBody.data.orderFeeVo).toEqual({
+      companyPayAmount: 5600,
+      detailFeeVos: [
+        {
+          amount: 1200,
+          chargeCode: "start_fee",
+          chargeDesc: "订单起步价",
+        },
+        {
+          amount: 4400,
+          chargeCode: "travel_km_fee",
+          chargeDesc: "里程费用",
+        },
+      ],
+      doubleTollFlag: 0,
+      originTotalFee: 5600,
+      personalPayAmount: 0,
+      totalFee: 5600,
+    });
+    expect(finishedDetailBody.data.orderInvoiceVo).toEqual({
+      companyAmount: 5600,
+      personalAmount: 0,
+    });
+    expect(finishedDetailBody.data.orderPayVo).toEqual({
+      giftAmount: 0,
+      principalAmount: 5600,
+    });
 
     const invalidPhaseResponse = await fetch(
       `${server.origin}/__fake_caocao/orders/${createBody.data.orderNo}/phase?phase=BOARDING`,

@@ -552,18 +552,17 @@ describe("Caocao live order projection", () => {
               },
               driverInfoVo: {
                 carBrand: "几何",
-                carNo: "浙A12345",
                 carType: "几何A",
+                card: "浙A12345",
                 color: "白色",
-                driverName: "张师傅",
-                driverPhone: "13800138001",
                 location: {
-                  direction: 90,
                   lat: 30.2688,
                   lng: 120.1608,
-                  speed: 0,
                 },
-                serviceType: 7,
+                name: "张师傅",
+                phone: "13800138009",
+                phone_passenger: "13800138001",
+                serviceType: "7",
               },
             },
             success: true,
@@ -643,8 +642,9 @@ describe("Caocao live order projection", () => {
     expect(detail.providerVehicleTypeCode).toBe("3");
     expect(detail.providerVehicleTypeName).toBeNull();
     expect(detail.driver?.driverName).toBe("张师傅");
+    expect(detail.driver?.driverPhone).toBe("13800138001");
     expect(detail.vehicle?.plate).toBe("浙A12345");
-    expect(detail.vehicleLocation?.headingDegrees).toBe(90);
+    expect(detail.vehicleLocation?.headingDegrees).toBeNull();
     expect(location?.headingDegrees).toBe(88);
     expect(route?.routeKind).toBe("PICKUP");
     expect(route?.remainingDistanceMeters).toBe(820);
@@ -678,12 +678,13 @@ describe("Caocao live order projection", () => {
             },
             driverInfoVo: {
               carBrand: "几何",
-              carNo: "浙A12345",
               carType: "几何A",
+              card: "浙A12345",
               color: "白色",
-              driverName: "张师傅",
-              driverPhone: "13800138001",
-              serviceType: 3,
+              name: "张师傅",
+              phone: "13800138009",
+              phone_passenger: "13800138001",
+              serviceType: "3",
             },
           },
           success: true,

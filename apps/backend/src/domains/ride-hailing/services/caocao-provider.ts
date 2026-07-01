@@ -324,9 +324,9 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
   const driverRaw = readOptionalRecordField(data, ["driverInfoVo"]);
   const vehicleRaw = driverRaw;
   const phase = readOptionalStringField(basicOrder, ["status"]) ?? "UNKNOWN";
-  const driverName = readOptionalStringField(driverRaw, ["driverName"]);
-  const driverPhone = readOptionalStringField(driverRaw, ["driverPhone"]);
-  const plate = readOptionalStringField(vehicleRaw, ["carNo"]);
+  const driverName = readOptionalStringField(driverRaw, ["name"]);
+  const driverPhone = readOptionalStringField(driverRaw, ["phone_passenger"]);
+  const plate = readOptionalStringField(vehicleRaw, ["card"]);
   const brand = readOptionalStringField(vehicleRaw, ["carBrand"]);
   const color = readOptionalStringField(vehicleRaw, ["color"]);
   const providerVehicleTypeCode = readOptionalStringField(basicOrder, ["requireLevel"]);
@@ -362,7 +362,7 @@ const parseCaocaoOrderDetailFinalSettlementResult = (input: {
   data: Record<string, unknown>;
   providerOrderId: string;
 }): RideHailingProviderFinalSettlementResult | null => {
-  const orderFee = readOptionalRecordField(input.data, ["orderFeeVO", "orderFeeVo", "order_fee"]);
+  const orderFee = readOptionalRecordField(input.data, ["orderFeeVo"]);
   const totalFee = readOptionalNumberField(orderFee, ["totalFee"]);
   if (totalFee === null) return null;
   return {

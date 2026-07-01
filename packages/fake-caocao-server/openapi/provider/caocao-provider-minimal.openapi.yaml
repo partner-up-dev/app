@@ -329,6 +329,17 @@ components:
           type: number
         lng:
           type: number
+    RealCoordinate:
+      type: object
+      additionalProperties: false
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
     DriverLocation:
       type: object
       additionalProperties: false
@@ -356,43 +367,19 @@ components:
       type: object
       additionalProperties: false
       required:
-        - direction
         - lat
         - lng
-        - speed
       properties:
-        direction:
-          type: number
         lat:
           type: number
         lng:
-          type: number
-        speed:
           type: number
     DriverInfoVo:
       type: object
       nullable: true
       additionalProperties: false
-      required:
-        - driverName
-        - driverPhone
-        - driverNo
-        - carNo
-        - carBrand
-        - carType
-        - color
-        - location
-        - serviceType
       properties:
-        driverName:
-          type: string
-          minLength: 1
-        driverPhone:
-          $ref: '#/components/schemas/PhoneNumber'
-        driverNo:
-          type: string
-          minLength: 1
-        carNo:
+        avatar:
           type: string
           minLength: 1
         carBrand:
@@ -401,21 +388,107 @@ components:
         carType:
           type: string
           minLength: 1
+        card:
+          type: string
+          minLength: 1
         color:
+          type: string
+          minLength: 1
+        id:
+          type: integer
+        level:
           type: string
           minLength: 1
         location:
           $ref: '#/components/schemas/DriverInfoLocation'
+        name:
+          type: string
+          minLength: 1
+        orderCnt:
+          type: string
+          minLength: 1
+        phone:
+          $ref: '#/components/schemas/PhoneNumber'
+        phone_passenger:
+          $ref: '#/components/schemas/PhoneNumber'
         serviceType:
+          type: string
+          enum: ['2', '3', '4', '5', '7', '12', '14', '15']
+    OrderFeeDetailFeeVo:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - chargeCode
+        - chargeDesc
+      properties:
+        amount:
           type: integer
-          enum: [2, 3, 4, 5, 7, 12, 14, 15]
+        chargeCode:
+          type: string
+          minLength: 1
+        chargeDesc:
+          type: string
+          minLength: 1
     OrderFeeVo:
       type: object
       additionalProperties: false
       required:
+        - companyPayAmount
+        - detailFeeVos
+        - personalPayAmount
         - totalFee
       properties:
+        companyPayAmount:
+          type:
+            - integer
+            - 'null'
+        detailFeeVos:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderFeeDetailFeeVo'
+        doubleTollFlag:
+          type: integer
+          enum: [0]
+        originTotalFee:
+          type:
+            - integer
+            - 'null'
+        personalPayAmount:
+          type:
+            - integer
+            - 'null'
         totalFee:
+          type:
+            - integer
+            - 'null'
+    OrderPayVo:
+      type: object
+      additionalProperties: false
+      required:
+        - giftAmount
+        - principalAmount
+      properties:
+        giftAmount:
+          type:
+            - integer
+            - 'null'
+        principalAmount:
+          type:
+            - integer
+            - 'null'
+    OrderInvoiceVo:
+      type: object
+      additionalProperties: false
+      required:
+        - companyAmount
+        - personalAmount
+      properties:
+        companyAmount:
+          type:
+            - integer
+            - 'null'
+        personalAmount:
           type:
             - integer
             - 'null'
@@ -574,15 +647,14 @@ components:
       required:
         - acceptCPDriver
         - allowModifyDest
-        - beginChargeTime
-        - callbackInfo
         - callerPhone
         - cityCode
-        - departureTime
+        - companyNo
         - endAddress
         - endName
         - estimatePrice
         - extOrderId
+        - extraInfo
         - fromLocation
         - invoiceStatus
         - invoiced
@@ -590,25 +662,27 @@ components:
         - orderId
         - orderLocation
         - orderTime
+        - origin
         - passengerName
         - passengerPhone
         - preOrderEndFlag
+        - realEndAddress
         - realEndLocation
+        - realStartAddress
         - realStartLocation
         - requireLevel
+        - routeFixedPrice
+        - specialFixedPrice
         - startAddress
         - startName
-        - startServiceTime
         - status
         - toLocation
         - type
       properties:
         acceptCPDriver:
-          type: integer
-          enum: [0, 1]
+          type: boolean
         allowModifyDest:
-          type: integer
-          enum: [0, 1]
+          type: boolean
         beginChargeTime:
           type:
             - string
@@ -622,6 +696,9 @@ components:
           $ref: '#/components/schemas/PhoneNumber'
         cityCode:
           $ref: '#/components/schemas/CityCode'
+        companyNo:
+          type: string
+          minLength: 1
         departureTime:
           type:
             - string
@@ -638,17 +715,17 @@ components:
         extOrderId:
           type: string
           minLength: 1
+        extraInfo:
+          type: string
         fromLocation:
           $ref: '#/components/schemas/Coordinate'
         invoiceStatus:
           type: integer
-          enum: [0, 1]
+          enum: [0, 1, 2]
         invoiced:
-          type: integer
-          enum: [0, 1]
+          type: boolean
         isRelayOrder:
-          type: integer
-          enum: [0, 1]
+          type: boolean
         orderId:
           type: string
           minLength: 1
@@ -656,21 +733,33 @@ components:
           $ref: '#/components/schemas/Coordinate'
         orderTime:
           $ref: '#/components/schemas/CaocaoDateTimeString'
+        origin:
+          type: integer
+          enum: [0, 1, 2, 3, 4, 5, 6, 7, 8]
         passengerName:
           type: string
           minLength: 1
         passengerPhone:
           $ref: '#/components/schemas/PhoneNumber'
         preOrderEndFlag:
-          type: integer
-          enum: [0, 1]
+          type: boolean
+        realEndAddress:
+          type: string
+          minLength: 1
         realEndLocation:
-          $ref: '#/components/schemas/Coordinate'
+          $ref: '#/components/schemas/RealCoordinate'
+        realStartAddress:
+          type: string
+          minLength: 1
         realStartLocation:
-          $ref: '#/components/schemas/Coordinate'
+          $ref: '#/components/schemas/RealCoordinate'
         requireLevel:
           type: integer
           enum: [2, 3, 4, 5, 7, 12, 14, 15]
+        routeFixedPrice:
+          type: boolean
+        specialFixedPrice:
+          type: boolean
         startAddress:
           type: string
           minLength: 1
@@ -695,15 +784,18 @@ components:
       additionalProperties: false
       required:
         - basicOrderVO
-        - driverInfoVo
         - orderFeeVo
       properties:
         basicOrderVO:
           $ref: '#/components/schemas/QueryOrderDetailBasicOrderVO'
         driverInfoVo:
           $ref: '#/components/schemas/DriverInfoVo'
+        orderInvoiceVo:
+          $ref: '#/components/schemas/OrderInvoiceVo'
         orderFeeVo:
           $ref: '#/components/schemas/OrderFeeVo'
+        orderPayVo:
+          $ref: '#/components/schemas/OrderPayVo'
     QueryDriverPolylineData:
       type: object
       additionalProperties: false
