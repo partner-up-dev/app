@@ -5,13 +5,13 @@
     data-region="waitlist-actions"
     data-testid="pr-detail.waitlist-actions"
   >
-    <InlineNotice
+    <PuInlineNotice
       v-if="waitlistBlockedMessage"
       tone="warning"
       :message="waitlistBlockedMessage"
     />
 
-    <InlineNotice
+    <PuInlineNotice
       v-if="waitlistNoticeText"
       tone="info"
       :message="waitlistNoticeText"
@@ -19,9 +19,9 @@
     />
 
     <div v-if="showWaitlistAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -35,15 +35,15 @@
               ? t("prPage.waitlisting")
               : t("prPage.waitlist")
         }}
-      </Button>
+      </PuButton>
       <p v-if="waitlistActionError" class="action-error">
         {{ waitlistActionError }}
       </p>
     </div>
 
     <div v-if="showCancelWaitlistAction" class="action-group">
-      <Button
-        tone="surface"
+      <PuButton
+        tone="neutral" variant="soft"
         :loading="cancelWaitlistMutation.isPending.value"
         block
         data-testid="pr-detail.waitlist.cancel"
@@ -54,29 +54,30 @@
             ? t("prPage.cancelWaitlisting")
             : t("prPage.cancelWaitlist")
         }}
-      </Button>
+      </PuButton>
       <p v-if="cancelWaitlistActionError" class="action-error">
         {{ cancelWaitlistActionError }}
       </p>
     </div>
 
-    <ConfirmDialog
+    <PuDialog
       :open="showCancelWaitlistConfirmModal"
       :title="t('prPage.cancelWaitlistConfirm.title')"
-      :message="t('prPage.cancelWaitlistConfirm.message')"
-      :confirm-label="
+      :description="t('prPage.cancelWaitlistConfirm.message')"
+      :confirm-text="
         cancelWaitlistMutation.isPending.value
           ? t('prPage.cancelWaitlisting')
           : t('prPage.cancelWaitlist')
       "
-      confirm-tone="danger"
-      :loading="cancelWaitlistMutation.isPending.value"
+      tone="error"
+      :confirm-loading="cancelWaitlistMutation.isPending.value"
       @close="showCancelWaitlistConfirmModal = false"
+      @cancel="showCancelWaitlistConfirmModal = false"
       @confirm="confirmCancelWaitlist"
     />
   </section>
 
-  <Modal
+  <PuModal
     :open="showWaitlistGateModal"
     max-width="420px"
     title="提交候补"
@@ -104,16 +105,19 @@
       @completed="finalizeWaitlist"
       @error="setWaitlistActionError"
     />
-  </Modal>
+  </PuModal>
 
-  <Modal :open="showWaitlistSuccessPrompt" @close="closeWaitlistSuccessPrompt">
+  <PuModal
+    :open="showWaitlistSuccessPrompt"
+    @close="closeWaitlistSuccessPrompt"
+  >
     <PRWaitlistSuccessPrompt
       ref="waitlistSuccessPromptRef"
       :open="showWaitlistSuccessPrompt"
       :alternative-pr-reminder-opt-in="waitlistSuccessAlternativeReminderOptIn"
       @done="handleWaitlistSuccessPromptDone"
     />
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
@@ -121,11 +125,6 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
-import Button from "@/shared/ui/actions/Button.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import {
   useCancelWaitlistPR,
   useWaitlistPR,
@@ -142,6 +141,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { trackEvent } from "@/shared/telemetry/track";
+import { PuButton, PuInlineNotice, PuModal, PuDialog } from "@partner-up-dev/design-web";
 
 type WaitlistSuccessPromptExpose = {
   close: () => void;
@@ -222,15 +222,6 @@ usePRPrimaryActionImpression({
   ctaType: computed(() => (showWaitlistAction.value ? "WAITLIST" : null)),
   visible: showWaitlistAction,
 });
-
-useBodyScrollLock(
-  computed(
-    () =>
-      showWaitlistGateModal.value ||
-      showWaitlistSuccessPrompt.value ||
-      showCancelWaitlistConfirmModal.value,
-  ),
-);
 
 const resolveErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : t("common.operationFailed");

@@ -1,10 +1,7 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import type {
-  PRId,
-  PartnerRequestFields,
-} from "../../../entities/partner-request";
+import type { PRId, PartnerRequestFields } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import {
   countActivePartnersForPR,
@@ -32,6 +29,7 @@ import {
   assertPRContentEditable,
   resolveChangedPRContentFields,
 } from "../services/pr-edit-capability.service";
+import { canonicalizePartnerRequestFieldsTime } from "../services/pr-time-window-instant.service";
 import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
@@ -42,8 +40,7 @@ const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 const RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE =
   "TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE";
-export const PARTICIPANT_RELEASE_REQUIRED_CODE =
-  "PARTICIPANT_RELEASE_REQUIRED";
+export const PARTICIPANT_RELEASE_REQUIRED_CODE = "PARTICIPANT_RELEASE_REQUIRED";
 
 export interface UpdatePRContentOptions {
   bypassEditableStatusGuard?: boolean;
@@ -67,10 +64,10 @@ const CORE_FIELD_NOTIFICATION_LABELS: Partial<
 
 const buildCoreFieldChangeMessageBody = (changedFields: string[]): string | null => {
   const labels = changedFields
-    .map((field) =>
-      CORE_FIELD_NOTIFICATION_LABELS[
-        field as keyof typeof CORE_FIELD_NOTIFICATION_LABELS
-      ] ?? null,
+    .map(
+      (field) =>
+        CORE_FIELD_NOTIFICATION_LABELS[field as keyof typeof CORE_FIELD_NOTIFICATION_LABELS] ??
+        null,
     )
     .filter((label): label is string => label !== null);
 
@@ -95,7 +92,9 @@ export async function updatePRContent(
   actorUserId: UserId | null,
   options: UpdatePRContentOptions = {},
 ): Promise<PublicPR> {
-  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence(
+    canonicalizePartnerRequestFieldsTime(fields),
+  );
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
@@ -108,12 +107,8 @@ export async function updatePRContent(
   const timeChanged =
     refreshedRequest.time[0] !== normalizedFields.time[0] ||
     refreshedRequest.time[1] !== normalizedFields.time[1];
-  const typeChanged =
-    refreshedRequest.type.trim() !== normalizedFields.type.trim();
-  const changedFields = resolveChangedPRContentFields(
-    refreshedRequest,
-    normalizedFields,
-  );
+  const typeChanged = refreshedRequest.type.trim() !== normalizedFields.type.trim();
+  const changedFields = resolveChangedPRContentFields(refreshedRequest, normalizedFields);
   assertPRContentEditable({
     request: refreshedRequest,
     fields: normalizedFields,
@@ -138,9 +133,7 @@ export async function updatePRContent(
     location: normalizedFields.location,
     timeWindow: normalizedFields.time,
   });
-  const previousMeetingPoints = await captureEffectiveMeetingPointsForRequests([
-    refreshedRequest,
-  ]);
+  const previousMeetingPoints = await captureEffectiveMeetingPointsForRequests([refreshedRequest]);
 
   if (timeChanged && refreshedRequest.status !== "DRAFT") {
     const activeParticipants = await listActiveParticipantSummariesForPR(id);
@@ -170,7 +163,8 @@ export async function updatePRContent(
       if (activeParticipants.length - conflictedParticipants.length < minPartners) {
         return throwHttpProblem({
           status: 409,
-          detail: "Cannot release conflicted participants because the PR would fall below minPartners",
+          detail:
+            "Cannot release conflicted participants because the PR would fall below minPartners",
           code: "PARTICIPANT_RELEASE_BELOW_MIN_PARTNERS",
         });
       }
@@ -186,10 +180,7 @@ export async function updatePRContent(
           });
         }
         await cancelWeChatReminderJobsForParticipant(id, participant.userId);
-        await cancelWeChatActivityStartReminderJobsForParticipant(
-          id,
-          participant.userId,
-        );
+        await cancelWeChatActivityStartReminderJobsForParticipant(id, participant.userId);
         operationLogService.log({
           actorId: actorUserId,
           action: "partner.release_after_pr_core_field_change",
@@ -223,11 +214,7 @@ export async function updatePRContent(
   }
   await prRepo.clearPosterCache(id);
 
-  if (
-    minMaxChanged &&
-    refreshedRequest.status !== "DRAFT" &&
-    !options.preserveStatus
-  ) {
+  if (minMaxChanged && refreshedRequest.status !== "DRAFT" && !options.preserveStatus) {
     await recalculatePRStatus(id);
   }
 
@@ -247,9 +234,7 @@ export async function updatePRContent(
   });
 
   const coreFieldChangeMessageBody =
-    refreshedRequest.status === "DRAFT"
-      ? null
-      : buildCoreFieldChangeMessageBody(changedFields);
+    refreshedRequest.status === "DRAFT" ? null : buildCoreFieldChangeMessageBody(changedFields);
   if (coreFieldChangeMessageBody !== null && actorUserId !== null) {
     await createPersistedPRMessage({
       request: latest,

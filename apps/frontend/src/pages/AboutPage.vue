@@ -1,10 +1,25 @@
 <template>
-  <PageScaffoldCentered class="about-page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold content-placement="center" class="about-page">
+    <template #pageHeader>
+      <PuHeader
         :title="t('aboutPage.title')"
         :subtitle="t('aboutPage.description')"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <section class="about-body" :aria-label="t('aboutPage.sectionTitle')">
@@ -88,13 +103,13 @@
           </div>
         </div>
 
-        <Button
-          appearance="pill"
-          type="button"
+        <PuButton
+          shape="pill"
+
           @click="showOfficialAccountQrModal = true"
         >
           {{ t("home.landing.officialAccountAction") }}
-        </Button>
+        </PuButton>
       </section>
 
       <p
@@ -111,7 +126,7 @@
       @close="showOfficialAccountQrModal = false"
     />
 
-    <Modal
+    <PuModal
       :open="betaGroupModalOpen"
       :title="selectedBetaGroupModalTitle"
       max-width="420px"
@@ -131,24 +146,27 @@
           {{ t("aboutPage.betaGroupQrMissing") }}
         </p>
       </div>
-    </Modal>
-  </PageScaffoldCentered>
+    </PuModal>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
+import {
+  PuButton,
+  PuHeader,
+  PuModal,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const backendBuildMetadataQuery = useBackendBuildMetadata();
 const anchorEventsQuery = useAnchorEvents();
 const showOfficialAccountQrModal = ref(false);
@@ -191,8 +209,6 @@ const selectedBetaGroupQrAlt = computed(() =>
 const betaGroupModalOpen = computed(
   () => selectedBetaGroupEvent.value !== null,
 );
-
-useBodyScrollLock(betaGroupModalOpen);
 
 const openBetaGroupModal = (eventId: number): void => {
   selectedBetaGroupEventId.value = eventId;
@@ -317,7 +333,10 @@ const backendCommitHash = computed(() => {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sys-spacing-small);
-  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  min-height: calc(
+    var(--sys-spacing-large) + var(--sys-spacing-small) +
+      var(--sys-spacing-xsmall)
+  );
   padding: var(--sys-spacing-small) 0;
 }
 

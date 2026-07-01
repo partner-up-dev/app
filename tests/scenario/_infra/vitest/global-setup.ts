@@ -8,7 +8,7 @@ import {
 import {
   startFakeCaocaoServer,
   type StartedFakeCaocaoServer,
-} from "../../../../packages/fake-caocao-server/src/index";
+} from "@partner-up-dev/fake-caocao-server";
 import {
   createScenarioDatabase,
   installScenarioDatabaseEnv,
@@ -52,7 +52,9 @@ export async function setup(project: TestProject): Promise<void> {
   process.env.VITE_API_URL = frontendBaseUrl;
 
   fakeWeChatPayServer = await startFakeWeChatPayServer();
-  fakeCaocaoServer = await startFakeCaocaoServer();
+  fakeCaocaoServer = await startFakeCaocaoServer({
+    callbackBaseUrl: `http://127.0.0.1:${backendPort}`,
+  });
 
   database = await createScenarioDatabase();
   const databaseUrl = installScenarioDatabaseEnv(database.databaseUrl);

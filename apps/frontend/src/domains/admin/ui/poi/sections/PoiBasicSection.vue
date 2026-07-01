@@ -7,17 +7,17 @@
       data-testid="admin-pois.section.basic"
     >
       <template #actions>
-        <Button
-          appearance="pill"
+        <PuButton
+          shape="pill"
           size="sm"
-          type="button"
+
           :disabled="selectedPoiId === null || isSavingPoi"
           @click="emit('save-poi')"
         >
           {{
             isSavingPoi ? t("adminPois.savingPoi") : t("adminPois.savePoiAction")
           }}
-        </Button>
+        </PuButton>
       </template>
 
       <p class="current-poi-meta">
@@ -39,11 +39,11 @@
           <div class="coordinate-field__header">
             <span class="field-label">{{ t("adminPois.coordinateLabel") }}</span>
             <div class="coordinate-field__actions">
-              <Button
-                appearance="pill"
-                tone="outline"
+              <PuButton
+                shape="pill"
+                tone="neutral" variant="outline"
                 size="sm"
-                type="button"
+
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.pick-coordinate"
                 @click="isLocationPickerOpen = true"
@@ -52,13 +52,13 @@
                   <span class="i-mdi-map-marker-radius" />
                 </template>
                 {{ t("adminPois.pickCoordinateAction") }}
-              </Button>
-              <Button
+              </PuButton>
+              <PuButton
                 v-if="selectedPoiHasCoordinate"
-                appearance="pill"
-                tone="danger"
+                shape="pill"
+                tone="danger" variant="outline"
                 size="sm"
-                type="button"
+
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.clear-coordinate"
                 @click="emit('clear-coordinates')"
@@ -67,7 +67,7 @@
                   <span class="i-mdi-map-marker-remove" />
                 </template>
                 {{ t("adminPois.clearCoordinateAction") }}
-              </Button>
+              </PuButton>
             </div>
           </div>
           <p class="coordinate-field__value">
@@ -86,76 +86,29 @@
         {{ t("adminPois.galleryCount", { count: selectedPoiGallery.length }) }}
       </p>
 
-      <div class="field">
-        <span class="field-label">{{ t("adminPois.galleryHint") }}</span>
-        <div class="manual-url-row">
-          <ImageUrlInput
-            v-model="manualGalleryUrl"
-            v-model:uploading="isUploadingGalleryImage"
-            input-id="admin-poi-gallery-image-url"
-            purpose="poi"
-            :placeholder="t('adminPois.manualUrlPlaceholder')"
-            :upload-label="t('adminPois.uploadImageAction')"
-            :uploading-label="t('adminPois.uploadingImage')"
-            :preview-alt="
-              t('adminPois.imageAlt', {
-                index: selectedPoiGallery.length + 1,
-                poiId: selectedPoiId ?? '',
-              })
-            "
-            :disabled="selectedPoiId === null"
-            @uploaded="emit('gallery-uploaded', $event)"
-          />
-          <Button
-            appearance="pill"
-            tone="outline"
-            size="sm"
-            type="button"
-            :disabled="selectedPoiId === null"
-            @click="emit('add-manual-url')"
-          >
-            {{ t("adminPois.addUrlAction") }}
-          </Button>
-        </div>
-      </div>
-
-      <p v-if="selectedPoiGallery.length === 0" class="hint">
-        {{ t("adminPois.emptyGallery") }}
-      </p>
-      <div v-else class="gallery-grid">
-        <article
-          v-for="(imageUrl, index) in selectedPoiGallery"
-          :key="`${selectedPoiId ?? 'poi'}-gallery-${index}`"
-          class="gallery-item"
-        >
-          <img
-            :src="imageUrl"
-            :alt="t('adminPois.imageAlt', { index: index + 1, poiId: selectedPoiId ?? '' })"
-            class="gallery-image"
-          />
-          <p class="gallery-url">{{ imageUrl }}</p>
-          <div class="gallery-actions">
-            <Button
-              appearance="pill"
-              tone="outline"
-              size="sm"
-              type="button"
-              @click="copyGalleryUrl(imageUrl)"
-            >
-              {{ t("adminPois.copyUrlAction") }}
-            </Button>
-            <Button
-              appearance="pill"
-              tone="danger"
-              size="sm"
-              type="button"
-              @click="emit('remove-gallery-image', index)"
-            >
-              {{ t("adminPois.removeImageAction") }}
-            </Button>
-          </div>
-        </article>
-      </div>
+      <PuFilesUpload
+        v-model="galleryUploadValue"
+        mode="both"
+        layout="panel"
+        :accept="IMAGE_UPLOAD_ACCEPT"
+        :disabled="selectedPoiId === null"
+        :title="t('adminPois.galleryHint')"
+        :description="t('adminPois.emptyGallery')"
+        :choose-label="t('adminPois.uploadImageAction')"
+        :drop-label="t('adminPois.uploadImageAction')"
+        :drop-description="t('adminPois.galleryHint')"
+        :url-placeholder="t('adminPois.manualUrlPlaceholder')"
+        :url-add-label="t('adminPois.addUrlAction')"
+        @add="handleGalleryUploadAdd"
+        @remove="handleGalleryUploadRemove"
+        @reject="handleGalleryUploadReject"
+        @update:model-value="handleGalleryUploadUpdate"
+      />
+      <PuInlineNotice
+        v-if="galleryUploadError"
+        tone="error"
+        :message="galleryUploadError"
+      />
     </BentoItem>
 
     <BentoItem :title="t('adminPois.availabilityAndCapacityTitle')" span="full">
@@ -174,16 +127,16 @@
       </div>
 
       <div class="section-header">
-        <Button
-          appearance="pill"
-          tone="outline"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="outline"
           size="sm"
-          type="button"
+
           :disabled="selectedPoiId === null"
           @click="emit('add-availability-rule')"
         >
           {{ t("adminPois.addAvailabilityRuleAction") }}
-        </Button>
+        </PuButton>
       </div>
 
       <p v-if="selectedPoiAvailabilityRules.length === 0" class="hint">
@@ -199,77 +152,79 @@
           <strong>
             {{ t("adminPois.availabilityRuleTitle", { index: index + 1 }) }}
           </strong>
-          <Button
-            tone="danger"
+          <PuButton
+            tone="danger" variant="outline"
             size="sm"
-            type="button"
+
             @click="emit('remove-availability-rule', index)"
           >
             {{ t("adminPois.removeRuleAction") }}
-          </Button>
+          </PuButton>
         </div>
 
         <div class="grid">
-          <label class="field">
-            <span class="field-label">{{ t("adminPois.ruleModeLabel") }}</span>
-            <select
-              v-model="rule.mode"
-              class="field-input"
-              @change="emit('mark-dirty')"
-            >
-              <option value="INCLUDE">{{ t("adminPois.ruleModeInclude") }}</option>
-              <option value="EXCLUDE">{{ t("adminPois.ruleModeExclude") }}</option>
-            </select>
-          </label>
+          <PuFormItem
+            :label="t('adminPois.ruleModeLabel')"
+            :for-id="`admin-pois-rule-${index}-mode`"
+          >
+            <PuSelect
+              :id="`admin-pois-rule-${index}-mode`"
+              :model-value="rule.mode"
+              :options="ruleModeOptions"
+              @update:model-value="updateRuleMode(rule, $event)"
+            />
+          </PuFormItem>
 
-          <label class="field">
-            <span class="field-label">{{ t("adminPois.ruleKindLabel") }}</span>
-            <select
-              v-model="rule.kind"
-              class="field-input"
-              @change="emit('mark-dirty')"
-            >
-              <option value="ABSOLUTE">{{ t("adminPois.ruleKindAbsolute") }}</option>
-              <option value="RECURRING">{{ t("adminPois.ruleKindRecurring") }}</option>
-            </select>
-          </label>
+          <PuFormItem
+            :label="t('adminPois.ruleKindLabel')"
+            :for-id="`admin-pois-rule-${index}-kind`"
+          >
+            <PuSelect
+              :id="`admin-pois-rule-${index}-kind`"
+              :model-value="rule.kind"
+              :options="ruleKindOptions"
+              @update:model-value="updateRuleKind(rule, $event)"
+            />
+          </PuFormItem>
 
           <template v-if="rule.kind === 'ABSOLUTE'">
-            <label class="field">
-              <span class="field-label">{{ t("adminPois.ruleStartAtLabel") }}</span>
-              <input
+            <PuFormItem
+              :label="t('adminPois.ruleStartAtLabel')"
+              :for-id="`admin-pois-rule-${index}-start-at`"
+            >
+              <PuInput
+                :id="`admin-pois-rule-${index}-start-at`"
                 v-model="rule.startAtLocal"
-                class="field-input"
-                type="datetime-local"
-                @input="emit('mark-dirty')"
+                native-type="datetime-local"
+                @update:model-value="emit('mark-dirty')"
               />
-            </label>
+            </PuFormItem>
 
-            <label class="field">
-              <span class="field-label">{{ t("adminPois.ruleEndAtLabel") }}</span>
-              <input
+            <PuFormItem
+              :label="t('adminPois.ruleEndAtLabel')"
+              :for-id="`admin-pois-rule-${index}-end-at`"
+            >
+              <PuInput
+                :id="`admin-pois-rule-${index}-end-at`"
                 v-model="rule.endAtLocal"
-                class="field-input"
-                type="datetime-local"
-                @input="emit('mark-dirty')"
+                native-type="datetime-local"
+                @update:model-value="emit('mark-dirty')"
               />
-            </label>
+            </PuFormItem>
           </template>
 
           <template v-else>
-            <label class="field">
-              <span class="field-label">{{ t("adminPois.ruleFrequencyLabel") }}</span>
-              <select
-                v-model="rule.frequency"
-                class="field-input"
-                @change="emit('mark-dirty')"
-              >
-                <option value="DAILY">{{ t("adminPois.frequencyDaily") }}</option>
-                <option value="WEEKLY">{{ t("adminPois.frequencyWeekly") }}</option>
-                <option value="MONTHLY">{{ t("adminPois.frequencyMonthly") }}</option>
-                <option value="YEARLY">{{ t("adminPois.frequencyYearly") }}</option>
-              </select>
-            </label>
+            <PuFormItem
+              :label="t('adminPois.ruleFrequencyLabel')"
+              :for-id="`admin-pois-rule-${index}-frequency`"
+            >
+              <PuSelect
+                :id="`admin-pois-rule-${index}-frequency`"
+                :model-value="rule.frequency"
+                :options="ruleFrequencyOptions"
+                @update:model-value="updateRuleFrequency(rule, $event)"
+              />
+            </PuFormItem>
 
             <label class="field">
               <span class="field-label">{{ t("adminPois.ruleStartTimeLabel") }}</span>
@@ -350,16 +305,29 @@
           ></textarea>
         </label>
 
-        <label class="field">
-          <span class="field-label">{{
-            t("adminPois.meetingPointImageUrlLabel")
-          }}</span>
-          <input
-            v-model="selectedPoiMeetingPointImageUrl"
-            class="field-input"
+        <PuFormItem
+          :label="t('adminPois.meetingPointImageUrlLabel')"
+          for-id="admin-pois-meeting-point-image-url"
+        >
+          <PuFileUpload
+            id="admin-pois-meeting-point-image-url"
+            v-model="meetingPointImageUploadValue"
+            mode="url"
+            layout="inline"
             :disabled="selectedPoiId === null"
+            :url-placeholder="t('adminPois.manualUrlPlaceholder')"
+            :url-add-label="t('adminPois.addUrlAction')"
+            @add="handleMeetingPointImageAdd"
+            @remove="handleMeetingPointImageRemove"
+            @reject="handleMeetingPointImageReject"
+            @update:model-value="handleMeetingPointImageUpdate"
           />
-        </label>
+          <PuInlineNotice
+            v-if="meetingPointImageError"
+            tone="error"
+            :message="meetingPointImageError"
+          />
+        </PuFormItem>
       </div>
     </BentoItem>
   </BentoLayout>
@@ -382,8 +350,25 @@ import type { PickedLocation } from "@/domains/location/model/location-picker";
 import LocationPickerModal from "@/domains/location/ui/LocationPickerModal.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  imageUploadItemFromUrl,
+  useGalleryImageUploadField,
+} from "@/shared/upload/useDesignWebImageUpload";
+import {
+  PuButton,
+  PuFileUpload,
+  PuFilesUpload,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  PuSelect,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 
@@ -403,9 +388,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  "add-manual-url": [];
-  "gallery-uploaded": [url: string];
-  "remove-gallery-image": [index: number];
+  "update-gallery": [gallery: string[]];
   "pick-location": [location: PickedLocation];
   "clear-coordinates": [];
   "add-availability-rule": [];
@@ -414,12 +397,6 @@ const emit = defineEmits<{
   "save-poi": [];
 }>();
 
-const manualGalleryUrl = defineModel<string>("manualGalleryUrl", {
-  required: true,
-});
-const isUploadingGalleryImage = defineModel<boolean>("isUploadingGalleryImage", {
-  required: true,
-});
 const selectedPoiCapText = defineModel<string>("selectedPoiCapText", {
   required: true,
 });
@@ -437,6 +414,96 @@ const selectedPoiMeetingPointImageUrl = defineModel<string>(
 
 const { t } = useI18n();
 const isLocationPickerOpen = ref(false);
+const meetingPointImageError = ref<string | null>(null);
+
+const {
+  uploadValue: galleryUploadValue,
+  errorMessage: galleryUploadError,
+  handleUpdate: handleGalleryUploadUpdate,
+  handleAdd: handleGalleryUploadAdd,
+  handleRemove: handleGalleryUploadRemove,
+  handleReject: handleGalleryUploadReject,
+} = useGalleryImageUploadField({
+  getUrls: () => props.selectedPoiGallery,
+  setUrls: (gallery) => {
+    emit("update-gallery", gallery);
+  },
+  purpose: "poi",
+  uploadingMessage: t("adminPois.uploadingImage"),
+});
+
+const ruleModeOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPois.ruleModeInclude"), value: "INCLUDE" },
+  { label: t("adminPois.ruleModeExclude"), value: "EXCLUDE" },
+]);
+
+const ruleKindOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPois.ruleKindAbsolute"), value: "ABSOLUTE" },
+  { label: t("adminPois.ruleKindRecurring"), value: "RECURRING" },
+]);
+
+const ruleFrequencyOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPois.frequencyDaily"), value: "DAILY" },
+  { label: t("adminPois.frequencyWeekly"), value: "WEEKLY" },
+  { label: t("adminPois.frequencyMonthly"), value: "MONTHLY" },
+  { label: t("adminPois.frequencyYearly"), value: "YEARLY" },
+]);
+
+const isRuleMode = (
+  value: PuSelectValue,
+): value is EditableAvailabilityRule["mode"] =>
+  value === "INCLUDE" || value === "EXCLUDE";
+
+const isRuleKind = (
+  value: PuSelectValue,
+): value is EditableAvailabilityRule["kind"] =>
+  value === "ABSOLUTE" || value === "RECURRING";
+
+const isRuleFrequency = (
+  value: PuSelectValue,
+): value is EditableAvailabilityRule["frequency"] =>
+  value === "DAILY" ||
+  value === "WEEKLY" ||
+  value === "MONTHLY" ||
+  value === "YEARLY";
+
+const updateRuleMode = (
+  rule: EditableAvailabilityRule,
+  value: PuSelectValue,
+): void => {
+  if (!isRuleMode(value)) return;
+  rule.mode = value;
+  emit("mark-dirty");
+};
+
+const updateRuleKind = (
+  rule: EditableAvailabilityRule,
+  value: PuSelectValue,
+): void => {
+  if (!isRuleKind(value)) return;
+  rule.kind = value;
+  emit("mark-dirty");
+};
+
+const updateRuleFrequency = (
+  rule: EditableAvailabilityRule,
+  value: PuSelectValue,
+): void => {
+  if (!isRuleFrequency(value)) return;
+  rule.frequency = value;
+  emit("mark-dirty");
+};
+
+const meetingPointImageUploadValue = computed<PuFileUploadValue>({
+  get: () => {
+    const imageUrl = selectedPoiMeetingPointImageUrl.value.trim();
+    return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
+  },
+  set: (value) => {
+    selectedPoiMeetingPointImageUrl.value =
+      value?.source === "url" && value.url ? value.url : "";
+  },
+});
 
 const statusLabel = (status: PoiRecord["status"]): string => {
   switch (status) {
@@ -459,13 +526,34 @@ const currentPoiMeta = computed(() => {
   });
 });
 
-const copyGalleryUrl = (imageUrl: string): void => {
-  void navigator.clipboard?.writeText(imageUrl);
-};
-
 const handleLocationPicked = (location: PickedLocation) => {
   emit("pick-location", location);
   isLocationPickerOpen.value = false;
+};
+
+const handleMeetingPointImageUpdate = (
+  value: PuFileUploadValue,
+): void => {
+  meetingPointImageUploadValue.value = value;
+  meetingPointImageError.value = null;
+};
+
+const handleMeetingPointImageAdd = (item: PuFileUploadItem): void => {
+  if (item.source === "url" && item.url) {
+    selectedPoiMeetingPointImageUrl.value = item.url;
+    meetingPointImageError.value = null;
+  }
+};
+
+const handleMeetingPointImageRemove = (): void => {
+  selectedPoiMeetingPointImageUrl.value = "";
+  meetingPointImageError.value = null;
+};
+
+const handleMeetingPointImageReject = (
+  rejections: PuFileUploadRejection[],
+): void => {
+  meetingPointImageError.value = rejections[0]?.message ?? null;
 };
 </script>
 
@@ -554,12 +642,6 @@ const handleLocationPicked = (location: PickedLocation) => {
   background: var(--sys-color-surface-container);
 }
 
-.manual-url-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--sys-spacing-small);
-}
-
 .coordinate-field {
   padding: var(--sys-spacing-small);
   border: 1px solid var(--sys-color-outline-variant);
@@ -588,49 +670,8 @@ const handleLocationPicked = (location: PickedLocation) => {
   overflow-wrap: anywhere;
 }
 
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--sys-spacing-small);
-}
-
-.gallery-item {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr);
-  gap: var(--sys-spacing-xsmall);
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-medium);
-  background: var(--sys-color-surface);
-}
-
-.gallery-image {
-  width: 100%;
-  height: 6.5rem;
-  object-fit: cover;
-  border-radius: var(--sys-radius-medium);
-  background: var(--sys-color-surface-container);
-  grid-row: span 2;
-}
-
-.gallery-url {
-  @include mx.pu-font(support);
-  margin: 0;
-  color: var(--sys-color-on-surface-variant);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gallery-actions {
-  display: flex;
-  gap: var(--sys-spacing-xsmall);
-  flex-wrap: wrap;
-}
-
 @media (max-width: 720px) {
   .grid,
-  .manual-url-row,
   .coordinate-field__header {
     grid-template-columns: 1fr;
   }
@@ -643,8 +684,5 @@ const handleLocationPicked = (location: PickedLocation) => {
     justify-content: flex-start;
   }
 
-  .gallery-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

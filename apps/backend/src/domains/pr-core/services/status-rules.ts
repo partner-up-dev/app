@@ -33,6 +33,11 @@ export function isActivatableStatus(status: string): boolean {
   return status === "OPEN" || status === "READY";
 }
 
+/** Statuses where PR-attached ordering is allowed. */
+export function isOrderAttachableStatus(status: string): boolean {
+  return status === "READY" || status === "ACTIVE";
+}
+
 /** Statuses eligible for close-time finalization. */
 export function isExpirableStatus(status: string): boolean {
   return (

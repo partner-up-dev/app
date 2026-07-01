@@ -24,14 +24,12 @@ type DenialInput = {
   reason?: string | null;
 };
 
-const hasPendingTerminationAttempt = (
-  order: Pick<TradeOrder, "terminationAttempts">,
-): boolean =>
+const RIDE_HAILING_PROVIDER_SYSTEM_ACTOR = "system:ride-hailing-provider";
+
+const hasPendingTerminationAttempt = (order: Pick<TradeOrder, "terminationAttempts">): boolean =>
   order.terminationAttempts.some((attempt) => attempt.status === "PENDING");
 
-const hasApprovedTerminationAttempt = (
-  order: Pick<TradeOrder, "terminationAttempts">,
-): boolean =>
+const hasApprovedTerminationAttempt = (order: Pick<TradeOrder, "terminationAttempts">): boolean =>
   order.terminationAttempts.some((attempt) => attempt.status === "APPROVED");
 
 export const canRequestOrderTermination = (
@@ -91,10 +89,7 @@ export function markTerminationAttemptResolving(
   };
 }
 
-export function approveTerminationAttempt(
-  order: TradeOrder,
-  input: ApprovalInput,
-): TradeOrder {
+export function approveTerminationAttempt(order: TradeOrder, input: ApprovalInput): TradeOrder {
   const matched = order.terminationAttempts.some(
     (attempt) => attempt.attemptId === input.attemptId && attempt.status === "PENDING",
   );
@@ -120,10 +115,7 @@ export function approveTerminationAttempt(
   };
 }
 
-export function denyTerminationAttempt(
-  order: TradeOrder,
-  input: DenialInput,
-): TradeOrder {
+export function denyTerminationAttempt(order: TradeOrder, input: DenialInput): TradeOrder {
   const matched = order.terminationAttempts.some(
     (attempt) => attempt.attemptId === input.attemptId && attempt.status === "PENDING",
   );
@@ -143,5 +135,58 @@ export function denyTerminationAttempt(
           }
         : attempt,
     ),
+  };
+}
+
+export function closeRideHailingOrderFromProviderCancellation(
+  order: TradeOrder,
+  input: {
+    attemptId: string;
+    decidedAt: string;
+    reason: string;
+  },
+): TradeOrder {
+  if (order.status !== "INITIATING" && order.status !== "OPEN") {
+    return order;
+  }
+
+  const pendingAttempt = [...order.terminationAttempts]
+    .reverse()
+    .find((attempt) => attempt.status === "PENDING");
+  if (pendingAttempt) {
+    return {
+      ...order,
+      status: "CANCELLED",
+      terminationAttempts: order.terminationAttempts.map((attempt) =>
+        attempt.attemptId === pendingAttempt.attemptId
+          ? {
+              ...attempt,
+              status: "APPROVED",
+              resolutionPath: "RIDE_HAILING_FULFILLMENT",
+              reason: input.reason,
+              decidedAt: input.decidedAt,
+            }
+          : attempt,
+      ),
+    };
+  }
+
+  return {
+    ...order,
+    status: "CANCELLED",
+    terminationAttempts: [
+      ...order.terminationAttempts,
+      {
+        attemptId: input.attemptId,
+        requestedAt: input.decidedAt,
+        requestedBy: RIDE_HAILING_PROVIDER_SYSTEM_ACTOR,
+        status: "APPROVED",
+        resolutionPath: "RIDE_HAILING_FULFILLMENT",
+        reason: input.reason,
+        effectKind: null,
+        effectAmountFen: null,
+        decidedAt: input.decidedAt,
+      },
+    ],
   };
 }

@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="t('home.bookmarkNudge.webQrModalTitle')"
     max-width="420px"
@@ -20,14 +20,13 @@
         {{ t("home.bookmarkNudge.webQrModalQrMissing") }}
       </p>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useHomePageWechatQrCode } from "@/shared/wechat/useHomePageWechatQrCode";
 
 interface Props {
@@ -40,8 +39,6 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 const { homePageWechatQrCodeUrl } = useHomePageWechatQrCode();
-
-useBodyScrollLock(computed(() => props.open));
 </script>
 
 <style lang="scss" scoped>

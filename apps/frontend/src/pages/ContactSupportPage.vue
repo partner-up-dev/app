@@ -1,7 +1,24 @@
 <template>
-  <PageScaffoldCentered class="contact-support-page">
-    <template #header>
-      <PageHeader :title="t('contactSupportPage.title')" />
+  <PuPageScaffold content-placement="center" class="contact-support-page">
+    <template #pageHeader>
+      <PuHeader
+        :title="t('contactSupportPage.title')"
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <section
@@ -9,9 +26,9 @@
       :aria-label="t('contactSupportPage.actionsTitle')"
     >
       <div class="contact-card contact-card--support">
-        <Chip tone="secondary" size="lg">
+        <PuChip tone="secondary" size="lg">
           {{ t("contactSupportPage.supportBadge") }}
-        </Chip>
+        </PuChip>
         <div class="contact-text">
           <h2>{{ t("contactSupportPage.supportTitle") }}</h2>
           <p>{{ t("contactSupportPage.supportDescription") }}</p>
@@ -29,26 +46,30 @@
       </div>
 
       <div class="contact-card contact-card--beta-group">
-        <Chip class="contact-badge--beta-group" tone="secondary" size="lg">
+        <PuChip class="contact-badge--beta-group" tone="secondary" size="lg">
           {{ t("contactSupportPage.betaGroupBadge") }}
-        </Chip>
+        </PuChip>
         <div class="contact-text">
           <h2>{{ t("contactSupportPage.betaGroupTitle") }}</h2>
           <p>{{ t("contactSupportPage.betaGroupDescription") }}</p>
         </div>
 
-        <ActionLink
+        <PuButton
           class="contact-action contact-action--beta-group"
-          :to="{ name: 'about', hash: '#beta-groups' }"
-          appearance="pill"
-          tone="outline"
+          :action="{ to: { name: 'about', hash: '#beta-groups' } }"
+          shape="pill"
+          tone="primary"
+          variant="outline"
         >
           {{ t("contactSupportPage.betaGroupAction") }}
-        </ActionLink>
+        </PuButton>
       </div>
     </section>
 
-    <nav class="support-entry-links" :aria-label="t('aboutPage.footerNavLabel')">
+    <nav
+      class="support-entry-links"
+      :aria-label="t('aboutPage.footerNavLabel')"
+    >
       <RouterLink class="support-entry-link" :to="{ name: 'contact-author' }">
         {{ t("contactSupportPage.authorEntry") }}
       </RouterLink>
@@ -66,7 +87,7 @@
       :missing-text="t('contactSupportPage.supportQrMissing')"
       @close="supportQrModalOpen = false"
     />
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -75,13 +96,19 @@ import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import SupportContactAction from "@/domains/support/ui/sections/SupportContactAction.vue";
 import SupportContactQrModal from "@/domains/support/ui/sections/SupportContactQrModal.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
-import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
+import {
+  PUBLIC_CONFIG_KEYS,
+  usePublicConfig,
+} from "@/shared/config/queries/usePublicConfig";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  PuButton,
+  PuChip,
+  PuHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const DEFAULT_SUPPORT_LINK_WECHAT_IN =
   "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
@@ -89,6 +116,7 @@ const DEFAULT_SUPPORT_LINK_WECHAT_OUT =
   "https://work.weixin.qq.com/nl/act/p/4030a5b69149404d";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const { isMiniProgramWebView } = useWeChatMiniProgramWebView();
 const supportQrModalOpen = ref(false);
 
@@ -153,7 +181,6 @@ const supportLink = computed(() =>
 );
 
 const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
-
 </script>
 
 <style lang="scss" scoped>

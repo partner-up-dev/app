@@ -1,20 +1,32 @@
 <template>
-  <FullScreenPageScaffold
+  <PuPageScaffold viewport="screen"
     class="pr-messages-page"
     data-page="pr-messages"
   >
-    <template #header>
-      <PageHeader
+    <template #pageHeader>
+      <PuHeader
         :title="t('prPage.messagePage.title')"
-        :back-label="t('prPage.messagePage.backToDetail')"
-        :back-fallback-to="backFallbackTo"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('prPage.messagePage.backToDetail')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-if="id === null"
       :message="t('errors.missingPartnerRequestId')"
-      persistent
     />
 
     <PRMessageThread
@@ -27,19 +39,18 @@
     <template #footer>
       <PageFooter variant="minimal" data-region="support" />
     </template>
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import PRMessageThread from "@/domains/pr/ui/sections/PRMessageThread.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { PuButton, PuHeader, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const id = usePRRouteId();
@@ -48,6 +59,7 @@ const backFallbackTo = computed(() => {
   if (id.value === null) return "/";
   return prDetailPath(id.value);
 });
+const { handleBack } = useFallbackBack(backFallbackTo);
 </script>
 
 <style scoped lang="scss">

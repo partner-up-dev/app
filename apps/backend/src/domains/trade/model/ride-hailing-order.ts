@@ -1,5 +1,4 @@
-import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
-import type { TradeOrder } from "./order";
+import type { RideHailingQuoteSnapshot, TradeOrder } from "./order";
 
 export type RideHailingCoordinateSnapshot = {
   latitude: number;
@@ -33,12 +32,14 @@ export type RideHailingExecutionPhase =
   | "INITIATING"
   | "DISPATCHING"
   | "ACCEPTED"
+  | "ARRIVED_AT_PICKUP"
   | "IN_TRIP"
   | "FINISHED"
   | "CANCELLED"
   | "FAILED";
 
 export type RideHailingDriverSnapshot = {
+  driverAvatarUrl?: string | null;
   driverName?: string | null;
   driverPhone?: string | null;
 };
@@ -57,16 +58,35 @@ export type RideHailingFinalSettlementInput = {
   providerSnapshot?: unknown;
 };
 
+export type RideHailingDispatchSubmittedCandidateSnapshot = {
+  skuId: number;
+  spuId: number;
+  displayName: string;
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  quoteSnapshot: RideHailingQuoteSnapshot;
+};
+
+export type RideHailingDispatchBindingSnapshot = {
+  providerInstanceId: string;
+  providerType?: string | null;
+  providerOrderId: string;
+  externalOrderId?: string | null;
+  submittedAt: string;
+  submissionMode: "SINGLE_CANDIDATE" | "MULTI_CANDIDATE";
+  submittedCandidates: RideHailingDispatchSubmittedCandidateSnapshot[];
+  providerSnapshot?: unknown;
+};
+
 export type RideHailingOrder = Omit<TradeOrder, "family"> & {
   family: "RIDE_HAILING";
   routeSnapshot: RideHailingRouteSnapshot;
   departureAt?: string | null;
   riders: RideHailingRiderSnapshot[];
   contactPhone: string;
-  providerInstanceId: RideHailingProviderInstanceId;
-  providerOrderId?: string | null;
   executionPhase: RideHailingExecutionPhase;
   driverSnapshot?: RideHailingDriverSnapshot | null;
   vehicleSnapshot?: RideHailingVehicleSnapshot | null;
+  dispatchBinding?: RideHailingDispatchBindingSnapshot | null;
   finalSettlementInput?: RideHailingFinalSettlementInput | null;
 };

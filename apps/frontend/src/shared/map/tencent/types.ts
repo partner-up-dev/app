@@ -1,11 +1,12 @@
-import type {
-  MapCoordinate,
-  MapFitPadding,
-  MapMarker,
-  MapPolyline,
-} from "@/shared/map/types";
+import type { MapCoordinate, MapFitPadding, MapMarker, MapPolyline } from "@/shared/map/types";
 
-export type TencentLBSLibrary = "visualization" | "tools" | "geometry" | "model" | "view" | "service";
+export type TencentLBSLibrary =
+  | "visualization"
+  | "tools"
+  | "geometry"
+  | "model"
+  | "view"
+  | "service";
 
 export type TencentFitBoundsOptions = {
   padding?: MapFitPadding;
@@ -19,8 +20,10 @@ export type TencentFitBoundsOptions = {
 export type TencentMapOptions = {
   center: TencentLatLng;
   zoom?: number;
+  rotation?: number;
   minZoom?: number;
   maxZoom?: number;
+  mapStyleId?: string;
   viewMode?: "2D" | "3D";
   showControl?: boolean;
   draggable?: boolean;
@@ -50,16 +53,20 @@ export type TencentLatLngBoundsConstructor = {
 export type TencentMap = {
   setCenter(center: TencentLatLng): TencentMap;
   setZoom(zoom: number): TencentMap;
-  fitBounds(
-    bounds: TencentLatLngBounds,
-    options?: TencentFitBoundsOptions,
-  ): TencentMap;
+  setRotation(rotation: number): TencentMap;
+  getZoom(): number;
+  getRotation(): number;
+  fitBounds(bounds: TencentLatLngBounds, options?: TencentFitBoundsOptions): TencentMap;
   easeTo(
-    status: { center?: TencentLatLng; zoom?: number },
+    status: { center?: TencentLatLng; zoom?: number; rotation?: number },
     options?: { duration?: number },
   ): TencentMap;
+  on(eventName: TencentMapEventName, listener: () => void): TencentMap;
+  off(eventName: TencentMapEventName, listener: () => void): TencentMap;
   destroy(): void;
 };
+
+export type TencentMapEventName = "dragstart" | "touchmove" | "dblclick" | "zoom";
 
 export type TencentMapConstructor = {
   new (container: HTMLElement | string, options: TencentMapOptions): TencentMap;
@@ -70,12 +77,8 @@ export type TencentMarkerStyleOptions = {
   height: number;
   anchor?: { x: number; y: number };
   src?: string;
-  color?: string;
-  strokeColor?: string;
-  strokeWidth?: number;
-  size?: number;
-  direction?: "center" | "top" | "bottom" | "left" | "right";
-  offset?: { x: number; y: number };
+  faceTo?: "map" | "screen";
+  rotate?: number;
 };
 
 export type TencentMarkerStyle = object;
@@ -89,13 +92,35 @@ export type TencentPointGeometry = {
   styleId: string;
   position: TencentLatLng;
   rank?: number;
-  content?: string;
   properties?: Record<string, string>;
+};
+
+export type TencentMoveAlongParam = {
+  path: TencentLatLng[];
+  duration?: number;
+  speed?: number;
+};
+
+export type TencentMoveAlongParamSet = Record<string, TencentMoveAlongParam>;
+
+export type TencentMoveAlongOptions = {
+  autoRotation?: boolean;
 };
 
 export type TencentMultiMarker = {
   setGeometries(geometries: TencentPointGeometry[]): TencentMultiMarker;
+  setStyles(styles: Record<string, TencentMarkerStyle>): TencentMultiMarker;
+  moveAlong(param: TencentMoveAlongParamSet, options?: TencentMoveAlongOptions): TencentMultiMarker;
+  stopMove(): TencentMultiMarker;
   setMap(map: TencentMap | null): TencentMultiMarker;
+  on(eventName: "click", handler: (event: TencentMarkerClickEvent) => void): TencentMultiMarker;
+  off(eventName: "click", handler: (event: TencentMarkerClickEvent) => void): TencentMultiMarker;
+};
+
+export type TencentMarkerClickEvent = {
+  geometry?: {
+    id?: string;
+  };
 };
 
 export type TencentMultiMarkerConstructor = {
@@ -168,6 +193,9 @@ export type TencentLBSMapProviderInput = {
   minZoom?: number;
   maxZoom?: number;
   interactive?: boolean;
+  showDefaultControls?: boolean;
+  onMarkerClick?: (markerId: string) => void;
+  onUserViewportInteraction?: () => void;
 };
 
 export type TencentLBSMapProvider = {
@@ -180,10 +208,10 @@ export type TencentLBSMapProvider = {
     padding?: MapFitPadding;
     maxZoom?: number;
   }): void;
-  setViewport(input: {
-    center?: MapCoordinate;
-    zoom?: number;
-  }): void;
+  fitMarker(input: { marker: MapMarker; padding?: MapFitPadding; zoom: number }): void;
+  setViewport(input: { center?: MapCoordinate; zoom?: number }): void;
+  zoomIn(): void;
+  zoomOut(): void;
   destroy(): void;
 };
 

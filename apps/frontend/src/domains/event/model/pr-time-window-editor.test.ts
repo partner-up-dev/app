@@ -6,33 +6,18 @@ import {
 
 describe("PR time window editor model", () => {
   test("builds ready-edit policy only for fuzzy complete time windows", () => {
-    const timeWindow: [string, string] = [
-      "2026-06-01T16:00:00.000Z",
-      "2026-06-02T15:59:00.000Z",
-    ];
+    const timeWindow: [string, string] = ["2026-06-01T16:00:00.000Z", "2026-06-02T16:00:00.000Z"];
 
-    expect(
-      buildAllowEditAfterReadyForTimeWindowMode("FUZZY", timeWindow),
-    ).toEqual({
+    expect(buildAllowEditAfterReadyForTimeWindowMode("FUZZY", timeWindow)).toEqual({
       timeWindow,
     });
-    expect(
-      buildAllowEditAfterReadyForTimeWindowMode("NORMAL", timeWindow),
-    ).toBeNull();
-    expect(
-      buildAllowEditAfterReadyForTimeWindowMode("FUZZY", [
-        timeWindow[0],
-        null,
-      ]),
-    ).toBeNull();
+    expect(buildAllowEditAfterReadyForTimeWindowMode("NORMAL", timeWindow)).toBeNull();
+    expect(buildAllowEditAfterReadyForTimeWindowMode("FUZZY", [timeWindow[0], null])).toBeNull();
   });
 
   test("resolves all-day fuzzy preset from a PR time window", () => {
     expect(
-      findFuzzyPresetForTimeWindow([
-        "2026-06-01T16:00:00.000Z",
-        "2026-06-02T15:59:00.000Z",
-      ]),
+      findFuzzyPresetForTimeWindow(["2026-06-01T16:00:00.000Z", "2026-06-02T16:00:00.000Z"]),
     ).toEqual({
       dateValue: "2026-06-02",
       timePreset: "ALL_DAY",

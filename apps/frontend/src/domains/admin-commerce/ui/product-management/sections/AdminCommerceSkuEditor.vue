@@ -78,14 +78,14 @@
     </section>
 
     <div class="pm-inline-actions">
-      <Button
+      <PuButton
         size="sm"
-        type="button"
+
         :disabled="isSavingSku || selectedSpuId === null"
         @click="handleSaveSku"
       >
         {{ isSavingSku ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.saveSkuAction") }}
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -105,7 +105,7 @@ import {
   useUpdateAdminProductSku,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
 
 const { t } = useI18n();
@@ -134,6 +134,7 @@ watch(
       name: record.sku.name,
       status: record.sku.status,
       sortOrder: record.sku.sortOrder,
+      presentation: record.sku.presentation,
       facts: record.sku.facts,
       pricingModel: record.sku.pricingModel,
       cancellationPolicyRef: record.sku.cancellationPolicyRef ?? null,
@@ -161,6 +162,7 @@ const handleSaveSku = async () => {
     const input = buildSkuInput(
       skuForm.value,
       selectedProductType.value,
+      selectedSkuRecord.value?.sku.presentation,
       selectedSkuRecord.value?.sku.cancellationPolicyRef,
       buildLabels(),
     );
@@ -180,9 +182,7 @@ const handleSaveSku = async () => {
       input,
     });
   } catch (error) {
-    context.setErrorMessage(
-      error instanceof Error ? error.message : t("common.operationFailed"),
-    );
+    context.setErrorMessage(error instanceof Error ? error.message : t("common.operationFailed"));
   }
 };
 </script>

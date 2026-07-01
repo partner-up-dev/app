@@ -13,9 +13,7 @@ export const caocaoProviderInstanceConfigSchema = z.object({
   requestTimeoutMs: z.number().int().positive().nullable().optional(),
 });
 
-export type CaocaoProviderInstanceConfig = z.infer<
-  typeof caocaoProviderInstanceConfigSchema
->;
+export type CaocaoProviderInstanceConfig = z.infer<typeof caocaoProviderInstanceConfigSchema>;
 
 export type RideHailingProviderInstanceConfig = CaocaoProviderInstanceConfig;
 
@@ -46,6 +44,7 @@ export type CaocaoOrderStatusCallbackEvent =
   | 11
   | 12
   | 13
+  | 14
   | 20
   | 21
   | 22
@@ -62,7 +61,9 @@ export type CaocaoOrderStatusCallbackEvent =
   | 45
   | 46
   | 47
-  | 48;
+  | 48
+  | 49
+  | 50;
 
 export type CaocaoOrderStatusCallback = {
   providerType: "CAOCAO";
@@ -78,9 +79,113 @@ export type RideHailingProviderEstimateInput = {
   params: Record<string, string | number | boolean | null | undefined>;
 };
 
+export type RideHailingProviderVehicleQuote = {
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  estimateAmountFen: number;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  providerQuoteId: string | null;
+  providerQuoteExpiresAt: string | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderCreateRidePlace = {
+  name: string;
+  address?: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+export type RideHailingProviderCreateRideCandidate = {
+  candidateId: string;
+  providerVehicleTypeCode: string;
+  providerVehicleTypeName: string;
+  estimateAmountFen: number;
+  providerQuoteId: string | null;
+  providerQuoteExpiresAt?: string | null;
+  quoteAmountFen?: number | null;
+  providerSnapshot?: unknown;
+};
+
+export type RideHailingProviderCreateRideSubmission = {
+  submissionMode: "SINGLE_CANDIDATE" | "MULTI_CANDIDATE";
+  submittedCandidateIds: string[];
+  providerVehicleTypeCodes: string[];
+};
+
+export type RideHailingProviderCoordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+export type RideHailingProviderVehicleLocation = RideHailingProviderCoordinate & {
+  capturedAt: string | null;
+  headingDegrees: number | null;
+  speedKph: number | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderNavigationRouteKind =
+  | "PICKUP"
+  | "DROPOFF"
+  | "WAITING"
+  | "RELAY_PREVIOUS_DROPOFF"
+  | "UNKNOWN";
+
+export type RideHailingProviderNavigationRouteQueryKind = "PICKUP" | "DROPOFF";
+
+export type RideHailingProviderNavigationRoute = {
+  routeKind: RideHailingProviderNavigationRouteKind;
+  polyline: RideHailingProviderCoordinate[];
+  remainingDistanceMeters: number | null;
+  remainingDurationSeconds: number | null;
+  trafficLightCount: number | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderOrderDetail = {
+  phase: string;
+  statusLabel: string;
+  providerVehicleTypeCode?: string | null;
+  providerVehicleTypeName?: string | null;
+  driver: {
+    driverAvatarUrl?: string | null;
+    driverName: string;
+    driverPhone: string;
+  } | null;
+  vehicle: {
+    plate: string;
+    brand: string;
+    color: string;
+  } | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
+  providerSnapshot: unknown;
+};
+
+export type RideHailingProviderFinalSettlementResult = {
+  amountFen: number;
+  currency: "CNY";
+  providerOrderId: string;
+  providerSnapshot: unknown;
+};
+
 export type RideHailingProviderCreateRideInput = {
   orderId: string;
-  params: Record<string, string | number | boolean | null | undefined>;
+  callbackInfo?: string | null;
+  contactPhone: string;
+  departureAt: string | null;
+  passenger: {
+    name: string;
+    phone: string;
+  };
+  route: {
+    origin: RideHailingProviderCreateRidePlace;
+    waypoints: RideHailingProviderCreateRidePlace[];
+    destination: RideHailingProviderCreateRidePlace;
+  };
+  candidates: RideHailingProviderCreateRideCandidate[];
 };
 
 export type RideHailingProviderCancelInput = {
@@ -99,13 +204,24 @@ export type RideHailingProviderConfirmFeeInput = {
 export type RideHailingProviderPort = {
   buildExternalOrderId(orderId: string): string;
   parseExternalOrderId(externalOrderId: string): string | null;
-  estimate(input: RideHailingProviderEstimateInput): Promise<unknown>;
+  estimate(input: RideHailingProviderEstimateInput): Promise<RideHailingProviderVehicleQuote>;
   createRide(input: RideHailingProviderCreateRideInput): Promise<{
     providerOrderId: string;
     externalOrderId: string;
+    dispatchSubmission: RideHailingProviderCreateRideSubmission;
     providerSnapshot: unknown;
   }>;
-  queryOrderDetail(input: { providerOrderId: string }): Promise<unknown>;
+  queryOrderDetail(input: { providerOrderId: string }): Promise<RideHailingProviderOrderDetail>;
+  queryFinalSettlement(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderFinalSettlementResult | null>;
+  queryDriverLocation(input: {
+    providerOrderId: string;
+  }): Promise<RideHailingProviderVehicleLocation | null>;
+  queryDriverRoute(input: {
+    providerOrderId: string;
+    routeKind: RideHailingProviderNavigationRouteQueryKind;
+  }): Promise<RideHailingProviderNavigationRoute | null>;
   cancelRide(input: RideHailingProviderCancelInput): Promise<{
     providerOrderId: string;
     cancelFeeFen: number;
@@ -117,7 +233,5 @@ export type RideHailingProviderPort = {
     providerSnapshot: unknown;
   }>;
   confirmFee(input: RideHailingProviderConfirmFeeInput): Promise<void>;
-  parseOrderStatusCallback(
-    form: Record<string, string>,
-  ): CaocaoOrderStatusCallback;
+  parseOrderStatusCallback(form: Record<string, string>): CaocaoOrderStatusCallback;
 };

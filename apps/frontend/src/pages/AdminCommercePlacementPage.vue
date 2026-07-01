@@ -5,9 +5,15 @@
     </template>
 
     <template #actions>
-      <Button appearance="pill" tone="outline" size="sm" type="button" @click="prepareNewPlacement">
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
+        size="sm"
+
+        @click="prepareNewPlacement"
+      >
         {{ t("adminCommercePlacementOffer.newPlacementAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #rail>
@@ -16,39 +22,50 @@
           {{ t("adminCommercePlacementOffer.emptyPlacements") }}
         </div>
         <div v-else class="placement-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="placement in placements"
             :key="placement.id"
-            :active="selectedPlacementId === placement.id && !isCreatingPlacement"
+            :active="
+              selectedPlacementId === placement.id && !isCreatingPlacement
+            "
             @click="selectPlacement(placement.id)"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>#{{ placement.id }} · offer #{{ placement.offerId }}</span>
             <small>{{ placement.status }} · p{{ placement.priority }}</small>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <template v-else>
           <BentoItem
-            :title="isCreatingPlacement ? t('adminCommercePlacementOffer.createPlacementTitle') : t('adminCommercePlacementOffer.editPlacementTitle')"
+            :title="
+              isCreatingPlacement
+                ? t('adminCommercePlacementOffer.createPlacementTitle')
+                : t('adminCommercePlacementOffer.editPlacementTitle')
+            "
             :description="t('adminCommercePlacementOffer.placementHint')"
             span="full"
           >
             <div class="form-stack">
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.statusLabel") }}</span>
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.statusLabel")
+                }}</span>
                 <select v-model="placementForm.status" class="text-input">
                   <option value="DRAFT">DRAFT</option>
                   <option value="ACTIVE">ACTIVE</option>
@@ -58,23 +75,48 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.priorityLabel") }}</span>
-                <input v-model.number="placementForm.priority" class="text-input" type="number" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.priorityLabel")
+                }}</span>
+                <input
+                  v-model.number="placementForm.priority"
+                  class="text-input"
+                  type="number"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.placementEffectiveFromLabel") }}</span>
-                <input v-model="placementForm.effectiveFrom" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.placementEffectiveFromLabel")
+                }}</span>
+                <input
+                  v-model="placementForm.effectiveFrom"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.placementEffectiveToLabel") }}</span>
-                <input v-model="placementForm.effectiveTo" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.placementEffectiveToLabel")
+                }}</span>
+                <input
+                  v-model="placementForm.effectiveTo"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.offerIdLabel") }}</span>
-                <input v-model.number="placementForm.offerId" class="text-input" type="number" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.offerIdLabel")
+                }}</span>
+                <input
+                  :value="placementForm.offerId ?? ''"
+                  class="text-input"
+                  type="number"
+                  @input="handleOfferIdInput"
+                />
               </label>
 
               <div class="hint">
@@ -82,29 +124,45 @@
               </div>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.ctaLabel") }}</span>
-                <input v-model="placementForm.ctaLabel" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.ctaLabel")
+                }}</span>
+                <input
+                  v-model="placementForm.ctaLabel"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.creativeDescriptionLabel") }}</span>
-                <input v-model="placementForm.creativeDescription" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.creativeDescriptionLabel")
+                }}</span>
+                <input
+                  v-model="placementForm.creativeDescription"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
-              <PlacementMatchingRulesEditor v-model="placementForm.matchingRule" />
+              <PlacementMatchingRulesEditor
+                v-model="placementForm.matchingRule"
+              />
 
               <section class="binding-editor">
                 <div class="binding-editor__header">
-                  <span class="field-label">{{ t("adminCommercePlacementOffer.bindingRulesLabel") }}</span>
-                  <Button
-                    appearance="pill"
-                    tone="outline"
+                  <span class="field-label">{{
+                    t("adminCommercePlacementOffer.bindingRulesLabel")
+                  }}</span>
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
                     size="sm"
-                    type="button"
+
                     @click="addBindingRule"
                   >
                     {{ t("adminCommercePlacementOffer.addBindingRuleAction") }}
-                  </Button>
+                  </PuButton>
                 </div>
 
                 <div
@@ -113,43 +171,68 @@
                   class="binding-row"
                 >
                   <label class="field">
-                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingFieldLabel") }}</span>
-                    <input v-model="rule.fieldKey" class="text-input" type="text" />
+                    <span class="field-label">{{
+                      t("adminCommercePlacementOffer.bindingFieldLabel")
+                    }}</span>
+                    <input
+                      v-model="rule.fieldKey"
+                      class="text-input"
+                      type="text"
+                    />
                   </label>
 
                   <label class="field">
-                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingSourceLabel") }}</span>
-                    <input v-model="rule.contextPath" class="text-input" type="text" />
+                    <span class="field-label">{{
+                      t("adminCommercePlacementOffer.bindingSourceLabel")
+                    }}</span>
+                    <input
+                      v-model="rule.contextPath"
+                      class="text-input"
+                      type="text"
+                    />
                   </label>
 
                   <div class="binding-row__lock">
-                    <span class="field-label">{{ t("adminCommercePlacementOffer.bindingLockLabel") }}</span>
+                    <span class="field-label">{{
+                      t("adminCommercePlacementOffer.bindingLockLabel")
+                    }}</span>
                     <span class="binding-row__lock-value">true</span>
                   </div>
 
                   <div class="binding-row__actions">
-                    <Button
-                      appearance="pill"
-                      tone="outline"
+                    <PuButton
+                      shape="pill"
+                      tone="neutral" variant="outline"
                       size="sm"
-                      type="button"
+
                       @click="removeBindingRule(rule.id)"
                     >
-                      {{ t("adminCommercePlacementOffer.removeBindingRuleAction") }}
-                    </Button>
+                      {{
+                        t("adminCommercePlacementOffer.removeBindingRuleAction")
+                      }}
+                    </PuButton>
                   </div>
                 </div>
               </section>
 
               <div class="inline-actions">
-                <Button size="sm" type="button" :disabled="isSavingPlacement" @click="handleSavePlacement">
-                  {{ isSavingPlacement ? t("adminCommercePlacementOffer.savingAction") : t("adminCommercePlacementOffer.savePlacementAction") }}
-                </Button>
+                <PuButton
+                  size="sm"
+
+                  :disabled="isSavingPlacement"
+                  @click="handleSavePlacement"
+                >
+                  {{
+                    isSavingPlacement
+                      ? t("adminCommercePlacementOffer.savingAction")
+                      : t("adminCommercePlacementOffer.savePlacementAction")
+                  }}
+                </PuButton>
               </div>
             </div>
           </BentoItem>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -181,10 +264,7 @@ import {
   useUpdateAdminPlacement,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PlacementMatchingRulesEditor from "@/domains/admin-commerce/ui/placement-matching-rules/PlacementMatchingRulesEditor.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -206,8 +286,9 @@ const selectedPlacementId = computed<number | null>(() => {
 
 const selectedPlacement = computed(
   () =>
-    placements.value.find((placement) => placement.id === selectedPlacementId.value) ??
-    null,
+    placements.value.find(
+      (placement) => placement.id === selectedPlacementId.value,
+    ) ?? null,
 );
 
 const toDateInputValue = (value: string | Date | null | undefined): string => {
@@ -225,7 +306,7 @@ type PlacementEditorForm = {
   priority: number;
   effectiveFrom: string;
   effectiveTo: string;
-  offerId: number;
+  offerId: number | null;
   ctaLabel: string;
   creativeDescription: string;
   matchingRule: JsonLogicRuleDraft;
@@ -241,50 +322,24 @@ const createBindingRuleDraft = (
   id: `binding-${++bindingRuleIdSequence}`,
 });
 
-const defaultPlacementBindingRules = (): PlacementBindingRuleDraft[] => [
-  createBindingRuleDraft({
-    fieldKey: "participantCount",
-    contextPath: "activeParticipantCount",
-    lock: true,
-  }),
-  createBindingRuleDraft({
-    fieldKey: "serviceStartAt",
-    contextPath: "time.startAt",
-    lock: true,
-  }),
-  createBindingRuleDraft({
-    fieldKey: "serviceEndAt",
-    contextPath: "time.endAt",
-    lock: true,
-  }),
-];
-
-const bindingRulesForOfferId = (offerId: number): PlacementBindingRuleDraft[] => {
-  const offer = offers.value.find((item) => item.id === offerId) ?? null;
-  if (offer?.productType !== "RENTAL") return [];
-  return defaultPlacementBindingRules();
-};
-
-const emptyPlacementForm = (): PlacementEditorForm => {
-  const offerId = offers.value[0]?.id ?? 0;
-  return {
-    status: "DRAFT",
-    priority: 0,
-    effectiveFrom: "",
-    effectiveTo: "",
-    offerId,
-    ctaLabel: "",
-    creativeDescription: "",
-    matchingRule: createPlacementMatchingRuleDraft(),
-    bindingRules: bindingRulesForOfferId(offerId),
-  };
-};
+const emptyPlacementForm = (): PlacementEditorForm => ({
+  status: "DRAFT",
+  priority: 0,
+  effectiveFrom: "",
+  effectiveTo: "",
+  offerId: null,
+  ctaLabel: "",
+  creativeDescription: "",
+  matchingRule: createPlacementMatchingRuleDraft(),
+  bindingRules: [],
+});
 
 const placementForm = ref<PlacementEditorForm>(emptyPlacementForm());
 
 const isSavingPlacement = computed(
   () =>
-    createPlacementMutation.isPending.value || updatePlacementMutation.isPending.value,
+    createPlacementMutation.isPending.value ||
+    updatePlacementMutation.isPending.value,
 );
 
 const availableOfferHint = computed(() =>
@@ -336,26 +391,12 @@ watch(
       ctaLabel: placement.creative.ctaLabel,
       creativeDescription: placement.creative.description ?? "",
       matchingRule: toPlacementMatchingRuleDraft(placement.matchingRule),
-      bindingRules:
-        placement.bindingRules.length > 0
-          ? placement.bindingRules.map((rule) => createBindingRuleDraft(rule))
-          : bindingRulesForOfferId(placement.offerId),
+      bindingRules: placement.bindingRules.map((rule) =>
+        createBindingRuleDraft(rule),
+      ),
     };
   },
   { immediate: true },
-);
-
-watch(
-  () =>
-    [
-      isCreatingPlacement.value,
-      placementForm.value.offerId,
-      placementForm.value.bindingRules.length,
-    ] as const,
-  ([creating, offerId, bindingRuleCount]) => {
-    if (!creating || bindingRuleCount > 0) return;
-    placementForm.value.bindingRules = bindingRulesForOfferId(offerId);
-  },
 );
 
 const prepareNewPlacement = () => {
@@ -383,24 +424,43 @@ const removeBindingRule = (id: string) => {
   );
 };
 
-const buildPlacementInput = (): AdminPlacementInput => ({
-  placementType: "BUTTON",
-  offerId: placementForm.value.offerId,
-  status: placementForm.value.status,
-  priority: placementForm.value.priority,
-  effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
-  effectiveTo: placementForm.value.effectiveTo.trim() || null,
-  matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
-  creative: {
-    ctaLabel: placementForm.value.ctaLabel.trim(),
-    description: placementForm.value.creativeDescription.trim() || null,
-  },
-  bindingRules: placementForm.value.bindingRules.map((rule) => ({
-    fieldKey: rule.fieldKey.trim(),
-    contextPath: rule.contextPath.trim(),
-    lock: true,
-  })),
-});
+const handleOfferIdInput = (event: Event) => {
+  if (!(event.target instanceof HTMLInputElement)) return;
+  const rawValue = event.target.value.trim();
+  if (!rawValue) {
+    placementForm.value.offerId = null;
+    return;
+  }
+
+  const parsed = Number(rawValue);
+  placementForm.value.offerId =
+    Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const buildPlacementInput = (): AdminPlacementInput => {
+  if (placementForm.value.offerId === null) {
+    throw new Error(t("adminCommercePlacementOffer.offerIdRequiredMessage"));
+  }
+
+  return {
+    placementType: "BUTTON",
+    offerId: placementForm.value.offerId,
+    status: placementForm.value.status,
+    priority: placementForm.value.priority,
+    effectiveFrom: placementForm.value.effectiveFrom.trim() || null,
+    effectiveTo: placementForm.value.effectiveTo.trim() || null,
+    matchingRule: buildPlacementMatchingRule(placementForm.value.matchingRule),
+    creative: {
+      ctaLabel: placementForm.value.ctaLabel.trim(),
+      description: placementForm.value.creativeDescription.trim() || null,
+    },
+    bindingRules: placementForm.value.bindingRules.map((rule) => ({
+      fieldKey: rule.fieldKey.trim(),
+      contextPath: rule.contextPath.trim(),
+      lock: true,
+    })),
+  };
+};
 
 const handleSavePlacement = async () => {
   localErrorMessage.value = null;

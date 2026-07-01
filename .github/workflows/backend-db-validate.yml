@@ -35,8 +35,8 @@ jobs:
       - name: Install dependencies (workspace)
         run: pnpm --filter @partner-up-dev/backend... install --frozen-lockfile
 
-      - name: Lint migration and seed files
-        run: pnpm --filter @partner-up-dev/backend db:lint
+      - name: Validate backend DB config and migration files
+        run: pnpm check:config:backend
 
       - name: Regenerate Drizzle SQL artifacts
         run: pnpm --filter @partner-up-dev/backend db:generate

@@ -2,14 +2,27 @@
   <section class="pr-place-mode-field">
     <div class="pr-place-mode-field__mode">
       <span class="pr-place-mode-field__label">{{ label }}</span>
-      <SegmentedControl
+      <PuSegmented
         :model-value="placeMode"
-        :options="placeModeOptions"
         :aria-label="ariaLabel"
         :data-testid="`${testIdPrefix}.mode`"
-        block
+        full-width
+        equal-width
         @update:model-value="handlePlaceModeChange"
-      />
+      >
+        <PuSegmentedItem
+          v-for="option in placeModeOptions"
+          :key="String(option.value)"
+          :value="option.value"
+          :label="option.label"
+          :disabled="option.disabled"
+          :data-testid="option.testId"
+        >
+          <template v-if="option.icon" #leading>
+            <span :class="option.icon" aria-hidden="true" />
+          </template>
+        </PuSegmentedItem>
+      </PuSegmented>
     </div>
 
     <label v-if="placeMode === 'location'" class="pr-place-mode-field__field">
@@ -44,12 +57,13 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
+import {
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import type { Route } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
-import SegmentedControl, {
-  type SegmentedControlOption,
-  type SegmentedControlValue,
-} from "@/shared/ui/controls/SegmentedControl.vue";
 import {
   clonePRRoute,
   createEmptyPRRouteDraft,
@@ -62,6 +76,13 @@ import {
 export type PRPlaceModeFieldValue = {
   location: string | null;
   route: PRRoute | null;
+};
+type SegmentedOption = {
+  value: PuSegmentedValue;
+  label: string;
+  icon?: string;
+  testId?: string;
+  disabled?: boolean;
 };
 
 const props = withDefaults(
@@ -97,7 +118,7 @@ const placeMode = computed<PRPlaceMode>(() =>
   resolvePRPlaceMode(props.modelValue),
 );
 
-const placeModeOptions = computed<SegmentedControlOption[]>(() => [
+const placeModeOptions = computed<SegmentedOption[]>(() => [
   {
     value: "location",
     label: t("partnerRequestForm.placeModeLocation"),
@@ -119,7 +140,7 @@ const emitValue = (value: PRPlaceModeFieldValue) => {
   emit("update:modelValue", value);
 };
 
-const handlePlaceModeChange = (value: SegmentedControlValue) => {
+const handlePlaceModeChange = (value: PuSegmentedValue) => {
   if (value !== "location" && value !== "route") {
     return;
   }

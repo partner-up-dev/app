@@ -106,14 +106,20 @@ Pause and ask for human confirmation when:
 ## Development Workflow
 
 - Use GitHub CLI (`gh`) for GitHub operations and issue workflows.
-- Use `pnpm dev:portless` as the default full-stack local development entry. `portless.json` owns the stable app names for the frontend (`partner-up`) and backend (`api.partner-up`).
+- When local frontend/backend services must be available for browser or manual validation, run `pnpm dev:ensure` from the repository root first. It reuses existing `portless` routes and starts only missing dev servers.
+- Use `pnpm dev:portless` as the underlying full-stack local development entry. `portless.json` owns the stable app names for the frontend (`partner-up`) and backend (`api.partner-up`). Do not start ad hoc duplicate dev servers with raw `pnpm dev`, `pnpm dev:frontend`, or `pnpm dev:backend` when the goal is only to ensure services are running.
+- When updating `@partner-up-dev/design-web`, use `node scripts/sync-design-web-package.mjs <version>`. 
+- Do not add an `intent-skills` managed block unless explicitly requested.
 - Keep tests and guardrails aligned with behavior changes; do not ship by build-only confidence.
-- Use `pnpm lint:backend` to run backend source guardrails, including the Problem Details lint that prevents production API code from throwing raw Hono HTTP exceptions.
+- Use the root `pnpm check:*` scripts as canonical static-validation entrypoints. Run `pnpm check:static` for the full local gate, or a narrower layer: `check:format`, `check:lint`, `check:type`, `check:config`, `check:dead-code`, `check:security`, or `check:build`.
+- Biome default checks are changed-file scoped; use `pnpm format:check:all` and `pnpm lint:biome:all` only when intentionally working on all-repo baselines.
+- `pnpm check:dead-code` and `pnpm check:security` are report-first layers. Promote findings into blocking gates only after baseline and ownership are explicit.
 - Run test suites from the repository root through Vitest projects: `pnpm test:unit:backend`, `pnpm test:unit:frontend`, `pnpm test:scenario:backend`, `pnpm test:scenario:system`, or `pnpm test:scenario:all`. Scenario Vitest project setup loads `apps/frontend/.env` and `apps/backend/.env`, then owns temporary database and server lifecycle.
 - Cross-unit user journey scenario tests belong under `tests/scenario/` and should run through the real frontend, real backend HTTP, and an isolated database when the behavior crosses both app units.
 - Frontend route workflow changes that may be covered by scenario tests should expose stable `data-testid` semantic nodes for primary actions, modal actions, and result-state affordances.
 - Prefer the smallest reviewable mutation that moves the repo toward the declared owner model.
 - Follow `./CONTRIBUTING.md` for commit message format and release policy.
+- Do not revert formatter's change.
 
 ## Coding Guidelines
 

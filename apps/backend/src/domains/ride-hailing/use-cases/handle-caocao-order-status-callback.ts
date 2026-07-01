@@ -1,98 +1,35 @@
-import {
-  type RideHailingProviderInstance,
-  type RideHailingProviderInstanceId,
+import type {
+  RideHailingProviderInstance,
+  RideHailingProviderInstanceId,
 } from "../../../entities/ride-hailing-provider";
-import type { BillId } from "../../../entities/bill";
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { db } from "../../../lib/db";
-import { BillLineRepository } from "../../../repositories/BillLineRepository";
-import { BillRepository } from "../../../repositories/BillRepository";
-import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
-import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
-import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { TradeOrderId } from "../../../entities/trade-order";
-import type { UserId } from "../../../entities/user";
-import { createRideHailingProviderPort } from "../services";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
+import {
+  caocaoCallbackRoutingTokenMatchesCurrent,
+  createRideHailingProviderPort,
+  parseCaocaoCallbackInfo,
+} from "../services";
+import type { CaocaoOrderStatusCallback } from "../model";
+import {
+  RideHailingProviderSyncQueryError,
+  syncRideHailingOrderWithProvider,
+} from "./sync-ride-hailing-order-with-provider";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
-const rideOrderRepo = new RideHailingOrderRepository();
-const tradeOrderRepo = new TradeOrderRepository();
 
-const readString = (
-  value: Record<string, string>,
-  keys: string[],
-): string | null => {
+export type CaocaoOrderStatusCallbackAck = {
+  code: 200;
+  success: true;
+};
+
+const readString = (value: Record<string, string>, keys: string[]): string | null => {
   for (const key of keys) {
     const candidate = value[key];
     if (candidate && candidate.trim().length > 0) return candidate;
   }
   return null;
 };
-
-const readNumber = (
-  value: Record<string, string>,
-  keys: string[],
-): number | null => {
-  for (const key of keys) {
-    const candidate = value[key];
-    if (!candidate || candidate.trim().length === 0) continue;
-    const parsed = Number(candidate);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-};
-
-const mapCaocaoEventToExecutionPhase = (event: number) => {
-  if ([40, 41, 42, 43, 44, 45, 46, 47, 48].includes(event)) {
-    return "CANCELLED" as const;
-  }
-  if ([25, 26, 27].includes(event)) return "FINISHED" as const;
-  if ([23, 24].includes(event)) return "IN_TRIP" as const;
-  if ([20, 21, 22].includes(event)) return "ACCEPTED" as const;
-  return "DISPATCHING" as const;
-};
-
-const emptyToNull = <T extends Record<string, string | null>>(value: T): T | null =>
-  Object.values(value).some((entry) => entry !== null) ? value : null;
-
-async function ensureRideFinalBill(input: {
-  orderId: TradeOrderId;
-  finalAmountFen: number;
-}): Promise<void> {
-  const order = await tradeOrderRepo.findById(input.orderId);
-  if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found for RideHailing bill" });
-  }
-  const existing = await new BillRepository().findBySourceOrderId(input.orderId);
-  if (existing) return;
-
-  await db.transaction(async (tx) => {
-    const billRepo = new BillRepository(tx);
-    const billLineRepo = new BillLineRepository(tx);
-    const bill = await billRepo.create({
-      sourceOrderId: input.orderId,
-      status: "ACTIVE",
-      currency: "CNY",
-    });
-    const baseShare = Math.floor(input.finalAmountFen / order.participants.length);
-    let remainder = input.finalAmountFen - baseShare * order.participants.length;
-    await billLineRepo.createMany(
-      order.participants.map((participant) => {
-        const extra = remainder > 0 ? 1 : 0;
-        remainder -= extra;
-        return {
-          billId: bill.id as BillId,
-          userId: participant.userId as UserId,
-          kind: "CHARGE",
-          amountFen: baseShare + extra,
-          currency: "CNY",
-          label: "曹操出行费用",
-          description: "行程结束后按实际费用结算",
-        };
-      }),
-    );
-  });
-}
 
 async function loadActiveCaocaoProviderInstance(
   providerInstanceId: string,
@@ -114,9 +51,7 @@ async function loadActiveCaocaoProviderInstance(
   return providerInstance;
 }
 
-async function loadFirstActiveCaocaoProviderInstance(): Promise<
-  RideHailingProviderInstance
-> {
+async function loadFirstActiveCaocaoProviderInstance(): Promise<RideHailingProviderInstance> {
   const providerInstance = await providerRepo.findFirstActiveByProviderType({
     providerType: "CAOCAO",
   });
@@ -130,23 +65,69 @@ async function loadFirstActiveCaocaoProviderInstance(): Promise<
   return providerInstance;
 }
 
+const readCallbackInfoRoute = (form: Record<string, string>) => {
+  const callbackInfo = readString(form, ["callback_info", "callbackInfo"]);
+  if (!callbackInfo) return null;
+  const route = parseCaocaoCallbackInfo(callbackInfo);
+  if (!route) {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Caocao callback_info is invalid",
+    });
+  }
+  return route;
+};
+
+async function loadCaocaoProviderInstanceFromCallbackInfo(
+  form: Record<string, string>,
+): Promise<RideHailingProviderInstance | null> {
+  const route = readCallbackInfoRoute(form);
+  if (!route) return null;
+  if (!caocaoCallbackRoutingTokenMatchesCurrent(route.routingToken)) {
+    return throwHttpProblem({
+      status: 404,
+      detail: "Caocao callback_info does not belong to this backend environment",
+    });
+  }
+  return loadActiveCaocaoProviderInstance(route.providerInstanceId);
+}
+
+const assertCallbackInfoMatchesProviderInstance = (input: {
+  form: Record<string, string>;
+  providerInstance: RideHailingProviderInstance;
+}): void => {
+  const route = readCallbackInfoRoute(input.form);
+  if (!route) return;
+  if (!caocaoCallbackRoutingTokenMatchesCurrent(route.routingToken)) {
+    return throwHttpProblem({
+      status: 404,
+      detail: "Caocao callback_info does not belong to this backend environment",
+    });
+  }
+  if (route.providerInstanceId !== input.providerInstance.id) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Caocao callback_info provider instance does not match callback route",
+    });
+  }
+};
+
 async function applyCaocaoCallbackWithProviderInstance(input: {
   providerInstance: RideHailingProviderInstance;
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
+  assertCallbackInfoMatchesProviderInstance({
+    form: input.form,
+    providerInstance: input.providerInstance,
+  });
+
   const port = createRideHailingProviderPort({
     providerInstance: input.providerInstance,
   });
 
-  let parsed;
+  let parsed: CaocaoOrderStatusCallback;
   try {
     parsed = port.parseOrderStatusCallback(input.form);
-    if (!parsed.localOrderId) {
-      return throwHttpProblem({
-        status: 400,
-        detail: "Caocao callback ext_order_id is not a ride-hailing order id",
-      });
-    }
   } catch (error) {
     if (error instanceof Error) {
       return throwHttpProblem({
@@ -156,93 +137,54 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
     }
     throw error;
   }
-
-  const orderId = parsed.localOrderId as TradeOrderId;
-  const rideOrder = await rideOrderRepo.findByOrderId(orderId);
-  if (!rideOrder || rideOrder.providerInstanceId !== input.providerInstance.id) {
+  if (!parsed.localOrderId) {
     return throwHttpProblem({
-      status: 404,
-      detail: "RideHailing order not found for Caocao callback",
-    });
-  }
-  if (
-    rideOrder.providerOrderId !== null &&
-    rideOrder.providerOrderId !== parsed.providerOrderId
-  ) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Caocao callback provider order does not match local order",
+      status: 400,
+      detail: "Caocao callback ext_order_id is not a ride-hailing order id",
     });
   }
 
-  const driverSnapshot = emptyToNull({
-    driverName: readString(parsed.raw, ["driver_name", "driverName", "driver"]),
-    driverPhone: readString(parsed.raw, ["driver_phone", "driverPhone", "driver_mobile"]),
-  });
-  const vehicleSnapshot = emptyToNull({
-    plate: readString(parsed.raw, ["plate", "car_no", "vehicle_plate"]),
-    brand: readString(parsed.raw, ["brand", "vehicle_brand"]),
-    color: readString(parsed.raw, ["color", "vehicle_color"]),
-  });
-
-  await rideOrderRepo.updateByOrderId(orderId, {
-    providerOrderId: parsed.providerOrderId,
-    executionPhase: mapCaocaoEventToExecutionPhase(parsed.event),
-    driverSnapshot,
-    vehicleSnapshot,
-  });
-
-  const order = await tradeOrderRepo.findById(orderId);
-  if (order?.status === "INITIATING") {
-    await tradeOrderRepo.updateStatus(orderId, "OPEN");
-  }
-
-  const finalAmountFen = readNumber(parsed.raw, [
-    "final_amount_fen",
-    "finalAmountFen",
-    "actual_price_fen",
-    "actualPriceFen",
-  ]);
-  if (finalAmountFen !== null) {
-    await rideOrderRepo.updateByOrderId(orderId, {
-      finalSettlementInput: {
-        amountFen: finalAmountFen,
-        currency: "CNY",
-        providerOrderId: parsed.providerOrderId,
-        committedAt: new Date(parsed.timestampMs).toISOString(),
-        providerSnapshot: parsed.raw,
-      },
-      executionPhase: "FINISHED",
+  try {
+    await syncRideHailingOrderWithProvider({
+      orderId: parsed.localOrderId as TradeOrderId,
+      expectedProviderInstanceId: input.providerInstance.id,
+      expectedProviderOrderId: parsed.providerOrderId,
+      trigger: "CAOCAO_CALLBACK",
     });
-    await ensureRideFinalBill({
-      orderId,
-      finalAmountFen,
-    });
+  } catch (error) {
+    if (error instanceof RideHailingProviderSyncQueryError) {
+      return throwHttpProblem({
+        status: 503,
+        detail: "RideHailing provider detail query failed for Caocao callback",
+        code: "RIDE_HAILING_PROVIDER_DETAIL_QUERY_FAILED",
+      });
+    }
+    throw error;
   }
 
   return {
-    code: "SUCCESS",
-    message: "成功",
+    code: 200,
+    success: true,
   };
 }
 
 export async function handleCaocaoOrderStatusCallback(input: {
   providerInstanceId: string;
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
   return applyCaocaoCallbackWithProviderInstance({
-    providerInstance: await loadActiveCaocaoProviderInstance(
-      input.providerInstanceId,
-    ),
+    providerInstance: await loadActiveCaocaoProviderInstance(input.providerInstanceId),
     form: input.form,
   });
 }
 
 export async function handleLegacyCaocaoOrderStatusCallback(input: {
   form: Record<string, string>;
-}): Promise<{ code: "SUCCESS"; message: string }> {
+}): Promise<CaocaoOrderStatusCallbackAck> {
   return applyCaocaoCallbackWithProviderInstance({
-    providerInstance: await loadFirstActiveCaocaoProviderInstance(),
+    providerInstance:
+      (await loadCaocaoProviderInstanceFromCallbackInfo(input.form)) ??
+      (await loadFirstActiveCaocaoProviderInstance()),
     form: input.form,
   });
 }

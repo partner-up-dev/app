@@ -27,8 +27,16 @@ Read the smallest useful set and keep durable docs current:
 
 Useful commands:
 
+- `pnpm check:lint:frontend`
+- `pnpm check:type:frontend`
+- `pnpm check:build:frontend`
+- Package maintenance: `node scripts/sync-design-web-package.mjs` (or `node scripts/sync-design-web-package.mjs <version>`) for install/upgrade `@partner-up-dev/design-web`, Codex hook refresh, and packaged Agent Skill checks.
+
+Focused local checks:
+
 - `pnpm --filter @partner-up-dev/frontend lint:tokens`
 - `pnpm --filter @partner-up-dev/frontend lint:tokens:strict`
+- `pnpm --filter @partner-up-dev/frontend audit:naming`
 
 ## Coding Guidelines
 
@@ -39,7 +47,7 @@ Useful commands:
 - Styling governance: use direct `sys` tokens first; add `dcs` only for real governed outputs; extend shared primitives only for stable reusable treatments with a real component contract.
 - Make use of SCSS features.
 - Page layout reuse: prefer `src/shared/ui/layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue` for route pages; do not duplicate root safe-area container styles in page files.
-- Shared UI reuse: before adding page-local shells or feedback widgets, check `src/shared/ui/AGENTS.md` and prefer package or shared primitives such as `PuCard`, `ChoiceCard`, `FormField`, `Button`, `InfoRow`, `Chip`, `ChipGroup`, `InlineNotice`, `EmptyState`, `ConfirmDialog`, and `Avatar` when the fit is real.
+- Shared UI reuse: before adding page-local shells or feedback widgets, check `src/shared/ui/AGENTS.md` and prefer package primitives such as `PuButton`, `PuCard`, `PuCell`, `PuDescriptionList`, `PuDescriptionItem`, `PuChip`, `PuChipGroup`, `PuTag`, `PuInlineNotice`, `PuEmptyState`, `PuLoadingState`, `PuTabs`, `PuModal`, `PuDialog`, and `PuDrawer` when the fit is real.
 - Feature composition boundary: extract reusable feature UI plus business logic into dedicated feature components instead of leaving logic in page files.
 - Container vs feature split: keep container components presentational-only; they should provide layout and shell and should not own feature side effects.
 - Usage-site assembly: pages should assemble container plus feature components and only own page context such as visibility, section placement, and page-level error aggregation.

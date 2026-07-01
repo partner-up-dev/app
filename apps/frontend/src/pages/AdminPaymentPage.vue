@@ -7,67 +7,76 @@
     <template #rail>
       <AdminRailPanel title="支付服务商">
         <div class="rail-actions">
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             data-testid="admin-payment.create"
             @click="startCreate"
           >
             新建实例
-          </Button>
+          </PuButton>
         </div>
 
         <div v-if="providerInstances.length === 0" class="hint">
           暂无 Payment Provider Instance
         </div>
         <div v-else class="provider-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="record in providerInstances"
             :key="record.id"
             :active="selectedProviderId === record.id"
             data-testid="admin-payment.provider-card"
             @click="selectedProviderIdRaw = record.id"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ record.displayName }}</span>
             <small>{{ record.providerType }} / {{ record.clientId }}</small>
-            <span class="status-pill" :class="{ 'is-disabled': record.status === 'DISABLED' }">
-              {{ providerStatusLabel(record.status) }}
-            </span>
-          </ChoiceCard>
+            <PuTag
+              :text="providerStatusLabel(record.status)"
+              :tone="providerStatusTagTone(record.status)"
+              variant="outline"
+              shape="rect"
+              size="xs"
+            />
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <template v-else>
           <BentoItem :title="formTitle" span="full">
             <form class="form-stack" @submit.prevent="handleSave">
               <div class="field-grid">
-                <label class="field">
-                  <span class="field-label">Provider</span>
-                  <select v-model="form.providerType" class="text-input" disabled>
-                    <option value="WECHAT_PAY">微信支付 WECHAT_PAY</option>
-                  </select>
-                </label>
+                <PuFormItem label="Provider" for-id="admin-payment-provider">
+                  <PuSelect
+                    id="admin-payment-provider"
+                    v-model="providerTypeModel"
+                    :options="providerTypeOptions"
+                    disabled
+                  />
+                </PuFormItem>
 
-                <label class="field">
-                  <span class="field-label">Status</span>
-                  <select v-model="form.status" class="text-input">
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                </label>
+                <PuFormItem label="Status" for-id="admin-payment-status">
+                  <PuSelect
+                    id="admin-payment-status"
+                    v-model="providerStatusModel"
+                    :options="providerStatusOptions"
+                  />
+                </PuFormItem>
 
                 <label class="field">
                   <span class="field-label">Display Name</span>
@@ -89,13 +98,13 @@
                   />
                 </label>
 
-                <label class="field">
-                  <span class="field-label">Charge Mode</span>
-                  <select v-model="form.chargeMode" class="text-input">
-                    <option value="JSAPI">JSAPI</option>
-                    <option value="H5">H5</option>
-                  </select>
-                </label>
+                <PuFormItem label="Charge Mode" for-id="admin-payment-charge-mode">
+                  <PuSelect
+                    id="admin-payment-charge-mode"
+                    v-model="chargeModeModel"
+                    :options="chargeModeOptions"
+                  />
+                </PuFormItem>
 
                 <label class="field">
                   <span class="field-label">App ID</span>
@@ -121,7 +130,9 @@
 
                 <div class="field">
                   <span class="field-label">Instance Key</span>
-                  <output class="read-only-output">{{ derivedInstanceKey }}</output>
+                  <output class="read-only-output">{{
+                    derivedInstanceKey
+                  }}</output>
                 </div>
 
                 <label class="field field--wide">
@@ -160,7 +171,6 @@
                   <textarea
                     v-model="form.merchantPrivateKeyPem"
                     class="text-area"
-                    rows="7"
                     autocomplete="off"
                     spellcheck="false"
                     :placeholder="secretPlaceholder"
@@ -172,7 +182,6 @@
                   <textarea
                     v-model="form.merchantCertificatePem"
                     class="text-area"
-                    rows="5"
                     autocomplete="off"
                     spellcheck="false"
                     :placeholder="optionalSecretPlaceholder"
@@ -181,14 +190,14 @@
               </div>
 
               <div class="inline-actions">
-                <Button
+                <PuButton
                   size="sm"
-                  type="submit"
+                  :action="{ native: 'submit' }"
                   :disabled="isSaving"
                   data-testid="admin-payment.save"
                 >
                   {{ isSaving ? "保存中" : "保存" }}
-                </Button>
+                </PuButton>
               </div>
             </form>
           </BentoItem>
@@ -205,7 +214,9 @@
               </div>
               <div>
                 <dt>Instance Key</dt>
-                <dd class="breakable">{{ selectedProvider?.instanceKey ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.instanceKey ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>API v3 Key</dt>
@@ -225,20 +236,30 @@
               </div>
               <div>
                 <dt>Charge Notify URL</dt>
-                <dd class="breakable">{{ selectedProvider?.chargeNotifyUrl ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.chargeNotifyUrl ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>Refund Notify URL</dt>
-                <dd class="breakable">{{ selectedProvider?.refundNotifyUrl ?? "-" }}</dd>
+                <dd class="breakable">
+                  {{ selectedProvider?.refundNotifyUrl ?? "-" }}
+                </dd>
               </div>
               <div>
                 <dt>Updated At</dt>
-                <dd>{{ selectedProvider ? formatTimestamp(selectedProvider.updatedAt) : "-" }}</dd>
+                <dd>
+                  {{
+                    selectedProvider
+                      ? formatTimestamp(selectedProvider.updatedAt)
+                      : "-"
+                  }}
+                </dd>
               </div>
             </dl>
           </BentoItem>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -264,10 +285,17 @@ import {
   type AdminPaymentProviderInstanceInput,
   type AdminPaymentProviderWorkspaceResponse,
 } from "@/domains/admin-payment/queries/useAdminPayment";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import {
+  PuButton,
+  PuCard,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+  PuSelect,
+  PuTag,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 const CREATE_PROVIDER_ID = "__create__";
 
@@ -314,12 +342,16 @@ const selectedProvider = computed(
       (record) => record.id === selectedProviderId.value,
     ) ?? null,
 );
-const isCreateMode = computed(() => selectedProviderId.value === CREATE_PROVIDER_ID);
+const isCreateMode = computed(
+  () => selectedProviderId.value === CREATE_PROVIDER_ID,
+);
 const isSaving = computed(
   () => createMutation.isPending.value || updateMutation.isPending.value,
 );
 const formTitle = computed(() =>
-  isCreateMode.value ? "新建 Payment Provider Instance" : "编辑 Payment Provider Instance",
+  isCreateMode.value
+    ? "新建 Payment Provider Instance"
+    : "编辑 Payment Provider Instance",
 );
 const derivedInstanceKey = computed(() => {
   const mchId = form.value.mchId.trim();
@@ -327,6 +359,17 @@ const derivedInstanceKey = computed(() => {
   if (!mchId || !appId) return "-";
   return `mch:${mchId}:app:${appId}`;
 });
+const providerTypeOptions = computed<PuSelectOption[]>(() => [
+  { label: "微信支付 WECHAT_PAY", value: "WECHAT_PAY" },
+]);
+const providerStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "DISABLED", value: "DISABLED" },
+]);
+const chargeModeOptions = computed<PuSelectOption[]>(() => [
+  { label: "JSAPI", value: "JSAPI" },
+  { label: "H5", value: "H5" },
+]);
 const secretPlaceholder = computed(() =>
   isCreateMode.value ? "新建实例必填" : "留空则保留",
 );
@@ -335,7 +378,9 @@ const optionalSecretPlaceholder = computed(() =>
 );
 const apiV3KeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
-  return selectedProvider.value?.config.apiV3KeyConfigured ? "已配置" : "未配置";
+  return selectedProvider.value?.config.apiV3KeyConfigured
+    ? "已配置"
+    : "未配置";
 });
 const merchantPrivateKeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
@@ -391,8 +436,7 @@ function formFromProvider(provider: ProviderInstance): ProviderForm {
     chargeMode: provider.config.chargeMode,
     endpointBaseUrl: provider.config.endpointBaseUrl ?? "",
     apiV3Key: "",
-    merchantCertificateSerialNo:
-      provider.config.merchantCertificate.serialNo,
+    merchantCertificateSerialNo: provider.config.merchantCertificate.serialNo,
     merchantPrivateKeyPem: "",
     merchantCertificatePem: "",
   };
@@ -400,6 +444,36 @@ function formFromProvider(provider: ProviderInstance): ProviderForm {
 
 const providerStatusLabel = (status: ProviderInstance["status"]): string =>
   status === "ACTIVE" ? "启用" : "停用";
+
+const providerStatusTagTone = (status: ProviderInstance["status"]) =>
+  status === "ACTIVE" ? "primary" : "neutral";
+
+const providerTypeModel = computed({
+  get: () => form.value.providerType,
+  set: (value: PuSelectValue) => {
+    if (value === "WECHAT_PAY") {
+      form.value.providerType = value;
+    }
+  },
+});
+
+const providerStatusModel = computed({
+  get: () => form.value.status,
+  set: (value: PuSelectValue) => {
+    if (value === "ACTIVE" || value === "DISABLED") {
+      form.value.status = value;
+    }
+  },
+});
+
+const chargeModeModel = computed({
+  get: () => form.value.chargeMode,
+  set: (value: PuSelectValue) => {
+    if (value === "JSAPI" || value === "H5") {
+      form.value.chargeMode = value;
+    }
+  },
+});
 
 const normalizeOptionalString = (value: string): string | null => {
   const normalized = value.trim();
@@ -414,7 +488,10 @@ const requireCreateSecret = (value: string, label: string): void => {
 
 const buildInput = (): AdminPaymentProviderInstanceInput => {
   requireCreateSecret(form.value.apiV3Key, "API v3 Key");
-  requireCreateSecret(form.value.merchantPrivateKeyPem, "Merchant Private Key PEM");
+  requireCreateSecret(
+    form.value.merchantPrivateKeyPem,
+    "Merchant Private Key PEM",
+  );
 
   return {
     providerType: form.value.providerType,
@@ -557,21 +634,6 @@ small,
 
 .breakable {
   overflow-wrap: anywhere;
-}
-
-.status-pill {
-  @include mx.pu-font(caption);
-  display: inline-flex;
-  width: fit-content;
-  padding: calc(var(--sys-spacing-xsmall) / 2) var(--sys-spacing-xsmall);
-  border: 1px solid var(--sys-color-primary);
-  border-radius: var(--sys-radius-small);
-  color: var(--sys-color-primary);
-}
-
-.status-pill.is-disabled {
-  border-color: var(--sys-color-outline);
-  color: var(--sys-color-on-surface-variant);
 }
 
 .text-input,

@@ -8,9 +8,15 @@ export type MigrationKind = "schema" | "data";
 
 export type SqlFileType = MigrationKind | "seed";
 
+export const migrationEnvironments = ["production", "staging", "development"] as const;
+
+export type MigrationEnvironment = (typeof migrationEnvironments)[number];
+
 export interface SqlFileDefinition {
   absolutePath: string;
   checksum: string;
+  environmentScoped: boolean;
+  environments: MigrationEnvironment[];
   fileName: string;
   id: string;
   kind: SqlFileType;
@@ -25,6 +31,8 @@ export interface AppliedMigrationRow {
   id: string;
   checksum: string;
 }
+
+export type MigrationSkipReason = "already-applied" | "environment";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +57,9 @@ export const MIGRATION_LOCK_KEY = 1;
 
 const migrationFilePattern = /^(\d+)_([A-Za-z0-9_]+)\.sql$/;
 const noTransactionHeader = "-- migration: no-transaction";
+const environmentsHeaderPrefix = "environments=";
+const migrationHeaderLinePattern = /^-- migration:\s*(.*)$/gm;
+const allMigrationEnvironments = [...migrationEnvironments];
 
 export function createSqlClient(connectionString: string): Sql {
   const quietNotices = process.env.DB_MIGRATE_LOG_LEVEL === "silent";
@@ -69,9 +80,7 @@ export async function loadMigrationFiles(): Promise<SqlFileDefinition[]> {
 }
 
 export async function loadSeedFiles(): Promise<SqlFileDefinition[]> {
-  const files = (await readSqlDirectory(seedsDir, "seed")).sort(
-    compareSqlFiles,
-  );
+  const files = (await readSqlDirectory(seedsDir, "seed")).sort(compareSqlFiles);
   validateOrderedPrefixes(files, ["seed"]);
   return files;
 }
@@ -114,9 +123,7 @@ export async function releaseMigrationLock(sql: Sql): Promise<void> {
   `;
 }
 
-export async function readAppliedMigrations(
-  sql: Sql,
-): Promise<Map<string, AppliedMigrationRow>> {
+export async function readAppliedMigrations(sql: Sql): Promise<Map<string, AppliedMigrationRow>> {
   const rows = await sql<AppliedMigrationRow[]>`
     select id, checksum
     from app_migrations
@@ -127,7 +134,12 @@ export async function readAppliedMigrations(
 export async function applyMigrationFile(
   sql: Sql,
   file: SqlFileDefinition,
-): Promise<{ durationMs: number; skipped: boolean }> {
+  options: { environment: MigrationEnvironment },
+): Promise<{
+  durationMs: number;
+  skipped: boolean;
+  skipReason?: MigrationSkipReason;
+}> {
   const appliedMigrations = await readAppliedMigrations(sql);
   const existingRow = appliedMigrations.get(file.id);
   if (existingRow) {
@@ -137,7 +149,11 @@ export async function applyMigrationFile(
       );
     }
 
-    return { durationMs: 0, skipped: true };
+    return { durationMs: 0, skipped: true, skipReason: "already-applied" };
+  }
+
+  if (!file.environments.includes(options.environment)) {
+    return { durationMs: 0, skipped: true, skipReason: "environment" };
   }
 
   const startedAt = Date.now();
@@ -164,10 +180,7 @@ export async function applyMigrationFile(
   return { durationMs: Date.now() - startedAt, skipped: false };
 }
 
-export async function applySeedFile(
-  sql: Sql,
-  file: SqlFileDefinition,
-): Promise<number> {
+export async function applySeedFile(sql: Sql, file: SqlFileDefinition): Promise<number> {
   const startedAt = Date.now();
   await sql.begin(async (tx) => {
     await tx.unsafe(file.sql);
@@ -184,6 +197,34 @@ export async function computeNextMigrationPrefix(): Promise<string> {
   return String(highestPrefix + 1).padStart(width, "0");
 }
 
+export function resolveMigrationEnvironment(
+  input: { argv?: string[]; env?: NodeJS.ProcessEnv } = {},
+): MigrationEnvironment {
+  const argv = input.argv ?? process.argv.slice(2);
+  const env = input.env ?? process.env;
+  const cliEnvironment = readEnvironmentArg(argv);
+  const rawEnvEnvironment = env.PARTNERUP_ENVIRONMENT;
+  const envEnvironment = rawEnvEnvironment === undefined ? undefined : rawEnvEnvironment.trim();
+  if (rawEnvEnvironment !== undefined && envEnvironment?.length === 0) {
+    throw new Error("PARTNERUP_ENVIRONMENT requires a non-empty value.");
+  }
+
+  if (cliEnvironment && envEnvironment && cliEnvironment !== envEnvironment) {
+    throw new Error(
+      `Conflicting migration environments: --environment=${cliEnvironment} and PARTNERUP_ENVIRONMENT=${envEnvironment}.`,
+    );
+  }
+
+  // Production is the safe default for any path that forgot to pass an
+  // explicit environment. Development-only data must opt in through
+  // db:migrate:dev / db:reset:dev or --environment=development.
+  return parseMigrationEnvironment(cliEnvironment ?? envEnvironment ?? "production");
+}
+
+export function assertMigrationEnvironment(value: string): asserts value is MigrationEnvironment {
+  parseMigrationEnvironment(value);
+}
+
 export function assertSupportedNextMigrationFolder(folder: string): void {
   if (folder !== "drizzle" && folder !== "data-migrations") {
     throw new Error(
@@ -194,9 +235,7 @@ export function assertSupportedNextMigrationFolder(folder: string): void {
 
 export function getDatabaseNameFromUrl(connectionString: string): string {
   const databaseUrl = new URL(connectionString);
-  const databaseName = decodeURIComponent(
-    databaseUrl.pathname.replace(/^\//, ""),
-  );
+  const databaseName = decodeURIComponent(databaseUrl.pathname.replace(/^\//, ""));
   if (!databaseName) {
     throw new Error("DATABASE_URL must include a database name in the path.");
   }
@@ -240,9 +279,7 @@ export async function readSqlDirectory(
   kind: SqlFileType,
 ): Promise<SqlFileDefinition[]> {
   const directoryEntries = await readDirectoryIfExists(dirPath);
-  const sqlFiles = directoryEntries.filter((entryName) =>
-    entryName.endsWith(".sql"),
-  );
+  const sqlFiles = directoryEntries.filter((entryName) => entryName.endsWith(".sql"));
   const files = await Promise.all(
     sqlFiles.map(async (fileName) => {
       const match = migrationFilePattern.exec(fileName);
@@ -256,14 +293,14 @@ export async function readSqlDirectory(
       const prefix = Number.parseInt(prefixText, 10);
       const absolutePath = path.join(dirPath, fileName);
       const sql = await fs.readFile(absolutePath, "utf8");
-      const transactional = parseTransactionalMode(sql, kind);
-      const relativePath = normalizeRelativePath(
-        path.relative(backendRoot, absolutePath),
-      );
+      const relativePath = normalizeRelativePath(path.relative(backendRoot, absolutePath));
+      const metadata = parseSqlFileMetadata(sql, kind, relativePath);
 
       return {
         absolutePath,
         checksum: createHash("sha256").update(sql).digest("hex"),
+        environmentScoped: metadata.environmentScoped,
+        environments: metadata.environments,
         fileName,
         id: `${kind}:${fileName}`,
         kind,
@@ -271,7 +308,7 @@ export async function readSqlDirectory(
         prefixText,
         relativePath,
         sql,
-        transactional,
+        transactional: metadata.transactional,
       } satisfies SqlFileDefinition;
     }),
   );
@@ -287,26 +324,74 @@ function compareSqlFiles(a: SqlFileDefinition, b: SqlFileDefinition): number {
   return a.fileName.localeCompare(b.fileName);
 }
 
-function parseTransactionalMode(sql: string, kind: SqlFileType): boolean {
+export function parseSqlFileMetadata(
+  sql: string,
+  kind: SqlFileType,
+  relativePath: string,
+): {
+  environmentScoped: boolean;
+  environments: MigrationEnvironment[];
+  transactional: boolean;
+} {
+  const headerBodies = [...sql.matchAll(migrationHeaderLinePattern)].map(
+    (match) => match[1]?.trim() ?? "",
+  );
+
   if (kind === "seed") {
-    return true;
+    if (headerBodies.length > 0) {
+      throw new Error(`${relativePath}: seed files do not support -- migration metadata headers.`);
+    }
+
+    return {
+      environmentScoped: false,
+      environments: [...allMigrationEnvironments],
+      transactional: true,
+    };
   }
 
-  const headerMatches = sql.match(/^-- migration: no-transaction$/gm) ?? [];
-  if (headerMatches.length > 1) {
-    throw new Error(
-      `Migration file contains duplicate ${noTransactionHeader} headers. Keep only one header.`,
-    );
+  let hasNoTransactionHeader = false;
+  let environments: MigrationEnvironment[] | null = null;
+
+  for (const headerBody of headerBodies) {
+    if (headerBody === "no-transaction") {
+      if (hasNoTransactionHeader) {
+        throw new Error(`${relativePath}: duplicate ${noTransactionHeader} header.`);
+      }
+      hasNoTransactionHeader = true;
+      continue;
+    }
+
+    if (headerBody.startsWith(environmentsHeaderPrefix)) {
+      if (kind !== "data") {
+        throw new Error(
+          `${relativePath}: schema migrations must not declare migration environments.`,
+        );
+      }
+      if (environments) {
+        throw new Error(`${relativePath}: duplicate -- migration: environments=... header.`);
+      }
+      environments = parseMigrationEnvironmentList(
+        headerBody.slice(environmentsHeaderPrefix.length),
+        relativePath,
+      );
+      continue;
+    }
+
+    throw new Error(`${relativePath}: unsupported -- migration metadata header "${headerBody}".`);
   }
 
-  const transactional = headerMatches.length === 0;
+  const transactional = !hasNoTransactionHeader;
   if (/\bCONCURRENTLY\b/i.test(sql) && transactional) {
     throw new Error(
-      `Migration file uses CONCURRENTLY but is missing the ${noTransactionHeader} header.`,
+      `${relativePath}: migration file uses CONCURRENTLY but is missing the ${noTransactionHeader} header.`,
     );
   }
 
-  return transactional;
+  return {
+    environmentScoped: environments !== null,
+    environments: environments ?? [...allMigrationEnvironments],
+    transactional,
+  };
 }
 
 function validateOrderedPrefixes(
@@ -351,6 +436,70 @@ function mapKindToLedgerKind(kind: SqlFileType): MigrationKind {
 
 function normalizeRelativePath(relativePath: string): string {
   return relativePath.split(path.sep).join("/");
+}
+
+function parseMigrationEnvironment(value: string): MigrationEnvironment {
+  const normalized = value.trim();
+  if (migrationEnvironments.includes(normalized as MigrationEnvironment)) {
+    return normalized as MigrationEnvironment;
+  }
+
+  throw new Error(
+    `Unsupported migration environment "${value}". Expected one of: ${migrationEnvironments.join(", ")}.`,
+  );
+}
+
+function parseMigrationEnvironmentList(
+  rawValue: string,
+  relativePath: string,
+): MigrationEnvironment[] {
+  const rawEntries = rawValue.split(",").map((entry) => entry.trim());
+  const environments = rawEntries.filter((entry) => entry.length > 0);
+  if (environments.length === 0 || environments.length !== rawEntries.length) {
+    throw new Error(
+      `${relativePath}: -- migration: environments=... requires a comma-separated non-empty environment list.`,
+    );
+  }
+
+  const seen = new Set<MigrationEnvironment>();
+  return environments.map((environment) => {
+    const parsed = parseMigrationEnvironment(environment);
+    if (seen.has(parsed)) {
+      throw new Error(`${relativePath}: duplicate migration environment "${parsed}".`);
+    }
+    seen.add(parsed);
+    return parsed;
+  });
+}
+
+function readEnvironmentArg(argv: string[]): string | undefined {
+  let parsedEnvironment: string | undefined;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    let value: string | undefined;
+
+    if (arg === "--environment") {
+      if (argv[index + 1] === undefined) {
+        throw new Error("--environment requires a non-empty value.");
+      }
+      value = argv[index + 1];
+      index += 1;
+    } else if (arg?.startsWith("--environment=")) {
+      value = arg.slice("--environment=".length);
+    }
+
+    if (value === undefined) continue;
+    if (value.trim().length === 0) {
+      throw new Error("--environment requires a non-empty value.");
+    }
+    if (parsedEnvironment !== undefined) {
+      throw new Error("--environment may only be provided once.");
+    }
+    parsedEnvironment = value.trim();
+  }
+
+  return parsedEnvironment;
 }
 
 function isNodeErrorWithCode(error: unknown): error is NodeJS.ErrnoException {

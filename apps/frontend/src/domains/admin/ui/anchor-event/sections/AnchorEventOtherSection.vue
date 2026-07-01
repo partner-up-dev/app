@@ -7,15 +7,15 @@
     <BentoLayout>
       <BentoItem :title="t('adminCommon.navAnchorEventOther')" span="full">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="saveDisabled"
             @click="$emit('save')"
           >
             {{ saveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventJoinGateEditor v-model="form" />
@@ -29,20 +29,18 @@
       </BentoItem>
 
       <BentoItem :title="t('adminAnchorEvents.defaultPrNotesTitle')">
-        <TextareaInput
+        <PuTextarea
           v-model="form.defaultPrNotes"
           :placeholder="t('adminAnchorEvents.defaultPrNotesPlaceholder')"
-          :rows="4"
-          min-height="8rem"
         />
       </BentoItem>
 
       <BentoItem :title="t('adminAnchorEvents.participationFrequencyLimitTitle')">
         <div class="policy-setting">
-          <TextInput
-            v-model="participationFrequencyLimitText"
-            type="number"
+          <PuNumberInput
+            v-model="participationFrequencyLimitCount"
             inputmode="numeric"
+            :min="1"
             :disabled="props.disabled"
             :placeholder="
               t('adminAnchorEvents.participationFrequencyLimitPlaceholder')
@@ -57,7 +55,7 @@
 
       <BentoItem :title="t('adminAnchorEvents.prCreationPolicyTitle')">
         <div class="policy-setting">
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="adminOnlyCreation"
             :label="t('adminAnchorEvents.prCreationPolicyAdminOnlyLabel')"
             :disabled="props.disabled"
@@ -70,7 +68,7 @@
 
       <BentoItem :title="t('adminAnchorEvents.fullPrExpansionPolicyTitle')">
         <div class="policy-setting">
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="fullPrExpansionEnabled"
             :label="t('adminAnchorEvents.fullPrExpansionPolicyEnabledLabel')"
             :disabled="props.disabled"
@@ -83,16 +81,16 @@
 
       <BentoItem :title="t('adminAnchorEvents.landingRolloutTitle')">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="!landingRolloutEditor?.canSave"
             :loading="landingRolloutEditor?.isSaving ?? false"
             @click="saveLandingConfig"
           >
             {{ landingSaveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventLandingRolloutEditor
@@ -108,15 +106,17 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import TextInput from "@/shared/ui/forms/TextInput.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import AnchorEventFeedbackQuestionnairePicker from "@/domains/admin/ui/anchor-event/components/AnchorEventFeedbackQuestionnairePicker.vue";
 import AnchorEventJoinGateEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventJoinGateEditor.vue";
 import AnchorEventLandingRolloutEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLandingRolloutEditor.vue";
+import {
+  PuButton,
+  PuNumberInput,
+  PuTextarea,
+  PuToggleSwitch,
+} from "@partner-up-dev/design-web";
 import type {
   AnchorEventEditorForm,
   FeedbackQuestionnaireTemplateOption,
@@ -164,20 +164,13 @@ const fullPrExpansionEnabled = computed({
     form.value.fullPrExpansionPolicy = value ? "ENABLED" : "DISABLED";
   },
 });
-const participationFrequencyLimitText = computed({
+const participationFrequencyLimitCount = computed({
   get: () =>
-    form.value.participationFrequencyLimit?.intervalPrCount.toString() ?? "",
-  set: (value: string) => {
-    const normalized = value.trim();
-    if (!normalized) {
-      form.value.participationFrequencyLimit = null;
-      return;
-    }
-
-    const parsed = Number(normalized);
+    form.value.participationFrequencyLimit?.intervalPrCount ?? null,
+  set: (value: number | null) => {
     form.value.participationFrequencyLimit =
-      Number.isInteger(parsed) && parsed > 0
-        ? { intervalPrCount: parsed }
+      value !== null && Number.isInteger(value) && value > 0
+        ? { intervalPrCount: value }
         : null;
   },
 });

@@ -22,16 +22,10 @@ const route: PRRoute = [
 describe("Form Mode auto PR create query", () => {
   test("submits auto-create route scope without user-owned structured fields", () => {
     const allowEditAfterReady: PRAllowEditAfterReady = {
-      timeWindow: [
-        "2038-01-01T16:00:00.000Z",
-        "2038-01-02T15:59:00.000Z",
-      ],
+      timeWindow: ["2038-01-01T16:00:00.000Z", "2038-01-02T16:00:00.000Z"],
     };
     const body = buildFormModeAutoCreateBody({
-      timeWindow: [
-        "2038-01-02T12:35:00.000Z",
-        "2038-01-02T13:35:00.000Z",
-      ],
+      timeWindow: ["2038-01-02T12:35:00.000Z", "2038-01-02T13:35:00.000Z"],
       place: {
         kind: "route",
         route,
@@ -41,10 +35,7 @@ describe("Form Mode auto PR create query", () => {
     });
 
     expect(body).toEqual({
-      timeWindow: [
-        "2038-01-02T12:35:00.000Z",
-        "2038-01-02T13:35:00.000Z",
-      ],
+      timeWindow: ["2038-01-02T12:35:00.000Z", "2038-01-02T13:35:00.000Z"],
       place: {
         kind: "route",
         route,

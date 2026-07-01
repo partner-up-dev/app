@@ -127,6 +127,9 @@ const visibleFooterLinks = computed(() =>
 .page-footer--minimal {
   margin-top: var(--sys-spacing-large);
   padding-top: var(--sys-spacing-small);
+  padding-right: calc(var(--sys-spacing-medium) + var(--pu-safe-right));
+  padding-bottom: var(--sys-spacing-medium);
+  padding-left: calc(var(--sys-spacing-medium) + var(--pu-safe-left));
   border-top: 1px solid var(--sys-color-outline-variant);
 
   .page-footer__nav {
@@ -150,11 +153,29 @@ const visibleFooterLinks = computed(() =>
   flex-direction: column;
   justify-content: flex-start;
   gap: var(--page-footer-gap);
-  padding-top: var(--page-footer-padding-top, 0);
-  padding-left: var(--page-footer-padding-inline-start, 0);
-  padding-right: var(--page-footer-padding-inline-end, 0);
+  padding-top: var(
+    --page-footer-padding-top,
+    var(--landing-section-padding-block, var(--sys-spacing-large))
+  );
+  padding-left: var(
+    --page-footer-padding-inline-start,
+    calc(
+      var(--landing-section-padding-inline-compact, var(--sys-spacing-medium)) +
+        var(--pu-safe-left)
+    )
+  );
+  padding-right: var(
+    --page-footer-padding-inline-end,
+    calc(
+      var(--landing-section-padding-inline-compact, var(--sys-spacing-medium)) +
+        var(--pu-safe-right)
+    )
+  );
   padding-bottom: calc(
-    var(--landing-section-padding-block) + var(--pu-safe-bottom)
+    var(
+        --page-footer-padding-bottom,
+        var(--landing-section-padding-block, var(--sys-spacing-large))
+      ) + var(--pu-safe-bottom)
   );
   animation-delay: 260ms;
   background-color: var(--sys-color-surface-container);

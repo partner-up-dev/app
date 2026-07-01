@@ -6,6 +6,7 @@ const port = portRaw ? Number.parseInt(portRaw, 10) : 0;
 const server = await startFakeWeChatPayServer({
   port: Number.isFinite(port) ? port : 0,
 });
+const publicOrigin = process.env.PORTLESS_URL || server.origin;
 
 console.info(
   JSON.stringify(
@@ -13,11 +14,12 @@ console.info(
       fakeWeChatPay: {
         apiV3Key: server.fixture.apiV3Key,
         appId: server.fixture.appId,
-        endpointBaseUrl: server.origin,
+        endpointBaseUrl: publicOrigin,
         mchId: server.fixture.mchId,
         merchantCertificate: server.fixture.merchantCertificate,
       },
-      origin: server.origin,
+      origin: publicOrigin,
+      listenOrigin: server.origin,
     },
     null,
     2,

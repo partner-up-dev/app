@@ -67,6 +67,10 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/partnerup_scenar
 `TEST_DATABASE_URL` resets the schema inside the named database and leaves the
 database in place.
 
+Scenario database preparation explicitly uses
+`PARTNERUP_ENVIRONMENT=staging`. Do not rely on development-only data
+migrations for scenario fixtures.
+
 Use headed browser mode for local diagnosis:
 
 ```bash

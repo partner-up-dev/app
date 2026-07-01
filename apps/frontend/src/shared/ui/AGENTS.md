@@ -13,49 +13,45 @@ Do not move a component into `shared/ui` just because two pages happen to look s
 
 Actions:
 
-- `actions/Button.vue`: shared button primitive. Prefer it over page-local button classes; use `appearance="pill"` for compact CTA clusters and `appearance="rect"` for dialogs or block actions. Keep `tone` choices narrow.
-- `actions/ActionLink.vue`: shared action-looking link primitive for RouterLink and external anchor CTAs.
-- `actions/FeedbackButton.vue`: shared transient feedback action button for short-lived pending/success/error feedback states.
+- `PuButton` from `@partner-up-dev/design-web`: default package action primitive for command buttons, native form submit/reset actions, route CTAs, href CTAs, icon actions, action-looking links, and short-lived pending/success/error feedback states. Use `shape`, `tone`, `variant`, `action`, `feedback`, `loading`, and `block` directly at usage sites instead of adding local action wrappers.
 
 Containers and layout:
 
 - `PuCard` from `@partner-up-dev/design-web`: standard card shell for reusable grouped content, outline surfaces, and collapsible sections. Use `variant` for treatment and `keep-content-mounted` only when collapsed content owns local state that must survive collapse.
-- `containers/ChoiceCard.vue`: selectable card primitive for button-like choices and RouterLink navigation choices.
-- `layout/PageScaffold.vue`, `PageScaffoldFlow.vue`, `PageScaffoldCentered.vue`, and `DesktopPageScaffold.vue`: shared page scaffolds. Prefer these for route pages instead of duplicating root safe-area layout.
-- `layout/FullScreenPageScaffold.vue`: viewport-height page scaffold with header/content/footer regions where the middle region should flex and own scrolling.
-- `layout/FooterRevealPageScaffold.vue`: viewport-first page scaffold where header + content fill the first screen and footer appears through normal page scroll.
+- `PuCard` from `@partner-up-dev/design-web`: use `selectable` for button-like choices and `action` for route or href card targets instead of adding a local choice-card wrapper.
+- `PuPageScaffold` from `@partner-up-dev/design-web`: page scaffold for route pages, centered flows, full-screen flows, desktop aside pages, and reveal-footer layouts. Prefer direct package usage instead of recreating safe-area page chrome locally.
+- `PuHeader` from `@partner-up-dev/design-web`: standard page, panel, and surface header. For route pages inside `PuPageScaffold`, use the scaffold `pageHeader` slot so the scaffold keeps owning standard inset and spacing; reserve raw `header` for custom header structures with consumer-owned spacing.
 - `sections/PageFooter.vue`: product page footer chrome with `variant="minimal"` for compact support/navigation footers and `variant="brand"` for landing-style brand/legal footers. Prefer extending this variant API over creating another page footer component.
 
 Forms and controls:
 
-- `forms/FormField.vue`: label + control + hint/error wrapper for plain form rows. It does not own the input shell.
-- `forms/TextareaInput.vue`: shared textarea primitive with stable shell, optional char count, and configurable rows/max length.
-- `forms/ToggleSwitch.vue`: labeled boolean switch primitive with `v-model`; consuming components own copy, workflow meaning, and side effects.
-- `forms/WheelPicker.vue`: finite vertical option picker with centered snap selection for generic single-value choices.
+- `PuFormItem`, `PuInput`, `PuTextarea`, `PuToggleSwitch`, and `PuWheelPicker` from `@partner-up-dev/design-web`: default form-field, text-control, switch, and wheel-picker primitives. Use them directly at usage sites rather than adding local wrappers.
+- `PuChipInput` and `PuChipsEditor` from `@partner-up-dev/design-web`: use `PuChipInput` for editing one chip value, and `PuChipsEditor` for string-array tag/chip collection editing. Keep domain suggestion, selection, and submission behavior in the consuming surface.
+- `PuSegmented` and `PuSegmentedItem` from `@partner-up-dev/design-web`: default mutually exclusive mode selector. Keep domain labels, state, workflow transitions, and option-level scenario test IDs in the consuming surface.
 - `forms/ProductLocalDateCalendarPicker.vue`: product-local date-key calendar grid for visible-window multi-select flows.
-- `controls/SegmentedControl.vue`: generic mutually exclusive mode selector; keep domain labels, state, workflow transitions, and option-level scenario test IDs in the consuming surface.
 
 Display and feedback:
 
-- `display/InfoRow.vue`: neutral label/value layout for metadata.
-- `display/InfoRowAction.vue`: label row with a trailing inline button for metadata rows whose action target is only the trailing affordance.
-- `display/Cell.vue`: compact title/value row with optional suffix icon or suffix slot for generic list and settings surfaces.
-- `display/Chip.vue` and `display/ChipGroup.vue`: neutral tokenized chips for tags, lightweight roster labels, and compact metadata groups.
-- `display/FitChipGroup.vue`: single-line chip row that measures available width and only shows whole chips that fully fit.
-- `feedback/InlineNotice.vue`: inline success/info/warning/error banner.
-- `feedback/EmptyState.vue`: empty or not-found shell with title, description, icon, and optional actions slot.
-- `identity/Avatar.vue`: generic avatar with image/fallback behavior.
+- `PuDescriptionList` and `PuDescriptionItem` from `@partner-up-dev/design-web`: default label-value metadata and read-only fact layout.
+- `PuCell` from `@partner-up-dev/design-web`: default compact row for settings, list rows, and action rows.
+- `PuChip`, `PuChipGroup`, and `PuTag` from `@partner-up-dev/design-web`: default token, chip group, and read-only label primitives.
+- `PuInlineNotice`, `PuEmptyState`, and `PuLoadingState` from `@partner-up-dev/design-web`: default local notice, empty state, and loading state primitives.
+- `PuImg` from `@partner-up-dev/design-web`: default image primitive, including avatar-style fallback when `name`, `fallbackInitial`, `shape`, and `bordered` are enough for the surface.
+
+Navigation:
+
+- `PuTabs` from `@partner-up-dev/design-web`: default value-based tab navigation primitive. Use `{ value, label, disabled?, showDot? }` tab items directly at usage sites instead of preserving local tab wrappers or per-tab style escape hatches.
 
 Overlay:
 
-- `overlay/Modal.vue`: generic modal primitive. Add scroll locking with `useBodyScrollLock(computed(() => open.value))` in the parent when needed.
-- `overlay/ConfirmDialog.vue`: standard confirm/cancel dialog built on `Modal` and `Button`.
-- `overlay/BottomDrawer.vue`: bottom drawer overlay for secondary mobile-oriented workflows.
+- `PuModal` from `@partner-up-dev/design-web`: generic focused modal shell. Use direct package imports at usage sites; set `closeOnOverlay` or `closeOnEscape` only when the workflow needs custom dismissal rules.
+- `PuDialog` from `@partner-up-dev/design-web`: structured confirmation and short focused workflow dialog. Use package action text, loading, disabled, tone, and slots directly instead of adding a local confirm wrapper.
+- `PuDrawer` from `@partner-up-dev/design-web`: drawer shell for secondary workflows, filters, and details. Use `visible` / `update:visible` directly, and map close payloads at the usage site only when product semantics depend on close reason.
 
 ## Reuse Rules
 
 - Prefer composing these primitives in pages and domain sections before creating new page-local shells.
-- Keep action treatment styles inside the lowest action primitives (`Button` and `ActionLink`); higher-level shared components, domain components, and pages should compose primitives instead of re-declaring those styles.
+- Compose package `PuButton` / `PuCard` directly instead of re-declaring reusable action recipes. Keep app-specific layout around action groups in the owning page or domain surface.
 - If a component needs backend-derived policy logic, workflow branching, or domain vocabulary, keep it in the owning domain and compose shared primitives inside it.
 - If a primitive variant is needed in a third distinct place, extend the shared primitive API instead of cloning the component locally.
 - When extending a primitive API, update this file in the same change so the new contract stays discoverable.

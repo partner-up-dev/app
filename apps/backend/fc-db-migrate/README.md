@@ -12,6 +12,10 @@ This function runs the backend database migration runner inside Aliyun FC, so th
 
 - `DATABASE_URL` (required)
   Database connection string used by the migration runner.
+- `PARTNERUP_ENVIRONMENT` (required)
+  Migration environment allowlist value. Backend deploy maps `develop` to
+  `staging` and `master` to `production`. The FC deploy path accepts only
+  `staging` or `production`; `development` is a local runner environment.
 - `DB_SCRIPT_ROOT` (set by handler)
   Points the shared migration loader at the packaged `drizzle/` and `data-migrations/` directories.
 

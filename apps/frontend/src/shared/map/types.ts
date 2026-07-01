@@ -12,27 +12,23 @@ export type MapFitPadding =
       left: number;
     };
 
-export type MapGeometryTone =
-  | "primary"
-  | "secondary"
-  | "muted"
-  | "routePrimary"
-  | "routeSecondary"
-  | "routeInvalid";
+export type MapGeometryTone = "primary" | "secondary" | "tertiary" | "danger" | "muted";
 
-export type MapMarkerIcon =
-  | "routeStart"
-  | "routeWaypoint"
-  | "routeEnd"
-  | "routeDriver";
+export type MapPolylineTone = "primary" | "secondary" | "tertiary" | "danger";
+
+export type MapViewportFollowMode = "none" | "active-marker";
+
+export type MapMarkerIcon = "routeStart" | "routeWaypoint" | "routeEnd" | "routeDriver";
 
 export type MapMarker = {
   id: string;
   position: MapCoordinate;
   label?: string;
+  calloutLabel?: string;
   title?: string;
   tone?: MapGeometryTone;
   icon?: MapMarkerIcon;
+  headingDegrees?: number | null;
   active?: boolean;
 };
 
@@ -40,7 +36,7 @@ export type MapPolyline = {
   id: string;
   path: readonly MapCoordinate[];
   title?: string;
-  tone?: MapGeometryTone;
+  tone?: MapPolylineTone;
   active?: boolean;
 };
 
@@ -48,6 +44,11 @@ export type MapActiveGeometry =
   | {
       kind: "marker" | "polyline";
       id: string;
+    }
+  | {
+      kind: "selection";
+      markerIds?: readonly string[];
+      polylineIds?: readonly string[];
     }
   | {
       kind: "all";

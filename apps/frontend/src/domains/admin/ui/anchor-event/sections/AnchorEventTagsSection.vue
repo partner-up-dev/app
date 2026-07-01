@@ -23,25 +23,25 @@
           span="full"
         >
           <template #actions>
-            <Button
-              appearance="pill"
-              tone="outline"
+            <PuButton
+              shape="pill"
+              tone="neutral" variant="outline"
               size="sm"
-              type="button"
+
               :disabled="isPoolSaving"
               @click="addPreferenceTag"
             >
               {{ t("adminAnchorEvents.addPreferenceTagAction") }}
-            </Button>
-            <Button
-              appearance="pill"
+            </PuButton>
+            <PuButton
+              shape="pill"
               size="sm"
-              type="button"
+
               :loading="isPoolSaving"
               @click="savePreferenceTags"
             >
               {{ t("adminAnchorEvents.savePreferenceTagsAction") }}
-            </Button>
+            </PuButton>
           </template>
 
           <AnchorEventPreferenceTagPoolEditor
@@ -68,11 +68,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventPendingPreferenceTagList from "@/domains/admin/ui/anchor-event/components/AnchorEventPendingPreferenceTagList.vue";
 import AnchorEventPreferenceTagPoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventPreferenceTagPoolEditor.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type PreferenceTagPoolEditorExposed = {
   addRow: () => void;

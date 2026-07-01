@@ -1,30 +1,43 @@
 <template>
-  <PageScaffoldFlow class="user-profile-page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold class="user-profile-page">
+    <template #pageHeader>
+      <PuHeader
         :title="t('userProfilePage.title')"
         :subtitle="subtitle"
-        :back-fallback-to="backFallbackTo"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
-    <LoadingIndicator
+    <PuLoadingState
       v-if="isLoading"
       :message="t('userProfilePage.loading')"
     />
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="isNotFound"
       :title="t('userProfilePage.notFoundTitle')"
       :description="t('userProfilePage.notFoundDescription')"
       icon="i-mdi-account-off-outline"
-      tone="outline"
+      variant="outline"
     />
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="errorMessage"
       :message="errorMessage"
-      persistent
     />
 
     <PuCard v-else-if="profile" as="section" gap="md">
@@ -38,12 +51,14 @@
       </div>
 
       <div class="profile-row">
-        <Avatar
-          :src="profile.avatarUrl"
+        <PuImg
+          :src="profile.avatarUrl ?? ''"
           :alt="t('userProfilePage.avatarAlt', { name: displayName })"
           :name="displayName"
-          :fallback="avatarFallbackText"
-          size="lg"
+          :fallback-initial="avatarFallbackText"
+          size="large"
+          shape="circle"
+          :show-loading="false"
           bordered
         />
 
@@ -57,7 +72,7 @@
     <template #footer>
       <PageFooter variant="minimal" />
     </template>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -65,14 +80,18 @@ import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import Avatar from "@/shared/ui/identity/Avatar.vue";
+import {
+  PuButton,
+  PuCard,
+  PuEmptyState,
+  PuHeader,
+  PuImg,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   prDetailPath,
 } from "@/domains/pr/routing/routes";
@@ -134,6 +153,7 @@ const backFallbackTo = computed(() => {
 
   return "/";
 });
+const { handleBack } = useFallbackBack(backFallbackTo);
 </script>
 
 <style scoped lang="scss">

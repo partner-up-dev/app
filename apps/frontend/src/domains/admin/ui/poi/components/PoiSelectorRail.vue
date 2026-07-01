@@ -2,37 +2,30 @@
   <AdminRailPanel :title="t('adminPois.poiListTitle')">
     <p class="hint">{{ t("adminPois.poiCount", { count: pois.length }) }}</p>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPois.poiLabel") }}</span>
-      <select
-        :value="modelValue"
-        class="field-input"
-        @change="emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
-      >
-        <option value="">{{ t("adminPois.poiPlaceholder") }}</option>
-        <option v-for="poi in pois" :key="poi.id" :value="poi.id">
-          #{{ poi.id }} · {{ poi.name }} · {{ statusLabel(poi.status) }}
-        </option>
-      </select>
-    </label>
+    <PuFormItem :label="t('adminPois.poiLabel')" for-id="admin-poi-selector">
+      <PuSelect
+        id="admin-poi-selector"
+        v-model="selectedPoiId"
+        :options="poiOptions"
+      />
+    </PuFormItem>
 
     <div class="divider" aria-hidden="true" />
 
     <section class="create-poi">
       <h3 class="create-poi__title">{{ t("adminPois.createPoiTitle") }}</h3>
-      <label class="field">
-        <span class="field-label">{{ t("adminPois.newPoiLabel") }}</span>
-        <input
+      <PuFormItem :label="t('adminPois.newPoiLabel')" for-id="admin-poi-new-name">
+        <PuInput
+          id="admin-poi-new-name"
           v-model="newPoiName"
-          class="field-input"
           :placeholder="t('adminPois.newPoiPlaceholder')"
         />
-      </label>
-      <Button
-        appearance="pill"
-        tone="outline"
+      </PuFormItem>
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         :disabled="isCreatingPoi || !canCreatePoi"
         @click="emit('create-poi')"
       >
@@ -41,21 +34,29 @@
             ? t("adminPois.creatingPoi")
             : t("adminPois.createPoiAction")
         }}
-      </Button>
+      </PuButton>
     </section>
   </AdminRailPanel>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import {
+  PuButton,
+  PuFormItem,
+  PuInput,
+  PuSelect,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];
 
-defineProps<{
+const props = defineProps<{
   modelValue: string;
   pois: PoiRecord[];
   canCreatePoi: boolean;
@@ -69,6 +70,21 @@ const emit = defineEmits<{
 
 const newPoiName = defineModel<string>("newPoiName", { required: true });
 const { t } = useI18n();
+
+const poiOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPois.poiPlaceholder"), value: "" },
+  ...props.pois.map((poi) => ({
+    label: `#${poi.id} · ${poi.name} · ${statusLabel(poi.status)}`,
+    value: String(poi.id),
+  })),
+]);
+
+const selectedPoiId = computed({
+  get: () => props.modelValue,
+  set: (value: PuSelectValue) => {
+    emit("update:modelValue", typeof value === "string" ? value : "");
+  },
+});
 
 const statusLabel = (status: PoiStatus): string => {
   switch (status) {
@@ -89,12 +105,6 @@ const statusLabel = (status: PoiStatus): string => {
   color: var(--sys-color-on-surface-variant);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
 .divider {
   height: 1px;
   background: var(--sys-color-outline-variant);
@@ -109,20 +119,6 @@ const statusLabel = (status: PoiStatus): string => {
 .create-poi__title {
   @include mx.pu-font(section);
   margin: 0;
-  color: var(--sys-color-on-surface);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
 }
 </style>

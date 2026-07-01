@@ -1,54 +1,67 @@
 <template>
-  <PageScaffold class="event-pr-search-page" data-page="event-pr-search">
-    <PageHeader
-      :title="pageTitle"
-      :subtitle="pageSubtitle"
-      :back-fallback-to="{ name: 'event-plaza' }"
-    >
-      <template #top-actions>
-        <Button
-          v-if="isResultMode"
-          tone="ghost"
-          size="sm"
-          @click="showCriteriaDrawer = true"
-        >
-          {{ t("eventPRSearch.actions.modifyCriteria") }}
-        </Button>
-      </template>
-    </PageHeader>
+  <PuPageScaffold class="event-pr-search-page" data-page="event-pr-search">
+    <template #pageHeader>
+      <PuHeader
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
 
-    <div
-      v-if="eventsQuery.isLoading.value"
-      class="event-pr-search-page__state"
-    >
+        <template #actions>
+          <PuButton
+            v-if="isResultMode"
+            tone="neutral" variant="ghost"
+            size="sm"
+            @click="showCriteriaDrawer = true"
+          >
+            {{ t("eventPRSearch.actions.modifyCriteria") }}
+          </PuButton>
+        </template>
+      </PuHeader>
+    </template>
+
+    <div v-if="eventsQuery.isLoading.value" class="event-pr-search-page__state">
       {{ t("common.loading") }}
     </div>
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="eventsQuery.isError.value"
       :title="t('eventPRSearch.loadEventsFailed')"
       :description="t('eventPRSearch.loadEventsFailedHint')"
       icon="i-mdi-alert-circle-outline"
     >
       <template #actions>
-        <Button tone="outline" @click="goEventPlaza">
+        <PuButton tone="neutral" variant="outline" @click="goEventPlaza">
           {{ t("eventPRSearch.actions.goEventPlaza") }}
-        </Button>
+        </PuButton>
       </template>
-    </EmptyState>
+    </PuEmptyState>
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="availableEvents.length === 0"
       :title="t('eventPRSearch.emptyEventsTitle')"
       :description="t('eventPRSearch.emptyEventsDescription')"
       icon="i-mdi-calendar-blank-outline"
     >
       <template #actions>
-        <Button tone="outline" @click="goHome">
+        <PuButton tone="neutral" variant="outline" @click="goHome">
           {{ t("eventPRSearch.actions.backHome") }}
-        </Button>
+        </PuButton>
       </template>
-    </EmptyState>
+    </PuEmptyState>
 
     <template v-else-if="!isResultMode">
       <EventPRSearchCriteriaForm
@@ -58,12 +71,12 @@
       />
 
       <div class="event-pr-search-page__footer-actions mt-4">
-        <Button tone="outline" block @click="goHome">
+        <PuButton tone="neutral" variant="outline" block @click="goHome">
           {{ t("eventPRSearch.actions.backHome") }}
-        </Button>
-        <Button block :disabled="!canSubmitForm" @click="submitSearch">
+        </PuButton>
+        <PuButton block :disabled="!canSubmitForm" @click="submitSearch">
           {{ t("eventPRSearch.actions.search") }}
-        </Button>
+        </PuButton>
       </div>
     </template>
 
@@ -79,21 +92,21 @@
         {{ t("common.loading") }}
       </div>
 
-      <EmptyState
+      <PuEmptyState
         v-else-if="searchQuery.isError.value"
         :title="t('eventPRSearch.loadFailed')"
         :description="searchErrorMessage"
         icon="i-mdi-alert-circle-outline"
       >
         <template #actions>
-          <Button tone="outline" @click="showCriteriaDrawer = true">
+          <PuButton tone="neutral" variant="outline" @click="showCriteriaDrawer = true">
             {{ t("eventPRSearch.actions.modifyCriteria") }}
-          </Button>
-          <Button tone="surface" @click="goEventPlaza">
+          </PuButton>
+          <PuButton tone="neutral" variant="soft" @click="goEventPlaza">
             {{ t("eventPRSearch.actions.goEventPlaza") }}
-          </Button>
+          </PuButton>
         </template>
-      </EmptyState>
+      </PuEmptyState>
 
       <template v-else>
         <p class="event-pr-search-page__summary">
@@ -114,27 +127,26 @@
           />
         </div>
 
-        <EmptyState
+        <PuEmptyState
           v-else
           :title="t('eventPRSearch.emptyResultTitle')"
           :description="t('eventPRSearch.emptyResultDescription')"
           icon="i-mdi-calendar-remove-outline"
         >
           <template #actions>
-            <Button tone="outline" @click="showCriteriaDrawer = true">
+            <PuButton tone="neutral" variant="outline" @click="showCriteriaDrawer = true">
               {{ t("eventPRSearch.actions.modifyCriteria") }}
-            </Button>
-            <Button tone="surface" @click="goEventPlaza">
+            </PuButton>
+            <PuButton tone="neutral" variant="soft" @click="goEventPlaza">
               {{ t("eventPRSearch.actions.goEventPlaza") }}
-            </Button>
+            </PuButton>
           </template>
-        </EmptyState>
+        </PuEmptyState>
       </template>
 
-      <BottomDrawer
-        :open="showCriteriaDrawer"
+      <PuDrawer
+        v-model:visible="showCriteriaDrawer"
         :title="t('eventPRSearch.drawerTitle')"
-        @close="showCriteriaDrawer = false"
       >
         <EventPRSearchCriteriaForm
           v-model:selected-event-id="drawerEventId"
@@ -144,21 +156,21 @@
 
         <template #footer>
           <div class="event-pr-search-page__drawer-actions">
-            <Button tone="outline" block @click="showCriteriaDrawer = false">
+            <PuButton tone="neutral" variant="outline" block @click="showCriteriaDrawer = false">
               {{ t("common.cancel") }}
-            </Button>
-            <Button
+            </PuButton>
+            <PuButton
               block
               :disabled="!canApplyDrawerCriteria"
               @click="applyDrawerCriteria"
             >
               {{ t("eventPRSearch.actions.applyCriteria") }}
-            </Button>
+            </PuButton>
           </div>
         </template>
-      </BottomDrawer>
+      </PuDrawer>
     </template>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
@@ -166,11 +178,13 @@ import type { PRId } from "@partner-up-dev/backend";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
+import {
+  PuButton,
+  PuDrawer,
+  PuEmptyState,
+  PuHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import EventPRSearchCriteriaForm from "@/domains/event/ui/composites/EventPRSearchCriteriaForm.vue";
 import type { AnchorEventListItem } from "@/domains/event/model/types";
@@ -178,6 +192,7 @@ import type { PRSearchResult } from "@/domains/pr/model/types";
 import { useEventPRSearch } from "@/domains/pr/queries/useEventPRSearch";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import { prDetailPath } from "@/domains/pr/routing/routes";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   formatProductLocalShortDateLabel,
@@ -198,6 +213,7 @@ type SearchCriteria = {
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const { handleBack } = useFallbackBack({ name: "event-plaza" });
 
 const eventsQuery = useAnchorEvents();
 const availableEvents = computed<AnchorEventListItem[]>(

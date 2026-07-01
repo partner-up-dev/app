@@ -14,48 +14,62 @@
         {{ t("home.landing.highlightsTitle") }}
       </h2>
 
-      <ChipGroup class="highlights-trust-cues" gap="sm">
-        <Chip tone="outline" size="sm">
+      <PuChipGroup class="highlights-trust-cues" gap="sm">
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueFixedTime") }}
-        </Chip>
-        <Chip tone="outline" size="sm">
+        </PuChip>
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueFixedLocation") }}
-        </Chip>
-        <Chip tone="outline" size="sm">
+        </PuChip>
+        <PuChip variant="outline" size="sm">
           {{ t("home.landing.highlightsCueSubsidy") }}
-        </Chip>
-      </ChipGroup>
+        </PuChip>
+      </PuChipGroup>
 
       <p class="highlights-bridge">
         {{ t("home.landing.highlightsBridge") }}
       </p>
     </header>
 
-    <p
+    <PuLoadingState
       v-if="isLoading"
-      class="state-text"
+      class="state-view"
       :class="{ 'is-in-view': isInView }"
       :style="itemMotionStyle(1)"
-    >
-      {{ t("common.loading") }}
-    </p>
-    <div
-      v-else-if="isError || highlightEvents.length === 0"
+      compact
+      align="start"
+      :message="t('common.loading')"
+    />
+    <PuInlineNotice
+      v-else-if="isError"
       class="fallback-state"
       :class="{ 'is-in-view': isInView }"
       :style="itemMotionStyle(1)"
+      tone="error"
+      :message="t('home.landing.highlightsLoadFailed')"
     >
-      <p class="state-text" :class="{ 'state-text--error': isError }">
-        {{
-          isError
-            ? t("home.landing.highlightsLoadFailed")
-            : t("home.landing.highlightsEmpty")
-        }}
-      </p>
-      <RouterLink class="fallback-action" :to="{ name: 'event-plaza' }">
-        {{ t("home.landing.highlightsOpenPlaza") }}
-      </RouterLink>
-    </div>
+      <template #actions>
+        <RouterLink class="fallback-action" :to="{ name: 'event-plaza' }">
+          {{ t("home.landing.highlightsOpenPlaza") }}
+        </RouterLink>
+      </template>
+    </PuInlineNotice>
+    <PuEmptyState
+      v-else-if="highlightEvents.length === 0"
+      class="fallback-state"
+      :class="{ 'is-in-view': isInView }"
+      :style="itemMotionStyle(1)"
+      compact
+      align="start"
+      variant="plain"
+      :description="t('home.landing.highlightsEmpty')"
+    >
+      <template #actions>
+        <RouterLink class="fallback-action" :to="{ name: 'event-plaza' }">
+          {{ t("home.landing.highlightsOpenPlaza") }}
+        </RouterLink>
+      </template>
+    </PuEmptyState>
 
     <AnchorEventHorizontalList
       v-else
@@ -79,8 +93,13 @@ import AnchorEventHorizontalList from "@/domains/event/ui/composites/AnchorEvent
 import { useInViewStagger } from "@/shared/motion/useInViewStagger";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { trackEvent } from "@/shared/telemetry/track";
-import Chip from "@/shared/ui/display/Chip.vue";
-import ChipGroup from "@/shared/ui/display/ChipGroup.vue";
+import {
+  PuChip,
+  PuChipGroup,
+  PuEmptyState,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { targetRef: sectionRef, isInView, itemMotionStyle } = useInViewStagger();
@@ -159,33 +178,16 @@ watchEffect(() => {
   align-items: center;
 }
 
-.state-text,
+.state-view,
 .fallback-state,
 .highlights-list {
   @include mx.pu-motion-enter(0.65rem);
 }
 
-.state-text,
+.state-view,
 .fallback-state {
   position: relative;
   z-index: 1;
-}
-
-.state-text {
-  @include mx.pu-font(body);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.state-text--error {
-  color: var(--sys-color-error);
-}
-
-.fallback-state {
-  padding: var(--sys-spacing-small) 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-small);
-  align-items: flex-start;
 }
 
 .fallback-action {

@@ -16,12 +16,12 @@
     <section class="pm-editor-section">
       <div class="pm-section-header">
         <h3 class="pm-section-title">{{ t("adminCommerceProducts.cancellationTiersLabel") }}</h3>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addCancellationTier">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addCancellationTier">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceProducts.addCancellationTierAction") }}
-        </Button>
+        </PuButton>
       </div>
       <article
         v-for="(tier, index) in policyForm.tiers"
@@ -30,11 +30,11 @@
       >
         <div class="pm-section-header">
           <strong>{{ t("adminCommerceProducts.cancellationTierTitle", { index: index + 1 }) }}</strong>
-          <Button
-            appearance="pill"
-            tone="danger"
+          <PuButton
+            shape="pill"
+            tone="danger" variant="outline"
             size="sm"
-            type="button"
+
             :disabled="policyForm.tiers.length <= 1"
             @click="removeCancellationTier(index)"
           >
@@ -42,7 +42,7 @@
               <span class="i-mdi-delete-outline" />
             </template>
             {{ t("adminCommerceProducts.removeItemAction") }}
-          </Button>
+          </PuButton>
         </div>
         <div class="pm-grid">
           <label class="pm-field">
@@ -65,7 +65,7 @@
             <span class="pm-field-label">{{ t("adminCommerceProducts.refundPercentLabel") }}</span>
             <input v-model.number="tier.refundPercent" class="pm-field-input" type="number" min="0" max="100" />
           </label>
-          <ToggleSwitch
+          <PuToggleSwitch
             v-model="tier.requiresOperatorHandling"
             :label="t('adminCommerceProducts.requiresOperatorHandlingLabel')"
           />
@@ -74,9 +74,9 @@
     </section>
 
     <div class="pm-inline-actions">
-      <Button size="sm" type="button" :disabled="isSavingPolicy" @click="handleSavePolicy">
+      <PuButton size="sm" :disabled="isSavingPolicy" @click="handleSavePolicy">
         {{ isSavingPolicy ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.savePolicyAction") }}
-      </Button>
+      </PuButton>
     </div>
   </div>
 </template>
@@ -94,9 +94,8 @@ import {
 } from "@/domains/admin-commerce/model/product-management/cancellationPolicyEditorModel";
 import { useSaveAdminSkuCancellationPolicy } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { useAdminCommerceProductManagementContext } from "@/domains/admin-commerce/ui/product-management/productManagementContext";
-import Button from "@/shared/ui/actions/Button.vue";
-import ToggleSwitch from "@/shared/ui/forms/ToggleSwitch.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
+import { PuButton, PuToggleSwitch } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const context = useAdminCommerceProductManagementContext();

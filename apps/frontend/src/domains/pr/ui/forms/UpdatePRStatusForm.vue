@@ -1,27 +1,27 @@
 <template>
-  <form
-    :id="formId"
-    class="status-form"
-    @submit.prevent="submitForm"
-  >
-    <ChoiceCard
+  <PuForm :id="formId" class="status-form" @submit="submitForm">
+    <PuCard
       v-for="status in statusOptions"
       :key="status.value"
       class="status-option"
       :active="selectedStatus === status.value"
       :disabled="disabled"
       @click="selectedStatus = status.value"
+      selectable
+      variant="outline"
+      padding="sm"
+      gap="xs"
     >
       {{ status.label }}
-    </ChoiceCard>
-  </form>
+    </PuCard>
+  </PuForm>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRStatusManual } from "@partner-up-dev/backend";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuCard, PuForm } from "@partner-up-dev/design-web";
 
 type StatusOption = {
   value: PRStatusManual;

@@ -1,14 +1,29 @@
 <template>
-  <PageScaffoldFlow class="pr-create-page" data-page="pr-create">
-    <template #header>
-      <PRCreateHeader @back="goHome" />
+  <PuPageScaffold class="pr-create-page" data-page="pr-create">
+    <template #pageHeader>
+      <PuHeader :title="t('createPage.title')" title-as="h1">
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="goHome"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="pr-create-page__body">
-      <TabBar
-        :items="modeTabs"
+      <PuTabs
+        :tabs="modeTabs"
         :model-value="activeMode"
-        :aria-label="t('createPage.modeSwitchAria')"
+        variant="pill"
+        size="md"
         @update:model-value="handleModeChange"
         data-region="mode-switch"
       />
@@ -40,37 +55,32 @@
       </section>
     </div>
 
-    <template #actions>
-      <div data-region="actions">
+    <template #footer>
+      <div class="pr-create-page__footer">
         <PRCreateFooterActions
           v-if="activeMode === 'form'"
           :pending="editorPending"
           :pending-status="editorPendingStatus"
           :allow-draft-save="editorAllowDraftSave"
           @submit-as="submitEditorAs"
+          data-region="actions"
         />
+        <PageFooter variant="minimal" data-region="support" />
       </div>
     </template>
-
-    <template #footer>
-      <PageFooter variant="minimal" data-region="support" />
-    </template>
-
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuHeader, PuPageScaffold, PuTabs } from "@partner-up-dev/design-web";
 import { computed, isRef, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
-import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
-import TabBar from "@/shared/ui/navigation/TabBar.vue";
-import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import PRCreateHeader from "@/domains/pr/ui/sections/PRCreateHeader.vue";
-import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
 import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
+import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
+import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
+import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 
 const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
   if (value === "nl" || value === "form") return value;
@@ -80,9 +90,7 @@ const resolveQueryMode = (value: unknown): "nl" | "form" | null => {
 const hasTopicQuery = (value: unknown): boolean => {
   if (typeof value === "string") return value.trim().length > 0;
   if (!Array.isArray(value)) return false;
-  return value.some(
-    (item) => typeof item === "string" && item.trim().length > 0,
-  );
+  return value.some((item) => typeof item === "string" && item.trim().length > 0);
 };
 
 const { t } = useI18n();
@@ -91,17 +99,16 @@ const router = useRouter();
 const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
 
 const initialMode =
-  resolveQueryMode(route.query.mode) ??
-  (hasTopicQuery(route.query.topic) ? "form" : "nl");
+  resolveQueryMode(route.query.mode) ?? (hasTopicQuery(route.query.topic) ? "form" : "nl");
 
 const activeMode = ref<"nl" | "form">(initialMode);
 const modeTabs = computed(() => [
   {
-    key: "nl",
+    value: "nl",
     label: t("createPage.nlModeTab"),
   },
   {
-    key: "form",
+    value: "form",
     label: t("createPage.formModeTab"),
   },
 ]);
@@ -117,20 +124,16 @@ const handleModeChange = (value: string | number) => {
   setMode(value);
 };
 
-const readExposed = <T,>(value: unknown, fallback: T): T => {
+const readExposed = <T>(value: unknown, fallback: T): T => {
   if (isRef<T>(value)) return value.value;
   return value === undefined || value === null ? fallback : (value as T);
 };
 
-const editorPending = computed(() =>
-  readExposed(editorRef.value?.isPending, false),
-);
+const editorPending = computed(() => readExposed(editorRef.value?.isPending, false));
 const editorPendingStatus = computed(() =>
   readExposed<CreateSubmissionMode>(editorRef.value?.pendingStatus, "PUBLISH"),
 );
-const editorAllowDraftSave = computed(() =>
-  readExposed(editorRef.value?.allowDraftSave, false),
-);
+const editorAllowDraftSave = computed(() => readExposed(editorRef.value?.allowDraftSave, false));
 
 const submitEditorAs = (status: CreateSubmissionMode) => {
   editorRef.value?.submitAs(status);
@@ -174,5 +177,10 @@ const goHome = () => {
     color: var(--sys-color-on-surface-variant);
     margin: 0;
   }
+}
+
+.pr-create-page__footer {
+  display: flex;
+  flex-direction: column;
 }
 </style>

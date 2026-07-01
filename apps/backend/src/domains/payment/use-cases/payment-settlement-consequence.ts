@@ -1,33 +1,26 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { PaymentTxId } from "../../../entities/payment";
+import type { BillLineId } from "../../../entities/bill";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { applyBillSettlementToOrder } from "../../trade/use-cases/apply-bill-settlement-to-order";
 
-const paymentTxRepo = new PaymentTxRepository();
 const billLineRepo = new BillLineRepository();
 
 export async function applyPaymentSettlementConsequence(input: {
-  paymentTxId: string;
+  billLineId: string;
 }): Promise<{
   applied: boolean;
   reason: string;
   rentalOrderId?: string;
 }> {
-  const paymentTx = await paymentTxRepo.findById(input.paymentTxId as PaymentTxId);
-  if (!paymentTx) {
-    return throwHttpProblem({ status: 404, detail: "PaymentTx not found" });
-  }
-  if (paymentTx.type !== "CHARGE" || paymentTx.status !== "SUCCEEDED") {
-    return {
-      applied: false,
-      reason: "PaymentTx is not a successful charge",
-    };
-  }
-
-  const billLine = await billLineRepo.findById(paymentTx.billLineId);
+  const billLine = await billLineRepo.findById(input.billLineId as BillLineId);
   if (!billLine) {
     return throwHttpProblem({ status: 404, detail: "BillLine not found" });
+  }
+  if (billLine.kind !== "CHARGE" || !billLine.settledAt) {
+    return {
+      applied: false,
+      reason: "BillLine is not a settled charge",
+    };
   }
 
   return applyBillSettlementToOrder({ billId: billLine.billId });

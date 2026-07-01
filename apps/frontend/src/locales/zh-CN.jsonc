@@ -638,6 +638,8 @@
     "navRideHailingGroup": "RideHailing",
     "navRideHailingProviderInstances": "Provider Instance",
     "navRideHailingProviderInstancesSubtitle": "维护曹操服务商实例",
+    "navRideHailingOrders": "Order Admin",
+    "navRideHailingOrdersSubtitle": "查看并取消网约车订单",
     "navFeedbackQuestionnairesGroup": "反馈问卷",
     "navFeedbackQuestionnaireTemplates": "反馈问卷模板",
     "navFeedbackQuestionnaireTemplatesSubtitle": "维护可挂载到活动的问卷模板。",
@@ -1069,6 +1071,7 @@
     "placementEffectiveFromLabel": "Placement 生效开始（ISO 8601，可留空）",
     "placementEffectiveToLabel": "Placement 生效结束（ISO 8601，可留空）",
     "offerIdLabel": "Offer ID",
+    "offerIdRequiredMessage": "请先填写 Offer ID。",
     "ctaLabel": "CTA 文案",
     "creativeDescriptionLabel": "按钮说明",
     "matchingRuleLabel": "Matching Rule",
@@ -1956,8 +1959,8 @@
       "qrMissing": "该活动暂未配置搭子群二维码。"
     },
     "otherEvents": {
-      "title": "看看其它活动",
-      "action": "看看其它活动"
+      "title": "找其它搭子",
+      "action": "找其它搭子"
     },
     "landing": {
       "eyebrow": "Landing Entry",
@@ -2019,7 +2022,7 @@
       "candidateListEyebrow": "候选列表",
       "candidateListTitle": "我们没有找到符合条件的场次，下面是候选场次",
       "noCandidateTitle": "暂时没有符合条件的场次",
-      "noCandidateBody": "可以调整条件继续查找，或看看其它活动。",
+      "noCandidateBody": "可以调整条件继续查找，或找其它搭子。",
       "createFallbackAction": "都不合适，帮我找",
       "recommendationFailed": "获取推荐失败，请稍后重试。",
       "recommendationCardHeadline": "{time} · {location}",
@@ -2027,9 +2030,8 @@
       "partnerCountWithoutMax": "当前 {current} 人",
       "timePlaceholder": "请选择开始时间",
       "locationPlaceholder": "请选择地点",
-      "otherEventsLoadFailed": "加载其它活动失败，请稍后再试。"
+      "otherEventsLoadFailed": "加载找其它搭子入口失败，请稍后再试。"
     },
-    "discoverOthers": "看看其它活动",
     "createCard": {
       "title": "都不合适？",
       "titleWhenNoAvailablePR": "想自己发一个？",

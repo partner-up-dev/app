@@ -1,5 +1,6 @@
 <template>
-  <FooterRevealPageScaffold
+  <PuPageScaffold
+    footer-placement="reveal"
     :class="[
       'anchor-event-landing-page',
       { 'anchor-event-landing-page--card-rich': resolvedMode === 'CARD_RICH' },
@@ -8,28 +9,40 @@
     data-testid="anchor-event-landing.page"
     :content-placement="pageStatePlacement"
   >
-    <template #header>
-      <PageHeader
+    <template #pageHeader>
+      <PuHeader
         v-if="detail"
         class="anchor-event-landing-page__header"
         :title="detail.title"
         :subtitle="detail.description ?? undefined"
-        :back-fallback-to="{ name: 'event-plaza' }"
-        @back="handleLandingBack"
+        title-as="h1"
       >
-        <template #top-actions>
-          <Button
-            appearance="pill"
-            tone="outline"
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
             size="sm"
-            type="button"
+            :aria-label="t('common.backToHome')"
+            @click="handleLandingBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+        <template #actions>
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
+            size="sm"
+
             data-testid="anchor-event-landing.other-events.open"
             @click="showOtherEventsDrawer = true"
           >
             {{ t("anchorEvent.otherEvents.action") }}
-          </Button>
+          </PuButton>
         </template>
-      </PageHeader>
+      </PuHeader>
     </template>
 
     <div v-if="isLoading" class="loading-state">
@@ -93,26 +106,38 @@
           class="anchor-event-landing-page__mode-switch-shell"
           data-testid="anchor-event-landing.mode-switch"
         >
-          <SegmentedControl
+          <PuSegmented
             class="anchor-event-landing-page__mode-switch"
-            block
             :model-value="resolvedMode"
-            :options="modeOptions"
             :aria-label="t('anchorEvent.viewMode.ariaLabel')"
+            full-width
+            equal-width
             @update:model-value="handleModeControlChange"
-          />
+          >
+            <PuSegmentedItem
+              v-for="option in modeOptions"
+              :key="String(option.value)"
+              :value="option.value"
+              :label="option.label"
+              :disabled="option.disabled"
+              :data-testid="option.testId"
+            >
+              <template v-if="option.icon" #leading>
+                <span :class="option.icon" aria-hidden="true" />
+              </template>
+            </PuSegmentedItem>
+          </PuSegmented>
         </div>
         <PageFooter variant="brand" data-region="footer" />
       </div>
     </template>
-  </FooterRevealPageScaffold>
+  </PuPageScaffold>
 
-  <BottomDrawer
-    :open="showOtherEventsDrawer"
+  <PuDrawer
+    v-model:visible="showOtherEventsDrawer"
     :title="t('anchorEvent.otherEvents.title')"
-    @close="showOtherEventsDrawer = false"
   >
-    <LoadingIndicator
+    <PuLoadingState
       v-if="otherEventsQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -128,7 +153,7 @@
       @update:model-value="selectedOtherEventId = $event"
       @activate="handleSelectOtherEvent"
     />
-  </BottomDrawer>
+  </PuDrawer>
 
   <OfficialAccountFollowNudge
     :open="officialAccountFollowPrompt.isVisible.value"
@@ -143,8 +168,6 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import FooterRevealPageScaffold from "@/shared/ui/layout/FooterRevealPageScaffold.vue";
 import AnchorEventCardModeSurface from "@/domains/event/ui/surfaces/AnchorEventCardModeSurface/AnchorEventCardModeSurface.vue";
 import AnchorEventFormModeSurface from "@/domains/event/ui/surfaces/AnchorEventFormModeSurface.vue";
 import AnchorEventListModeSurface from "@/domains/event/ui/surfaces/AnchorEventListModeSurface.vue";
@@ -189,17 +212,20 @@ import {
   clearPendingWeChatAction,
   readPendingWeChatAction,
 } from "@/processes/wechat/pending-wechat-action";
-import Button from "@/shared/ui/actions/Button.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import SegmentedControl, {
-  type SegmentedControlOption,
-  type SegmentedControlValue,
-} from "@/shared/ui/controls/SegmentedControl.vue";
 import AnchorEventRadioCardCarousel from "@/domains/event/ui/composites/AnchorEventRadioCardCarousel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import {
+  PuButton,
+  PuDrawer,
+  PuHeader,
+  PuLoadingState,
+  PuPageScaffold,
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import {
   buildAnchorEventFunnelPayload,
   type AnchorEventFunnelContext,
@@ -210,6 +236,13 @@ import {
 } from "@/domains/event/model/anchorEventLandingModeStorage";
 
 type TimeWindow = [string | null, string | null];
+type SegmentedOption = {
+  value: PuSegmentedValue;
+  label: string;
+  icon?: string;
+  testId?: string;
+  disabled?: boolean;
+};
 
 type FormModeResultState = "selection" | "no-match";
 type FormModeSurfaceExposed = {
@@ -235,7 +268,7 @@ const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 3000;
 
 const noop = () => undefined;
 
-const modeOptions = computed<SegmentedControlOption[]>(() => [
+const modeOptions = computed<SegmentedOption[]>(() => [
   {
     value: "LIST",
     label: t("anchorEvent.viewMode.list"),
@@ -272,8 +305,11 @@ const eventId = computed(() => {
 const requestedMode = computed(() => route.query.mode);
 const { assignmentQuery, resolvedMode, setResolvedMode, isTimeoutFallback } =
   useResolvedAnchorEventLandingMode(eventId, requestedMode);
-const { data: detail, isLoading: isDetailLoading, isError: isDetailError } =
-  useAnchorEventDetail(eventId);
+const {
+  data: detail,
+  isLoading: isDetailLoading,
+  isError: isDetailError,
+} = useAnchorEventDetail(eventId);
 const otherEventsQuery = useAnchorEvents();
 const selectedOtherEventId = ref<number | null>(null);
 const otherEventCandidates = computed(() =>
@@ -416,7 +452,10 @@ const hasRouterBackEntry = (): boolean => {
 const backFallbackTo: RouteLocationRaw = { name: "event-plaza" };
 
 const handleLandingBack = async () => {
-  if (resolvedMode.value === "FORM" && formModeResultState.value === "no-match") {
+  if (
+    resolvedMode.value === "FORM" &&
+    formModeResultState.value === "no-match"
+  ) {
     formModeSurfaceRef.value?.returnToSelection();
     return;
   }
@@ -429,7 +468,7 @@ const handleLandingBack = async () => {
   await router.replace(backFallbackTo);
 };
 
-const handleModeControlChange = (value: SegmentedControlValue) => {
+const handleModeControlChange = (value: PuSegmentedValue) => {
   const mode = normalizeAnchorEventLandingMode(value);
   const resolvedEventId = eventId.value;
   if (mode === null || resolvedEventId === null) {
@@ -594,8 +633,8 @@ watch(
       return;
     }
 
-    const current = timeWindows.find(
-      (entry) => timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
+    const current = timeWindows.find((entry) =>
+      timeWindowsEqual(entry.timeWindow, cardCreateTimeWindow.value),
     );
     if (current) {
       return;
@@ -616,8 +655,7 @@ const selectedCardCreateTimeWindow = computed(() => {
   return (
     upcomingSortedCreateTimeWindows.value.find((entry) =>
       timeWindowsEqual(entry.timeWindow, timeWindow),
-    ) ??
-    null
+    ) ?? null
   );
 });
 
@@ -754,7 +792,9 @@ const remainingDemandCards = computed(() =>
   ),
 );
 const activeDemandCard = computed(() => remainingDemandCards.value[0] ?? null);
-const stackPreviewCards = computed(() => remainingDemandCards.value.slice(1, 3));
+const stackPreviewCards = computed(() =>
+  remainingDemandCards.value.slice(1, 3),
+);
 
 const cardActionError = ref<string | null>(null);
 const isCardRouting = ref(false);
@@ -908,7 +948,9 @@ const handleViewActiveCardDetail = async () => {
         entrySurface: "card_rich",
         entryType: "detail",
       });
-      await router.push(buildEventDetailTarget(created.canonicalPath, event.id));
+      await router.push(
+        buildEventDetailTarget(created.canonicalPath, event.id),
+      );
       return;
     }
 
@@ -1061,11 +1103,10 @@ const createEventAssistedPR = async ({
     place,
     preferences,
   });
-  const funnelPayload =
-    buildCurrentFunnelPayload() ?? {
-      eventId: event.id,
-      activityType: event.type,
-    };
+  const funnelPayload = buildCurrentFunnelPayload() ?? {
+    eventId: event.id,
+    activityType: event.type,
+  };
 
   try {
     const created = await createEventAssistedPRMutation.mutateAsync({
@@ -1086,7 +1127,9 @@ const createEventAssistedPR = async ({
       entrySurface: "card_rich",
       entryType: "create_handoff",
     });
-    await router.push(buildEventAssistedCreateTarget(created.canonicalPath, event.id));
+    await router.push(
+      buildEventAssistedCreateTarget(created.canonicalPath, event.id),
+    );
   } catch (error) {
     if (isWeChatAuthBlockingError(error)) {
       trackEvent("pr_commitment_result", {
@@ -1192,7 +1235,10 @@ const handleCreateFromCardEmpty = async () => {
   }
 
   const place = toAnchorEventSelectedPlace(
-    findAnchorEventPlaceOption(cardCreatePlaceOptions.value, cardCreatePlaceId.value),
+    findAnchorEventPlaceOption(
+      cardCreatePlaceOptions.value,
+      cardCreatePlaceId.value,
+    ),
   );
   const targetTimeWindow = cardCreateTimeWindow.value;
   if (!targetTimeWindow?.[0] || !targetTimeWindow?.[1] || !place) {

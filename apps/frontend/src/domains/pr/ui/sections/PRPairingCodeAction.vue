@@ -5,10 +5,10 @@
     data-region="pairing-code-action"
     data-testid="pr-detail.pairing-code-action"
   >
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
-      type="button"
+
       data-testid="pr-detail.pairing-code.open"
       @click="handleOpenPairingCode"
     >
@@ -20,7 +20,7 @@
         ></span>
       </template>
       {{ t("prPage.pairingCodeEntry.action", { code: pairingCode }) }}
-    </Button>
+    </PuButton>
   </section>
 </template>
 
@@ -34,7 +34,7 @@ import {
   derivePRPairingIdentity,
 } from "@/domains/pr/model/pr-pairing-code";
 import { prPairingCodePath } from "@/domains/pr/routing/routes";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;

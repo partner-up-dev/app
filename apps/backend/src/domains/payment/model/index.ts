@@ -1,1 +1,1 @@
-export * from "./payment-tx";
+export * from "./provider-payment";

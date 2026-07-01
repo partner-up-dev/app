@@ -4,10 +4,13 @@
     data-testid="pr-editor.form"
     @submit.prevent="submitForm"
   >
-    <LoadingIndicator v-if="isDetailLoading" :message="t('common.loading')" />
-    <ErrorToast v-else-if="detailError" :message="detailError.message" persistent />
+    <PuLoadingState v-if="isDetailLoading" :message="t('common.loading')" />
+    <PuInlineNotice tone="error"
+      v-else-if="detailError"
+      :message="detailError.message"
+    />
 
-    <EmptyState
+    <PuEmptyState
       v-else-if="!hasEditableFields"
       icon="i-mdi-lock-outline"
       title="当前没有可编辑内容"
@@ -28,7 +31,9 @@
       <div v-if="canEditType" class="form-field">
         <label>
           {{ t("partnerRequestForm.type") }}
-          <span class="required">{{ t("partnerRequestForm.requiredMark") }}</span>
+          <span class="required">{{
+            t("partnerRequestForm.requiredMark")
+          }}</span>
         </label>
         <input
           v-model="typeModel"
@@ -41,11 +46,11 @@
         </span>
       </div>
 
-      <Button
+      <PuButton
         v-if="showAdvancedToggle"
-        type="button"
+
         class="advanced-toggle"
-        tone="dashed"
+        tone="neutral" variant="dashed"
         block
         data-testid="pr-editor.form.advanced-toggle"
         :aria-expanded="isAdvancedOpen"
@@ -56,7 +61,7 @@
             ? t("partnerRequestForm.advancedHide")
             : t("partnerRequestForm.advancedShow")
         }}
-      </Button>
+      </PuButton>
 
       <Transition name="advanced-fields">
         <div v-if="showBodyFields" class="advanced-section">
@@ -119,40 +124,25 @@
             />
           </div>
 
-          <div v-if="canEditPreferences" class="form-field">
-            <label>{{ t("partnerRequestForm.preferences") }}</label>
-            <div class="tags-input">
-              <div class="tags">
-                <span
-                  v-for="(pref, index) in preferencesModel"
-                  :key="index"
-                  class="tag"
-                >
-                  {{ pref }}
-                  <button
-                    type="button"
-                    class="remove-tag"
-                    @click="removePreference(index)"
-                  >
-                    {{ t("partnerRequestForm.removePreference") }}
-                  </button>
-                </span>
-              </div>
-              <input
-                v-model="newPreference"
-                type="text"
-                data-testid="pr-editor.form.preference-input"
-                :placeholder="t('partnerRequestForm.preferencesPlaceholder')"
-                @keydown.enter.prevent="addPreference"
-              />
-            </div>
-          </div>
+          <PuFormItem
+            v-if="canEditPreferences"
+            class="form-field"
+            :label="t('partnerRequestForm.preferences')"
+          >
+            <PuChipsEditor
+              v-model="preferencesInput"
+              data-testid="pr-editor.form.preference-input"
+              :placeholder="t('partnerRequestForm.preferencesPlaceholder')"
+              :remove-label="t('partnerRequestForm.removePreference')"
+              shape="pill"
+              add-on-blur
+            />
+          </PuFormItem>
 
           <div v-if="canEditNotes" class="form-field">
             <label>{{ t("partnerRequestForm.notes") }}</label>
             <textarea
               v-model="notesInput"
-              rows="3"
               data-testid="pr-editor.form.notes"
               :placeholder="t('partnerRequestForm.notesPlaceholder')"
             />
@@ -160,7 +150,7 @@
         </div>
       </Transition>
 
-      <ErrorToast
+      <PuInlineNotice tone="error" dismissible
         v-if="commandErrorMessage"
         :message="commandErrorMessage"
         @close="resetCommandErrors"
@@ -168,14 +158,15 @@
     </template>
   </form>
 
-  <ConfirmDialog
+  <PuDialog
     :open="showReleaseConfirmDialog"
     title="确认移出冲突成员"
-    message="这次修改会让部分成员与你选择的新时间冲突。确认后，系统会将这些成员移出本次 PR，并通知他们原因。"
-    confirm-label="确认修改并移出"
-    confirm-tone="danger"
-    :loading="isPending"
+    description="这次修改会让部分成员与你选择的新时间冲突。确认后，系统会将这些成员移出本次 PR，并通知他们原因。"
+    confirm-text="确认修改并移出"
+    tone="error"
+    :confirm-loading="isPending"
     @close="closeReleaseConfirmDialog"
+    @cancel="closeReleaseConfirmDialog"
     @confirm="confirmReleaseAndSubmit"
   />
 </template>
@@ -185,10 +176,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter, type LocationQueryValue } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useForm } from "vee-validate";
-import type {
-  PRId,
-  PRStatus,
-} from "@partner-up-dev/backend";
+import type { PRId, PRStatus } from "@partner-up-dev/backend";
 import type { PartnerRequestFormInput } from "@/lib/validation";
 import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
@@ -206,15 +194,19 @@ import {
   toUserUpdatePRContentFields,
 } from "@/domains/pr/model/types";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
-import Button from "@/shared/ui/actions/Button.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
-import EmptyState from "@/shared/ui/feedback/EmptyState.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { trackEvent } from "@/shared/telemetry/track";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
+import {
+  PuButton,
+  PuChipsEditor,
+  PuDialog,
+  PuEmptyState,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   prId?: number;
@@ -355,7 +347,9 @@ const showAdvancedToggle = computed(
 );
 const isAdvancedOpen = ref(false);
 const showBodyFields = computed(
-  () => hasAdvancedFields.value && (!showAdvancedToggle.value || isAdvancedOpen.value),
+  () =>
+    hasAdvancedFields.value &&
+    (!showAdvancedToggle.value || isAdvancedOpen.value),
 );
 
 watch(
@@ -368,23 +362,17 @@ watch(
   { immediate: true },
 );
 
-const {
-  defineField,
-  values,
-  errors,
-  resetForm,
-  handleSubmit,
-  setFieldValue,
-} = useForm<PartnerRequestFormInput>({
-  validationSchema: computed(() =>
-    buildPartnerRequestFormValidationSchema({
-      validateTime: canEditTime.value,
-    }),
-  ),
-  initialValues: {
-    fields: clonePRFields(initialFields.value),
-  },
-});
+const { defineField, values, errors, resetForm, handleSubmit, setFieldValue } =
+  useForm<PartnerRequestFormInput>({
+    validationSchema: computed(() =>
+      buildPartnerRequestFormValidationSchema({
+        validateTime: canEditTime.value,
+      }),
+    ),
+    initialValues: {
+      fields: clonePRFields(initialFields.value),
+    },
+  });
 
 watch(
   initialFields,
@@ -439,6 +427,13 @@ const notesInput = computed({
   },
 });
 
+const preferencesInput = computed({
+  get: () => preferencesModel.value ?? [],
+  set: (value: string[]) => {
+    preferencesModel.value = value;
+  },
+});
+
 const minPartnersInput = computed(() =>
   values.fields.minPartners === null ? "" : String(values.fields.minPartners),
 );
@@ -454,19 +449,6 @@ const onMinPartnersInput = (event: Event) => {
 const onMaxPartnersInput = (event: Event) => {
   const value = (event.target as HTMLInputElement).value;
   setFieldValue("fields.maxPartners", parseNullableNumber(value));
-};
-
-const newPreference = ref("");
-
-const addPreference = () => {
-  const pref = newPreference.value.trim();
-  if (!pref || preferencesModel.value.includes(pref)) return;
-  preferencesModel.value = [...preferencesModel.value, pref];
-  newPreference.value = "";
-};
-
-const removePreference = (index: number) => {
-  preferencesModel.value = preferencesModel.value.filter((_, i) => i !== index);
 };
 
 const timeHint = computed(() => {

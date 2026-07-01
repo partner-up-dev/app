@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="t('wechatMiniProgramWebView.title')"
     max-width="420px"
@@ -18,10 +18,7 @@
           class="mini-program-jssdk-notice__qr-image"
         />
         <p v-else class="mini-program-jssdk-notice__qr-empty">
-          {{
-            qrCodeError ??
-            t("wechatMiniProgramWebView.qrGenerating")
-          }}
+          {{ qrCodeError ?? t("wechatMiniProgramWebView.qrGenerating") }}
         </p>
       </div>
 
@@ -38,29 +35,27 @@
       </p>
 
       <div class="mini-program-jssdk-notice__actions">
-        <Button
-          tone="primary-outline"
-          appearance="rect"
-          type="button"
+        <PuButton
+          tone="primary" variant="outline"
+          shape="rect"
+
           @click="copyCurrentUrl"
         >
           {{ copyButtonLabel }}
-        </Button>
-        <Button appearance="rect" type="button" @click="emit('close')">
+        </PuButton>
+        <PuButton shape="rect" @click="emit('close')">
           {{ t("common.close") }}
-        </Button>
+        </PuButton>
       </div>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { copyToClipboard } from "@/lib/clipboard";
-import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useCurrentWebPageQrCode } from "@/shared/wechat/useCurrentWebPageQrCode";
 
 const props = defineProps<{
@@ -100,8 +95,6 @@ const copyCurrentUrl = async (): Promise<void> => {
     copyState.value = "error";
   }
 };
-
-useBodyScrollLock(openRef);
 </script>
 
 <style scoped lang="scss">

@@ -1,4 +1,4 @@
-import { generateKeyPairSync } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 export const fakeMerchantCertificateSchema = z.object({
@@ -14,9 +14,7 @@ export const fakeWeChatPayConfigSchema = z.object({
   merchantCertificate: fakeMerchantCertificateSchema,
 });
 
-export type FakeMerchantCertificate = z.infer<
-  typeof fakeMerchantCertificateSchema
->;
+export type FakeMerchantCertificate = z.infer<typeof fakeMerchantCertificateSchema>;
 
 export type FakeWeChatPayConfig = z.infer<typeof fakeWeChatPayConfigSchema>;
 
@@ -28,45 +26,20 @@ export type FakeWeChatPayFixture = FakeWeChatPayConfig & {
   };
 };
 
-const generateRsaKeyPairPem = (): {
-  privateKeyPem: string;
-  publicKeyPem: string;
-} => {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-    privateKeyEncoding: {
-      format: "pem",
-      type: "pkcs8",
-    },
-    publicKeyEncoding: {
-      format: "pem",
-      type: "spki",
-    },
-  });
+const fakeWeChatPayFixtureSchema = fakeWeChatPayConfigSchema.extend({
+  platformCertificate: z.object({
+    serialNo: z.string().min(1),
+    publicKeyPem: z.string().min(1),
+    privateKeyPem: z.string().min(1),
+  }),
+});
 
-  return {
-    privateKeyPem: privateKey,
-    publicKeyPem: publicKey,
-  };
-};
+const stableDevFixture = fakeWeChatPayFixtureSchema.parse(
+  JSON.parse(
+    readFileSync(new URL("./fixtures/stable-dev-fixture.json", import.meta.url), "utf8"),
+  ) as unknown,
+);
 
 export function createFakeWeChatPayFixture(): FakeWeChatPayFixture {
-  const merchant = generateRsaKeyPairPem();
-  const platform = generateRsaKeyPairPem();
-
-  return {
-    appId: "wx_fake_partnerup_web",
-    mchId: "1900000001",
-    apiV3Key: "0123456789abcdef0123456789abcdef",
-    merchantCertificate: {
-      serialNo: "FAKE_MERCHANT_SERIAL_000000000001",
-      privateKeyPem: merchant.privateKeyPem,
-      certificatePem: merchant.publicKeyPem,
-    },
-    platformCertificate: {
-      serialNo: "FAKE_PLATFORM_SERIAL_000000000001",
-      publicKeyPem: platform.publicKeyPem,
-      privateKeyPem: platform.privateKeyPem,
-    },
-  };
+  return structuredClone(stableDevFixture);
 }

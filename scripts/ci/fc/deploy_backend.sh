@@ -69,14 +69,14 @@ run_backend_migrations() {
   ci_fc_run pnpm --filter @partner-up-dev/backend build:db-migrate-fc
   ci_fc_run bash scripts/ci/fc/prepare_fc_db_migrate_package.sh
 
-  echo "+ DATABASE_URL=<redacted> s deploy -y -t apps/backend/fc-db-migrate/s.yaml"
+  echo "+ DATABASE_URL=<redacted> PARTNERUP_ENVIRONMENT=${PARTNERUP_ENVIRONMENT} s deploy -y -t apps/backend/fc-db-migrate/s.yaml"
   if ! ci_fc_dry_run; then
-    DATABASE_URL="$DATABASE_URL_FOR_MIGRATION" s deploy -y -t apps/backend/fc-db-migrate/s.yaml
+    DATABASE_URL="$DATABASE_URL_FOR_MIGRATION" PARTNERUP_ENVIRONMENT="$PARTNERUP_ENVIRONMENT" s deploy -y -t apps/backend/fc-db-migrate/s.yaml
   fi
 
-  echo '+ DATABASE_URL=<redacted> s invoke -t apps/backend/fc-db-migrate/s.yaml -e "{}"'
+  echo "+ DATABASE_URL=<redacted> PARTNERUP_ENVIRONMENT=${PARTNERUP_ENVIRONMENT} s invoke -t apps/backend/fc-db-migrate/s.yaml -e \"{}\""
   if ! ci_fc_dry_run; then
-    DATABASE_URL="$DATABASE_URL_FOR_MIGRATION" s invoke -t apps/backend/fc-db-migrate/s.yaml -e "{}"
+    DATABASE_URL="$DATABASE_URL_FOR_MIGRATION" PARTNERUP_ENVIRONMENT="$PARTNERUP_ENVIRONMENT" s invoke -t apps/backend/fc-db-migrate/s.yaml -e "{}"
   fi
 }
 

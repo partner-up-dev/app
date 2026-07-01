@@ -1,21 +1,39 @@
 <template>
-  <PageScaffold class="event-plaza-page">
-    <PageHeader
-      :title="t('eventPlaza.title')"
-      :subtitle="t('eventPlaza.subtitle')"
-    >
-      <template #top-actions>
-        <ActionLink
-          :to="{ name: 'event-pr-search' }"
-          class="event-plaza-page__search-link"
-          appearance="pill"
-          tone="outline"
-          size="sm"
-        >
-          {{ t("eventPlaza.searchAction") }}
-        </ActionLink>
-      </template>
-    </PageHeader>
+  <PuPageScaffold class="event-plaza-page">
+    <template #pageHeader>
+      <PuHeader
+        :title="t('eventPlaza.title')"
+        :subtitle="t('eventPlaza.subtitle')"
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+
+        <template #actions>
+          <PuButton
+            :action="{ to: { name: 'event-pr-search' } }"
+            class="event-plaza-page__search-link"
+            shape="pill"
+            tone="primary"
+            variant="outline"
+            size="sm"
+          >
+            {{ t("eventPlaza.searchAction") }}
+          </PuButton>
+        </template>
+      </PuHeader>
+    </template>
 
     <div v-if="isLoading" class="loading-state">
       {{ t("common.loading") }}
@@ -36,20 +54,24 @@
     <div v-else class="empty-state">
       {{ t("eventPlaza.noEvents") }}
     </div>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import EventCard from "@/domains/event/ui/primitives/EventCard.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import type { AnchorEventListResponse } from "@/domains/event/model/types";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  PuButton,
+  PuHeader,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const { data: events, isLoading, isError } = useAnchorEvents();
 
 const shuffleEvents = (

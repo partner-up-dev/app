@@ -48,6 +48,19 @@ require_if_set() {
   require_group "runtime" "$@"
 }
 
+require_partnerup_environment() {
+  require_group "migration runtime" PARTNERUP_ENVIRONMENT
+
+  case "${PARTNERUP_ENVIRONMENT:-}" in
+    production | staging | "")
+      ;;
+    *)
+      echo "PARTNERUP_ENVIRONMENT must be one of: production, staging." >&2
+      missing=1
+      ;;
+  esac
+}
+
 validate_deploy_base() {
   require_group "deploy credential" \
     ALIBABA_CLOUD_ACCESS_KEY_ID \
@@ -77,6 +90,8 @@ validate_migration() {
 
   require_group "migration runtime" \
     DATABASE_URL_FOR_MIGRATION
+
+  require_partnerup_environment
 }
 
 validate_runtime() {

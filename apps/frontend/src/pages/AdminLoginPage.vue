@@ -1,5 +1,5 @@
 <template>
-  <PageScaffoldCentered class="admin-login-page">
+  <PuPageScaffold content-placement="center" class="admin-login-page">
     <template #header>
       <header class="admin-login-page__header">
         <p class="admin-login-page__eyebrow">{{ t("adminCommon.title") }}</p>
@@ -36,36 +36,33 @@
           />
         </label>
 
-        <Button
-          appearance="pill"
+        <PuButton
+          shape="pill"
           size="lg"
-          type="button"
+
           :disabled="loginMutation.isPending.value"
           @click="handleSubmit"
         >
           {{ loginMutation.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction") }}
-        </Button>
+        </PuButton>
 
         <p class="admin-login-card__hint">{{ t("adminLogin.seedHint") }}</p>
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-if="loginMutation.error.value"
           :message="loginMutation.error.value.message"
-          persistent
         />
       </div>
     </section>
-  </PageScaffoldCentered>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { reactive, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useAdminLogin } from "@/domains/admin/queries/useAdminLogin";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
-import PageScaffoldCentered from "@/shared/ui/layout/PageScaffoldCentered.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const route = useRoute();
 const router = useRouter();

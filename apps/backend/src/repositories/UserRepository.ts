@@ -1,13 +1,8 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { db } from "../lib/db";
-import {
-  users,
-  type NewUser,
-  type UserId,
-  type UserSex,
-} from "../entities/user";
-import { userReliability } from "../entities/user-reliability";
+import { type NewUser, type UserId, type UserSex, users } from "../entities/user";
 import { userNotificationOpts } from "../entities/user-notification-opt";
+import { userReliability } from "../entities/user-reliability";
+import { db } from "../lib/db";
 
 const OFFICIAL_ACCOUNT_FOLLOW_UPDATE_CHUNK_SIZE = 500;
 
@@ -47,11 +42,17 @@ export class UserRepository {
     return result[0] ?? null;
   }
 
+  async findByIds(userIds: UserId[]) {
+    const uniqueIds = Array.from(new Set(userIds));
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
+    return db.select().from(users).where(inArray(users.id, uniqueIds));
+  }
+
   async findByOpenId(openId: string) {
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.openId, openId));
+    const result = await db.select().from(users).where(eq(users.openId, openId));
     return result[0] ?? null;
   }
 
@@ -222,22 +223,14 @@ export class UserRepository {
       index < uniqueOpenIds.length;
       index += OFFICIAL_ACCOUNT_FOLLOW_UPDATE_CHUNK_SIZE
     ) {
-      const chunk = uniqueOpenIds.slice(
-        index,
-        index + OFFICIAL_ACCOUNT_FOLLOW_UPDATE_CHUNK_SIZE,
-      );
+      const chunk = uniqueOpenIds.slice(index, index + OFFICIAL_ACCOUNT_FOLLOW_UPDATE_CHUNK_SIZE);
       const updatedRows = await db
         .update(users)
         .set({
           wechatOfficialAccountFollowedAt: followedAt,
           updatedAt,
         })
-        .where(
-          and(
-            inArray(users.openId, chunk),
-            isNull(users.wechatOfficialAccountFollowedAt),
-          ),
-        )
+        .where(and(inArray(users.openId, chunk), isNull(users.wechatOfficialAccountFollowedAt)))
         .returning({ id: users.id });
       updatedCount += updatedRows.length;
     }

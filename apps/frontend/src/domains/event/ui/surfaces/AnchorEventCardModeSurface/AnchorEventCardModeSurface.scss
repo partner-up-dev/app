@@ -9,6 +9,13 @@
   margin-right: calc(-1 * (var(--sys-spacing-medium) + var(--pu-safe-right)));
 }
 
+.card-state-link {
+  @include mx.pu-font(control);
+  width: fit-content;
+  color: var(--sys-color-primary);
+  text-decoration: none;
+}
+
 .card-stage {
   position: relative;
   display: grid;

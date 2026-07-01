@@ -39,9 +39,8 @@
                 #trigger="{ open, pending, disabled, joined, errorMessage }"
               >
                 <div class="candidate-join-flow">
-                  <Button
-                    appearance="rect"
-                    type="button"
+                  <PuButton
+                    shape="rect"
                     block
                     data-testid="anchor-event-form-mode.candidate.join"
                     :data-pr-id="candidate.pr.id"
@@ -57,13 +56,12 @@
                         ? t("prPage.partnerSection.rosterJoined")
                         : t("anchorEvent.formMode.joinCandidateAction")
                     }}
-                  </Button>
-                  <p
+                  </PuButton>
+                  <PuInlineNotice
                     v-if="errorMessage"
-                    class="inline-message inline-message--error"
-                  >
-                    {{ errorMessage }}
-                  </p>
+                    tone="error"
+                    :message="errorMessage"
+                  />
                 </div>
               </template>
             </PRJoinAction>
@@ -72,20 +70,19 @@
       </div>
     </section>
 
-    <section v-else class="no-match-hero">
-      <h2 class="no-match-hero__title">
-        {{ t("anchorEvent.formMode.noCandidateTitle") }}
-      </h2>
-      <p class="no-match-hero__body">
-        {{ t("anchorEvent.formMode.noCandidateBody") }}
-      </p>
-    </section>
+    <PuEmptyState
+      v-else
+      align="start"
+      icon="i-mdi-account-search-outline"
+      :title="t('anchorEvent.formMode.noCandidateTitle')"
+      :description="t('anchorEvent.formMode.noCandidateBody')"
+    />
 
     <div v-if="props.showCreateFallback" class="no-match-actions">
-      <Button
-        appearance="rect"
+      <PuButton
+        shape="rect"
         tone="tertiary"
-        type="button"
+        variant="solid"
         block
         data-testid="anchor-event-form-mode.create-fallback"
         :loading="props.createPending"
@@ -93,15 +90,14 @@
         @click="emit('create-fallback')"
       >
         {{ t("anchorEvent.formMode.createFallbackAction") }}
-      </Button>
+      </PuButton>
     </div>
 
-    <p
+    <PuInlineNotice
       v-if="props.createErrorMessage"
-      class="inline-message inline-message--error"
-    >
-      {{ props.createErrorMessage }}
-    </p>
+      tone="error"
+      :message="props.createErrorMessage"
+    />
   </section>
 </template>
 
@@ -113,9 +109,13 @@ import {
   formatFormModeTimeLabel,
   isValidFormModeDateTime,
 } from "@/domains/event/model/form-mode";
-import Button from "@/shared/ui/actions/Button.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
+import {
+  PuButton,
+  PuEmptyState,
+  PuInlineNotice,
+} from "@partner-up-dev/design-web";
 
 type RecommendationCandidate =
   AnchorEventFormModeRecommendationResponse["orderedCandidates"][number];
@@ -179,20 +179,13 @@ const handleJoinCandidateClick = (
   gap: var(--sys-spacing-small);
 }
 
-.no-match-hero__title,
 .candidate-list__title,
-.no-match-hero__body,
-.inline-message {
+.no-match-actions {
   margin: 0;
 }
-.no-match-hero__title,
+
 .candidate-list__title {
   @include mx.pu-font(section);
-}
-
-.no-match-hero__body {
-  color: var(--sys-color-on-surface-variant);
-  @include mx.pu-font(body);
 }
 
 .candidate-list {
@@ -206,13 +199,5 @@ const handleJoinCandidateClick = (
 
 .no-match-actions {
   margin-top: auto;
-}
-
-.inline-message {
-  @include mx.pu-font(support);
-}
-
-.inline-message--error {
-  color: var(--sys-color-error);
 }
 </style>

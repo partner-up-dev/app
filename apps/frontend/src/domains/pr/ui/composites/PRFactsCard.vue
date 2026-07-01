@@ -1,205 +1,264 @@
 <template>
   <PuCard v-bind="$attrs" as="section" class="pr-facts-card" gap="sm">
-    <LoadingIndicator v-if="isLoading" :message="t('common.loading')" />
-    <ErrorToast v-else-if="error" :message="error.message" persistent />
+    <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
+    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
 
     <template v-else-if="prDetail">
       <h2 class="facts-title">活动信息</h2>
 
-      <section v-if="showLocationSection" class="facts-entry">
-        <Button
-          v-if="interactive && locationGalleryAvailable"
-          class="facts-entry-button"
-          tone="ghost"
-          block
-          @click="showLocationGalleryModal = true"
-        >
-          <span class="facts-entry-button__body">
-            <span class="facts-entry-button__label">{{
-              t("prCard.location")
-            }}</span>
-            <span class="facts-entry-button__trailing">
-              <span class="facts-entry-button__action">
-                {{ t("prCard.viewLocationImages") }}
+      <PuDescriptionList
+        class="facts-list"
+        variant="plain"
+        surface-level="plain"
+        density="compact"
+        :dividers="false"
+      >
+        <section v-if="showLocationSection" class="facts-entry">
+          <PuButton
+            v-if="interactive && locationGalleryAvailable"
+            class="facts-entry-button"
+            tone="neutral" variant="ghost"
+            block
+            @click="showLocationGalleryModal = true"
+          >
+            <span class="facts-entry-button__body">
+              <span class="facts-entry-button__label">{{
+                t("prCard.location")
+              }}</span>
+              <span class="facts-entry-button__trailing">
+                <span class="facts-entry-button__action">
+                  {{ t("prCard.viewLocationImages") }}
+                </span>
+                <span
+                  class="facts-entry-button__icon i-mdi-chevron-right"
+                  aria-hidden="true"
+                />
               </span>
+            </span>
+          </PuButton>
+
+          <PuDescriptionItem
+            v-else
+            :label="t('prCard.location')"
+            value-align="end"
+          >
+            <span class="facts-inline-value">
+              <span>{{ locationDisplayText }}</span>
               <span
-                class="facts-entry-button__icon i-mdi-chevron-right"
-                aria-hidden="true"
-              />
-            </span>
-          </span>
-        </Button>
-
-        <InfoRow v-else :label="t('prCard.location')">
-          <span class="facts-inline-value">
-            <span>{{ locationDisplayText }}</span>
-            <span v-if="locationEditableAfterReady" class="facts-editable-mark">
-              可调整
-            </span>
-          </span>
-        </InfoRow>
-
-        <p
-          v-if="interactive && locationGalleryAvailable"
-          class="facts-entry__value"
-        >
-          <span class="facts-inline-value">
-            <span>{{ locationDisplayText }}</span>
-            <span v-if="locationEditableAfterReady" class="facts-editable-mark">
-              可调整
-            </span>
-          </span>
-        </p>
-      </section>
-
-      <section
-        v-if="routeAvailable"
-        class="facts-entry"
-        data-testid="pr-detail.route"
-      >
-        <InfoRowAction
-          v-if="interactive"
-          :label="t('prCard.route')"
-          :value="t('prCard.viewRouteMap')"
-          :aria-label="
-            t('prCard.viewRouteMapAria', {
-              route: routeDisplayText,
-            })
-          "
-          @click="showRouteMapModal = true"
-        />
-
-        <InfoRow v-else :label="t('prCard.route')">
-          <span class="facts-inline-value">
-            <span>{{ routeDisplayText }}</span>
-            <span v-if="routeEditableAfterReady" class="facts-editable-mark">
-              可调整
-            </span>
-          </span>
-        </InfoRow>
-
-        <RoutePointList
-          class="facts-route-list"
-          :route="prRoute"
-          variant="compact"
-        />
-      </section>
-
-      <section
-        v-if="meetingPointSectionVisible"
-        class="facts-entry"
-        data-testid="pr-detail.meeting-point"
-        :data-visibility="meetingPointVisibility"
-      >
-        <InfoRow v-if="isMeetingPointPrivate" :label="t('prCard.meetingPoint')">
-          {{ t("prCard.meetingPointPrivate") }}
-        </InfoRow>
-
-        <Button
-          v-else-if="interactive && meetingPointImageUrl"
-          class="facts-entry-button"
-          tone="ghost"
-          block
-          @click="showMeetingPointGalleryModal = true"
-        >
-          <span class="facts-entry-button__body">
-            <span class="facts-entry-button__label">{{
-              t("prCard.meetingPoint")
-            }}</span>
-            <span class="facts-entry-button__trailing">
-              <span class="facts-entry-button__action">
-                {{ t("prCard.viewMeetingPointImage") }}
-              </span>
-              <span
-                class="facts-entry-button__icon i-mdi-chevron-right"
-                aria-hidden="true"
-              />
-            </span>
-          </span>
-        </Button>
-
-        <InfoRow v-else :label="t('prCard.meetingPoint')">
-          {{ meetingPointDescription ?? t("prPage.partnerSection.notSet") }}
-        </InfoRow>
-
-        <p
-          v-if="interactive && meetingPointImageUrl && meetingPointDescription"
-          class="facts-entry__value"
-        >
-          {{ meetingPointDescription }}
-        </p>
-      </section>
-
-      <InfoRow :label="t('prCard.time')">
-        <span class="facts-inline-value">
-          <span data-testid="pr-detail.facts.time-value">
-            {{ localizedTimeText }}
-          </span>
-          <span v-if="timeEditableAfterReady" class="facts-editable-mark">
-            可调整
-          </span>
-        </span>
-      </InfoRow>
-
-      <InfoRow
-        v-if="hasPreferences"
-        :label="t('prCard.preferences')"
-        layout="stack"
-        align="start"
-      >
-        <ChipGroup>
-          <Chip v-for="item in prDetail.core.preferences" :key="item">
-            {{ item }}
-          </Chip>
-        </ChipGroup>
-      </InfoRow>
-
-      <section class="facts-entry">
-        <InfoRowAction
-          v-if="interactive"
-          label="参与概览"
-          :value="participantCountText"
-          :aria-label="t('prPage.partnerSection.rosterBoardTitle')"
-          @click="showRosterModal = true"
-        />
-
-        <InfoRow v-else label="参与概览">
-          {{ participantCountText }}
-        </InfoRow>
-
-        <div class="facts-entry__value facts-entry__value--badges">
-          <ChipGroup v-if="rosterPreview.length > 0">
-            <template v-for="item in rosterPreview" :key="item.partnerId">
-              <RouterLink
-                v-if="interactive && isRosterLinkable(item.state)"
-                :to="partnerProfilePath(item.partnerId)"
-                class="roster-preview-link"
+                v-if="locationEditableAfterReady"
+                class="facts-editable-mark"
               >
-                <Chip>{{ item.displayName }}</Chip>
-              </RouterLink>
+                可调整
+              </span>
+            </span>
+          </PuDescriptionItem>
 
-              <Chip v-else>
-                {{ item.displayName }}
-              </Chip>
+          <p
+            v-if="interactive && locationGalleryAvailable"
+            class="facts-entry__value"
+          >
+            <span class="facts-inline-value">
+              <span>{{ locationDisplayText }}</span>
+              <span
+                v-if="locationEditableAfterReady"
+                class="facts-editable-mark"
+              >
+                可调整
+              </span>
+            </span>
+          </p>
+        </section>
+
+        <section
+          v-if="routeAvailable"
+          class="facts-entry"
+          data-testid="pr-detail.route"
+        >
+          <PuDescriptionItem
+            v-if="interactive"
+            :label="t('prCard.route')"
+            value-align="end"
+          >
+            <template #action>
+              <button
+                class="facts-row-action"
+                type="button"
+                :aria-label="
+                  t('prCard.viewRouteMapAria', {
+                    route: routeDisplayText,
+                  })
+                "
+                @click="showRouteMapModal = true"
+              >
+                <span>{{ t("prCard.viewRouteMap") }}</span>
+                <span
+                  class="facts-row-action__icon i-mdi-chevron-right"
+                  aria-hidden="true"
+                />
+              </button>
             </template>
+          </PuDescriptionItem>
 
-            <span v-if="hasMoreRoster" class="roster-chip-overflow">...</span>
-          </ChipGroup>
+          <PuDescriptionItem
+            v-else
+            :label="t('prCard.route')"
+            value-align="end"
+          >
+            <span class="facts-inline-value">
+              <span>{{ routeDisplayText }}</span>
+              <span v-if="routeEditableAfterReady" class="facts-editable-mark">
+                可调整
+              </span>
+            </span>
+          </PuDescriptionItem>
 
-          <span v-else class="facts-empty">
-            {{ t("prPage.partnerSection.rosterCurrentEmpty") }}
+          <RoutePointList
+            class="facts-route-list"
+            :route="prRoute"
+            variant="compact"
+          />
+        </section>
+
+        <section
+          v-if="meetingPointSectionVisible"
+          class="facts-entry"
+          data-testid="pr-detail.meeting-point"
+          :data-visibility="meetingPointVisibility"
+        >
+          <PuDescriptionItem
+            v-if="isMeetingPointPrivate"
+            :label="t('prCard.meetingPoint')"
+            value-align="end"
+          >
+            {{ t("prCard.meetingPointPrivate") }}
+          </PuDescriptionItem>
+
+          <PuButton
+            v-else-if="interactive && meetingPointImageUrl"
+            class="facts-entry-button"
+            tone="neutral" variant="ghost"
+            block
+            @click="showMeetingPointGalleryModal = true"
+          >
+            <span class="facts-entry-button__body">
+              <span class="facts-entry-button__label">{{
+                t("prCard.meetingPoint")
+              }}</span>
+              <span class="facts-entry-button__trailing">
+                <span class="facts-entry-button__action">
+                  {{ t("prCard.viewMeetingPointImage") }}
+                </span>
+                <span
+                  class="facts-entry-button__icon i-mdi-chevron-right"
+                  aria-hidden="true"
+                />
+              </span>
+            </span>
+          </PuButton>
+
+          <PuDescriptionItem
+            v-else
+            :label="t('prCard.meetingPoint')"
+            value-align="end"
+          >
+            {{ meetingPointDescription ?? t("prPage.partnerSection.notSet") }}
+          </PuDescriptionItem>
+
+          <p
+            v-if="interactive && meetingPointImageUrl && meetingPointDescription"
+            class="facts-entry__value"
+          >
+            {{ meetingPointDescription }}
+          </p>
+        </section>
+
+        <PuDescriptionItem :label="t('prCard.time')" value-align="start">
+          <span class="facts-inline-value">
+            <span data-testid="pr-detail.facts.time-value">
+              {{ localizedTimeText }}
+            </span>
+            <span v-if="timeEditableAfterReady" class="facts-editable-mark">
+              可调整
+            </span>
           </span>
-        </div>
-      </section>
+        </PuDescriptionItem>
 
-      <InfoRow
-        v-if="normalizedNotes"
-        :label="t('prCard.notes')"
-        layout="stack"
-        align="start"
-      >
-        <p class="facts-notes">{{ normalizedNotes }}</p>
-      </InfoRow>
+        <PuDescriptionItem
+          v-if="hasPreferences"
+          :label="t('prCard.preferences')"
+          value-align="start"
+        >
+          <PuChipGroup>
+            <PuChip v-for="item in prDetail.core.preferences" :key="item">
+              {{ item }}
+            </PuChip>
+          </PuChipGroup>
+        </PuDescriptionItem>
+
+        <section class="facts-entry">
+          <PuDescriptionItem
+            v-if="interactive"
+            label="参与概览"
+            value-align="end"
+          >
+            <template #action>
+              <button
+                class="facts-row-action"
+                type="button"
+                :aria-label="t('prPage.partnerSection.rosterBoardTitle')"
+                @click="showRosterModal = true"
+              >
+                <span>{{ participantCountText }}</span>
+                <span
+                  class="facts-row-action__icon i-mdi-chevron-right"
+                  aria-hidden="true"
+                />
+              </button>
+            </template>
+          </PuDescriptionItem>
+
+          <PuDescriptionItem v-else label="参与概览" value-align="end">
+            {{ participantCountText }}
+          </PuDescriptionItem>
+
+          <div class="facts-entry__value facts-entry__value--badges">
+            <PuChipGroup v-if="rosterPreview.length > 0">
+              <template v-for="item in rosterPreview" :key="item.partnerId">
+                <RouterLink
+                  v-if="interactive && isRosterLinkable(item.state)"
+                  :to="partnerProfilePath(item.partnerId)"
+                  class="roster-preview-link"
+                >
+                  <PuChip>{{ item.displayName }}</PuChip>
+                </RouterLink>
+
+                <PuChip v-else>
+                  {{ item.displayName }}
+                </PuChip>
+              </template>
+
+              <PuChip
+                v-if="hasMoreRoster"
+                tone="secondary"
+                variant="soft"
+                :label="rosterOverflowLabel"
+              />
+            </PuChipGroup>
+
+            <span v-else class="facts-empty">
+              {{ t("prPage.partnerSection.rosterCurrentEmpty") }}
+            </span>
+          </div>
+        </section>
+
+        <PuDescriptionItem
+          v-if="normalizedNotes"
+          :label="t('prCard.notes')"
+          value-align="start"
+        >
+          <p class="facts-notes">{{ normalizedNotes }}</p>
+        </PuDescriptionItem>
+      </PuDescriptionList>
     </template>
   </PuCard>
 
@@ -240,14 +299,16 @@ import { computed, nextTick, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuCard } from "@partner-up-dev/design-web";
-import InfoRow from "@/shared/ui/display/InfoRow.vue";
-import InfoRowAction from "@/shared/ui/display/InfoRowAction.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
-import ChipGroup from "@/shared/ui/display/ChipGroup.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
+import {
+  PuButton,
+  PuCard,
+  PuChip,
+  PuChipGroup,
+  PuDescriptionItem,
+  PuDescriptionList,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
 import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
 import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";
@@ -396,9 +457,11 @@ const activeRoster = computed(
     ) ?? [],
 );
 const rosterPreview = computed(() => activeRoster.value.slice(0, 4));
-const hasMoreRoster = computed(
-  () => activeRoster.value.length > rosterPreview.value.length,
+const hiddenRosterCount = computed(() =>
+  Math.max(activeRoster.value.length - rosterPreview.value.length, 0),
 );
+const hasMoreRoster = computed(() => hiddenRosterCount.value > 0);
+const rosterOverflowLabel = computed(() => `+${hiddenRosterCount.value}`);
 
 const partnerProfilePath = (partnerId: number): string =>
   prPartnerProfilePath(props.prId, partnerId);
@@ -428,6 +491,10 @@ watch(
   margin: 0;
   @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
+}
+
+.facts-list {
+  min-width: 0;
 }
 
 .facts-entry {
@@ -464,7 +531,7 @@ watch(
   justify-content: flex-start;
 }
 
-.facts-entry-button:deep(.ui-button__label) {
+.facts-entry-button:deep(.pu-button__content) {
   width: 100%;
 }
 
@@ -497,6 +564,31 @@ watch(
 .facts-entry-button__icon {
   @include mx.pu-icon(small);
   color: var(--sys-color-secondary);
+}
+
+.facts-row-action {
+  @include mx.pu-font(control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sys-spacing-xsmall);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sys-radius-small);
+  background: transparent;
+  color: var(--sys-color-secondary);
+  cursor: pointer;
+}
+
+.facts-row-action:focus-visible {
+  outline: 2px solid var(--sys-color-primary);
+  outline-offset: 2px;
+}
+
+.facts-row-action__icon {
+  @include mx.pu-icon(small);
+  flex-shrink: 0;
 }
 
 .facts-empty {
@@ -542,15 +634,4 @@ watch(
   }
 }
 
-.roster-chip-overflow {
-  @include mx.pu-font(control);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--sys-spacing-large);
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-}
 </style>

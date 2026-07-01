@@ -1,8 +1,4 @@
-import type {
-  MapCoordinate,
-  MapMarker,
-  MapPolyline,
-} from "@/shared/map/types";
+import type { MapCoordinate, MapMarker, MapPolyline } from "@/shared/map/types";
 
 export type RouteCoordinate = [number, number];
 
@@ -17,10 +13,7 @@ export type RoutePoint = {
 export type Route = RoutePoint[];
 
 export type RoutePointRole = "departure" | "waypoint" | "arrival";
-export type RouteValidationIssue =
-  | "min-points"
-  | "name-required"
-  | "coordinate-required";
+export type RouteValidationIssue = "min-points" | "name-required" | "coordinate-required";
 
 export type PickedRoutePointLocation = {
   name: string;
@@ -44,9 +37,7 @@ export const createEmptyRouteDraft = (): Route => [
   createEmptyRoutePoint(),
 ];
 
-const cloneCoordinate = (
-  coordinate: RouteCoordinate | null,
-): RouteCoordinate | null =>
+const cloneCoordinate = (coordinate: RouteCoordinate | null): RouteCoordinate | null =>
   coordinate === null ? null : [coordinate[0], coordinate[1]];
 
 export const cloneRoutePoint = (point: RoutePoint): RoutePoint => ({
@@ -60,10 +51,7 @@ export const cloneRoutePoint = (point: RoutePoint): RoutePoint => ({
 export const cloneRoute = (route: Route | null | undefined): Route | null =>
   route ? route.map(cloneRoutePoint) : null;
 
-export const resolveRoutePointRole = (
-  index: number,
-  total: number,
-): RoutePointRole => {
+export const resolveRoutePointRole = (index: number, total: number): RoutePointRole => {
   if (index === 0) {
     return "departure";
   }
@@ -75,8 +63,7 @@ export const resolveRoutePointRole = (
   return "waypoint";
 };
 
-const normalizeRoutePointText = (value: string | null | undefined): string =>
-  value?.trim() ?? "";
+const normalizeRoutePointText = (value: string | null | undefined): string => value?.trim() ?? "";
 
 const truncateText = (value: string, maxLength: number): string =>
   Array.from(value).slice(0, Math.max(0, maxLength)).join("");
@@ -108,15 +95,12 @@ export const buildRouteSummary = (
     endLimit = endLength;
   }
 
-  return [
-    truncateText(startName, startLimit),
-    truncateText(endName, endLimit),
-  ].join(ROUTE_SUMMARY_SEPARATOR);
+  return [truncateText(startName, startLimit), truncateText(endName, endLimit)].join(
+    ROUTE_SUMMARY_SEPARATOR,
+  );
 };
 
-export const buildRouteEndpointLabel = (
-  route: Route | null | undefined,
-): string | null => {
+export const buildRouteEndpointLabel = (route: Route | null | undefined): string | null => {
   const first = route?.[0];
   const last = route?.[route.length - 1];
   const startName = normalizeRoutePointText(first?.name);
@@ -128,9 +112,7 @@ export const buildRouteEndpointLabel = (
   return [startName, endName].join(ROUTE_SUMMARY_SEPARATOR);
 };
 
-export const pickRoutePointCoordinate = (
-  point: RoutePoint,
-): MapCoordinate | null => {
+export const pickRoutePointCoordinate = (point: RoutePoint): MapCoordinate | null => {
   const coordinate = point.gcj02 ?? point.wgs84 ?? point.bd09;
   if (!coordinate) {
     return null;
@@ -165,9 +147,7 @@ export const getRouteValidationIssue = (
   return null;
 };
 
-export const normalizeRouteForSubmit = (
-  route: Route | null | undefined,
-): Route | null => {
+export const normalizeRouteForSubmit = (route: Route | null | undefined): Route | null => {
   if (!route) {
     return null;
   }
@@ -184,18 +164,13 @@ export const normalizeRouteForSubmit = (
   });
 };
 
-export const insertRouteWaypoint = (
-  route: Route | null | undefined,
-): Route => {
+export const insertRouteWaypoint = (route: Route | null | undefined): Route => {
   const draft = cloneRoute(route) ?? createEmptyRouteDraft();
   const waypoint = createEmptyRoutePoint();
   return [...draft.slice(0, -1), waypoint, draft[draft.length - 1]];
 };
 
-export const removeRoutePointAt = (
-  route: Route,
-  index: number,
-): Route => {
+export const removeRoutePointAt = (route: Route, index: number): Route => {
   const role = resolveRoutePointRole(index, route.length);
   if (role !== "waypoint") {
     return cloneRoute(route) ?? createEmptyRouteDraft();
@@ -214,12 +189,7 @@ export const swapRoutePointWithNeighbor = ({
   direction: "up" | "down";
 }): Route => {
   const nextIndex = direction === "up" ? index - 1 : index + 1;
-  if (
-    index < 0 ||
-    index >= route.length ||
-    nextIndex < 0 ||
-    nextIndex >= route.length
-  ) {
+  if (index < 0 || index >= route.length || nextIndex < 0 || nextIndex >= route.length) {
     return cloneRoute(route) ?? createEmptyRouteDraft();
   }
 
@@ -287,11 +257,7 @@ export const toRouteMapProjection = (
         position,
         title: point.name,
         icon:
-          role === "departure"
-            ? "routeStart"
-            : role === "arrival"
-              ? "routeEnd"
-              : "routeWaypoint",
+          role === "departure" ? "routeStart" : role === "arrival" ? "routeEnd" : "routeWaypoint",
       },
     ];
   });
@@ -309,7 +275,6 @@ export const toRouteMapProjection = (
               id: "route",
               path,
               title: buildRouteSummary(route) ?? undefined,
-              tone: "routeInvalid",
             },
           ]
         : [],

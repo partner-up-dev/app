@@ -17,11 +17,11 @@
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="poisQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast v-else-if="pageError" :message="pageError.message" persistent />
+        <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
         <section v-else-if="pois.length === 0" class="empty-panel">
           {{ t("adminPois.emptyPois") }}
@@ -30,8 +30,6 @@
         <template v-else>
           <PoiBasicSection
             v-if="activeAdminSection === 'poi-basic'"
-            v-model:manual-gallery-url="manualGalleryUrl"
-            v-model:is-uploading-gallery-image="isUploadingGalleryImage"
             v-model:selected-poi-full-address="selectedPoiFullAddress"
             v-model:selected-poi-cap-text="selectedPoiCapText"
             v-model:selected-poi-meeting-point-description="selectedPoiMeetingPointDescription"
@@ -45,9 +43,7 @@
             :selected-poi="selectedPoi"
             :weekday-options="weekdayOptions"
             :is-saving-poi="isSavingPoi"
-            @add-manual-url="handleAddManualUrl"
-            @gallery-uploaded="handleGalleryUploaded"
-            @remove-gallery-image="handleRemoveGalleryImage"
+            @update-gallery="setSelectedPoiGallery"
             @pick-location="handlePickPoiLocation"
             @clear-coordinates="handleClearPoiCoordinates"
             @add-availability-rule="handleAddAvailabilityRule"
@@ -85,8 +81,7 @@ import PoiReviewSection from "@/domains/admin/ui/poi/sections/PoiReviewSection.v
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { useAdminNavigationSection } from "@/domains/admin/use-cases/useAdminNavigationSection";
 import { useAdminPoiManagementWorkspace } from "@/domains/admin/use-cases/poi/useAdminPoiManagementWorkspace";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -102,8 +97,6 @@ const {
   pois,
   selectedPoiId,
   selectedPoi,
-  manualGalleryUrl,
-  isUploadingGalleryImage,
   selectedPoiGallery,
   selectedPoiFullAddress,
   selectedPoiCoordinateText,
@@ -114,9 +107,7 @@ const {
   selectedPoiMeetingPointImageUrl,
   selectedPoiAvailabilityRules,
   markSelectedPoiDirty,
-  handleAddManualUrl,
-  handleGalleryUploaded,
-  handleRemoveGalleryImage,
+  setSelectedPoiGallery,
   handlePickPoiLocation,
   handleClearPoiCoordinates,
   handleAddAvailabilityRule,

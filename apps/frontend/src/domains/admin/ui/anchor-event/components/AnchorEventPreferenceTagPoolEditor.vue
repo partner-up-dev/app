@@ -1,6 +1,6 @@
 <template>
   <div class="preference-tag-pool-editor">
-    <LoadingIndicator
+    <PuLoadingState
       v-if="preferenceTagsQuery.isLoading.value"
       :message="t('common.loading')"
     />
@@ -33,15 +33,15 @@
           <input v-model="row.description" class="field-input" />
         </label>
 
-        <Button
-          appearance="pill"
-          tone="outline"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="outline"
           size="sm"
-          type="button"
+
           @click="removeRow(row.id)"
         >
           {{ t("adminAnchorEvents.removePreferenceTagAction") }}
-        </Button>
+        </PuButton>
       </article>
     </div>
   </div>
@@ -50,8 +50,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import { PuButton, PuLoadingState } from "@partner-up-dev/design-web";
 import {
   useAdminAnchorEventPreferenceTags,
   useReplaceAdminAnchorEventPreferenceTags,

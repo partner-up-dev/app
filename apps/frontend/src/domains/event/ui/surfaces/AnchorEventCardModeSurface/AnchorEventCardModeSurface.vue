@@ -1,14 +1,17 @@
 <template>
-  <div v-if="isLoading" class="loading-state">
-    {{ t("common.loading") }}
-  </div>
+  <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
 
-  <div v-else-if="isError" class="error-state">
-    {{ t("anchorEvent.loadFailed") }}
-    <router-link :to="{ name: 'event-plaza' }" class="back-link">
-      {{ t("anchorEvent.backToPlaza") }}
-    </router-link>
-  </div>
+  <PuInlineNotice
+    v-else-if="isError"
+    tone="error"
+    :message="t('anchorEvent.loadFailed')"
+  >
+    <template #actions>
+      <router-link :to="{ name: 'event-plaza' }" class="card-state-link">
+        {{ t("anchorEvent.backToPlaza") }}
+      </router-link>
+    </template>
+  </PuInlineNotice>
 
   <div
     v-else-if="resolvedActiveDemandCard"
@@ -114,27 +117,27 @@
     </div>
 
     <div class="card-mode__actions">
-      <Button
-        type="button"
+      <PuButton
+
         class="card-mode__action"
-        appearance="pill"
-        tone="danger"
+        shape="pill"
+        tone="danger" variant="outline"
         data-testid="anchor-event-card-mode.skip"
         :disabled="resolvedIsCardRouting"
         @click="handleSkipActionClick"
       >
         {{ t("anchorEvent.card.skipButton") }}
-      </Button>
-      <Button
-        type="button"
+      </PuButton>
+      <PuButton
+
         class="card-mode__action"
-        appearance="pill"
+        shape="pill"
         data-testid="anchor-event-card-mode.detail"
         :disabled="resolvedIsCardRouting || !activeCardActionAvailable"
         @click="handleViewActionClick"
       >
         {{ activeCardPrimaryActionLabel }}
-      </Button>
+      </PuButton>
     </div>
 
     <p v-if="resolvedCardActionError" class="card-mode__error">
@@ -184,9 +187,9 @@
           {{ resolvedCardCreateErrorMessage }}
         </p>
 
-        <Button
-          type="button"
-          appearance="pill"
+        <PuButton
+
+          shape="pill"
           size="sm"
           data-testid="anchor-event-card-mode.empty-create"
           :disabled="isCardCreateDisabled"
@@ -197,7 +200,7 @@
               ? t("anchorEvent.createCard.creatingAction")
               : t("anchorEvent.createCard.createAction")
           }}
-        </Button>
+        </PuButton>
       </div>
 
       <OtherAnchorEventsSection
@@ -234,7 +237,6 @@ import AnchorEventBetaGroupCard from "@/domains/event/ui/primitives/AnchorEventB
 import OtherAnchorEventsSection from "@/domains/event/ui/sections/OtherAnchorEventsSection.vue";
 import AnchorEventInlinePlaceSelector from "@/domains/event/ui/controls/AnchorEventInlinePlaceSelector.vue";
 import AnchorEventAssistedPRTimeWindowInlineEditor from "@/domains/event/ui/controls/AnchorEventAssistedPRTimeWindowInlineEditor.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import { useAnchorEventDetail } from "@/domains/event/queries/useAnchorEventDetail";
 import { useAnchorEventDemandCards } from "@/domains/event/queries/useAnchorEventDemandCards";
 import {
@@ -281,6 +283,11 @@ import {
   type AnchorEventCardModeSurfaceProps,
   type FrontDemandCardHandle,
 } from "./AnchorEventCardModeSurface";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+} from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<AnchorEventCardModeSurfaceProps>(),

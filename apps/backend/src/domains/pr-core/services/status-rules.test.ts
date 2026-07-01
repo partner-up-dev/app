@@ -4,6 +4,7 @@ import {
   deriveStatusFromPartnerCount,
   isExitAllowedStatus,
   isJoinableStatus,
+  isOrderAttachableStatus,
   shouldRecalculateCapacityStatus,
 } from "./status-rules";
 
@@ -26,5 +27,12 @@ describe("PR status rules", () => {
   it("does not recalculate creator-owned READY from capacity changes", () => {
     assert.equal(shouldRecalculateCapacityStatus("OPEN"), true);
     assert.equal(shouldRecalculateCapacityStatus("READY"), false);
+  });
+
+  it("allows PR-attached ordering for READY and ACTIVE only", () => {
+    assert.equal(isOrderAttachableStatus("OPEN"), false);
+    assert.equal(isOrderAttachableStatus("READY"), true);
+    assert.equal(isOrderAttachableStatus("ACTIVE"), true);
+    assert.equal(isOrderAttachableStatus("CLOSED"), false);
   });
 });

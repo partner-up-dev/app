@@ -6,8 +6,8 @@
     data-testid="pr-detail.exit-action"
   >
     <div class="action-group">
-      <Button
-        tone="danger"
+      <PuButton
+        tone="danger" variant="outline"
         :disabled="!viewer.canExit"
         :loading="exitMutation.isPending.value"
         block
@@ -15,7 +15,7 @@
         @click="requestExitWithConfirm"
       >
         {{ t("prPage.exit") }}
-      </Button>
+      </PuButton>
       <p v-if="exitBlockedTip" class="action-tip">
         {{ exitBlockedTip }}
       </p>
@@ -24,28 +24,27 @@
       </p>
     </div>
 
-    <ConfirmDialog
+    <PuDialog
       :open="showExitConfirmModal"
       title="确认退出"
-      message="退出后你的参与名额会被释放，确认继续？"
-      :confirm-label="
+      description="退出后你的参与名额会被释放，确认继续？"
+      :confirm-text="
         exitMutation.isPending.value ? t('prPage.exiting') : t('common.confirm')
       "
-      confirm-tone="danger"
-      :loading="exitMutation.isPending.value"
+      tone="error"
+      :confirm-loading="exitMutation.isPending.value"
       @close="showExitConfirmModal = false"
+      @cancel="showExitConfirmModal = false"
       @confirm="confirmExit"
     />
   </section>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuDialog } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useExitPR } from "@/domains/pr/queries/usePRActions";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
@@ -69,8 +68,6 @@ const exitBlockedTip = computed(() => {
   if (viewer.value.canExit) return null;
   return blockedReasonText(viewer.value.exitBlockedReason);
 });
-
-useBodyScrollLock(computed(() => showExitConfirmModal.value));
 
 const requestExitWithConfirm = (): void => {
   exitActionError.value = null;

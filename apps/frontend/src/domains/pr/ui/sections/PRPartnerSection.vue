@@ -6,7 +6,13 @@
           <h2 class="partner-section__title">
             {{ t("prPage.partnerSection.title") }}
           </h2>
-          <Chip tone="primary" size="lg">{{ slotStateText }}</Chip>
+          <PuTag
+            tone="primary"
+            size="md"
+            :text="slotStateText"
+            variant="soft"
+            shape="pill"
+          />
         </div>
         <p class="partner-section__subtitle">{{ subtitleText }}</p>
       </div>
@@ -48,48 +54,48 @@
     </div>
 
     <div class="partner-section__actions">
-      <Button
+      <PuButton
         v-if="section.viewer.canJoin"
-        type="button"
+
         :disabled="joinPending"
         @click="emit('join')"
       >
         {{ joinPending ? t("prPage.joining") : t("prPage.join") }}
-      </Button>
+      </PuButton>
 
-      <Button
+      <PuButton
         v-if="section.viewer.canExit"
-        tone="danger"
-        type="button"
+        tone="danger" variant="outline"
+
         :disabled="exitPending"
         @click="emit('exit')"
       >
         {{ exitPending ? t("prPage.exiting") : t("prPage.exit") }}
-      </Button>
+      </PuButton>
 
-      <Button
+      <PuButton
         v-if="section.viewer.canConfirm"
-        tone="primary-outline"
-        type="button"
+        tone="primary" variant="outline"
+
         :disabled="confirmPending"
         @click="emit('confirm-slot')"
       >
         {{
           confirmPending ? t("prPage.confirmingSlot") : t("prPage.confirmSlot")
         }}
-      </Button>
+      </PuButton>
 
-      <Button
+      <PuButton
         v-if="section.viewer.canCheckIn"
-        tone="primary-outline"
-        type="button"
+        tone="primary" variant="outline"
+
         :disabled="checkInPending"
         @click="emit('submit-check-in')"
       >
         {{
           checkInPending ? t("prPage.checkingIn") : t("prPage.checkInAttended")
         }}
-      </Button>
+      </PuButton>
     </div>
 
     <p v-if="joinErrorMessage" class="partner-section__error-note">
@@ -189,9 +195,9 @@
 
       <p class="partner-section__note">{{ reminderHintText }}</p>
 
-      <Button
+      <PuButton
         v-if="canToggleReminder"
-        type="button"
+
         :disabled="reminderTogglePending"
         @click="emit('toggle-reminder')"
       >
@@ -202,16 +208,16 @@
               ? t("prPage.wechatReminder.disableAction")
               : t("prPage.wechatReminder.enableAction")
         }}
-      </Button>
+      </PuButton>
 
-      <Button
+      <PuButton
         v-else-if="isWeChatEnv && reminderConfigured && !reminderAuthenticated"
-        tone="surface"
-        type="button"
+        tone="neutral" variant="soft"
+
         @click="emit('go-wechat-login')"
       >
         {{ t("prPage.wechatReminder.loginAction") }}
-      </Button>
+      </PuButton>
     </section>
 
   </section>
@@ -223,8 +229,7 @@ import { useI18n } from "vue-i18n";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import PRRosterItem from "@/domains/pr/ui/primitives/PRRosterItem.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
+import { PuButton, PuTag } from "@partner-up-dev/design-web";
 import {
   formatFriendlyTimeWindowLabel,
   formatLocalDateTimeValue,

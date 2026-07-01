@@ -9,16 +9,11 @@ export type ScenarioDatabaseHandle = {
   cleanup(): Promise<void>;
 };
 
-const quoteIdentifier = (identifier: string): string =>
-  `"${identifier.replace(/"/g, '""')}"`;
+const quoteIdentifier = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
 
-const buildTemporaryDatabaseName = (): string =>
-  `partnerup_scenario_${Date.now()}_${process.pid}`;
+const buildTemporaryDatabaseName = (): string => `partnerup_scenario_${Date.now()}_${process.pid}`;
 
-const buildDatabaseUrl = (
-  adminUrl: string,
-  databaseName: string,
-): string => {
+const buildDatabaseUrl = (adminUrl: string, databaseName: string): string => {
   const url = new URL(adminUrl);
   url.pathname = `/${databaseName}`;
   return url.toString();
@@ -74,9 +69,7 @@ export async function createScenarioDatabase(): Promise<ScenarioDatabaseHandle> 
         `,
           [databaseName],
         );
-        await adminSql.unsafe(
-          `drop database if exists ${quoteIdentifier(databaseName)}`,
-        );
+        await adminSql.unsafe(`drop database if exists ${quoteIdentifier(databaseName)}`);
       } finally {
         await adminSql.end({ timeout: 5 });
       }
@@ -86,6 +79,7 @@ export async function createScenarioDatabase(): Promise<ScenarioDatabaseHandle> 
 
 export function installScenarioDatabaseEnv(databaseUrl: string): string {
   process.env.DATABASE_URL = databaseUrl;
+  process.env.PARTNERUP_ENVIRONMENT = "staging";
   process.env.BACKEND_SCENARIO_DISABLE_BOOTSTRAP = "true";
   process.env.BACKEND_SCENARIO_DISABLE_REQUEST_TAIL = "true";
   process.env.BACKEND_SCENARIO_DISABLE_REQUEST_LOGGER = "true";
@@ -93,9 +87,7 @@ export function installScenarioDatabaseEnv(databaseUrl: string): string {
   return databaseUrl;
 }
 
-export async function resetAndMigrateTestDatabase(
-  connectionString: string,
-): Promise<void> {
+export async function resetAndMigrateTestDatabase(connectionString: string): Promise<void> {
   const sql = postgres(connectionString, {
     max: 1,
     idle_timeout: 5,

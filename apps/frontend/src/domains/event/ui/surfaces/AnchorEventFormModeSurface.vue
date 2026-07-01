@@ -1,14 +1,13 @@
 <template>
   <section class="anchor-event-form-mode" data-testid="anchor-event-form-mode.surface">
-    <LoadingIndicator
+    <PuLoadingState
       v-if="formModeQuery.isLoading.value"
       :message="t('common.loading')"
     />
 
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="formModeQuery.error.value"
       :message="formModeQuery.error.value.message"
-      persistent
     />
 
     <div v-else-if="formModeData" class="anchor-event-form-mode__stack">
@@ -61,14 +60,14 @@
         </p>
 
         <div class="form-actions">
-          <Button
-            appearance="rect"
-            tone="outline"
-            type="button"
+          <PuButton
+            shape="rect"
+            tone="neutral" variant="outline"
+
             @click="handleViewAllSessions"
           >
             {{ t("anchorEvent.formMode.viewAllSessions") }}
-          </Button>
+          </PuButton>
 
           <FormModeLongPressButton
             :label="primaryCtaLabel"
@@ -108,9 +107,6 @@ import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
 } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { useAnchorEventFormModeData } from "@/domains/event/queries/useAnchorEventFormModeData";
@@ -156,6 +152,7 @@ import {
 import LiquidWaveSplash from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import type { LiquidSplashPhase } from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import { useMatchedPRHandoff } from "@/processes/route-handoff/useMatchedPRHandoff";
+import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   eventId: number;

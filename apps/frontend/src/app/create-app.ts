@@ -1,19 +1,19 @@
-import { createApp } from "vue";
 import { VueQueryPlugin } from "@tanstack/vue-query";
+import { createHead } from "@unhead/vue/client";
 import { createPinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
-import { createHead } from "@unhead/vue/client";
+import { createApp } from "vue";
 import AppRoot from "@/app/AppRoot.vue";
 import { router } from "@/app/router";
 import { i18n } from "@/locales/i18n";
+import { installFakeWeChatPayBridge } from "@/shared/wechat/fake-wechatpay-bridge";
 
 export const createPartnerUpApp = () => {
-  if (
-    typeof window !== "undefined" &&
-    "scrollRestoration" in window.history
-  ) {
+  if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
     window.history.scrollRestoration = "manual";
   }
+
+  installFakeWeChatPayBridge();
 
   const app = createApp(AppRoot);
   const head = createHead();

@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="t('officialAccountFollow.modalTitle')"
     max-width="420px"
@@ -19,14 +19,13 @@
         {{ t("officialAccountFollow.qrMissing") }}
       </p>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useWeChatOfficialAccountQrCode } from "@/shared/wechat/useWeChatOfficialAccountQrCode";
 
 interface Props {
@@ -39,8 +38,6 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 const { officialAccountQrCodeUrl } = useWeChatOfficialAccountQrCode();
-
-useBodyScrollLock(computed(() => props.open));
 </script>
 
 <style lang="scss" scoped>

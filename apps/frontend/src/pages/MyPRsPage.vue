@@ -1,10 +1,25 @@
 <template>
-  <PageScaffoldFlow class="my-prs-page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold class="my-prs-page">
+    <template #pageHeader>
+      <PuHeader
         :title="t('myPrsPage.title')"
         :subtitle="t('myPrsPage.description')"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="my-prs-page__body">
@@ -18,7 +33,7 @@
           <span class="my-prs-page__count">{{ createdItems.length }}</span>
         </div>
 
-        <LoadingIndicator
+        <PuLoadingState
           v-if="createdQuery.isLoading.value"
           :message="t('myPrsPage.loading')"
         />
@@ -44,7 +59,7 @@
           <span class="my-prs-page__count">{{ joinedDisplayItems.length }}</span>
         </div>
 
-        <LoadingIndicator
+        <PuLoadingState
           v-if="joinedQuery.isLoading.value"
           :message="t('myPrsPage.loading')"
         />
@@ -68,22 +83,22 @@
     <template #footer>
       <PageFooter variant="minimal" />
     </template>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
 import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
 import { useMyCreatedPRs } from "@/domains/pr/queries/useMyCreatedPRs";
 import { useMyJoinedPRs } from "@/domains/pr/queries/useMyJoinedPRs";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { PuButton, PuHeader, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const userSessionStore = useUserSessionStore();
 const createdQuery = useMyCreatedPRs();
 const joinedQuery = useMyJoinedPRs();

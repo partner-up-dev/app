@@ -4,10 +4,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string; detail?: string };
   return payload.error || payload.detail || fallback;
 };
@@ -37,7 +34,9 @@ export type AdminProductSpuInput = {
   productType: "RENTAL" | "RIDE_HAILING";
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   salesPolicy: {
-    skuSelectionPolicy: { type: "EXACTLY_ONE" };
+    skuSelectionPolicy:
+      | { type: "EXACTLY_ONE" }
+      | { type: "CHOICE_SET"; min: number; max?: number | null; resolvesTo: 1 };
     quantityPolicy:
       | { type: "FIXED"; quantity: number }
       | { type: "PER_PARTICIPANT" }
@@ -72,6 +71,13 @@ export type AdminProductSkuInput = {
   name: string;
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   sortOrder: number;
+  presentation: {
+    heroImageAssetIds: string[];
+    detailImageAssetIds: string[];
+    sellingPoints: string[];
+    parameterGroups: Array<{ title: string; items: Array<{ label: string; value: string }> }>;
+    noticeBlocks: Array<{ title: string; content: string }>;
+  };
   facts:
     | {
         type: "RENTAL";
@@ -86,12 +92,10 @@ export type AdminProductSkuInput = {
   pricingModel:
     | { type: "FIXED_TOTAL"; amountFen: number }
     | { type: "DYNAMIC_QUOTE"; calculatorSpec: unknown };
-  cancellationPolicyRef?:
-    | {
-        policyId: string;
-        policyVersion: number;
-      }
-    | null;
+  cancellationPolicyRef?: {
+    policyId: string;
+    policyVersion: number;
+  } | null;
 };
 
 export type AdminSkuCancellationPolicyInput = {
@@ -149,9 +153,7 @@ export type AdminPlacementInput = {
   }>;
 };
 
-export const useAdminCommerceProductWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminCommerceProductWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminCommerceProductWorkspaceResponse>({
     queryKey: queryKeys.admin.commerceProductsWorkspace(),
     queryFn: async () => {
@@ -189,16 +191,8 @@ export const useUpdateAdminProductSpu = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      spuId,
-      input,
-    }: {
-      spuId: number;
-      input: AdminProductSpuInput;
-    }) => {
-      const res = await adminClient.api.admin.commerce.products.spus[
-        ":spuId"
-      ].$patch({
+    mutationFn: async ({ spuId, input }: { spuId: number; input: AdminProductSpuInput }) => {
+      const res = await adminClient.api.admin.commerce.products.spus[":spuId"].$patch({
         param: { spuId: spuId.toString() },
         json: input,
       });
@@ -247,9 +241,7 @@ export const useUpdateAdminProductSku = () => {
       skuId: number;
       input: Omit<AdminProductSkuInput, "spuId">;
     }) => {
-      const res = await adminClient.api.admin.commerce.products.skus[
-        ":skuId"
-      ].$patch({
+      const res = await adminClient.api.admin.commerce.products.skus[":skuId"].$patch({
         param: { skuId: skuId.toString() },
         json: input,
       });
@@ -277,9 +269,9 @@ export const useSaveAdminSkuCancellationPolicy = () => {
       skuId: number;
       input: AdminSkuCancellationPolicyInput;
     }) => {
-      const res = await adminClient.api.admin.commerce.products.skus[
-        ":skuId"
-      ]["cancellation-policy"].$post({
+      const res = await adminClient.api.admin.commerce.products.skus[":skuId"][
+        "cancellation-policy"
+      ].$post({
         param: { skuId: skuId.toString() },
         json: input,
       });
@@ -296,14 +288,11 @@ export const useSaveAdminSkuCancellationPolicy = () => {
   });
 };
 
-export const useAdminCommercePlacementOfferWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminCommercePlacementOfferWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminCommercePlacementOfferWorkspaceResponse>({
     queryKey: queryKeys.admin.commercePlacementOfferWorkspace(),
     queryFn: async () => {
-      const res =
-        await adminClient.api.admin.commerce["placement-offer"].workspace.$get();
+      const res = await adminClient.api.admin.commerce["placement-offer"].workspace.$get();
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取投放工作台失败"));
       }
@@ -337,19 +326,11 @@ export const useUpdateAdminOffer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      offerId,
-      input,
-    }: {
-      offerId: number;
-      input: AdminOfferInput;
-    }) => {
-      const res = await adminClient.api.admin.commerce.offers[":offerId"].$patch(
-        {
-          param: { offerId: offerId.toString() },
-          json: input,
-        },
-      );
+    mutationFn: async ({ offerId, input }: { offerId: number; input: AdminOfferInput }) => {
+      const res = await adminClient.api.admin.commerce.offers[":offerId"].$patch({
+        param: { offerId: offerId.toString() },
+        json: input,
+      });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新 Offer 失败"));
       }
@@ -395,9 +376,7 @@ export const useUpdateAdminPlacement = () => {
       placementId: number;
       input: AdminPlacementInput;
     }) => {
-      const res = await adminClient.api.admin.commerce.placements[
-        ":placementId"
-      ].$patch({
+      const res = await adminClient.api.admin.commerce.placements[":placementId"].$patch({
         param: { placementId: placementId.toString() },
         json: input,
       });
@@ -414,9 +393,7 @@ export const useUpdateAdminPlacement = () => {
   });
 };
 
-export const useAdminCommerceOrderBillWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminCommerceOrderBillWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminCommerceOrderBillWorkspaceResponse>({
     queryKey: queryKeys.admin.commerceOrderBillWorkspace(),
     queryFn: async () => {
@@ -429,9 +406,7 @@ export const useAdminCommerceOrderBillWorkspace = (
     enabled: computed(() => unref(enabled)),
   });
 
-export const useAdminCommerceFulfillmentWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminCommerceFulfillmentWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminCommerceFulfillmentWorkspaceResponse>({
     queryKey: queryKeys.admin.commerceFulfillmentWorkspace(),
     queryFn: async () => {
@@ -455,9 +430,9 @@ export const useConfirmRentalFulfillmentBooking = () => {
       fulfillmentId: string;
       bookingNote: string | null;
     }) => {
-      const res = await adminClient.api.admin.commerce.fulfillments.rental[
-        ":fulfillmentId"
-      ]["confirm-booking"].$post({
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[":fulfillmentId"][
+        "confirm-booking"
+      ].$post({
         param: { fulfillmentId },
         json: { bookingNote },
       });
@@ -488,9 +463,9 @@ export const useRejectRentalFulfillmentBooking = () => {
       fulfillmentId: string;
       bookingNote: string | null;
     }) => {
-      const res = await adminClient.api.admin.commerce.fulfillments.rental[
-        ":fulfillmentId"
-      ]["reject-booking"].$post({
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[":fulfillmentId"][
+        "reject-booking"
+      ].$post({
         param: { fulfillmentId },
         json: { bookingNote },
       });
@@ -521,9 +496,9 @@ export const useApproveRentalFulfillmentCancellation = () => {
       fulfillmentId: string;
       reason: string | null;
     }) => {
-      const res = await adminClient.api.admin.commerce.fulfillments.rental[
-        ":fulfillmentId"
-      ]["approve-cancellation"].$post({
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[":fulfillmentId"][
+        "approve-cancellation"
+      ].$post({
         param: { fulfillmentId },
         json: { reason },
       });
@@ -554,9 +529,9 @@ export const useDenyRentalFulfillmentCancellation = () => {
       fulfillmentId: string;
       reason: string | null;
     }) => {
-      const res = await adminClient.api.admin.commerce.fulfillments.rental[
-        ":fulfillmentId"
-      ]["deny-cancellation"].$post({
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[":fulfillmentId"][
+        "deny-cancellation"
+      ].$post({
         param: { fulfillmentId },
         json: { reason },
       });
@@ -591,9 +566,9 @@ export const useRecordRentalFulfillmentEntryGuidance = () => {
         note: string | null;
       };
     }) => {
-      const res = await adminClient.api.admin.commerce.fulfillments.rental[
-        ":fulfillmentId"
-      ]["entry-guidance"].$post({
+      const res = await adminClient.api.admin.commerce.fulfillments.rental[":fulfillmentId"][
+        "entry-guidance"
+      ].$post({
         param: { fulfillmentId },
         json: input,
       });

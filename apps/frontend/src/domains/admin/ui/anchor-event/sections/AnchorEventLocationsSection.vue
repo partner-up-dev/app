@@ -7,15 +7,15 @@
     <BentoLayout>
       <BentoItem :title="t('adminAnchorEvents.locationPoolsTitle')" span="full">
         <template #actions>
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="saveDisabled"
             @click="$emit('save')"
           >
             {{ saveLabel }}
-          </Button>
+          </PuButton>
         </template>
 
         <AnchorEventPlacePoolEditor v-model="form" />
@@ -37,13 +37,13 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import AnchorEventDefaultMeetingPointEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventDefaultMeetingPointEditor.vue";
 import AnchorEventLocationMeetingPointsEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLocationMeetingPointsEditor.vue";
 import AnchorEventPlacePoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventPlacePoolEditor.vue";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   saveLabel: string;

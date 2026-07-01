@@ -1,31 +1,31 @@
 <template>
   <section class="share-pr">
     <div class="carousel-header">
-      <Button
+      <PuButton
         class="method-nav-action"
-        appearance="pill"
-        tone="ghost"
+        shape="pill"
+        tone="neutral" variant="ghost"
         size="sm"
-        type="button"
+
         @click="goToPrevMethod"
         :disabled="enabledMethods.length <= 1"
         :aria-label="t('share.prevMethodAria')"
       >
         <div class="i-mdi-chevron-left"></div>
-      </Button>
+      </PuButton>
       <h3 class="method-label">{{ currentMethod.label }}</h3>
-      <Button
+      <PuButton
         class="method-nav-action"
-        appearance="pill"
-        tone="ghost"
+        shape="pill"
+        tone="neutral" variant="ghost"
         size="sm"
-        type="button"
+
         @click="goToNextMethod"
         :disabled="enabledMethods.length <= 1"
         :aria-label="t('share.nextMethodAria')"
       >
         <div class="i-mdi-chevron-right"></div>
-      </Button>
+      </PuButton>
     </div>
 
     <div
@@ -76,12 +76,12 @@ import ShareAsLink from "@/domains/share/ui/methods/as-link/ShareAsLink.vue";
 import ShareToXiaohongshuMethod from "@/domains/share/ui/methods/xhs/ShareToXiaohongshu.vue";
 import ShareToWechatChatMethod from "@/domains/share/ui/methods/wechat/ShareToWechatChat.vue";
 import type { PRShareProps } from "@/domains/share/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import {
   useShareCarousel,
   type ShareMethod,
   type ShareMethodId,
 } from "@/domains/share/use-cases/useShareCarousel";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<

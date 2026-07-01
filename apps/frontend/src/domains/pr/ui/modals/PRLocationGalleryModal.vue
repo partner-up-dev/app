@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="title ?? t('prCard.locationGallery.title')"
     max-width="560px"
@@ -20,15 +20,15 @@
         />
 
         <div class="controls">
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="images.length <= 1"
             @click="goPrev"
           >
             {{ t("prCard.locationGallery.prev") }}
-          </Button>
+          </PuButton>
 
           <span class="counter">
             {{
@@ -39,26 +39,25 @@
             }}
           </span>
 
-          <Button
-            appearance="pill"
+          <PuButton
+            shape="pill"
             size="sm"
-            type="button"
+
             :disabled="images.length <= 1"
             @click="goNext"
           >
             {{ t("prCard.locationGallery.next") }}
-          </Button>
+          </PuButton>
         </div>
       </template>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 
 interface PRLocationGalleryModalProps {
   open: boolean;

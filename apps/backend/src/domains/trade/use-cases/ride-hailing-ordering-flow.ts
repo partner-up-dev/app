@@ -1,238 +1,67 @@
-import type { Offer } from "../../../entities/offer";
-import type { ProductSku } from "../../../entities/product-sku";
-import type { ProductSpu } from "../../../entities/product-spu";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
-import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
-import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
+import {
+  type CommerceOrderDetailDebugContext,
+  logCommerceOrderDetailDebug,
+} from "../../../lib/commerce-order-detail-debug";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
-import { throwHttpProblem } from "../../../lib/problem-details";
-import type { RideHailingSkuFacts } from "../../merchandising";
-import { createRideHailingProviderPort } from "../../ride-hailing";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type {
+  RideHailingProviderNavigationRoute,
+  RideHailingProviderNavigationRouteQueryKind,
+  RideHailingProviderOrderDetail,
+  RideHailingProviderVehicleLocation,
+} from "../../ride-hailing";
+import {
+  createRideHailingProviderPort,
+  RideHailingProviderSyncQueryError,
+  syncRideHailingOrderWithProvider,
+} from "../../ride-hailing";
+import type {
+  RideHailingChoiceSetCandidateSnapshot,
+  RideHailingDispatchBindingSnapshot,
   RideHailingDriverSnapshot,
   RideHailingExecutionPhase,
   RideHailingRiderSnapshot,
   RideHailingRouteSnapshot,
   RideHailingVehicleSnapshot,
 } from "../model";
-import { getOrderItemSkuName, PricingApplication } from "../services";
+import {
+  getOrderItemSkuName,
+  getRideHailingChoiceSetItem,
+} from "../services";
 
-const productSpuRepo = new ProductSpuRepository();
-const productSkuRepo = new ProductSkuRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
-const pricingApplication = new PricingApplication();
+const tradeOrderRepo = new TradeOrderRepository();
 
-type RideSku = ProductSku & { facts: RideHailingSkuFacts };
+type ProviderVehicleLocationProjection = Omit<
+  RideHailingProviderVehicleLocation,
+  "providerSnapshot"
+>;
 
-export type RideQuoteOption = {
+type ProviderNavigationRouteProjection = Omit<
+  RideHailingProviderNavigationRoute,
+  "providerSnapshot" | "vehicleLocation"
+> & {
+  vehicleLocation: ProviderVehicleLocationProjection | null;
+};
+
+type ProviderDetailProjection = Omit<
+  RideHailingProviderOrderDetail,
+  "providerSnapshot" | "vehicleLocation"
+> & {
+  navigationRoute: ProviderNavigationRouteProjection | null;
+  vehicleLocation: ProviderVehicleLocationProjection | null;
+};
+
+type RideHailingCandidateVehicleProjection = {
   skuId: number;
-  spuId: number;
-  name: string;
-  providerName: string;
-  carTypeName: string;
   displayName: string;
-  providerVehicleTypeCode: string;
-  providerInstanceId: string;
-  selected: boolean;
-  selectable: boolean;
-  disabledReason: string | null;
-  estimateAmountFen: number | null;
-  quoteAmountFen: number | null;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const isRideHailingSkuFacts = (value: unknown): value is RideHailingSkuFacts =>
-  isRecord(value) &&
-  typeof value.rideHailingProviderInstanceId === "string" &&
-  typeof value.providerVehicleTypeCode === "string";
-
-async function listRideSkus(
-  offer: Offer,
-): Promise<Array<{ spu: ProductSpu; sku: RideSku }>> {
-  const result: Array<{ spu: ProductSpu; sku: RideSku }> = [];
-  for (const spuId of offer.spuIds) {
-    const spu = await productSpuRepo.findById(spuId);
-    if (!spu || spu.status !== "ACTIVE" || spu.productType !== "RIDE_HAILING") {
-      continue;
-    }
-    const skus = await productSkuRepo.listBySpuId(spu.id);
-    for (const sku of skus) {
-      if (sku.status !== "ACTIVE" || !isRideHailingSkuFacts(sku.facts)) continue;
-      result.push({ spu, sku: { ...sku, facts: sku.facts } });
-    }
-  }
-  return result;
-}
-
-const readNumber = (value: unknown, keys: string[]): number | null => {
-  if (!isRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "number" && Number.isFinite(candidate)) return candidate;
-    if (typeof candidate === "string" && candidate.trim().length > 0) {
-      const parsed = Number(candidate);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return null;
-};
-
-const readString = (value: unknown, keys: string[]): string | null => {
-  if (!isRecord(value)) return null;
-  for (const key of keys) {
-    const candidate = value[key];
-    if (typeof candidate === "string" && candidate.length > 0) return candidate;
-  }
-  return null;
-};
-
-async function quoteSku(input: {
-  sku: RideSku;
-  spu: ProductSpu;
-  providerNameFallback?: string;
-  route: RideHailingRouteSnapshot;
-  offer: Offer;
-}): Promise<RideQuoteOption> {
-  const provider = await providerRepo.findById(
-    input.sku.facts.rideHailingProviderInstanceId as RideHailingProviderInstanceId,
-  );
-  if (!provider || provider.status !== "ACTIVE") {
-    return {
-      skuId: input.sku.id,
-      spuId: input.spu.id,
-      name: input.sku.name,
-      providerName: input.providerNameFallback ?? "服务商",
-      carTypeName: input.sku.name,
-      displayName: `${input.providerNameFallback ?? "服务商"}${input.sku.name}`,
-      providerVehicleTypeCode: input.sku.facts.providerVehicleTypeCode,
-      providerInstanceId: input.sku.facts.rideHailingProviderInstanceId,
-      selected: false,
-      selectable: false,
-      disabledReason: "Provider instance is not active",
-      estimateAmountFen: null,
-      quoteAmountFen: null,
-    };
-  }
-
-  const port = createRideHailingProviderPort({ providerInstance: provider });
-  let rawEstimate: unknown;
-  try {
-    rawEstimate = await port.estimate({
-      params: {
-        car_type: input.sku.facts.providerVehicleTypeCode,
-        flat: input.route.origin.latitude,
-        flng: input.route.origin.longitude,
-        tlat: input.route.destination.latitude,
-        tlng: input.route.destination.longitude,
-      },
-    });
-  } catch (error) {
-    return {
-      skuId: input.sku.id,
-      spuId: input.spu.id,
-      name: input.sku.name,
-      providerName: provider.displayName,
-      carTypeName: input.sku.name,
-      displayName: `${provider.displayName}${input.sku.name}`,
-      providerVehicleTypeCode: input.sku.facts.providerVehicleTypeCode,
-      providerInstanceId: provider.id,
-      selected: false,
-      selectable: false,
-      disabledReason:
-        error instanceof Error ? error.message : "Provider quote failed",
-      estimateAmountFen: null,
-      quoteAmountFen: null,
-    };
-  }
-  const estimateAmountFen =
-    readNumber(rawEstimate, [
-      "estimateAmountFen",
-      "estimatePriceFen",
-      "estimate_price",
-      "price",
-    ]) ?? 0;
-  const carTypeName =
-    readString(rawEstimate, ["carTypeName", "car_type_name"]) ?? input.sku.name;
-  const pricingSnapshot = pricingApplication.resolve({
-    offer: input.offer,
-    items: [
-      {
-        itemId: "preview",
-        spu: input.spu,
-        sku: input.sku,
-        quantity: 1,
-      },
-    ],
-    orderContext: {
-      quoteTotalFen: estimateAmountFen,
-    },
-  });
-
-  return {
-    skuId: input.sku.id,
-    spuId: input.spu.id,
-    name: input.sku.name,
-    providerName: provider.displayName,
-    carTypeName,
-    displayName: `${provider.displayName}${carTypeName}`,
-    providerVehicleTypeCode: input.sku.facts.providerVehicleTypeCode,
-    providerInstanceId: provider.id,
-    selected: false,
-    selectable: true,
-    disabledReason: null,
-    estimateAmountFen,
-    quoteAmountFen: pricingSnapshot.totalFen,
-  };
-}
-
-export async function evaluateRideOptions(input: {
-  offer: Offer;
-  route: RideHailingRouteSnapshot;
-  selectedSkuId?: number | null;
-}): Promise<RideQuoteOption[]> {
-  const skus = await listRideSkus(input.offer);
-  const options = await Promise.all(
-    skus.map(({ spu, sku }) =>
-      quoteSku({
-        offer: input.offer,
-        route: input.route,
-        sku,
-        spu,
-      }),
-    ),
-  );
-  const selectedSkuId =
-    input.selectedSkuId ??
-    options
-      .filter((option) => option.selectable && option.quoteAmountFen !== null)
-      .sort(
-        (left, right) => (left.quoteAmountFen ?? 0) - (right.quoteAmountFen ?? 0),
-      )[0]?.skuId ??
-    null;
-  return options.map((option) => ({
-    ...option,
-    selected: option.skuId === selectedSkuId,
-  }));
-}
-
-type ProviderDetailProjection = {
-  phase: string;
-  statusLabel: string;
-  finalAmountFen: number | null;
-  driver: {
-    driverName: string;
-    driverPhone: string;
-  } | null;
-  vehicle: {
-    plate: string;
-    brand: string;
-    color: string;
-  } | null;
+  quoteAmountFen: number;
+  previewImageAssetId: string | null;
 };
 
 export type RideHailingOrderDetailProjection = {
@@ -241,6 +70,7 @@ export type RideHailingOrderDetailProjection = {
   riders: RideHailingRiderSnapshot[];
   contactPhone: string;
   selectedVehicleName: string;
+  candidateVehicles: RideHailingCandidateVehicleProjection[];
   provider: {
     providerOrderId: string | null;
   };
@@ -250,95 +80,392 @@ export type RideHailingOrderDetailProjection = {
   live: ProviderDetailProjection | null;
 };
 
-const parseProviderDetail = (raw: unknown): ProviderDetailProjection => {
-  const phase = readString(raw, ["phase", "status"]) ?? "CREATED";
-  const finalAmountFen = readNumber(raw, ["finalAmountFen", "actual_price"]);
-  const driverRaw = isRecord(raw) ? raw.driver : null;
-  const vehicleRaw = isRecord(raw) ? raw.vehicle : null;
-  const statusLabel =
-    phase === "FINISHED"
-      ? "待支付"
-      : phase === "IN_TRIP"
-        ? "行程中"
-        : phase === "ACCEPTED"
-          ? "已接单"
-          : "正在呼叫";
+const projectProviderVehicleLocation = (
+  location: RideHailingProviderVehicleLocation | null,
+): ProviderVehicleLocationProjection | null => {
+  if (!location) return null;
   return {
-    phase,
-    statusLabel,
-    finalAmountFen,
-    driver: isRecord(driverRaw)
-      ? {
-          driverName: readString(driverRaw, ["driverName", "name"]) ?? "司机",
-          driverPhone: readString(driverRaw, ["driverPhone", "phone"]) ?? "",
-        }
-      : null,
-    vehicle: isRecord(vehicleRaw)
-      ? {
-          plate: readString(vehicleRaw, ["plate"]) ?? "",
-          brand: readString(vehicleRaw, ["brand"]) ?? "",
-          color: readString(vehicleRaw, ["color"]) ?? "",
-        }
-      : null,
+    capturedAt: location.capturedAt,
+    headingDegrees: location.headingDegrees,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    speedKph: location.speedKph,
+  };
+};
+
+const firstPresentString = (values: readonly (string | null | undefined)[]): string | null => {
+  for (const value of values) {
+    const normalized = value?.trim() ?? "";
+    if (normalized.length > 0) return normalized;
+  }
+  return null;
+};
+
+const projectCandidateVehicle = (
+  candidate: RideHailingChoiceSetCandidateSnapshot,
+): RideHailingCandidateVehicleProjection => ({
+  displayName: candidate.quoteSnapshot.displayName || candidate.sku.name,
+  previewImageAssetId: firstPresentString([
+    candidate.sku.presentationSnapshot.heroImageAssetIds[0],
+    candidate.sku.presentationSnapshot.detailImageAssetIds[0],
+  ]),
+  quoteAmountFen: candidate.quoteSnapshot.amountFen,
+  skuId: candidate.sku.id,
+});
+
+const projectProviderNavigationRoute = (
+  route: RideHailingProviderNavigationRoute | null,
+): ProviderNavigationRouteProjection | null => {
+  if (!route) return null;
+  return {
+    polyline: route.polyline,
+    remainingDistanceMeters: route.remainingDistanceMeters,
+    remainingDurationSeconds: route.remainingDurationSeconds,
+    routeKind: route.routeKind,
+    trafficLightCount: route.trafficLightCount,
+    vehicleLocation: projectProviderVehicleLocation(route.vehicleLocation),
+  };
+};
+
+const shouldQueryProviderLiveGeometry = (phase: RideHailingExecutionPhase): boolean =>
+  phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP" || phase === "IN_TRIP";
+
+const resolveProviderNavigationRouteQueryKind = (
+  phase: RideHailingExecutionPhase,
+): RideHailingProviderNavigationRouteQueryKind | null => {
+  if (phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP") return "PICKUP";
+  if (phase === "IN_TRIP") return "DROPOFF";
+  return null;
+};
+
+const summarizeProviderLiveError = (error: unknown): Record<string, unknown> => {
+  if (error instanceof ProblemDetailsError) {
+    return {
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStatus: error.status,
+      errorType: error.type,
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      errorMessage: error.message,
+      errorName: error.name,
+      errorStack: error.stack ?? null,
+    };
+  }
+  return {
+    errorValue: error,
+  };
+};
+
+const summarizeProviderDetailProjection = (
+  detail: ProviderDetailProjection | null,
+): Record<string, unknown> => ({
+  providerPhase: detail?.phase ?? null,
+  providerStatusLabel: detail?.statusLabel ?? null,
+  providerDriverName: detail?.driver?.driverName ?? null,
+  providerVehiclePlate: detail?.vehicle?.plate ?? null,
+  providerHasVehicleLocation: detail?.vehicleLocation != null,
+  providerHasNavigationRoute: detail?.navigationRoute != null,
+});
+
+const writeRideHailingLiveRouteQueryErrorLog = (payload: Record<string, unknown>): void => {
+  process.stdout.write(
+    `${JSON.stringify({
+      marker: "RideHailingLiveRouteQueryError",
+      ...payload,
+    })}\n`,
+  );
+};
+
+const writeRideHailingLiveRouteQueryDecisionLog = (payload: Record<string, unknown>): void => {
+  process.stdout.write(
+    `${JSON.stringify({
+      marker: "RideHailingLiveRouteQueryDecision",
+      ...payload,
+    })}\n`,
+  );
+};
+
+const queryOptionalProviderLive = async <T>(input: {
+  onError?: (error: unknown) => void;
+  operation: () => Promise<T>;
+}): Promise<T | null> => {
+  try {
+    return await input.operation();
+  } catch (error) {
+    input.onError?.(error);
+    return null;
+  }
+};
+
+const projectProviderDetail = (input: {
+  detail: RideHailingProviderOrderDetail;
+  navigationRoute: RideHailingProviderNavigationRoute | null;
+  vehicleLocation: RideHailingProviderVehicleLocation | null;
+}): ProviderDetailProjection => {
+  return {
+    driver: input.detail.driver,
+    navigationRoute: projectProviderNavigationRoute(input.navigationRoute),
+    phase: input.detail.phase,
+    statusLabel: input.detail.statusLabel,
+    vehicle: input.detail.vehicle,
+    vehicleLocation: projectProviderVehicleLocation(
+      input.vehicleLocation ?? input.detail.vehicleLocation,
+    ),
   };
 };
 
 export async function buildRideHailingDetailProjection(input: {
   order: TradeOrder;
+  debug?: CommerceOrderDetailDebugContext;
 }): Promise<RideHailingOrderDetailProjection> {
-  const rideOrder = await rideOrderRepo.findByOrderId(input.order.id);
+  let order = input.order;
+  let choiceSetItem = getRideHailingChoiceSetItem(order.items);
+  let rideOrder = await rideOrderRepo.findByOrderId(order.id);
   if (!rideOrder) {
+    logCommerceOrderDetailDebug(input.debug, "ride-detail.build.ride-order-missing", {
+      localOrderId: order.id,
+      localOrderStatus: order.status,
+    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
     });
   }
+  let dispatchBinding: RideHailingDispatchBindingSnapshot | null =
+    rideOrder.dispatchBinding ?? null;
+  let syncedProviderDetail: RideHailingProviderOrderDetail | null = null;
 
-  let providerDetail: ProviderDetailProjection | null = null;
-  if (rideOrder.providerOrderId) {
-    const provider = await providerRepo.findById(rideOrder.providerInstanceId);
-    if (provider) {
-      const port = createRideHailingProviderPort({ providerInstance: provider });
-      providerDetail = parseProviderDetail(
-        await port.queryOrderDetail({
-          providerOrderId: rideOrder.providerOrderId,
-        }),
-      );
+  logCommerceOrderDetailDebug(input.debug, "ride-detail.build.start", {
+    localOrderId: order.id,
+    localOrderStatus: order.status,
+    providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+    providerOrderId: dispatchBinding?.providerOrderId ?? null,
+  });
+
+  if (dispatchBinding?.providerOrderId) {
+    const syncProviderInstanceId = dispatchBinding.providerInstanceId;
+    const syncProviderOrderId = dispatchBinding.providerOrderId;
+    try {
+      const syncResult = await syncRideHailingOrderWithProvider({
+        orderId: order.id,
+        expectedProviderInstanceId: syncProviderInstanceId,
+        expectedProviderOrderId: syncProviderOrderId,
+        trigger: "ORDER_DETAIL_POLL",
+        debug: input.debug,
+      });
+      syncedProviderDetail = syncResult.providerDetail;
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.sync-result", {
+        localOrderId: order.id,
+        providerInstanceId: syncProviderInstanceId,
+        providerOrderId: syncProviderOrderId,
+        syncMutated: syncResult.mutated,
+        providerPhase: syncedProviderDetail.phase,
+        providerStatusLabel: syncedProviderDetail.statusLabel,
+        providerDriverName: syncedProviderDetail.driver?.driverName ?? null,
+        providerVehiclePlate: syncedProviderDetail.vehicle?.plate ?? null,
+      });
+      if (syncResult.mutated) {
+        const [reloadedOrder, reloadedRideOrder] = await Promise.all([
+          tradeOrderRepo.findById(order.id),
+          rideOrderRepo.findByOrderId(order.id),
+        ]);
+        if (reloadedOrder && reloadedRideOrder) {
+          order = reloadedOrder;
+          rideOrder = reloadedRideOrder;
+          choiceSetItem = getRideHailingChoiceSetItem(order.items);
+          dispatchBinding = rideOrder.dispatchBinding ?? null;
+          logCommerceOrderDetailDebug(input.debug, "ride-detail.build.reload-after-sync", {
+            localOrderId: order.id,
+            localOrderStatus: order.status,
+            providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+            providerOrderId: dispatchBinding?.providerOrderId ?? null,
+          });
+        }
+      }
+    } catch (error) {
+      if (!(error instanceof RideHailingProviderSyncQueryError)) {
+        throw error;
+      }
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.sync-query-error", {
+        localOrderId: order.id,
+        providerInstanceId: syncProviderInstanceId,
+        providerOrderId: syncProviderOrderId,
+        error: summarizeProviderLiveError(error.originalError),
+      });
     }
   }
 
-  return {
+  let providerDetail: ProviderDetailProjection | null = null;
+  const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
+  const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(rideOrder.executionPhase);
+  let routeQueryAttempted = false;
+  let routeQuerySucceeded = false;
+  let routeQuerySkippedReason: string | null = null;
+  if (dispatchBinding?.providerOrderId && syncedProviderDetail) {
+    const provider = await providerRepo.findById(
+      dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
+    );
+    if (provider) {
+      const port = createRideHailingProviderPort({ providerInstance: provider });
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.live-query-plan", {
+        localOrderId: order.id,
+        rideExecutionPhase: rideOrder.executionPhase,
+        providerInstanceId: dispatchBinding.providerInstanceId,
+        providerOrderId: dispatchBinding.providerOrderId,
+        shouldQueryLiveGeometry,
+        navigationRouteQueryKind,
+      });
+      const vehicleLocation = shouldQueryLiveGeometry
+        ? await queryOptionalProviderLive({
+            onError: (error) => {
+              logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-location.error", {
+                localOrderId: order.id,
+                rideExecutionPhase: rideOrder.executionPhase,
+                providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+                providerOrderId: dispatchBinding?.providerOrderId ?? null,
+                ...summarizeProviderLiveError(error),
+              });
+            },
+            operation: () =>
+              port.queryDriverLocation({
+                providerOrderId: dispatchBinding.providerOrderId,
+              }),
+          })
+        : null;
+      let navigationRoute: RideHailingProviderNavigationRoute | null = null;
+      if (!shouldQueryLiveGeometry) {
+        routeQuerySkippedReason = "execution_phase_not_live_geometry";
+      } else if (!navigationRouteQueryKind) {
+        routeQuerySkippedReason = "route_kind_not_resolved";
+      } else {
+        routeQueryAttempted = true;
+        navigationRoute = await queryOptionalProviderLive({
+          onError: (error) => {
+            writeRideHailingLiveRouteQueryErrorLog({
+              executionPhase: rideOrder.executionPhase,
+              orderId: order.id,
+              providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+              providerOrderId: dispatchBinding?.providerOrderId ?? null,
+              routeKind: navigationRouteQueryKind,
+              ...summarizeProviderLiveError(error),
+            });
+            logCommerceOrderDetailDebug(input.debug, "ride-detail.build.driver-route.error", {
+              localOrderId: order.id,
+              rideExecutionPhase: rideOrder.executionPhase,
+              providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+              providerOrderId: dispatchBinding?.providerOrderId ?? null,
+              routeKind: navigationRouteQueryKind,
+              ...summarizeProviderLiveError(error),
+            });
+          },
+          operation: () =>
+            port.queryDriverRoute({
+              providerOrderId: dispatchBinding.providerOrderId,
+              routeKind: navigationRouteQueryKind,
+            }),
+        });
+        routeQuerySucceeded = navigationRoute !== null;
+      }
+      providerDetail = projectProviderDetail({
+        detail: syncedProviderDetail,
+        navigationRoute,
+        vehicleLocation,
+      });
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.live-query-result", {
+        localOrderId: order.id,
+        rideExecutionPhase: rideOrder.executionPhase,
+        providerInstanceId: dispatchBinding.providerInstanceId,
+        providerOrderId: dispatchBinding.providerOrderId,
+        shouldQueryLiveGeometry,
+        navigationRouteQueryKind,
+        vehicleLocationCapturedAt: vehicleLocation?.capturedAt ?? null,
+        navigationRouteKind: navigationRoute?.routeKind ?? null,
+        ...summarizeProviderDetailProjection(providerDetail),
+      });
+    } else {
+      routeQuerySkippedReason = "provider_instance_missing";
+      logCommerceOrderDetailDebug(input.debug, "ride-detail.build.provider-instance-missing", {
+        localOrderId: order.id,
+        providerInstanceId: dispatchBinding.providerInstanceId,
+        providerOrderId: dispatchBinding.providerOrderId,
+      });
+    }
+  } else if (!dispatchBinding?.providerOrderId) {
+    routeQuerySkippedReason = "provider_order_missing";
+  } else {
+    routeQuerySkippedReason = "provider_detail_unavailable";
+  }
+
+  writeRideHailingLiveRouteQueryDecisionLog({
+    executionPhase: rideOrder.executionPhase,
+    orderId: order.id,
+    providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+    providerOrderId: dispatchBinding?.providerOrderId ?? null,
+    routeKind: navigationRouteQueryKind,
+    routeQueryAttempted,
+    routeQuerySkippedReason,
+    routeQuerySucceeded,
+    shouldQueryLiveGeometry,
+    syncedProviderDetailAvailable: syncedProviderDetail !== null,
+  });
+
+  const result = {
     route: rideOrder.routeSnapshot,
     departureAt: rideOrder.departureAt?.toISOString() ?? null,
     riders: rideOrder.riders,
     contactPhone: rideOrder.contactPhone,
-    selectedVehicleName: input.order.items[0]
-      ? getOrderItemSkuName(input.order.items[0])
-      : "曹操出行",
+    selectedVehicleName: choiceSetItem
+      ? getOrderItemSkuName(choiceSetItem)
+      : order.items[0]
+        ? getOrderItemSkuName(order.items[0])
+        : "曹操出行",
+    candidateVehicles: choiceSetItem?.candidates.map(projectCandidateVehicle) ?? [],
     provider: {
-      providerOrderId: rideOrder.providerOrderId,
+      providerOrderId: dispatchBinding?.providerOrderId ?? null,
     },
     executionPhase: rideOrder.executionPhase,
     driver: rideOrder.driverSnapshot ?? providerDetail?.driver ?? null,
     vehicle: rideOrder.vehicleSnapshot ?? providerDetail?.vehicle ?? null,
     live: providerDetail,
   };
+
+  logCommerceOrderDetailDebug(input.debug, "ride-detail.build.complete", {
+    localOrderId: order.id,
+    localOrderStatus: order.status,
+    rideExecutionPhase: result.executionPhase,
+    rideDriverName: result.driver?.driverName ?? null,
+    rideVehiclePlate: result.vehicle?.plate ?? null,
+    candidateVehicleCount: result.candidateVehicles.length,
+    providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
+    providerOrderId: result.provider.providerOrderId,
+    ...summarizeProviderDetailProjection(result.live),
+  });
+
+  return result;
 }
 
-export async function confirmRideHailingProviderFeeAfterPayment(input: {
-  orderId: string;
-}) {
+export async function confirmRideHailingProviderFeeAfterPayment(input: { orderId: string }) {
   const rideOrder = await rideOrderRepo.findByOrderId(input.orderId as TradeOrderId);
-  if (!rideOrder?.providerOrderId) {
+  if (!rideOrder) {
+    return { applied: false, reason: "RideHailing order facts are missing" };
+  }
+  const dispatchBinding = rideOrder.dispatchBinding;
+  if (!dispatchBinding?.providerOrderId) {
     return { applied: false, reason: "RideHailing provider order is missing" };
   }
-  const provider = await providerRepo.findById(rideOrder.providerInstanceId);
+  const provider = await providerRepo.findById(
+    dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
+  );
   if (!provider) {
     return { applied: false, reason: "RideHailing provider instance is missing" };
   }
   const port = createRideHailingProviderPort({ providerInstance: provider });
   await port.confirmFee({
-    providerOrderId: rideOrder.providerOrderId,
+    providerOrderId: dispatchBinding.providerOrderId,
   });
   return {
     applied: true,

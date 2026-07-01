@@ -7,10 +7,13 @@
       :class="{ 'pr-preview-card__link--button': mode === 'button' }"
       @click="emit('activate')"
     >
-      <div
+      <PuImg
         v-if="coverImage"
         class="pr-preview-card__cover"
-        :style="{ backgroundImage: `url(${coverImage})` }"
+        :src="coverImage"
+        alt=""
+        mode="aspectFill"
+        :show-loading="false"
       />
 
       <div class="pr-preview-card__body">
@@ -20,12 +23,14 @@
               {{ title }}
             </span>
           </div>
-          <PRStatusBadge
+          <PuTag
             v-if="status"
             class="pr-preview-card__status"
-            :status="status"
+            :text="statusTagText"
+            :tone="statusTagTone"
+            variant="soft"
             size="sm"
-            appearance="pill"
+            shape="pill"
           />
         </div>
 
@@ -55,8 +60,13 @@
 <script setup lang="ts">
 import { computed, useSlots } from "vue";
 import { RouterLink } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { PuImg, PuTag } from "@partner-up-dev/design-web";
 import type { PRDisplayStatus } from "@/domains/pr/model/pr-display-status";
-import PRStatusBadge from "@/domains/pr/ui/primitives/PRStatusBadge.vue";
+import {
+  resolvePRStatusTagText,
+  resolvePRStatusTagTone,
+} from "@/domains/pr/model/pr-status-tag";
 
 const props = withDefaults(
   defineProps<{
@@ -89,6 +99,7 @@ const emit = defineEmits<{
   activate: [];
 }>();
 
+const { t } = useI18n();
 const slots = useSlots();
 const hasActions = computed(() => Boolean(slots.actions));
 const rootComponent = computed(() => (props.mode === "link" ? RouterLink : "button"));
@@ -118,6 +129,12 @@ const preferenceLabel = computed(
     props.preferenceTags
       .map(toPreferenceDisplayLabel)
       .find((tag): tag is string => tag !== null) ?? null,
+);
+const statusTagText = computed(() =>
+  props.status ? resolvePRStatusTagText(props.status, t) : "",
+);
+const statusTagTone = computed(() =>
+  props.status ? resolvePRStatusTagTone(props.status) : "neutral",
 );
 </script>
 
@@ -166,10 +183,9 @@ const preferenceLabel = computed(
 }
 
 .pr-preview-card__cover {
+  display: block;
   width: 100%;
   height: 108px;
-  background-size: cover;
-  background-position: center;
 }
 
 .pr-preview-card__body {

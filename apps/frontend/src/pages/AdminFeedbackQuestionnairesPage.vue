@@ -5,11 +5,11 @@
     </template>
 
     <template #main>
-      <LoadingIndicator
+      <PuLoadingState
         v-if="templatesQuery.isLoading.value"
         :message="t('common.loading')"
       />
-      <ErrorToast v-else-if="pageError" :message="pageError.message" persistent />
+      <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
       <BentoLayout v-else>
         <BentoItem
@@ -18,17 +18,17 @@
           span="full"
         >
           <template #actions>
-            <Button
-              appearance="pill"
+            <PuButton
+              shape="pill"
               size="sm"
-              type="button"
+
               data-testid="admin-feedback-questionnaires.save"
               :disabled="!canSave"
               :loading="isSaving"
               @click="handleSave"
             >
               {{ saveButtonLabel }}
-            </Button>
+            </PuButton>
           </template>
 
           <div class="grid">
@@ -89,16 +89,16 @@
     <template #rail>
       <AdminRailPanel :title="t('adminFeedbackQuestionnaires.templatesTitle')">
         <template #actions>
-          <Button
-            appearance="pill"
-            tone="outline"
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
             size="sm"
-            type="button"
+
             data-testid="admin-feedback-questionnaires.create"
             @click="handleNewTemplate"
           >
             {{ t("adminFeedbackQuestionnaires.newTemplateAction") }}
-          </Button>
+          </PuButton>
         </template>
 
         <p class="hint">
@@ -109,27 +109,17 @@
           }}
         </p>
 
-        <label class="field">
-          <span class="field-label">{{
-            t("adminFeedbackQuestionnaires.templateLabel")
-          }}</span>
-          <select
-            v-model="selectedTemplateIdRaw"
-            class="field-input"
+        <PuFormItem
+          :label="t('adminFeedbackQuestionnaires.templateLabel')"
+          for-id="admin-feedback-questionnaires-template-list"
+        >
+          <PuSelect
+            id="admin-feedback-questionnaires-template-list"
+            v-model="selectedTemplateIdModel"
+            :options="templateSelectOptions"
             data-testid="admin-feedback-questionnaires.template-list"
-          >
-            <option value="__new">
-              {{ t("adminFeedbackQuestionnaires.newTemplateOption") }}
-            </option>
-            <option
-              v-for="template in templates"
-              :key="template.id"
-              :value="String(template.id)"
-            >
-              {{ template.key }}@{{ template.version }}
-            </option>
-          </select>
-        </label>
+          />
+        </PuFormItem>
       </AdminRailPanel>
     </template>
   </AdminPageScaffold>
@@ -152,9 +142,15 @@ import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import {
+  PuButton,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+  PuSelect,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 type TemplateRecord = AdminFeedbackQuestionnaireTemplatesResponse[number];
 
@@ -212,6 +208,16 @@ const selectedTemplate = computed<TemplateRecord | null>(() => {
   if (!Number.isInteger(selectedId) || selectedId <= 0) return null;
   return templates.value.find((template) => template.id === selectedId) ?? null;
 });
+const templateSelectOptions = computed<PuSelectOption[]>(() => [
+  {
+    label: t("adminFeedbackQuestionnaires.newTemplateOption"),
+    value: newTemplateSentinel,
+  },
+  ...templates.value.map((template) => ({
+    label: `${template.key}@${template.version}`,
+    value: String(template.id),
+  })),
+]);
 const isCreating = computed(() => selectedTemplate.value === null);
 const isSaving = computed(
   () =>
@@ -243,6 +249,14 @@ const pageError = computed(
     updateTemplateMutation.error.value ??
     null,
 );
+
+const selectedTemplateIdModel = computed({
+  get: () => selectedTemplateIdRaw.value,
+  set: (value: PuSelectValue) => {
+    selectedTemplateIdRaw.value =
+      typeof value === "string" ? value : newTemplateSentinel;
+  },
+});
 
 const loadTemplateIntoDraft = (template: TemplateRecord) => {
   draftKey.value = template.key;

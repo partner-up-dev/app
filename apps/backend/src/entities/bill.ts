@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { BillLineKind, BillStatus } from "../domains/bill/model";
+import type { PaymentProviderInstanceId } from "./payment";
 import { tradeOrders, type TradeOrderId } from "./trade-order";
 import { users, type UserId } from "./user";
 
@@ -64,6 +65,11 @@ export const billLines = pgTable(
     refundOfBillLineId: uuid("refund_of_bill_line_id")
       .$type<BillLineId | null>()
       .references((): AnyPgColumn => billLines.id, { onDelete: "restrict" }),
+    paymentProviderInstanceId: uuid("payment_provider_instance_id").$type<
+      PaymentProviderInstanceId | null
+    >(),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
@@ -72,6 +78,9 @@ export const billLines = pgTable(
     refundOfBillLineIdx: index("bill_lines_refund_of_bill_line_idx").on(
       table.refundOfBillLineId,
     ),
+    paymentProviderInstanceIdx: index(
+      "bill_lines_payment_provider_instance_idx",
+    ).on(table.paymentProviderInstanceId),
   }),
 );
 

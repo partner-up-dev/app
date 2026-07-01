@@ -5,14 +5,14 @@
         :confirmation-window-text="confirmationWindowText"
       />
 
-      <Button
-        tone="surface"
+      <PuButton
+        tone="neutral" variant="soft"
         block
         data-testid="pr-detail.join-success.confirmation-followup.done"
         @click="handleJoinConfirmationFollowupDone"
       >
         {{ t("prPage.joinSuccessSubscriptions.closeAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template v-else-if="joinSuccessPromptStep === 'SUBSCRIPTIONS'">
@@ -41,14 +41,14 @@
         />
       </section>
 
-      <Button
-        tone="surface"
+      <PuButton
+        tone="neutral" variant="soft"
         block
         data-testid="pr-detail.join-success.done"
         @click="handleJoinSuccessSubscriptionDone"
       >
         {{ t("prPage.joinSuccessSubscriptions.closeAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template v-else>
@@ -58,14 +58,14 @@
         :show-official-account="communityFollowupShowsOfficialAccount"
       />
       <div class="join-success-prompt__actions">
-        <Button
-          type="button"
+        <PuButton
+
           block
           data-testid="pr-detail.join-success.community-followup.done"
           @click="handleJoinCommunityFollowupDone"
         >
           {{ t("prPage.joinCommunityFollowup.closeAction") }}
-        </Button>
+        </PuButton>
       </div>
     </template>
   </div>
@@ -75,7 +75,6 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
 import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
@@ -83,6 +82,7 @@ import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import PRJoinConfirmationFollowupPanel from "@/domains/pr/ui/composites/PRJoinConfirmationFollowupPanel.vue";
 import PRJoinCommunityFollowupPanel from "@/domains/pr/ui/composites/PRJoinCommunityFollowupPanel.vue";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
+import { PuButton } from "@partner-up-dev/design-web";
 
 type JoinSuccessPromptStep =
   | "CONFIRMATION_FOLLOWUP"

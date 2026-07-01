@@ -4,7 +4,7 @@
     class="form-mode-preference-control"
   >
     <div class="preference-cell-list">
-      <Cell
+      <PuCell
         v-for="cell in preferenceCells"
         :key="cell.key"
         as="button"
@@ -17,96 +17,69 @@
       />
     </div>
 
-    <p
+    <PuInlineNotice
       v-if="preferenceSubmissionMessage"
-      class="inline-message inline-message--error"
-    >
-      {{ preferenceSubmissionMessage }}
-    </p>
+      tone="error"
+      :message="preferenceSubmissionMessage"
+    />
 
-    <BottomDrawer
-      :open="preferenceDrawerOpen"
+    <PuDrawer
+      v-model:visible="preferenceDrawerOpen"
       :title="preferenceDrawerTitle"
-      min-height="40vh"
+      height="40vh"
       @close="handlePreferenceDrawerClose"
     >
       <div v-if="activeDrawerCell" class="preference-drawer">
         <section class="preference-group">
-          <div class="preference-group__list">
-            <div
-              v-for="tag in activeDrawerTags"
+          <PuChipGroup class="preference-group__list" wrap gap="sm">
+            <PuChip
+              v-for="tag in activeDrawerPresetTags"
               :key="tag.label"
-              class="tag-pill"
-              :class="{
-                'tag-pill--selected': isDrawerTagSelected(tag.label),
-                'tag-pill--removable': isDrawerCustomTag(tag.label),
-              }"
-            >
-              <button
-                class="tag-pill__body"
-                type="button"
-                @click="handleSelectDrawerTag(tag.label)"
-              >
-                <span class="tag-pill__label">
-                  {{ formatTagDisplayLabel(tag.label, activeDrawerCell) }}
-                </span>
-              </button>
-
-              <button
-                v-if="isDrawerCustomTag(tag.label)"
-                class="tag-pill__remove"
-                type="button"
-                :aria-label="
-                  t('anchorEvent.formMode.removeCustomTagAction', {
-                    label: formatTagDisplayLabel(tag.label, activeDrawerCell),
-                  })
-                "
-                @click="handleRemoveCustomTag(tag.label)"
-              >
-                <span class="i-mdi-close" aria-hidden="true"></span>
-              </button>
-            </div>
-
-            <div v-if="drawerCustomTagEditing" class="tag-pill tag-pill--draft">
-              <input
-                v-model.trim="drawerCustomTagInput"
-                class="tag-pill__input"
-                :placeholder="t('anchorEvent.formMode.customTagPlaceholder')"
-                type="text"
-                maxlength="80"
-                @keydown.enter.prevent="handleAddCustomTag"
-                @keydown.esc.prevent="cancelCustomTagDraft"
-              />
-              <button
-                class="tag-pill__remove"
-                type="button"
-                :aria-label="t('common.cancel')"
-                @click="cancelCustomTagDraft"
-              >
-                <span
-                  class="i-mdi-close tag-pill__close"
-                  aria-hidden="true"
-                ></span>
-              </button>
-            </div>
-
-            <button
-              v-else
-              class="tag-pill tag-pill--add"
+              as="button"
               type="button"
-              :aria-label="t('anchorEvent.formMode.addCustomTagAction')"
-              @click="openCustomTagDraft"
-            >
-              <span class="tag-pill__plus" aria-hidden="true">+</span>
-            </button>
-          </div>
+              shape="pill"
+              :selected="isDrawerTagSelected(tag.label)"
+              :tone="isDrawerTagSelected(tag.label) ? 'primary' : 'neutral'"
+              :variant="isDrawerTagSelected(tag.label) ? 'soft' : 'outline'"
+              :label="formatTagDisplayLabel(tag.label, activeDrawerCell)"
+              @click="handleSelectDrawerTag(tag.label)"
+            />
+          </PuChipGroup>
 
-          <p
-            v-if="drawerCustomTagMessage"
-            class="inline-message inline-message--error"
+          <PuFormItem
+            class="preference-custom-field"
+            :label="t('anchorEvent.formMode.customTagTitle')"
           >
-            {{ drawerCustomTagMessage }}
-          </p>
+            <PuChipGroup class="preference-custom-field__chips" wrap gap="sm">
+              <PuChipInput
+                v-for="tag in activeDrawerCustomTags"
+                :key="tag.label"
+                :model-value="formatTagDisplayLabel(tag.label, activeDrawerCell)"
+                shape="pill"
+                select-on-focus
+                commit-on-blur
+                :tone="isDrawerTagSelected(tag.label) ? 'primary' : 'neutral'"
+                :variant="isDrawerTagSelected(tag.label) ? 'soft' : 'outline'"
+                :remove-label="buildCustomTagRemoveLabel(tag.label)"
+                @focus="selectCustomLabel(tag.label)"
+                @commit="handleCommitCustomTag(tag.label, $event)"
+                @remove="handleRemoveCustomTag(tag.label)"
+              />
+
+              <PuChipInput
+                :model-value="customTagDraft"
+                shape="pill"
+                tone="neutral"
+                variant="dashed"
+                commit-on-blur
+                :removable="false"
+                :placeholder="t('anchorEvent.formMode.customTagPlaceholder')"
+                @update:model-value="handleCustomTagDraftUpdate"
+                @commit="handleAddCustomTag"
+                @cancel="handleCustomTagDraftUpdate"
+              />
+            </PuChipGroup>
+          </PuFormItem>
 
           <div v-if="activeDrawerDescription" class="tag-description-panel">
             {{ activeDrawerDescription }}
@@ -116,24 +89,20 @@
 
       <template #footer>
         <div class="drawer-actions">
-          <Button
-            appearance="pill"
-            tone="outline"
-            type="button"
+          <PuButton
+            shape="pill"
+            tone="neutral"
+            variant="outline"
             @click="closePreferenceDrawer"
           >
             {{ t("common.cancel") }}
-          </Button>
-          <Button
-            appearance="pill"
-            type="button"
-            @click="handleSavePreferenceDrawer"
-          >
+          </PuButton>
+          <PuButton shape="pill" @click="handleSavePreferenceDrawer">
             {{ t("common.confirm") }}
-          </Button>
+          </PuButton>
         </div>
       </template>
-    </BottomDrawer>
+    </PuDrawer>
   </section>
 </template>
 
@@ -146,12 +115,19 @@ import {
   derivePreferenceCategory,
 } from "@/domains/event/model/form-mode";
 import { useAnchorEventPreferenceTagSubmissions } from "@/domains/event/queries/useAnchorEventPreferenceTagSubmissions";
-import Button from "@/shared/ui/actions/Button.vue";
-import Cell from "@/shared/ui/display/Cell.vue";
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
+import {
+  PuButton,
+  PuCell,
+  PuChip,
+  PuChipGroup,
+  PuChipInput,
+  PuDrawer,
+  type PuDrawerCloseEvent,
+  PuFormItem,
+  PuInlineNotice,
+} from "@partner-up-dev/design-web";
 
 type FormModePresetTag = AnchorEventFormModeResponse["presetTags"][number];
-type BottomDrawerCloseReason = "backdrop" | "close-button" | "escape";
 type PreferenceCell =
   | {
       key: string;
@@ -185,17 +161,18 @@ const activeDrawerCell = ref<PreferenceCell | null>(null);
 const drawerSelectedCategoryMap = ref<Record<string, string | null>>({});
 const drawerSelectedUncategorizedLabels = ref<string[]>([]);
 const drawerCustomTags = ref<FormModePresetTag[]>([]);
-const drawerCustomTagEditing = ref(false);
-const drawerCustomTagInput = ref("");
-const drawerCustomTagMessage = ref<string | null>(null);
+const customTagDraft = ref("");
 const preferenceSubmissionMessage = ref<string | null>(null);
+
+const normalizeTagKey = (label: string): string =>
+  label.trim().toLocaleLowerCase("zh-CN");
 
 const mergeTagsByLabel = (
   tags: readonly FormModePresetTag[],
 ): FormModePresetTag[] => {
   const byLabel = new Map<string, FormModePresetTag>();
   for (const tag of tags) {
-    const key = tag.label.trim().toLocaleLowerCase("zh-CN");
+    const key = normalizeTagKey(tag.label);
     if (key.length === 0 || byLabel.has(key)) {
       continue;
     }
@@ -214,12 +191,16 @@ const drawerEffectiveTags = computed<FormModePresetTag[]>(() =>
   mergeTagsByLabel([...props.presetTags, ...drawerCustomTags.value]),
 );
 
+const presetTagKeys = computed(
+  () => new Set(props.presetTags.map((tag) => normalizeTagKey(tag.label))),
+);
+
 const preferenceTagGroups = computed(() =>
   buildPreferenceTagGroups(effectivePresetTags.value),
 );
 
-const drawerTagGroups = computed(() =>
-  buildPreferenceTagGroups(drawerEffectiveTags.value),
+const drawerPresetTagGroups = computed(() =>
+  buildPreferenceTagGroups(props.presetTags),
 );
 
 const preferenceCells = computed<PreferenceCell[]>(() => {
@@ -263,13 +244,25 @@ const preferenceDrawerTitle = computed(() => {
   });
 });
 
-const activeDrawerTags = computed<FormModePresetTag[]>(() => {
+const isTagInPreferenceCell = (
+  tag: FormModePresetTag,
+  cell: PreferenceCell,
+): boolean => {
+  const category = derivePreferenceCategory(tag.label);
+  if (cell.kind === "category") {
+    return category === cell.category;
+  }
+
+  return category === null;
+};
+
+const activeDrawerPresetTags = computed<FormModePresetTag[]>(() => {
   const cell = activeDrawerCell.value;
   if (!cell) {
     return [];
   }
 
-  const groups = drawerTagGroups.value;
+  const groups = drawerPresetTagGroups.value;
   if (cell.kind === "category") {
     return (
       groups.categorized.find((group) => group.category === cell.category)
@@ -282,6 +275,19 @@ const activeDrawerTags = computed<FormModePresetTag[]>(() => {
   }
 
   return groups.categorized.length === 0 ? groups.uncategorized : [];
+});
+
+const activeDrawerCustomTags = computed<FormModePresetTag[]>(() => {
+  const cell = activeDrawerCell.value;
+  if (!cell) {
+    return [];
+  }
+
+  return mergeTagsByLabel(drawerCustomTags.value).filter(
+    (tag) =>
+      !presetTagKeys.value.has(normalizeTagKey(tag.label)) &&
+      isTagInPreferenceCell(tag, cell),
+  );
 });
 
 const activeDrawerSelectedLabel = computed(() => {
@@ -303,7 +309,7 @@ const activeDrawerDescription = computed(() => {
     return "";
   }
 
-  const selectedTag = activeDrawerTags.value.find(
+  const selectedTag = activeDrawerPresetTags.value.find(
     (tag) => tag.label === selectedLabel,
   );
   return selectedTag?.description.trim() ?? "";
@@ -340,6 +346,13 @@ const stripAnyCategoryPrefix = (label: string): string => {
 const formatTagDisplayLabel = (label: string, cell: PreferenceCell): string =>
   cell.kind === "category" ? stripCategoryPrefix(label, cell.category) : label;
 
+const buildCustomTagRemoveLabel = (label: string): string => {
+  const cell = activeDrawerCell.value;
+  return t("anchorEvent.formMode.removeCustomTagAction", {
+    label: cell ? formatTagDisplayLabel(label, cell) : label,
+  });
+};
+
 const buildPreferenceCellValue = (cell: PreferenceCell): string => {
   if (cell.kind === "category") {
     const selected = props.modelValue.find(
@@ -355,7 +368,6 @@ const buildPreferenceCellValue = (cell: PreferenceCell): string => {
 };
 
 const openPreferenceDrawer = (cell: PreferenceCell) => {
-  drawerCustomTagMessage.value = null;
   activeDrawerCell.value = cell;
   const nextCategoryMap: Record<string, string | null> = {};
   const nextUncategorized: string[] = [];
@@ -372,23 +384,19 @@ const openPreferenceDrawer = (cell: PreferenceCell) => {
   drawerSelectedCategoryMap.value = nextCategoryMap;
   drawerSelectedUncategorizedLabels.value = [...nextUncategorized];
   drawerCustomTags.value = [...localCustomTags.value];
-  drawerCustomTagEditing.value = false;
-  drawerCustomTagInput.value = "";
+  customTagDraft.value = "";
   preferenceDrawerOpen.value = true;
 };
 
 const closePreferenceDrawer = () => {
   preferenceDrawerOpen.value = false;
   activeDrawerCell.value = null;
-  drawerCustomTagEditing.value = false;
-  drawerCustomTagInput.value = "";
-  drawerCustomTagMessage.value = null;
 };
 
-const handlePreferenceDrawerClose = async (
-  reason: BottomDrawerCloseReason,
-): Promise<void> => {
-  if (reason === "backdrop") {
+const handlePreferenceDrawerClose = async ({
+  reason,
+}: PuDrawerCloseEvent): Promise<void> => {
+  if (reason === "overlay") {
     await handleSavePreferenceDrawer();
     return;
   }
@@ -443,30 +451,6 @@ const handleSelectDrawerTag = (label: string) => {
   handleToggleDrawerUncategorizedTag(label);
 };
 
-const drawerCustomTagKeys = computed(
-  () =>
-    new Set(
-      drawerCustomTags.value.map((tag) =>
-        tag.label.trim().toLocaleLowerCase("zh-CN"),
-      ),
-    ),
-);
-
-const isDrawerCustomTag = (label: string): boolean =>
-  drawerCustomTagKeys.value.has(label.trim().toLocaleLowerCase("zh-CN"));
-
-const openCustomTagDraft = () => {
-  drawerCustomTagMessage.value = null;
-  drawerCustomTagInput.value = "";
-  drawerCustomTagEditing.value = true;
-};
-
-const cancelCustomTagDraft = () => {
-  drawerCustomTagInput.value = "";
-  drawerCustomTagMessage.value = null;
-  drawerCustomTagEditing.value = false;
-};
-
 const buildCustomTagLabelForActiveCell = (value: string): string | null => {
   const cell = activeDrawerCell.value;
   if (!cell) {
@@ -508,6 +492,25 @@ const selectCustomLabel = (label: string) => {
   }
 };
 
+const replaceDrawerSelection = (previousLabel: string, nextLabel: string) => {
+  const category = derivePreferenceCategory(previousLabel);
+  if (category) {
+    if (drawerSelectedCategoryMap.value[category] !== previousLabel) {
+      return;
+    }
+    drawerSelectedCategoryMap.value = {
+      ...drawerSelectedCategoryMap.value,
+      [category]: nextLabel,
+    };
+    return;
+  }
+
+  drawerSelectedUncategorizedLabels.value =
+    drawerSelectedUncategorizedLabels.value.map((item) =>
+      item === previousLabel ? nextLabel : item,
+    );
+};
+
 const removeDrawerSelection = (label: string) => {
   const category = derivePreferenceCategory(label);
   if (category) {
@@ -526,29 +529,59 @@ const removeDrawerSelection = (label: string) => {
 };
 
 const handleRemoveCustomTag = (label: string) => {
-  const key = label.trim().toLocaleLowerCase("zh-CN");
+  const key = normalizeTagKey(label);
   drawerCustomTags.value = drawerCustomTags.value.filter(
-    (tag) => tag.label.trim().toLocaleLowerCase("zh-CN") !== key,
+    (tag) => normalizeTagKey(tag.label) !== key,
   );
   removeDrawerSelection(label);
 };
 
-const handleAddCustomTag = () => {
-  drawerCustomTagMessage.value = null;
-  const normalized = buildCustomTagLabelForActiveCell(
-    drawerCustomTagInput.value,
+const handleCustomTagDraftUpdate = (value: string) => {
+  customTagDraft.value = value;
+};
+
+const hasDrawerTagLabel = (label: string, exceptLabel?: string): boolean => {
+  const key = normalizeTagKey(label);
+  const exceptKey = exceptLabel ? normalizeTagKey(exceptLabel) : null;
+  return drawerEffectiveTags.value.some((tag) => {
+    const tagKey = normalizeTagKey(tag.label);
+    return tagKey === key && tagKey !== exceptKey;
+  });
+};
+
+const handleCommitCustomTag = (previousLabel: string, value: string) => {
+  const normalized = buildCustomTagLabelForActiveCell(value);
+  if (!normalized) {
+    handleRemoveCustomTag(previousLabel);
+    return;
+  }
+
+  if (hasDrawerTagLabel(normalized, previousLabel)) {
+    handleRemoveCustomTag(previousLabel);
+    selectCustomLabel(normalized);
+    return;
+  }
+
+  const previousKey = normalizeTagKey(previousLabel);
+  drawerCustomTags.value = drawerCustomTags.value.map((tag) =>
+    normalizeTagKey(tag.label) === previousKey
+      ? {
+          ...tag,
+          label: normalized,
+        }
+      : tag,
   );
+  replaceDrawerSelection(previousLabel, normalized);
+  selectCustomLabel(normalized);
+};
+
+const handleAddCustomTag = (value: string) => {
+  const normalized = buildCustomTagLabelForActiveCell(value);
   if (!normalized) {
     return;
   }
 
-  const knownLabels = new Set(
-    [...drawerEffectiveTags.value, ...drawerCustomTags.value].map((tag) =>
-      tag.label.trim().toLocaleLowerCase("zh-CN"),
-    ),
-  );
-  const key = normalized.toLocaleLowerCase("zh-CN");
-  if (!knownLabels.has(key)) {
+  if (!hasDrawerTagLabel(normalized)) {
     const tag = {
       id: -Date.now(),
       label: normalized,
@@ -558,8 +591,7 @@ const handleAddCustomTag = () => {
   }
 
   selectCustomLabel(normalized);
-  drawerCustomTagInput.value = "";
-  drawerCustomTagEditing.value = false;
+  customTagDraft.value = "";
 };
 
 const handleSavePreferenceDrawer = async () => {
@@ -571,15 +603,10 @@ const handleSavePreferenceDrawer = async () => {
   ];
 
   const existingLocalKeys = new Set(
-    localCustomTags.value.map((tag) =>
-      tag.label.trim().toLocaleLowerCase("zh-CN"),
-    ),
+    localCustomTags.value.map((tag) => normalizeTagKey(tag.label)),
   );
   const newCustomLabels = drawerCustomTags.value
-    .filter(
-      (tag) =>
-        !existingLocalKeys.has(tag.label.trim().toLocaleLowerCase("zh-CN")),
-    )
+    .filter((tag) => !existingLocalKeys.has(normalizeTagKey(tag.label)))
     .map((tag) => tag.label);
 
   localCustomTags.value = [...drawerCustomTags.value];
@@ -626,125 +653,8 @@ const handleSavePreferenceDrawer = async () => {
   gap: var(--sys-spacing-medium);
 }
 
-.preference-group__title {
+.preference-custom-field {
   margin: 0;
-  @include mx.pu-font(section);
-}
-
-.preference-group__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sys-spacing-small);
-}
-
-.tag-pill {
-  display: inline-flex;
-  align-items: stretch;
-  gap: calc(var(--sys-spacing-xsmall) / 2);
-  min-width: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-large));
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-pill);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-  text-align: left;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    transform 180ms ease;
-}
-
-.tag-pill--selected {
-  border-color: var(--sys-color-primary);
-  background: var(--sys-color-primary-container);
-}
-
-.tag-pill--add,
-.tag-pill--draft {
-  align-items: center;
-  gap: var(--sys-spacing-xsmall);
-  min-height: var(--sys-spacing-large);
-  padding: var(--sys-spacing-xsmall) var(--sys-spacing-medium);
-}
-
-.tag-pill--add {
-  justify-content: center;
-  border-color: var(--sys-color-secondary);
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-  cursor: pointer;
-}
-
-.tag-pill--draft {
-  border-color: var(--sys-color-secondary);
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-}
-
-.tag-pill__body {
-  display: inline-flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sys-spacing-xsmall);
-  min-width: 0;
-  padding: var(--sys-spacing-small);
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: center;
-}
-
-.tag-pill--removable .tag-pill__body {
-  padding-right: calc(var(--sys-spacing-xsmall) / 2);
-}
-
-.tag-pill__label {
-  @include mx.pu-font(control);
-}
-
-.tag-pill__plus {
-  color: inherit;
-  @include mx.pu-icon(small, true);
-}
-
-.tag-pill__close {
-  color: inherit;
-  @include mx.pu-icon(small, true);
-}
-
-.tag-pill__input {
-  width: min(12rem, 20vw);
-  min-width: 7rem;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: inherit;
-  @include mx.pu-font(body);
-}
-
-.tag-pill__remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: currentColor;
-  cursor: pointer;
-}
-
-.tag-pill__remove:hover {
-  background: var(--sys-color-surface-container-high);
-}
-
-.tag-pill__remove :deep([class^="i-"]),
-.tag-pill__remove :deep([class*=" i-"]) {
-  @include mx.pu-icon(small);
 }
 
 .drawer-actions {
@@ -765,14 +675,5 @@ const handleSavePreferenceDrawer = async () => {
   color: var(--sys-color-on-surface-variant);
   white-space: pre-line;
   @include mx.pu-font(body);
-}
-
-.inline-message {
-  margin: 0;
-  @include mx.pu-font(support);
-}
-
-.inline-message--error {
-  color: var(--sys-color-error);
 }
 </style>

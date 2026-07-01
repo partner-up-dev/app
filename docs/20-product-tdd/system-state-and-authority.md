@@ -16,13 +16,18 @@ Persisted in Postgres via backend entities and repositories:
 - ecommerce merchandising truth, including Product Catalog (`SPU` / `SKU`),
   Offer, Placement Instance, Offer pricing rules, SKU pricing models, SKU
   facts, and SKU base cancellation policy
+- ecommerce listing / quote truth, including persisted Offer Listing quote
+  snapshots and quote validity state
 - ecommerce trade truth, including Order, order snapshots, PR-attached order
   relation, and order termination attempts
 - ecommerce family execution truth, including Rental execution fields on
-  `rental_orders` and RideHailing provider binding / execution fields on
-  `ride_hailing_orders`
-- ecommerce bill truth, including Bill, BillLine, and settlement derivation
-- ecommerce payment truth, including PaymentTx and gateway-facing payment state
+  `rental_orders` and RideHailing execution fields on `ride_hailing_orders`;
+  RideHailing provider binding lives in Trade order choice-set resolution
+  snapshots
+- ecommerce bill truth, including Bill, BillLine, BillLine payment execution
+  slot identity, BillLine settlement confirmation, and settlement derivation
+- ecommerce payment provider registry truth, including configured provider
+  instances and provider routing credentials
 - Study Sprint Pomodoro room, participant session, event ledger, and session aggregate state
 
 This is the source of truth for product behavior.
@@ -72,7 +77,9 @@ The backend is authoritative for:
 - PR join-gate configuration, join-gate projection, and join-notice acceptance resolution
 - PR feedback questionnaire projection, including mounted instance and current viewer response state
 - ecommerce merchandising configuration and placement matching outcome
-- ecommerce order, family execution, bill, and payment persisted lifecycle truth
+- ecommerce order, family execution, bill, and BillLine settlement lifecycle
+  truth
+- ecommerce payment provider registry and provider routing configuration
 - notification scheduling and dispatch for meeting-point update notifications
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
 - event-owned preference-tag pool, moderation state, default PR notes for future materialization, route pool, landing recommendation, and type-derived Anchor Event PR context
@@ -93,6 +100,12 @@ The frontend is authoritative for:
 - active route-scoped share orchestration and replay of the current share descriptor
 
 The frontend must not recreate or override backend domain rules as independent truth.
+
+Payment provider systems are authoritative for gateway-facing payment lifecycle
+state, provider transaction identifiers, provider payload snapshots, and
+provider failure status. The backend may query or verify provider state when
+building payment projections or accepting callbacks, but it must not persist a
+separate provider transaction state mirror as product truth.
 
 ## Escalation Rule
 

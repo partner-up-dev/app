@@ -8,15 +8,15 @@
         </p>
       </div>
       <div class="join-gate-editor__actions">
-        <Button
-          appearance="pill"
-          tone="outline"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="outline"
           size="sm"
-          type="button"
+
           @click="addJoinNotice"
         >
           添加 Join Notice
-        </Button>
+        </PuButton>
       </div>
     </div>
 
@@ -31,50 +31,50 @@
     >
       <div class="join-gate-row__header">
         <strong>{{ gate.kind }}</strong>
-        <Button
-          appearance="pill"
-          tone="danger"
+        <PuButton
+          shape="pill"
+          tone="danger" variant="outline"
           size="sm"
-          type="button"
+
           @click="removeGate(index)"
         >
           删除
-        </Button>
+        </PuButton>
       </div>
 
       <div class="join-gate-row__grid">
-        <label class="field">
-          <span class="field-label">key</span>
-          <input
-            class="field-input"
-            :value="gate.key"
-            @input="updateGateKey(index, $event)"
+        <PuFormItem label="key">
+          <PuInput
+            :model-value="gate.key"
+            @update:model-value="(value) => updateGateKey(index, value)"
           />
-        </label>
-        <label class="field">
-          <span class="field-label">version</span>
-          <input
-            class="field-input"
-            :value="gate.version"
-            @input="updateGateVersion(index, $event)"
+        </PuFormItem>
+
+        <PuFormItem label="version">
+          <PuInput
+            :model-value="gate.version"
+            @update:model-value="(value) => updateGateVersion(index, value)"
           />
-        </label>
-        <label class="field field--full">
-          <span class="field-label">标题</span>
-          <input
-            class="field-input"
-            :value="gate.title"
-            @input="updateGateTitle(index, $event)"
+        </PuFormItem>
+
+        <PuFormItem label="标题" class="field--full">
+          <PuInput
+            :model-value="gate.title"
+            @update:model-value="(value) => updateGateTitle(index, value)"
           />
-        </label>
-        <label v-if="gate.kind === 'JOIN_NOTICE'" class="field field--full">
-          <span class="field-label">须知正文</span>
-          <textarea
-            class="field-input field-textarea"
-            :value="gate.body"
-            @input="updateJoinNoticeBody(index, $event)"
-          ></textarea>
-        </label>
+        </PuFormItem>
+
+        <PuFormItem
+          v-if="gate.kind === 'JOIN_NOTICE'"
+          label="须知正文"
+          class="field--full"
+        >
+          <PuTextarea
+            :model-value="gate.body"
+            rows="5"
+            @update:model-value="(value) => updateJoinNoticeBody(index, value)"
+          />
+        </PuFormItem>
       </div>
     </article>
   </section>
@@ -88,7 +88,12 @@ import type {
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
 } from "@partner-up-dev/backend";
-import Button from "@/shared/ui/actions/Button.vue";
+import {
+  PuButton,
+  PuFormItem,
+  PuInput,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   modelValue: PRJoinGateConfig;
@@ -102,11 +107,6 @@ const emit = defineEmits<{
 const normalizedGates = computed(() =>
   props.modelValue.map((gate) => normalizeGateSource(gate)),
 );
-
-const readInputValue = (event: Event): string => {
-  const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
-  return target?.value ?? "";
-};
 
 const normalizeGateSource = (
   gate: PRJoinGateConfigItem,
@@ -131,39 +131,39 @@ const updateGateAt = (index: number, gate: PRJoinGateConfigItem): void => {
   commit(next);
 };
 
-const updateGateKey = (index: number, event: Event): void => {
+const updateGateKey = (index: number, value: string): void => {
   const gate = normalizedGates.value[index];
   if (!gate) return;
   updateGateAt(index, {
     ...gate,
-    key: readInputValue(event),
+    key: value,
   });
 };
 
-const updateGateVersion = (index: number, event: Event): void => {
+const updateGateVersion = (index: number, value: string): void => {
   const gate = normalizedGates.value[index];
   if (!gate) return;
   updateGateAt(index, {
     ...gate,
-    version: readInputValue(event),
+    version: value,
   });
 };
 
-const updateGateTitle = (index: number, event: Event): void => {
+const updateGateTitle = (index: number, value: string): void => {
   const gate = normalizedGates.value[index];
   if (!gate) return;
   updateGateAt(index, {
     ...gate,
-    title: readInputValue(event),
+    title: value,
   });
 };
 
-const updateJoinNoticeBody = (index: number, event: Event): void => {
+const updateJoinNoticeBody = (index: number, value: string): void => {
   const gate = normalizedGates.value[index];
   if (!gate || gate.kind !== "JOIN_NOTICE") return;
   updateGateAt(index, {
     ...gate,
-    body: readInputValue(event),
+    body: value,
   });
 };
 
@@ -187,8 +187,7 @@ const removeGate = (index: number): void => {
 
 <style lang="scss" scoped>
 .join-gate-editor,
-.join-gate-row,
-.field {
+.join-gate-row {
   display: flex;
   flex-direction: column;
 }
@@ -237,30 +236,7 @@ const removeGate = (index: number): void => {
   gap: var(--sys-spacing-small);
 }
 
-.field {
-  gap: var(--sys-spacing-xsmall);
-}
-
 .field--full {
   grid-column: 1 / -1;
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-
-.field-textarea {
-  min-height: 112px;
-  resize: vertical;
 }
 </style>

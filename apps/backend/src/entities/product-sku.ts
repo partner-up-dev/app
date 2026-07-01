@@ -8,7 +8,13 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import type { CatalogStatus, PricingModel, SkuFacts } from "../domains/merchandising/model";
+import { sql } from "drizzle-orm";
+import type {
+  CatalogStatus,
+  PricingModel,
+  ProductPresentation,
+  SkuFacts,
+} from "../domains/merchandising/model";
 import { productSpus, type ProductSpuId } from "./product-spu";
 
 export type SkuCancellationPolicyRef = {
@@ -28,6 +34,12 @@ export const productSkus = pgTable(
     status: text("status").$type<CatalogStatus>().notNull().default("DRAFT"),
     name: text("name").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
+    presentation: jsonb("presentation")
+      .$type<ProductPresentation>()
+      .notNull()
+      .default(
+        sql`'{"heroImageAssetIds":[],"detailImageAssetIds":[],"sellingPoints":[],"parameterGroups":[],"noticeBlocks":[]}'::jsonb`,
+      ),
     facts: jsonb("facts").$type<SkuFacts>().notNull(),
     pricingModel: jsonb("pricing_model").$type<PricingModel>().notNull(),
     cancellationPolicyRef: jsonb("cancellation_policy_ref")
@@ -37,10 +49,7 @@ export const productSkus = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    spuSortOrderIdx: index("product_skus_spu_sort_order_idx").on(
-      table.spuId,
-      table.sortOrder,
-    ),
+    spuSortOrderIdx: index("product_skus_spu_sort_order_idx").on(table.spuId, table.sortOrder),
   }),
 );
 

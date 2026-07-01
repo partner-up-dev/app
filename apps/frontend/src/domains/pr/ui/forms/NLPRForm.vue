@@ -1,17 +1,15 @@
 <template>
-  <form class="nl-form" @submit.prevent="onSubmit">
+  <PuForm class="nl-form" @submit="onSubmit">
     <Field name="rawText" v-slot="{ field, errors }">
       <div class="nl-field">
-        <TextareaInput
-          input-id="pr-text"
+        <PuTextarea
+          id="pr-text"
           :model-value="field.value"
           @update:model-value="field.onChange"
           :disabled="isSubmitting"
           :placeholder="placeholderText"
-          :rows="3"
-          :max-length="120"
+          :maxlength="120"
           show-count
-          min-height="120px"
         />
         <div class="nl-actions">
           <button
@@ -41,18 +39,18 @@
       </div>
     </Field>
 
-    <Button type="submit" class="submit-action" :loading="isSubmitting" full-width>
+    <PuButton :action="{ native: 'submit' }" class="submit-action" :loading="isSubmitting" block>
       {{ t("nlForm.submit") }}
-    </Button>
+    </PuButton>
 
-    <LoadingIndicator v-if="isSubmitting" :message="t('nlForm.parsing')" />
+    <PuLoadingState v-if="isSubmitting" :message="t('nlForm.parsing')" />
 
-    <ErrorToast
+    <PuInlineNotice tone="error" dismissible
       v-if="createMutation.isError.value"
       :message="submitErrorMessage"
       @close="createMutation.reset()"
     />
-  </form>
+  </PuForm>
 </template>
 
 <script setup lang="ts">
@@ -63,14 +61,17 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { createNaturalLanguagePRValidationSchema } from "@/lib/validation";
 import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { useLandingRotatingTopic } from "@/domains/landing/use-cases/useLandingRotatingTopic";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-import Button from "@/shared/ui/actions/Button.vue";
-import TextareaInput from "@/shared/ui/forms/TextareaInput.vue";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
+import {
+  PuButton,
+  PuForm,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {

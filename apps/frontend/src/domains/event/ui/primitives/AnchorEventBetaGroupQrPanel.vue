@@ -58,9 +58,7 @@ const normalizeHttpUrl = (value: string | null | undefined): string | null => {
 };
 
 const normalizedQrCodeUrl = computed(() => normalizeHttpUrl(props.qrCodeUrl));
-const qrAlt = computed(() =>
-  t("prPage.betaGroupEntry.qrAlt", { eventTitle: props.eventTitle }),
-);
+const qrAlt = computed(() => t("prPage.betaGroupEntry.qrAlt", { eventTitle: props.eventTitle }));
 </script>
 
 <style lang="scss" scoped>
@@ -108,7 +106,10 @@ const qrAlt = computed(() =>
 }
 
 .beta-group-qr-panel__qr-image {
+  display: block;
   width: min(100%, 240px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
   border-radius: var(--sys-radius-small);
 }
 

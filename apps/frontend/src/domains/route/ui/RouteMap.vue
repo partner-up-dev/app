@@ -6,14 +6,25 @@
       :markers="markers"
       :polylines="polylines"
       :active-geometry="activeGeometry ?? { kind: 'all' }"
+      :overview-geometry="overviewGeometry"
+      :viewport-follow-mode="viewportFollowMode"
+      :fit-on-geometry-change="fitOnGeometryChange"
+      :follow-reset-key="followResetKey"
+      :follow-zoom="followZoom"
+      :show-viewport-follow-controls="showViewportFollowControls"
+      :resume-follow-label="resumeFollowLabel"
+      :overview-label="overviewLabel"
       :fit-padding="fitPadding"
       :max-zoom="maxZoom"
       :interactive="interactive"
       :variant="variant"
       :hide-bottom-attribution="hideBottomAttribution"
+      :show-default-controls="showDefaultControls"
+      :show-zoom-controls="showZoomControls"
       :loading-message="t('route.mapLoading')"
       :unavailable-message="t('route.mapUnavailable')"
       :error-message="t('route.mapFailed')"
+      @marker-click="handleMarkerClick"
     >
       <template #fallback>
         <div class="route-map__fallback">
@@ -49,14 +60,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import SharedMap from "@/shared/map/Map.vue";
-import type {
-  MapActiveGeometry,
-  MapCoordinate,
-  MapFitPadding,
-  MapMarker,
-  MapPolyline,
-} from "@/shared/map/types";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import {
   buildRouteSummary,
@@ -69,36 +72,83 @@ import {
   fetchTencentDrivingRoutePlans,
   type TencentDrivingRoutePlan,
 } from "@/domains/route/model/route-planning";
+import SharedMap from "@/shared/map/Map.vue";
+import type {
+  MapActiveGeometry,
+  MapCoordinate,
+  MapFitPadding,
+  MapMarker,
+  MapPolyline,
+  MapPolylineTone,
+  MapViewportFollowMode,
+} from "@/shared/map/types";
+import {
+  normalizeRouteMapExtraPolylines,
+  ROUTE_MAP_FALLBACK_POLYLINE_TONE,
+  resolveRouteMapPlannedPolylineTone,
+} from "./route-map-polylines";
 
 const props = withDefaults(
   defineProps<{
     route: Route | null;
     plannedPolyline?: readonly MapCoordinate[] | null;
+    extraMarkers?: readonly MapMarker[];
+    extraPolylines?: readonly MapPolyline[];
     planRoute?: boolean;
     planningApiKey?: string;
     activeGeometry?: MapActiveGeometry;
+    overviewGeometry?: MapActiveGeometry;
+    viewportFollowMode?: MapViewportFollowMode;
+    fitOnGeometryChange?: boolean;
+    followResetKey?: string | number | null;
+    followZoom?: number;
+    showViewportFollowControls?: boolean;
+    resumeFollowLabel?: string;
+    overviewLabel?: string;
     fitPadding?: MapFitPadding;
     maxZoom?: number;
     apiKey?: string;
     interactive?: boolean;
+    showDefaultControls?: boolean;
+    showZoomControls?: boolean;
+    routePointsEditable?: boolean;
     variant?: "inline" | "immersive";
     hideBottomAttribution?: boolean;
+    showFallbackPolyline?: boolean;
   }>(),
   {
     plannedPolyline: null,
+    extraMarkers: () => [],
+    extraPolylines: () => [],
     planRoute: true,
     planningApiKey: undefined,
     activeGeometry: null,
+    overviewGeometry: null,
+    viewportFollowMode: "none",
+    fitOnGeometryChange: true,
+    followResetKey: null,
+    followZoom: 17,
+    showViewportFollowControls: false,
+    resumeFollowLabel: "回到跟随",
+    overviewLabel: "查看全程",
     fitPadding: 28,
     maxZoom: 16,
     apiKey: undefined,
     interactive: true,
+    showDefaultControls: false,
+    showZoomControls: true,
+    routePointsEditable: false,
     variant: "inline",
     hideBottomAttribution: false,
+    showFallbackPolyline: true,
   },
 );
 
 const { t } = useI18n();
+
+const emit = defineEmits<{
+  routePointClick: [index: number];
+}>();
 
 const planningAbortController = ref<AbortController | null>(null);
 const planningStatus = ref<"idle" | "loading" | "success" | "error">("idle");
@@ -138,6 +188,11 @@ const planningUrl = computed(() => {
 
 const routePlanningPrimary = computed(() => plannedRoutes.value[0] ?? null);
 
+const routePointFallbackLabel = (index: number): string =>
+  t("route.pointFallback", {
+    index: index + 1,
+  });
+
 const buildPointMarker = ({
   point,
   index,
@@ -148,33 +203,56 @@ const buildPointMarker = ({
   position: MapCoordinate;
 }): MapMarker => {
   const role = resolveRoutePointRole(index, routePoints.value.length);
+  const title = point?.name.trim() || routePointFallbackLabel(index);
   return {
     id: `route-point-${index}`,
     position,
-    title:
-      point?.name.trim() ||
-      t("route.pointFallback", {
-        index: index + 1,
-      }),
-    icon:
-      role === "departure"
-        ? "routeStart"
-        : role === "arrival"
-          ? "routeEnd"
-          : "routeWaypoint",
+    calloutLabel: props.routePointsEditable ? `${title} ›` : title,
+    title,
+    icon: role === "departure" ? "routeStart" : role === "arrival" ? "routeEnd" : "routeWaypoint",
   };
 };
 
-const markers = computed<MapMarker[]>(() => {
+const fallbackMarkers = computed<MapMarker[]>(() =>
+  routePoints.value.flatMap((point, index): MapMarker[] => {
+    const position = pickRoutePointCoordinate(point);
+    return position
+      ? [
+          buildPointMarker({
+            point,
+            index,
+            position,
+          }),
+        ]
+      : [];
+  }),
+);
+
+const parseRoutePointMarkerId = (markerId: string): number | null => {
+  const match = /^route-point-(\d+)$/.exec(markerId);
+  if (!match) return null;
+  const index = Number(match[1]);
+  return Number.isInteger(index) ? index : null;
+};
+
+const handleMarkerClick = (markerId: string) => {
+  if (!props.routePointsEditable) return;
+  const index = parseRoutePointMarkerId(markerId);
+  if (index === null) return;
+  if (index < 0 || index >= routePoints.value.length) return;
+  emit("routePointClick", index);
+};
+
+const routeMarkers = computed<MapMarker[]>(() => {
   const primaryPlan = routePlanningPrimary.value;
   if (!primaryPlan || primaryPlan.polyline.length < 2) {
-    return projection.value.markers;
+    return fallbackMarkers.value;
   }
 
   const firstPoint = primaryPlan.polyline[0];
   const lastPoint = primaryPlan.polyline[primaryPlan.polyline.length - 1];
   if (!firstPoint || !lastPoint) {
-    return projection.value.markers;
+    return fallbackMarkers.value;
   }
 
   const waypointMarkers = routePoints.value.slice(1, -1).map((point, index) => {
@@ -201,14 +279,16 @@ const markers = computed<MapMarker[]>(() => {
   ];
 });
 
-const polylines = computed<MapPolyline[]>(() => {
+const markers = computed<MapMarker[]>(() => [...routeMarkers.value, ...props.extraMarkers]);
+
+const routePolylines = computed<MapPolyline[]>(() => {
   if (externalPlannedPolyline.value) {
     return [
       {
         id: "route",
         path: externalPlannedPolyline.value,
         title: buildRouteSummary(props.route) ?? undefined,
-        tone: "routePrimary",
+        tone: resolveRouteMapPlannedPolylineTone(0),
       },
     ];
   }
@@ -220,7 +300,7 @@ const polylines = computed<MapPolyline[]>(() => {
             id: plan.id,
             path: plan.polyline,
             title: buildRouteSummary(props.route) ?? undefined,
-            tone: index === 0 ? "routePrimary" : "routeSecondary",
+            tone: resolveRouteMapPlannedPolylineTone(index),
           }
         : null,
     )
@@ -233,15 +313,32 @@ const polylines = computed<MapPolyline[]>(() => {
     return [];
   }
 
+  if (!props.showFallbackPolyline) {
+    return [];
+  }
+
   return projection.value.polylines.map((polyline) => ({
     ...polyline,
-    tone: "routeInvalid",
+    tone: ROUTE_MAP_FALLBACK_POLYLINE_TONE,
   }));
 });
 
-const hasGeometry = computed(
-  () => markers.value.length > 0 || polylines.value.length > 0,
-);
+const polylines = computed<MapPolyline[]>(() => {
+  const usedTones = new Set(
+    routePolylines.value
+      .map((polyline) => polyline.tone)
+      .filter((tone): tone is MapPolylineTone => Boolean(tone)),
+  );
+  return [
+    ...routePolylines.value,
+    ...normalizeRouteMapExtraPolylines({
+      polylines: props.extraPolylines,
+      usedTones,
+    }),
+  ];
+});
+
+const hasGeometry = computed(() => markers.value.length > 0 || polylines.value.length > 0);
 
 const clearPlanning = () => {
   planningAbortController.value?.abort();
@@ -295,9 +392,7 @@ const formatPointLabel = (point: RoutePoint, index: number): string => {
     index: index + 1,
   });
   const address = point.full_address?.trim() ?? "";
-  return address.length > 0
-    ? `${name || fallback} · ${address}`
-    : name || fallback;
+  return address.length > 0 ? `${name || fallback} · ${address}` : name || fallback;
 };
 </script>
 

@@ -15,99 +15,88 @@
           </p>
         </div>
 
-        <FormField :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
-          <input
+        <PuFormItem :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
+          <PuInput
             id="analytics-start-at"
             v-model="draftStartAt"
-            class="analytics-input"
-            type="datetime-local"
+            native-type="datetime-local"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
-          <input
+        <PuFormItem :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
+          <PuInput
             id="analytics-end-at"
             v-model="draftEndAt"
-            class="analytics-input"
-            type="datetime-local"
+            native-type="datetime-local"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.eventIdLabel')"
           for-id="analytics-event-id"
         >
-          <input
+          <PuInput
             id="analytics-event-id"
             v-model="draftEventId"
-            class="analytics-input"
             inputmode="numeric"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.allEventsPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.sourceSpmLabel')"
           for-id="analytics-spm"
         >
-          <input
+          <PuInput
             id="analytics-spm"
             v-model="draftSpm"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.sourceSpmPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.sourceQrLabel')"
           for-id="analytics-source-qr"
         >
-          <input
+          <PuInput
             id="analytics-source-qr"
             v-model="draftSourceQr"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.sourceQrPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.assignmentRevisionLabel')"
           for-id="analytics-assignment-revision"
         >
-          <input
+          <PuInput
             id="analytics-assignment-revision"
             v-model="draftAssignmentRevision"
-            class="analytics-input"
-            type="text"
+            native-type="text"
             :placeholder="t('adminAnalytics.assignmentRevisionPlaceholder')"
           />
-        </FormField>
+        </PuFormItem>
 
-        <FormField
+        <PuFormItem
           v-if="showsAnchorEventFilters"
           :label="t('adminAnalytics.renderedModeLabel')"
           for-id="analytics-mode"
         >
-          <select
+          <PuSelect
             id="analytics-mode"
-            v-model="draftRenderedMode"
-            class="analytics-input"
-          >
-            <option value="">{{ t("adminAnalytics.allModesOption") }}</option>
-            <option v-for="mode in modeOptions" :key="mode" :value="mode">
-              {{ formatMode(mode) }}
-            </option>
-          </select>
-        </FormField>
+            v-model="draftRenderedModeModel"
+            :options="renderedModeOptions"
+          />
+        </PuFormItem>
 
-        <InlineNotice
+        <PuInlineNotice
           v-if="filterError"
           tone="error"
           :message="filterError"
@@ -115,10 +104,10 @@
         />
 
         <div class="analytics-filter-rail__actions">
-          <Button
-            appearance="rect"
-            tone="primary"
-            type="button"
+          <PuButton
+            shape="rect"
+            tone="primary" variant="solid"
+
             data-testid="admin-analytics.filters.apply"
             @click="applyFilters"
           >
@@ -126,11 +115,11 @@
               <span class="i-mdi-filter-check" aria-hidden="true"></span>
             </template>
             {{ t("adminAnalytics.applyFiltersAction") }}
-          </Button>
-          <Button
-            appearance="rect"
-            tone="outline"
-            type="button"
+          </PuButton>
+          <PuButton
+            shape="rect"
+            tone="neutral" variant="outline"
+
             data-testid="admin-analytics.filters.reset"
             @click="resetFilters"
           >
@@ -138,17 +127,17 @@
               <span class="i-mdi-refresh" aria-hidden="true"></span>
             </template>
             {{ t("adminAnalytics.resetFiltersAction") }}
-          </Button>
+          </PuButton>
         </div>
       </aside>
     </template>
 
     <template #actions>
-      <Button
-        appearance="pill"
-        tone="surface"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="soft"
         size="sm"
-        type="button"
+
         :loading="isDashboardRefreshing"
         data-testid="admin-analytics.refresh"
         @click="refreshDashboard"
@@ -157,16 +146,16 @@
           <span class="i-mdi-sync" aria-hidden="true"></span>
         </template>
         {{ t("adminAnalytics.refreshAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #main>
       <div class="analytics-dashboard" data-testid="admin-analytics.dashboard">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="isInitialLoading"
           :message="t('adminAnalytics.loading')"
         />
-        <InlineNotice
+        <PuInlineNotice
           v-else-if="dashboardError"
           tone="error"
           :title="t('adminAnalytics.loadFailedTitle')"
@@ -729,9 +718,13 @@
                       <td>{{ formatMode(row.renderedMode) }}</td>
                       <td>{{ formatCommitmentType(row.commitmentType) }}</td>
                       <td>
-                        <span class="status-pill" :class="`status-pill--${row.actionResult}`">
-                          {{ formatActionResult(row.actionResult) }}
-                        </span>
+                        <PuTag
+                          :text="formatActionResult(row.actionResult)"
+                          :tone="actionResultTagTone(row.actionResult)"
+                          variant="soft"
+                          shape="pill"
+                          size="xs"
+                        />
                       </td>
                       <td>{{ formatCount(row.journeyCount) }}</td>
                       <td>{{ formatCount(row.eventCount) }}</td>
@@ -849,10 +842,17 @@ import {
   type AdminPRCreateFunnelResponse,
   type AdminPRJoinFunnelResponse,
 } from "@/domains/admin/queries/useAdminAnalytics";
-import Button from "@/shared/ui/actions/Button.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import {
+  PuButton,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  PuLoadingState,
+  PuSelect,
+  PuTag,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
 type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];
@@ -955,6 +955,27 @@ const filterError = ref<string | null>(null);
 const focusedMode = ref<AnchorEventAnalyticsRenderedMode | null>(null);
 const refreshPending = ref(false);
 
+const isRenderedMode = (
+  value: PuSelectValue,
+): value is AnchorEventAnalyticsRenderedMode =>
+  typeof value === "string" &&
+  modeOptions.includes(value as AnchorEventAnalyticsRenderedMode);
+
+const renderedModeOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminAnalytics.allModesOption"), value: "" },
+  ...modeOptions.map((mode) => ({
+    label: formatMode(mode),
+    value: mode,
+  })),
+]);
+
+const draftRenderedModeModel = computed({
+  get: () => draftRenderedMode.value,
+  set: (value: PuSelectValue) => {
+    draftRenderedMode.value = isRenderedMode(value) ? value : "";
+  },
+});
+
 const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
   startAt: parseLocalInputValue(defaultRange.startAt)?.toISOString(),
   endAt: parseLocalInputValue(defaultRange.endAt)?.toISOString(),
@@ -1033,6 +1054,14 @@ const formatCommitmentType = (
 ): string => t(`adminAnalytics.commitmentType.${type}`);
 const formatActionResult = (result: OutcomeBreakdownRow["actionResult"]): string =>
   t(`adminAnalytics.actionResult.${result}`);
+const actionResultTagTone = (
+  result: OutcomeBreakdownRow["actionResult"],
+) => {
+  if (result === "success") return "success";
+  if (result === "blocked") return "warning";
+  if (result === "failure") return "error";
+  return "neutral";
+};
 const formatNudgeSource = (
   source: OfficialAccountFollowNudgeSourceRow["source"],
 ): string => t(`adminAnalytics.officialAccountNudgeSource.${source}`);
@@ -1446,23 +1475,6 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   color: var(--sys-color-on-surface-variant);
 }
 
-.analytics-input {
-  @include mx.pu-font(body);
-  width: 100%;
-  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
-  min-width: 0;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface-container-lowest);
-  color: var(--sys-color-on-surface);
-}
-
-.analytics-input:focus {
-  outline: 2px solid var(--sys-color-primary);
-  outline-offset: 1px;
-}
-
 .analytics-filter-rail__actions {
   gap: var(--sys-spacing-small);
 }
@@ -1701,32 +1713,6 @@ const formatFailureKey = (row: FailureBreakdownRow): string =>
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sys-spacing-medium);
-}
-
-.status-pill {
-  @include mx.pu-font(caption);
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 var(--sys-spacing-small);
-  border-radius: 999px;
-  background: var(--sys-color-surface-container);
-  color: var(--sys-color-on-surface);
-}
-
-.status-pill--success {
-  background: var(--sys-color-primary-container);
-  color: var(--sys-color-on-primary-container);
-}
-
-.status-pill--blocked {
-  background: var(--sys-color-warning);
-  color: var(--sys-color-on-warning);
-}
-
-.status-pill--failure {
-  background: var(--sys-color-error-container);
-  color: var(--sys-color-on-error-container);
 }
 
 @media (max-width: 1180px) {

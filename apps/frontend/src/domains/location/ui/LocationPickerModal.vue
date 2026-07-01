@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="title ?? t('locationPicker.title')"
     max-width="760px"
@@ -12,12 +12,12 @@
       @pick="handlePick"
       @cancel="emit('close')"
     />
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
 

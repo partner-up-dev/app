@@ -1,7 +1,4 @@
-import type {
-  PaymentProviderInstance,
-  PaymentProviderInstanceId,
-} from "../../../entities/payment";
+import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import type {
@@ -10,11 +7,11 @@ import type {
   WeChatPayChargeMode,
   WeChatPayProviderInstanceConfig,
 } from "../../payment/model";
-import {
-  toAdminPaymentProviderInstanceView,
-  type AdminPaymentProviderInstanceView,
-} from "./provider-instance-view";
 import { normalizeAndValidateWeChatPayProviderConfig } from "../../payment/services/wechatpay-config-validation";
+import {
+  type AdminPaymentProviderInstanceView,
+  toAdminPaymentProviderInstanceView,
+} from "./provider-instance-view";
 
 const providerRepo = new PaymentProviderInstanceRepository();
 
@@ -38,9 +35,7 @@ export type AdminPaymentProviderInstanceInput = {
   };
 };
 
-const derivePaymentProviderInstanceKey = (
-  input: AdminPaymentProviderInstanceInput,
-): string => {
+const derivePaymentProviderInstanceKey = (input: AdminPaymentProviderInstanceInput): string => {
   if (input.providerType === "WECHAT_PAY") {
     return `mch:${input.config.mchId.trim()}:app:${input.config.appId.trim()}`;
   }
@@ -51,9 +46,7 @@ const derivePaymentProviderInstanceKey = (
   });
 };
 
-const normalizeOptionalString = (
-  value: string | null | undefined,
-): string | null => {
+const normalizeOptionalString = (value: string | null | undefined): string | null => {
   const normalized = value?.trim() ?? "";
   return normalized.length > 0 ? normalized : null;
 };
@@ -119,34 +112,11 @@ const assertUniqueInstanceKey = async (input: {
 
   if (
     existing &&
-    (!input.currentProviderInstanceId ||
-      existing.id !== input.currentProviderInstanceId)
+    (!input.currentProviderInstanceId || existing.id !== input.currentProviderInstanceId)
   ) {
     return throwHttpProblem({
       status: 409,
       detail: "Payment provider instance key already exists",
-    });
-  }
-};
-
-const assertActiveClientAvailable = async (input: {
-  status: PaymentProviderInstanceStatus;
-  clientId: string;
-  currentProviderInstanceId?: PaymentProviderInstanceId;
-}): Promise<void> => {
-  if (input.status !== "ACTIVE") {
-    return;
-  }
-
-  const existing = await providerRepo.findActiveByClientId(input.clientId);
-  if (
-    existing &&
-    (!input.currentProviderInstanceId ||
-      existing.id !== input.currentProviderInstanceId)
-  ) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Active payment provider instance already exists for clientId",
     });
   }
 };
@@ -174,10 +144,6 @@ export async function createAdminPaymentProviderInstance(
   await assertUniqueInstanceKey({
     providerType: input.providerType,
     instanceKey,
-  });
-  await assertActiveClientAvailable({
-    status: input.status,
-    clientId: input.clientId,
   });
 
   const created = await providerRepo.create({
@@ -213,11 +179,6 @@ export async function updateAdminPaymentProviderInstance(input: {
   await assertUniqueInstanceKey({
     providerType: input.payload.providerType,
     instanceKey,
-    currentProviderInstanceId: existing.id,
-  });
-  await assertActiveClientAvailable({
-    status: input.payload.status,
-    clientId: input.payload.clientId,
     currentProviderInstanceId: existing.id,
   });
 

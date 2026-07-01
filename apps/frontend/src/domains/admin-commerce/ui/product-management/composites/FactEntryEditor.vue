@@ -41,12 +41,12 @@
     </div>
 
     <div class="pm-inline-actions">
-      <Button appearance="pill" tone="danger" size="sm" type="button" @click="emit('remove')">
+      <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="emit('remove')">
         <template #leading>
           <span class="i-mdi-delete-outline" />
         </template>
         {{ removeLabel }}
-      </Button>
+      </PuButton>
     </div>
   </article>
 </template>
@@ -55,7 +55,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { FactEntryDraft } from "@/domains/admin-commerce/model/product-management/spuEditorModel";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
 
 defineProps<{

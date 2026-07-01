@@ -7,45 +7,48 @@
     <template #rail>
       <AdminRailPanel :title="t('adminAnchorEvents.eventsTitle')">
         <template #actions>
-          <Button
-            appearance="pill"
-            tone="outline"
+          <PuButton
+            shape="pill"
+            tone="neutral" variant="outline"
             size="sm"
-            type="button"
+
             @click="prepareNewEvent"
           >
             {{ t("adminAnchorEvents.newEventAction") }}
-          </Button>
+          </PuButton>
         </template>
 
         <div v-if="events.length === 0" class="hint">
           {{ t("adminAnchorEvents.emptyEvents") }}
         </div>
         <div v-else class="anchor-event-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="event in events"
             :key="event.id"
             class="anchor-event-card"
             :active="!isCreatingEvent && selectedEventId === event.id"
             @click="selectEvent(event.id)"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>{{ event.title }}</span>
             <small>{{ event.status }}</small>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
 
         <template v-else>
@@ -105,7 +108,7 @@
             :disabled="isCreatingEvent"
           />
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="mutationErrorMessage"
             :message="mutationErrorMessage"
             @close="resetMutationErrors"
@@ -122,10 +125,6 @@ import { useI18n } from "vue-i18n";
 import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
 import AnchorEventBasicSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventBasicSection.vue";
 import AnchorEventLocationsSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventLocationsSection.vue";
 import AnchorEventOtherSection from "@/domains/admin/ui/anchor-event/sections/AnchorEventOtherSection.vue";
@@ -150,14 +149,13 @@ import {
 import { useUpdateAnchorEventBasic } from "@/domains/admin/use-cases/anchor-event/useUpdateAnchorEventBasic";
 import { useUpdateAnchorEventLocations } from "@/domains/admin/use-cases/anchor-event/useUpdateAnchorEventLocations";
 import { useUpdateAnchorEventOtherSettings } from "@/domains/admin/use-cases/anchor-event/useUpdateAnchorEventOtherSettings";
-import {
-  useUpdateAnchorEventTimePolicy,
-} from "@/domains/admin/use-cases/anchor-event/useUpdateAnchorEventTimePolicy";
+import { useUpdateAnchorEventTimePolicy } from "@/domains/admin/use-cases/anchor-event/useUpdateAnchorEventTimePolicy";
 import type {
   AnchorEventEditorForm,
   EditableMeetingPointForm,
 } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import { validateManualPartnerBounds } from "@/lib/validation";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 type Workspace = NonNullable<AdminAnchorEventWorkspaceResponse>;
 type EventRecord = Workspace["events"][number];
@@ -222,7 +220,8 @@ const toEventForm = (event: EventRecord): EventForm => ({
   ),
   joinGateConfig: event.joinGateConfig,
   participationFrequencyLimit: event.participationFrequencyLimit,
-  feedbackQuestionnaireTemplateId: event.feedbackQuestionnaireTemplateId ?? null,
+  feedbackQuestionnaireTemplateId:
+    event.feedbackQuestionnaireTemplateId ?? null,
   defaultPrNotes: event.defaultPrNotes ?? "",
   durationMinutes: event.timePoolConfig.durationMinutes ?? null,
   earliestLeadMinutes: event.timePoolConfig.earliestLeadMinutes ?? null,
@@ -624,7 +623,6 @@ const handleRejectRouteApplication = async (payload: {
     // Mutation state already drives page-level feedback.
   }
 };
-
 </script>
 
 <style lang="scss" scoped>
@@ -644,5 +642,4 @@ const handleRejectRouteApplication = async (payload: {
   @include mx.pu-font(body);
   color: var(--sys-color-on-surface-variant);
 }
-
 </style>

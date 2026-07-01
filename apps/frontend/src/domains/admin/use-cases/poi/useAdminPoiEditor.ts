@@ -202,8 +202,6 @@ export const useAdminPoiEditor = ({
   pois: ComputedRef<PoiRecord[]>;
   selectedPoiId: ComputedRef<number | null>;
 }) => {
-  const manualGalleryUrl = ref("");
-  const isUploadingGalleryImage = ref(false);
   const poiGalleryById = ref<PoiGalleryMap>({});
   const poiFullAddressById = ref<PoiFullAddressMap>({});
   const poiGcj02ById = ref<PoiCoordinateMap>({});
@@ -505,25 +503,6 @@ export const useAdminPoiEditor = ({
     { immediate: true },
   );
 
-  const handleAddManualUrl = () => {
-    const url = manualGalleryUrl.value.trim();
-    if (!url) return;
-    setSelectedPoiGallery([...selectedPoiGallery.value, url]);
-    manualGalleryUrl.value = "";
-  };
-
-  const handleGalleryUploaded = (uploadedUrl: string) => {
-    setSelectedPoiGallery([...selectedPoiGallery.value, uploadedUrl]);
-    manualGalleryUrl.value = "";
-  };
-
-  const handleRemoveGalleryImage = (index: number) => {
-    const currentGallery = [...selectedPoiGallery.value];
-    if (index < 0 || index >= currentGallery.length) return;
-    currentGallery.splice(index, 1);
-    setSelectedPoiGallery(currentGallery);
-  };
-
   const handleAddAvailabilityRule = () => {
     const now = Date.now();
     setSelectedPoiAvailabilityRules([
@@ -604,8 +583,6 @@ export const useAdminPoiEditor = ({
   };
 
   return {
-    manualGalleryUrl,
-    isUploadingGalleryImage,
     selectedPoiGallery,
     selectedPoiFullAddress,
     selectedPoiCoordinateText,
@@ -617,9 +594,7 @@ export const useAdminPoiEditor = ({
     selectedPoiMeetingPointImageUrl,
     selectedPoiAvailabilityRules,
     markSelectedPoiDirty,
-    handleAddManualUrl,
-    handleGalleryUploaded,
-    handleRemoveGalleryImage,
+    setSelectedPoiGallery,
     setSelectedPoiLocation,
     clearSelectedPoiCoordinates,
     handleAddAvailabilityRule,

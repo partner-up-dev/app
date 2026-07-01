@@ -1,5 +1,5 @@
 <template>
-  <PageScaffold
+  <PuPageScaffold
     v-if="showGuidance"
     class="study-sprint-guidance"
     data-page="study-sprint-guidance"
@@ -33,7 +33,7 @@
           </h1>
         </div>
       </Transition>
-      <Button
+      <PuButton
         block
         size="lg"
         data-testid="study-sprint.guidance.next"
@@ -41,23 +41,22 @@
         @click="handleGuidanceAction"
       >
         {{ guidanceActionText }}
-      </Button>
+      </PuButton>
     </section>
-  </PageScaffold>
+  </PuPageScaffold>
 
-  <PageScaffold
+  <PuPageScaffold
     v-else
     class="study-sprint-room"
     data-page="study-sprint-room"
   >
-    <LoadingIndicator
+    <PuLoadingState
       v-if="roomQuery.isLoading.value"
       message="正在进入专注房间"
     />
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else-if="roomQuery.error.value"
       :message="roomQuery.error.value.message"
-      persistent
     />
 
     <template v-else-if="room">
@@ -140,7 +139,7 @@
           </div>
         </div>
         <div class="room-controls__actions">
-          <Button
+          <PuButton
             v-if="viewerStatus === 'NOT_STARTED'"
             block
             size="lg"
@@ -149,62 +148,59 @@
             @click="handleStart"
           >
             开始专注
-          </Button>
-          <Button
+          </PuButton>
+          <PuButton
             v-else-if="viewerStatus === 'FOCUSING'"
             block
             size="lg"
-            tone="outline"
+            tone="neutral" variant="outline"
             :loading="recordEventMutation.isPending.value"
             data-testid="study-sprint.complete"
             @click="recordCompleted"
           >
             完成专注
-          </Button>
-          <Button
+          </PuButton>
+          <PuButton
             v-else-if="viewerStatus === 'COMPLETED'"
             block
             size="lg"
-            tone="surface"
+            tone="neutral" variant="soft"
             data-testid="study-sprint.completed"
             disabled
           >
             已完成，继续看看同伴
-          </Button>
-          <Button
+          </PuButton>
+          <PuButton
             v-else
             block
             size="lg"
-            tone="surface"
+            tone="neutral" variant="soft"
             data-testid="study-sprint.left"
             disabled
           >
             已离开
-          </Button>
-          <Button
+          </PuButton>
+          <PuButton
             v-if="viewerSession"
             block
-            tone="ghost"
+            tone="neutral" variant="ghost"
             :loading="recordEventMutation.isPending.value"
             data-testid="study-sprint.leave"
             @click="handleLeave"
           >
             离开房间
-          </Button>
+          </PuButton>
         </div>
       </section>
     </template>
-  </PageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import Button from "@/shared/ui/actions/Button.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import PageScaffold from "@/shared/ui/layout/PageScaffold.vue";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
+import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   useRecordStudySprintEvent,
   useStartStudySprintSession,

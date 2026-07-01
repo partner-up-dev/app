@@ -1,10 +1,5 @@
 <template>
-  <Modal
-    :open="open"
-    :title="title"
-    max-width="760px"
-    @close="emit('close')"
-  >
+  <PuModal :open="open" :title="title" max-width="760px" @close="emit('close')">
     <div class="pr-route-map-modal">
       <RouteMap
         class="pr-route-map-modal__map"
@@ -23,14 +18,14 @@
         variant="detail"
       />
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
 import type { Route } from "@/domains/route/model/route";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 
 defineProps<{
   open: boolean;

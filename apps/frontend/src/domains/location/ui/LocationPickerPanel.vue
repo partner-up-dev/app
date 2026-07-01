@@ -17,7 +17,7 @@
     <div class="location-picker-panel__editor">
       <label class="location-picker-panel__field">
         <span>{{ t("locationPicker.nameLabel") }}</span>
-        <TextInput
+        <PuInput
           :model-value="draftLocation?.name ?? ''"
           :placeholder="t('locationPicker.namePlaceholder')"
           :disabled="draftLocation === null"
@@ -28,7 +28,7 @@
 
       <label class="location-picker-panel__field">
         <span>{{ t("locationPicker.addressLabel") }}</span>
-        <TextInput
+        <PuInput
           :model-value="draftLocation?.address ?? ''"
           :placeholder="t('locationPicker.addressPlaceholder')"
           :disabled="draftLocation === null"
@@ -44,24 +44,24 @@
     </div>
 
     <footer class="location-picker-panel__actions">
-      <Button
-        type="button"
-        tone="outline"
+      <PuButton
+
+        tone="neutral" variant="outline"
         size="sm"
         data-testid="location-picker.cancel"
         @click="emit('cancel')"
       >
         {{ t("common.cancel") }}
-      </Button>
-      <Button
-        type="button"
+      </PuButton>
+      <PuButton
+
         size="sm"
         :disabled="draftLocation === null"
         data-testid="location-picker.confirm"
         @click="confirmPick"
       >
         {{ t("common.confirm") }}
-      </Button>
+      </PuButton>
     </footer>
   </section>
 </template>
@@ -69,9 +69,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
-import TextInput from "@/shared/ui/forms/TextInput.vue";
 import type { RouteCoordinate } from "@/domains/route/model/route";
+import { PuButton, PuInput } from "@partner-up-dev/design-web";
 import {
   buildTencentLocationPickerUrl,
   clonePickedLocation,

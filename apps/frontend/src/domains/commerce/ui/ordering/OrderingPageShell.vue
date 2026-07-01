@@ -1,16 +1,35 @@
 <template>
-  <FullScreenPageScaffold class="ordering-page-shell" :data-testid="dataTestid">
+  <PuPageScaffold
+    viewport="screen"
+    :padding="noPadding ? 'none' : undefined"
+    class="ordering-page-shell"
+    :data-testid="dataTestid"
+  >
     <template #header>
-      <PageHeader
+      <PuHeader
         :title="title"
         :subtitle="subtitle"
-        :back-fallback-to="backFallbackTo"
-        variant="small"
+        title-as="h1"
+        size="sm"
+        class="ordering-page-shell__header"
       >
-        <template v-if="$slots.actions" #top-actions>
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToPrevious')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+        <template v-if="$slots.actions" #actions>
           <slot name="actions" />
         </template>
-      </PageHeader>
+      </PuHeader>
     </template>
 
     <main class="ordering-page-shell__body">
@@ -23,20 +42,25 @@
 
     <slot name="floating" />
     <slot name="drawer" />
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
+import { useI18n } from "vue-i18n";
 import type { RouteLocationRaw } from "vue-router";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
-defineProps<{
+const props = defineProps<{
   title: string;
   subtitle?: string;
   backFallbackTo: RouteLocationRaw;
   dataTestid?: string;
+  noPadding?: boolean;
 }>();
+
+const { t } = useI18n();
+const { handleBack } = useFallbackBack(() => props.backFallbackTo);
 </script>
 
 <style scoped lang="scss">
@@ -45,9 +69,14 @@ defineProps<{
   min-width: 0;
   --pu-page-max-width: 44rem;
   --pu-page-padding-bottom: 0;
+  --pu-page-scaffold-region-gap: 0;
+
+  :deep(.ordering-page-shell__header) {
+    padding: var(--sys-spacing-small) var(--sys-spacing-small);
+  }
 }
 
-.ordering-page-shell :deep(.full-screen-page-scaffold__footer) {
+.ordering-page-shell :deep(.pu-page-scaffold__footer) {
   width: 100vw;
   margin-right: calc(50% - 50vw);
   margin-left: calc(50% - 50vw);

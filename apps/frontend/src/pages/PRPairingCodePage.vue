@@ -30,16 +30,14 @@
     class="pairing-code-page pairing-code-page--fallback"
     data-page="pr-pairing-code"
   >
-    <LoadingIndicator v-if="isLoading" :message="t('common.loading')" />
-    <ErrorToast
+    <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
+    <PuInlineNotice tone="error"
       v-else-if="error"
       :message="error.message"
-      persistent
     />
-    <ErrorToast
+    <PuInlineNotice tone="error"
       v-else
       :message="t('prPage.pairingCodePage.unavailable')"
-      persistent
     />
   </main>
 </template>
@@ -48,11 +46,10 @@
 import { computed, type CSSProperties } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { prDetailPath } from "@/domains/pr/routing/routes";
+import { PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 import {
   canShowPRPairingCode,
   derivePRPairingIdentity,

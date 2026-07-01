@@ -1,8 +1,5 @@
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type {
-  AnchorEventId,
-  PRJoinGateConfig,
-} from "../../../entities";
+import type { AnchorEventId, PRJoinGateConfig } from "../../../entities";
 import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
@@ -19,14 +16,15 @@ import {
   type CreatorIdentityInput,
 } from "../services/creator-identity.service";
 import { operationLogService } from "../../../infra/operation-log";
-import {
-  finalizeCreatedPR,
-  type CreatePRCommandResult,
-} from "./create-pr.shared";
+import { finalizeCreatedPR, type CreatePRCommandResult } from "./create-pr.shared";
 import { materializeEventDefaultsForPR } from "../services/event-default-materialization.service";
 import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
 import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
 import { assertPRStartTimeHasNotPassed } from "../services/pr-time-window-guard.service";
+import {
+  canonicalizePartnerRequestFieldsTime,
+  canonicalizePRAllowEditAfterReady,
+} from "../services/pr-time-window-instant.service";
 
 const prRepo = new PartnerRequestRepository();
 
@@ -64,11 +62,7 @@ const resolvePartnerBounds = (
   mode: PartnerBoundsMode,
 ): { minPartners: number; maxPartners: number | null } => {
   if (mode === "automatic") {
-    return normalizeAutomaticPartnerBounds(
-      fields.minPartners,
-      fields.maxPartners,
-      0,
-    );
+    return normalizeAutomaticPartnerBounds(fields.minPartners, fields.maxPartners, 0);
   }
 
   const minPartners = fields.minPartners;
@@ -101,7 +95,10 @@ export async function createPRFromStructured(
   creatorIdentity: CreatorIdentityInput,
   options: StructuredCreateOptions = {},
 ): Promise<CreatePRCommandResult> {
-  const normalizedFields = normalizePartnerRequestFieldsForPersistence(fields);
+  const normalizedFields = normalizePartnerRequestFieldsForPersistence(
+    canonicalizePartnerRequestFieldsTime(fields),
+  );
+  const allowEditAfterReady = canonicalizePRAllowEditAfterReady(options.allowEditAfterReady);
   assertPRStartTimeHasNotPassed(normalizedFields.time);
   const partnerBounds = resolvePartnerBounds(
     normalizedFields,
@@ -122,8 +119,7 @@ export async function createPRFromStructured(
   const createdBy = creator?.id ?? null;
   const createSource = options.createSource ?? "FORM";
   const publicationMode = options.publicationMode ?? "finalize-by-creator-identity";
-  const initialStatus: PRStatus =
-    publicationMode === "create-open" ? "OPEN" : "DRAFT";
+  const initialStatus: PRStatus = publicationMode === "create-open" ? "OPEN" : "DRAFT";
 
   const request = await prRepo.create({
     title: normalizedFields.title,
@@ -144,13 +140,10 @@ export async function createPRFromStructured(
     confirmationStartOffsetMinutes: options.confirmationStartOffsetMinutes,
     confirmationEndOffsetMinutes: options.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: options.joinLockOffsetMinutes,
-    allowEditAfterReady: options.allowEditAfterReady ?? null,
+    allowEditAfterReady,
   });
 
-  await initializeSlotsForPR(
-    request.id,
-    null,
-  );
+  await initializeSlotsForPR(request.id, null);
 
   await materializeEventDefaultsForPR({
     prId: request.id,

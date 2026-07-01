@@ -21,7 +21,7 @@
 - If the creator already has an authenticated account, that create flow persists and publishes the PR in one operation.
 - If the creator is anonymous, that create flow persists a `DRAFT` and waits for a later authenticated publish step.
 - Structured creation uses one PR-owned form contract. Its `type` field accepts arbitrary input and may offer suggestion options from known event types.
-- Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window.
+- Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window. Persisted non-null PR time-window endpoints are instant datetimes, not date-only strings; request inputs may carry timezone offsets, and command boundaries canonicalize them before persistence.
 - Structured creation uses one PR-owned place-mode result. Route-mode structured creation stores `route` and clears `location`; location-mode structured creation stores `location` and clears `route`.
 - PR creation resolves Anchor Event context by PR type when a matching Anchor Event exists. Event-owned PR defaults such as default notes, join gates, and feedback questionnaire template selection materialize into PR-owned runtime state at creation time. Existing PR notes remain PR-owned content when the event default later changes.
 - Event-context PR creation is frontend assistance from Anchor Event surfaces into unified structured PR creation.
@@ -42,10 +42,10 @@
 - A valid `/e/:eventId?mode=` value is explicit route state and owns the current landing mode. Without valid route mode, the same user should keep a stable landing mode for the same event until the operator changes that event's landing assignment revision.
 - If `/e/:eventId` cannot obtain its landing mode decision in time, it should still enter a usable `LIST` fallback experience.
 - Form Mode recommendation and candidate ordering are backend-authored even though the user chooses location, start time, and preferences on the page.
-- Form Mode may accept a fuzzy time preference as recommendation input by converting it in the frontend into concrete PR start-time match windows. The fuzzy time choices include part-of-day windows and an all-day option for one selected product-local date. These windows match candidate `PR.time_window[0]` only, are not constrained by the Anchor Event's configured time pool, and are not persisted as PR facts.
+- Form Mode may accept a fuzzy time preference as recommendation input by converting it in the frontend into concrete PR start-time match windows. The fuzzy time choices include part-of-day windows and an all-day option for one selected product-local date. These recommendation windows match candidate `PR.time_window[0]` only, are not constrained by the Anchor Event's configured time pool, and are not themselves persisted as fuzzy PR facts.
 - Form Mode fuzzy date choices cover today plus the next 6 product-local days as individual dates; aggregate choices such as weekend or any day are not part of the first contract.
 - Form Mode directly creates a system-owned `OPEN` PR when recommendation returns no matched PR and no ordered candidates; the viewer is not assigned as creator and the created PR detail page does not show the user-created request notice.
-- Form Mode zero-candidate auto-create still creates a `PR` with one resolved `time_window`. In fuzzy mode, that resolved window is the selected fuzzy activity window itself, such as a product-local all-day or part-of-day window, and the created PR may materialize the same range into `allowEditAfterReady.timeWindow`.
+- Form Mode zero-candidate auto-create still creates a `PR` with one resolved `time_window`. In fuzzy mode, that resolved window is the selected fuzzy activity window materialized into instant datetimes, such as a product-local all-day or part-of-day window, and the created PR may materialize the same range into `allowEditAfterReady.timeWindow`. Product-local all-day windows use the half-open interval `[T 00:00, T+1 00:00)`.
 - Form Mode bootstrap may preselect location and start time from the nearest joinable PR in the current Anchor Event context when that PR's start time is inside the event `earliestLeadMinutes` boundary.
 - Anchor Event owns the event-specific preset preference tag pool, its moderation state, and which published tags later visitors may see in Form Mode.
 - Anchor Event start rules may own optional description copy. Generated time windows inherit the first non-empty matching start-rule description by configured start-rule order, and that copy remains presentation context rather than a persisted PR fact.
@@ -124,6 +124,25 @@
 4. A user may also hold a pending waitlist slot when a full PR still admits waitlist entries. A pending waitlist slot may be cancelled before promotion.
 5. The participant may exit, be released, or complete check-in.
 6. Once no longer active, the participant must not be treated as a current participant.
+
+## 3.1 Commerce Ordering Rules
+
+- PR-attached ordering is entered through a backend-authored Button Placement on PR detail and assembled on `/order/new`.
+- PR-attached ordering may be created only while the PR is `READY` or `ACTIVE`.
+- At most one non-terminal order should exist for one PR and Offer pair. Re-opening the matching placement should continue the existing order instead of creating a second one.
+- Offer Listing is the user-visible quote surface. A listing may include only products and SKUs that are currently offerable for the selected context.
+- Quote identity is the freshness and authorization boundary between listing and create-order. Create-order should use quote identity instead of trusting browser-copied product, route, participant, or price fields.
+- Expired quotes require a fresh listing and a second explicit user create action. The system should preserve matching user selections after refresh when those selections are still listed.
+- Create-order must be blocked when any intended order participant still has another unpaid payable order obligation. The block is enforced by the backend create-order boundary and surfaced on `/order/new` through a focused dialog rather than silent failure.
+- Positive unsettled charge lines block create-order only while their order payment window is still open. Zero-amount charge lines are treated as already paid.
+- The unpaid-order block dialog may route the current viewer into `/bills`, but `/bills` remains viewer-scoped. If the blocking unpaid obligation belongs to another participant, that participant still needs to complete payment before order creation can proceed.
+- Rental ordering buys one fixed quoted SKU.
+- RideHailing ordering authorizes a choice set: the user selects one or more acceptable vehicle candidates, and the provider/order lifecycle resolves one final vehicle after dispatch.
+- RideHailing visible vehicle candidates depend on route and departure time. Provider-unavailable candidates should be absent from the list, not shown as disabled options with reasons.
+- RideHailing displayed price before create is the selected candidate range, not the final bill cap.
+- RideHailing final bill follows the resolved provider settlement. A provider upgrade or substitution outside the selected candidate set is recorded rather than rejected, and the final settlement remains the bill basis.
+- Before a user cancels an active RideHailing order from Order Detail, the product should query the provider's current cancellation-fee preview and show the fee before the user confirms cancellation. If the previewed fee is greater than zero, the user must explicitly accept that fee before the cancellation request is sent.
+- If RideHailing provider dispatch fails during create-order, the domain may create and cancel an order, but the user experience remains an ordering failure dialog on `/order/new` rather than navigation to Order Detail.
 
 ## 4. Identity And Authentication Rules
 

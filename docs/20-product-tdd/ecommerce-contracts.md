@@ -40,6 +40,8 @@ Frontend should reflect the same coarse grouping on admin navigation:
 - `Merchandising`
 - `Trade`
 - `Payment`
+- `RideHailing` for provider-instance configuration and ride-hailing-specific
+  operator tools
 
 Rental execution operations belong under `Trade`-adjacent operator work rather
 than under Merchandising configuration.
@@ -99,6 +101,13 @@ Does not own:
 Owns:
 
 - charge/refund obligation lines
+- BillLine-local provider execution slot identity
+- checkout target truth for a concrete bill line, including:
+  - whether the line is payable by the current viewer
+  - which provider instance is currently bound to an unfinished execution slot
+  - hero facts needed by checkout UI
+- BillLine settlement confirmation
+- viewer-scoped bill-list read identity for `/api/commerce/bills`, where the contract intentionally returns ordered `billId[]` only and leaves per-bill summary hydration to bill-detail reads
 - settlement derivation over successful payment movements
 - reconciliation from current buyer-side total to target buyer-side total
 
@@ -111,13 +120,52 @@ Does not own:
 
 Owns:
 
-- external money movement
-- gateway callback/query state
+- provider orchestration for external money movement
+- gateway callback verification and provider queries
+- provider-specific merchant order/refund reference derivation and parsing
+- payment provider registry and routing credentials
+- provider catalog discovery for a concrete client runtime
+- transient `PaymentTx` API resource reconstruction for polling current provider
+  execution state
 
 Does not own:
 
 - bill obligation semantics
+- persisted provider transaction lifecycle truth
+- synthetic checkout-target aggregate reads
 - service execution semantics
+
+Payment provider systems own gateway-facing payment lifecycle truth. Backend
+Payment code can create provider executions, query provider state, and accept
+verified callbacks, but provider status, provider snapshots, provider
+transaction ids, and provider failure states are not persisted as backend
+payment transaction truth.
+
+BillLine owns the local provider execution slot for an obligation line:
+
+- `paymentProviderInstanceId` is set only when provider execution is initiated.
+- `attemptCount` is monotonic local key material for provider reference
+  derivation and is not reset after failed, closed, or expired provider states.
+- `settledAt` is Bill-owned settlement confirmation. For `CHARGE` lines it
+  means paid; for `REFUND` lines it means refunded.
+- provider-specific merchant order/refund numbers are derived by the provider
+  adapter from BillLine-local key material and are not persisted as Bill truth.
+
+Current checkout interaction contract:
+
+- billing-owned reads provide checkout target truth
+- payment-owned writes and polling provide provider execution truth
+- `GET /api/payment/providers` returns the current client-scoped provider
+  catalog and must stay target-agnostic
+- `POST /api/payment/:paymentProviderInstanceId/charge?bill-line=...` initiates
+  or resumes charge execution for one bill line using an explicit provider
+  choice
+- `GET /api/payment/:paymentTxId` returns a transient `PaymentTx` resource view
+  reconstructed from BillLine execution-slot state plus live provider query
+  truth
+- if a bill line already has an unfinished provider binding, selecting a
+  different provider is rejected at charge-initiation time rather than hidden in
+  provider discovery
 
 ## User-Facing Route Spine
 
@@ -139,7 +187,7 @@ Current constraints:
 The preferred baseline user-visible route spine is:
 
 1. `PR Page`
-2. `Offer Detail`
+2. `/order/new`
 3. `Order Detail`
 
 Why this topology is durable:
@@ -147,6 +195,8 @@ Why this topology is durable:
 - `PR Page` is the contextual entry surface where Button Placement is rendered.
 - `/order/new` is the pre-order explanation and ordering-assembly surface.
 - `Order Detail` is the long-lived post-create lifecycle surface.
+- `/offers/:offerId` may remain a user-facing offer route family, but
+  PR-attached ordering does not require routing through Offer Detail.
 
 This means:
 
@@ -161,16 +211,20 @@ This means:
 - This task implements only `BUTTON` Placement.
 - Button Placement is rendered inside the PR Page Utility Actions row when the
   PR Page determines the current user is an active participant.
-- PR Page builds `matchingContext` from PR Detail and calls
-  `POST /api/placements?type=BUTTON`.
-- `matchPlacementInstance(type, matchingContext)` is the Placement boundary.
-  Placement does not receive `userId`, `prId`, `contextType`, `slotKey`, or a
-  PR-specific roster.
+- PR Page builds PR-derived `matchingContext` from PR Detail and passes it,
+  together with `prId`, into Button Placement.
+- Button Placement calls `POST /api/placements?type=BUTTON` through its
+  Placement entry flow.
+- `matchPlacementInstance(type, matchingContext)` is the Placement matching
+  boundary. Placement does not receive `userId`, `prId`, `contextType`,
+  `slotKey`, or a PR-specific roster as separate parameters; PR-derived facts
+  are contained only inside `matchingContext`.
 - A Placement Instance contains `offerId` and creative
   `{ ctaLabel, description? }`. It does not contain a navigation target.
-- On click, PR Page checks existing PR-linked orders with explicit status enum
-  values, then either routes to Order Detail or resolves an Ordering entry with
-  `POST /api/placements/:instanceId/ordering-entry` and opens `/order/new`.
+- On click, Button Placement's entry flow checks existing PR-linked orders with
+  explicit status enum values, then either routes to Order Detail or resolves an
+  Ordering entry with `POST /api/placements/:instanceId/ordering-entry`, stores
+  the generic Ordering handoff, and opens `/order/new`.
 - Ordering entry resolution is a Placement boundary operation that calls the
   Offer domain for an `OrderingOfferDetail` projection, resolves bindings, and
   assembles `OrderingEntryPayload`.
@@ -189,7 +243,7 @@ PR-context order creation must append the created order id into
 
 Rules:
 
-- order creation is allowed only when PR is `READY`; `READY` is the roster-locked formed state
+- order creation is allowed only when PR is `READY` or `ACTIVE`; `READY` is the roster-locked formed state and `ACTIVE` keeps the same PR-attached ordering authority after execution starts
 - order creation is allowed only for the PR creator
 - PR domain is the final authority on attachment acceptance
 - if PR domain rejects attachment, the whole order creation transaction must
@@ -208,46 +262,83 @@ Current issue-231 uniqueness constraint:
 - `Offer` may include multiple SPUs only when they share the same
   `productType`
 - `Placement` owns creative and matching, not price or order state
+- `SPU.salesPolicy.skuSelectionPolicy` declares how the user selects SKU
+  candidates:
+  - `EXACTLY_ONE` means the ordered item is one concrete SKU
+  - `CHOICE_SET` means the user authorizes multiple acceptable candidate SKUs
+    and fulfillment resolves one final SKU/provider vehicle
 
 Pricing ownership:
 
 - `PricingModel` is SKU-owned base pricing truth
-- `SPU` owns listing, metadata, sales policy, service policy, and presentation
-  truth; it does not own runtime pricing rules
+- `SPU` owns listing, metadata, sales policy, service policy, and listing-level
+  presentation truth; it does not own runtime pricing rules
+- `SKU` owns SKU-specific presentation truth, such as a vehicle class hero image
+  for RideHailing
 - `Offer PricingPolicy` is commercial overlay truth
 - concrete pricing execution belongs to Trade
-- persisted `trade_orders.items` are SKU snapshots plus quantity, including
-  SKU facts, SKU pricing model, and SKU cancellation policy snapshot; SPU
-  fields are not copied into order items
+- persisted fixed `trade_orders.items` are SKU snapshots plus quantity,
+  including SKU facts, SKU pricing model, and SKU cancellation policy snapshot;
+  SPU fields are not copied into order items
+- persisted choice-set `trade_orders.items` are one logical item containing
+  candidate SKU quote snapshots and a nullable resolution. The candidate set is
+  buyer authorization truth; the resolution records the final SKU/provider
+  vehicle and provider binding.
 
 ## Ordering Command Contract
 
-- `/order/new` receives transient `OrderingEntryPayload` from the entry surface:
+- `/order/new` receives transient `OrderingEntryPayload` from the Commerce
+  Ordering handoff store:
   `{ source: { offerId }, offerDetail, prId?, bindings }`.
-- `source.offerId` is the commercial source reference. It is not enough by
-  itself to render Ordering Content.
+- `source.offerId` is the commercial source reference and the stable entry for
+  dynamic listing/quote issuance.
 - `offerDetail` is an Offer-owned ordering projection containing the product
   type, SPU/SKU ids, display facts, base SKU pricing models, cancellation
-  policy summaries, and Offer pricing policy needed to assemble an order draft.
+  policy summaries, and Offer pricing policy needed to render the initial
+  ordering surface. It is not a user-facing Offer Detail page and is not the
+  dynamic quote authority.
 - Ordering Content is selected from `offerDetail.productType`.
 - Bindings only prefill and lock client fields; they are not submitted as
   authoritative server input.
-- Ordering Content receives `{ source, offerDetail, bindings }` and emits only
-  `participants`, selected SKU `items`, and
-  `productTypedExtraProperties`.
+- Ordering Content receives `{ source, offerDetail, bindings }`, calls
+  `POST /api/commerce/offers/:offerId/listing` with product-specific listing
+  input, and emits quote-bound draft items plus local display summary for the
+  footer price and price detail.
 - Ordering Content does not receive `prId`, does not know Placement, and does
   not evaluate or submit orders.
-- BottomActionBar creates both evaluation and creation commands:
-  `{ source: { offerId }, prId?, participants, items, productTypedExtraProperties }`.
-- This command is not coupled to Placement or `matchingContext`.
-- command `items` are `{ skuId, quantity }`; backend resolves SKU -> SPU and
-  verifies the SKU belongs to the Offer.
-- Ordering evaluation uses the same command shape through
-  `POST /api/commerce/ordering/evaluate`. It returns price total/range/detail
-  and `actions.create_order` in the action-preflight shape.
-- Ordering creation uses `POST /api/commerce/orders`. It re-reads
-  authoritative Offer/SPU/SKU truth and performs the transactional validations
-  again.
+- Offer Listing is Offer-domain owned. It resolves active Offer/SPU/SKU truth,
+  applies product-specific availability masks, executes product-specific
+  quote/pricing logic, persists quote snapshots, and returns listed items with
+  product-type-independent `quoteId`s.
+- For RideHailing, listing uses route/departureAt to query provider vehicle
+  availability/estimates, joins provider results to local ACTIVE SKUs, and does
+  not return unavailable SKUs.
+- RideHailing `departureAt` remains part of the backend listing/order contract,
+  but the current Ordering UI short-circuits the user-facing behavior to
+  `现在出发`; PR-derived time is not imported into the active ordering surface
+  for this slice.
+- For Rental, listing issues fixed quotes for the available rental SKUs matching
+  the current listing facts.
+- Ordering Page owns create-order orchestration. Ordering Content must not call
+  create-order.
+- Create-order product item payload is quote-only and does not repeat
+  participants, riders, contact phone, route, departureAt, offer id, or SKU ids:
+  - fixed items: `{ kind: "FIXED", quoteId, quantity: 1 }`
+  - choice-set items: `{ kind: "CHOICE_SET", candidateQuoteIds, quantity: 1 }`
+- Quote owns quote validity. Order asks Quote to resolve quote-bound item facts;
+  Order does not hand-check quote existence, expiry, active Offer, active SKU,
+  product membership, or quote-set coherence.
+- Expired quotes are rejected from create-order with HTTP 409 problem details
+  code `ORDERING_QUOTE_EXPIRED`; the frontend refreshes listing and asks the
+  user to click create again. When the refreshed listing still contains
+  matching RideHailing SKUs, the frontend preserves those selected candidate
+  ids; vanished selected SKUs are pruned. Quote-expired failures are not mixed
+  into HTTP 200 results.
+- Ordering creation uses `POST /api/commerce/orders`. Successful transport
+  responses are a discriminated result:
+  - `CREATED` navigates to Order Detail
+  - `CANCELLED` carries a cancelled order id and user-displayable reason; the
+    Ordering Page shows a failure dialog and does not navigate
 - for PR-scoped orders, order row creation and `attachOrderToPr` are one
   transaction. PR authority validates attachability; Order does not own PR
   status as a separate proactive validation rule.
@@ -261,8 +352,8 @@ Pricing ownership:
 The baseline Rental user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail ordering
-3. Order creation
+2. `/order/new` ordering assembly and Offer Listing quote issuance
+3. Order creation from fixed quote id, unless any intended participant still has another unpaid payable order obligation
 4. Order Detail `待支付`
 5. same Order Detail `待确认预订`
 6. same Order Detail resolves to:
@@ -280,8 +371,8 @@ route.
 The baseline RideHailing user-visible chain is:
 
 1. PR Page placement entry
-2. Offer Detail quote assembly
-3. Order creation from quote snapshot
+2. `/order/new` ordering assembly and route/time-based Offer Listing quote issuance
+3. Order creation from selected candidate quote ids, unless any intended participant still has another unpaid payable order obligation
 4. Order Detail with quote basis and fulfillment state
 5. same Order Detail with final bill after trip finish
 6. same Order Detail with final payment/completed state
@@ -296,21 +387,80 @@ forcing the whole order-detail projection to become a high-frequency payload.
 Rental:
 
 - prepaid
+- create-order must reject when any intended participant still has another unpaid payable order obligation; this guard applies before the new order row is created
+- the current payable-obligation guard is Bill-owned and only considers positive unsettled `CHARGE` lines whose source order unpaid window is still open
+- zero-amount `CHARGE` lines are created as settled and historical zero-amount charge lines must be backfilled to the same paid semantics
 - Bill exists before execution begins
+- typed order creation keeps the standard unpaid payment window on the base
+  Order timeout snapshot
 - Rental execution state is stored on `rental_orders`
 - booking state becomes actionable after prepaid settlement
 
 RideHailing:
 
 - usage-based final settlement
-- Order is created from quote snapshot
-- provider binding and execution phase are stored on `ride_hailing_orders`
+- the same participant unpaid-order guard applies before create-order starts provider dispatch
+- typed order creation overrides the base Order timeout snapshot so final-bill
+  payment is not constrained by the standard unpaid payment window
+- Order is created from candidate quote snapshots. For RideHailing, the user
+  orders one unresolved choice-set item: several acceptable vehicle SKU
+  candidates, with one final resolution.
+- create-order sends the user-authorized candidate set to the selected
+  RideHailing provider port. CaoCao supports multi-candidate dispatch through
+  `/common/orderCarV2` with `is_simultaneously_call=1` and
+  `service_type_price`, so the CaoCao adapter submits all selected candidates
+  instead of choosing a cheapest fallback. When a future provider adapter does
+  not support multi-candidate dispatch, that adapter owns the
+  provider-specific fallback choice. Provider create failure cancels the local
+  order without retrying the next candidate/provider and returns the
+  `CANCELLED` create-order result to the Ordering Page.
+- provider dispatch binding is stored on `ride_hailing_orders`, not on the
+  choice-set resolution. The choice-set resolution represents only the final
+  service vehicle confirmed by the provider lifecycle.
+- execution phase and ride execution snapshots are stored on
+  `ride_hailing_orders`
 - provider adapter computes external order id dynamically; the provider-side
-  order id returned by create is stored on `ride_hailing_orders`
-- provider callback updates execution phase, driver / vehicle snapshots, and
-  committed final settlement input
+  order id returned by create is stored in the RideHailing dispatch binding
+  together with provider instance identity
+- provider order-detail reads own execution truth: execution phase, driver
+  snapshot, vehicle snapshot, and other ride-lifecycle facts come from
+  provider order-detail reads
+- provider final settlement truth must come from a provider query result, but
+  the concrete source depends on the provider's currently integrated API
+  surface
+- for the currently integrated CaoCao surface:
+  - `ride_hailing_orders.finalSettlementInput` is derived from
+    `queryOrderDetailV2.orderFeeVo.totalFee`
+  - `finalSettlementInput.amountFen` binds `orderFeeVo.totalFee`
+  - `orderFeeVo.companyPayAmount` is not the current settlement source
+- local RideHailing terminal phases that may trigger final-settlement capture
+  are only `FINISHED` and `CANCELLED`
+- terminal final-settlement capture is best-effort:
+  - when a local RideHailing order is observed in `FINISHED` or `CANCELLED`
+    and `finalSettlementInput` is still null, backend may issue the provider
+    final-settlement query inline on that natural sync path
+  - for the currently integrated CaoCao surface, `queryFinalSettlement()` is a
+    dedicated adapter read that internally calls `queryOrderDetailV2` and reads
+    `orderFeeVo.totalFee`
+  - if that final-settlement query does not yet return an authoritative
+    `orderFeeVo.totalFee`, backend keeps `finalSettlementInput = null` and
+    relies on a later natural sync trigger rather than fabricating settlement truth
+  - provider order-detail sync must not directly materialize
+    `finalSettlementInput`; terminal settlement capture still goes through the
+    provider final-settlement query contract, even if the adapter reuses the
+    same provider endpoint under the hood
 - final Bill is created only after provider final settlement input is
   committed, not lazily from Order Detail reads
+- cancellation-fee query is a separate pre-cancel decision surface:
+  - it may inform whether cancellation is acceptable before cancellation
+  - user-side RideHailing cancellation from Order Detail must query this
+    surface before sending the destructive cancellation command
+  - if the previewed cancellation fee is greater than zero, frontend must show
+    the amount and require explicit confirmation before cancellation
+  - it must not be reused as post-cancel final settlement truth
+- for cancelled RideHailing orders, if the provider final-settlement query
+  later returns a non-zero `orderFeeVo.totalFee`, backend may still materialize
+  that result through the same final Bill model
 
 ## Termination Contract
 

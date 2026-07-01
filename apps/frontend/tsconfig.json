@@ -22,9 +22,6 @@
       "@/*": [
         "./src/*"
       ],
-      "@partner-up-dev/design-web": [
-        "./src/types/design-web-runtime.d.ts"
-      ],
       "@partner-up-dev/backend": [
         "../backend/src/index.ts"
       ]

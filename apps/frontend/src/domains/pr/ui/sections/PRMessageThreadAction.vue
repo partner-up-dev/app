@@ -4,14 +4,14 @@
     class="utility-action-cell"
     data-region="message-thread"
   >
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
       data-testid="pr-detail.message-thread.open"
       @click="handleOpenMessages"
     >
       {{ t("prPage.messageEntry.action") }}
-    </Button>
+    </PuButton>
   </div>
 </template>
 
@@ -20,8 +20,8 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
 import { prMessagesPath } from "@/domains/pr/routing/routes";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;

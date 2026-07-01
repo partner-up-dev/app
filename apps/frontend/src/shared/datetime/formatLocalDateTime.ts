@@ -15,11 +15,7 @@ const parseIsoDateOnlyAsLocalDate = (value: string): Date | null => {
   const year = Number(yearRaw);
   const month = Number(monthRaw);
   const day = Number(dayRaw);
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day)
-  ) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return null;
   }
 
@@ -60,11 +56,7 @@ export const formatLocalDateTime = (
     return "";
   }
 
-  const datePart = [
-    date.getFullYear(),
-    pad2(date.getMonth() + 1),
-    pad2(date.getDate()),
-  ].join("-");
+  const datePart = [date.getFullYear(), pad2(date.getMonth() + 1), pad2(date.getDate())].join("-");
   const timePart = [pad2(date.getHours()), pad2(date.getMinutes())].join(":");
 
   if (includeDate && includeTime) {
@@ -116,11 +108,9 @@ const normalizeToDate = (value: DateLike): Date | null => {
   return normalized instanceof Date ? normalized : null;
 };
 
-const isStartOfLocalDay = (date: Date): boolean =>
-  date.getHours() === 0 && date.getMinutes() === 0;
+const isStartOfLocalDay = (date: Date): boolean => date.getHours() === 0 && date.getMinutes() === 0;
 
-const isEndOfLocalDay = (date: Date): boolean =>
-  date.getHours() === 23 && date.getMinutes() === 59;
+const isEndOfLocalDay = (date: Date): boolean => date.getHours() === 23 && date.getMinutes() === 59;
 
 const addLocalDays = (date: Date, days: number): Date => {
   const next = new Date(date);
@@ -133,21 +123,15 @@ const isSameLocalDate = (left: Date, right: Date): boolean =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate();
 
-const formatLocalDate = (date: Date): string =>
-  formatLocalDateTime(date, { includeTime: false });
+const formatLocalDate = (date: Date): string => formatLocalDateTime(date, { includeTime: false });
 
-const formatLocalTime = (date: Date): string =>
-  formatLocalDateTime(date, { includeDate: false });
+const formatLocalTime = (date: Date): string => formatLocalDateTime(date, { includeDate: false });
 
 const resolveFullDayEndDate = (start: Date, end: Date): Date | null => {
   if (!isStartOfLocalDay(start)) return null;
   if (isEndOfLocalDay(end)) return end;
-  if (
-    isStartOfLocalDay(end) &&
-    end.getTime() > start.getTime() &&
-    isSameLocalDate(addLocalDays(start, 1), end)
-  ) {
-    return start;
+  if (isStartOfLocalDay(end) && end.getTime() > start.getTime()) {
+    return isSameLocalDate(addLocalDays(start, 1), end) ? start : end;
   }
   return null;
 };

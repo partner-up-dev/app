@@ -32,32 +32,15 @@ vi.mock("@/shared/telemetry/track", () => ({
   trackEvent: testState.trackEvent,
 }));
 
-vi.mock("@/shared/ui/overlay/useBodyScrollLock", () => ({
-  useBodyScrollLock: vi.fn(),
-}));
-
-vi.mock("@/shared/ui/overlay/Modal.vue", () => ({
-  default: {
-    name: "Modal",
-    props: ["open"],
-    template: '<div v-if="open" data-testid="modal"><slot /></div>',
-  },
-}));
-
-vi.mock("@/shared/ui/overlay/BottomDrawer.vue", () => ({
-  default: {
-    name: "BottomDrawer",
-    props: ["open"],
-    template: '<div v-if="open" data-testid="bottom-drawer"><slot /></div>',
-  },
-}));
-
-vi.mock("@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue", () => ({
-  default: {
-    name: "AnchorEventBetaGroupQrPanel",
-    template: '<div data-testid="beta-group-panel" />',
-  },
-}));
+vi.mock(
+  "@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue",
+  () => ({
+    default: {
+      name: "AnchorEventBetaGroupQrPanel",
+      template: '<div data-testid="beta-group-panel" />',
+    },
+  }),
+);
 
 vi.mock("@/domains/pr/ui/sections/PRShareSection.vue", () => ({
   default: {
@@ -100,7 +83,7 @@ describe("PR utility components", () => {
     action.click();
     await nextTick();
 
-    expect(hasTestId(host, "beta-group-panel")).toBe(true);
+    expect(hasTestId(document.body, "beta-group-panel")).toBe(true);
     expect(testState.trackEvent).toHaveBeenCalledWith(
       "pr_secondary_action_click",
       {
@@ -159,7 +142,7 @@ describe("PR utility components", () => {
     getByTestId(host, "pr-detail.share.open").click();
     await nextTick();
 
-    expect(hasTestId(host, "share-section")).toBe(true);
+    expect(hasTestId(document.body, "share-section")).toBe(true);
   });
 
   test("event plaza entry renders for event-backed PRs and tracks click", async () => {
@@ -241,14 +224,17 @@ describe("PR utility components", () => {
   });
 
   test("study sprint pomodoro action hides for non-participants and other PR types", async () => {
-    const nonParticipantHost = await mountComponent(PRStudySprintPomodoroAction, {
-      pr: buildPRDetail({
-        type: "STUDY_SPRINT",
-        viewer: {
-          isParticipant: false,
-        },
-      }),
-    });
+    const nonParticipantHost = await mountComponent(
+      PRStudySprintPomodoroAction,
+      {
+        pr: buildPRDetail({
+          type: "STUDY_SPRINT",
+          viewer: {
+            isParticipant: false,
+          },
+        }),
+      },
+    );
     const otherTypeHost = await mountComponent(PRStudySprintPomodoroAction, {
       pr: buildPRDetail({
         type: "徒步",

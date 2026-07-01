@@ -1,12 +1,15 @@
 <template>
-  <BottomDrawer
-    :open="open"
+  <PuDrawer
+    :visible="open"
     title="价格明细"
     max-width="44rem"
-    @close="$emit('close')"
+    @close="emit('close')"
   >
     <div class="ordering-price-detail" :data-testid="dataTestid">
-      <div v-if="explanations.length === 0" class="ordering-price-detail__empty">
+      <div
+        v-if="explanations.length === 0"
+        class="ordering-price-detail__empty"
+      >
         暂无可展示的价格明细。
       </div>
       <div
@@ -18,14 +21,16 @@
           <strong>{{ explanation.label }}</strong>
           <span>{{ explanation.description }}</span>
         </div>
-        <b>{{ formatFen(explanation.resultAmountFen ?? explanation.deltaFen) }}</b>
+        <b>{{
+          formatFen(explanation.resultAmountFen ?? explanation.deltaFen)
+        }}</b>
       </div>
     </div>
-  </BottomDrawer>
+  </PuDrawer>
 </template>
 
 <script setup lang="ts">
-import BottomDrawer from "@/shared/ui/overlay/BottomDrawer.vue";
+import { PuDrawer } from "@partner-up-dev/design-web";
 
 type PriceExplanation = {
   sourceId: string;
@@ -41,7 +46,7 @@ defineProps<{
   dataTestid?: string;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   close: [];
 }>();
 

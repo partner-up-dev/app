@@ -1,61 +1,67 @@
 <template>
   <AdminRailPanel :title="t('adminPR.filtersTitle')">
     <template v-if="showCreateAction" #actions>
-      <Button
-        appearance="pill"
-        tone="outline"
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
         size="sm"
-        type="button"
+
         @click="emit('create-pr')"
       >
         {{ t("adminPR.newPRAction") }}
-      </Button>
+      </PuButton>
     </template>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchTypeLabel") }}</span>
-      <input v-model="filters.type" class="field-input" :list="typeOptionsListId" />
-    </label>
+    <PuFormItem :label="t('adminPR.searchTypeLabel')" for-id="admin-pr-filter-type">
+      <PuInput
+        id="admin-pr-filter-type"
+        v-model="filters.type"
+        :list="typeOptionsListId"
+      />
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchLocationLabel") }}</span>
-      <input
+    <PuFormItem
+      :label="t('adminPR.searchLocationLabel')"
+      for-id="admin-pr-filter-location"
+    >
+      <PuInput
+        id="admin-pr-filter-location"
         v-model="filters.location"
-        class="field-input"
         :list="locationOptionsListId"
       />
-    </label>
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchStatusLabel") }}</span>
-      <select v-model="filters.status" class="field-input">
-        <option value="">{{ t("adminPR.searchStatusAll") }}</option>
-        <option value="DRAFT">DRAFT</option>
-        <option value="OPEN">OPEN</option>
-        <option value="READY">READY</option>
-        <option value="ACTIVE">ACTIVE</option>
-        <option value="CLOSED">CLOSED</option>
-        <option value="EXPIRED">EXPIRED</option>
-      </select>
-    </label>
+    <PuFormItem :label="t('adminPR.searchStatusLabel')" for-id="admin-pr-filter-status">
+      <PuSelect
+        id="admin-pr-filter-status"
+        v-model="filterStatus"
+        :options="statusOptions"
+      />
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchStartLabel") }}</span>
-      <input v-model="filters.startAt" class="field-input" type="datetime-local" />
-    </label>
+    <PuFormItem :label="t('adminPR.searchStartLabel')">
+      <PuInput v-model="filters.startAt" native-type="datetime-local" />
+    </PuFormItem>
 
-    <label class="field">
-      <span class="field-label">{{ t("adminPR.searchEndLabel") }}</span>
-      <input v-model="filters.endAt" class="field-input" type="datetime-local" />
-    </label>
+    <PuFormItem :label="t('adminPR.searchEndLabel')">
+      <PuInput v-model="filters.endAt" native-type="datetime-local" />
+    </PuFormItem>
   </AdminRailPanel>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { AdminPRFilters } from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
 import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import Button from "@/shared/ui/actions/Button.vue";
+import {
+  PuButton,
+  PuFormItem,
+  PuInput,
+  PuSelect,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 defineProps<{
   showCreateAction?: boolean;
@@ -69,26 +75,21 @@ const emit = defineEmits<{
 
 const filters = defineModel<AdminPRFilters>("filters", { required: true });
 const { t } = useI18n();
+
+const statusOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPR.searchStatusAll"), value: "" },
+  { label: "DRAFT", value: "DRAFT" },
+  { label: "OPEN", value: "OPEN" },
+  { label: "READY", value: "READY" },
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "CLOSED", value: "CLOSED" },
+  { label: "EXPIRED", value: "EXPIRED" },
+]);
+
+const filterStatus = computed({
+  get: () => filters.value.status,
+  set: (value: PuSelectValue) => {
+    filters.value.status = typeof value === "string" ? value : "";
+  },
+});
 </script>
-
-<style lang="scss" scoped>
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-</style>

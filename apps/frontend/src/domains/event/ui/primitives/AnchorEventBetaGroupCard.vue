@@ -63,9 +63,9 @@
 </template>
 
 <script setup lang="ts">
+import { PuCard } from "@partner-up-dev/design-web";
 import { computed, toRef } from "vue";
 import { useI18n } from "vue-i18n";
-import { PuCard } from "@partner-up-dev/design-web";
 import { usePuCardAttention } from "./usePuCardAttention";
 
 const props = withDefaults(
@@ -87,11 +87,7 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
-const {
-  autoExpandHighlightActive,
-  cardDefaultExpanded,
-  cardResetKey,
-} = usePuCardAttention({
+const { autoExpandHighlightActive, cardDefaultExpanded, cardResetKey } = usePuCardAttention({
   defaultExpanded: toRef(props, "defaultExpanded"),
   autoExpandContextKey: toRef(props, "autoExpandContextKey"),
 });
@@ -116,9 +112,7 @@ const qrAlt = computed(() =>
 const normalizedQrCodeUrl = computed(() => normalizeHttpUrl(props.qrCodeUrl));
 const cardTitle = computed(() => {
   const title = props.eventTitle.trim();
-  return title.length > 0
-    ? `${title}群`
-    : t("anchorEvent.betaGroupCard.kicker");
+  return title.length > 0 ? `${title}群` : t("anchorEvent.betaGroupCard.kicker");
 });
 const description = computed(() => t("anchorEvent.betaGroupCard.description"));
 </script>
@@ -184,7 +178,10 @@ const description = computed(() => t("anchorEvent.betaGroupCard.description"));
 }
 
 .anchor-event-beta-group-card__qr {
+  display: block;
   width: min(100%, 220px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
   border-radius: var(--sys-radius-medium);
 }
 

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type {
-  PartnerRequestFields,
-  PRAllowEditAfterReady,
-} from "@partner-up-dev/backend";
+import type { PartnerRequestFields, PRAllowEditAfterReady } from "@partner-up-dev/backend";
 import { buildEventAssistedPRCreateBody } from "./useCreateEventAssistedPR";
 
 const fields: PartnerRequestFields = {
@@ -54,10 +51,7 @@ describe("event-assisted PR create query", () => {
 
   test("buildEventAssistedPRCreateBody carries fuzzy ready-edit policy", () => {
     const allowEditAfterReady: PRAllowEditAfterReady = {
-      timeWindow: [
-        "2038-01-01T16:00:00.000Z",
-        "2038-01-02T15:59:00.000Z",
-      ],
+      timeWindow: ["2038-01-01T16:00:00.000Z", "2038-01-02T16:00:00.000Z"],
     };
 
     expect(

@@ -1,17 +1,12 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { db } from "../../../lib/db";
-import type { BillLineId } from "../../../entities/bill";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { PaymentTxRepository } from "../../../repositories/PaymentTxRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { reconcileBillToTargetAmount } from "../../bill";
-import {
-  createRefundPaymentTxForRefundLine,
-  deriveBillPaymentState,
-} from "../../payment";
+import { deriveBillPaymentState, reconcileBillToTargetAmount } from "../../bill";
+import { createRefundExecutionForRefundLine } from "../../payment";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {
   approveTerminationAttempt,
@@ -67,7 +62,6 @@ export async function finalizeRentalOrderTermination(input: {
     const tradeOrderRepo = new TradeOrderRepository(tx);
     const billRepo = new BillRepository(tx);
     const billLineRepo = new BillLineRepository(tx);
-    const paymentTxRepo = new PaymentTxRepository(tx);
     const rentalOrderRepo = new RentalOrderRepository(tx);
 
     if (input.decision.outcome === "DENIED") {
@@ -111,12 +105,8 @@ export async function finalizeRentalOrderTermination(input: {
       return throwHttpProblem({ status: 404, detail: "Bill not found for rental termination" });
     }
     const billLines = await billLineRepo.listByBillId(bill.id);
-    const paymentTxs = await paymentTxRepo.listByBillLineIds(
-      billLines.map((line) => line.id as BillLineId),
-    );
     const paymentState = deriveBillPaymentState({
       lines: billLines,
-      txs: paymentTxs,
     });
     const reconciliation = await reconcileBillToTargetAmount(
       {
@@ -171,7 +161,7 @@ export async function finalizeRentalOrderTermination(input: {
 
   const refunds = [];
   for (const refundBillLineId of transactionResult.refundLineIds) {
-    refunds.push(await createRefundPaymentTxForRefundLine({ refundBillLineId }));
+    refunds.push(await createRefundExecutionForRefundLine({ refundBillLineId }));
   }
 
   const { refundLineIds: _refundLineIds, ...result } = transactionResult;

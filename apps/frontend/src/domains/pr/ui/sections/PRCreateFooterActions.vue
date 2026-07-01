@@ -1,9 +1,9 @@
 <template>
   <footer class="page-footer">
-    <Button
+    <PuButton
       v-if="allowDraftSave"
-      tone="outline"
-      type="button"
+      tone="neutral" variant="outline"
+
       :disabled="pending"
       data-testid="pr-create.save-draft"
       @click="emit('submit-as', 'DRAFT')"
@@ -13,9 +13,9 @@
           ? t("createPage.savePending")
           : t("common.save")
       }}
-    </Button>
-    <Button
-      type="button"
+    </PuButton>
+    <PuButton
+
       :disabled="pending"
       data-testid="pr-create.publish"
       @click="emit('submit-as', 'PUBLISH')"
@@ -25,14 +25,14 @@
           ? t("createPage.createPending")
           : t("common.create")
       }}
-    </Button>
+    </PuButton>
   </footer>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
-import Button from "@/shared/ui/actions/Button.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   pending: boolean;

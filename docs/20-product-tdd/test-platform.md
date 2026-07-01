@@ -52,6 +52,9 @@ Playwright browser -> Vite frontend -> real backend HTTP -> isolated Postgres
 Scenario runtime ownership stays outside Vitest's assertion API:
 
 - scenario infra owns temporary database creation, migration, and cleanup
+- scenario infra explicitly runs database preparation with
+  `PARTNERUP_ENVIRONMENT=staging`; test fixtures must be created by scenario
+  setup code, not by development-only data migrations
 - system scenario infra owns backend server and Vite frontend server startup
 - Playwright helpers own browser context and page behavior
 - domain scenario kits own builders, actions, probes, and business language

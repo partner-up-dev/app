@@ -16,392 +16,415 @@
 
     <template #main>
       <div class="stack">
-      <LoadingIndicator
-        v-if="workspaceQuery.isLoading.value"
-        :message="t('common.loading')"
-      />
-      <ErrorToast
-        v-else-if="workspaceQuery.error.value"
-        :message="workspaceQuery.error.value.message"
-        persistent
-      />
+        <PuLoadingState
+          v-if="workspaceQuery.isLoading.value"
+          :message="t('common.loading')"
+        />
+        <PuInlineNotice tone="error"
+          v-else-if="workspaceQuery.error.value"
+          :message="workspaceQuery.error.value.message"
+        />
 
-      <template v-else>
-        <datalist id="admin-pr-type-options">
-          <option
-            v-for="typeOption in workspace?.typeOptions ?? []"
-            :key="typeOption.type"
-            :value="typeOption.type"
-          >
-            {{ typeOption.eventTitle }}
-          </option>
-        </datalist>
-        <datalist id="admin-pr-filter-location-options">
-          <option
-            v-for="locationOption in filterLocationOptions"
-            :key="locationOption"
-            :value="locationOption"
-          />
-        </datalist>
-        <datalist id="admin-pr-form-location-options">
-          <option
-            v-for="locationOption in formLocationOptions"
-            :key="locationOption"
-            :value="locationOption"
-          />
-        </datalist>
+        <template v-else>
+          <datalist id="admin-pr-type-options">
+            <option
+              v-for="typeOption in workspace?.typeOptions ?? []"
+              :key="typeOption.type"
+              :value="typeOption.type"
+            >
+              {{ typeOption.eventTitle }}
+            </option>
+          </datalist>
+          <datalist id="admin-pr-filter-location-options">
+            <option
+              v-for="locationOption in filterLocationOptions"
+              :key="locationOption"
+              :value="locationOption"
+            />
+          </datalist>
+          <datalist id="admin-pr-form-location-options">
+            <option
+              v-for="locationOption in formLocationOptions"
+              :key="locationOption"
+              :value="locationOption"
+            />
+          </datalist>
 
-        <BentoLayout class="pr-workspace-layout">
-          <BentoItem :title="t('adminPR.prsTitle')" span="full">
-            <div class="stack">
-              <div class="section-header">
-                <p class="hint">
+          <BentoLayout class="pr-workspace-layout">
+            <BentoItem :title="t('adminPR.prsTitle')" span="full">
+              <div class="stack">
+                <div class="section-header">
+                  <p class="hint">
+                    {{
+                      t("adminPR.filteredCountLabel", {
+                        count: filteredPRs.length,
+                      })
+                    }}
+                  </p>
+                </div>
+
+                <div v-if="filteredPRs.length === 0" class="hint">
+                  {{ t("adminPR.emptySearchResults") }}
+                </div>
+
+                <div
+                  v-else
+                  class="pr-result-list pr-result-list--grid pr-result-list--scroll"
+                >
+                  <PuCard
+                    v-for="pr in filteredPRs"
+                    :key="pr.prId"
+                    class="pr-result-card"
+                    :active="!isCreatingPR && selectedPRId === pr.prId"
+                    @click="selectExistingPR(pr.prId)"
+                    selectable
+                    variant="outline"
+                    padding="sm"
+                    gap="xs"
+                  >
+                    <span>
+                      {{ pr.title || pr.placeDisplayName || `#${pr.prId}` }}
+                    </span>
+                    <small>#{{ pr.prId }} / {{ pr.status }}</small>
+                    <small>{{ formatWindow(pr.time) }}</small>
+                  </PuCard>
+                </div>
+              </div>
+            </BentoItem>
+
+            <BentoItem
+              id="pr-basic"
+              :title="t('adminPR.prFormTitle')"
+              span="full"
+              data-testid="admin-pr.section.basic"
+            >
+              <div class="stack">
+                <label class="field">
+                  <span class="field-label">{{
+                    t("adminPR.prTitleLabel")
+                  }}</span>
+                  <input v-model="prForm.title" class="field-input" />
+                </label>
+
+                <label class="field">
+                  <span class="field-label">{{
+                    t("adminPR.prTypeLabel")
+                  }}</span>
+                  <input
+                    v-model="prForm.type"
+                    class="field-input"
+                    list="admin-pr-type-options"
+                  />
+                </label>
+
+                <div class="grid-2">
+                  <PuFormItem
+                    :label="t('adminPR.prTimeStartLabel')"
+                    for-id="admin-pr-start-at"
+                  >
+                    <PuInput
+                      id="admin-pr-start-at"
+                      v-model="prForm.startAt"
+                      native-type="datetime-local"
+                    />
+                  </PuFormItem>
+                  <PuFormItem
+                    :label="t('adminPR.prTimeEndLabel')"
+                    for-id="admin-pr-end-at"
+                  >
+                    <PuInput
+                      id="admin-pr-end-at"
+                      v-model="prForm.endAt"
+                      native-type="datetime-local"
+                    />
+                  </PuFormItem>
+                </div>
+
+                <PRPlaceModeField
+                  v-model="prPlaceValue"
+                  :label="t('partnerRequestForm.placeMode')"
+                  :aria-label="t('partnerRequestForm.placeModeAria')"
+                  :location-label="t('adminPR.prLocationLabel')"
+                  :location-placeholder="
+                    t('partnerRequestForm.locationPlaceholder')
+                  "
+                  location-options-list-id="admin-pr-form-location-options"
+                  :location-error="locationValidationMessage ?? undefined"
+                  :route-error="routeValidationMessage ?? undefined"
+                  test-id-prefix="admin-pr.form.place"
+                />
+
+                <label class="field">
+                  <span class="field-label">
+                    {{ t("adminPR.prMeetingPointDescriptionLabel") }}
+                  </span>
+                  <textarea
+                    v-model="prForm.meetingPointDescription"
+                    class="field-input field-textarea"
+                  ></textarea>
+                </label>
+
+                <PuFormItem
+                  :label="t('adminPR.prMeetingPointImageUrlLabel')"
+                  for-id="admin-pr-meeting-point-image-url"
+                >
+                  <PuFileUpload
+                    id="admin-pr-meeting-point-image-url"
+                    v-model="prMeetingPointImageUploadValue"
+                    mode="url"
+                    layout="inline"
+                    :url-placeholder="t('adminPR.eventImageUrlPlaceholder')"
+                    :url-add-label="t('adminPois.addUrlAction')"
+                    @add="handlePRMeetingPointImageAdd"
+                    @remove="handlePRMeetingPointImageRemove"
+                    @reject="handlePRMeetingPointImageReject"
+                    @update:model-value="handlePRMeetingPointImageUpdate"
+                  />
+                  <PuInlineNotice
+                    v-if="prMeetingPointImageError"
+                    tone="error"
+                    :message="prMeetingPointImageError"
+                  />
+                </PuFormItem>
+
+                <div class="grid-2">
+                  <label class="field">
+                    <span class="field-label">{{
+                      t("adminPR.prMinPartnersLabel")
+                    }}</span>
+                    <input
+                      v-model.number="prForm.minPartners"
+                      class="field-input"
+                      type="number"
+                      min="1"
+                    />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">{{
+                      t("adminPR.prMaxPartnersLabel")
+                    }}</span>
+                    <input
+                      v-model.number="prForm.maxPartners"
+                      class="field-input"
+                      type="number"
+                      min="2"
+                    />
+                  </label>
+                </div>
+
+                <p v-if="prBoundsValidationMessage" class="error-message">
+                  {{ prBoundsValidationMessage }}
+                </p>
+                <p v-if="timeValidationMessage" class="error-message">
+                  {{ timeValidationMessage }}
+                </p>
+
+                <TimelinePolicyPicker
+                  v-model="prPolicyValue"
+                  :title="t('adminPR.participationPolicyTitle')"
+                  :description="t('adminPR.participationPolicyDescription')"
+                  :event-start-at="resolvedTimeWindow[0]"
+                  :validation-message="policyValidationMessage"
+                />
+
+                <label class="field">
+                  <span class="field-label">{{
+                    t("adminPR.prPreferencesLabel")
+                  }}</span>
+                  <input v-model="prForm.preferencesText" class="field-input" />
+                </label>
+
+                <label class="field">
+                  <span class="field-label">{{
+                    t("adminPR.prNotesLabel")
+                  }}</span>
+                  <textarea
+                    v-model="prForm.notes"
+                    class="field-input field-textarea"
+                  ></textarea>
+                </label>
+
+                <PRJoinGateConfigEditor
+                  v-model="prForm.joinGateConfig"
+                  source="PR"
+                />
+
+                <PuFormItem
+                  :label="t('adminPR.prStatusLabel')"
+                  for-id="admin-pr-status"
+                >
+                  <PuSelect
+                    id="admin-pr-status"
+                    v-model="prStatusModel"
+                    :options="prStatusOptions"
+                  />
+                </PuFormItem>
+
+                <PuFormItem
+                  :label="t('adminPR.prVisibilityLabel')"
+                  for-id="admin-pr-visibility"
+                >
+                  <PuSelect
+                    id="admin-pr-visibility"
+                    v-model="prVisibilityStatusModel"
+                    :options="prVisibilityStatusOptions"
+                  />
+                </PuFormItem>
+
+                <p v-if="matchedTypeOption" class="hint">
                   {{
-                    t("adminPR.filteredCountLabel", {
-                      count: filteredPRs.length,
+                    t("adminPR.typeDefaultsHint", {
+                      title: matchedTypeOption.eventTitle,
                     })
                   }}
                 </p>
-              </div>
 
-              <div v-if="filteredPRs.length === 0" class="hint">
-                {{ t("adminPR.emptySearchResults") }}
-              </div>
-
-              <div
-                v-else
-                class="pr-result-list pr-result-list--grid pr-result-list--scroll"
-              >
-                <ChoiceCard
-                  v-for="pr in filteredPRs"
-                  :key="pr.prId"
-                  class="pr-result-card"
-                  :active="!isCreatingPR && selectedPRId === pr.prId"
-                  @click="selectExistingPR(pr.prId)"
-                >
-                  <span>
-                    {{ pr.title || pr.placeDisplayName || `#${pr.prId}` }}
-                  </span>
-                  <small>#{{ pr.prId }} / {{ pr.status }}</small>
-                  <small>{{ formatWindow(pr.time) }}</small>
-                </ChoiceCard>
-              </div>
-            </div>
-          </BentoItem>
-
-          <BentoItem
-            id="pr-basic"
-            :title="t('adminPR.prFormTitle')"
-            span="full"
-            data-testid="admin-pr.section.basic"
-          >
-            <div class="stack">
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prTitleLabel") }}</span>
-                <input v-model="prForm.title" class="field-input" />
-              </label>
-
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prTypeLabel") }}</span>
-                <input
-                  v-model="prForm.type"
-                  class="field-input"
-                  list="admin-pr-type-options"
-                />
-              </label>
-
-              <div class="grid-2">
-                <label class="field">
-                  <span class="field-label">{{ t("adminPR.prTimeStartLabel") }}</span>
-                  <input
-                    v-model="prForm.startAt"
-                    class="field-input"
-                    type="datetime-local"
-                  />
-                </label>
-                <label class="field">
-                  <span class="field-label">{{ t("adminPR.prTimeEndLabel") }}</span>
-                  <input
-                    v-model="prForm.endAt"
-                    class="field-input"
-                    type="datetime-local"
-                  />
-                </label>
-              </div>
-
-              <PRPlaceModeField
-                v-model="prPlaceValue"
-                :label="t('partnerRequestForm.placeMode')"
-                :aria-label="t('partnerRequestForm.placeModeAria')"
-                :location-label="t('adminPR.prLocationLabel')"
-                :location-placeholder="t('partnerRequestForm.locationPlaceholder')"
-                location-options-list-id="admin-pr-form-location-options"
-                :location-error="locationValidationMessage ?? undefined"
-                :route-error="routeValidationMessage ?? undefined"
-                test-id-prefix="admin-pr.form.place"
-              />
-
-              <label class="field">
-                <span class="field-label">
-                  {{ t("adminPR.prMeetingPointDescriptionLabel") }}
-                </span>
-                <textarea
-                  v-model="prForm.meetingPointDescription"
-                  class="field-input field-textarea"
-                ></textarea>
-              </label>
-
-              <label class="field">
-                <span class="field-label">
-                  {{ t("adminPR.prMeetingPointImageUrlLabel") }}
-                </span>
-                <input
-                  v-model="prForm.meetingPointImageUrl"
-                  class="field-input"
-                />
-              </label>
-
-              <div class="grid-2">
-                <label class="field">
-                  <span class="field-label">{{ t("adminPR.prMinPartnersLabel") }}</span>
-                  <input
-                    v-model.number="prForm.minPartners"
-                    class="field-input"
-                    type="number"
-                    min="1"
-                  />
-                </label>
-                <label class="field">
-                  <span class="field-label">{{ t("adminPR.prMaxPartnersLabel") }}</span>
-                  <input
-                    v-model.number="prForm.maxPartners"
-                    class="field-input"
-                    type="number"
-                    min="2"
-                  />
-                </label>
-              </div>
-
-              <p v-if="prBoundsValidationMessage" class="error-message">
-                {{ prBoundsValidationMessage }}
-              </p>
-              <p v-if="timeValidationMessage" class="error-message">
-                {{ timeValidationMessage }}
-              </p>
-
-              <TimelinePolicyPicker
-                v-model="prPolicyValue"
-                :title="t('adminPR.participationPolicyTitle')"
-                :description="t('adminPR.participationPolicyDescription')"
-                :event-start-at="resolvedTimeWindow[0]"
-                :validation-message="policyValidationMessage"
-              />
-
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prPreferencesLabel") }}</span>
-                <input v-model="prForm.preferencesText" class="field-input" />
-              </label>
-
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prNotesLabel") }}</span>
-                <textarea
-                  v-model="prForm.notes"
-                  class="field-input field-textarea"
-                ></textarea>
-              </label>
-
-              <PRJoinGateConfigEditor
-                v-model="prForm.joinGateConfig"
-                source="PR"
-              />
-
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prStatusLabel") }}</span>
-                <select v-model="prForm.status" class="field-input">
-                  <option value="OPEN">OPEN</option>
-                  <option value="READY">READY</option>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="CLOSED">CLOSED</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span class="field-label">{{ t("adminPR.prVisibilityLabel") }}</span>
-                <select v-model="prForm.visibilityStatus" class="field-input">
-                  <option value="VISIBLE">
-                    {{ t("adminPR.visibilityVisible") }}
-                  </option>
-                  <option value="HIDDEN">
-                    {{ t("adminPR.visibilityHidden") }}
-                  </option>
-                </select>
-              </label>
-
-              <p v-if="matchedTypeOption" class="hint">
-                {{
-                  t("adminPR.typeDefaultsHint", {
-                    title: matchedTypeOption.eventTitle,
-                  })
-                }}
-              </p>
-
-              <div v-if="!isCreatingPR && selectedPR !== null" class="stack stack--tight">
-                <label class="field">
-                  <span class="field-label">
-                    {{ t("adminPR.prFeedbackQuestionnaireInstanceLabel") }}
-                  </span>
-                  <select
-                    class="field-input"
-                    :value="prForm.feedbackQuestionnaireInstanceId ?? ''"
-                    data-testid="admin-pr.feedback-instance"
-                    @change="
-                      prForm.feedbackQuestionnaireInstanceId =
-                        parseNullableId($event)
-                    "
-                  >
-                    <option value="">{{ t("adminPR.noFeedbackQuestionnaire") }}</option>
-                    <option
-                      v-for="instance in feedbackQuestionnaireInstances"
-                      :key="instance.id"
-                      :value="instance.id"
-                    >
-                      #{{ instance.id }} / {{ instance.title }}
-                    </option>
-                  </select>
-                </label>
-                <Button
-                  appearance="pill"
-                  tone="outline"
-                  size="sm"
-                  type="button"
-                  :disabled="
-                    selectedPRId === null ||
-                    prFeedbackQuestionnaireUseCase.isPending.updateInstance.value
-                  "
-                  data-testid="admin-pr.feedback-instance.save"
-                  @click="handleSavePRFeedbackQuestionnaireInstance"
-                >
-                  {{
-                    prFeedbackQuestionnaireUseCase.isPending.updateInstance.value
-                      ? t("adminPR.saving")
-                      : t("adminPR.saveFeedbackQuestionnaireInstanceAction")
-                  }}
-                </Button>
-
-                <label class="field">
-                  <span class="field-label">
-                    {{ t("adminPR.prFeedbackQuestionnaireTemplateLabel") }}
-                  </span>
-                  <select
-                    class="field-input"
-                    :value="mountFeedbackQuestionnaireTemplateId ?? ''"
-                    data-testid="admin-pr.feedback-template"
-                    @change="
-                      mountFeedbackQuestionnaireTemplateId =
-                        parseNullableId($event)
-                    "
-                  >
-                    <option value="">{{ t("adminPR.noFeedbackQuestionnaire") }}</option>
-                    <option
-                      v-for="template in feedbackQuestionnaireTemplates"
-                      :key="template.id"
-                      :value="template.id"
-                    >
-                      {{ template.key }}@{{ template.version }} / {{ template.title }}
-                    </option>
-                  </select>
-                </label>
-                <Button
-                  appearance="pill"
-                  tone="outline"
-                  size="sm"
-                  type="button"
-                  :disabled="
-                    selectedPRId === null ||
-                    mountFeedbackQuestionnaireTemplateId === null ||
-                    prFeedbackQuestionnaireUseCase.isPending.materialize.value
-                  "
-                  data-testid="admin-pr.feedback-template.mount"
-                  @click="handleMaterializePRFeedbackQuestionnaireInstance"
-                >
-                  {{
-                    prFeedbackQuestionnaireUseCase.isPending.materialize.value
-                      ? t("adminPR.saving")
-                      : t("adminPR.mountFeedbackQuestionnaireTemplateAction")
-                  }}
-                </Button>
-              </div>
-
-              <div class="actions actions--inline">
-                <Button
-                  appearance="pill"
-                  size="sm"
-                  type="button"
-                  :disabled="
-                    isSavingPR ||
-                    isDeletingPR ||
-                    Boolean(prBoundsValidationMessage) ||
-                    Boolean(timeValidationMessage) ||
-                    Boolean(policyValidationMessage) ||
-                    Boolean(prPlaceValidationMessage) ||
-                    prForm.type.trim().length === 0
-                  "
-                  @click="handleSavePR"
-                >
-                  {{
-                    isSavingPR
-                      ? t("adminPR.saving")
-                      : isCreatingPR
-                        ? t("adminPR.createPRAction")
-                        : t("adminPR.savePRAction")
-                  }}
-                </Button>
-                <Button
+                <div
                   v-if="!isCreatingPR && selectedPR !== null"
-                  appearance="pill"
-                  tone="danger"
-                  size="sm"
-                  type="button"
-                  :disabled="isSavingPR || isDeletingPR"
-                  @click="requestDeletePR(selectedPR.prId)"
+                  class="stack stack--tight"
                 >
-                  {{
-                    isDeletingPR
-                      ? t("adminPR.deletingPR")
-                      : t("adminPR.deletePRAction")
-                  }}
-                </Button>
-              </div>
-            </div>
-          </BentoItem>
-        </BentoLayout>
+                  <PuFormItem
+                    :label="t('adminPR.prFeedbackQuestionnaireInstanceLabel')"
+                    for-id="admin-pr-feedback-instance"
+                  >
+                    <PuSelect
+                      id="admin-pr-feedback-instance"
+                      v-model="feedbackQuestionnaireInstanceModel"
+                      :options="feedbackQuestionnaireInstanceOptions"
+                      :placeholder="t('adminPR.noFeedbackQuestionnaire')"
+                      clearable
+                      data-testid="admin-pr.feedback-instance"
+                    />
+                  </PuFormItem>
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
+                    size="sm"
 
-        <ErrorToast
-          v-if="mutationErrorMessage"
-          :message="mutationErrorMessage"
-          @close="resetMutationErrors"
-        />
-      </template>
+                    :disabled="
+                      selectedPRId === null ||
+                      prFeedbackQuestionnaireUseCase.isPending.updateInstance
+                        .value
+                    "
+                    data-testid="admin-pr.feedback-instance.save"
+                    @click="handleSavePRFeedbackQuestionnaireInstance"
+                  >
+                    {{
+                      prFeedbackQuestionnaireUseCase.isPending.updateInstance
+                        .value
+                        ? t("adminPR.saving")
+                        : t("adminPR.saveFeedbackQuestionnaireInstanceAction")
+                    }}
+                  </PuButton>
+
+                  <PuFormItem
+                    :label="t('adminPR.prFeedbackQuestionnaireTemplateLabel')"
+                    for-id="admin-pr-feedback-template"
+                  >
+                    <PuSelect
+                      id="admin-pr-feedback-template"
+                      v-model="mountFeedbackQuestionnaireTemplateModel"
+                      :options="feedbackQuestionnaireTemplateOptions"
+                      :placeholder="t('adminPR.noFeedbackQuestionnaire')"
+                      clearable
+                      data-testid="admin-pr.feedback-template"
+                    />
+                  </PuFormItem>
+                  <PuButton
+                    shape="pill"
+                    tone="neutral" variant="outline"
+                    size="sm"
+
+                    :disabled="
+                      selectedPRId === null ||
+                      mountFeedbackQuestionnaireTemplateId === null ||
+                      prFeedbackQuestionnaireUseCase.isPending.materialize.value
+                    "
+                    data-testid="admin-pr.feedback-template.mount"
+                    @click="handleMaterializePRFeedbackQuestionnaireInstance"
+                  >
+                    {{
+                      prFeedbackQuestionnaireUseCase.isPending.materialize.value
+                        ? t("adminPR.saving")
+                        : t("adminPR.mountFeedbackQuestionnaireTemplateAction")
+                    }}
+                  </PuButton>
+                </div>
+
+                <div class="actions actions--inline">
+                  <PuButton
+                    shape="pill"
+                    size="sm"
+
+                    :disabled="
+                      isSavingPR ||
+                      isDeletingPR ||
+                      Boolean(prBoundsValidationMessage) ||
+                      Boolean(timeValidationMessage) ||
+                      Boolean(policyValidationMessage) ||
+                      Boolean(prPlaceValidationMessage) ||
+                      prForm.type.trim().length === 0
+                    "
+                    @click="handleSavePR"
+                  >
+                    {{
+                      isSavingPR
+                        ? t("adminPR.saving")
+                        : isCreatingPR
+                          ? t("adminPR.createPRAction")
+                          : t("adminPR.savePRAction")
+                    }}
+                  </PuButton>
+                  <PuButton
+                    v-if="!isCreatingPR && selectedPR !== null"
+                    shape="pill"
+                    tone="danger" variant="outline"
+                    size="sm"
+
+                    :disabled="isSavingPR || isDeletingPR"
+                    @click="requestDeletePR(selectedPR.prId)"
+                  >
+                    {{
+                      isDeletingPR
+                        ? t("adminPR.deletingPR")
+                        : t("adminPR.deletePRAction")
+                    }}
+                  </PuButton>
+                </div>
+              </div>
+            </BentoItem>
+          </BentoLayout>
+
+          <PuInlineNotice tone="error" dismissible
+            v-if="mutationErrorMessage"
+            :message="mutationErrorMessage"
+            @close="resetMutationErrors"
+          />
+        </template>
       </div>
 
-      <ConfirmDialog
+      <PuDialog
         :open="pendingDeletePRId !== null"
         :title="t('adminPR.deleteConfirmTitle')"
-        :message="
-          t('adminPR.deleteConfirmMessage', {
-            title: pendingDeletePRLabel,
-          })
-        "
         :description="t('adminPR.deleteConfirmDescription')"
-        :confirm-label="
+        :confirm-text="
           isDeletingPR ? t('adminPR.deletingPR') : t('adminPR.deletePRAction')
         "
-        confirm-tone="danger"
-        :loading="isDeletingPR"
-        :disabled="pendingDeletePRId === null"
+        tone="error"
+        :confirm-loading="isDeletingPR"
+        :confirm-disabled="pendingDeletePRId === null"
         @close="closeDeletePRConfirm"
+        @cancel="closeDeletePRConfirm"
         @confirm="confirmDeletePR"
-      />
+      >
+        <p class="dialog-message">
+          {{
+            t("adminPR.deleteConfirmMessage", {
+              title: pendingDeletePRLabel,
+            })
+          }}
+        </p>
+      </PuDialog>
     </template>
   </AdminPageScaffold>
 </template>
@@ -422,26 +445,36 @@ import { toIsoDateTime } from "@/domains/admin/use-cases/pr/prMutationInput";
 import { useAdminPRFeedbackQuestionnaire } from "@/domains/admin/use-cases/pr/useAdminPRFeedbackQuestionnaire";
 import { useSaveAdminPRBasic } from "@/domains/admin/use-cases/pr/useSaveAdminPRBasic";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import {
-  useDeleteAdminPR,
-} from "@/domains/admin/queries/useAdminPRManagement";
+import { useDeleteAdminPR } from "@/domains/admin/queries/useAdminPRManagement";
 import { validateManualPartnerBounds } from "@/lib/validation";
 import {
   clonePRRoute,
   getPRRouteValidationIssue,
   type PRPlaceMode,
 } from "@/domains/pr/model/pr-route";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
 import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
-import ConfirmDialog from "@/shared/ui/overlay/ConfirmDialog.vue";
 import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
 import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import { imageUploadItemFromUrl } from "@/shared/upload/useDesignWebImageUpload";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
+import {
+  PuButton,
+  PuCard,
+  PuDialog,
+  PuFileUpload,
+  PuFormItem,
+  PuInlineNotice,
+  PuInput,
+  PuLoadingState,
+  PuSelect,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
+  type PuSelectOption,
+  type PuSelectValue,
+} from "@partner-up-dev/design-web";
 
 type PRForm = {
   title: string;
@@ -561,6 +594,7 @@ const prForm = ref<PRForm>(emptyPRForm());
 const mountFeedbackQuestionnaireTemplateId = ref<number | null>(null);
 const lastAppliedType = ref<string | null>(null);
 const pendingDeletePRId = ref<number | null>(null);
+const prMeetingPointImageError = ref<string | null>(null);
 
 const feedbackQuestionnaireInstances = computed(
   () => workspace.value?.feedbackQuestionnaireInstances ?? [],
@@ -568,9 +602,30 @@ const feedbackQuestionnaireInstances = computed(
 const feedbackQuestionnaireTemplates = computed(
   () => workspace.value?.feedbackQuestionnaireTemplates ?? [],
 );
+const prStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: "OPEN", value: "OPEN" },
+  { label: "READY", value: "READY" },
+  { label: "ACTIVE", value: "ACTIVE" },
+  { label: "CLOSED", value: "CLOSED" },
+]);
+const prVisibilityStatusOptions = computed<PuSelectOption[]>(() => [
+  { label: t("adminPR.visibilityVisible"), value: "VISIBLE" },
+  { label: t("adminPR.visibilityHidden"), value: "HIDDEN" },
+]);
+const feedbackQuestionnaireInstanceOptions = computed<PuSelectOption[]>(() =>
+  feedbackQuestionnaireInstances.value.map((instance) => ({
+    label: `#${instance.id} / ${instance.title}`,
+    value: instance.id,
+  })),
+);
+const feedbackQuestionnaireTemplateOptions = computed<PuSelectOption[]>(() =>
+  feedbackQuestionnaireTemplates.value.map((template) => ({
+    label: `${template.key}@${template.version} / ${template.title}`,
+    value: template.id,
+  })),
+);
 const pendingDeletePR = computed<AdminPRRecord | null>(
-  () =>
-    prs.value.find((pr) => pr.prId === pendingDeletePRId.value) ?? null,
+  () => prs.value.find((pr) => pr.prId === pendingDeletePRId.value) ?? null,
 );
 const pendingDeletePRLabel = computed(() => {
   const pr = pendingDeletePR.value;
@@ -644,6 +699,70 @@ const formLocationOptions = computed(() => {
   return poiOptions.value;
 });
 
+const isPRStatus = (value: PuSelectValue): value is PRForm["status"] =>
+  value === "OPEN" ||
+  value === "READY" ||
+  value === "ACTIVE" ||
+  value === "CLOSED";
+
+const isPRVisibilityStatus = (
+  value: PuSelectValue,
+): value is PRForm["visibilityStatus"] =>
+  value === "VISIBLE" || value === "HIDDEN";
+
+const nullablePositiveIntegerFromSelectValue = (
+  value: PuSelectValue,
+): number | null => {
+  const parsed =
+    typeof value === "number" ? value : Number(String(value ?? "").trim());
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const prStatusModel = computed({
+  get: () => prForm.value.status,
+  set: (value: PuSelectValue) => {
+    if (isPRStatus(value)) {
+      prForm.value.status = value;
+    }
+  },
+});
+
+const prVisibilityStatusModel = computed({
+  get: () => prForm.value.visibilityStatus,
+  set: (value: PuSelectValue) => {
+    if (isPRVisibilityStatus(value)) {
+      prForm.value.visibilityStatus = value;
+    }
+  },
+});
+
+const feedbackQuestionnaireInstanceModel = computed({
+  get: () => prForm.value.feedbackQuestionnaireInstanceId,
+  set: (value: PuSelectValue) => {
+    prForm.value.feedbackQuestionnaireInstanceId =
+      nullablePositiveIntegerFromSelectValue(value);
+  },
+});
+
+const mountFeedbackQuestionnaireTemplateModel = computed({
+  get: () => mountFeedbackQuestionnaireTemplateId.value,
+  set: (value: PuSelectValue) => {
+    mountFeedbackQuestionnaireTemplateId.value =
+      nullablePositiveIntegerFromSelectValue(value);
+  },
+});
+
+const prMeetingPointImageUploadValue = computed<PuFileUploadValue>({
+  get: () => {
+    const imageUrl = prForm.value.meetingPointImageUrl.trim();
+    return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
+  },
+  set: (value) => {
+    prForm.value.meetingPointImageUrl =
+      value?.source === "url" && value.url ? value.url : "";
+  },
+});
+
 const resolvedTimeWindow = computed<[string | null, string | null]>(() => [
   toIsoDateTime(prForm.value.startAt),
   toIsoDateTime(prForm.value.endAt),
@@ -670,8 +789,7 @@ const timeValidationMessage = computed(() => {
 const prPolicyValue = computed({
   get: () => ({
     confirmationEnabled: prForm.value.confirmationEnabled,
-    confirmationStartOffsetMinutes:
-      prForm.value.confirmationStartOffsetMinutes,
+    confirmationStartOffsetMinutes: prForm.value.confirmationStartOffsetMinutes,
     confirmationEndOffsetMinutes: prForm.value.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: prForm.value.joinLockOffsetMinutes,
   }),
@@ -748,36 +866,27 @@ watch(
   { immediate: true },
 );
 
-watch(
-  [() => prForm.value.type, isCreatingPR],
-  ([type, creating]) => {
-    if (!creating) return;
-    const matched = typeOptions.value.find(
-      (option) => option.type === type.trim(),
-    );
-    if (!matched || lastAppliedType.value === matched.type) {
-      return;
-    }
-    prForm.value = {
-      ...prForm.value,
-      minPartners: matched.defaultMinPartners,
-      maxPartners: matched.defaultMaxPartners,
-      confirmationStartOffsetMinutes:
-        matched.defaultConfirmationStartOffsetMinutes,
-      confirmationEnabled: matched.defaultConfirmationEnabled,
-      confirmationEndOffsetMinutes: matched.defaultConfirmationEndOffsetMinutes,
-      joinLockOffsetMinutes: matched.defaultJoinLockOffsetMinutes,
-      joinGateConfig: matched.joinGateConfig,
-    };
-    lastAppliedType.value = matched.type;
-  },
-);
-
-const parseNullableId = (event: Event): number | null => {
-  const target = event.target as HTMLSelectElement | null;
-  const parsed = Number(target?.value ?? "");
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-};
+watch([() => prForm.value.type, isCreatingPR], ([type, creating]) => {
+  if (!creating) return;
+  const matched = typeOptions.value.find(
+    (option) => option.type === type.trim(),
+  );
+  if (!matched || lastAppliedType.value === matched.type) {
+    return;
+  }
+  prForm.value = {
+    ...prForm.value,
+    minPartners: matched.defaultMinPartners,
+    maxPartners: matched.defaultMaxPartners,
+    confirmationStartOffsetMinutes:
+      matched.defaultConfirmationStartOffsetMinutes,
+    confirmationEnabled: matched.defaultConfirmationEnabled,
+    confirmationEndOffsetMinutes: matched.defaultConfirmationEndOffsetMinutes,
+    joinLockOffsetMinutes: matched.defaultJoinLockOffsetMinutes,
+    joinGateConfig: matched.joinGateConfig,
+  };
+  lastAppliedType.value = matched.type;
+});
 
 const prepareNewPR = () => {
   isCreatingPR.value = true;
@@ -785,6 +894,31 @@ const prepareNewPR = () => {
   prForm.value = emptyPRForm();
   mountFeedbackQuestionnaireTemplateId.value = null;
   lastAppliedType.value = null;
+};
+
+const handlePRMeetingPointImageUpdate = (
+  value: PuFileUploadValue,
+): void => {
+  prMeetingPointImageUploadValue.value = value;
+  prMeetingPointImageError.value = null;
+};
+
+const handlePRMeetingPointImageAdd = (item: PuFileUploadItem): void => {
+  if (item.source === "url" && item.url) {
+    prForm.value.meetingPointImageUrl = item.url;
+    prMeetingPointImageError.value = null;
+  }
+};
+
+const handlePRMeetingPointImageRemove = (): void => {
+  prForm.value.meetingPointImageUrl = "";
+  prMeetingPointImageError.value = null;
+};
+
+const handlePRMeetingPointImageReject = (
+  rejections: PuFileUploadRejection[],
+): void => {
+  prMeetingPointImageError.value = rejections[0]?.message ?? null;
 };
 
 const selectExistingPR = (prId: number) => {
@@ -851,12 +985,13 @@ const handleMaterializePRFeedbackQuestionnaireInstance = async () => {
   }
 
   try {
-    const result =
-      await prFeedbackQuestionnaireUseCase.materializeFromTemplate({
+    const result = await prFeedbackQuestionnaireUseCase.materializeFromTemplate(
+      {
         prId: selectedPRId.value,
         feedbackQuestionnaireTemplateId:
           mountFeedbackQuestionnaireTemplateId.value,
-      });
+      },
+    );
     if (!result) return;
     prForm.value = {
       ...prForm.value,
@@ -894,8 +1029,8 @@ const handleSavePR = async () => {
         current: {
           prId: selectedPRId.value,
           status: selectedPR.value.status as PRForm["status"],
-          visibilityStatus:
-            selectedPR.value.visibilityStatus as PRForm["visibilityStatus"],
+          visibilityStatus: selectedPR.value
+            .visibilityStatus as PRForm["visibilityStatus"],
         },
         draft: prForm.value,
       });

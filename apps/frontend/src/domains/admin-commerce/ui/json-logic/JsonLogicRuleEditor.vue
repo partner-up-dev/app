@@ -5,14 +5,26 @@
       <p v-if="description" class="pm-hint">{{ description }}</p>
     </div>
 
-    <SegmentedControl
+    <PuSegmented
       :model-value="rule.mode"
-      :options="modeOptions"
       :aria-label="t('adminCommerceJsonLogic.modeAria')"
       size="sm"
-      block
+      full-width
+      equal-width
       @update:model-value="updateMode"
-    />
+    >
+      <PuSegmentedItem
+        v-for="option in modeOptions"
+        :key="String(option.value)"
+        :value="option.value"
+        :label="option.label"
+        :disabled="option.disabled"
+      >
+        <template v-if="option.icon" #leading>
+          <span :class="option.icon" aria-hidden="true" />
+        </template>
+      </PuSegmentedItem>
+    </PuSegmented>
 
     <p v-if="rule.mode === 'PRESERVE_CUSTOM'" class="pm-hint">
       {{ t("adminCommerceJsonLogic.customPreservedHint") }}
@@ -25,7 +37,6 @@
       <textarea
         v-model="rule.customRuleText"
         class="pm-field-input jl-custom-rule-textarea"
-        rows="8"
         spellcheck="false"
       ></textarea>
     </label>
@@ -35,12 +46,12 @@
         <strong class="pm-subsection-title">
           {{ t("adminCommerceJsonLogic.conditionsTitle") }}
         </strong>
-        <Button appearance="pill" tone="outline" size="sm" type="button" @click="addCondition">
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addCondition">
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceJsonLogic.addConditionAction") }}
-        </Button>
+        </PuButton>
       </div>
 
       <p v-if="rule.conditions.length === 0" class="pm-hint">
@@ -116,18 +127,18 @@
           />
         </label>
 
-        <Button
-          appearance="pill"
-          tone="danger"
+        <PuButton
+          shape="pill"
+          tone="danger" variant="outline"
           size="sm"
-          type="button"
+
           @click="removeCondition(condition.draftId)"
         >
           <template #leading>
             <span class="i-mdi-delete-outline" />
           </template>
           {{ t("adminCommerceJsonLogic.removeConditionAction") }}
-        </Button>
+        </PuButton>
       </article>
     </template>
   </section>
@@ -136,6 +147,7 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { PuButton, PuSegmented, PuSegmentedItem, type PuSegmentedValue } from "@partner-up-dev/design-web";
 import {
   createCustomJsonLogicField,
   createJsonLogicConditionDraft,
@@ -150,12 +162,14 @@ import {
   type JsonLogicRuleDraft,
   type JsonLogicRuleMode,
 } from "@/domains/admin-commerce/model/json-logic/jsonLogicRuleEditorModel";
-import Button from "@/shared/ui/actions/Button.vue";
-import SegmentedControl, {
-  type SegmentedControlOption,
-  type SegmentedControlValue,
-} from "@/shared/ui/controls/SegmentedControl.vue";
 import "@/domains/admin-commerce/ui/product-management/product-management.scss";
+
+type SegmentedOption = {
+  value: PuSegmentedValue;
+  label: string;
+  icon?: string;
+  disabled?: boolean;
+};
 
 const props = withDefaults(
   defineProps<{
@@ -174,7 +188,7 @@ const props = withDefaults(
 const rule = defineModel<JsonLogicRuleDraft>({ required: true });
 const { t } = useI18n();
 
-const modeOptions = computed<SegmentedControlOption[]>(() => [
+const modeOptions = computed<SegmentedOption[]>(() => [
   {
     value: "ALWAYS",
     label: t("adminCommerceJsonLogic.modeAlways"),
@@ -197,7 +211,7 @@ const modeOptions = computed<SegmentedControlOption[]>(() => [
   },
 ]);
 
-const updateMode = (value: SegmentedControlValue) => {
+const updateMode = (value: PuSegmentedValue) => {
   rule.value = {
     ...rule.value,
     mode: value as JsonLogicRuleMode,

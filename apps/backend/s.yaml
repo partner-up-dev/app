@@ -59,6 +59,7 @@ resources:
       environmentVariables:
         PORT: "3000"
         NODE_ENV: production
+        PARTNERUP_ENVIRONMENT: ${env('PARTNERUP_ENVIRONMENT')}
         PATH: ${env('ALIYUN_FC_PATH')}
         NODE_PATH: /opt/nodejs/node_modules
         LD_LIBRARY_PATH: /code:/code/lib:/usr/lib:/opt/lib:/usr/local/lib

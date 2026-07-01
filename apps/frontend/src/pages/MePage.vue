@@ -1,22 +1,37 @@
 <template>
-  <PageScaffoldFlow class="me-page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold class="me-page">
+    <template #pageHeader>
+      <PuHeader
         :title="t('mePage.title')"
         :subtitle="t('mePage.description')"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="me-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="bindFeedbackMessage"
         :tone="bindFeedbackCode === 'success' ? 'success' : 'error'"
         :message="bindFeedbackMessage"
       />
 
-      <ErrorToast v-if="errorMessage" :message="errorMessage" persistent />
+      <PuInlineNotice tone="error" v-if="errorMessage" :message="errorMessage" />
 
-      <LoadingIndicator
+      <PuLoadingState
         v-if="
           userSessionStore.isAuthenticated && currentUserQuery.isLoading.value
         "
@@ -29,13 +44,13 @@
             <h2>{{ t("mePage.profile.title") }}</h2>
             <p>{{ t("mePage.profile.description") }}</p>
           </div>
-          <Button
+          <PuButton
             v-if="userSessionStore.isAuthenticated"
             class="profile-session-action"
-            appearance="pill"
-            tone="danger"
+            shape="pill"
+            tone="danger" variant="outline"
             size="sm"
-            type="button"
+
             data-testid="me.session.logout"
             :loading="logoutPending"
             @click="handleLogout"
@@ -48,20 +63,22 @@
                 ? t("mePage.logout.pending")
                 : t("mePage.logout.action")
             }}
-          </Button>
+          </PuButton>
         </div>
 
         <div class="profile-panel">
-          <Avatar
-            :src="avatarUrl"
+          <PuImg
+            :src="avatarUrl ?? ''"
             :alt="t('mePage.profile.avatarAlt')"
-            :name="currentUser?.nickname ?? null"
-            :fallback="avatarFallbackText"
-            size="xl"
+            :name="currentUser?.nickname ?? undefined"
+            :fallback-initial="avatarFallbackText"
+            size="xLarge"
+            shape="circle"
+            :show-loading="false"
           />
 
           <div class="profile-form">
-            <FormField
+            <PuFormItem
               :label="t('mePage.profile.nicknameLabel')"
               for-id="me-profile-nickname"
             >
@@ -75,73 +92,50 @@
                 maxlength="40"
                 @keydown.enter.prevent="handleSaveNickname"
               />
-            </FormField>
+            </PuFormItem>
 
-            <FormField
-              :label="t('mePage.profile.phoneLabel')"
-              for-id="me-profile-phone"
-            >
-              <input
-                id="me-profile-phone"
-                v-model="phoneDraft"
-                class="text-input"
-                type="tel"
-                data-testid="me.profile.phone.input"
-                inputmode="numeric"
-                maxlength="11"
-                :placeholder="t('mePage.profile.phonePlaceholder')"
-                :disabled="!canEditProfile"
-                @keydown.enter.prevent="handleSavePhoneNumber"
-              />
-            </FormField>
-            <p v-if="phoneHintText" class="profile-field-hint">
-              {{ phoneHintText }}
-            </p>
+            <UserPhoneNumberEditor
+              id="me-profile-phone"
+              data-testid-prefix="me.profile.phone"
+              :current-phone-masked="currentUser?.phoneMasked ?? null"
+              :has-phone-number="currentUser?.hasPhoneNumber ?? false"
+              :disabled="!canEditProfile"
+            />
 
             <div class="profile-actions">
-              <Button
-                appearance="pill"
+              <PuButton
+                shape="pill"
                 size="sm"
-                type="button"
+
                 :disabled="!canSaveNickname"
                 :loading="updateProfileMutation.isPending.value"
                 @click="handleSaveNickname"
               >
                 {{ t("mePage.profile.saveNickname") }}
-              </Button>
+              </PuButton>
 
-              <Button
-                appearance="pill"
-                size="sm"
-                type="button"
-                data-testid="me.profile.phone.save"
-                :disabled="!canSavePhoneNumber"
-                :loading="updatePhoneNumberMutation.isPending.value"
-                @click="handleSavePhoneNumber"
-              >
-                {{ t("mePage.profile.savePhone") }}
-              </Button>
-
-              <Button
-                appearance="pill"
-                tone="outline"
-                size="sm"
-                type="button"
-                :disabled="!canEditProfile || updateAvatarMutation.isPending.value"
-                :loading="updateAvatarMutation.isPending.value"
-                @click="handlePickAvatar"
-              >
-                {{ t("mePage.profile.changeAvatar") }}
-              </Button>
-
-              <input
-                ref="avatarInputRef"
-                class="sr-only"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                @change="handleAvatarChange"
-              />
             </div>
+
+            <PuFileUpload
+              v-model="avatarUploadValue"
+              class="avatar-upload-control"
+              mode="file"
+              layout="inline"
+              :accept="IMAGE_UPLOAD_ACCEPT"
+              :choose-label="t('mePage.profile.changeAvatar')"
+              :replace-label="t('mePage.profile.changeAvatar')"
+              :drop-label="t('mePage.profile.changeAvatar')"
+              :disabled="!canEditProfile || updateAvatarMutation.isPending.value"
+              @add="handleAvatarUploadAdd"
+              @remove="handleAvatarUploadRemove"
+              @reject="handleAvatarUploadReject"
+              @update:model-value="handleAvatarUploadUpdate"
+            />
+            <PuInlineNotice
+              v-if="avatarUploadError"
+              tone="error"
+              :message="avatarUploadError"
+            />
           </div>
         </div>
 
@@ -153,26 +147,27 @@
               </span>
               <p>{{ wechatIdentityHintText }}</p>
 
-              <Chip
+              <PuTag
                 v-if="wechatBound"
-                class="status-pill"
+                class="wechat-bound-tag"
                 tone="primary"
                 size="md"
-              >
-                {{ t("mePage.profile.wechatBound") }}
-              </Chip>
-              <Button
+                :text="t('mePage.profile.wechatBound')"
+                variant="soft"
+                shape="pill"
+              />
+              <PuButton
                 v-else
                 class="wechat-identity-action"
-                appearance="pill"
+                shape="pill"
                 size="sm"
-                type="button"
+
                 :disabled="wechatIdentityActionDisabled"
                 :loading="wechatIdentityActionPending"
                 @click="handleStartWeChatIdentity"
               >
                 {{ wechatIdentityActionLabel }}
-              </Button>
+              </PuButton>
             </div>
           </div>
 
@@ -183,12 +178,12 @@
               }}</span>
               <code class="credential-value">{{ storedUserIdLabel }}</code>
             </div>
-            <Button
+            <PuButton
               class="credential-clipboard-action"
-              appearance="pill"
-              tone="ghost"
+              shape="pill"
+              tone="neutral" variant="ghost"
               size="sm"
-              type="button"
+
               :disabled="!storedUserId"
               @click="handleCopyCredential(storedUserId)"
             >
@@ -207,7 +202,7 @@
                 "
                 aria-hidden="true"
               ></span>
-            </Button>
+            </PuButton>
           </div>
         </div>
       </PuCard>
@@ -255,53 +250,60 @@
     <template #footer>
       <PageFooter variant="minimal" />
     </template>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { RouterLink, useRoute } from "vue-router";
-import { useI18n } from "vue-i18n";
+import {
+  PuButton,
+  PuCard,
+  PuFileUpload,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
+  PuFormItem,
+  PuHeader,
+  PuImg,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
 import { useQueryClient } from "@tanstack/vue-query";
-import { PuCard } from "@partner-up-dev/design-web";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import Avatar from "@/shared/ui/identity/Avatar.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
-import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
-import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { RouterLink, useRoute } from "vue-router";
 import { useCurrentUserProfile } from "@/domains/user/queries/useCurrentUserProfile";
-import { useUpdateCurrentUserProfile } from "@/domains/user/queries/useUpdateCurrentUserProfile";
-import { useUpdateCurrentUserAvatar } from "@/domains/user/queries/useUpdateCurrentUserAvatar";
-import { useUpdateCurrentUserPhoneNumber } from "@/domains/user/queries/useUpdateCurrentUserPhoneNumber";
 import { useStartWeChatBind } from "@/domains/user/queries/useStartWeChatBind";
-import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
+import { useUpdateCurrentUserAvatar } from "@/domains/user/queries/useUpdateCurrentUserAvatar";
+import { useUpdateCurrentUserProfile } from "@/domains/user/queries/useUpdateCurrentUserProfile";
+import UserPhoneNumberEditor from "@/domains/user/ui/UserPhoneNumberEditor.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { redirectToWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { resetAuthSessionToFreshAnonymous } from "@/processes/auth/useAuthSessionBootstrap";
+import { redirectToWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { queryKeys } from "@/shared/api/query-keys";
+import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
+import { IMAGE_UPLOAD_ACCEPT } from "@/shared/upload/useDesignWebImageUpload";
 
 const route = useRoute();
 const { t } = useI18n();
+const { handleBack } = useFallbackBack();
 const userSessionStore = useUserSessionStore();
 const queryClient = useQueryClient();
 
 const currentUserQuery = useCurrentUserProfile();
 const updateProfileMutation = useUpdateCurrentUserProfile();
 const updateAvatarMutation = useUpdateCurrentUserAvatar();
-const updatePhoneNumberMutation = useUpdateCurrentUserPhoneNumber();
 const startWeChatBindMutation = useStartWeChatBind();
 
-const avatarInputRef = ref<HTMLInputElement | null>(null);
+const avatarUploadValue = ref<PuFileUploadValue>(null);
+const avatarUploadError = ref<string | null>(null);
 const nicknameDraft = ref("");
-const phoneDraft = ref("");
 const copiedField = ref<"userId" | null>(null);
 const copyErrorMessage = ref<string | null>(null);
 const logoutErrorMessage = ref<string | null>(null);
@@ -321,9 +323,7 @@ const storedUserId = computed(() => userSessionStore.userId ?? null);
 const storedUserIdLabel = computed(
   () => storedUserId.value ?? t("mePage.credentials.missingUserId"),
 );
-const isWeChatEnv = computed(() =>
-  typeof navigator === "undefined" ? false : isWeChatBrowser(),
-);
+const isWeChatEnv = computed(() => (typeof navigator === "undefined" ? false : isWeChatBrowser()));
 const bindFeedbackCode = computed(() => {
   const raw = route.query.wechatBind;
   if (typeof raw === "string") return raw;
@@ -356,35 +356,6 @@ const canSaveNickname = computed(() => {
     normalizedDraft !== normalizedCurrent &&
     !updateProfileMutation.isPending.value
   );
-});
-const normalizedPhoneDraft = computed(() => phoneDraft.value.trim());
-const currentPhoneLabel = computed(() => currentUser.value?.phoneMasked ?? "");
-const phoneDraftError = computed(() => {
-  const value = normalizedPhoneDraft.value;
-  if (!value) return null;
-  return /^1\d{10}$/.test(value)
-    ? null
-    : t("mePage.profile.phoneInvalid");
-});
-const canSavePhoneNumber = computed(() => {
-  const value = normalizedPhoneDraft.value;
-  const hasPhone = currentUser.value?.hasPhoneNumber ?? false;
-  return (
-    canEditProfile.value &&
-    !phoneDraftError.value &&
-    (value.length > 0 || hasPhone) &&
-    value !== currentPhoneLabel.value &&
-    !updatePhoneNumberMutation.isPending.value
-  );
-});
-const phoneHintText = computed(() => {
-  if (phoneDraftError.value) return phoneDraftError.value;
-  if (currentUser.value?.phoneMasked) {
-    return t("mePage.profile.phoneCurrent", {
-      phone: currentUser.value.phoneMasked,
-    });
-  }
-  return t("mePage.profile.phoneHint");
 });
 const wechatIdentityActionPending = computed(() =>
   userSessionStore.isAuthenticated
@@ -421,7 +392,6 @@ const errorMessage = computed(() => {
     currentUserQuery.error.value,
     updateProfileMutation.error.value,
     updateAvatarMutation.error.value,
-    updatePhoneNumberMutation.error.value,
     startWeChatBindMutation.error.value,
     notificationSubscriptionsPanelError.value,
   ];
@@ -449,27 +419,46 @@ const handleSaveNickname = async () => {
   });
 };
 
-const handleSavePhoneNumber = async () => {
-  if (!canSavePhoneNumber.value) return;
-  await updatePhoneNumberMutation.mutateAsync({
-    phoneNumber: normalizedPhoneDraft.value || null,
-  });
-  phoneDraft.value = "";
+const handleAvatarUploadUpdate = (value: PuFileUploadValue) => {
+  avatarUploadValue.value = value;
+  avatarUploadError.value = null;
 };
 
-const handlePickAvatar = () => {
-  avatarInputRef.value?.click();
-};
-
-const handleAvatarChange = async (event: Event) => {
-  const input = event.target as HTMLInputElement | null;
-  const nextFile = input?.files?.[0] ?? null;
-  if (!nextFile) return;
-
-  await updateAvatarMutation.mutateAsync({ avatar: nextFile });
-  if (input) {
-    input.value = "";
+const handleAvatarUploadAdd = async (item: PuFileUploadItem): Promise<void> => {
+  if (!item.file) {
+    avatarUploadValue.value = item;
+    return;
   }
+
+  avatarUploadValue.value = {
+    ...item,
+    status: "uploading",
+    message: t("common.loading"),
+  };
+  avatarUploadError.value = null;
+
+  try {
+    await updateAvatarMutation.mutateAsync({ avatar: item.file });
+    avatarUploadValue.value = null;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("errors.updateCurrentUserAvatarFailed");
+    avatarUploadError.value = message;
+    avatarUploadValue.value = {
+      ...item,
+      status: "error",
+      message,
+    };
+  }
+};
+
+const handleAvatarUploadRemove = () => {
+  avatarUploadValue.value = null;
+  avatarUploadError.value = null;
+};
+
+const handleAvatarUploadReject = (rejections: PuFileUploadRejection[]) => {
+  avatarUploadError.value = rejections[0]?.message ?? null;
 };
 
 const handleStartWeChatLogin = () => {
@@ -512,10 +501,8 @@ const handleLogout = async () => {
     queryClient.setQueryData(queryKeys.user.me(), null);
     queryClient.removeQueries({ queryKey: queryKeys.user.me() });
     nicknameDraft.value = "";
-    phoneDraft.value = "";
   } catch (error) {
-    logoutErrorMessage.value =
-      error instanceof Error ? error.message : t("mePage.logout.failed");
+    logoutErrorMessage.value = error instanceof Error ? error.message : t("mePage.logout.failed");
   } finally {
     logoutPending.value = false;
   }
@@ -538,8 +525,7 @@ const handleCopyCredential = async (value: string | null) => {
       }
     }, 1500);
   } catch (error) {
-    copyErrorMessage.value =
-      error instanceof Error ? error.message : t("common.copyFailed");
+    copyErrorMessage.value = error instanceof Error ? error.message : t("common.copyFailed");
   }
 };
 </script>
@@ -574,7 +560,7 @@ const handleCopyCredential = async (value: string | null) => {
   }
 }
 
-.status-pill {
+.wechat-bound-tag {
   flex-shrink: 0;
 }
 
@@ -675,7 +661,7 @@ const handleCopyCredential = async (value: string | null) => {
   min-height: var(--sys-spacing-large);
   padding: 0;
 
-  :deep(.ui-button__label) {
+  :deep(.pu-button__content) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -752,6 +738,10 @@ const handleCopyCredential = async (value: string | null) => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.avatar-upload-control {
+  max-width: 28rem;
 }
 
 @media (max-width: 768px) {

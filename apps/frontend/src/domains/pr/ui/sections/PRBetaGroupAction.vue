@@ -4,34 +4,29 @@
     class="utility-action-cell"
     data-region="beta-group"
   >
-    <Button
-      tone="outline"
+    <PuButton
+      tone="neutral" variant="outline"
       block
       data-testid="pr-detail.beta-group.open"
       @click="handleOpenBetaGroupModal"
     >
       {{ t("prPage.betaGroupEntry.action") }}
-    </Button>
+    </PuButton>
 
-    <Modal
-      :open="showBetaGroupModal"
-      @close="showBetaGroupModal = false"
-    >
+    <PuModal :open="showBetaGroupModal" @close="showBetaGroupModal = false">
       <AnchorEventBetaGroupQrPanel
         :event-title="betaGroupEventTitle"
         :qr-code-url="betaGroupQrCode"
       />
-    </Modal>
+    </PuModal>
   </div>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import AnchorEventBetaGroupQrPanel from "@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue";
 import { trackEvent } from "@/shared/telemetry/track";
 
@@ -52,8 +47,6 @@ const betaGroupEventTitle = computed(
 );
 
 const showBetaGroupEntry = computed(() => betaGroupQrCode.value !== null);
-
-useBodyScrollLock(computed(() => showBetaGroupModal.value));
 
 const handleOpenBetaGroupModal = (): void => {
   showBetaGroupModal.value = true;

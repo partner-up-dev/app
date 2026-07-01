@@ -29,10 +29,7 @@ import {
   updateAdminCommerceProductSku,
   updateAdminCommerceProductSpu,
 } from "../domains/admin-commerce-management";
-import {
-  adminAuthMiddleware,
-  type AdminAuthEnv,
-} from "../auth/admin-middleware";
+import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
 
 const app = new Hono<AdminAuthEnv>();
 
@@ -83,9 +80,17 @@ const pricingRuleSchema = z.object({
 });
 
 const salesPolicySchema = z.object({
-  skuSelectionPolicy: z.object({
-    type: z.literal("EXACTLY_ONE"),
-  }),
+  skuSelectionPolicy: z.union([
+    z.object({
+      type: z.literal("EXACTLY_ONE"),
+    }),
+    z.object({
+      type: z.literal("CHOICE_SET"),
+      min: z.number().int().positive(),
+      max: z.number().int().positive().nullable().optional(),
+      resolvesTo: z.literal(1),
+    }),
+  ]),
   quantityPolicy: z.union([
     z.object({
       type: z.literal("FIXED"),
@@ -102,9 +107,7 @@ const salesPolicySchema = z.object({
   ]),
 });
 
-const timeOfDaySchema = z
-  .string()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const timeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 const rentalServiceWindowSchema = z.object({
   weekdays: z.array(z.number().int().min(0).max(6)).min(1),
@@ -188,6 +191,7 @@ const productSkuInputSchema = z.object({
   name: z.string().trim().min(1),
   status: catalogStatusSchema,
   sortOrder: z.number().int(),
+  presentation: presentationSchema.optional(),
   facts: skuFactsSchema,
   pricingModel: pricingModelSchema,
   cancellationPolicyRef: z
@@ -280,14 +284,9 @@ const rentalCancellationDecisionInputSchema = z.object({
   reason: z.string().trim().nullable().optional(),
 });
 
-const toDate = (value: string | null | undefined): Date | null =>
-  value ? new Date(value) : null;
+const toDate = (value: string | null | undefined): Date | null => (value ? new Date(value) : null);
 
-type JsonEndpoint<
-  Input,
-  Output,
-  Status extends number = 200,
-> = {
+type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
   outputFormat: "json";
@@ -304,10 +303,7 @@ type UuidParam<Key extends string> = {
 
 type AdminCommerceManagementSchema = {
   "/commerce/products/workspace": {
-    $get: JsonEndpoint<
-      EmptyInput,
-      Awaited<ReturnType<typeof getAdminCommerceProductWorkspace>>
-    >;
+    $get: JsonEndpoint<EmptyInput, Awaited<ReturnType<typeof getAdminCommerceProductWorkspace>>>;
   };
   "/commerce/products/spus": {
     $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createProductSpu>>>;
@@ -355,10 +351,7 @@ type AdminCommerceManagementSchema = {
     >;
   };
   "/commerce/orders-bills/workspace": {
-    $get: JsonEndpoint<
-      EmptyInput,
-      Awaited<ReturnType<typeof getAdminCommerceOrderBillWorkspace>>
-    >;
+    $get: JsonEndpoint<EmptyInput, Awaited<ReturnType<typeof getAdminCommerceOrderBillWorkspace>>>;
   };
   "/commerce/fulfillments/workspace": {
     $get: JsonEndpoint<
@@ -398,24 +391,17 @@ type AdminCommerceManagementSchema = {
   };
 };
 
-export const adminCommerceManagementRoute: Hono<
-  AdminAuthEnv,
-  AdminCommerceManagementSchema
-> = app
+export const adminCommerceManagementRoute: Hono<AdminAuthEnv, AdminCommerceManagementSchema> = app
   .use("*", adminAuthMiddleware)
   .get("/commerce/products/workspace", async (c) => {
     const result = await getAdminCommerceProductWorkspace();
     return c.json(result);
   })
-  .post(
-    "/commerce/products/spus",
-    zValidator("json", productSpuInputSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await createProductSpu(payload as CreateProductSpuInput);
-      return c.json(result);
-    },
-  )
+  .post("/commerce/products/spus", zValidator("json", productSpuInputSchema), async (c) => {
+    const payload = c.req.valid("json");
+    const result = await createProductSpu(payload as CreateProductSpuInput);
+    return c.json(result);
+  })
   .patch(
     "/commerce/products/spus/:spuId",
     zValidator("param", spuIdParamSchema),
@@ -430,18 +416,14 @@ export const adminCommerceManagementRoute: Hono<
       return c.json(result);
     },
   )
-  .post(
-    "/commerce/products/skus",
-    zValidator("json", productSkuInputSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await createProductSku({
-        ...payload,
-        cancellationPolicyRef: payload.cancellationPolicyRef ?? null,
-      } as CreateProductSkuInput);
-      return c.json(result);
-    },
-  )
+  .post("/commerce/products/skus", zValidator("json", productSkuInputSchema), async (c) => {
+    const payload = c.req.valid("json");
+    const result = await createProductSku({
+      ...payload,
+      cancellationPolicyRef: payload.cancellationPolicyRef ?? null,
+    } as CreateProductSkuInput);
+    return c.json(result);
+  })
   .patch(
     "/commerce/products/skus/:skuId",
     zValidator("param", skuIdParamSchema),
@@ -485,19 +467,15 @@ export const adminCommerceManagementRoute: Hono<
     const result = await getAdminCommercePlacementOfferWorkspace();
     return c.json(result);
   })
-  .post(
-    "/commerce/offers",
-    zValidator("json", offerInputSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await createOffer({
-        ...payload,
-        startsAt: toDate(payload.startsAt),
-        endsAt: toDate(payload.endsAt),
-      } as CreateOfferInput);
-      return c.json(result);
-    },
-  )
+  .post("/commerce/offers", zValidator("json", offerInputSchema), async (c) => {
+    const payload = c.req.valid("json");
+    const result = await createOffer({
+      ...payload,
+      startsAt: toDate(payload.startsAt),
+      endsAt: toDate(payload.endsAt),
+    } as CreateOfferInput);
+    return c.json(result);
+  })
   .patch(
     "/commerce/offers/:offerId",
     zValidator("param", offerIdParamSchema),
@@ -514,19 +492,15 @@ export const adminCommerceManagementRoute: Hono<
       return c.json(result);
     },
   )
-  .post(
-    "/commerce/placements",
-    zValidator("json", placementInputSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await createPlacement({
-        ...payload,
-        effectiveFrom: toDate(payload.effectiveFrom),
-        effectiveTo: toDate(payload.effectiveTo),
-      } as CreatePlacementInput);
-      return c.json(result);
-    },
-  )
+  .post("/commerce/placements", zValidator("json", placementInputSchema), async (c) => {
+    const payload = c.req.valid("json");
+    const result = await createPlacement({
+      ...payload,
+      effectiveFrom: toDate(payload.effectiveFrom),
+      effectiveTo: toDate(payload.effectiveTo),
+    } as CreatePlacementInput);
+    return c.json(result);
+  })
   .patch(
     "/commerce/placements/:placementId",
     zValidator("param", placementIdParamSchema),

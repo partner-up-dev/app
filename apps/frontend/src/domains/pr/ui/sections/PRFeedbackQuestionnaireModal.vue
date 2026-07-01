@@ -1,5 +1,5 @@
 <template>
-  <Modal
+  <PuModal
     :open="open"
     :title="questionnaire?.title ?? '活动反馈'"
     @close="$emit('close')"
@@ -12,13 +12,13 @@
       @submit="$emit('submit', $event)"
       @cancel="$emit('close')"
     />
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuModal } from "@partner-up-dev/design-web";
 import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import Modal from "@/shared/ui/overlay/Modal.vue";
 import FeedbackQuestionnaireForm from "@/domains/feedback/ui/FeedbackQuestionnaireForm.vue";
 
 defineProps<{

@@ -14,224 +14,246 @@
 
     <template #main>
       <div class="stack">
-      <LoadingIndicator
-        v-if="workspaceQuery.isLoading.value"
-        :message="t('common.loading')"
-      />
-      <ErrorToast
-        v-else-if="workspaceQuery.error.value"
-        :message="workspaceQuery.error.value.message"
-        persistent
-      />
+        <PuLoadingState
+          v-if="workspaceQuery.isLoading.value"
+          :message="t('common.loading')"
+        />
+        <PuInlineNotice tone="error"
+          v-else-if="workspaceQuery.error.value"
+          :message="workspaceQuery.error.value.message"
+        />
 
-      <template v-else>
-        <datalist id="admin-pr-message-type-options">
-          <option
-            v-for="typeOption in workspace?.typeOptions ?? []"
-            :key="typeOption.type"
-            :value="typeOption.type"
-          >
-            {{ typeOption.eventTitle }}
-          </option>
-        </datalist>
-        <datalist id="admin-pr-message-location-options">
-          <option
-            v-for="locationOption in filterLocationOptions"
-            :key="locationOption"
-            :value="locationOption"
-          />
-        </datalist>
+        <template v-else>
+          <datalist id="admin-pr-message-type-options">
+            <option
+              v-for="typeOption in workspace?.typeOptions ?? []"
+              :key="typeOption.type"
+              :value="typeOption.type"
+            >
+              {{ typeOption.eventTitle }}
+            </option>
+          </datalist>
+          <datalist id="admin-pr-message-location-options">
+            <option
+              v-for="locationOption in filterLocationOptions"
+              :key="locationOption"
+              :value="locationOption"
+            />
+          </datalist>
 
-        <BentoLayout class="pr-workspace-layout">
-          <BentoItem :title="t('adminPRMessages.prsTitle')" span="full">
-            <div class="stack">
-              <div class="section-header">
-                <p class="hint">
-                  {{
-                    t("adminPR.filteredCountLabel", {
-                      count: filteredPRs.length,
-                    })
-                  }}
-                </p>
-              </div>
-
-              <div v-if="filteredPRs.length === 0" class="hint">
-                {{ t("adminPR.emptySearchResults") }}
-              </div>
-
-              <div
-                v-else
-                class="pr-result-list pr-result-list--grid pr-result-list--scroll"
-              >
-                <ChoiceCard
-                  v-for="pr in filteredPRs"
-                  :key="pr.prId"
-                  class="pr-result-card"
-                  :active="selectedPRId === pr.prId"
-                  @click="selectPR(pr.prId)"
-                >
-                  <span>{{ pr.title || pr.location || `#${pr.prId}` }}</span>
-                  <small>#{{ pr.prId }} / {{ pr.status }}</small>
-                  <small>{{ formatWindow(pr.time) }}</small>
-                </ChoiceCard>
-              </div>
-            </div>
-          </BentoItem>
-
-          <BentoItem
-            id="pr-messages"
-            :title="t('adminPRMessages.panelTitle')"
-            :description="t('adminPRMessages.panelHint')"
-            span="full"
-            data-testid="admin-pr.section.messages"
-          >
-            <div class="stack">
-              <div v-if="selectedPR === null" class="empty-state">
-                {{ t("adminPRMessages.selectPRHint") }}
-              </div>
-
-              <template v-else>
-                <p v-if="messagesQuery.isLoading.value" class="hint">
-                  {{ t("common.loading") }}
-                </p>
-                <p v-else-if="messagesQuery.error.value" class="error-message">
-                  {{ messagesQuery.error.value.message }}
-                </p>
-                <div v-else-if="messageItems.length === 0" class="empty-state">
-                  {{ t("adminPRMessages.emptyMessages") }}
-                </div>
-                <div v-else class="admin-message-list">
-                  <article
-                    v-for="item in messageItems"
-                    :key="item.id"
-                    class="admin-message-item"
-                  >
-                    <div class="section-header section-header--start">
-                      <div class="stack stack--tight">
-                        <strong class="message-author">
-                          {{ resolveMessageAuthor(item) }}
-                        </strong>
-                        <span class="hint">
-                          {{ formatMessageTime(item.createdAt) }}
-                          <template v-if="isMessageEdited(item)">
-                            ·
-                            {{
-                              t("adminPRMessages.editedAt", {
-                                time: formatMessageTime(item.updatedAt),
-                              })
-                            }}
-                          </template>
-                        </span>
-                      </div>
-
-                      <div class="actions actions--inline">
-                        <template v-if="editingMessageId === item.id">
-                          <Button
-                            appearance="pill"
-                            tone="outline"
-                            size="sm"
-                            type="button"
-                            :disabled="
-                              prMessagesActions.isPending.update.value ||
-                              editingMessageBody.trim().length === 0
-                            "
-                            @click="handleSaveMessageEdit(item.id)"
-                          >
-                            {{
-                              prMessagesActions.isPending.update.value
-                                ? t("adminPRMessages.messageSaving")
-                                : t("adminPRMessages.saveEditAction")
-                            }}
-                          </Button>
-                          <Button
-                            appearance="pill"
-                            tone="ghost"
-                            size="sm"
-                            type="button"
-                            :disabled="prMessagesActions.isPending.update.value"
-                            @click="cancelEditMessage"
-                          >
-                            {{ t("common.cancel") }}
-                          </Button>
-                        </template>
-                        <template v-else>
-                          <Button
-                            appearance="pill"
-                            tone="outline"
-                            size="sm"
-                            type="button"
-                            :disabled="prMessagesActions.isPending.delete.value"
-                            @click="beginEditMessage(item.id, item.body)"
-                          >
-                            {{ t("adminPRMessages.editAction") }}
-                          </Button>
-                          <Button
-                            appearance="pill"
-                            tone="danger"
-                            size="sm"
-                            type="button"
-                            :disabled="prMessagesActions.isPending.delete.value"
-                            @click="handleDeleteMessage(item.id)"
-                          >
-                            {{
-                              prMessagesActions.isPending.delete.value
-                                ? t("adminPRMessages.messageDeleting")
-                                : t("adminPRMessages.deleteAction")
-                            }}
-                          </Button>
-                        </template>
-                      </div>
-                    </div>
-
-                    <textarea
-                      v-if="editingMessageId === item.id"
-                      v-model="editingMessageBody"
-                      class="field-input field-textarea"
-                      :placeholder="t('adminPRMessages.messagePlaceholder')"
-                    ></textarea>
-                    <p v-else class="message-body">
-                      {{ item.body }}
-                    </p>
-                  </article>
-                </div>
-
-                <label class="field">
-                  <span class="field-label">{{ t("adminPRMessages.messageLabel") }}</span>
-                  <textarea
-                    v-model="messageDraftBody"
-                    class="field-input field-textarea"
-                    :placeholder="t('adminPRMessages.messagePlaceholder')"
-                    :disabled="prMessagesActions.isPending.create.value"
-                  ></textarea>
-                </label>
-
-                <p v-if="messageActionError" class="error-message">
-                  {{ messageActionError }}
-                </p>
-
-                <div class="actions">
-                  <Button
-                    appearance="pill"
-                    size="sm"
-                    type="button"
-                    :disabled="
-                      prMessagesActions.isPending.create.value ||
-                      messageDraftBody.trim().length === 0
-                    "
-                    @click="handleSendPRMessage"
-                  >
+          <BentoLayout class="pr-workspace-layout">
+            <BentoItem :title="t('adminPRMessages.prsTitle')" span="full">
+              <div class="stack">
+                <div class="section-header">
+                  <p class="hint">
                     {{
-                      prMessagesActions.isPending.create.value
-                        ? t("adminPRMessages.messageSending")
-                        : t("adminPRMessages.messageAction")
+                      t("adminPR.filteredCountLabel", {
+                        count: filteredPRs.length,
+                      })
                     }}
-                  </Button>
+                  </p>
                 </div>
-              </template>
-            </div>
-          </BentoItem>
-        </BentoLayout>
-      </template>
+
+                <div v-if="filteredPRs.length === 0" class="hint">
+                  {{ t("adminPR.emptySearchResults") }}
+                </div>
+
+                <div
+                  v-else
+                  class="pr-result-list pr-result-list--grid pr-result-list--scroll"
+                >
+                  <PuCard
+                    v-for="pr in filteredPRs"
+                    :key="pr.prId"
+                    class="pr-result-card"
+                    :active="selectedPRId === pr.prId"
+                    @click="selectPR(pr.prId)"
+                    selectable
+                    variant="outline"
+                    padding="sm"
+                    gap="xs"
+                  >
+                    <span>{{ pr.title || pr.location || `#${pr.prId}` }}</span>
+                    <small>#{{ pr.prId }} / {{ pr.status }}</small>
+                    <small>{{ formatWindow(pr.time) }}</small>
+                  </PuCard>
+                </div>
+              </div>
+            </BentoItem>
+
+            <BentoItem
+              id="pr-messages"
+              :title="t('adminPRMessages.panelTitle')"
+              :description="t('adminPRMessages.panelHint')"
+              span="full"
+              data-testid="admin-pr.section.messages"
+            >
+              <div class="stack">
+                <div v-if="selectedPR === null" class="empty-state">
+                  {{ t("adminPRMessages.selectPRHint") }}
+                </div>
+
+                <template v-else>
+                  <p v-if="messagesQuery.isLoading.value" class="hint">
+                    {{ t("common.loading") }}
+                  </p>
+                  <p
+                    v-else-if="messagesQuery.error.value"
+                    class="error-message"
+                  >
+                    {{ messagesQuery.error.value.message }}
+                  </p>
+                  <div
+                    v-else-if="messageItems.length === 0"
+                    class="empty-state"
+                  >
+                    {{ t("adminPRMessages.emptyMessages") }}
+                  </div>
+                  <div v-else class="admin-message-list">
+                    <article
+                      v-for="item in messageItems"
+                      :key="item.id"
+                      class="admin-message-item"
+                    >
+                      <div class="section-header section-header--start">
+                        <div class="stack stack--tight">
+                          <strong class="message-author">
+                            {{ resolveMessageAuthor(item) }}
+                          </strong>
+                          <span class="hint">
+                            {{ formatMessageTime(item.createdAt) }}
+                            <template v-if="isMessageEdited(item)">
+                              ·
+                              {{
+                                t("adminPRMessages.editedAt", {
+                                  time: formatMessageTime(item.updatedAt),
+                                })
+                              }}
+                            </template>
+                          </span>
+                        </div>
+
+                        <div class="actions actions--inline">
+                          <template v-if="editingMessageId === item.id">
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="outline"
+                              size="sm"
+
+                              :disabled="
+                                prMessagesActions.isPending.update.value ||
+                                editingMessageBody.trim().length === 0
+                              "
+                              @click="handleSaveMessageEdit(item.id)"
+                            >
+                              {{
+                                prMessagesActions.isPending.update.value
+                                  ? t("adminPRMessages.messageSaving")
+                                  : t("adminPRMessages.saveEditAction")
+                              }}
+                            </PuButton>
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="ghost"
+                              size="sm"
+
+                              :disabled="
+                                prMessagesActions.isPending.update.value
+                              "
+                              @click="cancelEditMessage"
+                            >
+                              {{ t("common.cancel") }}
+                            </PuButton>
+                          </template>
+                          <template v-else>
+                            <PuButton
+                              shape="pill"
+                              tone="neutral" variant="outline"
+                              size="sm"
+
+                              :disabled="
+                                prMessagesActions.isPending.delete.value
+                              "
+                              @click="beginEditMessage(item.id, item.body)"
+                            >
+                              {{ t("adminPRMessages.editAction") }}
+                            </PuButton>
+                            <PuButton
+                              shape="pill"
+                              tone="danger" variant="outline"
+                              size="sm"
+
+                              :disabled="
+                                prMessagesActions.isPending.delete.value
+                              "
+                              @click="handleDeleteMessage(item.id)"
+                            >
+                              {{
+                                prMessagesActions.isPending.delete.value
+                                  ? t("adminPRMessages.messageDeleting")
+                                  : t("adminPRMessages.deleteAction")
+                              }}
+                            </PuButton>
+                          </template>
+                        </div>
+                      </div>
+
+                      <PuFormItem
+                        v-if="editingMessageId === item.id"
+                        :label="t('adminPRMessages.messageLabel')"
+                        :for-id="`admin-pr-message-${item.id}-edit`"
+                      >
+                        <PuTextarea
+                          :id="`admin-pr-message-${item.id}-edit`"
+                          v-model="editingMessageBody"
+                          :placeholder="t('adminPRMessages.messagePlaceholder')"
+                        />
+                      </PuFormItem>
+                      <p v-else class="message-body">
+                        {{ item.body }}
+                      </p>
+                    </article>
+                  </div>
+
+                  <PuFormItem
+                    :label="t('adminPRMessages.messageLabel')"
+                    for-id="admin-pr-message-draft"
+                  >
+                    <PuTextarea
+                      id="admin-pr-message-draft"
+                      v-model="messageDraftBody"
+                      :placeholder="t('adminPRMessages.messagePlaceholder')"
+                      :disabled="prMessagesActions.isPending.create.value"
+                    />
+                  </PuFormItem>
+
+                  <p v-if="messageActionError" class="error-message">
+                    {{ messageActionError }}
+                  </p>
+
+                  <div class="actions">
+                    <PuButton
+                      shape="pill"
+                      size="sm"
+
+                      :disabled="
+                        prMessagesActions.isPending.create.value ||
+                        messageDraftBody.trim().length === 0
+                      "
+                      @click="handleSendPRMessage"
+                    >
+                      {{
+                        prMessagesActions.isPending.create.value
+                          ? t("adminPRMessages.messageSending")
+                          : t("adminPRMessages.messageAction")
+                      }}
+                    </PuButton>
+                  </div>
+                </template>
+              </div>
+            </BentoItem>
+          </BentoLayout>
+        </template>
       </div>
     </template>
   </AdminPageScaffold>
@@ -253,10 +275,14 @@ import {
 } from "@/domains/admin/queries/useAdminPRManagement";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
+import {
+  PuButton,
+  PuCard,
+  PuFormItem,
+  PuInlineNotice,
+  PuLoadingState,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -313,9 +339,8 @@ const handleSendPRMessage = async () => {
   }
 };
 
-const resolveMessageAuthor = (
-  item: AdminPRMessagesResponse["items"][number],
-) => item.author.nickname?.trim() || item.author.label;
+const resolveMessageAuthor = (item: AdminPRMessagesResponse["items"][number]) =>
+  item.author.nickname?.trim() || item.author.label;
 
 const formatMessageTime = (iso: string) => formatLocalDateTimeValue(iso) ?? iso;
 
@@ -430,31 +455,6 @@ const handleDeleteMessage = async (messageId: number) => {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: var(--sys-spacing-xsmall);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.field-label {
-  @include mx.pu-font(control);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-
-.field-textarea {
-  min-height: 96px;
-  resize: vertical;
 }
 
 .stack--tight {

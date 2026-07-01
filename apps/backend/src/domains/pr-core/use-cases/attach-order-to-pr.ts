@@ -8,6 +8,7 @@ import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
+import { isOrderAttachableStatus } from "../services/status-rules";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function attachOrderToPr(
@@ -29,10 +30,10 @@ export async function attachOrderToPr(
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
 
-  if (request.status !== "READY") {
+  if (!isOrderAttachableStatus(request.status)) {
     return throwHttpProblem({
       status: 409,
-      detail: "Order attachment requires PR READY status",
+      detail: "Order attachment requires PR READY or ACTIVE status",
     });
   }
 

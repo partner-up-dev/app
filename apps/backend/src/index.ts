@@ -33,6 +33,7 @@ import { adminCommerceManagementRoute } from "./controllers/admin-commerce-manag
 import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
 import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
+import { paymentRoute } from "./controllers/payment.controller";
 import { placementRoute } from "./controllers/placement.controller";
 import { studySprintRoute } from "./controllers/study-sprint.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
@@ -105,6 +106,15 @@ app.use(
       "Authorization",
       JOURNEY_ID_HEADER,
       "x-client-id",
+      "x-commerce-order-debug",
+      "x-commerce-order-debug-session",
+      "x-commerce-order-debug-request",
+      "x-commerce-order-debug-channel",
+      "x-commerce-order-debug-source",
+      "x-commerce-order-debug-trigger",
+      "x-commerce-order-debug-route-order-id",
+      "x-commerce-order-debug-order-id",
+      "x-commerce-order-debug-bill-id",
     ],
     exposeHeaders: ["x-access-token"],
   }),
@@ -207,6 +217,7 @@ export const routes = app
   .route("/api/commerce", commerceRoute)
   .route("/api/placements", placementRoute)
   .route("/api/study-sprint", studySprintRoute)
+  .route("/api/payment", paymentRoute)
   .route("/api/payment", paymentProviderRoute)
   .route("/api/ride-hailing", rideHailingProviderRoute)
   .route("/api/v1/service_provider", legacyRideHailingProviderRoute)

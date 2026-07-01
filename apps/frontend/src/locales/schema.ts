@@ -772,7 +772,6 @@ export interface MessageSchema {
       locationPlaceholder: string;
       otherEventsLoadFailed: string;
     };
-    discoverOthers: string;
     createCard: {
       title: string;
       titleWhenNoAvailablePR: string;
@@ -1248,6 +1247,8 @@ export interface MessageSchema {
     navRideHailingGroup: string;
     navRideHailingProviderInstances: string;
     navRideHailingProviderInstancesSubtitle: string;
+    navRideHailingOrders: string;
+    navRideHailingOrdersSubtitle: string;
     navFeedbackQuestionnairesGroup: string;
     navFeedbackQuestionnaireTemplates: string;
     navFeedbackQuestionnaireTemplatesSubtitle: string;
@@ -1690,6 +1691,7 @@ export interface MessageSchema {
     placementEffectiveFromLabel: string;
     placementEffectiveToLabel: string;
     offerIdLabel: string;
+    offerIdRequiredMessage: string;
     ctaLabel: string;
     creativeDescriptionLabel: string;
     matchingRuleLabel: string;

@@ -20,20 +20,20 @@
       </div>
 
       <div class="nudge-actions">
-        <Button
-          appearance="pill"
-          tone="surface"
+        <PuButton
+          shape="pill"
+          tone="neutral" variant="soft"
           size="sm"
-          type="button"
+
           data-testid="official-account-follow-nudge.dismiss"
           @click="emit('dismiss')"
         >
           {{ t("officialAccountFollow.laterAction") }}
-        </Button>
-        <Button
-          appearance="pill"
+        </PuButton>
+        <PuButton
+          shape="pill"
           size="sm"
-          type="button"
+
           data-testid="official-account-follow-nudge.follow"
           @click="handleOpenOfficialAccountQr"
         >
@@ -41,7 +41,7 @@
             <span class="i-mdi-qrcode-scan" aria-hidden="true"></span>
           </template>
           {{ t("officialAccountFollow.followAction") }}
-        </Button>
+        </PuButton>
       </div>
     </aside>
   </Transition>
@@ -55,8 +55,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   open: boolean;
@@ -150,7 +150,7 @@ const handleOpenOfficialAccountQr = (): void => {
     justify-content: stretch;
   }
 
-  .nudge-actions > :deep(.ui-button) {
+  .nudge-actions > :deep(.pu-button) {
     flex: 1 1 8rem;
   }
 }

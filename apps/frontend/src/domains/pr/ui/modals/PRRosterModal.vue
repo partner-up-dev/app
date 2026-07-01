@@ -1,23 +1,18 @@
 <template>
-  <Modal
-    :open="open"
-    max-width="560px"
-    @close="emit('close')"
-  >
+  <PuModal :open="open" max-width="560px" @close="emit('close')">
     <div class="roster-modal">
       <PRAwarenessLane :pr-id="prId" :section="section" />
 
-      <Button tone="surface" block @click="emit('close')">
+      <PuButton tone="neutral" variant="soft" block @click="emit('close')">
         {{ t("common.close") }}
-      </Button>
+      </PuButton>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { useI18n } from "vue-i18n";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import Button from "@/shared/ui/actions/Button.vue";
 import PRAwarenessLane from "@/domains/pr/ui/sections/PRAwarenessLane.vue";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 

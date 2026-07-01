@@ -4,8 +4,8 @@
       <span class="pr-time-window-editor__label">{{ label }}</span>
       <div class="pr-time-window-editor__mode-switcher">
         <span class="pr-time-window-editor__mode-label">{{ activeModeLabel }}</span>
-        <MultiStopToggle
-          v-model="activeMode"
+        <PuMultiStopToggle
+          v-model="activeModeToggleValue"
           :options="timeModeOptions"
           :aria-label="modeToggleAriaLabel"
           size="sm"
@@ -24,28 +24,20 @@
         :empty-label="emptyLabel"
         :test-id="datePickerTestId"
       >
-        <label class="pr-time-window-editor__field">
-          <span class="pr-time-window-editor__field-label">
-            {{ datePickerAriaLabel }}
-          </span>
-          <select
-            class="pr-time-window-editor__select"
-            :value="datePickerModelValue ?? ''"
+        <PuFormItem
+          :label="datePickerAriaLabel"
+          :for-id="datePickerTestId"
+        >
+          <PuSelect
+            :id="datePickerTestId"
+            :model-value="datePickerModelValue"
+            :options="dateSelectOptions"
+            :placeholder="emptyLabel"
+            :disabled="dateSelectOptions.length === 0"
             :data-testid="datePickerTestId"
-            @change="handleNativeDateChange"
-          >
-            <option v-if="datePickerOptions.length === 0" value="">
-              {{ emptyLabel }}
-            </option>
-            <option
-              v-for="option in datePickerOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+            @update:model-value="handleDatePickerUpdate"
+          />
+        </PuFormItem>
       </slot>
 
       <slot
@@ -57,28 +49,20 @@
         :empty-label="emptyLabel"
         :test-id="timePickerTestId"
       >
-        <label class="pr-time-window-editor__field">
-          <span class="pr-time-window-editor__field-label">
-            {{ timePickerAriaLabel }}
-          </span>
-          <select
-            class="pr-time-window-editor__select"
-            :value="timePickerModelValue ?? ''"
+        <PuFormItem
+          :label="timePickerAriaLabel"
+          :for-id="timePickerTestId"
+        >
+          <PuSelect
+            :id="timePickerTestId"
+            :model-value="timePickerModelValue"
+            :options="timeSelectOptions"
+            :placeholder="emptyLabel"
+            :disabled="timeSelectOptions.length === 0"
             :data-testid="timePickerTestId"
-            @change="handleNativeTimeChange"
-          >
-            <option v-if="timePickerOptions.length === 0" value="">
-              {{ emptyLabel }}
-            </option>
-            <option
-              v-for="option in timePickerOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+            @update:model-value="handleTimePickerUpdate"
+          />
+        </PuFormItem>
       </slot>
     </div>
 
@@ -109,9 +93,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
-import MultiStopToggle, {
-  type MultiStopToggleOption,
-} from "@/shared/ui/forms/MultiStopToggle.vue";
+import {
+  PuFormItem,
+  PuMultiStopToggle,
+  PuSelect,
+  type PuMultiStopToggleOption,
+  type PuMultiStopToggleValue,
+  type PuSelectOption,
+} from "@partner-up-dev/design-web";
 import {
   buildAdvancedModeStartOptions,
   buildFormModeDateKey,
@@ -133,7 +122,7 @@ import {
   type PRTimeWindowPresetOption,
 } from "@/domains/event/model/pr-time-window-editor";
 
-type TimeModeOption = MultiStopToggleOption & {
+type TimeModeOption = PuMultiStopToggleOption & {
   value: PRTimeWindowEditorMode;
 };
 
@@ -267,11 +256,38 @@ const timePickerModelValue = computed(() =>
     : selectedTimeValue.value,
 );
 
+const dateSelectOptions = computed<PuSelectOption[]>(() =>
+  datePickerOptions.value.map((option) => ({
+    label: option.label,
+    value: option.value,
+  })),
+);
+const timeSelectOptions = computed<PuSelectOption[]>(() =>
+  timePickerOptions.value.map((option) => ({
+    label: option.label,
+    value: option.value,
+  })),
+);
+
 const activeModeLabel = computed(
   () =>
     timeModeOptions.find((option) => option.value === activeMode.value)
       ?.label ?? "",
 );
+
+const isTimeWindowEditorMode = (
+  value: PuMultiStopToggleValue,
+): value is PRTimeWindowEditorMode =>
+  value === "NORMAL" || value === "ADVANCED" || value === "FUZZY";
+
+const activeModeToggleValue = computed({
+  get: () => activeMode.value,
+  set: (value: PuMultiStopToggleValue) => {
+    if (isTimeWindowEditorMode(value)) {
+      activeMode.value = value;
+    }
+  },
+});
 
 const selectedNormalOption = computed(() =>
   props.presetOptions.find((option) => option.key === selectedTimeValue.value) ??
@@ -396,20 +412,6 @@ const handleTimePickerUpdate = (value: string | number | null) => {
   selectedTimeValue.value = nextValue;
 };
 
-const handleNativeDateChange = (event: Event) => {
-  const target = event.target;
-  if (target instanceof HTMLSelectElement) {
-    handleDatePickerUpdate(target.value || null);
-  }
-};
-
-const handleNativeTimeChange = (event: Event) => {
-  const target = event.target;
-  if (target instanceof HTMLSelectElement) {
-    handleTimePickerUpdate(target.value || null);
-  }
-};
-
 watch(
   () => [props.modelValue, props.allowEditAfterReady] as const,
   ([timeWindow]) => setModeForExternalValue(timeWindow),
@@ -530,13 +532,6 @@ watch(
   gap: var(--sys-spacing-xsmall);
 }
 
-.pr-time-window-editor__field {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
 .pr-time-window-editor__duration-field {
   display: flex;
   min-width: 0;
@@ -545,7 +540,6 @@ watch(
   gap: var(--sys-spacing-small);
 }
 
-.pr-time-window-editor__field-label,
 .pr-time-window-editor__duration-label {
   color: var(--sys-color-on-surface-variant);
   @include mx.pu-font(caption);

@@ -45,6 +45,7 @@ export type OrderingEntryPayload = {
   offerDetail: OrderingOfferDetail;
   prId?: number;
   bindings: Record<string, unknown>;
+  bindingLocks: Record<string, true>;
 };
 
 const isOfferActiveNow = (
@@ -203,6 +204,9 @@ export async function resolvePlacementOrderingEntry(input: {
     context: input.matchingContext,
     rules: placement.bindingRules,
   });
+  const bindingLocks = Object.fromEntries(
+    placement.bindingRules.map((rule) => [rule.fieldKey, true] as const),
+  );
   const prId = readPrIdFromMatchingContext(input.matchingContext);
   const activeParticipantCount = readRecordProperty(
     input.matchingContext,
@@ -242,12 +246,13 @@ export async function resolvePlacementOrderingEntry(input: {
     },
     offerDetail,
     ...(prId === undefined ? {} : { prId }),
+    bindingLocks,
     bindings: {
       ...bindings,
       ...(typeof activeParticipantCount === "number"
         ? { participantCount: activeParticipantCount }
         : {}),
-      ...(startAt ? { serviceStartAt: startAt, departureAt: startAt } : {}),
+      ...(startAt ? { serviceStartAt: startAt } : {}),
       ...(endAt ? { serviceEndAt: endAt } : {}),
       ...(routeSnapshot ? { route: routeSnapshot } : {}),
       ...(viewerParticipant?.phoneNumber?.trim()

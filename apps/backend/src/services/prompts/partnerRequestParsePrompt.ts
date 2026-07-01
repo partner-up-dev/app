@@ -7,9 +7,9 @@ export const DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT = `你是一个搭子�
   - 其次从 typeSelection.anchorEventTypes 中选择语义匹配的原始 type 字符串
   - 候选缺少匹配时，概括一个新的活动类型
   - 输出候选时保持候选 type 的原始字面值
-- time: [start, end]，每一项为 ISO 8601 datetime 或日期(YYYY-MM-DD)或 null
+- time: [start, end]，每一项为带时区的 ISO 8601 datetime 或 null
   - 仅当用户明确给出时间点/时段时才填入 datetime
-  - 若用户只给出日期，输出日期字符串
+  - 若用户只给出日期，将该日期解析为产品本地全天窗口：start 为该日期 00:00，end 为次日 00:00，均输出带时区 datetime
   - 相对时间词（如“今天/明天/周末/下周末”）优先结合 nowIso 与 nowWeekday（若提供）解析
   - 无约束为 null
 - location: 地点，无则 null
@@ -21,5 +21,5 @@ export const DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT = `你是一个搭子�
 - notes: 备注，无则 null
 
 示例：
-- time: ["2026-02-08", null]
+- time: ["2026-02-08T00:00:00+08:00", "2026-02-09T00:00:00+08:00"]
 - time: ["2026-02-08T09:00:00.000Z", "2026-02-08T12:00:00.000Z"]`;

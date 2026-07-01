@@ -1,22 +1,70 @@
 <template>
-  <FullScreenPageScaffold class="bill-detail-page" data-testid="bill-detail.page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold
+    viewport="screen"
+    class="bill-detail-page"
+    data-testid="bill-detail.page"
+  >
+    <template #pageHeader>
+      <PuHeader
         title="账单详情"
-        subtitle="每个人只支付自己的账单行"
-        :back-fallback-to="backFallbackTo"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="返回上一页"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+        <template v-if="detail" #actions>
+          <PuButton
+            :action="{ to: { path: `/orders/${detail.order.id}` } }"
+            shape="pill"
+            tone="neutral"
+            variant="outline"
+            size="sm"
+            data-testid="bill-detail.order-link"
+          >
+            查看订单
+          </PuButton>
+        </template>
+
+        <template v-if="detail" #meta>
+          <div class="bill-detail-page__header-meta">
+            <PuTag
+              :text="billStatusTag.label"
+              :tone="billStatusTag.tone"
+              variant="soft"
+              shape="pill"
+              size="md"
+              data-testid="bill-detail.status"
+            />
+            <span
+              class="bill-detail-page__total-amount"
+              data-testid="bill-detail.total-amount"
+            >
+              总金额 {{ totalAmountLabel }}
+            </span>
+          </div>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="bill-detail-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="billId === null"
         tone="error"
         title="账单无效"
         message="缺少账单编号。"
       />
 
-      <InlineNotice
+      <PuInlineNotice
         v-else-if="billQuery.isError.value"
         tone="error"
         title="无法加载账单"
@@ -30,109 +78,57 @@
         正在加载账单...
       </div>
 
-      <template v-else-if="detail">
-        <PuCard as="section" gap="md">
-          <div class="bill-detail-page__section-heading">
-            <p class="bill-detail-page__eyebrow">Bill</p>
-            <h2>{{ detail.order.itemName }}</h2>
-          </div>
+      <div v-else-if="detail" class="bill-detail-page__content">
+        <section class="bill-detail-page__line-list" data-testid="bill-detail.lines">
+          <BillLineCard
+            v-for="line in detail.lines"
+            :key="line.id"
+            :line="line"
+            :selected="selectedPayableLineId === line.id"
+            @select="billLineSelection.select(line.id)"
+          />
+        </section>
 
-          <div class="bill-detail-page__summary-grid">
-            <div>
-              <span>应付合计</span>
-              <strong data-testid="bill-detail.charge-total">
-                {{ formatFen(detail.bill.chargeTotalFen) }}
-              </strong>
-            </div>
-            <div>
-              <span>已支付</span>
-              <strong data-testid="bill-detail.paid-total">
-                {{ formatFen(detail.bill.paidChargeFen) }}
-              </strong>
-            </div>
-            <div>
-              <span>应退合计</span>
-              <strong data-testid="bill-detail.refund-total">
-                {{ formatFen(detail.bill.refundTotalFen) }}
-              </strong>
-            </div>
-            <div>
-              <span>已退款</span>
-              <strong data-testid="bill-detail.refunded-total">
-                {{ formatFen(detail.bill.refundedFen) }}
-              </strong>
-            </div>
-            <div>
-              <span>结算状态</span>
-              <strong data-testid="bill-detail.settlement-status">
-                {{ settlementStatusLabel }}
-              </strong>
-            </div>
-          </div>
-
-          <ActionLink
-            :to="{ path: `/orders/${detail.order.id}` }"
-            tone="outline"
-            data-testid="bill-detail.order-link"
+        <div v-if="selectedPayableLine" class="bill-detail-page__footer">
+          <PuButton
+            :action="{
+              to: buildPaymentCheckoutRouteLocation({ billLineId: selectedPayableLine.id }),
+            }"
+            shape="rect"
+            tone="primary"
+            variant="solid"
+            size="lg"
+            block
+            data-testid="bill-detail.pay-selected"
           >
-            返回订单详情
-          </ActionLink>
-        </PuCard>
-
-        <PuCard as="section" gap="md">
-          <div class="bill-detail-page__section-heading">
-            <p class="bill-detail-page__eyebrow">Lines</p>
-            <h2>账单责任</h2>
-          </div>
-
-          <div class="bill-detail-page__line-list">
-            <div
-              v-for="line in detail.lines"
-              :key="line.id"
-              class="bill-detail-page__line"
-              data-testid="bill-detail.line"
-            >
-              <div class="bill-detail-page__line-summary">
-                <div>
-                  <strong>{{ line.label }}</strong>
-                  <span>{{ line.description ?? "无补充说明" }}</span>
-                  <small>
-                    {{ line.userId === detail.viewer.userId ? "你的账单行" : "其他参与者账单行" }}
-                  </small>
-                </div>
-                <b>{{ line.kind === "REFUND" ? "-" : "" }}{{ formatFen(line.amountFen) }}</b>
-              </div>
-
-              <div class="bill-detail-page__line-footer">
-                <span data-testid="bill-detail.line-status">
-                  {{ lineStatusLabel(line.settlementStatus) }}
-                </span>
-                <ActionLink
-                  v-if="line.payableByViewer && line.checkoutHref"
-                  :to="{ path: line.checkoutHref }"
-                  size="sm"
-                  data-testid="bill-detail.pay-line"
-                >
-                  去支付
-                </ActionLink>
-              </div>
-            </div>
-          </div>
-        </PuCard>
-      </template>
+            支付 {{ selectedPayableLineAmountLabel }}
+          </PuButton>
+        </div>
+      </div>
     </div>
-  </FullScreenPageScaffold>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import {
+  PuButton,
+  PuHeader,
+  PuInlineNotice,
+  PuPageScaffold,
+  PuTag,
+  usePuSelect,
+} from "@partner-up-dev/design-web";
+import { computed, watch } from "vue";
 import { useRoute } from "vue-router";
-import { PuCard } from "@partner-up-dev/design-web";
-import FullScreenPageScaffold from "@/shared/ui/layout/FullScreenPageScaffold.vue";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import ActionLink from "@/shared/ui/actions/ActionLink.vue";
+import {
+  formatCurrencyAmount,
+  resolveBillSettlementTag,
+} from "@/domains/commerce/model/bill-display";
+import type { BillDetailResponse } from "@/domains/commerce/queries/useCommerce";
 import { useBillDetail } from "@/domains/commerce/queries/useCommerce";
+import { buildPaymentCheckoutRouteLocation } from "@/domains/commerce/routing/payment-checkout-route";
+import BillLineCard from "@/domains/commerce/ui/bill-detail/BillLineCard.vue";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 const route = useRoute();
 
@@ -145,47 +141,63 @@ const billId = computed(() => {
 const billQuery = useBillDetail(billId);
 const detail = computed(() => billQuery.data.value ?? null);
 
-const settlementStatusLabel = computed(() => {
-  if (
-    detail.value &&
-    detail.value.bill.refundTotalFen > 0 &&
-    detail.value.bill.refundedFen >= detail.value.bill.refundTotalFen
-  ) {
-    return "已退款";
-  }
-  if (detail.value && detail.value.bill.refundTotalFen > 0) return "退款处理中";
-  if (detail.value?.bill.settlementStatus === "PAID") return "已支付";
-  if (detail.value?.bill.settlementStatus === "PARTIALLY_PAID") return "部分已支付";
-  return "待支付";
-});
-
 const backFallbackTo = computed(() =>
   detail.value ? { path: `/orders/${detail.value.order.id}` } : { path: "/" },
 );
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const billErrorMessage = computed(() =>
-  billQuery.error.value instanceof Error
-    ? billQuery.error.value.message
-    : "加载账单失败。",
+  billQuery.error.value instanceof Error ? billQuery.error.value.message : "加载账单失败。",
 );
 
-const lineStatusLabel = (status: string): string => {
-  if (status === "PAID") return "已支付";
-  if (status === "ACTION_REQUIRED") return "待完成支付";
-  if (status === "PROCESSING") return "支付处理中";
-  if (status === "FAILED") return "支付失败，可重试";
-  if (status === "REFUND_PENDING") return "退款处理中";
-  if (status === "REFUNDED") return "已退款";
-  return "待支付";
-};
+const billStatusTag = computed(() =>
+  detail.value
+    ? resolveBillSettlementTag(detail.value.bill)
+    : { label: "待支付" as const, tone: "neutral" as const },
+);
 
-const formatFen = (amountFen: number | null | undefined): string => {
-  if (typeof amountFen !== "number") return "待确认";
-  return new Intl.NumberFormat("zh-CN", {
-    style: "currency",
-    currency: "CNY",
-  }).format(amountFen / 100);
-};
+const totalAmountLabel = computed(() =>
+  detail.value
+    ? formatCurrencyAmount(detail.value.bill.totalAmountFen, detail.value.bill.currency)
+    : "待确认",
+);
+
+const isPayableBillLine = (line: BillDetailResponse["lines"][number]): boolean =>
+  line.payableByViewer;
+
+const payableLines = computed<BillDetailResponse["lines"][number][]>(() =>
+  (detail.value?.lines ?? []).filter(isPayableBillLine),
+);
+
+const payableLineIds = computed(() => payableLines.value.map((line) => line.id));
+const payableLineIdSet = computed(() => new Set(payableLineIds.value));
+
+const billLineSelection = usePuSelect<string>({
+  multiple: false,
+  isOptionDisabled: (lineId) => !payableLineIdSet.value.has(lineId),
+});
+
+watch(
+  payableLineIds,
+  (nextIds) => {
+    const currentSelected = billLineSelection.selectedValues.value[0];
+    if (currentSelected && nextIds.includes(currentSelected)) return;
+    billLineSelection.setValue(nextIds[0]);
+  },
+  { immediate: true },
+);
+
+const selectedPayableLineId = computed(() => billLineSelection.selectedValues.value[0] ?? null);
+
+const selectedPayableLine = computed(
+  () => payableLines.value.find((line) => line.id === selectedPayableLineId.value) ?? null,
+);
+
+const selectedPayableLineAmountLabel = computed(() =>
+  selectedPayableLine.value
+    ? formatCurrencyAmount(selectedPayableLine.value.amountFen, selectedPayableLine.value.currency)
+    : "待确认",
+);
 </script>
 
 <style scoped lang="scss">
@@ -198,119 +210,52 @@ const formatFen = (amountFen: number | null | undefined): string => {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--sys-spacing-medium);
   min-height: 0;
-  overflow: auto;
-  padding-bottom: var(--sys-spacing-medium);
 }
 
 .bill-detail-page__loading {
   color: var(--sys-color-on-surface-variant);
 }
 
-.bill-detail-page__section-heading {
+.bill-detail-page__header-meta {
   display: flex;
-  flex-direction: column;
-  gap: calc(var(--sys-spacing-xsmall) / 2);
-
-  h2,
-  p {
-    margin: 0;
-  }
-
-  h2 {
-    @include mx.pu-font(title);
-    color: var(--sys-color-on-surface);
-  }
-}
-
-.bill-detail-page__eyebrow {
-  @include mx.pu-font(control);
-  color: var(--sys-color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.bill-detail-page__summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: var(--sys-spacing-small);
-
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--sys-spacing-xsmall) / 2);
-    padding: var(--sys-spacing-small);
-    border-radius: var(--sys-radius-small);
-    background: var(--sys-color-surface-container-high);
-  }
-
-  span {
-    @include mx.pu-font(control);
-    color: var(--sys-color-on-surface-variant);
-  }
-
-  strong {
-    color: var(--sys-color-on-surface);
-  }
-}
-
-.bill-detail-page__line-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-small);
-}
-
-.bill-detail-page__line {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-small);
-  padding: var(--sys-spacing-small);
-  border-radius: var(--sys-radius-medium);
-  background: var(--sys-color-surface-container-high);
-}
-
-.bill-detail-page__line-summary,
-.bill-detail-page__line-footer {
-  display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: var(--sys-spacing-medium);
 }
 
-.bill-detail-page__line-summary {
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--sys-spacing-xsmall) / 2);
-  }
-
-  span,
-  small {
-    color: var(--sys-color-on-surface-variant);
-  }
-
-  b {
-    color: var(--sys-color-on-surface);
-    white-space: nowrap;
-  }
+.bill-detail-page__total-amount {
+  @include mx.pu-font(control);
+  flex: 0 0 auto;
+  color: var(--sys-color-on-surface);
+  white-space: nowrap;
 }
 
-.bill-detail-page__line-footer {
-  span {
-    color: var(--sys-color-primary);
-  }
+.bill-detail-page__content {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--sys-spacing-medium);
 }
 
-@media (max-width: 42rem) {
-  .bill-detail-page__summary-grid {
-    grid-template-columns: 1fr;
-  }
+.bill-detail-page__line-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sys-spacing-small);
+  overflow: auto;
+  padding-bottom: var(--sys-spacing-small);
+}
 
-  .bill-detail-page__line-summary,
-  .bill-detail-page__line-footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+.bill-detail-page__footer {
+  flex: 0 0 auto;
+  padding-top: var(--sys-spacing-small);
+  padding-bottom: calc(var(--sys-spacing-medium) + env(safe-area-inset-bottom, 0px));
+  background: var(--sys-color-surface);
 }
 </style>

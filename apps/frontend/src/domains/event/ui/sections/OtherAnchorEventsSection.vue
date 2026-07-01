@@ -13,9 +13,12 @@
       collapsible
       variant="outline"
     >
-      <p v-if="isLoading" class="other-anchor-events__state">
-        {{ t("common.loading") }}
-      </p>
+      <PuLoadingState
+        v-if="isLoading"
+        compact
+        align="start"
+        :message="t('common.loading')"
+      />
 
       <AnchorEventHorizontalList
         v-else
@@ -36,9 +39,12 @@
       {{ t("anchorEvent.otherEvents.title") }}
     </h3>
 
-    <p v-if="isLoading" class="other-anchor-events__state">
-      {{ t("common.loading") }}
-    </p>
+    <PuLoadingState
+      v-if="isLoading"
+      compact
+      align="start"
+      :message="t('common.loading')"
+    />
 
     <AnchorEventHorizontalList
       v-else
@@ -56,7 +62,7 @@ import { useI18n } from "vue-i18n";
 import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
 import { useInViewStagger } from "@/shared/motion/useInViewStagger";
 import AnchorEventHorizontalList from "@/domains/event/ui/composites/AnchorEventHorizontalList.vue";
-import { PuCard } from "@partner-up-dev/design-web";
+import { PuCard, PuLoadingState } from "@partner-up-dev/design-web";
 
 const props = withDefaults(
   defineProps<{
@@ -114,9 +120,4 @@ const shouldRenderSection = computed(() => {
   color: var(--sys-color-on-surface);
 }
 
-.other-anchor-events__state {
-  margin: 0;
-  @include mx.pu-font(body);
-  color: var(--sys-color-on-surface-variant);
-}
 </style>

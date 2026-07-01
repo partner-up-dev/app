@@ -18,6 +18,23 @@ vi.mock("vue-router", () => ({
   },
 }));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => {
+      const statusText: Record<string, string> = {
+        "status.draft": "DRAFT",
+        "status.open": "OPEN",
+        "status.ready": "READY",
+        "status.full": "FULL",
+        "status.active": "ACTIVE",
+        "status.closed": "CLOSED",
+        "status.expired": "EXPIRED",
+      };
+      return statusText[key] ?? key;
+    },
+  }),
+}));
+
 vi.mock("@/domains/pr/queries/usePRDetail", async () => {
   const { computed } = await vi.importActual<typeof import("vue")>("vue");
 
@@ -27,14 +44,6 @@ vi.mock("@/domains/pr/queries/usePRDetail", async () => {
     }),
   };
 });
-
-vi.mock("@/domains/pr/ui/primitives/PRStatusBadge.vue", () => ({
-  default: {
-    name: "PRStatusBadge",
-    props: ["status"],
-    template: '<span data-testid="pr-status">{{ status }}</span>',
-  },
-}));
 
 const mountedApps: Array<{
   app: App<Element>;

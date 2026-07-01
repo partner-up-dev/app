@@ -5,9 +5,15 @@
     </template>
 
     <template #actions>
-      <Button appearance="pill" tone="outline" size="sm" type="button" @click="prepareNewOffer">
+      <PuButton
+        shape="pill"
+        tone="neutral" variant="outline"
+        size="sm"
+
+        @click="prepareNewOffer"
+      >
         {{ t("adminCommercePlacementOffer.newOfferAction") }}
-      </Button>
+      </PuButton>
     </template>
 
     <template #rail>
@@ -16,39 +22,48 @@
           {{ t("adminCommercePlacementOffer.emptyOffers") }}
         </div>
         <div v-else class="offer-rail-list">
-          <ChoiceCard
+          <PuCard
             v-for="offer in offers"
             :key="offer.id"
             :active="selectedOfferId === offer.id && !isCreatingOffer"
             @click="selectOffer(offer.id)"
+            selectable
+            variant="outline"
+            padding="sm"
+            gap="xs"
           >
             <span>#{{ offer.id }} · {{ offer.productType }}</span>
             <small>{{ offer.status }}</small>
-          </ChoiceCard>
+          </PuCard>
         </div>
       </AdminRailPanel>
     </template>
 
     <template #main>
       <div class="stack">
-        <LoadingIndicator
+        <PuLoadingState
           v-if="workspaceQuery.isLoading.value"
           :message="t('common.loading')"
         />
-        <ErrorToast
+        <PuInlineNotice tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
-          persistent
         />
         <template v-else>
           <BentoItem
-            :title="isCreatingOffer ? t('adminCommercePlacementOffer.createOfferTitle') : t('adminCommercePlacementOffer.editOfferTitle')"
+            :title="
+              isCreatingOffer
+                ? t('adminCommercePlacementOffer.createOfferTitle')
+                : t('adminCommercePlacementOffer.editOfferTitle')
+            "
             :description="t('adminCommercePlacementOffer.offerHint')"
             span="full"
           >
             <div class="form-stack">
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.productTypeLabel") }}</span>
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.productTypeLabel")
+                }}</span>
                 <select v-model="offerForm.productType" class="text-input">
                   <option value="RENTAL">RENTAL</option>
                   <option value="RIDE_HAILING">RIDE_HAILING</option>
@@ -56,7 +71,9 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.statusLabel") }}</span>
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.statusLabel")
+                }}</span>
                 <select v-model="offerForm.status" class="text-input">
                   <option value="DRAFT">DRAFT</option>
                   <option value="ACTIVE">ACTIVE</option>
@@ -66,8 +83,14 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.spuIdsLabel") }}</span>
-                <input v-model="offerForm.spuIdsCsv" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.spuIdsLabel")
+                }}</span>
+                <input
+                  v-model="offerForm.spuIdsCsv"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <div class="hint">
@@ -75,18 +98,36 @@
               </div>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.termsVersionLabel") }}</span>
-                <input v-model.number="offerForm.termsVersion" class="text-input" type="number" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.termsVersionLabel")
+                }}</span>
+                <input
+                  v-model.number="offerForm.termsVersion"
+                  class="text-input"
+                  type="number"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.startsAtLabel") }}</span>
-                <input v-model="offerForm.startsAt" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.startsAtLabel")
+                }}</span>
+                <input
+                  v-model="offerForm.startsAt"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <label class="field">
-                <span class="field-label">{{ t("adminCommercePlacementOffer.endsAtLabel") }}</span>
-                <input v-model="offerForm.endsAt" class="text-input" type="text" />
+                <span class="field-label">{{
+                  t("adminCommercePlacementOffer.endsAtLabel")
+                }}</span>
+                <input
+                  v-model="offerForm.endsAt"
+                  class="text-input"
+                  type="text"
+                />
               </label>
 
               <PricingRulesEditor
@@ -95,14 +136,23 @@
               />
 
               <div class="inline-actions">
-                <Button size="sm" type="button" :disabled="isSavingOffer" @click="handleSaveOffer">
-                  {{ isSavingOffer ? t("adminCommercePlacementOffer.savingAction") : t("adminCommercePlacementOffer.saveOfferAction") }}
-                </Button>
+                <PuButton
+                  size="sm"
+
+                  :disabled="isSavingOffer"
+                  @click="handleSaveOffer"
+                >
+                  {{
+                    isSavingOffer
+                      ? t("adminCommercePlacementOffer.savingAction")
+                      : t("adminCommercePlacementOffer.saveOfferAction")
+                  }}
+                </PuButton>
               </div>
             </div>
           </BentoItem>
 
-          <ErrorToast
+          <PuInlineNotice tone="error" dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -134,10 +184,7 @@ import {
   useUpdateAdminOffer,
 } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import PricingRulesEditor from "@/domains/admin-commerce/ui/pricing-rules/PricingRulesEditor.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import ChoiceCard from "@/shared/ui/containers/ChoiceCard.vue";
+import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -158,7 +205,8 @@ const selectedOfferId = computed<number | null>(() => {
 });
 
 const selectedOffer = computed(
-  () => offers.value.find((offer) => offer.id === selectedOfferId.value) ?? null,
+  () =>
+    offers.value.find((offer) => offer.id === selectedOfferId.value) ?? null,
 );
 
 const toDateInputValue = (value: string | Date | null | undefined): string => {
@@ -189,7 +237,8 @@ const emptyOfferForm = (): OfferEditorForm => ({
 const offerForm = ref<OfferEditorForm>(emptyOfferForm());
 
 const isSavingOffer = computed(
-  () => createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
+  () =>
+    createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
 );
 
 const availableSpuHint = computed(() =>
@@ -211,7 +260,9 @@ const pageErrorMessage = computed(
 watch(
   offers,
   (nextOffers) => {
-    if (!nextOffers.some((offer) => String(offer.id) === selectedOfferIdRaw.value)) {
+    if (
+      !nextOffers.some((offer) => String(offer.id) === selectedOfferIdRaw.value)
+    ) {
       selectedOfferIdRaw.value = nextOffers[0] ? String(nextOffers[0].id) : "";
     }
   },
@@ -284,7 +335,10 @@ const handleSaveOffer = async () => {
     if (selectedOfferId.value === null) {
       throw new Error(t("adminCommercePlacementOffer.emptyOffers"));
     }
-    await updateOfferMutation.mutateAsync({ offerId: selectedOfferId.value, input });
+    await updateOfferMutation.mutateAsync({
+      offerId: selectedOfferId.value,
+      input,
+    });
   } catch (error) {
     localErrorMessage.value =
       error instanceof Error ? error.message : t("common.operationFailed");

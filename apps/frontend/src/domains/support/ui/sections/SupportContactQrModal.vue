@@ -1,10 +1,5 @@
 <template>
-  <Modal
-    :open="open"
-    :title="title"
-    max-width="420px"
-    @close="emit('close')"
-  >
+  <PuModal :open="open" :title="title" max-width="420px" @close="emit('close')">
     <div class="support-contact-qr-modal">
       <p class="support-contact-qr-modal__description">
         {{ description }}
@@ -26,19 +21,17 @@
         {{ targetUrl }}
       </p>
 
-      <Button appearance="rect" type="button" block @click="emit('close')">
+      <PuButton shape="rect" block @click="emit('close')">
         {{ t("common.close") }}
-      </Button>
+      </PuButton>
     </div>
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuModal } from "@partner-up-dev/design-web";
 import { computed, toRef } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useQrCodeDataUrl } from "@/shared/wechat/useQrCodeDataUrl";
 
 const props = defineProps<{
@@ -57,12 +50,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const openRef = toRef(props, "open");
 const targetUrlRef = toRef(props, "targetUrl");
-const { qrCodeDataUrl, qrCodeError } = useQrCodeDataUrl(
-  openRef,
-  targetUrlRef,
-);
-
-useBodyScrollLock(computed(() => props.open));
+const { qrCodeDataUrl, qrCodeError } = useQrCodeDataUrl(openRef, targetUrlRef);
 </script>
 
 <style scoped lang="scss">
@@ -106,7 +94,7 @@ useBodyScrollLock(computed(() => props.open));
   overflow-wrap: anywhere;
 }
 
-.support-contact-qr-modal :deep(.ui-button) {
+.support-contact-qr-modal :deep(.pu-button) {
   width: 100%;
 }
 </style>

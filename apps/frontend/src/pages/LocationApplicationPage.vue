@@ -1,24 +1,38 @@
 <template>
-  <PageScaffoldFlow class="location-application-page">
-    <template #header>
-      <PageHeader
+  <PuPageScaffold class="location-application-page">
+    <template #pageHeader>
+      <PuHeader
         :title="t('locationApplicationPage.title')"
         :subtitle="t('locationApplicationPage.subtitle')"
-        :back-fallback-to="backFallbackTo"
-      />
+        title-as="h1"
+      >
+        <template #leading>
+          <PuButton
+            tone="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('common.backToHome')"
+            @click="handleBack"
+          >
+            <template #leading>
+              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
+            </template>
+          </PuButton>
+        </template>
+      </PuHeader>
     </template>
 
     <div class="location-application-page__body">
-      <InlineNotice
+      <PuInlineNotice
         v-if="submitSuccessTitle"
         tone="success"
         :message="submitSuccessTitle"
       />
-      <ErrorToast v-if="pageError" :message="pageError" persistent />
+      <PuInlineNotice tone="error" v-if="pageError" :message="pageError" />
 
       <PuCard as="section" gap="md">
         <form class="application-form" @submit.prevent="handleSubmit">
-          <FormField
+          <PuFormItem
             :label="t('locationApplicationPage.nameLabel')"
             for-id="location-application-name"
             required
@@ -31,36 +45,46 @@
               maxlength="80"
               :placeholder="t('locationApplicationPage.namePlaceholder')"
             />
-          </FormField>
+          </PuFormItem>
 
-          <FormField
+          <PuFormItem
             :label="t('locationApplicationPage.imageLabel')"
             for-id="location-application-image-url"
             :hint="imageHint"
             required
           >
-            <ImageUrlInput
-              v-model="imageUrlDraft"
-              v-model:uploading="isUploadingImage"
-              input-id="location-application-image-url"
-              purpose="poi"
-              :placeholder="t('locationApplicationPage.imageUrlPlaceholder')"
-              :upload-label="t('locationApplicationPage.pickImageAction')"
-              :uploading-label="t('common.loading')"
-              :preview-alt="t('locationApplicationPage.imagePreviewAlt')"
-              :allow-url-input="false"
+            <PuFileUpload
+              id="location-application-image-url"
+              v-model="imageUploadValue"
+              mode="file"
+              layout="panel"
+              :accept="IMAGE_UPLOAD_ACCEPT"
+              :choose-label="t('locationApplicationPage.pickImageAction')"
+              :drop-label="t('locationApplicationPage.pickImageAction')"
+              :drop-description="t('locationApplicationPage.imageHint')"
+              :replace-label="t('locationApplicationPage.pickImageAction')"
+              :disabled="submitMutation.isPending.value || isUploadingImage"
+              @add="handleImageUploadAdd"
+              @remove="handleImageUploadRemove"
+              @reject="handleImageUploadReject"
+              @update:model-value="handleImageUploadUpdate"
             />
-          </FormField>
+            <PuInlineNotice
+              v-if="imageUploadError"
+              tone="error"
+              :message="imageUploadError"
+            />
+          </PuFormItem>
 
-          <Button
-            appearance="rect"
+          <PuButton
+            shape="rect"
             size="lg"
-            type="submit"
+            :action="{ native: 'submit' }"
             :disabled="!canSubmit"
             :loading="submitMutation.isPending.value"
           >
             {{ t("locationApplicationPage.submitAction") }}
-          </Button>
+          </PuButton>
         </form>
       </PuCard>
 
@@ -72,7 +96,7 @@
           </div>
         </div>
 
-        <LoadingIndicator
+        <PuLoadingState
           v-if="applicationsQuery.isLoading.value"
           :message="t('common.loading')"
         />
@@ -94,9 +118,13 @@
             <div class="application-card__body">
               <div class="application-card__title-row">
                 <h3>{{ application.title }}</h3>
-                <Chip :tone="statusChipTone(application.status)" size="sm">
-                  {{ statusLabel(application.status) }}
-                </Chip>
+                <PuTag
+                  :tone="statusTagTone(application.status)"
+                  :text="statusLabel(application.status)"
+                  size="sm"
+                  variant="soft"
+                  shape="pill"
+                />
               </div>
               <p class="application-card__meta">
                 {{ formatCreatedAt(application.createdAt) }}
@@ -109,23 +137,29 @@
         </div>
       </PuCard>
     </div>
-  </PageScaffoldFlow>
+  </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, type RouteLocationRaw } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { PuCard } from "@partner-up-dev/design-web";
-import PageHeader from "@/shared/ui/navigation/PageHeader.vue";
-import PageScaffoldFlow from "@/shared/ui/layout/PageScaffoldFlow.vue";
-import FormField from "@/shared/ui/forms/FormField.vue";
-import Button from "@/shared/ui/actions/Button.vue";
-import Chip from "@/shared/ui/display/Chip.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import ErrorToast from "@/shared/ui/feedback/ErrorToast.vue";
-import LoadingIndicator from "@/shared/ui/feedback/LoadingIndicator.vue";
-import ImageUrlInput from "@/shared/upload/ImageUrlInput.vue";
+import {
+  PuButton,
+  PuCard,
+  PuFileUpload,
+  PuFormItem,
+  PuHeader,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+  PuTag,
+} from "@partner-up-dev/design-web";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import {
+  IMAGE_UPLOAD_ACCEPT,
+  useSingleImageUploadField,
+} from "@/shared/upload/useDesignWebImageUpload";
 import {
   useMyPoiApplications,
   useSubmitPoiApplication,
@@ -139,7 +173,6 @@ const route = useRoute();
 const sessionReady = ref(false);
 const titleDraft = ref("");
 const imageUrlDraft = ref("");
-const isUploadingImage = ref(false);
 const submitSuccessTitle = ref<string | null>(null);
 
 const applicationsQuery = useMyPoiApplications(sessionReady);
@@ -163,6 +196,7 @@ const backFallbackTo = computed<RouteLocationRaw>(() =>
       }
     : { name: "me" },
 );
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const applications = computed(() => applicationsQuery.data.value ?? []);
 const normalizedTitle = computed(() => titleDraft.value.trim());
@@ -188,6 +222,23 @@ const pageError = computed(() => {
   return first instanceof Error ? first.message : null;
 });
 
+const {
+  uploadValue: imageUploadValue,
+  isUploading: isUploadingImage,
+  errorMessage: imageUploadError,
+  handleUpdate: handleImageUploadUpdate,
+  handleAdd: handleImageUploadAdd,
+  handleRemove: handleImageUploadRemove,
+  handleReject: handleImageUploadReject,
+} = useSingleImageUploadField({
+  getUrl: () => imageUrlDraft.value,
+  setUrl: (url) => {
+    imageUrlDraft.value = url;
+  },
+  purpose: "poi",
+  uploadingMessage: t("common.loading"),
+});
+
 const handleSubmit = async () => {
   if (!canSubmit.value || !imageUrl.value) {
     return;
@@ -207,7 +258,7 @@ const handleSubmit = async () => {
 const statusLabel = (status: PoiApplicationStatus): string =>
   t(`locationApplicationPage.status.${status}`);
 
-const statusChipTone = (
+const statusTagTone = (
   status: PoiApplicationStatus,
 ): "primary" | "secondary" | "danger" =>
   status === "PUBLISHED"

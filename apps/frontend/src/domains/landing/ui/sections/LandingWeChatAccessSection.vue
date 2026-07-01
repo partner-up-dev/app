@@ -1,25 +1,25 @@
 <template>
   <section class="wechat-access-section" data-block="wechat-access">
     <div class="wechat-access-section__actions">
-      <Button
-        appearance="rect"
-        tone="outline"
+      <PuButton
+        shape="rect"
+        tone="neutral" variant="outline"
         size="md"
-        full-width
+        block
         @click="showOfficialAccountQrModal = true"
       >
         {{ t("home.landing.officialAccountAction") }}
-      </Button>
+      </PuButton>
 
-      <Button
-        appearance="rect"
-        tone="outline"
+      <PuButton
+        shape="rect"
+        tone="neutral" variant="outline"
         size="md"
-        full-width
+        block
         @click="showWebPageQrModal = true"
       >
         {{ t("home.landing.webPageQrAction") }}
-      </Button>
+      </PuButton>
     </div>
 
     <p class="wechat-access-section__hint">
@@ -40,9 +40,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import Button from "@/shared/ui/actions/Button.vue";
 import LandingWebPageQrModal from "@/domains/landing/ui/sections/LandingWebPageQrModal.vue";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
+import { PuButton } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const showWebPageQrModal = ref(false);

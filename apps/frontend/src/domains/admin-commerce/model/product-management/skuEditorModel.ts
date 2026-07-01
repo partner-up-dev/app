@@ -7,6 +7,7 @@ import {
 
 type SkuPricingModel = AdminProductSkuInput["pricingModel"];
 type SkuFacts = AdminProductSkuInput["facts"];
+type SkuPresentation = AdminProductSkuInput["presentation"];
 
 export type SkuEditorForm = {
   name: string;
@@ -32,24 +33,27 @@ export type SkuBuildLabels = {
 
 const isDynamicQuotePricingModel = (
   value: SkuPricingModel,
-): value is Extract<SkuPricingModel, { type: "DYNAMIC_QUOTE" }> =>
-  value.type === "DYNAMIC_QUOTE";
+): value is Extract<SkuPricingModel, { type: "DYNAMIC_QUOTE" }> => value.type === "DYNAMIC_QUOTE";
 
-const isRentalSkuFacts = (
-  value: SkuFacts,
-): value is Extract<SkuFacts, { type: "RENTAL" }> =>
+const isRentalSkuFacts = (value: SkuFacts): value is Extract<SkuFacts, { type: "RENTAL" }> =>
   "type" in value && value.type === "RENTAL";
 
-const isRideHailingSkuFacts = (
-  value: SkuFacts,
-): value is Exclude<SkuFacts, { type: "RENTAL" }> =>
-  "rideHailingProviderInstanceId" in value &&
-  "providerVehicleTypeCode" in value;
+const isRideHailingSkuFacts = (value: SkuFacts): value is Exclude<SkuFacts, { type: "RENTAL" }> =>
+  "rideHailingProviderInstanceId" in value && "providerVehicleTypeCode" in value;
+
+const emptySkuPresentation = (): SkuPresentation => ({
+  heroImageAssetIds: [],
+  detailImageAssetIds: [],
+  sellingPoints: [],
+  parameterGroups: [],
+  noticeBlocks: [],
+});
 
 export const emptySkuInput = (): Omit<AdminProductSkuInput, "spuId"> => ({
   name: "",
   status: "DRAFT",
   sortOrder: 0,
+  presentation: emptySkuPresentation(),
   facts: {
     type: "RENTAL",
     zoneCode: "",
@@ -63,21 +67,15 @@ export const emptySkuInput = (): Omit<AdminProductSkuInput, "spuId"> => ({
   cancellationPolicyRef: null,
 });
 
-export const toSkuForm = (
-  input: Omit<AdminProductSkuInput, "spuId">,
-): SkuEditorForm => {
+export const toSkuForm = (input: Omit<AdminProductSkuInput, "spuId">): SkuEditorForm => {
   const pricingModel = input.pricingModel;
   return {
     name: input.name,
     status: input.status,
     sortOrder: input.sortOrder,
     rentalZoneCode: isRentalSkuFacts(input.facts) ? input.facts.zoneCode : "",
-    rentalParticipantCount: isRentalSkuFacts(input.facts)
-      ? input.facts.participantCount
-      : 2,
-    rentalDurationMinutes: isRentalSkuFacts(input.facts)
-      ? input.facts.durationMinutes
-      : 180,
+    rentalParticipantCount: isRentalSkuFacts(input.facts) ? input.facts.participantCount : 2,
+    rentalDurationMinutes: isRentalSkuFacts(input.facts) ? input.facts.durationMinutes : 180,
     rideProviderInstanceId: isRideHailingSkuFacts(input.facts)
       ? input.facts.rideHailingProviderInstanceId
       : "",
@@ -104,23 +102,16 @@ const buildSkuFacts = (
   return {
     type: "RENTAL",
     zoneCode: form.rentalZoneCode.trim(),
-    participantCount: parseIntegerField(
-      form.rentalParticipantCount,
-      labels.participantCountLabel,
-      { min: 1 },
-    ),
-    durationMinutes: parseIntegerField(
-      form.rentalDurationMinutes,
-      labels.durationMinutesLabel,
-      { min: 1 },
-    ),
+    participantCount: parseIntegerField(form.rentalParticipantCount, labels.participantCountLabel, {
+      min: 1,
+    }),
+    durationMinutes: parseIntegerField(form.rentalDurationMinutes, labels.durationMinutesLabel, {
+      min: 1,
+    }),
   };
 };
 
-const buildSkuPricingModel = (
-  form: SkuEditorForm,
-  labels: SkuBuildLabels,
-): SkuPricingModel => {
+const buildSkuPricingModel = (form: SkuEditorForm, labels: SkuBuildLabels): SkuPricingModel => {
   if (form.pricingModelType === "DYNAMIC_QUOTE") {
     if (form.dynamicPricingModel === null) {
       throw new Error(labels.dynamicPricingMissingError);
@@ -136,12 +127,14 @@ const buildSkuPricingModel = (
 export const buildSkuInput = (
   form: SkuEditorForm,
   productType: ProductType | null,
+  presentation: SkuPresentation | null | undefined,
   cancellationPolicyRef: AdminProductSkuInput["cancellationPolicyRef"],
   labels: SkuBuildLabels,
 ): Omit<AdminProductSkuInput, "spuId"> => ({
   name: form.name.trim(),
   status: form.status,
   sortOrder: parseIntegerField(form.sortOrder, labels.sortOrderLabel),
+  presentation: presentation ?? emptySkuPresentation(),
   facts: buildSkuFacts(form, productType, labels),
   pricingModel: buildSkuPricingModel(form, labels),
   cancellationPolicyRef: cancellationPolicyRef ?? null,

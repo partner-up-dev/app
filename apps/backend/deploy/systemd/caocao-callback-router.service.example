@@ -1,0 +1,25 @@
+[Unit]
+Description=PartnerUp CaoCao callback router
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/partner-up/backend
+Environment=NODE_ENV=production
+Environment=CAOCAO_CALLBACK_ROUTER_HOST=127.0.0.1
+Environment=CAOCAO_CALLBACK_ROUTER_PORT=6080
+Environment=CAOCAO_CALLBACK_ROUTER_CALLBACK_PATH=/api/v1/service_provider/caocao/callback/order
+Environment=CAOCAO_CALLBACK_ROUTER_STAGING_ORIGIN=https://test.api-app.partner-up.cn
+Environment=CAOCAO_CALLBACK_ROUTER_PRODUCTION_ORIGIN=https://api-app.partner-up.cn
+Environment=CAOCAO_CALLBACK_ROUTER_MAX_BODY_BYTES=16384
+Environment=CAOCAO_CALLBACK_ROUTER_UPSTREAM_TIMEOUT_MS=15000
+ExecStart=/usr/bin/node dist/caocao-callback-router.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

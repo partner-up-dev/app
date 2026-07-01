@@ -1,13 +1,26 @@
 <template>
   <div class="anchor-event-place-pool-editor">
-    <SegmentedControl
+    <PuSegmented
       :model-value="form.placePoolMode"
-      :options="placePoolModeOptions"
       :aria-label="t('adminPR.eventPlacePoolModeAria')"
       data-testid="admin-anchor-event.place-pool.mode"
-      block
+      full-width
+      equal-width
       @update:model-value="handleModeChange"
-    />
+    >
+      <PuSegmentedItem
+        v-for="option in placePoolModeOptions"
+        :key="String(option.value)"
+        :value="option.value"
+        :label="option.label"
+        :disabled="option.disabled"
+        :data-testid="option.testId"
+      >
+        <template v-if="option.icon" #leading>
+          <span :class="option.icon" aria-hidden="true" />
+        </template>
+      </PuSegmentedItem>
+    </PuSegmented>
 
     <AnchorEventLocationPoolEditor
       v-if="form.placePoolMode === 'location'"
@@ -24,18 +37,27 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import SegmentedControl, {
-  type SegmentedControlOption,
-  type SegmentedControlValue,
-} from "@/shared/ui/controls/SegmentedControl.vue";
+import {
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import type { AnchorEventEditorForm } from "@/domains/admin/ui/anchor-event/anchorEventEditorTypes";
 import AnchorEventLocationPoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventLocationPoolEditor.vue";
 import AnchorEventRoutePoolEditor from "@/domains/admin/ui/anchor-event/components/AnchorEventRoutePoolEditor.vue";
 
+type SegmentedOption = {
+  value: PuSegmentedValue;
+  label: string;
+  icon?: string;
+  testId?: string;
+  disabled?: boolean;
+};
+
 const form = defineModel<AnchorEventEditorForm>({ required: true });
 const { t } = useI18n();
 
-const placePoolModeOptions = computed<SegmentedControlOption[]>(() => [
+const placePoolModeOptions = computed<SegmentedOption[]>(() => [
   {
     value: "location",
     label: t("adminPR.eventPlacePoolModeLocation"),
@@ -50,7 +72,7 @@ const placePoolModeOptions = computed<SegmentedControlOption[]>(() => [
   },
 ]);
 
-const handleModeChange = (value: SegmentedControlValue): void => {
+const handleModeChange = (value: PuSegmentedValue): void => {
   if (value !== "location" && value !== "route") {
     return;
   }

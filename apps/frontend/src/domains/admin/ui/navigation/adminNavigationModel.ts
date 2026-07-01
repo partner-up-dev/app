@@ -220,6 +220,12 @@ export const adminNavigationGroups: AdminNavigationGroup[] = [
         subtitleKey: "adminCommon.navRideHailingProviderInstancesSubtitle",
         routeName: "admin-ride-hailing",
       },
+      {
+        id: "ride-hailing-orders",
+        labelKey: "adminCommon.navRideHailingOrders",
+        subtitleKey: "adminCommon.navRideHailingOrdersSubtitle",
+        routeName: "admin-ride-hailing-orders",
+      },
     ],
   },
   {

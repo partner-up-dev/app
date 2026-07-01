@@ -14,6 +14,7 @@ on:
       - "pnpm-workspace.yaml"
       - ".node-version"
       - ".npmrc"
+      - "biome.json"
       - ".github/workflows/frontend-gate.yml"
   workflow_dispatch:
 
@@ -43,11 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint frontend design tokens
-        run: pnpm --filter @partner-up-dev/frontend lint:tokens:strict
+      - name: Typecheck frontend
+        run: pnpm check:type:frontend
 
       - name: Run frontend unit tests
         run: pnpm test:unit:frontend
 
       - name: Build frontend
-        run: pnpm --filter @partner-up-dev/frontend build
+        run: pnpm check:build:frontend

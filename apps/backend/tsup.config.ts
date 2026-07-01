@@ -1,7 +1,10 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: {
+    index: "src/index.ts",
+    "caocao-callback-router": "src/scripts/ride-hailing/caocao-callback-router.ts",
+  },
   outDir: "dist",
   format: ["esm"],
   platform: "node",

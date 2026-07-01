@@ -55,7 +55,8 @@ install graph.
 3. lint backend migration/seed artifacts
 4. build FC migration bundle
 5. deploy FC migration function
-6. invoke migration function
+6. invoke migration function with `PARTNERUP_ENVIRONMENT` mapped from branch
+   (`develop` -> `staging`, `master` -> `production`)
 7. prepare or publish backend `node_modules` layer when needed
 8. resolve latest layer ARN
 9. build backend
@@ -69,6 +70,8 @@ install graph.
 ## Rollout Guarantees
 
 - migrations happen before backend deploy
+- backend migration environment is explicit in deploy and is not inferred by
+  the migration runner
 - backend deploys run serially through the `backend-fc-deploy` concurrency group
 - layer-only publish is supported via workflow dispatch input
 - runtime build metadata stays available even when the deployed package has no `.git` directory
@@ -192,6 +195,33 @@ deployment. The general Release Please workflow creates frontend release PRs
 and updates frontend source release metadata, but it skips frontend GitHub
 Release creation. The frontend deploy workflow creates the frontend GitHub
 Release after production ESA deployment succeeds.
+
+## Frontend Design Package Updates
+
+`@partner-up-dev/design-web` publishes its TanStack Intent agent skill inside
+the package under `skills/design-web`. Updating the package dependency is the
+skill update mechanism. Do not manually edit local copies such as
+`~/.codex/skills/design-web`.
+
+After changing the installed design-web version, run this single command from
+the repository root:
+
+```powershell
+node scripts/sync-design-web-package.mjs [<version-or-spec>]
+```
+
+The script also installs/refreshes the `codex` `SessionStart` hook (no
+`PreToolUse` hook), so Codex sessions inherit the same skill catalog on startup.
+
+`load` remains the agent-facing source of truth for the current package-shipped
+skill. Do not run `intent install` or add an `intent-skills` managed block unless
+the repository intentionally adopts that mapping format.
+
+To skip hook refresh only (not recommended), pass:
+
+```powershell
+node scripts/sync-design-web-package.mjs --skip-hooks
+```
 
 ## Manual Rollout Reality
 

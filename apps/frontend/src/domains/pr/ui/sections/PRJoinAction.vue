@@ -17,22 +17,22 @@
     data-region="join-action"
     data-testid="pr-detail.join-action"
   >
-    <InlineNotice
+    <PuInlineNotice
       v-if="releaseNoticeText"
       tone="warning"
       :message="releaseNoticeText"
     />
 
-    <InlineNotice
+    <PuInlineNotice
       v-if="joinBlockedMessage"
       tone="warning"
       :message="joinBlockedMessage"
     />
 
     <div v-if="showJoinAction" class="action-group">
-      <Button
+      <PuButton
         class="action-group__button"
-        tone="primary"
+        tone="primary" variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -46,14 +46,14 @@
               ? t("prPage.joining")
               : t("prPage.join")
         }}
-      </Button>
+      </PuButton>
       <p v-if="joinFlowError" class="action-error">
         {{ joinFlowError }}
       </p>
     </div>
   </section>
 
-  <Modal
+  <PuModal
     :open="showJoinGateModal"
     max-width="420px"
     title="加入活动"
@@ -69,16 +69,16 @@
       @completed="finalizeJoin"
       @error="emitFlowError"
     />
-  </Modal>
+  </PuModal>
 
-  <Modal :open="showJoinSuccessPrompt" @close="closeJoinSuccessPrompt">
+  <PuModal :open="showJoinSuccessPrompt" @close="closeJoinSuccessPrompt">
     <PRJoinSuccessPrompt
       ref="joinSuccessPromptRef"
       :pr-id="resolvedPrId"
       :open="showJoinSuccessPrompt"
       @done="handleJoinSuccessPromptDone"
     />
-  </Modal>
+  </PuModal>
 </template>
 
 <script setup lang="ts">
@@ -87,10 +87,6 @@ import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntrySurface } from "@/domains/pr/model/pr-join-entry-context";
-import Button from "@/shared/ui/actions/Button.vue";
-import InlineNotice from "@/shared/ui/feedback/InlineNotice.vue";
-import Modal from "@/shared/ui/overlay/Modal.vue";
-import { useBodyScrollLock } from "@/shared/ui/overlay/useBodyScrollLock";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRJoinSuccessPrompt from "@/domains/pr/ui/composites/PRJoinSuccessPrompt.vue";
@@ -104,6 +100,7 @@ import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRP
 import type { ApiError } from "@/shared/api/error";
 import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import { PuButton, PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
 
 type JoinSuccessPromptExpose = {
   close: () => void;
@@ -204,7 +201,9 @@ const joinBlockedMessage = computed(() => {
 const showActionArea = computed(() =>
   Boolean(
     resolvedPr.value &&
-      (releaseNoticeText.value || joinBlockedMessage.value || showJoinAction.value),
+      (releaseNoticeText.value ||
+        joinBlockedMessage.value ||
+        showJoinAction.value),
   ),
 );
 
@@ -215,10 +214,6 @@ if (props.pr) {
     visible: showJoinAction,
   });
 }
-
-useBodyScrollLock(
-  computed(() => showJoinSuccessPrompt.value || showJoinGateModal.value),
-);
 
 const resolveErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : t("common.operationFailed");
@@ -367,14 +362,11 @@ useRegisterPRPendingReplayHandler("PR_JOIN", {
   replay: replayJoin,
 });
 
-watch(
-  resolvedPrId,
-  () => {
-    joined.value = false;
-    closeJoinGateModal();
-    showJoinSuccessPrompt.value = false;
-  },
-);
+watch(resolvedPrId, () => {
+  joined.value = false;
+  closeJoinGateModal();
+  showJoinSuccessPrompt.value = false;
+});
 
 watch(
   () => props.viewerIsParticipant ?? viewer.value?.isParticipant ?? null,
