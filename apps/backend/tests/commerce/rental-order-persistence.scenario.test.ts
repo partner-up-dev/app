@@ -12,6 +12,7 @@ import {
 } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,
+  createOrderCommand,
   createRentalOrder,
 } from "../../src/domains/trade";
 import {
@@ -21,11 +22,14 @@ import {
 import { attachOrderToPr } from "../../src/domains/pr-core";
 import type { OfferId } from "../../src/entities/offer";
 import type { BillId } from "../../src/entities/bill";
+import type { OfferListingSessionId, OfferQuoteId } from "../../src/entities/commerce-quote";
 import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { PRId } from "../../src/entities/partner-request";
 import type { ProductSku } from "../../src/entities/product-sku";
 import type { TradeOrderId } from "../../src/entities/trade-order";
+import { ProblemDetailsError } from "../../src/lib/problem-details";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
+import { CommerceQuoteRepository } from "../../src/repositories/CommerceQuoteRepository";
 import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
 import { RentalOrderRepository } from "../../src/repositories/RentalOrderRepository";
@@ -36,6 +40,7 @@ const partnerRequestRepo = new PartnerRequestRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const rentalOrderRepo = new RentalOrderRepository();
 const billLineRepo = new BillLineRepository();
+const quoteRepo = new CommerceQuoteRepository();
 
 const generateRsaPrivateKeyPem = (): string => {
   const { privateKey } = generateKeyPairSync("rsa", {
@@ -187,6 +192,61 @@ async function givenRentalCatalog() {
   });
 
   return { offer, sku, spu };
+}
+
+async function createRentalFixedQuote(input: {
+  offerId: OfferId;
+  sku: ProductSku;
+  spuId: number;
+  participants: Awaited<ReturnType<typeof listPrOrderParticipants>>;
+  contactPhone: string;
+  registrantName: string;
+}): Promise<OfferQuoteId> {
+  const quoteId = randomUUID() as OfferQuoteId;
+  await quoteRepo.create({
+    id: quoteId,
+    listingSessionId: randomUUID() as OfferListingSessionId,
+    offerId: input.offerId,
+    productType: "RENTAL",
+    itemKind: "FIXED",
+    spuId: input.spuId,
+    skuId: input.sku.id,
+    quantity: 1,
+    listingContextSnapshot: {
+      productType: "RENTAL",
+      participants: input.participants,
+      serviceStartAt,
+      serviceEndAt,
+      contactPhone: input.contactPhone,
+      registrants: input.participants.map(() => ({
+        name: input.registrantName,
+        phone: input.contactPhone,
+        nationalIdMasked: null,
+      })),
+    },
+    fulfillmentQuoteSnapshot: {
+      productType: "RENTAL",
+    },
+    pricingSnapshot: {
+      currency: "CNY",
+      totalFen: 1200,
+      explanations: [],
+    },
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+  });
+  return quoteId;
+}
+
+async function assertProblemCode(run: () => Promise<unknown>, expectedCode: string): Promise<void> {
+  let thrown: unknown = null;
+  try {
+    await run();
+  } catch (error) {
+    thrown = error;
+  }
+
+  assert.ok(thrown instanceof ProblemDetailsError);
+  assert.equal(thrown.code, expectedCode);
 }
 
 scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
@@ -590,5 +650,70 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
     (await rentalOrderRepo.listByOrderIds(leakedBaseOrders.map((order) => order.id)))
       .length,
     0,
+  );
+});
+
+scenario("commerce_create_order_blocks_participant_with_unpaid_order", async () => {
+  const creator = await givenUser("rental-create-order-unpaid-block");
+  const existingPrId = await givenRentalPr(creator);
+  const nextPrId = await givenRentalPr(creator);
+  const { offer, sku, spu } = await givenRentalCatalog();
+  const existingParticipants = await listPrOrderParticipants(existingPrId, creator.user.id);
+  const existingItemId = randomUUID();
+
+  const existingOrder = await createRentalOrder({
+    createdBy: creator.user.id,
+    participants: existingParticipants,
+    offerId: offer.id,
+    items: [buildRentalOrderItem({ itemId: existingItemId, sku })],
+    pricingSnapshot: {
+      currency: "CNY",
+      itemBreakdowns: [
+        {
+          itemId: existingItemId,
+          resolvedAmountFen: 1200,
+          explanations: [],
+        },
+      ],
+      orderLevelExplanations: [],
+      subtotalFen: 1200,
+      totalFen: 1200,
+    },
+    serviceStartAt,
+    serviceEndAt,
+    contactPhone: "13800138111",
+    registrants: [
+      {
+        name: "王五",
+        phone: "13800138111",
+        nationalIdMasked: null,
+      },
+    ],
+  });
+  await tradeOrderRepo.updateStatus(existingOrder.orderId as TradeOrderId, "CANCELLED", new Date());
+
+  const nextParticipants = await listPrOrderParticipants(nextPrId, creator.user.id);
+  const nextQuoteId = await createRentalFixedQuote({
+    offerId: offer.id as OfferId,
+    sku,
+    spuId: spu.id,
+    participants: nextParticipants,
+    contactPhone: "13800138222",
+    registrantName: "赵六",
+  });
+
+  await assertProblemCode(
+    () =>
+      createOrderCommand({
+        createdBy: creator.user.id,
+        prId: nextPrId,
+        items: [
+          {
+            kind: "FIXED",
+            quoteId: nextQuoteId,
+          },
+        ],
+      }),
+    "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS",
   );
 });

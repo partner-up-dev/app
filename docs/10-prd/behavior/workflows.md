@@ -87,7 +87,8 @@
 7. For RideHailing, the user chooses one or more acceptable vehicle candidates. The displayed price is the selected candidate range. Unavailable provider vehicle types are omitted from the list rather than shown as disabled choices.
 8. RideHailing Ordering currently short-circuits departure-time editing and always behaves as `现在出发`, even when the PR itself carries a concrete start time.
 9. Create order submits quote identity, not copied route, participant, SKU, or price facts. If the quote expired, the page refreshes listing, preserves matching selected vehicles when possible, and requires the user to click order again.
-10. If create succeeds, the user enters Order Detail. If provider dispatch creates then immediately cancels a RideHailing order, the user stays on `/order/new` and sees a failure dialog with the reason.
+10. Before create succeeds, the system must reject the request when any intended order participant still has another unpaid order obligation. The Ordering Page stays on `/order/new` and explains the block through a focused dialog.
+11. If create succeeds, the user enters Order Detail. If provider dispatch creates then immediately cancels a RideHailing order, the user stays on `/order/new` and sees a failure dialog with the reason.
 
 ## 5. Revisit and History Entry
 

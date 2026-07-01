@@ -14,6 +14,7 @@ import type { ProductSpu } from "../../../entities/product-spu";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
@@ -68,6 +69,7 @@ import {
 
 const offerRepo = new OfferRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
+const billLineRepo = new BillLineRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
 
@@ -267,6 +269,23 @@ async function validatePrAttachmentForEvaluation(input: {
     });
   }
   return null;
+}
+
+async function validateParticipantUnpaidOrders(input: {
+  participants: OrderParticipantSnapshot[];
+}): Promise<OrderingActionProblem | null> {
+  const unsettledLines = await billLineRepo.listUnsettledChargeLinesByUserIds(
+    input.participants.map((participant) => participant.userId as UserId),
+  );
+  if (unsettledLines.length === 0) {
+    return null;
+  }
+
+  return actionProblem({
+    code: "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS",
+    title: "参与者有未支付订单",
+    detail: "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
+  });
 }
 
 function validateRentalQuoteContext(input: {
@@ -1087,6 +1106,16 @@ export async function createOrderCommand(
         code: rentalProblem.code,
       });
     }
+    const participantPaymentProblem = await validateParticipantUnpaidOrders({
+      participants: selected.listingContext.participants,
+    });
+    if (participantPaymentProblem) {
+      return throwHttpProblem({
+        status: 409,
+        detail: participantPaymentProblem.detail,
+        code: participantPaymentProblem.code,
+      });
+    }
     const created = await createRentalOrderBranch({
       command: input,
       selected,
@@ -1102,6 +1131,16 @@ export async function createOrderCommand(
     item: firstQuoteItem,
     itemId,
   });
+  const participantPaymentProblem = await validateParticipantUnpaidOrders({
+    participants: selected.listingContext.participants,
+  });
+  if (participantPaymentProblem) {
+    return throwHttpProblem({
+      status: 409,
+      detail: participantPaymentProblem.detail,
+      code: participantPaymentProblem.code,
+    });
+  }
   return createRideHailingOrderBranch({
     command: input,
     selected,

@@ -7,6 +7,7 @@ import {
   type NewBillLine,
 } from "../entities/bill";
 import type { PaymentProviderInstanceId } from "../entities/payment";
+import type { UserId } from "../entities/user";
 import { db } from "../lib/db";
 import type { RepositoryExecutor } from "./_executor";
 
@@ -38,6 +39,25 @@ export class BillLineRepository {
       .select()
       .from(billLines)
       .where(inArray(billLines.billId, billIds))
+      .orderBy(asc(billLines.createdAt), asc(billLines.id));
+  }
+
+  async listUnsettledChargeLinesByUserIds(userIds: UserId[]): Promise<BillLine[]> {
+    const uniqueUserIds = Array.from(new Set(userIds));
+    if (uniqueUserIds.length === 0) {
+      return [];
+    }
+
+    return this.executor
+      .select()
+      .from(billLines)
+      .where(
+        and(
+          inArray(billLines.userId, uniqueUserIds),
+          eq(billLines.kind, "CHARGE"),
+          isNull(billLines.settledAt),
+        ),
+      )
       .orderBy(asc(billLines.createdAt), asc(billLines.id));
   }
 

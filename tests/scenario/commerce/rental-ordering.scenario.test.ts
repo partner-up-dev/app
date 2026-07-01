@@ -8,6 +8,10 @@ import {
   createSkuCancellationPolicy,
 } from "../../../apps/backend/src/domains/merchandising";
 import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
+import {
+  buildOrderParticipantsFromContext,
+  createRentalOrder,
+} from "../../../apps/backend/src/domains/trade";
 import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
 import {
@@ -245,6 +249,113 @@ async function givenRentalOrderingPlacement() {
   });
 }
 
+async function seedStandaloneUnpaidRentalOrder(user: ScenarioUser): Promise<void> {
+  const spu = await createProductSpu({
+    name: `系统测试历史未支付场地单-${user.user.id}`,
+    productType: "RENTAL",
+    status: "ACTIVE",
+    salesPolicy: {
+      skuSelectionPolicy: {
+        type: "EXACTLY_ONE",
+      },
+      quantityPolicy: {
+        type: "FIXED",
+        quantity: 1,
+      },
+    },
+    servicePolicy: {
+      type: "RENTAL",
+      bookingLeadTimeMinutes: 0,
+      requiresContactPhone: true,
+      requiresRealName: true,
+      requiresNationalId: false,
+    },
+    presentation: {
+      heroImageAssetIds: [],
+      detailImageAssetIds: [],
+      sellingPoints: [],
+      parameterGroups: [],
+      noticeBlocks: [],
+    },
+  });
+  const sku = await createProductSku({
+    spuId: spu.id,
+    name: "历史未支付场地单",
+    status: "ACTIVE",
+    facts: {
+      type: "RENTAL",
+      zoneCode: `LEGACY_UNPAID_${user.user.id}`,
+      participantCount: 1,
+      durationMinutes: 60,
+    },
+    pricingModel: {
+      type: "FIXED_TOTAL",
+      amountFen: 1800,
+    },
+  });
+  const offer = await createOffer({
+    productType: "RENTAL",
+    spuIds: [spu.id],
+    status: "ACTIVE",
+    pricingRules: [],
+    termsVersion: 1,
+  });
+  const itemId = `legacy-item-${user.user.id}`;
+  const participants = buildOrderParticipantsFromContext({
+    participants: [
+      {
+        participantId: `legacy-${user.user.id}`,
+        userId: user.user.id,
+        joinedVia: "API",
+      },
+    ],
+    createdBy: user.user.id,
+  });
+
+  await createRentalOrder({
+    createdBy: user.user.id,
+    participants,
+    offerId: offer.id,
+    items: [
+      {
+        itemId,
+        sku: {
+          id: sku.id,
+          version: sku.version,
+          name: sku.name,
+          factsSnapshot: sku.facts,
+          pricingModelSnapshot: sku.pricingModel,
+          cancellationPolicySnapshot: null,
+        },
+        quantity: 1,
+      },
+    ],
+    pricingSnapshot: {
+      currency: "CNY",
+      itemBreakdowns: [
+        {
+          itemId,
+          resolvedAmountFen: 1800,
+          explanations: [],
+        },
+      ],
+      orderLevelExplanations: [],
+      subtotalFen: 1800,
+      totalFen: 1800,
+    },
+    serviceStartAt: "2031-01-02T10:00:00.000Z",
+    serviceEndAt: "2031-01-02T11:00:00.000Z",
+    contactPhone: "13800138009",
+    registrants: [
+      {
+        name: "历史参与者",
+        phone: "13800138009",
+        nationalIdMasked: null,
+      },
+    ],
+  });
+}
+
 async function assertLocatorTextIncludes(input: {
   actual: Promise<string | null>;
   expected: string;
@@ -282,8 +393,11 @@ async function waitForRentalQuoteReady(page: Page, expectedPrice = "20.00"): Pro
 async function assertOrderingBlockedDialog(input: {
   page: Page;
   expectedDetail: string;
+  expectedTitle?: string;
 }): Promise<void> {
-  const dialog = input.page.getByRole("dialog", { name: "暂不能创建订单" });
+  const dialog = input.page.getByRole("dialog", {
+    name: input.expectedTitle ?? "暂不能创建订单",
+  });
   await dialog.waitFor({
     state: "visible",
     timeout: 10_000,
@@ -435,6 +549,46 @@ scenario("commerce_rental_ordering_reaches_order_detail", async (ctx) => {
 
   const orderPath = createdOrderPath;
   assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
+});
+
+scenario("commerce_rental_ordering_blocks_participant_with_unpaid_order", async (ctx) => {
+  const creator = await givenUser("system-commerce-unpaid-participant-creator");
+  const joiner = await givenUser("system-commerce-unpaid-participant-joiner");
+  await seedStandaloneUnpaidRentalOrder(joiner);
+  const pr = await givenCommerceRentalPr({
+    creator,
+    minPartners: 2,
+    maxPartners: null,
+    title: "System commerce unpaid participant rental PR",
+  });
+  await addJoinedParticipant({ pr, user: joiner });
+  await configurePRStatus({ pr, status: "READY" });
+  const placement = await givenRentalOrderingPlacement();
+
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.id);
+  ctx.record("blockedParticipantUserId", joiner.user.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.getByTestId("ordering.rental.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await fillRentalOrderingRequiredFields(page);
+    await waitForRentalQuoteReady(page);
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertOrderingBlockedDialog({
+      page,
+      expectedTitle: "参与者有未支付订单",
+      expectedDetail: "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
+    });
+    assert.equal(new URL(page.url()).pathname, "/order/new");
+  });
 });
 
 scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {

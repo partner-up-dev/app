@@ -352,7 +352,7 @@ The baseline Rental user-visible chain is:
 
 1. PR Page placement entry
 2. `/order/new` ordering assembly and Offer Listing quote issuance
-3. Order creation from fixed quote id
+3. Order creation from fixed quote id, unless any intended participant still has another unpaid order obligation
 4. Order Detail `待支付`
 5. same Order Detail `待确认预订`
 6. same Order Detail resolves to:
@@ -371,7 +371,7 @@ The baseline RideHailing user-visible chain is:
 
 1. PR Page placement entry
 2. `/order/new` ordering assembly and route/time-based Offer Listing quote issuance
-3. Order creation from selected candidate quote ids
+3. Order creation from selected candidate quote ids, unless any intended participant still has another unpaid order obligation
 4. Order Detail with quote basis and fulfillment state
 5. same Order Detail with final bill after trip finish
 6. same Order Detail with final payment/completed state
@@ -386,6 +386,7 @@ forcing the whole order-detail projection to become a high-frequency payload.
 Rental:
 
 - prepaid
+- create-order must reject when any intended participant still has another unpaid order obligation; this guard applies before the new order row is created
 - Bill exists before execution begins
 - typed order creation keeps the standard unpaid payment window on the base
   Order timeout snapshot
@@ -395,6 +396,7 @@ Rental:
 RideHailing:
 
 - usage-based final settlement
+- the same participant unpaid-order guard applies before create-order starts provider dispatch
 - typed order creation overrides the base Order timeout snapshot so final-bill
   payment is not constrained by the standard unpaid payment window
 - Order is created from candidate quote snapshots. For RideHailing, the user

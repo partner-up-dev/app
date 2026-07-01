@@ -365,6 +365,14 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       });
       return;
     }
+    if (apiError.code === "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS") {
+      openInfoDialog({
+        title: "参与者有未支付订单",
+        description:
+          apiError.message ?? "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
+      });
+      return;
+    }
     if (apiError.code === "PR_NOT_READY" && canOfferPrReadyRecovery.value) {
       openPrNotReadyRecoveryDialog({
         title: "暂不能创建订单",
