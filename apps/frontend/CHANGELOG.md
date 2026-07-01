@@ -1,5 +1,54 @@
 # Changelog
 
+## [3.2.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v3.1.0...frontend-v3.2.0) (2026-07-01)
+
+
+### Features
+
+* **commerce:** add my bills recovery flow ([ed45d81](https://github.com/partner-up-dev/mvp-HA/commit/ed45d81c1813ba79847872a8c2c133b711b73d74))
+* **commerce:** add quote-bound offer listing ([499291e](https://github.com/partner-up-dev/mvp-HA/commit/499291ea62b80f64708682f0f58f1a4f942a68a3))
+* **commerce:** refine ride-hailing ordering route map ([62decae](https://github.com/partner-up-dev/mvp-HA/commit/62decaed6c4d01a0c3da279f9d16682d19d1f2da))
+* **frontend:** render ride-hailing order detail map states ([413cb26](https://github.com/partner-up-dev/mvp-HA/commit/413cb260d22b010770cc3b780bad7f3207bf337c))
+* **payment:** rebuild checkout workstream ([4d4f9cd](https://github.com/partner-up-dev/mvp-HA/commit/4d4f9cd055c66d9daaabacff0dc5a939b1678b4b))
+* **ride-hailing-admin:** add ride-hailing order admin cancel flow ([b4a7399](https://github.com/partner-up-dev/mvp-HA/commit/b4a73992326440cc153d57ba979f7aa500b929b0))
+* **ride-hailing:** add fake order phase controls ([566539e](https://github.com/partner-up-dev/mvp-HA/commit/566539edf89e5ba1e911f4cc32728deba48890be))
+* **ride-hailing:** improve live order detail mocks ([d9ee5eb](https://github.com/partner-up-dev/mvp-HA/commit/d9ee5eb3e0ecf00cfd57447033f2d8f714e71ca8))
+* **ride-hailing:** reconcile provider detail callbacks ([b164c44](https://github.com/partner-up-dev/mvp-HA/commit/b164c44009cbbc8fd045480b8cee90d95a5167f9))
+* **ride-hailing:** render order detail panel content ([8f3d5fd](https://github.com/partner-up-dev/mvp-HA/commit/8f3d5fdb11b9fd5bf7a00839b6c6166ff0825e11))
+* **ride-hailing:** support choice-set ordering candidates ([42eb1a6](https://github.com/partner-up-dev/mvp-HA/commit/42eb1a615f2a0d86b2017a8ff34f27ba751a64ec))
+
+
+### Bug Fixes
+
+* **admin:** prevent placement create freeze ([b714998](https://github.com/partner-up-dev/mvp-HA/commit/b714998452eedc600ea56fff05d4178058e43d74))
+* **caocao:** map driver phone and avatar ([3d89f92](https://github.com/partner-up-dev/mvp-HA/commit/3d89f928f248b89cc3241d46c736e6466d06fae0))
+* **commerce:** block order creation for unpaid participants ([4ba7e92](https://github.com/partner-up-dev/mvp-HA/commit/4ba7e92986ae8f45080fea7dac2a3e5213179d49))
+* **commerce:** model ride hailing listing state ([b9f8dac](https://github.com/partner-up-dev/mvp-HA/commit/b9f8dac4fcc0a8641b6bb3a568d8648b34eef0df))
+* **commerce:** rebuild bill detail payment flow UI ([ea34350](https://github.com/partner-up-dev/mvp-HA/commit/ea343509d4c7a0710daa93082bff1683ab5f57be))
+* **commerce:** require ride listing phone confirmation ([2f0c989](https://github.com/partner-up-dev/mvp-HA/commit/2f0c989de89c51fe073b858cb088b105485e4468))
+* **dev:** align WSL dev server ensure ([c7381b5](https://github.com/partner-up-dev/mvp-HA/commit/c7381b5a2505ff95bef61f85ff09bb8a24a02a43))
+* **e2e:** restore system scenario gate ([f64f2de](https://github.com/partner-up-dev/mvp-HA/commit/f64f2decf5005107e7a8c221b2d640344696ffc1))
+* **frontend-map:** use Tencent custom map style ([6d416be](https://github.com/partner-up-dev/mvp-HA/commit/6d416be1ccaa639b6c95f2bb9a5d0f9dc1e45e9f))
+* **frontend:** add ride-hailing bill card ([0bcfdc2](https://github.com/partner-up-dev/mvp-HA/commit/0bcfdc2928a7104c391d30ae8cce94eb6846b0cd))
+* **frontend:** refresh partner discovery copy ([b4ae8c3](https://github.com/partner-up-dev/mvp-HA/commit/b4ae8c3c7c16a3b3ab691d83b4ce6ec545df0c59))
+* **frontend:** refresh ride entry after phone save ([6e5fb8a](https://github.com/partner-up-dev/mvp-HA/commit/6e5fb8a2cf8927a23c9f59e674f19889bb0affec))
+* **frontend:** replace order detail history backflow ([bfbdf7a](https://github.com/partner-up-dev/mvp-HA/commit/bfbdf7ad3ef99a090c0cc23b7bcdb83cf7618dae))
+* **frontend:** satisfy payment checkout token guard ([d3f9102](https://github.com/partner-up-dev/mvp-HA/commit/d3f91029c2201ceba99f97214d2bc08abab16483))
+* **map:** respect padding for single-marker fit ([b568eef](https://github.com/partner-up-dev/mvp-HA/commit/b568eefa07970977bd500bfd73cc06fe5a0b59bd))
+* **map:** stabilize ride-hailing live follow mode ([51597a1](https://github.com/partner-up-dev/mvp-HA/commit/51597a105e2984f474f143127a313aadb8cc1c97))
+* **ordering:** stop terminal polling and add pr-ready recovery ([eafd9f1](https://github.com/partner-up-dev/mvp-HA/commit/eafd9f1d6a41e27aa52932d02d2ab9752e5692e1))
+* **portless:** restore LAN dev routing ([181c406](https://github.com/partner-up-dev/mvp-HA/commit/181c40639887c22347bbb4f274fb29ce9b59dff1))
+* **pr:** canonicalize time window instants ([7bae27c](https://github.com/partner-up-dev/mvp-HA/commit/7bae27c3a535a6579f53e9aa3553c9933d2554ad))
+* **pr:** facts card time field use start value align ([3d06de2](https://github.com/partner-up-dev/mvp-HA/commit/3d06de2b7f419a9ad81e468a97b441676e77d02b))
+* **ride-hailing:** add route diagnostics across backend and frontend ([f21a91b](https://github.com/partner-up-dev/mvp-HA/commit/f21a91bca3ec98a11a35e012d4687ebba3e5c993))
+* **ride-hailing:** align ordering content layout ([f7ac1aa](https://github.com/partner-up-dev/mvp-HA/commit/f7ac1aa33b171d95f1f57a64cd67315b508a2652))
+* **ride-hailing:** correct order detail backflow ([a71beb9](https://github.com/partner-up-dev/mvp-HA/commit/a71beb965d028c000ff80cf838a082757f477d5a))
+* **ride-hailing:** enable dispatching cancellation and depart-now ordering ([83a5b95](https://github.com/partner-up-dev/mvp-HA/commit/83a5b95d7ab7720dc258e2fb24dc85ede283cb4b))
+* **ride-hailing:** move evaluation to submit preflight ([bbb4741](https://github.com/partner-up-dev/mvp-HA/commit/bbb474134e3d8a7b79ce4082b8ae8394299efce0))
+* **ride-hailing:** precheck cancellation fee before user cancel ([dfa522f](https://github.com/partner-up-dev/mvp-HA/commit/dfa522f2dcbe7380a639b8109deda4e38170d06e))
+* **ride-hailing:** restore real order creation flow ([7903c9c](https://github.com/partner-up-dev/mvp-HA/commit/7903c9c3328d3598653f7df8798e610be696abe9))
+* **trade:** allow attaching orders on active PRs ([1c3e2fa](https://github.com/partner-up-dev/mvp-HA/commit/1c3e2fa5ab111e9cbe55572db54620396acec92a))
+
 ## [3.1.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v3.0.0...frontend-v3.1.0) (2026-06-11)
 
 
