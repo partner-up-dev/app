@@ -3,16 +3,16 @@ import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { areThereAnyUnpaidPayableBillLines } from "../services";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 
 export type ViewerBillListProjection = {
   billIds: string[];
 };
-
-const hasOutstandingViewerCharge = (lines: BillLine[]): boolean =>
-  lines.some((line) => line.kind === "CHARGE" && line.settledAt === null);
 
 export async function listViewerBills(input: {
   viewerUserId: string | null;
@@ -30,7 +30,9 @@ export async function listViewerBills(input: {
   }
 
   const bills = await billRepo.findByIds(viewerBillIds);
+  const orders = await tradeOrderRepo.listByIds(bills.map((bill) => bill.sourceOrderId));
   const linesByBillId = new Map<BillId, BillLine[]>();
+  const orderById = new Map(orders.map((order) => [order.id, order]));
   for (const line of viewerLines) {
     const current = linesByBillId.get(line.billId) ?? [];
     current.push(line);
@@ -40,11 +42,19 @@ export async function listViewerBills(input: {
   const billIds = bills
     .slice()
     .sort((left, right) => {
-      const leftHasOutstandingCharge = hasOutstandingViewerCharge(
-        linesByBillId.get(left.id) ?? [],
+      const leftHasOutstandingCharge = areThereAnyUnpaidPayableBillLines(
+        (linesByBillId.get(left.id) ?? []).map((line) => ({
+          line,
+          bill: left,
+          order: orderById.get(left.sourceOrderId) ?? null,
+        })),
       );
-      const rightHasOutstandingCharge = hasOutstandingViewerCharge(
-        linesByBillId.get(right.id) ?? [],
+      const rightHasOutstandingCharge = areThereAnyUnpaidPayableBillLines(
+        (linesByBillId.get(right.id) ?? []).map((line) => ({
+          line,
+          bill: right,
+          order: orderById.get(right.sourceOrderId) ?? null,
+        })),
       );
 
       if (leftHasOutstandingCharge !== rightHasOutstandingCharge) {

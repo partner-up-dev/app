@@ -90,6 +90,28 @@ describe("deriveBillPaymentState", () => {
     ]);
   });
 
+  it("treats zero-amount charge lines as paid", () => {
+    const line = buildChargeLine({
+      amountFen: 0,
+    });
+
+    const result = deriveBillPaymentState({
+      lines: [line],
+    });
+
+    assert.equal(result.chargeTotalFen, 0);
+    assert.equal(result.paidChargeFen, 0);
+    assert.equal(result.allChargesPaid, true);
+    assert.deepEqual(result.lines, [
+      {
+        billLineId: line.id,
+        status: "PAID",
+        paidFen: 0,
+        refundableFen: 0,
+      },
+    ]);
+  });
+
   it("returns paid and refunded totals from settled lines", () => {
     const settledAt = new Date("2030-01-01T00:00:00.000Z");
     const charge = buildChargeLine({

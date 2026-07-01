@@ -15,6 +15,7 @@ import type { RideHailingProviderInstanceId } from "../../../entities/ride-haili
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
+import { BillRepository } from "../../../repositories/BillRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
@@ -24,7 +25,10 @@ import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancel
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { createBillFromSeed } from "../../bill";
-import { materializeChargeLinesFromSplitRule } from "../../bill/services";
+import {
+  areThereAnyUnpaidPayableBillLines,
+  materializeChargeLinesFromSplitRule,
+} from "../../bill/services";
 import {
   isRentalSkuFacts,
   isRideHailingSkuFacts,
@@ -69,9 +73,11 @@ import {
 
 const offerRepo = new OfferRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
+const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 const providerRepo = new RideHailingProviderInstanceRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 
 const DEFAULT_UNPAID_WINDOW_MINUTES = 30;
 const NON_EXPIRING_UNPAID_EXPIRES_AT = "9999-12-31T23:59:59.999Z";
@@ -278,6 +284,29 @@ async function validateParticipantUnpaidOrders(input: {
     input.participants.map((participant) => participant.userId as UserId),
   );
   if (unsettledLines.length === 0) {
+    return null;
+  }
+  const bills = await billRepo.findByIds(
+    Array.from(new Set(unsettledLines.map((line) => line.billId))),
+  );
+  const orders = await tradeOrderRepo.listByIds(
+    Array.from(new Set(bills.map((bill) => bill.sourceOrderId))),
+  );
+  const billById = new Map(bills.map((bill) => [bill.id, bill]));
+  const orderById = new Map(orders.map((order) => [order.id, order]));
+
+  if (
+    !areThereAnyUnpaidPayableBillLines(
+      unsettledLines.map((line) => {
+        const bill = billById.get(line.billId) ?? null;
+        return {
+          line,
+          bill,
+          order: bill ? (orderById.get(bill.sourceOrderId) ?? null) : null,
+        };
+      }),
+    )
+  ) {
     return null;
   }
 

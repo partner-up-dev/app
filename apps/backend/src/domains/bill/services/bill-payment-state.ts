@@ -33,6 +33,15 @@ const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
     };
   }
 
+  if (line.amountFen <= 0) {
+    return {
+      billLineId: line.id,
+      status: "PAID",
+      paidFen: 0,
+      refundableFen: 0,
+    };
+  }
+
   const paidFen = line.settledAt ? line.amountFen : 0;
   const status: BillLineSettlementStatus = line.settledAt
     ? "PAID"

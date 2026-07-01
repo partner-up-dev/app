@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
 import { db } from "../../src/lib/db";
@@ -26,6 +27,7 @@ import type { OfferListingSessionId, OfferQuoteId } from "../../src/entities/com
 import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { PRId } from "../../src/entities/partner-request";
 import type { ProductSku } from "../../src/entities/product-sku";
+import { tradeOrders } from "../../src/entities/trade-order";
 import type { TradeOrderId } from "../../src/entities/trade-order";
 import { ProblemDetailsError } from "../../src/lib/problem-details";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
@@ -244,8 +246,10 @@ async function createStandaloneRentalOrder(input: {
   sku: ProductSku;
   contactPhone: string;
   registrantName: string;
+  totalFen?: number;
 }) {
   const itemId = randomUUID();
+  const totalFen = input.totalFen ?? 1200;
   const participants = buildOrderParticipantsFromContext({
     participants: [
       {
@@ -267,13 +271,13 @@ async function createStandaloneRentalOrder(input: {
       itemBreakdowns: [
         {
           itemId,
-          resolvedAmountFen: 1200,
+          resolvedAmountFen: totalFen,
           explanations: [],
         },
       ],
       orderLevelExplanations: [],
-      subtotalFen: 1200,
-      totalFen: 1200,
+      subtotalFen: totalFen,
+      totalFen,
     },
     serviceStartAt,
     serviceEndAt,
@@ -741,8 +745,6 @@ scenario("commerce_create_order_blocks_participant_with_unpaid_order", async () 
       },
     ],
   });
-  await tradeOrderRepo.updateStatus(existingOrder.orderId as TradeOrderId, "CANCELLED", new Date());
-
   const nextParticipants = await listPrOrderParticipants(nextPrId, creator.user.id);
   const nextQuoteId = await createRentalFixedQuote({
     offerId: offer.id as OfferId,
@@ -767,6 +769,152 @@ scenario("commerce_create_order_blocks_participant_with_unpaid_order", async () 
       }),
     "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS",
   );
+});
+
+scenario("commerce_create_order_ignores_expired_unpaid_participant_bill_lines", async () => {
+  const creator = await givenUser("creator-with-expired-unpaid-order");
+  const prId = await givenRentalPr(creator);
+  const { offer, sku, spu } = await givenRentalCatalog();
+  const expiredOrder = await createStandaloneRentalOrder({
+    user: creator,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138223",
+    registrantName: "过期账单用户",
+  });
+
+  await db
+    .update(tradeOrders)
+    .set({
+      timeout: {
+        unpaidExpiresAt: "2020-01-01T00:00:00.000Z",
+        defaultWindowMinutes: 30,
+      },
+    })
+    .where(eq(tradeOrders.id, expiredOrder.orderId as TradeOrderId));
+
+  const nextParticipants = await listPrOrderParticipants(prId, creator.user.id);
+  const nextQuoteId = await createRentalFixedQuote({
+    offerId: offer.id as OfferId,
+    sku,
+    spuId: spu.id,
+    participants: nextParticipants,
+    contactPhone: "13800138224",
+    registrantName: "下一单用户",
+  });
+
+  const result = await createOrderCommand({
+    createdBy: creator.user.id,
+    prId,
+    items: [
+      {
+        kind: "FIXED",
+        quoteId: nextQuoteId,
+      },
+    ],
+  });
+
+  assert.equal(result.outcome, "CREATED");
+});
+
+scenario("commerce_expired_bill_detail_no_longer_exposes_payable_line", async () => {
+  const viewer = await givenUser("expired-bill-detail-viewer");
+  const { offer, sku } = await givenRentalCatalog();
+  const expiredOrder = await createStandaloneRentalOrder({
+    user: viewer,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138225",
+    registrantName: "过期详情用户",
+  });
+
+  await db
+    .update(tradeOrders)
+    .set({
+      timeout: {
+        unpaidExpiresAt: "2020-01-01T00:00:00.000Z",
+        defaultWindowMinutes: 30,
+      },
+    })
+    .where(eq(tradeOrders.id, expiredOrder.orderId as TradeOrderId));
+
+  const response = await requestJson(`/api/commerce/bills/${expiredOrder.billId}`, {
+    token: viewer.token,
+  });
+  const body = await expectJsonResponse<{
+    bill: {
+      settlementStatus: string;
+    };
+    lines: Array<{
+      settlementStatus: string;
+      payableByViewer: boolean;
+    }>;
+  }>(response, 200);
+
+  assert.equal(body.bill.settlementStatus, "UNPAID");
+  assert.equal(body.lines[0]?.settlementStatus, "UNPAID");
+  assert.equal(body.lines[0]?.payableByViewer, false);
+});
+
+scenario("commerce_zero_amount_charge_bill_is_treated_as_paid", async () => {
+  const viewer = await givenUser("zero-amount-bill-viewer");
+  const prId = await givenRentalPr(viewer);
+  const { offer, sku, spu } = await givenRentalCatalog();
+  const zeroAmountOrder = await createStandaloneRentalOrder({
+    user: viewer,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138226",
+    registrantName: "零元账单用户",
+    totalFen: 0,
+  });
+
+  const lines = await billLineRepo.listByBillId(zeroAmountOrder.billId as BillId);
+  assert.ok(lines[0]?.settledAt, "Zero-amount charge line should be auto-settled");
+
+  const billResponse = await requestJson(`/api/commerce/bills/${zeroAmountOrder.billId}`, {
+    token: viewer.token,
+  });
+  const billBody = await expectJsonResponse<{
+    bill: {
+      settlementStatus: string;
+      totalAmountFen: number;
+    };
+    lines: Array<{
+      settlementStatus: string;
+      payableByViewer: boolean;
+      paidFen: number;
+    }>;
+  }>(billResponse, 200);
+
+  assert.equal(billBody.bill.settlementStatus, "PAID");
+  assert.equal(billBody.bill.totalAmountFen, 0);
+  assert.equal(billBody.lines[0]?.settlementStatus, "PAID");
+  assert.equal(billBody.lines[0]?.payableByViewer, false);
+  assert.equal(billBody.lines[0]?.paidFen, 0);
+
+  const nextParticipants = await listPrOrderParticipants(prId, viewer.user.id);
+  const nextQuoteId = await createRentalFixedQuote({
+    offerId: offer.id as OfferId,
+    sku,
+    spuId: spu.id,
+    participants: nextParticipants,
+    contactPhone: "13800138227",
+    registrantName: "零元后续用户",
+  });
+
+  const result = await createOrderCommand({
+    createdBy: viewer.user.id,
+    prId,
+    items: [
+      {
+        kind: "FIXED",
+        quoteId: nextQuoteId,
+      },
+    ],
+  });
+
+  assert.equal(result.outcome, "CREATED");
 });
 
 scenario("commerce_bill_list_returns_only_viewer_bill_ids", async (ctx) => {

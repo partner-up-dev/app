@@ -263,6 +263,13 @@ export async function createPaymentCharge(input: {
   if (basis.disabledReason) {
     return throwHttpProblem({ status: 409, detail: basis.disabledReason });
   }
+  const expiresAt = new Date(basis.order.timeout.unpaidExpiresAt);
+  if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+    return throwHttpProblem({
+      status: 409,
+      detail: "订单支付窗口已过期",
+    });
+  }
 
   const requestedProvider = await loadChargeProviderForClient({
     paymentProviderInstanceId: input.paymentProviderInstanceId as PaymentProviderInstanceId,
@@ -307,14 +314,6 @@ export async function createPaymentCharge(input: {
     return throwHttpProblem({
       status: 409,
       detail: "WeChatPay charge requires a bound WeChat openid",
-    });
-  }
-
-  const expiresAt = new Date(basis.order.timeout.unpaidExpiresAt);
-  if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Order unpaid window has expired",
     });
   }
 

@@ -7,7 +7,7 @@ import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
 import { getOrderItemSkuName } from "../../trade";
-import { deriveBillPaymentState } from "../services";
+import { deriveBillPaymentState, isBillLinePayable } from "../services";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
@@ -70,7 +70,10 @@ const resolveSettlementStatus = (input: {
   chargeTotalFen: number;
   paidChargeFen: number;
 }): BillDetailProjection["bill"]["settlementStatus"] => {
-  if (input.chargeTotalFen > 0 && input.paidChargeFen >= input.chargeTotalFen) {
+  if (input.chargeTotalFen === 0) {
+    return "PAID";
+  }
+  if (input.paidChargeFen >= input.chargeTotalFen) {
     return "PAID";
   }
   if (input.paidChargeFen > 0) return "PARTIALLY_PAID";
@@ -131,10 +134,12 @@ async function buildBillDetail(input: {
     lines: lines.map((line) => {
       const payment = paymentByLineId.get(line.id);
       const payableByViewer =
-        bill.status === "ACTIVE" &&
-        order.status === "OPEN" &&
-        line.kind === "CHARGE" &&
         line.userId === input.viewerUserId &&
+        isBillLinePayable({
+          line,
+          bill,
+          order,
+        }) &&
         payment?.status !== "PAID";
       const payer = payerByUserId.get(line.userId);
       const isViewer = line.userId === input.viewerUserId;

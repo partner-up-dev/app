@@ -18,6 +18,7 @@ export async function createBillFromSeed(
 
   const billRepo = new BillRepository(executor);
   const billLineRepo = new BillLineRepository(executor);
+  const autoSettledAt = new Date();
 
   const bill = await billRepo.create({
     sourceOrderId: seed.sourceOrderId as NewBill["sourceOrderId"],
@@ -33,6 +34,7 @@ export async function createBillFromSeed(
       currency: seed.currency,
       label: line.label,
       description: line.description ?? null,
+      settledAt: line.amountFen <= 0 ? autoSettledAt : null,
     }) satisfies NewBillLine),
   );
 
