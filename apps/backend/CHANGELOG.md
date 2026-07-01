@@ -1,5 +1,59 @@
 # Changelog
 
+## [3.2.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v3.1.0...backend-v3.2.0) (2026-07-01)
+
+
+### Features
+
+* **backend:** add caocao callback router ([0eb8738](https://github.com/partner-up-dev/mvp-HA/commit/0eb873812a67713d074d8513231f620e3872c3f3))
+* **commerce:** add my bills recovery flow ([ed45d81](https://github.com/partner-up-dev/mvp-HA/commit/ed45d81c1813ba79847872a8c2c133b711b73d74))
+* **commerce:** add quote-bound offer listing ([499291e](https://github.com/partner-up-dev/mvp-HA/commit/499291ea62b80f64708682f0f58f1a4f942a68a3))
+* **commerce:** refine ride-hailing ordering route map ([62decae](https://github.com/partner-up-dev/mvp-HA/commit/62decaed6c4d01a0c3da279f9d16682d19d1f2da))
+* **db:** support environment-scoped data migrations ([3d4a37a](https://github.com/partner-up-dev/mvp-HA/commit/3d4a37aa672dc78c5d9d8ac4e02a2646244d9b18))
+* **payment:** rebuild checkout workstream ([4d4f9cd](https://github.com/partner-up-dev/mvp-HA/commit/4d4f9cd055c66d9daaabacff0dc5a939b1678b4b))
+* **ride-hailing-admin:** add ride-hailing order admin cancel flow ([b4a7399](https://github.com/partner-up-dev/mvp-HA/commit/b4a73992326440cc153d57ba979f7aa500b929b0))
+* **ride-hailing:** expose provider live geometry ([3c1eccb](https://github.com/partner-up-dev/mvp-HA/commit/3c1eccb0bf3b981019b2c2a0a8b83c937a485670))
+* **ride-hailing:** improve live order detail mocks ([d9ee5eb](https://github.com/partner-up-dev/mvp-HA/commit/d9ee5eb3e0ecf00cfd57447033f2d8f714e71ca8))
+* **ride-hailing:** lock final pricing substrate ([b71a505](https://github.com/partner-up-dev/mvp-HA/commit/b71a505e6c0d77913fca0aa56c1b608b6db69b38))
+* **ride-hailing:** reconcile provider detail callbacks ([b164c44](https://github.com/partner-up-dev/mvp-HA/commit/b164c44009cbbc8fd045480b8cee90d95a5167f9))
+* **ride-hailing:** render order detail panel content ([8f3d5fd](https://github.com/partner-up-dev/mvp-HA/commit/8f3d5fdb11b9fd5bf7a00839b6c6166ff0825e11))
+* **ride-hailing:** route caocao callbacks by token ([ab991b9](https://github.com/partner-up-dev/mvp-HA/commit/ab991b99017924c4061b75c76b4c1a3709601b37))
+* **ride-hailing:** support choice-set ordering candidates ([42eb1a6](https://github.com/partner-up-dev/mvp-HA/commit/42eb1a615f2a0d86b2017a8ff34f27ba751a64ec))
+
+
+### Bug Fixes
+
+* **backend:** align caocao estimate params ([9a4fdca](https://github.com/partner-up-dev/mvp-HA/commit/9a4fdcad872e0ced6f337bd5bbf5dd3dbb764947))
+* **backend:** correct caocao router upstream origins ([5e45733](https://github.com/partner-up-dev/mvp-HA/commit/5e45733565f18eb4e251f9be2dafc75310d0f8fe))
+* **backend:** pass environment to runtime ([505eecb](https://github.com/partner-up-dev/mvp-HA/commit/505eecbfc9953a0c3e38698577a598d5def91cd9))
+* **backend:** sanitize caocao router headers ([01b7a12](https://github.com/partner-up-dev/mvp-HA/commit/01b7a129f959a8ed8cd0a19b68af17ba49767409))
+* **backend:** source ride-hailing final settlement from queryCalculateBill ([8d6d492](https://github.com/partner-up-dev/mvp-HA/commit/8d6d492d71e9989a20ba3e390e392743cdebcc73))
+* **backend:** surface caocao errno responses ([7cadc08](https://github.com/partner-up-dev/mvp-HA/commit/7cadc08f31782b6b9a25a4edf8544a1ed1547300))
+* **caocao:** align order detail contract ([c698eb9](https://github.com/partner-up-dev/mvp-HA/commit/c698eb9c0c2d4ce6055c50766c864612e7e475dd))
+* **caocao:** map driver phone and avatar ([3d89f92](https://github.com/partner-up-dev/mvp-HA/commit/3d89f928f248b89cc3241d46c736e6466d06fae0))
+* **caocao:** update callback scenario detail fields ([259de5f](https://github.com/partner-up-dev/mvp-HA/commit/259de5f1bc8a917b94a82fb6a8de01ae6f300baf))
+* **commerce:** align unpaid payable bill semantics ([3aa46e3](https://github.com/partner-up-dev/mvp-HA/commit/3aa46e37d5075db37ca699626b1143fc47ffc99c))
+* **commerce:** block order creation for unpaid participants ([4ba7e92](https://github.com/partner-up-dev/mvp-HA/commit/4ba7e92986ae8f45080fea7dac2a3e5213179d49))
+* **commerce:** rebuild bill detail payment flow UI ([ea34350](https://github.com/partner-up-dev/mvp-HA/commit/ea343509d4c7a0710daa93082bff1683ab5f57be))
+* **dev:** align WSL dev server ensure ([c7381b5](https://github.com/partner-up-dev/mvp-HA/commit/c7381b5a2505ff95bef61f85ff09bb8a24a02a43))
+* **dev:** make portless scripts cross-platform ([14a635d](https://github.com/partner-up-dev/mvp-HA/commit/14a635d7993b6c773ae4ff22cef44e8290a02bce))
+* **ordering:** stop terminal polling and add pr-ready recovery ([eafd9f1](https://github.com/partner-up-dev/mvp-HA/commit/eafd9f1d6a41e27aa52932d02d2ab9752e5692e1))
+* **payment:** align admin provider multi-active scenario ([7f41509](https://github.com/partner-up-dev/mvp-HA/commit/7f415098a2cc1450afe893202e999a59447d0f65))
+* **portless:** restore LAN dev routing ([181c406](https://github.com/partner-up-dev/mvp-HA/commit/181c40639887c22347bbb4f274fb29ce9b59dff1))
+* **pr:** canonicalize time window instants ([7bae27c](https://github.com/partner-up-dev/mvp-HA/commit/7bae27c3a535a6579f53e9aa3553c9933d2554ad))
+* **ride-hailing:** add CaoCao provider diagnostics for route failures ([0ba59f5](https://github.com/partner-up-dev/mvp-HA/commit/0ba59f5cd6cb0c6aae9e8a32862f39b52587a1be))
+* **ride-hailing:** add route diagnostics across backend and frontend ([f21a91b](https://github.com/partner-up-dev/mvp-HA/commit/f21a91bca3ec98a11a35e012d4687ebba3e5c993))
+* **ride-hailing:** align caocao settlement and detail truth ([edc94f4](https://github.com/partner-up-dev/mvp-HA/commit/edc94f4500972c5487854d41b63b12ebec3f67b5))
+* **ride-hailing:** align Caocao status mapping ([7f7a944](https://github.com/partner-up-dev/mvp-HA/commit/7f7a9441848e41880a53fef1e1a14244be1278fa))
+* **ride-hailing:** align fake caocao with official openapi ([7468546](https://github.com/partner-up-dev/mvp-HA/commit/7468546f468e236ff9c89c0bd73f7da5239ab6a0))
+* **ride-hailing:** close provider-cancelled orders ([9cf578e](https://github.com/partner-up-dev/mvp-HA/commit/9cf578ef8a397586e90e64c0d5a51f0b117ca408))
+* **ride-hailing:** enable dispatching cancellation and depart-now ordering ([83a5b95](https://github.com/partner-up-dev/mvp-HA/commit/83a5b95d7ab7720dc258e2fb24dc85ede283cb4b))
+* **ride-hailing:** move evaluation to submit preflight ([bbb4741](https://github.com/partner-up-dev/mvp-HA/commit/bbb474134e3d8a7b79ce4082b8ae8394299efce0))
+* **ride-hailing:** precheck cancellation fee before user cancel ([dfa522f](https://github.com/partner-up-dev/mvp-HA/commit/dfa522f2dcbe7380a639b8109deda4e38170d06e))
+* **ride-hailing:** realign dispatch binding and caocao candidates ([da62035](https://github.com/partner-up-dev/mvp-HA/commit/da62035a1224b439dca16b3553fa07dcf8d3b0cc))
+* **ride-hailing:** switch caocao route query to v1 polyline API ([3c1985d](https://github.com/partner-up-dev/mvp-HA/commit/3c1985d5642e8e96fdf30dc1d7d424b9f73862fb))
+* **trade:** allow attaching orders on active PRs ([1c3e2fa](https://github.com/partner-up-dev/mvp-HA/commit/1c3e2fa5ab111e9cbe55572db54620396acec92a))
+
 ## [3.1.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v3.0.0...backend-v3.1.0) (2026-06-11)
 
 
