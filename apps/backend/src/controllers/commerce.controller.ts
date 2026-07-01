@@ -2,7 +2,12 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, authMiddleware } from "../auth/middleware";
-import { getBillDetail, getBillDetailByOrderId, getBillLineCheckoutTarget } from "../domains/bill";
+import {
+  getBillDetail,
+  getBillDetailByOrderId,
+  getBillLineCheckoutTarget,
+  listViewerBills,
+} from "../domains/bill";
 import {
   cancelOrderFromOrderDetail,
   createOrderCommand,
@@ -143,6 +148,9 @@ type CommerceRouteSchema = {
   "/orders/:orderId/bill": {
     $get: JsonEndpoint<UuidParam<"orderId">, Awaited<ReturnType<typeof getBillDetailByOrderId>>>;
   };
+  "/bills": {
+    $get: JsonEndpoint<{}, Awaited<ReturnType<typeof listViewerBills>>>;
+  };
   "/bills/:billId": {
     $get: JsonEndpoint<UuidParam<"billId">, Awaited<ReturnType<typeof getBillDetail>>>;
   };
@@ -243,6 +251,13 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     const result = await getBillDetailByOrderId({
       orderId,
       viewerUserId: auth.userId,
+    });
+    return c.json(result);
+  })
+  .get("/bills", async (c) => {
+    const userId = requireAuthenticatedUserId(c);
+    const result = await listViewerBills({
+      viewerUserId: userId,
     });
     return c.json(result);
   })

@@ -45,6 +45,8 @@ export type RideHailingCancellationFeePreviewResponse = InferResponseType<
   CommerceApi["orders"][":orderId"]["cancel-fee-preview"]["$get"]
 >;
 
+export type ViewerBillListResponse = InferResponseType<CommerceApi["bills"]["$get"]>;
+
 export type BillDetailResponse = InferResponseType<CommerceApi["bills"][":billId"]["$get"]>;
 
 export type BillLineCheckoutTargetResponse = InferResponseType<
@@ -487,6 +489,23 @@ export const useBillDetail = (billId: Ref<string | null>, debug?: BillDetailDebu
 
   return query;
 };
+
+export const useViewerBillList = () =>
+  useQuery<ViewerBillListResponse>({
+    queryKey: queryKeys.commerce.billList(),
+    queryFn: async () => {
+      const response = await client.api.commerce.bills.$get(
+        {},
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+      return readJsonOrThrow<ViewerBillListResponse>(response, "Failed to load viewer bills");
+    },
+    refetchOnMount: "always",
+  });
 
 export const useBillLineCheckoutTarget = (billLineId: Ref<string | null>) =>
   useQuery<BillLineCheckoutTargetResponse>({

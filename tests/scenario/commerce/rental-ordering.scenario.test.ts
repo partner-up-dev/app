@@ -591,6 +591,69 @@ scenario("commerce_rental_ordering_blocks_participant_with_unpaid_order", async 
   });
 });
 
+scenario("commerce_rental_ordering_unpaid_dialog_opens_my_bills", async (ctx) => {
+  const creator = await givenUser("system-commerce-my-bills-creator");
+  const joiner = await givenUser("system-commerce-my-bills-joiner");
+  await seedStandaloneUnpaidRentalOrder(creator);
+  const pr = await givenCommerceRentalPr({
+    creator,
+    minPartners: 2,
+    maxPartners: null,
+    title: "System commerce my bills rental PR",
+  });
+  await addJoinedParticipant({ pr, user: joiner });
+  await configurePRStatus({ pr, status: "READY" });
+  const placement = await givenRentalOrderingPlacement();
+
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.id);
+  ctx.record("blockedViewerUserId", creator.user.id);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+    await installFakeWeChatPayBridge(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.getByTestId("ordering.rental.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await fillRentalOrderingRequiredFields(page);
+    await waitForRentalQuoteReady(page);
+    await page.getByTestId("ordering.rental.create-order").click();
+    await assertOrderingBlockedDialog({
+      page,
+      expectedTitle: "参与者有未支付订单",
+      expectedDetail: "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
+    });
+
+    await page.getByRole("button", { name: "查看我的账单" }).click();
+    await page.getByTestId("my-bills.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await page.getByTestId("my-bills.ordering-block.notice").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    assert.equal(new URL(page.url()).pathname, "/bills");
+
+    const firstBillViewAction = page.getByTestId("order-detail.ride-hailing.bill-card.view").first();
+    await firstBillViewAction.waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await firstBillViewAction.click();
+    await page.getByTestId("bill-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    assert.match(new URL(page.url()).pathname, /^\/bills\/[0-9a-f-]+$/);
+  });
+});
+
 scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
   const creator = await givenUser("system-commerce-placement-mismatch-creator");
   const pr = await givenCommerceRentalPr({

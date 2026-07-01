@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   bills,
@@ -32,6 +32,14 @@ export class BillRepository {
       .from(bills)
       .where(eq(bills.sourceOrderId, sourceOrderId));
     return result[0] ?? null;
+  }
+
+  async findByIds(ids: BillId[]): Promise<Bill[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return this.executor.select().from(bills).where(inArray(bills.id, ids));
   }
 
   async listAll(): Promise<Bill[]> {

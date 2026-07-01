@@ -137,6 +137,7 @@ type OrderingDialogKind =
   | "info"
   | "blocked-pr-not-ready"
   | "confirm-mark-pr-ready"
+  | "go-to-my-bills"
   | "return-to-pr"
   | "contact-support";
 type OrderingDialogState = {
@@ -306,6 +307,20 @@ const openInfoDialog = (input: {
   };
 };
 
+const openMyBillsDialog = (input: {
+  title: string;
+  description: string;
+}): void => {
+  orderingDialog.value = {
+    open: true,
+    kind: "go-to-my-bills",
+    title: input.title,
+    description: input.description,
+    confirmText: "查看我的账单",
+    showCancel: false,
+  };
+};
+
 const openReturnToPrDialog = (input: {
   title: string;
   description: string;
@@ -366,7 +381,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       return;
     }
     if (apiError.code === "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS") {
-      openInfoDialog({
+      openMyBillsDialog({
         title: "参与者有未支付订单",
         description:
           apiError.message ?? "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
@@ -523,6 +538,17 @@ const handleOrderingDialogConfirm = async (): Promise<void> => {
   if (orderingDialog.value.kind === "return-to-pr") {
     closeOrderingDialog();
     await router.push(backFallbackTo.value);
+    return;
+  }
+
+  if (orderingDialog.value.kind === "go-to-my-bills") {
+    closeOrderingDialog();
+    await router.push({
+      path: "/bills",
+      query: {
+        source: "ordering-blocked-unpaid",
+      },
+    });
     return;
   }
 

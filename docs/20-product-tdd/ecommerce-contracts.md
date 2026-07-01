@@ -107,6 +107,7 @@ Owns:
   - which provider instance is currently bound to an unfinished execution slot
   - hero facts needed by checkout UI
 - BillLine settlement confirmation
+- viewer-scoped bill-list read identity for `/api/commerce/bills`, where the contract intentionally returns ordered `billId[]` only and leaves per-bill summary hydration to bill-detail reads
 - settlement derivation over successful payment movements
 - reconciliation from current buyer-side total to target buyer-side total
 

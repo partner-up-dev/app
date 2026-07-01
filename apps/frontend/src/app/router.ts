@@ -17,6 +17,7 @@ const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
 const PRMessagesPage = () => import("@/pages/PRMessagesPage.vue");
 const OrderingPage = () => import("@/pages/OrderingPage.vue");
 const OrderingSupportPage = () => import("@/pages/OrderingSupportPage.vue");
+const CommerceBillsPage = () => import("@/pages/CommerceBillsPage.vue");
 const CommerceOrderDetailPage = () => import("@/pages/CommerceOrderDetailPage.vue");
 const CommerceBillDetailPage = () => import("@/pages/CommerceBillDetailPage.vue");
 const PaymentCheckoutPage = () => import("@/pages/PaymentCheckoutPage.vue");
@@ -142,6 +143,15 @@ const routes: RouteRecordRaw[] = [
     component: OrderingSupportPage,
     meta: {
       wechatSharePolicy: "skip",
+    },
+  },
+  {
+    path: "/bills",
+    name: "commerce-bills",
+    component: CommerceBillsPage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "route",
     },
   },
   {

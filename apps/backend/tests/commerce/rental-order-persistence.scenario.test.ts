@@ -34,6 +34,7 @@ import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../src/repositories/PartnerRequestRepository";
 import { RentalOrderRepository } from "../../src/repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
+import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
@@ -235,6 +236,56 @@ async function createRentalFixedQuote(input: {
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   });
   return quoteId;
+}
+
+async function createStandaloneRentalOrder(input: {
+  user: ScenarioUser;
+  offerId: OfferId;
+  sku: ProductSku;
+  contactPhone: string;
+  registrantName: string;
+}) {
+  const itemId = randomUUID();
+  const participants = buildOrderParticipantsFromContext({
+    participants: [
+      {
+        participantId: `standalone-${randomUUID()}`,
+        userId: input.user.user.id,
+        joinedVia: "API",
+      },
+    ],
+    createdBy: input.user.user.id,
+  });
+
+  return createRentalOrder({
+    createdBy: input.user.user.id,
+    participants,
+    offerId: input.offerId,
+    items: [buildRentalOrderItem({ itemId, sku: input.sku })],
+    pricingSnapshot: {
+      currency: "CNY",
+      itemBreakdowns: [
+        {
+          itemId,
+          resolvedAmountFen: 1200,
+          explanations: [],
+        },
+      ],
+      orderLevelExplanations: [],
+      subtotalFen: 1200,
+      totalFen: 1200,
+    },
+    serviceStartAt,
+    serviceEndAt,
+    contactPhone: input.contactPhone,
+    registrants: [
+      {
+        name: input.registrantName,
+        phone: input.contactPhone,
+        nationalIdMasked: null,
+      },
+    ],
+  });
 }
 
 async function assertProblemCode(run: () => Promise<unknown>, expectedCode: string): Promise<void> {
@@ -716,4 +767,60 @@ scenario("commerce_create_order_blocks_participant_with_unpaid_order", async () 
       }),
     "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS",
   );
+});
+
+scenario("commerce_bill_list_returns_only_viewer_bill_ids", async (ctx) => {
+  const viewer = await givenUser("viewer-bills-owner");
+  const otherUser = await givenUser("viewer-bills-other-user");
+  const { offer, sku } = await givenRentalCatalog();
+
+  const firstViewerOrder = await createStandaloneRentalOrder({
+    user: viewer,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138011",
+    registrantName: "账单用户一",
+  });
+  const secondViewerOrder = await createStandaloneRentalOrder({
+    user: viewer,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138012",
+    registrantName: "账单用户二",
+  });
+  const otherUserOrder = await createStandaloneRentalOrder({
+    user: otherUser,
+    offerId: offer.id,
+    sku,
+    contactPhone: "13800138013",
+    registrantName: "其他用户",
+  });
+
+  ctx.record("viewerUserId", viewer.user.id);
+  ctx.record("firstViewerBillId", firstViewerOrder.billId);
+  ctx.record("secondViewerBillId", secondViewerOrder.billId);
+  ctx.record("otherUserBillId", otherUserOrder.billId);
+
+  const response = await requestJson("/api/commerce/bills", {
+    token: viewer.token,
+  });
+  const body = await expectJsonResponse<{ billIds: string[] }>(response, 200);
+
+  assert.equal(body.billIds.includes(otherUserOrder.billId), false);
+  assert.equal(body.billIds.length, 2);
+  assert.deepEqual(
+    new Set(body.billIds),
+    new Set([firstViewerOrder.billId, secondViewerOrder.billId]),
+  );
+});
+
+scenario("commerce_bill_list_requires_authenticated_role", async () => {
+  const response = await requestJson("/api/commerce/bills");
+  const body = await expectJsonResponse<{
+    status: number;
+    code?: string;
+    detail: string;
+  }>(response, 401);
+
+  assert.equal(body.code, "AUTHENTICATED_REQUIRED");
 });

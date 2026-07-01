@@ -49,6 +49,7 @@ export const queryKeys = {
   commerce: {
     placement: (contextId: number | null, type: "BUTTON") =>
       ["commerce", "placement", contextId, type] as const,
+    billList: () => ["commerce", "bill", "list"] as const,
     orderDetail: (orderId: string | null) => ["commerce", "order", orderId] as const,
     billDetail: (billId: string | null) => ["commerce", "bill", billId] as const,
     billLineCheckoutTarget: (billLineId: string | null) =>

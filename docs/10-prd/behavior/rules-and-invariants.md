@@ -133,6 +133,7 @@
 - Quote identity is the freshness and authorization boundary between listing and create-order. Create-order should use quote identity instead of trusting browser-copied product, route, participant, or price fields.
 - Expired quotes require a fresh listing and a second explicit user create action. The system should preserve matching user selections after refresh when those selections are still listed.
 - Create-order must be blocked when any intended order participant still has another unpaid order obligation. The block is enforced by the backend create-order boundary and surfaced on `/order/new` through a focused dialog rather than silent failure.
+- The unpaid-order block dialog may route the current viewer into `/bills`, but `/bills` remains viewer-scoped. If the blocking unpaid obligation belongs to another participant, that participant still needs to complete payment before order creation can proceed.
 - Rental ordering buys one fixed quoted SKU.
 - RideHailing ordering authorizes a choice set: the user selects one or more acceptable vehicle candidates, and the provider/order lifecycle resolves one final vehicle after dispatch.
 - RideHailing visible vehicle candidates depend on route and departure time. Provider-unavailable candidates should be absent from the list, not shown as disabled options with reasons.

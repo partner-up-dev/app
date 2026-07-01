@@ -42,6 +42,14 @@ export class BillLineRepository {
       .orderBy(asc(billLines.createdAt), asc(billLines.id));
   }
 
+  async listByUserId(userId: UserId): Promise<BillLine[]> {
+    return this.executor
+      .select()
+      .from(billLines)
+      .where(eq(billLines.userId, userId))
+      .orderBy(asc(billLines.createdAt), asc(billLines.id));
+  }
+
   async listUnsettledChargeLinesByUserIds(userIds: UserId[]): Promise<BillLine[]> {
     const uniqueUserIds = Array.from(new Set(userIds));
     if (uniqueUserIds.length === 0) {
