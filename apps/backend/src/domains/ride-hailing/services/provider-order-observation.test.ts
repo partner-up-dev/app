@@ -49,6 +49,7 @@ describe("RideHailing provider order observation", () => {
         phase: "FINISHED",
         statusLabel: "待支付",
         driver: {
+          driverAvatarUrl: "https://example.test/driver-li.png",
           driverName: "李师傅",
           driverPhone: "13900139000",
         },
@@ -65,6 +66,7 @@ describe("RideHailing provider order observation", () => {
     });
 
     expect(observed.executionPhase).toBe("FINISHED");
+    expect(observed.driverSnapshot?.driverAvatarUrl).toBe("https://example.test/driver-li.png");
     expect(observed.driverSnapshot?.driverName).toBe("李师傅");
     expect(observed.vehicleSnapshot?.plate).toBe("浙B99999");
   });
@@ -73,15 +75,18 @@ describe("RideHailing provider order observation", () => {
     expect(
       mergeDriverSnapshot({
         current: {
+          driverAvatarUrl: "https://example.test/driver-zhang.png",
           driverName: "张师傅",
           driverPhone: "13800138001",
         },
         observed: {
+          driverAvatarUrl: null,
           driverName: "李师傅",
           driverPhone: null,
         },
       }),
     ).toEqual({
+      driverAvatarUrl: "https://example.test/driver-zhang.png",
       driverName: "李师傅",
       driverPhone: "13800138001",
     });

@@ -39,6 +39,7 @@ export type RideHailingExecutionPhase =
   | "FAILED";
 
 export type RideHailingDriverSnapshot = {
+  driverAvatarUrl?: string | null;
   driverName?: string | null;
   driverPhone?: string | null;
 };

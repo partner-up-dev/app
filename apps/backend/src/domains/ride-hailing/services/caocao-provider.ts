@@ -324,8 +324,9 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
   const driverRaw = readOptionalRecordField(data, ["driverInfoVo"]);
   const vehicleRaw = driverRaw;
   const phase = readOptionalStringField(basicOrder, ["status"]) ?? "UNKNOWN";
+  const driverAvatarUrl = readOptionalStringField(driverRaw, ["avatar"]);
   const driverName = readOptionalStringField(driverRaw, ["name"]);
-  const driverPhone = readOptionalStringField(driverRaw, ["phone_passenger"]);
+  const driverPhone = readOptionalStringField(driverRaw, ["phone", "phone_passenger"]);
   const plate = readOptionalStringField(vehicleRaw, ["card"]);
   const brand = readOptionalStringField(vehicleRaw, ["carBrand"]);
   const color = readOptionalStringField(vehicleRaw, ["color"]);
@@ -333,8 +334,9 @@ const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProvi
 
   return {
     driver:
-      driverName || driverPhone
+      driverAvatarUrl || driverName || driverPhone
         ? {
+            driverAvatarUrl,
             driverName: driverName ?? "司机",
             driverPhone: driverPhone ?? "",
           }

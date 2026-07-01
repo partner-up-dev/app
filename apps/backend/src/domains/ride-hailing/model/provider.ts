@@ -151,6 +151,7 @@ export type RideHailingProviderOrderDetail = {
   providerVehicleTypeCode?: string | null;
   providerVehicleTypeName?: string | null;
   driver: {
+    driverAvatarUrl?: string | null;
     driverName: string;
     driverPhone: string;
   } | null;

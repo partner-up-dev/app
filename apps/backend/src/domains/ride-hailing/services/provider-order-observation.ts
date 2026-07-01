@@ -54,10 +54,12 @@ const normalizeDriverSnapshot = (
   driver: RideHailingProviderOrderDetail["driver"],
 ): RideHailingDriverSnapshot | null => {
   if (!driver) return null;
+  const driverAvatarUrl = normalizeOptionalString(driver.driverAvatarUrl);
   const driverName = normalizeOptionalString(driver.driverName);
   const driverPhone = normalizeOptionalString(driver.driverPhone);
-  if (!driverName && !driverPhone) return null;
+  if (!driverAvatarUrl && !driverName && !driverPhone) return null;
   return {
+    driverAvatarUrl,
     driverName,
     driverPhone,
   };
@@ -94,6 +96,7 @@ export function mergeDriverSnapshot(input: {
 }): RideHailingDriverSnapshot | null {
   if (!input.observed) return input.current;
   return {
+    driverAvatarUrl: input.observed.driverAvatarUrl ?? input.current?.driverAvatarUrl ?? null,
     driverName: input.observed.driverName ?? input.current?.driverName ?? null,
     driverPhone: input.observed.driverPhone ?? input.current?.driverPhone ?? null,
   };

@@ -57,8 +57,8 @@
           tone="neutral" padding="sm" gap="sm" data-testid="order-detail.ride-hailing.driver-card">
           <div class="ride-hailing-order-content__driver-layout">
             <div class="ride-hailing-order-content__driver-profile">
-              <PuImg src="" :alt="driverName" :name="driverName" :fallback-initial="driverAvatarInitial" size="medium"
-                shape="circle" :show-loading="false" bordered />
+              <PuImg :src="driverAvatarUrl ?? ''" :alt="driverName" :name="driverName"
+                :fallback-initial="driverAvatarInitial" size="medium" shape="circle" :show-loading="false" bordered />
               <strong data-testid="order-detail.ride-hailing.driver-name">
                 {{ driverName }}
               </strong>
@@ -206,7 +206,12 @@ import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
-import type { MapActiveGeometry, MapCoordinate, MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
+import type {
+  MapActiveGeometry,
+  MapCoordinate,
+  MapFitPadding,
+  MapViewportFollowMode,
+} from "@/shared/map/types";
 import { buildRideHailingOrderMapViewModel } from "./ride-hailing-order-map-view-model";
 
 type RideHailingDetail = NonNullable<CommerceOrderDetailResponse["rideHailing"]>;
@@ -427,6 +432,10 @@ const showsDriverCard = computed(() => Boolean(props.ride.driver || props.ride.v
 
 const driverName = computed(() => firstPresentString([props.ride.driver?.driverName]) ?? "司机");
 
+const driverAvatarUrl = computed(
+  () => firstPresentString([props.ride.driver?.driverAvatarUrl]) ?? null,
+);
+
 const driverAvatarInitial = computed(() => driverName.value.trim().slice(0, 1) || "司");
 
 const driverCallHref = computed(() => {
@@ -572,9 +581,9 @@ const rideHailingOrderMapRenderDiagnostics = computed(() => {
     providerPolylineFirstPoint: summarizeMapCoordinate(
       providerPolyline?.[0]
         ? {
-          lat: providerPolyline[0]?.latitude ?? Number.NaN,
-          lng: providerPolyline[0]?.longitude ?? Number.NaN,
-        }
+            lat: providerPolyline[0]?.latitude ?? Number.NaN,
+            lng: providerPolyline[0]?.longitude ?? Number.NaN,
+          }
         : null,
     ),
     providerPolylineLastPoint: summarizeMapCoordinate(

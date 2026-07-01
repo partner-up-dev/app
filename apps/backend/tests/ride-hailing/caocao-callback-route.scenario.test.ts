@@ -405,13 +405,14 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
               status: "5",
             },
             driverInfoVo: {
+              avatar: "https://example.test/driver-li.png",
               carBrand: "曹操快车",
               card: "浙B99999",
               carType: "曹操快车",
               color: "蓝色",
               name: "李师傅",
               phone: "13900139000",
-              phone_passenger: "13900139000",
+              phone_passenger: "13900139001",
               serviceType: "3",
             },
             orderFeeVo: {
@@ -689,7 +690,12 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
     assert.equal(updatedRide?.executionPhase, "FINISHED");
     assert.equal(updatedRide?.finalSettlementInput?.amountFen, 5000);
     assert.equal(updatedRide?.finalSettlementInput?.providerOrderId, "CC-FINAL-123");
+    assert.equal(
+      updatedRide?.driverSnapshot?.driverAvatarUrl,
+      "https://example.test/driver-li.png",
+    );
     assert.equal(updatedRide?.driverSnapshot?.driverName, "李师傅");
+    assert.equal(updatedRide?.driverSnapshot?.driverPhone, "13900139000");
     assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙B99999");
     const bill = await billRepo.findBySourceOrderId(order.id);
     assert.ok(bill);
@@ -720,6 +726,7 @@ scenario(
                 status: "20",
               },
               driverInfoVo: {
+                avatar: "https://example.test/driver-wang.png",
                 carBrand: "曹操快车",
                 card: "浙C88888",
                 carType: "曹操快车",
@@ -828,6 +835,10 @@ scenario(
       assert.equal(updatedRide?.executionPhase, "CANCELLED");
       assert.equal(updatedRide?.finalSettlementInput?.amountFen, 1270);
       assert.equal(updatedRide?.finalSettlementInput?.providerOrderId, "CC-CANCELLED-123");
+      assert.equal(
+        updatedRide?.driverSnapshot?.driverAvatarUrl,
+        "https://example.test/driver-wang.png",
+      );
       assert.equal(updatedRide?.driverSnapshot?.driverName, "王师傅");
       assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙C88888");
       const bill = await billRepo.findBySourceOrderId(orderSeed.order.id);
@@ -900,6 +911,7 @@ scenario(
                 status: "20",
               },
               driverInfoVo: {
+                avatar: "https://example.test/driver-zhao.png",
                 carBrand: "曹操快车",
                 card: "浙D66666",
                 carType: "曹操快车",
@@ -970,6 +982,10 @@ scenario(
       const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
       assert.equal(updatedRide?.executionPhase, "CANCELLED");
       assert.equal(updatedRide?.finalSettlementInput, null);
+      assert.equal(
+        updatedRide?.driverSnapshot?.driverAvatarUrl,
+        "https://example.test/driver-zhao.png",
+      );
       assert.equal(updatedRide?.driverSnapshot?.driverName, "赵师傅");
       assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙D66666");
       assert.equal(await billRepo.findBySourceOrderId(orderSeed.order.id), null);
@@ -1002,6 +1018,7 @@ scenario(
                 status: "5",
               },
               driverInfoVo: {
+                avatar: "https://example.test/driver-zhou.png",
                 carBrand: "曹操快车",
                 card: "浙E55555",
                 carType: "曹操快车",
@@ -1068,6 +1085,10 @@ scenario(
       const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
       assert.equal(updatedRide?.executionPhase, "FINISHED");
       assert.equal(updatedRide?.finalSettlementInput, null);
+      assert.equal(
+        updatedRide?.driverSnapshot?.driverAvatarUrl,
+        "https://example.test/driver-zhou.png",
+      );
       assert.equal(updatedRide?.driverSnapshot?.driverName, "周师傅");
       assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙E55555");
       assert.equal(await billRepo.findBySourceOrderId(orderSeed.order.id), null);

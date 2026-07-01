@@ -254,6 +254,7 @@ describe("startFakeCaocaoServer", () => {
           status: string;
         } & Record<string, unknown>;
         driverInfoVo: {
+          avatar: string;
           card: string;
           carType: string;
           location: { lat: number; lng: number } & Record<string, unknown>;
@@ -288,6 +289,9 @@ describe("startFakeCaocaoServer", () => {
     expect(detailAfterAdvanceBody.data.basicOrderVO.requireLevel).toBe(5);
     expect(detailAfterAdvanceBody.data.basicOrderVO.routeFixedPrice).toBe(false);
     expect(detailAfterAdvanceBody.data.basicOrderVO.specialFixedPrice).toBe(false);
+    expect(detailAfterAdvanceBody.data.driverInfoVo.avatar).toBe(
+      "https://fake.caocao.partner-up.test/driver/avatar.png",
+    );
     expect(detailAfterAdvanceBody.data.driverInfoVo.carType).toBe("几何A");
     expect(detailAfterAdvanceBody.data.driverInfoVo.card).toBe("浙A12345");
     expect(detailAfterAdvanceBody.data.driverInfoVo.location.lat).toBeTypeOf("number");
