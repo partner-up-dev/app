@@ -101,7 +101,10 @@ const buildRentalOrderItem = (input: {
   quantity: 1,
 });
 
-async function givenRentalPr(creator: ScenarioUser): Promise<PRId> {
+async function givenRentalPr(
+  creator: ScenarioUser,
+  status: "READY" | "ACTIVE" = "READY",
+): Promise<PRId> {
   const pr = await partnerRequestRepo.create({
     budget: null,
     createdBy: creator.user.id,
@@ -112,7 +115,7 @@ async function givenRentalPr(creator: ScenarioUser): Promise<PRId> {
     minPartners: 1,
     notes: null,
     preferences: [],
-    status: "READY",
+    status,
     time: [serviceStartAt, serviceEndAt],
     title: `Rental persistence ${randomUUID()}`,
     type: "badminton",
@@ -371,6 +374,69 @@ scenario("commerce_rental_order_persists_base_and_typed_rows", async (ctx) => {
   assert.equal(typedOrder.registrants[0]?.name, "张三");
   assert.equal(typedOrder.bookingStatus, "PENDING_BOOKING");
   assert.equal(typedOrder.cancellationHandlingStatus, "NONE");
+});
+
+scenario("commerce_rental_order_attaches_to_active_pr_orders", async (ctx) => {
+  const creator = await givenUser("rental-active-pr-attachment");
+  const prId = await givenRentalPr(creator, "ACTIVE");
+  const { offer, sku } = await givenRentalCatalog();
+  const itemId = randomUUID();
+  const participants = await listPrOrderParticipants(prId, creator.user.id);
+
+  const result = await db.transaction(async (tx) => {
+    const created = await createRentalOrder(
+      {
+        createdBy: creator.user.id,
+        participants,
+        offerId: offer.id,
+        items: [buildRentalOrderItem({ itemId, sku })],
+        pricingSnapshot: {
+          currency: "CNY",
+          itemBreakdowns: [
+            {
+              itemId,
+              resolvedAmountFen: 1200,
+              explanations: [],
+            },
+          ],
+          orderLevelExplanations: [],
+          subtotalFen: 1200,
+          totalFen: 1200,
+        },
+        serviceStartAt,
+        serviceEndAt,
+        contactPhone: "13800138008",
+        registrants: [
+          {
+            name: "李四",
+            phone: "13800138008",
+            nationalIdMasked: null,
+          },
+        ],
+      },
+      tx,
+    );
+
+    await attachOrderToPr(
+      {
+        orderId: created.orderId as TradeOrderId,
+        prId,
+        offerId: offer.id as OfferId,
+        orderCreatedBy: creator.user.id,
+      },
+      tx,
+    );
+
+    return created;
+  });
+
+  ctx.record("prId", prId);
+  ctx.record("orderId", result.orderId);
+
+  const updatedPr = await partnerRequestRepo.findById(prId);
+  assert.ok(updatedPr, "PR should still exist after ACTIVE attachment");
+  assert.equal(updatedPr.status, "ACTIVE");
+  assert.deepEqual(updatedPr.orders, [result.orderId]);
 });
 
 scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async (ctx) => {

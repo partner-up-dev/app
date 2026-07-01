@@ -398,7 +398,12 @@ async function givenRideHailingOrderingPlacement(): Promise<{
       and: [
         { "===": [{ var: "kind" }, "PR"] },
         { "===": [{ var: "type" }, "ride-hailing-system-scenario"] },
-        { "===": [{ var: "status" }, "READY"] },
+        {
+          or: [
+            { "===": [{ var: "status" }, "READY"] },
+            { "===": [{ var: "status" }, "ACTIVE"] },
+          ],
+        },
         { var: "hasRoute" },
         { var: "time.hasConcreteTime" },
       ],
@@ -857,7 +862,7 @@ async function waitForRideHailingMapMode(
     });
 }
 
-scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
+scenario("commerce_ride_hailing_ordering_reaches_order_detail_for_active_pr", async (ctx) => {
   await resetFakeCaocao();
   const creator = await givenUser("system-ride-hailing-creator", {
     phoneNumber: "13800138000",
@@ -876,7 +881,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
     status: "JOINED",
     userId: passenger.user.id,
   });
-  await configurePRStatus({ pr, status: "READY" });
+  await configurePRStatus({ pr, status: "ACTIVE" });
   await registerScenarioPaymentProvider();
   const placement = await givenRideHailingOrderingPlacement();
 

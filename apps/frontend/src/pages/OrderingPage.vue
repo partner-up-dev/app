@@ -275,7 +275,7 @@ const openPrNotReadyRecoveryDialog = (problem: Partial<OrderingActionProblem>): 
     open: true,
     kind: "blocked-pr-not-ready",
     title: problem.title ?? "暂不能创建订单",
-    description: problem.detail ?? "创建订单需要搭子请求「已成团」",
+    description: problem.detail ?? "创建订单需要搭子请求「已成团」或「进行中」",
     confirmText: "切换到已成团",
     showCancel: true,
   };
@@ -391,7 +391,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
     if (apiError.code === "PR_NOT_READY" && canOfferPrReadyRecovery.value) {
       openPrNotReadyRecoveryDialog({
         title: "暂不能创建订单",
-        detail: apiError.message ?? "创建订单需要搭子请求「已成团」",
+        detail: apiError.message ?? "创建订单需要搭子请求「已成团」或「进行中」",
       });
       return;
     }

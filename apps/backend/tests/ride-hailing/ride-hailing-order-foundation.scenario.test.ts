@@ -27,7 +27,10 @@ const providerRepo = new RideHailingProviderInstanceRepository();
 const hasOwnKey = (value: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(value, key);
 
-async function givenRideHailingPr(creator: ScenarioUser): Promise<PRId> {
+async function givenRideHailingPr(
+  creator: ScenarioUser,
+  status: "READY" | "ACTIVE" = "READY",
+): Promise<PRId> {
   const pr = await partnerRequestRepo.create({
     budget: null,
     createdBy: creator.user.id,
@@ -38,7 +41,7 @@ async function givenRideHailingPr(creator: ScenarioUser): Promise<PRId> {
     minPartners: 1,
     notes: null,
     preferences: [],
-    status: "READY",
+    status,
     time: ["2031-03-01T10:00:00.000Z", "2031-03-01T11:00:00.000Z"],
     title: `Ride hailing foundation ${randomUUID()}`,
     type: "badminton",
@@ -106,9 +109,11 @@ async function givenRideHailingOffer() {
   return { offer, spu };
 }
 
-scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding", async (ctx) => {
+scenario(
+  "ride_hailing_order_foundation_persists_base_typed_and_provider_binding_for_active_pr",
+  async (ctx) => {
   const creator = await givenUser("ride-foundation-creator");
-  const prId = await givenRideHailingPr(creator);
+  const prId = await givenRideHailingPr(creator, "ACTIVE");
   const { offer, spu } = await givenRideHailingOffer();
   const provider = await providerRepo.create({
     providerType: "CAOCAO",
@@ -287,5 +292,6 @@ scenario("ride_hailing_order_foundation_persists_base_typed_and_provider_binding
 
   const pr = await partnerRequestRepo.findById(prId);
   assert.ok(pr, "PR should still exist");
+  assert.equal(pr.status, "ACTIVE");
   assert.deepEqual(pr.orders, [result.orderId]);
 });

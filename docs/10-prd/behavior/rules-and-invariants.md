@@ -128,6 +128,7 @@
 ## 3.1 Commerce Ordering Rules
 
 - PR-attached ordering is entered through a backend-authored Button Placement on PR detail and assembled on `/order/new`.
+- PR-attached ordering may be created only while the PR is `READY` or `ACTIVE`.
 - At most one non-terminal order should exist for one PR and Offer pair. Re-opening the matching placement should continue the existing order instead of creating a second one.
 - Offer Listing is the user-visible quote surface. A listing may include only products and SKUs that are currently offerable for the selected context.
 - Quote identity is the freshness and authorization boundary between listing and create-order. Create-order should use quote identity instead of trusting browser-copied product, route, participant, or price fields.

@@ -41,6 +41,7 @@ import {
   createRideHailingProviderPort,
 } from "../../ride-hailing";
 import { attachOrderToPr } from "../../pr-core";
+import { isOrderAttachableStatus } from "../../pr-core/services/status-rules";
 import type {
   ChoiceSetOrderItemSnapshot,
   FixedOrderItemSnapshot,
@@ -260,11 +261,11 @@ async function validatePrAttachmentForEvaluation(input: {
       detail: "关联的 PR 不存在。",
     });
   }
-  if (pr.status !== "READY") {
+  if (!isOrderAttachableStatus(pr.status)) {
     return actionProblem({
       code: "PR_NOT_READY",
       title: "暂不能创建订单",
-      detail: "创建订单需要搭子请求「已成团」",
+      detail: "创建订单需要搭子请求「已成团」或「进行中」",
     });
   }
   if (!input.viewerUserId || pr.createdBy !== input.viewerUserId) {

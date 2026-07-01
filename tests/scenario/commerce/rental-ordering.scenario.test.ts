@@ -428,7 +428,7 @@ async function assertRentalOrderDetail(input: {
   });
 }
 
-scenario("commerce_rental_ordering_reaches_order_detail", async (ctx) => {
+scenario("commerce_rental_ordering_reaches_order_detail_for_active_pr", async (ctx) => {
   const creator = await givenUser("system-commerce-rental-creator");
   const joiner = await givenUser("system-commerce-rental-joiner");
   await bindScenarioWeChatOpenId({
@@ -446,7 +446,7 @@ scenario("commerce_rental_ordering_reaches_order_detail", async (ctx) => {
     title: "System commerce rental partner request",
   });
   await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
+  await configurePRStatus({ pr, status: "ACTIVE" });
   const placement = await givenRentalOrderingPlacement();
 
   ctx.record("creatorUserId", creator.user.id);
@@ -719,7 +719,7 @@ scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
     await page.getByTestId("ordering.rental.create-order").click();
     await assertOrderingBlockedDialog({
       page,
-      expectedDetail: "创建订单需要搭子请求「已成团」",
+      expectedDetail: "创建订单需要搭子请求「已成团」或「进行中」",
     });
     assert.equal(new URL(page.url()).pathname, "/order/new");
   });
@@ -755,7 +755,7 @@ scenario("commerce_rental_ordering_recovers_non_ready_pr_by_marking_ready", asyn
     await page.getByTestId("ordering.rental.create-order").click();
     await assertOrderingBlockedDialog({
       page,
-      expectedDetail: "创建订单需要搭子请求「已成团」",
+      expectedDetail: "创建订单需要搭子请求「已成团」或「进行中」",
     });
 
     await page.getByRole("button", { name: "切换到已成团" }).click();
