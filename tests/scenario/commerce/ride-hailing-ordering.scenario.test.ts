@@ -965,7 +965,7 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail", async (ctx) => {
 
     const orderDetailPath = new URL(page.url()).pathname;
     orderPath = orderDetailPath;
-    await page.getByRole("button", { name: "返回上一页" }).click();
+    await page.goBack();
     await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
       timeout: 10_000,
     });

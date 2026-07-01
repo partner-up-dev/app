@@ -427,6 +427,10 @@ scenario("commerce_rental_ordering_reaches_order_detail", async (ctx) => {
       expectedItemName: "烘焙区 B · 2人 · 2小时",
     });
     createdOrderPath = new URL(page.url()).pathname;
+    await page.goBack();
+    await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
+      timeout: 10_000,
+    });
   });
 
   const orderPath = createdOrderPath;

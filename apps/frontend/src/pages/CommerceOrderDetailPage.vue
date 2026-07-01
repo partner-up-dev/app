@@ -232,7 +232,7 @@ import {
 } from "@partner-up-dev/design-web";
 import { storeToRefs } from "pinia";
 import { computed, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import {
   type CommerceOrderDetailResponse,
   useCancelOrder,
@@ -242,16 +242,12 @@ import {
 import RideHailingOrderContent from "@/domains/commerce/ui/order-detail/RideHailingOrderContent.vue";
 import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 type OrderItemSnapshot = CommerceOrderDetailResponse["order"]["items"][number];
 type OrderSkuSnapshot = Extract<OrderItemSnapshot, { kind?: "FIXED"; sku: unknown }>["sku"];
-type RouterHistoryState = {
-  back?: string | null;
-  position?: number | null;
-};
 
 const route = useRoute();
-const router = useRouter();
 const orderingHandoff = useOrderingHandoffStore();
 const { orderingEntry } = storeToRefs(orderingHandoff);
 
@@ -377,45 +373,7 @@ const isCancellationPending = computed(() => latestCancellationAttempt.value?.st
 const backFallbackTo = computed(() =>
   orderingEntry.value?.prId ? { path: `/pr/${orderingEntry.value.prId}` } : { path: "/" },
 );
-
-const readRouterHistoryState = (): RouterHistoryState | null => {
-  if (typeof window === "undefined") return null;
-  return window.history.state as RouterHistoryState | null;
-};
-
-const hasRouterBackEntry = (): boolean => {
-  const historyState = readRouterHistoryState();
-  return typeof historyState?.back === "string" && historyState.back.length > 0;
-};
-
-const shouldSkipOrderingPageBack = (): boolean => {
-  const backPath = readRouterHistoryState()?.back;
-  return typeof backPath === "string" && backPath.startsWith("/order/new");
-};
-
-const canGoBackTwice = (): boolean => {
-  const position = readRouterHistoryState()?.position;
-  return typeof position === "number" && position >= 2;
-};
-
-const handleBack = async (): Promise<void> => {
-  if (shouldSkipOrderingPageBack()) {
-    if (canGoBackTwice()) {
-      router.go(-2);
-      return;
-    }
-
-    await router.replace(backFallbackTo.value);
-    return;
-  }
-
-  if (hasRouterBackEntry()) {
-    router.back();
-    return;
-  }
-
-  await router.replace(backFallbackTo.value);
-};
+const { handleBack } = useFallbackBack(backFallbackTo);
 
 const serviceWindowLabel = computed(() => {
   const start = detail.value?.order.serviceStartAt ?? null;

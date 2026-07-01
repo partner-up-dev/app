@@ -353,7 +353,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       });
       return;
     }
-    await router.push({ path: `/orders/${created.orderId}` });
+    await router.replace({ path: `/orders/${created.orderId}` });
   } catch (error) {
     closeOrderingDialog();
     const apiError = error as { code?: string; message?: string };
