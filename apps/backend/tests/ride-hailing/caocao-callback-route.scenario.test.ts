@@ -406,12 +406,13 @@ scenario("Caocao callback updates ride execution and creates final bill", async 
             },
             driverInfoVo: {
               carBrand: "曹操快车",
-              carNo: "浙B99999",
+              card: "浙B99999",
               carType: "曹操快车",
               color: "蓝色",
-              driverName: "李师傅",
-              driverPhone: "13900139000",
-              serviceType: 3,
+              name: "李师傅",
+              phone: "13900139000",
+              phone_passenger: "13900139000",
+              serviceType: "3",
             },
             orderFeeVo: {
               totalFee: 5000,
@@ -720,12 +721,13 @@ scenario(
               },
               driverInfoVo: {
                 carBrand: "曹操快车",
-                carNo: "浙C88888",
+                card: "浙C88888",
                 carType: "曹操快车",
                 color: "白色",
-                driverName: "王师傅",
-                driverPhone: "13700137000",
-                serviceType: 3,
+                name: "王师傅",
+                phone: "13700137000",
+                phone_passenger: "13700137000",
+                serviceType: "3",
               },
               orderFeeVo: {
                 totalFee: 1270,
@@ -899,12 +901,13 @@ scenario(
               },
               driverInfoVo: {
                 carBrand: "曹操快车",
-                carNo: "浙D66666",
+                card: "浙D66666",
                 carType: "曹操快车",
                 color: "黑色",
-                driverName: "赵师傅",
-                driverPhone: "13600136000",
-                serviceType: 3,
+                name: "赵师傅",
+                phone: "13600136000",
+                phone_passenger: "13600136000",
+                serviceType: "3",
               },
               orderFeeVo: {
                 totalFee: null,
@@ -976,99 +979,103 @@ scenario(
   },
 );
 
-scenario("Caocao callback does not block terminal sync when final settlement detail reread fails", async () => {
-  const creator = await givenUser("caocao-callback-bill-failure-owner");
-  let detailQueryCount = 0;
-  const fakeCaocao = createServer((request, response) => {
-    if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
-      detailQueryCount += 1;
-      if (detailQueryCount > 1) {
-        response.writeHead(500, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ code: 500, success: false }));
+scenario(
+  "Caocao callback does not block terminal sync when final settlement detail reread fails",
+  async () => {
+    const creator = await givenUser("caocao-callback-bill-failure-owner");
+    let detailQueryCount = 0;
+    const fakeCaocao = createServer((request, response) => {
+      if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
+        detailQueryCount += 1;
+        if (detailQueryCount > 1) {
+          response.writeHead(500, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ code: 500, success: false }));
+          return;
+        }
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            code: 200,
+            data: {
+              basicOrderVO: {
+                requireLevel: 3,
+                status: "5",
+              },
+              driverInfoVo: {
+                carBrand: "曹操快车",
+                card: "浙E55555",
+                carType: "曹操快车",
+                color: "银色",
+                name: "周师傅",
+                phone: "13500135000",
+                phone_passenger: "13500135000",
+                serviceType: "3",
+              },
+              orderFeeVo: {
+                totalFee: null,
+              },
+            },
+            success: true,
+          }),
+        );
         return;
       }
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(
-        JSON.stringify({
-          code: 200,
-          data: {
-            basicOrderVO: {
-              requireLevel: 3,
-              status: "5",
-            },
-            driverInfoVo: {
-              carBrand: "曹操快车",
-              carNo: "浙E55555",
-              carType: "曹操快车",
-              color: "银色",
-              driverName: "周师傅",
-              driverPhone: "13500135000",
-              serviceType: 3,
-            },
-            orderFeeVo: {
-              totalFee: null,
-            },
+      response.writeHead(404, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ code: 404, success: false }));
+    });
+    const endpointBaseUrl = await listen(fakeCaocao);
+
+    try {
+      const provider = await createScenarioCaocaoProvider({
+        endpointBaseUrl,
+        displayName: "Scenario Caocao Bill Failure",
+        instanceKey: `scenario-caocao-bill-failure-${randomUUID()}`,
+        caocaoClientId: "scenario-caocao-bill-failure-client",
+        signKey: "scenario-caocao-bill-failure-secret",
+      });
+      const orderSeed = await seedCallbackScenarioRideOrder({
+        creatorUserId: creator.user.id,
+        providerId: provider.id,
+        providerOrderId: "CC-BILL-FAILURE-123",
+        rideExecutionPhase: "IN_TRIP",
+        tradeStatus: "OPEN",
+        skuName: "Scenario Caocao Bill Failure Express",
+        spuName: "Scenario Caocao Bill Failure SPU",
+      });
+
+      const response = await requestJson(
+        `/api/ride-hailing/caocao/${provider.id}/callback/order-status`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
           },
-          success: true,
-        }),
-      );
-      return;
-    }
-    response.writeHead(404, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ code: 404, success: false }));
-  });
-  const endpointBaseUrl = await listen(fakeCaocao);
-
-  try {
-    const provider = await createScenarioCaocaoProvider({
-      endpointBaseUrl,
-      displayName: "Scenario Caocao Bill Failure",
-      instanceKey: `scenario-caocao-bill-failure-${randomUUID()}`,
-      caocaoClientId: "scenario-caocao-bill-failure-client",
-      signKey: "scenario-caocao-bill-failure-secret",
-    });
-    const orderSeed = await seedCallbackScenarioRideOrder({
-      creatorUserId: creator.user.id,
-      providerId: provider.id,
-      providerOrderId: "CC-BILL-FAILURE-123",
-      rideExecutionPhase: "IN_TRIP",
-      tradeStatus: "OPEN",
-      skuName: "Scenario Caocao Bill Failure Express",
-      spuName: "Scenario Caocao Bill Failure SPU",
-    });
-
-    const response = await requestJson(
-      `/api/ride-hailing/caocao/${provider.id}/callback/order-status`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
+          body: buildCallbackForm({
+            callbackInfo: buildCaocaoCallbackInfo({
+              providerInstance: provider,
+              routingToken: "stg",
+            }),
+            signKey: "scenario-caocao-bill-failure-secret",
+            orderId: orderSeed.order.id,
+            providerOrderId: "CC-BILL-FAILURE-123",
+            event: "6",
+          }).toString(),
         },
-        body: buildCallbackForm({
-          callbackInfo: buildCaocaoCallbackInfo({
-            providerInstance: provider,
-            routingToken: "stg",
-          }),
-          signKey: "scenario-caocao-bill-failure-secret",
-          orderId: orderSeed.order.id,
-          providerOrderId: "CC-BILL-FAILURE-123",
-          event: "6",
-        }).toString(),
-      },
-    );
+      );
 
-    assert.equal(response.status, 200);
-    assert.equal(detailQueryCount, 2);
-    const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
-    assert.equal(updatedRide?.executionPhase, "FINISHED");
-    assert.equal(updatedRide?.finalSettlementInput, null);
-    assert.equal(updatedRide?.driverSnapshot?.driverName, "周师傅");
-    assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙E55555");
-    assert.equal(await billRepo.findBySourceOrderId(orderSeed.order.id), null);
-  } finally {
-    await closeServer(fakeCaocao);
-  }
-});
+      assert.equal(response.status, 200);
+      assert.equal(detailQueryCount, 2);
+      const updatedRide = await rideOrderRepo.findByOrderId(orderSeed.order.id as TradeOrderId);
+      assert.equal(updatedRide?.executionPhase, "FINISHED");
+      assert.equal(updatedRide?.finalSettlementInput, null);
+      assert.equal(updatedRide?.driverSnapshot?.driverName, "周师傅");
+      assert.equal(updatedRide?.vehicleSnapshot?.plate, "浙E55555");
+      assert.equal(await billRepo.findBySourceOrderId(orderSeed.order.id), null);
+    } finally {
+      await closeServer(fakeCaocao);
+    }
+  },
+);
 
 scenario("Caocao callback returns retryable failure when provider detail query fails", async () => {
   const creator = await givenUser("caocao-callback-query-failure-owner");
