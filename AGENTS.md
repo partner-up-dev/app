@@ -84,13 +84,7 @@ Search guidance:
 
 ### Impact Handshake
 
-Before mutating durable truth after alignment expansion, or when blast radius is not obviously local, pause and restate:
-
-- Address and Object: what exact files, anchors, or symbols will change
-- State Diff: `From -> To`
-- Blast Radius Forecast: what downstream files, modules, or surfaces could be affected
-- Invariants Check: what must remain unchanged
-- Verification: what concrete proof will bound side effects
+Before mutating durable truth after alignment expansion, or when blast radius is not obviously local, pause and follow the Impact Handshake in `docs/15-alignment/README.md`.
 
 If evidence is missing or the durable owner is still unclear, return to `Explore` or `Diagnose` instead of guessing.
 

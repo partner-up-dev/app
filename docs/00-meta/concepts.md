@@ -60,7 +60,9 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 
 ## Impact Handshake
 
-- owned by layer: root `AGENTS.md` plus `docs/15-alignment/`
+- owned by layer: `docs/15-alignment/`
+- operational entrypoint: root `AGENTS.md`
+- detailed owner: `docs/15-alignment/README.md`
 - one-line definition: the pre-execution restatement of address, state diff, blast radius, invariants, and verification
 - why it exists: prevents non-local mutations from proceeding on vague assumptions
 - common confusion with: a full implementation plan
