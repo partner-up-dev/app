@@ -10,6 +10,14 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 - common confusion with: active mode
 - when to load: when a request could fit more than one owner
 
+## Bootstrap Workflow
+
+- owned by layer: `docs/00-meta/`
+- one-line definition: the repo-entry workflow for routing non-trivial work to the right input route, mode, owner, task packet, and verification path
+- why it exists: keeps root `AGENTS.md` thin while preserving a common work-start protocol
+- common confusion with: development workflow or implementation sequencing
+- when to load: before non-trivial work when the route, mode, or owner is not already obvious
+
 ## Mode
 
 - owned by layer: `docs/00-meta/`

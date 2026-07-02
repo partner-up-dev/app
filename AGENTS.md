@@ -21,81 +21,27 @@ PartnerUp helps users find a partner (搭子) effectively and safely.
 - Backend: Hono + Drizzle ORM + Postgres-oriented schema / migration workflow
 - Frontend: Vue 3 + Vite + TanStack Vue Query + Hono RPC client
 
-## Documentation
+## Documentation Routing
 
-Read following documents for the current work when needed and keep them current.
-
-- `docs/00-meta/`: typed input routes, mode SOPs, and framework concepts.
-- `docs/00-meta/concepts.md`: load only when boundary language or owner terminology is unclear.
+- `docs/00-meta/`: bootstrap workflow, typed input routes, mode SOPs, task packets, search defaults, and promotion rules.
 - `docs/10-prd/`: product what/why, user-visible workflows, rules, scope, and business vocabulary.
-- `docs/15-alignment/`: load only when MVT is not enough to constrain mutation safely.
+- `docs/15-alignment/`: opt-in coordination substrate for risky or reference-sensitive mutation.
 - `docs/20-product-tdd/`: cross-unit technical realization and authority boundaries.
-- `docs/30-unit-tdd/`: open only when a named hard-unit doc exists and is relevant.
+- `docs/30-unit-tdd/`: optional hard-unit technical truth; open only when a named hard-unit doc exists and is relevant.
 - `docs/40-deployment/`: runtime, rollout, observability, and recovery truth.
-- `tasks/`: agent-owned, task-local workspace for volatile planning, investigation, diagnostics, artifacts, evidence, and collaboration state. Every non-trivial task packet should keep a compact control surface with `Objective & Hypothesis`, `Guardrails Touched`, and `Verification`.
-- `apps/backend/AGENTS.md`, `apps/frontend/AGENTS.md`, and nearer `**/AGENTS.md`: local constraints are additive and should be checked before edits in that subtree.
+- `tasks/`: volatile task packets, evidence, drafts, and promotion candidates.
+- nearest `AGENTS.md`: additive local constraints before edits in that subtree.
 
-## Operating Model
+## Work Routing
 
-1. Classify the incoming request as `Intent`, `Constraint`, `Reality`, or `Artifact`.
-2. Identify the durable owner and blast radius before choosing how to work.
-3. For non-trivial work, open or update a task packet under `tasks/`.
-4. Keep the task packet current when discussion, exploration, implementation friction, or verification changes the working state.
-5. Choose the active mode for the current slice: `Explore`, `Solidify`, `Execute`, or `Diagnose`.
-6. Load only the route doc, mode SOP, and governing anchors needed for that slice.
-7. Search source and durable docs with volatile workspaces, generated output, dependencies, caches, and virtual environments excluded by default.
-8. Expand into alignment substrate fields only when references, boundaries, state, evidence, or blast radius are still ambiguous.
-9. Execute with explicit verification.
-10. Re-enter a different mode if evidence or clarity changes.
-11. Promote only stable truths after verification.
-
-### Typed Input Guide
-
-- `Intent`: the business wants new behavior, scope, or policy. Update PRD first.
-- `Constraint`: product behavior stays the same, but technical, dependency, or environment boundaries changed. Update Product TDD or Unit TDD.
-- `Reality`: observed runtime behavior diverges from expectation. Gather evidence first, then fix and add recurrence guards if needed.
-- `Artifact`: the requested deliverable is a bounded script, analysis, migration helper, or one-off output. Keep it tactical unless reuse is proven.
-
-### Mode Guide
-
-- `Explore`: map unknowns, alternatives, and assumptions.
-- `Solidify`: restate findings into explicit claims, contracts, or decisions.
-- `Execute`: implement a clear, verified change.
-- `Diagnose`: investigate mismatches between expected and observed reality.
-
-Mode guidance:
-
-- do not assume one task equals one mode
-- switch modes when evidence or clarity changes
-- mode selection never overrides durable ownership
-
-Task packet guidance:
-
-- task packets are agent-owned and may be updated, split, and reorganized by the agent inside the task boundary
-- keep each packet readable, inspectable, and steerable by the human
-- preserve a compact control surface with objective, guardrails, verification, current understanding, confirmed constraints, and next step
-- split a packet by collaboration pressure rather than by a fixed folder scheme
-- keep volatile packet content out of durable docs until it passes the promotion test
-
-Search guidance:
-
-- when searching source or durable docs, exclude `tasks/`, `temp/`, generated output such as `build/` and `dist/`, dependency folders such as `node_modules/`, virtual environments, and tool caches by default
-- search those locations only when the task explicitly targets them or when recovering/reviewing task evidence
-
-### Impact Handshake
-
-Before mutating durable truth after alignment expansion, or when blast radius is not obviously local, pause and follow the Impact Handshake in `docs/15-alignment/README.md`.
-
-If evidence is missing or the durable owner is still unclear, return to `Explore` or `Diagnose` instead of guessing.
-
-### Negotiation Triggers
-
-Pause and ask for human confirmation when:
-
-- the requested change conflicts with an existing product claim or technical contract
-- blast radius crosses multiple durable owners and the correct owner is unclear
-- a shortcut would damage maintainability, readability, simplicity, or an explicit guardrail
-- evidence is insufficient for a bug fix or architectural decision
+- For non-trivial work, follow `docs/00-meta/bootstrap-workflow.md` and keep a task packet under `tasks/`.
+- Product intent change: `docs/00-meta/input-intent.md` -> `docs/10-prd/`.
+- Technical constraint change: `docs/00-meta/input-constraint.md` -> `docs/20-product-tdd/` or `docs/30-unit-tdd/`.
+- Runtime mismatch: `docs/00-meta/input-reality.md` -> task packet evidence first.
+- Bounded artifact: `docs/00-meta/input-artifact.md` -> task-local artifact unless reuse is proven.
+- Risky references, weak evidence, conflict, or non-local blast radius: `docs/15-alignment/README.md`.
+- Source and durable-doc searches should exclude `tasks/`, generated output, dependencies, virtual environments, and caches unless explicitly targeted.
+- Before subtree edits, read the nearest local `AGENTS.md`.
 
 ## Development Workflow
 

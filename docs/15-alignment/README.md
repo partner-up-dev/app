@@ -55,6 +55,15 @@ The handshake is a checkpoint, not a full implementation plan. If these fields c
 
 Use `change-request-template.md` when a request needs a reusable fillable structure.
 
+## Pause Conditions
+
+Pause and ask for human confirmation when:
+
+- the requested change conflicts with an existing product claim or technical contract
+- blast radius crosses multiple durable owners and the correct owner is unclear
+- a shortcut would damage maintainability, readability, simplicity, or an explicit guardrail
+- evidence is insufficient for a bug fix or architectural decision
+
 ## Engineering Rules
 
 ### Prefer Stable Anchors Over Positional Descriptions
