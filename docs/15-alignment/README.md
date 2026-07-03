@@ -39,6 +39,31 @@ The substrate becomes actionable only when these primitives are explicit enough 
 6. Evidence: what objective proof justifies the change
 7. Protocol: how human and agent confirm shared understanding before execution
 
+## Impact Handshake
+
+Use the Impact Handshake before mutating durable truth when blast radius is not obviously local, references are unstable, or evidence is weak.
+
+Restate:
+
+- Address and Object: what exact files, anchors, surfaces, or symbols will change
+- State Diff: `From -> To`
+- Blast Radius Forecast: downstream docs, modules, workflows, users, operators, or tests that could be affected
+- Invariants Check: what must remain unchanged
+- Verification: what concrete proof will bound side effects
+
+The handshake is a checkpoint, not a full implementation plan. If these fields cannot be stated concretely, return to `Explore` or `Diagnose`.
+
+Use `change-request-template.md` when a request needs a reusable fillable structure.
+
+## Pause Conditions
+
+Pause and ask for human confirmation when:
+
+- the requested change conflicts with an existing product claim or technical contract
+- blast radius crosses multiple durable owners and the correct owner is unclear
+- a shortcut would damage maintainability, readability, simplicity, or an explicit guardrail
+- evidence is insufficient for a bug fix or architectural decision
+
 ## Engineering Rules
 
 ### Prefer Stable Anchors Over Positional Descriptions

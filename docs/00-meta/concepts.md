@@ -10,6 +10,14 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 - common confusion with: active mode
 - when to load: when a request could fit more than one owner
 
+## Bootstrap Workflow
+
+- owned by layer: `docs/00-meta/`
+- one-line definition: the repo-entry workflow for routing non-trivial work to the right input route, mode, owner, task packet, and verification path
+- why it exists: keeps root `AGENTS.md` thin while preserving a common work-start protocol
+- common confusion with: development workflow or implementation sequencing
+- when to load: before non-trivial work when the route, mode, or owner is not already obvious
+
 ## Mode
 
 - owned by layer: `docs/00-meta/`
@@ -60,7 +68,9 @@ Keep this file short. Load it only when framework terminology or durable ownersh
 
 ## Impact Handshake
 
-- owned by layer: root `AGENTS.md` plus `docs/15-alignment/`
+- owned by layer: `docs/15-alignment/`
+- operational entrypoint: root `AGENTS.md`
+- detailed owner: `docs/15-alignment/README.md`
 - one-line definition: the pre-execution restatement of address, state diff, blast radius, invariants, and verification
 - why it exists: prevents non-local mutations from proceeding on vague assumptions
 - common confusion with: a full implementation plan

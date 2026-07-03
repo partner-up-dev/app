@@ -43,6 +43,7 @@ jobs:
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || github.token }}
       SCENARIO_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      VITE_TENCENT_LBS_JS_KEY: ${{ secrets.VITE_TENCENT_LBS_JS_KEY }}
       VITE_WECHAT_ABILITY_MOCKING_ENABLED: "true"
       VITE_WECHAT_MINIPROGRAM_WEBVIEW_MOCKING_ENABLED: "false"
       WECHAT_ABILITY_MOCKING_ENABLED: "true"

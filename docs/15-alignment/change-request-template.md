@@ -1,5 +1,7 @@
 # Alignment Substrate Request Template
 
+This template is the fillable form of the Impact Handshake for requests that need structured coordination.
+
 ## Request Metadata
 
 - request id:
