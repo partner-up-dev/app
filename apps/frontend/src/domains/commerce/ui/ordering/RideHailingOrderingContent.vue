@@ -181,7 +181,7 @@
       max-width="44rem"
       @close="closeRoutePointDrawer"
     >
-      <LocationPickerPanel
+      <LocationPickerBody
         v-if="selectedRoutePoint"
         :initial-location="selectedRoutePointInitialLocation"
         data-testid="ordering.ride-hailing.route-point.drawer"
@@ -245,7 +245,7 @@ import {
   useOfferListing,
 } from "@/domains/commerce/queries/useCommerce";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
-import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
+import LocationPickerBody from "@/domains/location/ui/LocationPickerBody.vue";
 import {
   applyPickedLocationToRoutePoint,
   cloneRoute,

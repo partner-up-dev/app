@@ -74,6 +74,7 @@ class FakeTencentMap implements TencentMap {
   }[] = [];
 
   private readonly listeners = new Map<TencentMapEventName, Set<TencentMapListener>>();
+  private center: TencentLatLng;
   private rotation: number;
   private zoom: number;
 
@@ -81,12 +82,14 @@ class FakeTencentMap implements TencentMap {
     _container: HTMLElement | string,
     readonly options: TencentMapOptions,
   ) {
+    this.center = options.center;
     this.rotation = options.rotation ?? 0;
     this.zoom = options.zoom ?? 12;
     FakeTencentMap.lastInstance = this;
   }
 
-  setCenter(_center: TencentLatLng): TencentMap {
+  setCenter(center: TencentLatLng): TencentMap {
+    this.center = center;
     return this;
   }
 
@@ -108,6 +111,10 @@ class FakeTencentMap implements TencentMap {
     return this.rotation;
   }
 
+  getCenter(): TencentLatLng {
+    return this.center;
+  }
+
   fitBounds(bounds: TencentLatLngBounds, options?: TencentFitBoundsOptions): TencentMap {
     this.fitBoundsCalls.push({ bounds, options });
     return this;
@@ -120,6 +127,9 @@ class FakeTencentMap implements TencentMap {
     this.easeToCalls.push({ status, options });
     if (typeof status.zoom === "number") {
       this.zoom = status.zoom;
+    }
+    if (status.center) {
+      this.center = status.center;
     }
     if (typeof status.rotation === "number") {
       this.rotation = status.rotation;

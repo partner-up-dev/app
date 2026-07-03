@@ -56,17 +56,25 @@ export type TencentMap = {
   setRotation(rotation: number): TencentMap;
   getZoom(): number;
   getRotation(): number;
+  getCenter(): TencentLatLng;
   fitBounds(bounds: TencentLatLngBounds, options?: TencentFitBoundsOptions): TencentMap;
   easeTo(
     status: { center?: TencentLatLng; zoom?: number; rotation?: number },
     options?: { duration?: number },
   ): TencentMap;
-  on(eventName: TencentMapEventName, listener: () => void): TencentMap;
-  off(eventName: TencentMapEventName, listener: () => void): TencentMap;
+  on(eventName: TencentMapEventName, listener: TencentMapListener): TencentMap;
+  off(eventName: TencentMapEventName, listener: TencentMapListener): TencentMap;
   destroy(): void;
 };
 
-export type TencentMapEventName = "dragstart" | "touchmove" | "dblclick" | "zoom";
+export type TencentMapEventName = "dragstart" | "touchmove" | "dblclick" | "zoom" | "click";
+
+export type TencentMapEvent = {
+  latLng?: TencentLatLng;
+  latlng?: TencentLatLng;
+};
+
+export type TencentMapListener = (event?: TencentMapEvent) => void;
 
 export type TencentMapConstructor = {
   new (container: HTMLElement | string, options: TencentMapOptions): TencentMap;
@@ -174,6 +182,54 @@ export type TencentMultiPolylineConstructor = {
   }): TencentMultiPolyline;
 };
 
+export type TencentSuggestionRequest = {
+  keyword: string;
+  location?: TencentLatLng;
+  region?: string;
+};
+
+export type TencentSearchRequest = {
+  keyword: string;
+  location?: TencentLatLng;
+  region?: string;
+};
+
+export type TencentGeocoderRequest = {
+  location: TencentLatLng;
+  getPoi?: boolean;
+};
+
+export type TencentSuggestionService = {
+  getSuggestions(input: TencentSuggestionRequest): Promise<unknown>;
+};
+
+export type TencentSearchService = {
+  searchRectangle?(input: TencentSearchRequest): Promise<unknown>;
+  searchRegion?(input: TencentSearchRequest): Promise<unknown>;
+};
+
+export type TencentGeocoderService = {
+  getAddress(input: TencentGeocoderRequest): Promise<unknown>;
+};
+
+export type TencentSuggestionServiceConstructor = {
+  new (options?: { pageSize?: number; region?: string }): TencentSuggestionService;
+};
+
+export type TencentSearchServiceConstructor = {
+  new (options?: { pageSize?: number; region?: string }): TencentSearchService;
+};
+
+export type TencentGeocoderServiceConstructor = {
+  new (): TencentGeocoderService;
+};
+
+export type TencentServiceNamespace = {
+  Suggestion: TencentSuggestionServiceConstructor;
+  Search?: TencentSearchServiceConstructor;
+  Geocoder: TencentGeocoderServiceConstructor;
+};
+
 export type TencentMapSdk = {
   Map: TencentMapConstructor;
   LatLng: TencentLatLngConstructor;
@@ -182,6 +238,7 @@ export type TencentMapSdk = {
   MultiMarker: TencentMultiMarkerConstructor;
   PolylineStyle: TencentPolylineStyleConstructor;
   MultiPolyline: TencentMultiPolylineConstructor;
+  service?: TencentServiceNamespace;
 };
 
 export type TencentLBSMapProviderInput = {

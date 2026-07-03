@@ -593,12 +593,12 @@
     "subtitle": "管理活动、PR、POIs 与 BI 看板",
     "navAnchorEventGroup": "活动管理",
     "navAnchorEventBasic": "活动基本信息",
-      "navAnchorEventBasicSubtitle": "维护活动展示、主碰头地点、封面与默认参与策略。",
-      "navAnchorEventLocations": "活动场地",
-      "navAnchorEventLocationsSubtitle": "配置活动可用场地池和场地级碰头地点。",
-      "navAnchorEventRouteApplications": "路线申请",
-      "navAnchorEventRouteApplicationsSubtitle": "审核用户提交到活动路线池的新路线。",
-      "navAnchorEventTime": "活动时间",
+    "navAnchorEventBasicSubtitle": "维护活动展示、主碰头地点、封面与默认参与策略。",
+    "navAnchorEventLocations": "活动场地",
+    "navAnchorEventLocationsSubtitle": "配置活动可用场地池和场地级碰头地点。",
+    "navAnchorEventRouteApplications": "路线申请",
+    "navAnchorEventRouteApplicationsSubtitle": "审核用户提交到活动路线池的新路线。",
+    "navAnchorEventTime": "活动时间",
     "navAnchorEventTimeSubtitle": "维护时间窗口生成规则、时长和参与时间线。",
     "navAnchorEventTags": "活动标签",
     "navAnchorEventTagsSubtitle": "维护活动展示和筛选所需的标签信息。",
@@ -1091,13 +1091,13 @@
     "savePlacementAction": "保存 Placement",
     "savingAction": "保存中..."
   },
-    "adminCommerceOrderBill": {
-      "ordersTitle": "订单列表",
-      "emptyOrders": "当前还没有订单。",
-      "emptyStateTitle": "还没有可查看的 Order / Bill",
-      "emptyStateDescription": "这里是订单合同与账单的观测面，不在此页直接创建订单。先从 PR 用户链路创建 Rental 订单，或用测试数据生成订单后，这里才会出现记录。",
-      "unattachedLabel": "未绑定 PR",
-      "orderSummaryTitle": "订单摘要",
+  "adminCommerceOrderBill": {
+    "ordersTitle": "订单列表",
+    "emptyOrders": "当前还没有订单。",
+    "emptyStateTitle": "还没有可查看的 Order / Bill",
+    "emptyStateDescription": "这里是订单合同与账单的观测面，不在此页直接创建订单。先从 PR 用户链路创建 Rental 订单，或用测试数据生成订单后，这里才会出现记录。",
+    "unattachedLabel": "未绑定 PR",
+    "orderSummaryTitle": "订单摘要",
     "orderIdLabel": "Order ID",
     "statusLabel": "订单状态",
     "offerLabel": "Offer",
@@ -1110,12 +1110,12 @@
     "billStatusLabel": "账单状态",
     "effectiveTotalLabel": "当前有效总额（fen）"
   },
-    "adminCommerceFulfillment": {
-      "fulfillmentsTitle": "履约列表",
-      "emptyFulfillments": "当前还没有 Rental Fulfillment。",
-      "emptyStateTitle": "还没有可操作的 Fulfillment",
-      "emptyStateDescription": "这里只显示已经进入 Rental 履约链路的记录。先让 Rental 订单完成创建并进入履约阶段，或用测试数据生成履约记录后，这里才会出现内容。",
-      "summaryTitle": "履约摘要",
+  "adminCommerceFulfillment": {
+    "fulfillmentsTitle": "履约列表",
+    "emptyFulfillments": "当前还没有 Rental Fulfillment。",
+    "emptyStateTitle": "还没有可操作的 Fulfillment",
+    "emptyStateDescription": "这里只显示已经进入 Rental 履约链路的记录。先让 Rental 订单完成创建并进入履约阶段，或用测试数据生成履约记录后，这里才会出现内容。",
+    "summaryTitle": "履约摘要",
     "fulfillmentIdLabel": "Fulfillment ID",
     "orderIdLabel": "Order ID",
     "lifecycleLabel": "生命周期状态",
@@ -1231,24 +1231,24 @@
     "removePreferenceTagAction": "移除",
     "savePreferenceTagsAction": "保存偏好标签",
     "pendingPreferenceTagsTitle": "待审核标签",
-      "emptyPendingPreferenceTags": "当前没有待审核标签。",
-      "preferenceTagDescriptionEmpty": "暂无说明",
-      "publishPreferenceTagAction": "发布",
-      "rejectPreferenceTagAction": "驳回",
-      "routeApplicationsTitle": "路线申请",
-      "selectEventForRouteApplicationsHint": "请先选择一个已有活动，再审核路线申请。",
-      "emptyRouteApplications": "当前活动没有待处理路线申请。",
-      "routeApplicationEditHint": "审核前可调整路线地点；选择地点会同步名称、地址和坐标。",
-      "routeApplicationRejectPlaceholder": "填写驳回原因（可选）",
-      "acceptRouteApplicationAction": "通过",
-      "rejectRouteApplicationAction": "驳回",
-      "routeSummaryFallback": "路线摘要待完善",
-      "routeApplicationStatus": {
-        "PENDING": "待审核",
-        "ACCEPTED": "已通过",
-        "REJECTED": "已驳回"
-      }
-    },
+    "emptyPendingPreferenceTags": "当前没有待审核标签。",
+    "preferenceTagDescriptionEmpty": "暂无说明",
+    "publishPreferenceTagAction": "发布",
+    "rejectPreferenceTagAction": "驳回",
+    "routeApplicationsTitle": "路线申请",
+    "selectEventForRouteApplicationsHint": "请先选择一个已有活动，再审核路线申请。",
+    "emptyRouteApplications": "当前活动没有待处理路线申请。",
+    "routeApplicationEditHint": "审核前可调整路线地点；选择地点会同步名称、地址和坐标。",
+    "routeApplicationRejectPlaceholder": "填写驳回原因（可选）",
+    "acceptRouteApplicationAction": "通过",
+    "rejectRouteApplicationAction": "驳回",
+    "routeSummaryFallback": "路线摘要待完善",
+    "routeApplicationStatus": {
+      "PENDING": "待审核",
+      "ACCEPTED": "已通过",
+      "REJECTED": "已驳回"
+    }
+  },
   "adminPR": {
     "title": "PR 管理",
     "subtitle": "全局检索、创建与编辑 PR。",
@@ -1492,9 +1492,9 @@
       "action": "查看申请"
     }
   },
-    "locationApplicationPage": {
-      "title": "申请新地点",
-      "subtitle": "提交一个你希望加入地点库的 POI，审核通过后可被运营加入活动的地点池。",
+  "locationApplicationPage": {
+    "title": "申请新地点",
+    "subtitle": "提交一个你希望加入地点库的 POI，审核通过后可被运营加入活动的地点池。",
     "nameLabel": "地点名称",
     "namePlaceholder": "例如：徐汇滨江滑板公园",
     "imageLabel": "地点图片",
@@ -1512,34 +1512,34 @@
     "status": {
       "PENDING": "待审核",
       "PUBLISHED": "已发布",
-        "REJECTED": "已驳回"
-      }
+      "REJECTED": "已驳回"
+    }
+  },
+  "routeApplicationPage": {
+    "title": "申请新路线",
+    "subtitle": "提交一条你希望加入当前活动的路线，审核通过后会进入该活动的路线池。",
+    "routeLabel": "路线",
+    "routeHint": "请选择至少两个地点，并确保每个地点都有名称和坐标。",
+    "routeReady": "路线已就绪，可以提交审核。",
+    "missingEvent": "缺少活动信息，请从活动页重新进入。",
+    "submitAction": "提交路线申请",
+    "submitSuccess": "已提交“{title}”，可以在下方查看审核状态。",
+    "mineTitle": "我的路线申请",
+    "mineSubtitle": "审核通过后，这条路线会加入对应活动的路线池。",
+    "emptyMine": "当前还没有提交过路线申请。",
+    "unnamedRoute": "未命名路线",
+    "validation": {
+      "minPoints": "路线至少需要起点和终点。",
+      "nameRequired": "路线上的每个地点都需要名称。",
+      "coordinateRequired": "路线上的每个地点都需要坐标。"
     },
-    "routeApplicationPage": {
-      "title": "申请新路线",
-      "subtitle": "提交一条你希望加入当前活动的路线，审核通过后会进入该活动的路线池。",
-      "routeLabel": "路线",
-      "routeHint": "请选择至少两个地点，并确保每个地点都有名称和坐标。",
-      "routeReady": "路线已就绪，可以提交审核。",
-      "missingEvent": "缺少活动信息，请从活动页重新进入。",
-      "submitAction": "提交路线申请",
-      "submitSuccess": "已提交“{title}”，可以在下方查看审核状态。",
-      "mineTitle": "我的路线申请",
-      "mineSubtitle": "审核通过后，这条路线会加入对应活动的路线池。",
-      "emptyMine": "当前还没有提交过路线申请。",
-      "unnamedRoute": "未命名路线",
-      "validation": {
-        "minPoints": "路线至少需要起点和终点。",
-        "nameRequired": "路线上的每个地点都需要名称。",
-        "coordinateRequired": "路线上的每个地点都需要坐标。"
-      },
-      "status": {
-        "PENDING": "待审核",
-        "ACCEPTED": "已通过",
-        "REJECTED": "已驳回"
-      }
-    },
-    "wechatOAuthCallbackPage": {
+    "status": {
+      "PENDING": "待审核",
+      "ACCEPTED": "已通过",
+      "REJECTED": "已驳回"
+    }
+  },
+  "wechatOAuthCallbackPage": {
     "title": "正在完成微信登录",
     "subtitle": "请稍候，系统正在验证你的授权信息并返回原页面。",
     "processing": "正在处理微信授权回调...",
@@ -1715,8 +1715,17 @@
   },
   "locationPicker": {
     "title": "选择地点",
-    "iframeTitle": "腾讯地图选点",
-    "keyMissing": "腾讯地图 Key 未配置，当前环境无法打开地图选点组件。",
+    "searchPlaceholder": "搜索地点或地址",
+    "keyMissing": "腾讯地图 Key 未配置，当前环境无法打开地图选点。",
+    "mapLoading": "地图加载中",
+    "mapUnavailable": "地图暂不可用",
+    "mapFailed": "地图加载失败，请稍后再试。",
+    "resultsTitle": "搜索结果",
+    "resultsEmptyTitle": "没有找到匹配地点",
+    "resultsEmptyDescription": "换个关键词试试。",
+    "selectedTitle": "已选位置",
+    "reverseResolving": "正在解析地址",
+    "reverseFailed": "地址解析失败，可手动填写名称和地址。",
     "nameLabel": "地点名称",
     "namePlaceholder": "选择后可编辑名称",
     "addressLabel": "详细地址",

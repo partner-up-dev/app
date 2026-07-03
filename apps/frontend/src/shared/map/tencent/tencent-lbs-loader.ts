@@ -12,10 +12,7 @@ const CALLBACK_PREFIX = "__partnerUpTencentLBSReady";
 const loadPromises = new Map<string, Promise<TencentMapSdk>>();
 let callbackSequence = 0;
 
-const resolveLoadKey = ({
-  key,
-  libraries = [],
-}: LoadTencentLBSSdkInput): string =>
+const resolveLoadKey = ({ key, libraries = [] }: LoadTencentLBSSdkInput): string =>
   [key.trim(), [...libraries].sort().join(",")].join("|");
 
 const getExistingSdk = (): TencentMapSdk | null => {
@@ -26,16 +23,27 @@ const getExistingSdk = (): TencentMapSdk | null => {
   return window.TMap ?? null;
 };
 
-export const loadTencentLBSSdk = (
-  input: LoadTencentLBSSdkInput,
-): Promise<TencentMapSdk> => {
+const hasLibraryCapability = (sdk: TencentMapSdk, library: TencentLBSLibrary): boolean => {
+  if (library === "service") {
+    return Boolean(sdk.service);
+  }
+
+  return true;
+};
+
+const hasRequestedLibraryCapabilities = (
+  sdk: TencentMapSdk,
+  libraries: readonly TencentLBSLibrary[] = [],
+): boolean => libraries.every((library) => hasLibraryCapability(sdk, library));
+
+export const loadTencentLBSSdk = (input: LoadTencentLBSSdkInput): Promise<TencentMapSdk> => {
   const normalizedKey = input.key.trim();
   if (normalizedKey.length === 0) {
     return Promise.reject(new Error("Tencent LBS key is required"));
   }
 
   const existingSdk = getExistingSdk();
-  if (existingSdk) {
+  if (existingSdk && hasRequestedLibraryCapabilities(existingSdk, input.libraries)) {
     return Promise.resolve(existingSdk);
   }
 
@@ -56,8 +64,7 @@ export const loadTencentLBSSdk = (
     const callbackName = `${CALLBACK_PREFIX}${callbackSequence}`;
     callbackSequence += 1;
 
-    const callbackRegistry = window as unknown as Window &
-      Record<string, (() => void) | undefined>;
+    const callbackRegistry = window as unknown as Window & Record<string, (() => void) | undefined>;
     const cleanup = () => {
       delete callbackRegistry[callbackName];
     };

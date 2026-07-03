@@ -7,30 +7,6 @@ export type PickedLocation = {
   gcj02: RouteCoordinate;
 };
 
-export type TencentLocationPickerUrlInput = {
-  key: string;
-  referer: string;
-  initialCoordinate?: RouteCoordinate | null;
-  search?: boolean;
-  mapDraggable?: boolean;
-};
-
-type TencentLocationPickerLatLng = {
-  lat: unknown;
-  lng: unknown;
-};
-
-type TencentLocationPickerPayload = {
-  module?: unknown;
-  latlng?: TencentLocationPickerLatLng;
-  poiname?: unknown;
-  poiaddress?: unknown;
-  cityname?: unknown;
-};
-
-const LOCATION_PICKER_ORIGIN = "https://apis.map.qq.com";
-const LOCATION_PICKER_PATH = "/tools/locpicker";
-
 const normalizeNullableText = (value: unknown): string | null => {
   if (typeof value !== "string") {
     return null;
@@ -56,51 +32,6 @@ export const clonePickedLocation = (
         gcj02: [location.gcj02[0], location.gcj02[1]],
       }
     : null;
-
-export const buildTencentLocationPickerUrl = ({
-  key,
-  referer,
-  search = true,
-  mapDraggable = true,
-}: TencentLocationPickerUrlInput): string => {
-  const url = new URL(LOCATION_PICKER_PATH, LOCATION_PICKER_ORIGIN);
-  url.searchParams.set("type", "1");
-  url.searchParams.set("search", search ? "1" : "0");
-  url.searchParams.set("mapdraggable", mapDraggable ? "1" : "0");
-  url.searchParams.set("key", key);
-  url.searchParams.set("referer", referer);
-  return url.toString();
-};
-
-export const mapTencentLocationPickerPayload = (
-  payload: unknown,
-): PickedLocation | null => {
-  if (!isRecord(payload)) {
-    return null;
-  }
-
-  const maybePayload = payload as TencentLocationPickerPayload;
-  if (maybePayload.module !== "locationPicker") {
-    return null;
-  }
-
-  const latlng = maybePayload.latlng;
-  if (!latlng || !isFiniteNumber(latlng.lat) || !isFiniteNumber(latlng.lng)) {
-    return null;
-  }
-
-  const name = normalizeNullableText(maybePayload.poiname);
-  if (!name) {
-    return null;
-  }
-
-  return {
-    name,
-    address: normalizeNullableText(maybePayload.poiaddress),
-    cityName: normalizeNullableText(maybePayload.cityname),
-    gcj02: [latlng.lat, latlng.lng],
-  };
-};
 
 export const serializePickedLocation = (location: PickedLocation): string =>
   JSON.stringify(location);
