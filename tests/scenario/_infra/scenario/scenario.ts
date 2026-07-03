@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { TestContext } from "vitest";
 import { test } from "vitest";
 
 export type ScenarioRecordValue =
@@ -17,18 +18,19 @@ export type ScenarioContext = {
   getRecords(): Readonly<Record<string, ScenarioRecordValue>>;
 };
 
+type ScenarioOptions = {
+  timeoutMs?: number;
+};
+
 const resultDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../.result/scenario-records",
 );
 
 const sanitizeScenarioName = (name: string): string =>
-  name.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") ||
-  "scenario";
+  name.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "") || "scenario";
 
-const summarizeRecords = (
-  records: Readonly<Record<string, ScenarioRecordValue>>,
-): string => {
+const summarizeRecords = (records: Readonly<Record<string, ScenarioRecordValue>>): string => {
   const entries = Object.entries(records).slice(0, 8);
   if (entries.length === 0) {
     return "  records: {}";
@@ -37,8 +39,7 @@ const summarizeRecords = (
   return entries
     .map(([key, value]) => {
       const encoded = JSON.stringify(value);
-      const summary =
-        encoded.length > 120 ? `${encoded.slice(0, 117)}...` : encoded;
+      const summary = encoded.length > 120 ? `${encoded.slice(0, 117)}...` : encoded;
       return `  ${key}: ${summary}`;
     })
     .join("\n");
@@ -49,22 +50,17 @@ const writeScenarioRecords = (
   records: Readonly<Record<string, ScenarioRecordValue>>,
 ): string => {
   mkdirSync(resultDirectory, { recursive: true });
-  const artifactPath = path.join(
-    resultDirectory,
-    `${sanitizeScenarioName(name)}.json`,
-  );
-  writeFileSync(
-    artifactPath,
-    `${JSON.stringify({ scenario: name, records }, null, 2)}\n`,
-  );
+  const artifactPath = path.join(resultDirectory, `${sanitizeScenarioName(name)}.json`);
+  writeFileSync(artifactPath, `${JSON.stringify({ scenario: name, records }, null, 2)}\n`);
   return artifactPath;
 };
 
 export function scenario(
   name: string,
   run: (context: ScenarioContext) => Promise<void>,
+  options: ScenarioOptions = {},
 ): void {
-  test(name, async ({ annotate }) => {
+  const runScenario = async ({ annotate }: TestContext) => {
     const records: Record<string, ScenarioRecordValue> = {};
     const context: ScenarioContext = {
       name,
@@ -91,5 +87,11 @@ export function scenario(
       }
       throw error;
     }
-  });
+  };
+
+  if (options.timeoutMs) {
+    test(name, { timeout: options.timeoutMs }, runScenario);
+    return;
+  }
+  test(name, runScenario);
 }

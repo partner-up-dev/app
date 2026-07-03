@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { request } from "node:https";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -194,6 +195,8 @@ const timeoutSeconds = parsePositiveIntegerArg("timeout-seconds", 90);
 const pollIntervalSeconds = parsePositiveIntegerArg("poll-interval-seconds", 2);
 const shouldRunForeground = process.argv.includes("--foreground");
 const foregroundReadyMarker = "DEV_ENSURE_FOREGROUND_READY";
+const portlessStateDir =
+  normalizeEnvValue(runtimeEnv.PORTLESS_STATE_DIR) ?? join(homedir(), ".portless");
 
 const assertCommandAvailable = (commandName) => {
   const command = isWindows ? "where" : "command";
@@ -246,8 +249,8 @@ const getRegisteredRouteUrl = (routeListText, route) => {
 
 const isReadyStatus = (statusCode) => statusCode >= 200 && statusCode < 400;
 
-const isRouteHttpReady = (route, registeredUrl) =>
-  new Promise((resolveReady) => {
+const getRouteHttpReadiness = (route, registeredUrl) =>
+  new Promise((resolveReadiness) => {
     const routeUrl = new URL(route.readinessPath, registeredUrl);
     const req = request(
       {
@@ -264,44 +267,219 @@ const isRouteHttpReady = (route, registeredUrl) =>
       },
       (res) => {
         res.resume();
-        resolveReady(isReadyStatus(res.statusCode ?? 599));
+        const statusCode = res.statusCode ?? 599;
+        resolveReadiness({
+          portlessHeader: res.headers["x-portless"] ?? null,
+          ready: isReadyStatus(statusCode),
+          statusCode,
+          url: routeUrl.toString(),
+        });
       },
     );
 
-    req.on("error", () => {
-      resolveReady(false);
+    req.on("error", (error) => {
+      resolveReadiness({
+        errorCode: error.code ?? null,
+        errorMessage: error.message,
+        ready: false,
+        url: routeUrl.toString(),
+      });
     });
 
     req.on("timeout", () => {
       req.destroy();
-      resolveReady(false);
+      resolveReadiness({
+        ready: false,
+        timedOut: true,
+        url: routeUrl.toString(),
+      });
     });
 
     req.end();
   });
 
-const getUnavailableRoutes = async (routeListText) => {
+const getRouteAvailability = async (routeListText) => {
   const routeRegistrations = routes.map((route) => ({
     registeredUrl: getRegisteredRouteUrl(routeListText, route),
     route,
   }));
-  const unregisteredRoutes = routeRegistrations
-    .filter((registration) => registration.registeredUrl === null)
-    .map((registration) => registration.route);
-  const registeredRoutes = routeRegistrations.filter(
-    (registration) => registration.registeredUrl !== null,
-  );
-  const readinessChecks = await Promise.all(
-    registeredRoutes.map(async ({ registeredUrl, route }) => ({
-      ready: await isRouteHttpReady(route, registeredUrl),
+
+  return Promise.all(
+    routeRegistrations.map(async ({ registeredUrl, route }) => ({
+      readiness: registeredUrl === null ? null : await getRouteHttpReadiness(route, registeredUrl),
+      registeredUrl,
       route,
     })),
   );
-  const unreadyRoutes = readinessChecks
-    .filter((result) => !result.ready)
-    .map((result) => result.route);
+};
 
-  return [...unregisteredRoutes, ...unreadyRoutes];
+const getUnavailableRoutes = async (routeListText) => {
+  const availability = await getRouteAvailability(routeListText);
+
+  return availability
+    .filter((result) => result.registeredUrl === null || result.readiness?.ready !== true)
+    .map((result) => result.route);
+};
+
+const getProxyPort = (registeredUrl) => {
+  const url = new URL(registeredUrl);
+
+  if (url.port) {
+    return Number(url.port);
+  }
+
+  return url.protocol === "http:" ? 80 : 443;
+};
+
+const readTrimmedFile = (path) => {
+  try {
+    const value = readFileSync(path, "utf8").trim();
+    return value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+const getStateProxyPid = () => readTrimmedFile(join(portlessStateDir, "proxy.pid"));
+
+const getListeningProxyPids = (proxyPort) => {
+  if (isWindows) {
+    return { pids: [], source: "unavailable on Windows" };
+  }
+
+  const lsofResult = spawnSync("lsof", ["-ti", `tcp:${proxyPort}`, "-sTCP:LISTEN"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: runtimeEnv,
+    shell: false,
+    timeout: 1_000,
+  });
+
+  if (!lsofResult.error && (lsofResult.status ?? 1) === 0) {
+    const pids = lsofResult.stdout
+      .split(/\s+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    return { pids, source: `lsof tcp:${proxyPort}` };
+  }
+
+  const ssResult = spawnSync("ss", ["-ltnp", "sport", "=", `:${proxyPort}`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: runtimeEnv,
+    shell: false,
+    timeout: 1_000,
+  });
+
+  if (!ssResult.error && (ssResult.status ?? 1) === 0) {
+    const pids = [...ssResult.stdout.matchAll(/pid=(\d+)/g)].map((match) => match[1]);
+    return { pids: [...new Set(pids)], source: `ss sport :${proxyPort}` };
+  }
+
+  return { pids: [], source: "unavailable" };
+};
+
+const formatHeaderValue = (value) => {
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  return value ?? "absent";
+};
+
+const isPortlessNotRegisteredResponse = (readiness) =>
+  readiness?.statusCode === 404 && readiness.portlessHeader !== null;
+
+const formatReadiness = (readiness) => {
+  if (!readiness) {
+    return "not checked because the route is not registered";
+  }
+
+  if (readiness.timedOut) {
+    return `HEAD ${readiness.url} timed out`;
+  }
+
+  if (readiness.errorMessage) {
+    const code = readiness.errorCode ? ` ${readiness.errorCode}` : "";
+    return `HEAD ${readiness.url} failed:${code} ${readiness.errorMessage}`;
+  }
+
+  return `HEAD ${readiness.url} -> HTTP ${readiness.statusCode}, x-portless=${formatHeaderValue(
+    readiness.portlessHeader,
+  )}`;
+};
+
+const formatRecoveryCommand = (proxyPort) => {
+  const envParts = [`PORTLESS_STATE_DIR="${portlessStateDir}"`];
+  const lanIp = normalizeEnvValue(runtimeEnv.PORTLESS_LAN_IP);
+
+  if (isTruthyEnv(runtimeEnv.PORTLESS_LAN)) {
+    envParts.push("PORTLESS_LAN=1");
+  }
+
+  if (lanIp) {
+    envParts.push(`PORTLESS_LAN_IP="${lanIp}"`);
+  }
+
+  const lanArgs = isTruthyEnv(runtimeEnv.PORTLESS_LAN)
+    ? ` --lan${lanIp ? ` --ip ${lanIp}` : ""}`
+    : "";
+
+  return [
+    "Suggested manual recovery:",
+    `  sudo kill "$(sudo lsof -ti tcp:${proxyPort})"`,
+    `  rm -f "${join(portlessStateDir, "proxy.pid")}" "${join(portlessStateDir, "proxy.port")}"`,
+    `  ${envParts.join(" ")} portless proxy start${lanArgs}`,
+  ].join("\n");
+};
+
+const getTimeoutDiagnostics = async (routeListText, unavailableRoutes) => {
+  const availability = await getRouteAvailability(routeListText);
+  const unavailableRouteNames = new Set(unavailableRoutes.map((route) => route.name));
+  const unavailableAvailability = availability.filter((result) =>
+    unavailableRouteNames.has(result.route.name),
+  );
+  const registeredAvailability = unavailableAvailability.filter(
+    (result) => result.registeredUrl !== null,
+  );
+  const proxyPort =
+    registeredAvailability.length > 0
+      ? getProxyPort(registeredAvailability[0].registeredUrl)
+      : getProxyPort(routes[0].url);
+  const stateProxyPid = getStateProxyPid();
+  const listeningProxyPids = getListeningProxyPids(proxyPort);
+  const likelyPortlessStateDrift = registeredAvailability.some((result) =>
+    isPortlessNotRegisteredResponse(result.readiness),
+  );
+  const pidMismatch =
+    stateProxyPid !== null &&
+    listeningProxyPids.pids.length > 0 &&
+    !listeningProxyPids.pids.includes(stateProxyPid);
+  const lines = [
+    "Dev server route diagnostics:",
+    `  Portless state dir: ${portlessStateDir}`,
+    `  State proxy pid: ${stateProxyPid ?? "absent"}`,
+    `  Listener pid(s) on :${proxyPort}: ${
+      listeningProxyPids.pids.length > 0 ? listeningProxyPids.pids.join(", ") : "unknown"
+    } (${listeningProxyPids.source})`,
+  ];
+
+  for (const result of unavailableAvailability) {
+    lines.push(`  ${result.route.name}:`);
+    lines.push(`    expected: ${result.route.url}`);
+    lines.push(`    registered: ${result.registeredUrl ?? "no"}`);
+    lines.push(`    readiness: ${formatReadiness(result.readiness)}`);
+  }
+
+  if (likelyPortlessStateDrift || pidMismatch) {
+    lines.push(
+      "Likely cause: portless proxy/app state drift. The app route is registered, but the active proxy is not serving it from the same route store.",
+      formatRecoveryCommand(proxyPort),
+    );
+  }
+
+  return lines.join("\n");
 };
 
 const getTimestamp = () =>
@@ -436,12 +614,13 @@ const sleep = (seconds) =>
 
 const waitForRoutesReady = async (readyMessage) => {
   let unavailableRoutes = routes;
+  let currentRouteList = "";
   const deadline = Date.now() + timeoutSeconds * 1000;
 
   do {
     await sleep(pollIntervalSeconds);
 
-    const currentRouteList = getPortlessListText();
+    currentRouteList = getPortlessListText();
     unavailableRoutes = await getUnavailableRoutes(currentRouteList);
 
     if (unavailableRoutes.length === 0) {
@@ -453,10 +632,12 @@ const waitForRoutesReady = async (readyMessage) => {
     }
   } while (Date.now() < deadline);
 
+  const diagnostics = await getTimeoutDiagnostics(currentRouteList, unavailableRoutes);
+
   throw new Error(
     `Timed out waiting for dev server route(s): ${unavailableRoutes
       .map((route) => route.name)
-      .join(", ")}`,
+      .join(", ")}\n${diagnostics}`,
   );
 };
 

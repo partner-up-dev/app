@@ -5,7 +5,8 @@
     max-width="760px"
     @close="emit('close')"
   >
-    <LocationPickerPanel
+    <LocationPickerBody
+      v-if="open"
       :initial-location="initialLocation"
       :api-key="apiKey"
       :referer="referer"
@@ -18,8 +19,8 @@
 <script setup lang="ts">
 import { PuModal } from "@partner-up-dev/design-web";
 import { useI18n } from "vue-i18n";
-import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
+import LocationPickerBody from "@/domains/location/ui/LocationPickerBody.vue";
 
 withDefaults(
   defineProps<{

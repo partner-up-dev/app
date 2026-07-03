@@ -723,16 +723,16 @@ export interface MessageSchema {
       recommendationSummaryEyebrow: string;
       modifyConditions: string;
       locationEyebrow: string;
-        locationTitle: string;
-        locationAriaLabel: string;
-        locationCreateLabel: string;
-        routeCreateLabel: string;
-        placeTitle: string;
+      locationTitle: string;
+      locationAriaLabel: string;
+      locationCreateLabel: string;
+      routeCreateLabel: string;
+      placeTitle: string;
       placeAriaLabel: string;
       placePlaceholder: string;
       timeEyebrow: string;
       timeTitle: string;
-    timeModeToggleAriaLabel: string;
+      timeModeToggleAriaLabel: string;
       dateWheelAriaLabel: string;
       timeWheelAriaLabel: string;
       advancedModeLabel: string;
@@ -903,9 +903,9 @@ export interface MessageSchema {
       action: string;
     };
   };
-    locationApplicationPage: {
-      title: string;
-      subtitle: string;
+  locationApplicationPage: {
+    title: string;
+    subtitle: string;
     nameLabel: string;
     namePlaceholder: string;
     imageLabel: string;
@@ -923,33 +923,33 @@ export interface MessageSchema {
     status: {
       PENDING: string;
       PUBLISHED: string;
-        REJECTED: string;
-      };
+      REJECTED: string;
     };
-    routeApplicationPage: {
-      title: string;
-      subtitle: string;
-      routeLabel: string;
-      routeHint: string;
-      routeReady: string;
-      missingEvent: string;
-      submitAction: string;
-      submitSuccess: string;
-      mineTitle: string;
-      mineSubtitle: string;
-      emptyMine: string;
-      unnamedRoute: string;
-      validation: {
-        minPoints: string;
-        nameRequired: string;
-        coordinateRequired: string;
-      };
-      status: {
-        PENDING: string;
-        ACCEPTED: string;
-        REJECTED: string;
-      };
+  };
+  routeApplicationPage: {
+    title: string;
+    subtitle: string;
+    routeLabel: string;
+    routeHint: string;
+    routeReady: string;
+    missingEvent: string;
+    submitAction: string;
+    submitSuccess: string;
+    mineTitle: string;
+    mineSubtitle: string;
+    emptyMine: string;
+    unnamedRoute: string;
+    validation: {
+      minPoints: string;
+      nameRequired: string;
+      coordinateRequired: string;
     };
+    status: {
+      PENDING: string;
+      ACCEPTED: string;
+      REJECTED: string;
+    };
+  };
   userProfilePage: {
     title: string;
     subtitle: string;
@@ -1107,8 +1107,17 @@ export interface MessageSchema {
   };
   locationPicker: {
     title: string;
-    iframeTitle: string;
+    searchPlaceholder: string;
     keyMissing: string;
+    mapLoading: string;
+    mapUnavailable: string;
+    mapFailed: string;
+    resultsTitle: string;
+    resultsEmptyTitle: string;
+    resultsEmptyDescription: string;
+    selectedTitle: string;
+    reverseResolving: string;
+    reverseFailed: string;
     nameLabel: string;
     namePlaceholder: string;
     addressLabel: string;
@@ -1202,12 +1211,12 @@ export interface MessageSchema {
     subtitle: string;
     navAnchorEventGroup: string;
     navAnchorEventBasic: string;
-      navAnchorEventBasicSubtitle: string;
-      navAnchorEventLocations: string;
-      navAnchorEventLocationsSubtitle: string;
-      navAnchorEventRouteApplications: string;
-      navAnchorEventRouteApplicationsSubtitle: string;
-      navAnchorEventTime: string;
+    navAnchorEventBasicSubtitle: string;
+    navAnchorEventLocations: string;
+    navAnchorEventLocationsSubtitle: string;
+    navAnchorEventRouteApplications: string;
+    navAnchorEventRouteApplicationsSubtitle: string;
+    navAnchorEventTime: string;
     navAnchorEventTimeSubtitle: string;
     navAnchorEventTags: string;
     navAnchorEventTagsSubtitle: string;
@@ -1711,13 +1720,13 @@ export interface MessageSchema {
     savePlacementAction: string;
     savingAction: string;
   };
-    adminCommerceOrderBill: {
-      ordersTitle: string;
-      emptyOrders: string;
-      emptyStateTitle: string;
-      emptyStateDescription: string;
-      unattachedLabel: string;
-      orderSummaryTitle: string;
+  adminCommerceOrderBill: {
+    ordersTitle: string;
+    emptyOrders: string;
+    emptyStateTitle: string;
+    emptyStateDescription: string;
+    unattachedLabel: string;
+    orderSummaryTitle: string;
     orderIdLabel: string;
     statusLabel: string;
     offerLabel: string;
@@ -1730,12 +1739,12 @@ export interface MessageSchema {
     billStatusLabel: string;
     effectiveTotalLabel: string;
   };
-    adminCommerceFulfillment: {
-      fulfillmentsTitle: string;
-      emptyFulfillments: string;
-      emptyStateTitle: string;
-      emptyStateDescription: string;
-      summaryTitle: string;
+  adminCommerceFulfillment: {
+    fulfillmentsTitle: string;
+    emptyFulfillments: string;
+    emptyStateTitle: string;
+    emptyStateDescription: string;
+    summaryTitle: string;
     fulfillmentIdLabel: string;
     orderIdLabel: string;
     lifecycleLabel: string;
@@ -1842,22 +1851,22 @@ export interface MessageSchema {
     pendingPreferenceTagsTitle: string;
     emptyPendingPreferenceTags: string;
     preferenceTagDescriptionEmpty: string;
-      publishPreferenceTagAction: string;
-      rejectPreferenceTagAction: string;
-      routeApplicationsTitle: string;
-      selectEventForRouteApplicationsHint: string;
-      emptyRouteApplications: string;
-      routeApplicationEditHint: string;
-      routeApplicationRejectPlaceholder: string;
-      acceptRouteApplicationAction: string;
-      rejectRouteApplicationAction: string;
-      routeSummaryFallback: string;
-      routeApplicationStatus: {
-        PENDING: string;
-        ACCEPTED: string;
-        REJECTED: string;
-      };
+    publishPreferenceTagAction: string;
+    rejectPreferenceTagAction: string;
+    routeApplicationsTitle: string;
+    selectEventForRouteApplicationsHint: string;
+    emptyRouteApplications: string;
+    routeApplicationEditHint: string;
+    routeApplicationRejectPlaceholder: string;
+    acceptRouteApplicationAction: string;
+    rejectRouteApplicationAction: string;
+    routeSummaryFallback: string;
+    routeApplicationStatus: {
+      PENDING: string;
+      ACCEPTED: string;
+      REJECTED: string;
     };
+  };
   adminPR: {
     title: string;
     subtitle: string;

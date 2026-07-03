@@ -19,7 +19,7 @@
       </PuHeader>
     </template>
 
-    <LocationPickerPanel
+    <LocationPickerBody
       class="location-picker-page__panel"
       :initial-location="lastPickedLocation"
       @pick="handlePick"
@@ -29,16 +29,16 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import LocationPickerPanel from "@/domains/location/ui/LocationPickerPanel.vue";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
-import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 import {
   readLastPickedLocation,
   saveLastPickedLocation,
 } from "@/domains/location/model/location-picker-session";
+import LocationPickerBody from "@/domains/location/ui/LocationPickerBody.vue";
 
 const { t } = useI18n();
 const router = useRouter();
