@@ -107,6 +107,7 @@ async function installScenarioTencentMapSdk(page: Page): Promise<void> {
               listeners.push(listener);
               this.listeners.set(eventName, listeners);
               if (eventName === "click" && this.container) {
+                window.__scenarioTencentLocationPickerReady = true;
                 this.container.addEventListener("click", () => {
                   const next = window.__scenarioTencentNextLocation ?? {
                     lat: this.center.getLat(),
@@ -217,6 +218,20 @@ const pickRoutePoint = async (page: Page, index: number, point: PRRoute[number])
   await page.getByTestId(`route.point.${index}.pick`).click();
   await page.getByTestId("location-picker.confirm").waitFor({
     state: "visible",
+    timeout: 10_000,
+  });
+  await page.waitForFunction(
+    () => {
+      const scenarioWindow = window as unknown as {
+        __scenarioTencentLocationPickerReady?: boolean;
+      };
+      return scenarioWindow.__scenarioTencentLocationPickerReady === true;
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
+  await page.locator(".location-picker-content__map-overlay").waitFor({
+    state: "detached",
     timeout: 10_000,
   });
 
