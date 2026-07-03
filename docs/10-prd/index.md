@@ -20,7 +20,7 @@ This layer defines:
 - workflows
 - user-visible rules and invariants
 - scope boundaries
-- business glossary
+- universal and context-scoped business vocabulary
 - derived domain structure
 
 ## What Must Not Appear Here
@@ -36,10 +36,10 @@ This layer defines:
 
 Recommended order:
 
-1. `glossary.md` when business language is relevant
+1. `glossary.md` and `vocabulary/*` when business language is relevant
 2. `_drivers/*` for upstream pressure
 3. `behavior/claims.md`
-4. `behavior/workflows.md`
+4. `behavior/workflows.md`, then the relevant `behavior/workflows/*` file
 5. `behavior/rules-and-invariants.md`
 6. `behavior/scope.md`
 7. `domain-structure/*`
@@ -61,4 +61,4 @@ Treat `_drivers` as upstream truth and `domain-structure` as derived structure t
 - treating page structure as the same thing as product capability
 - mixing current implementation detail into durable product rules
 - letting derived domain structure silently redefine product drivers or claims
-- storing business vocabulary outside `glossary.md`
+- defining context-specific vocabulary without routing it through `glossary.md`

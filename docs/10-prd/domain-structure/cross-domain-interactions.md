@@ -13,7 +13,7 @@
 
 ## 3. Event And Anchor Context x PartnerRequest Core
 
-- Anchor Event provides event-context discovery and frontend assisted-create entry for `PR`.
+- Anchor Event provides event-context discovery and event-assisted create entry for `PR`.
 - The Anchor Event page shows discoverable `PR` records whose `PR.type` resolves to that Anchor Event context, grouped by PR-owned time windows.
 - `PR` keeps its durable collaboration facts inside PR state after creation.
 - `PR` creation also exists outside Anchor Event context through home-led natural-language entry.

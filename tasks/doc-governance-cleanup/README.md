@@ -4,7 +4,7 @@
 
 The project has iterated quickly, and durable documentation may now contain stale, duplicated, misplaced, or process-local material. Before editing durable documentation, establish a task-local governance protocol for auditing and cleaning the documentation system.
 
-Hypothesis: the existing documentation layer topology is broadly sound. The missing piece is not a new directory model, but a lifecycle protocol that defines document ownership, claim status, allowed cleanup operations, promotion rules, deletion thresholds, and verification expectations.
+Hypothesis: the existing top-level documentation layer topology is broadly sound. The primary missing piece is lifecycle protocol: document ownership, claim status, allowed cleanup operations, promotion rules, deletion thresholds, and verification expectations. Later PRD review found that `docs/10-prd/` itself may still need internal topology changes, especially around vocabulary, workflows, and rules.
 
 ## Guardrails Touched
 
@@ -20,7 +20,8 @@ Hypothesis: the existing documentation layer topology is broadly sound. The miss
 
 ## Current Understanding
 
-- The current layer indexes already define strong ownership boundaries.
+- The current top-level layer indexes already define strong ownership boundaries.
+- PRD has internal topology pressure: some product truths are still correct, but too much behavior, vocabulary, workflow, and rule detail is carried in a flat structure.
 - The most likely failure modes are lifecycle failures:
   - obsolete claims left active
   - duplicated truths with no single owner
@@ -60,8 +61,11 @@ Solidify protocol
 ## Phase Detail Files
 
 - [Phase 1: Entrypoint Inventory And Routing Audit](./phase-01-entrypoints-audit.md)
+- [Phase 2: PRD Audit](./phase-02-prd-audit.md)
+- [Phase 3: Product TDD Audit](./phase-03-product-tdd-audit.md)
 - [Batch 1 Proposal: Meta-Governance Promotion For F1-003 And F1-005](./batch-01-meta-governance-f1-003-f1-005.md)
 - [Batch 2 Proposal: Root AGENTS.md Bootstrap Slimming](./batch-02-root-agents-bootstrap-slimming.md)
+- [Batch 3 Proposal: PRD Topology And Cleanup Plan For F2-001 To F2-005](./batch-03-prd-f2-001-to-f2-005-solution-plan.md)
 
 ## Verification
 
@@ -81,8 +85,8 @@ Initial exploration reviewed:
 Task-local verification for this packet:
 
 - Protocol draft exists and is reviewable.
-- No durable documentation has been changed.
-- Next mutation should be limited to this task packet unless the user explicitly approves promoting protocol content into `docs/00-meta/`.
+- Durable documentation changes are now limited to approved batches.
+- Next mutation should continue to follow the batch proposal protocol unless the user explicitly approves a different route.
 
 ## Current Status
 
@@ -101,3 +105,22 @@ Batch 2 has been executed for F1-007. Durable docs changed:
 - `docs/00-meta/bootstrap-workflow.md`
 - `docs/00-meta/concepts.md`
 - `docs/15-alignment/README.md`
+
+Phase 2 PRD audit has been drafted. No PRD files have been modified.
+
+Phase 3 Product TDD audit has been drafted. No Product TDD files have been modified.
+
+Batch 3 PRD proposal has been executed after explicit start. Durable docs changed:
+
+- `docs/10-prd/index.md`
+- `docs/10-prd/glossary.md`
+- `docs/10-prd/vocabulary/*`
+- `docs/10-prd/behavior/claims.md`
+- `docs/10-prd/behavior/scope.md`
+- `docs/10-prd/behavior/capabilities.md`
+- `docs/10-prd/behavior/workflows.md`
+- `docs/10-prd/behavior/workflows/*`
+- `docs/10-prd/behavior/rules-and-invariants.md`
+- `docs/10-prd/domain-structure/cross-domain-interactions.md`
+
+Product TDD files were not edited in Batch 3. The claim-realization matrix should be reviewed in a later Product TDD batch because PRD claim names and axes were clarified.

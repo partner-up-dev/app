@@ -25,17 +25,11 @@
 
 ## 3. Event-Context Collaboration
 
-- browse Anchor Events and time-pool driven PR discovery surfaces
-- enter `PR` from Anchor Event context
-- keep the current event-context `PR` detail page focused on facts, participation, and persistent notification-subscription management
-- show public meeting-point guidance in the PR facts card under the primary location
-- show route-mode PRs with a separate Route facts row and a map/detail entry when route geometry is available
-- open the PR message experience through `/pr/:id/messages`
-- open the participant roster modal from the facts-card participant row
-- open venue images through a clickable label row aligned with other facts-card entry rows
-- open participant profile pages from clickable participant badges
+- browse Anchor Events and time-pool driven PR discovery surfaces through list, card, search, and Form Mode
+- enter, create, or materialize `PR`s from Anchor Event context without changing core PR semantics
+- keep event-context `PR` detail focused on facts, participation, guidance, venue context, and notification-subscription management
 - re-discover other active Anchor Events from current Anchor Event and PR context
-- create `PR` from Anchor Event context through frontend assistance into unified structured creation
+- create `PR` from Anchor Event context through event-assisted structured creation
 - create or enter route-mode `PR`s from Anchor Event context when the event-assisted place options carry `PR.route` values
 - review alternative recommendations under the same Anchor Event context
 - submit a new POI location application from Form Mode when the desired location is missing

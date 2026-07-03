@@ -355,6 +355,31 @@ Good batch boundaries:
 
 Avoid mixing product truth, cross-unit contracts, runtime facts, and local AGENTS changes in the same batch unless the impact handshake explains why they must move together.
 
+## 10.1 Batch Proposal Files
+
+Every non-trivial cleanup solution must be written as a task-local batch proposal file before durable docs are edited.
+
+Use this convention:
+
+```text
+tasks/doc-governance-cleanup/batch-NN-<short-topic>.md
+```
+
+Each proposal should include:
+
+- scope and covered findings
+- objective
+- current state
+- proposed owner decision
+- proposed durable mutations
+- impact handshake
+- invariants
+- verification
+- open human decisions
+- execution notes after approval
+
+Do not rely on chat-only explanations for cleanup plans. Chat may summarize, but the inspectable plan lives in the batch file.
+
 ## 11. Cleanup Order
 
 Recommended first pass:
