@@ -1,5 +1,19 @@
 # System State And Authority
 
+## State Family Map
+
+This file intentionally keeps the authority map in one place. Use this family map to scan the dense authority list without treating the families as separate owners.
+
+| Family | State Examples |
+| --- | --- |
+| Collaboration state | `PartnerRequest`, partner slots, PR place facts, join gates, current creator, meeting-point guidance, Study Sprint. |
+| Identity and session state | users, anonymous UUID continuity, authenticated session, WeChat binding and official-account follow markers. |
+| Event and location state | Anchor Events, landing rollout config, time pools, event presets, POIs, POI submissions, location availability. |
+| Messaging and notification state | PR messages, inbox state, notification opportunities, waves, deliveries, jobs, outbox events. |
+| Commerce, payment, and provider state | merchandising, listing quotes, orders, rental and RideHailing execution, bills, provider registry, payment execution. |
+| Analytics and BI state | telemetry storage, enrichment, aggregate/projection tables, BI facts. |
+| Frontend non-authoritative state | route-local UI state, TanStack Query caches, local/session storage, share replay, capability fallback state. |
+
 ## Backend-Authoritative State
 
 Persisted in Postgres via backend entities and repositories:

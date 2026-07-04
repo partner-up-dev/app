@@ -66,6 +66,11 @@ Solidify protocol
 - [Batch 1 Proposal: Meta-Governance Promotion For F1-003 And F1-005](./batch-01-meta-governance-f1-003-f1-005.md)
 - [Batch 2 Proposal: Root AGENTS.md Bootstrap Slimming](./batch-02-root-agents-bootstrap-slimming.md)
 - [Batch 3 Proposal: PRD Topology And Cleanup Plan For F2-001 To F2-005](./batch-03-prd-f2-001-to-f2-005-solution-plan.md)
+- [Batch 4: Product TDD Cleanup Plan And Execution Record](./batch-04-product-tdd-f3-001-to-f3-007-plan.md)
+  - [Segment 1: Authority Bridge And Claim Matrix Refresh](./batch-04-segment-1-authority-and-claim-matrix.md)
+  - [Segment 2: Cross-Unit Contract Split](./batch-04-segment-2-cross-unit-contract-split.md)
+  - [Segment 3: Ecommerce Contract Durable Reframe And Provider Depth](./batch-04-segment-3-ecommerce-contract-depth.md)
+  - [Segment 4: Local Development Origin Ownership](./batch-04-segment-4-local-dev-origin-ownership.md)
 
 ## Verification
 
@@ -108,7 +113,7 @@ Batch 2 has been executed for F1-007. Durable docs changed:
 
 Phase 2 PRD audit has been drafted. No PRD files have been modified.
 
-Phase 3 Product TDD audit has been drafted. No Product TDD files have been modified.
+Phase 3 Product TDD audit has been drafted. During that audit phase, no Product TDD files were modified.
 
 Batch 3 PRD proposal has been executed after explicit start. Durable docs changed:
 
@@ -124,3 +129,23 @@ Batch 3 PRD proposal has been executed after explicit start. Durable docs change
 - `docs/10-prd/domain-structure/cross-domain-interactions.md`
 
 Product TDD files were not edited in Batch 3. The claim-realization matrix should be reviewed in a later Product TDD batch because PRD claim names and axes were clarified.
+
+Batch 4 Product TDD cleanup has been planned and executed as segmented work.
+
+Batch 4 Segment 1 has been executed. Durable docs changed:
+
+- `docs/20-product-tdd/claim-realization-matrix.md`
+- `docs/20-product-tdd/system-state-and-authority.md`
+- `docs/20-product-tdd/index.md`
+
+Batch 4 Segments 2, 3, and 4 have also been executed. Additional durable docs changed:
+
+- `docs/20-product-tdd/cross-unit-contracts.md`
+- `docs/20-product-tdd/pr-lifecycle-contracts.md`
+- `docs/20-product-tdd/event-context-contracts.md`
+- `docs/20-product-tdd/pr-messaging-contracts.md`
+- `docs/20-product-tdd/admin-surface-contracts.md`
+- `docs/20-product-tdd/ecommerce-contracts.md`
+- `docs/20-product-tdd/ecommerce-provider-contracts.md`
+
+Batch 4 is complete.

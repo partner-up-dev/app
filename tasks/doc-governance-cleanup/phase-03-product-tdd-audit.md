@@ -138,6 +138,7 @@ After PRD claims change, update the matrix in the same or immediately following 
 
 Decision:
 Batch 3 later decided not to add Claim 6. Product TDD follow-up should map bounded fulfillment/support loops under the clarified Claim 4 axis unless a future PRD batch changes the claim set.
+Batch 4 Segment 1 later executed this follow-up by refreshing `claim-realization-matrix.md`.
 ```
 
 ### F3-003: Cross-Unit Contracts Is Overloaded And Has Domain-Specific Split Pressure
@@ -178,6 +179,7 @@ Do not split during PRD-5. First use this file as authority evidence. Split only
 
 Decision:
 Track for Product TDD cleanup after PRD cleanup.
+Batch 4 Segment 2 later executed the split into focused Product TDD contract files.
 ```
 
 ### F3-004: Ecommerce Contracts Own Commerce Authority But Still Contain Task-Local Issue Framing
@@ -214,6 +216,7 @@ Reframe as durable ecommerce contract without changing technical meaning. Keep a
 
 Decision:
 Candidate for a small Product TDD cleanup batch.
+Batch 4 Segment 3 later removed the issue-local framing.
 ```
 
 ### F3-005: Ecommerce Provider-Specific Details May Be Too Deep For Product TDD
@@ -248,6 +251,7 @@ Before moving, identify whether each provider-specific line is required to under
 
 Decision:
 Do not touch before ecommerce-specific audit.
+Batch 4 Segment 3 later split provider-specific CaoCao RideHailing details into `ecommerce-provider-contracts.md` while keeping cross-unit billing/cancellation semantics in `ecommerce-contracts.md`.
 ```
 
 ### F3-006: System State And Authority Is A Strong Product TDD Owner But Dense
@@ -283,6 +287,7 @@ Do not split until a stable family boundary exists. It currently functions as th
 
 Decision:
 Keep as-is for now.
+Batch 4 Segment 1 later added a State Family Map for readability without splitting ownership.
 ```
 
 ### F3-007: Local Development Contract May Be Misplaced Inside Cross-Unit Contracts
@@ -319,6 +324,7 @@ Audit deployment docs before moving. Do not remove from Product TDD while it is 
 
 Decision:
 Defer until deployment audit.
+Batch 4 Segment 4 later found `docs/40-deployment/environments.md` already owns local runtime workflow details, so Product TDD now keeps only local typed-origin contract material.
 ```
 
 ### F3-008: Analytics And BI Split Is Coherent But Should Be Kept As A Pair
@@ -445,4 +451,4 @@ rg -n 'backend|frontend|command|write path|module|boundary|authored|assigns|inje
 rg -n 'Claim|claim|PRD|product claim|claims' docs/20-product-tdd
 ```
 
-No Product TDD files were modified.
+During the Phase 3 audit itself, no Product TDD files were modified.

@@ -2,8 +2,8 @@
 
 ## Scope
 
-This document preserves the smallest durable cross-unit technical truth for the
-issue-231 ecommerce slice.
+This document preserves the smallest durable cross-unit technical truth for
+PR-attached ecommerce loops.
 
 It owns:
 
@@ -13,11 +13,14 @@ It owns:
 - cross-unit owner boundaries for Merchandising, Trade, Fulfillment, Bill, and
   Payment
 - minimum frontend journey spine for Rental and RideHailing
+- provider behavior only where it affects cross-unit user experience, billing,
+  settlement, or cancellation semantics
 
 It does not own:
 
 - admin field-by-field form configuration
-- provider-specific ride dispatch details
+- provider-adapter payload and endpoint details, except where they define
+  cross-unit settlement or cancellation behavior
 - runtime rollout procedures
 - low-level entity schema details that code can explain cheaply
 
@@ -251,7 +254,7 @@ Rules:
 - `pr_attached_orders` is retired; PR owns `orders uuid[]`
 - `trade_orders.offerId` is the order-offer identity
 
-Current issue-231 uniqueness constraint:
+PR-attached order uniqueness rule:
 
 - for one `(prId, offerId)`, allow at most one non-terminal order
 
@@ -406,14 +409,12 @@ RideHailing:
   orders one unresolved choice-set item: several acceptable vehicle SKU
   candidates, with one final resolution.
 - create-order sends the user-authorized candidate set to the selected
-  RideHailing provider port. CaoCao supports multi-candidate dispatch through
-  `/common/orderCarV2` with `is_simultaneously_call=1` and
-  `service_type_price`, so the CaoCao adapter submits all selected candidates
-  instead of choosing a cheapest fallback. When a future provider adapter does
-  not support multi-candidate dispatch, that adapter owns the
-  provider-specific fallback choice. Provider create failure cancels the local
-  order without retrying the next candidate/provider and returns the
-  `CANCELLED` create-order result to the Ordering Page.
+  RideHailing provider port. Providers that support multi-candidate dispatch
+  should receive all selected candidates instead of a locally chosen cheapest
+  fallback. When a provider adapter does not support multi-candidate dispatch,
+  that adapter owns the provider-specific fallback choice. Provider create
+  failure cancels the local order without retrying the next candidate/provider
+  and returns the `CANCELLED` create-order result to the Ordering Page.
 - provider dispatch binding is stored on `ride_hailing_orders`, not on the
   choice-set resolution. The choice-set resolution represents only the final
   service vehicle confirmed by the provider lifecycle.
@@ -427,24 +428,18 @@ RideHailing:
   provider order-detail reads
 - provider final settlement truth must come from a provider query result, but
   the concrete source depends on the provider's currently integrated API
-  surface
-- for the currently integrated CaoCao surface:
-  - `ride_hailing_orders.finalSettlementInput` is derived from
-    `queryOrderDetailV2.orderFeeVo.totalFee`
-  - `finalSettlementInput.amountFen` binds `orderFeeVo.totalFee`
-  - `orderFeeVo.companyPayAmount` is not the current settlement source
+  surface. Provider-specific source fields belong to
+  `ecommerce-provider-contracts.md`.
 - local RideHailing terminal phases that may trigger final-settlement capture
   are only `FINISHED` and `CANCELLED`
 - terminal final-settlement capture is best-effort:
   - when a local RideHailing order is observed in `FINISHED` or `CANCELLED`
     and `finalSettlementInput` is still null, backend may issue the provider
     final-settlement query inline on that natural sync path
-  - for the currently integrated CaoCao surface, `queryFinalSettlement()` is a
-    dedicated adapter read that internally calls `queryOrderDetailV2` and reads
-    `orderFeeVo.totalFee`
   - if that final-settlement query does not yet return an authoritative
-    `orderFeeVo.totalFee`, backend keeps `finalSettlementInput = null` and
-    relies on a later natural sync trigger rather than fabricating settlement truth
+    provider settlement amount, backend keeps `finalSettlementInput = null`
+    and relies on a later natural sync trigger rather than fabricating
+    settlement truth
   - provider order-detail sync must not directly materialize
     `finalSettlementInput`; terminal settlement capture still goes through the
     provider final-settlement query contract, even if the adapter reuses the
@@ -459,7 +454,7 @@ RideHailing:
     the amount and require explicit confirmation before cancellation
   - it must not be reused as post-cancel final settlement truth
 - for cancelled RideHailing orders, if the provider final-settlement query
-  later returns a non-zero `orderFeeVo.totalFee`, backend may still materialize
+  later returns a non-zero settlement amount, backend may still materialize
   that result through the same final Bill model
 
 ## Termination Contract
