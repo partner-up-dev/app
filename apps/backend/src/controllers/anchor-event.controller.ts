@@ -21,7 +21,7 @@ import {
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
 import { prAllowEditAfterReadySchema, prRouteSchema } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
-import { throwHttpProblem } from "../lib/problem-details";
+import { throwAuthenticatedRequired } from "../domains/pr-core/services/creator-identity.service";
 
 const app = new Hono<AuthEnv>();
 
@@ -131,10 +131,10 @@ const routeApplicationSchema = z.object({
   route: prRouteSchema,
 });
 
-const requireSessionUserId = (c: Context<AuthEnv>): UserId => {
+const requireAuthenticatedUserId = (c: Context<AuthEnv>): UserId => {
   const auth = c.get("auth");
-  if (!auth.userId) {
-    return throwHttpProblem({ status: 401, detail: "Authentication required" });
+  if (!auth.roles.includes("authenticated") || !auth.userId) {
+    return throwAuthenticatedRequired();
   }
   return auth.userId as UserId;
 };
@@ -152,7 +152,7 @@ export const anchorEventRoute = app
     return c.json(events);
   })
   .get("/route-applications/mine", async (c) => {
-    const userId = requireSessionUserId(c);
+    const userId = requireAuthenticatedUserId(c);
     const applications = await listMyAnchorEventRouteApplications(userId);
     return c.json(applications);
   })
@@ -163,7 +163,7 @@ export const anchorEventRoute = app
     async (c) => {
       const { eventId } = c.req.valid("param");
       const payload = c.req.valid("json");
-      const userId = requireSessionUserId(c);
+      const userId = requireAuthenticatedUserId(c);
       const application = await submitAnchorEventRouteApplication({
         anchorEventId: eventId,
         route: payload.route,
