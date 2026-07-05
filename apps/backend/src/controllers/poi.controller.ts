@@ -1,4 +1,3 @@
-import { throwHttpProblem } from "../lib/problem-details";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -11,6 +10,7 @@ import {
   listMyPoiApplications,
   submitPoiApplication,
 } from "../domains/poi";
+import { throwAuthenticatedRequired } from "../domains/pr-core/services/creator-identity.service";
 
 const app = new Hono<AuthEnv>();
 
@@ -27,10 +27,10 @@ const poiApplicationSchema = z.object({
   imageUrl: z.string().trim().url().max(2048),
 });
 
-const requireSessionUserId = (c: Context<AuthEnv>): UserId => {
+const requireAuthenticatedUserId = (c: Context<AuthEnv>): UserId => {
   const auth = c.get("auth");
-  if (!auth.userId) {
-    return throwHttpProblem({ status: 401, detail: "Authentication required" });
+  if (!auth.roles.includes("authenticated") || !auth.userId) {
+    return throwAuthenticatedRequired();
   }
   return auth.userId as UserId;
 };
@@ -82,7 +82,7 @@ export const poiRoute = app
     return c.json(pois.map(toPublicPoiResponse));
   })
   .post("/applications", zValidator("json", poiApplicationSchema), async (c) => {
-    const userId = requireSessionUserId(c);
+    const userId = requireAuthenticatedUserId(c);
     const payload = c.req.valid("json");
     const application = await submitPoiApplication({
       title: payload.title,
@@ -92,7 +92,7 @@ export const poiRoute = app
     return c.json(application, 201);
   })
   .get("/applications/mine", async (c) => {
-    const userId = requireSessionUserId(c);
+    const userId = requireAuthenticatedUserId(c);
     const applications = await listMyPoiApplications(userId);
     return c.json(applications);
   });
