@@ -74,6 +74,7 @@ Solidify protocol
   - [Segment 3: Ecommerce Contract Durable Reframe And Provider Depth](./batch-04-segment-3-ecommerce-contract-depth.md)
   - [Segment 4: Local Development Origin Ownership](./batch-04-segment-4-local-dev-origin-ownership.md)
 - [Batch 5: Unit TDD Content Recovery Plan And Execution Record](./batch-05-unit-tdd-critical-cleanup-plan.md)
+- [Batch 6: Local AGENTS Critical Cleanup Plan And Execution Record](./batch-06-local-agents-critical-cleanup-plan.md)
 
 ## Verification
 
@@ -165,3 +166,13 @@ Batch 5 Unit TDD content recovery has been executed. Durable docs changed:
 - `apps/frontend/AGENTS.md`
 
 Batch 5 keeps the current flat Unit TDD layout as the working shape and defers the flat-vs-tree topology decision until the recovered content proves its shape.
+
+Batch 6 local AGENTS critical cleanup has been executed. Durable docs changed:
+
+- `apps/backend/AGENTS.md`
+- `apps/frontend/AGENTS.md`
+- `apps/frontend/src/AGENTS.components.md`
+- `apps/frontend/src/AGENTS.styles.md`
+- `apps/frontend/src/styles/AGENTS.md`
+- `apps/frontend/src/domains/event/ui/AGENTS.md`
+- `apps/frontend/src/shared/ui/AGENTS.md`

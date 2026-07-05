@@ -55,19 +55,17 @@ tests/
 
 ## Documents
 
-Read the smallest useful set and keep durable docs current:
+Follow root `AGENTS.md` for request routing, typed input classification, and durable doc ownership.
 
-- Root route and mode guidance: `AGENTS.md`, then `docs/00-meta/*`
-- Product truth: `docs/10-prd/**/*.md`
-- Cross-unit technical truth: `docs/20-product-tdd/*.md`
-- Runtime and rollout truth: `docs/40-deployment/*.md`
-- `docs/30-unit-tdd/<unit>.md` only when a named hard-unit doc exists and is relevant
-- Active task-local packets, evidence, and temporary reasoning: `tasks/*`
-- Local backend constraints:
-  - `src/entities/AGENTS.md`
-  - `src/repositories/AGENTS.md`
-  - `src/controllers/AGENTS.md`
-  - `src/services/AGENTS.md`
+Backend-local entrypoints:
+
+- `docs/30-unit-tdd/backend-migration-ledger.md` for migration ledger, prefix, environment, seed, and reset rules.
+- `docs/30-unit-tdd/wechat-oauth-handoff.md` before changing WeChat OAuth callback, handoff cookie, or callback redirect behavior.
+- `src/entities/AGENTS.md`
+- `src/repositories/AGENTS.md`
+- `src/controllers/AGENTS.md`
+- `src/services/AGENTS.md`
+- active task-local packet under `tasks/` for volatile implementation state.
 
 ## Development Guidelines
 
@@ -86,27 +84,15 @@ Read the smallest useful set and keep durable docs current:
 
 ## Database Workflow
 
-- Drizzle remains the schema source of truth. Generated schema SQL lives in `drizzle/`.
-- Hand-authored forward-only data migrations live in `data-migrations/`.
-- `pnpm db:migrate` runs the custom migration runner and records applied schema and data migrations in `app_migrations`.
-- The migration environment defaults to `production`. Use `pnpm db:migrate:dev`
-  or `pnpm db:reset:dev` for development-only data migrations; do not hand-type
-  the environment variable for routine local work.
-- CI/CD deploys and invokes a dedicated FC migration function inside the VPC, but it still calls the same migration runner as `pnpm db:migrate`.
-- `pnpm db:lint` validates migration and seed file naming plus transaction-mode rules before deploy.
-- `pnpm db:check` runs `drizzle-kit check`; it complements but does not replace repo-owned migration/seed lint.
-- `pnpm db:next-migration <drizzle|data-migrations>` prints the next global numeric prefix shared by both migration folders.
-- `pnpm db:reset` is local-only and uses the default `production` migration
-  environment. It drops and recreates the local database, applies universal and
-  production data migrations, then runs seeds.
-- `pnpm db:reset:dev` is the local reset entry when development-only data
-  migrations are needed.
-- `pnpm db:seed` reruns all files in `seeds/`, so every seed file must be idempotent.
-- If a migration file contains `CONCURRENTLY`, it must include `-- migration: no-transaction`.
-- Only data migrations may use `-- migration: environments=...`; schema
-  migrations and seed files must not use environment metadata.
-- Staging and production are forward-only. Do not add reset logic or env-specific migration folders.
-- Production schema changes should follow expand / backfill / contract discipline.
+For the full local ledger model, read `docs/30-unit-tdd/backend-migration-ledger.md`.
+
+Immediate rules:
+
+- Use `pnpm db:next-migration <drizzle|data-migrations>` before creating a migration.
+- Run `pnpm db:lint` when migration or seed files change.
+- Run `pnpm db:check` when generated Drizzle schema SQL changes.
+- Use `pnpm db:migrate:dev` or `pnpm db:reset:dev` for development-only data migrations; do not hand-type the environment variable for routine local work.
+- Staging and production are forward-only. Do not add reset logic or environment-specific migration folders.
 
 ## Best Practice Checklist
 
@@ -117,18 +103,3 @@ Read the smallest useful set and keep durable docs current:
 5. Side effects: durable async work should use explicit job scheduling or domain-specific services with persisted state.
 6. Operation logs: use `operationLogService.log()` (fire-and-forget) for audit trail on domain actions.
 7. Background jobs: persist delayed jobs through `jobRunner.scheduleOnce()` and drive execution via tick endpoints or request-tail kick; never use raw `setInterval`.
-
-## Product And Runtime Truth Sources
-
-Keep this file operational and avoid using it as a feature-state mirror.
-
-For durable truth, use:
-
-- Product what/why, workflows, rules, and business vocabulary: `docs/10-prd/**/*.md`
-- Cross-unit technical truth and contracts: `docs/20-product-tdd/*.md`
-- Runtime and rollout truth: `docs/40-deployment/*.md`
-
-For volatile implementation status or migration notes:
-
-- record them in active `tasks/<task>/` packets as task-local workspace state
-- keep this file limited to stable backend operating guidance

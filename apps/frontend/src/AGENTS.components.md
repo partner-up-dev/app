@@ -11,7 +11,7 @@ and domain-specific component contracts in nearer `AGENTS.md` files.
 - Domain-owned UI belongs under `src/domains/<domain>/ui/*`; read the nearest
   domain `AGENTS.md` when it exists.
 - Component and class naming follows `src/AGENTS.naming.md`.
-- All component styling follows `src/styles/AGENTS.md`.
+- All component styling follows `src/AGENTS.styles.md`.
 - Data fetching local rules live in `src/queries/AGENTS.md`.
 
 ## Data And Types

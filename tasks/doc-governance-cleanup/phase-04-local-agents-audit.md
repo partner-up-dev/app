@@ -231,3 +231,10 @@ docs/30-unit-tdd/<unit>/*.md
 Other local AGENTS cleanup findings remain open for a later batch, especially
 app-level AGENTS slimming and Event UI AGENTS contract extraction after the new
 Unit TDD docs are reviewed.
+
+Batch 6 resolved the critical remaining local AGENTS findings:
+
+- F4A-001 resolved by slimming backend/frontend root AGENTS and routing general durable ownership back to root `AGENTS.md`.
+- F4A-003 resolved by slimming Event UI AGENTS to local hazards and pointers to Product TDD / Unit TDD.
+- F4A-005 resolved by slimming Shared UI AGENTS to app-local primitive hazards and routing design-web package API guidance to `@partner-up-dev/design-web#design-web`.
+- F4A-006 resolved by moving compressed app-local style governance to `apps/frontend/src/AGENTS.styles.md` and keeping `apps/frontend/src/styles/AGENTS.md` as a one-line nearest-folder pointer.
