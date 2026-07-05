@@ -67,6 +67,9 @@
 - route support entrypoints through "Need Help"
 - route `/contact-support` toward `/contact-author` and `/about`
 - expose repository and frontend/backend commit hashes in `/about`
+- let analytics users inspect Business Intelligence dashboards for retention,
+  PR funnels, Anchor Event behavior, source attribution, and official-account
+  follow nudge behavior
 - let operator tooling maintain Anchor Event and POI semantics
 - let operator tooling publish or reject user-submitted POI location applications
 - let operator tooling upload and maintain POI gallery images, Anchor Event cover images, and event beta-group QR images

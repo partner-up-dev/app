@@ -1,14 +1,19 @@
 # job-runner-trigger (Aliyun FC Timer Function)
 
-This function is used as a timer-triggered bridge for serverless scheduling.
-It sends `POST` requests to backend maintenance tick endpoints.
+This function is a timer-triggered bridge for serverless scheduling. It sends
+`POST` requests to backend maintenance tick endpoints:
 
 - `/internal/maintenance/tick`
 
+Durable runtime cron, rollout, and recovery truth lives in
+`docs/40-deployment/backend-runtime.md`,
+`docs/40-deployment/backend-rollout.md`, and `docs/40-deployment/recovery.md`.
+
 ## File
 
-- Handler entry: `job-runner-trigger.cjs`
-- Exported handler: `exports.handler`
+- handler entry: `job-runner-trigger.cjs`
+- exported handler: `exports.handler`
+- FC template: `s.yaml`
 
 ## Environment Variables
 
@@ -23,21 +28,20 @@ It sends `POST` requests to backend maintenance tick endpoints.
 
 ## Runtime Behavior
 
-1. Parse `JOB_RUNNER_TICK_URL` by `,` and trim spaces.
-2. Trigger all URLs in parallel using `fetch`.
-3. Any non-2xx response is treated as failure.
-4. If at least one URL fails, the whole invocation fails.
-5. If all URLs succeed, invocation succeeds and returns per-URL results.
+1. parse `JOB_RUNNER_TICK_URL` by `,` and trim spaces
+2. trigger all URLs in parallel using `fetch`
+3. treat any non-2xx response as failure
+4. fail the whole invocation if at least one URL fails
+5. return per-URL results when all URLs succeed
 
 ## Failure Semantics
 
 - Fail-fast is not used; all targets are attempted in the same invocation.
 - Error message includes failed URLs and response summary.
 
-## Deployment
+## Cron Source
 
-- FC template: `apps/backend/fc-job-runner-trigger/s.yaml`.
-- Timer cron expression:
-  `CRON_TZ=Asia/Shanghai 0 0/30 8-23 ? * ?`.
-- CI workflow for this function:
-  `.github/workflows/job-runner-trigger-fc-deploy.yml`
+The FC timer cron expression is deployed from
+`ALIYUN_FC_JOB_RUNNER_TRIGGER_CRON`. The current GitHub Actions workflow
+fallback is `0 */30 * * * *`; set the GitHub Environment variable explicitly
+when an environment needs a different cadence.

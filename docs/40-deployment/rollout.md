@@ -1,227 +1,29 @@
 # Rollout
 
-## CI Validation Gates
+`docs/40-deployment/` owns hosted rollout truth. This file is a router for
+rollout surfaces that have different operators, failure modes, and release
+semantics.
 
-Hosted PR validation is split by gate owner:
+## Rollout Owners
 
-- backend gate: `.github/workflows/backend-gate.yml`; backend typecheck, backend unit tests, DB artifact lint, and backend scenario tests
-- frontend gate: `.github/workflows/frontend-gate.yml`; frontend unit tests, frontend build, and frontend-owned static quality checks
-- E2E gate: `.github/workflows/e2e-gate.yml`; root-owned system scenario tests through `pnpm test:scenario:system`
+| Surface | Owner doc | What it owns |
+| --- | --- | --- |
+| CI validation gates | [ci-gates.md](./ci-gates.md) | PR validation gate topology and install boundaries |
+| Backend FC rollout | [backend-rollout.md](./backend-rollout.md) | backend migration, layer, FC deploy, alias publication, job-runner trigger rollout |
+| Frontend ESA rollout | [frontend-rollout.md](./frontend-rollout.md) | frontend ESA deploy flow, hosted validation, ESA project publication |
+| Release automation | [release-automation.md](./release-automation.md) | Release Please source metadata and deployment-gated GitHub Release semantics |
 
-Backend and frontend gates run for PRs targeting `develop` or `master` when
-their owned surfaces or workspace install inputs change.
+## Hosted Rollout Rules
 
-Install boundaries follow gate ownership:
-
-- backend-only gates install the backend dependency graph instead of the whole
-  frontend workspace graph; they must not require GitHub Packages credentials
-  for frontend-only packages such as `@partner-up-dev/design-web`
-- backend gate installs root test tooling plus the backend dependency graph
-  through `pnpm --filter . --filter @partner-up-dev/backend... install --frozen-lockfile`
-- frontend and E2E gates may install the full workspace graph because they
-  build or execute the frontend; they require GitHub Packages read auth through
-  `NODE_AUTH_TOKEN`
-
-E2E gate runs for PRs targeting `master`. It is also available through
-`workflow_dispatch` for release qualification and diagnosis. The E2E gate uses
-GitHub Actions Postgres service state via `SCENARIO_DATABASE_ADMIN_URL`,
-installs Chromium through Playwright, and lets the system scenario Vitest project start the
-Vite frontend server, backend HTTP server, and isolated temporary database.
-
-## Backend CI/CD Flow
-
-Primary workflow: `.github/workflows/backend-fc-deploy.yml`
-
-The workflow prepares the GitHub runner and delegates deploy control flow to
-`scripts/ci/fc/deploy_backend.sh`. The script is the canonical executable
-rollout path for backend FC deployment.
-
-Runner toolchain versions are explicit: Node is read from `.node-version`,
-pnpm is read from the root `packageManager`, and Serverless Devs is pinned in
-`scripts/ci/fc/common.sh`. GitHub Action majors are kept on Node24-compatible
-releases while project commands run on Node 22.
-
-The backend deploy workflow is triggered by backend source changes and by root
-workspace/toolchain inputs used during backend filtered install, build, or layer packaging:
-`.node-version`, `package.json`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`.
-It does not trigger on `.npmrc` changes and does not require GitHub Packages
-read permissions because frontend-only private packages are outside the backend
-install graph.
-
-### Standard deploy path
-
-1. checkout
-2. install backend dependency graph with `pnpm --filter @partner-up-dev/backend... install --frozen-lockfile`
-3. lint backend migration/seed artifacts
-4. build FC migration bundle
-5. deploy FC migration function
-6. invoke migration function with `PARTNERUP_ENVIRONMENT` mapped from branch
-   (`develop` -> `staging`, `master` -> `production`)
-7. prepare or publish backend `node_modules` layer when needed
-8. resolve latest layer ARN
-9. build backend
-10. package backend function payload
-11. inject `BACKEND_COMMIT_HASH` from `GITHUB_SHA`
-12. deploy backend FC function
-13. on `master`, publish function version and update `production` alias
-14. on `master`, create the backend GitHub Release after production alias
-    publication succeeds
-
-## Rollout Guarantees
-
-- migrations happen before backend deploy
-- backend migration environment is explicit in deploy and is not inferred by
-  the migration runner
-- backend deploys run serially through the `backend-fc-deploy` concurrency group
-- layer-only publish is supported via workflow dispatch input
-- runtime build metadata stays available even when the deployed package has no `.git` directory
-- backend GitHub Releases are gated by successful production deployment
-
-## Release Automation
-
-Primary workflow: `.github/workflows/release-please.yml`
-
-Release Please owns automated version bumps, changelog updates, release tags,
-and GitHub Release notes after the `0.3.0` bootstrap baseline.
-
-Tracked release units:
-
-- backend: `apps/backend/package.json`, `apps/backend/CHANGELOG.md`,
-  `backend-vX.Y.Z`
-- frontend: `apps/frontend/package.json`, `apps/frontend/CHANGELOG.md`,
-  `frontend-vX.Y.Z`
-
-The shared manifest is `.release-please-manifest.json`.
-
-Backend and frontend GitHub Release semantics are deployment-gated:
-
-- Backend Release Please PRs update source release metadata, but backend GitHub
-  Releases are skipped in the general release workflow. The backend deployment
-  workflow creates the backend GitHub Release only after the `master`
-  production rollout finishes successfully.
-- Frontend Release Please PRs update source release metadata, but frontend
-  GitHub Releases are skipped in the general release workflow. The frontend
-  deployment workflow creates the frontend GitHub Release only after the
-  `master` production ESA rollout finishes successfully.
-
-If release PR checks must run when opened by automation, configure
-`RELEASE_PLEASE_TOKEN` as a GitHub PAT or GitHub App token with repository
-contents, pull request, and issue-label permissions. Without that secret, the
-workflow falls back to `GITHUB_TOKEN`.
-
-## DB Artifact Validation
-
-PR validation workflow: `.github/workflows/backend-db-validate.yml`
-
-This workflow:
-
-1. installs the backend dependency graph with `pnpm --filter @partner-up-dev/backend... install --frozen-lockfile`
-2. runs `pnpm --filter @partner-up-dev/backend db:lint`
-3. regenerates Drizzle SQL artifacts
-4. fails on artifact drift under `apps/backend/drizzle` and `apps/backend/drizzle/meta`
-
-## Job Runner Trigger Rollout
-
-Separate workflow: `.github/workflows/job-runner-trigger-fc-deploy.yml`
-
-This deploys the trigger function that calls the backend job tick endpoint on
-cron expression `CRON_TZ=Asia/Shanghai 0 0/30 8-23 ? * ?`.
-
-The workflow delegates deployment to
-`scripts/ci/fc/deploy_job_runner_trigger.sh`.
-
-## Frontend ESA CI/CD Flow
-
-Current frontend deployment target is Aliyun ESA.
-
-Primary workflow: `.github/workflows/frontend-esa-deploy.yml`
-
-The workflow prepares the GitHub runner and delegates deploy control flow to
-`scripts/ci/esa/deploy_frontend.sh`. The script is the canonical executable
-rollout path for frontend ESA deployment.
-
-Repo-tracked rollout facts:
-
-- deploy descriptor: `apps/frontend/esa.jsonc`
-- hosted install command: `pnpm install --frozen-lockfile`
-- hosted package registry auth: `NODE_AUTH_TOKEN` for GitHub Packages reads,
-  including `@partner-up-dev/design-web`
-- hosted validation: frontend design-token lint, frontend unit tests, and
-  frontend build
-- build command: `pnpm --filter @partner-up-dev/frontend build`
-- published assets directory: `./dist`
-- not found strategy: SPA fallback
-
-The frontend deploy workflow is triggered by frontend source changes, backend
-source changes that may affect frontend RPC types, and root workspace/toolchain
-inputs used during install or build.
-
-### Standard deploy path
-
-1. checkout
-2. install workspace dependencies
-3. validate required deployment environment
-4. lint frontend design tokens
-5. run frontend unit tests
-6. build frontend static assets
-7. authenticate `esa-cli` with ESA access key credentials
-8. deploy `apps/frontend/dist` to the GitHub Environment-selected Aliyun ESA
-   project and publish it to that project's `production` environment
-9. on `master`, create the frontend GitHub Release after production ESA
-   deployment succeeds
-
-### Environment behavior
-
-- `develop` uses the GitHub `staging` environment and its configured ESA
-  project
-- `master` uses the GitHub `production` environment and its configured ESA
-  project
-- each ESA project deploy publishes to ESA environment `production`
-- deploys run serially through the `frontend-esa-deploy` concurrency group
-- `VITE_API_URL` is supplied by the GitHub Environment variable of the same
-  name
-- `VITE_TENCENT_LBS_JS_KEY` is supplied by the GitHub Environment secret of the
-  same name
-- `VITE_FRONTEND_COMMIT_HASH` is injected from `GITHUB_SHA`
-- ESA credentials are supplied through GitHub Environment secrets
-  `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`; the
-  frontend ESA deploy script maps them to the ESA CLI credential environment
-  names before invoking `esa-cli`
-- frontend environment isolation is implemented by separate ESA projects, not
-  by ESA's `staging` environment inside one project
-
-Frontend GitHub Releases are gated by successful `master` production ESA
-deployment. The general Release Please workflow creates frontend release PRs
-and updates frontend source release metadata, but it skips frontend GitHub
-Release creation. The frontend deploy workflow creates the frontend GitHub
-Release after production ESA deployment succeeds.
-
-## Frontend Design Package Updates
-
-`@partner-up-dev/design-web` publishes its TanStack Intent agent skill inside
-the package under `skills/design-web`. Updating the package dependency is the
-skill update mechanism. Do not manually edit local copies such as
-`~/.codex/skills/design-web`.
-
-After changing the installed design-web version, run this single command from
-the repository root:
-
-```powershell
-node scripts/sync-design-web-package.mjs [<version-or-spec>]
-```
-
-The script also installs/refreshes the `codex` `SessionStart` hook (no
-`PreToolUse` hook), so Codex sessions inherit the same skill catalog on startup.
-
-`load` remains the agent-facing source of truth for the current package-shipped
-skill. Do not run `intent install` or add an `intent-skills` managed block unless
-the repository intentionally adopts that mapping format.
-
-To skip hook refresh only (not recommended), pass:
-
-```powershell
-node scripts/sync-design-web-package.mjs --skip-hooks
-```
+- GitHub Actions is the canonical hosted rollout path.
+- Repository scripts are the canonical executable rollout path used by Actions.
+- Manual deployment, when used, must go through the same scripts and preserve
+  the same ordering.
+- Backend migrations happen before backend app deploy.
+- Production backend GitHub Releases happen only after production alias
+  publication succeeds.
+- Production frontend GitHub Releases happen only after production ESA deploy
+  succeeds.
 
 ## Manual Rollout Reality
 
@@ -230,5 +32,9 @@ by GitHub Actions. GitHub Actions remains the canonical hosted rollout path.
 
 If manual deploy is used:
 
-- migration function deployment/invocation must still happen before backend app deploy
-- layer publishing and latest layer ARN resolution must remain consistent with the FC function deploy
+- migration function deployment/invocation must still happen before backend app
+  deploy
+- layer publishing and latest layer ARN resolution must remain consistent with
+  the FC function deploy
+- job-runner trigger deploy must preserve the same cron and target URL contract
+  as the hosted workflow

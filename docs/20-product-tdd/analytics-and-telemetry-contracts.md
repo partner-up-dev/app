@@ -1,6 +1,6 @@
 # Analytics And User Telemetry Contracts
 
-This document owns the cross-unit technical contract for user-behavior telemetry. Runtime procedures and monitoring belong in `docs/40-deployment/observability.md`; volatile implementation notes belong in task packets.
+This document owns the cross-unit technical contract for user-behavior telemetry. Product/BI metric meaning belongs upstream in PRD when it is promoted as a product requirement. Program-runtime procedures, operational signals, and alerting belong in `docs/40-deployment/observability.md`; volatile implementation notes belong in task packets.
 
 ## Signal Families
 

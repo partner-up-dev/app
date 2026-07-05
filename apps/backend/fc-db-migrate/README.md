@@ -1,11 +1,17 @@
 # db-migrate (Aliyun FC Internal Function)
 
-This function runs the backend database migration runner inside Aliyun FC, so the migration execution happens from the VPC instead of the GitHub Actions runner.
+This function runs the backend database migration runner inside Aliyun FC, so
+the migration execution happens from the VPC instead of the GitHub Actions
+runner.
+
+Durable deployment sequencing and recovery truth lives in
+`docs/40-deployment/backend-rollout.md`,
+`docs/40-deployment/backend-runtime.md`, and `docs/40-deployment/recovery.md`.
 
 ## Files
 
-- Handler entry: `db-migrate-handler.cjs`
-- Bundled migration runtime: `.fc-package/db-migrate.js`
+- handler entry: `db-migrate-handler.cjs`
+- bundled migration runtime: `.fc-package/db-migrate.js`
 - FC template: `s.yaml`
 
 ## Environment Variables
@@ -17,18 +23,23 @@ This function runs the backend database migration runner inside Aliyun FC, so th
   `staging` and `master` to `production`. The FC deploy path accepts only
   `staging` or `production`; `development` is a local runner environment.
 - `DB_SCRIPT_ROOT` (set by handler)
-  Points the shared migration loader at the packaged `drizzle/` and `data-migrations/` directories.
+  Points the shared migration loader at the packaged `drizzle/` and
+  `data-migrations/` directories.
 
 ## Runtime Behavior
 
-1. Load the bundled migration runtime from the current deployment package.
-2. Point the migration loader at the packaged repository root.
-3. Run the same `runMigrations()` implementation used by local `pnpm db:migrate`.
-4. Return success only when every pending migration has either been applied or skipped safely.
+1. load the bundled migration runtime from the current deployment package
+2. point the migration loader at the packaged repository root
+3. run the same `runMigrations()` implementation used by local
+   `pnpm db:migrate`
+4. return success only when every pending migration has either been applied or
+   skipped safely
 
 ## Packaging
 
-The deployment package is prepared by `scripts/ci/fc/prepare_fc_db_migrate_package.sh`.
+The deployment package is prepared by
+`scripts/ci/fc/prepare_fc_db_migrate_package.sh`.
+
 It contains:
 
 - `db-migrate-handler.cjs`
@@ -36,7 +47,3 @@ It contains:
 - `package.json`
 - `drizzle/`
 - `data-migrations/`
-
-## Deployment
-
-This function is deployed and invoked by `.github/workflows/backend-fc-deploy.yml` before the main backend FC deploy step.

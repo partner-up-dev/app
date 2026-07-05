@@ -65,6 +65,7 @@ Solidify protocol
 - [Phase 3: Product TDD Audit](./phase-03-product-tdd-audit.md)
 - [Phase 4A: Unit TDD Audit](./phase-04-unit-tdd-audit.md)
 - [Phase 4B: Local AGENTS.md Audit](./phase-04-local-agents-audit.md)
+- [Phase 5: Deployment Audit](./phase-05-deployment-audit.md)
 - [Batch 1 Proposal: Meta-Governance Promotion For F1-003 And F1-005](./batch-01-meta-governance-f1-003-f1-005.md)
 - [Batch 2 Proposal: Root AGENTS.md Bootstrap Slimming](./batch-02-root-agents-bootstrap-slimming.md)
 - [Batch 3 Proposal: PRD Topology And Cleanup Plan For F2-001 To F2-005](./batch-03-prd-f2-001-to-f2-005-solution-plan.md)
@@ -75,6 +76,8 @@ Solidify protocol
   - [Segment 4: Local Development Origin Ownership](./batch-04-segment-4-local-dev-origin-ownership.md)
 - [Batch 5: Unit TDD Content Recovery Plan And Execution Record](./batch-05-unit-tdd-critical-cleanup-plan.md)
 - [Batch 6: Local AGENTS Critical Cleanup Plan And Execution Record](./batch-06-local-agents-critical-cleanup-plan.md)
+- [Batch 7: Deployment Cleanup Plan For F5-001 To F5-007](./batch-07-deployment-f5-001-to-f5-007-plan.md)
+- [Batch 8: Observability Boundary Correction Plan](./batch-08-observability-boundary-correction-plan.md)
 
 ## Verification
 
@@ -176,3 +179,39 @@ Batch 6 local AGENTS critical cleanup has been executed. Durable docs changed:
 - `apps/frontend/src/styles/AGENTS.md`
 - `apps/frontend/src/domains/event/ui/AGENTS.md`
 - `apps/frontend/src/shared/ui/AGENTS.md`
+
+Phase 5 Deployment audit has been drafted. No durable deployment docs have been modified during the audit.
+
+Batch 7 Deployment cleanup has been executed. Durable docs changed:
+
+- `docs/40-deployment/index.md`
+- `docs/40-deployment/environments.md`
+- `docs/40-deployment/local-development.md`
+- `docs/40-deployment/backend-runtime.md`
+- `docs/40-deployment/frontend-runtime.md`
+- `docs/40-deployment/provider-edge-routing.md`
+- `docs/40-deployment/rollout.md`
+- `docs/40-deployment/ci-gates.md`
+- `docs/40-deployment/backend-rollout.md`
+- `docs/40-deployment/frontend-rollout.md`
+- `docs/40-deployment/release-automation.md`
+- `docs/40-deployment/observability.md`
+- `docs/40-deployment/recovery.md`
+- `apps/backend/DEPLOYMENT.md`
+- `apps/backend/fc-db-migrate/README.md`
+- `apps/backend/fc-job-runner-trigger/README.md`
+
+The job-runner trigger cron documentation now aligns to the actual workflow
+fallback `0 */30 * * * *`. The previous Asia/Shanghai business-hour cron is
+documented only as an explicit GitHub Environment override example.
+
+Batch 8 Observability boundary correction has been executed. Durable docs
+changed:
+
+- `docs/40-deployment/observability.md`
+- `docs/20-product-tdd/analytics-and-telemetry-contracts.md`
+- `docs/10-prd/behavior/capabilities.md`
+
+Deployment observability now owns program/runtime behavior signals. BI and
+user-behavior observability are routed to PRD for product meaning and Product
+TDD for cross-unit telemetry / BI realization contracts.
