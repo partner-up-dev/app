@@ -63,6 +63,8 @@ Solidify protocol
 - [Phase 1: Entrypoint Inventory And Routing Audit](./phase-01-entrypoints-audit.md)
 - [Phase 2: PRD Audit](./phase-02-prd-audit.md)
 - [Phase 3: Product TDD Audit](./phase-03-product-tdd-audit.md)
+- [Phase 4A: Unit TDD Audit](./phase-04-unit-tdd-audit.md)
+- [Phase 4B: Local AGENTS.md Audit](./phase-04-local-agents-audit.md)
 - [Batch 1 Proposal: Meta-Governance Promotion For F1-003 And F1-005](./batch-01-meta-governance-f1-003-f1-005.md)
 - [Batch 2 Proposal: Root AGENTS.md Bootstrap Slimming](./batch-02-root-agents-bootstrap-slimming.md)
 - [Batch 3 Proposal: PRD Topology And Cleanup Plan For F2-001 To F2-005](./batch-03-prd-f2-001-to-f2-005-solution-plan.md)
@@ -71,6 +73,7 @@ Solidify protocol
   - [Segment 2: Cross-Unit Contract Split](./batch-04-segment-2-cross-unit-contract-split.md)
   - [Segment 3: Ecommerce Contract Durable Reframe And Provider Depth](./batch-04-segment-3-ecommerce-contract-depth.md)
   - [Segment 4: Local Development Origin Ownership](./batch-04-segment-4-local-dev-origin-ownership.md)
+- [Batch 5: Unit TDD Content Recovery Plan And Execution Record](./batch-05-unit-tdd-critical-cleanup-plan.md)
 
 ## Verification
 
@@ -149,3 +152,16 @@ Batch 4 Segments 2, 3, and 4 have also been executed. Additional durable docs ch
 - `docs/20-product-tdd/ecommerce-provider-contracts.md`
 
 Batch 4 is complete.
+
+Phase 4 Unit TDD and local AGENTS.md audit has been drafted. No durable Unit TDD or AGENTS files have been modified during the audit.
+
+Batch 5 Unit TDD content recovery has been executed. Durable docs changed:
+
+- `docs/30-unit-tdd/index.md`
+- `docs/30-unit-tdd/frontend-event-form-mode.md`
+- `docs/30-unit-tdd/frontend-shared-ui-primitives.md`
+- `docs/30-unit-tdd/backend-migration-ledger.md`
+- `apps/backend/AGENTS.md`
+- `apps/frontend/AGENTS.md`
+
+Batch 5 keeps the current flat Unit TDD layout as the working shape and defers the flat-vs-tree topology decision until the recovered content proves its shape.

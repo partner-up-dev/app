@@ -61,7 +61,7 @@ Read the smallest useful set and keep durable docs current:
 - Product truth: `docs/10-prd/**/*.md`
 - Cross-unit technical truth: `docs/20-product-tdd/*.md`
 - Runtime and rollout truth: `docs/40-deployment/*.md`
-- `docs/30-unit-tdd/<unit>/*.md` only when a named hard-unit doc exists and is relevant
+- `docs/30-unit-tdd/<unit>.md` only when a named hard-unit doc exists and is relevant
 - Active task-local packets, evidence, and temporary reasoning: `tasks/*`
 - Local backend constraints:
   - `src/entities/AGENTS.md`
