@@ -6,15 +6,15 @@
 
 do $$
 declare
-  provider_instance_key constant text := 'dev-fake-wechatpay-web';
+  provider_instance_key constant text := 'mch:1900000001:app:wx_partnerup_local_web';
   provider_client_id constant text := 'web';
-  provider_display_name constant text := 'Local Fake WeChatPay Web';
-  provider_endpoint_base_url constant text := 'https://wechatpay.partner-up.local';
-  provider_app_id constant text := 'wx_fake_partnerup_web';
+  provider_display_name constant text := '微信支付';
+  provider_endpoint_base_url constant text := 'https://wechatpay.partner-up.localhost';
+  provider_app_id constant text := 'wx_partnerup_local_web';
   provider_mch_id constant text := '1900000001';
   provider_api_v3_key constant text := '0123456789abcdef0123456789abcdef';
   provider_charge_mode constant text := 'JSAPI';
-  merchant_serial_no constant text := 'FAKE_MERCHANT_SERIAL_000000000001';
+  merchant_serial_no constant text := 'LOCAL_MERCHANT_SERIAL_000000000001';
   merchant_private_key_pem constant text := $merchant_private$
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCijFRIVWtysoSJ
