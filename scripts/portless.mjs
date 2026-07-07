@@ -5,11 +5,85 @@ import { join } from "node:path";
 
 const isWindows = process.platform === "win32";
 
+const normalizeEnvValue = (value) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 const getGlobalArgs = () => {
   const args = process.argv.slice(2);
   const separatorIndex = args.indexOf("--");
 
   return separatorIndex === -1 ? args : args.slice(0, separatorIndex);
+};
+
+const getArgValue = (args, flag) => {
+  const prefixedArg = args.find((arg) => arg.startsWith(`${flag}=`));
+  const argIndex = args.indexOf(flag);
+  const separateArg = argIndex === -1 ? undefined : args[argIndex + 1];
+  const value = prefixedArg?.slice(flag.length + 1) ?? separateArg;
+
+  if (value === undefined || value.startsWith("-")) {
+    return null;
+  }
+
+  return normalizeEnvValue(value);
+};
+
+const isCustomTld = (tld) => tld !== null && tld !== "local" && tld !== "localhost";
+
+const getConfiguredTld = (args) =>
+  getArgValue(args, "--tld") ?? normalizeEnvValue(process.env.PORTLESS_TLD);
+
+const appendDomainBaseToPortlessName = (name, domainBase) =>
+  name.endsWith(`.${domainBase}`) ? name : `${name}.${domainBase}`;
+
+const getForwardedArgs = () => {
+  const args = process.argv.slice(2);
+  const separatorIndex = args.indexOf("--");
+  const globalEndIndex = separatorIndex === -1 ? args.length : separatorIndex;
+  const domainBase = normalizeEnvValue(process.env.PORTLESS_DOMAIN_BASE);
+  const configuredTld = getConfiguredTld(args);
+  const shouldUseCustomTld = isCustomTld(configuredTld);
+  const forwardedArgs = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (index >= globalEndIndex) {
+      forwardedArgs.push(arg);
+      continue;
+    }
+
+    if (shouldUseCustomTld && arg === "--lan") {
+      continue;
+    }
+
+    if (shouldUseCustomTld && arg === "--ip") {
+      index += 1;
+      continue;
+    }
+
+    if (shouldUseCustomTld && arg.startsWith("--ip=")) {
+      continue;
+    }
+
+    if (domainBase && arg.startsWith("--name=")) {
+      forwardedArgs.push(
+        `--name=${appendDomainBaseToPortlessName(arg.slice("--name=".length), domainBase)}`,
+      );
+      continue;
+    }
+
+    if (domainBase && index > 0 && args[index - 1] === "--name") {
+      forwardedArgs.push(appendDomainBaseToPortlessName(arg, domainBase));
+      continue;
+    }
+
+    forwardedArgs.push(arg);
+  }
+
+  return forwardedArgs;
 };
 
 const hasGlobalFlag = (flag) => getGlobalArgs().includes(flag);
@@ -91,19 +165,28 @@ const detectLanIpv4Address = () => {
 const shouldDetectLanIp = (env) =>
   !env.PORTLESS_LAN_IP &&
   !hasGlobalFlagValue("--ip") &&
+  !isCustomTld(getConfiguredTld(getGlobalArgs())) &&
   (env.PORTLESS_LAN === "1" || env.PORTLESS_LAN === "true" || hasGlobalFlag("--lan"));
 
-const shouldUseLanMode = (env) =>
-  env.PORTLESS_LAN === "1" ||
-  env.PORTLESS_LAN === "true" ||
-  hasGlobalFlag("--lan") ||
-  hasGlobalFlagValue("--ip");
+const shouldUseLanMode = (env) => {
+  if (isCustomTld(getConfiguredTld(getGlobalArgs()))) {
+    return false;
+  }
+
+  return (
+    env.PORTLESS_LAN === "1" ||
+    env.PORTLESS_LAN === "true" ||
+    hasGlobalFlag("--lan") ||
+    hasGlobalFlagValue("--ip")
+  );
+};
 
 const getPortlessEnv = () => {
   const env = { ...process.env };
 
   if (!shouldUseLanMode(env)) {
     env.PORTLESS_LAN = "0";
+    delete env.PORTLESS_LAN_IP;
   }
 
   if (shouldDetectLanIp(env)) {
@@ -128,7 +211,7 @@ const getPortlessEnv = () => {
   return env;
 };
 
-const child = spawn("portless", process.argv.slice(2), {
+const child = spawn("portless", getForwardedArgs(), {
   env: getPortlessEnv(),
   shell: isWindows,
   stdio: "inherit",

@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "pnpm dev:web & pnpm dev:backend",
     "dev:ensure": "node ./scripts/ensure-dev-servers.mjs",
+    "dev:hosts:sync": "node ./scripts/sync-dev-hosts.mjs",
     "dev:portless": "node ./scripts/portless.mjs",
     "dev:portless:web": "node ./scripts/portless.mjs --name web-app -- pnpm --filter @partner-up-dev/web dev",
     "dev:portless:frontend": "pnpm dev:portless:web",

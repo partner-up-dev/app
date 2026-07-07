@@ -59,8 +59,9 @@ Hypothesis:
   - `api.partner-up` -> `api`
   - `caocao.partner-up` -> `caocao`
   - `wechatpay.partner-up` -> `wechatpay`
-- Use `PORTLESS_TLD=partner-up.d.home.arpa` or `--tld partner-up.d.home.arpa`
-  for the homelab suffix.
+- Use `PORTLESS_DOMAIN_BASE=partner-up.d.home` with `PORTLESS_TLD=arpa` or
+  `--tld arpa` for the homelab suffix. `PORTLESS_TLD` must remain a single
+  portless-valid label.
 - Keep local-only default behavior environment-neutral. Technitium integration
   and WSL hosts writes must be opt-in.
 - Prefer explicit DNS target IP from `--dns-ip` / `DEV_DNS_TARGET_IP`; otherwise
@@ -75,6 +76,7 @@ Hypothesis:
 CLI and environment inputs:
 
 - `--tld <suffix>` / `PORTLESS_TLD`
+- `PORTLESS_DOMAIN_BASE`
 - `--dns-provider technitium` / `DEV_DNS_PROVIDER=technitium`
 - `--dns-ip <ipv4>` / `DEV_DNS_TARGET_IP`
 - `DEV_DNS_ZONE`
@@ -92,9 +94,10 @@ TECHNITIUM_API_URL=http://192.168.3.156:5380 \
 TECHNITIUM_API_TOKEN=... \
 DEV_DNS_PROVIDER=technitium \
 DEV_DNS_ZONE=partner-up.d.home.arpa \
-PORTLESS_TLD=partner-up.d.home.arpa \
+PORTLESS_DOMAIN_BASE=partner-up.d.home \
+PORTLESS_TLD=arpa \
 DEV_HOSTS_SYNC=1 \
-pnpm dev:ensure --lan --ip <reachable-lan-ip>
+pnpm dev:ensure --ip <reachable-lan-ip>
 ```
 
 ## Candidate Work Breakdown
@@ -116,6 +119,8 @@ pnpm dev:ensure --lan --ip <reachable-lan-ip>
    - Add a managed hosts block for `partner-up.d.home.arpa` and route hosts.
    - Default target should be `127.0.0.1`.
    - Keep it opt-in and bounded to local development.
+   - Provide a separate minimal-privilege hosts-sync command/task so `/etc/hosts`
+     writes do not require running the whole dev server as root.
 5. Update durable docs:
    - Promote the verified local development command and configuration contract
      to `docs/40-deployment/local-development.md`.
@@ -124,12 +129,13 @@ pnpm dev:ensure --lan --ip <reachable-lan-ip>
 6. Update VS Code task and launch profiles:
    - Replace old launch URLs such as `https://partner-up.localhost` and
      `https://partner-up.local` with the new frontend route model:
-     `https://web-app.<PORTLESS_TLD>`.
+     `https://web-app.<PORTLESS_DOMAIN_BASE>.<PORTLESS_TLD>` when a domain base
+     is configured.
    - Ensure LAN/homelab tasks pass the same TLD, LAN IP, state dir, DNS provider
      config, and optional hosts-sync config used by the shell workflow.
    - Update backend LAN debug launch env so direct backend debugging registers
-     the `api.<PORTLESS_TLD>` route rather than the old `api.partner-up.*`
-     route.
+     the `api.<PORTLESS_DOMAIN_BASE>.<PORTLESS_TLD>` route when a domain base
+     is configured, rather than the old `api.partner-up.*` route.
    - Remove hard-coded machine IPs from committed VS Code profiles where a
      variable/input/env-based alternative is practical.
    - Keep a normal localhost VS Code launch path for developers who do not use
@@ -212,9 +218,14 @@ Resolved during implementation:
 - Portless app names changed to `web-app`, `api`, `caocao`, and `wechatpay`.
 - `scripts/ensure-dev-servers.mjs` now honors `--tld` / `PORTLESS_TLD` before
   falling back to LAN `.local`, then `.localhost`.
+- Custom TLD homelab mode does not pass portless LAN mode through because
+  portless LAN forces `.local`; `--ip` is still accepted as the DNS target IP.
 - Technitium registration is opt-in via `DEV_DNS_PROVIDER=technitium` or
   `--dns-provider technitium`.
 - Hosts sync is opt-in via `DEV_HOSTS_SYNC=1`.
+- `/etc/hosts` writes can be run separately through `pnpm dev:hosts:sync` or the
+  VS Code hosts-sync task; the separate path does not carry Technitium secrets
+  or start dev servers.
 - VS Code task/launch profiles were updated in the ignored `.vscode/` workspace
   directory; those edits are local workspace configuration, not tracked git
   changes.

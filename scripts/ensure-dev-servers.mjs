@@ -126,7 +126,11 @@ const getRuntimeEnv = () => {
   const lanIp = parseOptionalStringArg("ip");
   const stateDir = parseOptionalStringArg("state-dir");
   const tld = parseOptionalStringArg("tld");
+  const configuredTld = normalizeEnvValue(tld) ?? normalizeEnvValue(env.PORTLESS_TLD);
+  const shouldUseCustomTld = configuredTld !== null && configuredTld !== "local";
+  const requestedLanIp = lanIp ?? normalizeEnvValue(env.PORTLESS_LAN_IP);
   const shouldUseLan = process.argv.includes("--lan") || lanIp || isTruthyEnv(env.PORTLESS_LAN);
+  const shouldUsePortlessLan = shouldUseLan && !shouldUseCustomTld;
 
   if (stateDir) {
     env.PORTLESS_STATE_DIR = stateDir;
@@ -136,14 +140,22 @@ const getRuntimeEnv = () => {
     env.PORTLESS_TLD = tld;
   }
 
-  if (shouldUseLan) {
+  if (shouldUsePortlessLan) {
     env.PORTLESS_LAN = "1";
   } else {
     env.PORTLESS_LAN = "0";
   }
 
-  if (lanIp) {
+  if (shouldUsePortlessLan && lanIp) {
     env.PORTLESS_LAN_IP = lanIp;
+  }
+
+  if (shouldUseCustomTld) {
+    if (requestedLanIp && !normalizeEnvValue(env.DEV_DNS_TARGET_IP)) {
+      env.DEV_DNS_TARGET_IP = requestedLanIp;
+    }
+
+    delete env.PORTLESS_LAN_IP;
   }
 
   if (isWindows) {
@@ -176,9 +188,13 @@ const getPortlessTld = () => {
 };
 
 const portlessTld = getPortlessTld();
+const portlessDomainBase = normalizeEnvValue(runtimeEnv.PORTLESS_DOMAIN_BASE);
+const getEffectivePortlessName = (route) =>
+  portlessDomainBase ? `${route.portlessName}.${portlessDomainBase}` : route.portlessName;
+
 const routes = selectedRouteDefinitions.map((route) => ({
   ...route,
-  url: `https://${route.portlessName}.${portlessTld}`,
+  url: `https://${getEffectivePortlessName(route)}.${portlessTld}`,
 }));
 const routeGroupLabel = `${routes.map((route) => route.name).join(" and ")} dev server${
   routes.length === 1 ? "" : "s"
@@ -224,6 +240,8 @@ const shouldSyncHosts = isTruthyEnv(runtimeEnv.DEV_HOSTS_SYNC);
 const shouldUseStrictHosts = isTruthyEnv(runtimeEnv.DEV_HOSTS_STRICT);
 const hostsPath = normalizeEnvValue(runtimeEnv.DEV_HOSTS_PATH) ?? "/etc/hosts";
 const hostsTargetIp = normalizeEnvValue(runtimeEnv.DEV_HOSTS_IP) ?? "127.0.0.1";
+
+const quoteShellArg = (value) => `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 
 const assertCommandAvailable = (commandName) => {
   const command = isWindows ? "where" : "command";
@@ -434,7 +452,9 @@ const upsertTechnitiumARecord = async (domain) => {
     throw new Error(`DEV_DNS_TTL must be a positive integer. Received: ${dnsTtl}`);
   }
 
-  const zone = normalizeEnvValue(runtimeEnv.DEV_DNS_ZONE) ?? portlessTld;
+  const zone =
+    normalizeEnvValue(runtimeEnv.DEV_DNS_ZONE) ??
+    (portlessDomainBase ? `${portlessDomainBase}.${portlessTld}` : portlessTld);
 
   await callTechnitium("api/zones/records/add", {
     comments: "PartnerUp dev route registered by pnpm dev:ensure",
@@ -465,10 +485,14 @@ const syncTechnitiumDns = async () => {
   }
 };
 
-const getKnownDevHostnames = () => [
-  portlessTld,
-  ...routeDefinitions.map((route) => `${route.portlessName}.${portlessTld}`),
-];
+const getKnownDevHostnames = () => {
+  const baseHostname = portlessDomainBase ? `${portlessDomainBase}.${portlessTld}` : portlessTld;
+
+  return [
+    baseHostname,
+    ...routeDefinitions.map((route) => `${getEffectivePortlessName(route)}.${portlessTld}`),
+  ];
+};
 
 const syncHostsFile = () => {
   if (!shouldSyncHosts) {
@@ -492,16 +516,50 @@ const syncHostsFile = () => {
   console.log(`Synced ${hostnames.length} PartnerUp dev host entries to ${hostsPath}.`);
 };
 
+const isPermissionError = (error) => error?.code === "EACCES" || error?.code === "EPERM";
+
+const formatHostsSyncCommand = () => {
+  const envParts = [
+    `PORTLESS_TLD=${quoteShellArg(portlessTld)}`,
+    `DEV_HOSTS_IP=${quoteShellArg(hostsTargetIp)}`,
+    `DEV_HOSTS_PATH=${quoteShellArg(hostsPath)}`,
+  ];
+
+  if (portlessDomainBase) {
+    envParts.push(`PORTLESS_DOMAIN_BASE=${quoteShellArg(portlessDomainBase)}`);
+  }
+
+  return `sudo env ${envParts.join(" ")} ${quoteShellArg(
+    process.execPath,
+  )} ./scripts/sync-dev-hosts.mjs`;
+};
+
 const runPostReadinessHooks = async () => {
   try {
     await syncTechnitiumDns();
-    syncHostsFile();
   } catch (error) {
-    if (shouldUseStrictDns || shouldUseStrictHosts) {
+    if (shouldUseStrictDns) {
       throw error;
     }
 
-    console.warn(`Dev route post-readiness hook failed: ${error.message}`);
+    console.warn(`Dev DNS registration failed: ${error.message}`);
+  }
+
+  try {
+    syncHostsFile();
+  } catch (error) {
+    if (shouldUseStrictHosts) {
+      throw error;
+    }
+
+    if (isPermissionError(error)) {
+      console.warn(
+        `Dev hosts sync skipped: ${hostsPath} requires elevated permission. Run: ${formatHostsSyncCommand()}`,
+      );
+      return;
+    }
+
+    console.warn(`Dev hosts sync failed: ${error.message}`);
   }
 };
 
@@ -548,6 +606,32 @@ const readTrimmedFile = (path) => {
 };
 
 const getStateProxyPid = () => readTrimmedFile(join(portlessStateDir, "proxy.pid"));
+
+const getStateProxyTld = () => readTrimmedFile(join(portlessStateDir, "proxy.tld")) ?? "localhost";
+
+const getStateProxyPort = () => {
+  const proxyPort = Number.parseInt(
+    readTrimmedFile(join(portlessStateDir, "proxy.port")) ?? "",
+    10,
+  );
+
+  return Number.isInteger(proxyPort) && proxyPort > 0 ? proxyPort : 443;
+};
+
+const isPidRunning = (pid) => {
+  const numericPid = Number.parseInt(pid, 10);
+
+  if (!Number.isInteger(numericPid) || numericPid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(numericPid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+};
 
 const getListeningProxyPids = (proxyPort) => {
   if (isWindows) {
@@ -633,6 +717,10 @@ const formatRecoveryCommand = (proxyPort) => {
     envParts.push(`PORTLESS_TLD="${portlessTld}"`);
   }
 
+  if (portlessDomainBase) {
+    envParts.push(`PORTLESS_DOMAIN_BASE="${portlessDomainBase}"`);
+  }
+
   const lanArgs = isTruthyEnv(runtimeEnv.PORTLESS_LAN)
     ? ` --lan${lanIp ? ` --ip ${lanIp}` : ""}`
     : "";
@@ -641,9 +729,35 @@ const formatRecoveryCommand = (proxyPort) => {
   return [
     "Suggested manual recovery:",
     `  sudo kill "$(sudo lsof -ti tcp:${proxyPort})"`,
-    `  rm -f "${join(portlessStateDir, "proxy.pid")}" "${join(portlessStateDir, "proxy.port")}"`,
+    `  rm -f "${join(portlessStateDir, "proxy.pid")}" "${join(
+      portlessStateDir,
+      "proxy.port",
+    )}" "${join(portlessStateDir, "proxy.tld")}"`,
     `  ${envParts.join(" ")} portless proxy start${lanArgs}${tldArgs}`,
   ].join("\n");
+};
+
+const assertRunningProxyMatchesExpectedTld = () => {
+  const stateProxyPid = getStateProxyPid();
+
+  if (!stateProxyPid || !isPidRunning(stateProxyPid)) {
+    return;
+  }
+
+  const runningTld = getStateProxyTld();
+
+  if (runningTld === portlessTld) {
+    return;
+  }
+
+  const proxyPort = getStateProxyPort();
+  throw new Error(
+    [
+      `Portless proxy is already running with .${runningTld}, but dev:ensure expects .${portlessTld}.`,
+      "Stop and restart the proxy with the expected TLD before starting dev routes.",
+      formatRecoveryCommand(proxyPort),
+    ].join("\n"),
+  );
 };
 
 const getTimeoutDiagnostics = async (routeListText, unavailableRoutes) => {
@@ -856,6 +970,7 @@ const waitForRoutesReady = async (readyMessage) => {
 const main = async () => {
   assertCommandAvailable("portless");
   assertCommandAvailable("pnpm");
+  assertRunningProxyMatchesExpectedTld();
 
   const initialRouteList = getPortlessListText();
   let unavailableRoutes = await getUnavailableRoutes(initialRouteList);

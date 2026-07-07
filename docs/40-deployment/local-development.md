@@ -42,8 +42,16 @@ pnpm dev:ensure --lan --ip <reachable-lan-ip>
 Homelab DNS debugging should pass an explicit TLD instead of relying on mDNS:
 
 ```bash
-PORTLESS_TLD=partner-up.d.home.arpa pnpm dev:ensure --lan --ip <reachable-lan-ip>
+PORTLESS_DOMAIN_BASE=partner-up.d.home PORTLESS_TLD=arpa pnpm dev:ensure --ip <reachable-lan-ip>
 ```
+
+`PORTLESS_TLD` is the single final label accepted by portless. For nested
+homelab domains, put the domain prefix in `PORTLESS_DOMAIN_BASE`; this makes
+portless register app names such as `web-app.partner-up.d.home` under the
+`arpa` TLD, producing `web-app.partner-up.d.home.arpa`.
+Custom TLD homelab mode does not use portless LAN/mDNS mode because portless
+LAN mode forces `.local`. The `--ip` input remains useful as the DNS target IP
+for Technitium registration.
 
 For explicit LAN-mode launches, `scripts/portless.mjs` first honors
 `PORTLESS_LAN_IP` or `--ip`, then makes a best-effort inference from the host's
@@ -68,8 +76,9 @@ TECHNITIUM_API_URL=http://<technitium-host>:5380 \
 TECHNITIUM_API_TOKEN=<api-token> \
 DEV_DNS_PROVIDER=technitium \
 DEV_DNS_ZONE=partner-up.d.home.arpa \
-PORTLESS_TLD=partner-up.d.home.arpa \
-pnpm dev:ensure --lan --ip <reachable-lan-ip>
+PORTLESS_DOMAIN_BASE=partner-up.d.home \
+PORTLESS_TLD=arpa \
+pnpm dev:ensure --ip <reachable-lan-ip>
 ```
 
 The DNS target IP comes from `--dns-ip`, `DEV_DNS_TARGET_IP`, `--ip`, or
@@ -80,7 +89,21 @@ For WSL-local resolution, set `DEV_HOSTS_SYNC=1` to write a managed
 `PartnerUp dev hosts` block to `/etc/hosts`. This maps
 `partner-up.d.home.arpa` and all known PartnerUp dev route hosts to
 `DEV_HOSTS_IP`, defaulting to `127.0.0.1`. Set `DEV_HOSTS_STRICT=1` when a hosts
-write failure should fail the ensure command.
+write failure should fail the ensure command. Because `/etc/hosts` requires
+elevated permissions, prefer the separate minimal hosts-sync command when the
+managed block needs to be updated:
+
+```bash
+sudo env \
+  PORTLESS_DOMAIN_BASE=partner-up.d.home \
+  PORTLESS_TLD=arpa \
+  DEV_HOSTS_IP=127.0.0.1 \
+  node ./scripts/sync-dev-hosts.mjs
+```
+
+The root `pnpm dev:hosts:sync` command runs the same script for non-privileged
+hosts paths. VS Code homelab workspaces should use the dedicated hosts-sync
+task rather than running the full dev server task with elevated privileges.
 
 ## Local Fallbacks
 
@@ -113,8 +136,8 @@ namespace:
 
 They follow the active portless proxy mode. In LAN mode they are reachable as
 `caocao.local` and `wechatpay.local`; in local-only mode they use the same names
-under `.localhost`. With `PORTLESS_TLD=partner-up.d.home.arpa`, they are
-reachable as `caocao.partner-up.d.home.arpa` and
+under `.localhost`. With `PORTLESS_DOMAIN_BASE=partner-up.d.home` and
+`PORTLESS_TLD=arpa`, they are reachable as `caocao.partner-up.d.home.arpa` and
 `wechatpay.partner-up.d.home.arpa`.
 
 Use `pnpm dev:ensure --only caocao` or `pnpm dev:ensure --only wechatpay` to
