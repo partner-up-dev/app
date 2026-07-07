@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/partner-up-dev/mvp-HA/compare/backend-v3.2.0...backend-v3.2.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* **backend:** require login for application APIs ([57a8f7e](https://github.com/partner-up-dev/mvp-HA/commit/57a8f7e5b8c5319abf208397c24023f9ed674a9e))
+
 ## [3.2.0](https://github.com/partner-up-dev/mvp-HA/compare/backend-v3.1.0...backend-v3.2.0) (2026-07-01)
 
 
