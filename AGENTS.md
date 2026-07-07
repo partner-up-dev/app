@@ -47,7 +47,7 @@ PartnerUp helps users find a partner (搭子) effectively and safely.
 
 - Use GitHub CLI (`gh`) for GitHub operations and issue workflows.
 - When local frontend/backend services must be available for browser or manual validation, run `pnpm dev:ensure` from the repository root first. It reuses existing `portless` routes and starts only missing dev servers.
-- Use `pnpm dev:portless` as the underlying full-stack local development entry. `portless.json` owns the stable app names for the frontend (`partner-up`) and backend (`api.partner-up`). Do not start ad hoc duplicate dev servers with raw `pnpm dev`, `pnpm dev:frontend`, or `pnpm dev:backend` when the goal is only to ensure services are running.
+- Use `pnpm dev:portless` as the underlying full-stack local development entry. `portless.json` owns the stable app names for the frontend (`web-app`) and backend (`api`). Do not start ad hoc duplicate dev servers with raw `pnpm dev`, `pnpm dev:frontend`, or `pnpm dev:backend` when the goal is only to ensure services are running.
 - When updating `@partner-up-dev/design-web`, use `node scripts/sync-design-web-package.mjs <version>`. 
 - Do not add an `intent-skills` managed block unless explicitly requested.
 - Keep tests and guardrails aligned with behavior changes; do not ship by build-only confidence.

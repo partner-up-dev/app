@@ -35,7 +35,7 @@ Contract implication:
 Product TDD owns only the cross-unit origin shape required by the typed HTTP contract:
 
 - During portless development, Vite reads `PORTLESS_URL`, `HOST`, and `PORT` from the portless runtime, publishes `import.meta.env.VITE_API_URL` as the frontend origin, and keeps browser API calls same-origin through the frontend `/api` proxy.
-- The frontend `/api` proxy targets the backend portless app by deriving the backend host from the active frontend `PORTLESS_URL`, for example `api.partner-up.localhost` in local-only mode and `api.partner-up.local` in LAN mode.
+- The frontend `/api` proxy targets the backend portless app by deriving the backend host from the active frontend `PORTLESS_URL`, for example `api.localhost` in local-only mode and `api.partner-up.d.home.arpa` when the frontend runs as `web-app.partner-up.d.home.arpa`.
 - This keeps browser API calls aligned with the typed backend HTTP contract while application code stays free of fixed numeric ports.
 - Root-owned system scenario tests own isolated frontend and backend HTTP ports through the `system-scenario` Vitest project. That isolated test runtime is separate from the developer portless workflow.
 

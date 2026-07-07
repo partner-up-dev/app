@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
-import { request } from "node:https";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,10 +14,10 @@ const defaultRouteNames = new Set(["frontend", "backend"]);
 const routeDefinitions = [
   {
     name: "frontend",
-    portlessName: "partner-up",
+    portlessName: "web-app",
     portlessArgs: [
       "--name",
-      "partner-up",
+      "web-app",
       "--force",
       "--",
       "pnpm",
@@ -28,10 +29,10 @@ const routeDefinitions = [
   },
   {
     name: "backend",
-    portlessName: "api.partner-up",
+    portlessName: "api",
     portlessArgs: [
       "--name",
-      "api.partner-up",
+      "api",
       "--force",
       "--",
       "pnpm",
@@ -43,10 +44,10 @@ const routeDefinitions = [
   },
   {
     name: "caocao",
-    portlessName: "caocao.partner-up",
+    portlessName: "caocao",
     portlessArgs: [
       "--name",
-      "caocao.partner-up",
+      "caocao",
       "--force",
       "--",
       "pnpm",
@@ -58,10 +59,10 @@ const routeDefinitions = [
   },
   {
     name: "wechatpay",
-    portlessName: "wechatpay.partner-up",
+    portlessName: "wechatpay",
     portlessArgs: [
       "--name",
-      "wechatpay.partner-up",
+      "wechatpay",
       "--force",
       "--",
       "pnpm",
@@ -121,10 +122,15 @@ const getRuntimeEnv = () => {
   const env = { ...process.env };
   const lanIp = parseOptionalStringArg("ip");
   const stateDir = parseOptionalStringArg("state-dir");
+  const tld = parseOptionalStringArg("tld");
   const shouldUseLan = process.argv.includes("--lan") || lanIp || isTruthyEnv(env.PORTLESS_LAN);
 
   if (stateDir) {
     env.PORTLESS_STATE_DIR = stateDir;
+  }
+
+  if (tld) {
+    env.PORTLESS_TLD = tld;
   }
 
   if (shouldUseLan) {
@@ -153,11 +159,17 @@ const getRuntimeEnv = () => {
 const runtimeEnv = getRuntimeEnv();
 
 const getPortlessTld = () => {
+  const configuredTld = normalizeEnvValue(runtimeEnv.PORTLESS_TLD);
+
+  if (configuredTld) {
+    return configuredTld;
+  }
+
   if (isTruthyEnv(runtimeEnv.PORTLESS_LAN)) {
     return "local";
   }
 
-  return normalizeEnvValue(runtimeEnv.PORTLESS_TLD) ?? "localhost";
+  return "localhost";
 };
 
 const portlessTld = getPortlessTld();
@@ -197,6 +209,18 @@ const shouldRunForeground = process.argv.includes("--foreground");
 const foregroundReadyMarker = "DEV_ENSURE_FOREGROUND_READY";
 const portlessStateDir =
   normalizeEnvValue(runtimeEnv.PORTLESS_STATE_DIR) ?? join(homedir(), ".portless");
+const dnsProvider =
+  parseOptionalStringArg("dns-provider") ?? normalizeEnvValue(runtimeEnv.DEV_DNS_PROVIDER);
+const dnsTargetIp =
+  parseOptionalStringArg("dns-ip") ??
+  normalizeEnvValue(runtimeEnv.DEV_DNS_TARGET_IP) ??
+  normalizeEnvValue(runtimeEnv.PORTLESS_LAN_IP);
+const dnsTtl = normalizeEnvValue(runtimeEnv.DEV_DNS_TTL) ?? "60";
+const shouldUseStrictDns = isTruthyEnv(runtimeEnv.DEV_DNS_STRICT);
+const shouldSyncHosts = isTruthyEnv(runtimeEnv.DEV_HOSTS_SYNC);
+const shouldUseStrictHosts = isTruthyEnv(runtimeEnv.DEV_HOSTS_STRICT);
+const hostsPath = normalizeEnvValue(runtimeEnv.DEV_HOSTS_PATH) ?? "/etc/hosts";
+const hostsTargetIp = normalizeEnvValue(runtimeEnv.DEV_HOSTS_IP) ?? "127.0.0.1";
 
 const assertCommandAvailable = (commandName) => {
   const command = isWindows ? "where" : "command";
@@ -252,7 +276,7 @@ const isReadyStatus = (statusCode) => statusCode >= 200 && statusCode < 400;
 const getRouteHttpReadiness = (route, registeredUrl) =>
   new Promise((resolveReadiness) => {
     const routeUrl = new URL(route.readinessPath, registeredUrl);
-    const req = request(
+    const req = httpsRequest(
       {
         headers: {
           Host: routeUrl.host,
@@ -297,6 +321,186 @@ const getRouteHttpReadiness = (route, registeredUrl) =>
 
     req.end();
   });
+
+const isValidIpv4Address = (value) => {
+  const octets = value.split(".").map((octet) => Number.parseInt(octet, 10));
+
+  return (
+    octets.length === 4 &&
+    octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255)
+  );
+};
+
+const requestJson = (url, options) =>
+  new Promise((resolveRequest, rejectRequest) => {
+    const requestFn = url.protocol === "http:" ? httpRequest : httpsRequest;
+    const req = requestFn(
+      {
+        headers: options.headers,
+        hostname: url.hostname,
+        method: "GET",
+        path: `${url.pathname}${url.search}`,
+        port: url.port === "" ? (url.protocol === "http:" ? 80 : 443) : Number(url.port),
+        protocol: url.protocol,
+        timeout: 5_000,
+      },
+      (res) => {
+        let bodyText = "";
+
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          bodyText += chunk;
+        });
+        res.on("end", () => {
+          let body;
+
+          try {
+            body = JSON.parse(bodyText);
+          } catch {
+            rejectRequest(
+              new Error(`HTTP ${res.statusCode ?? 599} returned non-JSON: ${bodyText}`),
+            );
+            return;
+          }
+
+          if ((res.statusCode ?? 599) < 200 || (res.statusCode ?? 599) >= 300) {
+            rejectRequest(
+              new Error(`HTTP ${res.statusCode ?? 599}: ${JSON.stringify(body, null, 2)}`),
+            );
+            return;
+          }
+
+          resolveRequest(body);
+        });
+      },
+    );
+
+    req.on("error", rejectRequest);
+    req.on("timeout", () => {
+      req.destroy(new Error(`Request to ${url.origin} timed out`));
+    });
+    req.end();
+  });
+
+const buildTechnitiumApiUrl = (path, params) => {
+  const apiUrl = normalizeEnvValue(runtimeEnv.TECHNITIUM_API_URL);
+
+  if (!apiUrl) {
+    throw new Error("TECHNITIUM_API_URL is required when DEV_DNS_PROVIDER=technitium.");
+  }
+
+  const url = new URL(path, apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`);
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  return url;
+};
+
+const callTechnitium = async (path, params) => {
+  const token = normalizeEnvValue(runtimeEnv.TECHNITIUM_API_TOKEN);
+
+  if (!token) {
+    throw new Error("TECHNITIUM_API_TOKEN is required when DEV_DNS_PROVIDER=technitium.");
+  }
+
+  const body = await requestJson(buildTechnitiumApiUrl(path, params), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (body?.status !== "ok") {
+    const message =
+      typeof body?.errorMessage === "string" ? body.errorMessage : JSON.stringify(body, null, 2);
+    throw new Error(`Technitium API failed for ${path}: ${message}`);
+  }
+
+  return body;
+};
+
+const upsertTechnitiumARecord = async (domain) => {
+  if (!dnsTargetIp || !isValidIpv4Address(dnsTargetIp)) {
+    throw new Error(
+      "A valid --dns-ip, DEV_DNS_TARGET_IP, --ip, or PORTLESS_LAN_IP is required for Technitium DNS registration.",
+    );
+  }
+
+  if (!/^\d+$/.test(dnsTtl) || Number.parseInt(dnsTtl, 10) <= 0) {
+    throw new Error(`DEV_DNS_TTL must be a positive integer. Received: ${dnsTtl}`);
+  }
+
+  const zone = normalizeEnvValue(runtimeEnv.DEV_DNS_ZONE) ?? portlessTld;
+
+  await callTechnitium("api/zones/records/add", {
+    comments: "PartnerUp dev route registered by pnpm dev:ensure",
+    domain,
+    ipAddress: dnsTargetIp,
+    overwrite: "true",
+    ttl: dnsTtl,
+    type: "A",
+    zone,
+  });
+};
+
+const syncTechnitiumDns = async () => {
+  if (!dnsProvider || dnsProvider === "none") {
+    return;
+  }
+
+  if (dnsProvider !== "technitium") {
+    throw new Error(`Unsupported DEV_DNS_PROVIDER "${dnsProvider}". Expected "technitium".`);
+  }
+
+  console.log(`Registering dev DNS records through Technitium -> ${dnsTargetIp}:`);
+
+  for (const route of routes) {
+    const hostname = new URL(route.url).hostname;
+    await upsertTechnitiumARecord(hostname);
+    console.log(`  ${hostname}`);
+  }
+};
+
+const getKnownDevHostnames = () => [
+  portlessTld,
+  ...routeDefinitions.map((route) => `${route.portlessName}.${portlessTld}`),
+];
+
+const syncHostsFile = () => {
+  if (!shouldSyncHosts) {
+    return;
+  }
+
+  const hostnames = [...new Set(getKnownDevHostnames())];
+  const block = [
+    "# BEGIN PartnerUp dev hosts",
+    ...hostnames.map((hostname) => `${hostsTargetIp} ${hostname}`),
+    "# END PartnerUp dev hosts",
+  ].join("\n");
+
+  const existingHosts = readFileSync(hostsPath, "utf8");
+  const blockPattern = /(?:^|\n)# BEGIN PartnerUp dev hosts\n[\s\S]*?\n# END PartnerUp dev hosts/g;
+  const nextHosts = blockPattern.test(existingHosts)
+    ? existingHosts.replace(blockPattern, `\n${block}`)
+    : `${existingHosts.trimEnd()}\n\n${block}\n`;
+
+  writeFileSync(hostsPath, nextHosts.endsWith("\n") ? nextHosts : `${nextHosts}\n`);
+  console.log(`Synced ${hostnames.length} PartnerUp dev host entries to ${hostsPath}.`);
+};
+
+const runPostReadinessHooks = async () => {
+  try {
+    await syncTechnitiumDns();
+    syncHostsFile();
+  } catch (error) {
+    if (shouldUseStrictDns || shouldUseStrictHosts) {
+      throw error;
+    }
+
+    console.warn(`Dev route post-readiness hook failed: ${error.message}`);
+  }
+};
 
 const getRouteAvailability = async (routeListText) => {
   const routeRegistrations = routes.map((route) => ({
@@ -422,15 +626,20 @@ const formatRecoveryCommand = (proxyPort) => {
     envParts.push(`PORTLESS_LAN_IP="${lanIp}"`);
   }
 
+  if (portlessTld !== "localhost") {
+    envParts.push(`PORTLESS_TLD="${portlessTld}"`);
+  }
+
   const lanArgs = isTruthyEnv(runtimeEnv.PORTLESS_LAN)
     ? ` --lan${lanIp ? ` --ip ${lanIp}` : ""}`
     : "";
+  const tldArgs = portlessTld === "localhost" ? "" : ` --tld ${portlessTld}`;
 
   return [
     "Suggested manual recovery:",
     `  sudo kill "$(sudo lsof -ti tcp:${proxyPort})"`,
     `  rm -f "${join(portlessStateDir, "proxy.pid")}" "${join(portlessStateDir, "proxy.port")}"`,
-    `  ${envParts.join(" ")} portless proxy start${lanArgs}`,
+    `  ${envParts.join(" ")} portless proxy start${lanArgs}${tldArgs}`,
   ].join("\n");
 };
 
@@ -684,6 +893,7 @@ const main = async () => {
       process.exit(firstForegroundResult.exitCode);
     }
 
+    await runPostReadinessHooks();
     console.log(foregroundReadyMarker);
 
     const exitCode = await foreground.exitPromise;
@@ -695,6 +905,7 @@ const main = async () => {
     for (const route of routes) {
       console.log(`  ${route.url}`);
     }
+    await runPostReadinessHooks();
     return;
   }
 
@@ -703,6 +914,7 @@ const main = async () => {
   }
 
   await waitForRoutesReady(`${routeGroupSubject} ${routeGroupVerb} ready:`);
+  await runPostReadinessHooks();
 };
 
 main().catch((error) => {

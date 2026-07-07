@@ -224,11 +224,7 @@ export default defineConfig(({ mode }) => {
   const backendHost = normalizeEnvValue(env.VITE_BACKEND_HOST) ?? "localhost";
   const backendPort = normalizeEnvValue(env.VITE_BACKEND_PORT) ?? "3000";
   const portlessUrl = normalizeEnvValue(process.env.PORTLESS_URL);
-  const portlessBackendHost = resolvePortlessSiblingHost(
-    portlessUrl,
-    "partner-up",
-    "api.partner-up",
-  );
+  const portlessBackendHost = resolvePortlessSiblingHost(portlessUrl, "web-app", "api");
   const portlessBackendHostHeader = resolvePortlessHostHeader(portlessUrl, portlessBackendHost);
   const backendProxyTarget =
     normalizeEnvValue(env.VITE_BACKEND_PROXY_TARGET) ??

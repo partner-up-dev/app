@@ -25,7 +25,7 @@ test("fake WeChatPay bridge installs and completes JSAPI happy path", async () =
   const installed = installFakeWeChatPayBridgeForTesting({
     bridgeWindow,
     bridgeDocument,
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async (url, init) => {
       fetchCalls.push({
         url: String(url),
@@ -49,7 +49,7 @@ test("fake WeChatPay bridge installs and completes JSAPI happy path", async () =
   assert.equal(fetchCalls.length, 1);
   assert.equal(
     fetchCalls[0]?.url,
-    "https://wechatpay.partner-up.localhost/__fake_wechatpay/prepays/fake_prepay_123/succeed",
+    "https://wechatpay.localhost/__fake_wechatpay/prepays/fake_prepay_123/succeed",
   );
   assert.equal(fetchCalls[0]?.init?.method, "POST");
 });
@@ -64,7 +64,7 @@ test("fake WeChatPay bridge rejects unsupported bridge methods", async () => {
         return true;
       },
     },
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async () => {
       throw new Error("fetch should not be called");
     },
@@ -102,7 +102,7 @@ test("fake WeChatPay bridge does not override an existing bridge", () => {
         return true;
       },
     },
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async () => new Response("{}", { status: 200 }),
     presentPaymentClient: async () => "SUCCESS",
     scheduleTask: (task) => task(),
@@ -126,7 +126,7 @@ test("fake WeChatPay bridge reports invalid prepay packages as failure", async (
         return true;
       },
     },
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async () => new Response("{}", { status: 200 }),
     presentPaymentClient: async () => "SUCCESS",
     scheduleTask: (task) => task(),
@@ -160,7 +160,7 @@ test("fake WeChatPay bridge can cancel a JSAPI payment attempt", async () => {
         return true;
       },
     },
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async (url, init) => {
       fetchCalls.push({
         url: String(url),
@@ -179,7 +179,7 @@ test("fake WeChatPay bridge can cancel a JSAPI payment attempt", async () => {
   assert.equal(response.err_msg, "get_brand_wcpay_request:cancel");
   assert.equal(
     fetchCalls[0]?.url,
-    "https://wechatpay.partner-up.localhost/__fake_wechatpay/prepays/fake_prepay_123/close",
+    "https://wechatpay.localhost/__fake_wechatpay/prepays/fake_prepay_123/close",
   );
 });
 
@@ -194,7 +194,7 @@ test("fake WeChatPay bridge can fail a JSAPI payment attempt", async () => {
         return true;
       },
     },
-    fakeWeChatPayOrigin: "https://wechatpay.partner-up.localhost",
+    fakeWeChatPayOrigin: "https://wechatpay.localhost",
     fetchImpl: async (url, init) => {
       fetchCalls.push({
         url: String(url),
@@ -213,6 +213,6 @@ test("fake WeChatPay bridge can fail a JSAPI payment attempt", async () => {
   assert.equal(response.err_msg, "get_brand_wcpay_request:fail mock payment failed");
   assert.equal(
     fetchCalls[0]?.url,
-    "https://wechatpay.partner-up.localhost/__fake_wechatpay/prepays/fake_prepay_123/fail",
+    "https://wechatpay.localhost/__fake_wechatpay/prepays/fake_prepay_123/fail",
   );
 });

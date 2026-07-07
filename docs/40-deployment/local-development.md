@@ -20,22 +20,29 @@ non-Windows environments.
 
 Local app identity is stored in `portless.json`:
 
-- `apps/frontend`: `partner-up`
-- `apps/backend`: `api.partner-up`
+- `apps/frontend`: `web-app`
+- `apps/backend`: `api`
 
 Portless injects runtime origin and listener values through `PORTLESS_URL`,
 `HOST`, and `PORT`. The frontend Vite config detects `PORTLESS_URL`, exposes
 that value as `import.meta.env.VITE_API_URL`, and proxies `/api` to the backend
 portless app by deriving the backend host from the active frontend portless
-origin.
+origin. For example, `web-app.localhost` proxies `/api` to `api.localhost`, and
+`web-app.partner-up.d.home.arpa` proxies to `api.partner-up.d.home.arpa`.
 
 ## LAN Mode
 
-The default portless TLD is `.localhost`. LAN device debugging must run portless
-in LAN mode, which forces `.local` routes:
+The default portless TLD is `.localhost`. LAN device debugging can run portless
+in LAN mode, which uses `.local` routes unless an explicit TLD is provided:
 
 ```bash
 pnpm dev:ensure --lan --ip <reachable-lan-ip>
+```
+
+Homelab DNS debugging should pass an explicit TLD instead of relying on mDNS:
+
+```bash
+PORTLESS_TLD=partner-up.d.home.arpa pnpm dev:ensure --lan --ip <reachable-lan-ip>
 ```
 
 For explicit LAN-mode launches, `scripts/portless.mjs` first honors
@@ -51,6 +58,29 @@ users can set `PORTLESS_STATE_DIR` explicitly when they need to avoid a root/use
 state split. If the other LAN device cannot route to the advertised address,
 publish a reachable host LAN IP and forward TCP `443` into the dev environment,
 or use a networking mode where the advertised IP is directly reachable.
+
+`pnpm dev:ensure` can optionally register ready routes in a Technitium DNS
+server after portless readiness succeeds. The integration is off by default and
+is configured by environment or CLI inputs:
+
+```bash
+TECHNITIUM_API_URL=http://<technitium-host>:5380 \
+TECHNITIUM_API_TOKEN=<api-token> \
+DEV_DNS_PROVIDER=technitium \
+DEV_DNS_ZONE=partner-up.d.home.arpa \
+PORTLESS_TLD=partner-up.d.home.arpa \
+pnpm dev:ensure --lan --ip <reachable-lan-ip>
+```
+
+The DNS target IP comes from `--dns-ip`, `DEV_DNS_TARGET_IP`, `--ip`, or
+`PORTLESS_LAN_IP`, in that order. DNS registration is warning-only by default;
+set `DEV_DNS_STRICT=1` to fail the ensure command when registration fails.
+
+For WSL-local resolution, set `DEV_HOSTS_SYNC=1` to write a managed
+`PartnerUp dev hosts` block to `/etc/hosts`. This maps
+`partner-up.d.home.arpa` and all known PartnerUp dev route hosts to
+`DEV_HOSTS_IP`, defaulting to `127.0.0.1`. Set `DEV_HOSTS_STRICT=1` when a hosts
+write failure should fail the ensure command.
 
 ## Local Fallbacks
 
@@ -78,12 +108,14 @@ continues to mount OSS at `/mnt/oss`; `IMAGES_DIR` is not currently passed by
 Fake integration servers use provider-scoped portless names under the app
 namespace:
 
-- CaoCao: `caocao.partner-up`
-- WeChatPay: `wechatpay.partner-up`
+- CaoCao: `caocao`
+- WeChatPay: `wechatpay`
 
 They follow the active portless proxy mode. In LAN mode they are reachable as
-`caocao.partner-up.local` and `wechatpay.partner-up.local`; in local-only mode
-they use the same names under `.localhost`.
+`caocao.local` and `wechatpay.local`; in local-only mode they use the same names
+under `.localhost`. With `PORTLESS_TLD=partner-up.d.home.arpa`, they are
+reachable as `caocao.partner-up.d.home.arpa` and
+`wechatpay.partner-up.d.home.arpa`.
 
 Use `pnpm dev:ensure --only caocao` or `pnpm dev:ensure --only wechatpay` to
 start or reuse one fake provider without touching frontend/backend lifecycles.
@@ -91,8 +123,9 @@ VS Code fake-provider tasks use the same `--only` foreground ensure mode and
 the `DEV_ENSURE_FOREGROUND_READY` readiness marker.
 
 Non-production WeChatPay provider endpoints allow portless local hostnames
-(`.localhost` and `.local`) in addition to raw loopback hosts and the official
-WeChatPay API host. Production still requires the official WeChatPay API host.
+(`.localhost`, `.local`, and `.home.arpa`) in addition to raw loopback hosts and
+the official WeChatPay API host. Production still requires the official
+WeChatPay API host.
 
 ## Agent And VS Code Runtime
 

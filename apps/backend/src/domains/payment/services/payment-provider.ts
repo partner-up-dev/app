@@ -206,7 +206,8 @@ const isLocalEndpointHost = (hostname: string): boolean =>
   hostname === "127.0.0.1" ||
   hostname === "::1" ||
   hostname.endsWith(".localhost") ||
-  hostname.endsWith(".local");
+  hostname.endsWith(".local") ||
+  hostname.endsWith(".home.arpa");
 
 const isOfficialWeChatPayEndpointHost = (hostname: string): boolean =>
   hostname === "api.mch.weixin.qq.com";

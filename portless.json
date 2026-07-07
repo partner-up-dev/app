@@ -1,11 +1,11 @@
 {
   "apps": {
     "apps/frontend": {
-      "name": "partner-up",
+      "name": "web-app",
       "script": "dev"
     },
     "apps/backend": {
-      "name": "api.partner-up",
+      "name": "api",
       "script": "dev"
     }
   }

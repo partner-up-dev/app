@@ -9,7 +9,7 @@ declare
   provider_instance_key constant text := 'mch:1900000001:app:wx_partnerup_local_web';
   provider_client_id constant text := 'web';
   provider_display_name constant text := '微信支付';
-  provider_endpoint_base_url constant text := 'https://wechatpay.partner-up.localhost';
+  provider_endpoint_base_url constant text := 'https://wechatpay.localhost';
   provider_app_id constant text := 'wx_partnerup_local_web';
   provider_mch_id constant text := '1900000001';
   provider_api_v3_key constant text := '0123456789abcdef0123456789abcdef';

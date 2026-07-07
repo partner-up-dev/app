@@ -7,8 +7,8 @@
 do $$
 declare
   provider_instance_key constant text := 'caocao-openapi-primary';
-  provider_endpoint_base_url constant text := 'https://caocao.partner-up.localhost';
-  backend_callback_base_url constant text := 'https://api.partner-up.localhost';
+  provider_endpoint_base_url constant text := 'https://caocao.localhost';
+  backend_callback_base_url constant text := 'https://api.localhost';
 
   v_provider_instance_id uuid;
   v_spu_id bigint;
