@@ -19,4 +19,4 @@ rules:
     pattern: v-html
     paths:
       include:
-        - apps/frontend/src/**/*.vue
+        - apps/web/src/**/*.vue

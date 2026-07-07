@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "apps/frontend/**"
+      - "apps/web/**"
       - "apps/backend/**"
       - "tests/scenario/**"
       - "vitest.config.ts"

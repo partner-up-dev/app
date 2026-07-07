@@ -9,11 +9,12 @@ import { fileURLToPath } from "node:url";
 const isWindows = process.platform === "win32";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const defaultRouteNames = new Set(["frontend", "backend"]);
+const defaultRouteNames = new Set(["web", "backend"]);
 
 const routeDefinitions = [
   {
-    name: "frontend",
+    name: "web",
+    aliases: ["frontend"],
     portlessName: "web-app",
     portlessArgs: [
       "--name",
@@ -22,7 +23,7 @@ const routeDefinitions = [
       "--",
       "pnpm",
       "--filter",
-      "@partner-up-dev/frontend",
+      "@partner-up-dev/web",
       "dev",
     ],
     readinessPath: "/",
@@ -103,7 +104,9 @@ const getSelectedRouteDefinitions = () => {
     return routeDefinitions.filter((route) => defaultRouteNames.has(route.name));
   }
 
-  const selectedRoutes = routeDefinitions.filter((route) => route.name === selectedRouteName);
+  const selectedRoutes = routeDefinitions.filter(
+    (route) => route.name === selectedRouteName || route.aliases?.includes(selectedRouteName),
+  );
 
   if (selectedRoutes.length === 0) {
     throw new Error(

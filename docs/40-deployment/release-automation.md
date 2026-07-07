@@ -11,7 +11,7 @@ Tracked release units:
 
 - backend: `apps/backend/package.json`, `apps/backend/CHANGELOG.md`,
   `backend-vX.Y.Z`
-- frontend: `apps/frontend/package.json`, `apps/frontend/CHANGELOG.md`,
+- frontend: `apps/web/package.json`, `apps/web/CHANGELOG.md`,
   `frontend-vX.Y.Z`
 
 The shared manifest is `.release-please-manifest.json`.

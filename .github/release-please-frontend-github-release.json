@@ -2,10 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "include-component-in-tag": true,
   "packages": {
-    "apps/frontend": {
+    "apps/web": {
       "release-type": "node",
-      "component": "frontend",
-      "package-name": "@partner-up-dev/frontend",
+      "component": "web",
+      "package-name": "@partner-up-dev/web",
       "changelog-path": "CHANGELOG.md"
     }
   }

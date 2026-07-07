@@ -1,4 +1,4 @@
-name: Deploy Frontend to Aliyun ESA
+name: Deploy Web to Aliyun ESA
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
     paths:
       - ".node-version"
       - ".npmrc"
-      - "apps/frontend/**"
+      - "apps/web/**"
       - "apps/backend/src/**"
       - ".github/workflows/frontend-esa-deploy.yml"
       - "package.json"
@@ -25,7 +25,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: frontend-esa-deploy
+  group: web-esa-deploy
   cancel-in-progress: false
 
 jobs:
@@ -56,10 +56,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      - name: Deploy frontend through repository script
+      - name: Deploy web through repository script
         run: bash scripts/ci/esa/deploy_frontend.sh
 
-      - name: Create frontend GitHub Release
+      - name: Create web GitHub Release
         if: github.ref_name == 'master'
         uses: googleapis/release-please-action@v5
         with:

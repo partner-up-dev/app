@@ -6,12 +6,12 @@ Evidence anchors:
 
 - workflow: `.github/workflows/frontend-esa-deploy.yml`
 - deploy script: `scripts/ci/esa/deploy_frontend.sh`
-- deploy descriptor: `apps/frontend/esa.jsonc`
+- deploy descriptor: `apps/web/esa.jsonc`
 
 ## Current Runtime Facts
 
 - deployment target: Aliyun ESA
-- frontend builds to `apps/frontend/dist`
+- frontend builds to `apps/web/dist`
 - canonical hosted deploy workflow: `.github/workflows/frontend-esa-deploy.yml`
 - canonical executable deploy path: `scripts/ci/esa/deploy_frontend.sh`
 - backend runtime depends on `FRONTEND_URL` for share link generation
@@ -58,7 +58,7 @@ ESA's `staging` environment inside one project.
 Repo-tracked deploy descriptor:
 
 ```text
-apps/frontend/esa.jsonc
+apps/web/esa.jsonc
 ```
 
 Current descriptor facts:
@@ -66,7 +66,7 @@ Current descriptor facts:
 - install command in descriptor: `pnpm install`
 - workflow install command: `pnpm install --frozen-lockfile`
 - build command in descriptor: `pnpm run --filter frontend build`
-- workflow build command: `pnpm --filter @partner-up-dev/frontend build`
+- workflow build command: `pnpm --filter @partner-up-dev/web build`
 - published assets directory: `./dist`
 - not found strategy: SPA fallback
 

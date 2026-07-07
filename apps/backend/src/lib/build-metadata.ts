@@ -24,7 +24,7 @@ const readGitValue = (command: string): string | null => {
   }
 };
 
-const REPOSITORY_URL = "https://github.com/partner-up-dev/mvp-HA";
+const REPOSITORY_URL = "https://github.com/partner-up-dev/app";
 
 const backendCommitHash =
   normalizeValue(process.env.BACKEND_COMMIT_HASH) ??

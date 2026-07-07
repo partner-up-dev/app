@@ -10,7 +10,7 @@ Playwright browser -> Vite frontend -> real backend HTTP -> temporary Postgres
 
 They are root-owned because they coordinate both technical units:
 
-- `apps/frontend`: route rendering, browser workflow orchestration, local session state
+- `apps/web`: route rendering, browser workflow orchestration, local session state
 - `apps/backend`: HTTP API, auth/session handling, domain transitions, persistence
 
 ## Layout
@@ -49,7 +49,7 @@ Run all scenario suites:
 pnpm test:scenario:all
 ```
 
-The root Vitest `system-scenario` project loads `apps/frontend/.env` and `apps/backend/.env`. Shell and CI
+The root Vitest `system-scenario` project loads `apps/web/.env` and `apps/backend/.env`. Shell and CI
 environment variables have the highest priority. Backend `.env` values override
 frontend `.env` values when both files define the same key.
 

@@ -3,7 +3,7 @@
 ## Role
 
 The Frontend Shared UI Primitives unit preserves app-local rules for deciding
-what belongs in `apps/frontend/src/shared/ui` and how shared primitives compose
+what belongs in `apps/web/src/shared/ui` and how shared primitives compose
 with `@partner-up-dev/design-web`.
 
 It is not a package API manual. Package-specific component props, slots,
@@ -12,11 +12,11 @@ package docs.
 
 ## Durable Inputs
 
-- Frontend architecture: `apps/frontend/src/ARCHITECTURE.md`
-- Frontend component guidance: `apps/frontend/src/AGENTS.components.md`
-- Frontend naming protocol: `apps/frontend/src/AGENTS.naming.md`
-- Frontend styling rules: `apps/frontend/src/styles/AGENTS.md`
-- Shared UI local pointer: `apps/frontend/src/shared/ui/AGENTS.md`
+- Frontend architecture: `apps/web/src/ARCHITECTURE.md`
+- Frontend component guidance: `apps/web/src/AGENTS.components.md`
+- Frontend naming protocol: `apps/web/src/AGENTS.naming.md`
+- Frontend styling rules: `apps/web/src/styles/AGENTS.md`
+- Shared UI local pointer: `apps/web/src/shared/ui/AGENTS.md`
 - Design package skill: `@partner-up-dev/design-web#design-web`
 
 ## Local Invariants
@@ -52,7 +52,7 @@ package docs.
 - If page-local wrappers are promoted before their API stabilizes, shared UI
   accumulates convenience abstractions that obscure the actual component
   contract.
-- If primitive extensions do not update `apps/frontend/src/shared/ui/AGENTS.md`,
+- If primitive extensions do not update `apps/web/src/shared/ui/AGENTS.md`,
   agents may keep cloning old local patterns instead of using the governed API.
 
 ## Verification Expectations
@@ -63,15 +63,15 @@ For changes in this unit:
   package component usage rules or selecting package primitives.
 - Run frontend typecheck or build when shared primitive props, slots, emitted
   events, or imports change.
-- Run `pnpm --filter @partner-up-dev/frontend lint:tokens` when shared primitive
+- Run `pnpm --filter @partner-up-dev/web lint:tokens` when shared primitive
   styles or token usage changes.
-- Run `pnpm --filter @partner-up-dev/frontend lint:tokens:strict` only when
+- Run `pnpm --filter @partner-up-dev/web lint:tokens:strict` only when
   intentionally working on token enforcement or baseline movement.
 - Review whether a proposed shared component still satisfies the four shared
   primitive criteria before moving code into `src/shared/ui`.
 
 ## Local AGENTS Pointers To Keep
 
-`apps/frontend/src/shared/ui/AGENTS.md` should remain the local primitive index
+`apps/web/src/shared/ui/AGENTS.md` should remain the local primitive index
 and quick edit-time pointer. It can list preferred primitives and app-specific
 reuse rules, but package API details should stay with the design-web skill.

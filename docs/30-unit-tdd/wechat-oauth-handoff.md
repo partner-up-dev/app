@@ -10,9 +10,9 @@ It exists because the product currently uses frontend-held application access to
 
 - Product TDD session contract: `docs/20-product-tdd/cross-unit-contracts.md`
 - Backend callback and handoff route: `apps/backend/src/controllers/wechat.controller.ts`
-- Frontend app gate and exchange flow: `apps/frontend/src/processes/wechat/*`
-- Frontend auth bootstrap: `apps/frontend/src/processes/auth/useAuthSessionBootstrap.ts`
-- Route share orchestration: `apps/frontend/src/domains/share/use-cases/useRouteShareOrchestrator.ts`
+- Frontend app gate and exchange flow: `apps/web/src/processes/wechat/*`
+- Frontend auth bootstrap: `apps/web/src/processes/auth/useAuthSessionBootstrap.ts`
+- Route share orchestration: `apps/web/src/domains/share/use-cases/useRouteShareOrchestrator.ts`
 
 ## Local Invariants
 

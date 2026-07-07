@@ -1,6 +1,6 @@
 {
   "apps": {
-    "apps/frontend": {
+    "apps/web": {
       "name": "web-app",
       "script": "dev"
     },

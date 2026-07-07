@@ -88,7 +88,7 @@ worker-side lifecycle.
   detail, compact scenario context, and a path to detailed artifacts.
 - Detailed outputs live under each package or suite `.result` directory:
   - `apps/backend/.result/`
-  - `apps/frontend/.result/`
+  - `apps/web/.result/`
   - `tests/scenario/.result/`
 - CI may publish JSON or JUnit outputs from those `.result` directories.
 

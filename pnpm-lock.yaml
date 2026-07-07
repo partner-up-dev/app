@@ -134,7 +134,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  apps/frontend:
+  apps/web:
     dependencies:
       '@partner-up-dev/design-web':
         specifier: 0.4.7

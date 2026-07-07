@@ -37,7 +37,7 @@
       ],
       "project": ["src/**/*.ts", "tests/**/*.ts", "*.config.ts"]
     },
-    "apps/frontend": {
+    "apps/web": {
       "entry": [
         "src/main.ts",
         "src/app/create-app.ts",

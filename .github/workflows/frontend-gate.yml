@@ -1,4 +1,4 @@
-name: Frontend Gate
+name: Web Gate
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - master
       - develop
     paths:
-      - "apps/frontend/**"
+      - "apps/web/**"
       - "apps/backend/src/**"
       - "vitest.config.ts"
       - "package.json"
@@ -23,7 +23,7 @@ permissions:
   packages: read
 
 jobs:
-  frontend-gate:
+  web-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -44,11 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck frontend
-        run: pnpm check:type:frontend
+      - name: Typecheck web
+        run: pnpm check:type:web
 
-      - name: Run frontend unit tests
-        run: pnpm test:unit:frontend
+      - name: Run web unit tests
+        run: pnpm test:unit:web
 
-      - name: Build frontend
-        run: pnpm check:build:frontend
+      - name: Build web
+        run: pnpm check:build:web

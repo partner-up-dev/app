@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { createTencentDrivingRoutePlanner } from "../src/route-planning";
 import { startFakeCaocaoServer } from "../src/server";
 
-const frontendEnvPath = fileURLToPath(new URL("../../../apps/frontend/.env", import.meta.url));
+const frontendEnvPath = fileURLToPath(new URL("../../../apps/web/.env", import.meta.url));
 
 const loadFrontendEnvFile = (): void => {
   if (!existsSync(frontendEnvPath)) return;

@@ -12,13 +12,13 @@ rollout path for frontend ESA deployment.
 
 Repo-tracked rollout facts:
 
-- deploy descriptor: `apps/frontend/esa.jsonc`
+- deploy descriptor: `apps/web/esa.jsonc`
 - hosted install command: `pnpm install --frozen-lockfile`
 - hosted package registry auth: `NODE_AUTH_TOKEN` for GitHub Packages reads,
   including `@partner-up-dev/design-web`
 - hosted validation: frontend design-token lint, frontend unit tests, and
   frontend build
-- build command: `pnpm --filter @partner-up-dev/frontend build`
+- build command: `pnpm --filter @partner-up-dev/web build`
 - published assets directory: `./dist`
 - not found strategy: SPA fallback
 
@@ -35,7 +35,7 @@ inputs used during install or build.
 5. run frontend unit tests
 6. build frontend static assets
 7. authenticate `esa-cli` with ESA access key credentials
-8. deploy `apps/frontend/dist` to the GitHub Environment-selected Aliyun ESA
+8. deploy `apps/web/dist` to the GitHub Environment-selected Aliyun ESA
    project and publish it to that project's `production` environment
 9. on `master`, create the frontend GitHub Release after production ESA
    deployment succeeds

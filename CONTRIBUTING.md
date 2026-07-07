@@ -20,7 +20,7 @@ Release Please owns app versions, changelog entries, release tags, and GitHub
 Release notes after the `0.3.0` bootstrap baseline:
 
 - Backend release state lives in `apps/backend/package.json`, `apps/backend/CHANGELOG.md`, and tags named `backend-vX.Y.Z`.
-- Frontend release state lives in `apps/frontend/package.json`, `apps/frontend/CHANGELOG.md`, and tags named `frontend-vX.Y.Z`.
+- Frontend release state lives in `apps/web/package.json`, `apps/web/CHANGELOG.md`, and tags named `frontend-vX.Y.Z`.
 - Do not manually bump app `package.json` versions except for explicit release automation bootstrap or a human-approved recovery.
 - Do not manually edit generated changelog release sections. Improve future changelog content through better commits or Release Please commit overrides on the merged PR body.
 - Backend GitHub Releases represent successful production deployment, not just source availability.

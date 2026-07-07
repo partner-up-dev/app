@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - "apps/backend/**"
-      - "apps/frontend/**"
+      - "apps/web/**"
       - "release-please-config.json"
       - ".release-please-manifest.json"
       - ".github/release-please-backend-github-release.json"

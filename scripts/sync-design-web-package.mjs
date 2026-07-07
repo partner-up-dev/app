@@ -6,12 +6,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const frontendFilter = "@partner-up-dev/frontend";
+const frontendFilter = "@partner-up-dev/web";
 const packageName = "@partner-up-dev/design-web";
 const skillName = "design-web";
 const skillRoot = resolve(
   repoRoot,
-  "apps/frontend/node_modules",
+  "apps/web/node_modules",
   packageName,
   "skills",
   skillName,
@@ -145,11 +145,11 @@ const main = () => {
     skillRoot,
   ]);
 
-  const packageJsonPath = resolve(repoRoot, "apps/frontend/node_modules", packageName, "package.json");
+  const packageJsonPath = resolve(repoRoot, "apps/web/node_modules", packageName, "package.json");
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     print(
-      `Done. Current installed version: ${packageName}@${packageJson.version} (stored in apps/frontend/package.json).`,
+      `Done. Current installed version: ${packageName}@${packageJson.version} (stored in apps/web/package.json).`,
     );
   } catch {
     warn(`Installed package file not found or unreadable: ${packageJsonPath}`);

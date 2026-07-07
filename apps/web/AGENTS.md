@@ -1,6 +1,6 @@
-# AGENTS.md of PartnerUp MVP-HA Frontend
+# AGENTS.md of PartnerUp MVP-HA Web
 
-This file stays frontend-operational only. Root request routing, typed input classification, and mode selection are owned by the repository root `AGENTS.md` plus `docs/00-meta/`.
+This file stays web-client operational only. Root request routing, typed input classification, and mode selection are owned by the repository root `AGENTS.md` plus `docs/00-meta/`.
 
 ## Tech Stacks
 
@@ -13,7 +13,7 @@ This file stays frontend-operational only. Root request routing, typed input cla
 
 Follow root `AGENTS.md` for request routing, typed input classification, and durable doc ownership.
 
-Frontend-local entrypoints:
+Web-local entrypoints:
 
 - Architecture: `src/ARCHITECTURE.md`
 - Vue component guidance: `src/AGENTS.components.md`
@@ -26,16 +26,16 @@ Frontend-local entrypoints:
 
 Useful commands:
 
-- `pnpm check:lint:frontend`
-- `pnpm check:type:frontend`
-- `pnpm check:build:frontend`
+- `pnpm check:lint:web`
+- `pnpm check:type:web`
+- `pnpm check:build:web`
 - Package maintenance: `node scripts/sync-design-web-package.mjs` (or `node scripts/sync-design-web-package.mjs <version>`) for install/upgrade `@partner-up-dev/design-web`, Codex hook refresh, and packaged Agent Skill checks.
 
 Focused local checks:
 
-- `pnpm --filter @partner-up-dev/frontend lint:tokens`
-- `pnpm --filter @partner-up-dev/frontend lint:tokens:strict`
-- `pnpm --filter @partner-up-dev/frontend audit:naming`
+- `pnpm --filter @partner-up-dev/web lint:tokens`
+- `pnpm --filter @partner-up-dev/web lint:tokens:strict`
+- `pnpm --filter @partner-up-dev/web audit:naming`
 
 ## Coding Guidelines
 

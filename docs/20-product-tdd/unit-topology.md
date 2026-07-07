@@ -17,7 +17,7 @@ Owns:
 
 ### Frontend Unit
 
-Code container: `apps/frontend`
+Code container: `apps/web`
 
 Owns:
 

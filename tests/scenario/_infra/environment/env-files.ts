@@ -9,7 +9,7 @@ const externalEnvKeys = new Set(
   Object.keys(process.env).map(normalizeEnvKey),
 );
 
-const workspaceEnvFiles = ["apps/frontend/.env", "apps/backend/.env"] as const;
+const workspaceEnvFiles = ["apps/web/.env", "apps/backend/.env"] as const;
 
 export function loadWorkspaceEnvFiles(repoRoot: string): void {
   for (const relativePath of workspaceEnvFiles) {

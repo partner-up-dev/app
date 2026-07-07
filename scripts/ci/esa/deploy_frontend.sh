@@ -23,13 +23,13 @@ validate_environment() {
 
 validate_frontend() {
   install_workspace_dependencies
-  ci_esa_run pnpm --filter @partner-up-dev/frontend lint:tokens:strict
-  ci_esa_run pnpm test:unit:frontend
+  ci_esa_run pnpm --filter @partner-up-dev/web lint:tokens:strict
+  ci_esa_run pnpm test:unit:web
 }
 
 build_frontend() {
   install_workspace_dependencies
-  ci_esa_run pnpm --filter @partner-up-dev/frontend build
+  ci_esa_run pnpm --filter @partner-up-dev/web build
 }
 
 deploy_frontend() {
@@ -53,7 +53,7 @@ main() {
   validate_frontend
   build_frontend
 
-  cd apps/frontend
+  cd apps/web
   deploy_frontend
 }
 

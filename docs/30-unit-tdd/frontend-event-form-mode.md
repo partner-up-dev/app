@@ -13,10 +13,10 @@ that are easy to break while editing event-domain UI.
 
 - Product TDD event-context contract: `docs/20-product-tdd/event-context-contracts.md`
 - Product TDD PR lifecycle contract: `docs/20-product-tdd/pr-lifecycle-contracts.md`
-- Frontend architecture: `apps/frontend/src/ARCHITECTURE.md`
-- Frontend component guidance: `apps/frontend/src/AGENTS.components.md`
-- Event UI local pointer: `apps/frontend/src/domains/event/ui/AGENTS.md`
-- PR preview primitive: `apps/frontend/src/domains/pr/ui/AGENTS.md`
+- Frontend architecture: `apps/web/src/ARCHITECTURE.md`
+- Frontend component guidance: `apps/web/src/AGENTS.components.md`
+- Event UI local pointer: `apps/web/src/domains/event/ui/AGENTS.md`
+- PR preview primitive: `apps/web/src/domains/pr/ui/AGENTS.md`
 
 ## Local Invariants
 
@@ -80,6 +80,6 @@ For changes in this unit:
 
 ## Local AGENTS Pointers To Keep
 
-`apps/frontend/src/domains/event/ui/AGENTS.md` should remain a local edit-time
+`apps/web/src/domains/event/ui/AGENTS.md` should remain a local edit-time
 pointer and hazard summary. It should not duplicate the full Form Mode state
 machine once this Unit TDD doc is loaded.

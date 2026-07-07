@@ -20,7 +20,7 @@ non-Windows environments.
 
 Local app identity is stored in `portless.json`:
 
-- `apps/frontend`: `web-app`
+- `apps/web`: `web-app`
 - `apps/backend`: `api`
 
 Portless injects runtime origin and listener values through `PORTLESS_URL`,

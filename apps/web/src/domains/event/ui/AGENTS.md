@@ -6,7 +6,7 @@ Read before changing Form Mode:
 
 - Product / cross-unit contract: `docs/20-product-tdd/event-context-contracts.md`
 - Frontend-local choreography: `docs/30-unit-tdd/frontend-event-form-mode.md`
-- PR preview boundary: `apps/frontend/src/domains/pr/ui/AGENTS.md`
+- PR preview boundary: `apps/web/src/domains/pr/ui/AGENTS.md`
 
 ## Local Hazards
 

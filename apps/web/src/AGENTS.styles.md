@@ -61,10 +61,10 @@ Keep those values inside the primitive and expose behavior through props or slot
 
 Run:
 
-- `pnpm --filter @partner-up-dev/frontend lint:tokens`
+- `pnpm --filter @partner-up-dev/web lint:tokens`
 
 Strict mode exists for enforcement work:
 
-- `pnpm --filter @partner-up-dev/frontend lint:tokens:strict`
+- `pnpm --filter @partner-up-dev/web lint:tokens:strict`
 
 The token checker is baseline-backed. New findings outside the accepted baseline should be treated as regressions.

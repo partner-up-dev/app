@@ -9,7 +9,7 @@ export type StartedFrontendServer = {
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDirectory, "../../../..");
-const frontendRoot = path.join(repoRoot, "apps/frontend");
+const frontendRoot = path.join(repoRoot, "apps/web");
 
 export async function startFrontendServer(input: {
   backendPort: number;

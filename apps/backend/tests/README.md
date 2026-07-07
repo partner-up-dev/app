@@ -33,7 +33,7 @@ Canonical backend-suite command, from the repository root:
 pnpm test:scenario:backend
 ```
 
-The Vitest project setup loads `apps/frontend/.env` and `apps/backend/.env`, then creates the requested scenario runtime. Shell and CI environment variables have the highest priority; for backend scenario runs, `apps/backend/.env` has priority over `apps/frontend/.env` when both files define the same key.
+The Vitest project setup loads `apps/web/.env` and `apps/backend/.env`, then creates the requested scenario runtime. Shell and CI environment variables have the highest priority; for backend scenario runs, `apps/backend/.env` has priority over `apps/web/.env` when both files define the same key.
 
 Run all scenario suites:
 

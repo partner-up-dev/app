@@ -16,7 +16,7 @@ const checks = [
     pass: (content) => !content.includes("isoDateOrDateTimeSchema"),
   },
   {
-    file: "apps/frontend/src/lib/validation.ts",
+    file: "apps/web/src/lib/validation.ts",
     message: "Frontend PR form time validation must allow offset datetime instants.",
     pass: (content) =>
       content.includes("const instantDateTimeSchema = z.string().datetime({ offset: true });"),
@@ -27,7 +27,7 @@ const checks = [
     pass: (content) => !content.includes('time: ["2026-02-08", null]'),
   },
   {
-    file: "apps/frontend/src/domains/event/model/form-mode.ts",
+    file: "apps/web/src/domains/event/model/form-mode.ts",
     message: "Form Mode all-day windows must end at the next product-local midnight.",
     pass: (content) =>
       content.includes('{ label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "00:00" }'),

@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("frontend", "backend")]
+    [ValidateSet("web", "frontend", "backend")]
     [string]$Service
 )
 
@@ -82,12 +82,12 @@ function Import-DotEnv {
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
 
 $serviceConfig = switch ($Service) {
-    "frontend" {
+    { $_ -in @("web", "frontend") } {
         @{
-            Name = "frontend"
+            Name = "web"
             Port = 4001
             Command = "pnpm"
-            Args = @("run", "dev:frontend")
+            Args = @("run", "dev:web")
             EnvFile = $null
         }
     }

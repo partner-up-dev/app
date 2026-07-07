@@ -10,10 +10,10 @@
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true
     },
-    "apps/frontend": {
+    "apps/web": {
       "release-type": "node",
-      "component": "frontend",
-      "package-name": "@partner-up-dev/frontend",
+      "component": "web",
+      "package-name": "@partner-up-dev/web",
       "changelog-path": "CHANGELOG.md",
       "skip-github-release": true
     }
