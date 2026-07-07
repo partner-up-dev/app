@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.2.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v3.1.0...frontend-v3.2.0) (2026-07-01)
+## [3.2.0](https://github.com/partner-up-dev/mvp-HA/compare/frontend-v3.1.0...frontend-v3.2.0) (2026-07-03)
 
 
 ### Features
@@ -9,6 +9,7 @@
 * **commerce:** add quote-bound offer listing ([499291e](https://github.com/partner-up-dev/mvp-HA/commit/499291ea62b80f64708682f0f58f1a4f942a68a3))
 * **commerce:** refine ride-hailing ordering route map ([62decae](https://github.com/partner-up-dev/mvp-HA/commit/62decaed6c4d01a0c3da279f9d16682d19d1f2da))
 * **frontend:** render ride-hailing order detail map states ([413cb26](https://github.com/partner-up-dev/mvp-HA/commit/413cb260d22b010770cc3b780bad7f3207bf337c))
+* **location:** replace iframe picker with js sdk ([50700c3](https://github.com/partner-up-dev/mvp-HA/commit/50700c3dbd5744710527a880b779cb0bb6823dee))
 * **payment:** rebuild checkout workstream ([4d4f9cd](https://github.com/partner-up-dev/mvp-HA/commit/4d4f9cd055c66d9daaabacff0dc5a939b1678b4b))
 * **ride-hailing-admin:** add ride-hailing order admin cancel flow ([b4a7399](https://github.com/partner-up-dev/mvp-HA/commit/b4a73992326440cc153d57ba979f7aa500b929b0))
 * **ride-hailing:** add fake order phase controls ([566539e](https://github.com/partner-up-dev/mvp-HA/commit/566539edf89e5ba1e911f4cc32728deba48890be))
@@ -34,6 +35,7 @@
 * **frontend:** refresh ride entry after phone save ([6e5fb8a](https://github.com/partner-up-dev/mvp-HA/commit/6e5fb8a2cf8927a23c9f59e674f19889bb0affec))
 * **frontend:** replace order detail history backflow ([bfbdf7a](https://github.com/partner-up-dev/mvp-HA/commit/bfbdf7ad3ef99a090c0cc23b7bcdb83cf7618dae))
 * **frontend:** satisfy payment checkout token guard ([d3f9102](https://github.com/partner-up-dev/mvp-HA/commit/d3f91029c2201ceba99f97214d2bc08abab16483))
+* **location:** run picker scenario against real Tencent maps ([2222802](https://github.com/partner-up-dev/mvp-HA/commit/222280238d5d9cbd8ddc407a97fb18214f12694d))
 * **map:** respect padding for single-marker fit ([b568eef](https://github.com/partner-up-dev/mvp-HA/commit/b568eefa07970977bd500bfd73cc06fe5a0b59bd))
 * **map:** stabilize ride-hailing live follow mode ([51597a1](https://github.com/partner-up-dev/mvp-HA/commit/51597a105e2984f474f143127a313aadb8cc1c97))
 * **ordering:** stop terminal polling and add pr-ready recovery ([eafd9f1](https://github.com/partner-up-dev/mvp-HA/commit/eafd9f1d6a41e27aa52932d02d2ab9752e5692e1))
