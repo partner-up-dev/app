@@ -43,6 +43,19 @@ Workflow-supplied runtime values:
 - `VITE_FRONTEND_COMMIT_HASH`: `${{ github.sha }}`
 - `NODE_AUTH_TOKEN`: `secrets.NODE_AUTH_TOKEN || github.token`
 
+## ESA CLI Login Probe Behavior
+
+Hosted CI uses `ESA_ACCESS_KEY_ID` and `ESA_ACCESS_KEY_SECRET` environment
+credentials derived from GitHub Environment secrets. With `esa-cli@1.0.10`,
+`esa-cli login` validates these env credentials and can print `Login success!`,
+but it does not persist a durable login state. `esa-cli deploy` performs a
+separate credential probe and can intermittently collapse that probe failure
+into `Maybe you are not logged in yet.`
+
+The canonical deploy script therefore invokes `esa-cli deploy` directly and
+wraps only this known login-probe failure in a bounded retry. Other `esa-cli`
+deploy failures remain immediate failures.
+
 ## Environment Isolation
 
 Frontend deploys map `develop` to the GitHub `staging` environment and

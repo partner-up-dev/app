@@ -34,7 +34,7 @@ inputs used during install or build.
 4. lint frontend design tokens
 5. run frontend unit tests
 6. build frontend static assets
-7. authenticate `esa-cli` with ESA access key credentials
+7. map Aliyun access key credentials to `esa-cli` environment credential names
 8. deploy `apps/web/dist` to the GitHub Environment-selected Aliyun ESA
    project and publish it to that project's `production` environment
 
@@ -55,6 +55,10 @@ inputs used during install or build.
   `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET`; the
   frontend ESA deploy script maps them to the ESA CLI credential environment
   names before invoking `esa-cli`
+- `esa-cli@1.0.10 login` is not used as a deploy preflight in hosted CI. In env
+  credential mode, it validates credentials but does not persist a durable login
+  state. The deploy command performs its own login probe, and the script retries
+  only the known transient `Maybe you are not logged in yet.` probe failure.
 - frontend environment isolation is implemented by separate ESA projects, not
   by ESA's `staging` environment inside one project
 
