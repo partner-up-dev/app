@@ -22,9 +22,7 @@ on:
       - "scripts/fc_*.py"
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: backend-fc-deploy
@@ -99,12 +97,3 @@ jobs:
 
       - name: Deploy backend through repository script
         run: bash scripts/ci/fc/deploy_backend.sh
-
-      - name: Create backend GitHub Release
-        if: (github.event_name != 'workflow_dispatch' || inputs.publish_layer_only != true) && github.ref_name == 'master'
-        uses: googleapis/release-please-action@v5
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          config-file: .github/release-please-backend-github-release.json
-          manifest-file: .release-please-manifest.json
-          skip-github-pull-request: true

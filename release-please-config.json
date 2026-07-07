@@ -7,15 +7,13 @@
       "release-type": "node",
       "component": "backend",
       "package-name": "@partner-up-dev/backend",
-      "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true
+      "changelog-path": "CHANGELOG.md"
     },
     "apps/web": {
       "release-type": "node",
       "component": "web",
       "package-name": "@partner-up-dev/web",
-      "changelog-path": "CHANGELOG.md",
-      "skip-github-release": true
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

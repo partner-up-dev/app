@@ -16,7 +16,7 @@ Local reset flows exist for development and tests only.
 | Backend deploy fails after migration | migration has already changed DB state | fix package/template/runtime issue and rerun backend deploy; do not reset staging or production DB |
 | Production alias publication fails | `master` function deployed but alias did not move | inspect version publication and alias update logs, rerun alias publication script or backend deploy after confirming target version |
 | Layer publish fails | backend app deploy has not completed | fix layer package/publish inputs, rerun backend deploy or layer-only workflow dispatch |
-| Frontend ESA deploy fails | frontend GitHub Release must not be created | fix env/auth/build/deploy issue and rerun frontend deploy workflow |
+| Frontend ESA deploy fails | ESA publication did not complete | fix env/auth/build/deploy issue and rerun frontend deploy workflow |
 | Job-runner trigger deploy fails | timer function may remain on previous deployed config | fix trigger env/template issue and rerun job-runner trigger workflow |
 | Job-runner tick fails | due work may remain pending or become late/missed | inspect `jobs`, backend logs, and trigger logs; fix runtime issue, then invoke trigger or `/internal/maintenance/tick` |
 | CaoCao callback edge fails | provider callbacks may route to wrong backend or fail before backend verification | inspect edge router process, nginx exact location, and backend callback logs; restore route config without rewriting callback bodies |

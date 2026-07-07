@@ -29,8 +29,8 @@ environment families that change for different reasons.
 - frontend ESA behavior: deploy to the production GitHub Environment's ESA
   project
 - migrations run before backend deploy
-- backend and frontend GitHub Releases are created only after their production
-  deployment workflows succeed
+- GitHub Releases are source code version archives owned by Release Please and
+  are not deployment-success markers
 
 ## Runtime Truth Rules
 

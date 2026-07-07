@@ -37,8 +37,6 @@ are outside the backend install graph.
 11. inject `BACKEND_COMMIT_HASH` from `GITHUB_SHA`
 12. deploy backend FC function
 13. on `master`, publish function version and update `production` alias
-14. on `master`, create the backend GitHub Release after production alias
-    publication succeeds
 
 ## Rollout Guarantees
 
@@ -49,7 +47,8 @@ are outside the backend install graph.
 - layer-only publish is supported via workflow dispatch input
 - runtime build metadata stays available even when the deployed package has no
   `.git` directory
-- backend GitHub Releases are gated by successful production deployment
+- backend GitHub Releases are source code version archives owned by Release
+  Please, not by the backend deploy workflow
 
 ## Job Runner Trigger Rollout
 

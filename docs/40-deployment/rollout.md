@@ -11,7 +11,7 @@ semantics.
 | CI validation gates | [ci-gates.md](./ci-gates.md) | PR validation gate topology and install boundaries |
 | Backend FC rollout | [backend-rollout.md](./backend-rollout.md) | backend migration, layer, FC deploy, alias publication, job-runner trigger rollout |
 | Frontend ESA rollout | [frontend-rollout.md](./frontend-rollout.md) | frontend ESA deploy flow, hosted validation, ESA project publication |
-| Release automation | [release-automation.md](./release-automation.md) | Release Please source metadata and deployment-gated GitHub Release semantics |
+| Release automation | [release-automation.md](./release-automation.md) | Release Please source metadata and code-version GitHub Release semantics |
 
 ## Hosted Rollout Rules
 
@@ -20,10 +20,8 @@ semantics.
 - Manual deployment, when used, must go through the same scripts and preserve
   the same ordering.
 - Backend migrations happen before backend app deploy.
-- Production backend GitHub Releases happen only after production alias
-  publication succeeds.
-- Production frontend GitHub Releases happen only after production ESA deploy
-  succeeds.
+- Deployment workflows do not create GitHub Releases. Release Please owns
+  GitHub Release creation as source code version archival.
 
 ## Manual Rollout Reality
 

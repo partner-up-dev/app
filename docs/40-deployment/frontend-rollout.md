@@ -37,8 +37,6 @@ inputs used during install or build.
 7. authenticate `esa-cli` with ESA access key credentials
 8. deploy `apps/web/dist` to the GitHub Environment-selected Aliyun ESA
    project and publish it to that project's `production` environment
-9. on `master`, create the frontend GitHub Release after production ESA
-   deployment succeeds
 
 ## Environment Behavior
 
@@ -60,11 +58,8 @@ inputs used during install or build.
 - frontend environment isolation is implemented by separate ESA projects, not
   by ESA's `staging` environment inside one project
 
-Frontend GitHub Releases are gated by successful `master` production ESA
-deployment. The general Release Please workflow creates frontend release PRs and
-updates frontend source release metadata, but it skips frontend GitHub Release
-creation. The frontend deploy workflow creates the frontend GitHub Release after
-production ESA deployment succeeds.
+Frontend GitHub Releases are source code version archives owned by Release
+Please. The frontend deploy workflow does not create GitHub Releases.
 
 ## Design Package Deployment Boundary
 

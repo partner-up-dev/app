@@ -5,29 +5,26 @@
 Primary workflow: `.github/workflows/release-please.yml`
 
 Release Please owns automated version bumps, changelog updates, release tags,
-and GitHub Release notes after the `0.3.0` bootstrap baseline.
+and GitHub Release notes after the `0.3.0` bootstrap baseline. GitHub Releases
+represent source code version archives, not proof that a production deployment
+has succeeded.
 
 Tracked release units:
 
 - backend: `apps/backend/package.json`, `apps/backend/CHANGELOG.md`,
   `backend-vX.Y.Z`
-- frontend: `apps/web/package.json`, `apps/web/CHANGELOG.md`,
-  `frontend-vX.Y.Z`
+- web: `apps/web/package.json`, `apps/web/CHANGELOG.md`, `web-vX.Y.Z`
 
 The shared manifest is `.release-please-manifest.json`.
 
-## Deployment-Gated GitHub Releases
+## GitHub Release Semantics
 
-Backend and frontend GitHub Release semantics are deployment-gated:
+The Release Please workflow is the single GitHub Release creation path for
+tracked release units. Backend and web deployment workflows do not create
+GitHub Releases.
 
-- Backend Release Please PRs update source release metadata, but backend GitHub
-  Releases are skipped in the general release workflow. The backend deployment
-  workflow creates the backend GitHub Release only after the `master`
-  production rollout finishes successfully.
-- Frontend Release Please PRs update source release metadata, but frontend
-  GitHub Releases are skipped in the general release workflow. The frontend
-  deployment workflow creates the frontend GitHub Release only after the
-  `master` production ESA rollout finishes successfully.
+Deployment status is represented by the deployment workflows and hosted runtime
+state, not by the presence or absence of a GitHub Release.
 
 If release PR checks must run when opened by automation, configure
 `RELEASE_PLEASE_TOKEN` as a GitHub PAT or GitHub App token with repository

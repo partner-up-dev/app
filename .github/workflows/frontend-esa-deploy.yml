@@ -19,10 +19,8 @@ on:
       - "vitest.config.ts"
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
   packages: read
-  pull-requests: write
 
 concurrency:
   group: web-esa-deploy
@@ -58,12 +56,3 @@ jobs:
 
       - name: Deploy web through repository script
         run: bash scripts/ci/esa/deploy_frontend.sh
-
-      - name: Create web GitHub Release
-        if: github.ref_name == 'master'
-        uses: googleapis/release-please-action@v5
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          config-file: .github/release-please-frontend-github-release.json
-          manifest-file: .release-please-manifest.json
-          skip-github-pull-request: true
