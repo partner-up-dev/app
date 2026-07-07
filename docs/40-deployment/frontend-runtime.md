@@ -53,6 +53,22 @@ publishes to ESA environment `production` inside the selected project.
 Frontend environment isolation is implemented by separate ESA projects, not by
 ESA's `staging` environment inside one project.
 
+## Legacy Resource Names
+
+The GitHub repository was renamed to `partner-up-dev/app`, but Aliyun ESA
+resource names are independent runtime resources and are not renamed by the
+repository rename.
+
+Keep these ESA names unless an explicit Aliyun resource migration is planned and
+verified:
+
+- workflow fallback `ALIYUN_ESA_PROJECT_NAME=partner-up-mvp-ha`
+- deploy script fallback `ALIYUN_ESA_PROJECT_NAME=partner-up-mvp-ha`
+- repo-tracked ESA descriptor project name `partner-up-mvp-ha`
+
+These names are legacy deployment identifiers, not current repository identity.
+Do not change them only to match the GitHub repository name.
+
 ## Hosted Asset Runtime
 
 Repo-tracked deploy descriptor:

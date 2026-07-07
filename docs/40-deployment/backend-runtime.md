@@ -92,6 +92,26 @@ backend.
 not currently passed by `apps/backend/s.yaml`; production FC uses the OSS mount
 at `/mnt/oss`.
 
+## Legacy Resource Names
+
+The GitHub repository was renamed to `partner-up-dev/app`, but backend Aliyun
+runtime resources and external provider credentials remain independent runtime
+resources. Keep legacy names unless an explicit Aliyun/provider migration is
+planned and verified.
+
+Legacy names that are intentionally retained:
+
+- Serverless/FC template tag value `mvp-HA` in backend runtime, DB migration,
+  and job-runner trigger templates.
+- `partner-up-mvp-ha` inside `FIXED_IP_HTTP_PROXY` credentials when supplied by
+  the proxy provider.
+- OSS bucket URL hostnames such as `mvp-ha.oss-cn-hangzhou.aliyuncs.com` when
+  stored seed data points at existing hosted assets.
+
+These names are runtime resource or credential identifiers, not current
+repository identity. Do not change them only to match the GitHub repository
+name.
+
 ## WeChat Notification Template Sources
 
 Subscription-message template ids for confirmation-reminder, activity-start
