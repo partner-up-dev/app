@@ -15,6 +15,21 @@ layer's runtime authority.
   - `frontend-unit`
   - `backend-scenario`
   - `system-scenario`
+
+## TypeScript Compiler Lanes
+
+- Backend source type-checking and the two fake provider servers use the
+  TypeScript 7 native CLI.
+- Backend keeps `typescript` aliased to `@typescript/typescript6` for
+  compiler-API consumers such as `ts-node`; `@typescript/native` owns the
+  TypeScript 7 `tsc` binary.
+- The Web client keeps TypeScript 6 for `vue-tsc`/Volar compatibility. The
+  Web `vue-tsc` check must not be replaced with the TypeScript 7 CLI until the
+  Vue embedded-language toolchain supports TypeScript 7's API.
+- Root type and build commands are expected to preserve both lanes: native
+  TypeScript 7 for Backend/fake-server checks and TypeScript 6 for Vue SFC
+  checking.
+
 - Vitest owns discovery, filtering, project scheduling, default reporter output,
   and machine-readable CI artifacts.
 - The root `vitest.config.ts` owns project orchestration only. It must not load
