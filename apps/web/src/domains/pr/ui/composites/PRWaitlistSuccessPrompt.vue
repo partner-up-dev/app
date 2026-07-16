@@ -11,7 +11,7 @@
       <WeChatNotificationSubscriptionsCard
         :title="t('prPage.notificationSubscriptions.title')"
       >
-        <APRNotificationSubscriptions
+        <PRNotificationSubscriptions
           :visible-kinds="waitlistSuccessNotificationKinds"
           :description-prefixes="waitlistNotificationDescriptionPrefixes"
           :updating-label="t('prPage.wechatReminder.updating')"
@@ -48,14 +48,14 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
-import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
-import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
 import OfficialAccountFollowPanel from "@/domains/marketing/ui/OfficialAccountFollowPanel.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
-import { PuButton } from "@partner-up-dev/design-web";
+import PRNotificationSubscriptions from "@/shared/ui/sections/PRNotificationSubscriptions.vue";
+import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
+import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
 
 type WaitlistPromptStep = "SUBSCRIPTIONS" | "OFFICIAL_ACCOUNT";
 
@@ -70,24 +70,20 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const waitlistPromptStep = ref<WaitlistPromptStep>("SUBSCRIPTIONS");
-const officialAccountFollowPrompt =
-  useOfficialAccountFollowPrompt("pr_waitlist_result");
+const officialAccountFollowPrompt = useOfficialAccountFollowPrompt("pr_waitlist_result");
 
 const waitlistNotificationDescriptionPrefixes = computed<
   Partial<Record<WeChatNotificationKind, string>>
 >(() => ({
-  WAITLIST_PROMOTED: t(
-    "prPage.waitlistSuccessSubscriptions.notificationReasons.WAITLIST_PROMOTED",
-  ),
+  WAITLIST_PROMOTED: t("prPage.waitlistSuccessSubscriptions.notificationReasons.WAITLIST_PROMOTED"),
   WAITLIST_ALTERNATIVE_AVAILABLE: t(
     "prPage.waitlistSuccessSubscriptions.notificationReasons.WAITLIST_ALTERNATIVE_AVAILABLE",
   ),
 }));
-const waitlistSuccessNotificationKinds = computed<WeChatNotificationKind[]>(
-  () =>
-    props.alternativePrReminderOptIn
-      ? ["WAITLIST_PROMOTED", "WAITLIST_ALTERNATIVE_AVAILABLE"]
-      : ["WAITLIST_PROMOTED"],
+const waitlistSuccessNotificationKinds = computed<WeChatNotificationKind[]>(() =>
+  props.alternativePrReminderOptIn
+    ? ["WAITLIST_PROMOTED", "WAITLIST_ALTERNATIVE_AVAILABLE"]
+    : ["WAITLIST_PROMOTED"],
 );
 
 const resetPrompt = (): void => {

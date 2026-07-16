@@ -75,4 +75,33 @@ describe("user telemetry event registry", () => {
       failureCode: "EVENT_FAMILY_MISMATCH",
     });
   });
+
+  test("governs the exact PR Discovery payload dimensions", () => {
+    const accepted = validateRegisteredUserTelemetryEvent({
+      eventName: "pr.discovery.candidate.action",
+      eventVersion: 1,
+      payload: {
+        prType: "badminton",
+        viewMode: "CARD",
+        origin: "PR_DISCOVERY",
+        prId: 42,
+        action: "JOIN",
+      },
+    });
+    expect(accepted.ok).toBe(true);
+
+    const rejected = validateRegisteredUserTelemetryEvent({
+      eventName: "pr.discovery.candidate.action",
+      eventVersion: 1,
+      payload: {
+        prType: "badminton",
+        viewMode: "CARD",
+        origin: "PR_DISCOVERY",
+        prId: 42,
+        action: "JOIN",
+        unexpectedContextId: 99,
+      },
+    });
+    expect(rejected).toMatchObject({ ok: false, failureCode: "INVALID_PAYLOAD" });
+  });
 });

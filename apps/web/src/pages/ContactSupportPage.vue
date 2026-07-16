@@ -45,23 +45,24 @@
         </SupportContactAction>
       </div>
 
-      <div class="contact-card contact-card--beta-group">
-        <PuChip class="contact-badge--beta-group" tone="secondary" size="lg">
-          {{ t("contactSupportPage.betaGroupBadge") }}
+      <div class="contact-card contact-card--type-community">
+        <PuChip tone="secondary" size="lg">
+          {{ t("contactSupportPage.typeCommunity.badge") }}
         </PuChip>
         <div class="contact-text">
-          <h2>{{ t("contactSupportPage.betaGroupTitle") }}</h2>
-          <p>{{ t("contactSupportPage.betaGroupDescription") }}</p>
+          <h2>{{ t("contactSupportPage.typeCommunity.title") }}</h2>
+          <p>{{ t("contactSupportPage.typeCommunity.description") }}</p>
         </div>
 
         <PuButton
-          class="contact-action contact-action--beta-group"
-          :action="{ to: { name: 'about', hash: '#beta-groups' } }"
+          class="contact-action contact-action--type-community"
+          :action="{ to: { name: 'about', hash: '#type-communities' } }"
           shape="pill"
           tone="primary"
           variant="outline"
+          data-testid="support.type-community.open"
         >
-          {{ t("contactSupportPage.betaGroupAction") }}
+          {{ t("contactSupportPage.typeCommunity.action") }}
         </PuButton>
       </div>
     </section>
@@ -91,41 +92,27 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuChip, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
-import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { RouterLink } from "vue-router";
 import SupportContactAction from "@/domains/support/ui/sections/SupportContactAction.vue";
 import SupportContactQrModal from "@/domains/support/ui/sections/SupportContactQrModal.vue";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
-import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
-import {
-  PUBLIC_CONFIG_KEYS,
-  usePublicConfig,
-} from "@/shared/config/queries/usePublicConfig";
+import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import {
-  PuButton,
-  PuChip,
-  PuHeader,
-  PuPageScaffold,
-} from "@partner-up-dev/design-web";
+import { useWeChatMiniProgramWebView } from "@/shared/wechat/useWeChatMiniProgramWebView";
 
-const DEFAULT_SUPPORT_LINK_WECHAT_IN =
-  "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
-const DEFAULT_SUPPORT_LINK_WECHAT_OUT =
-  "https://work.weixin.qq.com/nl/act/p/4030a5b69149404d";
+const DEFAULT_SUPPORT_LINK_WECHAT_IN = "https://work.weixin.qq.com/nl/act/p/3f8820e724cb44c5";
+const DEFAULT_SUPPORT_LINK_WECHAT_OUT = "https://work.weixin.qq.com/nl/act/p/4030a5b69149404d";
 
 const { t } = useI18n();
 const { handleBack } = useFallbackBack();
 const { isMiniProgramWebView } = useWeChatMiniProgramWebView();
 const supportQrModalOpen = ref(false);
 
-const supportLinkWechatInQuery = usePublicConfig(
-  PUBLIC_CONFIG_KEYS.wecomSupportLinkWechatIn,
-);
-const supportLinkWechatOutQuery = usePublicConfig(
-  PUBLIC_CONFIG_KEYS.wecomSupportLinkWechatOut,
-);
+const supportLinkWechatInQuery = usePublicConfig(PUBLIC_CONFIG_KEYS.wecomSupportLinkWechatIn);
+const supportLinkWechatOutQuery = usePublicConfig(PUBLIC_CONFIG_KEYS.wecomSupportLinkWechatOut);
 
 const normalizeHttpUrl = (value: string | null | undefined): string | null => {
   if (!value) return null;
@@ -149,10 +136,7 @@ const resolveSupportLink = (
 };
 
 const supportLinkWechatIn = computed(() => {
-  if (
-    supportLinkWechatInQuery.isLoading.value ||
-    supportLinkWechatInQuery.error.value
-  ) {
+  if (supportLinkWechatInQuery.isLoading.value || supportLinkWechatInQuery.error.value) {
     return DEFAULT_SUPPORT_LINK_WECHAT_IN;
   }
 
@@ -163,10 +147,7 @@ const supportLinkWechatIn = computed(() => {
 });
 
 const supportLinkWechatOut = computed(() => {
-  if (
-    supportLinkWechatOutQuery.isLoading.value ||
-    supportLinkWechatOutQuery.error.value
-  ) {
+  if (supportLinkWechatOutQuery.isLoading.value || supportLinkWechatOutQuery.error.value) {
     return DEFAULT_SUPPORT_LINK_WECHAT_OUT;
   }
 
@@ -204,17 +185,6 @@ const usesMiniProgramQrEntry = computed(() => isMiniProgramWebView.value);
   grid-column: 1 / -1;
   align-content: space-between;
   border-color: var(--sys-color-secondary);
-}
-
-.contact-card--beta-group {
-  grid-column: 1 / -1;
-  align-content: space-between;
-  border-color: var(--sys-color-outline-variant);
-  background: var(--sys-color-surface-container-low);
-}
-
-.contact-badge--beta-group {
-  opacity: 0.8;
 }
 
 .contact-text {

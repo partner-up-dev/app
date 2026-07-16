@@ -3,12 +3,12 @@ import { factPRCreateFunnelEvents } from "../../entities";
 import { db } from "../../lib/db";
 import {
   buildPRCreateFunnelResponseFromRows,
-  resolvePRCreateFunnelFilters,
   type PRCreateFunnelContextStatus,
   type PRCreateFunnelFactRow,
   type PRCreateFunnelQueryInput,
   type PRCreateFunnelResponse,
   type PRCreatePath,
+  resolvePRCreateFunnelFilters,
 } from "./pr-create-funnel.model";
 
 type PRCreateFunnelViewRow = {
@@ -31,8 +31,8 @@ const toContextStatus = (value: string): PRCreateFunnelContextStatus =>
 
 const toCreationPath = (value: string | null): PRCreatePath | null => {
   if (
-    value === "form" ||
-    value === "event_assisted" ||
+    value === "structured_form" ||
+    value === "pr_discovery" ||
     value === "natural_language" ||
     value === "unknown"
   ) {
@@ -82,10 +82,7 @@ export async function getPRCreateFunnelAnalytics(
         lt(factPRCreateFunnelEvents.occurredAt, new Date(filters.endAt)),
       ),
     )
-    .orderBy(
-      asc(factPRCreateFunnelEvents.occurredAt),
-      asc(factPRCreateFunnelEvents.eventId),
-    );
+    .orderBy(asc(factPRCreateFunnelEvents.occurredAt), asc(factPRCreateFunnelEvents.eventId));
 
   return buildPRCreateFunnelResponseFromRows(filters, rows.map(toFactRow));
 }

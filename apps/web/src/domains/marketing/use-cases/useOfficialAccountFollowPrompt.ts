@@ -1,11 +1,11 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
-import { useWeChatOfficialAccountFollowStatus } from "@/shared/wechat/queries/useWeChatOfficialAccountFollowStatus";
 import { trackEvent } from "@/shared/telemetry/track";
+import { useWeChatOfficialAccountFollowStatus } from "@/shared/wechat/queries/useWeChatOfficialAccountFollowStatus";
 
 export type OfficialAccountFollowPromptSource =
   | "home"
-  | "anchor_event"
+  | "pr_discovery"
   | "pr_join_result"
   | "pr_waitlist_result";
 
@@ -19,9 +19,7 @@ type StoredPromptCooldown = {
 const STORAGE_KEY = "__partner_up_official_account_follow_prompt_v1__";
 const SYNC_ALIGNED_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
-const isStoredPromptCooldown = (
-  value: unknown,
-): value is StoredPromptCooldown => {
+const isStoredPromptCooldown = (value: unknown): value is StoredPromptCooldown => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
@@ -30,12 +28,10 @@ const isStoredPromptCooldown = (
     typeof record.cooldownUntilMs === "number" &&
     Number.isFinite(record.cooldownUntilMs) &&
     (record.source === "home" ||
-      record.source === "anchor_event" ||
+      record.source === "pr_discovery" ||
       record.source === "pr_join_result" ||
       record.source === "pr_waitlist_result") &&
-    (record.action === "shown" ||
-      record.action === "dismissed" ||
-      record.action === "completed") &&
+    (record.action === "shown" || record.action === "dismissed" || record.action === "completed") &&
     typeof record.updatedAtMs === "number" &&
     Number.isFinite(record.updatedAtMs)
   );
@@ -70,9 +66,7 @@ const writeCooldown = (payload: StoredPromptCooldown): void => {
   }
 };
 
-export const useOfficialAccountFollowPrompt = (
-  source: OfficialAccountFollowPromptSource,
-) => {
+export const useOfficialAccountFollowPrompt = (source: OfficialAccountFollowPromptSource) => {
   const userSessionStore = useUserSessionStore();
   const followStatusQuery = useWeChatOfficialAccountFollowStatus();
   const isVisible = ref(false);
@@ -103,10 +97,7 @@ export const useOfficialAccountFollowPrompt = (
     timerId = null;
   };
 
-  const markCooldown = (
-    durationMs: number,
-    action: StoredPromptCooldown["action"],
-  ): void => {
+  const markCooldown = (durationMs: number, action: StoredPromptCooldown["action"]): void => {
     writeCooldown({
       cooldownUntilMs: Date.now() + durationMs,
       source,

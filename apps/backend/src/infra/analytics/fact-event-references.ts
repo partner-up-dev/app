@@ -43,10 +43,7 @@ export const getFactEventReferenceIssues = (
         });
       }
 
-      if (
-        group.requiredBIUsage &&
-        !contract.biUsage.includes(group.requiredBIUsage)
-      ) {
+      if (group.requiredBIUsage && !contract.biUsage.includes(group.requiredBIUsage)) {
         issues.push({
           factName: group.factName,
           eventName,
@@ -60,17 +57,12 @@ export const getFactEventReferenceIssues = (
   return issues;
 };
 
-export const assertFactEventReferences = (
-  groups: readonly FactEventReferenceGroup[],
-): void => {
+export const assertFactEventReferences = (groups: readonly FactEventReferenceGroup[]): void => {
   const issues = getFactEventReferenceIssues(groups);
   if (issues.length === 0) return;
 
   const detail = issues
-    .map(
-      (issue) =>
-        `${issue.factName}: ${issue.eventName}@${issue.eventVersion} ${issue.reason}`,
-    )
+    .map((issue) => `${issue.factName}: ${issue.eventName}@${issue.eventVersion} ${issue.reason}`)
     .join("; ");
   throw new Error(`Invalid BI fact event references: ${detail}`);
 };

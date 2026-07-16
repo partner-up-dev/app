@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { ProblemDetailsError } from "../../../lib/problem-details";
 import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
 } from "../../../entities/feedback-questionnaire";
+import { ProblemDetailsError } from "../../../lib/problem-details";
 import { assertFeedbackAnswersMatchDefinition } from "./answer-validation.service";
 
 const definition = {
-  key: "food_tasting_post_event_feedback",
+  key: "food_tasting_post_pr_feedback",
   version: "1.0.0",
   title: "餐饮试吃活动反馈",
   questions: [

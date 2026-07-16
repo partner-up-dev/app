@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
   buildPRJoinFunnelResponseFromRows,
-  resolvePRJoinFunnelFilters,
   type PRJoinFunnelContextStatus,
   type PRJoinFunnelFactRow,
   type PRJoinFunnelFilters,
+  resolvePRJoinFunnelFilters,
 } from "./pr-join-funnel.model";
 
 const filters: PRJoinFunnelFilters = resolvePRJoinFunnelFilters({
@@ -152,12 +152,7 @@ test("buildPRJoinFunnelResponseFromRows projects join behavior through enriched 
   });
   assert.deepEqual(
     response.eventDictionary.map((entry) => entry.eventName),
-    [
-      "pr.join.result",
-      "pr.joined",
-      "pr.primary_cta.click",
-      "pr.primary_cta.impression",
-    ],
+    ["pr.join.result", "pr.joined", "pr.primary_cta.click", "pr.primary_cta.impression"],
   );
 });
 

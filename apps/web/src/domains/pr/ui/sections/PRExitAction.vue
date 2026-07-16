@@ -82,12 +82,11 @@ const confirmExit = async (): Promise<void> => {
     await exitMutation.mutateAsync({ id: props.pr.id });
     trackEvent("pr_exit_success", {
       prId: props.pr.id,
-      scenarioType: props.pr.core.type,
+      prType: props.pr.core.type,
     });
     showExitConfirmModal.value = false;
   } catch (error) {
-    exitActionError.value =
-      error instanceof Error ? error.message : t("errors.exitRequestFailed");
+    exitActionError.value = error instanceof Error ? error.message : t("errors.exitRequestFailed");
   }
 };
 
@@ -97,10 +96,7 @@ const replayExit = async (): Promise<void> => {
 };
 
 const pendingReplayReady = computed(
-  () =>
-    showExitAction.value &&
-    viewer.value.canExit &&
-    !exitMutation.isPending.value,
+  () => showExitAction.value && viewer.value.canExit && !exitMutation.isPending.value,
 );
 
 useRegisterPRPendingReplayHandler("PR_EXIT", {

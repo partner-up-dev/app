@@ -11,12 +11,12 @@
 - Whether a PR can still be joined, whether it has formed, whether it is full, and whether confirmation is required all depend on participation and reliability rules.
 - Participant-slot state feeds back into current count, availability, and downstream action semantics.
 
-## 3. Event And Anchor Context x PartnerRequest Core
+## 3. PR Discovery And Authoring x PartnerRequest Core
 
-- Anchor Event provides event-context discovery and event-assisted create entry for `PR`.
-- The Anchor Event page shows discoverable `PR` records whose `PR.type` resolves to that Anchor Event context, grouped by PR-owned time windows.
-- `PR` keeps its durable collaboration facts inside PR state after creation.
-- `PR` creation also exists outside Anchor Event context through home-led natural-language entry.
+- PR Discovery provides `/prd`, criteria, candidate grouping, and assisted create entry for `PR`.
+- `/prd` shows discoverable `PR` records selected by `PR.type`, dates, and PR-owned time windows.
+- PR Authoring materializes current type defaults into ordinary PR-owned state at creation time.
+- `PR` creation also exists outside `/prd` through home-led natural-language entry.
 
 ## 4. Distribution And Attribution x PartnerRequest Core
 
@@ -31,5 +31,5 @@
 
 ## 6. Support And Operations x All Other Boundaries
 
-- Support, author feedback, beta-group access, configuration, and operator capability can all affect whether the user can complete the collaboration path.
+- Support, author feedback, configuration, and operator capability can all affect whether the user can complete the collaboration path.
 - These are not always the primary user path, but they matter materially during cold start and service continuity.

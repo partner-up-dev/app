@@ -3,8 +3,6 @@ import type { PRId } from "@partner-up-dev/backend";
 export const queryKeys = {
   pr: {
     detail: (id: PRId | null) => ["partner-request", "detail", id] as const,
-    search: (eventId: number | null, dates: string[]) =>
-      ["partner-request", "search", eventId, ...dates] as const,
     messages: (id: PRId | null) => ["partner-request", "messages", id] as const,
     joinGates: (id: PRId | null) => ["partner-request", "join-gates", id] as const,
     mineCreated: () => ["partner-request", "mine", "created"] as const,
@@ -12,34 +10,23 @@ export const queryKeys = {
     partnerProfile: (prId: PRId | null, partnerId: number | null) =>
       ["partner-request", "partner-profile", prId, partnerId] as const,
   },
+  prDiscovery: {
+    catalog: () => ["pr-discovery", "catalog"] as const,
+    typeDetail: (type: string | null) => ["pr-discovery", "type-detail", type] as const,
+    viewMode: (type: string | null) => ["pr-discovery", "view-mode", type] as const,
+    directory: (type: string | null, dates: readonly string[]) =>
+      ["pr-discovery", "directory", type, ...dates] as const,
+  },
+  prAuthoring: {
+    options: (type: string | null) => ["pr-authoring", "options", type] as const,
+    routeApplicationsMine: (type: string | null) =>
+      ["pr-authoring", "route-applications", "mine", type] as const,
+  },
   config: {
     public: (key: string) => ["config", "public", key] as const,
   },
   meta: {
     build: () => ["meta", "build"] as const,
-  },
-  anchorEvent: {
-    list: () => ["anchor-event", "list"] as const,
-    detail: (eventId: number | null) => ["anchor-event", "detail", eventId] as const,
-    formMode: (eventId: number | null) => ["anchor-event", "form-mode", eventId] as const,
-    routeApplicationsMine: () => ["anchor-event", "route-applications", "mine"] as const,
-    landingAssignment: (eventId: number | null) =>
-      ["anchor-event", "landing-assignment", eventId] as const,
-    demandCards: (eventId: number | null) => ["anchor-event", "demand-cards", eventId] as const,
-    formModeRecommendation: (
-      eventId: number | null,
-      locationId: string | null,
-      startAt: string | null,
-      preferencesKey: string,
-    ) =>
-      [
-        "anchor-event",
-        "form-mode-recommendation",
-        eventId,
-        locationId,
-        startAt,
-        preferencesKey,
-      ] as const,
   },
   poi: {
     byIds: (idsCsv: string) => ["poi", "by-ids", idsCsv] as const,
@@ -63,7 +50,11 @@ export const queryKeys = {
     room: (prId: PRId | null) => ["study-sprint", "room", prId] as const,
   },
   admin: {
-    anchorEventWorkspace: () => ["admin", "anchor-events", "workspace"] as const,
+    prTypeConfigCatalog: () => ["admin", "pr-type-configs", "catalog"] as const,
+    prTypeConfigDetail: (type: string | null) =>
+      ["admin", "pr-type-configs", "detail", type] as const,
+    prTypePreferenceTags: (type: string | null, moderationStatus: string | undefined) =>
+      ["admin", "pr-type-configs", "preference-tags", type, moderationStatus] as const,
     commerceProductsWorkspace: () => ["admin", "commerce", "products", "workspace"] as const,
     commercePlacementOfferWorkspace: () =>
       ["admin", "commerce", "placement-offer", "workspace"] as const,
@@ -72,10 +63,6 @@ export const queryKeys = {
     paymentProviderInstances: () => ["admin", "payment", "provider-instances"] as const,
     rideHailingProviderInstances: () => ["admin", "ride-hailing", "provider-instances"] as const,
     rideHailingOrdersWorkspace: () => ["admin", "ride-hailing", "orders", "workspace"] as const,
-    anchorEventLandingConfig: (eventId: number | null) =>
-      ["admin", "anchor-events", "landing-config", eventId] as const,
-    anchorEventPreferenceTags: (eventId: number | null) =>
-      ["admin", "anchor-events", "preference-tags", eventId] as const,
     pois: () => ["admin", "pois"] as const,
     poisByIds: (idsCsv: string) => ["admin", "pois", "by-ids", idsCsv] as const,
     poisByNames: (namesCsv: string) => ["admin", "pois", "by-names", namesCsv] as const,
@@ -83,15 +70,13 @@ export const queryKeys = {
       ["admin", "feedback-questionnaires", "templates"] as const,
     prWorkspace: () => ["admin", "pr-workspace"] as const,
     prMessages: (id: PRId | null) => ["admin", "pr", "messages", id] as const,
-    anchorEventFunnelAnalytics: (filters: {
+    prDiscoveryFunnelAnalytics: (filters: {
       startAt?: string;
       endAt?: string;
-      eventId?: number | null;
-      spm?: string | null;
-      sourceQr?: string | null;
-      assignmentRevision?: string | null;
-      renderedMode?: string | null;
-    }) => ["admin", "analytics", "anchor-event-funnel", filters] as const,
+      prType?: string | null;
+      viewMode?: string | null;
+      origin?: string | null;
+    }) => ["admin", "analytics", "pr-discovery-funnel", filters] as const,
     biOverviewAnalytics: (filters: { startAt?: string; endAt?: string }) =>
       ["admin", "analytics", "overview", filters] as const,
     prJoinFunnelAnalytics: (filters: { startAt?: string; endAt?: string }) =>

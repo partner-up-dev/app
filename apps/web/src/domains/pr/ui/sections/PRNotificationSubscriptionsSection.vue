@@ -9,7 +9,7 @@
       <h2 class="utility-section__title">
         {{ t("prPage.notificationSubscriptions.title") }}
       </h2>
-      <APRNotificationSubscriptions
+      <PRNotificationSubscriptions
         :updating-label="t('prPage.wechatReminder.updating')"
         outline-profile="surface"
       />
@@ -21,7 +21,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
+import PRNotificationSubscriptions from "@/shared/ui/sections/PRNotificationSubscriptions.vue";
 
 const props = defineProps<{
   pr: PRDetailView;
@@ -31,11 +31,7 @@ const { t } = useI18n();
 
 const showInlineReminderSubscriptions = computed(() => {
   const section = props.pr.partnerSection;
-  return (
-    section.reminder.supported &&
-    section.reminder.visible &&
-    section.viewer.isParticipant
-  );
+  return section.reminder.supported && section.reminder.visible && section.viewer.isParticipant;
 });
 </script>
 

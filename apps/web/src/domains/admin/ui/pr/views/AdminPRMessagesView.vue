@@ -30,7 +30,7 @@
               :key="typeOption.type"
               :value="typeOption.type"
             >
-              {{ typeOption.eventTitle }}
+              {{ typeOption.title }}
             </option>
           </datalist>
           <datalist id="admin-pr-message-location-options">
@@ -260,21 +260,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useI18n } from "vue-i18n";
-import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
-import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
-import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import PRFilterRail from "@/domains/admin/ui/pr/components/PRFilterRail.vue";
-import { useAdminPRWorkspaceSelection } from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
-import { useAdminPRMessagesActions } from "@/domains/admin/use-cases/pr/useAdminPRMessagesActions";
-import {
-  type AdminPRMessagesResponse,
-  useAdminPRMessages,
-} from "@/domains/admin/queries/useAdminPRManagement";
-import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   PuButton,
   PuCard,
@@ -283,6 +268,21 @@ import {
   PuLoadingState,
   PuTextarea,
 } from "@partner-up-dev/design-web";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import {
+  type AdminPRMessagesResponse,
+  useAdminPRMessages,
+} from "@/domains/admin/queries/useAdminPRManagement";
+import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
+import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
+import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
+import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
+import PRFilterRail from "@/domains/admin/ui/pr/components/PRFilterRail.vue";
+import { useAdminPRMessagesActions } from "@/domains/admin/use-cases/pr/useAdminPRMessagesActions";
+import { useAdminPRWorkspaceSelection } from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
+import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
+import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -334,8 +334,7 @@ const handleSendPRMessage = async () => {
     });
     messageDraftBody.value = "";
   } catch (error) {
-    messageActionError.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    messageActionError.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -374,8 +373,7 @@ const handleSaveMessageEdit = async (messageId: number) => {
     });
     cancelEditMessage();
   } catch (error) {
-    messageActionError.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    messageActionError.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -393,8 +391,7 @@ const handleDeleteMessage = async (messageId: number) => {
       cancelEditMessage();
     }
   } catch (error) {
-    messageActionError.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    messageActionError.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 </script>

@@ -7,7 +7,7 @@ The claim set is intentionally small and orthogonal. Capabilities, route familie
 | Claim | Primary Axis | Capability Clusters It Explains |
 | --- | --- | --- |
 | Claim 1 | Object formation | lightweight creation, draft/publish, one-sentence and structured PR creation |
-| Claim 2 | Contextual discovery | home, form, event-assisted, Anchor Event, Form Mode, dummy PR, search/list/card discovery |
+| Claim 2 | Contextual discovery | home, `/prd`, Form Mode, Authoring handoff, search/list/card discovery |
 | Claim 3 | Distribution and re-entry | public links, sharing, history, `/me`, `/pr/mine`, revisit continuity |
 | Claim 4 | Trust, coordination, and completion | state clarity, join gates, confirmation, reminders, meeting guidance, messaging, pairing, Study Sprint, feedback, bounded PR-attached fulfillment/support |
 | Claim 5 | Progressive identity | anonymous browsing, UUID continuity, authenticated escalation, WeChat binding |
@@ -29,16 +29,16 @@ The claim set is intentionally small and orthogonal. Capabilities, route familie
   - `../../20-product-tdd/claim-realization-matrix.md`
   - `../../20-product-tdd/cross-unit-contracts.md`
 
-## Claim 2. Discovery Context Can Vary Without Forking PR Semantics
+## Claim 2. Discovery And Authoring Views Can Vary Without Forking PR Semantics
 
-- Claim Intent: let different discovery contexts shape how a user finds or creates a collaboration while preserving one durable `PR` vocabulary and object model.
+- Claim Intent: let criteria, type-specific behavior, and presentation views shape how a user finds or creates a collaboration while preserving one durable `PR` vocabulary and object model.
 - Evaluation Dimensions:
   - entry and discovery surfaces can diverge by context
-  - Anchor Event, Form Mode, list/card/search, and dummy PR materialization remain context surfaces rather than separate collaboration objects
+  - `/prd`, Form Mode, list/card/search, and no-match Authoring handoff remain PR Discovery/Authoring surfaces rather than separate collaboration objects
   - shared PR semantics such as participation, timing, place mode, and creation policy remain legible after entry
 - Evidence Expectation:
-  - the same `PR` object can be created or entered from natural-language, structured form, event-assisted, Form Mode, and search/list/card paths
-  - event-specific defaults may materialize into PR-owned runtime state without making Anchor Event the durable PR identity
+  - the same `PR` object can be created or entered from natural-language, structured form, Form Mode, and search/list/card paths
+  - type-specific defaults may materialize into PR-owned runtime state without introducing a template identity or PR-side reference
 - Source Rationale:
   - `../_drivers/business-and-service-objectives.md`
   - `../_drivers/hard-constraints.md`
@@ -51,7 +51,7 @@ The claim set is intentionally small and orthogonal. Capabilities, route familie
 - Claim Intent: treat `PartnerRequest` as a reusable collaboration object that can be shared, revisited, and resumed after the initial creation or join moment.
 - Evaluation Dimensions:
   - link sharing remains a first-class path
-  - revisit and re-entry remain available through shared routes, personal center, history, event context, and home
+  - revisit and re-entry remain available through shared routes, personal center, history, `/prd`, and home
   - attribution can flow through the revisit path
 - Evidence Expectation:
   - public detail routes remain stable
@@ -65,7 +65,7 @@ The claim set is intentionally small and orthogonal. Capabilities, route familie
 
 ## Claim 4. Collaboration Needs Contextual Trust, Coordination, And Completion Loops
 
-- Claim Intent: help users judge and complete a collaboration after the PR exists, without turning PartnerUp into a generic social, ecommerce, event, or support platform.
+- Claim Intent: help users judge and complete a collaboration after the PR exists, without turning PartnerUp into a generic social, ecommerce, or support platform.
 - Evaluation Dimensions:
   - formed and full states remain clear
   - join gates, confirmation, reminders, messaging, meeting guidance, pairing, feedback, and Study Sprint reinforce coordination when relevant

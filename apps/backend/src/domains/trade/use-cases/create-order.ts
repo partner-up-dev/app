@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { db } from "../../../lib/db";
-import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
   CommerceQuote,
   RentalQuoteListingContextSnapshot,
@@ -14,6 +12,9 @@ import type { ProductSpu } from "../../../entities/product-spu";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
+import { db } from "../../../lib/db";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
@@ -23,7 +24,6 @@ import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrd
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { createBillFromSeed } from "../../bill";
 import {
   areThereAnyUnpaidPayableBillLines,
@@ -36,12 +36,9 @@ import {
   type RentalSkuFacts,
   type RideHailingSkuFacts,
 } from "../../merchandising";
-import {
-  buildCaocaoCallbackInfo,
-  createRideHailingProviderPort,
-} from "../../ride-hailing";
 import { attachOrderToPr } from "../../pr-core";
-import { isOrderAttachableStatus } from "../../pr-core/services/status-rules";
+import { isPROrderAttachableStatus } from "../../pr-core/services/status-rules";
+import { buildCaocaoCallbackInfo, createRideHailingProviderPort } from "../../ride-hailing";
 import type {
   ChoiceSetOrderItemSnapshot,
   FixedOrderItemSnapshot,
@@ -55,8 +52,8 @@ import type {
   RideHailingChoiceSetCandidateSnapshot,
   RideHailingChoiceSetResolutionSnapshot,
   RideHailingDispatchBindingSnapshot,
-  RideHailingRiderSnapshot,
   RideHailingQuoteSnapshot,
+  RideHailingRiderSnapshot,
   RideHailingRouteSnapshot,
   SkuSnapshot,
 } from "../model";
@@ -66,8 +63,8 @@ import {
   validateOrderParticipants,
 } from "../services";
 import {
-  resolveQuoteBoundOrderItems,
   type QuoteBoundOrderItemInput,
+  resolveQuoteBoundOrderItems,
   type ValidatedOfferQuote,
   type ValidatedQuoteItem,
 } from "./offer-quote";
@@ -261,7 +258,7 @@ async function validatePrAttachmentForEvaluation(input: {
       detail: "关联的 PR 不存在。",
     });
   }
-  if (!isOrderAttachableStatus(pr.status)) {
+  if (!isPROrderAttachableStatus(pr.status)) {
     return actionProblem({
       code: "PR_NOT_READY",
       title: "暂不能创建订单",
@@ -618,7 +615,8 @@ async function buildRideChoiceSetItemSnapshot(input: {
   };
 }
 
-const rideProviderCandidateId = (candidate: RideCandidateContext): string => String(candidate.sku.id);
+const rideProviderCandidateId = (candidate: RideCandidateContext): string =>
+  String(candidate.sku.id);
 
 const buildRideDispatchBindingSnapshot = (input: {
   selected: SelectedRideContext;

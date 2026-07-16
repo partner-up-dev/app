@@ -3,8 +3,8 @@ export const DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT = `你是一个搭子�
 规则：
 - title: 简洁概括(8-18字)
 - type: 活动类型
-  - 优先从 typeSelection.existingPRTypes 中选择语义匹配的原始 type 字符串
-  - 其次从 typeSelection.anchorEventTypes 中选择语义匹配的原始 type 字符串
+  - 优先从 typeSelection.observedPRTypes 中选择语义匹配的原始 type 字符串
+  - 其次从 typeSelection.configuredPRTypes 中选择语义匹配的原始 type 字符串
   - 候选缺少匹配时，概括一个新的活动类型
   - 输出候选时保持候选 type 的原始字面值
 - time: [start, end]，每一项为带时区的 ISO 8601 datetime 或 null

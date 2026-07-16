@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { createApp, nextTick, ref, type App, type Component } from "vue";
-import type { PRDetailView } from "@/domains/pr/model/types";
+import { type App, type Component, createApp, nextTick, ref } from "vue";
 import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
+import type { PRDetailView } from "@/domains/pr/model/types";
 import PRCheckInFeedbackActions from "./PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "./PRConfirmationAction.vue";
 import PRExitAction from "./PRExitAction.vue";
@@ -84,7 +84,6 @@ vi.mock("./PRFeedbackQuestionnaireModal.vue", () => ({
 }));
 
 const entryContext: PRJoinEntryContext = {
-  routeEventId: null,
   joinEntrySurface: "pr_detail",
 };
 
@@ -110,7 +109,6 @@ describe("PR participation action components", () => {
           canJoin: true,
         },
       }),
-      eventId: entryContext.routeEventId,
       entrySurface: entryContext.joinEntrySurface,
     });
 
@@ -159,9 +157,7 @@ describe("PR participation action components", () => {
     trigger?.click();
     await nextTick();
 
-    expect(
-      hasTestId(document.body, "pr-detail.waitlist.alternative-reminder"),
-    ).toBe(true);
+    expect(hasTestId(document.body, "pr-detail.waitlist.alternative-reminder")).toBe(true);
     expect(hasTestId(document.body, "join-gates")).toBe(true);
   });
 
@@ -313,7 +309,7 @@ const buildPRDetail = ({
       timeline: {
         confirmationStartAt: null,
         confirmationEndAt: null,
-        eventStartAt: null,
+        startAt: null,
       },
     },
     feedbackQuestionnaire: feedbackPending
@@ -324,5 +320,4 @@ const buildPRDetail = ({
           },
         }
       : null,
-    anchorEventContext: null,
   }) as unknown as PRDetailView;

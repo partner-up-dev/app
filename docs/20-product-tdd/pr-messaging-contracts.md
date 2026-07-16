@@ -34,5 +34,5 @@ This file owns the cross-unit PR messaging contract for participant-authored mes
 - Participant-authored message creation uses the same active-participant rule.
 - Admin-authored system-message creation is a separate admin-only capability.
 - PR message notification semantics are governed by `notification-contracts.md`, including unread-wave eligibility, delayed summary dispatch, durable opportunity and wave records, and dispatch-time revalidation.
-- Frontend owns only route and page placement, thread rendering, composer input, join-success confirmation follow-up rendering, join-success subscription prompting, combined community follow-up rendering, official-account prompt cooldown, and cache refresh behavior.
+- Frontend owns only route and page placement, thread rendering, composer input, join-success confirmation follow-up rendering, join-success subscription prompting, official-account prompt cooldown, and cache refresh behavior.
 - Backend contracts own membership, unread-wave reset, and notification gating truth.

@@ -35,23 +35,11 @@ const landingVisualExceptionPaths = [
 const splashVisualExceptionPaths = [
   {
     type: "file",
-    path: path.join(
-      srcRoot,
-      "domains",
-      "event",
-      "ui",
-      "primitives",
-      "FormModeLongPressButton.vue",
-    ),
+    path: path.join(srcRoot, "domains", "pr", "ui", "discovery", "form", "PRLongPressButton.vue"),
   },
   {
     type: "file",
-    path: path.join(
-      srcRoot,
-      "processes",
-      "route-handoff",
-      "LiquidWaveSplash.vue",
-    ),
+    path: path.join(srcRoot, "processes", "route-handoff", "LiquidWaveSplash.vue"),
   },
 ];
 
@@ -83,8 +71,7 @@ const rules = [
   },
   {
     id: "no-hardcoded-font-size",
-    description:
-      "Do not hardcode typography sizes in consumers. Prefer sys typography tokens.",
+    description: "Do not hardcode typography sizes in consumers. Prefer sys typography tokens.",
     regex: /\bfont-size:\s*(?!0(?:px|rem|em|%)?\b)(\d*\.?\d+)(rem|px)\b/g,
     allowLandingVisualException: true,
   },
@@ -106,8 +93,7 @@ const rules = [
     id: "no-hardcoded-radius",
     description:
       "Do not hardcode radius values in consumers. Prefer sys radius tokens unless the value is intrinsic and explicitly accepted.",
-    regex:
-      /\bborder-radius:\s*(?!0(?:[ ;]|$)|999px\b|50%\b)(\d*\.?\d+)(rem|px)\b/g,
+    regex: /\bborder-radius:\s*(?!0(?:[ ;]|$)|999px\b|50%\b)(\d*\.?\d+)(rem|px)\b/g,
   },
 ];
 
@@ -129,17 +115,14 @@ const walkMatching = async (dir, fileNameRegex) => {
 
 const walk = async (dir) => await walkMatching(dir, /\.(vue|scss)$/);
 
-const walkSysColorTokenFiles = async (dir) =>
-  await walkMatching(dir, /\.(vue|scss|ts)$/);
+const walkSysColorTokenFiles = async (dir) => await walkMatching(dir, /\.(vue|scss|ts)$/);
 
 const readBaseline = async () => {
   try {
     const raw = await fs.readFile(baselinePath, "utf8");
     const parsed = JSON.parse(raw);
     return new Set(
-      (parsed.entries ?? []).map((entry) =>
-        `${entry.path}::${entry.rule}::${entry.text}`,
-      ),
+      (parsed.entries ?? []).map((entry) => `${entry.path}::${entry.rule}::${entry.text}`),
     );
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
@@ -149,8 +132,7 @@ const readBaseline = async () => {
   }
 };
 
-const relativePath = (filePath) =>
-  path.relative(appRoot, filePath).split(path.sep).join("/");
+const relativePath = (filePath) => path.relative(appRoot, filePath).split(path.sep).join("/");
 
 const shouldIgnorePath = (filePath) =>
   ignoredPathFragments.some((fragment) => filePath.includes(fragment));
@@ -266,9 +248,7 @@ const collectUndefinedSysColorTokenFindings = async (definedTokensByTheme) => {
         const fullTokenName = match[1];
         const colorTokenName = match[2];
 
-        for (const [themeName, definedTokens] of Object.entries(
-          definedTokensByTheme,
-        )) {
+        for (const [themeName, definedTokens] of Object.entries(definedTokensByTheme)) {
           if (definedTokens.has(colorTokenName)) {
             continue;
           }
@@ -295,9 +275,7 @@ const collectUndefinedSysColorTokenFindings = async (definedTokensByTheme) => {
 };
 
 const collectFindings = async () => {
-  const files = (
-    await Promise.all(scanRoots.map(async (scanRoot) => await walk(scanRoot)))
-  )
+  const files = (await Promise.all(scanRoots.map(async (scanRoot) => await walk(scanRoot))))
     .flat()
     .filter((filePath) => !shouldIgnorePath(filePath));
 
@@ -317,8 +295,7 @@ const collectFindings = async () => {
       for (const rule of rules) {
         if (
           rule.allowLandingVisualException &&
-          (isLandingVisualExceptionPath(filePath) ||
-            isSplashVisualExceptionPath(filePath))
+          (isLandingVisualExceptionPath(filePath) || isSplashVisualExceptionPath(filePath))
         ) {
           continue;
         }
@@ -342,22 +319,17 @@ const collectFindings = async () => {
 };
 
 const main = async () => {
-  const [baseline, definedSysColorTokens, governanceFindings] =
-    await Promise.all([
-      readBaseline(),
-      collectDefinedSysColorTokens(),
-      collectFindings(),
-    ]);
+  const [baseline, definedSysColorTokens, governanceFindings] = await Promise.all([
+    readBaseline(),
+    collectDefinedSysColorTokens(),
+    collectFindings(),
+  ]);
   const undefinedSysColorTokenFindings =
     await collectUndefinedSysColorTokenFindings(definedSysColorTokens);
-  const findings = [
-    ...governanceFindings,
-    ...undefinedSysColorTokenFindings,
-  ];
+  const findings = [...governanceFindings, ...undefinedSysColorTokenFindings];
 
   const unmatched = findings.filter(
-    (finding) =>
-      !baseline.has(`${finding.path}::${finding.rule}::${finding.text}`),
+    (finding) => !baseline.has(`${finding.path}::${finding.rule}::${finding.text}`),
   );
 
   if (unmatched.length === 0) {
@@ -365,9 +337,7 @@ const main = async () => {
     return;
   }
 
-  console.log(
-    `token-governance: found ${unmatched.length} finding(s) outside baseline`,
-  );
+  console.log(`token-governance: found ${unmatched.length} finding(s) outside baseline`);
 
   for (const finding of unmatched) {
     console.log(

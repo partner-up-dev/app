@@ -3,5 +3,4 @@ export {
   getPRDetailView as getPRDetail,
   type PRDetail,
 } from "./get-pr-detail";
-export { searchPRs } from "./search-prs";
-export { toPublicPR, type PublicPR } from "./public-pr-view.service";
+export { type PublicPR, toPublicPR } from "./public-pr-view.service";

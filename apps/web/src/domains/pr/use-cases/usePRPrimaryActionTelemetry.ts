@@ -1,4 +1,4 @@
-import { ref, watch, type ComputedRef } from "vue";
+import { type ComputedRef, ref, watch } from "vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { trackEvent } from "@/shared/telemetry/track";
 
@@ -21,14 +21,11 @@ const resolveViewerState = (pr: PRDetailView): PRPrimaryViewerState => {
   return viewer.canJoin ? "VISITOR_JOINABLE" : "VISITOR_BLOCKED";
 };
 
-const supportsEventContextTelemetry = (pr: PRDetailView): boolean =>
+const supportsPRReminderTelemetry = (pr: PRDetailView): boolean =>
   pr.partnerSection.reminder.supported;
 
-export const trackPRPrimaryActionClick = (
-  pr: PRDetailView,
-  ctaType: PRPrimaryCtaType,
-): void => {
-  if (!supportsEventContextTelemetry(pr)) return;
+export const trackPRPrimaryActionClick = (pr: PRDetailView, ctaType: PRPrimaryCtaType): void => {
+  if (!supportsPRReminderTelemetry(pr)) return;
   trackEvent("pr_primary_cta_click", {
     prId: pr.id,
     ctaType,
@@ -54,7 +51,7 @@ export const usePRPrimaryActionImpression = ({
         ctaType.value,
         resolveViewerState(pr.value),
         visible.value,
-        supportsEventContextTelemetry(pr.value),
+        supportsPRReminderTelemetry(pr.value),
       ] as const,
     ([prId, nextCtaType, viewerState, isVisible, telemetryEnabled]) => {
       if (!isVisible || !telemetryEnabled || nextCtaType === null) return;

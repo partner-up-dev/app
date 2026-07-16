@@ -1,25 +1,25 @@
-import {
-  pgTable,
-  bigserial,
-  text,
-  jsonb,
-  timestamp,
-  integer,
-  uuid,
-  bigint,
-  boolean,
-} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  bigint,
+  bigserial,
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { meetingPointConfigSchema, type MeetingPointConfig } from "./meeting-point";
-import { prJoinGateConfigSchema, type PRJoinGateConfig } from "./join-gate";
-import { users, type UserId } from "./user";
 import {
-  feedbackQuestionnaireInstances,
   type FeedbackQuestionnaireInstanceId,
+  feedbackQuestionnaireInstances,
 } from "./feedback-questionnaire";
+import { type PRJoinGateConfig, prJoinGateConfigSchema } from "./join-gate";
+import { type MeetingPointConfig, meetingPointConfigSchema } from "./meeting-point";
 import type { TradeOrderId } from "./trade-order";
+import { type UserId, users } from "./user";
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const instantDateTimeSchema = z.string().datetime({ offset: true });
@@ -91,6 +91,7 @@ export const partnerRequestFieldsSchema = partnerRequestFieldsObjectSchema.super
 );
 
 export type PartnerRequestFields = z.infer<typeof partnerRequestFieldsSchema>;
+export type PRTimeWindow = PartnerRequestFields["time"];
 
 export const naturalLanguagePartnerRequestFieldsObjectSchema =
   partnerRequestFieldsObjectSchema.extend({
@@ -127,9 +128,6 @@ export type VisibilityStatus = z.infer<typeof visibilityStatusSchema>;
 
 export const paymentModelSchema = z.enum(["A", "C"]);
 export type PaymentModel = z.infer<typeof paymentModelSchema>;
-
-export const economicPolicyScopeSchema = z.enum(["EVENT_DEFAULT", "BATCH_OVERRIDE"]);
-export type EconomicPolicyScope = z.infer<typeof economicPolicyScopeSchema>;
 
 export const createPRStructuredStatusSchema = z.literal("DRAFT");
 export type CreatePRStructuredStatus = z.infer<typeof createPRStructuredStatusSchema>;

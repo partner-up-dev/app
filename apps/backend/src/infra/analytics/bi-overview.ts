@@ -1,32 +1,19 @@
+import { and, asc, gte, inArray, isNotNull, lt, type SQL, sql } from "drizzle-orm";
 import {
-  and,
-  asc,
-  gte,
-  inArray,
-  isNotNull,
-  lt,
-  sql,
-  type SQL,
-} from "drizzle-orm";
-import {
-  factAnchorEventTransitionEvents,
   factUserRetentionActivityEvents,
-  factViewOtherAnchorEventsConversionEvents,
+  type PartnerStatus,
   partnerRequests,
   partners,
-  type PartnerStatus,
 } from "../../entities";
 import { db } from "../../lib/db";
 import {
-  buildBIOverviewResponse,
-  resolveBIOverviewFilters,
-  type AnchorEventTransitionFactRow,
   type BIOverviewQueryInput,
   type BIOverviewResponse,
+  buildBIOverviewResponse,
   type PRLifecycleStatusInputRow,
   type RetentionActivityFactRow,
+  resolveBIOverviewFilters,
   type UserPRCountInputRow,
-  type ViewOtherAnchorEventsConversionFactRow,
 } from "./bi-overview.model";
 
 type NumericLike = number | string | null | undefined;
@@ -35,11 +22,7 @@ type PRLifecycleCohortDimension = "created_at" | "time_window_end_at";
 
 const RETENTION_LOOKAHEAD_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1_000;
-const JOINED_PARTNER_STATUSES: PartnerStatus[] = [
-  "JOINED",
-  "CONFIRMED",
-  "ATTENDED",
-];
+const JOINED_PARTNER_STATUSES: PartnerStatus[] = ["JOINED", "CONFIRMED", "ATTENDED"];
 
 const toNumber = (value: NumericLike): number => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -72,60 +55,6 @@ const fetchRetentionActivityRows = async (
     .orderBy(
       asc(factUserRetentionActivityEvents.occurredAt),
       asc(factUserRetentionActivityEvents.eventId),
-    );
-
-const fetchAnchorEventTransitionRows = async (
-  startAt: string,
-  endAt: string,
-): Promise<AnchorEventTransitionFactRow[]> =>
-  db
-    .select({
-      eventId: factAnchorEventTransitionEvents.eventId,
-      journeyId: factAnchorEventTransitionEvents.journeyId,
-      occurredAt: factAnchorEventTransitionEvents.occurredAt,
-      identityKey: factAnchorEventTransitionEvents.identityKey,
-      activityType: factAnchorEventTransitionEvents.activityType,
-    })
-    .from(factAnchorEventTransitionEvents)
-    .where(
-      and(
-        gte(factAnchorEventTransitionEvents.occurredAt, new Date(startAt)),
-        lt(factAnchorEventTransitionEvents.occurredAt, new Date(endAt)),
-      ),
-    )
-    .orderBy(
-      asc(factAnchorEventTransitionEvents.occurredAt),
-      asc(factAnchorEventTransitionEvents.eventId),
-    );
-
-const fetchViewOtherAnchorEventRows = async (
-  startAt: string,
-  endAt: string,
-): Promise<ViewOtherAnchorEventsConversionFactRow[]> =>
-  db
-    .select({
-      eventId: factViewOtherAnchorEventsConversionEvents.eventId,
-      eventName: factViewOtherAnchorEventsConversionEvents.eventName,
-      journeyId: factViewOtherAnchorEventsConversionEvents.journeyId,
-      occurredAt: factViewOtherAnchorEventsConversionEvents.occurredAt,
-      identityKey: factViewOtherAnchorEventsConversionEvents.identityKey,
-    })
-    .from(factViewOtherAnchorEventsConversionEvents)
-    .where(
-      and(
-        gte(
-          factViewOtherAnchorEventsConversionEvents.occurredAt,
-          new Date(startAt),
-        ),
-        lt(
-          factViewOtherAnchorEventsConversionEvents.occurredAt,
-          new Date(endAt),
-        ),
-      ),
-    )
-    .orderBy(
-      asc(factViewOtherAnchorEventsConversionEvents.occurredAt),
-      asc(factViewOtherAnchorEventsConversionEvents.eventId),
     );
 
 const fetchUserPRCountRows = async (
@@ -186,9 +115,7 @@ const fetchUserPRCountRows = async (
 
   return Array.from(rowsByUser.values()).sort(
     (left, right) =>
-      right.createdCount +
-        right.joinedCount -
-        (left.createdCount + left.joinedCount) ||
+      right.createdCount + right.joinedCount - (left.createdCount + left.joinedCount) ||
       left.userKey.localeCompare(right.userKey),
   );
 };
@@ -234,29 +161,19 @@ export async function getBIOverviewAnalytics(
 
   const [
     retentionEvents,
-    anchorEventTransitionEvents,
-    viewOtherAnchorEventEvents,
     userPRCountRows,
     prLifecycleCreatedAtStatusRows,
     prLifecycleTimeWindowEndAtStatusRows,
   ] = await Promise.all([
     fetchRetentionActivityRows(filters.startAt, retentionEndAt),
-    fetchAnchorEventTransitionRows(filters.startAt, filters.endAt),
-    fetchViewOtherAnchorEventRows(filters.startAt, filters.endAt),
     fetchUserPRCountRows(filters.startAt, filters.endAt),
     fetchPRLifecycleStatusRows(filters.startAt, filters.endAt, "created_at"),
-    fetchPRLifecycleStatusRows(
-      filters.startAt,
-      filters.endAt,
-      "time_window_end_at",
-    ),
+    fetchPRLifecycleStatusRows(filters.startAt, filters.endAt, "time_window_end_at"),
   ]);
 
   return buildBIOverviewResponse({
     filters,
     retentionEvents,
-    anchorEventTransitionEvents,
-    viewOtherAnchorEventEvents,
     userPRCountRows,
     prLifecycleCreatedAtStatusRows,
     prLifecycleTimeWindowEndAtStatusRows,

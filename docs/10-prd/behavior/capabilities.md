@@ -1,78 +1,53 @@
 # Product Capabilities
 
-## 1. Collaboration Creation
+Capabilities are grouped by the owner that a user can perceive. `PR` remains
+the only durable collaboration object; type-specific configuration is consumed
+by the relevant owner and never becomes a second business object.
 
-- create a `PR` from home exploration
-- create a `PR` from inline natural-language entry
-- use `/pr/new` for mixed natural-language and structured creation
-- create a `PR` through a structured form where `type` accepts arbitrary input with suggestion options from known event types
-- create a `PR` through a structured form where `time_window` uses a batch or free UI mode and still resolves to one PR-owned time window
-- create a structured `PR` in location mode with one primary location or in route mode with an ordered route from departure to destination
-- create and publish `PR` drafts
-- let natural-language creation stay simple while the system may map the intent to an existing `PR.type`, map it to an existing Anchor Event type, or synthesize a new `PR.type`
+## 1. PR Authoring
 
-## 2. Collaboration Joining And Progression
+- create a `PR` from home exploration, inline natural language, or `/pr/new`
+- resolve an arbitrary `PR.type` while offering suggestions from the current type catalog
+- choose one PR-owned time window and one place mode (location or ordered route)
+- use the `/prd` discovery flow to hand no-match criteria to ordinary PR Authoring
+- create and publish PR drafts, including authenticated one-step publish
+- materialize type-specific defaults (notes, partner bounds, join gates, confirmation policy, and questionnaire selection) into PR-owned fields at creation time
 
-- join and exit `PR`
-- prompt notification subscription immediately after successful join when reminder registration is relevant for that PR
-- post and read non-realtime PR messages, including operator-authored system messages inside the same PR thread
-- confirm participation when the `Partner` submodule carries confirmation rules
-- submit PR check-in feedback when the attendance module is active
-- submit a mounted post-event feedback questionnaire when the PR carries one
-- progress status based on partner thresholds and time windows
-- use a color-coded four-digit PR pairing identity during the `READY` phase so active participants can visually find each other at the offline venue
-- enter a Study Sprint Pomodoro room from `STUDY_SPRINT` PRs so current active participants can focus remotely with independent timers and shared room visibility
+## 2. PR Discovery
 
-## 3. Event-Context Collaboration
+- browse the type catalog and find existing PR candidates by type, date, place, time, and preferences
+- preserve `FORM`, `CARD`, and `LIST` views over one discovery/authoring contract
+- use `FORM` for criteria and recommendation, `CARD` for joinable candidate grouping, and `LIST` for current/future browsing plus bounded closed history
+- fall back to `LIST` when view ratios are all zero or a view decision is unavailable
+- keep transient creation suggestions separate from persisted PR records in LIST and CARD
+- route no-match criteria to PR Authoring without inventing a second collaboration object
 
-- browse Anchor Events and time-pool driven PR discovery surfaces through list, card, search, and Form Mode
-- enter, create, or materialize `PR`s from Anchor Event context without changing core PR semantics
-- keep event-context `PR` detail focused on facts, participation, guidance, venue context, and notification-subscription management
-- re-discover other active Anchor Events from current Anchor Event and PR context
-- create `PR` from Anchor Event context through event-assisted structured creation
-- create or enter route-mode `PR`s from Anchor Event context when the event-assisted place options carry `PR.route` values
-- review alternative recommendations under the same Anchor Event context
-- submit a new POI location application from Form Mode when the desired location is missing
-- revisit the current user's submitted POI location applications
+## 3. PR Participation
 
-## 4. Identity And Revisit
+- join, waitlist, exit, confirm, and check in to a PR
+- enforce capacity, time-window conflict, join-gate, and participation-frequency rules
+- transfer current creator responsibility when the earliest active participant changes
 
-- restore anonymous UUID continuity
-- log in and bind through WeChat
-- access `/me` as the personal center for profile, WeChat identity, notification management, anonymous user id continuity, and personal shortcuts
-- access `/pr/mine`
-- copy the current anonymous user id from the personal profile surface
-- enter the current user's submitted POI location applications from `/me`
-- view participant profile pages in read-only mode
+## 4. PR Coordination
 
-## 5. Distribution And Attribution
+- post and read non-realtime PR messages, including operator-authored system messages in the same thread
+- show meeting-point guidance with participant-aware visibility
+- manage reminder subscriptions, new-partner notifications, meeting-point updates, and confirmation reminders
+- provide pairing identity for `READY` participants and the `STUDY_SPRINT` shared focus room
 
-- generate system share links
-- support WeChat sharing
-- generate Xiaohongshu captions and posters
-- include route-mode `PR` identity in canonical share metadata and downstream sharing outputs
-- carry `spm` attribution through the link chain
+## 5. PR Completion
 
-## 6. Notifications And Reliability
+- submit attendance/check-in feedback and mounted post-activity questionnaires
+- close or expire a PR according to participation thresholds and its time window
+- retain bounded PR-attached commerce and support loops that help complete the collaboration
 
-- support subscription reminders
-- notify new-partner events
-- notify new PR messages
-- notify meeting-point updates
-- model remaining send quota
-- release unconfirmed slots when the `Partner` submodule carries confirmation rules
+## 6. Identity And Revisit
 
-## 7. Support And Operations
+- restore anonymous UUID continuity and escalate to WeChat authentication when an action requires it
+- access `/me`, `/pr/mine`, profile pages, submitted POI applications, and revisitable public PR links
 
-- route support entrypoints through "Need Help"
-- route `/contact-support` toward `/contact-author` and `/about`
-- expose repository and frontend/backend commit hashes in `/about`
-- let analytics users inspect Business Intelligence dashboards for retention,
-  PR funnels, Anchor Event behavior, source attribution, and official-account
-  follow nudge behavior
-- let operator tooling maintain Anchor Event and POI semantics
-- let operator tooling publish or reject user-submitted POI location applications
-- let operator tooling upload and maintain POI gallery images, Anchor Event cover images, and event beta-group QR images
-- let operator tooling select Anchor Event feedback questionnaire templates and override a PR's mounted questionnaire instance pointer
-- let operator tooling inspect and cancel cancellable RideHailing orders from dedicated admin tooling
-- let configuration materially shape the real user experience
+## 7. Distribution And Support
+
+- generate public share links, WeChat shares, Xiaohongshu captions/posters, and carry `spm` attribution
+- route "Need Help" to support, author feedback, and about-page paths
+- let operators maintain PR type discovery/authoring policy, POI semantics, questionnaire templates, moderation, analytics, and other precise support surfaces

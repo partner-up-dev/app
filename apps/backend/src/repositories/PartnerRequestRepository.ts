@@ -1,20 +1,20 @@
-import { db } from "../lib/db";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import type { FeedbackQuestionnaireInstanceId } from "../entities/feedback-questionnaire";
+import type { PRJoinGateConfig } from "../entities/join-gate";
 import {
-  partnerRequests,
   type NewPartnerRequest,
-  type PRStatus,
-  type PRId,
-  type VisibilityStatus,
-  type XiaohongshuPosterCache,
-  type WechatThumbnailCache,
   type PartnerRequest,
   type PartnerRequestFields,
+  type PRId,
+  type PRStatus,
+  type PRTimeWindow,
+  partnerRequests,
+  type VisibilityStatus,
+  type WechatThumbnailCache,
+  type XiaohongshuPosterCache,
 } from "../entities/partner-request";
-import type { PRJoinGateConfig } from "../entities/join-gate";
-import type { FeedbackQuestionnaireInstanceId } from "../entities/feedback-questionnaire";
-import type { TimeWindowEntry } from "../entities/anchor-event";
 import type { UserId } from "../entities/user";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { db } from "../lib/db";
 
 export class PartnerRequestRepository {
   async create(data: NewPartnerRequest) {
@@ -23,10 +23,7 @@ export class PartnerRequestRepository {
   }
 
   async findById(id: PRId) {
-    const result = await db
-      .select()
-      .from(partnerRequests)
-      .where(eq(partnerRequests.id, id));
+    const result = await db.select().from(partnerRequests).where(eq(partnerRequests.id, id));
     return result[0] || null;
   }
 
@@ -49,10 +46,7 @@ export class PartnerRequestRepository {
   }
 
   async listAll(): Promise<PartnerRequest[]> {
-    return await db
-      .select()
-      .from(partnerRequests)
-      .orderBy(desc(partnerRequests.createdAt));
+    return await db.select().from(partnerRequests).orderBy(desc(partnerRequests.createdAt));
   }
 
   async listDistinctTypes(): Promise<string[]> {
@@ -67,12 +61,7 @@ export class PartnerRequestRepository {
     return await db
       .select()
       .from(partnerRequests)
-      .where(
-        and(
-          eq(partnerRequests.type, type),
-          eq(partnerRequests.visibilityStatus, "VISIBLE"),
-        ),
-      )
+      .where(and(eq(partnerRequests.type, type), eq(partnerRequests.visibilityStatus, "VISIBLE")))
       .orderBy(desc(partnerRequests.createdAt));
   }
 
@@ -86,7 +75,7 @@ export class PartnerRequestRepository {
 
   async findVisibleByTypeAndTime(
     type: string,
-    timeWindow: TimeWindowEntry,
+    timeWindow: PRTimeWindow,
   ): Promise<PartnerRequest[]> {
     return await db
       .select()
@@ -101,19 +90,11 @@ export class PartnerRequestRepository {
       .orderBy(desc(partnerRequests.createdAt));
   }
 
-  async findByTypeAndTime(
-    type: string,
-    timeWindow: TimeWindowEntry,
-  ): Promise<PartnerRequest[]> {
+  async findByTypeAndTime(type: string, timeWindow: PRTimeWindow): Promise<PartnerRequest[]> {
     return await db
       .select()
       .from(partnerRequests)
-      .where(
-        and(
-          eq(partnerRequests.type, type),
-          eq(partnerRequests.time, timeWindow),
-        ),
-      )
+      .where(and(eq(partnerRequests.type, type), eq(partnerRequests.time, timeWindow)))
       .orderBy(desc(partnerRequests.createdAt));
   }
 
@@ -179,10 +160,7 @@ export class PartnerRequestRepository {
     return result[0] || null;
   }
 
-  async updateNotes(
-    id: PRId,
-    notes: string | null,
-  ): Promise<PartnerRequest | null> {
+  async updateNotes(id: PRId, notes: string | null): Promise<PartnerRequest | null> {
     const result = await db
       .update(partnerRequests)
       .set({
@@ -249,10 +227,7 @@ export class PartnerRequestRepository {
     return result[0] || null;
   }
 
-  async addWechatThumbnail(
-    id: PRId,
-    cache: WechatThumbnailCache,
-  ): Promise<PartnerRequest | null> {
+  async addWechatThumbnail(id: PRId, cache: WechatThumbnailCache): Promise<PartnerRequest | null> {
     const result = await db
       .update(partnerRequests)
       .set({ wechatThumbnail: cache })
@@ -273,10 +248,7 @@ export class PartnerRequestRepository {
     const pr = result[0];
     if (!pr?.xiaohongshuPoster) return null;
     const cache = pr.xiaohongshuPoster;
-    if (
-      cache.caption === caption &&
-      cache.posterStylePrompt === posterStylePrompt
-    ) {
+    if (cache.caption === caption && cache.posterStylePrompt === posterStylePrompt) {
       return cache.posterUrl;
     }
     return null;
@@ -304,10 +276,7 @@ export class PartnerRequestRepository {
   }
 
   async deleteById(id: PRId): Promise<PartnerRequest | null> {
-    const result = await db
-      .delete(partnerRequests)
-      .where(eq(partnerRequests.id, id))
-      .returning();
+    const result = await db.delete(partnerRequests).where(eq(partnerRequests.id, id)).returning();
     return result[0] ?? null;
   }
 }

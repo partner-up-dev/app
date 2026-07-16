@@ -1,17 +1,17 @@
 import { z } from "zod";
-import type { PRId, PartnerRequest } from "../../../entities/partner-request";
-import { userIdSchema, type User, type UserId } from "../../../entities/user";
-import {
-  getTimeWindowStart,
-  hasAnchorParticipationPolicy,
-  resolvePRPlaceDisplayName,
-} from "../../pr/services";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
+import { type User, type UserId, userIdSchema } from "../../../entities/user";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
+import {
+  getTimeWindowStart,
+  hasParticipationPolicy,
+  resolvePRPlaceDisplayName,
+} from "../../pr/services";
 import { ACTIVITY_START_REMINDER_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();
@@ -20,8 +20,7 @@ const userRepo = new UserRepository();
 const userNotificationOptRepo = new UserNotificationOptRepository();
 const deliveryRepo = new NotificationDeliveryRepository();
 
-const ACTIVITY_START_REMINDER_DEDUPE_PREFIX =
-  "wechat-activity-start-reminder";
+const ACTIVITY_START_REMINDER_DEDUPE_PREFIX = "wechat-activity-start-reminder";
 const ACTIVITY_START_REMINDER_LEAD_MS = 20 * 60 * 1000;
 const ACTIVITY_START_REMARK = "提前时间更充足";
 
@@ -57,14 +56,11 @@ export type ActivityStartReminderDispatchPreparation =
   | ActivityStartReminderDispatchReady
   | ActivityStartReminderDispatchBlocked;
 
-export const buildActivityStartReminderDedupeKey = (
-  prId: PRId,
-  userId: UserId,
-): string => `${ACTIVITY_START_REMINDER_DEDUPE_PREFIX}:${userId}:${prId}`;
+export const buildActivityStartReminderDedupeKey = (prId: PRId, userId: UserId): string =>
+  `${ACTIVITY_START_REMINDER_DEDUPE_PREFIX}:${userId}:${prId}`;
 
-export const buildActivityStartReminderDedupePrefixForUser = (
-  userId: UserId,
-): string => `${ACTIVITY_START_REMINDER_DEDUPE_PREFIX}:${userId}:`;
+export const buildActivityStartReminderDedupePrefixForUser = (userId: UserId): string =>
+  `${ACTIVITY_START_REMINDER_DEDUPE_PREFIX}:${userId}:`;
 
 export const resolveActivityStartReminderRunAt = (
   request: Pick<PartnerRequest, "time">,
@@ -125,14 +121,12 @@ export const shouldScheduleActivityStartReminderNotification = async (input: {
   request: PartnerRequest;
   userId: UserId;
 }): Promise<boolean> => {
-  if (!hasAnchorParticipationPolicy(input.request)) {
+  if (!hasParticipationPolicy(input.request)) {
     return false;
   }
 
   const user = await userRepo.findById(input.userId);
-  const notificationOpt = user
-    ? await userNotificationOptRepo.findByUserId(input.userId)
-    : null;
+  const notificationOpt = user ? await userNotificationOptRepo.findByUserId(input.userId) : null;
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     ACTIVITY_START_REMINDER_NOTIFICATION_KIND,
@@ -166,7 +160,7 @@ export const prepareActivityStartReminderNotificationDispatch = async (
   }
 
   const request = await prRepo.findById(payload.prId);
-  if (!request || !hasAnchorParticipationPolicy(request)) {
+  if (!request || !hasParticipationPolicy(request)) {
     return {
       status: "SKIPPED",
       errorCode: "PR_MISSING_OR_UNSUPPORTED",

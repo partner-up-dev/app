@@ -7,22 +7,15 @@ export const userTelemetryAttributeValueSchema = z.union([
   z.null(),
 ]);
 
-export const userTelemetryAttributesSchema = z.record(
-  userTelemetryAttributeValueSchema,
-);
+export const userTelemetryAttributesSchema = z.record(userTelemetryAttributeValueSchema);
 
 export const userTelemetryPayloadSchema = z.record(z.unknown());
 
-export type UserTelemetryAttributes = z.infer<
-  typeof userTelemetryAttributesSchema
->;
+export type UserTelemetryAttributes = z.infer<typeof userTelemetryAttributesSchema>;
 
 export type UserTelemetryPayload = z.infer<typeof userTelemetryPayloadSchema>;
 
-export type UserTelemetryConsentClass =
-  | "functional"
-  | "analytics"
-  | "sensitive";
+export type UserTelemetryConsentClass = "functional" | "analytics" | "sensitive";
 
 export type UserTelemetryEventContract = {
   eventName: string;
@@ -85,7 +78,8 @@ const looseEvent = (
   eventFamily,
   eventVersion: 1,
   owner,
-  trigger: "Registered legacy-compatible event. Call-site trigger must be documented before semantic version changes.",
+  trigger:
+    "Registered legacy-compatible event. Call-site trigger must be documented before semantic version changes.",
   forbidden: "Do not emit for automatic system lifecycle facts.",
   attributesSchema: looseAttributesSchema,
   payloadSchema: loosePayloadSchema,
@@ -93,31 +87,76 @@ const looseEvent = (
   biUsage,
 });
 
+const prDiscoveryBasePayloadSchema = z
+  .object({
+    prType: z.string().trim().min(1).max(120),
+    viewMode: z.enum(["LIST", "CARD", "FORM"]),
+    origin: z.string().trim().min(1).max(120),
+    prId: z.number().int().positive().optional(),
+  })
+  .strict();
+
+const prDiscoveryEvent = (
+  eventName: string,
+  payloadSchema: z.ZodType<UserTelemetryPayload>,
+  biUsage: readonly string[],
+): UserTelemetryEventContract => ({
+  eventName,
+  eventFamily: "pr.discovery",
+  eventVersion: 1,
+  owner: "frontend.pr-discovery",
+  trigger: "User-visible PR Discovery interaction or transition.",
+  forbidden:
+    "Do not include route-scoped identity, experiment assignment metadata, config history, or anonymous identity fields.",
+  attributesSchema: looseAttributesSchema,
+  payloadSchema,
+  consentClass: "analytics",
+  biUsage,
+});
+
 const userTelemetryEventRegistry = [
-  contextEvent("journey.started", "journey.lifecycle", "A new application activity journey starts.", [
-    "journey_context",
-    "retention",
-  ]),
-  contextEvent("journey.ended", "journey.lifecycle", "An application activity journey ends or times out.", [
-    "journey_context",
-  ]),
-  contextEvent("route.entered", "route.lifecycle", "The frontend enters a route inside the current journey.", [
-    "route_context",
-    "funnel_context",
-  ]),
-  contextEvent("route.left", "route.lifecycle", "The frontend leaves a route inside the current journey.", [
-    "route_context",
-  ]),
-  contextEvent("auth.session.created", "auth.session", "A browser auth session is created or refreshed with identity context.", [
-    "identity_context",
-    "retention",
-  ]),
-  contextEvent("consent.changed", "consent.lifecycle", "The user's analytics consent state changes.", [
-    "consent_context",
-  ]),
-  contextEvent("experiment.assigned", "experiment.assignment", "The user is assigned to an experiment variant.", [
-    "experiment_context",
-  ]),
+  contextEvent(
+    "journey.started",
+    "journey.lifecycle",
+    "A new application activity journey starts.",
+    ["journey_context", "retention"],
+  ),
+  contextEvent(
+    "journey.ended",
+    "journey.lifecycle",
+    "An application activity journey ends or times out.",
+    ["journey_context"],
+  ),
+  contextEvent(
+    "route.entered",
+    "route.lifecycle",
+    "The frontend enters a route inside the current journey.",
+    ["route_context", "funnel_context"],
+  ),
+  contextEvent(
+    "route.left",
+    "route.lifecycle",
+    "The frontend leaves a route inside the current journey.",
+    ["route_context"],
+  ),
+  contextEvent(
+    "auth.session.created",
+    "auth.session",
+    "A browser auth session is created or refreshed with identity context.",
+    ["identity_context", "retention"],
+  ),
+  contextEvent(
+    "consent.changed",
+    "consent.lifecycle",
+    "The user's analytics consent state changes.",
+    ["consent_context"],
+  ),
+  contextEvent(
+    "experiment.assigned",
+    "experiment.assignment",
+    "The user is assigned to an experiment variant.",
+    ["experiment_context"],
+  ),
   contextEvent("visibility.changed", "browser.visibility", "The page visibility state changes.", [
     "runtime_context",
   ]),
@@ -125,202 +164,105 @@ const userTelemetryEventRegistry = [
     "runtime_context",
   ]),
   {
-    ...contextEvent("segment.started", "legacy.segment", "Legacy v1 segment context was reconstructed during migration.", [
-      "legacy_migration",
-    ]),
+    ...contextEvent(
+      "segment.started",
+      "legacy.segment",
+      "Legacy v1 segment context was reconstructed during migration.",
+      ["legacy_migration"],
+    ),
     deprecated: {
       reason: "Segments are retired from the target telemetry model.",
     },
   },
   {
-    ...contextEvent("segment.ended", "legacy.segment", "Legacy v1 segment end context was reconstructed during migration.", [
-      "legacy_migration",
-    ]),
+    ...contextEvent(
+      "segment.ended",
+      "legacy.segment",
+      "Legacy v1 segment end context was reconstructed during migration.",
+      ["legacy_migration"],
+    ),
     deprecated: {
       reason: "Segments are retired from the target telemetry model.",
     },
   },
 
-  looseEvent("page.viewed", "page.viewed", "frontend.app", [
-    "route_activity",
+  looseEvent("page.viewed", "page.viewed", "frontend.app", ["route_activity"]),
+  prDiscoveryEvent("pr.discovery.surface.viewed", prDiscoveryBasePayloadSchema, [
+    "pr_discovery_funnel",
+    "bi_overview",
   ]),
-  looseEvent("anchor_event.landing.viewed", "anchor_event.landing", "frontend.event", [
-    "anchor_event_funnel",
-    "anchor_event_transition",
-    "view_other_anchor_events_conversion",
+  prDiscoveryEvent("pr.discovery.criteria.submitted", prDiscoveryBasePayloadSchema, [
+    "pr_discovery_funnel",
   ]),
-  looseEvent("anchor_event.recommendation.requested", "anchor_event.recommendation", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.recommendation.returned", "anchor_event.recommendation", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.candidate.engaged", "anchor_event.candidate_engagement", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.assisted_create.started", "anchor_event.assisted_create", "frontend.event", [
-    "pr_create_funnel",
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.card_stack.loaded", "anchor_event.card_stack", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.card.seen", "anchor_event.card", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.card.action_taken", "anchor_event.card", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.card_empty_create.started", "anchor_event.assisted_create", "frontend.event", [
-    "pr_create_funnel",
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.list.loaded", "anchor_event.list", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.date.selected", "anchor_event.list", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.pr_row.seen", "anchor_event.pr_row", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.pr_row.action_taken", "anchor_event.pr_row", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.list_create.started", "anchor_event.assisted_create", "frontend.event", [
-    "pr_create_funnel",
-    "anchor_event_funnel",
-  ]),
-  looseEvent("pr.entry.reached", "pr.entry", "frontend.pr", [
-    "pr_funnel",
-    "anchor_event_funnel",
-  ]),
-  looseEvent("pr.commitment.result", "pr.commitment_result", "frontend.pr", [
-    "pr_funnel",
-    "anchor_event_funnel",
-  ]),
-  looseEvent("pr.create.result", "pr.create_result", "frontend.pr", [
-    "pr_create_funnel",
-  ]),
-  looseEvent("pr.join.result", "pr.join_result", "frontend.pr", [
-    "pr_join_funnel",
-  ]),
-  looseEvent("pr.waitlist.result", "pr.waitlist_result", "frontend.pr", [
-    "pr_join_funnel",
-  ]),
-  looseEvent("pr.exit.succeeded", "pr.exit_result", "frontend.pr", [
-    "pr_lifecycle_user_command",
-  ]),
+  prDiscoveryEvent(
+    "pr.discovery.recommendation.returned",
+    prDiscoveryBasePayloadSchema.extend({ outcome: z.enum(["matched", "no_match"]) }).strict(),
+    ["pr_discovery_funnel"],
+  ),
+  prDiscoveryEvent(
+    "pr.discovery.candidate.impression",
+    prDiscoveryBasePayloadSchema
+      .extend({ prId: z.number().int().positive(), rank: z.number().int().positive().optional() })
+      .strict(),
+    ["pr_discovery_funnel"],
+  ),
+  prDiscoveryEvent(
+    "pr.discovery.candidate.action",
+    prDiscoveryBasePayloadSchema
+      .extend({ prId: z.number().int().positive(), action: z.string().trim().min(1).max(64) })
+      .strict(),
+    ["pr_discovery_funnel"],
+  ),
+  prDiscoveryEvent(
+    "pr.discovery.authoring.handoff",
+    prDiscoveryBasePayloadSchema
+      .extend({ handoffReason: z.enum(["NO_MATCH", "USER_REQUEST", "EMPTY_STATE"]) })
+      .strict(),
+    ["pr_discovery_funnel", "pr_create_funnel"],
+  ),
+  looseEvent("pr.entry.reached", "pr.entry", "frontend.pr", ["pr_funnel"]),
+  looseEvent("pr.commitment.result", "pr.commitment_result", "frontend.pr", ["pr_funnel"]),
+  looseEvent("pr.create.result", "pr.create_result", "frontend.pr", ["pr_create_funnel"]),
+  looseEvent("pr.join.result", "pr.join_result", "frontend.pr", ["pr_join_funnel"]),
+  looseEvent("pr.waitlist.result", "pr.waitlist_result", "frontend.pr", ["pr_join_funnel"]),
+  looseEvent("pr.exit.succeeded", "pr.exit_result", "frontend.pr", ["pr_lifecycle_user_command"]),
   looseEvent("pr.confirm.succeeded", "pr.confirm_result", "frontend.pr", [
     "pr_lifecycle_user_command",
   ]),
-  looseEvent("pr.checkin.submitted", "pr.checkin", "frontend.pr", [
-    "pr_lifecycle_user_command",
-  ]),
-  looseEvent("pr.created", "pr.created", "backend.pr", [
-    "pr_create_funnel",
-  ]),
-  looseEvent("pr.joined", "pr.joined", "backend.pr", [
-    "pr_join_funnel",
-  ]),
-  looseEvent("pr.waitlisted", "pr.waitlisted", "backend.pr", [
-    "pr_join_funnel",
-  ]),
-  looseEvent("pr.closed", "pr.closed", "backend.pr", [
-    "pr_close_funnel",
-  ]),
-  looseEvent("share.method.switch", "share.method", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.link.native.success", "share.link", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.link.copy.success", "share.link", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.link.failed", "share.link", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.session.started", "share.session", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.descriptor.submitted", "share.descriptor", "frontend.share", [
-    "share_usage",
-  ]),
+  looseEvent("pr.checkin.submitted", "pr.checkin", "frontend.pr", ["pr_lifecycle_user_command"]),
+  looseEvent("pr.created", "pr.created", "backend.pr", ["pr_create_funnel"]),
+  looseEvent("pr.joined", "pr.joined", "backend.pr", ["pr_join_funnel"]),
+  looseEvent("pr.waitlisted", "pr.waitlisted", "backend.pr", ["pr_join_funnel"]),
+  looseEvent("pr.closed", "pr.closed", "backend.pr", ["pr_close_funnel"]),
+  looseEvent("share.method.switch", "share.method", "frontend.share", ["share_usage"]),
+  looseEvent("share.link.native.success", "share.link", "frontend.share", ["share_usage"]),
+  looseEvent("share.link.copy.success", "share.link", "frontend.share", ["share_usage"]),
+  looseEvent("share.link.failed", "share.link", "frontend.share", ["share_usage"]),
+  looseEvent("share.session.started", "share.session", "frontend.share", ["share_usage"]),
+  looseEvent("share.descriptor.submitted", "share.descriptor", "frontend.share", ["share_usage"]),
   looseEvent("share.descriptor.discarded.stale", "share.descriptor", "frontend.share", [
     "share_usage",
   ]),
-  looseEvent("share.apply.fallback.success", "share.apply", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.apply.base.success", "share.apply", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.apply.enriched.success", "share.apply", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.apply.failed", "share.apply", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("share.replay.triggered", "share.replay", "frontend.share", [
-    "share_usage",
-  ]),
-  looseEvent("home.hero.primary.click", "home.navigation", "frontend.home", [
-    "home_conversion",
-  ]),
-  looseEvent("home.event.section.impression", "home.event_discovery", "frontend.home", [
-    "home_conversion",
-  ]),
-  looseEvent("home.event.card.impression", "home.event_discovery", "frontend.home", [
-    "home_conversion",
-  ]),
-  looseEvent("home.event.card.click", "home.event_discovery", "frontend.home", [
-    "home_conversion",
-  ]),
-  looseEvent("home.event.all.click", "home.event_discovery", "frontend.home", [
-    "view_other_activities",
-    "view_other_anchor_events_conversion",
-  ]),
-  looseEvent("home.event.highlight.click", "home.event_discovery", "frontend.home", [
-    "home_conversion",
-  ]),
-  looseEvent("home.event.plaza.entry.click", "home.event_discovery", "frontend.home", [
-    "view_other_activities",
-    "view_other_anchor_events_conversion",
-  ]),
-  looseEvent("home.create.entry.click", "home.create_entry", "frontend.home", [
-    "pr_create_funnel",
-  ]),
-  looseEvent("official.account.follow.nudge.shown", "official_account_follow.nudge", "frontend.marketing", [
-    "official_account_follow",
-  ]),
-  looseEvent("official.account.follow.nudge.action.click", "official_account_follow.nudge", "frontend.marketing", [
-    "official_account_follow",
-  ]),
-  looseEvent("wechat.oauth.trace", "wechat.oauth", "frontend.wechat", [
-    "auth_funnel",
-  ]),
-  looseEvent("anchor_event.form.impression", "anchor_event.form", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.form.started", "anchor_event.form", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.form.recommendation_impression", "anchor_event.form", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.recommendation.result", "anchor_event.recommendation", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.form_result.action_clicked", "anchor_event.form_result", "frontend.event", [
-    "anchor_event_funnel",
-  ]),
-  looseEvent("anchor_event.form.create_fallback_clicked", "anchor_event.assisted_create", "frontend.event", [
-    "pr_create_funnel",
-  ]),
-  looseEvent("anchor_event.assisted_create.result", "anchor_event.assisted_create", "frontend.event", [
-    "pr_create_funnel",
-  ]),
+  looseEvent("share.apply.fallback.success", "share.apply", "frontend.share", ["share_usage"]),
+  looseEvent("share.apply.base.success", "share.apply", "frontend.share", ["share_usage"]),
+  looseEvent("share.apply.enriched.success", "share.apply", "frontend.share", ["share_usage"]),
+  looseEvent("share.apply.failed", "share.apply", "frontend.share", ["share_usage"]),
+  looseEvent("share.replay.triggered", "share.replay", "frontend.share", ["share_usage"]),
+  looseEvent("home.hero.primary.click", "home.navigation", "frontend.home", ["home_conversion"]),
+  looseEvent("home.create.entry.click", "home.create_entry", "frontend.home", ["pr_create_funnel"]),
+  looseEvent(
+    "official.account.follow.nudge.shown",
+    "official_account_follow.nudge",
+    "frontend.marketing",
+    ["official_account_follow"],
+  ),
+  looseEvent(
+    "official.account.follow.nudge.action.click",
+    "official_account_follow.nudge",
+    "frontend.marketing",
+    ["official_account_follow"],
+  ),
+  looseEvent("wechat.oauth.trace", "wechat.oauth", "frontend.wechat", ["auth_funnel"]),
   looseEvent("pr.primary_cta.impression", "pr.primary_cta", "frontend.pr", [
     "pr_funnel",
     "pr_join_funnel",
@@ -329,12 +271,8 @@ const userTelemetryEventRegistry = [
     "pr_funnel",
     "pr_join_funnel",
   ]),
-  looseEvent("pr.lane.expand", "pr.lane", "frontend.pr", [
-    "pr_detail_usage",
-  ]),
-  looseEvent("pr.recovery.accept", "pr.recovery", "frontend.pr", [
-    "pr_recovery",
-  ]),
+  looseEvent("pr.lane.expand", "pr.lane", "frontend.pr", ["pr_detail_usage"]),
+  looseEvent("pr.recovery.accept", "pr.recovery", "frontend.pr", ["pr_recovery"]),
   looseEvent("pr.secondary_action.click", "pr.secondary_action", "frontend.pr", [
     "pr_detail_usage",
   ]),
@@ -353,8 +291,8 @@ for (const contract of userTelemetryEventRegistry) {
   registryByKey.set(key, contract);
 }
 
-export const getUserTelemetryEventRegistry = ():
-  readonly UserTelemetryEventContract[] => userTelemetryEventRegistry;
+export const getUserTelemetryEventRegistry = (): readonly UserTelemetryEventContract[] =>
+  userTelemetryEventRegistry;
 
 export const getUserTelemetryEventContract = (
   eventName: string,
@@ -369,10 +307,7 @@ export const validateRegisteredUserTelemetryEvent = (input: {
   attributes?: unknown;
   payload?: unknown;
 }): UserTelemetryRegistryValidationResult => {
-  const contract = getUserTelemetryEventContract(
-    input.eventName,
-    input.eventVersion,
-  );
+  const contract = getUserTelemetryEventContract(input.eventName, input.eventVersion);
   if (!contract) {
     return {
       ok: false,
@@ -389,16 +324,12 @@ export const validateRegisteredUserTelemetryEvent = (input: {
     };
   }
 
-  const attributes = contract.attributesSchema.safeParse(
-    input.attributes ?? {},
-  );
+  const attributes = contract.attributesSchema.safeParse(input.attributes ?? {});
   if (!attributes.success) {
     return {
       ok: false,
       failureCode: "INVALID_ATTRIBUTES",
-      failureMessage: attributes.error.issues
-        .map((issue) => issue.message)
-        .join("; "),
+      failureMessage: attributes.error.issues.map((issue) => issue.message).join("; "),
     };
   }
 
@@ -407,9 +338,7 @@ export const validateRegisteredUserTelemetryEvent = (input: {
     return {
       ok: false,
       failureCode: "INVALID_PAYLOAD",
-      failureMessage: payload.error.issues
-        .map((issue) => issue.message)
-        .join("; "),
+      failureMessage: payload.error.issues.map((issue) => issue.message).join("; "),
     };
   }
 

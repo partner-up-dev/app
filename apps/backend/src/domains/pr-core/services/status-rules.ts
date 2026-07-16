@@ -14,44 +14,40 @@ import { isWithinActiveWindow } from "./time-window.service";
 // ---------------------------------------------------------------------------
 
 /** Statuses that allow a partner to join directly. */
-export function isJoinableStatus(status: string): boolean {
+export function isPRJoinableStatus(status: string): boolean {
   return status === "OPEN";
 }
 
 /** Statuses that allow a partner to exit. */
-export function isExitAllowedStatus(status: string): boolean {
+export function isPRExitAllowedStatus(status: string): boolean {
   return status === "OPEN";
 }
 
 /** Statuses where partner count changes recompute the status. */
-export function shouldRecalculateCapacityStatus(status: string): boolean {
+export function shouldRecalculatePRCapacityStatus(status: string): boolean {
   return status === "OPEN";
 }
 
 /** Statuses eligible for automatic activation. */
-export function isActivatableStatus(status: string): boolean {
+export function isPRActivatableStatus(status: string): boolean {
   return status === "OPEN" || status === "READY";
 }
 
 /** Statuses where PR-attached ordering is allowed. */
-export function isOrderAttachableStatus(status: string): boolean {
+export function isPROrderAttachableStatus(status: string): boolean {
   return status === "READY" || status === "ACTIVE";
 }
 
 /** Statuses eligible for close-time finalization. */
-export function isExpirableStatus(status: string): boolean {
-  return (
-    status === "OPEN" ||
-    status === "READY" ||
-    status === "ACTIVE"
-  );
+export function isPRExpirableStatus(status: string): boolean {
+  return status === "OPEN" || status === "READY" || status === "ACTIVE";
 }
 
 // ---------------------------------------------------------------------------
 // Derive next status from partner count
 // ---------------------------------------------------------------------------
 
-export function deriveStatusFromPartnerCount(
+export function derivePRStatusFromPartnerCount(
   partnerCount: number,
   minPartners: number | null,
   maxPartners: number | null,
@@ -70,14 +66,8 @@ export function deriveStatusFromPartnerCount(
  * Converts internal DB status to the public status seen by clients.
  * OPEN / READY within the active window are presented as ACTIVE.
  */
-export function toPublicStatus(
-  rawStatus: string,
-  timeWindow: TimeWindow,
-): PRStatus {
-  if (
-    (rawStatus === "OPEN" || rawStatus === "READY") &&
-    isWithinActiveWindow(timeWindow)
-  ) {
+export function toPublicPRStatus(rawStatus: string, timeWindow: TimeWindow): PRStatus {
+  if ((rawStatus === "OPEN" || rawStatus === "READY") && isWithinActiveWindow(timeWindow)) {
     return "ACTIVE";
   }
 

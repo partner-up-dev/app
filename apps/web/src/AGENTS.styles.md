@@ -45,7 +45,6 @@ Landing-only adaptive curves, tint math, and `--landing-*` aliases may stay insi
 
 - `src/pages/HomePage.vue`
 - `src/domains/landing/**`
-- `src/domains/event/ui/sections/landing/**`
 
 Splash and liquid-transition implementations may bypass token governance for local tint math and adaptive geometry when the values directly define splash physics, fill pressure, liquid waves, or route handoff reveal effects.
 

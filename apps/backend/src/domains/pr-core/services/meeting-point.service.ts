@@ -1,19 +1,15 @@
-import type { PartnerRequest } from "../../../entities/partner-request";
 import type { MeetingPointConfig } from "../../../entities/meeting-point";
 import {
   normalizeMeetingPointConfig,
   normalizeMeetingPointConfigMap,
 } from "../../../entities/meeting-point";
-import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
+import type { PartnerRequest } from "../../../entities/partner-request";
+import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { resolvePublishedPoiByLocation } from "../../poi";
 
-const anchorEventRepo = new AnchorEventRepository();
+const prTypeConfigRepo = new PRTypeConfigRepository();
 
-export type MeetingPointSource =
-  | "PR"
-  | "ANCHOR_EVENT_LOCATION"
-  | "ANCHOR_EVENT"
-  | "POI";
+export type MeetingPointSource = "PR" | "PR_TYPE_LOCATION" | "PR_TYPE" | "POI";
 
 export type EffectiveMeetingPoint = MeetingPointConfig & {
   source: MeetingPointSource;
@@ -39,10 +35,7 @@ const normalizeLocation = (location: string | null): string | null => {
 export const resolveEffectiveMeetingPoint = async (
   request: Pick<PartnerRequest, "type" | "location" | "meetingPoint">,
 ): Promise<EffectiveMeetingPoint | null> => {
-  const prMeetingPoint = withSource(
-    "PR",
-    normalizeMeetingPointConfig(request.meetingPoint),
-  );
+  const prMeetingPoint = withSource("PR", normalizeMeetingPointConfig(request.meetingPoint));
   if (prMeetingPoint) {
     return prMeetingPoint;
   }
@@ -52,25 +45,23 @@ export const resolveEffectiveMeetingPoint = async (
     return null;
   }
 
-  const event = await anchorEventRepo.findOneByType(request.type);
-  if (event) {
-    const locationMeetingPoints = normalizeMeetingPointConfigMap(
-      event.locationMeetingPoints,
-    );
-    const eventLocationMeetingPoint = withSource(
-      "ANCHOR_EVENT_LOCATION",
+  const config = await prTypeConfigRepo.findByType(request.type);
+  if (config) {
+    const locationMeetingPoints = normalizeMeetingPointConfigMap(config.locationMeetingPoints);
+    const typeLocationMeetingPoint = withSource(
+      "PR_TYPE_LOCATION",
       locationMeetingPoints[location] ?? null,
     );
-    if (eventLocationMeetingPoint) {
-      return eventLocationMeetingPoint;
+    if (typeLocationMeetingPoint) {
+      return typeLocationMeetingPoint;
     }
 
-    const eventMeetingPoint = withSource(
-      "ANCHOR_EVENT",
-      normalizeMeetingPointConfig(event.meetingPoint),
+    const typeMeetingPoint = withSource(
+      "PR_TYPE",
+      normalizeMeetingPointConfig(config.meetingPoint),
     );
-    if (eventMeetingPoint) {
-      return eventMeetingPoint;
+    if (typeMeetingPoint) {
+      return typeMeetingPoint;
     }
   }
 

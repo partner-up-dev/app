@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import type { Page, Route } from "playwright";
+import type { Page } from "playwright";
 import { buildPRRouteSummary } from "../../../apps/backend/src/domains/pr-core/services/pr-place-mode.service";
 import type { PRRoute } from "../../../apps/backend/src/entities";
 import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
@@ -8,31 +7,12 @@ import { probePartnerRequestCreationState } from "../../../apps/backend/tests/pr
 import { withScenarioPage } from "../_infra/browser/browser";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
+import {
+  installDeterministicTencentLocationPickerStub,
+  type TencentLocationSuggestionFixture,
+} from "../_infra/browser/tencent-location-picker";
 import { expectBackendJsonResponse, requestBackendJson } from "../_infra/http/backend";
 import { scenario } from "../_infra/scenario/scenario";
-
-const execFileBuffer = (
-  file: string,
-  args: readonly string[],
-  options: { maxBuffer: number },
-): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    execFile(
-      file,
-      [...args],
-      {
-        encoding: "buffer",
-        maxBuffer: options.maxBuffer,
-      },
-      (error, stdout) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout));
-      },
-    );
-  });
 
 type CreatePRResponse = {
   id: number;
@@ -71,47 +51,24 @@ const routeCreateDraft: PRRoute = [
   },
 ];
 const routePickerSearchKeywords = ["上海人民广场", "上海虹桥站"] as const;
-
-async function fulfillTencentRouteWithCurl(route: Route, contentType: string): Promise<void> {
-  try {
-    const body = await execFileBuffer(
-      "curl",
-      [
-        "--fail",
-        "--ipv4",
-        "--location",
-        "--silent",
-        "--show-error",
-        "--connect-timeout",
-        "8",
-        "--max-time",
-        "20",
-        route.request().url(),
-      ],
-      { maxBuffer: 8 * 1024 * 1024 },
-    );
-    await route.fulfill({
-      status: 200,
-      contentType,
-      body,
-    });
-  } catch {
-    await route.fulfill({
-      status: 502,
-      contentType: "text/plain;charset=utf-8",
-      body: "Tencent Maps upstream fetch failed.",
-    });
-  }
-}
-
-async function installRealTencentMapProxy(page: Page): Promise<void> {
-  await page.route("https://map.qq.com/api/gljs**", async (route) => {
-    await fulfillTencentRouteWithCurl(route, "application/javascript;charset=utf-8");
-  });
-  await page.route("https://apis.map.qq.com/**", async (route) => {
-    await fulfillTencentRouteWithCurl(route, "application/json;charset=utf-8");
-  });
-}
+const routePickerSuggestions = [
+  {
+    keyword: routePickerSearchKeywords[0],
+    id: "scenario-origin",
+    name: "上海人民广场",
+    address: "上海市黄浦区人民大道",
+    cityName: "上海市",
+    coordinate: { lat: 31.230525, lng: 121.473667 },
+  },
+  {
+    keyword: routePickerSearchKeywords[1],
+    id: "scenario-destination",
+    name: "上海虹桥站",
+    address: "上海市闵行区申贵路",
+    cityName: "上海市",
+    coordinate: { lat: 31.196731, lng: 121.327835 },
+  },
+] satisfies readonly TencentLocationSuggestionFixture[];
 
 async function fillStructuredPRForm(input: { page: Page; title: string }): Promise<void> {
   const { page, title } = input;
@@ -162,7 +119,7 @@ const fillStructuredRoutePRForm = async (page: Page): Promise<void> => {
   await pickRoutePoint(page, 1, routeCreateDraft[1]!);
 };
 
-const assertRouteUsesScenarioLabelsAndRealCoordinates = (route: PRRoute): void => {
+const assertRouteUsesScenarioLabelsAndCoordinates = (route: PRRoute): void => {
   assert.equal(route.length, routeCreateDraft.length);
   for (const [index, point] of route.entries()) {
     const expected = routeCreateDraft[index];
@@ -209,7 +166,7 @@ scenario(
     await withScenarioPage(async (page) => {
       await installScenarioUserSession(page, creator);
       await installDeterministicShareSidecarStubs(page);
-      await installRealTencentMapProxy(page);
+      await installDeterministicTencentLocationPickerStub(page, routePickerSuggestions);
 
       await page.goto("/pr/new?mode=form");
       await fillStructuredRoutePRForm(page);
@@ -231,7 +188,7 @@ scenario(
       assert.equal(requestBody.fields?.location, null);
       assert.ok(Array.isArray(requestBody.fields?.route));
       const requestRoute = requestBody.fields.route as PRRoute;
-      assertRouteUsesScenarioLabelsAndRealCoordinates(requestRoute);
+      assertRouteUsesScenarioLabelsAndCoordinates(requestRoute);
 
       const created = (await createResponse.json()) as CreatePRResponse;
       assert.equal(created.status, "OPEN");

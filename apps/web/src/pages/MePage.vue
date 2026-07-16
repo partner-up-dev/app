@@ -238,7 +238,7 @@
         <WeChatNotificationSubscriptionsCard
           :title="t('mePage.reminder.title')"
         >
-          <APRNotificationSubscriptions
+          <PRNotificationSubscriptions
             :updating-label="t('prPage.wechatReminder.updating')"
             @error-change="handleNotificationSubscriptionErrorChange"
           />
@@ -285,8 +285,8 @@ import { queryKeys } from "@/shared/api/query-keys";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
+import PRNotificationSubscriptions from "@/shared/ui/sections/PRNotificationSubscriptions.vue";
 import WeChatNotificationSubscriptionsCard from "@/shared/ui/sections/WeChatNotificationSubscriptionsCard.vue";
 import { IMAGE_UPLOAD_ACCEPT } from "@/shared/upload/useDesignWebImageUpload";
 

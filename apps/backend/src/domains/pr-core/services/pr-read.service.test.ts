@@ -1,28 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type {
-  PartnerRequest,
-  PRStatus,
-} from "../../../entities/partner-request";
+import type { PartnerRequest, PRStatus } from "../../../entities/partner-request";
 
 const partnerRequestRows = vi.hoisted(() => ({
   byType: [] as PartnerRequest[],
   byTypeAndTime: [] as PartnerRequest[],
-}));
-
-vi.mock("../../../repositories/AnchorEventPRContextRepository", () => ({
-  AnchorEventPRContextRepository: class {
-    async findVisibleByAnchorEventAndTimeWindow() {
-      return [];
-    }
-
-    async findByAnchorEventAndTimeWindow() {
-      return [];
-    }
-
-    async findVisibleByAnchorEventTimeWindowAndLocation() {
-      return [];
-    }
-  },
 }));
 
 vi.mock("../../../repositories/PartnerRequestRepository", () => ({
@@ -48,25 +29,21 @@ describe("PR read service visibility status", () => {
   });
 
   test("treats draft as non-public and non-active", async () => {
-    const { isActiveVisiblePRStatus, isPublicVisiblePRStatus } = await import(
-      "./pr-read.service"
-    );
+    const { isPRActiveStatus, isPRPubliclyReadableStatus } = await import("./pr-read.service");
 
-    expect(isPublicVisiblePRStatus("DRAFT")).toBe(false);
-    expect(isActiveVisiblePRStatus("DRAFT")).toBe(false);
-    expect(isPublicVisiblePRStatus("OPEN")).toBe(true);
-    expect(isPublicVisiblePRStatus("CLOSED")).toBe(true);
-    expect(isActiveVisiblePRStatus("OPEN")).toBe(true);
-    expect(isActiveVisiblePRStatus("READY")).toBe(true);
-    expect(isActiveVisiblePRStatus("ACTIVE")).toBe(true);
-    expect(isActiveVisiblePRStatus("CLOSED")).toBe(false);
-    expect(isActiveVisiblePRStatus("EXPIRED")).toBe(false);
+    expect(isPRPubliclyReadableStatus("DRAFT")).toBe(false);
+    expect(isPRActiveStatus("DRAFT")).toBe(false);
+    expect(isPRPubliclyReadableStatus("OPEN")).toBe(true);
+    expect(isPRPubliclyReadableStatus("CLOSED")).toBe(true);
+    expect(isPRActiveStatus("OPEN")).toBe(true);
+    expect(isPRActiveStatus("READY")).toBe(true);
+    expect(isPRActiveStatus("ACTIVE")).toBe(true);
+    expect(isPRActiveStatus("CLOSED")).toBe(false);
+    expect(isPRActiveStatus("EXPIRED")).toBe(false);
   });
 
   test("excludes draft rows from visible type reads after status sync", async () => {
-    const { readVisiblePartnerRequestsByType } = await import(
-      "./pr-read.service"
-    );
+    const { readVisiblePartnerRequestsByType } = await import("./pr-read.service");
     partnerRequestRows.byType = [
       partnerRequest({ id: 1, status: "DRAFT" }),
       partnerRequest({ id: 2, status: "OPEN" }),
@@ -80,9 +57,7 @@ describe("PR read service visibility status", () => {
   });
 
   test("excludes draft rows from visible type-and-time reads after status sync", async () => {
-    const { readVisiblePartnerRequestsByTypeAndTime } = await import(
-      "./pr-read.service"
-    );
+    const { readVisiblePartnerRequestsByTypeAndTime } = await import("./pr-read.service");
     partnerRequestRows.byTypeAndTime = [
       partnerRequest({ id: 1, status: "DRAFT" }),
       partnerRequest({ id: 2, status: "READY" }),
@@ -97,13 +72,7 @@ describe("PR read service visibility status", () => {
   });
 });
 
-const partnerRequest = ({
-  id,
-  status,
-}: {
-  id: number;
-  status: PRStatus;
-}): PartnerRequest =>
+const partnerRequest = ({ id, status }: { id: number; status: PRStatus }): PartnerRequest =>
   ({
     id,
     status,

@@ -51,9 +51,7 @@ export function parseTimeWindowDate(value: string | null): Date | null {
   return parsed;
 }
 
-export function getProductLocalDateKey(
-  value: Date | string | null | undefined,
-): string | null {
+export function getProductLocalDateKey(value: Date | string | null | undefined): string | null {
   if (!value) return null;
 
   if (value instanceof Date) {
@@ -72,9 +70,7 @@ export function getProductLocalDateKey(
   return formatProductLocalDateKey(parsed);
 }
 
-export function getProductLocalDateKeyForTimeWindowStart(
-  timeWindow: TimeWindow,
-): string | null {
+export function getProductLocalDateKeyForTimeWindowStart(timeWindow: TimeWindow): string | null {
   return getProductLocalDateKey(timeWindow[0]);
 }
 
@@ -113,16 +109,10 @@ export function doTimeWindowRangesOverlap(
   left: ComparableTimeWindowRange,
   right: ComparableTimeWindowRange,
 ): boolean {
-  return (
-    left.start.getTime() < right.end.getTime() &&
-    right.start.getTime() < left.end.getTime()
-  );
+  return left.start.getTime() < right.end.getTime() && right.start.getTime() < left.end.getTime();
 }
 
-export function doTimeWindowsOverlap(
-  left: TimeWindow,
-  right: TimeWindow,
-): boolean {
+export function doTimeWindowsOverlap(left: TimeWindow, right: TimeWindow): boolean {
   const leftRange = resolveComparableTimeWindowRange(left);
   const rightRange = resolveComparableTimeWindowRange(right);
   if (!leftRange || !rightRange) return false;
@@ -170,8 +160,8 @@ export function isJoinLockedByTime(timeWindow: TimeWindow): boolean {
   return Date.now() >= joinLockTime.getTime();
 }
 
-/** Has the event actually started? */
-export function hasEventStarted(timeWindow: TimeWindow): boolean {
+/** Has this PR's participation window started? */
+export function hasPRTimeWindowStarted(timeWindow: TimeWindow): boolean {
   const start = getTimeWindowStart(timeWindow);
   if (!start) return true;
   return Date.now() >= start.getTime();

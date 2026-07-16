@@ -12,7 +12,7 @@ Rules:
 
 Current local operator baseline:
 
-- `0001_anchor_event_bootstrap.sql`: Anchor Event, POI, support config, and
+- `0001_pr_type_config_bootstrap.sql`: PR type configuration, POI, support config, and
   rental catalog rows for local reset and manual validation.
 - `0002_admin_user_bootstrap.sql`: local admin and analytics account entrypoints.
 

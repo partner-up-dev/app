@@ -1,4 +1,7 @@
-import type { PRAllowEditAfterReady, PRRoute } from "@partner-up-dev/backend";
+import {
+  isPRDiscoveryCreateReplaySelection,
+  type PRDiscoveryCreateReplaySelection,
+} from "@/domains/pr/model/discovery";
 
 const PENDING_WECHAT_ACTION_STORAGE_KEY = "partner_up_pending_wechat_action";
 const PENDING_WECHAT_ACTION_TTL_MS = 10 * 60 * 1000;
@@ -6,8 +9,6 @@ const PENDING_WECHAT_ACTION_TTL_MS = 10 * 60 * 1000;
 type PendingActionBase = {
   createdAt: number;
 };
-
-type PendingAnchorCreateHandoff = "event_assisted_create";
 
 type PendingPRJoinAction = PendingActionBase & {
   kind: "PR_JOIN";
@@ -34,20 +35,10 @@ type PendingPRPublishAction = PendingActionBase & {
   prId: number;
 };
 
-type PendingAnchorCreateAction = PendingActionBase & {
-  kind: "EVENT_ASSISTED_PR_CREATE";
-  eventId: number;
-  handoff?: PendingAnchorCreateHandoff;
-  allowEditAfterReady?: PRAllowEditAfterReady | null;
-  fields: {
-    type: string;
-    time: [string | null, string | null];
-    location: string | null;
-    route: PRRoute | null;
-    minPartners: number | null;
-    maxPartners: number | null;
-    preferences: string[];
-  };
+type PendingPRDiscoveryCreateAction = PendingActionBase & {
+  kind: "PR_DISCOVERY_CREATE";
+  selection: PRDiscoveryCreateReplaySelection;
+  allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
 };
 
 export type PendingWeChatAction =
@@ -56,7 +47,7 @@ export type PendingWeChatAction =
   | PendingPRExitAction
   | PendingPRConfirmAction
   | PendingPRPublishAction
-  | PendingAnchorCreateAction;
+  | PendingPRDiscoveryCreateAction;
 
 type NewPendingWeChatAction =
   | {
@@ -80,86 +71,42 @@ type NewPendingWeChatAction =
       prId: number;
     }
   | {
-      kind: "EVENT_ASSISTED_PR_CREATE";
-      eventId: number;
-      handoff?: PendingAnchorCreateHandoff;
-      allowEditAfterReady?: PRAllowEditAfterReady | null;
-      fields: {
-        type: string;
-        time: [string | null, string | null];
-        location: string | null;
-        route: PRRoute | null;
-        minPartners: number | null;
-        maxPartners: number | null;
-        preferences: string[];
-      };
+      kind: "PR_DISCOVERY_CREATE";
+      selection: PRDiscoveryCreateReplaySelection;
+      allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
     };
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
 
-const isCoordinatePair = (value: unknown): value is [number, number] =>
-  Array.isArray(value) &&
-  value.length === 2 &&
-  typeof value[0] === "number" &&
-  Number.isFinite(value[0]) &&
-  typeof value[1] === "number" &&
-  Number.isFinite(value[1]);
-
-const isNullableCoordinatePair = (
-  value: unknown,
-): value is [number, number] | null =>
-  value === null || isCoordinatePair(value);
-
-const isPRRoutePoint = (value: unknown): value is PRRoute[number] => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const point = value as Partial<PRRoute[number]>;
-  return (
-    isNullableCoordinatePair(point.wgs84) &&
-    isNullableCoordinatePair(point.bd09) &&
-    isNullableCoordinatePair(point.gcj02) &&
-    typeof point.name === "string" &&
-    point.name.trim().length > 0 &&
-    (point.full_address === null || typeof point.full_address === "string") &&
-    (point.wgs84 !== null || point.bd09 !== null || point.gcj02 !== null)
-  );
-};
-
-const isPRRoute = (value: unknown): value is PRRoute =>
-  Array.isArray(value) && value.length >= 2 && value.every(isPRRoutePoint);
-
-const isEditableAfterReady = (
-  value: unknown,
-): value is PRAllowEditAfterReady | null | undefined => {
-  if (value === undefined || value === null) return true;
-  if (typeof value !== "object") return false;
-  const policy = value as Partial<PRAllowEditAfterReady>;
-  return (
-    policy.location === undefined &&
-    policy.route === undefined &&
-    (policy.timeWindow === undefined ||
-      (Array.isArray(policy.timeWindow) &&
-        policy.timeWindow.length === 2 &&
-        typeof policy.timeWindow[0] === "string" &&
-        typeof policy.timeWindow[1] === "string"))
-  );
-};
-
 const isRecent = (createdAt: number): boolean =>
   Date.now() - createdAt <= PENDING_WECHAT_ACTION_TTL_MS;
 
-const isPendingWeChatAction = (
+const isAllowEditAfterReady = (
   value: unknown,
-): value is PendingWeChatAction => {
+): value is import("@partner-up-dev/backend").PRAllowEditAfterReady | null => {
+  if (value === null) return true;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  if (Object.keys(candidate).some((key) => !["timeWindow", "location", "route"].includes(key)))
+    return false;
+  if (candidate.location !== undefined && candidate.location !== true) return false;
+  if (candidate.route !== undefined && candidate.route !== true) return false;
+  if (candidate.timeWindow !== undefined) {
+    if (
+      !Array.isArray(candidate.timeWindow) ||
+      candidate.timeWindow.length !== 2 ||
+      !candidate.timeWindow.every((item) => typeof item === "string")
+    )
+      return false;
+  }
+  return true;
+};
+
+const isPendingWeChatAction = (value: unknown): value is PendingWeChatAction => {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<PendingWeChatAction>;
-  if (
-    typeof candidate.createdAt !== "number" ||
-    !Number.isFinite(candidate.createdAt)
-  ) {
+  if (typeof candidate.createdAt !== "number" || !Number.isFinite(candidate.createdAt)) {
     return false;
   }
 
@@ -178,50 +125,23 @@ const isPendingWeChatAction = (
   if (candidate.kind === "PR_PUBLISH") {
     return isPositiveInteger(candidate.prId);
   }
-  if (candidate.kind === "EVENT_ASSISTED_PR_CREATE") {
-    const anchorCandidate = candidate as Partial<PendingAnchorCreateAction>;
-    const fields = anchorCandidate.fields;
+  if (candidate.kind === "PR_DISCOVERY_CREATE") {
     return (
-      isPositiveInteger(anchorCandidate.eventId) &&
-      (anchorCandidate.handoff === undefined ||
-        anchorCandidate.handoff === "event_assisted_create") &&
-      typeof fields === "object" &&
-      fields !== null &&
-      typeof fields.type === "string" &&
-      fields.type.trim().length > 0 &&
-      Array.isArray(fields.time) &&
-      fields.time.length === 2 &&
-      (fields.time[0] === null || typeof fields.time[0] === "string") &&
-      (fields.time[1] === null || typeof fields.time[1] === "string") &&
-      (fields.location === null ||
-        (typeof fields.location === "string" &&
-          fields.location.trim().length > 0)) &&
-      (fields.route === null || isPRRoute(fields.route)) &&
-      (fields.location !== null || fields.route !== null) &&
-      isEditableAfterReady(anchorCandidate.allowEditAfterReady) &&
-      Array.isArray(fields.preferences) &&
-      fields.preferences.every((entry) => typeof entry === "string") &&
-      (fields.minPartners === null || isPositiveInteger(fields.minPartners)) &&
-      (fields.maxPartners === null || isPositiveInteger(fields.maxPartners))
+      isPRDiscoveryCreateReplaySelection(candidate.selection) &&
+      isAllowEditAfterReady(candidate.allowEditAfterReady)
     );
   }
-
   return false;
 };
 
-export const setPendingWeChatAction = (
-  action: NewPendingWeChatAction,
-): void => {
+export const setPendingWeChatAction = (action: NewPendingWeChatAction): void => {
   if (typeof window === "undefined") return;
   try {
     const payload: PendingWeChatAction = {
       ...action,
       createdAt: Date.now(),
     };
-    window.localStorage.setItem(
-      PENDING_WECHAT_ACTION_STORAGE_KEY,
-      JSON.stringify(payload),
-    );
+    window.localStorage.setItem(PENDING_WECHAT_ACTION_STORAGE_KEY, JSON.stringify(payload));
   } catch {
     // Ignore storage failures.
   }

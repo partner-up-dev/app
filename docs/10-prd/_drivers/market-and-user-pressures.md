@@ -10,7 +10,7 @@ The problem is not expressing willingness. The problem is that the follow-up col
 
 - group chat is too fragmented; later participation and state changes are hard to track
 - forums and communities are too heavy for one-off collaboration
-- form and event tools are too structured to serve as the first carrier for "start from one sentence"
+- form and discovery tools are too structured to serve as the first carrier for "start from one sentence"
 
 Users do not need another large platform. They need a collaboration trigger that fits inside existing conversation and sharing behavior.
 

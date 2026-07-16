@@ -1,40 +1,40 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import type { PRId, PartnerRequestFields } from "../../../entities/partner-request";
+import type { PartnerRequestFields, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import {
-  countActivePartnersForPR,
-  listActiveParticipantSummariesForPR,
-  syncSlotCapacity,
-  recalculatePRStatus,
-} from "../services/slot-management.service";
-import { assertManualPartnerBoundsValid } from "../services/partner-bounds.service";
-import {
-  assertNoUserTimeWindowConflict,
-  findUserTimeWindowConflict,
-} from "../services/participation-time-conflict.service";
-import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
-import {
-  captureEffectiveMeetingPointsForRequests,
-  scheduleMeetingPointNotificationsForChangedRequests,
-} from "../services/meeting-point-change-notifier.service";
-import { toPublicPR, type PublicPR } from "../services/pr-view.service";
-import { refreshTemporalStatus } from "../temporal-refresh";
-import { operationLogService } from "../../../infra/operation-log";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
-import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
-import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
-import {
-  assertPRContentEditable,
-  resolveChangedPRContentFields,
-} from "../services/pr-edit-capability.service";
-import { canonicalizePartnerRequestFieldsTime } from "../services/pr-time-window-instant.service";
 import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
 } from "../../../infra/notifications";
+import { operationLogService } from "../../../infra/operation-log";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { createPersistedPRMessage } from "../../pr/message/create-pr-message";
+import {
+  captureEffectiveMeetingPointsForRequests,
+  scheduleMeetingPointNotificationsForChangedRequests,
+} from "../services/meeting-point-change-notifier.service";
+import {
+  assertNoUserTimeWindowConflict,
+  findUserTimeWindowConflict,
+} from "../services/participation-time-conflict.service";
+import { assertManualPartnerBoundsValid } from "../services/partner-bounds.service";
+import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
+import {
+  assertPRContentEditable,
+  resolveChangedPRContentFields,
+} from "../services/pr-edit-capability.service";
+import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
+import { canonicalizePartnerRequestFieldsTime } from "../services/pr-time-window-instant.service";
+import { assertPRTypeCreationAllowed } from "../services/pr-type-creation-policy.service";
+import { type PublicPR, toPublicPR } from "../services/pr-view.service";
+import {
+  countActivePartnersForPR,
+  listActiveParticipantSummariesForPR,
+  recalculatePRStatus,
+  syncSlotCapacity,
+} from "../services/slot-management.service";
+import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { refreshTemporalStatus } from "../temporal-refresh";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -119,7 +119,7 @@ export async function updatePRContent(
     throwTypeImmutable();
   }
   if (typeChanged && !options.bypassUserCreationPolicyGuard) {
-    await assertUserPRCreationAllowedForAnchorEvent({
+    await assertPRTypeCreationAllowed({
       type: normalizedFields.type,
     });
   }

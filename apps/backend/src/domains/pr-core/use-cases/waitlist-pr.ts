@@ -1,17 +1,17 @@
+import type { PRId } from "../../../entities/partner-request";
+import type { User } from "../../../entities/user";
+import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type { PRId } from "../../../entities/partner-request";
-import type { User } from "../../../entities/user";
-import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
-import { countActivePartnersForPR } from "../services/slot-management.service";
-import { toPublicPR, type PublicPR } from "../services/pr-view.service";
-import { refreshTemporalStatus } from "../temporal-refresh";
-import { operationLogService } from "../../../infra/operation-log";
 import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
+import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
+import { assertPRTypeParticipationFrequencyLimitAllows } from "../services/pr-type-participation-frequency-limit.service";
+import { type PublicPR, toPublicPR } from "../services/pr-view.service";
+import { countActivePartnersForPR } from "../services/slot-management.service";
 import { isWaitlistOpenForRequest } from "../services/waitlist.service";
 import { scheduleAlternativeWaitlistNotificationsForSource } from "../services/waitlist-alternative-reminder.service";
-import { assertAnchorEventParticipationFrequencyLimitAllows } from "../services/anchor-participation-frequency-limit.service";
+import { refreshTemporalStatus } from "../temporal-refresh";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -31,10 +31,7 @@ export async function waitlistPRAsUser(
     return throwHttpProblem({ status: 403, detail: "Current user is not active" });
   }
 
-  const existingActive = await partnerRepo.findActiveByPrIdAndUserId(
-    id,
-    user.id,
-  );
+  const existingActive = await partnerRepo.findActiveByPrIdAndUserId(id, user.id);
   if (existingActive) {
     const latest = await prRepo.findById(id);
     if (!latest) {
@@ -43,10 +40,7 @@ export async function waitlistPRAsUser(
     return toPublicPR(latest, user.id);
   }
 
-  const existingPending = await partnerRepo.findPendingByPrIdAndUserId(
-    id,
-    user.id,
-  );
+  const existingPending = await partnerRepo.findPendingByPrIdAndUserId(id, user.id);
   if (existingPending) {
     const latest = await prRepo.findById(id);
     if (!latest) {
@@ -60,7 +54,7 @@ export async function waitlistPRAsUser(
     targetTimeWindow: refreshedRequest.time,
     excludePrId: id,
   });
-  await assertAnchorEventParticipationFrequencyLimitAllows({
+  await assertPRTypeParticipationFrequencyLimitAllows({
     request: refreshedRequest,
     userId: user.id,
   });
@@ -76,11 +70,13 @@ export async function waitlistPRAsUser(
       activeCount,
     })
   ) {
-    return throwHttpProblem({ status: 400, detail: "Cannot waitlist - partner request is not at waitlistable capacity" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Cannot waitlist - partner request is not at waitlistable capacity",
+    });
   }
 
-  const latestHistoricalSlot =
-    await partnerRepo.findReusableInactiveByPrIdAndUserId(id, user.id);
+  const latestHistoricalSlot = await partnerRepo.findReusableInactiveByPrIdAndUserId(id, user.id);
   const pendingSlot = latestHistoricalSlot
     ? await partnerRepo.markPending(latestHistoricalSlot.id, {
         alternativePrReminderOptIn: options.alternativePrReminderOptIn,
@@ -92,7 +88,10 @@ export async function waitlistPRAsUser(
         alternativePrReminderOptIn: options.alternativePrReminderOptIn,
       });
   if (!pendingSlot) {
-    return throwHttpProblem({ status: 500, detail: "Failed to persist waitlist participation record" });
+    return throwHttpProblem({
+      status: 500,
+      detail: "Failed to persist waitlist participation record",
+    });
   }
 
   operationLogService.log({
@@ -102,8 +101,7 @@ export async function waitlistPRAsUser(
     aggregateId: String(id),
     detail: {
       partnerId: pendingSlot.id,
-      alternativePrReminderOptIn:
-        options.alternativePrReminderOptIn === true,
+      alternativePrReminderOptIn: options.alternativePrReminderOptIn === true,
     },
   });
 

@@ -6,7 +6,7 @@ This document owns the cross-unit technical contract for user-behavior telemetry
 
 PartnerUp separates three signal families:
 
-- Business fact data: authoritative product state in domain tables, for example current PR status, partner slots, users, Anchor Events, and POIs.
+- Business fact data: authoritative product state in domain tables, for example current PR status, partner slots, users, PR Type Configuration, and POIs.
 - User behavior events: user-caused behavior streams captured in `user_telemetry_*`.
 - Program behavior signals: software observability and program-internal behavior, for example logs, traces, metrics, operation logs, jobs, and future internal event collection.
 
@@ -94,7 +94,7 @@ Accepted events may carry:
 - `trace_id`: join key to program behavior collection / observability.
 - `event_family`: registry-owned stable BI aggregation family.
 - `attributes`: low-cardinality analysis dimensions.
-- `payload`: event-owned business facts.
+- `payload`: telemetry-record-owned business facts.
 
 Accepted events must not carry:
 
@@ -207,11 +207,11 @@ Use `attributes` for low-cardinality dimensions frequently used for filter/group
 - variant
 - entry_type
 
-Use `payload` for event-owned business facts and higher-cardinality values, for example:
+Use `payload` for telemetry-record-owned business facts and higher-cardinality values, for example:
 
 - `pr_id`
-- `anchor_event_type`
-- `target_anchor_event_type`
+- `pr_type`
+- `target_pr_type`
 - `failure_reason`
 
 Do not hide stable BI dimensions in arbitrary payload fields. Do not promote high-cardinality values into attributes without explicit analysis value and indexing intent.

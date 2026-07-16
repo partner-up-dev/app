@@ -53,9 +53,7 @@ export type PRJoinFunnelResponse = {
   eventDictionary: PRJoinFunnelEventDictionaryEntry[];
 };
 
-export type PRJoinFunnelContextStatus =
-  | "context_complete"
-  | "context_unknown";
+export type PRJoinFunnelContextStatus = "context_complete" | "context_unknown";
 
 export type PRJoinFunnelFactRow = {
   eventId: string;
@@ -119,12 +117,9 @@ const PR_JOIN_FUNNEL_STEPS: FunnelStepDefinition[] = [
   },
 ];
 
-export const resolvePRJoinFunnelFilters = (
-  input: PRJoinFunnelQueryInput,
-): PRJoinFunnelFilters => {
+export const resolvePRJoinFunnelFilters = (input: PRJoinFunnelQueryInput): PRJoinFunnelFilters => {
   const endAt = input.endAt ?? new Date();
-  const startAt =
-    input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
+  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
 
   if (startAt.getTime() >= endAt.getTime()) {
     throw new Error("startAt must be before endAt");
@@ -144,9 +139,7 @@ const createStepAccumulator = (): StepAccumulator => ({
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
-const getStepKeyForEvent = (
-  event: PRJoinFunnelFactRow,
-): string | null => {
+const getStepKeyForEvent = (event: PRJoinFunnelFactRow): string | null => {
   if (!event.stepKey) return null;
   return stepAccumulatorsHas(event.stepKey) ? event.stepKey : null;
 };
@@ -205,21 +198,15 @@ export const buildPRJoinFunnelResponseFromRows = (
   }
 
   const firstAccumulator =
-    stepAccumulators.get(PR_JOIN_FUNNEL_STEPS[0]?.stepKey ?? "") ??
-    createStepAccumulator();
+    stepAccumulators.get(PR_JOIN_FUNNEL_STEPS[0]?.stepKey ?? "") ?? createStepAccumulator();
   const startCount = firstAccumulator.journeys.size;
   let previousCount: number | null = null;
 
   const steps = PR_JOIN_FUNNEL_STEPS.map((definition) => {
-    const accumulator =
-      stepAccumulators.get(definition.stepKey) ?? createStepAccumulator();
+    const accumulator = stepAccumulators.get(definition.stepKey) ?? createStepAccumulator();
     const journeyCount = accumulator.journeys.size;
     const conversionFromPrevious =
-      previousCount === null
-        ? null
-        : previousCount > 0
-          ? journeyCount / previousCount
-          : null;
+      previousCount === null ? null : previousCount > 0 ? journeyCount / previousCount : null;
     previousCount = journeyCount;
     return {
       ...definition,
@@ -230,14 +217,10 @@ export const buildPRJoinFunnelResponseFromRows = (
     };
   });
 
-  const impressionJourneys =
-    stepAccumulators.get("join_cta_impression")?.journeys.size ?? 0;
-  const clickJourneys =
-    stepAccumulators.get("join_cta_click")?.journeys.size ?? 0;
-  const frontendSuccessJourneys =
-    stepAccumulators.get("frontend_join_success")?.journeys.size ?? 0;
-  const backendJoinedJourneys =
-    stepAccumulators.get("backend_joined")?.journeys.size ?? 0;
+  const impressionJourneys = stepAccumulators.get("join_cta_impression")?.journeys.size ?? 0;
+  const clickJourneys = stepAccumulators.get("join_cta_click")?.journeys.size ?? 0;
+  const frontendSuccessJourneys = stepAccumulators.get("frontend_join_success")?.journeys.size ?? 0;
+  const backendJoinedJourneys = stepAccumulators.get("backend_joined")?.journeys.size ?? 0;
 
   return {
     filters,
@@ -246,10 +229,7 @@ export const buildPRJoinFunnelResponseFromRows = (
       clickJourneys,
       frontendSuccessJourneys,
       backendJoinedJourneys,
-      impressionToBackendJoinRate: buildRate(
-        backendJoinedJourneys,
-        impressionJourneys,
-      ),
+      impressionToBackendJoinRate: buildRate(backendJoinedJourneys, impressionJourneys),
       clickToBackendJoinRate: buildRate(backendJoinedJourneys, clickJourneys),
     },
     steps,

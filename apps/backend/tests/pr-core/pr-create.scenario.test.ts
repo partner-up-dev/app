@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { scenario } from "../_infra/scenario/scenario";
+import { type PartnerRequestFields, partnerRequests } from "../../src/entities";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
-import { partnerRequests, type PartnerRequestFields } from "../../src/entities";
+import { scenario } from "../_infra/scenario/scenario";
 import { givenUser } from "./_kit/builders/users";
 
 type ProblemDetailsResponse = {
@@ -40,14 +40,11 @@ scenario("structured_pr_create_rejects_past_start_time", async (ctx) => {
     token: creator.token,
     body: {
       fields: buildFields(),
-      createSource: "FORM",
+      createSource: "STRUCTURED_FORM",
     },
   });
 
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^application\/problem\+json/,
-  );
+  assert.match(response.headers.get("content-type") ?? "", /^application\/problem\+json/);
   const body = await expectJsonResponse<ProblemDetailsResponse>(response, 400);
   assert.equal(body.code, "PR_START_TIME_PASSED");
 

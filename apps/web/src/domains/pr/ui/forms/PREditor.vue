@@ -9,7 +9,6 @@
       v-else-if="detailError"
       :message="detailError.message"
     />
-
     <PuEmptyState
       v-else-if="!hasEditableFields"
       icon="i-mdi-lock-outline"
@@ -18,6 +17,14 @@
     />
 
     <template v-else>
+      <PuInlineNotice
+        v-if="isCreateEditor && authoringOptions && !authoringOptions.creationAllowed"
+        tone="warning"
+        title="当前类型暂不开放创建"
+        message="当前类型不可创建，提交操作已禁用；配置变更后仍由服务端最终校验。"
+        data-testid="pr-editor.authoring-disabled"
+      />
+
       <div v-if="canEditTitle" class="form-field">
         <label>{{ t("partnerRequestForm.title") }}</label>
         <input
@@ -71,6 +78,21 @@
             label="时间"
             :hint="timeHint"
           />
+          <div v-if="isCreateEditor && authoringOptions?.startOptions.length" class="authoring-suggestions">
+            <span>时间建议</span>
+            <PuButton
+              v-for="option in authoringOptions.startOptions"
+              :key="option.key"
+              type="button"
+              tone="neutral"
+              variant="outline"
+              size="sm"
+              :data-testid="`pr-editor.authoring.start.${option.key}`"
+              @click="selectAuthoringStart(option.startAt, option.endAt)"
+            >
+              {{ option.description ?? formatAuthoringStart(option.startAt, option.endAt) }}
+            </PuButton>
+          </div>
 
           <PRPlaceModeField
             v-if="canEditPlace"
@@ -79,10 +101,33 @@
             :aria-label="t('partnerRequestForm.placeModeAria')"
             :location-label="t('partnerRequestForm.location')"
             :location-placeholder="t('partnerRequestForm.locationPlaceholder')"
+            location-options-list-id="pr-editor-authoring-locations"
             :location-error="errors['fields.location']"
             :route-error="errors['fields.route']"
             test-id-prefix="pr-editor.form.place"
           />
+          <datalist id="pr-editor-authoring-locations">
+            <option
+              v-for="option in authoringOptions?.locationOptions ?? []"
+              :key="option.id"
+              :value="option.label"
+            >
+              {{ option.label }}
+            </option>
+          </datalist>
+          <div v-if="isCreateEditor && authoringOptions?.routeOptions.length" class="authoring-suggestions">
+            <label for="pr-editor-authoring-route">路线建议</label>
+            <select
+              id="pr-editor-authoring-route"
+              data-testid="pr-editor.authoring.route"
+              @change="selectAuthoringRoute"
+            >
+              <option value="">自定义路线</option>
+              <option v-for="option in authoringOptions.routeOptions" :key="option.id" :value="option.id">
+                {{ option.id }}
+              </option>
+            </select>
+          </div>
 
           <div v-if="canEditMinPartners" class="form-field">
             <label>{{ t("partnerRequestForm.minPartners") }}</label>
@@ -137,6 +182,21 @@
               shape="pill"
               add-on-blur
             />
+            <div v-if="isCreateEditor && authoringOptions?.preferenceTags.length" class="authoring-suggestions">
+              <span>偏好建议</span>
+              <PuButton
+                v-for="tag in authoringOptions.preferenceTags"
+                :key="tag.label"
+                type="button"
+                tone="neutral"
+                variant="outline"
+                size="sm"
+                :data-testid="`pr-editor.authoring.preference.${tag.label}`"
+                @click="toggleAuthoringPreference(tag.label)"
+              >
+                {{ tag.label }}
+              </PuButton>
+            </div>
           </PuFormItem>
 
           <div v-if="canEditNotes" class="form-field">
@@ -172,32 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
-import { useRoute, useRouter, type LocationQueryValue } from "vue-router";
-import { useI18n } from "vue-i18n";
-import { useForm } from "vee-validate";
 import type { PRId, PRStatus } from "@partner-up-dev/backend";
-import type { PartnerRequestFormInput } from "@/lib/validation";
-import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
-import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
-import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
-import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
-import { useUpdatePRContent } from "@/domains/pr/queries/usePRActions";
-import DateTimeRangePicker from "@/domains/pr/ui/forms/DateTimeRangePicker.vue";
-import PRPlaceModeField, {
-  type PRPlaceModeFieldValue,
-} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
-import type { PRDetailView, PRFormFields } from "@/domains/pr/model/types";
-import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
-import {
-  toPartnerRequestFields,
-  toUserUpdatePRContentFields,
-} from "@/domains/pr/model/types";
-import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
-import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
-import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-import { trackEvent } from "@/shared/telemetry/track";
-import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 import {
   PuButton,
   PuChipsEditor,
@@ -207,6 +242,33 @@ import {
   PuInlineNotice,
   PuLoadingState,
 } from "@partner-up-dev/design-web";
+import { useForm } from "vee-validate";
+import { computed, nextTick, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { type LocationQueryValue, useRoute, useRouter } from "vue-router";
+import {
+  applyPRAuthoringCreateDefaults,
+  resolvePRAuthoringCreateDefaultEligibility,
+} from "@/domains/pr/model/authoring";
+import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
+import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
+import type { PRDetailView, PRFormFields } from "@/domains/pr/model/types";
+import { toPartnerRequestFields, toUserUpdatePRContentFields } from "@/domains/pr/model/types";
+import { useUpdatePRContent } from "@/domains/pr/queries/usePRActions";
+import { usePRAuthoringOptions } from "@/domains/pr/queries/usePRAuthoringOptions";
+import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
+import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
+import DateTimeRangePicker from "@/domains/pr/ui/forms/DateTimeRangePicker.vue";
+import PRPlaceModeField, {
+  type PRPlaceModeFieldValue,
+} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import type { PartnerRequestFormInput } from "@/lib/validation";
+import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
+import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
+import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
+import { trackEvent } from "@/shared/telemetry/track";
 
 const props = defineProps<{
   prId?: number;
@@ -268,27 +330,23 @@ const resolvedPrId = computed<PRId | null>(() => props.prId ?? null);
 const isCreateEditor = computed(() => resolvedPrId.value === null);
 const detailQuery = usePRDetail(resolvedPrId);
 const prDetail = computed(() => detailQuery.data.value);
-const isDetailLoading = computed(
-  () => !isCreateEditor.value && detailQuery.isLoading.value,
-);
-const detailError = computed(() =>
-  isCreateEditor.value ? null : detailQuery.error.value,
-);
+const isDetailLoading = computed(() => !isCreateEditor.value && detailQuery.isLoading.value);
+const detailError = computed(() => (isCreateEditor.value ? null : detailQuery.error.value));
 
 const createMutation = useCreatePRFromStructured();
 const publishMutation = usePublishPR();
 const updateMutation = useUpdatePRContent();
 const pendingStatus = ref<CreateSubmissionMode>("PUBLISH");
-const allowDraftSave = computed(
-  () => isCreateEditor.value && !userSessionStore.isAuthenticated,
-);
+const allowDraftSave = computed(() => isCreateEditor.value && !userSessionStore.isAuthenticated);
 const showReleaseConfirmDialog = ref(false);
 const pendingReleasePayload = ref<PartnerRequestFormInput | null>(null);
 
-const initialFields = computed<PRFormFields>(() => {
+const baseInitialFields = computed<PRFormFields>(() => {
   const detail = prDetail.value;
   if (detail) return buildEditInitialFields(detail);
-  return buildCreateInitialFields(resolveTopic(route.query.topic));
+  return buildCreateInitialFields(
+    resolveTopic(route.query.topic) ?? resolveTopic(route.query.type),
+  );
 });
 
 const editableFields = computed(() => {
@@ -315,19 +373,12 @@ const canEditTitle = computed(() => editableFields.value.has("title"));
 const canEditType = computed(() => editableFields.value.has("type"));
 const canEditTime = computed(() => editableFields.value.has("time"));
 const canEditPlace = computed(
-  () =>
-    editableFields.value.has("location") || editableFields.value.has("route"),
+  () => editableFields.value.has("location") || editableFields.value.has("route"),
 );
-const canEditMinPartners = computed(() =>
-  editableFields.value.has("minPartners"),
-);
-const canEditMaxPartners = computed(() =>
-  editableFields.value.has("maxPartners"),
-);
+const canEditMinPartners = computed(() => editableFields.value.has("minPartners"));
+const canEditMaxPartners = computed(() => editableFields.value.has("maxPartners"));
 const canEditBudget = computed(() => editableFields.value.has("budget"));
-const canEditPreferences = computed(() =>
-  editableFields.value.has("preferences"),
-);
+const canEditPreferences = computed(() => editableFields.value.has("preferences"));
 const canEditNotes = computed(() => editableFields.value.has("notes"));
 const hasAdvancedFields = computed(
   () =>
@@ -342,14 +393,10 @@ const hasAdvancedFields = computed(
 const hasEditableFields = computed(
   () => canEditTitle.value || canEditType.value || hasAdvancedFields.value,
 );
-const showAdvancedToggle = computed(
-  () => isCreateEditor.value && hasAdvancedFields.value,
-);
+const showAdvancedToggle = computed(() => isCreateEditor.value && hasAdvancedFields.value);
 const isAdvancedOpen = ref(false);
 const showBodyFields = computed(
-  () =>
-    hasAdvancedFields.value &&
-    (!showAdvancedToggle.value || isAdvancedOpen.value),
+  () => hasAdvancedFields.value && (!showAdvancedToggle.value || isAdvancedOpen.value),
 );
 
 watch(
@@ -362,7 +409,7 @@ watch(
   { immediate: true },
 );
 
-const { defineField, values, errors, resetForm, handleSubmit, setFieldValue } =
+const { defineField, values, errors, meta, resetForm, handleSubmit, setFieldValue } =
   useForm<PartnerRequestFormInput>({
     validationSchema: computed(() =>
       buildPartnerRequestFormValidationSchema({
@@ -370,21 +417,9 @@ const { defineField, values, errors, resetForm, handleSubmit, setFieldValue } =
       }),
     ),
     initialValues: {
-      fields: clonePRFields(initialFields.value),
+      fields: clonePRFields(baseInitialFields.value),
     },
   });
-
-watch(
-  initialFields,
-  (nextFields) => {
-    resetForm({
-      values: {
-        fields: clonePRFields(nextFields),
-      },
-    });
-  },
-  { deep: true },
-);
 
 const [titleModel] = defineField("fields.title");
 const [typeModel] = defineField("fields.type");
@@ -394,6 +429,37 @@ const [routeModel] = defineField("fields.route");
 const [budgetModel] = defineField("fields.budget");
 const [notesModel] = defineField("fields.notes");
 const [preferencesModel] = defineField("fields.preferences");
+
+const authoringType = computed(() => {
+  if (!isCreateEditor.value) return null;
+  const value = typeModel.value?.trim() ?? "";
+  return value.length > 0 ? value : null;
+});
+const authoringQuery = usePRAuthoringOptions(authoringType);
+const authoringOptions = computed(() => {
+  const options = authoringQuery.data.value;
+  return options && options.type === authoringType.value ? options : null;
+});
+
+watch(
+  baseInitialFields,
+  (nextFields) => {
+    if (isCreateEditor.value) return;
+    resetForm({ values: { fields: clonePRFields(nextFields) } });
+  },
+  { deep: true },
+);
+
+watch([authoringOptions, authoringType], ([options, type]) => {
+  if (!isCreateEditor.value || !type || !options || meta.value.dirty) return;
+  const current = clonePRFields(values.fields);
+  const eligibility = resolvePRAuthoringCreateDefaultEligibility(
+    current,
+    buildCreateInitialFields(type),
+  );
+  const next = applyPRAuthoringCreateDefaults(current, options, eligibility);
+  resetForm({ values: { fields: next } });
+});
 
 const titleInput = computed({
   get: () => titleModel.value ?? "",
@@ -412,6 +478,20 @@ const placeValue = computed<PRPlaceModeFieldValue>({
     routeModel.value = value.route;
   },
 });
+
+const selectAuthoringStart = (startAt: string, endAt: string) => {
+  timeModel.value = [startAt, endAt];
+};
+
+const formatAuthoringStart = (startAt: string, endAt: string): string =>
+  `${new Date(startAt).toLocaleString()} – ${new Date(endAt).toLocaleString()}`;
+
+const selectAuthoringRoute = (event: Event) => {
+  const id = (event.target as HTMLSelectElement).value;
+  const option = authoringOptions.value?.routeOptions.find((item) => item.id === id);
+  if (!option) return;
+  placeValue.value = { location: null, route: option.route };
+};
 
 const budgetInput = computed({
   get: () => budgetModel.value ?? "",
@@ -433,6 +513,12 @@ const preferencesInput = computed({
     preferencesModel.value = value;
   },
 });
+
+const toggleAuthoringPreference = (label: string) => {
+  preferencesInput.value = preferencesInput.value.includes(label)
+    ? preferencesInput.value.filter((value) => value !== label)
+    : [...preferencesInput.value, label];
+};
 
 const minPartnersInput = computed(() =>
   values.fields.minPartners === null ? "" : String(values.fields.minPartners),
@@ -470,7 +556,12 @@ const commandErrorMessage = computed(
     updateMutation.error.value?.message ||
     "",
 );
-const canSubmit = computed(() => hasEditableFields.value && !isPending.value);
+const creationBlocked = computed(
+  () => isCreateEditor.value && authoringOptions.value?.creationAllowed === false,
+);
+const canSubmit = computed(
+  () => hasEditableFields.value && !isPending.value && !creationBlocked.value,
+);
 
 const resetCommandErrors = () => {
   createMutation.reset();
@@ -487,7 +578,7 @@ const submitCreate = async ({ fields }: PartnerRequestFormInput) => {
 
   const result = await createMutation.mutateAsync({
     fields: toPartnerRequestFields(fields),
-    createSource: "FORM",
+    createSource: "STRUCTURED_FORM",
   });
 
   let createdStatus: PRStatus = result.status;
@@ -500,7 +591,7 @@ const submitCreate = async ({ fields }: PartnerRequestFormInput) => {
   trackEvent("pr_create_result", {
     prId: result.id,
     status: createdStatus,
-    scenarioType: fields.type,
+    prType: fields.type,
     actionResult: "success",
   });
 
@@ -582,3 +673,13 @@ defineExpose({
 </script>
 
 <style scoped lang="scss" src="./PRForm.scss"></style>
+<style scoped lang="scss">
+.authoring-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sys-spacing-xsmall);
+  margin-top: calc(var(--sys-spacing-small) * -1);
+  color: var(--sys-color-on-surface-variant);
+}
+</style>

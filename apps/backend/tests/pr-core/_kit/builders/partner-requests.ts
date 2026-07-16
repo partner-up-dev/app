@@ -1,17 +1,14 @@
 import assert from "node:assert/strict";
-import {
-  expectJsonResponse,
-  requestJson,
-} from "../../../_infra/http/backend-app";
+import { initializeSlotsForPR } from "../../../../src/domains/pr-core/services/slot-management.service";
 import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
   PRId,
   PRStatus,
 } from "../../../../src/entities/partner-request";
-import type { ScenarioUser } from "./users";
 import { PartnerRequestRepository } from "../../../../src/repositories/PartnerRequestRepository";
-import { initializeSlotsForPR } from "../../../../src/domains/pr-core/services/slot-management.service";
+import { expectJsonResponse, requestJson } from "../../../_infra/http/backend-app";
+import type { ScenarioUser } from "./users";
 
 export type ScenarioPartnerRequest = {
   id: PRId;
@@ -55,10 +52,7 @@ export function buildScenarioFields(title: string): PartnerRequestFields {
   return {
     title,
     type: "badminton",
-    time: [
-      `2031-01-${day}T${startHour}:00:00.000Z`,
-      `2031-01-${day}T${endHour}:00:00.000Z`,
-    ],
+    time: [`2031-01-${day}T${startHour}:00:00.000Z`, `2031-01-${day}T${endHour}:00:00.000Z`],
     location: `Scenario Court ${sequence}`,
     route: null,
     minPartners: 2,
@@ -142,15 +136,13 @@ export async function givenPublishedPartnerRequest(
     token: input.creator.token,
     body: {
       fields,
-      createSource: "FORM",
+      createSource: "PR_DISCOVERY",
     },
   });
   const body = await expectJsonResponse<CreatePRResponse>(response, 201);
   const expectedStatus = input.expectedCreatedStatus ?? "OPEN";
   if (body.status !== expectedStatus) {
-    throw new Error(
-      `Expected created PR to be ${expectedStatus}, got ${body.status}`,
-    );
+    throw new Error(`Expected created PR to be ${expectedStatus}, got ${body.status}`);
   }
 
   return { id: body.id };

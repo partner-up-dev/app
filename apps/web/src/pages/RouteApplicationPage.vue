@@ -1,9 +1,9 @@
 <template>
-  <PuPageScaffold class="route-application-page">
+  <PuPageScaffold class="route-application-page" data-page="route-application">
     <template #pageHeader>
       <PuHeader
-        :title="t('routeApplicationPage.title')"
-        :subtitle="t('routeApplicationPage.subtitle')"
+        :title="t('prAuthoring.routeApplicationTitle')"
+        :subtitle="t('prAuthoring.routeApplicationSubtitle')"
         title-as="h1"
       >
         <template #leading>
@@ -11,73 +11,59 @@
             tone="neutral"
             variant="ghost"
             size="sm"
-            :aria-label="t('common.backToHome')"
+            :aria-label="t('prAuthoring.routeApplicationBackAction')"
             @click="handleBack"
           >
-            <template #leading>
-              <span class="i-mdi-arrow-left" aria-hidden="true"></span>
-            </template>
+            <template #leading><span class="i-mdi-arrow-left" aria-hidden="true" /></template>
           </PuButton>
         </template>
       </PuHeader>
     </template>
 
     <div class="route-application-page__body">
+      <PuInlineNotice v-if="submitSuccessTitle" tone="success" :message="submitSuccessTitle" />
+      <PuInlineNotice v-if="pageError" tone="error" :message="pageError" />
       <PuInlineNotice
-        v-if="submitSuccessTitle"
-        tone="success"
-        :message="submitSuccessTitle"
+        v-if="!type"
+        tone="warning"
+        :message="t('prAuthoring.routeApplicationMissingType')"
+        data-testid="prd.route-application.missing-type"
       />
-      <PuInlineNotice tone="error" v-if="pageError" :message="pageError" />
 
-      <PuCard as="section" gap="md">
+      <PuCard v-if="type" as="section" gap="md">
         <form class="application-form" @submit.prevent="handleSubmit">
           <PuFormItem
-            :label="t('routeApplicationPage.routeLabel')"
+            :label="t('prAuthoring.routeApplicationRouteLabel')"
             :hint="routeHint"
             :error="routeError"
             required
           >
-            <RouteEditor
-              :model-value="routeDraft"
-              variant="inline"
-              @update:model-value="handleRouteChange"
-            />
+            <RouteEditor :model-value="routeDraft" variant="inline" @update:model-value="handleRouteChange" />
           </PuFormItem>
-
           <PuButton
             shape="rect"
             size="lg"
             :action="{ native: 'submit' }"
             :disabled="!canSubmit"
             :loading="submitMutation.isPending.value"
+            data-testid="prd.route-application.submit"
           >
-            {{ t("routeApplicationPage.submitAction") }}
+            {{ t('prAuthoring.routeApplicationSubmitAction') }}
           </PuButton>
         </form>
       </PuCard>
 
-      <PuCard as="section" gap="md">
+      <PuCard v-if="type" as="section" gap="md">
         <div class="section-header">
-          <div>
-            <h2>{{ t("routeApplicationPage.mineTitle") }}</h2>
-            <p>{{ t("routeApplicationPage.mineSubtitle") }}</p>
-          </div>
+          <h2>{{ t('prAuthoring.routeApplicationMineTitle') }}</h2>
+          <p>{{ t('prAuthoring.routeApplicationMineSubtitle') }}</p>
         </div>
-
-        <PuLoadingState
-          v-if="applicationsQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
+        <PuLoadingState v-if="applicationsQuery.isLoading.value" :message="t('common.loading')" />
         <p v-else-if="applications.length === 0" class="empty-text">
-          {{ t("routeApplicationPage.emptyMine") }}
+          {{ t('prAuthoring.routeApplicationEmptyMine') }}
         </p>
         <div v-else class="application-list">
-          <article
-            v-for="application in applications"
-            :key="application.id"
-            class="application-card"
-          >
+          <article v-for="application in applications" :key="application.id" class="application-card">
             <RouteMap
               class="application-card__map"
               :route="application.route"
@@ -97,12 +83,8 @@
                   shape="pill"
                 />
               </div>
-              <p class="application-card__meta">
-                {{ formatCreatedAt(application.createdAt) }}
-              </p>
-              <p v-if="application.rejectReason" class="application-card__reason">
-                {{ application.rejectReason }}
-              </p>
+              <p class="application-card__meta">{{ formatCreatedAt(application.createdAt) }}</p>
+              <p v-if="application.rejectReason" class="application-card__reason">{{ application.rejectReason }}</p>
             </div>
           </article>
         </div>
@@ -112,9 +94,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { useRoute, type RouteLocationRaw } from "vue-router";
-import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
 import {
   PuButton,
@@ -126,156 +105,105 @@ import {
   PuPageScaffold,
   PuTag,
 } from "@partner-up-dev/design-web";
-import { useFallbackBack } from "@/shared/routing/useFallbackBack";
+import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import {
+  type PRAuthoringRouteApplicationStatus,
+  useMyPRAuthoringRouteApplications,
+  useSubmitPRAuthoringRouteApplication,
+} from "@/domains/pr/queries/usePRAuthoringRouteApplications";
+import {
+  buildRouteSummary,
   createEmptyRouteDraft,
   getRouteValidationIssue,
   normalizeRouteForSubmit,
-  buildRouteSummary,
   type Route,
   type RouteValidationIssue,
 } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
-import {
-  useMyAnchorEventRouteApplications,
-  useSubmitAnchorEventRouteApplication,
-} from "@/domains/event/queries/useRouteApplications";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-
-type RouteApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 const { t } = useI18n();
 const route = useRoute();
+const type = computed(() => {
+  const value = route.query.type;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+});
+const backFallbackTo = computed(() =>
+  type.value ? { name: "pr-discovery", query: { type: type.value } } : { name: "pr-discovery" },
+);
+const { handleBack } = useFallbackBack(backFallbackTo);
 const sessionReady = ref(false);
 const routeDraft = ref<Route>(createEmptyRouteDraft());
 const submitSuccessTitle = ref<string | null>(null);
-
-const applicationsQuery = useMyAnchorEventRouteApplications(sessionReady);
-const submitMutation = useSubmitAnchorEventRouteApplication();
-
-const fromEventQuery = computed(() => {
-  const value = route.query.fromEvent;
-  if (typeof value === "string" && /^\d+$/.test(value)) {
-    return value;
-  }
-  return null;
-});
-
-const eventId = computed(() =>
-  fromEventQuery.value ? Number(fromEventQuery.value) : null,
-);
-
-const backFallbackTo = computed<RouteLocationRaw>(() =>
-  fromEventQuery.value
-    ? {
-        name: "anchor-event-landing",
-        params: {
-          eventId: fromEventQuery.value,
-        },
-      }
-    : { name: "me" },
-);
-const { handleBack } = useFallbackBack(backFallbackTo);
-
-const applications = computed(() => {
-  const source = applicationsQuery.data.value ?? [];
-  return eventId.value === null
-    ? source
-    : source.filter((application) => application.anchorEventId === eventId.value);
-});
+const applicationsQuery = useMyPRAuthoringRouteApplications(type, sessionReady);
+const submitMutation = useSubmitPRAuthoringRouteApplication();
+const applications = computed(() => applicationsQuery.data.value ?? []);
 const normalizedRoute = computed(() => normalizeRouteForSubmit(routeDraft.value));
-const routeValidationIssue = computed(() =>
-  getRouteValidationIssue(normalizedRoute.value),
-);
+const routeValidationIssue = computed(() => getRouteValidationIssue(normalizedRoute.value));
 const canSubmit = computed(
   () =>
-    eventId.value !== null &&
+    Boolean(type.value) &&
     normalizedRoute.value !== null &&
     routeValidationIssue.value === null &&
     !submitMutation.isPending.value,
 );
 const routeHint = computed(() =>
   routeValidationIssue.value === null
-    ? t("routeApplicationPage.routeReady")
-    : t("routeApplicationPage.routeHint"),
+    ? t("prAuthoring.routeApplicationRouteReady")
+    : t("prAuthoring.routeApplicationRouteHint"),
 );
 const routeError = computed<string | undefined>(() =>
-  routeValidationIssue.value === null
-    ? undefined
-    : routeValidationMessage(routeValidationIssue.value),
+  routeValidationIssue.value ? routeValidationMessage(routeValidationIssue.value) : undefined,
 );
-const pageError = computed(() => {
-  if (eventId.value === null) {
-    return t("routeApplicationPage.missingEvent");
-  }
-
-  const candidates = [
-    applicationsQuery.error.value,
-    submitMutation.error.value,
-  ];
-  const first = candidates.find((candidate) => candidate instanceof Error);
-  return first instanceof Error ? first.message : null;
-});
-
+const pageError = computed(
+  () =>
+    [applicationsQuery.error.value, submitMutation.error.value].find(
+      (error): error is Error => error instanceof Error,
+    )?.message ?? null,
+);
 const handleRouteChange = (value: Route) => {
   routeDraft.value = value;
 };
-
 const handleSubmit = async () => {
   const routeForSubmit = normalizedRoute.value;
-  if (!canSubmit.value || eventId.value === null || routeForSubmit === null) {
-    return;
-  }
-
+  if (!type.value || !canSubmit.value || !routeForSubmit) return;
   const submitted = await submitMutation.mutateAsync({
-    eventId: eventId.value,
+    type: type.value,
     route: routeForSubmit as PRRoute,
   });
-  submitSuccessTitle.value = t("routeApplicationPage.submitSuccess", {
-    title: routeSummary(submitted.route),
-  });
+  submitSuccessTitle.value = t("prAuthoring.routeApplicationSubmitSuccess");
   routeDraft.value = createEmptyRouteDraft();
+  void submitted;
 };
-
-const routeValidationMessage = (issue: RouteValidationIssue): string => {
-  if (issue === "min-points") {
-    return t("routeApplicationPage.validation.minPoints");
-  }
-  if (issue === "name-required") {
-    return t("routeApplicationPage.validation.nameRequired");
-  }
-  return t("routeApplicationPage.validation.coordinateRequired");
-};
-
+const routeValidationMessage = (issue: RouteValidationIssue): string =>
+  issue === "min-points"
+    ? t("prAuthoring.routeApplicationValidation.minPoints")
+    : issue === "name-required"
+      ? t("prAuthoring.routeApplicationValidation.nameRequired")
+      : t("prAuthoring.routeApplicationValidation.coordinateRequired");
 const routeSummary = (value: PRRoute): string =>
-  buildRouteSummary(value) ?? t("routeApplicationPage.unnamedRoute");
-
-const statusLabel = (status: RouteApplicationStatus): string =>
-  t(`routeApplicationPage.status.${status}`);
-
+  buildRouteSummary(value) ?? t("prAuthoring.typeFallback");
+const statusLabel = (status: PRAuthoringRouteApplicationStatus): string =>
+  t(`prAuthoring.routeApplicationStatus.${status}`);
 const statusTagTone = (
-  status: RouteApplicationStatus,
+  status: PRAuthoringRouteApplicationStatus,
 ): "primary" | "secondary" | "danger" =>
-  status === "ACCEPTED"
-    ? "primary"
-    : status === "REJECTED"
-      ? "danger"
-      : "secondary";
-
+  status === "ACCEPTED" ? "primary" : status === "REJECTED" ? "danger" : "secondary";
 const formatCreatedAt = (value: string): string => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return Number.isNaN(date.getTime())
+    ? ""
+    : new Intl.DateTimeFormat("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(date);
 };
-
 onMounted(async () => {
   await ensureAuthSessionBootstrapped();
   sessionReady.value = true;
@@ -283,102 +211,16 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.route-application-page__body,
-.application-form,
-.application-list,
-.application-card__body {
-  display: flex;
-  flex-direction: column;
-}
-
-.route-application-page__body {
-  gap: var(--sys-spacing-large);
-}
-
-.application-form,
-.application-list,
-.application-card__body {
-  gap: var(--sys-spacing-medium);
-}
-
-.section-header {
-  h2,
-  p {
-    margin: 0;
-  }
-
-  h2 {
-    @include mx.pu-font(section);
-  }
-
-  p {
-    margin-top: var(--sys-spacing-xsmall);
-    @include mx.pu-font(body);
-    color: var(--sys-color-on-surface-variant);
-  }
-}
-
-.empty-text {
-  margin: 0;
-  @include mx.pu-font(body);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.application-card {
-  display: grid;
-  grid-template-columns: 8rem minmax(0, 1fr);
-  gap: var(--sys-spacing-small);
-  align-items: center;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-small);
-  background: var(--sys-color-surface);
-}
-
-.application-card__map {
-  width: 8rem;
-  min-height: 5rem;
-  aspect-ratio: 16 / 10;
-}
-
-.application-card__map :deep(.map-shell--inline),
-.application-card__map :deep(.route-map__fallback) {
-  height: 100%;
-  min-height: 100%;
-}
-
-.application-card__title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sys-spacing-small);
-
-  h3 {
-    margin: 0;
-    @include mx.pu-font(section);
-    overflow-wrap: anywhere;
-  }
-}
-
-.application-card__meta,
-.application-card__reason {
-  margin: 0;
-  @include mx.pu-font(support);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.application-card__reason {
-  color: var(--sys-color-error);
-}
-
-@media (max-width: 640px) {
-  .application-card {
-    grid-template-columns: 1fr;
-  }
-
-  .application-card__map {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-  }
-}
+.route-application-page__body, .application-form, .application-list, .application-card__body { display: flex; flex-direction: column; }
+.route-application-page__body { gap: var(--sys-spacing-large); }
+.application-form, .application-list, .application-card__body { gap: var(--sys-spacing-medium); }
+.section-header h2, .section-header p, .empty-text, .application-card__meta, .application-card__reason { margin: 0; }
+.section-header p { margin-top: var(--sys-spacing-xsmall); color: var(--sys-color-on-surface-variant); }
+.empty-text, .application-card__meta, .application-card__reason { color: var(--sys-color-on-surface-variant); }
+.application-card { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: var(--sys-spacing-small); align-items: center; padding: var(--sys-spacing-small); border: 1px solid var(--sys-color-outline-variant); border-radius: var(--sys-radius-small); background: var(--sys-color-surface); }
+.application-card__map { width: 8rem; min-height: 5rem; aspect-ratio: 16 / 10; }
+.application-card__title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sys-spacing-small); }
+.application-card__title-row h3 { margin: 0; overflow-wrap: anywhere; }
+.application-card__reason { color: var(--sys-color-error); }
+@media (max-width: 640px) { .application-card { grid-template-columns: 1fr; } .application-card__map { width: 100%; aspect-ratio: 16 / 9; } }
 </style>

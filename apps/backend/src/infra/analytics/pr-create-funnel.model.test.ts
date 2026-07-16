@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
   buildPRCreateFunnelResponseFromRows,
-  resolvePRCreateFunnelFilters,
   type PRCreateFunnelContextStatus,
   type PRCreateFunnelFactRow,
   type PRCreateFunnelFilters,
   type PRCreatePath,
+  resolvePRCreateFunnelFilters,
 } from "./pr-create-funnel.model";
 
 const filters: PRCreateFunnelFilters = resolvePRCreateFunnelFilters({
@@ -57,23 +57,23 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
       eventName: "pr.created",
       authenticatedUserHash: "user-hash",
       stepKey: "backend_created",
-      creationPath: "form",
+      creationPath: "structured_form",
     }),
     buildEvent({
       journeyId: "journey-assisted",
-      eventName: "anchor_event.assisted_create.started",
+      eventName: "pr.discovery.authoring.handoff",
       stepKey: "create_entry_intent",
     }),
     buildEvent({
       journeyId: "journey-assisted",
-      eventName: "anchor_event.assisted_create.result",
+      eventName: "pr.create.result",
       stepKey: "frontend_create_success",
     }),
     buildEvent({
       journeyId: "journey-assisted",
       eventName: "pr.created",
       stepKey: "backend_created",
-      creationPath: "event_assisted",
+      creationPath: "pr_discovery",
     }),
     buildEvent({
       journeyId: "journey-blocked",
@@ -141,8 +141,8 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
   );
 
   assert.deepEqual(response.paths, [
-    { creationPath: "form", journeyCount: 1, eventCount: 1 },
-    { creationPath: "event_assisted", journeyCount: 1, eventCount: 1 },
+    { creationPath: "structured_form", journeyCount: 1, eventCount: 1 },
+    { creationPath: "pr_discovery", journeyCount: 1, eventCount: 1 },
     { creationPath: "natural_language", journeyCount: 1, eventCount: 1 },
   ]);
   assert.deepEqual(response.identity, {
@@ -157,16 +157,7 @@ test("buildPRCreateFunnelResponseFromRows projects create behavior through enric
   });
   assert.deepEqual(
     response.eventDictionary.map((entry) => entry.eventName),
-    [
-      "anchor_event.assisted_create.result",
-      "anchor_event.assisted_create.started",
-      "anchor_event.card_empty_create.started",
-      "anchor_event.form.create_fallback_clicked",
-      "anchor_event.list_create.started",
-      "home.create.entry.click",
-      "pr.create.result",
-      "pr.created",
-    ],
+    ["home.create.entry.click", "pr.create.result", "pr.created", "pr.discovery.authoring.handoff"],
   );
 });
 

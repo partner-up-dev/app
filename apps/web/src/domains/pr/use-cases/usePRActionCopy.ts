@@ -1,4 +1,4 @@
-import { computed, type ComputedRef } from "vue";
+import { type ComputedRef, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
@@ -33,8 +33,8 @@ export const usePRActionCopy = (pr: ComputedRef<PRDetailView>) => {
         return t("prPage.partnerSection.blockedFull");
       case "JOIN_LOCKED":
         return t("prPage.partnerSection.blockedJoinLocked");
-      case "EVENT_STARTED":
-        return t("prPage.partnerSection.blockedEventStarted");
+      case "PR_TIME_WINDOW_STARTED":
+        return t("prPage.partnerSection.blockedPRTimeWindowStarted");
       case "OUTSIDE_CONFIRM_WINDOW": {
         const notSet = t("prPage.partnerSection.notSet");
         return t("prPage.partnerSection.blockedConfirmWindow", {
@@ -43,9 +43,8 @@ export const usePRActionCopy = (pr: ComputedRef<PRDetailView>) => {
               pr.value.partnerSection.timeline?.confirmationStartAt ?? null,
             ) ?? notSet,
           confirmEnd:
-            formatLocalDateTimeValue(
-              pr.value.partnerSection.timeline?.confirmationEndAt ?? null,
-            ) ?? notSet,
+            formatLocalDateTimeValue(pr.value.partnerSection.timeline?.confirmationEndAt ?? null) ??
+            notSet,
         });
       }
       case "ALREADY_CONFIRMED":
@@ -87,11 +86,9 @@ export const usePRActionCopy = (pr: ComputedRef<PRDetailView>) => {
   const resolveCheckInTip = (): string => {
     const viewer = pr.value.partnerSection.viewer;
     if (viewer.checkInBlockedReason === "CHECKIN_NOT_OPEN") {
-      const startAt = pr.value.partnerSection.timeline?.eventStartAt ?? null;
+      const startAt = pr.value.partnerSection.timeline?.startAt ?? null;
       if (startAt) {
-        return `活动开始后可签到（${
-          formatLocalDateTimeValue(startAt) ?? startAt
-        }）`;
+        return `活动开始后可签到（${formatLocalDateTimeValue(startAt) ?? startAt}）`;
       }
     }
     return blockedReasonText(viewer.checkInBlockedReason);

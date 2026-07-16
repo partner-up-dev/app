@@ -3,11 +3,11 @@ import { factPRJoinFunnelEvents } from "../../entities";
 import { db } from "../../lib/db";
 import {
   buildPRJoinFunnelResponseFromRows,
-  resolvePRJoinFunnelFilters,
   type PRJoinFunnelContextStatus,
   type PRJoinFunnelFactRow,
   type PRJoinFunnelQueryInput,
   type PRJoinFunnelResponse,
+  resolvePRJoinFunnelFilters,
 } from "./pr-join-funnel.model";
 
 type PRJoinFunnelViewRow = {
@@ -66,10 +66,7 @@ export async function getPRJoinFunnelAnalytics(
         lt(factPRJoinFunnelEvents.occurredAt, new Date(filters.endAt)),
       ),
     )
-    .orderBy(
-      asc(factPRJoinFunnelEvents.occurredAt),
-      asc(factPRJoinFunnelEvents.eventId),
-    );
+    .orderBy(asc(factPRJoinFunnelEvents.occurredAt), asc(factPRJoinFunnelEvents.eventId));
 
   return buildPRJoinFunnelResponseFromRows(filters, rows.map(toFactRow));
 }

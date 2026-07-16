@@ -1,42 +1,39 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
 import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { resolveUserByOpenId } from "../../user";
-import { hasAnchorParticipationPolicy } from "../services/anchor-participation-policy.service";
-import { isExitAllowedStatus } from "../services/status-rules";
-import { recalculatePRStatus } from "../services/slot-management.service";
-import { hasEventStarted } from "../services/time-window.service";
-import { toPublicPR, type PublicPR } from "../services/pr-view.service";
-import { refreshTemporalStatus } from "../temporal-refresh";
-import { operationLogService } from "../../../infra/operation-log";
 import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
 } from "../../../infra/notifications";
+import { operationLogService } from "../../../infra/operation-log";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
+import { resolveUserByOpenId } from "../../user";
+import { reconcileCurrentCreator } from "../services/current-creator.service";
 import { resetPRJoinGateResolutionsForUser } from "../services/join-gates.service";
+import { hasParticipationPolicy } from "../services/participation-policy.service";
+import { type PublicPR, toPublicPR } from "../services/pr-view.service";
+import { recalculatePRStatus } from "../services/slot-management.service";
+import { isPRExitAllowedStatus } from "../services/status-rules";
+import { hasPRTimeWindowStarted } from "../services/time-window.service";
 import { promoteWaitlistedPartners } from "../services/waitlist.service";
 import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
-import { reconcileCurrentCreator } from "../services/current-creator.service";
+import { refreshTemporalStatus } from "../temporal-refresh";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 const userReliabilityRepo = new UserReliabilityRepository();
 
-export async function exitPRByUserId(
-  id: PRId,
-  userId: UserId,
-): Promise<PublicPR> {
+export async function exitPRByUserId(id: PRId, userId: UserId): Promise<PublicPR> {
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
   const refreshedRequest = await refreshTemporalStatus(request);
-  const hasParticipationPolicy = hasAnchorParticipationPolicy(refreshedRequest);
+  const hasMaterializedParticipationPolicy = hasParticipationPolicy(refreshedRequest);
 
-  if (!isExitAllowedStatus(refreshedRequest.status as string)) {
+  if (!isPRExitAllowedStatus(refreshedRequest.status as string)) {
     return throwHttpProblem({ status: 400, detail: "Cannot exit - partner request is not open" });
   }
 
@@ -45,8 +42,8 @@ export async function exitPRByUserId(
     return throwHttpProblem({ status: 400, detail: "Cannot exit - partner is not joined" });
   }
 
-  if (hasParticipationPolicy && hasEventStarted(refreshedRequest.time)) {
-    return throwHttpProblem({ status: 400, detail: "Cannot exit - event has already started" });
+  if (hasMaterializedParticipationPolicy && hasPRTimeWindowStarted(refreshedRequest.time)) {
+    return throwHttpProblem({ status: 400, detail: "Cannot exit after the PR starts" });
   }
 
   await partnerRepo.updateStatus(activeSlot.id, "EXITED");
@@ -56,7 +53,7 @@ export async function exitPRByUserId(
     partnerId: activeSlot.id,
   });
   await userReliabilityRepo.applyDelta(userId, { released: 1 });
-  if (hasParticipationPolicy) {
+  if (hasMaterializedParticipationPolicy) {
     await cancelWeChatReminderJobsForParticipant(id, userId);
     await cancelWeChatActivityStartReminderJobsForParticipant(id, userId);
   }

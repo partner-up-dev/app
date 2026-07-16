@@ -10,13 +10,10 @@
         />
       </section>
 
-      <section class="home-section home-section--event">
-        <div class="section-paper section-paper--event">
-          <EventHighlightsSection
-            class="event-canvas event-canvas--breakout"
-            data-region="event-highlights"
-          />
-          <EventPlazaEntry data-region="event-plaza" />
+      <section class="home-section home-section--discovery">
+        <div class="section-paper section-paper--discovery">
+          <PRDiscoveryHighlightsSection />
+          <PRDiscoveryCatalogEntry />
         </div>
       </section>
 
@@ -51,7 +48,6 @@
     <PageFooter variant="brand" data-region="footer" />
 
     <OfficialAccountFollowNudge
-      data-region="official-account-nudge"
       :open="officialAccountFollowPrompt.isVisible.value"
       @dismiss="officialAccountFollowPrompt.dismissPrompt"
       @complete="officialAccountFollowPrompt.markPromptCompleted"
@@ -61,17 +57,17 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { RouterLink } from "vue-router";
 import LandingHeroSection from "@/domains/landing/ui/sections/LandingHeroSection.vue";
 import LandingValuePropsSection from "@/domains/landing/ui/sections/LandingValuePropsSection.vue";
-import EventHighlightsSection from "@/domains/event/ui/sections/landing/EventHighlightsSection.vue";
-import EventPlazaEntry from "@/domains/event/ui/sections/landing/EventPlazaEntry.vue";
-import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
-import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import LandingWeChatAccessSection from "@/domains/landing/ui/sections/LandingWeChatAccessSection.vue";
+import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
+import PRDiscoveryCatalogEntry from "@/domains/pr/ui/discovery/landing/PRDiscoveryCatalogEntry.vue";
+import PRDiscoveryHighlightsSection from "@/domains/pr/ui/discovery/landing/PRDiscoveryHighlightsSection.vue";
 import { trackEvent } from "@/shared/telemetry/track";
+import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 
 const HOME_SCROLL_SNAP_CLASS = "home-scroll-snap";
 const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS = 14_000;
@@ -96,9 +92,7 @@ onMounted(() => {
   if (typeof window === "undefined") return;
   document.documentElement.classList.add(HOME_SCROLL_SNAP_CLASS);
   document.body.classList.add(HOME_SCROLL_SNAP_CLASS);
-  officialAccountFollowPrompt.requestPromptAfterDelay(
-    OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS,
-  );
+  officialAccountFollowPrompt.requestPromptAfterDelay(OFFICIAL_ACCOUNT_FOLLOW_PROMPT_DELAY_MS);
 });
 
 onUnmounted(() => {
@@ -207,7 +201,7 @@ onUnmounted(() => {
   animation-delay: 40ms;
 }
 
-.home-section--event {
+.home-section--discovery {
   animation-delay: 100ms;
 }
 
@@ -220,14 +214,23 @@ onUnmounted(() => {
   animation-delay: 150ms;
 }
 
-.event-canvas {
+.section-paper {
+  display: flex;
   width: 100%;
   min-width: 0;
+  flex-direction: column;
+  gap: var(--landing-panel-gap);
+  padding: var(--landing-panel-padding);
+  border: 1px solid var(--sys-color-outline);
+  border-radius: var(--sys-radius-large);
+  @include mx.pu-elevation(1);
 }
 
-.event-canvas--breakout {
+.section-paper--discovery {
   position: relative;
-  z-index: 2;
+  z-index: 1;
+  justify-content: flex-start;
+  overflow: visible;
 }
 
 .section-stack {
@@ -269,26 +272,6 @@ onUnmounted(() => {
   font-size: 1.375rem;
   font-weight: 400;
   line-height: 2rem;
-}
-
-.section-paper {
-  width: 100%;
-  min-width: 0;
-  border-radius: var(--sys-radius-large);
-  border: 1px solid var(--sys-color-outline);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--landing-panel-gap);
-  padding: var(--landing-panel-padding);
-  @include mx.pu-elevation(1);
-}
-
-.section-paper--event {
-  justify-content: flex-start;
-  position: relative;
-  z-index: 1;
-  overflow: visible;
 }
 
 .creator-entry {
@@ -377,14 +360,14 @@ onUnmounted(() => {
     );
   }
 
-  .section-paper {
-    padding: var(--landing-panel-padding-compact);
-  }
-
   .section-header h2 {
     font-size: 1.375rem;
     font-weight: 400;
     line-height: 2rem;
+  }
+
+  .section-paper {
+    padding: var(--landing-panel-padding-compact);
   }
 
   .section-header p {

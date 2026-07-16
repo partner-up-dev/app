@@ -10,7 +10,7 @@ This file owns shared frontend/backend contract substrate and routes mature doma
 | Local typed origin contract | This file |
 | Local development runtime and commands | [`../40-deployment/environments.md`](../40-deployment/environments.md) |
 | PR lifecycle, creation, join, waitlist, Study Sprint, share descriptors | [`pr-lifecycle-contracts.md`](./pr-lifecycle-contracts.md) |
-| Anchor Event, Form Mode, dummy PR, POI application, event list/card/search | [`event-context-contracts.md`](./event-context-contracts.md) |
+| PR Discovery, Form/Card/List views, Authoring handoff, POI application | [`pr-discovery-and-authoring-contracts.md`](./pr-discovery-and-authoring-contracts.md) |
 | PR messaging, read markers, message visibility, unread-wave handoff | [`pr-messaging-contracts.md`](./pr-messaging-contracts.md) |
 | Admin and operator cross-unit surfaces | [`admin-surface-contracts.md`](./admin-surface-contracts.md) |
 | Ecommerce placement, ordering, billing, RideHailing, commerce admin | [`ecommerce-contracts.md`](./ecommerce-contracts.md) |
@@ -44,12 +44,12 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 ## 1.2 Image Upload Contract
 
 - The active image upload surface is `POST /api/upload/images/:purpose` with multipart field `image`.
-- Backend accepts the allowlisted image purposes: `poster`, `poi`, `anchor-event-cover`, `anchor-event-beta-group-qr`, and `feedback`.
+- Backend accepts the allowlisted image purposes: `poster`, `poi`, and `feedback`.
 - Backend generates one UUID key per uploaded image. The key is independent from client filenames and is also the stored image filename.
-- Backend stores image bytes under the purpose-owned prefix: `posters/`, `pois/`, `anchor-event-covers/`, `anchor-event-beta-group-qrs/`, or `feedback/`.
+- Backend stores image bytes under the purpose-owned prefix: `posters/`, `pois/`, or `feedback/`.
 - Backend serves uploaded images through `GET /api/upload/images/:purpose/:key` and derives the response content type from the stored image bytes.
 - Frontend upload flows use the Hono RPC client and pass the purpose explicitly at the upload boundary.
-- Xiaohongshu and WeChat generated poster assets use purpose `poster`; POI application and Admin POI Gallery uploads use purpose `poi`; Admin Anchor Event cover and beta-group QR uploads use their Anchor Event media purposes; feedback questionnaire image answers use purpose `feedback`.
+- Xiaohongshu and WeChat generated poster assets use purpose `poster`; POI application and Admin POI Gallery uploads use purpose `poi`; feedback questionnaire image answers use purpose `feedback`.
 
 ## 2. Session Contract
 
@@ -75,7 +75,7 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 - The follower-list cursor is pagination state for one scan. It is not persisted as durable user state.
 - The sync task only writes positive confirmations. Missing users in a follower-list scan remain `UNKNOWN` until a later unsubscribe webhook or reconciliation contract exists.
 - Frontend official-account follow prompts combine backend status with a 6-hour local cooldown aligned to the follower-list sync period, so a user who recently saw the prompt or opened the follow QR is spared repeat presentation before the next expected backend confirmation opportunity.
-- Frontend may mount the shared official-account follow prompt on Home, Anchor Event landing, and post-commitment follow-ups; those surfaces share the same cooldown and emit user telemetry for prompt presentation and completion/dismissal actions.
+- Frontend may mount the shared official-account follow prompt on Home, `/prd`, and post-commitment follow-ups; those surfaces share the same cooldown and emit user telemetry for prompt presentation and completion/dismissal actions.
 
 ## 4. Error Contract
 
@@ -100,10 +100,7 @@ Stable user-facing route families that materially affect coordination include:
 - `/pr/:id/messages`
 - `/pr/:id/study-sprint`
 - `/pr/:id/partners/:partnerId`
-- `/events`
-- `/events/search`
-- `/events/:eventId`
-- `/e/:eventId`
+- `/prd`
 - `/pr/mine`
 - `/me`
 - `/contact-support`
@@ -111,14 +108,14 @@ Stable user-facing route families that materially affect coordination include:
 - `/about`
 - `/wechat/oauth/callback`
 - `/admin/login`
+- `/admin/pr-type-configs`
 - `/admin/pr`
 - `/admin/pr-messages`
 - `/admin/pois`
 - `/admin/analytics`
 - `/admin/analytics/overview`
 - `/admin/analytics/pr-funnels`
-- `/admin/analytics/anchor-events`
-- `/admin/analytics/official-account`
+- `/admin/analytics/pr-discovery`
 - `/bi`
 
 Route-family details belong to the focused owner files in the Contract Owner Map.
@@ -128,7 +125,7 @@ Route-family details belong to the focused owner files in the Contract Owner Map
 - Backend exposes public config values through `/api/config/public/:key`.
 - Backend exposes build metadata through `/api/meta/build`.
 - Frontend relies on those endpoints to avoid hardcoding operationally managed values.
-- Event-specific beta-group QR codes are not public config values; they are Anchor Event fields and flow through the Anchor Event read and admin contracts.
+- PR type configuration does not expose a community-group QR field; platform support assets remain under their dedicated public-config contracts.
 
 ## 7. Coordination And Failure Assumptions
 

@@ -4,11 +4,11 @@ import { DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT } from "./partnerRequestPar
 
 test("default PR parse prompt explains type candidate priority", () => {
   assert.equal(
-    DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT.includes("typeSelection.existingPRTypes"),
+    DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT.includes("typeSelection.observedPRTypes"),
     true,
   );
   assert.equal(
-    DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT.includes("typeSelection.anchorEventTypes"),
+    DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT.includes("typeSelection.configuredPRTypes"),
     true,
   );
   assert.equal(

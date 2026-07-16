@@ -1,47 +1,41 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
+import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
 import type { PRRoute, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
-import { resolveUserByOpenId } from "../../user";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
-import { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
-import { AnchorEventPRContextRepository } from "../../../repositories/AnchorEventPRContextRepository";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import {
+  type EffectiveMeetingPoint,
+  resolveEffectiveMeetingPoint,
+} from "../../pr-core/services/meeting-point.service";
+import {
+  hasParticipationPolicy,
+  resolveParticipationPolicy,
+} from "../../pr-core/services/participation-policy.service";
 import {
   buildPRPartnerSection,
   type PartnerSectionView,
 } from "../../pr-core/services/partner-section-view.service";
-import {
-  evaluateAnchorEventParticipationFrequencyLimit,
-} from "../../pr-core/services/anchor-participation-frequency-limit.service";
-import {
-  hasAnchorParticipationPolicy,
-  resolveEffectiveMeetingPoint,
-  resolveAnchorParticipationPolicy,
-  type EffectiveMeetingPoint,
-} from "../../pr/services";
-import { readPartnerRequestById } from "../../pr/services";
-import {
-  buildPRCanonicalShareMetadata,
-  type PRCanonicalShareMetadata,
-} from "../sharing/pr-share-metadata.service";
-import { toPublicPR } from "./public-pr-view.service";
-import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
 import {
   buildPREditCapability,
   buildPREditPostReadyCapability,
   type PREditCapability,
   type PREditPostReadyCapability,
 } from "../../pr-core/services/pr-edit-capability.service";
+import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
+import { readPartnerRequestById } from "../../pr-core/services/pr-read.service";
+import { evaluatePRTypeParticipationFrequencyLimit } from "../../pr-core/services/pr-type-participation-frequency-limit.service";
+import { resolveUserByOpenId } from "../../user";
+import {
+  buildPRCanonicalShareMetadata,
+  type PRCanonicalShareMetadata,
+} from "../sharing/pr-share-metadata.service";
+import { toPublicPR } from "./public-pr-view.service";
 
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
-const anchorEventRepo = new AnchorEventRepository();
-const anchorEventContextRepo = new AnchorEventPRContextRepository();
 
-export type PRMeetingPointVisibility =
-  | "VISIBLE"
-  | "ACTIVE_PARTICIPANTS_ONLY";
+export type PRMeetingPointVisibility = "VISIBLE" | "ACTIVE_PARTICIPANTS_ONLY";
 
 export type PRDetail = {
   id: number;
@@ -65,11 +59,6 @@ export type PRDetail = {
     meetingPoint: EffectiveMeetingPoint | null;
     meetingPointVisibility: PRMeetingPointVisibility;
   };
-  anchorEventContext: {
-    id: number;
-    title: string;
-    betaGroupQrCode: string | null;
-  } | null;
   share: {
     canonical: PRCanonicalShareMetadata;
     xiaohongshuPoster?: {
@@ -111,11 +100,7 @@ const resolveMeetingPointProjection = (
   meetingPoint: EffectiveMeetingPoint | null;
   meetingPointVisibility: PRMeetingPointVisibility;
 } => {
-  if (
-    publicPR.status === "ACTIVE" &&
-    publicPR.myPartnerId === null &&
-    meetingPoint !== null
-  ) {
+  if (publicPR.status === "ACTIVE" && publicPR.myPartnerId === null && meetingPoint !== null) {
     return {
       meetingPoint: null,
       meetingPointVisibility: "ACTIVE_PARTICIPANTS_ONLY",
@@ -125,26 +110,6 @@ const resolveMeetingPointProjection = (
   return {
     meetingPoint,
     meetingPointVisibility: "VISIBLE",
-  };
-};
-
-const resolveAnchorEventContextProjection = async (
-  prId: number,
-): Promise<PRDetail["anchorEventContext"]> => {
-  const context = await anchorEventContextRepo.findByPrId(prId);
-  if (!context) {
-    return null;
-  }
-
-  const event = await anchorEventRepo.findById(context.anchorEventId);
-  if (!event) {
-    return null;
-  }
-
-  return {
-    id: event.id,
-    title: event.title,
-    betaGroupQrCode: event.betaGroupQrCode,
   };
 };
 
@@ -166,30 +131,17 @@ export async function getPRDetailView(
   const viewerUserId =
     viewerOpenId && viewerOpenId.length > 0
       ? (await resolveUserByOpenId(viewerOpenId)).id
-      : viewerIdentity?.userId ?? null;
+      : (viewerIdentity?.userId ?? null);
 
   const publicPR = await toPublicPR(request, viewerUserId);
   const effectiveMeetingPoint = await resolveEffectiveMeetingPoint(publicPR);
-  const meetingPointProjection = resolveMeetingPointProjection(
-    publicPR,
-    effectiveMeetingPoint,
-  );
-  const anchorEventContext =
-    await resolveAnchorEventContextProjection(publicPR.id);
-  const canonicalShare = buildPRCanonicalShareMetadata(publicPR, {
-    anchorEventTitle: anchorEventContext?.title ?? null,
-  });
-  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
-    id,
-  );
-  const pendingParticipants = await partnerRepo.listPendingParticipantSummariesByPrId(
-    id,
-  );
-  const rosterParticipants = await partnerRepo.listRosterParticipantSummariesByPrId(
-    id,
-  );
-  const policy = hasAnchorParticipationPolicy(request)
-    ? resolveAnchorParticipationPolicy(request, request.time)
+  const meetingPointProjection = resolveMeetingPointProjection(publicPR, effectiveMeetingPoint);
+  const canonicalShare = buildPRCanonicalShareMetadata(publicPR);
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(id);
+  const pendingParticipants = await partnerRepo.listPendingParticipantSummariesByPrId(id);
+  const rosterParticipants = await partnerRepo.listRosterParticipantSummariesByPrId(id);
+  const policy = hasParticipationPolicy(request)
+    ? resolveParticipationPolicy(request, request.time)
     : null;
   const feedbackInstance = request.feedbackQuestionnaireInstanceId
     ? await feedbackRepo.findInstanceById(request.feedbackQuestionnaireInstanceId)
@@ -201,11 +153,10 @@ export async function getPRDetailView(
           respondentUserId: viewerUserId,
         })
       : null;
-  const participationFrequencyEvaluation =
-    await evaluateAnchorEventParticipationFrequencyLimit({
-      request,
-      userId: viewerUserId,
-    });
+  const participationFrequencyEvaluation = await evaluatePRTypeParticipationFrequencyLimit({
+    request,
+    userId: viewerUserId,
+  });
 
   return {
     id: publicPR.id,
@@ -229,7 +180,6 @@ export async function getPRDetailView(
       meetingPoint: meetingPointProjection.meetingPoint,
       meetingPointVisibility: meetingPointProjection.meetingPointVisibility,
     },
-    anchorEventContext,
     share: {
       canonical: canonicalShare,
       xiaohongshuPoster: publicPR.xiaohongshuPoster
@@ -269,12 +219,9 @@ export async function getPRDetailView(
       rosterParticipants,
       viewerUserId,
       policy,
-      participationFrequencyLimited:
-        participationFrequencyEvaluation.allowed === false,
+      participationFrequencyLimited: participationFrequencyEvaluation.allowed === false,
     }),
     editCapability: buildPREditCapability(request, viewerUserId),
-    editPostReadyCapability: buildPREditPostReadyCapability(
-      request.allowEditAfterReady,
-    ),
+    editPostReadyCapability: buildPREditPostReadyCapability(request.allowEditAfterReady),
   };
 }

@@ -1,19 +1,15 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
+
 /**
  * Slot management service — handles partner slot CRUD, capacity sync,
  * bounds validation, and status recalculation.
  */
 
+import type { PRId } from "../../../entities/partner-request";
+import type { UserId } from "../../../entities/user";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type {
-  PRId,
-} from "../../../entities/partner-request";
-import type { UserId } from "../../../entities/user";
-import {
-  deriveStatusFromPartnerCount,
-  shouldRecalculateCapacityStatus,
-} from "./status-rules";
+import { derivePRStatusFromPartnerCount, shouldRecalculatePRCapacityStatus } from "./status-rules";
 
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
@@ -35,14 +31,14 @@ export async function initializeSlotsForPR(
   }
 }
 
-export async function syncSlotCapacity(
-  prId: PRId,
-  maxPartners: number | null,
-): Promise<void> {
+export async function syncSlotCapacity(prId: PRId, maxPartners: number | null): Promise<void> {
   if (maxPartners === null) return;
   const activeCount = await countActivePartnersForPR(prId);
   if (activeCount > maxPartners) {
-    return throwHttpProblem({ status: 400, detail: "Invalid partner bounds - maxPartners cannot be smaller than active participants" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Invalid partner bounds - maxPartners cannot be smaller than active participants",
+    });
   }
 }
 
@@ -65,13 +61,13 @@ export async function recalculatePRStatus(prId: PRId): Promise<void> {
   }
 
   const activeCount = await countActivePartnersForPR(prId);
-  const nextStatus = deriveStatusFromPartnerCount(
+  const nextStatus = derivePRStatusFromPartnerCount(
     activeCount,
     request.minPartners,
     request.maxPartners,
   );
   if (
-    shouldRecalculateCapacityStatus(request.status as string) &&
+    shouldRecalculatePRCapacityStatus(request.status as string) &&
     request.status !== nextStatus
   ) {
     await prRepo.updateStatus(prId, nextStatus);

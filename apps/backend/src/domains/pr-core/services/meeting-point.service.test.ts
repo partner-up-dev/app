@@ -1,26 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AnchorEventRepository } from "../../../repositories/AnchorEventRepository";
 import type { PoiRepository } from "../../../repositories/PoiRepository";
+import type { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
-test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI fallback order", async () => {
-  const { AnchorEventRepository: AnchorEventRepositoryClass } = await import(
-    "../../../repositories/AnchorEventRepository"
+test("resolveEffectiveMeetingPoint follows PR, type location, type, then POI fallback order", async () => {
+  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } = await import(
+    "../../../repositories/PRTypeConfigRepository"
   );
-  const { PoiRepository: PoiRepositoryClass } = await import(
-    "../../../repositories/PoiRepository"
-  );
+  const { PoiRepository: PoiRepositoryClass } = await import("../../../repositories/PoiRepository");
 
-  const originalFindOneByType =
-    AnchorEventRepositoryClass.prototype.findOneByType;
+  const originalFindByType = PRTypeConfigRepositoryClass.prototype.findByType;
   const originalFindByName = PoiRepositoryClass.prototype.findByName;
 
-  AnchorEventRepositoryClass.prototype.findOneByType = async () =>
+  PRTypeConfigRepositoryClass.prototype.findByType = async () =>
     ({
       meetingPoint: {
-        description: "活动默认入口",
+        description: "类型默认入口",
         imageUrl: null,
       },
       locationMeetingPoints: {
@@ -29,9 +26,7 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
           imageUrl: "https://example.com/a.png",
         },
       },
-    }) as unknown as Awaited<
-      ReturnType<AnchorEventRepository["findOneByType"]>
-    >;
+    }) as unknown as Awaited<ReturnType<PRTypeConfigRepository["findByType"]>>;
   PoiRepositoryClass.prototype.findByName = async () =>
     ({
       meetingPoint: {
@@ -41,9 +36,7 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
     }) as unknown as Awaited<ReturnType<PoiRepository["findByName"]>>;
 
   try {
-    const { resolveEffectiveMeetingPoint } = await import(
-      "./meeting-point.service"
-    );
+    const { resolveEffectiveMeetingPoint } = await import("./meeting-point.service");
 
     assert.deepEqual(
       await resolveEffectiveMeetingPoint({
@@ -68,7 +61,7 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
         meetingPoint: null,
       }),
       {
-        source: "ANCHOR_EVENT_LOCATION",
+        source: "PR_TYPE_LOCATION",
         description: "A 店门口",
         imageUrl: "https://example.com/a.png",
       },
@@ -81,13 +74,13 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
         meetingPoint: null,
       }),
       {
-        source: "ANCHOR_EVENT",
-        description: "活动默认入口",
+        source: "PR_TYPE",
+        description: "类型默认入口",
         imageUrl: null,
       },
     );
 
-    AnchorEventRepositoryClass.prototype.findOneByType = async () => null;
+    PRTypeConfigRepositoryClass.prototype.findByType = async () => null;
 
     assert.deepEqual(
       await resolveEffectiveMeetingPoint({
@@ -102,27 +95,24 @@ test("resolveEffectiveMeetingPoint follows PR, event location, event, then POI f
       },
     );
   } finally {
-    AnchorEventRepositoryClass.prototype.findOneByType = originalFindOneByType;
+    PRTypeConfigRepositoryClass.prototype.findByType = originalFindByType;
     PoiRepositoryClass.prototype.findByName = originalFindByName;
   }
 });
 
 test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is null", async () => {
-  const { AnchorEventRepository: AnchorEventRepositoryClass } = await import(
-    "../../../repositories/AnchorEventRepository"
+  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } = await import(
+    "../../../repositories/PRTypeConfigRepository"
   );
-  const { PoiRepository: PoiRepositoryClass } = await import(
-    "../../../repositories/PoiRepository"
-  );
+  const { PoiRepository: PoiRepositoryClass } = await import("../../../repositories/PoiRepository");
 
-  const originalFindOneByType =
-    AnchorEventRepositoryClass.prototype.findOneByType;
+  const originalFindByType = PRTypeConfigRepositoryClass.prototype.findByType;
   const originalFindByName = PoiRepositoryClass.prototype.findByName;
 
-  AnchorEventRepositoryClass.prototype.findOneByType = async () =>
+  PRTypeConfigRepositoryClass.prototype.findByType = async () =>
     ({
       meetingPoint: {
-        description: "活动默认入口",
+        description: "类型默认入口",
         imageUrl: null,
       },
       locationMeetingPoints: {
@@ -131,9 +121,7 @@ test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is nu
           imageUrl: null,
         },
       },
-    }) as unknown as Awaited<
-      ReturnType<AnchorEventRepository["findOneByType"]>
-    >;
+    }) as unknown as Awaited<ReturnType<PRTypeConfigRepository["findByType"]>>;
   PoiRepositoryClass.prototype.findByName = async () =>
     ({
       meetingPoint: {
@@ -143,9 +131,7 @@ test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is nu
     }) as unknown as Awaited<ReturnType<PoiRepository["findByName"]>>;
 
   try {
-    const { resolveEffectiveMeetingPoint } = await import(
-      "./meeting-point.service"
-    );
+    const { resolveEffectiveMeetingPoint } = await import("./meeting-point.service");
 
     assert.deepEqual(
       await resolveEffectiveMeetingPoint({
@@ -172,7 +158,7 @@ test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is nu
       null,
     );
   } finally {
-    AnchorEventRepositoryClass.prototype.findOneByType = originalFindOneByType;
+    PRTypeConfigRepositoryClass.prototype.findByType = originalFindByType;
     PoiRepositoryClass.prototype.findByName = originalFindByName;
   }
 });

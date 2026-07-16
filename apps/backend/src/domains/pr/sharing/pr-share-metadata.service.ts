@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { env } from "../../../lib/env";
-import type { PublicPR } from "../read-models/public-pr-view.service";
 import { buildPRRouteSummary } from "../../pr-core/services/pr-place-mode.service";
+import type { PublicPR } from "../read-models/public-pr-view.service";
 
 export type PRCanonicalShareMetadata = {
   title: string;
@@ -9,10 +9,6 @@ export type PRCanonicalShareMetadata = {
   canonicalPath: string;
   defaultImagePath: string;
   revision: string;
-};
-
-export type PRCanonicalShareMetadataInput = {
-  anchorEventTitle?: string | null;
 };
 
 const DEFAULT_SHARE_IMAGE_PATH = "/share-logo.png";
@@ -39,18 +35,10 @@ const joinSummaryParts = (parts: Array<string | null | undefined>): string =>
 
 const resolveCanonicalPath = (pr: Pick<PublicPR, "id">): string => `/pr/${pr.id}`;
 
-const resolveTitle = (
-  pr: PublicPR,
-  input: PRCanonicalShareMetadataInput = {},
-): string => {
+const resolveTitle = (pr: PublicPR): string => {
   const explicitTitle = normalizeWhitespace(pr.title);
   if (explicitTitle.length > 0) {
     return explicitTitle;
-  }
-
-  const anchorEventTitle = normalizeWhitespace(input.anchorEventTitle);
-  if (anchorEventTitle.length > 0) {
-    return anchorEventTitle;
   }
 
   const type = normalizeWhitespace(pr.type);
@@ -87,15 +75,11 @@ const resolveDescription = (pr: PublicPR): string => {
   return "查看搭子请求";
 };
 
-const buildRevision = (
-  pr: PublicPR,
-  input: PRCanonicalShareMetadataInput = {},
-): string => {
+const buildRevision = (pr: PublicPR): string => {
   const revisionSource = JSON.stringify({
     id: pr.id,
     status: pr.status,
     title: pr.title ?? null,
-    anchorEventTitle: normalizeWhitespace(input.anchorEventTitle) || null,
     type: pr.type,
     time: pr.time,
     location: pr.location,
@@ -125,13 +109,10 @@ const resolveDefaultImagePath = (): string => {
   }
 };
 
-export const buildPRCanonicalShareMetadata = (
-  pr: PublicPR,
-  input: PRCanonicalShareMetadataInput = {},
-): PRCanonicalShareMetadata => ({
-  title: resolveTitle(pr, input),
+export const buildPRCanonicalShareMetadata = (pr: PublicPR): PRCanonicalShareMetadata => ({
+  title: resolveTitle(pr),
   description: resolveDescription(pr),
   canonicalPath: resolveCanonicalPath(pr),
   defaultImagePath: resolveDefaultImagePath(),
-  revision: buildRevision(pr, input),
+  revision: buildRevision(pr),
 });

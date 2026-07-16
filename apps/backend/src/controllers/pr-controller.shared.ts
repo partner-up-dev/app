@@ -1,6 +1,12 @@
-import { throwHttpProblem } from "../lib/problem-details";
-import { z } from "zod";
 import type { Context } from "hono";
+import { z } from "zod";
+import type { AuthEnv } from "../auth/middleware";
+import { issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
+import {
+  AUTHENTICATED_REQUIRED_CODE,
+  type CreatorIdentityInput,
+  throwAuthenticatedRequired,
+} from "../domains/pr-core/services/creator-identity.service";
 import {
   createNaturalLanguagePRSchema,
   createStructuredPRSchema,
@@ -11,19 +17,13 @@ import {
 } from "../entities/partner-request";
 import { prMessageBodySchema } from "../entities/pr-message";
 import { hasUserRole, type UserId } from "../entities/user";
-import { WeChatOAuthService } from "../services/WeChatOAuthService";
-import { issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
-import type { AuthEnv } from "../auth/middleware";
-import { UserRepository } from "../repositories/UserRepository";
+import { throwHttpProblem } from "../lib/problem-details";
 import {
   isWeChatAbilityMockingEnabled,
   resolveWeChatAbilityMockOpenId,
 } from "../lib/wechat-ability-mocking";
-import {
-  AUTHENTICATED_REQUIRED_CODE,
-  type CreatorIdentityInput,
-  throwAuthenticatedRequired,
-} from "../domains/pr-core/services/creator-identity.service";
+import { UserRepository } from "../repositories/UserRepository";
+import { WeChatOAuthService } from "../services/WeChatOAuthService";
 
 const oauthService = new WeChatOAuthService();
 const userRepo = new UserRepository();
@@ -45,11 +45,7 @@ const readBoundOpenId = async (c: Context<AuthEnv>): Promise<string | null> => {
   return user.openId ?? null;
 };
 
-const throwCodedHttpException = (
-  status: 401 | 503,
-  message: string,
-  code: string,
-): never => {
+const throwCodedHttpException = (status: 401 | 503, message: string, code: string): never => {
   return throwHttpProblem({ status, detail: message, code });
 };
 
@@ -75,20 +71,6 @@ export const updateContentSchema = z
   })
   .strict();
 
-export const anchorUpdateContentFieldsSchema = partnerRequestFieldsObjectSchema
-  .omit({
-    type: true,
-    time: true,
-    budget: true,
-  })
-  .strict();
-
-export const anchorUpdateContentSchema = z
-  .object({
-    fields: anchorUpdateContentFieldsSchema,
-  })
-  .strict();
-
 export const prIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
@@ -106,10 +88,7 @@ export const prMessageReadMarkerSchema = z.object({
   lastReadMessageId: z.coerce.number().int().positive(),
 });
 
-export const resolveAvatarUrl = (
-  requestUrl: string,
-  avatarUrl: string | null,
-): string | null => {
+export const resolveAvatarUrl = (requestUrl: string, avatarUrl: string | null): string | null => {
   if (!avatarUrl) return null;
 
   try {
@@ -119,9 +98,7 @@ export const resolveAvatarUrl = (
   }
 };
 
-export const requireAuthenticatedOpenId = async (
-  c: Context<AuthEnv>,
-): Promise<string> => {
+export const requireAuthenticatedOpenId = async (c: Context<AuthEnv>): Promise<string> => {
   const openId = await readBoundOpenId(c);
   if (openId) {
     return openId;
@@ -156,9 +133,7 @@ export const requireAuthenticatedOpenId = async (
   );
 };
 
-export const tryReadAuthenticatedOpenId = async (
-  c: Context<AuthEnv>,
-): Promise<string | null> => {
+export const tryReadAuthenticatedOpenId = async (c: Context<AuthEnv>): Promise<string | null> => {
   return readBoundOpenId(c);
 };
 
@@ -220,10 +195,7 @@ export const requireAuthenticatedCreatorIdentity = async (
   };
 };
 
-export const issueResponseAuth = async (
-  c: Context<AuthEnv>,
-  userId: UserId,
-): Promise<void> => {
+export const issueResponseAuth = async (c: Context<AuthEnv>, userId: UserId): Promise<void> => {
   const user = await userRepo.findById(userId);
   if (!user || user.status !== "ACTIVE") {
     return throwHttpProblem({ status: 401, detail: "Invalid session user" });
@@ -235,8 +207,4 @@ export const issueResponseAuth = async (
   c.set("auth", auth);
 };
 
-export {
-  createStructuredPRSchema,
-  createNaturalLanguagePRSchema,
-  partnerRequestFieldsSchema,
-};
+export { createNaturalLanguagePRSchema, createStructuredPRSchema, partnerRequestFieldsSchema };

@@ -1,10 +1,7 @@
+import type { PRRoute as PartnerRequestRoute, PRJoinGateConfig } from "@partner-up-dev/backend";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
-import { computed, unref, type MaybeRef } from "vue";
-import type {
-  PRJoinGateConfig,
-  PRRoute as PartnerRequestRoute,
-} from "@partner-up-dev/backend";
+import { computed, type MaybeRef, unref } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
@@ -12,57 +9,43 @@ type AdminApi = typeof adminClient.api.admin;
 type PRWorkspaceRoute = AdminApi["pr"]["workspace"];
 type PRsRoute = AdminApi["prs"];
 type AdminPRRoute = PRsRoute[":id"];
-type PRFeedbackQuestionnaireInstanceRoute =
-  AdminPRRoute["feedback-questionnaire-instance"];
+type PRFeedbackQuestionnaireInstanceRoute = AdminPRRoute["feedback-questionnaire-instance"];
 type PRFeedbackQuestionnaireInstanceFromTemplateRoute =
   PRFeedbackQuestionnaireInstanceRoute["from-template"];
 type PRMessagesRoute = AdminPRRoute["messages"];
 type PRMessageRoute = PRMessagesRoute[":messageId"];
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };
 
-export type AdminPRWorkspaceResponse = InferResponseType<
-  PRWorkspaceRoute["$get"]
->;
+export type AdminPRWorkspaceResponse = InferResponseType<PRWorkspaceRoute["$get"]>;
 
 export type CreateAdminPRResponse = InferResponseType<PRsRoute["$post"]>;
 
 export type DeleteAdminPRResponse = InferResponseType<AdminPRRoute["$delete"]>;
 
-export type UpdateAdminPRContentResponse = InferResponseType<
-  AdminPRRoute["content"]["$patch"]
->;
+export type UpdateAdminPRContentResponse = InferResponseType<AdminPRRoute["content"]["$patch"]>;
 
-export type UpdateAdminPRStatusResponse = InferResponseType<
-  AdminPRRoute["status"]["$patch"]
->;
+export type UpdateAdminPRStatusResponse = InferResponseType<AdminPRRoute["status"]["$patch"]>;
 
 export type UpdateAdminPRVisibilityResponse = InferResponseType<
   AdminPRRoute["visibility"]["$patch"]
 >;
 
-export type UpdateAdminPRFeedbackQuestionnaireInstanceResponse =
-  InferResponseType<PRFeedbackQuestionnaireInstanceRoute["$patch"]>;
-
-export type MaterializeAdminPRFeedbackQuestionnaireInstanceResponse =
-  InferResponseType<PRFeedbackQuestionnaireInstanceFromTemplateRoute["$post"]>;
-
-export type CreateAdminPRMessageResponse = InferResponseType<
-  AdminPRRoute["messages"]["$post"]
+export type UpdateAdminPRFeedbackQuestionnaireInstanceResponse = InferResponseType<
+  PRFeedbackQuestionnaireInstanceRoute["$patch"]
 >;
+
+export type MaterializeAdminPRFeedbackQuestionnaireInstanceResponse = InferResponseType<
+  PRFeedbackQuestionnaireInstanceFromTemplateRoute["$post"]
+>;
+
+export type CreateAdminPRMessageResponse = InferResponseType<AdminPRRoute["messages"]["$post"]>;
 export type AdminPRMessagesResponse = InferResponseType<PRMessagesRoute["$get"]>;
-export type UpdateAdminPRMessageResponse = InferResponseType<
-  PRMessageRoute["$patch"]
->;
-export type DeleteAdminPRMessageResponse = InferResponseType<
-  PRMessageRoute["$delete"]
->;
+export type UpdateAdminPRMessageResponse = InferResponseType<PRMessageRoute["$patch"]>;
+export type DeleteAdminPRMessageResponse = InferResponseType<PRMessageRoute["$delete"]>;
 
 export type AdminCreatePRInput = {
   timeWindow: [string | null, string | null];
@@ -179,9 +162,6 @@ export const useCreateAdminPR = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
-      });
     },
   });
 };
@@ -202,9 +182,6 @@ export const useDeleteAdminPR = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prMessages(variables.prId),
@@ -241,9 +218,6 @@ export const useUpdateAdminPRContent = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
-      });
     },
   });
 };
@@ -269,9 +243,6 @@ export const useUpdateAdminPRStatus = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
       });
     },
   });
@@ -299,9 +270,6 @@ export const useUpdateAdminPRVisibility = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
-      });
     },
   });
 };
@@ -315,9 +283,7 @@ export const useUpdateAdminPRFeedbackQuestionnaireInstance = () => {
     { prId: number; input: AdminUpdatePRFeedbackQuestionnaireInstanceInput }
   >({
     mutationFn: async ({ prId, input }) => {
-      const res = await adminClient.api.admin.prs[":id"][
-        "feedback-questionnaire-instance"
-      ].$patch({
+      const res = await adminClient.api.admin.prs[":id"]["feedback-questionnaire-instance"].$patch({
         param: { id: prId.toString() },
         json: input,
       });
@@ -349,9 +315,9 @@ export const useMaterializeAdminPRFeedbackQuestionnaireInstance = () => {
     }
   >({
     mutationFn: async ({ prId, input }) => {
-      const res = await adminClient.api.admin.prs[":id"][
-        "feedback-questionnaire-instance"
-      ]["from-template"].$post({
+      const res = await adminClient.api.admin.prs[":id"]["feedback-questionnaire-instance"][
+        "from-template"
+      ].$post({
         param: { id: prId.toString() },
         json: input,
       });
@@ -394,9 +360,6 @@ export const useCreateAdminPRMessage = () => {
         queryKey: queryKeys.admin.prWorkspace(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
-      });
-      queryClient.invalidateQueries({
         queryKey: queryKeys.pr.messages(variables.prId),
       });
       queryClient.invalidateQueries({
@@ -415,9 +378,7 @@ export const useUpdateAdminPRMessage = () => {
     { prId: number; messageId: number; input: AdminUpdatePRMessageInput }
   >({
     mutationFn: async ({ prId, messageId, input }) => {
-      const res = await adminClient.api.admin.prs[":id"].messages[
-        ":messageId"
-      ].$patch({
+      const res = await adminClient.api.admin.prs[":id"].messages[":messageId"].$patch({
         param: { id: prId.toString(), messageId: messageId.toString() },
         json: input,
       });
@@ -440,15 +401,9 @@ export const useUpdateAdminPRMessage = () => {
 export const useDeleteAdminPRMessage = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    DeleteAdminPRMessageResponse,
-    Error,
-    { prId: number; messageId: number }
-  >({
+  return useMutation<DeleteAdminPRMessageResponse, Error, { prId: number; messageId: number }>({
     mutationFn: async ({ prId, messageId }) => {
-      const res = await adminClient.api.admin.prs[":id"].messages[
-        ":messageId"
-      ].$delete({
+      const res = await adminClient.api.admin.prs[":id"].messages[":messageId"].$delete({
         param: { id: prId.toString(), messageId: messageId.toString() },
       });
       if (!res.ok) {

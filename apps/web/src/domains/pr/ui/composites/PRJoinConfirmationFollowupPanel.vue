@@ -26,7 +26,7 @@
       class="join-confirmation-followup__subscriptions"
       data-testid="pr-detail.join-success.confirmation-followup.subscription"
     >
-      <APRNotificationSubscriptions
+      <PRNotificationSubscriptions
         :visible-kinds="confirmationNotificationKinds"
         :description-prefixes="confirmationNotificationDescriptionPrefixes"
         :updating-label="t('prPage.wechatReminder.updating')"
@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import APRNotificationSubscriptions from "@/shared/ui/sections/APRNotificationSubscriptions.vue";
+import PRNotificationSubscriptions from "@/shared/ui/sections/PRNotificationSubscriptions.vue";
 import type { WeChatNotificationKind } from "@/shared/wechat/useWeChatNotificationSubscriptionsPanel";
 
 const props = defineProps<{
@@ -63,9 +63,7 @@ const description = computed(() =>
 const confirmationNotificationDescriptionPrefixes = computed<
   Partial<Record<WeChatNotificationKind, string>>
 >(() => ({
-  REMINDER_CONFIRMATION: t(
-    "prPage.joinConfirmationFollowup.notificationReason",
-  ),
+  REMINDER_CONFIRMATION: t("prPage.joinConfirmationFollowup.notificationReason"),
 }));
 </script>
 

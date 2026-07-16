@@ -1,27 +1,27 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
 import type { PartnerId, PartnerStatus } from "../../../entities/partner";
 import type { PartnerRequest, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { UserRepository } from "../../../repositories/UserRepository";
-import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
-import { operationLogService } from "../../../infra/operation-log";
 import {
   scheduleWeChatActivityStartReminderJobForParticipant,
   scheduleWeChatNewPartnerNotificationsForJoin,
   scheduleWeChatReminderJobsForParticipant,
   scheduleWeChatWaitlistPromotedNotificationForParticipant,
 } from "../../../infra/notifications";
-import { assertNoUserTimeWindowConflict } from "./participation-time-conflict.service";
+import { operationLogService } from "../../../infra/operation-log";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
+import { UserRepository } from "../../../repositories/UserRepository";
+import { assertPRJoinGatesResolvedForUser } from "./join-gates.service";
 import {
-  hasAnchorParticipationPolicy,
   hasEnabledConfirmationPolicy,
+  hasParticipationPolicy,
   isJoinLockedByPolicy,
   isWithinConfirmationWindow,
-  resolveAnchorParticipationPolicy,
-} from "./anchor-participation-policy.service";
-import { assertPRJoinGatesResolvedForUser } from "./join-gates.service";
+  resolveParticipationPolicy,
+} from "./participation-policy.service";
+import { assertNoUserTimeWindowConflict } from "./participation-time-conflict.service";
 import { recalculatePRStatus } from "./slot-management.service";
 
 const partnerRepo = new PartnerRepository();
@@ -51,36 +51,32 @@ export const isWaitlistOpenForRequest = (input: {
   if (input.activeCount < maxPartners) {
     return false;
   }
-  if (!hasAnchorParticipationPolicy(input.request)) {
+  if (!hasParticipationPolicy(input.request)) {
     return true;
   }
-  return !isJoinLockedByPolicy(
-    resolveAnchorParticipationPolicy(input.request, input.request.time),
-  );
+  return !isJoinLockedByPolicy(resolveParticipationPolicy(input.request, input.request.time));
 };
 
 const isPromotionAllowed = (request: PartnerRequest): boolean => {
   if (request.status !== "OPEN") {
     return false;
   }
-  if (!hasAnchorParticipationPolicy(request)) {
+  if (!hasParticipationPolicy(request)) {
     return true;
   }
-  return !isJoinLockedByPolicy(
-    resolveAnchorParticipationPolicy(request, request.time),
-  );
+  return !isJoinLockedByPolicy(resolveParticipationPolicy(request, request.time));
 };
 
 const resolvePromotionStatus = (
   request: PartnerRequest,
 ): Extract<PartnerStatus, "JOINED" | "CONFIRMED"> => {
-  if (!hasAnchorParticipationPolicy(request)) {
+  if (!hasParticipationPolicy(request)) {
     return "JOINED";
   }
   if (!hasEnabledConfirmationPolicy(request)) {
     return "JOINED";
   }
-  const policy = resolveAnchorParticipationPolicy(request, request.time);
+  const policy = resolveParticipationPolicy(request, request.time);
   return isWithinConfirmationWindow(policy) ? "CONFIRMED" : "JOINED";
 };
 
@@ -109,7 +105,7 @@ const applyPromotedPartnerSideEffects = async (input: {
     promotedAt: new Date(),
   });
 
-  if (hasAnchorParticipationPolicy(latest)) {
+  if (hasParticipationPolicy(latest)) {
     await scheduleWeChatNewPartnerNotificationsForJoin({
       request: latest,
       joinedUserId: input.userId,
@@ -117,10 +113,7 @@ const applyPromotedPartnerSideEffects = async (input: {
       joinedAt: new Date(),
     });
     await scheduleWeChatReminderJobsForParticipant(latest, input.userId);
-    await scheduleWeChatActivityStartReminderJobForParticipant(
-      latest,
-      input.userId,
-    );
+    await scheduleWeChatActivityStartReminderJobForParticipant(latest, input.userId);
   }
 
   operationLogService.log({
@@ -157,9 +150,7 @@ const canPromoteCandidate = async (input: {
   }
 };
 
-export const promoteWaitlistedPartners = async (
-  prId: PRId,
-): Promise<WaitlistPromotionResult> => {
+export const promoteWaitlistedPartners = async (prId: PRId): Promise<WaitlistPromotionResult> => {
   const promoted: WaitlistPromotionResult["promoted"] = [];
   let request = await prRepo.findById(prId);
   if (!request || request.maxPartners === null) {
@@ -202,10 +193,7 @@ export const promoteWaitlistedPartners = async (
     }
 
     const status = resolvePromotionStatus(request);
-    const promotedSlot = await partnerRepo.promotePendingSlot(
-      candidate.partnerId,
-      status,
-    );
+    const promotedSlot = await partnerRepo.promotePendingSlot(candidate.partnerId, status);
     if (!promotedSlot) {
       continue;
     }

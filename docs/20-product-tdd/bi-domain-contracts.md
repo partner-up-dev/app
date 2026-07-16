@@ -28,9 +28,8 @@ User behavior events answer questions about observed behavior chains:
 
 - retention by UV over 3 / 5 / 7 days or arbitrary windows;
 - PR create / join funnels from observation to intent to submission to backend-confirmed result;
-- anchor-event transition paths, for example whether users naturally move from self-study or running into badminton or commuting;
-- view-other-Anchor-Events conversion;
-- official-account follow nudge click behavior.
+- PR-type transition paths, for example whether users naturally move from self-study or running into badminton or commuting;
+- view-other-PR-types conversion.
 
 User behavior BI reads fact projections. It should not repeatedly reconstruct route, identity, experiment, or consent context from raw events at dashboard query time.
 
@@ -40,10 +39,9 @@ Raw `user_telemetry_events` is the ledger. BI uses fact-specific projections suc
 
 - PR create / join funnel event facts;
 - retention activity facts;
-- Anchor Event transition facts;
-- view-other-Anchor-Events conversion facts;
-- Anchor Event funnel facts;
-- official-account follow nudge facts.
+- PR-type transition facts;
+- view-other-PR-types conversion facts;
+- PR Discovery funnel facts.
 
 Do not introduce a broad dashboard-facing `event_enriched` projection as the primary BI API. Shared helper projections may be introduced later only when they are narrow, for example identity-context or route-context helpers, and when repeated fact-local reconstruction becomes a proven maintenance cost.
 
@@ -74,8 +72,7 @@ BI dashboard routes require the `analytics` role.
 - `/admin/analytics` redirects to the BI overview route.
 - `/admin/analytics/overview` owns BI health / overview panels.
 - `/admin/analytics/pr-funnels` owns PR create and join funnel panels.
-- `/admin/analytics/anchor-events` owns Anchor Event behavior panels, including landing-mode funnels, natural extension, view-other-Anchor-Events conversion, outcomes, sources, and failures.
-- `/admin/analytics/official-account` owns official-account follow nudge behavior panels.
+- `/admin/analytics/pr-discovery` owns PR Discovery behavior panels, including view-mode funnels, natural extension, view-other-PR-types conversion, outcomes, sources, and failures.
 
 `/bi?code=...` remains the lightweight BI entry route for the seeded analytics user:
 
@@ -94,10 +91,9 @@ The BI domain must support:
 - per-user PR count;
 - PR formed / closed / expired metrics from business fact data;
 - PR create and join funnels;
-- Anchor Event transition analysis;
-- view-other-Anchor-Events conversion;
-- official-account follow nudge click-rate behavior.
+- PR-type transition analysis;
+- view-other-PR-types conversion.
 
-The legacy Anchor Event funnel dashboard may keep compatibility-facing response fields while its internals use the governed telemetry/projection model.
+Historical discovery funnel dashboards may keep compatibility-facing response fields while their internals use the governed telemetry/projection model.
 
 The old cold-start analytics reader is retired. Production BI readers must use `user_telemetry_*` projections and business fact tables.

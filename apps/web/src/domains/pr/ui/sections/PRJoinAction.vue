@@ -82,25 +82,25 @@
 </template>
 
 <script setup lang="ts">
+import type { PRId } from "@partner-up-dev/backend";
+import { PuButton, PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import type { PRId } from "@partner-up-dev/backend";
-import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRJoinEntrySurface } from "@/domains/pr/model/pr-join-entry-context";
+import type { PRDetailView } from "@/domains/pr/model/types";
 import { useJoinPR } from "@/domains/pr/queries/usePRActions";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRJoinSuccessPrompt from "@/domains/pr/ui/composites/PRJoinSuccessPrompt.vue";
 import PRJoinFallbackConfirmGate from "@/domains/pr/ui/gates/PRJoinFallbackConfirmGate.vue";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
-import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import type { ApiError } from "@/shared/api/error";
-import { trackEvent } from "@/shared/telemetry/track";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
-import { PuButton, PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
+import { trackEvent } from "@/shared/telemetry/track";
 
 type JoinSuccessPromptExpose = {
   close: () => void;
@@ -111,10 +111,9 @@ const props = withDefaults(
     pr?: PRDetailView | null;
     prId?: PRId | null;
     disabled?: boolean;
-    scenarioType?: string | null;
+    prType?: string | null;
     viewerIsParticipant?: boolean | null;
     showSuccessPrompt?: boolean;
-    eventId?: number | null;
     entrySurface?: PRJoinEntrySurface | null;
     candidateRank?: number | null;
   }>(),
@@ -122,10 +121,9 @@ const props = withDefaults(
     pr: null,
     prId: null,
     disabled: false,
-    scenarioType: null,
+    prType: null,
     viewerIsParticipant: null,
     showSuccessPrompt: true,
-    eventId: null,
     entrySurface: null,
     candidateRank: null,
   },
@@ -152,9 +150,7 @@ const { t } = useI18n();
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 const resolvedPr = computed(() => props.pr);
 const resolvedPrId = computed(() => props.pr?.id ?? props.prId ?? null);
-const resolvedScenarioType = computed(
-  () => props.scenarioType ?? props.pr?.core.type ?? null,
-);
+const resolvedPRType = computed(() => props.prType ?? props.pr?.core.type ?? null);
 const viewer = computed(() => props.pr?.partnerSection.viewer ?? null);
 const joinSuccessPromptRef = ref<JoinSuccessPromptExpose | null>(null);
 const showJoinGateModal = ref(false);
@@ -167,12 +163,8 @@ const { releaseNoticeText, blockedReasonText } = usePRActionCopy(
   computed(() => props.pr as PRDetailView),
 );
 
-const flowPending = computed(
-  () => joinFlowPending.value || joinMutation.isPending.value,
-);
-const openDisabled = computed(
-  () => props.disabled || resolvedPrId.value === null || joined.value,
-);
+const flowPending = computed(() => joinFlowPending.value || joinMutation.isPending.value);
+const openDisabled = computed(() => props.disabled || resolvedPrId.value === null || joined.value);
 const showJoinAction = computed(() => {
   const detailViewer = viewer.value;
   return Boolean(
@@ -201,9 +193,7 @@ const joinBlockedMessage = computed(() => {
 const showActionArea = computed(() =>
   Boolean(
     resolvedPr.value &&
-      (releaseNoticeText.value ||
-        joinBlockedMessage.value ||
-        showJoinAction.value),
+      (releaseNoticeText.value || joinBlockedMessage.value || showJoinAction.value),
   ),
 );
 
@@ -235,25 +225,11 @@ const trackJoinResult = (payload: {
 
   trackEvent("pr_join_result", {
     prId,
-    scenarioType: resolvedScenarioType.value ?? undefined,
-    eventId: props.eventId ?? undefined,
+    prType: resolvedPRType.value ?? undefined,
     entrySurface: props.entrySurface ?? undefined,
     candidateRank: props.candidateRank ?? undefined,
     ...payload,
   });
-  if (props.eventId !== null) {
-    trackEvent("pr_commitment_result", {
-      eventId: props.eventId,
-      activityType: resolvedScenarioType.value ?? undefined,
-      prId,
-      commitmentType: "join",
-      entrySurface: props.entrySurface ?? "pr_detail",
-      candidateRank: props.candidateRank ?? undefined,
-      actionResult: payload.actionResult,
-      failureCode: payload.failureCode,
-      failureReason: payload.failureReason,
-    });
-  }
 };
 
 const closeJoinGateModal = (): void => {
@@ -310,11 +286,7 @@ const finalizeJoin = async (): Promise<void> => {
       return;
     }
     trackJoinResult({
-      ...resolveTelemetryFailurePayload(
-        error,
-        "PR_JOIN_FAILED",
-        resolveErrorMessage(error),
-      ),
+      ...resolveTelemetryFailurePayload(error, "PR_JOIN_FAILED", resolveErrorMessage(error)),
     });
     emitFlowError(resolveErrorMessage(error));
   } finally {

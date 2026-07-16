@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AnchorEvent, PRJoinGateConfig } from "../../../entities";
-import { emptyAnchorEventTimePoolConfig } from "../../../entities";
+import type { PRJoinGateConfig } from "../../../entities";
 
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
@@ -10,8 +9,8 @@ const eventGate: PRJoinGateConfig[number] = {
   key: "shared-notice",
   version: "v1",
   title: "Event notice",
-  source: "ANCHOR_EVENT",
-  body: "Read event notice",
+  source: "PR_TYPE_CONFIG",
+  body: "Read type notice",
 };
 
 const prGate: PRJoinGateConfig[number] = {
@@ -23,66 +22,40 @@ const prGate: PRJoinGateConfig[number] = {
   body: "Read PR notice",
 };
 
-const buildEvent = (
-  overrides: Partial<AnchorEvent> = {},
-): AnchorEvent => ({
-  id: 1,
-  title: "Scenario event",
-  type: "badminton",
-  description: null,
-  locationPool: [],
-  routePool: [],
-  timePoolConfig: emptyAnchorEventTimePoolConfig(),
-  defaultMinPartners: null,
-  defaultMaxPartners: null,
-  defaultPrNotes: null,
-  defaultConfirmationEnabled: true,
-  defaultConfirmationStartOffsetMinutes: null,
-  defaultConfirmationEndOffsetMinutes: null,
-  defaultJoinLockOffsetMinutes: null,
-  meetingPoint: null,
-  joinGateConfig: [eventGate],
-  participationFrequencyLimit: null,
-  feedbackQuestionnaireTemplateId: null,
-  locationMeetingPoints: {},
-  coverImage: null,
-  betaGroupQrCode: null,
-  prCreationPolicy: "USER_AND_ADMIN",
-  fullPrExpansionPolicy: "DISABLED",
-  prTimeWindowEditorDefaultMode: "NORMAL",
-  status: "ACTIVE",
-  createdAt: new Date("2026-01-01T00:00:00.000Z"),
-  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-  ...overrides,
-});
-
-test("buildMaterializedPRJoinGateConfig merges event and PR join-notice gates", async () => {
-  const { buildMaterializedPRJoinGateConfig } = await import(
-    "./join-gates.service"
-  );
+test("buildMaterializedPRJoinGateConfig merges type config and PR gates", async () => {
+  const { buildMaterializedPRJoinGateConfig } = await import("./join-gates.service");
 
   const gates = buildMaterializedPRJoinGateConfig({
-    event: buildEvent(),
+    prTypeConfig: { joinGateConfig: [eventGate] },
     prGates: [prGate],
   });
 
   assert.deepEqual(
     gates.map((gate) => `${gate.source}:${gate.key}`),
-    ["ANCHOR_EVENT:shared-notice", "PR:pr-notice"],
+    ["PR_TYPE_CONFIG:shared-notice", "PR:pr-notice"],
   );
 });
 
-test("buildMaterializedPRJoinGateConfig dedupes by kind, source, and key", async () => {
-  const { buildMaterializedPRJoinGateConfig } = await import(
-    "./join-gates.service"
-  );
+test("buildMaterializedPRJoinGateConfig dedupes repeated config gates", async () => {
+  const { buildMaterializedPRJoinGateConfig } = await import("./join-gates.service");
 
   const gates = buildMaterializedPRJoinGateConfig({
-    event: buildEvent({
+    prTypeConfig: {
       joinGateConfig: [eventGate, { ...eventGate, title: "Updated" }],
-    }),
+    },
   });
 
   assert.equal(gates.length, 1);
   assert.equal(gates[0]?.title, "Updated");
+});
+
+test("buildMaterializedPRJoinGateConfig lets an explicit PR gate override config", async () => {
+  const { buildMaterializedPRJoinGateConfig } = await import("./join-gates.service");
+
+  const gates = buildMaterializedPRJoinGateConfig({
+    prTypeConfig: { joinGateConfig: [eventGate] },
+    prGates: [{ ...prGate, key: eventGate.key }],
+  });
+
+  assert.deepEqual(gates, [{ ...prGate, key: eventGate.key }]);
 });

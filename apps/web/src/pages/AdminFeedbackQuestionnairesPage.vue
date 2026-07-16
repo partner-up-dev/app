@@ -126,22 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useI18n } from "vue-i18n";
 import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
-import {
-  useAdminFeedbackQuestionnaireTemplates,
-  useCreateAdminFeedbackQuestionnaireTemplate,
-  useUpdateAdminFeedbackQuestionnaireTemplate,
-  type AdminFeedbackQuestionnaireTemplateInput,
-  type AdminFeedbackQuestionnaireTemplatesResponse,
-} from "@/domains/admin/queries/useAdminFeedbackQuestionnaires";
-import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
-import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
-import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
-import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
 import {
   PuButton,
   PuFormItem,
@@ -151,20 +136,35 @@ import {
   type PuSelectOption,
   type PuSelectValue,
 } from "@partner-up-dev/design-web";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import {
+  type AdminFeedbackQuestionnaireTemplateInput,
+  type AdminFeedbackQuestionnaireTemplatesResponse,
+  useAdminFeedbackQuestionnaireTemplates,
+  useCreateAdminFeedbackQuestionnaireTemplate,
+  useUpdateAdminFeedbackQuestionnaireTemplate,
+} from "@/domains/admin/queries/useAdminFeedbackQuestionnaires";
+import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
+import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
+import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
+import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
+import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
+import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 
 type TemplateRecord = AdminFeedbackQuestionnaireTemplatesResponse[number];
 
 const newTemplateSentinel = "__new";
 
 const buildDefaultDefinition = (): FeedbackQuestionnaireDefinition => ({
-  key: "post-event-feedback",
+  key: "post-pr-feedback",
   version: "1.0.0",
-  title: "活动反馈",
+  title: "PR 体验反馈",
   questions: [
     {
       id: "overall_experience",
       type: "single_choice",
-      label: "这次活动体验整体如何？",
+      label: "这次搭子协作体验整体如何？",
       required: true,
       options: [
         { value: "good", label: "满意" },
@@ -220,9 +220,7 @@ const templateSelectOptions = computed<PuSelectOption[]>(() => [
 ]);
 const isCreating = computed(() => selectedTemplate.value === null);
 const isSaving = computed(
-  () =>
-    createTemplateMutation.isPending.value ||
-    updateTemplateMutation.isPending.value,
+  () => createTemplateMutation.isPending.value || updateTemplateMutation.isPending.value,
 );
 const canSave = computed(
   () =>
@@ -253,8 +251,7 @@ const pageError = computed(
 const selectedTemplateIdModel = computed({
   get: () => selectedTemplateIdRaw.value,
   set: (value: PuSelectValue) => {
-    selectedTemplateIdRaw.value =
-      typeof value === "string" ? value : newTemplateSentinel;
+    selectedTemplateIdRaw.value = typeof value === "string" ? value : newTemplateSentinel;
   },
 });
 
@@ -282,9 +279,7 @@ const handleNewTemplate = () => {
   loadDefaultDraft();
 };
 
-const parseDefinitionInput = ():
-  | AdminFeedbackQuestionnaireTemplateInput
-  | null => {
+const parseDefinitionInput = (): AdminFeedbackQuestionnaireTemplateInput | null => {
   definitionError.value = null;
   saveSuccessMessage.value = null;
 

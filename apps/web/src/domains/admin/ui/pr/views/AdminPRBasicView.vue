@@ -32,7 +32,7 @@
               :key="typeOption.type"
               :value="typeOption.type"
             >
-              {{ typeOption.eventTitle }}
+              {{ typeOption.title }}
             </option>
           </datalist>
           <datalist id="admin-pr-filter-location-options">
@@ -173,7 +173,7 @@
                     v-model="prMeetingPointImageUploadValue"
                     mode="url"
                     layout="inline"
-                    :url-placeholder="t('adminPR.eventImageUrlPlaceholder')"
+                    :url-placeholder="t('adminPR.prMeetingPointImageUrlPlaceholder')"
                     :url-add-label="t('adminPois.addUrlAction')"
                     @add="handlePRMeetingPointImageAdd"
                     @remove="handlePRMeetingPointImageRemove"
@@ -223,7 +223,7 @@
                   v-model="prPolicyValue"
                   :title="t('adminPR.participationPolicyTitle')"
                   :description="t('adminPR.participationPolicyDescription')"
-                  :event-start-at="resolvedTimeWindow[0]"
+                  :start-at="resolvedTimeWindow[0]"
                   :validation-message="policyValidationMessage"
                 />
 
@@ -274,7 +274,7 @@
                 <p v-if="matchedTypeOption" class="hint">
                   {{
                     t("adminPR.typeDefaultsHint", {
-                      title: matchedTypeOption.eventTitle,
+                      title: matchedTypeOption.title,
                     })
                   }}
                 </p>
@@ -430,51 +430,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useI18n } from "vue-i18n";
-import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
-import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
-import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import PRFilterRail from "@/domains/admin/ui/pr/components/PRFilterRail.vue";
-import {
-  type AdminPRRecord,
-  useAdminPRWorkspaceSelection,
-} from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
-import { toIsoDateTime } from "@/domains/admin/use-cases/pr/prMutationInput";
-import { useAdminPRFeedbackQuestionnaire } from "@/domains/admin/use-cases/pr/useAdminPRFeedbackQuestionnaire";
-import { useSaveAdminPRBasic } from "@/domains/admin/use-cases/pr/useSaveAdminPRBasic";
-import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import { useDeleteAdminPR } from "@/domains/admin/queries/useAdminPRManagement";
-import { validateManualPartnerBounds } from "@/lib/validation";
-import {
-  clonePRRoute,
-  getPRRouteValidationIssue,
-  type PRPlaceMode,
-} from "@/domains/pr/model/pr-route";
-import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
-import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
-import PRPlaceModeField, {
-  type PRPlaceModeFieldValue,
-} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
-import { imageUploadItemFromUrl } from "@/shared/upload/useDesignWebImageUpload";
 import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
 import {
   PuButton,
   PuCard,
   PuDialog,
   PuFileUpload,
+  type PuFileUploadItem,
+  type PuFileUploadRejection,
+  type PuFileUploadValue,
   PuFormItem,
   PuInlineNotice,
   PuInput,
   PuLoadingState,
   PuSelect,
-  type PuFileUploadItem,
-  type PuFileUploadRejection,
-  type PuFileUploadValue,
   type PuSelectOption,
   type PuSelectValue,
 } from "@partner-up-dev/design-web";
+import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useDeleteAdminPR } from "@/domains/admin/queries/useAdminPRManagement";
+import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
+import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
+import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
+import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
+import PRFilterRail from "@/domains/admin/ui/pr/components/PRFilterRail.vue";
+import { toIsoDateTime } from "@/domains/admin/use-cases/pr/prMutationInput";
+import { useAdminPRFeedbackQuestionnaire } from "@/domains/admin/use-cases/pr/useAdminPRFeedbackQuestionnaire";
+import {
+  type AdminPRRecord,
+  useAdminPRWorkspaceSelection,
+} from "@/domains/admin/use-cases/pr/useAdminPRWorkspaceSelection";
+import { useSaveAdminPRBasic } from "@/domains/admin/use-cases/pr/useSaveAdminPRBasic";
+import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
+import {
+  clonePRRoute,
+  getPRRouteValidationIssue,
+  type PRPlaceMode,
+} from "@/domains/pr/model/pr-route";
+import PRJoinGateConfigEditor from "@/domains/pr/ui/forms/PRJoinGateConfigEditor.vue";
+import PRPlaceModeField, {
+  type PRPlaceModeFieldValue,
+} from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import { validateManualPartnerBounds } from "@/lib/validation";
+import TimelinePolicyPicker from "@/shared/ui/forms/TimelinePolicyPicker.vue";
+import { imageUploadItemFromUrl } from "@/shared/upload/useDesignWebImageUpload";
 
 type PRForm = {
   title: string;
@@ -635,9 +635,7 @@ const pendingDeletePRLabel = computed(() => {
   return pendingDeletePRId.value === null ? "" : `#${pendingDeletePRId.value}`;
 });
 
-const prPlaceMode = computed<PRPlaceMode>(() =>
-  prForm.value.route ? "route" : "location",
-);
+const prPlaceMode = computed<PRPlaceMode>(() => (prForm.value.route ? "route" : "location"));
 
 const prPlaceValue = computed<PRPlaceModeFieldValue>({
   get: () => ({
@@ -685,10 +683,7 @@ const prPlaceValidationMessage = computed(
 );
 
 const matchedTypeOption = computed(
-  () =>
-    typeOptions.value.find(
-      (option) => option.type.trim() === prForm.value.type.trim(),
-    ) ?? null,
+  () => typeOptions.value.find((option) => option.type.trim() === prForm.value.type.trim()) ?? null,
 );
 
 const formLocationOptions = computed(() => {
@@ -700,21 +695,13 @@ const formLocationOptions = computed(() => {
 });
 
 const isPRStatus = (value: PuSelectValue): value is PRForm["status"] =>
-  value === "OPEN" ||
-  value === "READY" ||
-  value === "ACTIVE" ||
-  value === "CLOSED";
+  value === "OPEN" || value === "READY" || value === "ACTIVE" || value === "CLOSED";
 
-const isPRVisibilityStatus = (
-  value: PuSelectValue,
-): value is PRForm["visibilityStatus"] =>
+const isPRVisibilityStatus = (value: PuSelectValue): value is PRForm["visibilityStatus"] =>
   value === "VISIBLE" || value === "HIDDEN";
 
-const nullablePositiveIntegerFromSelectValue = (
-  value: PuSelectValue,
-): number | null => {
-  const parsed =
-    typeof value === "number" ? value : Number(String(value ?? "").trim());
+const nullablePositiveIntegerFromSelectValue = (value: PuSelectValue): number | null => {
+  const parsed = typeof value === "number" ? value : Number(String(value ?? "").trim());
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
@@ -739,16 +726,14 @@ const prVisibilityStatusModel = computed({
 const feedbackQuestionnaireInstanceModel = computed({
   get: () => prForm.value.feedbackQuestionnaireInstanceId,
   set: (value: PuSelectValue) => {
-    prForm.value.feedbackQuestionnaireInstanceId =
-      nullablePositiveIntegerFromSelectValue(value);
+    prForm.value.feedbackQuestionnaireInstanceId = nullablePositiveIntegerFromSelectValue(value);
   },
 });
 
 const mountFeedbackQuestionnaireTemplateModel = computed({
   get: () => mountFeedbackQuestionnaireTemplateId.value,
   set: (value: PuSelectValue) => {
-    mountFeedbackQuestionnaireTemplateId.value =
-      nullablePositiveIntegerFromSelectValue(value);
+    mountFeedbackQuestionnaireTemplateId.value = nullablePositiveIntegerFromSelectValue(value);
   },
 });
 
@@ -758,8 +743,7 @@ const prMeetingPointImageUploadValue = computed<PuFileUploadValue>({
     return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
   },
   set: (value) => {
-    prForm.value.meetingPointImageUrl =
-      value?.source === "url" && value.url ? value.url : "";
+    prForm.value.meetingPointImageUrl = value?.source === "url" && value.url ? value.url : "";
   },
 });
 
@@ -769,10 +753,7 @@ const resolvedTimeWindow = computed<[string | null, string | null]>(() => [
 ]);
 
 const prBoundsValidationMessage = computed(() =>
-  validateManualPartnerBounds(
-    prForm.value.minPartners,
-    prForm.value.maxPartners,
-  ),
+  validateManualPartnerBounds(prForm.value.minPartners, prForm.value.maxPartners),
 );
 
 const timeValidationMessage = computed(() => {
@@ -808,17 +789,11 @@ const policyValidationMessage = computed(() => {
   if (!prForm.value.confirmationEnabled) {
     return null;
   }
-  if (
-    prForm.value.confirmationStartOffsetMinutes <=
-    prForm.value.confirmationEndOffsetMinutes
-  ) {
+  if (prForm.value.confirmationStartOffsetMinutes <= prForm.value.confirmationEndOffsetMinutes) {
     return t("adminPR.policyValidationStartBeforeEnd");
   }
 
-  if (
-    prForm.value.joinLockOffsetMinutes <
-    prForm.value.confirmationEndOffsetMinutes
-  ) {
+  if (prForm.value.joinLockOffsetMinutes < prForm.value.confirmationEndOffsetMinutes) {
     return t("adminPR.policyValidationJoinLockAfterConfirmationEnd");
   }
 
@@ -868,9 +843,7 @@ watch(
 
 watch([() => prForm.value.type, isCreatingPR], ([type, creating]) => {
   if (!creating) return;
-  const matched = typeOptions.value.find(
-    (option) => option.type === type.trim(),
-  );
+  const matched = typeOptions.value.find((option) => option.type === type.trim());
   if (!matched || lastAppliedType.value === matched.type) {
     return;
   }
@@ -878,8 +851,7 @@ watch([() => prForm.value.type, isCreatingPR], ([type, creating]) => {
     ...prForm.value,
     minPartners: matched.defaultMinPartners,
     maxPartners: matched.defaultMaxPartners,
-    confirmationStartOffsetMinutes:
-      matched.defaultConfirmationStartOffsetMinutes,
+    confirmationStartOffsetMinutes: matched.defaultConfirmationStartOffsetMinutes,
     confirmationEnabled: matched.defaultConfirmationEnabled,
     confirmationEndOffsetMinutes: matched.defaultConfirmationEndOffsetMinutes,
     joinLockOffsetMinutes: matched.defaultJoinLockOffsetMinutes,
@@ -896,9 +868,7 @@ const prepareNewPR = () => {
   lastAppliedType.value = null;
 };
 
-const handlePRMeetingPointImageUpdate = (
-  value: PuFileUploadValue,
-): void => {
+const handlePRMeetingPointImageUpdate = (value: PuFileUploadValue): void => {
   prMeetingPointImageUploadValue.value = value;
   prMeetingPointImageError.value = null;
 };
@@ -915,9 +885,7 @@ const handlePRMeetingPointImageRemove = (): void => {
   prMeetingPointImageError.value = null;
 };
 
-const handlePRMeetingPointImageReject = (
-  rejections: PuFileUploadRejection[],
-): void => {
+const handlePRMeetingPointImageReject = (rejections: PuFileUploadRejection[]): void => {
   prMeetingPointImageError.value = rejections[0]?.message ?? null;
 };
 
@@ -968,8 +936,7 @@ const handleSavePRFeedbackQuestionnaireInstance = async () => {
   try {
     await prFeedbackQuestionnaireUseCase.updateInstance({
       prId: selectedPRId.value,
-      feedbackQuestionnaireInstanceId:
-        prForm.value.feedbackQuestionnaireInstanceId,
+      feedbackQuestionnaireInstanceId: prForm.value.feedbackQuestionnaireInstanceId,
     });
   } catch {
     // Mutation state already drives page-level feedback.
@@ -977,26 +944,19 @@ const handleSavePRFeedbackQuestionnaireInstance = async () => {
 };
 
 const handleMaterializePRFeedbackQuestionnaireInstance = async () => {
-  if (
-    selectedPRId.value === null ||
-    mountFeedbackQuestionnaireTemplateId.value === null
-  ) {
+  if (selectedPRId.value === null || mountFeedbackQuestionnaireTemplateId.value === null) {
     return;
   }
 
   try {
-    const result = await prFeedbackQuestionnaireUseCase.materializeFromTemplate(
-      {
-        prId: selectedPRId.value,
-        feedbackQuestionnaireTemplateId:
-          mountFeedbackQuestionnaireTemplateId.value,
-      },
-    );
+    const result = await prFeedbackQuestionnaireUseCase.materializeFromTemplate({
+      prId: selectedPRId.value,
+      feedbackQuestionnaireTemplateId: mountFeedbackQuestionnaireTemplateId.value,
+    });
     if (!result) return;
     prForm.value = {
       ...prForm.value,
-      feedbackQuestionnaireInstanceId:
-        result.feedbackQuestionnaireInstanceId ?? null,
+      feedbackQuestionnaireInstanceId: result.feedbackQuestionnaireInstanceId ?? null,
     };
   } catch {
     // Mutation state already drives page-level feedback.
@@ -1020,7 +980,7 @@ const handleSavePR = async () => {
         return;
       }
       isCreatingPR.value = false;
-      selectedPRIdRaw.value = String(result.root.id);
+      selectedPRIdRaw.value = String(result.id);
       return;
     }
 
@@ -1029,8 +989,7 @@ const handleSavePR = async () => {
         current: {
           prId: selectedPRId.value,
           status: selectedPR.value.status as PRForm["status"],
-          visibilityStatus: selectedPR.value
-            .visibilityStatus as PRForm["visibilityStatus"],
+          visibilityStatus: selectedPR.value.visibilityStatus as PRForm["visibilityStatus"],
         },
         draft: prForm.value,
       });

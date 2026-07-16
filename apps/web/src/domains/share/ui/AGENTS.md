@@ -12,4 +12,4 @@ This folder owns share-domain method UI and share composition surfaces.
 ## Boundaries
 
 - Share UI owns active share method presentation and handoff.
-- PR detail, event, and route surfaces provide share context; they should not duplicate method-specific share UI.
+- PR detail, PR Discovery, and route surfaces provide share context; they should not duplicate method-specific share UI.

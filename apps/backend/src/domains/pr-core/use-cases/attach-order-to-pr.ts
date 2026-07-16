@@ -1,15 +1,15 @@
-import { db } from "../../../lib/db";
-import { throwHttpProblem } from "../../../lib/problem-details";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { OfferId } from "../../../entities/offer";
+import { partners } from "../../../entities/partner";
 import type { PRId } from "../../../entities/partner-request";
 import { partnerRequests } from "../../../entities/partner-request";
-import { partners } from "../../../entities/partner";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
-import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { db } from "../../../lib/db";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
-import { isOrderAttachableStatus } from "../services/status-rules";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { isPROrderAttachableStatus } from "../services/status-rules";
 
 export async function attachOrderToPr(
   input: {
@@ -30,7 +30,7 @@ export async function attachOrderToPr(
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
 
-  if (!isOrderAttachableStatus(request.status)) {
+  if (!isPROrderAttachableStatus(request.status)) {
     return throwHttpProblem({
       status: 409,
       detail: "Order attachment requires PR READY or ACTIVE status",

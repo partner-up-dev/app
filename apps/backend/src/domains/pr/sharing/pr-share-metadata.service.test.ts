@@ -1,11 +1,10 @@
-import { test } from "vitest";
 import assert from "node:assert/strict";
+import { test } from "vitest";
 import type { PublicPR } from "../read-models/public-pr-view.service";
 
 const loadMetadataBuilder = async () => {
   process.env.DATABASE_URL ??= "postgres://user:password@localhost:5432/test";
-  return (await import("./pr-share-metadata.service"))
-    .buildPRCanonicalShareMetadata;
+  return (await import("./pr-share-metadata.service")).buildPRCanonicalShareMetadata;
 };
 
 const buildPublicPR = ({
@@ -58,7 +57,7 @@ test("buildPRCanonicalShareMetadata uses explicit title first", async () => {
   assert.equal(metadata.title, "周末羽毛球");
 });
 
-test("buildPRCanonicalShareMetadata falls back to anchor event title before type and place", async () => {
+test("buildPRCanonicalShareMetadata falls back to type before route and place", async () => {
   const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
   const metadata = buildPRCanonicalShareMetadata(
     buildPublicPR({
@@ -66,10 +65,9 @@ test("buildPRCanonicalShareMetadata falls back to anchor event title before type
       location: "  万胜围  ",
       type: "羽毛球",
     }),
-    { anchorEventTitle: "城市羽毛球局" },
   );
 
-  assert.equal(metadata.title, "城市羽毛球局");
+  assert.equal(metadata.title, "羽毛球");
 });
 
 test("buildPRCanonicalShareMetadata falls back to type before route and location", async () => {
@@ -150,21 +148,17 @@ test("buildPRCanonicalShareMetadata includes route in revision", async () => {
   assert.notEqual(left.revision, right.revision);
 });
 
-test("buildPRCanonicalShareMetadata includes anchor event title in revision", async () => {
+test("buildPRCanonicalShareMetadata revision ignores external presentation context", async () => {
   const buildPRCanonicalShareMetadata = await loadMetadataBuilder();
   const base = buildPublicPR({
     title: undefined,
     location: "天河体育中心",
     type: "羽毛球",
   });
-  const left = buildPRCanonicalShareMetadata(base, {
-    anchorEventTitle: "城市羽毛球局",
-  });
-  const right = buildPRCanonicalShareMetadata(base, {
-    anchorEventTitle: "周末羽毛球局",
-  });
+  const left = buildPRCanonicalShareMetadata(base);
+  const right = buildPRCanonicalShareMetadata(base);
 
-  assert.notEqual(left.revision, right.revision);
+  assert.equal(left.revision, right.revision);
 });
 
 test("buildPRCanonicalShareMetadata falls back to route when type and location are empty", async () => {

@@ -74,11 +74,11 @@ observability:
 - `user_telemetry_rejected_events` as BI validation ledger
 - `/api/telemetry/user/events` as the user-behavior ingest contract
 - `/api/analytics/*`
-- `/api/analytics/anchor-event-funnel`
+- `/api/analytics/pr-discovery-funnel`
 - `/admin/analytics`
 - `/bi?code=...`
-- Anchor Event -> PR conversion, source attribution, retention, and funnel
-  semantics
+- PR Discovery -> PR Authoring / PR participation outcomes, source attribution,
+  retention, and funnel semantics
 
 Deployment can use these surfaces for diagnosis only in a narrow sense:
 
@@ -96,6 +96,6 @@ not deployment operations.
 | no documented centralized alerting policy in the repo | deployment operations policy | define alert channels, thresholds, and owner rotation before calling this implemented |
 | `/internal/maintenance/tick` only avoids overlap inside one warm backend process today | backend runtime architecture | cross-instance maintenance overlap remains possible until a DB-global coordination mechanism is added |
 | no dedicated management UI yet for operation logs | product/admin surface follow-up if operator UI is needed | deployment owns the runtime diagnostic need, not the product shape of an operator UI |
-| BI source-attribution scenario coverage for `/e/:eventId?spm=...` is missing | Product TDD / test-platform follow-up | this is a product analytics verification gap, not deployment observability |
+| BI source-attribution scenario coverage for `/prd?spm=...` is missing | Product TDD / test-platform follow-up | this is a product analytics verification gap, not deployment observability |
 
 Those gaps are real and should remain explicit rather than implied away.

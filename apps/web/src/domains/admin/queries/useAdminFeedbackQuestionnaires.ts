@@ -1,29 +1,21 @@
+import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
-import { computed, unref, type MaybeRef } from "vue";
-import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
+import { computed, type MaybeRef, unref } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-type FeedbackQuestionnairesRoute =
-  (typeof adminClient.api.admin)["feedback-questionnaires"];
+type FeedbackQuestionnairesRoute = (typeof adminClient.api.admin)["feedback-questionnaires"];
 type TemplatesRoute = FeedbackQuestionnairesRoute["templates"];
 type TemplateRoute = TemplatesRoute[":templateId"];
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };
 
-export type AdminFeedbackQuestionnaireTemplatesResponse = InferResponseType<
-  TemplatesRoute["$get"]
->;
-export type AdminFeedbackQuestionnaireTemplateResponse = InferResponseType<
-  TemplatesRoute["$post"]
->;
+export type AdminFeedbackQuestionnaireTemplatesResponse = InferResponseType<TemplatesRoute["$get"]>;
+export type AdminFeedbackQuestionnaireTemplateResponse = InferResponseType<TemplatesRoute["$post"]>;
 
 export type AdminFeedbackQuestionnaireTemplateInput = {
   key: string;
@@ -32,14 +24,11 @@ export type AdminFeedbackQuestionnaireTemplateInput = {
   definition: FeedbackQuestionnaireDefinition;
 };
 
-export const useAdminFeedbackQuestionnaireTemplates = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminFeedbackQuestionnaireTemplates = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminFeedbackQuestionnaireTemplatesResponse>({
     queryKey: queryKeys.admin.feedbackQuestionnaireTemplates(),
     queryFn: async () => {
-      const res =
-        await adminClient.api.admin["feedback-questionnaires"].templates.$get();
+      const res = await adminClient.api.admin["feedback-questionnaires"].templates.$get();
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取问卷模板失败"));
       }
@@ -57,10 +46,9 @@ export const useCreateAdminFeedbackQuestionnaireTemplate = () => {
     AdminFeedbackQuestionnaireTemplateInput
   >({
     mutationFn: async (input) => {
-      const res =
-        await adminClient.api.admin["feedback-questionnaires"].templates.$post({
-          json: input,
-        });
+      const res = await adminClient.api.admin["feedback-questionnaires"].templates.$post({
+        json: input,
+      });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "创建问卷模板失败"));
       }
@@ -99,7 +87,7 @@ export const useUpdateAdminFeedbackQuestionnaireTemplate = () => {
         queryKey: queryKeys.admin.feedbackQuestionnaireTemplates(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.anchorEventWorkspace(),
+        queryKey: queryKeys.admin.prWorkspace(),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.admin.prWorkspace(),

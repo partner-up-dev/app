@@ -1,63 +1,57 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
-import type { PRId } from "../../../entities/partner-request";
 import type { PartnerStatus } from "../../../entities/partner";
+import type { PRId } from "../../../entities/partner-request";
 import type { User } from "../../../entities/user";
-import { resolveUserByOpenId } from "../../user";
-import {
-  hasAnchorParticipationPolicy,
-  hasEnabledConfirmationPolicy,
-  isJoinLockedByPolicy,
-  isWithinConfirmationWindow,
-  resolveAnchorParticipationPolicy,
-} from "../services/anchor-participation-policy.service";
-import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
-import { isJoinableStatus } from "../services/status-rules";
-import {
-  countActivePartnersForPR,
-  recalculatePRStatus,
-} from "../services/slot-management.service";
-import { toPublicPR, type PublicPR } from "../services/pr-view.service";
-import { refreshTemporalStatus } from "../temporal-refresh";
-import { operationLogService } from "../../../infra/operation-log";
-import { expandFullCapacityPR } from "../../anchor-event";
 import {
   scheduleWeChatActivityStartReminderJobForParticipant,
   scheduleWeChatNewPartnerNotificationsForJoin,
   scheduleWeChatReminderJobsForParticipant,
 } from "../../../infra/notifications";
-import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
-import { closeAlternativeWaitlistSourcesAfterJoin } from "../services/waitlist-alternative-reminder.service";
-import { assertAnchorEventParticipationFrequencyLimitAllows } from "../services/anchor-participation-frequency-limit.service";
+import { operationLogService } from "../../../infra/operation-log";
+import { throwHttpProblem } from "../../../lib/problem-details";
+import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
+import { resolveUserByOpenId } from "../../user";
 import { reconcileCurrentCreator } from "../services/current-creator.service";
+import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
+import {
+  hasEnabledConfirmationPolicy,
+  hasParticipationPolicy,
+  isJoinLockedByPolicy,
+  isWithinConfirmationWindow,
+  resolveParticipationPolicy,
+} from "../services/participation-policy.service";
+import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
+import { assertPRTypeParticipationFrequencyLimitAllows } from "../services/pr-type-participation-frequency-limit.service";
+import { type PublicPR, toPublicPR } from "../services/pr-view.service";
+import { countActivePartnersForPR, recalculatePRStatus } from "../services/slot-management.service";
+import { isPRJoinableStatus } from "../services/status-rules";
+import { closeAlternativeWaitlistSourcesAfterJoin } from "../services/waitlist-alternative-reminder.service";
+import { refreshTemporalStatus } from "../temporal-refresh";
+import { expandFullCapacityPR } from "./expand-full-capacity-pr";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 const userReliabilityRepo = new UserReliabilityRepository();
 
-export async function joinPRAsUser(
-  id: PRId,
-  user: Pick<User, "id" | "status">,
-): Promise<PublicPR> {
+export async function joinPRAsUser(id: PRId, user: Pick<User, "id" | "status">): Promise<PublicPR> {
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
   const refreshedRequest = await refreshTemporalStatus(request);
-  const hasParticipationPolicy = hasAnchorParticipationPolicy(refreshedRequest);
+  const hasMaterializedParticipationPolicy = hasParticipationPolicy(refreshedRequest);
   const hasConfirmationPolicy = hasEnabledConfirmationPolicy(refreshedRequest);
 
   let targetStatus: Extract<PartnerStatus, "JOINED" | "CONFIRMED"> = "JOINED";
 
-  if (hasParticipationPolicy) {
-    const policy = resolveAnchorParticipationPolicy(
-      refreshedRequest,
-      refreshedRequest.time,
-    );
+  if (hasMaterializedParticipationPolicy) {
+    const policy = resolveParticipationPolicy(refreshedRequest, refreshedRequest.time);
     if (isJoinLockedByPolicy(policy)) {
-      return throwHttpProblem({ status: 400, detail: "Cannot join - event is locked after join lock" });
+      return throwHttpProblem({
+        status: 400,
+        detail: "Cannot join - partner request is locked after join lock",
+      });
     }
 
     if (hasConfirmationPolicy && isWithinConfirmationWindow(policy)) {
@@ -65,7 +59,7 @@ export async function joinPRAsUser(
     }
   }
 
-  if (!isJoinableStatus(refreshedRequest.status as string)) {
+  if (!isPRJoinableStatus(refreshedRequest.status as string)) {
     return throwHttpProblem({ status: 400, detail: "Cannot join - partner request is not open" });
   }
 
@@ -80,7 +74,7 @@ export async function joinPRAsUser(
     if (!latest) {
       return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
     }
-    if (hasAnchorParticipationPolicy(latest)) {
+    if (hasParticipationPolicy(latest)) {
       await scheduleWeChatReminderJobsForParticipant(latest, user.id);
       await scheduleWeChatActivityStartReminderJobForParticipant(latest, user.id);
     }
@@ -92,7 +86,7 @@ export async function joinPRAsUser(
     targetTimeWindow: refreshedRequest.time,
     excludePrId: id,
   });
-  await assertAnchorEventParticipationFrequencyLimitAllows({
+  await assertPRTypeParticipationFrequencyLimitAllows({
     request: refreshedRequest,
     userId: user.id,
   });
@@ -104,16 +98,10 @@ export async function joinPRAsUser(
     userId: user.id,
   });
 
-  if (
-    refreshedRequest.maxPartners !== null &&
-    activeCount >= refreshedRequest.maxPartners
-  ) {
+  if (refreshedRequest.maxPartners !== null && activeCount >= refreshedRequest.maxPartners) {
     return throwHttpProblem({ status: 400, detail: "Cannot join - partner request is full" });
   }
-  const latestHistoricalSlot = await partnerRepo.findReleasedByPrIdAndUserId(
-    id,
-    user.id,
-  );
+  const latestHistoricalSlot = await partnerRepo.findReleasedByPrIdAndUserId(id, user.id);
   const joinedSlot = latestHistoricalSlot
     ? await partnerRepo.reactivateSlot(latestHistoricalSlot.id, targetStatus)
     : await partnerRepo.createSlot({
@@ -156,7 +144,7 @@ export async function joinPRAsUser(
   if (!latest) {
     return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
   }
-  if (hasAnchorParticipationPolicy(latest)) {
+  if (hasParticipationPolicy(latest)) {
     await scheduleWeChatNewPartnerNotificationsForJoin({
       request: latest,
       joinedUserId: user.id,
@@ -174,10 +162,7 @@ export async function joinPRAsUser(
   return toPublicPR(latest, user.id);
 }
 
-export async function joinPR(
-  id: PRId,
-  openId: string,
-): Promise<PublicPR> {
+export async function joinPR(id: PRId, openId: string): Promise<PublicPR> {
   const user = await resolveUserByOpenId(openId);
   return joinPRAsUser(id, user);
 }

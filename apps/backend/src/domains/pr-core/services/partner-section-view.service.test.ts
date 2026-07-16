@@ -4,15 +4,12 @@ import type { PartnerRequest } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import type { ActiveParticipantSummary } from "../../../repositories/PartnerRepository";
 import type { PublicPR } from "../../pr/read-models/public-pr-view.service";
-import type { ResolvedAnchorParticipationPolicy } from "./anchor-participation-policy.service";
+import type { ResolvedParticipationPolicy } from "./participation-policy.service";
 import { buildPRPartnerSection } from "./partner-section-view.service";
 
-const viewerUserId =
-  "11111111-1111-4111-8111-111111111111" satisfies UserId;
+const viewerUserId = "11111111-1111-4111-8111-111111111111" satisfies UserId;
 
-const buildPublicPR = (
-  overrides: Partial<PublicPR> = {},
-): PublicPR => {
+const buildPublicPR = (overrides: Partial<PublicPR> = {}): PublicPR => {
   const now = new Date("2026-05-10T12:00:00.000Z");
   const request = {
     id: 189,
@@ -54,7 +51,7 @@ const buildPublicPR = (
   };
 };
 
-const buildPolicy = (): ResolvedAnchorParticipationPolicy => ({
+const buildPolicy = (): ResolvedParticipationPolicy => ({
   confirmationEnabled: true,
   confirmationStartOffsetMinutes: 120,
   confirmationEndOffsetMinutes: 30,
@@ -142,7 +139,7 @@ describe("buildPRPartnerSection", () => {
     assert.equal(view.viewer.canCheckIn, false);
   });
 
-  it("allows a confirmed participant to check in after the event starts", () => {
+  it("allows a confirmed participant to check in after the PR time window starts", () => {
     const participant = buildActiveParticipant("CONFIRMED");
     const view = buildPRPartnerSection({
       publicPR: buildPublicPR(),

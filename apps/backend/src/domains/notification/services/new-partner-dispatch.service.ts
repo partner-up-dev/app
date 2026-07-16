@@ -1,15 +1,15 @@
 import { z } from "zod";
 import type { PartnerId } from "../../../entities/partner";
-import type { PRId, PartnerRequest } from "../../../entities/partner-request";
-import { userIdSchema, type User, type UserId } from "../../../entities/user";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
+import { type User, type UserId, userIdSchema } from "../../../entities/user";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
+import { hasParticipationPolicy } from "../../pr/services";
 import { NEW_PARTNER_NOTIFICATION_KIND } from "../model/notification-kind";
-import { hasAnchorParticipationPolicy } from "../../pr/services";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -51,9 +51,7 @@ type NewPartnerDispatchBlocked = {
   errorMessage: string;
 };
 
-export type NewPartnerDispatchPreparation =
-  | NewPartnerDispatchReady
-  | NewPartnerDispatchBlocked;
+export type NewPartnerDispatchPreparation = NewPartnerDispatchReady | NewPartnerDispatchBlocked;
 
 export const buildNewPartnerDedupeKey = (
   recipientUserId: UserId,
@@ -102,36 +100,29 @@ export const collectNewPartnerNotificationRecipients = async (input: {
   request: PartnerRequest;
   joinedUserId: UserId;
 }): Promise<UserId[]> => {
-  if (!hasAnchorParticipationPolicy(input.request)) {
+  if (!hasParticipationPolicy(input.request)) {
     return [];
   }
 
-  const activeParticipants =
-    await partnerRepo.listActiveParticipantSummariesByPrId(input.request.id);
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
+    input.request.id,
+  );
   const recipientUserIds = Array.from(
     new Set(
       activeParticipants
         .map((item) => item.userId)
-        .filter(
-          (userId): userId is UserId =>
-            userId !== null && userId !== input.joinedUserId,
-        ),
+        .filter((userId): userId is UserId => userId !== null && userId !== input.joinedUserId),
     ),
   );
 
   const eligibleRecipientUserIds: UserId[] = [];
   for (const recipientUserId of recipientUserIds) {
     const recipientUser = await userRepo.findById(recipientUserId);
-    if (
-      !recipientUser ||
-      recipientUser.status !== "ACTIVE" ||
-      !recipientUser.openId
-    ) {
+    if (!recipientUser || recipientUser.status !== "ACTIVE" || !recipientUser.openId) {
       continue;
     }
 
-    const notificationOpt =
-      await userNotificationOptRepo.findByUserId(recipientUserId);
+    const notificationOpt = await userNotificationOptRepo.findByUserId(recipientUserId);
     const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
       notificationOpt,
       NEW_PARTNER_NOTIFICATION_KIND,
@@ -166,9 +157,7 @@ export const prepareNewPartnerNotificationDispatch = async (
     };
   }
 
-  const notificationOpt = await userNotificationOptRepo.findByUserId(
-    recipient.id,
-  );
+  const notificationOpt = await userNotificationOptRepo.findByUserId(recipient.id);
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     NEW_PARTNER_NOTIFICATION_KIND,
@@ -181,10 +170,7 @@ export const prepareNewPartnerNotificationDispatch = async (
     };
   }
 
-  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(
-    payload.prId,
-    recipient.id,
-  );
+  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(payload.prId, recipient.id);
   if (!stillParticipant) {
     return {
       status: "SKIPPED",
@@ -194,7 +180,7 @@ export const prepareNewPartnerNotificationDispatch = async (
   }
 
   const request = await prRepo.findById(payload.prId);
-  if (!request || !hasAnchorParticipationPolicy(request)) {
+  if (!request || !hasParticipationPolicy(request)) {
     return {
       status: "SKIPPED",
       errorCode: "PR_MISSING_OR_UNSUPPORTED",

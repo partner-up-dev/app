@@ -1,4 +1,4 @@
-export type NaturalLanguagePRTypeSource = "PARTNER_REQUEST" | "ANCHOR_EVENT";
+export type NaturalLanguagePRTypeSource = "OBSERVED_PR" | "PR_TYPE_CONFIG";
 
 export type NaturalLanguagePRTypeCandidate = {
   type: string;
@@ -6,8 +6,8 @@ export type NaturalLanguagePRTypeCandidate = {
 };
 
 export type NaturalLanguagePRTypePromptHints = {
-  existingPRTypes: string[];
-  anchorEventTypes: string[];
+  observedPRTypes: string[];
+  configuredPRTypes: string[];
 };
 
 const normalizeTypeKey = (value: string): string =>
@@ -35,14 +35,14 @@ const appendCandidates = (
 };
 
 export const buildNaturalLanguagePRTypeCandidates = ({
-  existingPRTypes,
-  anchorEventTypes,
+  observedPRTypes,
+  configuredPRTypes,
 }: NaturalLanguagePRTypePromptHints): NaturalLanguagePRTypeCandidate[] => {
   const candidates: NaturalLanguagePRTypeCandidate[] = [];
   const seenKeys = new Set<string>();
 
-  appendCandidates(candidates, seenKeys, existingPRTypes, "PARTNER_REQUEST");
-  appendCandidates(candidates, seenKeys, anchorEventTypes, "ANCHOR_EVENT");
+  appendCandidates(candidates, seenKeys, observedPRTypes, "OBSERVED_PR");
+  appendCandidates(candidates, seenKeys, configuredPRTypes, "PR_TYPE_CONFIG");
 
   return candidates;
 };
@@ -50,11 +50,11 @@ export const buildNaturalLanguagePRTypeCandidates = ({
 export const toNaturalLanguagePRTypePromptHints = (
   candidates: NaturalLanguagePRTypeCandidate[],
 ): NaturalLanguagePRTypePromptHints => ({
-  existingPRTypes: candidates
-    .filter((candidate) => candidate.source === "PARTNER_REQUEST")
+  observedPRTypes: candidates
+    .filter((candidate) => candidate.source === "OBSERVED_PR")
     .map((candidate) => candidate.type),
-  anchorEventTypes: candidates
-    .filter((candidate) => candidate.source === "ANCHOR_EVENT")
+  configuredPRTypes: candidates
+    .filter((candidate) => candidate.source === "PR_TYPE_CONFIG")
     .map((candidate) => candidate.type),
 });
 
@@ -63,8 +63,6 @@ export const canonicalizeNaturalLanguagePRType = (
   candidates: NaturalLanguagePRTypeCandidate[],
 ): string => {
   const parsedKey = normalizeTypeKey(parsedType);
-  const candidate = candidates.find(
-    (entry) => normalizeTypeKey(entry.type) === parsedKey,
-  );
+  const candidate = candidates.find((entry) => normalizeTypeKey(entry.type) === parsedKey);
   return candidate?.type ?? normalizeNewTypeLabel(parsedType);
 };

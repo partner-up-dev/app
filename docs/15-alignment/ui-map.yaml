@@ -9,39 +9,28 @@ pages:
     regions:
       - id: hero
       - id: value-props
-      - id: event-highlights
-      - id: event-plaza
-      - id: footer
-      - id: bookmark-nudge
       - id: secondary-actions
-  - id: community-pr-create
-    route: /cpr/new
+      - id: footer
+      - id: official-account-nudge
+  - id: pr-discovery
+    route: /prd
+    regions:
+      - id: catalog
+      - id: results
+      - id: form
+      - id: card
+      - id: list
+  - id: pr-create
+    route: /pr/new
     regions:
       - id: mode-switch
       - id: create-form
       - id: actions
       - id: support
-  - id: community-pr-detail
-    route: /cpr/:id
+  - id: pr-detail
+    route: /pr/:id
     regions:
       - id: summary
-      - id: participants
-      - id: actions
-      - id: share
+      - id: primary-actions
+      - id: utility
       - id: support
-  - id: anchor-pr-detail
-    route: /apr/:id
-    regions:
-      - id: summary
-      - id: actions
-      - id: reliability
-      - id: share
-      - id: support
-  - id: event-detail
-    route: /events/:eventId
-    regions:
-      - id: event-header
-      - id: view-mode
-      - id: anchor-pr-list
-      - id: create-anchor-pr
-      - id: exhausted-banner

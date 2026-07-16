@@ -1,14 +1,10 @@
 import { and, eq } from "drizzle-orm";
-import { getTestDb } from "../../../_infra/probes/sql-probe";
 import {
-  anchorEvents,
   feedbackQuestionnaireInstances,
   feedbackQuestionnaireResponses,
-  partnerRequests,
-  type AnchorEvent,
-  type AnchorEventId,
   type PartnerRequest,
   type PRId,
+  partnerRequests,
 } from "../../../../src/entities";
 import type {
   FeedbackQuestionnaireInstance,
@@ -16,33 +12,15 @@ import type {
   FeedbackQuestionnaireResponse,
 } from "../../../../src/entities/feedback-questionnaire";
 import type { UserId } from "../../../../src/entities/user";
+import { getTestDb } from "../../../_infra/probes/sql-probe";
 
-export async function probePartnerRequest(
-  prId: PRId,
-): Promise<PartnerRequest> {
-  const rows = await getTestDb()
-    .select()
-    .from(partnerRequests)
-    .where(eq(partnerRequests.id, prId));
+export async function probePartnerRequest(prId: PRId): Promise<PartnerRequest> {
+  const rows = await getTestDb().select().from(partnerRequests).where(eq(partnerRequests.id, prId));
   const pr = rows[0] ?? null;
   if (!pr) {
     throw new Error(`PartnerRequest ${prId} not found`);
   }
   return pr;
-}
-
-export async function probeAnchorEvent(
-  eventId: AnchorEventId,
-): Promise<AnchorEvent> {
-  const rows = await getTestDb()
-    .select()
-    .from(anchorEvents)
-    .where(eq(anchorEvents.id, eventId));
-  const event = rows[0] ?? null;
-  if (!event) {
-    throw new Error(`AnchorEvent ${eventId} not found`);
-  }
-  return event;
 }
 
 export async function probeFeedbackQuestionnaireInstance(
@@ -69,10 +47,7 @@ export async function probeFeedbackResponsesByInstanceAndUser(input: {
     .where(
       and(
         eq(feedbackQuestionnaireResponses.instanceId, input.instanceId),
-        eq(
-          feedbackQuestionnaireResponses.respondentUserId,
-          input.respondentUserId,
-        ),
+        eq(feedbackQuestionnaireResponses.respondentUserId, input.respondentUserId),
       ),
     );
 }

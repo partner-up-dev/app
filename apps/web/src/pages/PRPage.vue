@@ -133,14 +133,6 @@
 
       <PRDraftPublishNotice :pr-id="id" :pr="prDetail" />
 
-      <PuInlineNotice
-        v-if="showEventAssistedCreateHandoffNotice"
-        tone="success"
-        data-testid="pr-detail.event-assisted-create.notice"
-        :title="t('prPage.eventAssistedCreateHandoff.title')"
-        :message="t('prPage.eventAssistedCreateHandoff.description')"
-      />
-
       <div
         ref="factsCardTargetRef"
         class="facts-card"
@@ -153,7 +145,6 @@
       <div class="primary-stack" data-region="primary-actions">
         <PRWaitlistActions
           :pr="prDetail"
-          :join-entry-context="joinEntryContext"
         />
 
         <PRConfirmationAction :pr="prDetail" />
@@ -162,8 +153,7 @@
 
         <PRJoinAction
           :pr="prDetail"
-          :event-id="joinEntryContext.routeEventId"
-          :entry-surface="joinEntryContext.joinEntrySurface"
+          entry-surface="pr_detail"
           @success-closed="handleJoinSuccessClosed"
         />
 
@@ -172,7 +162,7 @@
 
       <div class="utility-stack" data-region="utility">
         <div class="utility-action-row">
-          <PRBetaGroupAction :pr="prDetail" />
+          <PRTypeCommunityEntryAction :type="prDetail.core.type" />
           <PRMessageThreadAction :pr="prDetail" />
           <PRPairingCodeAction :pr="prDetail" />
           <PRStudySprintPomodoroAction :pr="prDetail" />
@@ -190,7 +180,10 @@
           :pr-share-data="prShareData"
         />
 
-        <PRPageEventPlazaEntry :pr="prDetail" />
+        <PRDiscoveryEntryLink
+          v-if="prDetail.partnerSection.reminder.supported"
+        />
+
       </div>
 
       <PRNotificationSubscriptionsSection
@@ -219,25 +212,24 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import ButtonPlacement from "@/domains/commerce/ui/ButtonPlacement.vue";
 import { resolvePRDisplayStatus } from "@/domains/pr/model/pr-display-status";
-import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
 import { resolvePRStatusTagText, resolvePRStatusTagTone } from "@/domains/pr/model/pr-status-tag";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import UpdatePRStatusForm from "@/domains/pr/ui/forms/UpdatePRStatusForm.vue";
-import PRBetaGroupAction from "@/domains/pr/ui/sections/PRBetaGroupAction.vue";
 import PRCheckInFeedbackActions from "@/domains/pr/ui/sections/PRCheckInFeedbackActions.vue";
 import PRConfirmationAction from "@/domains/pr/ui/sections/PRConfirmationAction.vue";
+import PRDiscoveryEntryLink from "@/domains/pr/ui/sections/PRDiscoveryEntryLink.vue";
 import PRDraftPublishNotice from "@/domains/pr/ui/sections/PRDraftPublishNotice.vue";
 import PRExitAction from "@/domains/pr/ui/sections/PRExitAction.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 import PRMessageThreadAction from "@/domains/pr/ui/sections/PRMessageThreadAction.vue";
 import PRNotificationSubscriptionsSection from "@/domains/pr/ui/sections/PRNotificationSubscriptionsSection.vue";
-import PRPageEventPlazaEntry from "@/domains/pr/ui/sections/PRPageEventPlazaEntry.vue";
 import PRPairingCodeAction from "@/domains/pr/ui/sections/PRPairingCodeAction.vue";
 import PRShareAction from "@/domains/pr/ui/sections/PRShareAction.vue";
 import PRStudySprintPomodoroAction from "@/domains/pr/ui/sections/PRStudySprintPomodoroAction.vue";
+import PRTypeCommunityEntryAction from "@/domains/pr/ui/sections/PRTypeCommunityEntryAction.vue";
 import PRWaitlistActions from "@/domains/pr/ui/sections/PRWaitlistActions.vue";
 import { usePRCreatorActions } from "@/domains/pr/use-cases/usePRCreatorActions";
 import { usePRDetailHead } from "@/domains/pr/use-cases/usePRDetailHead";
@@ -291,42 +283,7 @@ const updateStatusInitialStatus = computed<PRStatusManual>(() => {
   }
   return "OPEN";
 });
-const supportsEventContextFeatures = computed(
-  () => prDetail.value?.partnerSection.reminder.supported ?? false,
-);
-const routeEventId = computed(() => {
-  const routeEventIdRaw = route.query.fromEvent;
-  const routeEventId = typeof routeEventIdRaw === "string" ? Number(routeEventIdRaw) : null;
-  if (routeEventId !== null && Number.isFinite(routeEventId) && routeEventId > 0) {
-    return routeEventId;
-  }
-  return null;
-});
-const backFallbackTo = computed(() => {
-  if (routeEventId.value !== null) {
-    return `/e/${routeEventId.value}?mode=list`;
-  }
-  return "/";
-});
-const { handleBack } = useFallbackBack(backFallbackTo);
-const handoffEntry = computed(() => {
-  const raw = route.query.handoff;
-  if (typeof raw === "string") return raw;
-  if (Array.isArray(raw)) return raw[0] ?? null;
-  return null;
-});
-const joinEntrySurface = computed(() =>
-  handoffEntry.value === "matched_pr" ? "form_mode_matched" : "pr_detail",
-);
-const joinEntryContext = computed<PRJoinEntryContext>(() => ({
-  routeEventId: routeEventId.value,
-  joinEntrySurface: joinEntrySurface.value,
-}));
-const showEventAssistedCreateHandoffNotice = computed(
-  () =>
-    (prDetail.value?.partnerSection.viewer.isCreator ?? false) &&
-    handoffEntry.value === "event_assisted_create",
-);
+const { handleBack } = useFallbackBack("/");
 const canMountButtonPlacement = computed(
   () => prDetail.value?.partnerSection.viewer.isParticipant ?? false,
 );
@@ -373,7 +330,6 @@ const {
 } = usePRCreatorActions({
   id,
   pr: prDetail,
-  supportsEventContextFeatures,
 });
 
 const editorPending = computed(() => {
@@ -399,7 +355,7 @@ usePRDetailHead({ pr: prDetail, shareUrl });
 useRouteShareDescriptorRegistration(routeShareDescriptor);
 
 const trackCreatorActionClick = (actionType: CreatorSecondaryActionType) => {
-  if (id.value === null || !supportsEventContextFeatures.value) return;
+  if (id.value === null) return;
   trackEvent("pr_secondary_action_click", {
     prId: id.value,
     actionType,

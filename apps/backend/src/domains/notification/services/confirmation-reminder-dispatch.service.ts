@@ -1,22 +1,22 @@
 import { z } from "zod";
-import type { PRId, PartnerRequest } from "../../../entities/partner-request";
 import {
-  confirmationReminderTriggerSchema,
   type ConfirmationReminderTrigger,
+  confirmationReminderTriggerSchema,
 } from "../../../entities/notification-delivery";
-import { userIdSchema, type User, type UserId } from "../../../entities/user";
-import { getTimeWindowStart } from "../../pr/services";
-import {
-  hasAnchorParticipationPolicy,
-  hasEnabledConfirmationPolicy,
-  resolveAnchorParticipationPolicy,
-} from "../../pr/services";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
+import { type User, type UserId, userIdSchema } from "../../../entities/user";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
+import {
+  getTimeWindowStart,
+  hasEnabledConfirmationPolicy,
+  hasParticipationPolicy,
+  resolveParticipationPolicy,
+} from "../../pr/services";
 import { REMINDER_CONFIRMATION_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();
@@ -28,8 +28,10 @@ const deliveryRepo = new NotificationDeliveryRepository();
 const REMINDER_DEDUPE_PREFIX = "wechat-reminder";
 const CONFIRMATION_END_REMINDER_LEAD_MS = 30 * 60 * 1000;
 
-export const CONFIRMATION_REMINDER_TRIGGERS: readonly ConfirmationReminderTrigger[] =
-  ["CONFIRM_START", "CONFIRM_END_MINUS_30M"];
+export const CONFIRMATION_REMINDER_TRIGGERS: readonly ConfirmationReminderTrigger[] = [
+  "CONFIRM_START",
+  "CONFIRM_END_MINUS_30M",
+];
 
 export const confirmationReminderNotificationJobPayloadSchema = z.object({
   prId: z.coerce.number().int().positive(),
@@ -70,13 +72,12 @@ export const buildConfirmationReminderDedupeKey = (
   trigger: ConfirmationReminderTrigger,
 ): string => `${REMINDER_DEDUPE_PREFIX}:${userId}:${prId}:${trigger}`;
 
-export const buildConfirmationReminderDedupePrefixForUser = (
-  userId: UserId,
-): string => `${REMINDER_DEDUPE_PREFIX}:${userId}:`;
+export const buildConfirmationReminderDedupePrefixForUser = (userId: UserId): string =>
+  `${REMINDER_DEDUPE_PREFIX}:${userId}:`;
 
 export const resolveConfirmationReminderRunAt = (
   policy: Pick<
-    ReturnType<typeof resolveAnchorParticipationPolicy>,
+    ReturnType<typeof resolveParticipationPolicy>,
     "confirmationStartAt" | "confirmationEndAt"
   >,
   trigger: ConfirmationReminderTrigger,
@@ -88,9 +89,7 @@ export const resolveConfirmationReminderRunAt = (
   if (!policy.confirmationEndAt) {
     return null;
   }
-  return new Date(
-    policy.confirmationEndAt.getTime() - CONFIRMATION_END_REMINDER_LEAD_MS,
-  );
+  return new Date(policy.confirmationEndAt.getTime() - CONFIRMATION_END_REMINDER_LEAD_MS);
 };
 
 const resolvePrUrl = (request: PartnerRequest): string | null => {
@@ -125,34 +124,28 @@ const formatReminderDateField = (startAt: Date): string => {
 const resolveReminderTitle = (request: PartnerRequest): string =>
   request.title?.trim() || request.type || `活动 #${request.id}`;
 
-const resolveReminderOrderNo = (
-  request: PartnerRequest,
-  userId: UserId,
-): string => `PR-${request.id}-${userId.slice(-6)}`;
+const resolveReminderOrderNo = (request: PartnerRequest, userId: UserId): string =>
+  `PR-${request.id}-${userId.slice(-6)}`;
 
-const resolveReminderRemark = (
-  trigger: ConfirmationReminderTrigger,
-): string =>
+const resolveReminderRemark = (trigger: ConfirmationReminderTrigger): string =>
   trigger === "CONFIRM_START"
     ? "请尽快确认参与活动，超时您的席位将被释放"
     : "请尽快前往确认参与活动，还有30分钟就要截止了";
 
 export const resolveConfirmationReminderPolicyForRequest = async (
   request: PartnerRequest,
-): Promise<ReturnType<typeof resolveAnchorParticipationPolicy> | null> => {
-  if (!hasAnchorParticipationPolicy(request) || !hasEnabledConfirmationPolicy(request)) {
+): Promise<ReturnType<typeof resolveParticipationPolicy> | null> => {
+  if (!hasParticipationPolicy(request) || !hasEnabledConfirmationPolicy(request)) {
     return null;
   }
-  return resolveAnchorParticipationPolicy(request, request.time);
+  return resolveParticipationPolicy(request, request.time);
 };
 
 export const shouldScheduleConfirmationReminderNotification = async (input: {
   userId: UserId;
 }): Promise<boolean> => {
   const user = await userRepo.findById(input.userId);
-  const notificationOpt = user
-    ? await userNotificationOptRepo.findByUserId(input.userId)
-    : null;
+  const notificationOpt = user ? await userNotificationOptRepo.findByUserId(input.userId) : null;
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     REMINDER_CONFIRMATION_NOTIFICATION_KIND,

@@ -28,5 +28,5 @@
 1. The user joins a `PR` whose `Partner` submodule carries explicit reliability-related facts such as confirmation or join-lock settings.
 2. The relevant command path enforces whether confirmation is enabled, whether immediate confirmation is required, whether additional joining is still allowed, and whether unconfirmed slots are released.
 3. If the user still has relevant notification quota, the responsible modules may register reminder or new-partner notifications.
-4. After the event, the attendance module may collect check-in feedback and contribute to the reliability loop.
+4. After the activity, the attendance module may collect check-in feedback and contribute to the reliability loop.
 5. When the PR has a mounted feedback questionnaire instance, the PR detail flow may ask the participant to submit that questionnaire after check-in. The feedback command stores questionnaire answers in the feedback system, while the PR flow controls when the questionnaire is presented.

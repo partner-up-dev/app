@@ -7,45 +7,43 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
+import { logger } from "hono/logger";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
-import { partnerRequestRoute } from "./controllers/partner-request.controller";
-import { authRoute } from "./controllers/auth.controller";
-import { userRoute } from "./controllers/user.controller";
-import { llmRoute } from "./controllers/llm.controller";
-import { uploadRoute } from "./controllers/upload.controller";
-import { feedbackQuestionnaireRoute } from "./controllers/feedback-questionnaire.controller";
-import { wechatRoute } from "./controllers/wechat.controller";
-import { shareRoute } from "./controllers/share.controller";
-import { wecomRoute } from "./controllers/wecom.controller";
-import { configRoute } from "./controllers/config.controller";
-import { analyticsRoute } from "./controllers/analytics.controller";
-import { telemetryRoute } from "./controllers/telemetry.controller";
-import { anchorEventRoute } from "./controllers/anchor-event.controller";
-import { internalMaintenanceRoute } from "./controllers/internal-maintenance.controller";
-import { poiRoute } from "./controllers/poi.controller";
-import { metaRoute } from "./controllers/meta.controller";
-import { adminAnchorManagementRoute } from "./controllers/admin-anchor-management.controller";
-import { adminPoiRoute } from "./controllers/admin-poi.controller";
 import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
 import { adminPaymentManagementRoute } from "./controllers/admin-payment-management.controller";
+import { adminPoiRoute } from "./controllers/admin-poi.controller";
+import { adminPRManagementRoute } from "./controllers/admin-pr-management.controller";
+import { adminPRTypeConfigRoute } from "./controllers/admin-pr-type-config.controller";
 import { adminRideHailingManagementRoute } from "./controllers/admin-ride-hailing-management.controller";
+import { analyticsRoute } from "./controllers/analytics.controller";
+import { authRoute } from "./controllers/auth.controller";
 import { commerceRoute } from "./controllers/commerce.controller";
+import { configRoute } from "./controllers/config.controller";
+import { feedbackQuestionnaireRoute } from "./controllers/feedback-questionnaire.controller";
+import { internalMaintenanceRoute } from "./controllers/internal-maintenance.controller";
+import { llmRoute } from "./controllers/llm.controller";
+import { metaRoute } from "./controllers/meta.controller";
+import { partnerRequestRoute } from "./controllers/partner-request.controller";
 import { paymentRoute } from "./controllers/payment.controller";
-import { placementRoute } from "./controllers/placement.controller";
-import { studySprintRoute } from "./controllers/study-sprint.controller";
 import { paymentProviderRoute } from "./controllers/payment-provider.controller";
+import { placementRoute } from "./controllers/placement.controller";
+import { poiRoute } from "./controllers/poi.controller";
+import { prAuthoringRoute } from "./controllers/pr-authoring.controller";
+import { prDiscoveryRoute } from "./controllers/pr-discovery.controller";
 import {
   legacyRideHailingProviderRoute,
   rideHailingProviderRoute,
 } from "./controllers/ride-hailing-provider.controller";
+import { shareRoute } from "./controllers/share.controller";
+import { studySprintRoute } from "./controllers/study-sprint.controller";
+import { telemetryRoute } from "./controllers/telemetry.controller";
+import { uploadRoute } from "./controllers/upload.controller";
+import { userRoute } from "./controllers/user.controller";
+import { wechatRoute } from "./controllers/wechat.controller";
+import { wecomRoute } from "./controllers/wecom.controller";
 import { jobRunner } from "./infra/jobs";
-import {
-  JOURNEY_ID_HEADER,
-  journeyContextMiddleware,
-} from "./infra/telemetry";
 import {
   bootstrapOfficialAccountFollowSyncJob,
   registerOfficialAccountFollowSyncJobs,
@@ -54,24 +52,25 @@ import {
   registerWeChatActivityStartReminderJobs,
   registerWeChatMeetingPointUpdatedJobs,
   registerWeChatNewPartnerJobs,
-  registerWeChatPRReadyJobs,
   registerWeChatPRMessageJobs,
+  registerWeChatPRReadyJobs,
   registerWeChatReminderJobs,
   registerWeChatWaitlistAlternativeAvailableJobs,
   registerWeChatWaitlistPromotedJobs,
 } from "./infra/notifications";
+import { JOURNEY_ID_HEADER, journeyContextMiddleware } from "./infra/telemetry";
 import { env } from "./lib/env";
 import {
   buildGenericProblemDetailsPayload,
   buildProblemDetailsPayload,
   ProblemDetailsError,
 } from "./lib/problem-details";
-import { withTimeout } from "./lib/with-timeout";
 import {
   getWechatDomainVerificationContent,
   MPWX_DOMAIN_VERIFICATION_FILENAME,
   WXOA_DOMAIN_VERIFICATION_FILENAME,
 } from "./lib/wechat-domain-verification";
+import { withTimeout } from "./lib/with-timeout";
 
 export const app = new Hono();
 registerWeChatReminderJobs();
@@ -85,10 +84,7 @@ registerWeChatWaitlistAlternativeAvailableJobs();
 registerOfficialAccountFollowSyncJobs();
 if (process.env.BACKEND_SCENARIO_DISABLE_BOOTSTRAP !== "true") {
   void bootstrapOfficialAccountFollowSyncJob().catch((error) => {
-    console.error(
-      "[OfficialAccountFollowSync] failed to bootstrap sync job",
-      error,
-    );
+    console.error("[OfficialAccountFollowSync] failed to bootstrap sync job", error);
   });
 }
 
@@ -201,8 +197,9 @@ app.onError((err, c) => {
 export const routes = app
   .route("/api/auth", authRoute)
   .route("/api/users", userRoute)
+  .route("/api/pr/authoring", prAuthoringRoute)
+  .route("/api/pr/discovery", prDiscoveryRoute)
   .route("/api/pr", partnerRequestRoute)
-  .route("/api/events", anchorEventRoute)
   .route("/api/llm", llmRoute)
   .route("/api/share", shareRoute)
   .route("/api/upload", uploadRoute)
@@ -221,7 +218,8 @@ export const routes = app
   .route("/api/payment", paymentProviderRoute)
   .route("/api/ride-hailing", rideHailingProviderRoute)
   .route("/api/v1/service_provider", legacyRideHailingProviderRoute)
-  .route("/api/admin", adminAnchorManagementRoute)
+  .route("/api/admin", adminPRManagementRoute)
+  .route("/api/admin", adminPRTypeConfigRoute)
   .route("/api/admin", adminCommerceManagementRoute)
   .route("/api/admin", adminPaymentManagementRoute)
   .route("/api/admin", adminRideHailingManagementRoute)
@@ -230,23 +228,15 @@ export const routes = app
 
 // Health check
 app.get(`/${MPWX_DOMAIN_VERIFICATION_FILENAME}`, (c) => {
-  return c.body(
-    getWechatDomainVerificationContent(MPWX_DOMAIN_VERIFICATION_FILENAME),
-    200,
-    {
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  );
+  return c.body(getWechatDomainVerificationContent(MPWX_DOMAIN_VERIFICATION_FILENAME), 200, {
+    "Content-Type": "text/plain; charset=utf-8",
+  });
 });
 
 app.get(`/${WXOA_DOMAIN_VERIFICATION_FILENAME}`, (c) => {
-  return c.body(
-    getWechatDomainVerificationContent(WXOA_DOMAIN_VERIFICATION_FILENAME),
-    200,
-    {
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  );
+  return c.body(getWechatDomainVerificationContent(WXOA_DOMAIN_VERIFICATION_FILENAME), 200, {
+    "Content-Type": "text/plain; charset=utf-8",
+  });
 });
 
 app.get("/health", (c) => c.json({ status: "ok", jobs: jobRunner.status() }));
@@ -275,8 +265,7 @@ const runRequestTailMaintenance = async (): Promise<void> => {
   if (Date.now() < nextRequestTailJobTickAtMs) {
     return;
   }
-  nextRequestTailJobTickAtMs =
-    Date.now() + env.REQUEST_TAIL_JOB_TICK_MIN_INTERVAL_MS;
+  nextRequestTailJobTickAtMs = Date.now() + env.REQUEST_TAIL_JOB_TICK_MIN_INTERVAL_MS;
 
   try {
     await withTimeout(
@@ -296,61 +285,34 @@ const runRequestTailMaintenance = async (): Promise<void> => {
   }
 };
 
-// Export types for frontend use
 export type {
-  PartnerRequestFields,
-  CreatePRStructuredStatus,
-  CoordinatePair,
-  PRStatus,
-  PRStatusManual,
-  PRId,
-  PRAllowEditAfterReady,
-  PRRoute,
-  PRRoutePoint,
-  WeekdayLabel,
-} from "./entities/partner-request";
+  OrderingEntryPayload,
+  OrderingOfferDetail,
+} from "./domains/merchandising";
 export type {
-  PartnerId,
-  PartnerStatus,
-  PartnerPaymentStatus,
-} from "./entities/partner";
-export type { UserId, UserRole, UserStatus, UserSex } from "./entities/user";
+  PRAuthoringDefaultSelection,
+  PRAuthoringLocationOption,
+  PRAuthoringMapCoordinate,
+  PRAuthoringOptions,
+  PRAuthoringPlaceDisabledReason,
+  PRAuthoringRouteOption,
+  PRAuthoringStartOption,
+  PRTypeRouteApplicationView,
+} from "./domains/pr-authoring";
 export type {
-  AnchorEventId,
-  AnchorEventParticipationFrequencyLimit,
-  AnchorEventRoutePool,
-  AnchorEventRoutePoolEntry,
-  AnchorEventStatus,
-  LocationEntry,
-  TimeWindowEntry,
-} from "./entities/anchor-event";
-export type {
-  PRJoinGateConfig,
-  PRJoinGateConfigItem,
-  PRJoinGateSource,
-  PRJoinNoticeGateConfig,
-} from "./entities/join-gate";
-export type { VisibilityStatus } from "./entities/partner-request";
-export type {
-  AnchorEventSummary,
-  AnchorEventDetail,
-  AnchorEventDemandCard,
-  BrowseTimeWindowDetail,
-  CreateTimeWindowDetail,
-  EventPRSummary,
-} from "./domains/anchor-event";
-export type { AnchorEventRouteApplicationView } from "./domains/anchor-event-route-application";
-export type {
-  AnchorEventAnalyticsRenderedMode,
-  AnchorEventFunnelResponse,
-} from "./infra/analytics";
-export {
-  partnerRequestFieldsSchema,
-  createStructuredPRSchema,
-  createNaturalLanguagePRSchema,
-  createPRStructuredStatusSchema,
-} from "./entities/partner-request";
-export type { ImageUploadPurpose } from "./infra/storage/image-storage.service";
+  PRDiscoveryCandidate,
+  PRDiscoveryCardGroup,
+  PRDiscoveryCatalogItem,
+  PRDiscoveryConfigRow,
+  PRDiscoveryDirectoryResponse,
+  PRDiscoveryPlaceSelection,
+  PRDiscoveryRecommendationCandidate,
+  PRDiscoveryRecommendationMatch,
+  PRDiscoveryRecommendationResponse,
+  PRDiscoveryTypeDetail,
+  PRDiscoveryViewMode,
+  PRDiscoveryViewRatios,
+} from "./domains/pr-discovery";
 export type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
@@ -358,18 +320,48 @@ export type {
   FeedbackQuestionnaireTemplateId,
 } from "./entities/feedback-questionnaire";
 export type {
-  OrderingEntryPayload,
-  OrderingOfferDetail,
-} from "./domains/merchandising";
-export { PR_MESSAGE_BODY_MAX_LENGTH } from "./entities/pr-message";
+  PRJoinGateConfig,
+  PRJoinGateConfigItem,
+  PRJoinGateSource,
+  PRJoinNoticeGateConfig,
+} from "./entities/join-gate";
+export type {
+  PartnerId,
+  PartnerPaymentStatus,
+  PartnerStatus,
+} from "./entities/partner";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
+// Export types for frontend use
+export type {
+  CoordinatePair,
+  CreatePRStructuredStatus,
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+  PRId,
+  PRRoute,
+  PRRoutePoint,
+  PRStatus,
+  PRStatusManual,
+  PRTimeWindow,
+  VisibilityStatus,
+  WeekdayLabel,
+} from "./entities/partner-request";
+export {
+  createNaturalLanguagePRSchema,
+  createPRStructuredStatusSchema,
+  createStructuredPRSchema,
+  partnerRequestFieldsSchema,
+} from "./entities/partner-request";
+export { PR_MESSAGE_BODY_MAX_LENGTH } from "./entities/pr-message";
+export type { UserId, UserRole, UserSex, UserStatus } from "./entities/user";
 export {
   userIdSchema,
   userRoleSchema,
   userRolesSchema,
-  userStatusSchema,
   userSexSchema,
+  userStatusSchema,
 } from "./entities/user";
+export type { ImageUploadPurpose } from "./infra/storage/image-storage.service";
 
 const isMainModule = (moduleUrl: string): boolean => {
   const entryPath = process.argv[1];

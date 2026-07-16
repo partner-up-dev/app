@@ -1,30 +1,20 @@
-import { computed, type ComputedRef } from "vue";
-import type { PartnerRequestFormInput } from "@/lib/validation";
 import type { PRId, PRStatusManual } from "@partner-up-dev/backend";
+import { type ComputedRef, computed } from "vue";
 import type { PRDetailView, PRFormFields } from "@/domains/pr/model/types";
 import { toUserUpdatePRContentFields } from "@/domains/pr/model/types";
-import {
-  useUpdatePRContent,
-  useUpdatePRStatus,
-} from "@/domains/pr/queries/usePRActions";
+import { useUpdatePRContent, useUpdatePRStatus } from "@/domains/pr/queries/usePRActions";
+import type { PartnerRequestFormInput } from "@/lib/validation";
 
 type UsePRCreatorActionsInput = {
   id: ComputedRef<PRId | null>;
   pr: ComputedRef<PRDetailView | undefined>;
-  supportsEventContextFeatures: ComputedRef<boolean>;
 };
 
-export const usePRCreatorActions = ({
-  id,
-  pr,
-  supportsEventContextFeatures,
-}: UsePRCreatorActionsInput) => {
+export const usePRCreatorActions = ({ id, pr }: UsePRCreatorActionsInput) => {
   const updateContentMutation = useUpdatePRContent();
   const updateStatusMutation = useUpdatePRStatus();
 
-  const isCreator = computed(
-    () => pr.value?.partnerSection.viewer.isCreator ?? false,
-  );
+  const isCreator = computed(() => pr.value?.partnerSection.viewer.isCreator ?? false);
 
   const showEditContentAction = computed(() => {
     const detail = pr.value;
@@ -62,21 +52,13 @@ export const usePRCreatorActions = ({
     };
   });
 
-  const showBudgetField = computed(
-    () => !supportsEventContextFeatures.value,
-  );
-  const showTimeField = computed(
-    () => !supportsEventContextFeatures.value,
-  );
+  const showBudgetField = computed(() => true);
+  const showTimeField = computed(() => true);
 
-  const editContentPending = computed(
-    () => updateContentMutation.isPending.value,
-  );
+  const editContentPending = computed(() => updateContentMutation.isPending.value);
   const editContentError = computed(() => updateContentMutation.error.value);
   const hasEditContentError = computed(() => Boolean(editContentError.value));
-  const updateStatusPending = computed(
-    () => updateStatusMutation.isPending.value,
-  );
+  const updateStatusPending = computed(() => updateStatusMutation.isPending.value);
   const updateStatusError = computed(() => updateStatusMutation.error.value);
   const hasUpdateStatusError = computed(() => Boolean(updateStatusError.value));
 
@@ -94,9 +76,7 @@ export const usePRCreatorActions = ({
     });
   };
 
-  const submitStatusUpdate = async (
-    status: PRStatusManual,
-  ): Promise<void> => {
+  const submitStatusUpdate = async (status: PRStatusManual): Promise<void> => {
     const prId = id.value;
     if (prId === null) return;
 

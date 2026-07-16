@@ -17,9 +17,9 @@
 ## 2. Support, Feedback, and Operator Support
 
 1. The user enters `/contact-support` from home or footer-level support entrypoints.
-2. The user is routed toward platform support, author feedback, or event-specific beta-group selection based on need. When `/contact-support` is opened inside a WeChat mini program webview, the platform-support entrypoint uses QR presentation instead of outbound links.
-3. The user can also reach `/about` from that path, inspect product and repository metadata, choose which active Anchor Event beta group to join, and open the official-account QR modal.
-4. Operator pages maintain event, POI, PR, feedback questionnaire, and related capabilities so the above workflows remain operable.
+2. The user is routed toward platform support or author feedback based on need. When `/contact-support` is opened inside a WeChat mini program webview, the platform-support entrypoint uses QR presentation instead of outbound links.
+3. The user can also reach `/about` from that path, inspect product and repository metadata, and open the official-account QR modal.
+4. Operator pages maintain PR type policy, POI, PR, feedback questionnaire, and related capabilities so the above workflows remain operable.
 5. Operator pages review, publish, or reject user-submitted POI location applications.
 6. PR Admin lets an operator hard-delete a selected PR after explicit confirmation. The delete removes the PR root plus the corresponding Partner rows.
-7. Anchor Event Admin lets an operator select the feedback questionnaire template used for future PR materialization, and PR Admin lets an operator replace a specific PR's mounted questionnaire instance pointer.
+7. PR type policy administration lets an operator select the feedback questionnaire template used for future PR materialization, and PR Admin lets an operator replace a specific PR's mounted questionnaire instance pointer.

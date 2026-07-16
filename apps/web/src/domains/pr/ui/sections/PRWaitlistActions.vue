@@ -121,27 +121,23 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuDialog, PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import type { PRJoinEntryContext } from "@/domains/pr/model/pr-join-entry-context";
-import {
-  useCancelWaitlistPR,
-  useWaitlistPR,
-} from "@/domains/pr/queries/usePRActions";
+import { useCancelWaitlistPR, useWaitlistPR } from "@/domains/pr/queries/usePRActions";
 import PRJoinGates from "@/domains/pr/ui/composites/PRJoinGates.vue";
 import PRWaitlistSuccessPrompt from "@/domains/pr/ui/composites/PRWaitlistSuccessPrompt.vue";
 import PRWaitlistFallbackConfirmGate from "@/domains/pr/ui/gates/PRWaitlistFallbackConfirmGate.vue";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
+import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
-import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
 import type { ApiError } from "@/shared/api/error";
 import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { trackEvent } from "@/shared/telemetry/track";
-import { PuButton, PuInlineNotice, PuModal, PuDialog } from "@partner-up-dev/design-web";
 
 type WaitlistSuccessPromptExpose = {
   close: () => void;
@@ -149,7 +145,6 @@ type WaitlistSuccessPromptExpose = {
 
 const props = defineProps<{
   pr: PRDetailView;
-  joinEntryContext: PRJoinEntryContext;
 }>();
 
 const { t } = useI18n();
@@ -201,12 +196,8 @@ const waitlistBlockedMessage = computed(() => {
 
 const showCancelWaitlistAction = computed(() => viewer.value.isWaitlisted);
 
-const flowPending = computed(
-  () => waitlistActionPending.value || waitlistMutation.isPending.value,
-);
-const openDisabled = computed(
-  () => !showWaitlistAction.value || waitlisted.value,
-);
+const flowPending = computed(() => waitlistActionPending.value || waitlistMutation.isPending.value);
+const openDisabled = computed(() => !showWaitlistAction.value || waitlisted.value);
 
 const showActionArea = computed(() =>
   Boolean(
@@ -237,23 +228,10 @@ const trackWaitlistResult = (payload: {
 }): void => {
   trackEvent("pr_waitlist_result", {
     prId: props.pr.id,
-    scenarioType: props.pr.core.type,
-    eventId: props.joinEntryContext.routeEventId ?? undefined,
-    entrySurface: props.joinEntryContext.joinEntrySurface,
+    prType: props.pr.core.type,
+    entrySurface: "pr_detail",
     ...payload,
   });
-  if (props.joinEntryContext.routeEventId !== null) {
-    trackEvent("pr_commitment_result", {
-      eventId: props.joinEntryContext.routeEventId,
-      activityType: props.pr.core.type,
-      prId: props.pr.id,
-      commitmentType: "waitlist",
-      entrySurface: props.joinEntryContext.joinEntrySurface,
-      actionResult: payload.actionResult,
-      failureCode: payload.failureCode,
-      failureReason: payload.failureReason,
-    });
-  }
 };
 
 const closeWaitlistGateModal = (): void => {
@@ -275,8 +253,7 @@ const closeWaitlistSuccessPrompt = (): void => {
 };
 
 const openWaitlistSuccessPrompt = (): void => {
-  waitlistSuccessAlternativeReminderOptIn.value =
-    alternativePrReminderOptIn.value;
+  waitlistSuccessAlternativeReminderOptIn.value = alternativePrReminderOptIn.value;
   showWaitlistSuccessPrompt.value = true;
 };
 
@@ -308,11 +285,7 @@ const finalizeWaitlist = async (): Promise<void> => {
       return;
     }
     trackWaitlistResult({
-      ...resolveTelemetryFailurePayload(
-        error,
-        "PR_WAITLIST_FAILED",
-        resolveErrorMessage(error),
-      ),
+      ...resolveTelemetryFailurePayload(error, "PR_WAITLIST_FAILED", resolveErrorMessage(error)),
     });
     setWaitlistActionError(resolveErrorMessage(error));
   } finally {

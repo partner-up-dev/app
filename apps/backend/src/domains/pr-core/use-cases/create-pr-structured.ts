@@ -1,51 +1,51 @@
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type { AnchorEventId, PRJoinGateConfig } from "../../../entities";
+import type { PRJoinGateConfig } from "../../../entities";
 import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
   PRStatus,
 } from "../../../entities/partner-request";
-import { initializeSlotsForPR } from "../services/slot-management.service";
+import { operationLogService } from "../../../infra/operation-log";
+import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import {
+  type CreatorIdentityInput,
+  resolveDraftCreator,
+} from "../services/creator-identity.service";
 import {
   assertManualPartnerBoundsValid,
   normalizeAutomaticPartnerBounds,
 } from "../services/partner-bounds.service";
 import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
-import {
-  resolveDraftCreator,
-  type CreatorIdentityInput,
-} from "../services/creator-identity.service";
-import { operationLogService } from "../../../infra/operation-log";
-import { finalizeCreatedPR, type CreatePRCommandResult } from "./create-pr.shared";
-import { materializeEventDefaultsForPR } from "../services/event-default-materialization.service";
-import { assertUserPRCreationAllowedForAnchorEvent } from "../services/event-pr-creation-policy.service";
 import { normalizePartnerRequestFieldsForPersistence } from "../services/pr-place-mode.service";
 import { assertPRStartTimeHasNotPassed } from "../services/pr-time-window-guard.service";
 import {
   canonicalizePartnerRequestFieldsTime,
   canonicalizePRAllowEditAfterReady,
 } from "../services/pr-time-window-instant.service";
+import { materializePRTypeConfigurationAtCreation } from "../services/pr-type-creation-materialization.service";
+import { assertPRTypeCreationAllowed } from "../services/pr-type-creation-policy.service";
+import { initializeSlotsForPR } from "../services/slot-management.service";
+import { type CreatePRCommandResult, finalizeCreatedPR } from "./create-pr.shared";
 
 const prRepo = new PartnerRequestRepository();
 
 export type StructuredCreateSource =
-  | "FORM"
-  | "EVENT_ASSISTED"
-  | "EVENT_DUMMY"
-  | "EVENT_FORM_MODE_AUTO"
+  | "STRUCTURED_FORM"
   | "NATURAL_LANGUAGE"
-  | "AUTO_EXPANSION";
+  | "PR_DISCOVERY"
+  | "ADMIN"
+  | "CAPACITY_EXPANSION";
+
+export type PRCreationAuthority = "USER" | "ADMIN" | "SYSTEM";
 
 type PartnerBoundsMode = "manual" | "automatic";
 type PublicationMode = "finalize-by-creator-identity" | "create-open";
 
-type StructuredCreateOptions = {
-  anchorEventId?: AnchorEventId;
+export type StructuredCreateOptions = {
   createSource?: StructuredCreateSource;
+  creationAuthority?: PRCreationAuthority;
   joinGateConfig?: PRJoinGateConfig;
   partnerBoundsMode?: PartnerBoundsMode;
   publicationMode?: PublicationMode;
-  bypassUserCreationPolicyGuard?: boolean;
   operationLog?: {
     action?: string;
     detail?: Record<string, string | number | boolean | null>;
@@ -75,17 +75,15 @@ const resolvePartnerBounds = (
 
 const resolveOperationAction = (source: StructuredCreateSource): string => {
   switch (source) {
-    case "EVENT_ASSISTED":
-      return "pr.create_event_assisted";
-    case "EVENT_DUMMY":
-      return "pr.materialize_event_dummy";
-    case "EVENT_FORM_MODE_AUTO":
-      return "pr.create_form_mode_auto";
+    case "PR_DISCOVERY":
+      return "pr.create_from_discovery";
     case "NATURAL_LANGUAGE":
       return "pr.create_from_nl";
-    case "AUTO_EXPANSION":
-      return "pr.auto_create";
-    case "FORM":
+    case "CAPACITY_EXPANSION":
+      return "pr.create_capacity_expansion";
+    case "ADMIN":
+      return "pr.admin_create";
+    case "STRUCTURED_FORM":
       return "pr.create_structured";
   }
 };
@@ -104,11 +102,9 @@ export async function createPRFromStructured(
     normalizedFields,
     options.partnerBoundsMode ?? "manual",
   );
-  if (!options.bypassUserCreationPolicyGuard) {
-    await assertUserPRCreationAllowedForAnchorEvent({
-      anchorEventId: options.anchorEventId,
-      type: normalizedFields.type,
-    });
+  const creationAuthority = options.creationAuthority ?? "USER";
+  if (creationAuthority === "USER") {
+    await assertPRTypeCreationAllowed({ type: normalizedFields.type });
   }
   await assertPRTimeWindowAvailableAtLocation({
     location: normalizedFields.location,
@@ -117,7 +113,7 @@ export async function createPRFromStructured(
 
   const creator = await resolveDraftCreator(creatorIdentity);
   const createdBy = creator?.id ?? null;
-  const createSource = options.createSource ?? "FORM";
+  const createSource = options.createSource ?? "STRUCTURED_FORM";
   const publicationMode = options.publicationMode ?? "finalize-by-creator-identity";
   const initialStatus: PRStatus = publicationMode === "create-open" ? "OPEN" : "DRAFT";
 
@@ -145,12 +141,9 @@ export async function createPRFromStructured(
 
   await initializeSlotsForPR(request.id, null);
 
-  await materializeEventDefaultsForPR({
+  await materializePRTypeConfigurationAtCreation({
     prId: request.id,
-    anchorEventId: options.anchorEventId,
     type: request.type,
-    location: request.location,
-    timeWindow: request.time,
     prNotes: request.notes,
     prJoinGateConfig: options.joinGateConfig,
   });
@@ -162,6 +155,7 @@ export async function createPRFromStructured(
     aggregateId: String(request.id),
     detail: {
       source: createSource,
+      creationAuthority,
       status: initialStatus,
       ...(options.operationLog?.detail ?? {}),
     },

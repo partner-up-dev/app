@@ -44,7 +44,7 @@ edge.
 Backend clusters:
 
 - PR lifecycle and coordination: `pr`
-- event context and POI integration: `anchor-event`, `poi`
+- PR Discovery/Authoring and POI integration: `pr`, `poi`
 - ecommerce: `merchandising`, `trade`, `fulfillment`, `bill`, `payment`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
@@ -53,7 +53,7 @@ Backend clusters:
 Frontend clusters:
 
 - app/process layer: app bootstrap, router, auth bootstrap, WeChat processes
-- domain layer: `pr`, `event`, `share`, `user`, `admin`, `support`, `landing`
+- domain layer: `pr`, `share`, `user`, `admin`, `support`, `landing`
 - shared layer: generic UI, auth/session storage, telemetry runtime, analytics, API helpers
 - page layer: route entrypoints
 

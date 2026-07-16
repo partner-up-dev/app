@@ -1,8 +1,8 @@
-import { generateObject } from "ai";
 import { createOpenAI, openai } from "@ai-sdk/openai";
+import { generateObject } from "ai";
 import {
-  naturalLanguagePartnerRequestFieldsSchema,
   type NaturalLanguagePartnerRequestFields,
+  naturalLanguagePartnerRequestFieldsSchema,
   type WeekdayLabel,
 } from "../entities/partner-request";
 import { env } from "../lib/env";
@@ -14,8 +14,8 @@ import { DEFAULT_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT } from "./prompts/partnerRe
 const CONFIG_KEY_PARTNER_REQUEST_PARSE_SYSTEM_PROMPT = "partner_request.parse_system_prompt";
 
 type PartnerRequestParseTypeHints = {
-  existingPRTypes: string[];
-  anchorEventTypes: string[];
+  observedPRTypes: string[];
+  configuredPRTypes: string[];
 };
 
 const PARTNER_REQUEST_PARSE_PROMPT_TEMPLATE = PromptTemplate.fromTemplate<{

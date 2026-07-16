@@ -3,30 +3,32 @@
     class="join-community-followup"
     data-testid="pr-detail.join-success.community-followup"
   >
-    <AnchorEventBetaGroupQrPanel
-      v-if="betaGroupQrCode"
-      :event-title="eventTitle"
-      :qr-code-url="betaGroupQrCode"
+    <PRTypeCommunityQrPanel
+      v-if="showTypeCommunity"
+      :type-title="typeTitle"
+      :qr-code-url="typeCommunityQrCode"
+      data-testid="pr-detail.join-success.type-community"
     />
 
     <div
-      v-if="betaGroupQrCode && showOfficialAccount"
+      v-if="showTypeCommunity && showOfficialAccount"
       class="join-community-followup__divider"
       aria-hidden="true"
-    ></div>
+    />
 
     <OfficialAccountFollowPanel v-if="showOfficialAccount" />
   </section>
 </template>
 
 <script setup lang="ts">
-import AnchorEventBetaGroupQrPanel from "@/domains/event/ui/primitives/AnchorEventBetaGroupQrPanel.vue";
 import OfficialAccountFollowPanel from "@/domains/marketing/ui/OfficialAccountFollowPanel.vue";
+import PRTypeCommunityQrPanel from "@/domains/pr/ui/discovery/PRTypeCommunityQrPanel.vue";
 
 defineProps<{
-  eventTitle: string;
-  betaGroupQrCode: string | null;
   showOfficialAccount: boolean;
+  showTypeCommunity: boolean;
+  typeTitle: string;
+  typeCommunityQrCode: string | null;
 }>();
 </script>
 
@@ -41,4 +43,5 @@ defineProps<{
   height: 1px;
   background: var(--sys-color-outline-variant);
 }
+
 </style>

@@ -4,24 +4,14 @@
  * - eventual: return current snapshot and schedule a background sync
  */
 
-import {
-  AnchorEventPRContextRepository,
-  type AnchorEventPRContextRecord,
-} from "../../../repositories/AnchorEventPRContextRepository";
-import type { AnchorEventId } from "../../../entities/anchor-event";
-import type { TimeWindowEntry } from "../../../entities/anchor-event";
-import type {
-  PRId,
-  PRStatus,
-  PartnerRequest,
-} from "../../../entities/partner-request";
+import type { PartnerRequest, PRId, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { refreshTemporalStatus } from "../temporal-refresh";
 
 export type PRReadConsistency = "strong" | "eventual";
+type TimeWindowEntry = PartnerRequest["time"];
 
-const eventContextRepo = new AnchorEventPRContextRepository();
 const prRepo = new PartnerRequestRepository();
 
 const applyEventualRefresh = (request: PartnerRequest): void => {
@@ -54,20 +44,19 @@ const applyConsistencyToRequests = async (
   return Promise.all(requests.map((request) => refreshTemporalStatus(request)));
 };
 
-export const isPublicVisiblePRStatus = (status: PRStatus | string): boolean =>
+export const isPRPubliclyReadableStatus = (status: PRStatus | string): boolean =>
   status === "OPEN" ||
   status === "READY" ||
   status === "ACTIVE" ||
   status === "CLOSED" ||
   status === "EXPIRED";
 
-export const isActiveVisiblePRStatus = (status: PRStatus | string): boolean =>
+export const isPRActiveStatus = (status: PRStatus | string): boolean =>
   status === "OPEN" || status === "READY" || status === "ACTIVE";
 
-const filterPublicVisibleRequests = (
+const filterPubliclyReadablePartnerRequests = (
   requests: readonly PartnerRequest[],
-): PartnerRequest[] =>
-  requests.filter((request) => isPublicVisiblePRStatus(request.status));
+): PartnerRequest[] => requests.filter((request) => isPRPubliclyReadableStatus(request.status));
 
 export async function readPartnerRequestById(
   id: PRId,
@@ -99,11 +88,8 @@ export async function readVisiblePartnerRequestsByType(
   options: { consistency?: PRReadConsistency } = {},
 ): Promise<PartnerRequest[]> {
   const rows = await prRepo.findVisibleByType(type);
-  const synced = await applyConsistencyToRequests(
-    rows,
-    options.consistency ?? "strong",
-  );
-  return filterPublicVisibleRequests(synced);
+  const synced = await applyConsistencyToRequests(rows, options.consistency ?? "strong");
+  return filterPubliclyReadablePartnerRequests(synced);
 }
 
 export async function readVisiblePartnerRequestsByTypeAndTime(
@@ -112,88 +98,43 @@ export async function readVisiblePartnerRequestsByTypeAndTime(
   options: { consistency?: PRReadConsistency } = {},
 ): Promise<PartnerRequest[]> {
   const rows = await prRepo.findVisibleByTypeAndTime(type, timeWindow);
-  const synced = await applyConsistencyToRequests(
-    rows,
-    options.consistency ?? "strong",
-  );
-  return filterPublicVisibleRequests(synced);
+  const synced = await applyConsistencyToRequests(rows, options.consistency ?? "strong");
+  return filterPubliclyReadablePartnerRequests(synced);
 }
 
-const applyConsistencyToAnchorRecords = async (
-  records: AnchorEventPRContextRecord[],
-  consistency: PRReadConsistency,
-): Promise<AnchorEventPRContextRecord[]> => {
-  const syncedRoots = await applyConsistencyToRequests(
-    records.map((record) => record.root),
-    consistency,
-  );
-  return records
-    .map((record, index) => ({
-      ...record,
-      root: syncedRoots[index]!,
-    }))
-    .filter((record) => isPublicVisiblePRStatus(record.root.status));
-};
-
-export async function readVisibleAnchorEventPRContextRecordsByEventTimeWindow(
-  anchorEventId: AnchorEventId,
-  timeWindow: TimeWindowEntry,
-  options: { consistency?: PRReadConsistency } = {},
-): Promise<AnchorEventPRContextRecord[]> {
-  const records = await eventContextRepo.findVisibleByAnchorEventAndTimeWindow(
-    anchorEventId,
-    timeWindow,
-  );
-  return applyConsistencyToAnchorRecords(records, options.consistency ?? "strong");
-}
-
-export async function readAnchorEventPRContextRecordsByEventTimeWindow(
-  anchorEventId: AnchorEventId,
-  timeWindow: TimeWindowEntry,
-  options: { consistency?: PRReadConsistency } = {},
-): Promise<AnchorEventPRContextRecord[]> {
-  const records = await eventContextRepo.findByAnchorEventAndTimeWindow(
-    anchorEventId,
-    timeWindow,
-  );
-  return applyConsistencyToAnchorRecords(records, options.consistency ?? "strong");
-}
-
-export async function readVisibleAnchorEventPRContextRecordsByEventTimeWindowAndLocation(
-  anchorEventId: AnchorEventId,
+export async function readVisiblePartnerRequestsByTypeTimeAndLocation(
+  type: string,
   timeWindow: TimeWindowEntry,
   location: string,
   options: { consistency?: PRReadConsistency } = {},
-): Promise<AnchorEventPRContextRecord[]> {
-  const records = await eventContextRepo.findVisibleByAnchorEventTimeWindowAndLocation(
-    anchorEventId,
-    timeWindow,
-    location,
-  );
-  return applyConsistencyToAnchorRecords(records, options.consistency ?? "strong");
+): Promise<PartnerRequest[]> {
+  const requests = await readVisiblePartnerRequestsByTypeAndTime(type, timeWindow, options);
+  return requests.filter((request) => request.location === location);
 }
 
-export async function countActiveVisiblePRsByEventTimeWindowAndLocation({
-  anchorEventId,
+export async function countActiveVisiblePartnerRequestsByTypeTimeAndLocation({
+  type,
   timeWindow,
   location,
   excludePrId,
   consistency,
 }: {
-  anchorEventId: AnchorEventId;
+  type: string;
   timeWindow: TimeWindowEntry;
   location: string;
   excludePrId?: PRId;
   consistency?: PRReadConsistency;
 }): Promise<number> {
-  const records = await readVisibleAnchorEventPRContextRecordsByEventTimeWindowAndLocation(
-    anchorEventId,
+  const records = await readVisiblePartnerRequestsByTypeTimeAndLocation(
+    type,
     timeWindow,
     location,
-    { consistency },
+    {
+      consistency,
+    },
   );
-  return records.filter((record) => {
-    if (excludePrId !== undefined && record.root.id === excludePrId) return false;
-    return isActiveVisiblePRStatus(record.root.status);
+  return records.filter((request) => {
+    if (excludePrId !== undefined && request.id === excludePrId) return false;
+    return isPRActiveStatus(request.status);
   }).length;
 }

@@ -23,15 +23,13 @@ type PartnerRequestParsePromptVariables = {
   nowWeekday: string | null;
   typeSelection: {
     priority: string[];
-    existingPRTypes: string[];
-    anchorEventTypes: string[];
+    observedPRTypes: string[];
+    configuredPRTypes: string[];
   };
   userInput: string;
 };
 
-const buildPR = (
-  time: PartnerRequestFields["time"],
-): PartnerRequestFields => ({
+const buildPR = (time: PartnerRequestFields["time"]): PartnerRequestFields => ({
   title: "Badminton partner",
   type: "badminton",
   time,
@@ -48,9 +46,7 @@ const buildPR = (
 const parseVariables = (json: string): SharePromptVariables =>
   JSON.parse(json) as SharePromptVariables;
 
-const parsePRParseVariables = (
-  json: string,
-): PartnerRequestParsePromptVariables =>
+const parsePRParseVariables = (json: string): PartnerRequestParsePromptVariables =>
   JSON.parse(json) as PartnerRequestParsePromptVariables;
 
 test("XHS prompt variables expose UTC instants as product local time", () => {
@@ -97,18 +93,18 @@ test("PR parse prompt variables expose type selection priority", () => {
       "2026-05-17T04:00:00.000Z",
       "Sunday",
       {
-        existingPRTypes: ["羽毛球搭子"],
-        anchorEventTypes: ["飞盘活动"],
+        observedPRTypes: ["羽毛球搭子"],
+        configuredPRTypes: ["飞盘活动"],
       },
     ),
   );
 
   assert.deepEqual(variables.typeSelection.priority, [
-    "existingPRTypes",
-    "anchorEventTypes",
+    "observedPRTypes",
+    "configuredPRTypes",
     "newTypeWhenNoCandidateFits",
   ]);
-  assert.deepEqual(variables.typeSelection.existingPRTypes, ["羽毛球搭子"]);
-  assert.deepEqual(variables.typeSelection.anchorEventTypes, ["飞盘活动"]);
+  assert.deepEqual(variables.typeSelection.observedPRTypes, ["羽毛球搭子"]);
+  assert.deepEqual(variables.typeSelection.configuredPRTypes, ["飞盘活动"]);
   assert.equal(variables.userInput, "找羽毛球搭子");
 });

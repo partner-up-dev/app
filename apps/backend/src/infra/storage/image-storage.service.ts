@@ -3,13 +3,7 @@ import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../../lib/env";
 
-export const imageUploadPurposes = [
-  "poster",
-  "poi",
-  "anchor-event-cover",
-  "anchor-event-beta-group-qr",
-  "feedback",
-] as const;
+export const imageUploadPurposes = ["poster", "poi", "feedback"] as const;
 
 export type ImageUploadPurpose = (typeof imageUploadPurposes)[number];
 
@@ -28,9 +22,7 @@ type ImageStorageOptions = {
 type SupportedImageContentType = keyof typeof supportedContentTypeByMimeType;
 
 const defaultImagesDir =
-  process.platform === "win32"
-    ? path.join(process.cwd(), "images")
-    : "/mnt/oss/images";
+  process.platform === "win32" ? path.join(process.cwd(), "images") : "/mnt/oss/images";
 
 const DEFAULT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -43,13 +35,10 @@ const supportedContentTypeByMimeType = {
 const purposePrefixByPurpose: Record<ImageUploadPurpose, string> = {
   poster: "posters",
   poi: "pois",
-  "anchor-event-cover": "anchor-event-covers",
-  "anchor-event-beta-group-qr": "anchor-event-beta-group-qrs",
   feedback: "feedback",
 };
 
-const uuidKeyPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidKeyPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class ImageStorageError extends Error {
   constructor(
@@ -61,20 +50,13 @@ export class ImageStorageError extends Error {
   }
 }
 
-export const isImageUploadPurpose = (
-  value: string,
-): value is ImageUploadPurpose =>
-  imageUploadPurposes.some((purpose) => purpose === value);
-
 export const isImageKey = (value: string): boolean => uuidKeyPattern.test(value);
 
 const getStorageRootDir = (options?: ImageStorageOptions): string =>
   options?.rootDir ?? env.IMAGES_DIR ?? defaultImagesDir;
 
-const getPurposeDirectory = (
-  purpose: ImageUploadPurpose,
-  options?: ImageStorageOptions,
-): string => path.join(getStorageRootDir(options), purposePrefixByPurpose[purpose]);
+const getPurposeDirectory = (purpose: ImageUploadPurpose, options?: ImageStorageOptions): string =>
+  path.join(getStorageRootDir(options), purposePrefixByPurpose[purpose]);
 
 const resolveImagePath = (
   purpose: ImageUploadPurpose,
@@ -95,9 +77,7 @@ const resolveImagePath = (
   return imagePath;
 };
 
-export const detectImageContentType = (
-  buffer: Buffer,
-): SupportedImageContentType | null => {
+export const detectImageContentType = (buffer: Buffer): SupportedImageContentType | null => {
   if (
     buffer.length >= 8 &&
     buffer[0] === 0x89 &&
@@ -112,12 +92,7 @@ export const detectImageContentType = (
     return "image/png";
   }
 
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return "image/jpeg";
   }
 
@@ -132,9 +107,7 @@ export const detectImageContentType = (
   return null;
 };
 
-const assertSupportedDeclaredContentType = (
-  contentType: string,
-): SupportedImageContentType => {
+const assertSupportedDeclaredContentType = (contentType: string): SupportedImageContentType => {
   if (contentType in supportedContentTypeByMimeType) {
     return contentType as SupportedImageContentType;
   }

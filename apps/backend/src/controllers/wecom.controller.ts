@@ -1,9 +1,7 @@
-import { Hono } from "hono";
-import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { createHash } from "crypto";
-import { PartnerRequestService } from "../services/PartnerRequestService";
-import { WeComService } from "../services/WeComService";
+import { Hono } from "hono";
+import { z } from "zod";
 import { env } from "../lib/env";
 import {
   decryptWeComMessage,
@@ -11,6 +9,8 @@ import {
   extractXmlTagValue,
   verifySignature,
 } from "../lib/wecom-crypto";
+import { PartnerRequestService } from "../services/PartnerRequestService";
+import { WeComService } from "../services/WeComService";
 
 const app = new Hono();
 const prService = new PartnerRequestService();
@@ -41,8 +41,7 @@ const maskValue = (value: string) => {
   return `${value.slice(0, 4)}***${value.slice(-4)}`;
 };
 
-const hashValue = (value: string) =>
-  createHash("sha1").update(value, "utf8").digest("hex");
+const hashValue = (value: string) => createHash("sha1").update(value, "utf8").digest("hex");
 
 const getCryptoConfig = () => {
   const token = env.WECOM_TOKEN;
@@ -64,11 +63,12 @@ const getCryptoConfig = () => {
 
 const normalizeFrontendUrl = (raw: string) => {
   const trimmed = raw.trim();
-  const withProtocol = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`;
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   return withProtocol.replace(/\/+$/, "");
 };
+
+export const buildWeComPRShareUrl = (frontendUrl: string, id: number): string =>
+  `${normalizeFrontendUrl(frontendUrl)}/pr/${id}`;
 
 const getShanghaiWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -146,11 +146,7 @@ export const wecomRoute = app
     }
 
     try {
-      const { xml } = decryptWeComMessage(
-        encodingAesKey,
-        corpId,
-        decodedEchostr,
-      );
+      const { xml } = decryptWeComMessage(encodingAesKey, corpId, decodedEchostr);
       return c.text(xml);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Decrypt failed";
@@ -190,10 +186,7 @@ export const wecomRoute = app
     }
 
     const encryptDiagnostics = getEncryptDiagnostics(encrypted);
-    if (
-      encryptDiagnostics.spaceCount > 0 ||
-      encryptDiagnostics.nonBase64Count > 0
-    ) {
+    if (encryptDiagnostics.spaceCount > 0 || encryptDiagnostics.nonBase64Count > 0) {
       console.warn("WeCom Encrypt diagnostics", encryptDiagnostics);
     }
 
@@ -233,19 +226,13 @@ export const wecomRoute = app
       try {
         ({ xml } = decryptWeComMessage(encodingAesKey, corpId, encrypted));
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Decrypt failed";
+        const message = error instanceof Error ? error.message : "Decrypt failed";
         try {
-          const paddingDiagnostics = diagnoseWeComCiphertext(
-            encodingAesKey,
-            encrypted,
-          );
+          const paddingDiagnostics = diagnoseWeComCiphertext(encodingAesKey, encrypted);
           console.warn("WeCom padding diagnostics", paddingDiagnostics);
         } catch (diagnoseError) {
           const diagMessage =
-            diagnoseError instanceof Error
-              ? diagnoseError.message
-              : "Padding diagnose failed";
+            diagnoseError instanceof Error ? diagnoseError.message : "Padding diagnose failed";
           console.warn("WeCom padding diagnostics failed", {
             message: diagMessage,
           });
@@ -282,9 +269,7 @@ export const wecomRoute = app
       }
 
       const nowIso = new Date(timestampSeconds * 1000).toISOString();
-      const nowWeekday = getShanghaiWeekdayLabel(
-        new Date(timestampSeconds * 1000),
-      );
+      const nowWeekday = getShanghaiWeekdayLabel(new Date(timestampSeconds * 1000));
       const { id } = await prService.createPRFromNaturalLanguage(
         trimmedContent,
         nowIso,
@@ -301,7 +286,7 @@ export const wecomRoute = app
         throw new Error("Missing env: FRONTEND_URL");
       }
 
-      const shareUrl = `${normalizeFrontendUrl(frontendUrl)}/cpr/${id}`;
+      const shareUrl = buildWeComPRShareUrl(frontendUrl, id);
       const reply = `搭子请求草稿已创建：${shareUrl}\n打开链接并完成微信登录后即可发布。`;
 
       await wecomService.sendTextMessage({

@@ -51,7 +51,9 @@
           <p>{{ t("createPage.formModeDescription") }}</p>
         </header>
 
-        <PREditor ref="editorRef" />
+        <PREditor
+          ref="editorRef"
+        />
       </section>
     </div>
 
@@ -99,7 +101,8 @@ const router = useRouter();
 const editorRef = ref<InstanceType<typeof PREditor> | null>(null);
 
 const initialMode =
-  resolveQueryMode(route.query.mode) ?? (hasTopicQuery(route.query.topic) ? "form" : "nl");
+  resolveQueryMode(route.query.mode) ??
+  (hasTopicQuery(route.query.type) || hasTopicQuery(route.query.topic) ? "form" : "nl");
 
 const activeMode = ref<"nl" | "form">(initialMode);
 const modeTabs = computed(() => [

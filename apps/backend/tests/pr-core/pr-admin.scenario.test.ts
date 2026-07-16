@@ -1,76 +1,73 @@
 import assert from "node:assert/strict";
 import { eq, sql } from "drizzle-orm";
-import { scenario } from "../_infra/scenario/scenario";
+import type { PRId } from "../../src/entities";
+import { partnerRequests, partners } from "../../src/entities";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
+import { getTestDb } from "../_infra/probes/sql-probe";
+import { scenario } from "../_infra/scenario/scenario";
+import { givenPRTypeConfig } from "../pr-discovery/_kit/builders/pr-type-config";
 import { givenPublishedPartnerRequest } from "./_kit/builders/partner-requests";
 import { givenAdminUser, givenUser } from "./_kit/builders/users";
-import { givenAnchorEvent } from "../anchor-event/_kit/builders/anchor-events";
-import { getTestDb } from "../_infra/probes/sql-probe";
-import { partnerRequests, partners } from "../../src/entities";
-import type { PRId } from "../../src/entities";
 
-scenario(
-  "admin_delete_pr_removes_root_and_partners",
-  async (ctx) => {
-    const creator = await givenUser("delete-creator");
-    const admin = await givenAdminUser("delete-operator");
-    const pr = await givenPublishedPartnerRequest({
-      creator,
-      minPartners: 1,
-      maxPartners: 2,
-      expectedCreatedStatus: "OPEN",
-      title: "Scenario delete target",
-    });
+scenario("admin_delete_pr_removes_root_and_partners", async (ctx) => {
+  const creator = await givenUser("delete-creator");
+  const admin = await givenAdminUser("delete-operator");
+  const pr = await givenPublishedPartnerRequest({
+    creator,
+    minPartners: 1,
+    maxPartners: 2,
+    expectedCreatedStatus: "OPEN",
+    title: "Scenario delete target",
+  });
 
-    ctx.record("prId", pr.id);
+  ctx.record("prId", pr.id);
 
-    const response = await requestJson(`/api/admin/prs/${pr.id}`, {
-      method: "DELETE",
-      token: admin.token,
-    });
-    const body = await expectJsonResponse<{
-      ok: true;
-      prId: number;
-      deletedPartnerCount: number;
-    }>(response, 200);
+  const response = await requestJson(`/api/admin/prs/${pr.id}`, {
+    method: "DELETE",
+    token: admin.token,
+  });
+  const body = await expectJsonResponse<{
+    ok: true;
+    prId: number;
+    deletedPartnerCount: number;
+  }>(response, 200);
 
-    assert.equal(body.ok, true);
-    assert.equal(body.prId, pr.id);
-    assert.equal(body.deletedPartnerCount, 1);
+  assert.equal(body.ok, true);
+  assert.equal(body.prId, pr.id);
+  assert.equal(body.deletedPartnerCount, 1);
 
-    const [rootRows, partnerCountRows] = await Promise.all([
-      getTestDb()
-        .select({ id: partnerRequests.id })
-        .from(partnerRequests)
-        .where(eq(partnerRequests.id, pr.id)),
-      getTestDb()
-        .select({ count: sql<number>`count(*)::int` })
-        .from(partners)
-        .where(eq(partners.prId, pr.id)),
-    ]);
+  const [rootRows, partnerCountRows] = await Promise.all([
+    getTestDb()
+      .select({ id: partnerRequests.id })
+      .from(partnerRequests)
+      .where(eq(partnerRequests.id, pr.id)),
+    getTestDb()
+      .select({ count: sql<number>`count(*)::int` })
+      .from(partners)
+      .where(eq(partners.prId, pr.id)),
+  ]);
 
-    assert.equal(rootRows.length, 0);
-    assert.equal(partnerCountRows[0]?.count ?? 0, 0);
-  },
-);
+  assert.equal(rootRows.length, 0);
+  assert.equal(partnerCountRows[0]?.count ?? 0, 0);
+});
 
-scenario("admin_pr_create_and_edit_allow_admin_only_event_type", async (ctx) => {
+scenario("admin_pr_create_and_edit_allow_admin_only_pr_type", async (ctx) => {
   const admin = await givenAdminUser("admin-only-pr-operator");
   const creator = await givenUser("admin-only-edit-source");
-  const event = await givenAnchorEvent({
+  const prType = await givenPRTypeConfig({
     label: "admin-only-admin-pr",
-    prCreationPolicy: "ADMIN_ONLY",
+    authoringCreationPolicy: "ADMIN_ONLY",
   });
-  ctx.record("eventId", event.id);
+  ctx.record("type", prType.type);
 
   const createResponse = await requestJson("/api/admin/prs", {
     method: "POST",
     token: admin.token,
     body: {
-      timeWindow: event.timeWindow,
+      timeWindow: prType.timeWindow,
       title: "Scenario admin created admin-only PR",
-      type: event.type,
-      location: event.locationId,
+      type: prType.type,
+      location: prType.locations[0] ?? "Scenario Court",
       minPartners: 2,
       maxPartners: null,
       preferences: [],
@@ -82,10 +79,7 @@ scenario("admin_pr_create_and_edit_allow_admin_only_event_type", async (ctx) => 
       joinLockOffsetMinutes: 30,
     },
   });
-  const created = await expectJsonResponse<{ root: { id: PRId } }>(
-    createResponse,
-    200,
-  );
+  const created = await expectJsonResponse<{ id: PRId }>(createResponse, 201);
 
   const editable = await givenPublishedPartnerRequest({
     creator,
@@ -98,10 +92,10 @@ scenario("admin_pr_create_and_edit_allow_admin_only_event_type", async (ctx) => 
     method: "PATCH",
     token: admin.token,
     body: {
-      timeWindow: event.timeWindow,
+      timeWindow: prType.timeWindow,
       title: "Scenario admin edited admin-only PR",
-      type: event.type,
-      location: event.locationId,
+      type: prType.type,
+      location: prType.locations[0] ?? "Scenario Court",
       minPartners: 2,
       maxPartners: null,
       preferences: [],
@@ -119,14 +113,14 @@ scenario("admin_pr_create_and_edit_allow_admin_only_event_type", async (ctx) => 
     getTestDb()
       .select({ type: partnerRequests.type })
       .from(partnerRequests)
-      .where(eq(partnerRequests.id, created.root.id)),
+      .where(eq(partnerRequests.id, created.id)),
     getTestDb()
       .select({ type: partnerRequests.type })
       .from(partnerRequests)
       .where(eq(partnerRequests.id, editable.id)),
   ]);
-  assert.equal(createdRoot[0]?.type, event.type);
-  assert.equal(editedRoot[0]?.type, event.type);
+  assert.equal(createdRoot[0]?.type, prType.type);
+  assert.equal(editedRoot[0]?.type, prType.type);
 });
 
 scenario("admin_pr_content_edit_can_reclassify_type", async (ctx) => {
@@ -139,7 +133,7 @@ scenario("admin_pr_content_edit_can_reclassify_type", async (ctx) => {
     expectedCreatedStatus: "OPEN",
     title: "Scenario admin type reclassify source",
   });
-  const nextType = "scenario-admin-reclassified-type";
+  const nextType = (await givenPRTypeConfig({ label: "admin-reclassified-type" })).type;
   ctx.record("prId", pr.id);
 
   const editResponse = await requestJson(`/api/admin/prs/${pr.id}/content`, {

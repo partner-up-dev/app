@@ -67,22 +67,6 @@ export type PRLifecycleSummary = PRLifecycleCohortSummary & {
   timeWindowEndAtCohort: PRLifecycleCohortSummary;
 };
 
-export type AnchorEventTransitionRow = {
-  fromActivityType: string;
-  toActivityType: string;
-  userCount: number;
-  transitionCount: number;
-};
-
-export type ViewOtherActivitiesConversion = {
-  clickJourneys: number;
-  clickUsers: number;
-  landingViewJourneys: number;
-  landingViewUsers: number;
-  journeyConversionRate: number;
-  userConversionRate: number;
-};
-
 export type BIOverviewResponse = {
   filters: BIOverviewFilters;
   retention: {
@@ -90,8 +74,6 @@ export type BIOverviewResponse = {
   };
   userPRCounts: UserPRCountSummary;
   prLifecycle: PRLifecycleSummary;
-  anchorEventTransitions: AnchorEventTransitionRow[];
-  viewOtherActivities: ViewOtherActivitiesConversion;
 };
 
 export type RetentionActivityFactRow = {
@@ -102,58 +84,15 @@ export type RetentionActivityFactRow = {
   identityKey: string | null;
 };
 
-export type AnchorEventTransitionFactRow = {
-  eventId: string;
-  journeyId: string;
-  occurredAt: Date;
-  identityKey: string | null;
-  activityType: string;
-};
-
-export type ViewOtherAnchorEventsConversionFactRow = {
-  eventId: string;
-  eventName: string;
-  journeyId: string;
-  occurredAt: Date;
-  identityKey: string | null;
-};
-
-type TransitionAccumulator = {
-  users: Set<string>;
-  transitionCount: number;
-};
-
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
 
-const FORMED_STATUSES = new Set<PRStatus>([
-  "READY",
-  "ACTIVE",
-  "CLOSED",
-]);
+const FORMED_STATUSES = new Set<PRStatus>(["READY", "ACTIVE", "CLOSED"]);
 
-const ACTIVE_OR_OPEN_STATUSES = new Set<PRStatus>([
-  "OPEN",
-  "READY",
-  "ACTIVE",
-]);
+const ACTIVE_OR_OPEN_STATUSES = new Set<PRStatus>(["OPEN", "READY", "ACTIVE"]);
 
-export const BI_OVERVIEW_EVENT_NAMES = [
-  "home.event.all.click",
-  "home.event.plaza.entry.click",
-  "anchor_event.landing.viewed",
-] as const;
-
-const VIEW_OTHER_ACTIVITY_CLICK_EVENT_NAMES = new Set<string>([
-  "home.event.all.click",
-  "home.event.plaza.entry.click",
-]);
-
-export const resolveBIOverviewFilters = (
-  input: BIOverviewQueryInput,
-): BIOverviewFilters => {
+export const resolveBIOverviewFilters = (input: BIOverviewQueryInput): BIOverviewFilters => {
   const endAt = input.endAt ?? new Date();
-  const startAt =
-    input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
+  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
 
   if (startAt.getTime() >= endAt.getTime()) {
     throw new Error("startAt must be before endAt");
@@ -168,10 +107,7 @@ export const resolveBIOverviewFilters = (
 const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
-const isOccurredInWindow = (
-  occurredAt: Date,
-  filters: BIOverviewFilters,
-): boolean => {
+const isOccurredInWindow = (occurredAt: Date, filters: BIOverviewFilters): boolean => {
   const timestamp = occurredAt.getTime();
   return (
     timestamp >= new Date(filters.startAt).getTime() &&
@@ -188,8 +124,7 @@ const buildRetentionRows = (
     if (!event.identityKey) continue;
 
     const dateKey = formatDateKeyUtc8(event.occurredAt);
-    const activeDates =
-      activeDatesByUser.get(event.identityKey) ?? new Set<string>();
+    const activeDates = activeDatesByUser.get(event.identityKey) ?? new Set<string>();
     activeDates.add(dateKey);
     activeDatesByUser.set(event.identityKey, activeDates);
   }
@@ -253,9 +188,7 @@ const buildRetentionRows = (
     .sort((left, right) => left.cohortDate.localeCompare(right.cohortDate));
 };
 
-const buildUserPRCountSummary = (
-  rows: readonly UserPRCountInputRow[],
-): UserPRCountSummary => {
+const buildUserPRCountSummary = (rows: readonly UserPRCountInputRow[]): UserPRCountSummary => {
   let creatorUsers = 0;
   let participantUsers = 0;
   let createdPRs = 0;
@@ -325,122 +258,14 @@ const buildPRLifecycleCohortSummary = (
   };
 };
 
-const buildAnchorEventTransitions = (
-  events: AnchorEventTransitionFactRow[],
-): AnchorEventTransitionRow[] => {
-  const landingEventsByIdentity = new Map<
-    string,
-    AnchorEventTransitionFactRow[]
-  >();
-  for (const event of events) {
-    if (!event.identityKey) continue;
-
-    const landingEvents =
-      landingEventsByIdentity.get(event.identityKey) ?? [];
-    landingEvents.push(event);
-    landingEventsByIdentity.set(event.identityKey, landingEvents);
-  }
-
-  const transitions = new Map<string, TransitionAccumulator>();
-  for (const [identityKey, landingEvents] of landingEventsByIdentity.entries()) {
-    const sortedEvents = [...landingEvents].sort((left, right) =>
-      left.occurredAt.getTime() - right.occurredAt.getTime() ||
-      left.eventId.localeCompare(right.eventId),
-    );
-    for (let index = 1; index < sortedEvents.length; index += 1) {
-      const previous = sortedEvents[index - 1];
-      const current = sortedEvents[index];
-      if (!previous || !current) continue;
-
-      const fromActivityType = previous.activityType;
-      const toActivityType = current.activityType;
-      if (fromActivityType === toActivityType) continue;
-
-      const key = `${fromActivityType}:${toActivityType}`;
-      const accumulator = transitions.get(key) ?? {
-        users: new Set<string>(),
-        transitionCount: 0,
-      };
-      accumulator.users.add(identityKey);
-      accumulator.transitionCount += 1;
-      transitions.set(key, accumulator);
-    }
-  }
-
-  return Array.from(transitions.entries())
-    .map(([key, accumulator]) => {
-      const [fromActivityType = "unknown", toActivityType = "unknown"] =
-        key.split(":");
-      return {
-        fromActivityType,
-        toActivityType,
-        userCount: accumulator.users.size,
-        transitionCount: accumulator.transitionCount,
-      };
-    })
-    .sort(
-      (left, right) =>
-        right.userCount - left.userCount ||
-        right.transitionCount - left.transitionCount ||
-        `${left.fromActivityType}:${left.toActivityType}`.localeCompare(
-          `${right.fromActivityType}:${right.toActivityType}`,
-        ),
-    );
-};
-
-const buildViewOtherActivitiesConversion = (
-  events: ViewOtherAnchorEventsConversionFactRow[],
-): ViewOtherActivitiesConversion => {
-  const clickJourneys = new Set<string>();
-  const clickUsers = new Set<string>();
-  const landingViewJourneys = new Set<string>();
-  const landingViewUsers = new Set<string>();
-
-  const clickEvents = events
-    .filter((event) => VIEW_OTHER_ACTIVITY_CLICK_EVENT_NAMES.has(event.eventName))
-    .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime());
-
-  for (const clickEvent of clickEvents) {
-    clickJourneys.add(clickEvent.journeyId);
-    if (clickEvent.identityKey) clickUsers.add(clickEvent.identityKey);
-
-    const hasLaterLandingView = events.some(
-      (event) =>
-        event.eventName === "anchor_event.landing.viewed" &&
-        event.journeyId === clickEvent.journeyId &&
-        event.occurredAt.getTime() >= clickEvent.occurredAt.getTime(),
-    );
-    if (hasLaterLandingView) {
-      landingViewJourneys.add(clickEvent.journeyId);
-      if (clickEvent.identityKey) landingViewUsers.add(clickEvent.identityKey);
-    }
-  }
-
-  return {
-    clickJourneys: clickJourneys.size,
-    clickUsers: clickUsers.size,
-    landingViewJourneys: landingViewJourneys.size,
-    landingViewUsers: landingViewUsers.size,
-    journeyConversionRate: buildRate(
-      landingViewJourneys.size,
-      clickJourneys.size,
-    ),
-    userConversionRate: buildRate(landingViewUsers.size, clickUsers.size),
-  };
-};
-
 export const buildBIOverviewResponse = (input: {
   filters: BIOverviewFilters;
   retentionEvents: RetentionActivityFactRow[];
-  anchorEventTransitionEvents: AnchorEventTransitionFactRow[];
-  viewOtherAnchorEventEvents: ViewOtherAnchorEventsConversionFactRow[];
   userPRCountRows: UserPRCountInputRow[];
   prLifecycleCreatedAtStatusRows: PRLifecycleStatusInputRow[];
   prLifecycleTimeWindowEndAtStatusRows: PRLifecycleStatusInputRow[];
 }): BIOverviewResponse => {
-  const createdAtCohort = buildPRLifecycleCohortSummary(
-    input.prLifecycleCreatedAtStatusRows,
-  );
+  const createdAtCohort = buildPRLifecycleCohortSummary(input.prLifecycleCreatedAtStatusRows);
   const timeWindowEndAtCohort = buildPRLifecycleCohortSummary(
     input.prLifecycleTimeWindowEndAtStatusRows,
   );
@@ -456,11 +281,5 @@ export const buildBIOverviewResponse = (input: {
       createdAtCohort,
       timeWindowEndAtCohort,
     },
-    anchorEventTransitions: buildAnchorEventTransitions(
-      input.anchorEventTransitionEvents,
-    ),
-    viewOtherActivities: buildViewOtherActivitiesConversion(
-      input.viewOtherAnchorEventEvents,
-    ),
   };
 };

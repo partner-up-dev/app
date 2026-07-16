@@ -4,9 +4,7 @@ import { test } from "vitest";
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
 test("sendPRMessageNotification maps batch summary fields to PR_MESSAGE keywords", async () => {
-  const { WeChatSubscriptionMessageService } = await import(
-    "./WeChatSubscriptionMessageService"
-  );
+  const { WeChatSubscriptionMessageService } = await import("./WeChatSubscriptionMessageService");
   const service = new WeChatSubscriptionMessageService();
   type CapturedMessage = {
     kind: string;
@@ -18,9 +16,7 @@ test("sendPRMessageNotification maps batch summary fields to PR_MESSAGE keywords
 
   (
     service as unknown as {
-      sendSubscribeMessage: (
-        input: CapturedMessage,
-      ) => Promise<string | number | null>;
+      sendSubscribeMessage: (input: CapturedMessage) => Promise<string | number | null>;
     }
   ).sendSubscribeMessage = async (input) => {
     captured = input;
@@ -33,13 +29,13 @@ test("sendPRMessageNotification maps batch summary fields to PR_MESSAGE keywords
     authorName: "小明",
     sentAt: "2026/04/14 12:30",
     messageSummary: "3条留言，请尽快查看",
-    page: "/apr/42",
+    page: "/pr/42",
   });
 
   assert.deepEqual(captured, {
     kind: "PR_MESSAGE",
     openId: "openid-123",
-    page: "/apr/42",
+    page: "/pr/42",
     data: {
       thing5: { value: "周三羽球搭子" },
       time2: { value: "2026/04/14 12:30" },
@@ -50,9 +46,7 @@ test("sendPRMessageNotification maps batch summary fields to PR_MESSAGE keywords
 });
 
 test("sendMeetingPointUpdatedNotification maps meeting point fields to subscription keywords", async () => {
-  const { WeChatSubscriptionMessageService } = await import(
-    "./WeChatSubscriptionMessageService"
-  );
+  const { WeChatSubscriptionMessageService } = await import("./WeChatSubscriptionMessageService");
   const service = new WeChatSubscriptionMessageService();
   type CapturedMessage = {
     kind: string;
@@ -64,9 +58,7 @@ test("sendMeetingPointUpdatedNotification maps meeting point fields to subscript
 
   (
     service as unknown as {
-      sendSubscribeMessage: (
-        input: CapturedMessage,
-      ) => Promise<string | number | null>;
+      sendSubscribeMessage: (input: CapturedMessage) => Promise<string | number | null>;
     }
   ).sendSubscribeMessage = async (input) => {
     captured = input;
@@ -96,9 +88,7 @@ test("sendMeetingPointUpdatedNotification maps meeting point fields to subscript
 });
 
 test("sendWaitlistPromotedNotification maps waitlist fields to subscription keywords", async () => {
-  const { WeChatSubscriptionMessageService } = await import(
-    "./WeChatSubscriptionMessageService"
-  );
+  const { WeChatSubscriptionMessageService } = await import("./WeChatSubscriptionMessageService");
   const service = new WeChatSubscriptionMessageService();
   type CapturedMessage = {
     kind: string;
@@ -110,9 +100,7 @@ test("sendWaitlistPromotedNotification maps waitlist fields to subscription keyw
 
   (
     service as unknown as {
-      sendSubscribeMessage: (
-        input: CapturedMessage,
-      ) => Promise<string | number | null>;
+      sendSubscribeMessage: (input: CapturedMessage) => Promise<string | number | null>;
     }
   ).sendSubscribeMessage = async (input) => {
     captured = input;
@@ -140,9 +128,7 @@ test("sendWaitlistPromotedNotification maps waitlist fields to subscription keyw
 });
 
 test("sendPRReadyNotification maps ready fields to subscription keywords", async () => {
-  const { WeChatSubscriptionMessageService } = await import(
-    "./WeChatSubscriptionMessageService"
-  );
+  const { WeChatSubscriptionMessageService } = await import("./WeChatSubscriptionMessageService");
   const service = new WeChatSubscriptionMessageService();
   type CapturedMessage = {
     kind: string;
@@ -154,9 +140,7 @@ test("sendPRReadyNotification maps ready fields to subscription keywords", async
 
   (
     service as unknown as {
-      sendSubscribeMessage: (
-        input: CapturedMessage,
-      ) => Promise<string | number | null>;
+      sendSubscribeMessage: (input: CapturedMessage) => Promise<string | number | null>;
     }
   ).sendSubscribeMessage = async (input) => {
     captured = input;

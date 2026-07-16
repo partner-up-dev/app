@@ -141,9 +141,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { useRoute, type RouteLocationRaw } from "vue-router";
-import { useI18n } from "vue-i18n";
 import {
   PuButton,
   PuCard,
@@ -155,16 +152,19 @@ import {
   PuPageScaffold,
   PuTag,
 } from "@partner-up-dev/design-web";
+import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
+import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
+import {
+  useMyPoiApplications,
+  useSubmitPoiApplication,
+} from "@/shared/poi/queries/usePoiApplications";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import {
   IMAGE_UPLOAD_ACCEPT,
   useSingleImageUploadField,
 } from "@/shared/upload/useDesignWebImageUpload";
-import {
-  useMyPoiApplications,
-  useSubmitPoiApplication,
-} from "@/shared/poi/queries/usePoiApplications";
-import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 
 type PoiApplicationStatus = "PENDING" | "PUBLISHED" | "REJECTED";
 
@@ -178,23 +178,12 @@ const submitSuccessTitle = ref<string | null>(null);
 const applicationsQuery = useMyPoiApplications(sessionReady);
 const submitMutation = useSubmitPoiApplication();
 
-const fromEventQuery = computed(() => {
-  const value = route.query.fromEvent;
-  if (typeof value === "string" && /^\d+$/.test(value)) {
-    return value;
-  }
-  return null;
+const returnType = computed(() => {
+  const value = route.query.type;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 });
-
-const backFallbackTo = computed<RouteLocationRaw>(() =>
-  fromEventQuery.value
-    ? {
-        name: "anchor-event-landing",
-        params: {
-          eventId: fromEventQuery.value,
-        },
-      }
-    : { name: "me" },
+const backFallbackTo = computed(() =>
+  returnType.value ? { name: "pr-discovery", query: { type: returnType.value } } : { name: "me" },
 );
 const { handleBack } = useFallbackBack(backFallbackTo);
 
@@ -209,15 +198,10 @@ const canSubmit = computed(
     !submitMutation.isPending.value,
 );
 const imageHint = computed(() =>
-  imageUrl.value
-    ? t("locationApplicationPage.imageReady")
-    : t("locationApplicationPage.imageHint"),
+  imageUrl.value ? t("locationApplicationPage.imageReady") : t("locationApplicationPage.imageHint"),
 );
 const pageError = computed(() => {
-  const candidates = [
-    applicationsQuery.error.value,
-    submitMutation.error.value,
-  ];
+  const candidates = [applicationsQuery.error.value, submitMutation.error.value];
   const first = candidates.find((candidate) => candidate instanceof Error);
   return first instanceof Error ? first.message : null;
 });
@@ -258,14 +242,8 @@ const handleSubmit = async () => {
 const statusLabel = (status: PoiApplicationStatus): string =>
   t(`locationApplicationPage.status.${status}`);
 
-const statusTagTone = (
-  status: PoiApplicationStatus,
-): "primary" | "secondary" | "danger" =>
-  status === "PUBLISHED"
-    ? "primary"
-    : status === "REJECTED"
-      ? "danger"
-      : "secondary";
+const statusTagTone = (status: PoiApplicationStatus): "primary" | "secondary" | "danger" =>
+  status === "PUBLISHED" ? "primary" : status === "REJECTED" ? "danger" : "secondary";
 
 const formatCreatedAt = (value: string): string => {
   const date = new Date(value);

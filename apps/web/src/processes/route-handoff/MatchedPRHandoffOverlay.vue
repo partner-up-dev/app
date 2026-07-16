@@ -33,8 +33,7 @@
           <PRJoinAction
             v-if="handoff.state.phase === 'PREVIEW' && handoff.state.prId !== null"
             :pr-id="handoff.state.prId"
-            :event-id="handoff.state.eventId"
-            entry-surface="form_mode_matched"
+            entry-surface="pr_discovery_form_match"
             @success-closed="handleJoinSuccessClosed"
           >
             <template #trigger="{ open, pending, disabled, joined, errorMessage }">
@@ -43,7 +42,7 @@
 
                   tone="neutral" variant="soft"
                   block
-                  data-testid="anchor-event-form-mode.matched.cancel"
+                  data-testid="pr-discovery.form.matched.cancel"
                   :disabled="pending"
                   @click="handleCancel"
                 >
@@ -52,7 +51,7 @@
                 <PuButton
 
                   block
-                  data-testid="anchor-event-form-mode.matched.join"
+                  data-testid="pr-discovery.form.matched.join"
                   :loading="pending"
                   :disabled="disabled"
                   @click="handleConfirm(open)"
@@ -79,19 +78,19 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton } from "@partner-up-dev/design-web";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import { prDetailPath } from "@/domains/pr/routing/routes";
 import PRFactsCard from "@/domains/pr/ui/composites/PRFactsCard.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
-import { prDetailPath } from "@/domains/pr/routing/routes";
-import { trackEvent } from "@/shared/telemetry/track";
 import LiquidWaveSplash from "@/processes/route-handoff/LiquidWaveSplash.vue";
 import {
-  useMatchedPRHandoff,
   type RouteHandoffRect,
+  useMatchedPRHandoff,
 } from "@/processes/route-handoff/useMatchedPRHandoff";
-import { PuButton } from "@partner-up-dev/design-web";
+import { trackEvent } from "@/shared/telemetry/track";
 
 const handoff = useMatchedPRHandoff();
 const router = useRouter();
@@ -109,16 +108,11 @@ const cardShellRef = ref<HTMLElement | null>(null);
 const cardAlignmentStage = ref<CardAlignmentStage>("IDLE");
 const cardFlipTransform = ref("translate3d(0, 0, 0) scale(1) rotateY(0deg)");
 
-const isVisible = computed(
-  () => handoff.state.phase !== "IDLE" && handoff.state.prId !== null,
-);
+const isVisible = computed(() => handoff.state.phase !== "IDLE" && handoff.state.prId !== null);
 
 const cardShellStyle = computed(() => {
   const targetRect = handoff.state.targetRect;
-  if (
-    targetRect &&
-    (handoff.state.phase === "ALIGNING" || handoff.state.phase === "SETTLING")
-  ) {
+  if (targetRect && (handoff.state.phase === "ALIGNING" || handoff.state.phase === "SETTLING")) {
     return {
       left: `${targetRect.left}px`,
       top: `${targetRect.top}px`,
@@ -226,8 +220,7 @@ const startCardAlignment = () => {
     alignFrameId = null;
     cardShellRef.value?.getBoundingClientRect();
     cardAlignmentStage.value = "RUNNING";
-    cardFlipTransform.value =
-      "translate3d(0, 0, 0) scale(1, 1) rotateY(360deg)";
+    cardFlipTransform.value = "translate3d(0, 0, 0) scale(1, 1) rotateY(360deg)";
     alignTimeoutId = window.setTimeout(() => {
       cardAlignmentStage.value = "SETTLED";
       handoff.beginSettling();
@@ -248,11 +241,12 @@ const handleConfirm = (open: () => Promise<void>) => {
     return;
   }
 
-  trackEvent("anchor_event_form_result_action_click", {
-    eventId: handoff.state.eventId ?? 0,
+  trackEvent("pr_discovery_candidate_action", {
+    prType: "unknown",
+    origin: "PR_DISCOVERY",
+    viewMode: "FORM",
     action: "MATCHED_JOIN",
     prId,
-    candidateRank: null,
   });
 
   void open();
@@ -265,14 +259,7 @@ const handleJoinSuccessClosed = async () => {
   }
 
   handoff.markNavigating();
-  const query = new URLSearchParams({
-    handoff: "matched_pr",
-    entry: "join",
-  });
-  if (handoff.state.eventId !== null) {
-    query.set("fromEvent", String(handoff.state.eventId));
-  }
-  await router.push(`${prDetailPath(prId)}?${query.toString()}`);
+  await router.push(`${prDetailPath(prId)}?entry=join&origin=PR_DISCOVERY`);
 };
 
 const handleSplashDrained = () => {

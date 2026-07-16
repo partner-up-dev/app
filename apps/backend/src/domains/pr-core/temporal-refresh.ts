@@ -3,36 +3,30 @@
  * ensure a PR's status reflects the current time before proceeding.
  */
 
-import { PartnerRequestRepository } from "../../repositories/PartnerRequestRepository";
-import { PartnerRepository } from "../../repositories/PartnerRepository";
-import { UserReliabilityRepository } from "../../repositories/UserReliabilityRepository";
 import type { PartnerRequest } from "../../entities/partner-request";
-import {
-  getTimeWindowStart,
-  getTimeWindowClose,
-} from "./services/time-window.service";
-import {
-  hasAnchorParticipationPolicy,
-  hasEnabledConfirmationPolicy,
-  hasConfirmationWindowEnded,
-  isJoinLockedByPolicy,
-  resolveAnchorParticipationPolicy,
-} from "./services/anchor-participation-policy.service";
-import {
-  isActivatableStatus,
-  isExpirableStatus,
-} from "./services/status-rules";
-import {
-  listActiveParticipantSummariesForPR,
-  recalculatePRStatus,
-} from "./services/slot-management.service";
 import {
   cancelWeChatActivityStartReminderJobsForParticipant,
   cancelWeChatReminderJobsForParticipant,
   scheduleWeChatPRReadyNotifications,
 } from "../../infra/notifications";
 import { operationLogService } from "../../infra/operation-log";
-import { applyAnchorParticipantReleaseEffects } from "./services/anchor-participant-release-effects.service";
+import { PartnerRepository } from "../../repositories/PartnerRepository";
+import { PartnerRequestRepository } from "../../repositories/PartnerRequestRepository";
+import { UserReliabilityRepository } from "../../repositories/UserReliabilityRepository";
+import { applyParticipantReleaseEffects } from "./services/participant-release-effects.service";
+import {
+  hasConfirmationWindowEnded,
+  hasEnabledConfirmationPolicy,
+  hasParticipationPolicy,
+  isJoinLockedByPolicy,
+  resolveParticipationPolicy,
+} from "./services/participation-policy.service";
+import {
+  listActiveParticipantSummariesForPR,
+  recalculatePRStatus,
+} from "./services/slot-management.service";
+import { isPRActivatableStatus, isPRExpirableStatus } from "./services/status-rules";
+import { getTimeWindowClose, getTimeWindowStart } from "./services/time-window.service";
 import { promoteWaitlistedPartners } from "./services/waitlist.service";
 
 const prRepo = new PartnerRequestRepository();
@@ -43,9 +37,7 @@ const userReliabilityRepo = new UserReliabilityRepository();
  * Refresh a PR's temporal state: release unconfirmed slots, activate if
  * within window, finalize if past window-close.
  */
-export async function refreshTemporalStatus(
-  request: PartnerRequest,
-): Promise<PartnerRequest> {
+export async function refreshTemporalStatus(request: PartnerRequest): Promise<PartnerRequest> {
   await releaseUnconfirmedSlotsIfNeeded(request);
   const afterRelease = await prRepo.findById(request.id);
   const normalized = afterRelease ?? request;
@@ -59,10 +51,8 @@ export async function refreshTemporalStatus(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function activateIfNeeded(
-  request: PartnerRequest,
-): Promise<PartnerRequest> {
-  if (!isActivatableStatus(request.status as string)) return request;
+async function activateIfNeeded(request: PartnerRequest): Promise<PartnerRequest> {
+  if (!isPRActivatableStatus(request.status as string)) return request;
 
   const windowStart = getTimeWindowStart(request.time);
   if (!windowStart) return request;
@@ -77,13 +67,11 @@ async function activateIfNeeded(
   return updated ?? request;
 }
 
-async function markReadyIfJoinLocked(
-  request: PartnerRequest,
-): Promise<PartnerRequest> {
+async function markReadyIfJoinLocked(request: PartnerRequest): Promise<PartnerRequest> {
   if (request.status !== "OPEN") return request;
-  if (!hasAnchorParticipationPolicy(request)) return request;
+  if (!hasParticipationPolicy(request)) return request;
 
-  const policy = resolveAnchorParticipationPolicy(request, request.time);
+  const policy = resolveParticipationPolicy(request, request.time);
   if (!isJoinLockedByPolicy(policy)) return request;
 
   const updated = await prRepo.updateStatus(request.id, "READY");
@@ -103,10 +91,8 @@ async function markReadyIfJoinLocked(
   return updated;
 }
 
-async function expireIfNeeded(
-  request: PartnerRequest,
-): Promise<PartnerRequest> {
-  if (!isExpirableStatus(request.status as string)) return request;
+async function expireIfNeeded(request: PartnerRequest): Promise<PartnerRequest> {
+  if (!isPRExpirableStatus(request.status as string)) return request;
 
   const windowClose = getTimeWindowClose(request.time);
   if (!windowClose) return request;
@@ -114,10 +100,7 @@ async function expireIfNeeded(
 
   const slots = await partnerRepo.findByPrId(request.id);
   const activeCount = slots.filter(
-    (slot) =>
-      slot.status === "JOINED" ||
-      slot.status === "CONFIRMED" ||
-      slot.status === "ATTENDED",
+    (slot) => slot.status === "JOINED" || slot.status === "CONFIRMED" || slot.status === "ATTENDED",
   ).length;
   const minPartners = request.minPartners ?? 1;
 
@@ -130,20 +113,16 @@ async function expireIfNeeded(
   return updated ?? request;
 }
 
-async function resolveReleaseTrigger(
-  request: PartnerRequest,
-): Promise<"confirmation_end" | null> {
+async function resolveReleaseTrigger(request: PartnerRequest): Promise<"confirmation_end" | null> {
   if (!hasEnabledConfirmationPolicy(request)) {
     return null;
   }
-  const policy = resolveAnchorParticipationPolicy(request, request.time);
+  const policy = resolveParticipationPolicy(request, request.time);
   if (!hasConfirmationWindowEnded(policy)) return null;
   return "confirmation_end";
 }
 
-async function releaseUnconfirmedSlotsIfNeeded(
-  request: PartnerRequest,
-): Promise<void> {
+async function releaseUnconfirmedSlotsIfNeeded(request: PartnerRequest): Promise<void> {
   const trigger = await resolveReleaseTrigger(request);
   if (!trigger) return;
 
@@ -155,10 +134,7 @@ async function releaseUnconfirmedSlotsIfNeeded(
   for (const slot of releasing) {
     await userReliabilityRepo.applyDelta(slot.userId, { released: 1 });
     await cancelWeChatReminderJobsForParticipant(request.id, slot.userId);
-    await cancelWeChatActivityStartReminderJobsForParticipant(
-      request.id,
-      slot.userId,
-    );
+    await cancelWeChatActivityStartReminderJobsForParticipant(request.id, slot.userId);
     await partnerRepo.markReleased(slot.partnerId);
 
     operationLogService.log({
@@ -175,8 +151,8 @@ async function releaseUnconfirmedSlotsIfNeeded(
 
   await recalculatePRStatus(request.id);
   await promoteWaitlistedPartners(request.id);
-  if (hasAnchorParticipationPolicy(request)) {
-    await applyAnchorParticipantReleaseEffects({
+  if (hasParticipationPolicy(request)) {
+    await applyParticipantReleaseEffects({
       prId: request.id,
       releasedUserIds,
     });

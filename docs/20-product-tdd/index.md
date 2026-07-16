@@ -32,7 +32,7 @@ This layer exists because the product is realized by at least two meaningful uni
 5. `ecommerce-provider-contracts.md` when provider-specific commerce behavior affects billing, settlement, cancellation, or user-visible order state
 6. `cross-unit-contracts.md` for shared frontend/backend substrate and contract routing
 7. `pr-lifecycle-contracts.md` when the change touches PR creation, lifecycle, join, waitlist, Study Sprint, share, or action availability
-8. `event-context-contracts.md` when the change touches Anchor Event, Form Mode, dummy PR, event search/list/card, or POI applications
+8. `pr-discovery-and-authoring-contracts.md` when the change touches PR Discovery, Form/Card/List views, Authoring handoff, or POI applications
 9. `pr-messaging-contracts.md` when the change touches PR messages, read markers, or unread-wave handoff
 10. `admin-surface-contracts.md` when the change touches operator/admin cross-unit surfaces outside ecommerce-specific detail
 11. `analytics-and-telemetry-contracts.md`

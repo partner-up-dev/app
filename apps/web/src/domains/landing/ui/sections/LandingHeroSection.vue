@@ -21,7 +21,7 @@
     <div class="hero-actions" :class="{ 'is-visible': showMeta }">
       <RouterLink
         class="hero-action hero-action--primary"
-        :to="{ name: 'event-plaza' }"
+        :to="{ name: 'pr-discovery' }"
         @click="handlePrimaryClick"
       >
         {{ t("home.landing.heroPrimaryAction") }}
@@ -57,8 +57,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { RouterLink } from "vue-router";
 import { trackEvent } from "@/shared/telemetry/track";
 
 const { t } = useI18n();
@@ -170,9 +170,7 @@ const startHeroAnimation = () => {
 
   if (typeof window === "undefined") return;
   const target = heroTitleTyping.value;
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (prefersReducedMotion || target.length === 0) {
     typedHeroTitle.value = target;
@@ -188,7 +186,7 @@ const startHeroAnimation = () => {
 
 const handlePrimaryClick = () => {
   trackEvent("home_hero_primary_click", {
-    target: "event-plaza",
+    target: "pr-discovery",
   });
 };
 

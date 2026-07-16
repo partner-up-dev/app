@@ -53,7 +53,6 @@ contract with meaningful user-visible value.
 - Shared primitives: `src/shared/ui/AGENTS.md`
 - Shared upload helpers: `src/shared/upload/AGENTS.md`
 - PR UI: `src/domains/pr/ui/AGENTS.md`
-- Event UI: `src/domains/event/ui/AGENTS.md`
 - Route UI: `src/domains/route/ui/AGENTS.md`
 - Location UI: `src/domains/location/ui/AGENTS.md`
 - Share UI: `src/domains/share/ui/AGENTS.md`

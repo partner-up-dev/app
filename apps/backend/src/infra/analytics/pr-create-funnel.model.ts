@@ -10,7 +10,7 @@ export type PRCreateFunnelFilters = {
   endAt: string;
 };
 
-export type PRCreatePath = "form" | "event_assisted" | "natural_language" | "unknown";
+export type PRCreatePath = "structured_form" | "pr_discovery" | "natural_language" | "unknown";
 
 export type PRCreateFunnelStep = {
   stepKey: string;
@@ -61,9 +61,7 @@ export type PRCreateFunnelResponse = {
   eventDictionary: PRCreateFunnelEventDictionaryEntry[];
 };
 
-export type PRCreateFunnelContextStatus =
-  | "context_complete"
-  | "context_unknown";
+export type PRCreateFunnelContextStatus = "context_complete" | "context_unknown";
 
 export type PRCreateFunnelFactRow = {
   eventId: string;
@@ -101,12 +99,8 @@ const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
 
 export const PR_CREATE_FUNNEL_EVENT_NAMES = [
   "home.create.entry.click",
-  "anchor_event.assisted_create.started",
-  "anchor_event.card_empty_create.started",
-  "anchor_event.list_create.started",
-  "anchor_event.form.create_fallback_clicked",
+  "pr.discovery.authoring.handoff",
   "pr.create.result",
-  "anchor_event.assisted_create.result",
   "pr.created",
 ] as const;
 
@@ -114,22 +108,13 @@ const PR_CREATE_FUNNEL_STEPS: FunnelStepDefinition[] = [
   {
     stepKey: "create_entry_intent",
     label: "Create entry intent",
-    eventNames: [
-      "home.create.entry.click",
-      "anchor_event.assisted_create.started",
-      "anchor_event.card_empty_create.started",
-      "anchor_event.list_create.started",
-      "anchor_event.form.create_fallback_clicked",
-    ],
-    behavior: "User clicked a PR create entry or started an Anchor Event create fallback.",
+    eventNames: ["home.create.entry.click", "pr.discovery.authoring.handoff"],
+    behavior: "User clicked a PR create entry or handed off from PR Discovery to authoring.",
   },
   {
     stepKey: "frontend_create_success",
     label: "Frontend create success",
-    eventNames: [
-      "pr.create.result",
-      "anchor_event.assisted_create.result",
-    ],
+    eventNames: ["pr.create.result"],
     behavior: "Frontend create flow resolved as success.",
   },
   {
@@ -141,8 +126,8 @@ const PR_CREATE_FUNNEL_STEPS: FunnelStepDefinition[] = [
 ];
 
 const CREATE_PATH_SORT_INDEX: Record<PRCreatePath, number> = {
-  form: 0,
-  event_assisted: 1,
+  structured_form: 0,
+  pr_discovery: 1,
   natural_language: 2,
   unknown: 3,
 };
@@ -151,8 +136,7 @@ export const resolvePRCreateFunnelFilters = (
   input: PRCreateFunnelQueryInput,
 ): PRCreateFunnelFilters => {
   const endAt = input.endAt ?? new Date();
-  const startAt =
-    input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
+  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
 
   if (startAt.getTime() >= endAt.getTime()) {
     throw new Error("startAt must be before endAt");
@@ -173,19 +157,13 @@ const buildRate = (numerator: number, denominator: number): number =>
   denominator > 0 ? numerator / denominator : 0;
 
 const toCreatePath = (value: string | null): PRCreatePath => {
-  if (
-    value === "form" ||
-    value === "event_assisted" ||
-    value === "natural_language"
-  ) {
+  if (value === "structured_form" || value === "pr_discovery" || value === "natural_language") {
     return value;
   }
   return "unknown";
 };
 
-const getStepKeyForEvent = (
-  event: PRCreateFunnelFactRow,
-): string | null => {
+const getStepKeyForEvent = (event: PRCreateFunnelFactRow): string | null => {
   if (!event.stepKey) return null;
   return PR_CREATE_FUNNEL_STEPS.some((step) => step.stepKey === event.stepKey)
     ? event.stepKey
@@ -250,10 +228,7 @@ export const buildPRCreateFunnelResponseFromRows = (
 
     if (event.eventName === "pr.created") {
       const creationPath = toCreatePath(event.creationPath);
-      const pathAccumulator = getPathAccumulator(
-        pathAccumulators,
-        creationPath,
-      );
+      const pathAccumulator = getPathAccumulator(pathAccumulators, creationPath);
       pathAccumulator.journeys.add(event.journeyId);
       pathAccumulator.eventCount += 1;
     }
@@ -269,21 +244,15 @@ export const buildPRCreateFunnelResponseFromRows = (
   }
 
   const firstAccumulator =
-    stepAccumulators.get(PR_CREATE_FUNNEL_STEPS[0]?.stepKey ?? "") ??
-    createStepAccumulator();
+    stepAccumulators.get(PR_CREATE_FUNNEL_STEPS[0]?.stepKey ?? "") ?? createStepAccumulator();
   const startCount = firstAccumulator.journeys.size;
   let previousCount: number | null = null;
 
   const steps = PR_CREATE_FUNNEL_STEPS.map((definition) => {
-    const accumulator =
-      stepAccumulators.get(definition.stepKey) ?? createStepAccumulator();
+    const accumulator = stepAccumulators.get(definition.stepKey) ?? createStepAccumulator();
     const journeyCount = accumulator.journeys.size;
     const conversionFromPrevious =
-      previousCount === null
-        ? null
-        : previousCount > 0
-          ? journeyCount / previousCount
-          : null;
+      previousCount === null ? null : previousCount > 0 ? journeyCount / previousCount : null;
     previousCount = journeyCount;
     return {
       ...definition,
@@ -295,12 +264,10 @@ export const buildPRCreateFunnelResponseFromRows = (
     };
   });
 
-  const entryJourneys =
-    stepAccumulators.get("create_entry_intent")?.journeys.size ?? 0;
+  const entryJourneys = stepAccumulators.get("create_entry_intent")?.journeys.size ?? 0;
   const frontendSuccessJourneys =
     stepAccumulators.get("frontend_create_success")?.journeys.size ?? 0;
-  const backendCreatedJourneys =
-    stepAccumulators.get("backend_created")?.journeys.size ?? 0;
+  const backendCreatedJourneys = stepAccumulators.get("backend_created")?.journeys.size ?? 0;
 
   return {
     filters,
@@ -323,8 +290,7 @@ export const buildPRCreateFunnelResponseFromRows = (
       }))
       .sort(
         (left, right) =>
-          CREATE_PATH_SORT_INDEX[left.creationPath] -
-          CREATE_PATH_SORT_INDEX[right.creationPath],
+          CREATE_PATH_SORT_INDEX[left.creationPath] - CREATE_PATH_SORT_INDEX[right.creationPath],
       ),
     identity: {
       authenticatedJourneys: authenticatedJourneys.size,

@@ -2,20 +2,19 @@ import { eq } from "drizzle-orm";
 import {
   config,
   type MeetingPointConfig,
-  partnerRequests,
   type PRAllowEditAfterReady,
-  type PRStatus,
-  users,
-  type PRJoinGateConfig,
   type PRId,
+  type PRJoinGateConfig,
+  type PRStatus,
+  partnerRequests,
+  users,
 } from "../../../../src/entities";
 import type { FeedbackQuestionnaireInstanceId } from "../../../../src/entities/feedback-questionnaire";
 import { getTestDb } from "../../../_infra/probes/sql-probe";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
 import type { ScenarioUser } from "../builders/users";
 
-const CONFIRMATION_REMINDER_TEMPLATE_CONFIG_KEY =
-  "wechat.submsg_confirmation_reminder_template_id";
+const CONFIRMATION_REMINDER_TEMPLATE_CONFIG_KEY = "wechat.submsg_confirmation_reminder_template_id";
 
 export async function configureJoinGate(input: {
   pr: ScenarioPartnerRequest;
@@ -57,9 +56,7 @@ export async function configurePRMeetingPoint(input: {
     .where(eq(partnerRequests.id, input.pr.id));
 }
 
-export async function configureOpenConfirmationWindow(
-  pr: ScenarioPartnerRequest,
-): Promise<void> {
+export async function configureOpenConfirmationWindow(pr: ScenarioPartnerRequest): Promise<void> {
   const startsAt = new Date(Date.now() + 60 * 60 * 1000);
   const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
 
@@ -74,9 +71,7 @@ export async function configureOpenConfirmationWindow(
     .where(eq(partnerRequests.id, pr.id));
 }
 
-export async function configureStartedEvent(
-  pr: ScenarioPartnerRequest,
-): Promise<void> {
+export async function configureStartedPR(pr: ScenarioPartnerRequest): Promise<void> {
   const startAt = new Date(Date.now() - 30 * 60 * 1000);
   const endAt = new Date(Date.now() + 90 * 60 * 1000);
 
@@ -91,7 +86,7 @@ export async function configureStartedEvent(
     .where(eq(partnerRequests.id, pr.id));
 }
 
-export async function configureStartedEventWithDisabledConfirmation(
+export async function configureStartedPRWithDisabledConfirmation(
   pr: ScenarioPartnerRequest,
 ): Promise<void> {
   const startAt = new Date(Date.now() - 30 * 60 * 1000);
@@ -109,9 +104,7 @@ export async function configureStartedEventWithDisabledConfirmation(
     .where(eq(partnerRequests.id, pr.id));
 }
 
-export async function configureEndedEvent(
-  pr: ScenarioPartnerRequest,
-): Promise<void> {
+export async function configureEndedPR(pr: ScenarioPartnerRequest): Promise<void> {
   const startAt = new Date(Date.now() - 120 * 60 * 1000);
   const endAt = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -126,7 +119,7 @@ export async function configureEndedEvent(
     .where(eq(partnerRequests.id, pr.id));
 }
 
-export async function configureStartedEventWithFeedback(input: {
+export async function configureStartedPRWithFeedback(input: {
   prId: PRId;
   feedbackQuestionnaireInstanceId: FeedbackQuestionnaireInstanceId;
 }): Promise<void> {

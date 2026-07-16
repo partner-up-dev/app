@@ -93,7 +93,7 @@ const props = withDefaults(
     modelValue: TimelinePolicyValue;
     title?: string;
     description?: string | null;
-    eventStartAt: string | null;
+    startAt: string | null;
     disabled?: boolean;
     stepMinutes?: number;
     validationMessage?: string | null;
@@ -112,9 +112,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const resolvedTitle = computed(
-  () => props.title ?? t("timelinePolicyPicker.title"),
-);
+const resolvedTitle = computed(() => props.title ?? t("timelinePolicyPicker.title"));
 const resolvedDescription = computed(
   () => props.description ?? t("timelinePolicyPicker.description"),
 );
@@ -143,9 +141,9 @@ const editableControls = computed(() => [
   },
 ]);
 
-const eventStartDate = computed(() => parseDate(props.eventStartAt));
+const windowStartDate = computed(() => parseDate(props.startAt));
 const timelineMarkers = computed(() => {
-  const startDate = eventStartDate.value;
+  const startDate = windowStartDate.value;
   if (!startDate) return [];
 
   const rawMarkers = [
@@ -153,19 +151,13 @@ const timelineMarkers = computed(() => {
       key: "confirmation-start",
       kind: "editable",
       label: t("timelinePolicyPicker.confirmationStartMarker"),
-      at: offsetFromStart(
-        startDate,
-        props.modelValue.confirmationStartOffsetMinutes,
-      ),
+      at: offsetFromStart(startDate, props.modelValue.confirmationStartOffsetMinutes),
     },
     {
       key: "confirmation-end",
       kind: "editable",
       label: t("timelinePolicyPicker.confirmationEndMarker"),
-      at: offsetFromStart(
-        startDate,
-        props.modelValue.confirmationEndOffsetMinutes,
-      ),
+      at: offsetFromStart(startDate, props.modelValue.confirmationEndOffsetMinutes),
     },
     {
       key: "join-lock",
@@ -174,9 +166,9 @@ const timelineMarkers = computed(() => {
       at: offsetFromStart(startDate, props.modelValue.joinLockOffsetMinutes),
     },
     {
-      key: "event-start",
+      key: "window-start",
       kind: "reference",
-      label: t("timelinePolicyPicker.eventStart"),
+      label: t("timelinePolicyPicker.windowStart"),
       at: startDate,
     },
   ].filter((marker) => marker.at !== null);
@@ -191,9 +183,7 @@ const timelineMarkers = computed(() => {
   return rawMarkers.map((marker) => ({
     ...marker,
     position: ((marker.at!.getTime() - minTime) / span) * 100,
-    timeLabel:
-      formatLocalDateTimeValue(marker.at!.toISOString()) ??
-      marker.at!.toISOString(),
+    timeLabel: formatLocalDateTimeValue(marker.at!.toISOString()) ?? marker.at!.toISOString(),
   }));
 });
 

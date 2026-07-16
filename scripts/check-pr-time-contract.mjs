@@ -27,17 +27,23 @@ const checks = [
     pass: (content) => !content.includes('time: ["2026-02-08", null]'),
   },
   {
-    file: "apps/web/src/domains/event/model/form-mode.ts",
-    message: "Form Mode all-day windows must end at the next product-local midnight.",
+    file: "apps/web/src/domains/pr/model/pr-discovery-form.ts",
+    message: "PR Discovery time options must be normalized datetime instants.",
     pass: (content) =>
-      content.includes('{ label: "全天", value: "ALL_DAY", startTime: "00:00", endTime: "00:00" }'),
+      content.includes("buildProductLocalIso") && content.includes(".toISOString()"),
   },
   {
-    file: "apps/backend/src/controllers/anchor-event.controller.ts",
-    message: "Anchor Event PR time-window inputs must allow offset datetime instants.",
+    file: "apps/web/src/domains/pr/ui/PRDiscoveryPanel.vue",
+    message: "PR Discovery must hand Authoring its normalized time window.",
+    pass: (content) => content.includes("time: [timeWindow.startAt, timeWindow.endAt ?? null]"),
+  },
+  {
+    file: "apps/backend/src/controllers/pr-discovery.controller.ts",
+    message: "PR Discovery recommendation windows must allow offset datetime instants.",
     pass: (content) =>
       content.includes("const instantDateTimeSchema = z.string().datetime({ offset: true });") &&
-      !content.includes("z.string().datetime(), z.string().datetime()"),
+      content.includes("startAt: instantDateTimeSchema") &&
+      content.includes("endAt: instantDateTimeSchema"),
   },
 ];
 

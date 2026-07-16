@@ -13,4 +13,4 @@ and primitives.
 
 - PR UI may compose shared primitives from `src/shared/ui`.
 - Reusable PR behavior belongs in PR-domain components or composables, not page files.
-- Cross-domain event/search surfaces should pass PR identity and caller-owned context into PR components instead of duplicating canonical PR facts.
+- Cross-domain PR Discovery/search surfaces should pass PR identity and caller-owned context into PR components instead of duplicating canonical PR facts.

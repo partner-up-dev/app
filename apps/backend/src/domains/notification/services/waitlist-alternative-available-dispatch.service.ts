@@ -1,16 +1,16 @@
 import { z } from "zod";
 import type { PartnerId } from "../../../entities/partner";
-import type { PRId, PartnerRequest } from "../../../entities/partner-request";
-import { userIdSchema, type User, type UserId } from "../../../entities/user";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
+import { type User, type UserId, userIdSchema } from "../../../entities/user";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
-import { refreshTemporalStatus } from "../../pr-core/temporal-refresh";
 import { assertNoUserTimeWindowConflict } from "../../pr-core/services/participation-time-conflict.service";
-import { isJoinableStatus } from "../../pr-core/services/status-rules";
+import { isPRJoinableStatus } from "../../pr-core/services/status-rules";
+import { refreshTemporalStatus } from "../../pr-core/temporal-refresh";
 import { WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();
@@ -19,8 +19,7 @@ const userRepo = new UserRepository();
 const userNotificationOptRepo = new UserNotificationOptRepository();
 const deliveryRepo = new NotificationDeliveryRepository();
 
-const WAITLIST_ALTERNATIVE_AVAILABLE_DEDUPE_PREFIX =
-  "wechat-waitlist-alternative";
+const WAITLIST_ALTERNATIVE_AVAILABLE_DEDUPE_PREFIX = "wechat-waitlist-alternative";
 const WAITLIST_ALTERNATIVE_AVAILABLE_STATUS = "有可加入名额";
 const WAITLIST_ALTERNATIVE_AVAILABLE_REMARK = "同类同地点有其它 PR 可加入";
 
@@ -29,14 +28,13 @@ const normalizeText = (value: string | null): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-export const waitlistAlternativeAvailableNotificationJobPayloadSchema =
-  z.object({
-    sourcePrId: z.coerce.number().int().positive(),
-    sourcePartnerId: z.coerce.number().int().positive(),
-    candidatePrId: z.coerce.number().int().positive(),
-    recipientUserId: userIdSchema,
-    scheduledAtIso: z.string().datetime().optional(),
-  });
+export const waitlistAlternativeAvailableNotificationJobPayloadSchema = z.object({
+  sourcePrId: z.coerce.number().int().positive(),
+  sourcePartnerId: z.coerce.number().int().positive(),
+  candidatePrId: z.coerce.number().int().positive(),
+  recipientUserId: userIdSchema,
+  scheduledAtIso: z.string().datetime().optional(),
+});
 
 export type WaitlistAlternativeAvailableNotificationJobPayload = z.infer<
   typeof waitlistAlternativeAvailableNotificationJobPayloadSchema
@@ -70,9 +68,8 @@ export const buildWaitlistAlternativeAvailableDedupeKey = (
 ): string =>
   `${WAITLIST_ALTERNATIVE_AVAILABLE_DEDUPE_PREFIX}:${recipientUserId}:${sourcePartnerId}:${candidatePrId}`;
 
-export const buildWaitlistAlternativeAvailableDedupePrefixForUser = (
-  userId: UserId,
-): string => `${WAITLIST_ALTERNATIVE_AVAILABLE_DEDUPE_PREFIX}:${userId}:`;
+export const buildWaitlistAlternativeAvailableDedupePrefixForUser = (userId: UserId): string =>
+  `${WAITLIST_ALTERNATIVE_AVAILABLE_DEDUPE_PREFIX}:${userId}:`;
 
 const resolvePrUrl = (request: PartnerRequest): string | null => {
   const frontendUrl = env.FRONTEND_URL?.trim();
@@ -98,13 +95,11 @@ const resolveTitle = (request: PartnerRequest): string => {
   return `PR#${request.id}`;
 };
 
-const isCandidateJoinable = async (
-  request: PartnerRequest,
-): Promise<boolean> => {
+const isCandidateJoinable = async (request: PartnerRequest): Promise<boolean> => {
   if (request.visibilityStatus !== "VISIBLE") {
     return false;
   }
-  if (!isJoinableStatus(request.status)) {
+  if (!isPRJoinableStatus(request.status)) {
     return false;
   }
   if (request.maxPartners === null) {
@@ -134,9 +129,7 @@ export const prepareWaitlistAlternativeAvailableNotificationDispatch = async (
     };
   }
 
-  const notificationOpt = await userNotificationOptRepo.findByUserId(
-    recipient.id,
-  );
+  const notificationOpt = await userNotificationOptRepo.findByUserId(recipient.id);
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND,
@@ -149,9 +142,7 @@ export const prepareWaitlistAlternativeAvailableNotificationDispatch = async (
     };
   }
 
-  const sourceSlot = await partnerRepo.findById(
-    payload.sourcePartnerId as PartnerId,
-  );
+  const sourceSlot = await partnerRepo.findById(payload.sourcePartnerId as PartnerId);
   if (
     !sourceSlot ||
     sourceSlot.prId !== payload.sourcePrId ||
@@ -251,9 +242,7 @@ export const recordWaitlistAlternativeAvailableNotificationDelivery = async (inp
     userId: input.payload.recipientUserId,
     notificationKind: WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND,
     notificationTrigger: null,
-    scheduledAt: input.payload.scheduledAtIso
-      ? new Date(input.payload.scheduledAtIso)
-      : new Date(),
+    scheduledAt: input.payload.scheduledAtIso ? new Date(input.payload.scheduledAtIso) : new Date(),
     sentAt: new Date(),
     result: input.result,
     errorCode: input.errorCode ?? null,

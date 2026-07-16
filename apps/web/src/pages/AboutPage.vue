@@ -56,58 +56,10 @@
         </div>
       </dl>
 
-      <section
-        id="beta-groups"
-        class="about-beta-groups about-item"
-        :aria-label="t('aboutPage.betaGroupsSectionTitle')"
-      >
-        <div class="about-beta-groups__header">
-          <h2>{{ t("aboutPage.betaGroupsTitle") }}</h2>
-          <p>{{ t("aboutPage.betaGroupsDescription") }}</p>
-        </div>
+      <PRTypeCommunityDirectorySection />
 
-        <p
-          v-if="anchorEventsQuery.isLoading.value"
-          class="about-beta-groups__state"
-        >
-          {{ t("aboutPage.betaGroupsLoading") }}
-        </p>
-        <p
-          v-else-if="anchorEventsQuery.error.value"
-          class="about-beta-groups__state about-beta-groups__state--error"
-        >
-          {{ t("aboutPage.betaGroupsLoadFailed") }}
-        </p>
-        <p
-          v-else-if="activeEvents.length === 0"
-          class="about-beta-groups__state"
-        >
-          {{ t("aboutPage.betaGroupsEmpty") }}
-        </p>
-        <div v-else class="about-beta-groups-card">
-          <div
-            v-for="event in activeEvents"
-            :key="event.id"
-            class="about-beta-groups-row"
-          >
-            <span class="about-beta-groups-row__label">
-              {{ event.title }}
-            </span>
-            <button
-              type="button"
-              class="about-beta-groups-row__value"
-              @click="openBetaGroupModal(event.id)"
-            >
-              {{ t("aboutPage.betaGroupLinkAction") }}
-            </button>
-          </div>
-        </div>
-
-        <PuButton
-          shape="pill"
-
-          @click="showOfficialAccountQrModal = true"
-        >
+      <section class="about-item about-follow-section">
+        <PuButton shape="pill" @click="showOfficialAccountQrModal = true">
           {{ t("home.landing.officialAccountAction") }}
         </PuButton>
       </section>
@@ -125,103 +77,26 @@
       :open="showOfficialAccountQrModal"
       @close="showOfficialAccountQrModal = false"
     />
-
-    <PuModal
-      :open="betaGroupModalOpen"
-      :title="selectedBetaGroupModalTitle"
-      max-width="420px"
-      @close="closeBetaGroupModal"
-    >
-      <div class="about-beta-group-modal">
-        <p class="about-beta-group-modal__description">
-          {{ t("aboutPage.betaGroupModalDescription") }}
-        </p>
-        <img
-          v-if="selectedBetaGroupQrCodeUrl"
-          :src="selectedBetaGroupQrCodeUrl"
-          :alt="selectedBetaGroupQrAlt"
-          class="about-beta-group-modal__qr"
-        />
-        <p v-else class="about-beta-group-modal__missing">
-          {{ t("aboutPage.betaGroupQrMissing") }}
-        </p>
-      </div>
-    </PuModal>
   </PuPageScaffold>
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuHeader, PuPageScaffold } from "@partner-up-dev/design-web";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAnchorEvents } from "@/domains/event/queries/useAnchorEvents";
+import PRTypeCommunityDirectorySection from "@/domains/pr/ui/discovery/PRTypeCommunityDirectorySection.vue";
 import { frontendBuildInfo } from "@/shared/meta/build-info";
 import { useBackendBuildMetadata } from "@/shared/meta/queries/useBackendBuildMetadata";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import OfficialAccountQrModal from "@/shared/wechat/OfficialAccountQrModal.vue";
-import {
-  PuButton,
-  PuHeader,
-  PuModal,
-  PuPageScaffold,
-} from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { handleBack } = useFallbackBack();
 const backendBuildMetadataQuery = useBackendBuildMetadata();
-const anchorEventsQuery = useAnchorEvents();
 const showOfficialAccountQrModal = ref(false);
-const selectedBetaGroupEventId = ref<number | null>(null);
-
-const activeEvents = computed(() => anchorEventsQuery.data.value ?? []);
-const selectedBetaGroupEvent = computed(
-  () =>
-    activeEvents.value.find(
-      (event) => event.id === selectedBetaGroupEventId.value,
-    ) ?? null,
-);
-const selectedBetaGroupModalTitle = computed(() => {
-  const title = selectedBetaGroupEvent.value?.title ?? "";
-  return t("aboutPage.betaGroupModalTitle", { eventTitle: title });
-});
-
-const normalizeHttpUrl = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-};
-
-const selectedBetaGroupQrCodeUrl = computed(() =>
-  normalizeHttpUrl(selectedBetaGroupEvent.value?.betaGroupQrCode),
-);
-const selectedBetaGroupQrAlt = computed(() =>
-  t("aboutPage.betaGroupQrAlt", {
-    eventTitle: selectedBetaGroupEvent.value?.title ?? "",
-  }),
-);
-const betaGroupModalOpen = computed(
-  () => selectedBetaGroupEvent.value !== null,
-);
-
-const openBetaGroupModal = (eventId: number): void => {
-  selectedBetaGroupEventId.value = eventId;
-};
-
-const closeBetaGroupModal = (): void => {
-  selectedBetaGroupEventId.value = null;
-};
 
 const repositoryUrl = computed(
-  () =>
-    backendBuildMetadataQuery.data.value?.repositoryUrl ??
-    frontendBuildInfo.repositoryUrl,
+  () => backendBuildMetadataQuery.data.value?.repositoryUrl ?? frontendBuildInfo.repositoryUrl,
 );
 
 const frontendCommitHash = computed(() => frontendBuildInfo.frontendCommitHash);
@@ -231,10 +106,7 @@ const backendCommitHash = computed(() => {
     return t("common.loading");
   }
 
-  return (
-    backendBuildMetadataQuery.data.value?.backendCommitHash ??
-    t("aboutPage.unknownValue")
-  );
+  return backendBuildMetadataQuery.data.value?.backendCommitHash ?? t("aboutPage.unknownValue");
 });
 </script>
 
@@ -282,109 +154,9 @@ const backendCommitHash = computed(() => {
   }
 }
 
-.about-beta-groups {
+.about-follow-section {
   display: grid;
   gap: var(--sys-spacing-small);
-  scroll-margin-top: var(--sys-spacing-large);
-}
-
-.about-beta-groups__header {
-  display: grid;
-  gap: var(--sys-spacing-xsmall);
-
-  h2,
-  p {
-    margin: 0;
-  }
-
-  h2 {
-    @include mx.pu-font(section);
-    color: var(--sys-color-on-surface);
-  }
-
-  p {
-    @include mx.pu-font(body);
-    color: var(--sys-color-on-surface-variant);
-  }
-}
-
-.about-beta-groups__kicker {
-  @include mx.pu-font(control);
-  color: var(--sys-color-secondary);
-}
-
-.about-beta-groups__state {
-  @include mx.pu-font(body);
-  margin: 0;
-  color: var(--sys-color-on-surface-variant);
-}
-
-.about-beta-groups__state--error {
-  color: var(--sys-color-error);
-}
-
-.about-beta-groups-card {
-  display: grid;
-  padding: 0;
-}
-
-.about-beta-groups-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sys-spacing-small);
-  min-height: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
-  padding: var(--sys-spacing-small) 0;
-}
-
-.about-beta-groups-row + .about-beta-groups-row {
-  border-top: 1px solid var(--sys-color-outline-variant);
-}
-
-.about-beta-groups-row__label {
-  @include mx.pu-font(body);
-  color: var(--sys-color-on-surface);
-  overflow-wrap: anywhere;
-}
-
-.about-beta-groups-row__value {
-  appearance: none;
-  border: 0;
-  padding: var(--sys-spacing-xsmall);
-  background: transparent;
-  @include mx.pu-font(control);
-  color: var(--sys-color-primary);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.14em;
-}
-
-.about-beta-groups-row__value:focus-visible {
-  outline: 2px solid var(--sys-color-primary);
-  outline-offset: 2px;
-  border-radius: var(--sys-radius-xsmall);
-}
-
-.about-beta-group-modal {
-  display: grid;
-  justify-items: center;
-  gap: var(--sys-spacing-small);
-}
-
-.about-beta-group-modal__description,
-.about-beta-group-modal__missing {
-  @include mx.pu-font(body);
-  margin: 0;
-  color: var(--sys-color-on-surface-variant);
-  text-align: center;
-}
-
-.about-beta-group-modal__qr {
-  width: min(100%, 260px);
-  border-radius: var(--sys-radius-medium);
 }
 
 .repo-link {

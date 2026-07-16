@@ -14,7 +14,7 @@
             shape="pill"
           />
         </div>
-        <p class="partner-section__subtitle">{{ subtitleText }}</p>
+        <p class="partner-section__subtitle">{{ subtitleParticipantTimeline }}</p>
       </div>
     </header>
 
@@ -153,10 +153,10 @@
       <div class="partner-section__timeline">
         <div class="partner-section__timeline-item">
           <span class="partner-section__timeline-label">{{
-            t("prPage.partnerSection.timelineEventStart")
+            t("prPage.partnerSection.timelinePRStart")
           }}</span>
           <span class="partner-section__timeline-value">{{
-            formatDateTime(section.timeline.eventStartAt)
+            formatDateTime(section.timeline.startAt)
           }}</span>
         </div>
         <div class="partner-section__timeline-item">
@@ -224,20 +224,18 @@
 </template>
 
 <script setup lang="ts">
+import { PuButton, PuTag } from "@partner-up-dev/design-web";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
 import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import PRRosterItem from "@/domains/pr/ui/primitives/PRRosterItem.vue";
-import { PuButton, PuTag } from "@partner-up-dev/design-web";
 import {
   formatFriendlyTimeWindowLabel,
   formatLocalDateTimeValue,
 } from "@/shared/datetime/formatLocalDateTime";
 
 type PartnerSectionView = PRPartnerSectionView;
-
-type TimeWindow = [string | null, string | null];
 
 const props = withDefaults(
   defineProps<{
@@ -256,7 +254,6 @@ const props = withDefaults(
     reminderConfigured?: boolean;
     reminderHintText?: string;
     isWeChatEnv?: boolean;
-    acceptAlternativeBatchPending?: boolean;
   }>(),
   {
     joinPending: false,
@@ -271,7 +268,6 @@ const props = withDefaults(
     reminderConfigured: false,
     reminderHintText: "",
     isWeChatEnv: false,
-    acceptAlternativeBatchPending: false,
   },
 );
 
@@ -282,16 +278,15 @@ const emit = defineEmits<{
   "submit-check-in": [];
   "toggle-reminder": [];
   "go-wechat-login": [];
-  "accept-alternative-batch": [timeWindow: TimeWindow];
 }>();
 
 const { t } = useI18n();
 
-const subtitleText = computed(() => {
+const subtitleParticipantTimeline = computed(() => {
   if (props.section.reminder.supported || props.section.timeline) {
-    return t("prPage.partnerSection.subtitleAnchor");
+    return t("prPage.partnerSection.subtitleParticipantTimeline");
   }
-  return t("prPage.partnerSection.subtitleCommunity");
+  return t("prPage.partnerSection.subtitleParticipation");
 });
 
 const readinessText = computed(() => {
@@ -344,18 +339,13 @@ const formatDateTime = (value: string | null): string =>
   formatLocalDateTimeValue(value) ?? t("prPage.partnerSection.notSet");
 
 const formatWindow = (start: string | null, end: string | null): string => {
-  return formatFriendlyTimeWindowLabel(
-    [start, end],
-    t("prPage.partnerSection.notSet"),
-  );
+  return formatFriendlyTimeWindowLabel([start, end], t("prPage.partnerSection.notSet"));
 };
 
 const partnerProfilePath = (partnerId: number): string =>
   prPartnerProfilePath(props.prId, partnerId);
 
-const rosterItemProfilePath = (
-  item: PartnerSectionView["roster"][number],
-): string | null =>
+const rosterItemProfilePath = (item: PartnerSectionView["roster"][number]): string | null =>
   isRosterLinkable(item.state) ? partnerProfilePath(item.partnerId) : null;
 
 const confirmWindowText = computed(() => {
@@ -364,18 +354,12 @@ const confirmWindowText = computed(() => {
     return { confirmStart: notSet, confirmEnd: notSet };
   }
   return {
-    confirmStart:
-      formatLocalDateTimeValue(props.section.timeline.confirmationStartAt) ??
-      notSet,
-    confirmEnd:
-      formatLocalDateTimeValue(props.section.timeline.confirmationEndAt) ??
-      notSet,
+    confirmStart: formatLocalDateTimeValue(props.section.timeline.confirmationStartAt) ?? notSet,
+    confirmEnd: formatLocalDateTimeValue(props.section.timeline.confirmationEndAt) ?? notSet,
   };
 });
 
-const rosterStateText = (
-  state: PartnerSectionView["roster"][number]["state"],
-): string => {
+const rosterStateText = (state: PartnerSectionView["roster"][number]["state"]): string => {
   switch (state) {
     case "CONFIRMED":
       return t("prPage.partnerSection.rosterConfirmed");
@@ -390,9 +374,8 @@ const rosterStateText = (
   }
 };
 
-const isRosterLinkable = (
-  state: PartnerSectionView["roster"][number]["state"],
-): boolean => state !== "RELEASED" && state !== "EXITED";
+const isRosterLinkable = (state: PartnerSectionView["roster"][number]["state"]): boolean =>
+  state !== "RELEASED" && state !== "EXITED";
 
 const rosterAvatarAlt = (name: string): string =>
   t("prPage.partnerSection.rosterAvatarAlt", { name });
@@ -403,21 +386,16 @@ const rosterAvatarFallback = (displayName: string): string => {
   return t("prPage.partnerSection.rosterAvatarFallback");
 };
 
-function blockedReasonText(
-  reason: PartnerSectionView["viewer"]["joinBlockedReason"],
-): string {
+function blockedReasonText(reason: PartnerSectionView["viewer"]["joinBlockedReason"]): string {
   switch (reason) {
     case "FULL":
       return t("prPage.partnerSection.blockedFull");
     case "JOIN_LOCKED":
       return t("prPage.partnerSection.blockedJoinLocked");
-    case "EVENT_STARTED":
-      return t("prPage.partnerSection.blockedEventStarted");
+    case "PR_TIME_WINDOW_STARTED":
+      return t("prPage.partnerSection.blockedPRTimeWindowStarted");
     case "OUTSIDE_CONFIRM_WINDOW":
-      return t(
-        "prPage.partnerSection.blockedConfirmWindow",
-        confirmWindowText.value,
-      );
+      return t("prPage.partnerSection.blockedConfirmWindow", confirmWindowText.value);
     case "ALREADY_CONFIRMED":
       return t("prPage.partnerSection.blockedAlreadyConfirmed");
     case "ALREADY_JOINED":

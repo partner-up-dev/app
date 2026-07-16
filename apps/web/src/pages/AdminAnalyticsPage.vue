@@ -32,67 +32,40 @@
         </PuFormItem>
 
         <PuFormItem
-          v-if="showsAnchorEventFilters"
-          :label="t('adminAnalytics.eventIdLabel')"
-          for-id="analytics-event-id"
+          v-if="showsPRDiscoveryDashboard"
+          :label="t('adminAnalytics.prTypeLabel')"
+          for-id="analytics-pr-type"
         >
           <PuInput
-            id="analytics-event-id"
-            v-model="draftEventId"
-            inputmode="numeric"
+            id="analytics-pr-type"
+            v-model="draftPRType"
             native-type="text"
-            :placeholder="t('adminAnalytics.allEventsPlaceholder')"
+            :placeholder="t('adminAnalytics.prTypePlaceholder')"
           />
         </PuFormItem>
 
         <PuFormItem
-          v-if="showsAnchorEventFilters"
-          :label="t('adminAnalytics.sourceSpmLabel')"
-          for-id="analytics-spm"
-        >
-          <PuInput
-            id="analytics-spm"
-            v-model="draftSpm"
-            native-type="text"
-            :placeholder="t('adminAnalytics.sourceSpmPlaceholder')"
-          />
-        </PuFormItem>
-
-        <PuFormItem
-          v-if="showsAnchorEventFilters"
-          :label="t('adminAnalytics.sourceQrLabel')"
-          for-id="analytics-source-qr"
-        >
-          <PuInput
-            id="analytics-source-qr"
-            v-model="draftSourceQr"
-            native-type="text"
-            :placeholder="t('adminAnalytics.sourceQrPlaceholder')"
-          />
-        </PuFormItem>
-
-        <PuFormItem
-          v-if="showsAnchorEventFilters"
-          :label="t('adminAnalytics.assignmentRevisionLabel')"
-          for-id="analytics-assignment-revision"
-        >
-          <PuInput
-            id="analytics-assignment-revision"
-            v-model="draftAssignmentRevision"
-            native-type="text"
-            :placeholder="t('adminAnalytics.assignmentRevisionPlaceholder')"
-          />
-        </PuFormItem>
-
-        <PuFormItem
-          v-if="showsAnchorEventFilters"
-          :label="t('adminAnalytics.renderedModeLabel')"
-          for-id="analytics-mode"
+          v-if="showsPRDiscoveryDashboard"
+          :label="t('adminAnalytics.viewModeLabel')"
+          for-id="analytics-view-mode"
         >
           <PuSelect
-            id="analytics-mode"
-            v-model="draftRenderedModeModel"
-            :options="renderedModeOptions"
+            id="analytics-view-mode"
+            v-model="draftViewModeModel"
+            :options="viewModeOptions"
+          />
+        </PuFormItem>
+
+        <PuFormItem
+          v-if="showsPRDiscoveryDashboard"
+          :label="t('adminAnalytics.originLabel')"
+          for-id="analytics-origin"
+        >
+          <PuInput
+            id="analytics-origin"
+            v-model="draftOrigin"
+            native-type="text"
+            :placeholder="t('adminAnalytics.originPlaceholder')"
           />
         </PuFormItem>
 
@@ -165,12 +138,12 @@
 
         <template v-else-if="hasDashboardData">
           <section
-            v-if="showsAnchorEventDashboard && dashboard"
+            v-if="showsPRDiscoveryDashboard && dashboard"
             class="kpi-strip"
-            data-testid="admin-analytics.summary"
+            data-testid="admin-analytics.pr-discovery-summary"
           >
             <article
-              v-for="item in summaryItems"
+                v-for="item in prDiscoverySummaryItems"
               :key="item.key"
               class="kpi-card"
             >
@@ -262,35 +235,6 @@
             </div>
 
             <div class="analytics-lower-grid">
-              <div class="analytics-table-wrap">
-                <table class="analytics-table analytics-table--compact">
-                  <thead>
-                    <tr>
-                      <th>{{ t("adminAnalytics.transitionColumn") }}</th>
-                      <th>{{ t("adminAnalytics.usersColumn") }}</th>
-                      <th>{{ t("adminAnalytics.eventsColumn") }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="row in visibleTransitionRows"
-                      :key="`${row.fromActivityType}:${row.toActivityType}`"
-                    >
-                      <td>
-                        {{ formatActivityType(row.fromActivityType) }}
-                        ->
-                        {{ formatActivityType(row.toActivityType) }}
-                      </td>
-                      <td>{{ formatCount(row.userCount) }}</td>
-                      <td>{{ formatCount(row.transitionCount) }}</td>
-                    </tr>
-                    <tr v-if="visibleTransitionRows.length === 0">
-                      <td colspan="3">{{ t("adminAnalytics.emptyTable") }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
               <dl class="nudge-summary-grid nudge-summary-grid--compact">
                 <div>
                   <dt>{{ t("adminAnalytics.userPRAnyUsersMetric") }}</dt>
@@ -478,117 +422,63 @@
           </section>
 
           <section
-            v-if="showsOfficialAccountDashboard && dashboard"
+            v-if="showsPRDiscoveryDashboard && dashboard"
             class="analytics-panel"
-            data-testid="admin-analytics.official-account-nudge"
+            data-testid="admin-analytics.pr-discovery-funnel"
           >
             <div class="analytics-panel__header">
               <div>
-                <h2>{{ t("adminAnalytics.officialAccountNudgeTitle") }}</h2>
-                <p>{{ t("adminAnalytics.officialAccountNudgeSubtitle") }}</p>
+                <h2>{{ t("adminAnalytics.prDiscoveryFunnelTitle") }}</h2>
+                <p>{{ t("adminAnalytics.prDiscoveryFunnelSubtitle") }}</p>
               </div>
             </div>
-
-            <dl class="nudge-summary-grid">
-              <div>
-                <dt>{{ t("adminAnalytics.nudgeShownJourneysMetric") }}</dt>
-                <dd>
-                  {{
-                    formatCount(
-                      dashboard.officialAccountFollowNudge.shownJourneys,
-                    )
-                  }}
-                </dd>
-                <span>
-                  {{
-                    t("adminAnalytics.nudgeEventsDetail", {
-                      count: formatCount(
-                        dashboard.officialAccountFollowNudge.shownEvents,
-                      ),
-                    })
-                  }}
-                </span>
-              </div>
-              <div>
-                <dt>{{ t("adminAnalytics.nudgeFollowClickJourneysMetric") }}</dt>
-                <dd>
-                  {{
-                    formatCount(
-                      dashboard.officialAccountFollowNudge.followClickJourneys,
-                    )
-                  }}
-                </dd>
-                <span>
-                  {{
-                    t("adminAnalytics.nudgeEventsDetail", {
-                      count: formatCount(
-                        dashboard.officialAccountFollowNudge.followClickEvents,
-                      ),
-                    })
-                  }}
-                </span>
-              </div>
-              <div>
-                <dt>{{ t("adminAnalytics.nudgeFollowClickRateMetric") }}</dt>
-                <dd>
-                  {{
-                    formatRate(
-                      dashboard.officialAccountFollowNudge.followClickRate,
-                    )
-                  }}
-                </dd>
-                <span>{{ t("adminAnalytics.nudgeFollowClickRateDetail") }}</span>
-              </div>
-              <div>
-                <dt>{{ t("adminAnalytics.nudgeDismissJourneysMetric") }}</dt>
-                <dd>
-                  {{
-                    formatCount(
-                      dashboard.officialAccountFollowNudge.dismissJourneys,
-                    )
-                  }}
-                </dd>
-                <span>
-                  {{
-                    t("adminAnalytics.nudgeEventsDetail", {
-                      count: formatCount(
-                        dashboard.officialAccountFollowNudge.dismissEvents,
-                      ),
-                    })
-                  }}
-                </span>
-              </div>
-            </dl>
 
             <div class="analytics-table-wrap">
               <table class="analytics-table">
                 <thead>
                   <tr>
-                    <th>{{ t("adminAnalytics.nudgeSourceColumn") }}</th>
-                    <th>{{ t("adminAnalytics.nudgeShownJourneysColumn") }}</th>
-                    <th>
-                      {{ t("adminAnalytics.nudgeFollowClickJourneysColumn") }}
-                    </th>
-                    <th>{{ t("adminAnalytics.nudgeDismissJourneysColumn") }}</th>
-                    <th>{{ t("adminAnalytics.nudgeFollowClickRateColumn") }}</th>
+                    <th>{{ t("adminAnalytics.funnelStepColumn") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                    <th>{{ t("adminAnalytics.previousRateLabel") }}</th>
+                    <th>{{ t("adminAnalytics.startRateLabel") }}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="row in dashboard.officialAccountFollowNudge.sources"
-                    :key="row.source"
-                  >
-                    <td>{{ formatNudgeSource(row.source) }}</td>
-                    <td>{{ formatCount(row.shownJourneys) }}</td>
-                    <td>{{ formatCount(row.followClickJourneys) }}</td>
-                    <td>{{ formatCount(row.dismissJourneys) }}</td>
-                    <td>{{ formatRate(row.followClickRate) }}</td>
+                  <tr v-for="step in dashboard.steps" :key="step.stepKey">
+                    <td><strong>{{ step.label }}</strong></td>
+                    <td>{{ formatCount(step.journeyCount) }}</td>
+                    <td>{{ formatCount(step.eventCount) }}</td>
+                    <td>{{ formatNullableRate(step.conversionFromPrevious) }}</td>
+                    <td>{{ formatRate(step.conversionFromStart) }}</td>
                   </tr>
-                  <tr
-                    v-if="
-                      dashboard.officialAccountFollowNudge.sources.length === 0
-                    "
-                  >
+                  <tr v-if="dashboard.steps.length === 0">
+                    <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="analytics-table-wrap">
+              <table class="analytics-table analytics-table--compact">
+                <thead>
+                  <tr>
+                    <th>{{ t("adminAnalytics.prTypeLabel") }}</th>
+                    <th>{{ t("adminAnalytics.viewModeLabel") }}</th>
+                    <th>{{ t("adminAnalytics.originLabel") }}</th>
+                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
+                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in dashboard.dimensions" :key="`${row.prType}:${row.viewMode}:${row.origin}`">
+                    <td>{{ row.prType }}</td>
+                    <td>{{ row.viewMode }}</td>
+                    <td>{{ row.origin }}</td>
+                    <td>{{ formatCount(row.journeyCount) }}</td>
+                    <td>{{ formatCount(row.eventCount) }}</td>
+                  </tr>
+                  <tr v-if="dashboard.dimensions.length === 0">
                     <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
                   </tr>
                 </tbody>
@@ -596,227 +486,6 @@
             </div>
           </section>
 
-          <template v-if="showsAnchorEventDashboard && dashboard">
-          <section class="analytics-panel" data-testid="admin-analytics.modes">
-            <div class="analytics-panel__header">
-              <div>
-                <h2>{{ t("adminAnalytics.modeComparisonTitle") }}</h2>
-                <p>{{ t("adminAnalytics.modeComparisonSubtitle") }}</p>
-              </div>
-            </div>
-
-            <div class="analytics-table-wrap">
-              <table class="analytics-table">
-                <thead>
-                  <tr>
-                    <th>{{ t("adminAnalytics.modeColumn") }}</th>
-                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
-                    <th>{{ t("adminAnalytics.exposureColumn") }}</th>
-                    <th>{{ t("adminAnalytics.entryColumn") }}</th>
-                    <th>{{ t("adminAnalytics.commitmentColumn") }}</th>
-                    <th>{{ t("adminAnalytics.rateColumn") }}</th>
-                    <th>{{ t("adminAnalytics.outcomeColumn") }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="row in dashboard.modes"
-                    :key="row.renderedMode"
-                    :class="{ 'is-active': focusedMode === row.renderedMode }"
-                    tabindex="0"
-                    @click="focusMode(row.renderedMode)"
-                    @keydown.enter="focusMode(row.renderedMode)"
-                  >
-                    <td>{{ formatMode(row.renderedMode) }}</td>
-                    <td>{{ formatCount(row.journeys) }}</td>
-                    <td>{{ formatCount(row.prExposureJourneys) }}</td>
-                    <td>{{ formatCount(row.prEntryJourneys) }}</td>
-                    <td>{{ formatCount(row.prCommitmentJourneys) }}</td>
-                    <td>{{ formatRate(row.commitmentRate) }}</td>
-                    <td>
-                      {{ formatOutcomeShort(row) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="funnel-grid" data-testid="admin-analytics.funnels">
-            <article
-              v-for="funnel in visibleFunnels"
-              :key="funnel.renderedMode"
-              class="funnel-panel"
-              :class="{ 'is-focused': focusedMode === funnel.renderedMode }"
-            >
-              <div class="funnel-panel__header">
-                <h2>{{ formatMode(funnel.renderedMode) }}</h2>
-                <span>{{ t("adminAnalytics.funnelStepCount", { count: funnel.steps.length }) }}</span>
-              </div>
-
-              <ol class="funnel-steps">
-                <li
-                  v-for="step in funnel.steps"
-                  :key="step.stepKey"
-                  class="funnel-step"
-                >
-                  <div class="funnel-step__body">
-                    <div class="funnel-step__title-row">
-                      <strong>{{ step.label }}</strong>
-                      <span>{{ formatCount(step.journeyCount) }}</span>
-                    </div>
-                    <p>{{ step.behavior }}</p>
-                    <div
-                      class="funnel-step__bar"
-                      :aria-label="formatRate(step.conversionFromStart)"
-                    >
-                      <span
-                        :style="{ width: formatBarWidth(step.conversionFromStart) }"
-                      ></span>
-                    </div>
-                  </div>
-                  <dl class="funnel-step__metrics">
-                    <div>
-                      <dt>{{ t("adminAnalytics.eventCountLabel") }}</dt>
-                      <dd>{{ formatCount(step.eventCount) }}</dd>
-                    </div>
-                    <div>
-                      <dt>{{ t("adminAnalytics.previousRateLabel") }}</dt>
-                      <dd>{{ formatNullableRate(step.conversionFromPrevious) }}</dd>
-                    </div>
-                    <div>
-                      <dt>{{ t("adminAnalytics.startRateLabel") }}</dt>
-                      <dd>{{ formatRate(step.conversionFromStart) }}</dd>
-                    </div>
-                  </dl>
-                </li>
-              </ol>
-            </article>
-          </section>
-
-          <div class="analytics-lower-grid">
-            <section class="analytics-panel" data-testid="admin-analytics.outcomes">
-              <div class="analytics-panel__header">
-                <div>
-                  <h2>{{ t("adminAnalytics.outcomeBreakdownTitle") }}</h2>
-                  <p>{{ t("adminAnalytics.outcomeBreakdownSubtitle") }}</p>
-                </div>
-              </div>
-              <div class="analytics-table-wrap">
-                <table class="analytics-table">
-                  <thead>
-                    <tr>
-                      <th>{{ t("adminAnalytics.modeColumn") }}</th>
-                      <th>{{ t("adminAnalytics.commitmentTypeColumn") }}</th>
-                      <th>{{ t("adminAnalytics.resultColumn") }}</th>
-                      <th>{{ t("adminAnalytics.journeysColumn") }}</th>
-                      <th>{{ t("adminAnalytics.eventsColumn") }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="row in dashboard.outcomes" :key="formatOutcomeKey(row)">
-                      <td>{{ formatMode(row.renderedMode) }}</td>
-                      <td>{{ formatCommitmentType(row.commitmentType) }}</td>
-                      <td>
-                        <PuTag
-                          :text="formatActionResult(row.actionResult)"
-                          :tone="actionResultTagTone(row.actionResult)"
-                          variant="soft"
-                          shape="pill"
-                          size="xs"
-                        />
-                      </td>
-                      <td>{{ formatCount(row.journeyCount) }}</td>
-                      <td>{{ formatCount(row.eventCount) }}</td>
-                    </tr>
-                    <tr v-if="dashboard.outcomes.length === 0">
-                      <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="analytics-panel" data-testid="admin-analytics.sources">
-              <div class="analytics-panel__header">
-                <div>
-                  <h2>{{ t("adminAnalytics.sourceBreakdownTitle") }}</h2>
-                  <p>{{ t("adminAnalytics.sourceBreakdownSubtitle") }}</p>
-                </div>
-              </div>
-              <div class="analytics-table-wrap">
-                <table class="analytics-table">
-                  <thead>
-                    <tr>
-                      <th>{{ t("adminAnalytics.sourceColumn") }}</th>
-                      <th>{{ t("adminAnalytics.modeColumn") }}</th>
-                      <th>{{ t("adminAnalytics.journeysColumn") }}</th>
-                      <th>{{ t("adminAnalytics.commitmentColumn") }}</th>
-                      <th>{{ t("adminAnalytics.rateColumn") }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="row in dashboard.sources"
-                      :key="`${row.renderedMode}:${row.sourceType}:${row.sourceKey}`"
-                      :class="{ 'is-clickable': row.sourceType === 'start_spm' }"
-                      :tabindex="row.sourceType === 'start_spm' ? 0 : undefined"
-                      @click="applySourceFilter(row)"
-                      @keydown.enter="applySourceFilter(row)"
-                    >
-                      <td>{{ row.sourceKey }}</td>
-                      <td>{{ formatMode(row.renderedMode) }}</td>
-                      <td>{{ formatCount(row.journeys) }}</td>
-                      <td>{{ formatCount(row.prCommitmentJourneys) }}</td>
-                      <td>{{ formatRate(row.commitmentRate) }}</td>
-                    </tr>
-                    <tr v-if="dashboard.sources.length === 0">
-                      <td colspan="5">{{ t("adminAnalytics.emptyTable") }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <section class="analytics-panel" data-testid="admin-analytics.failures">
-            <div class="analytics-panel__header">
-              <div>
-                <h2>{{ t("adminAnalytics.failureBreakdownTitle") }}</h2>
-                <p>{{ t("adminAnalytics.failureBreakdownSubtitle") }}</p>
-              </div>
-            </div>
-            <div class="analytics-table-wrap">
-              <table class="analytics-table">
-                <thead>
-                  <tr>
-                    <th>{{ t("adminAnalytics.modeColumn") }}</th>
-                    <th>{{ t("adminAnalytics.eventNameColumn") }}</th>
-                    <th>{{ t("adminAnalytics.commitmentTypeColumn") }}</th>
-                    <th>{{ t("adminAnalytics.failureCodeColumn") }}</th>
-                    <th>{{ t("adminAnalytics.failureReasonColumn") }}</th>
-                    <th>{{ t("adminAnalytics.journeysColumn") }}</th>
-                    <th>{{ t("adminAnalytics.eventsColumn") }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in dashboard.failures" :key="formatFailureKey(row)">
-                    <td>{{ formatMode(row.renderedMode) }}</td>
-                    <td>{{ row.eventName }}</td>
-                    <td>{{ row.commitmentType ? formatCommitmentType(row.commitmentType) : "-" }}</td>
-                    <td>{{ row.failureCode }}</td>
-                    <td>{{ row.failureReason ?? "-" }}</td>
-                    <td>{{ formatCount(row.journeyCount) }}</td>
-                    <td>{{ formatCount(row.eventCount) }}</td>
-                  </tr>
-                  <tr v-if="dashboard.failures.length === 0">
-                    <td colspan="7">{{ t("adminAnalytics.emptyFailures") }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-          </template>
         </template>
       </div>
     </template>
@@ -824,24 +493,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useI18n } from "vue-i18n";
-import { useRoute } from "vue-router";
-import type { AnchorEventAnalyticsRenderedMode } from "@partner-up-dev/backend";
-import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
-import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
-import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import {
-  useAdminAnchorEventFunnelAnalytics,
-  useAdminBIOverviewAnalytics,
-  useAdminPRCreateFunnelAnalytics,
-  useAdminPRJoinFunnelAnalytics,
-  type AdminBIOverviewResponse,
-  type AdminAnalyticsFunnelQuery,
-  type AdminAnalyticsFunnelResponse,
-  type AdminPRCreateFunnelResponse,
-  type AdminPRJoinFunnelResponse,
-} from "@/domains/admin/queries/useAdminAnalytics";
 import {
   PuButton,
   PuFormItem,
@@ -849,40 +500,36 @@ import {
   PuInput,
   PuLoadingState,
   PuSelect,
-  PuTag,
   type PuSelectOption,
   type PuSelectValue,
 } from "@partner-up-dev/design-web";
+import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
+import {
+  type AdminAnalyticsFunnelQuery,
+  type AdminBIOverviewResponse,
+  type AdminPRCreateFunnelResponse,
+  type AdminPRDiscoveryFunnelResponse,
+  type AdminPRJoinFunnelResponse,
+  useAdminBIOverviewAnalytics,
+  useAdminPRCreateFunnelAnalytics,
+  useAdminPRDiscoveryFunnelAnalytics,
+  useAdminPRJoinFunnelAnalytics,
+} from "@/domains/admin/queries/useAdminAnalytics";
+import AdminPageScaffold from "@/domains/admin/ui/layout/AdminPageScaffold.vue";
+import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
+import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
 
-type ModeComparisonRow = AdminAnalyticsFunnelResponse["modes"][number];
-type SourceBreakdownRow = AdminAnalyticsFunnelResponse["sources"][number];
-type OutcomeBreakdownRow = AdminAnalyticsFunnelResponse["outcomes"][number];
-type FailureBreakdownRow = AdminAnalyticsFunnelResponse["failures"][number];
-type OfficialAccountFollowNudgeSourceRow =
-  AdminAnalyticsFunnelResponse["officialAccountFollowNudge"]["sources"][number];
 type BIOverviewRetentionRow = AdminBIOverviewResponse["retention"]["rows"][number];
-type BIOverviewStatusRow =
-  AdminBIOverviewResponse["prLifecycle"]["statusRows"][number];
+type BIOverviewStatusRow = AdminBIOverviewResponse["prLifecycle"]["statusRows"][number];
 type PRCreateFunnelSummary = AdminPRCreateFunnelResponse["summary"];
 type PRCreatePath = AdminPRCreateFunnelResponse["paths"][number]["creationPath"];
 type PRJoinFunnelSummary = AdminPRJoinFunnelResponse["summary"];
-type AnalyticsDashboardKind =
-  | "overview"
-  | "pr-funnels"
-  | "anchor-events"
-  | "official-account";
+type AnalyticsDashboardKind = "overview" | "pr-funnels" | "pr-discovery";
 
-const modeOptions: AnchorEventAnalyticsRenderedMode[] = [
-  "FORM",
-  "CARD_RICH",
-  "LIST",
-];
-
-const MODE_LABELS: Record<AnchorEventAnalyticsRenderedMode, string> = {
-  FORM: "FORM",
-  CARD_RICH: "CARD_RICH",
-  LIST: "LIST",
-};
+const viewModeOptionsList = ["FORM", "CARD", "LIST"] as const;
+type PRDiscoveryViewMode = (typeof viewModeOptionsList)[number];
 
 const { t } = useI18n();
 const route = useRoute();
@@ -892,36 +539,17 @@ const activeDashboard = computed<AnalyticsDashboardKind>(() => {
   switch (route.name) {
     case "admin-analytics-pr-funnels":
       return "pr-funnels";
-    case "admin-analytics-anchor-events":
-      return "anchor-events";
-    case "admin-analytics-official-account":
-      return "official-account";
+    case "admin-analytics-pr-discovery":
+      return "pr-discovery";
     case "admin-analytics-overview":
     default:
       return "overview";
   }
 });
 
-const showsOverviewDashboard = computed(
-  () => activeDashboard.value === "overview",
-);
-const showsPRFunnelDashboard = computed(
-  () => activeDashboard.value === "pr-funnels",
-);
-const showsAnchorEventDashboard = computed(
-  () => activeDashboard.value === "anchor-events",
-);
-const showsOfficialAccountDashboard = computed(
-  () => activeDashboard.value === "official-account",
-);
-const showsAnchorEventFilters = computed(
-  () =>
-    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
-);
-const loadsAnchorEventAnalytics = computed(
-  () =>
-    showsAnchorEventDashboard.value || showsOfficialAccountDashboard.value,
-);
+const showsOverviewDashboard = computed(() => activeDashboard.value === "overview");
+const showsPRFunnelDashboard = computed(() => activeDashboard.value === "pr-funnels");
+const showsPRDiscoveryDashboard = computed(() => activeDashboard.value === "pr-discovery");
 
 const toLocalInputValue = (date: Date): string => {
   const offsetMs = date.getTimezoneOffset() * 60 * 1_000;
@@ -946,33 +574,27 @@ const parseLocalInputValue = (value: string): Date | null => {
 const defaultRange = createDefaultRange();
 const draftStartAt = ref(defaultRange.startAt);
 const draftEndAt = ref(defaultRange.endAt);
-const draftEventId = ref("");
-const draftSpm = ref("");
-const draftSourceQr = ref("");
-const draftAssignmentRevision = ref("");
-const draftRenderedMode = ref<AnchorEventAnalyticsRenderedMode | "">("");
+const draftPRType = ref("");
+const draftOrigin = ref("");
+const draftViewMode = ref<PRDiscoveryViewMode | "">("");
 const filterError = ref<string | null>(null);
-const focusedMode = ref<AnchorEventAnalyticsRenderedMode | null>(null);
 const refreshPending = ref(false);
 
-const isRenderedMode = (
-  value: PuSelectValue,
-): value is AnchorEventAnalyticsRenderedMode =>
-  typeof value === "string" &&
-  modeOptions.includes(value as AnchorEventAnalyticsRenderedMode);
+const isViewMode = (value: PuSelectValue): value is PRDiscoveryViewMode =>
+  typeof value === "string" && viewModeOptionsList.includes(value as PRDiscoveryViewMode);
 
-const renderedModeOptions = computed<PuSelectOption[]>(() => [
+const viewModeOptions = computed<PuSelectOption[]>(() => [
   { label: t("adminAnalytics.allModesOption"), value: "" },
-  ...modeOptions.map((mode) => ({
-    label: formatMode(mode),
+  ...viewModeOptionsList.map((mode) => ({
+    label: mode,
     value: mode,
   })),
 ]);
 
-const draftRenderedModeModel = computed({
-  get: () => draftRenderedMode.value,
+const draftViewModeModel = computed({
+  get: () => draftViewMode.value,
   set: (value: PuSelectValue) => {
-    draftRenderedMode.value = isRenderedMode(value) ? value : "";
+    draftViewMode.value = isViewMode(value) ? value : "";
   },
 });
 
@@ -981,8 +603,8 @@ const appliedQuery = ref<AdminAnalyticsFunnelQuery>({
   endAt: parseLocalInputValue(defaultRange.endAt)?.toISOString(),
 });
 
-const analyticsQuery = useAdminAnchorEventFunnelAnalytics(appliedQuery, {
-  enabled: loadsAnchorEventAnalytics,
+const analyticsQuery = useAdminPRDiscoveryFunnelAnalytics(appliedQuery, {
+  enabled: showsPRDiscoveryDashboard,
 });
 const biOverviewQuery = useAdminBIOverviewAnalytics(appliedQuery, {
   enabled: showsOverviewDashboard,
@@ -993,24 +615,25 @@ const prCreateFunnelQuery = useAdminPRCreateFunnelAnalytics(appliedQuery, {
 const prJoinFunnelQuery = useAdminPRJoinFunnelAnalytics(appliedQuery, {
   enabled: showsPRFunnelDashboard,
 });
-const dashboard = computed(() => analyticsQuery.data.value ?? null);
+const dashboard = computed<AdminPRDiscoveryFunnelResponse | null>(
+  () => analyticsQuery.data.value ?? null,
+);
 const biOverview = computed(() => biOverviewQuery.data.value ?? null);
 const prCreateFunnel = computed(() => prCreateFunnelQuery.data.value ?? null);
 const prJoinFunnel = computed(() => prJoinFunnelQuery.data.value ?? null);
 const isInitialLoading = computed(
   () =>
-    (loadsAnchorEventAnalytics.value && analyticsQuery.isLoading.value) ||
+    (showsPRDiscoveryDashboard.value && analyticsQuery.isLoading.value) ||
     (showsOverviewDashboard.value && biOverviewQuery.isLoading.value) ||
     (showsPRFunnelDashboard.value &&
-      (prCreateFunnelQuery.isLoading.value ||
-        prJoinFunnelQuery.isLoading.value)),
+      (prCreateFunnelQuery.isLoading.value || prJoinFunnelQuery.isLoading.value)),
 );
 const dashboardError = computed(
   () =>
-    (loadsAnchorEventAnalytics.value ? analyticsQuery.error.value : null) ??
+    (showsPRDiscoveryDashboard.value ? analyticsQuery.error.value : null) ??
     (showsOverviewDashboard.value ? biOverviewQuery.error.value : null) ??
     (showsPRFunnelDashboard.value
-      ? prCreateFunnelQuery.error.value ?? prJoinFunnelQuery.error.value
+      ? (prCreateFunnelQuery.error.value ?? prJoinFunnelQuery.error.value)
       : null) ??
     null,
 );
@@ -1019,16 +642,15 @@ const hasDashboardData = computed(
     (showsOverviewDashboard.value && biOverview.value !== null) ||
     (showsPRFunnelDashboard.value &&
       (prCreateFunnel.value !== null || prJoinFunnel.value !== null)) ||
-    (loadsAnchorEventAnalytics.value && dashboard.value !== null),
+    (showsPRDiscoveryDashboard.value && dashboard.value !== null),
 );
 const isDashboardRefreshing = computed(
   () =>
     refreshPending.value ||
-    (loadsAnchorEventAnalytics.value && analyticsQuery.isFetching.value) ||
+    (showsPRDiscoveryDashboard.value && analyticsQuery.isFetching.value) ||
     (showsOverviewDashboard.value && biOverviewQuery.isFetching.value) ||
     (showsPRFunnelDashboard.value &&
-      (prCreateFunnelQuery.isFetching.value ||
-        prJoinFunnelQuery.isFetching.value)),
+      (prCreateFunnelQuery.isFetching.value || prJoinFunnelQuery.isFetching.value)),
 );
 
 const numberFormatter = new Intl.NumberFormat("zh-CN");
@@ -1047,87 +669,37 @@ const formatCount = (value: number): string => numberFormatter.format(value);
 const formatRate = (value: number): string => percentFormatter.format(value);
 const formatNullableRate = (value: number | null): string =>
   value === null ? "-" : formatRate(value);
-const formatMode = (mode: AnchorEventAnalyticsRenderedMode): string =>
-  MODE_LABELS[mode];
-const formatCommitmentType = (
-  type: OutcomeBreakdownRow["commitmentType"],
-): string => t(`adminAnalytics.commitmentType.${type}`);
-const formatActionResult = (result: OutcomeBreakdownRow["actionResult"]): string =>
-  t(`adminAnalytics.actionResult.${result}`);
-const actionResultTagTone = (
-  result: OutcomeBreakdownRow["actionResult"],
-) => {
-  if (result === "success") return "success";
-  if (result === "blocked") return "warning";
-  if (result === "failure") return "error";
-  return "neutral";
-};
-const formatNudgeSource = (
-  source: OfficialAccountFollowNudgeSourceRow["source"],
-): string => t(`adminAnalytics.officialAccountNudgeSource.${source}`);
 const formatPRStatus = (status: BIOverviewStatusRow["status"]): string =>
   t(`adminAnalytics.prStatus.${status}`);
-const formatCreatePath = (path: PRCreatePath): string =>
-  t(`adminAnalytics.prCreatePath.${path}`);
-const formatActivityType = (activityType: string): string => activityType;
+const formatCreatePath = (path: PRCreatePath): string => t(`adminAnalytics.prCreatePath.${path}`);
 
-const formatBarWidth = (rate: number): string =>
-  `${Math.max(0, Math.min(100, rate * 100)).toFixed(2)}%`;
-
-const formatOutcomeShort = (row: ModeComparisonRow): string =>
-  t("adminAnalytics.outcomeShort", {
-    create: formatCount(row.createSuccess),
-    join: formatCount(row.joinSuccess),
-    waitlist: formatCount(row.waitlistSuccess),
-  });
-
-const summaryItems = computed(() => {
+const prDiscoverySummaryItems = computed(() => {
   const summary = dashboard.value?.summary;
   if (!summary) return [];
   return [
     {
-      key: "journeys",
-      label: t("adminAnalytics.summaryJourneys"),
-      value: formatCount(summary.journeys),
-      detail: t("adminAnalytics.summaryJourneysDetail"),
+      key: "surface",
+      label: t("adminAnalytics.prDiscoverySurfaceMetric"),
+      value: formatCount(summary.surfaceJourneys),
+      detail: t("adminAnalytics.prDiscoverySurfaceDetail"),
     },
     {
-      key: "exposure",
-      label: t("adminAnalytics.summaryExposure"),
-      value: formatCount(summary.prExposureJourneys),
-      detail: t("adminAnalytics.summaryExposureDetail"),
+      key: "recommendation",
+      label: t("adminAnalytics.prDiscoveryRecommendationMetric"),
+      value: formatCount(summary.recommendationJourneys),
+      detail: t("adminAnalytics.prDiscoveryRecommendationDetail"),
     },
     {
-      key: "entry",
-      label: t("adminAnalytics.summaryEntry"),
-      value: formatCount(summary.prEntryJourneys),
-      detail: t("adminAnalytics.summaryEntryDetail"),
+      key: "candidate",
+      label: t("adminAnalytics.prDiscoveryCandidateMetric"),
+      value: formatCount(summary.candidateJourneys),
+      detail: t("adminAnalytics.prDiscoveryCandidateDetail"),
     },
     {
-      key: "commitment",
-      label: t("adminAnalytics.summaryCommitment"),
-      value: formatCount(summary.prCommitmentJourneys),
-      detail: t("adminAnalytics.summaryCommitmentDetail", {
-        rate: formatRate(summary.commitmentRate),
-      }),
-    },
-    {
-      key: "create",
-      label: t("adminAnalytics.summaryCreate"),
-      value: formatCount(summary.createSuccess),
-      detail: t("adminAnalytics.summarySuccessDetail"),
-    },
-    {
-      key: "join",
-      label: t("adminAnalytics.summaryJoin"),
-      value: formatCount(summary.joinSuccess),
-      detail: t("adminAnalytics.summarySuccessDetail"),
-    },
-    {
-      key: "waitlist",
-      label: t("adminAnalytics.summaryWaitlist"),
-      value: formatCount(summary.waitlistSuccess),
-      detail: t("adminAnalytics.summarySuccessDetail"),
+      key: "handoff",
+      label: t("adminAnalytics.prDiscoveryHandoffMetric"),
+      value: formatCount(summary.authoringHandoffJourneys),
+      detail: t("adminAnalytics.prDiscoveryHandoffDetail"),
     },
   ];
 });
@@ -1137,13 +709,7 @@ const latestRetentionRow = computed<BIOverviewRetentionRow | null>(() => {
   return rows[rows.length - 1] ?? null;
 });
 
-const visibleRetentionRows = computed(() =>
-  (biOverview.value?.retention.rows ?? []).slice(-7),
-);
-
-const visibleTransitionRows = computed(() =>
-  (biOverview.value?.anchorEventTransitions ?? []).slice(0, 8),
-);
+const visibleRetentionRows = computed(() => (biOverview.value?.retention.rows ?? []).slice(-7));
 
 const biOverviewItems = computed(() => {
   const overview = biOverview.value;
@@ -1153,25 +719,13 @@ const biOverviewItems = computed(() => {
     {
       key: "retention",
       label: t("adminAnalytics.biRetentionMetric"),
-      value: latestRetention
-        ? formatRate(latestRetention.retentionRate7Days)
-        : formatRate(0),
+      value: latestRetention ? formatRate(latestRetention.retentionRate7Days) : formatRate(0),
       detail: latestRetention
         ? t("adminAnalytics.biRetentionDetail", {
             date: latestRetention.cohortDate,
             active: formatCount(latestRetention.activeUsers),
           })
         : t("adminAnalytics.emptyTable"),
-    },
-    {
-      key: "viewOther",
-      label: t("adminAnalytics.biViewOtherMetric"),
-      value: formatRate(
-        overview.viewOtherActivities.journeyConversionRate,
-      ),
-      detail: t("adminAnalytics.biViewOtherDetail", {
-        clicks: formatCount(overview.viewOtherActivities.clickJourneys),
-      }),
     },
     {
       key: "createdPRs",
@@ -1186,12 +740,8 @@ const biOverviewItems = computed(() => {
       label: t("adminAnalytics.biLifecycleMetric"),
       value: formatCount(overview.prLifecycle.formedPRs),
       detail: t("adminAnalytics.biLifecycleDetail", {
-        closed: formatCount(
-          overview.prLifecycle.timeWindowEndAtCohort.closedPRs,
-        ),
-        expired: formatCount(
-          overview.prLifecycle.timeWindowEndAtCohort.expiredPRs,
-        ),
+        closed: formatCount(overview.prLifecycle.timeWindowEndAtCohort.closedPRs),
+        expired: formatCount(overview.prLifecycle.timeWindowEndAtCohort.expiredPRs),
       }),
     },
   ];
@@ -1271,37 +821,16 @@ const prCreateSummaryItems = computed(() => {
   return items;
 });
 
-const visibleFunnels = computed(() => {
-  const funnels = dashboard.value?.funnels ?? [];
-  if (!focusedMode.value) return funnels;
-  return funnels.filter((funnel) => funnel.renderedMode === focusedMode.value);
-});
-
 const activeFilterSummary = computed(() => {
-  const filters = showsAnchorEventFilters.value
-    ? dashboard.value?.filters ?? appliedQuery.value
-    : appliedQuery.value;
+  const filters = dashboard.value?.filters ?? appliedQuery.value;
   const start = filters.startAt ? dateTimeFormatter.format(new Date(filters.startAt)) : "-";
   const end = filters.endAt ? dateTimeFormatter.format(new Date(filters.endAt)) : "-";
-  if (!showsAnchorEventFilters.value) {
-    return t("adminAnalytics.activeTimeFilterSummary", {
-      start,
-      end,
-    });
-  }
-  return t("adminAnalytics.activeFilterSummary", {
+  return t("adminAnalytics.activeTimeFilterSummary", {
     start,
     end,
-    mode: filters.renderedMode ? formatMode(filters.renderedMode) : t("adminAnalytics.allModesOption"),
+    mode: filters.viewMode ?? t("adminAnalytics.allModesOption"),
   });
 });
-
-const parseEventId = (): number | null => {
-  const raw = draftEventId.value.trim();
-  if (!raw) return null;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.NaN;
-};
 
 const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
   const startAt = parseLocalInputValue(draftStartAt.value);
@@ -1315,27 +844,13 @@ const buildDraftQuery = (): AdminAnalyticsFunnelQuery | null => {
     return null;
   }
 
-  const eventId = showsAnchorEventFilters.value ? parseEventId() : null;
-  if (Number.isNaN(eventId)) {
-    filterError.value = t("adminAnalytics.invalidEventId");
-    return null;
-  }
-
   filterError.value = null;
   return {
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString(),
-    eventId,
-    spm: showsAnchorEventFilters.value ? draftSpm.value.trim() || null : null,
-    sourceQr: showsAnchorEventFilters.value
-      ? draftSourceQr.value.trim() || null
-      : null,
-    assignmentRevision: showsAnchorEventFilters.value
-      ? draftAssignmentRevision.value.trim() || null
-      : null,
-    renderedMode: showsAnchorEventFilters.value
-      ? draftRenderedMode.value || null
-      : null,
+    prType: draftPRType.value.trim() || null,
+    viewMode: draftViewMode.value || null,
+    origin: draftOrigin.value.trim() || null,
   };
 };
 
@@ -1343,20 +858,16 @@ const applyFilters = (): void => {
   const nextQuery = buildDraftQuery();
   if (!nextQuery) return;
   appliedQuery.value = nextQuery;
-  focusedMode.value = nextQuery.renderedMode ?? null;
 };
 
 const resetFilters = (): void => {
   const range = createDefaultRange();
   draftStartAt.value = range.startAt;
   draftEndAt.value = range.endAt;
-  draftEventId.value = "";
-  draftSpm.value = "";
-  draftSourceQr.value = "";
-  draftAssignmentRevision.value = "";
-  draftRenderedMode.value = "";
+  draftPRType.value = "";
+  draftOrigin.value = "";
+  draftViewMode.value = "";
   filterError.value = null;
-  focusedMode.value = null;
   appliedQuery.value = {
     startAt: parseLocalInputValue(range.startAt)?.toISOString(),
     endAt: parseLocalInputValue(range.endAt)?.toISOString(),
@@ -1367,7 +878,7 @@ const refreshDashboard = async (): Promise<void> => {
   refreshPending.value = true;
   try {
     const refetches: Array<Promise<unknown>> = [];
-    if (loadsAnchorEventAnalytics.value) {
+    if (showsPRDiscoveryDashboard.value) {
       refetches.push(analyticsQuery.refetch());
     }
     if (showsOverviewDashboard.value) {
@@ -1381,22 +892,6 @@ const refreshDashboard = async (): Promise<void> => {
     refreshPending.value = false;
   }
 };
-
-const focusMode = (mode: AnchorEventAnalyticsRenderedMode): void => {
-  focusedMode.value = focusedMode.value === mode ? null : mode;
-};
-
-const applySourceFilter = (row: SourceBreakdownRow): void => {
-  if (row.sourceType !== "start_spm") return;
-  draftSpm.value = row.sourceKey;
-  applyFilters();
-};
-
-const formatOutcomeKey = (row: OutcomeBreakdownRow): string =>
-  `${row.renderedMode}:${row.commitmentType}:${row.actionResult}`;
-
-const formatFailureKey = (row: FailureBreakdownRow): string =>
-  `${row.renderedMode}:${row.eventName}:${row.commitmentType ?? "none"}:${row.failureCode}:${row.failureReason ?? ""}`;
 </script>
 
 <style lang="scss" scoped>

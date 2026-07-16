@@ -1,4 +1,4 @@
-import type { TimeWindowEntry } from "../../../entities/anchor-event";
+import type { PRTimeWindow } from "../../../entities/partner-request";
 import type { PoiAvailabilityRule } from "../../../entities/poi";
 import { normalizePoiAvailabilityRules } from "../../../entities/poi";
 import { ProblemDetailsError } from "../../../lib/problem-details";
@@ -47,10 +47,7 @@ const toUtcFromProductLocalParts = (
   hour: number,
   minute: number,
 ): Date =>
-  new Date(
-    Date.UTC(year, monthIndex, dayOfMonth, hour, minute) -
-      PRODUCT_TIME_ZONE_OFFSET_MS,
-  );
+  new Date(Date.UTC(year, monthIndex, dayOfMonth, hour, minute) - PRODUCT_TIME_ZONE_OFFSET_MS);
 
 const getProductLocalDayStart = (value: Date): Date => {
   const local = toProductLocalDate(value);
@@ -96,9 +93,7 @@ const buildRecurringInterval = (
 
   const startAt = new Date(dayStartUtc.getTime() + startMinutes * MINUTE_MS);
   const endDayOffset = endMinutes <= startMinutes ? DAY_MS : 0;
-  const endAt = new Date(
-    dayStartUtc.getTime() + endDayOffset + endMinutes * MINUTE_MS,
-  );
+  const endAt = new Date(dayStartUtc.getTime() + endDayOffset + endMinutes * MINUTE_MS);
 
   return {
     startMs: startAt.getTime(),
@@ -109,10 +104,7 @@ const buildRecurringInterval = (
 const overlaps = (left: Interval, right: Interval): boolean =>
   left.startMs < right.endMs && right.startMs < left.endMs;
 
-const expandRuleIntervals = (
-  rule: PoiAvailabilityRule,
-  target: Interval,
-): Interval[] => {
+const expandRuleIntervals = (rule: PoiAvailabilityRule, target: Interval): Interval[] => {
   if (rule.kind === "ABSOLUTE") {
     const startMs = parseTimestamp(rule.startAt);
     const endMs = parseTimestamp(rule.endAt);
@@ -123,12 +115,8 @@ const expandRuleIntervals = (
     return overlaps(interval, target) ? [interval] : [];
   }
 
-  const firstDay = new Date(
-    getProductLocalDayStart(new Date(target.startMs)).getTime() - DAY_MS,
-  );
-  const lastDay = new Date(
-    getProductLocalDayStart(new Date(target.endMs)).getTime() + DAY_MS,
-  );
+  const firstDay = new Date(getProductLocalDayStart(new Date(target.startMs)).getTime() - DAY_MS);
+  const lastDay = new Date(getProductLocalDayStart(new Date(target.endMs)).getTime() + DAY_MS);
   const intervals: Interval[] = [];
 
   for (
@@ -173,7 +161,7 @@ const intervalsCoverTarget = (intervals: Interval[], target: Interval): boolean 
 
 export const isTimeWindowAvailableByPoiRules = (
   rules: PoiAvailabilityRule[],
-  timeWindow: TimeWindowEntry,
+  timeWindow: PRTimeWindow,
 ): boolean => {
   const startMs = parseTimestamp(timeWindow[0]);
   const endMs = parseTimestamp(timeWindow[1]);
@@ -199,9 +187,7 @@ export const isTimeWindowAvailableByPoiRules = (
     return true;
   }
 
-  const includeIntervals = includeRules.flatMap((rule) =>
-    expandRuleIntervals(rule, target),
-  );
+  const includeIntervals = includeRules.flatMap((rule) => expandRuleIntervals(rule, target));
   return intervalsCoverTarget(includeIntervals, target);
 };
 
@@ -223,7 +209,7 @@ const buildUnavailableProblem = (location: string): ProblemDetailsError =>
 
 export const assertPRTimeWindowAvailableAtLocation = async (input: {
   location: string | null;
-  timeWindow: TimeWindowEntry;
+  timeWindow: PRTimeWindow;
 }): Promise<void> => {
   const location = input.location?.trim() ?? "";
   if (!location) {

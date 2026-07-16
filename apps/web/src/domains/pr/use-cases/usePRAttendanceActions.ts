@@ -1,8 +1,8 @@
-import { computed, type ComputedRef } from "vue";
 import type { PRId } from "@partner-up-dev/backend";
+import { type ComputedRef, computed } from "vue";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import { trackEvent } from "@/shared/telemetry/track";
 import { useCheckInPRSlot, useConfirmPRSlot } from "@/domains/pr/queries/usePRActions";
+import { trackEvent } from "@/shared/telemetry/track";
 
 export type UsePRAttendanceActionsOptions = {
   id: ComputedRef<PRId | null>;
@@ -30,7 +30,7 @@ export const usePRAttendanceActions = ({
     await confirmSlotMutation.mutateAsync({ id: id.value });
     trackEvent("pr_confirm_success", {
       prId: id.value,
-      scenarioType: pr.value?.core.type,
+      prType: pr.value?.core.type,
     });
     onActionSuccess?.();
   };
@@ -44,7 +44,7 @@ export const usePRAttendanceActions = ({
 
     trackEvent("pr_checkin_submitted", {
       prId: id.value,
-      scenarioType: pr.value?.core.type,
+      prType: pr.value?.core.type,
       didAttend: true,
     });
     onActionSuccess?.();

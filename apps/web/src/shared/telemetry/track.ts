@@ -1,17 +1,12 @@
-import type {
-  TelemetryEventName,
-  TelemetryPayload,
-} from "@/shared/telemetry/events";
-import { resolveCurrentSpmAttribution } from "@/shared/telemetry/spm-attribution";
-import { ensureAppJourneyWithState } from "@/shared/telemetry/journey";
-import { sanitizeSpmValue } from "@/shared/url/spm";
-import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 import { client } from "@/lib/rpc";
+import type { TelemetryEventName, TelemetryPayload } from "@/shared/telemetry/events";
+import { ensureAppJourneyWithState } from "@/shared/telemetry/journey";
+import { resolveCurrentSpmAttribution } from "@/shared/telemetry/spm-attribution";
 import { createUuid } from "@/shared/telemetry/uuid";
+import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
+import { sanitizeSpmValue } from "@/shared/url/spm";
 
-type TelemetryEventRecord<
-  TEvent extends TelemetryEventName = TelemetryEventName,
-> = {
+type TelemetryEventRecord<TEvent extends TelemetryEventName = TelemetryEventName> = {
   event: TEvent;
   eventName: string;
   payload: Record<string, unknown>;
@@ -43,45 +38,18 @@ const MAX_QUEUE_SIZE = 1_000;
 
 const CANONICAL_EVENT_NAMES: Partial<Record<TelemetryEventName, string>> = {
   page_view: "page.viewed",
-  anchor_event_landing_viewed: "anchor_event.landing.viewed",
-  anchor_event_recommendation_requested:
-    "anchor_event.recommendation.requested",
-  anchor_event_recommendation_returned: "anchor_event.recommendation.returned",
-  anchor_event_candidate_engaged: "anchor_event.candidate.engaged",
-  anchor_event_assisted_create_started:
-    "anchor_event.assisted_create.started",
-  anchor_event_card_stack_loaded: "anchor_event.card_stack.loaded",
-  anchor_event_card_seen: "anchor_event.card.seen",
-  anchor_event_card_action_taken: "anchor_event.card.action_taken",
-  anchor_event_card_empty_create_started:
-    "anchor_event.card_empty_create.started",
-  anchor_event_list_loaded: "anchor_event.list.loaded",
-  anchor_event_list_date_selected: "anchor_event.date.selected",
-  anchor_event_list_pr_row_seen: "anchor_event.pr_row.seen",
-  anchor_event_list_pr_row_action_taken: "anchor_event.pr_row.action_taken",
-  anchor_event_list_create_started: "anchor_event.list_create.started",
-  anchor_event_dummy_pr_detail_started:
-    "anchor_event.dummy_pr.detail_started",
-  anchor_event_dummy_pr_materialization_result:
-    "anchor_event.dummy_pr.materialization_result",
-  pr_entry_reached: "pr.entry.reached",
-  pr_commitment_result: "pr.commitment.result",
   pr_create_result: "pr.create.result",
   pr_join_result: "pr.join.result",
   pr_waitlist_result: "pr.waitlist.result",
+  pr_discovery_candidate_action: "pr.discovery.candidate.action",
+  pr_discovery_recommendation_returned: "pr.discovery.recommendation.returned",
+  pr_discovery_surface_viewed: "pr.discovery.surface.viewed",
+  pr_discovery_criteria_submitted: "pr.discovery.criteria.submitted",
+  pr_discovery_candidate_impression: "pr.discovery.candidate.impression",
+  pr_discovery_authoring_handoff: "pr.discovery.authoring.handoff",
   pr_exit_success: "pr.exit.succeeded",
   pr_confirm_success: "pr.confirm.succeeded",
   pr_checkin_submitted: "pr.checkin.submitted",
-  anchor_event_form_impression: "anchor_event.form.impression",
-  anchor_event_form_started: "anchor_event.form.started",
-  anchor_event_form_recommendation_impression:
-    "anchor_event.form.recommendation_impression",
-  anchor_event_recommendation_result: "anchor_event.recommendation.result",
-  anchor_event_form_result_action_click:
-    "anchor_event.form_result.action_clicked",
-  anchor_event_form_create_fallback_click:
-    "anchor_event.form.create_fallback_clicked",
-  event_assisted_create_result: "anchor_event.assisted_create.result",
   pr_primary_cta_impression: "pr.primary_cta.impression",
   pr_primary_cta_click: "pr.primary_cta.click",
   pr_secondary_action_click: "pr.secondary_action.click",
@@ -104,32 +72,21 @@ const shouldAttachCurrentSpm = (path: string): boolean => {
   return !path.startsWith("/admin");
 };
 
-const readString = (
-  payload: Record<string, unknown>,
-  key: string,
-): string | undefined => {
+const readString = (payload: Record<string, unknown>, key: string): string | undefined => {
   const value = payload[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 };
 
-const readPositiveNumber = (
-  payload: Record<string, unknown>,
-  key: string,
-): number | undefined => {
+const readPositiveNumber = (payload: Record<string, unknown>, key: string): number | undefined => {
   const value = payload[key];
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 };
 
 const withCurrentAttribution = (
   payload: Record<string, unknown>,
   path: string,
 ): Record<string, unknown> => {
-  const explicitSpm =
-    typeof payload.spm === "string" ? sanitizeSpmValue(payload.spm) : null;
+  const explicitSpm = typeof payload.spm === "string" ? sanitizeSpmValue(payload.spm) : null;
   const attribution = explicitSpm ?? resolveCurrentSpmAttribution();
   if (!attribution || !shouldAttachCurrentSpm(path)) {
     return payload;
@@ -147,9 +104,7 @@ const withCurrentAttribution = (
 
 const getCurrentPath = (): string => {
   if (typeof window === "undefined") return "/";
-  return sanitizeSensitiveRoutePath(
-    `${window.location.pathname}${window.location.search}`,
-  );
+  return sanitizeSensitiveRoutePath(`${window.location.pathname}${window.location.search}`);
 };
 
 const getCurrentReferrer = (): string | undefined => {
@@ -161,9 +116,7 @@ const getCurrentReferrer = (): string | undefined => {
   try {
     const parsed = new URL(document.referrer, window.location.origin);
     if (parsed.origin === window.location.origin) {
-      return sanitizeSensitiveRoutePath(
-        `${parsed.pathname}${parsed.search}${parsed.hash}`,
-      );
+      return sanitizeSensitiveRoutePath(`${parsed.pathname}${parsed.search}${parsed.hash}`);
     }
     return parsed.origin;
   } catch {
@@ -175,19 +128,8 @@ const createEventId = (): string => {
   return createUuid();
 };
 
-export const resolveCanonicalUserTelemetryEventName = (
-  event: TelemetryEventName,
-): string => {
+export const resolveCanonicalUserTelemetryEventName = (event: TelemetryEventName): string => {
   return CANONICAL_EVENT_NAMES[event] ?? event.replaceAll("_", ".");
-};
-
-const resolveEventIdRef = (
-  payload: Record<string, unknown>,
-): number | undefined => {
-  return (
-    readPositiveNumber(payload, "eventId") ??
-    readPositiveNumber(payload, "eventIdRef")
-  );
 };
 
 const FORBIDDEN_PAYLOAD_KEYS = new Set([
@@ -207,9 +149,7 @@ const FORBIDDEN_PAYLOAD_KEYS = new Set([
   "cause_event_id",
 ]);
 
-const stripForbiddenPayloadFields = (
-  payload: Record<string, unknown>,
-): Record<string, unknown> => {
+const stripForbiddenPayloadFields = (payload: Record<string, unknown>): Record<string, unknown> => {
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined || FORBIDDEN_PAYLOAD_KEYS.has(key)) continue;
@@ -232,9 +172,7 @@ const buildAttributes = (input: {
   return attributes;
 };
 
-const resolvePrIdRef = (
-  payload: Record<string, unknown>,
-): number | undefined => {
+const resolvePrIdRef = (payload: Record<string, unknown>): number | undefined => {
   return (
     readPositiveNumber(payload, "prId") ??
     readPositiveNumber(payload, "prIdRef") ??
@@ -243,9 +181,24 @@ const resolvePrIdRef = (
   );
 };
 
-const pushDebugEvent = (
-  record: TelemetryEventRecord<TelemetryEventName>,
-): void => {
+const buildCanonicalEventPayload = (input: {
+  eventName: string;
+  payload: Record<string, unknown>;
+  prIdRef?: number;
+  cardKey?: string;
+}): Record<string, unknown> => {
+  if (input.eventName.startsWith("pr.discovery.")) {
+    return stripForbiddenPayloadFields(input.payload);
+  }
+
+  return stripForbiddenPayloadFields({
+    ...input.payload,
+    prIdRef: input.prIdRef,
+    cardKey: input.cardKey,
+  });
+};
+
+const pushDebugEvent = (record: TelemetryEventRecord<TelemetryEventName>): void => {
   if (typeof window === "undefined") return;
   window.__PARTNER_UP_TELEMETRY_EVENTS__ ??= [];
   const events = window.__PARTNER_UP_TELEMETRY_EVENTS__;
@@ -317,7 +270,6 @@ const enqueueJourneyStartedContext = (input: {
       referrer: journey.startReferrer,
       spm: journey.startSpm,
       sourceQr: journey.startSourceQr,
-      eventId: journey.startEventId,
       prId: journey.startPrId,
       entryKind: journey.entryKind,
     }),
@@ -376,23 +328,21 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
   const occurredAt = new Date().toISOString();
   const currentPath = getCurrentPath();
   const referrer = getCurrentReferrer();
-  const payloadRecord = withCurrentAttribution(asRecord(payload), currentPath);
+  const rawPayloadRecord = asRecord(payload);
+  const payloadRecord = withCurrentAttribution(rawPayloadRecord, currentPath);
   const eventName = resolveCanonicalUserTelemetryEventName(event);
-  const eventIdRef = resolveEventIdRef(payloadRecord);
   const prIdRef = resolvePrIdRef(payloadRecord);
   const routeName = readString(payloadRecord, "routeName");
   const currentSpm = readString(payloadRecord, "spm");
   const sourceQr = readString(payloadRecord, "sourceQr");
   const traceId = readString(payloadRecord, "traceId");
-  const cardKey =
-    readString(payloadRecord, "cardKey") ?? readString(payloadRecord, "unitKey");
+  const cardKey = readString(payloadRecord, "cardKey") ?? readString(payloadRecord, "unitKey");
   const { journey, started } = ensureAppJourneyWithState({
     routePath: currentPath,
     routeName,
     referrer,
     currentSpm,
     sourceQr,
-    eventIdRef,
     prIdRef,
     nowIso: occurredAt,
   });
@@ -428,7 +378,6 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
         spm: currentSpm,
         sourceQr,
         prId: prIdRef,
-        eventId: eventIdRef,
       }),
     });
   }
@@ -444,9 +393,9 @@ export const trackEvent = <TEvent extends TelemetryEventName>(
       sourceQr,
       cardKey,
     }),
-    payload: stripForbiddenPayloadFields({
-      ...payloadRecord,
-      eventIdRef,
+    payload: buildCanonicalEventPayload({
+      eventName,
+      payload: eventName.startsWith("pr.discovery.") ? rawPayloadRecord : payloadRecord,
       prIdRef,
       cardKey,
     }),
@@ -467,14 +416,10 @@ export const trackRawUserTelemetryEvent = (input: {
   const occurredAt = input.occurredAt ?? new Date().toISOString();
   const currentPath = getCurrentPath();
   const referrer = getCurrentReferrer();
-  const payloadRecord = withCurrentAttribution(
-    asRecord(input.payload ?? {}),
-    currentPath,
-  );
+  const payloadRecord = withCurrentAttribution(asRecord(input.payload ?? {}), currentPath);
   const routeName = readString(payloadRecord, "routeName");
   const currentSpm = readString(payloadRecord, "spm");
   const sourceQr = readString(payloadRecord, "sourceQr");
-  const eventIdRef = resolveEventIdRef(payloadRecord);
   const prIdRef = resolvePrIdRef(payloadRecord);
   const { journey, started } = ensureAppJourneyWithState({
     routePath: currentPath,
@@ -482,7 +427,6 @@ export const trackRawUserTelemetryEvent = (input: {
     referrer,
     currentSpm,
     sourceQr,
-    eventIdRef,
     prIdRef,
     nowIso: occurredAt,
   });

@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
-  buildBIOverviewResponse,
-  resolveBIOverviewFilters,
-  type AnchorEventTransitionFactRow,
   type BIOverviewFilters,
+  buildBIOverviewResponse,
   type RetentionActivityFactRow,
-  type ViewOtherAnchorEventsConversionFactRow,
+  resolveBIOverviewFilters,
 } from "./bi-overview.model";
 
 const filters: BIOverviewFilters = resolveBIOverviewFilters({
@@ -18,8 +16,7 @@ const buildIdentityKey = (input: {
   anonymousId?: string | null;
   authenticatedUserHash?: string | null;
 }): string | null =>
-  input.authenticatedUserHash ??
-  (input.anonymousId ? `anonymous:${input.anonymousId}` : null);
+  input.authenticatedUserHash ?? (input.anonymousId ? `anonymous:${input.anonymousId}` : null);
 
 const buildRetentionEvent = (input: {
   eventName: string;
@@ -39,45 +36,7 @@ const buildRetentionEvent = (input: {
   }),
 });
 
-const buildAnchorEventTransitionEvent = (input: {
-  journeyId: string;
-  eventId?: string;
-  occurredAt: string;
-  anonymousId?: string | null;
-  authenticatedUserHash?: string | null;
-  activityType: string;
-}): AnchorEventTransitionFactRow => ({
-  eventId:
-    input.eventId ??
-    `${input.journeyId}:anchor_event.landing.viewed:${input.occurredAt}`,
-  journeyId: input.journeyId,
-  occurredAt: new Date(input.occurredAt),
-  identityKey: buildIdentityKey({
-    anonymousId: input.anonymousId ?? "anon",
-    authenticatedUserHash: input.authenticatedUserHash ?? null,
-  }),
-  activityType: input.activityType,
-});
-
-const buildViewOtherAnchorEvent = (input: {
-  eventName: string;
-  journeyId: string;
-  eventId?: string;
-  occurredAt: string;
-  anonymousId?: string | null;
-  authenticatedUserHash?: string | null;
-}): ViewOtherAnchorEventsConversionFactRow => ({
-  eventId: input.eventId ?? `${input.journeyId}:${input.eventName}:${input.occurredAt}`,
-  eventName: input.eventName,
-  journeyId: input.journeyId,
-  occurredAt: new Date(input.occurredAt),
-  identityKey: buildIdentityKey({
-    anonymousId: input.anonymousId ?? "anon",
-    authenticatedUserHash: input.authenticatedUserHash ?? null,
-  }),
-});
-
-test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and view-other conversion", () => {
+test("buildBIOverviewResponse aggregates retention and PR facts", () => {
   const retentionEvents = [
     buildRetentionEvent({
       journeyId: "journey-a-1",
@@ -105,53 +64,9 @@ test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and v
     }),
   ];
 
-  const anchorEventTransitionEvents = [
-    buildAnchorEventTransitionEvent({
-      journeyId: "journey-a-1",
-      occurredAt: "2026-05-01T04:12:00.000Z",
-      authenticatedUserHash: "user-a",
-      activityType: "badminton",
-    }),
-    buildAnchorEventTransitionEvent({
-      journeyId: "journey-a-2",
-      occurredAt: "2026-05-03T04:12:00.000Z",
-      authenticatedUserHash: "user-a",
-      activityType: "running",
-    }),
-  ];
-
-  const viewOtherAnchorEventEvents = [
-    buildViewOtherAnchorEvent({
-      journeyId: "journey-a-1",
-      eventName: "home.event.all.click",
-      occurredAt: "2026-05-01T04:10:00.000Z",
-      authenticatedUserHash: "user-a",
-    }),
-    buildViewOtherAnchorEvent({
-      journeyId: "journey-a-1",
-      eventName: "anchor_event.landing.viewed",
-      occurredAt: "2026-05-01T04:12:00.000Z",
-      authenticatedUserHash: "user-a",
-    }),
-    buildViewOtherAnchorEvent({
-      journeyId: "journey-a-2",
-      eventName: "anchor_event.landing.viewed",
-      occurredAt: "2026-05-03T04:12:00.000Z",
-      authenticatedUserHash: "user-a",
-    }),
-    buildViewOtherAnchorEvent({
-      journeyId: "journey-b-1",
-      eventName: "home.event.all.click",
-      occurredAt: "2026-05-01T05:10:00.000Z",
-      anonymousId: "anon-b",
-    }),
-  ];
-
   const response = buildBIOverviewResponse({
     filters,
     retentionEvents,
-    anchorEventTransitionEvents,
-    viewOtherAnchorEventEvents,
     userPRCountRows: [
       { userKey: "user-a", createdCount: 2, joinedCount: 1 },
       { userKey: "user-b", createdCount: 0, joinedCount: 2 },
@@ -216,24 +131,6 @@ test("buildBIOverviewResponse aggregates retention, PR facts, transitions, and v
       { status: "EXPIRED", count: 1, share: 1 / 3 },
     ],
   });
-
-  assert.deepEqual(response.anchorEventTransitions, [
-    {
-      fromActivityType: "badminton",
-      toActivityType: "running",
-      userCount: 1,
-      transitionCount: 1,
-    },
-  ]);
-
-  assert.deepEqual(response.viewOtherActivities, {
-    clickJourneys: 2,
-    clickUsers: 2,
-    landingViewJourneys: 1,
-    landingViewUsers: 1,
-    journeyConversionRate: 0.5,
-    userConversionRate: 0.5,
-  });
 });
 
 test("buildBIOverviewResponse uses retention lookahead only for returns, not new cohorts", () => {
@@ -259,8 +156,6 @@ test("buildBIOverviewResponse uses retention lookahead only for returns, not new
         authenticatedUserHash: "user-b",
       }),
     ],
-    anchorEventTransitionEvents: [],
-    viewOtherAnchorEventEvents: [],
     userPRCountRows: [],
     prLifecycleCreatedAtStatusRows: [],
     prLifecycleTimeWindowEndAtStatusRows: [],
@@ -269,33 +164,4 @@ test("buildBIOverviewResponse uses retention lookahead only for returns, not new
   assert.equal(response.retention.rows.length, 1);
   assert.equal(response.retention.rows[0]?.cohortDate, "2026-05-01");
   assert.equal(response.retention.rows[0]?.retainedWithin7Days, 0);
-});
-
-test("buildBIOverviewResponse treats plaza entry clicks as view-other conversion entries", () => {
-  const response = buildBIOverviewResponse({
-    filters,
-    retentionEvents: [],
-    anchorEventTransitionEvents: [],
-    viewOtherAnchorEventEvents: [
-      buildViewOtherAnchorEvent({
-        journeyId: "journey-plaza",
-        eventName: "home.event.plaza.entry.click",
-        occurredAt: "2026-05-01T04:10:00.000Z",
-        authenticatedUserHash: "user-a",
-      }),
-      buildViewOtherAnchorEvent({
-        journeyId: "journey-plaza",
-        eventName: "anchor_event.landing.viewed",
-        occurredAt: "2026-05-01T04:12:00.000Z",
-        authenticatedUserHash: "user-a",
-      }),
-    ],
-    userPRCountRows: [],
-    prLifecycleCreatedAtStatusRows: [],
-    prLifecycleTimeWindowEndAtStatusRows: [],
-  });
-
-  assert.equal(response.viewOtherActivities.clickJourneys, 1);
-  assert.equal(response.viewOtherActivities.landingViewJourneys, 1);
-  assert.equal(response.viewOtherActivities.journeyConversionRate, 1);
 });

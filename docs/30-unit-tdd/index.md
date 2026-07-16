@@ -29,7 +29,6 @@ Current repo state:
 
 - active hard-unit docs:
   - [WeChat OAuth Handoff](./wechat-oauth-handoff.md)
-  - [Frontend Event Form Mode](./frontend-event-form-mode.md)
   - [Frontend Shared UI Primitives](./frontend-shared-ui-primitives.md)
   - [Backend Migration Ledger](./backend-migration-ledger.md)
 - broad frontend/backend package folders were intentionally removed as over-broad
@@ -72,7 +71,6 @@ Reconsider a tree layout when:
 
 | Candidate | Current Status | Promotion Signal |
 | --- | --- | --- |
-| `frontend-event-form-mode` | active | Event UI route-level state machine and local interaction choreography were too deep for local AGENTS. |
 | `frontend-shared-ui-primitives` | active | Shared UI primitive selection and extension policy needs a durable local owner without becoming a package API manual. |
 | `backend-migration-ledger` | active | Migration ledger, prefix, environment, seed, and reset rules have costly local failure modes. |
 

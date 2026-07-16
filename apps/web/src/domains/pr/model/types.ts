@@ -1,18 +1,12 @@
 import type { PartnerRequestFields } from "@partner-up-dev/backend";
 import type { InferResponseType } from "hono";
-import { client } from "@/lib/rpc";
 import { normalizePRRouteForSubmit } from "@/domains/pr/model/pr-route";
+import { client } from "@/lib/rpc";
 
 type CanonicalPRDetailView = InferResponseType<(typeof client.api.pr)[":id"]["$get"]>;
 
 export type PRDetailView = CanonicalPRDetailView;
 export type PRPartnerSectionView = CanonicalPRDetailView["partnerSection"];
-
-export type PRSearchView = InferResponseType<
-  (typeof client.api.pr)["search"]["$get"]
->;
-
-export type PRSearchResult = PRSearchView["results"][number];
 
 export type PRFormFields = Omit<PartnerRequestFields, "budget"> & {
   budget?: PartnerRequestFields["budget"];
@@ -41,13 +35,12 @@ const normalizePRPlaceFieldsForSubmit = (
   };
 };
 
-const cloneTimeWindow = (
-  time: PartnerRequestFields["time"],
-): PartnerRequestFields["time"] => [time[0], time[1]];
+const cloneTimeWindow = (time: PartnerRequestFields["time"]): PartnerRequestFields["time"] => [
+  time[0],
+  time[1],
+];
 
-export const toPartnerRequestFields = (
-  fields: PRFormFields,
-): PartnerRequestFields => {
+export const toPartnerRequestFields = (fields: PRFormFields): PartnerRequestFields => {
   const placeFields = normalizePRPlaceFieldsForSubmit(fields);
   return {
     title: fields.title,
@@ -65,9 +58,7 @@ export const toPartnerRequestFields = (
   };
 };
 
-export const toUserUpdatePRContentFields = (
-  fields: PRFormFields,
-): PRUserUpdateContentFields => {
+export const toUserUpdatePRContentFields = (fields: PRFormFields): PRUserUpdateContentFields => {
   const placeFields = normalizePRPlaceFieldsForSubmit(fields);
   return {
     title: fields.title,

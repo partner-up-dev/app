@@ -1,11 +1,11 @@
-import { computed, type ComputedRef } from "vue";
-import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
+import { type ComputedRef, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import { trackEvent } from "@/shared/telemetry/track";
-import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
 import { useExitPR, useJoinPR } from "@/domains/pr/queries/usePRActions";
 import type { ApiError } from "@/shared/api/error";
+import { resolveTelemetryFailurePayload } from "@/shared/telemetry/result";
+import { trackEvent } from "@/shared/telemetry/track";
 
 const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
 const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
@@ -31,11 +31,9 @@ export const useSharedPRActions = ({
   const joinMutation = useJoinPR();
   const exitMutation = useExitPR();
 
-  const hasJoined = computed(
-    () => pr.value?.partnerSection.viewer.isParticipant ?? false,
-  );
+  const hasJoined = computed(() => pr.value?.partnerSection.viewer.isParticipant ?? false);
   const analyticsPRContext = computed(() => ({
-    scenarioType: pr.value?.core.type,
+    prType: pr.value?.core.type,
   }));
 
   const shortPartnerId = computed(() => {
@@ -44,12 +42,8 @@ export const useSharedPRActions = ({
     return String(idValue);
   });
 
-  const canJoin = computed(
-    () => pr.value?.partnerSection.viewer.canJoin ?? false,
-  );
-  const canExit = computed(
-    () => pr.value?.partnerSection.viewer.canExit ?? false,
-  );
+  const canJoin = computed(() => pr.value?.partnerSection.viewer.canJoin ?? false);
+  const canExit = computed(() => pr.value?.partnerSection.viewer.canExit ?? false);
 
   const showEditContentAction = computed(() => {
     const status = pr.value?.status;
@@ -108,11 +102,7 @@ export const useSharedPRActions = ({
       trackEvent("pr_join_result", {
         prId: id.value,
         ...analyticsPRContext.value,
-        ...resolveTelemetryFailurePayload(
-          error,
-          "PR_JOIN_FAILED",
-          t("errors.joinRequestFailed"),
-        ),
+        ...resolveTelemetryFailurePayload(error, "PR_JOIN_FAILED", t("errors.joinRequestFailed")),
       });
       return null;
     }
@@ -149,9 +139,7 @@ export const useSharedPRActions = ({
   };
 
   function resolveSlotStateText(
-    slotState:
-      | PRDetailView["partnerSection"]["viewer"]["slotState"]
-      | undefined,
+    slotState: PRDetailView["partnerSection"]["viewer"]["slotState"] | undefined,
   ): string {
     switch (slotState) {
       case "JOINED":

@@ -1,6 +1,4 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
-  AnchorEvent,
   PartnerId,
   PRId,
   PRJoinGateConfig,
@@ -8,11 +6,8 @@ import type {
   PRJoinGateSource,
   UserId,
 } from "../../../entities";
-import {
-  normalizePRJoinGateConfig,
-  prJoinNoticeGateConfigSchema,
-} from "../../../entities";
-import { ProblemDetailsError } from "../../../lib/problem-details";
+import { normalizePRJoinGateConfig, prJoinNoticeGateConfigSchema } from "../../../entities";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRJoinNoticeAcceptanceRepository } from "../../../repositories/PRJoinNoticeAcceptanceRepository";
 
@@ -21,8 +16,7 @@ const noticeAcceptanceRepo = new PRJoinNoticeAcceptanceRepository();
 
 export const PR_JOIN_GATE_UNRESOLVED_CODE = "PR_JOIN_GATE_UNRESOLVED";
 export const JOIN_GATE_NOT_FOUND_CODE = "PR_JOIN_GATE_NOT_FOUND";
-export const JOIN_NOTICE_ACCEPTANCE_REQUIRED_CODE =
-  "JOIN_NOTICE_ACCEPTANCE_REQUIRED";
+export const JOIN_NOTICE_ACCEPTANCE_REQUIRED_CODE = "JOIN_NOTICE_ACCEPTANCE_REQUIRED";
 
 export type PRJoinGateProjectionItem = {
   key: string;
@@ -43,10 +37,7 @@ export type ResolveJoinGatePayload = {
   accepted: true;
 };
 
-const withSource = (
-  gates: PRJoinGateConfig,
-  source: PRJoinGateSource,
-): PRJoinGateConfig =>
+const withSource = (gates: PRJoinGateConfig, source: PRJoinGateSource): PRJoinGateConfig =>
   gates.map((gate) => ({
     ...gate,
     source,
@@ -55,33 +46,26 @@ const withSource = (
 const dedupeGateConfig = (gates: PRJoinGateConfig): PRJoinGateConfig => {
   const byIdentity = new Map<string, PRJoinGateConfigItem>();
   for (const gate of gates) {
-    byIdentity.set(`${gate.kind}:${gate.source}:${gate.key}`, gate);
+    // A PR-level gate is an explicit override of the current type-config gate
+    // with the same acceptance key. Keep one acceptance-content identity.
+    byIdentity.set(`${gate.kind}:${gate.key}`, gate);
   }
   return Array.from(byIdentity.values());
 };
 
 export const buildMaterializedPRJoinGateConfig = (input: {
-  event?: AnchorEvent | null;
+  prTypeConfig?: { joinGateConfig: PRJoinGateConfig } | null;
   prGates?: PRJoinGateConfig;
 }): PRJoinGateConfig => {
-  const eventGates = input.event
-    ? withSource(
-        normalizePRJoinGateConfig(input.event.joinGateConfig),
-        "ANCHOR_EVENT",
-      )
+  const configGates = input.prTypeConfig
+    ? withSource(normalizePRJoinGateConfig(input.prTypeConfig.joinGateConfig), "PR_TYPE_CONFIG")
     : [];
-  const prGates = withSource(
-    normalizePRJoinGateConfig(input.prGates ?? []),
-    "PR",
-  );
+  const prGates = withSource(normalizePRJoinGateConfig(input.prGates ?? []), "PR");
 
-  return dedupeGateConfig([...eventGates, ...prGates]);
+  return dedupeGateConfig([...configGates, ...prGates]);
 };
 
-const getGateByKey = (
-  config: PRJoinGateConfig,
-  gateKey: string,
-): PRJoinGateConfigItem | null =>
+const getGateByKey = (config: PRJoinGateConfig, gateKey: string): PRJoinGateConfigItem | null =>
   config.find((gate) => gate.key === gateKey) ?? null;
 
 const isJoinNoticeGateResolved = async (input: {
@@ -112,19 +96,21 @@ export const getPRJoinGateProjection = async (input: {
   const config = normalizePRJoinGateConfig(request.joinGateConfig);
 
   const gates = await Promise.all(
-    config.map(async (gate): Promise<PRJoinGateProjectionItem> => ({
-      key: gate.key,
-      kind: gate.kind,
-      version: gate.version,
-      title: gate.title,
-      body: gate.body,
-      resolved: await isJoinNoticeGateResolved({
-        prId: input.prId,
-        viewerUserId: input.viewerUserId,
-        gateKey: gate.key,
-        gateVersion: gate.version,
+    config.map(
+      async (gate): Promise<PRJoinGateProjectionItem> => ({
+        key: gate.key,
+        kind: gate.kind,
+        version: gate.version,
+        title: gate.title,
+        body: gate.body,
+        resolved: await isJoinNoticeGateResolved({
+          prId: input.prId,
+          viewerUserId: input.viewerUserId,
+          gateKey: gate.key,
+          gateVersion: gate.version,
+        }),
       }),
-    })),
+    ),
   );
 
   return { gates };
@@ -194,17 +180,10 @@ export const resolvePRJoinGate = async (input: {
   const config = normalizePRJoinGateConfig(request.joinGateConfig);
   const gate = getGateByKey(config, input.gateKey);
   if (!gate) {
-    return throwCodedHttpException(
-      404,
-      "Join gate not found",
-      JOIN_GATE_NOT_FOUND_CODE,
-    );
+    return throwCodedHttpException(404, "Join gate not found", JOIN_GATE_NOT_FOUND_CODE);
   }
 
-  if (
-    gate.kind !== input.payload.kind ||
-    gate.version !== input.payload.version
-  ) {
+  if (gate.kind !== input.payload.kind || gate.version !== input.payload.version) {
     return throwCodedHttpException(
       400,
       "Join gate payload does not match current gate",

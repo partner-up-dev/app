@@ -10,4 +10,4 @@ This folder owns generic location picking UI.
 ## Boundaries
 
 - Keep provider-specific picker integration here.
-- Do not add PR, Anchor Event, route-pool, or POI workflow policy to generic location picker components.
+- Do not add PR, PR Discovery, route-pool, or POI workflow policy to generic location picker components.

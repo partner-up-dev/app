@@ -15,7 +15,7 @@
     @modify-status="emit('modify-status')"
   />
 
-  <AnchorAttendancePanel
+  <PRAttendancePanel
     :has-joined="hasJoined"
     :can-confirm="canConfirm"
     :can-check-in="canCheckIn"
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import AnchorAttendancePanel from "@/domains/pr/ui/sections/AnchorAttendancePanel.vue";
+import PRAttendancePanel from "@/domains/pr/ui/sections/PRAttendancePanel.vue";
 import SharedPRActionsBar from "@/domains/pr/ui/sections/SharedPRActionsBar.vue";
 
 defineProps<{

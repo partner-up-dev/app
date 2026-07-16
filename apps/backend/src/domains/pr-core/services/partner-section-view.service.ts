@@ -1,23 +1,21 @@
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRId, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import type {
   ActiveParticipantSummary,
   PendingParticipantSummary,
   RosterParticipantSummary,
 } from "../../../repositories/PartnerRepository";
-import { hasEventStarted } from "./time-window.service";
+import type { ResolvedParticipationPolicy } from "./participation-policy.service";
 import type { PublicPR } from "./pr-view.service";
-import type { AlternativeBatchRecommendation } from "../use-cases/recommend-alternative-batches";
-import type { PRId } from "../../../entities/partner-request";
-import type { ResolvedAnchorParticipationPolicy } from "./anchor-participation-policy.service";
-import { isExitAllowedStatus, isJoinableStatus } from "./status-rules";
+import { isPRExitAllowedStatus, isPRJoinableStatus } from "./status-rules";
+import { hasPRTimeWindowStarted } from "./time-window.service";
 
 export type PartnerSectionActionBlockedReason =
   | "NONE"
   | "FULL"
   | "NOT_JOINABLE_STATUS"
   | "JOIN_LOCKED"
-  | "EVENT_STARTED"
+  | "PR_TIME_WINDOW_STARTED"
   | "PARTICIPATION_FREQUENCY_LIMITED"
   | "OUTSIDE_CONFIRM_WINDOW"
   | "NOT_JOINED"
@@ -93,18 +91,10 @@ export type PartnerSectionView = {
     enabled: boolean;
   };
   timeline: null | {
-    eventStartAt: string | null;
+    startAt: string | null;
     confirmationStartAt: string | null;
     confirmationEndAt: string | null;
     joinLockAt: string | null;
-  };
-  fallbacks: {
-    sameBatchAlternatives: Array<{
-      id: PRId;
-      location: string;
-      status: PRStatus;
-    }>;
-    alternativeBatches: AlternativeBatchRecommendation[];
   };
 };
 
@@ -143,8 +133,7 @@ const resolveReadiness = (
 const resolveReleaseState = (
   partnerId: number,
   releaseStateByPartnerId: Map<number, PartnerSectionReleaseState>,
-): PartnerSectionReleaseState =>
-  releaseStateByPartnerId.get(partnerId) ?? "RELEASED";
+): PartnerSectionReleaseState => releaseStateByPartnerId.get(partnerId) ?? "RELEASED";
 
 const resolveRosterState = (
   status: RosterParticipantSummary["status"],
@@ -167,16 +156,12 @@ const buildBaseSection = (
   rosterParticipants: RosterParticipantSummary[],
   viewerUserId: UserId | null,
   releaseStateByPartnerId: Map<number, PartnerSectionReleaseState>,
-): Omit<
-  PartnerSectionView,
-  "reminder" | "confirmation" | "timeline" | "fallbacks"
-> => {
+): Omit<PartnerSectionView, "reminder" | "confirmation" | "timeline"> => {
   const current = activeParticipants.length;
   const min = publicPR.minPartners;
   const max = publicPR.maxPartners;
   const remaining = max === null ? null : Math.max(0, max - current);
-  const neededToReady =
-    min === null ? 0 : Math.max(0, min - current);
+  const neededToReady = min === null ? 0 : Math.max(0, min - current);
   const readiness = resolveReadiness(publicPR.status, current, min, max);
 
   const roster = rosterParticipants.map((item) => {
@@ -188,35 +173,27 @@ const buildBaseSection = (
       avatarUrl: item.avatar,
       isCreator,
       isSelf,
-      state: resolveRosterState(
-        item.status,
-        item.partnerId,
-        releaseStateByPartnerId,
-      ),
+      state: resolveRosterState(item.status, item.partnerId, releaseStateByPartnerId),
     } satisfies PartnerSectionRosterItem;
   });
 
   const selfActiveSlot =
     publicPR.myPartnerId === null
       ? null
-      : activeParticipants.find((item) => item.partnerId === publicPR.myPartnerId) ??
-        null;
+      : (activeParticipants.find((item) => item.partnerId === publicPR.myPartnerId) ?? null);
   const isCreator = Boolean(viewerUserId && publicPR.createdBy === viewerUserId);
   const isParticipant = publicPR.myPartnerId !== null;
   const selfPendingSlot =
     publicPR.myPendingPartnerId === null
       ? null
-      : pendingParticipants.find(
-          (item) => item.partnerId === publicPR.myPendingPartnerId,
-        ) ?? null;
+      : (pendingParticipants.find((item) => item.partnerId === publicPR.myPendingPartnerId) ??
+        null);
   const waitlistRank =
     selfPendingSlot === null
       ? null
-      : pendingParticipants.findIndex(
-            (item) => item.partnerId === selfPendingSlot.partnerId,
-          ) + 1;
+      : pendingParticipants.findIndex((item) => item.partnerId === selfPendingSlot.partnerId) + 1;
   const releasedSlot = viewerUserId
-    ? rosterParticipants
+    ? (rosterParticipants
         .filter(
           (item) =>
             (item.status === "RELEASED" || item.status === "EXITED") &&
@@ -227,7 +204,7 @@ const buildBaseSection = (
           const bTime = b.releasedAt?.getTime() ?? 0;
           if (aTime !== bTime) return bTime - aTime;
           return b.partnerId - a.partnerId;
-        })[0] ?? null
+        })[0] ?? null)
     : null;
 
   const releasedSlotState: PartnerSectionReleaseState | null =
@@ -238,10 +215,7 @@ const buildBaseSection = (
         : resolveReleaseState(releasedSlot.partnerId, releaseStateByPartnerId);
 
   const slotState: PartnerSectionView["viewer"]["slotState"] =
-    selfActiveSlot?.status ??
-    selfPendingSlot?.status ??
-    releasedSlotState ??
-    "NOT_JOINED";
+    selfActiveSlot?.status ?? selfPendingSlot?.status ?? releasedSlotState ?? "NOT_JOINED";
 
   return {
     capacity: {
@@ -290,13 +264,7 @@ export function buildPRPartnerSection(params: {
   pendingParticipants?: PendingParticipantSummary[];
   rosterParticipants: RosterParticipantSummary[];
   viewerUserId: UserId | null;
-  policy?: ResolvedAnchorParticipationPolicy | null;
-  sameBatchAlternatives?: Array<{
-    id: PRId;
-    location: string;
-    status: PRStatus;
-  }>;
-  alternativeBatches?: AlternativeBatchRecommendation[];
+  policy?: ResolvedParticipationPolicy | null;
   releaseStateByPartnerId?: Map<number, PartnerSectionReleaseState>;
   participationFrequencyLimited?: boolean;
 }): PartnerSectionView {
@@ -307,8 +275,6 @@ export function buildPRPartnerSection(params: {
     rosterParticipants,
     viewerUserId,
     policy = null,
-    sameBatchAlternatives = [],
-    alternativeBatches = [],
     releaseStateByPartnerId = new Map(),
     participationFrequencyLimited = false,
   } = params;
@@ -324,13 +290,12 @@ export function buildPRPartnerSection(params: {
   const current = activeParticipants.length;
   const hasParticipationPolicy = policy !== null;
   const confirmationEnabled = publicPR.confirmationEnabled;
-  const confirmationPolicyEnabled =
-    hasParticipationPolicy && policy.confirmationEnabled;
+  const confirmationPolicyEnabled = hasParticipationPolicy && policy.confirmationEnabled;
   const joinLocked =
     hasParticipationPolicy && policy?.joinLockAt
       ? Date.now() >= policy.joinLockAt.getTime()
       : false;
-  const started = hasEventStarted(publicPR.time);
+  const started = hasPRTimeWindowStarted(publicPR.time);
   const withinConfirmationWindow =
     confirmationPolicyEnabled &&
     policy?.confirmationStartAt !== null &&
@@ -343,7 +308,7 @@ export function buildPRPartnerSection(params: {
   if (base.viewer.isParticipant) {
     canJoin = false;
     joinBlockedReason = "ALREADY_JOINED";
-  } else if (!isJoinableStatus(publicPR.status)) {
+  } else if (!isPRJoinableStatus(publicPR.status)) {
     canJoin = false;
     joinBlockedReason = "NOT_JOINABLE_STATUS";
   } else if (publicPR.maxPartners !== null && current >= publicPR.maxPartners) {
@@ -360,9 +325,7 @@ export function buildPRPartnerSection(params: {
   let canWaitlist = false;
   let waitlistBlockedReason: PartnerSectionActionBlockedReason = "NONE";
   const waitlistOpen =
-    publicPR.status === "OPEN" &&
-    publicPR.maxPartners !== null &&
-    current >= publicPR.maxPartners;
+    publicPR.status === "OPEN" && publicPR.maxPartners !== null && current >= publicPR.maxPartners;
   if (base.viewer.isParticipant) {
     waitlistBlockedReason = "ALREADY_JOINED";
   } else if (base.viewer.isWaitlisted) {
@@ -382,12 +345,12 @@ export function buildPRPartnerSection(params: {
   if (!base.viewer.isParticipant) {
     canExit = false;
     exitBlockedReason = "NOT_JOINED";
-  } else if (!isExitAllowedStatus(publicPR.status)) {
+  } else if (!isPRExitAllowedStatus(publicPR.status)) {
     canExit = false;
     exitBlockedReason = "NOT_JOINABLE_STATUS";
   } else if (hasParticipationPolicy && started) {
     canExit = false;
-    exitBlockedReason = "EVENT_STARTED";
+    exitBlockedReason = "PR_TIME_WINDOW_STARTED";
   }
 
   let canConfirm = true;
@@ -398,10 +361,7 @@ export function buildPRPartnerSection(params: {
   } else if (!base.viewer.isParticipant) {
     canConfirm = false;
     confirmBlockedReason = "NOT_JOINED";
-  } else if (
-    base.viewer.slotState === "CONFIRMED" ||
-    base.viewer.slotState === "ATTENDED"
-  ) {
+  } else if (base.viewer.slotState === "CONFIRMED" || base.viewer.slotState === "ATTENDED") {
     canConfirm = false;
     confirmBlockedReason = "ALREADY_CONFIRMED";
   } else if (!withinConfirmationWindow) {
@@ -454,16 +414,12 @@ export function buildPRPartnerSection(params: {
     },
     timeline: hasParticipationPolicy
       ? {
-          eventStartAt: publicPR.time[0],
+          startAt: publicPR.time[0],
           confirmationStartAt: toIsoString(policy?.confirmationStartAt),
           confirmationEndAt: toIsoString(policy?.confirmationEndAt),
           joinLockAt: toIsoString(policy?.joinLockAt),
         }
       : null,
-    fallbacks: {
-      sameBatchAlternatives,
-      alternativeBatches,
-    },
   };
 }
 
@@ -485,35 +441,5 @@ export function buildCommunityPartnerSection(
     rosterParticipants,
     viewerUserId,
     releaseStateByPartnerId,
-  });
-}
-
-export function buildAnchorPartnerSection(params: {
-  publicPR: PublicPR;
-  activeParticipants: ActiveParticipantSummary[];
-  pendingParticipants: PendingParticipantSummary[];
-  rosterParticipants: RosterParticipantSummary[];
-  viewerUserId: UserId | null;
-  policy: ResolvedAnchorParticipationPolicy;
-  sameBatchAlternatives: Array<{
-    id: PRId;
-    location: string;
-    status: PRStatus;
-  }>;
-  alternativeBatches: AlternativeBatchRecommendation[];
-  releaseStateByPartnerId?: Map<number, PartnerSectionReleaseState>;
-  participationFrequencyLimited?: boolean;
-}): PartnerSectionView {
-  return buildPRPartnerSection({
-    publicPR: params.publicPR,
-    activeParticipants: params.activeParticipants,
-    pendingParticipants: params.pendingParticipants,
-    rosterParticipants: params.rosterParticipants,
-    viewerUserId: params.viewerUserId,
-    policy: params.policy,
-    sameBatchAlternatives: params.sameBatchAlternatives,
-    alternativeBatches: params.alternativeBatches,
-    releaseStateByPartnerId: params.releaseStateByPartnerId,
-    participationFrequencyLimited: params.participationFrequencyLimited,
   });
 }

@@ -1,8 +1,5 @@
-import type {
-  PartnerRequestFields,
-  WeekdayLabel,
-} from "../../entities/partner-request";
-import { toPromptJson, type PromptJsonObject } from "../../lib/prompt-variables";
+import type { PartnerRequestFields, WeekdayLabel } from "../../entities/partner-request";
+import { type PromptJsonObject, toPromptJson } from "../../lib/prompt-variables";
 
 type SharePromptPartnerRequest = Pick<
   PartnerRequestFields,
@@ -71,9 +68,7 @@ const formatSharePromptTime = (value: string | null): string | null => {
   }
 
   const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime())
-    ? trimmed
-    : formatProductLocalDateTime(parsed);
+  return Number.isNaN(parsed.getTime()) ? trimmed : formatProductLocalDateTime(parsed);
 };
 
 const buildParticipantSummary = (
@@ -82,9 +77,7 @@ const buildParticipantSummary = (
 ): ParticipantSummary => {
   const currentParticipants = partners.length;
   const stillNeededFromMin =
-    minParticipants === null
-      ? null
-      : Math.max(minParticipants - currentParticipants, 0);
+    minParticipants === null ? null : Math.max(minParticipants - currentParticipants, 0);
 
   return {
     currentParticipants,
@@ -93,9 +86,7 @@ const buildParticipantSummary = (
   };
 };
 
-const buildSharePromptContext = (
-  pr: SharePromptPartnerRequest,
-): PromptJsonObject => {
+const buildSharePromptContext = (pr: SharePromptPartnerRequest): PromptJsonObject => {
   const [startTime, endTime] = pr.time;
   const participants = buildParticipantSummary(pr.minPartners, pr.partners);
 
@@ -118,9 +109,7 @@ const buildSharePromptContext = (
   };
 };
 
-export const buildXiaohongshuCaptionPromptVariablesJson = (
-  pr: PartnerRequestFields,
-): string => {
+export const buildXiaohongshuCaptionPromptVariablesJson = (pr: PartnerRequestFields): string => {
   return toPromptJson({
     context: buildSharePromptContext(pr),
   });
@@ -136,9 +125,7 @@ export const buildXhsPosterHtmlPromptVariablesJson = (
   });
 };
 
-export const buildWeChatThumbnailPromptVariablesJson = (
-  pr: SharePromptPartnerRequest,
-): string => {
+export const buildWeChatThumbnailPromptVariablesJson = (pr: SharePromptPartnerRequest): string => {
   return toPromptJson({
     context: {
       title: pr.title ?? null,
@@ -153,11 +140,11 @@ export const buildPartnerRequestParsePromptVariablesJson = (
   nowIso: string,
   nowWeekday: WeekdayLabel | null,
   typeHints: {
-    existingPRTypes: string[];
-    anchorEventTypes: string[];
+    observedPRTypes: string[];
+    configuredPRTypes: string[];
   } = {
-    existingPRTypes: [],
-    anchorEventTypes: [],
+    observedPRTypes: [],
+    configuredPRTypes: [],
   },
 ): string => {
   const normalizedRawText = rawText.trim().length > 0 ? rawText.trim() : rawText;
@@ -166,13 +153,9 @@ export const buildPartnerRequestParsePromptVariablesJson = (
     nowIso,
     nowWeekday,
     typeSelection: {
-      priority: [
-        "existingPRTypes",
-        "anchorEventTypes",
-        "newTypeWhenNoCandidateFits",
-      ],
-      existingPRTypes: typeHints.existingPRTypes,
-      anchorEventTypes: typeHints.anchorEventTypes,
+      priority: ["observedPRTypes", "configuredPRTypes", "newTypeWhenNoCandidateFits"],
+      observedPRTypes: typeHints.observedPRTypes,
+      configuredPRTypes: typeHints.configuredPRTypes,
     },
     userInput: normalizedRawText,
   });

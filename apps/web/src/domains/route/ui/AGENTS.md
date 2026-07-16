@@ -1,7 +1,7 @@
 # Route UI Local Rules
 
 This folder owns generic route-domain editing and display components. PR,
-Anchor Event, commerce, and admin surfaces consume these components and map
+PR Discovery, commerce, and admin surfaces consume these components and map
 their own payloads into route-domain shapes.
 
 ## Component Contracts
@@ -13,4 +13,4 @@ their own payloads into route-domain shapes.
 ## Boundaries
 
 - Keep generic route geometry and point-list behavior here.
-- Keep PR-specific place-mode policy, event route-pool policy, and commerce route copy in their owning domains.
+- Keep PR-specific place-mode policy, PR Discovery route-pool policy, and commerce route copy in their owning domains.

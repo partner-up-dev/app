@@ -1,14 +1,11 @@
-import type {
-  PRId,
-  PartnerRequest,
-} from "../../../entities/partner-request";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
 import { scheduleWeChatMeetingPointUpdatedNotifications } from "../../../infra/notifications";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import {
   areEffectiveMeetingPointsEqual,
+  type EffectiveMeetingPoint,
   resolveEffectiveMeetingPoint,
   resolveMeetingPointNotificationDescription,
-  type EffectiveMeetingPoint,
 } from "./meeting-point.service";
 
 const prRepo = new PartnerRequestRepository();
@@ -33,13 +30,11 @@ export const captureEffectiveMeetingPointsForRequests = async (
   return result;
 };
 
-export const scheduleMeetingPointNotificationsForChangedRequests = async (
-  input: {
-    previous: MeetingPointSnapshot;
-    requests: PartnerRequest[];
-    updatedAt: Date;
-  },
-): Promise<void> => {
+export const scheduleMeetingPointNotificationsForChangedRequests = async (input: {
+  previous: MeetingPointSnapshot;
+  requests: PartnerRequest[];
+  updatedAt: Date;
+}): Promise<void> => {
   for (const request of dedupeRequests(input.requests)) {
     const previousMeetingPoint = input.previous.get(request.id) ?? null;
     const nextMeetingPoint = await resolveEffectiveMeetingPoint(request);
@@ -47,8 +42,7 @@ export const scheduleMeetingPointNotificationsForChangedRequests = async (
       continue;
     }
 
-    const meetingPointDescription =
-      resolveMeetingPointNotificationDescription(nextMeetingPoint);
+    const meetingPointDescription = resolveMeetingPointNotificationDescription(nextMeetingPoint);
     if (!meetingPointDescription) {
       continue;
     }
@@ -61,7 +55,7 @@ export const scheduleMeetingPointNotificationsForChangedRequests = async (
   }
 };
 
-export const listRequestsAffectedByAnchorEventMeetingPoint = async (
+export const listRequestsAffectedByPRTypeMeetingPoint = async (
   previousType: string,
   nextType: string,
 ): Promise<PartnerRequest[]> => {

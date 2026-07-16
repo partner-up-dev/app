@@ -32,13 +32,13 @@ Focus:
 - WeChat login and binding
 - `/me` and revisit restoration
 
-## 4. Event And Anchor Context
+## 4. PR Discovery
 
 Focus:
 
-- Anchor Event and time-pool context
-- entering `PR` from event browsing
-- alternative recommendations
+- `/prd` and current PR-type discovery configuration
+- entering `PR` from catalog, Form, Card, and List browsing
+- candidate grouping and recommendations
 - POI semantics
 
 ## 5. Distribution And Attribution
@@ -55,7 +55,6 @@ Focus:
 Focus:
 
 - "Need Help", author feedback, and about-page routing
-- beta-group entrypoints
 - official-account QR support
-- operator maintenance capability
+- operator maintenance capability, including PR type policy and support configuration
 - configuration that directly changes user-visible flow

@@ -295,9 +295,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
-import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
 import {
   PuButton,
@@ -309,15 +306,18 @@ import {
   PuInlineNotice,
   PuLoadingState,
 } from "@partner-up-dev/design-web";
-import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
-import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
-import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";
+import { computed, nextTick, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { RouterLink } from "vue-router";
 import type { PRPartnerSectionView } from "@/domains/pr/model/types";
-import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
+import { prPartnerProfilePath } from "@/domains/pr/routing/routes";
+import PRLocationGalleryModal from "@/domains/pr/ui/modals/PRLocationGalleryModal.vue";
+import PRRosterModal from "@/domains/pr/ui/modals/PRRosterModal.vue";
+import PRRouteMapModal from "@/domains/pr/ui/modals/PRRouteMapModal.vue";
 import { usePRLocationGallery } from "@/domains/pr/use-cases/usePRLocationGallery";
-import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
 import { buildRouteEndpointLabel } from "@/domains/route/model/route";
+import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
 import { formatFriendlyTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 
 type RosterPreviewItem = PRPartnerSectionView["roster"][number];
@@ -355,23 +355,19 @@ const normalizeDisplayText = (value: string | null | undefined): string | null =
   return normalized.length > 0 ? normalized : null;
 };
 
-const { locationId, locationGallery } = usePRLocationGallery(
+const { locationName, locationGallery } = usePRLocationGallery(
   computed(() => prDetail.value?.core.location ?? null),
 );
 
-watch(locationId, () => {
+watch(locationName, () => {
   showLocationGalleryModal.value = false;
 });
 
-const locationGalleryAvailable = computed(
-  () => locationGallery.value.length > 0,
-);
+const locationGalleryAvailable = computed(() => locationGallery.value.length > 0);
 
 const prRoute = computed(() => prDetail.value?.core.route ?? null);
 const routeAvailable = computed(() => (prRoute.value?.length ?? 0) >= 2);
-const locationDisplayName = computed(() =>
-  normalizeDisplayText(prDetail.value?.core.location),
-);
+const locationDisplayName = computed(() => normalizeDisplayText(prDetail.value?.core.location));
 const locationDisplayText = computed(
   () => locationDisplayName.value ?? t("prPage.partnerSection.notSet"),
 );
@@ -390,8 +386,7 @@ watch(prRoute, () => {
 });
 
 const meetingPointDescription = computed(() => {
-  const description =
-    prDetail.value?.core.meetingPoint?.description?.trim() ?? "";
+  const description = prDetail.value?.core.meetingPoint?.description?.trim() ?? "";
   return description.length > 0 ? description : null;
 });
 
@@ -416,9 +411,7 @@ const normalizedNotes = computed(() => {
   const trimmed = prDetail.value?.core.notes?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : null;
 });
-const hasPreferences = computed(
-  () => (prDetail.value?.core.preferences.length ?? 0) > 0,
-);
+const hasPreferences = computed(() => (prDetail.value?.core.preferences.length ?? 0) > 0);
 
 const localizedTimeText = computed(() => {
   return formatFriendlyTimeWindowLabel(
@@ -427,17 +420,14 @@ const localizedTimeText = computed(() => {
   );
 });
 
-const timeEditableAfterReady = computed(() =>
-  prDetail.value?.editPostReadyCapability.editableFields.includes("time") ??
-  false,
+const timeEditableAfterReady = computed(
+  () => prDetail.value?.editPostReadyCapability.editableFields.includes("time") ?? false,
 );
-const locationEditableAfterReady = computed(() =>
-  prDetail.value?.editPostReadyCapability.editableFields.includes("location") ??
-  false,
+const locationEditableAfterReady = computed(
+  () => prDetail.value?.editPostReadyCapability.editableFields.includes("location") ?? false,
 );
-const routeEditableAfterReady = computed(() =>
-  prDetail.value?.editPostReadyCapability.editableFields.includes("route") ??
-  false,
+const routeEditableAfterReady = computed(
+  () => prDetail.value?.editPostReadyCapability.editableFields.includes("route") ?? false,
 );
 
 const participantCountText = computed(() => {
@@ -452,9 +442,7 @@ const isActiveRosterState = (state: RosterPreviewItem["state"]): boolean =>
 
 const activeRoster = computed(
   () =>
-    prDetail.value?.partnerSection.roster.filter((item) =>
-      isActiveRosterState(item.state),
-    ) ?? [],
+    prDetail.value?.partnerSection.roster.filter((item) => isActiveRosterState(item.state)) ?? [],
 );
 const rosterPreview = computed(() => activeRoster.value.slice(0, 4));
 const hiddenRosterCount = computed(() =>

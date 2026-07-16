@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { test, vi } from "vitest";
-import {
-  buildProblemDetailsPayload,
-  ProblemDetailsError,
-} from "../lib/problem-details";
+import { buildProblemDetailsPayload, ProblemDetailsError } from "../lib/problem-details";
 
 const AUTHENTICATED_REQUIRED_CODE = "AUTHENTICATED_REQUIRED";
 
@@ -18,24 +15,6 @@ vi.mock("../domains/poi", () => ({
   submitPoiApplication: vi.fn(),
 }));
 
-vi.mock("../domains/anchor-event", () => ({
-  listAnchorEvents: vi.fn(),
-  getAnchorEventDetail: vi.fn(),
-  getAnchorEventDemandCards: vi.fn(),
-  assignAnchorEventLandingMode: vi.fn(),
-  getAnchorEventFormModeData: vi.fn(),
-  submitAnchorEventFormModePreferenceTags: vi.fn(),
-  recommendAnchorEventFormModePRs: vi.fn(),
-  createAnchorEventFormModeAutoPR: vi.fn(),
-  materializeAnchorEventDummyPR: vi.fn(),
-}));
-
-vi.mock("../domains/anchor-event-route-application", () => ({
-  listMyAnchorEventRouteApplications: vi.fn(),
-  submitAnchorEventRouteApplication: vi.fn(),
-}));
-
-const { anchorEventRoute } = await import("./anchor-event.controller");
 const { poiRoute } = await import("./poi.controller");
 
 const app = new Hono()
@@ -54,8 +33,7 @@ const app = new Hono()
       "Content-Language": contentLanguage,
     });
   })
-  .route("/api/pois", poiRoute)
-  .route("/api/events", anchorEventRoute);
+  .route("/api/pois", poiRoute);
 
 const assertAuthenticatedRequired = async (response: Response): Promise<void> => {
   assert.equal(response.status, 401);
@@ -65,9 +43,7 @@ const assertAuthenticatedRequired = async (response: Response): Promise<void> =>
 };
 
 test("POI application APIs return coded authenticated-required responses", async () => {
-  await assertAuthenticatedRequired(
-    await app.request("/api/pois/applications/mine"),
-  );
+  await assertAuthenticatedRequired(await app.request("/api/pois/applications/mine"));
 
   await assertAuthenticatedRequired(
     await app.request("/api/pois/applications", {
@@ -78,39 +54,6 @@ test("POI application APIs return coded authenticated-required responses", async
       body: JSON.stringify({
         title: "新地点",
         imageUrl: "https://partner-up.test/poi.png",
-      }),
-    }),
-  );
-});
-
-test("anchor-event route application APIs return coded authenticated-required responses", async () => {
-  await assertAuthenticatedRequired(
-    await app.request("/api/events/route-applications/mine"),
-  );
-
-  await assertAuthenticatedRequired(
-    await app.request("/api/events/1/route-applications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        route: [
-          {
-            name: "起点",
-            full_address: "起点地址",
-            wgs84: null,
-            bd09: null,
-            gcj02: [113.32, 23.12],
-          },
-          {
-            name: "终点",
-            full_address: "终点地址",
-            wgs84: null,
-            bd09: null,
-            gcj02: [113.33, 23.13],
-          },
-        ],
       }),
     }),
   );

@@ -2,19 +2,19 @@ import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import { WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND } from "../../src/domains/notification";
 import { prepareWaitlistAlternativeAvailableNotificationDispatch } from "../../src/domains/notification/services/waitlist-alternative-available-dispatch.service";
-import { scenario } from "../_infra/scenario/scenario";
-import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
-import { getTestDb } from "../_infra/probes/sql-probe";
-import { UserNotificationOptRepository } from "../../src/repositories/UserNotificationOptRepository";
 import {
-  partnerRequests,
   type PartnerRequestFields,
   type PRId,
   type PRRoute,
   type PRStatus,
+  partnerRequests,
 } from "../../src/entities";
-import { bindScenarioWeChatOpenId } from "./_kit/actions/system-state";
+import { UserNotificationOptRepository } from "../../src/repositories/UserNotificationOptRepository";
+import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
+import { getTestDb } from "../_infra/probes/sql-probe";
+import { scenario } from "../_infra/scenario/scenario";
 import { joinPartnerRequest } from "./_kit/actions/join";
+import { bindScenarioWeChatOpenId } from "./_kit/actions/system-state";
 import { waitlistPR } from "./_kit/actions/waitlist";
 import { givenUser, type ScenarioUser } from "./_kit/builders/users";
 
@@ -95,7 +95,7 @@ const createRoutePR = async (input: {
     token: input.creator.token,
     body: {
       fields: buildRouteFields(input.route, input.fields),
-      createSource: "FORM",
+      createSource: "STRUCTURED_FORM",
     },
   });
 
@@ -170,10 +170,7 @@ scenario("route_pr_create_read_and_update", async (ctx) => {
   );
   assert.equal(updatedDetail.core.placeDisplayName, "广州南站~琶洲会展中心");
   assert.equal(updatedDetail.share.canonical.title, "通勤拼车");
-  assert.notEqual(
-    updatedDetail.share.canonical.revision,
-    detail.share.canonical.revision,
-  );
+  assert.notEqual(updatedDetail.share.canonical.revision, detail.share.canonical.revision);
 });
 
 scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ctx) => {
@@ -228,13 +225,12 @@ scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ct
     throw new Error("Expected route PR pending waitlist slot");
   }
 
-  const prepared =
-    await prepareWaitlistAlternativeAvailableNotificationDispatch({
-      sourcePrId: source.id,
-      sourcePartnerId: waitlisted.myPendingPartnerId,
-      candidatePrId: alternative.id,
-      recipientUserId: candidate.user.id,
-    });
+  const prepared = await prepareWaitlistAlternativeAvailableNotificationDispatch({
+    sourcePrId: source.id,
+    sourcePartnerId: waitlisted.myPendingPartnerId,
+    candidatePrId: alternative.id,
+    recipientUserId: candidate.user.id,
+  });
   assert.equal(prepared.status, "SKIPPED");
   if (prepared.status !== "READY") {
     assert.equal(prepared.errorCode, "CANDIDATE_PR_MISMATCH");

@@ -7,7 +7,7 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { resetPRJoinGateResolutionsForUser } from "./join-gates.service";
-import { isJoinableStatus } from "./status-rules";
+import { isPRJoinableStatus } from "./status-rules";
 
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
@@ -17,13 +17,11 @@ const normalizeText = (value: string | null): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const isCandidateEligible = async (
-  request: PartnerRequest,
-): Promise<boolean> => {
+const isCandidateEligible = async (request: PartnerRequest): Promise<boolean> => {
   if (request.visibilityStatus !== "VISIBLE") {
     return false;
   }
-  if (!isJoinableStatus(request.status)) {
+  if (!isPRJoinableStatus(request.status)) {
     return false;
   }
   if (request.maxPartners === null) {
@@ -47,12 +45,11 @@ export async function scheduleAlternativeWaitlistNotificationsForCandidate(
     return;
   }
 
-  const sourceSlots =
-    await partnerRepo.listPendingAlternativeReminderSlotsByTypeAndLocation({
-      type,
-      location,
-      excludePrId: refreshedCandidate.id,
-    });
+  const sourceSlots = await partnerRepo.listPendingAlternativeReminderSlotsByTypeAndLocation({
+    type,
+    location,
+    excludePrId: refreshedCandidate.id,
+  });
 
   for (const sourceSlot of sourceSlots) {
     await scheduleWeChatWaitlistAlternativeAvailableNotification({
@@ -100,8 +97,7 @@ export async function scheduleAlternativeWaitlistNotificationsForSource(input: {
 export async function scheduleAlternativeWaitlistNotificationsForUserSources(
   userId: UserId,
 ): Promise<void> {
-  const sourceSlots =
-    await partnerRepo.listPendingAlternativeReminderSlotsByUser(userId);
+  const sourceSlots = await partnerRepo.listPendingAlternativeReminderSlotsByUser(userId);
 
   for (const sourceSlot of sourceSlots) {
     const sourceRequest = await prRepo.findById(sourceSlot.prId);
@@ -127,13 +123,12 @@ export async function closeAlternativeWaitlistSourcesAfterJoin(input: {
     return;
   }
 
-  const sourceSlots =
-    await partnerRepo.listPendingAlternativeReminderSlotsByUserForAlternative({
-      userId: input.userId,
-      type,
-      location,
-      excludePrId: input.alternativeRequest.id,
-    });
+  const sourceSlots = await partnerRepo.listPendingAlternativeReminderSlotsByUserForAlternative({
+    userId: input.userId,
+    type,
+    location,
+    excludePrId: input.alternativeRequest.id,
+  });
 
   for (const sourceSlot of sourceSlots) {
     const cancelled = await partnerRepo.cancelPendingSlot(sourceSlot.partnerId);

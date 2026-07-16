@@ -1,5 +1,5 @@
-import { computed, reactive } from "vue";
 import type { PRId } from "@partner-up-dev/backend";
+import { computed, reactive } from "vue";
 
 export type RouteHandoffRect = {
   left: number;
@@ -10,17 +10,11 @@ export type RouteHandoffRect = {
   height: number;
 };
 
-export type MatchedPRHandoffPhase =
-  | "IDLE"
-  | "PREVIEW"
-  | "NAVIGATING"
-  | "ALIGNING"
-  | "SETTLING";
+export type MatchedPRHandoffPhase = "IDLE" | "PREVIEW" | "NAVIGATING" | "ALIGNING" | "SETTLING";
 
 type MatchedPRHandoffState = {
   phase: MatchedPRHandoffPhase;
   prId: PRId | null;
-  eventId: number | null;
   originRect: RouteHandoffRect | null;
   targetRect: RouteHandoffRect | null;
 };
@@ -28,7 +22,6 @@ type MatchedPRHandoffState = {
 const state = reactive<MatchedPRHandoffState>({
   phase: "IDLE",
   prId: null,
-  eventId: null,
   originRect: null,
   targetRect: null,
 });
@@ -36,7 +29,6 @@ const state = reactive<MatchedPRHandoffState>({
 const reset = () => {
   state.phase = "IDLE";
   state.prId = null;
-  state.eventId = null;
   state.originRect = null;
   state.targetRect = null;
 };
@@ -44,14 +36,9 @@ const reset = () => {
 export const useMatchedPRHandoff = () => {
   const isActive = computed(() => state.phase !== "IDLE");
 
-  const begin = (input: {
-    prId: PRId;
-    eventId: number;
-    originRect: RouteHandoffRect;
-  }) => {
+  const begin = (input: { prId: PRId; originRect: RouteHandoffRect }) => {
     state.phase = "PREVIEW";
     state.prId = input.prId;
-    state.eventId = input.eventId;
     state.originRect = input.originRect;
     state.targetRect = null;
   };

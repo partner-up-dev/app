@@ -1,6 +1,7 @@
-import { throwHttpProblem } from "../lib/problem-details";
+import { zValidator } from "@hono/zod-validator";
 import { Hono, type MiddlewareHandler } from "hono";
-import { authMiddleware, type AuthEnv } from "../auth/middleware";
+import { z } from "zod";
+import { type AuthEnv, authMiddleware } from "../auth/middleware";
 import {
   advancePRMessageReadMarker,
   authorizeCreatorMutation,
@@ -11,99 +12,73 @@ import {
   createPRFromStructured,
   createPRMessage,
   exitPRByUserId,
-  getPRDetail,
-  getPRPartnerProfile,
   getMyCreatedPRs,
   getMyJoinedPRs,
+  getPRDetail,
   getPRJoinGateProjection,
+  getPRPartnerProfile,
   joinPRByIdentity,
   listPRMessages,
   publishPR,
   resolvePRJoinGate,
   resolvePRParticipantUser,
-  searchPRs,
-  updateUserPRContent,
   updatePRStatus,
+  updateUserPRContent,
   waitlistPRByIdentity,
 } from "../domains/pr";
+import type { OfferId } from "../entities/offer";
+import { recordUserTelemetryEventForRequest } from "../infra/telemetry";
+import { throwHttpProblem } from "../lib/problem-details";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
 import { TradeOrderRepository } from "../repositories/TradeOrderRepository";
-import type { OfferId } from "../entities/offer";
 import {
-  anchorUpdateContentSchema,
   createNaturalLanguagePRSchema,
   getSessionUserId,
   issueResponseAuth,
+  partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
+  prIdParamSchema,
   prMessageCreateSchema,
   prMessageReadMarkerSchema,
-  prIdParamSchema,
   prPartnerProfileParamSchema,
-  requireAuthenticatedOpenId,
   requireAuthenticatedCreatorIdentity,
+  requireAuthenticatedOpenId,
   requireAuthenticatedUserId,
   requireSessionUserId,
   resolveAvatarUrl,
   tryReadAuthenticatedOpenId,
-  partnerRequestFieldsSchema,
-  prAllowEditAfterReadySchema,
   updateContentSchema,
   updateStatusSchema,
 } from "./pr-controller.shared";
-import { recordUserTelemetryEventForRequest } from "../infra/telemetry";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 
 const app = new Hono<AuthEnv>();
 const prRepo = new PartnerRequestRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 const PR_MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (
-  c,
-  next,
-) => {
+const requireAuthenticatedPRMutation: MiddlewareHandler<AuthEnv> = async (c, next) => {
   if (PR_MUTATION_METHODS.has(c.req.method)) {
     requireAuthenticatedUserId(c);
   }
 
   await next();
 };
-const isoDateSearchParamSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const eventPRSearchQuerySchema = z.object({
-  eventId: z.coerce.number().int().positive(),
-  date: z.preprocess((value) => {
-    if (Array.isArray(value)) {
-      return value;
-    }
-    if (typeof value === "string") {
-      return [value];
-    }
-    return [];
-  }, z.array(isoDateSearchParamSchema).min(1).max(28)),
-});
 const createStructuredPRCommandSchema = z.union([
   z.object({
     fields: partnerRequestFieldsSchema,
-    createSource: z.literal("EVENT_ASSISTED"),
-    anchorEventId: z.coerce.number().int().positive().optional(),
+    createSource: z.literal("PR_DISCOVERY"),
     allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   }),
   z.object({
     fields: partnerRequestFieldsSchema,
-    createSource: z.literal("FORM").optional(),
+    createSource: z.literal("STRUCTURED_FORM").optional(),
+    allowEditAfterReady: prAllowEditAfterReadySchema.nullable().optional(),
   }),
 ]);
-const nlWordCountCommandSchema = createNaturalLanguagePRSchema
-  .refine(
-    ({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50,
-    { message: "Natural language input must be 50 words or fewer" },
-  );
-const canonicalUpdateContentSchema = z.union([
-  updateContentSchema,
-  anchorUpdateContentSchema,
-]);
-const anchorJoinSchema = z
-  .object({})
-  .default({});
+const nlWordCountCommandSchema = createNaturalLanguagePRSchema.refine(
+  ({ rawText }) => rawText.trim().split(/\s+/).filter(Boolean).length <= 50,
+  { message: "Natural language input must be 50 words or fewer" },
+);
+const emptyCommandSchema = z.object({}).default({});
 const waitlistCommandSchema = z
   .object({
     alternativePrReminderOptIn: z.boolean().optional(),
@@ -142,44 +117,27 @@ const getPROr404 = async (id: number) => {
 export const partnerRequestRoute = app
   .use("*", authMiddleware)
   .use("*", requireAuthenticatedPRMutation)
-  .get("/search", zValidator("query", eventPRSearchQuerySchema), async (c) => {
-    const { eventId, date } = c.req.valid("query");
-    const result = await searchPRs({
-      eventId,
-      dates: date,
+  .post("/new/form", zValidator("json", createStructuredPRCommandSchema), async (c) => {
+    const command = c.req.valid("json");
+    const { fields, createSource } = command;
+
+    const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
+    const result = await createPRFromStructured(fields, creatorIdentity, {
+      createSource: createSource ?? "STRUCTURED_FORM",
+      allowEditAfterReady: command.allowEditAfterReady ?? null,
     });
-    return c.json(result);
+
+    await recordUserTelemetryEventForRequest(c, {
+      eventName: "pr.created",
+      payload: {
+        pr_id: result.id,
+        creation_path: createSource === "PR_DISCOVERY" ? "pr_discovery" : "structured_form",
+        status: result.status,
+      },
+    });
+
+    return c.json(result, 201);
   })
-  .post(
-    "/new/form",
-    zValidator("json", createStructuredPRCommandSchema),
-    async (c) => {
-      const command = c.req.valid("json");
-      const { fields, createSource } = command;
-
-      const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
-      const result = await createPRFromStructured(fields, creatorIdentity, {
-        createSource,
-        anchorEventId:
-          createSource === "EVENT_ASSISTED" ? command.anchorEventId : undefined,
-        allowEditAfterReady:
-          createSource === "EVENT_ASSISTED"
-            ? command.allowEditAfterReady ?? null
-            : null,
-      });
-
-      await recordUserTelemetryEventForRequest(c, {
-        eventName: "pr.created",
-        payload: {
-          pr_id: result.id,
-          creation_path: createSource === "EVENT_ASSISTED" ? "event_assisted" : "form",
-          status: result.status,
-        },
-      });
-
-      return c.json(result, 201);
-    },
-  )
   .post("/new/nl", zValidator("json", nlWordCountCommandSchema), async (c) => {
     const { rawText, nowIso, nowWeekday } = c.req.valid("json");
     const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
@@ -283,10 +241,7 @@ export const partnerRequestRoute = app
           ...result.message,
           author: {
             ...result.message.author,
-            avatarUrl: resolveAvatarUrl(
-              c.req.url,
-              result.message.author.avatarUrl,
-            ),
+            avatarUrl: resolveAvatarUrl(c.req.url, result.message.author.avatarUrl),
           },
         },
       });
@@ -349,14 +304,13 @@ export const partnerRequestRoute = app
       const { status } = c.req.valid("json");
       const auth = c.get("auth");
 
-      const creatorAuth = await authorizeCreatorMutation(
-        id,
-        auth,
-        "status",
-      );
+      const creatorAuth = await authorizeCreatorMutation(id, auth, "status");
 
       if (creatorAuth.request.status === "DRAFT") {
-        return throwHttpProblem({ status: 400, detail: "Use publish endpoint to publish DRAFT partner request" });
+        return throwHttpProblem({
+          status: 400,
+          detail: "Use publish endpoint to publish DRAFT partner request",
+        });
       }
 
       const fromStatus = creatorAuth.request.status;
@@ -377,44 +331,25 @@ export const partnerRequestRoute = app
   .patch(
     "/:id/content",
     zValidator("param", prIdParamSchema),
-    zValidator("json", canonicalUpdateContentSchema),
+    zValidator("json", updateContentSchema),
     async (c) => {
       const { id } = c.req.valid("param");
       await getPROr404(id);
       const payload = c.req.valid("json");
       const auth = c.get("auth");
 
-      const creatorAuth = await authorizeCreatorMutation(
-        id,
-        auth,
-        "content",
-      );
+      const creatorAuth = await authorizeCreatorMutation(id, auth, "content");
 
-      const fields =
-        "time" in payload.fields
-          ? payload.fields
-          : {
-              ...payload.fields,
-              time: creatorAuth.request.time,
-              budget: creatorAuth.request.budget,
-            };
-
-      const result = await updateUserPRContent(
-        id,
-        fields,
-        creatorAuth.actorUserId,
-        {
-          allowRelease:
-            "allowRelease" in payload && payload.allowRelease === true,
-        },
-      );
+      const result = await updateUserPRContent(id, payload.fields, creatorAuth.actorUserId, {
+        allowRelease: payload.allowRelease === true,
+      });
       return c.json(result);
     },
   )
   .post(
     "/:id/join",
     zValidator("param", prIdParamSchema),
-    zValidator("json", anchorJoinSchema),
+    zValidator("json", emptyCommandSchema),
     async (c) => {
       const { id } = c.req.valid("param");
       await getPROr404(id);
@@ -449,24 +384,19 @@ export const partnerRequestRoute = app
         payload: {
           pr_id: id,
           result_status: "success",
-          alternative_pr_reminder_opt_in:
-            payload.alternativePrReminderOptIn === true,
+          alternative_pr_reminder_opt_in: payload.alternativePrReminderOptIn === true,
         },
       });
       return c.json(result.pr);
     },
   )
-  .post(
-    "/:id/waitlist/cancel",
-    zValidator("param", prIdParamSchema),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      await getPROr404(id);
-      const userId = requireAuthenticatedUserId(c);
-      const result = await cancelWaitlistPRByUserId(id, userId);
-      return c.json(result);
-    },
-  )
+  .post("/:id/waitlist/cancel", zValidator("param", prIdParamSchema), async (c) => {
+    const { id } = c.req.valid("param");
+    await getPROr404(id);
+    const userId = requireAuthenticatedUserId(c);
+    const result = await cancelWaitlistPRByUserId(id, userId);
+    return c.json(result);
+  })
   .post("/:id/exit", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
     await getPROr404(id);

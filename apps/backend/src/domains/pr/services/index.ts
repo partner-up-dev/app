@@ -1,114 +1,116 @@
-export {
-  authorizeCreatorMutation,
-  type CreatorMutationMode,
-  type CreatorMutationAuthResult,
-} from "../../pr-core/services/creator-mutation-auth.service";
 export type { CreatorIdentityInput } from "../../pr-core/services/creator-identity.service";
 export {
-  DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
+  authorizeCreatorMutation,
+  type CreatorMutationAuthResult,
+  type CreatorMutationMode,
+} from "../../pr-core/services/creator-mutation-auth.service";
+export {
+  assertPRJoinGatesResolvedForUser,
+  buildMaterializedPRJoinGateConfig,
+  getPRJoinGateProjection,
+  PR_JOIN_GATE_UNRESOLVED_CODE,
+  type PRJoinGateProjection,
+  type PRJoinGateProjectionItem,
+  type ResolveJoinGatePayload,
+  resolvePRJoinGate,
+} from "../../pr-core/services/join-gates.service";
+export {
+  areEffectiveMeetingPointsEqual,
+  type EffectiveMeetingPoint,
+  type MeetingPointSource,
+  resolveEffectiveMeetingPoint,
+  resolveMeetingPointNotificationDescription,
+} from "../../pr-core/services/meeting-point.service";
+export {
+  captureEffectiveMeetingPointsForRequests,
+  listRequestsAffectedByPoiMeetingPoint,
+  listRequestsAffectedByPRTypeMeetingPoint,
+  type MeetingPointSnapshot,
+  scheduleMeetingPointNotificationsForChangedRequests,
+} from "../../pr-core/services/meeting-point-change-notifier.service";
+export { applyParticipantReleaseEffects } from "../../pr-core/services/participant-release-effects.service";
+export {
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
+  DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-  hasAnchorParticipationPolicy,
   hasEnabledConfirmationPolicy,
-  resolveAnchorParticipationPolicy,
-  validateAnchorParticipationPolicyOffsets,
-  isWithinConfirmationWindow,
+  hasParticipationPolicy,
   isJoinLockedByPolicy,
-} from "../../pr-core/services/anchor-participation-policy.service";
+  isWithinConfirmationWindow,
+  resolveParticipationPolicy,
+  validateParticipationPolicyOffsets,
+} from "../../pr-core/services/participation-policy.service";
+export { assertNoUserTimeWindowConflict } from "../../pr-core/services/participation-time-conflict.service";
 export {
-  getTimeWindowStart,
-  getTimeWindowClose,
-  getProductLocalDateKey,
-  getProductLocalDateKeyForTimeWindowStart,
-  getConfirmDeadline,
-  getJoinLockTime,
-  shouldAutoConfirmImmediately,
-  isJoinLockedByTime,
-  hasEventStarted,
-  isWithinActiveWindow,
-  type TimeWindow,
-} from "../../pr-core/services/time-window.service";
-export {
-  PR_START_TIME_PASSED_CODE,
-  assertPRStartTimeHasNotPassed,
-} from "../../pr-core/services/pr-time-window-guard.service";
-export {
-  isActiveVisiblePRStatus,
-  readVisiblePartnerRequestsByType,
-  readPartnerRequestById,
-  readVisiblePartnerRequestsByTypeAndTime,
-  readVisibleAnchorEventPRContextRecordsByEventTimeWindow,
-  readVisibleAnchorEventPRContextRecordsByEventTimeWindowAndLocation,
-  readAnchorEventPRContextRecordsByEventTimeWindow,
-  countActiveVisiblePRsByEventTimeWindowAndLocation,
-} from "../../pr-core/services/pr-read.service";
-export {
-  initializeSlotsForPR,
-  recalculatePRStatus,
-  countActivePartnersForPR,
-} from "../../pr-core/services/slot-management.service";
-export {
+  assertManualPartnerBoundsValid,
   DEFAULT_AUTOMATIC_MIN_PARTNERS,
   MIN_MANUAL_PARTNERS,
   MIN_PRESENT_MAX_PARTNERS,
   normalizeAutomaticPartnerBounds,
-  assertManualPartnerBoundsValid,
 } from "../../pr-core/services/partner-bounds.service";
-export {
-  PR_PLACE_MODE_CONFLICT_CODE,
-  assertPRPlaceModeValid,
-  buildPRRouteSummary,
-  normalizePartnerRequestFieldsForPersistence,
-  resolvePRPlaceDisplayName,
-} from "../../pr-core/services/pr-place-mode.service";
-export { assertNoUserTimeWindowConflict } from "../../pr-core/services/participation-time-conflict.service";
 export {
   assertPRTimeWindowAvailableAtLocation,
   isTimeWindowAvailableByPoiRules,
 } from "../../pr-core/services/poi-availability.service";
 export {
-  isJoinableStatus,
-  isExitAllowedStatus,
+  assertPRPlaceModeValid,
+  buildPRRouteSummary,
+  normalizePartnerRequestFieldsForPersistence,
+  PR_PLACE_MODE_CONFLICT_CODE,
+  resolvePRPlaceDisplayName,
+} from "../../pr-core/services/pr-place-mode.service";
+export {
+  countActiveVisiblePartnerRequestsByTypeTimeAndLocation,
+  isPRActiveStatus,
+  readPartnerRequestById,
+  readVisiblePartnerRequestsByType,
+  readVisiblePartnerRequestsByTypeAndTime,
+  readVisiblePartnerRequestsByTypeTimeAndLocation,
+} from "../../pr-core/services/pr-read.service";
+export {
+  assertPRStartTimeHasNotPassed,
+  PR_START_TIME_PASSED_CODE,
+} from "../../pr-core/services/pr-time-window-guard.service";
+export {
+  assertPRTypeCreationAllowed,
+  canCreatePRForType,
+  PR_TYPE_USER_CREATION_DISABLED_CODE,
+} from "../../pr-core/services/pr-type-creation-policy.service";
+export {
+  assertPRTypeParticipationFrequencyLimitAllows,
+  evaluatePRTypeParticipationFrequencyLimit,
+  PR_TYPE_PARTICIPATION_FREQUENCY_LIMITED_CODE,
+  type PRTypeParticipationFrequencyLimitEvaluation,
+} from "../../pr-core/services/pr-type-participation-frequency-limit.service";
+export {
+  countActivePartnersForPR,
+  initializeSlotsForPR,
+  recalculatePRStatus,
+} from "../../pr-core/services/slot-management.service";
+export {
+  isPRExitAllowedStatus,
+  isPRJoinableStatus,
 } from "../../pr-core/services/status-rules";
-export { applyAnchorParticipantReleaseEffects } from "../../pr-core/services/anchor-participant-release-effects.service";
+export {
+  getConfirmDeadline,
+  getJoinLockTime,
+  getProductLocalDateKey,
+  getProductLocalDateKeyForTimeWindowStart,
+  getTimeWindowClose,
+  getTimeWindowStart,
+  hasPRTimeWindowStarted,
+  isJoinLockedByTime,
+  isWithinActiveWindow,
+  shouldAutoConfirmImmediately,
+  type TimeWindow,
+} from "../../pr-core/services/time-window.service";
 export {
   isWaitlistOpenForRequest,
   promoteWaitlistedPartners,
   type WaitlistPromotionResult,
 } from "../../pr-core/services/waitlist.service";
 export {
-  resolveEffectiveMeetingPoint,
-  areEffectiveMeetingPointsEqual,
-  resolveMeetingPointNotificationDescription,
-  type EffectiveMeetingPoint,
-  type MeetingPointSource,
-} from "../../pr-core/services/meeting-point.service";
-export {
-  captureEffectiveMeetingPointsForRequests,
-  listRequestsAffectedByAnchorEventMeetingPoint,
-  listRequestsAffectedByPoiMeetingPoint,
-  scheduleMeetingPointNotificationsForChangedRequests,
-  type MeetingPointSnapshot,
-} from "../../pr-core/services/meeting-point-change-notifier.service";
-export {
-  buildMaterializedPRJoinGateConfig,
-  getPRJoinGateProjection,
-  resolvePRJoinGate,
-  assertPRJoinGatesResolvedForUser,
-  PR_JOIN_GATE_UNRESOLVED_CODE,
-  type PRJoinGateProjection,
-  type PRJoinGateProjectionItem,
-  type ResolveJoinGatePayload,
-} from "../../pr-core/services/join-gates.service";
-export { materializeEventDefaultsForPR } from "../../pr-core/services/event-default-materialization.service";
-export {
-  ANCHOR_EVENT_USER_PR_CREATION_DISABLED_CODE,
-  assertUserPRCreationAllowedForAnchorEvent,
-  canUserCreatePRForAnchorEvent,
-} from "../../pr-core/services/event-pr-creation-policy.service";
-export {
-  ANCHOR_EVENT_PARTICIPATION_FREQUENCY_LIMITED_CODE,
-  assertAnchorEventParticipationFrequencyLimitAllows,
-  evaluateAnchorEventParticipationFrequencyLimit,
-  type AnchorEventParticipationFrequencyLimitEvaluation,
-} from "../../pr-core/services/anchor-participation-frequency-limit.service";
+  derivePRPreferenceCategory,
+  normalizePRPreferenceLabel,
+  normalizePRPreferenceLabels,
+} from "./preference-normalization";

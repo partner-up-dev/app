@@ -1,5 +1,5 @@
-import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 import { createUuid } from "@/shared/telemetry/uuid";
+import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 
 const ANONYMOUS_ID_STORAGE_KEY = "__partner_up_telemetry_anonymous_id__";
 const APP_JOURNEY_STORAGE_KEY = "__partner_up_telemetry_app_journey__";
@@ -17,7 +17,6 @@ export type UserTelemetryJourney = {
   currentSpm?: string;
   startSourceQr?: string;
   currentSourceQr?: string;
-  startEventId?: number;
   startPrId?: number;
   entryKind?: string;
 };
@@ -28,7 +27,6 @@ export type UserTelemetryJourneyContext = {
   referrer?: string;
   currentSpm?: string;
   sourceQr?: string;
-  eventIdRef?: number;
   prIdRef?: number;
   entryKind?: string;
   nowIso?: string;
@@ -47,28 +45,17 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
-const readString = (
-  record: Record<string, unknown>,
-  key: string,
-): string | undefined => {
+const readString = (record: Record<string, unknown>, key: string): string | undefined => {
   const value = record[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
 };
 
-const readNumber = (
-  record: Record<string, unknown>,
-  key: string,
-): number | undefined => {
+const readNumber = (record: Record<string, unknown>, key: string): number | undefined => {
   const value = record[key];
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 };
 
-const readJsonRecord = (
-  storage: Storage,
-  key: string,
-): Record<string, unknown> | null => {
+const readJsonRecord = (storage: Storage, key: string): Record<string, unknown> | null => {
   const rawValue = storage.getItem(key);
   if (!rawValue) return null;
 
@@ -90,9 +77,7 @@ const sanitizeReferrer = (referrer: string | undefined): string | undefined => {
   try {
     const parsed = new URL(referrer, window.location.origin);
     if (parsed.origin === window.location.origin) {
-      return sanitizeSensitiveRoutePath(
-        `${parsed.pathname}${parsed.search}${parsed.hash}`,
-      );
+      return sanitizeSensitiveRoutePath(`${parsed.pathname}${parsed.search}${parsed.hash}`);
     }
     return parsed.origin;
   } catch {
@@ -101,9 +86,6 @@ const sanitizeReferrer = (referrer: string | undefined): string | undefined => {
 };
 
 const resolveEntryKind = (routePath: string): string => {
-  if (routePath.startsWith("/e/") || routePath.startsWith("/events/")) {
-    return "anchor_event";
-  }
   if (routePath.startsWith("/pr/")) {
     return "partner_request";
   }
@@ -130,9 +112,7 @@ export const resolveAnonymousId = (): string => {
   }
 };
 
-const parseStoredJourney = (
-  record: Record<string, unknown>,
-): UserTelemetryJourney | null => {
+const parseStoredJourney = (record: Record<string, unknown>): UserTelemetryJourney | null => {
   const id = readString(record, "id");
   const anonymousId = readString(record, "anonymousId");
   const startedAt = readString(record, "startedAt");
@@ -155,7 +135,6 @@ const parseStoredJourney = (
     currentSpm: readString(record, "currentSpm"),
     startSourceQr: readString(record, "startSourceQr"),
     currentSourceQr: readString(record, "currentSourceQr"),
-    startEventId: readNumber(record, "startEventId"),
     startPrId: readNumber(record, "startPrId"),
     entryKind: readString(record, "entryKind"),
   };
@@ -165,10 +144,7 @@ const readStoredJourney = (): UserTelemetryJourney | null => {
   if (typeof window === "undefined") return null;
 
   try {
-    const record = readJsonRecord(
-      window.sessionStorage,
-      APP_JOURNEY_STORAGE_KEY,
-    );
+    const record = readJsonRecord(window.sessionStorage, APP_JOURNEY_STORAGE_KEY);
     return record ? parseStoredJourney(record) : null;
   } catch {
     return null;
@@ -185,14 +161,9 @@ const persistJourney = (journey: UserTelemetryJourney): void => {
   }
 };
 
-const isExpiredJourney = (
-  journey: UserTelemetryJourney,
-  nowMs: number,
-): boolean => {
+const isExpiredJourney = (journey: UserTelemetryJourney, nowMs: number): boolean => {
   const lastSeenMs = Date.parse(journey.lastSeenAt);
-  return Number.isNaN(lastSeenMs)
-    ? true
-    : nowMs - lastSeenMs > APP_JOURNEY_INACTIVITY_TIMEOUT_MS;
+  return Number.isNaN(lastSeenMs) ? true : nowMs - lastSeenMs > APP_JOURNEY_INACTIVITY_TIMEOUT_MS;
 };
 
 export const ensureAppJourneyWithState = (
@@ -230,7 +201,6 @@ export const ensureAppJourneyWithState = (
     currentSpm: context.currentSpm,
     startSourceQr: context.sourceQr,
     currentSourceQr: context.sourceQr,
-    startEventId: context.eventIdRef,
     startPrId: context.prIdRef,
     entryKind: context.entryKind ?? resolveEntryKind(context.routePath),
   };
@@ -241,9 +211,7 @@ export const ensureAppJourneyWithState = (
   };
 };
 
-export const ensureAppJourney = (
-  context: UserTelemetryJourneyContext,
-): UserTelemetryJourney => ensureAppJourneyWithState(context).journey;
+export const ensureAppJourney = (context: UserTelemetryJourneyContext): UserTelemetryJourney =>
+  ensureAppJourneyWithState(context).journey;
 
-export const resolveCurrentJourneyId = (): string | null =>
-  readStoredJourney()?.id ?? null;
+export const resolveCurrentJourneyId = (): string | null => readStoredJourney()?.id ?? null;

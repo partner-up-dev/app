@@ -8,9 +8,10 @@ const HomePage = () => import("@/pages/HomePage.vue");
 const MePage = () => import("@/pages/MePage.vue");
 const LocationApplicationPage = () => import("@/pages/LocationApplicationPage.vue");
 const LocationPickerPage = () => import("@/pages/LocationPickerPage.vue");
-const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const MyPRsPage = () => import("@/pages/MyPRsPage.vue");
 const PRCreatePage = () => import("@/pages/PRCreatePage.vue");
+const PRDiscoveryPage = () => import("@/pages/PRDiscoveryPage.vue");
+const RouteApplicationPage = () => import("@/pages/RouteApplicationPage.vue");
 const PRPage = () => import("@/pages/PRPage.vue");
 const StudySprintPomodoroPage = () => import("@/pages/StudySprintPomodoroPage.vue");
 const PRPairingCodePage = () => import("@/pages/PRPairingCodePage.vue");
@@ -25,7 +26,7 @@ const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
 const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
 const BIEntryPage = () => import("@/pages/BIEntryPage.vue");
-const AdminAnchorEventPage = () => import("@/pages/AdminAnchorEventPage.vue");
+const AdminPRTypeConfigsPage = () => import("@/pages/AdminPRTypeConfigsPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
 const AdminPoisPage = () => import("@/pages/AdminPoisPage.vue");
 const AdminCommerceProductPage = () => import("@/pages/AdminCommerceProductPage.vue");
@@ -40,9 +41,6 @@ const AdminFeedbackQuestionnairesPage = () => import("@/pages/AdminFeedbackQuest
 const ContactAuthorPage = () => import("@/pages/ContactAuthorPage.vue");
 const ContactSupportPage = () => import("@/pages/ContactSupportPage.vue");
 const AboutPage = () => import("@/pages/AboutPage.vue");
-const EventPlazaPage = () => import("@/pages/EventPlazaPage.vue");
-const EventPRSearchPage = () => import("@/pages/EventPRSearchPage.vue");
-const AnchorEventLandingPage = () => import("@/pages/AnchorEventLandingPage.vue");
 const WeChatOAuthCallbackPage = () => import("@/pages/WeChatOAuthCallbackPage.vue");
 
 const routes: RouteRecordRaw[] = [
@@ -110,6 +108,23 @@ const routes: RouteRecordRaw[] = [
     component: PRCreatePage,
     meta: {
       wechatSharePolicy: "route",
+    },
+  },
+  {
+    path: "/prd",
+    name: "pr-discovery",
+    component: PRDiscoveryPage,
+    meta: {
+      wechatSharePolicy: "route",
+    },
+  },
+  {
+    path: "/routes/apply",
+    name: "pr-route-application",
+    component: RouteApplicationPage,
+    meta: {
+      wechatSharePolicy: "skip",
+      wechatAutoLoginPolicy: "skip",
     },
   },
   {
@@ -196,15 +211,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/routes/apply",
-    name: "anchor-event-route-apply",
-    component: RouteApplicationPage,
-    meta: {
-      wechatSharePolicy: "skip",
-      wechatAutoLoginPolicy: "skip",
-    },
-  },
-  {
     path: "/locations/pick",
     name: "location-picker",
     component: LocationPickerPage,
@@ -241,8 +247,8 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/admin/analytics/anchor-events",
-    name: "admin-analytics-anchor-events",
+    path: "/admin/analytics/pr-discovery",
+    name: "admin-analytics-pr-discovery",
     component: AdminAnalyticsPage,
     meta: {
       wechatSharePolicy: "route",
@@ -250,18 +256,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/admin/analytics/official-account",
-    name: "admin-analytics-official-account",
-    component: AdminAnalyticsPage,
-    meta: {
-      wechatSharePolicy: "route",
-      requiredRoles: ["analytics"],
-    },
-  },
-  {
-    path: "/admin/anchor-events",
-    name: "admin-anchor-events",
-    component: AdminAnchorEventPage,
+    path: "/admin/pr-type-configs",
+    name: "admin-pr-type-configs",
+    component: AdminPRTypeConfigsPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["service"],
@@ -397,45 +394,6 @@ const routes: RouteRecordRaw[] = [
     component: AboutPage,
     meta: {
       wechatSharePolicy: "route",
-    },
-  },
-  {
-    path: "/events",
-    name: "event-plaza",
-    component: EventPlazaPage,
-    meta: {
-      wechatSharePolicy: "route",
-    },
-  },
-  {
-    path: "/events/search",
-    name: "event-pr-search",
-    component: EventPRSearchPage,
-    meta: {
-      wechatSharePolicy: "route",
-    },
-  },
-  {
-    path: "/events/:eventId",
-    name: "anchor-event",
-    redirect: (to) => ({
-      name: "anchor-event-landing",
-      params: to.params,
-      query: to.query,
-      hash: to.hash,
-    }),
-    meta: {
-      wechatSharePolicy: "skip",
-      wechatAutoLoginPolicy: "skip",
-    },
-  },
-  {
-    path: "/e/:eventId",
-    name: "anchor-event-landing",
-    component: AnchorEventLandingPage,
-    meta: {
-      wechatSharePolicy: "skip",
-      wechatAutoLoginPolicy: "skip",
     },
   },
   {

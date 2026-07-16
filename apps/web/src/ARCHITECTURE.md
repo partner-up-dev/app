@@ -45,8 +45,7 @@ Owns business modules by domain.
 
 Examples:
 
-- `domains/pr`
-- `domains/event`
+- `domains/pr` (including Discovery and time-window policy surfaces)
 - `domains/share`
 - `domains/admin`
 - `domains/auth`
@@ -136,7 +135,8 @@ Examples:
 
 - PR hero header
 - PR facts card
-- event card
+- PR Discovery surface
+- PR time-window policy picker
 
 ### Use Case
 

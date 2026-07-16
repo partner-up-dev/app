@@ -10,12 +10,12 @@ The current product needs to validate:
 - whether share links are strong enough to drive participation
 - whether users accept identity, confirmation, reminder, and check-in loops inside one-off collaboration
 
-## 2. Validate One PR Object Across Home And Event Contexts
+## 2. Validate One PR Object Across Home And PR Discovery
 
 The product currently needs to validate one collaboration object across two primary entry contexts:
 
 - home-led PR creation and distribution
-- Anchor Event initiated PR discovery and assisted creation
+- `/prd` PR discovery and assisted creation
 
 These contexts share durable PR semantics while allowing different entry surfaces, guidance, and surrounding support context.
 
