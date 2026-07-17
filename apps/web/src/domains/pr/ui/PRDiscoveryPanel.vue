@@ -51,86 +51,82 @@ export const shufflePRDiscoveryCatalog = <T>(
         </div>
       </template>
     </div>
-      <section v-else class="pr-discovery-panel__results" data-testid="prd.results">
-        <PRDiscoverySurface
-          :view-mode="activeViewMode"
-          :show-toolbar="false"
-          :loading="isDiscoveryLoading"
-          :empty="false"
-          :error-message="discoveryErrorMessage"
-          @update:view-mode="setViewMode"
-        >
-          <template #error-actions>
-            <PuButton
-              tone="neutral"
-              variant="outline"
-              size="sm"
-              data-testid="prd.state.error.back"
-              @click="returnToCatalog"
-            >
-              {{ t("prDiscovery.backAction") }}
-            </PuButton>
-          </template>
-          <template #list>
-            <PRDiscoveryListView
-              :type="selectedType"
-              :type-detail="selectedTypeDetail"
-              :candidates="directoryQuery.data.value?.candidates ?? []"
-              :list-records="directoryQuery.data.value?.listRecords ?? []"
-              :authoring-options="selectedAuthoringOptions"
-              :other-types="catalogQuery.data.value ?? []"
-              :show-create="userCreationAllowed"
-              :pending="formPending"
-              :error-message="discoveryErrorMessage"
-              :exhausted="isDiscoveryExhausted"
-              @record-detail="openPersistedPR"
-              @create-direct="handleCreateRequest"
-            />
-          </template>
-          <template #card>
-            <PRDiscoveryCardStack
-              :type="selectedType"
-              :type-detail="selectedTypeDetail"
-              :items="directoryQuery.data.value?.candidates ?? []"
-              :card-groups="directoryQuery.data.value?.cardGroups ?? []"
-              :authoring-options="selectedAuthoringOptions"
-              :show-create="userCreationAllowed"
-              :pending="formPending"
-              :error-message="discoveryErrorMessage"
-              @detail="openPersistedPR"
-              @create-direct="handleCreateRequest"
-            />
-          </template>
-          <template #form>
-            <PRDiscoveryFormView
-              :options="selectedAuthoringOptions"
-              :candidates="recommendationResult?.orderedCandidates ?? []"
-              :matched-candidate="recommendationResult?.matchedCandidate ?? null"
-              :pending="formPending"
-              :error-message="formErrorMessage"
-              :show-create="userCreationAllowed"
-              :no-match-resolved="recommendationResult !== null"
-              @submit="recommendCandidates"
-              @create="createFromSelection"
-              @selection-change="handleFormSelectionChange"
-              @view-all="() => setViewMode('LIST')"
-              @candidate-detail="openPersistedPR"
-              @candidate-join-success-closed="handleCandidateJoinSuccessClosed"
-              @location-application="openLocationApplication"
-              @route-application="openRouteApplication"
-            />
-          </template>
-        </PRDiscoverySurface>
-      </section>
+    <section v-else class="pr-discovery-panel__results" data-testid="prd.results">
+      <PRDiscoverySurface
+        :view-mode="activeViewMode"
+        :show-toolbar="false"
+        :loading="isDiscoveryLoading"
+        :empty="false"
+        :error-message="discoveryErrorMessage"
+        @update:view-mode="setViewMode"
+      >
+        <template #error-actions>
+          <PuButton
+            tone="neutral"
+            variant="outline"
+            size="sm"
+            data-testid="prd.state.error.back"
+            @click="returnToCatalog"
+          >
+            {{ t("prDiscovery.backAction") }}
+          </PuButton>
+        </template>
+        <template #list>
+          <PRDiscoveryListView
+            :type="selectedType"
+            :type-detail="selectedTypeDetail"
+            :candidates="directoryQuery.data.value?.candidates ?? []"
+            :list-records="directoryQuery.data.value?.listRecords ?? []"
+            :authoring-options="selectedAuthoringOptions"
+            :other-types="catalogQuery.data.value ?? []"
+            :show-create="userCreationAllowed"
+            :pending="formPending"
+            :error-message="discoveryErrorMessage"
+            :exhausted="isDiscoveryExhausted"
+            @record-detail="openPersistedPR"
+            @create-direct="handleCreateRequest"
+          />
+        </template>
+        <template #card>
+          <PRDiscoveryCardStack
+            :type="selectedType"
+            :type-detail="selectedTypeDetail"
+            :items="directoryQuery.data.value?.candidates ?? []"
+            :card-groups="directoryQuery.data.value?.cardGroups ?? []"
+            :authoring-options="selectedAuthoringOptions"
+            :show-create="userCreationAllowed"
+            :pending="formPending"
+            :error-message="discoveryErrorMessage"
+            @detail="openPersistedPR"
+            @create-direct="handleCreateRequest"
+          />
+        </template>
+        <template #form>
+          <PRDiscoveryFormView
+            :options="selectedAuthoringOptions"
+            :candidates="recommendationResult?.orderedCandidates ?? []"
+            :matched-candidate="recommendationResult?.matchedCandidate ?? null"
+            :pending="formPending"
+            :error-message="formErrorMessage"
+            :show-create="userCreationAllowed"
+            :no-match-resolved="recommendationResult !== null"
+            @submit="recommendCandidates"
+            @create="createFromSelection"
+            @selection-change="handleFormSelectionChange"
+            @view-all="() => setViewMode('LIST')"
+            @candidate-detail="openPersistedPR"
+            @candidate-join-success-closed="handleCandidateJoinSuccessClosed"
+            @location-application="openLocationApplication"
+            @route-application="openRouteApplication"
+          />
+        </template>
+      </PRDiscoverySurface>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  PuButton,
-  PuInlineNotice,
-  PuLoadingState,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
@@ -270,9 +266,9 @@ const isViewResolved = computed(
     Boolean(selectedType.value) &&
     Boolean(
       isPRDiscoveryViewMode(viewQuery.data.value?.viewMode) ||
-        isViewResolutionTimedOut.value ||
-        explicitViewMode.value ||
-        preferredViewMode.value,
+      isViewResolutionTimedOut.value ||
+      explicitViewMode.value ||
+      preferredViewMode.value,
     ),
 );
 

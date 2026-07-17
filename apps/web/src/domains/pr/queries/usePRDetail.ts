@@ -6,9 +6,7 @@ import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 import { queryKeys } from "@/shared/api/query-keys";
 
-export type PRDetailResponse = InferResponseType<
-  (typeof client.api.pr)[":id"]["$get"]
->;
+export type PRDetailResponse = InferResponseType<(typeof client.api.pr)[":id"]["$get"]>;
 
 export const usePRDetail = (id: Ref<PRId | null>) => {
   const queryKey = computed(() => queryKeys.pr.detail(id.value));

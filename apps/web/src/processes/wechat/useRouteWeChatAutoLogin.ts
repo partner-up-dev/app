@@ -6,8 +6,7 @@ import { requestWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { hasPendingWeChatOAuthHandoff } from "@/processes/wechat/oauth-handoff";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 
-const AUTO_LOGIN_ATTEMPT_STORAGE_KEY =
-  "partner_up_wechat_auto_login_attempted_routes";
+const AUTO_LOGIN_ATTEMPT_STORAGE_KEY = "partner_up_wechat_auto_login_attempted_routes";
 
 const readAttemptedRouteKeys = (): string[] => {
   if (typeof window === "undefined") return [];
@@ -27,10 +26,7 @@ const writeAttemptedRouteKeys = (keys: string[]): void => {
   if (typeof window === "undefined") return;
 
   try {
-    window.sessionStorage.setItem(
-      AUTO_LOGIN_ATTEMPT_STORAGE_KEY,
-      JSON.stringify(keys),
-    );
+    window.sessionStorage.setItem(AUTO_LOGIN_ATTEMPT_STORAGE_KEY, JSON.stringify(keys));
   } catch {
     // Ignore sessionStorage write failures.
   }
@@ -121,11 +117,7 @@ export const useRouteWeChatAutoLogin = () => {
     if (typeof window === "undefined") return;
 
     void runRouteWeChatAutoLoginAttempt({
-      resolveRouteKey: () =>
-        resolveAutoLoginRouteKey(
-          route.path,
-          route.meta.wechatAutoLoginPolicy,
-        ),
+      resolveRouteKey: () => resolveAutoLoginRouteKey(route.path, route.meta.wechatAutoLoginPolicy),
       hasPendingHandoff: hasPendingWeChatOAuthHandoff,
       ensureAuthSessionBootstrapped,
       isAuthenticated: () => userSessionStore.isAuthenticated,
@@ -143,8 +135,7 @@ export const useRouteWeChatAutoLogin = () => {
   };
 
   watch(
-    () =>
-      [route.name, route.path, userSessionStore.role, userSessionStore.userId] as const,
+    () => [route.name, route.path, userSessionStore.role, userSessionStore.userId] as const,
     () => {
       attemptAutoLogin();
     },

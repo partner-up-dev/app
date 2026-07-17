@@ -78,11 +78,7 @@
             class="pm-field-input"
             @change="normalizeCondition(condition)"
           >
-            <option
-              v-for="field in fields"
-              :key="field.path"
-              :value="field.path"
-            >
+            <option v-for="field in fields" :key="field.path" :value="field.path">
               {{ field.label }}
             </option>
           </select>
@@ -101,10 +97,7 @@
           </select>
         </label>
 
-        <label
-          v-if="valueFieldForCondition(condition)"
-          class="pm-field"
-        >
+        <label v-if="valueFieldForCondition(condition)" class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceJsonLogic.valueLabel") }}</span>
           <select
             v-if="!props.forceValueInput && valueFieldForCondition(condition)?.valueOptions?.length"
@@ -129,9 +122,9 @@
 
         <PuButton
           shape="pill"
-          tone="danger" variant="outline"
+          tone="danger"
+          variant="outline"
           size="sm"
-
           @click="removeCondition(condition.draftId)"
         >
           <template #leading>
@@ -147,7 +140,12 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { PuButton, PuSegmented, PuSegmentedItem, type PuSegmentedValue } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuSegmented,
+  PuSegmentedItem,
+  type PuSegmentedValue,
+} from "@partner-up-dev/design-web";
 import {
   createCustomJsonLogicField,
   createJsonLogicConditionDraft,
@@ -234,9 +232,7 @@ const addCondition = () => {
 const removeCondition = (draftId: string) => {
   rule.value = {
     ...rule.value,
-    conditions: rule.value.conditions.filter(
-      (condition) => condition.draftId !== draftId,
-    ),
+    conditions: rule.value.conditions.filter((condition) => condition.draftId !== draftId),
   };
 };
 
@@ -247,9 +243,7 @@ const operatorsForCondition = (
   return field ? getJsonLogicOperatorsForField(field) : [];
 };
 
-const fieldForCondition = (
-  condition: JsonLogicConditionDraft,
-): JsonLogicFieldOption | null => {
+const fieldForCondition = (condition: JsonLogicConditionDraft): JsonLogicFieldOption | null => {
   const field = findJsonLogicField(props.fields, condition.fieldPath);
   if (field) return field;
 

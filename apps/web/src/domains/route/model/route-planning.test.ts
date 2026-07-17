@@ -33,16 +33,7 @@ const route: Route = [
 describe("route planning helpers", () => {
   test("decompressTencentDirectionPolyline mirrors Tencent delta decoding", () => {
     expect(
-      decompressTencentDirectionPolyline([
-        39.91522,
-        116.403857,
-        -20,
-        -697,
-        0,
-        0,
-        -40,
-        170,
-      ]),
+      decompressTencentDirectionPolyline([39.91522, 116.403857, -20, -697, 0, 0, -40, 170]),
     ).toEqual([
       { lat: 39.91522, lng: 116.403857 },
       { lat: 39.9152, lng: 116.40316 },
@@ -63,9 +54,7 @@ describe("route planning helpers", () => {
     );
     expect(parsedUrl.searchParams.get("from")).toBe("39.91522,116.403857");
     expect(parsedUrl.searchParams.get("to")).toBe("39.915285,116.803857");
-    expect(parsedUrl.searchParams.get("waypoints")).toBe(
-      "39.951004,116.57198",
-    );
+    expect(parsedUrl.searchParams.get("waypoints")).toBe("39.951004,116.57198");
     expect(parsedUrl.searchParams.get("output")).toBe("json");
     expect(parsedUrl.searchParams.get("no_step")).toBe("1");
     expect(parsedUrl.searchParams.get("key")).toBe("test-key");

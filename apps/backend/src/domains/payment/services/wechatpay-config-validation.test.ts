@@ -71,12 +71,8 @@ describe("normalizeAndValidateWeChatPayProviderConfig", () => {
 
     expect(normalized.appId).toBe("wx-test");
     expect(normalized.mchId).toBe("1900000001");
-    expect(normalized.merchantCertificate.serialNo).toBe(
-      "test-merchant-serial",
-    );
-    expect(normalized.platformCertificates?.[0]?.serialNo).toBe(
-      "test-platform-serial",
-    );
+    expect(normalized.merchantCertificate.serialNo).toBe("test-merchant-serial");
+    expect(normalized.platformCertificates?.[0]?.serialNo).toBe("test-platform-serial");
   });
 
   it("normalizes literal backslash-n PEM input before validation", () => {

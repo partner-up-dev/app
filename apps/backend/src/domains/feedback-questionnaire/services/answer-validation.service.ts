@@ -14,21 +14,16 @@ const getAnswer = (
   questionId: string,
 ): FeedbackAnswer | null => answers[questionId] ?? null;
 
-const isSingleChoiceAnswer = (
-  answer: FeedbackAnswer,
-): answer is SingleChoiceAnswer => answer.type === "single_choice";
+const isSingleChoiceAnswer = (answer: FeedbackAnswer): answer is SingleChoiceAnswer =>
+  answer.type === "single_choice";
 
 const isTextareaAnswer = (answer: FeedbackAnswer): answer is TextareaAnswer =>
   answer.type === "textarea";
 
-const isImageUploadAnswer = (
-  answer: FeedbackAnswer,
-): answer is ImageUploadAnswer => answer.type === "image_upload";
+const isImageUploadAnswer = (answer: FeedbackAnswer): answer is ImageUploadAnswer =>
+  answer.type === "image_upload";
 
-const isAnswerPresent = (
-  answers: FeedbackQuestionnaireAnswers,
-  questionId: string,
-): boolean => {
+const isAnswerPresent = (answers: FeedbackQuestionnaireAnswers, questionId: string): boolean => {
   const answer = getAnswer(answers, questionId);
   if (!answer) return false;
   if (answer.type === "textarea") return answer.value.trim().length > 0;
@@ -63,9 +58,7 @@ export const assertFeedbackAnswersMatchDefinition = (
         fail(`Answer type does not match question: ${question.id}`);
         continue;
       }
-      const selectedOption = question.options.find(
-        (item) => item.value === answer.value,
-      );
+      const selectedOption = question.options.find((item) => item.value === answer.value);
       if (!selectedOption) {
         fail(`Invalid option for question: ${question.id}`);
         continue;

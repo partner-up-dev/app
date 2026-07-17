@@ -10,20 +10,12 @@ const yourService = new YourService();
 
 // 定义路由变量，用于导出类型
 export const yourRoute = app
-  .get(
-    "/:id",
-    zValidator("param", z.object({ id: z.coerce.number() })),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      const user = await yourService.getSomething(id);
-      return c.json(user);
-    },
-  )
-  .post(
-    "/",
-    zValidator("json", z.object({ name: z.string(), email: z.string() })),
-    async (c) => {
-      // Create logic...
-      return c.json({ success: true });
-    },
-  );
+  .get("/:id", zValidator("param", z.object({ id: z.coerce.number() })), async (c) => {
+    const { id } = c.req.valid("param");
+    const user = await yourService.getSomething(id);
+    return c.json(user);
+  })
+  .post("/", zValidator("json", z.object({ name: z.string(), email: z.string() })), async (c) => {
+    // Create logic...
+    return c.json({ success: true });
+  });

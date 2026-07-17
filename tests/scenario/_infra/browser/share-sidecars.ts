@@ -9,9 +9,7 @@ const thumbnailHtml = [
   "</html>",
 ].join("");
 
-export async function installDeterministicShareSidecarStubs(
-  page: Page,
-): Promise<void> {
+export async function installDeterministicShareSidecarStubs(page: Page): Promise<void> {
   await page.route("**/api/share/xiaohongshu/poster-html", (route) =>
     route.fulfill({
       contentType: "application/json; charset=utf-8",

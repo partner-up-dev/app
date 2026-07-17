@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  updateFeedbackQuestionnaireInstanceId: vi.fn(),
-  materializeFeedbackQuestionnaireInstance: vi.fn(),
+  updateFeedbackQuestionnaireInstanceId: vi.fn<() => unknown>(),
+  materializeFeedbackQuestionnaireInstance: vi.fn<() => unknown>(),
 }));
 vi.mock("../../../repositories/PartnerRequestRepository", () => ({
   PartnerRequestRepository: class {
@@ -13,9 +13,8 @@ vi.mock("./materialize-feedback-questionnaire", () => ({
   materializeFeedbackQuestionnaireInstance: mocks.materializeFeedbackQuestionnaireInstance,
 }));
 
-const { materializePRTypeCompletionQuestionnaire } = await import(
-  "./pr-type-completion-questionnaire"
-);
+const { materializePRTypeCompletionQuestionnaire } =
+  await import("./pr-type-completion-questionnaire");
 
 beforeEach(() => {
   vi.clearAllMocks();

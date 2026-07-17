@@ -16,26 +16,24 @@ export async function registerRideHailingProviderInstance(
 
   return db.transaction(async (tx) => {
     const providerRepo = new RideHailingProviderInstanceRepository(tx);
-    const existingProvider =
-      await providerRepo.findByProviderTypeAndInstanceKey({
-        providerType: input.providerType,
-        instanceKey: input.instanceKey,
-      });
+    const existingProvider = await providerRepo.findByProviderTypeAndInstanceKey({
+      providerType: input.providerType,
+      instanceKey: input.instanceKey,
+    });
 
-    const providerResult =
-      (existingProvider
-        ? await providerRepo.updateRegistration({
-            id: existingProvider.id,
-            displayName: input.displayName,
-            config,
-          })
-        : await providerRepo.create({
-            providerType: input.providerType,
-            instanceKey: input.instanceKey,
-            status: "ACTIVE",
-            displayName: input.displayName,
-            config,
-          }));
+    const providerResult = existingProvider
+      ? await providerRepo.updateRegistration({
+          id: existingProvider.id,
+          displayName: input.displayName,
+          config,
+        })
+      : await providerRepo.create({
+          providerType: input.providerType,
+          instanceKey: input.instanceKey,
+          status: "ACTIVE",
+          displayName: input.displayName,
+          config,
+        });
 
     if (!providerResult) {
       return throwHttpProblem({

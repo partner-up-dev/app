@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import type {
-  PartnerRequest,
-  PartnerRequestFields,
-} from "../../../entities/partner-request";
+import type { PartnerRequest, PartnerRequestFields } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import {
   assertPRContentEditable,
@@ -12,12 +9,9 @@ import {
   resolveChangedPRContentFields,
 } from "./pr-edit-capability.service";
 
-const creatorUserId =
-  "11111111-1111-4111-8111-111111111111" satisfies UserId;
+const creatorUserId = "11111111-1111-4111-8111-111111111111" satisfies UserId;
 
-const buildRequest = (
-  overrides: Partial<PartnerRequest> = {},
-): PartnerRequest => ({
+const buildRequest = (overrides: Partial<PartnerRequest> = {}): PartnerRequest => ({
   id: 1,
   title: "Badminton",
   type: "羽毛球",
@@ -38,10 +32,7 @@ const buildRequest = (
   notes: null,
   meetingPoint: null,
   allowEditAfterReady: {
-    timeWindow: [
-      "2026-06-02T08:00:00.000Z",
-      "2026-06-02T12:00:00.000Z",
-    ],
+    timeWindow: ["2026-06-02T08:00:00.000Z", "2026-06-02T12:00:00.000Z"],
   },
   joinGateConfig: [],
   orders: [],
@@ -75,10 +66,7 @@ describe("PR edit capability", () => {
       canEdit: true,
       editableFields: ["time"],
       constraints: {
-        timeWindow: [
-          "2026-06-02T08:00:00.000Z",
-          "2026-06-02T12:00:00.000Z",
-        ],
+        timeWindow: ["2026-06-02T08:00:00.000Z", "2026-06-02T12:00:00.000Z"],
       },
     });
     assert.equal(buildPREditCapability(request, null).canEdit, false);
@@ -87,26 +75,17 @@ describe("PR edit capability", () => {
   it("exposes post-ready adjustment fields independently from viewer identity", () => {
     const request = buildRequest({
       allowEditAfterReady: {
-        timeWindow: [
-          "2026-06-02T08:00:00.000Z",
-          "2026-06-02T12:00:00.000Z",
-        ],
+        timeWindow: ["2026-06-02T08:00:00.000Z", "2026-06-02T12:00:00.000Z"],
         location: true,
       },
     });
 
-    assert.deepEqual(
-      buildPREditPostReadyCapability(request.allowEditAfterReady),
-      {
-        editableFields: ["time", "location"],
-        constraints: {
-          timeWindow: [
-            "2026-06-02T08:00:00.000Z",
-            "2026-06-02T12:00:00.000Z",
-          ],
-        },
+    assert.deepEqual(buildPREditPostReadyCapability(request.allowEditAfterReady), {
+      editableFields: ["time", "location"],
+      constraints: {
+        timeWindow: ["2026-06-02T08:00:00.000Z", "2026-06-02T12:00:00.000Z"],
       },
-    );
+    });
   });
 
   it("allows READY time edits inside the configured range", () => {

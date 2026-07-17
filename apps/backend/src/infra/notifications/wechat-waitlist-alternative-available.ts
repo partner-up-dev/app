@@ -33,18 +33,13 @@ async function handleWaitlistAlternativeAvailableJob(
   context: JobHandlerContext,
 ): Promise<void> {
   const parseResult =
-    waitlistAlternativeAvailableNotificationJobPayloadSchema.safeParse(
-      payloadRaw,
-    );
+    waitlistAlternativeAvailableNotificationJobPayloadSchema.safeParse(payloadRaw);
   if (!parseResult.success) {
-    throw new Error(
-      "Invalid waitlist alternative available notification job payload",
-    );
+    throw new Error("Invalid waitlist alternative available notification job payload");
   }
   const payload = parseResult.data;
 
-  const prepared =
-    await prepareWaitlistAlternativeAvailableNotificationDispatch(payload);
+  const prepared = await prepareWaitlistAlternativeAvailableNotificationDispatch(payload);
   if (prepared.status !== "READY") {
     await recordWaitlistAlternativeAvailableNotificationDelivery({
       jobId: context.jobId,
@@ -65,8 +60,7 @@ async function handleWaitlistAlternativeAvailableJob(
       payload,
       result: "FAILED",
       errorCode: "WAITLIST_ALTERNATIVE_AVAILABLE_CHANNEL_NOT_CONFIGURED",
-      errorMessage:
-        "Waitlist alternative available subscription message channel is not configured",
+      errorMessage: "Waitlist alternative available subscription message channel is not configured",
     });
     return;
   }
@@ -86,25 +80,18 @@ async function handleWaitlistAlternativeAvailableJob(
       payload,
       result: "SUCCESS",
     });
-    const consumeResult =
-      await consumeWaitlistAlternativeAvailableNotificationCredit(
-        prepared.recipient.id,
-      );
+    const consumeResult = await consumeWaitlistAlternativeAvailableNotificationCredit(
+      prepared.recipient.id,
+    );
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
-      await cancelWeChatWaitlistAlternativeAvailableJobsForUser(
-        prepared.recipient.id,
-      );
+      await cancelWeChatWaitlistAlternativeAvailableJobsForUser(prepared.recipient.id);
     }
     return;
   }
 
   if (isRecipientPermissionRevoked(sendResult)) {
-    await clearWaitlistAlternativeAvailableNotificationCredits(
-      prepared.recipient.id,
-    );
-    await cancelWeChatWaitlistAlternativeAvailableJobsForUser(
-      prepared.recipient.id,
-    );
+    await clearWaitlistAlternativeAvailableNotificationCredits(prepared.recipient.id);
+    await cancelWeChatWaitlistAlternativeAvailableJobsForUser(prepared.recipient.id);
   }
 
   await recordWaitlistAlternativeAvailableNotificationDelivery({
@@ -149,8 +136,7 @@ export async function scheduleWeChatWaitlistAlternativeAvailableNotification(inp
     recipientUserId: input.recipientUserId,
     scheduledAtIso: scheduledAt.toISOString(),
   };
-  const prepared =
-    await prepareWaitlistAlternativeAvailableNotificationDispatch(payload);
+  const prepared = await prepareWaitlistAlternativeAvailableNotificationDispatch(payload);
   if (prepared.status !== "READY") {
     return;
   }
@@ -186,8 +172,6 @@ export async function cancelWeChatWaitlistAlternativeAvailableJobsForUser(
 ): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_WAITLIST_ALTERNATIVE_AVAILABLE_JOB_TYPE,
-    dedupeKeyPrefix: buildWaitlistAlternativeAvailableDedupePrefixForUser(
-      userId,
-    ),
+    dedupeKeyPrefix: buildWaitlistAlternativeAvailableDedupePrefixForUser(userId),
   });
 }

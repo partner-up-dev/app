@@ -3,17 +3,17 @@ import { beforeEach, test, vi } from "vitest";
 import { getProductLocalDateKey } from "../pr-core/services/time-window.service";
 
 const mocks = vi.hoisted(() => ({
-  findByType: vi.fn(),
-  countActiveByPrIds: vi.fn(),
-  findActiveByUserId: vi.fn(),
+  findByType: vi.fn<() => unknown>(),
+  countActiveByPrIds: vi.fn<() => unknown>(),
+  findActiveByUserId: vi.fn<() => unknown>(),
 }));
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({ PRTypeConfigRepository: class {} }));
 vi.mock("../../repositories/PartnerRequestRepository", () => ({
   PartnerRequestRepository: class {
     findByType = mocks.findByType;
     findVisibleByType = mocks.findByType;
-    findById = vi.fn().mockResolvedValue(null);
-    updateStatus = vi.fn().mockResolvedValue(null);
+    findById = vi.fn<() => unknown>().mockResolvedValue(null);
+    updateStatus = vi.fn<() => unknown>().mockResolvedValue(null);
   },
 }));
 vi.mock("../../repositories/PartnerRepository", () => ({

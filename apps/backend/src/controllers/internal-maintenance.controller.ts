@@ -16,7 +16,10 @@ export const internalMaintenanceRoute = app.post(
   zValidator("header", tickHeaderSchema),
   async (c) => {
     if (!env.JOB_RUNNER_INTERNAL_TOKEN) {
-      return throwHttpProblem({ status: 503, detail: "Internal maintenance tick endpoint is not configured" });
+      return throwHttpProblem({
+        status: 503,
+        detail: "Internal maintenance tick endpoint is not configured",
+      });
     }
 
     const header = c.req.valid("header");

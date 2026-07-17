@@ -36,9 +36,7 @@ export async function givenUser(
   };
 }
 
-export async function givenAnonymousUser(
-  label: string,
-): Promise<ScenarioUser> {
+export async function givenAnonymousUser(label: string): Promise<ScenarioUser> {
   const user = await userRepo.create({
     id: randomUUID(),
     role: ["anonymous"],

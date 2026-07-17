@@ -1,11 +1,7 @@
 <template>
   <PuPageScaffold class="my-prs-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('myPrsPage.title')"
-        :subtitle="t('myPrsPage.description')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('myPrsPage.title')" :subtitle="t('myPrsPage.description')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -33,10 +29,7 @@
           <span class="my-prs-page__count">{{ createdItems.length }}</span>
         </div>
 
-        <PuLoadingState
-          v-if="createdQuery.isLoading.value"
-          :message="t('myPrsPage.loading')"
-        />
+        <PuLoadingState v-if="createdQuery.isLoading.value" :message="t('myPrsPage.loading')" />
         <p v-else-if="createdQuery.error.value" class="my-prs-page__error">
           {{ createdErrorMessage }}
         </p>
@@ -45,10 +38,7 @@
         </p>
         <ul v-else class="my-prs-page__list">
           <li v-for="item in createdItems" :key="`created-${item.id}`">
-            <PRPreviewCard
-              class="my-prs-page__preview-card"
-              :pr-id="item.id"
-            />
+            <PRPreviewCard class="my-prs-page__preview-card" :pr-id="item.id" />
           </li>
         </ul>
       </section>
@@ -59,10 +49,7 @@
           <span class="my-prs-page__count">{{ joinedDisplayItems.length }}</span>
         </div>
 
-        <PuLoadingState
-          v-if="joinedQuery.isLoading.value"
-          :message="t('myPrsPage.loading')"
-        />
+        <PuLoadingState v-if="joinedQuery.isLoading.value" :message="t('myPrsPage.loading')" />
         <p v-else-if="joinedQuery.error.value" class="my-prs-page__error">
           {{ joinedErrorMessage }}
         </p>
@@ -71,10 +58,7 @@
         </p>
         <ul v-else class="my-prs-page__list">
           <li v-for="item in joinedDisplayItems" :key="`joined-${item.id}`">
-            <PRPreviewCard
-              class="my-prs-page__preview-card"
-              :pr-id="item.id"
-            />
+            <PRPreviewCard class="my-prs-page__preview-card" :pr-id="item.id" />
           </li>
         </ul>
       </section>
@@ -105,9 +89,7 @@ const joinedQuery = useMyJoinedPRs();
 
 const createdItems = computed(() => createdQuery.data.value ?? []);
 const joinedItems = computed(() => joinedQuery.data.value ?? []);
-const createdIds = computed(
-  () => new Set(createdItems.value.map((item) => item.id)),
-);
+const createdIds = computed(() => new Set(createdItems.value.map((item) => item.id)));
 
 const joinedDisplayItems = computed(() =>
   joinedItems.value.filter((item) => !createdIds.value.has(item.id)),
@@ -122,7 +104,6 @@ const joinedErrorMessage = computed(() => {
   const error = joinedQuery.error.value;
   return error instanceof Error ? error.message : t("myPrsPage.loadFailed");
 });
-
 </script>
 
 <style scoped lang="scss">

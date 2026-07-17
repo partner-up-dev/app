@@ -1,7 +1,4 @@
-import {
-  expectJsonResponse,
-  requestJson,
-} from "../../../_infra/http/backend-app";
+import { expectJsonResponse, requestJson } from "../../../_infra/http/backend-app";
 import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireInstanceId,
@@ -9,10 +6,7 @@ import type {
 } from "../../../../src/entities/feedback-questionnaire";
 import type { ScenarioUser } from "../../../pr-core/_kit/builders/users";
 
-export type SubmitFeedbackResponse = Pick<
-  FeedbackQuestionnaireResponse,
-  "instanceId"
-> & {
+export type SubmitFeedbackResponse = Pick<FeedbackQuestionnaireResponse, "instanceId"> & {
   responseId: FeedbackQuestionnaireResponse["id"];
   submittedAt: string;
   updatedAt: string;

@@ -39,15 +39,17 @@
         <PuButton
           shape="pill"
           size="lg"
-
           :disabled="loginMutation.isPending.value"
           @click="handleSubmit"
         >
-          {{ loginMutation.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction") }}
+          {{
+            loginMutation.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction")
+          }}
         </PuButton>
 
         <p class="admin-login-card__hint">{{ t("adminLogin.seedHint") }}</p>
-        <PuInlineNotice tone="error"
+        <PuInlineNotice
+          tone="error"
           v-if="loginMutation.error.value"
           :message="loginMutation.error.value.message"
         />
@@ -161,16 +163,8 @@ watchEffect(() => {
   border: 1px solid var(--sys-color-outline-variant);
   border-radius: var(--sys-radius-large);
   background:
-    radial-gradient(
-      circle at top left,
-      var(--sys-color-primary-container),
-      transparent 42%
-    ),
-    linear-gradient(
-      180deg,
-      var(--sys-color-surface),
-      var(--sys-color-surface-container)
-    );
+    radial-gradient(circle at top left, var(--sys-color-primary-container), transparent 42%),
+    linear-gradient(180deg, var(--sys-color-surface), var(--sys-color-surface-container));
   box-shadow: var(--sys-shadow-2);
 }
 
@@ -206,5 +200,4 @@ watchEffect(() => {
   background: var(--sys-color-surface);
   color: var(--sys-color-on-surface);
 }
-
 </style>

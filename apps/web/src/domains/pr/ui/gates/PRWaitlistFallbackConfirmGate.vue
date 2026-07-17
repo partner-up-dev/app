@@ -3,16 +3,10 @@
     <p class="fallback-gate__text">确认提交候补？</p>
     <p class="fallback-gate__text">候补成功后会按提交时间顺序等待补位。</p>
     <div class="fallback-gate__actions">
-      <PuButton
-        tone="neutral" variant="soft"
-
-        :disabled="pending"
-        @click="emit('cancel')"
-      >
+      <PuButton tone="neutral" variant="soft" :disabled="pending" @click="emit('cancel')">
         取消
       </PuButton>
       <PuButton
-
         :loading="pending"
         data-testid="pr-detail.waitlist.confirm"
         @click="emit('confirm')"

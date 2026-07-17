@@ -40,10 +40,7 @@ describe("order initiating status transitions", () => {
   });
 
   it("rejects non-initiating transition shortcuts", () => {
-    assert.throws(
-      () => markInitiatingOrderOpen(buildOrder("OPEN")),
-      /Order is not initiating/,
-    );
+    assert.throws(() => markInitiatingOrderOpen(buildOrder("OPEN")), /Order is not initiating/);
   });
 
   it("does not allow termination while the order is initiating", () => {

@@ -53,10 +53,7 @@ export const jobs = pgTable(
   (table) => ({
     statusRunAtIdx: index("jobs_status_run_at_idx").on(table.status, table.runAt),
     leaseUntilIdx: index("jobs_lease_until_idx").on(table.leaseUntil),
-    jobTypeStatusIdx: index("jobs_job_type_status_idx").on(
-      table.jobType,
-      table.status,
-    ),
+    jobTypeStatusIdx: index("jobs_job_type_status_idx").on(table.jobType, table.status),
     activeDedupeKeyUq: uniqueIndex("jobs_active_dedupe_key_uq")
       .on(table.dedupeKey)
       .where(

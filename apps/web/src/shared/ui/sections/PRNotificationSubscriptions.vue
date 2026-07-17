@@ -26,12 +26,7 @@
         "
         class="open-subscribe-proxy"
       >
-        <PuButton
-          class="subscription-action"
-          :tone="actionButtonTone"
-          variant="outline"
-          size="sm"
-        >
+        <PuButton class="subscription-action" :tone="actionButtonTone" variant="outline" size="sm">
           {{ item.actionLabel }}
         </PuButton>
 
@@ -56,10 +51,7 @@
       </div>
 
       <PuButton
-        v-else-if="
-          item.actionKind === 'SHOW_MINIPROGRAM_WEBVIEW_NOTICE' &&
-          item.actionLabel
-        "
+        v-else-if="item.actionKind === 'SHOW_MINIPROGRAM_WEBVIEW_NOTICE' && item.actionLabel"
         class="subscription-action"
         :tone="actionButtonTone"
         variant="outline"

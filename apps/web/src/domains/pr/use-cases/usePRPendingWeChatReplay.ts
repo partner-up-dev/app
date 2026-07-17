@@ -19,12 +19,7 @@ import {
 type ReplayablePRPendingAction = Extract<
   PendingWeChatAction,
   {
-    kind:
-      | "PR_CONFIRM"
-      | "PR_EXIT"
-      | "PR_JOIN"
-      | "PR_PUBLISH"
-      | "PR_WAITLIST";
+    kind: "PR_CONFIRM" | "PR_EXIT" | "PR_JOIN" | "PR_PUBLISH" | "PR_WAITLIST";
   }
 >;
 
@@ -38,14 +33,12 @@ export type PRPendingReplayHandler = {
 export type PRPendingReplayRegistry = {
   handlers: Partial<Record<PRPendingReplayKind, PRPendingReplayHandler>>;
   version: Readonly<Ref<number>>;
-  register: (
-    kind: PRPendingReplayKind,
-    handler: PRPendingReplayHandler,
-  ) => () => void;
+  register: (kind: PRPendingReplayKind, handler: PRPendingReplayHandler) => () => void;
 };
 
-const prPendingReplayRegistryKey: InjectionKey<PRPendingReplayRegistry> =
-  Symbol("pr-pending-replay-registry");
+const prPendingReplayRegistryKey: InjectionKey<PRPendingReplayRegistry> = Symbol(
+  "pr-pending-replay-registry",
+);
 
 const isReplayablePRPendingAction = (
   pending: PendingWeChatAction | null,
@@ -71,15 +64,12 @@ const matchPendingActionForPR = (
 };
 
 export const createPRPendingReplayRegistry = (): PRPendingReplayRegistry => {
-  const handlers = shallowReactive<
-    Partial<Record<PRPendingReplayKind, PRPendingReplayHandler>>
-  >({});
+  const handlers = shallowReactive<Partial<Record<PRPendingReplayKind, PRPendingReplayHandler>>>(
+    {},
+  );
   const version = ref(0);
 
-  const register = (
-    kind: PRPendingReplayKind,
-    handler: PRPendingReplayHandler,
-  ): (() => void) => {
+  const register = (kind: PRPendingReplayKind, handler: PRPendingReplayHandler): (() => void) => {
     handlers[kind] = handler;
     version.value += 1;
 
@@ -139,8 +129,13 @@ export const usePRPendingWeChatReplay = ({
   });
 
   const attemptReplay = async (): Promise<void> => {
-    const { handler, handlerReady, pending, prReady, replayRunning: running } =
-      matchingReplayState.value;
+    const {
+      handler,
+      handlerReady,
+      pending,
+      prReady,
+      replayRunning: running,
+    } = matchingReplayState.value;
     if (running || !prReady || !pending || !handler || !handlerReady) {
       return;
     }

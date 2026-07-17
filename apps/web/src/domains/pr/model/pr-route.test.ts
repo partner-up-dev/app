@@ -46,8 +46,6 @@ describe("PR route payload mapping", () => {
       route,
     };
     expect(toPartnerRequestFields(routeFields).location).toBeNull();
-    expect(toPartnerRequestFields(routeFields).route).toEqual(
-      normalizePRRouteForSubmit(route),
-    );
+    expect(toPartnerRequestFields(routeFields).route).toEqual(normalizePRRouteForSubmit(route));
   });
 });

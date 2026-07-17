@@ -15,9 +15,7 @@ import type { RepositoryExecutor } from "./_executor";
 export class StudySprintParticipantSessionRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
-  async create(
-    data: NewStudySprintParticipantSession,
-  ): Promise<StudySprintParticipantSession> {
+  async create(data: NewStudySprintParticipantSession): Promise<StudySprintParticipantSession> {
     const result = await this.executor
       .insert(studySprintParticipantSessions)
       .values(data)
@@ -25,9 +23,7 @@ export class StudySprintParticipantSessionRepository {
     return result[0]!;
   }
 
-  async findById(
-    id: StudySprintSessionId,
-  ): Promise<StudySprintParticipantSession | null> {
+  async findById(id: StudySprintSessionId): Promise<StudySprintParticipantSession | null> {
     const result = await this.executor
       .select()
       .from(studySprintParticipantSessions)
@@ -51,9 +47,7 @@ export class StudySprintParticipantSessionRepository {
     return result[0] ?? null;
   }
 
-  async listByRoomId(
-    roomId: StudySprintRoomId,
-  ): Promise<StudySprintParticipantSession[]> {
+  async listByRoomId(roomId: StudySprintRoomId): Promise<StudySprintParticipantSession[]> {
     return this.executor
       .select()
       .from(studySprintParticipantSessions)

@@ -53,12 +53,7 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const {
-  shareState,
-  normalizedUrl,
-  buttonLabel,
-  handleShare,
-} = useShareAsLink({
+const { shareState, normalizedUrl, buttonLabel, handleShare } = useShareAsLink({
   shareUrl: () => props.shareUrl,
   spmRouteKey: props.spmRouteKey,
   getLoadingText: () => t("common.loading"),
@@ -76,10 +71,7 @@ const qrPosterInput = computed(() => ({
   title: resolvedShareTitle.value,
   targetUrl: normalizedUrl.value,
 }));
-const { posterUrl, posterError } = useQrPosterImageUrl(
-  qrPosterActive,
-  qrPosterInput,
-);
+const { posterUrl, posterError } = useQrPosterImageUrl(qrPosterActive, qrPosterInput);
 
 const feedbackState = computed<"idle" | "pending" | "success" | "error">(() => {
   if (shareState.value === "sharing") return "pending";

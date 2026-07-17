@@ -5,15 +5,8 @@
     data-page="study-sprint-guidance"
   >
     <section class="guidance-page">
-      <Transition
-        name="guidance-slide"
-        mode="out-in"
-      >
-        <div
-          :key="guidanceStep"
-          class="guidance-step"
-          :data-step="guidanceStep"
-        >
+      <Transition name="guidance-slide" mode="out-in">
+        <div :key="guidanceStep" class="guidance-step" :data-step="guidanceStep">
           <div
             class="guidance-illustration"
             :class="`guidance-illustration--${currentGuidance.illustration}`"
@@ -45,35 +38,21 @@
     </section>
   </PuPageScaffold>
 
-  <PuPageScaffold
-    v-else
-    class="study-sprint-room"
-    data-page="study-sprint-room"
-  >
-    <PuLoadingState
-      v-if="roomQuery.isLoading.value"
-      message="正在进入专注房间"
-    />
-    <PuInlineNotice tone="error"
+  <PuPageScaffold v-else class="study-sprint-room" data-page="study-sprint-room">
+    <PuLoadingState v-if="roomQuery.isLoading.value" message="正在进入专注房间" />
+    <PuInlineNotice
+      tone="error"
       v-else-if="roomQuery.error.value"
       :message="roomQuery.error.value.message"
     />
 
     <template v-else-if="room">
-      <header
-        class="room-header"
-        data-testid="study-sprint.room-header"
-      >
-        <button
-          class="room-header__back"
-          type="button"
-          aria-label="返回 PR"
-          @click="goBackToPR"
-        >
+      <header class="room-header" data-testid="study-sprint.room-header">
+        <button class="room-header__back" type="button" aria-label="返回 PR" @click="goBackToPR">
           <span class="i-mdi-arrow-left"></span>
         </button>
         <div class="room-header__body">
-          <h1>{{ room.prTitle || '自习搭子番茄钟' }}</h1>
+          <h1>{{ room.prTitle || "自习搭子番茄钟" }}</h1>
           <span>{{ room.targetDurationMinutes }} min</span>
         </div>
       </header>
@@ -96,11 +75,7 @@
         >
           <div class="participant-tile__stage">
             <div class="participant-tile__avatar">
-              <img
-                v-if="participant.avatar"
-                :src="participant.avatar"
-                alt=""
-              />
+              <img v-if="participant.avatar" :src="participant.avatar" alt="" />
               <span v-else>{{ participantInitial(participant.nickname) }}</span>
             </div>
             <span class="participant-tile__status">
@@ -119,18 +94,13 @@
               </span>
             </div>
             <div class="participant-tile__progress">
-              <span
-                :style="{ width: `${participantProgressPercent(participant)}%` }"
-              ></span>
+              <span :style="{ width: `${participantProgressPercent(participant)}%` }"></span>
             </div>
           </div>
         </article>
       </section>
 
-      <section
-        class="room-controls"
-        data-testid="study-sprint.viewer-panel"
-      >
+      <section class="room-controls" data-testid="study-sprint.viewer-panel">
         <div class="room-controls__summary">
           <span>我的专注</span>
           <strong>{{ viewerDisplayMinutes }} / {{ room.targetDurationMinutes }} 分钟</strong>
@@ -153,7 +123,8 @@
             v-else-if="viewerStatus === 'FOCUSING'"
             block
             size="lg"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             :loading="recordEventMutation.isPending.value"
             data-testid="study-sprint.complete"
             @click="recordCompleted"
@@ -164,7 +135,8 @@
             v-else-if="viewerStatus === 'COMPLETED'"
             block
             size="lg"
-            tone="neutral" variant="soft"
+            tone="neutral"
+            variant="soft"
             data-testid="study-sprint.completed"
             disabled
           >
@@ -174,7 +146,8 @@
             v-else
             block
             size="lg"
-            tone="neutral" variant="soft"
+            tone="neutral"
+            variant="soft"
             data-testid="study-sprint.left"
             disabled
           >
@@ -183,7 +156,8 @@
           <PuButton
             v-if="viewerSession"
             block
-            tone="neutral" variant="ghost"
+            tone="neutral"
+            variant="ghost"
             :loading="recordEventMutation.isPending.value"
             data-testid="study-sprint.leave"
             @click="handleLeave"
@@ -200,7 +174,12 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
-import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 import {
   useRecordStudySprintEvent,
   useStartStudySprintSession,
@@ -270,9 +249,7 @@ const viewerElapsedSeconds = computed(() => {
   }
   return Math.max(optimisticElapsedSeconds.value, participant.creditedFocusSeconds);
 });
-const viewerDisplayMinutes = computed(() =>
-  Math.floor(viewerElapsedSeconds.value / 60),
-);
+const viewerDisplayMinutes = computed(() => Math.floor(viewerElapsedSeconds.value / 60));
 const viewerProgressPercent = computed(() => {
   const targetSeconds = (room.value?.targetDurationMinutes ?? 30) * 60;
   if (targetSeconds <= 0) return 0;
@@ -312,9 +289,7 @@ const goBackToPR = async (): Promise<void> => {
   }
 };
 
-const recordCurrentEvent = async (
-  eventType: "HEARTBEAT" | "COMPLETED" | "LEFT",
-): Promise<void> => {
+const recordCurrentEvent = async (eventType: "HEARTBEAT" | "COMPLETED" | "LEFT"): Promise<void> => {
   const sessionId = room.value?.viewerSessionId;
   if (!sessionId) return;
   await recordEventMutation.mutateAsync({
@@ -351,8 +326,7 @@ const updateOptimisticElapsed = (): void => {
     return;
   }
   optimisticElapsedSeconds.value =
-    localFocusBaseSeconds.value +
-    Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    localFocusBaseSeconds.value + Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
 
   const targetSeconds = (room.value?.targetDurationMinutes ?? 30) * 60;
   if (
@@ -388,8 +362,7 @@ watch(
 );
 
 onMounted(() => {
-  guidanceSeen.value =
-    window.localStorage.getItem(GUIDANCE_SEEN_KEY) === "true";
+  guidanceSeen.value = window.localStorage.getItem(GUIDANCE_SEEN_KEY) === "true";
   tickerId = window.setInterval(updateOptimisticElapsed, 1000);
   heartbeatId = window.setInterval(() => {
     void recordHeartbeat();
@@ -413,10 +386,7 @@ const participantMinutes = (seconds: number): number => Math.floor(seconds / 60)
 const participantProgressPercent = (participant: Participant): number => {
   const targetSeconds = (room.value?.targetDurationMinutes ?? 30) * 60;
   if (targetSeconds <= 0) return 0;
-  return Math.min(
-    100,
-    Math.round((participant.creditedFocusSeconds / targetSeconds) * 100),
-  );
+  return Math.min(100, Math.round((participant.creditedFocusSeconds / targetSeconds) * 100));
 };
 
 const participantStatusClass = (status: ParticipantStatus): string =>

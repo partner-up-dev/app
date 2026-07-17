@@ -3,11 +3,7 @@
 
   <main v-else class="wechat-oauth-handoff" aria-live="polite">
     <section class="wechat-oauth-handoff__body" aria-busy="true">
-      <div
-        v-if="state !== 'failed'"
-        class="wechat-oauth-handoff__spinner"
-        aria-hidden="true"
-      ></div>
+      <div v-if="state !== 'failed'" class="wechat-oauth-handoff__spinner" aria-hidden="true"></div>
       <div v-else class="wechat-oauth-handoff__mark" aria-hidden="true">!</div>
 
       <p class="wechat-oauth-handoff__eyebrow">微信登录</p>
@@ -15,17 +11,10 @@
       <p class="wechat-oauth-handoff__description">{{ description }}</p>
 
       <div v-if="state !== 'loading'" class="wechat-oauth-handoff__actions">
-        <PuButton
-          v-if="state === 'failed'"
-
-          tone="primary" variant="solid"
-          @click="retry"
-        >
+        <PuButton v-if="state === 'failed'" tone="primary" variant="solid" @click="retry">
           重新尝试
         </PuButton>
-        <PuButton tone="neutral" variant="soft" @click="continueAsGuest">
-          先以访客浏览
-        </PuButton>
+        <PuButton tone="neutral" variant="soft" @click="continueAsGuest"> 先以访客浏览 </PuButton>
       </div>
     </section>
   </main>
@@ -42,10 +31,7 @@ import {
   WECHAT_OAUTH_HANDOFF_QUERY_PARAM,
 } from "@/processes/wechat/oauth-handoff";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
-import {
-  clearWeChatOAuthTrace,
-  trackWeChatOAuthTrace,
-} from "@/processes/wechat/oauth-trace";
+import { clearWeChatOAuthTrace, trackWeChatOAuthTrace } from "@/processes/wechat/oauth-trace";
 import { PuButton } from "@partner-up-dev/design-web";
 
 const HANDOFF_SLOW_THRESHOLD_MS = 8_000;

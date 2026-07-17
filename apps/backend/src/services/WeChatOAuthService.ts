@@ -61,8 +61,8 @@ export class WeChatOAuthService {
   isConfigured(): boolean {
     return Boolean(
       env.WECHAT_OFFICIAL_ACCOUNT_APP_ID &&
-        env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET &&
-        env.WECHAT_AUTH_SESSION_SECRET,
+      env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET &&
+      env.WECHAT_AUTH_SESSION_SECRET,
     );
   }
 
@@ -91,9 +91,7 @@ export class WeChatOAuthService {
   createAuthorizeUrl(callbackUrl: string, state: string): string {
     const { appId } = this.getConfig();
 
-    const authorizeUrl = new URL(
-      "https://open.weixin.qq.com/connect/oauth2/authorize",
-    );
+    const authorizeUrl = new URL("https://open.weixin.qq.com/connect/oauth2/authorize");
     authorizeUrl.searchParams.set("appid", appId);
     authorizeUrl.searchParams.set("redirect_uri", callbackUrl);
     authorizeUrl.searchParams.set("response_type", "code");
@@ -122,9 +120,7 @@ export class WeChatOAuthService {
       );
     }
 
-    const payload = weChatOauthAccessTokenResponseSchema.parse(
-      await response.json(),
-    );
+    const payload = weChatOauthAccessTokenResponseSchema.parse(await response.json());
 
     if (!payload.openid || !payload.access_token) {
       const message = payload.errmsg ?? "Unknown error";
@@ -151,9 +147,7 @@ export class WeChatOAuthService {
     scope: string | null,
   ): Promise<WeChatOAuthUserProfile> {
     if (!isUserInfoScopeGranted(scope)) {
-      throw new Error(
-        `WeChat OAuth scope missing snsapi_userinfo: scope=${scope ?? "null"}`,
-      );
+      throw new Error(`WeChat OAuth scope missing snsapi_userinfo: scope=${scope ?? "null"}`);
     }
 
     const userInfoUrl = new URL("https://api.weixin.qq.com/sns/userinfo");

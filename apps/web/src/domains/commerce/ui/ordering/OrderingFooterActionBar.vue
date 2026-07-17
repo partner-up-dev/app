@@ -74,8 +74,8 @@ defineEmits<{
   gap: var(--sys-spacing-small);
   align-items: center;
   min-height: calc(3.625rem + var(--pu-safe-bottom));
-  padding: 0 calc(var(--sys-spacing-medium) + var(--pu-safe-right))
-    var(--pu-safe-bottom) calc(var(--sys-spacing-medium) + var(--pu-safe-left));
+  padding: 0 calc(var(--sys-spacing-medium) + var(--pu-safe-right)) var(--pu-safe-bottom)
+    calc(var(--sys-spacing-medium) + var(--pu-safe-left));
   border-top: 1px solid var(--sys-color-outline);
   background: var(--sys-color-surface-container);
   box-shadow: var(--sys-shadow-2);

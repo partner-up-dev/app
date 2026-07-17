@@ -1,9 +1,6 @@
 <template>
   <section class="value-props" aria-labelledby="home-value-props-title">
-    <h2
-      id="home-value-props-title"
-      :class="{ 'is-visible': props.startReveal }"
-    >
+    <h2 id="home-value-props-title" :class="{ 'is-visible': props.startReveal }">
       {{ t("home.landing.valuePropsTitle") }}
     </h2>
     <ol class="value-list">
@@ -19,15 +16,9 @@
           :aria-controls="HOME_NL_PANEL_ID"
           @click="toggleNLForm"
         >
-          <span class="value-order" aria-hidden="true">{{
-            firstValueItem.order
-          }}</span>
+          <span class="value-order" aria-hidden="true">{{ firstValueItem.order }}</span>
           <span class="value-text-wrap">
-            <span
-              class="value-icon"
-              :class="firstValueItem.icon"
-              aria-hidden="true"
-            ></span>
+            <span class="value-icon" :class="firstValueItem.icon" aria-hidden="true"></span>
             <span class="value-text">{{ t(firstValueItem.key) }}</span>
           </span>
           <span
@@ -54,11 +45,7 @@
         <div class="value-link value-link--static">
           <span class="value-order" aria-hidden="true">{{ item.order }}</span>
           <span class="value-text-wrap">
-            <span
-              class="value-icon"
-              :class="item.icon"
-              aria-hidden="true"
-            ></span>
+            <span class="value-icon" :class="item.icon" aria-hidden="true"></span>
             <span class="value-text">{{ t(item.key) }}</span>
           </span>
         </div>

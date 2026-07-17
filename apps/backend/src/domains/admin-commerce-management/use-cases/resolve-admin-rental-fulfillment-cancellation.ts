@@ -12,9 +12,7 @@ export async function resolveAdminRentalFulfillmentCancellation(input: {
   outcome: "APPROVED" | "DENIED";
   reason?: string | null;
 }) {
-  const rentalOrder = await rentalOrderRepo.findByOrderId(
-    input.fulfillmentId as TradeOrderId,
-  );
+  const rentalOrder = await rentalOrderRepo.findByOrderId(input.fulfillmentId as TradeOrderId);
   if (!rentalOrder) {
     return throwHttpProblem({ status: 404, detail: "Rental order not found" });
   }
@@ -33,8 +31,7 @@ export async function resolveAdminRentalFulfillmentCancellation(input: {
     .reverse()
     .find(
       (candidate) =>
-        candidate.status === "PENDING" &&
-        candidate.resolutionPath === "RENTAL_FULFILLMENT",
+        candidate.status === "PENDING" && candidate.resolutionPath === "RENTAL_FULFILLMENT",
     );
   if (!attempt) {
     return throwHttpProblem({

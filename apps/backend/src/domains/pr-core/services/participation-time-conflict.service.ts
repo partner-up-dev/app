@@ -13,9 +13,7 @@ const JOIN_TIME_WINDOW_CONFLICT_MESSAGE =
   "Cannot continue - time window conflicts with another joined partner request";
 
 const isTimeConflictRelevantStatus = (status: string): boolean =>
-  status === "OPEN" ||
-  status === "READY" ||
-  status === "ACTIVE";
+  status === "OPEN" || status === "READY" || status === "ACTIVE";
 
 export async function findUserTimeWindowConflict(params: {
   userId: UserId;
@@ -23,9 +21,9 @@ export async function findUserTimeWindowConflict(params: {
   excludePrId?: PRId | null;
 }): Promise<PRId | null> {
   const slots = await partnerRepo.findActiveByUserId(params.userId);
-  const joinedPrIds = Array.from(
-    new Set(slots.map((slot) => slot.prId)),
-  ).filter((prId) => (params.excludePrId ? prId !== params.excludePrId : true));
+  const joinedPrIds = Array.from(new Set(slots.map((slot) => slot.prId))).filter((prId) =>
+    params.excludePrId ? prId !== params.excludePrId : true,
+  );
 
   if (joinedPrIds.length === 0) return null;
 

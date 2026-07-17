@@ -7,9 +7,7 @@ import {
 } from "../entities/notification-opportunity";
 
 export class NotificationOpportunityRepository {
-  async createOnce(
-    row: NewNotificationOpportunityRow,
-  ): Promise<NotificationOpportunityRow | null> {
+  async createOnce(row: NewNotificationOpportunityRow): Promise<NotificationOpportunityRow | null> {
     const result = await db
       .insert(notificationOpportunities)
       .values(row)
@@ -34,4 +32,3 @@ export class NotificationOpportunityRepository {
     return result[0] ?? null;
   }
 }
-

@@ -21,13 +21,9 @@ type RentalTerminationPolicyResolution = {
   requiresOperatorHandling: boolean;
 };
 
-function getMinutesBeforeStart(
-  requestedAt: string,
-  serviceStartAt: string,
-): number {
+function getMinutesBeforeStart(requestedAt: string, serviceStartAt: string): number {
   return Math.floor(
-    (new Date(serviceStartAt).getTime() - new Date(requestedAt).getTime()) /
-      60_000,
+    (new Date(serviceStartAt).getTime() - new Date(requestedAt).getTime()) / 60_000,
   );
 }
 
@@ -37,11 +33,9 @@ function selectCancellationTier(
 ): CancellationTierSnapshot {
   const matched = policy.tiers.find((tier) => {
     const fromOk =
-      tier.fromMinutesBeforeStart === null ||
-      minutesBeforeStart >= tier.fromMinutesBeforeStart;
+      tier.fromMinutesBeforeStart === null || minutesBeforeStart >= tier.fromMinutesBeforeStart;
     const untilOk =
-      tier.untilMinutesBeforeStart === null ||
-      minutesBeforeStart < tier.untilMinutesBeforeStart;
+      tier.untilMinutesBeforeStart === null || minutesBeforeStart < tier.untilMinutesBeforeStart;
     return fromOk && untilOk;
   });
 
@@ -56,10 +50,7 @@ export function resolveRentalTerminationPolicy(
   order: RentalOrder,
   attempt: Pick<OrderTerminationAttempt, "attemptId" | "requestedAt">,
 ): RentalTerminationPolicyResolution {
-  const minutesBeforeStart = getMinutesBeforeStart(
-    attempt.requestedAt,
-    order.serviceStartAt,
-  );
+  const minutesBeforeStart = getMinutesBeforeStart(attempt.requestedAt, order.serviceStartAt);
 
   const selectedTiers = order.items.map((item) => {
     const policy = getOrderItemCancellationPolicy(item);

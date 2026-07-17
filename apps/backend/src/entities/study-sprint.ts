@@ -41,16 +41,9 @@ export const studySprintRooms = pgTable(
       .$type<PRId>()
       .notNull()
       .references(() => partnerRequests.id, { onDelete: "cascade" }),
-    status: text("status")
-      .$type<StudySprintRoomStatus>()
-      .notNull()
-      .default("OPEN"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    status: text("status").$type<StudySprintRoomStatus>().notNull().default("OPEN"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     prUnique: uniqueIndex("study_sprint_rooms_pr_unique").on(table.prId),
@@ -84,40 +77,27 @@ export const studySprintParticipantSessions = pgTable(
       .$type<PartnerId>()
       .notNull()
       .references(() => partners.id, { onDelete: "cascade" }),
-    status: text("status")
-      .$type<StudySprintSessionStatus>()
-      .notNull()
-      .default("FOCUSING"),
+    status: text("status").$type<StudySprintSessionStatus>().notNull().default("FOCUSING"),
     targetDurationMinutes: integer("target_duration_minutes").notNull(),
     creditedFocusSeconds: integer("credited_focus_seconds").notNull().default(0),
     interruptionSeconds: integer("interruption_seconds").notNull().default(0),
-    startedAt: timestamp("started_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     leftAt: timestamp("left_at", { withTimezone: true }),
-    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    roomUserUnique: uniqueIndex(
-      "study_sprint_participant_sessions_room_user_unique",
-    ).on(table.roomId, table.userId),
+    roomUserUnique: uniqueIndex("study_sprint_participant_sessions_room_user_unique").on(
+      table.roomId,
+      table.userId,
+    ),
     roomStatusIdx: index("study_sprint_participant_sessions_room_status_idx").on(
       table.roomId,
       table.status,
     ),
-    prUserIdx: index("study_sprint_participant_sessions_pr_user_idx").on(
-      table.prId,
-      table.userId,
-    ),
+    prUserIdx: index("study_sprint_participant_sessions_pr_user_idx").on(table.prId, table.userId),
   }),
 );
 
@@ -134,36 +114,30 @@ export const studySprintSessionEvents = pgTable(
       .references(() => studySprintParticipantSessions.id, {
         onDelete: "cascade",
       }),
-    eventType: text("event_type")
-      .$type<StudySprintSessionEventType>()
-      .notNull(),
+    eventType: text("event_type").$type<StudySprintSessionEventType>().notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     clientSeq: integer("client_seq").notNull(),
     payload: jsonb("payload")
       .$type<StudySprintSessionEventPayload>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    sessionClientSeqUnique: uniqueIndex(
-      "study_sprint_session_events_session_client_seq_unique",
-    ).on(table.sessionId, table.clientSeq),
-    sessionOccurredAtIdx: index(
-      "study_sprint_session_events_session_occurred_at_idx",
-    ).on(table.sessionId, table.occurredAt),
+    sessionClientSeqUnique: uniqueIndex("study_sprint_session_events_session_client_seq_unique").on(
+      table.sessionId,
+      table.clientSeq,
+    ),
+    sessionOccurredAtIdx: index("study_sprint_session_events_session_occurred_at_idx").on(
+      table.sessionId,
+      table.occurredAt,
+    ),
   }),
 );
 
 export type StudySprintRoom = typeof studySprintRooms.$inferSelect;
 export type NewStudySprintRoom = typeof studySprintRooms.$inferInsert;
-export type StudySprintParticipantSession =
-  typeof studySprintParticipantSessions.$inferSelect;
-export type NewStudySprintParticipantSession =
-  typeof studySprintParticipantSessions.$inferInsert;
-export type StudySprintSessionEvent =
-  typeof studySprintSessionEvents.$inferSelect;
-export type NewStudySprintSessionEvent =
-  typeof studySprintSessionEvents.$inferInsert;
+export type StudySprintParticipantSession = typeof studySprintParticipantSessions.$inferSelect;
+export type NewStudySprintParticipantSession = typeof studySprintParticipantSessions.$inferInsert;
+export type StudySprintSessionEvent = typeof studySprintSessionEvents.$inferSelect;
+export type NewStudySprintSessionEvent = typeof studySprintSessionEvents.$inferInsert;

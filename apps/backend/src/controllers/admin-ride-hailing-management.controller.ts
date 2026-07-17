@@ -9,36 +9,24 @@ import {
   updateAdminRideHailingProviderInstance,
 } from "../domains/admin-ride-hailing-management";
 import type { RideHailingProviderInstanceId } from "../entities/ride-hailing-provider";
-import {
-  adminAuthMiddleware,
-  type AdminAuthEnv,
-} from "../auth/admin-middleware";
+import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
 
 const app = new Hono<AdminAuthEnv>();
 
-const nullableTrimmedUrlSchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim().length === 0) return null;
-    return value;
-  },
-  z.string().trim().url().nullable().optional(),
-);
+const nullableTrimmedUrlSchema = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim().length === 0) return null;
+  return value;
+}, z.string().trim().url().nullable().optional());
 
-const nullableTrimmedSecretSchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim().length === 0) return null;
-    return value;
-  },
-  z.string().trim().min(1).nullable().optional(),
-);
+const nullableTrimmedSecretSchema = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim().length === 0) return null;
+  return value;
+}, z.string().trim().min(1).nullable().optional());
 
-const nullablePositiveIntSchema = z.preprocess(
-  (value) => {
-    if (value === "" || value === undefined) return null;
-    return value;
-  },
-  z.number().int().positive().nullable().optional(),
-);
+const nullablePositiveIntSchema = z.preprocess((value) => {
+  if (value === "" || value === undefined) return null;
+  return value;
+}, z.number().int().positive().nullable().optional());
 
 const providerInstanceIdParamSchema = z.object({
   providerInstanceId: z.string().uuid(),
@@ -63,11 +51,7 @@ const adminRideHailingProviderInstanceInputSchema = z.object({
   }),
 });
 
-type JsonEndpoint<
-  Input,
-  Output,
-  Status extends number = 200,
-> = {
+type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
   outputFormat: "json";
@@ -101,10 +85,7 @@ type AdminRideHailingManagementSchema = {
     >;
   };
   "/ride-hailing/orders/workspace": {
-    $get: JsonEndpoint<
-      EmptyInput,
-      Awaited<ReturnType<typeof getAdminRideHailingOrderWorkspace>>
-    >;
+    $get: JsonEndpoint<EmptyInput, Awaited<ReturnType<typeof getAdminRideHailingOrderWorkspace>>>;
   };
   "/ride-hailing/orders/:orderId/cancel": {
     $post: JsonEndpoint<
@@ -114,53 +95,50 @@ type AdminRideHailingManagementSchema = {
   };
 };
 
-export const adminRideHailingManagementRoute: Hono<
-  AdminAuthEnv,
-  AdminRideHailingManagementSchema
-> = app
-  .use("*", adminAuthMiddleware)
-  .get("/ride-hailing/provider-instances/workspace", async (c) => {
-    const result = await getAdminRideHailingProviderWorkspace();
-    return c.json(result);
-  })
-  .get("/ride-hailing/orders/workspace", async (c) => {
-    const result = await getAdminRideHailingOrderWorkspace();
-    return c.json(result);
-  })
-  .post(
-    "/ride-hailing/provider-instances",
-    zValidator("json", adminRideHailingProviderInstanceInputSchema),
-    async (c) => {
-      const payload = c.req.valid("json");
-      const result = await createAdminRideHailingProviderInstance(payload);
+export const adminRideHailingManagementRoute: Hono<AdminAuthEnv, AdminRideHailingManagementSchema> =
+  app
+    .use("*", adminAuthMiddleware)
+    .get("/ride-hailing/provider-instances/workspace", async (c) => {
+      const result = await getAdminRideHailingProviderWorkspace();
       return c.json(result);
-    },
-  )
-  .patch(
-    "/ride-hailing/provider-instances/:providerInstanceId",
-    zValidator("param", providerInstanceIdParamSchema),
-    zValidator("json", adminRideHailingProviderInstanceInputSchema),
-    async (c) => {
-      const { providerInstanceId } = c.req.valid("param");
-      const payload = c.req.valid("json");
-      const result = await updateAdminRideHailingProviderInstance({
-        providerInstanceId:
-          providerInstanceId as RideHailingProviderInstanceId,
-        payload,
-      });
+    })
+    .get("/ride-hailing/orders/workspace", async (c) => {
+      const result = await getAdminRideHailingOrderWorkspace();
       return c.json(result);
-    },
-  )
-  .post(
-    "/ride-hailing/orders/:orderId/cancel",
-    zValidator("param", orderIdParamSchema),
-    async (c) => {
-      const { orderId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await cancelAdminRideHailingOrder({
-        orderId,
-        actorUserId: auth.userId!,
-      });
-      return c.json(result);
-    },
-  );
+    })
+    .post(
+      "/ride-hailing/provider-instances",
+      zValidator("json", adminRideHailingProviderInstanceInputSchema),
+      async (c) => {
+        const payload = c.req.valid("json");
+        const result = await createAdminRideHailingProviderInstance(payload);
+        return c.json(result);
+      },
+    )
+    .patch(
+      "/ride-hailing/provider-instances/:providerInstanceId",
+      zValidator("param", providerInstanceIdParamSchema),
+      zValidator("json", adminRideHailingProviderInstanceInputSchema),
+      async (c) => {
+        const { providerInstanceId } = c.req.valid("param");
+        const payload = c.req.valid("json");
+        const result = await updateAdminRideHailingProviderInstance({
+          providerInstanceId: providerInstanceId as RideHailingProviderInstanceId,
+          payload,
+        });
+        return c.json(result);
+      },
+    )
+    .post(
+      "/ride-hailing/orders/:orderId/cancel",
+      zValidator("param", orderIdParamSchema),
+      async (c) => {
+        const { orderId } = c.req.valid("param");
+        const auth = c.get("auth");
+        const result = await cancelAdminRideHailingOrder({
+          orderId,
+          actorUserId: auth.userId!,
+        });
+        return c.json(result);
+      },
+    );

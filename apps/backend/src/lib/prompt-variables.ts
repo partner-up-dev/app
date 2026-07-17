@@ -1,9 +1,6 @@
 export type PromptJsonPrimitive = string | number | boolean | null;
 
-export type PromptJsonValue =
-  | PromptJsonPrimitive
-  | PromptJsonObject
-  | PromptJsonArray;
+export type PromptJsonValue = PromptJsonPrimitive | PromptJsonObject | PromptJsonArray;
 
 export type PromptJsonObject = { readonly [key: string]: PromptJsonValue };
 

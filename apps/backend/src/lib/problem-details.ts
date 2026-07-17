@@ -81,9 +81,7 @@ export const throwHttpProblem = (input: {
   throw createHttpProblem(input);
 };
 
-const resolveProblemLocale = (
-  acceptLanguageHeader: string | undefined,
-): "zh-CN" | "en-US" => {
+const resolveProblemLocale = (acceptLanguageHeader: string | undefined): "zh-CN" | "en-US" => {
   const normalized = acceptLanguageHeader?.trim();
   if (!normalized) {
     return "zh-CN";
@@ -96,17 +94,9 @@ const resolveProblemLocale = (
         .trim()
         .split(";")
         .map((part) => part.trim());
-      const qualityParameter = parameterParts.find((part) =>
-        part.toLowerCase().startsWith("q="),
-      );
-      const parsedQuality =
-        qualityParameter === undefined
-          ? 1
-          : Number(qualityParameter.slice(2));
-      const quality =
-        Number.isFinite(parsedQuality) && parsedQuality >= 0
-          ? parsedQuality
-          : 1;
+      const qualityParameter = parameterParts.find((part) => part.toLowerCase().startsWith("q="));
+      const parsedQuality = qualityParameter === undefined ? 1 : Number(qualityParameter.slice(2));
+      const quality = Number.isFinite(parsedQuality) && parsedQuality >= 0 ? parsedQuality : 1;
       return {
         index,
         languageTag: languageTagRaw.toLowerCase(),
@@ -138,10 +128,7 @@ export const buildProblemDetailsPayload = (
   acceptLanguageHeader: string | undefined,
 ): { payload: ProblemDetailsPayload; contentLanguage: "zh-CN" | "en-US" } => {
   const contentLanguage = resolveProblemLocale(acceptLanguageHeader);
-  const text =
-    contentLanguage === "en-US"
-      ? error.localizedText.enUS
-      : error.localizedText.zhCN;
+  const text = contentLanguage === "en-US" ? error.localizedText.enUS : error.localizedText.zhCN;
 
   return {
     contentLanguage,

@@ -9,10 +9,10 @@ const AUTHENTICATED_REQUIRED_CODE = "AUTHENTICATED_REQUIRED";
 process.env.DATABASE_URL ??= "postgres://unit:unit@localhost:5432/unit";
 
 vi.mock("../domains/poi", () => ({
-  findPoisByIds: vi.fn(),
-  findPoisByNames: vi.fn(),
-  listMyPoiApplications: vi.fn(),
-  submitPoiApplication: vi.fn(),
+  findPoisByIds: vi.fn<() => unknown>(),
+  findPoisByNames: vi.fn<() => unknown>(),
+  listMyPoiApplications: vi.fn<() => unknown>(),
+  submitPoiApplication: vi.fn<() => unknown>(),
 }));
 
 const { poiRoute } = await import("./poi.controller");

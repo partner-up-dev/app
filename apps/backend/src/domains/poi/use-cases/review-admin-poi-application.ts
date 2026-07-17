@@ -2,10 +2,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type { UserId } from "../../../entities/user";
 import { PoiRepository } from "../../../repositories/PoiRepository";
 import { operationLogService } from "../../../infra/operation-log";
-import {
-  normalizePoiRejectReason,
-  toPoiApplicationView,
-} from "../services/poi-application";
+import { normalizePoiRejectReason, toPoiApplicationView } from "../services/poi-application";
 
 const poiRepo = new PoiRepository();
 

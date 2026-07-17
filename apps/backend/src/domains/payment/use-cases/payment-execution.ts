@@ -3,10 +3,7 @@ import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../.
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
-import {
-  createPaymentProviderPort,
-  ensureWeChatPayPlatformCertificates,
-} from "../services";
+import { createPaymentProviderPort, ensureWeChatPayPlatformCertificates } from "../services";
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 const billLineRepo = new BillLineRepository();

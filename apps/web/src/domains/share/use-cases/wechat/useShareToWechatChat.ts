@@ -9,10 +9,7 @@ import {
   useCurrentRouteShareSessionId,
 } from "@/domains/share/use-cases/route-share-controller";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
-import {
-  buildProductShareUrl,
-  type ShareSpmRouteKey,
-} from "@/shared/url/spm";
+import { buildProductShareUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
 import { client } from "@/lib/rpc";
 
 type Translate = (key: string) => string;
@@ -31,10 +28,7 @@ const truncateShareText = (value: string): string => {
   return text.length > 80 ? `${text.slice(0, 79)}…` : text;
 };
 
-const toShareDescriptionFallback = (
-  prData: PRShareData,
-  t: Translate,
-): string => {
+const toShareDescriptionFallback = (prData: PRShareData, t: Translate): string => {
   const rawText = truncateShareText(prData.rawText ?? "");
   if (rawText) return rawText;
 
@@ -46,10 +40,7 @@ const toShareDescriptionFallback = (
       ...prData.preferences.slice(0, 2),
       prData.notes,
     ]
-      .filter(
-        (item): item is string =>
-          typeof item === "string" && item.trim().length > 0,
-      )
+      .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
       .join(" · "),
   );
   if (summary) return summary;
@@ -83,12 +74,9 @@ export const useShareToWechatChat = ({
   const disabledRef = computed(() => Boolean(unref(disabled)));
   const routeShareSessionId = useCurrentRouteShareSessionId();
 
-  const {
-    mutateAsync: generateThumbHtmlAsync,
-    isPending: isThumbHtmlGenerating,
-  } = useGenerateWechatThumbHtml();
-  const { generateThumb, isGenerating: isFallbackThumbGenerating } =
-    useGenerateWechatThumbPoster();
+  const { mutateAsync: generateThumbHtmlAsync, isPending: isThumbHtmlGenerating } =
+    useGenerateWechatThumbHtml();
+  const { generateThumb, isGenerating: isFallbackThumbGenerating } = useGenerateWechatThumbPoster();
   const { uploadImage, isUploading, uploadError } = useCloudStorage();
 
   const isWorking = computed(
@@ -104,14 +92,11 @@ export const useShareToWechatChat = ({
     if (canonicalTitle) return canonicalTitle;
 
     const title = currentPrData.value.title?.trim();
-    return title && title.length > 0
-      ? title
-      : t("share.wechat.defaultShareTitle");
+    return title && title.length > 0 ? title : t("share.wechat.defaultShareTitle");
   };
 
   const resolveBaseShareDescription = (): string => {
-    const canonicalDescription =
-      currentPrData.value.canonicalShare.description?.trim();
+    const canonicalDescription = currentPrData.value.canonicalShare.description?.trim();
     if (canonicalDescription) return canonicalDescription;
     return toShareDescriptionFallback(currentPrData.value, t);
   };
@@ -141,8 +126,7 @@ export const useShareToWechatChat = ({
   const taggedShareUrl = computed(() =>
     buildProductShareUrl({
       rawUrl: currentShareUrl.value,
-      baseHref:
-        typeof window === "undefined" ? "http://localhost/" : window.location.href,
+      baseHref: typeof window === "undefined" ? "http://localhost/" : window.location.href,
       routeKey: currentSpmRouteKey.value,
       methodKey: "wechat_share",
     }),
@@ -159,17 +143,14 @@ export const useShareToWechatChat = ({
     targetScopeVersion: number,
     routeSessionAtStart: string | null,
   ): boolean =>
-    targetScopeVersion === scopeVersion.value &&
-    routeSessionAtStart === routeShareSessionId.value;
+    targetScopeVersion === scopeVersion.value && routeSessionAtStart === routeShareSessionId.value;
 
   const toEntityKey = (): string =>
     currentSpmRouteKey.value === "pr"
       ? `ANCHOR:${currentPrId.value}`
       : `COMMUNITY:${currentPrId.value}`;
 
-  const buildEnrichedDescriptor = (
-    imgUrl: string,
-  ): RouteShareDescriptor | null => {
+  const buildEnrichedDescriptor = (imgUrl: string): RouteShareDescriptor | null => {
     if (typeof window === "undefined") return null;
 
     const routeSessionIdValue = routeShareSessionId.value;
@@ -213,9 +194,7 @@ export const useShareToWechatChat = ({
     try {
       isGeneratingDesc.value = true;
 
-      const res = await client.api.share["wechat-card"][
-        "generate-description"
-      ].$post({
+      const res = await client.api.share["wechat-card"]["generate-description"].$post({
         json: {
           prId: currentPrId.value,
         },
@@ -239,9 +218,7 @@ export const useShareToWechatChat = ({
       shareDesc.value = nextDescription;
 
       const currentPosterUrl =
-        lastUploadedThumbnailUrl.value ??
-        currentPrData.value.wechatThumbnail?.posterUrl ??
-        null;
+        lastUploadedThumbnailUrl.value ?? currentPrData.value.wechatThumbnail?.posterUrl ?? null;
       if (!currentPosterUrl) return;
 
       try {
@@ -306,10 +283,7 @@ export const useShareToWechatChat = ({
           return;
         }
 
-        console.warn(
-          "HTML thumbnail generation failed, fallback to template:",
-          error,
-        );
+        console.warn("HTML thumbnail generation failed, fallback to template:", error);
         blob = await generateThumb(pickFallbackKeyText(), styleIndex.value);
       } finally {
         isRendering.value = false;
@@ -335,11 +309,7 @@ export const useShareToWechatChat = ({
         console.warn("Failed to cache thumbnail URL:", cacheError);
       }
 
-      await submitCurrentEnrichedDescriptor(
-        thumbnailUrl,
-        targetScopeVersion,
-        routeSessionAtStart,
-      );
+      await submitCurrentEnrichedDescriptor(thumbnailUrl, targetScopeVersion, routeSessionAtStart);
 
       if (!isCurrentScopeActive(targetScopeVersion, routeSessionAtStart)) {
         return;
@@ -351,8 +321,7 @@ export const useShareToWechatChat = ({
         return;
       }
 
-      errorMessage.value =
-        error instanceof Error ? error.message : t("common.operationFailed");
+      errorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
       isRendering.value = false;
     }
   };
@@ -394,24 +363,16 @@ export const useShareToWechatChat = ({
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 100);
     });
-    await handleGenerateAndUpdateInternal(
-      scopeVersion.value,
-      routeShareSessionId.value,
-    );
+    await handleGenerateAndUpdateInternal(scopeVersion.value, routeShareSessionId.value);
   };
 
   const handleGenerateAndUpdate = async (): Promise<void> => {
     if (disabledRef.value) return;
     if (!routeShareSessionId.value) return;
-    await handleGenerateAndUpdateInternal(
-      scopeVersion.value,
-      routeShareSessionId.value,
-    );
+    await handleGenerateAndUpdateInternal(scopeVersion.value, routeShareSessionId.value);
   };
 
-  const errorText = computed(
-    () => errorMessage.value ?? uploadError.value,
-  );
+  const errorText = computed(() => errorMessage.value ?? uploadError.value);
 
   watch(
     () =>

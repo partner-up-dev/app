@@ -37,8 +37,7 @@ const buildConfig = (input: {
   existingProviderInstance?: RideHailingProviderInstance | null;
 }): CaocaoProviderInstanceConfig => {
   const incomingSignKey = normalizeOptionalString(input.payload.config.signKey);
-  const signKey =
-    incomingSignKey ?? input.existingProviderInstance?.config.signKey ?? null;
+  const signKey = incomingSignKey ?? input.existingProviderInstance?.config.signKey ?? null;
 
   if (!signKey) {
     return throwHttpProblem({
@@ -54,9 +53,7 @@ const buildConfig = (input: {
       caocaoClientId: input.payload.config.caocaoClientId,
       signKey,
       endpointBaseUrl: input.payload.config.endpointBaseUrl,
-      callbackBaseUrl: normalizeOptionalString(
-        input.payload.config.callbackBaseUrl,
-      ),
+      callbackBaseUrl: normalizeOptionalString(input.payload.config.callbackBaseUrl),
       requestTimeoutMs: input.payload.config.requestTimeoutMs ?? null,
     },
   });
@@ -74,8 +71,7 @@ const assertUniqueInstanceKey = async (input: {
 
   if (
     existing &&
-    (!input.currentProviderInstanceId ||
-      existing.id !== input.currentProviderInstanceId)
+    (!input.currentProviderInstanceId || existing.id !== input.currentProviderInstanceId)
   ) {
     return throwHttpProblem({
       status: 409,

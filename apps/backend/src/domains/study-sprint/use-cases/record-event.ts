@@ -3,10 +3,7 @@ import type { UserId } from "../../../entities/user";
 import type { StudySprintSessionId } from "../../../entities/study-sprint";
 import { StudySprintParticipantSessionRepository } from "../../../repositories/StudySprintParticipantSessionRepository";
 import { StudySprintSessionEventRepository } from "../../../repositories/StudySprintSessionEventRepository";
-import type {
-  StudySprintSessionEventPayload,
-  StudySprintSessionEventType,
-} from "../model";
+import type { StudySprintSessionEventPayload, StudySprintSessionEventType } from "../model";
 import { requireStudySprintActiveParticipant } from "../services/eligibility";
 import { reduceFocusEvidence } from "../services/focus-evidence-reducer";
 import { getStudySprintRoomSnapshot } from "./snapshot";

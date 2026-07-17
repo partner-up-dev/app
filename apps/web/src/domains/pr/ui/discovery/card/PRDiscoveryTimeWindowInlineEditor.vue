@@ -1,18 +1,9 @@
 <template>
-  <section
-    class="time-window-inline-editor"
-    data-testid="pr-discovery-time-window-inline-editor"
-  >
-    <p
-      v-if="detailQuery.isLoading.value"
-      class="time-window-inline-editor__hint"
-    >
+  <section class="time-window-inline-editor" data-testid="pr-discovery-time-window-inline-editor">
+    <p v-if="detailQuery.isLoading.value" class="time-window-inline-editor__hint">
       {{ t("common.loading") }}
     </p>
-    <p
-      v-else-if="detailQuery.isError.value"
-      class="time-window-inline-editor__message"
-    >
+    <p v-else-if="detailQuery.isError.value" class="time-window-inline-editor__message">
       {{ t("prDiscovery.loadFailed") }}
     </p>
 
@@ -30,9 +21,7 @@
       empty-label="暂无可选时间"
       test-id-prefix="pr-discovery-assisted-pr.time-window"
       @update:model-value="emit('update:modelValue', $event)"
-      @update:allow-edit-after-ready="
-        emit('update:allowEditAfterReady', $event)
-      "
+      @update:allow-edit-after-ready="emit('update:allowEditAfterReady', $event)"
     />
   </section>
 </template>

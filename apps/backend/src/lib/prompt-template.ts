@@ -4,9 +4,7 @@ type PromptTemplateValues = Readonly<Record<string, PromptTemplateValue>>;
 
 const PLACEHOLDER_PATTERN = /\{([a-zA-Z0-9_]+)\}/g;
 
-export class PromptTemplate<
-  TVariables extends PromptTemplateValues = PromptTemplateValues,
-> {
+export class PromptTemplate<TVariables extends PromptTemplateValues = PromptTemplateValues> {
   private readonly template: string;
 
   private constructor(template: string) {

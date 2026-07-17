@@ -55,8 +55,7 @@ async function handleReminderJob(
   payloadRaw: Record<string, unknown>,
   context: JobHandlerContext,
 ): Promise<void> {
-  const parseResult =
-    confirmationReminderNotificationJobPayloadSchema.safeParse(payloadRaw);
+  const parseResult = confirmationReminderNotificationJobPayloadSchema.safeParse(payloadRaw);
   if (!parseResult.success) {
     throw new Error("Invalid wechat reminder job payload");
   }
@@ -158,11 +157,7 @@ export async function scheduleWeChatReminderJobsForParticipant(
       continue;
     }
 
-    const dedupeKey = buildConfirmationReminderDedupeKey(
-      request.id,
-      userId,
-      trigger,
-    );
+    const dedupeKey = buildConfirmationReminderDedupeKey(request.id, userId, trigger);
     const scheduleResult = await jobRunner.scheduleOnce({
       jobType: WECHAT_REMINDER_JOB_TYPE,
       runAt,
@@ -208,18 +203,14 @@ export async function cancelWeChatReminderJobsForParticipant(
   return deleted;
 }
 
-export async function cancelWeChatReminderJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatReminderJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_REMINDER_JOB_TYPE,
     dedupeKeyPrefix: buildConfirmationReminderDedupePrefixForUser(userId),
   });
 }
 
-export async function rebuildWeChatReminderJobsForUser(
-  userId: UserId,
-): Promise<void> {
+export async function rebuildWeChatReminderJobsForUser(userId: UserId): Promise<void> {
   await cancelWeChatReminderJobsForUser(userId);
 
   const slots = await partnerRepo.findActiveByUserId(userId);
@@ -252,8 +243,9 @@ async function handleNewPartnerJob(
     return;
   }
 
-  const configured =
-    await isWeChatSubscriptionNotificationConfigured(NEW_PARTNER_NOTIFICATION_KIND);
+  const configured = await isWeChatSubscriptionNotificationConfigured(
+    NEW_PARTNER_NOTIFICATION_KIND,
+  );
   if (!configured) {
     await recordNewPartnerNotificationDelivery({
       jobId: context.jobId,
@@ -281,9 +273,7 @@ async function handleNewPartnerJob(
       payload,
       result: "SUCCESS",
     });
-    const consumeResult = await consumeNewPartnerNotificationCredit(
-      prepared.recipient.id,
-    );
+    const consumeResult = await consumeNewPartnerNotificationCredit(prepared.recipient.id);
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
       await cancelWeChatNewPartnerJobsForUser(prepared.recipient.id);
     }
@@ -319,8 +309,9 @@ export async function scheduleWeChatNewPartnerNotificationsForJoin(input: {
   joinedPartnerId: PartnerId;
   joinedAt: Date;
 }): Promise<void> {
-  const configured =
-    await isWeChatSubscriptionNotificationConfigured(NEW_PARTNER_NOTIFICATION_KIND);
+  const configured = await isWeChatSubscriptionNotificationConfigured(
+    NEW_PARTNER_NOTIFICATION_KIND,
+  );
   if (!configured) {
     return;
   }
@@ -371,9 +362,7 @@ export async function scheduleWeChatNewPartnerNotificationsForJoin(input: {
   }
 }
 
-export async function cancelWeChatNewPartnerJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatNewPartnerJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_NEW_PARTNER_JOB_TYPE,
     dedupeKeyPrefix: buildNewPartnerDedupePrefixForUser(userId),

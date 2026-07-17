@@ -13,10 +13,7 @@
         <AdminCommerceProductRailList />
       </AdminRailPanel>
 
-      <AdminRailPanel
-        v-if="hasSelectedProduct"
-        :title="t('adminCommerceProducts.skusTitle')"
-      >
+      <AdminRailPanel v-if="hasSelectedProduct" :title="t('adminCommerceProducts.skusTitle')">
         <AdminCommerceSkuRailList />
       </AdminRailPanel>
     </template>
@@ -81,15 +78,10 @@ import { PuInlineNotice } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
-const productManagementContext =
-  provideAdminCommerceProductManagementContext(isAdmin);
+const productManagementContext = provideAdminCommerceProductManagementContext(isAdmin);
 
-const hasSelectedProduct = computed(
-  () => productManagementContext.selectedProduct.value !== null,
-);
-const productErrorMessage = computed(
-  () => productManagementContext.errorMessage.value,
-);
+const hasSelectedProduct = computed(() => productManagementContext.selectedProduct.value !== null);
+const productErrorMessage = computed(() => productManagementContext.errorMessage.value);
 const spuEditorTitle = computed(() =>
   productManagementContext.isCreatingSpu.value
     ? t("adminCommerceProducts.createSpuTitle")

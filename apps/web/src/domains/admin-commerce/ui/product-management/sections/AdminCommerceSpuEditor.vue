@@ -34,24 +34,43 @@
           <span class="pm-field-label">{{ t("adminCommerceProducts.quantityPolicyLabel") }}</span>
           <select v-model="spuForm.quantityPolicyType" class="pm-field-input">
             <option value="FIXED">{{ t("adminCommerceProducts.quantityPolicyFixed") }}</option>
-            <option value="PER_PARTICIPANT">{{ t("adminCommerceProducts.quantityPolicyPerParticipant") }}</option>
-            <option value="USER_SELECTED">{{ t("adminCommerceProducts.quantityPolicyUserSelected") }}</option>
+            <option value="PER_PARTICIPANT">
+              {{ t("adminCommerceProducts.quantityPolicyPerParticipant") }}
+            </option>
+            <option value="USER_SELECTED">
+              {{ t("adminCommerceProducts.quantityPolicyUserSelected") }}
+            </option>
           </select>
         </label>
 
         <label v-if="spuForm.quantityPolicyType === 'FIXED'" class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.fixedQuantityLabel") }}</span>
-          <input v-model.number="spuForm.fixedQuantity" class="pm-field-input" type="number" min="1" />
+          <input
+            v-model.number="spuForm.fixedQuantity"
+            class="pm-field-input"
+            type="number"
+            min="1"
+          />
         </label>
 
         <template v-if="spuForm.quantityPolicyType === 'USER_SELECTED'">
           <label class="pm-field">
             <span class="pm-field-label">{{ t("adminCommerceProducts.minQuantityLabel") }}</span>
-            <input v-model.number="spuForm.userSelectedMin" class="pm-field-input" type="number" min="0" />
+            <input
+              v-model.number="spuForm.userSelectedMin"
+              class="pm-field-input"
+              type="number"
+              min="0"
+            />
           </label>
           <label class="pm-field">
             <span class="pm-field-label">{{ t("adminCommerceProducts.maxQuantityLabel") }}</span>
-            <input v-model.number="spuForm.userSelectedMax" class="pm-field-input" type="number" min="1" />
+            <input
+              v-model.number="spuForm.userSelectedMax"
+              class="pm-field-input"
+              type="number"
+              min="1"
+            />
           </label>
         </template>
       </div>
@@ -61,7 +80,9 @@
       <h3 class="pm-section-title">{{ t("adminCommerceProducts.servicePolicyLabel") }}</h3>
       <div v-if="spuForm.productType === 'RENTAL'" class="pm-grid">
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalLeadTimeLabel") }}</span>
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.serviceRentalLeadTimeLabel")
+          }}</span>
           <input
             v-model.number="spuForm.rentalBookingLeadTimeMinutes"
             class="pm-field-input"
@@ -70,28 +91,22 @@
           />
         </label>
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalWeekdaysLabel") }}</span>
-          <input
-            v-model="spuForm.rentalServiceWeekdaysCsv"
-            class="pm-field-input"
-            type="text"
-          />
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.serviceRentalWeekdaysLabel")
+          }}</span>
+          <input v-model="spuForm.rentalServiceWeekdaysCsv" class="pm-field-input" type="text" />
         </label>
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalStartTimeLabel") }}</span>
-          <input
-            v-model="spuForm.rentalServiceStartTime"
-            class="pm-field-input"
-            type="time"
-          />
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.serviceRentalStartTimeLabel")
+          }}</span>
+          <input v-model="spuForm.rentalServiceStartTime" class="pm-field-input" type="time" />
         </label>
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.serviceRentalEndTimeLabel") }}</span>
-          <input
-            v-model="spuForm.rentalServiceEndTime"
-            class="pm-field-input"
-            type="time"
-          />
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.serviceRentalEndTimeLabel")
+          }}</span>
+          <input v-model="spuForm.rentalServiceEndTime" class="pm-field-input" type="time" />
         </label>
         <div class="pm-toggle-grid pm-field--full">
           <PuToggleSwitch
@@ -134,7 +149,13 @@
 
       <div class="pm-section-header">
         <h4 class="pm-subsection-title">{{ t("adminCommerceProducts.parameterGroupsLabel") }}</h4>
-        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addParameterGroup">
+        <PuButton
+          shape="pill"
+          tone="neutral"
+          variant="outline"
+          size="sm"
+          @click="addParameterGroup"
+        >
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
@@ -150,8 +171,16 @@
         class="pm-repeated-item"
       >
         <div class="pm-section-header">
-          <strong>{{ t("adminCommerceProducts.parameterGroupTitle", { index: groupIndex + 1 }) }}</strong>
-          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeParameterGroup(groupIndex)">
+          <strong>{{
+            t("adminCommerceProducts.parameterGroupTitle", { index: groupIndex + 1 })
+          }}</strong>
+          <PuButton
+            shape="pill"
+            tone="danger"
+            variant="outline"
+            size="sm"
+            @click="removeParameterGroup(groupIndex)"
+          >
             <template #leading>
               <span class="i-mdi-delete-outline" />
             </template>
@@ -164,18 +193,20 @@
         </label>
         <div class="pm-section-header">
           <span class="pm-field-label">{{ t("adminCommerceProducts.parameterItemsLabel") }}</span>
-          <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addParameterItem(groupIndex)">
+          <PuButton
+            shape="pill"
+            tone="neutral"
+            variant="outline"
+            size="sm"
+            @click="addParameterItem(groupIndex)"
+          >
             <template #leading>
               <span class="i-mdi-plus" />
             </template>
             {{ t("adminCommerceProducts.addParameterItemAction") }}
           </PuButton>
         </div>
-        <div
-          v-for="(item, itemIndex) in group.items"
-          :key="item.id"
-          class="pm-inline-row"
-        >
+        <div v-for="(item, itemIndex) in group.items" :key="item.id" class="pm-inline-row">
           <label class="pm-field">
             <span class="pm-field-label">{{ t("adminCommerceProducts.parameterLabelLabel") }}</span>
             <input v-model="item.label" class="pm-field-input" type="text" />
@@ -184,7 +215,13 @@
             <span class="pm-field-label">{{ t("adminCommerceProducts.parameterValueLabel") }}</span>
             <input v-model="item.value" class="pm-field-input" type="text" />
           </label>
-          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeParameterItem(groupIndex, itemIndex)">
+          <PuButton
+            shape="pill"
+            tone="danger"
+            variant="outline"
+            size="sm"
+            @click="removeParameterItem(groupIndex, itemIndex)"
+          >
             <template #leading>
               <span class="i-mdi-close" />
             </template>
@@ -212,7 +249,13 @@
       >
         <div class="pm-section-header">
           <strong>{{ t("adminCommerceProducts.noticeBlockTitle", { index: index + 1 }) }}</strong>
-          <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeNoticeBlock(index)">
+          <PuButton
+            shape="pill"
+            tone="danger"
+            variant="outline"
+            size="sm"
+            @click="removeNoticeBlock(index)"
+          >
             <template #leading>
               <span class="i-mdi-delete-outline" />
             </template>
@@ -256,7 +299,11 @@
 
     <div class="pm-inline-actions">
       <PuButton size="sm" :disabled="isSavingSpu" @click="handleSaveSpu">
-        {{ isSavingSpu ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.saveSpuAction") }}
+        {{
+          isSavingSpu
+            ? t("adminCommerceProducts.savingAction")
+            : t("adminCommerceProducts.saveSpuAction")
+        }}
       </PuButton>
     </div>
   </div>
@@ -383,9 +430,7 @@ const handleSaveSpu = async () => {
     }
     await updateSpuMutation.mutateAsync({ spuId: selectedSpuId.value, input });
   } catch (error) {
-    context.setErrorMessage(
-      error instanceof Error ? error.message : t("common.operationFailed"),
-    );
+    context.setErrorMessage(error instanceof Error ? error.message : t("common.operationFailed"));
   }
 };
 </script>

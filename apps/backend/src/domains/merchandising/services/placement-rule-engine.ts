@@ -17,11 +17,8 @@ const isPrimitiveJsonLogicRule = (value: unknown): value is RulesLogic =>
   typeof value === "number" ||
   typeof value === "string";
 
-export const isPlacementMatchingRuleJson = (
-  value: unknown,
-): value is PlacementMatchingRuleJson =>
-  isPrimitiveJsonLogicRule(value) ||
-  (isRecord(value) && jsonLogic.is_logic(value));
+export const isPlacementMatchingRuleJson = (value: unknown): value is PlacementMatchingRuleJson =>
+  isPrimitiveJsonLogicRule(value) || (isRecord(value) && jsonLogic.is_logic(value));
 
 export function assertPlacementMatchingRuleJson(
   value: unknown,
@@ -31,17 +28,11 @@ export function assertPlacementMatchingRuleJson(
   }
 }
 
-export function doesPlacementRuleMatch(input: {
-  rule: unknown;
-  context: unknown;
-}): boolean {
+export function doesPlacementRuleMatch(input: { rule: unknown; context: unknown }): boolean {
   if (!isPlacementMatchingRuleJson(input.rule)) return false;
 
   try {
-    const result: unknown = jsonLogic.apply(
-      input.rule as RulesLogic,
-      input.context,
-    );
+    const result: unknown = jsonLogic.apply(input.rule as RulesLogic, input.context);
     return jsonLogic.truthy(result);
   } catch {
     return false;

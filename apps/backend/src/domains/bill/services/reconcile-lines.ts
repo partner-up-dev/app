@@ -31,24 +31,17 @@ function groupPaidChargeBasis(
     if (line.kind !== "REFUND" || !line.refundOfBillLineId) continue;
     refundTotalsByChargeLineId.set(
       line.refundOfBillLineId,
-      (refundTotalsByChargeLineId.get(line.refundOfBillLineId) ?? 0) +
-        line.amountFen,
+      (refundTotalsByChargeLineId.get(line.refundOfBillLineId) ?? 0) + line.amountFen,
     );
   }
 
   return lines
     .filter((line) => line.kind === "CHARGE")
     .map((line) => {
-      const paidFen = Math.min(
-        settlementByLineId.get(line.id)?.paidFen ?? 0,
-        line.amountFen,
-      );
+      const paidFen = Math.min(settlementByLineId.get(line.id)?.paidFen ?? 0, line.amountFen);
       return {
         userId: line.userId,
-        amountFen: Math.max(
-          0,
-          paidFen - (refundTotalsByChargeLineId.get(line.id) ?? 0),
-        ),
+        amountFen: Math.max(0, paidFen - (refundTotalsByChargeLineId.get(line.id) ?? 0)),
         refundOfBillLineId: line.id,
       };
     })
@@ -56,9 +49,7 @@ function groupPaidChargeBasis(
     .sort((left, right) => {
       const userOrder = left.userId.localeCompare(right.userId);
       if (userOrder !== 0) return userOrder;
-      return (left.refundOfBillLineId ?? "").localeCompare(
-        right.refundOfBillLineId ?? "",
-      );
+      return (left.refundOfBillLineId ?? "").localeCompare(right.refundOfBillLineId ?? "");
     });
 }
 
@@ -91,8 +82,7 @@ function allocateByBaseShares(
     };
   });
 
-  let remainderFen =
-    deltaFen - provisional.reduce((sum, share) => sum + share.amountFen, 0);
+  let remainderFen = deltaFen - provisional.reduce((sum, share) => sum + share.amountFen, 0);
 
   provisional.sort((left, right) => {
     if (right.remainder !== left.remainder) {
@@ -116,9 +106,7 @@ function allocateByBaseShares(
     .sort((left, right) => {
       const userOrder = left.userId.localeCompare(right.userId);
       if (userOrder !== 0) return userOrder;
-      return (left.refundOfBillLineId ?? "").localeCompare(
-        right.refundOfBillLineId ?? "",
-      );
+      return (left.refundOfBillLineId ?? "").localeCompare(right.refundOfBillLineId ?? "");
     });
 }
 
@@ -135,10 +123,7 @@ export function deriveBillReconcilePlan(input: {
     getBillChargeTotal({ id: "bill", status: "ACTIVE", currency: "CNY", lines: input.lines }) -
     getBillRefundTotal({ id: "bill", status: "ACTIVE", currency: "CNY", lines: input.lines });
 
-  const delta = deriveBillTargetDelta(
-    currentEffectiveTotalFen,
-    input.targetChargeTotalFen,
-  );
+  const delta = deriveBillTargetDelta(currentEffectiveTotalFen, input.targetChargeTotalFen);
 
   if (delta.direction === "NONE") {
     return {
@@ -149,14 +134,8 @@ export function deriveBillReconcilePlan(input: {
   }
 
   if (delta.direction === "REFUND") {
-    const paidChargeBasis = groupPaidChargeBasis(
-      input.lines,
-      input.lineSettlements,
-    );
-    const paidChargeTotalFen = paidChargeBasis.reduce(
-      (sum, share) => sum + share.amountFen,
-      0,
-    );
+    const paidChargeBasis = groupPaidChargeBasis(input.lines, input.lineSettlements);
+    const paidChargeTotalFen = paidChargeBasis.reduce((sum, share) => sum + share.amountFen, 0);
     const unattributedRefundTotalFen = getBillRefundTotal({
       id: "bill",
       status: "ACTIVE",
@@ -186,9 +165,6 @@ export function deriveBillReconcilePlan(input: {
   return {
     direction: delta.direction,
     deltaFen: delta.deltaFen,
-    allocations: allocateByBaseShares(
-      groupChargeTotalsByUser(input.lines),
-      delta.deltaFen,
-    ),
+    allocations: allocateByBaseShares(groupChargeTotalsByUser(input.lines), delta.deltaFen),
   };
 }

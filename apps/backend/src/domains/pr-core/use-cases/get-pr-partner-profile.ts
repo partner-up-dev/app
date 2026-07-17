@@ -45,28 +45,21 @@ export async function getPRPartnerProfile(params: {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
 
-  const participant =
-    await partnerRepo.findActiveParticipantSummaryByPrIdAndPartnerId(
-      prId,
-      partnerId,
-    );
+  const participant = await partnerRepo.findActiveParticipantSummaryByPrIdAndPartnerId(
+    prId,
+    partnerId,
+  );
   if (!participant) {
     return throwHttpProblem({ status: 404, detail: "Partner profile not found" });
   }
 
-  const isCreator =
-    Boolean(request.createdBy) && request.createdBy === participant.userId;
-  const isCurrentLocalUser =
-    Boolean(viewerUserId) && viewerUserId === participant.userId;
+  const isCreator = Boolean(request.createdBy) && request.createdBy === participant.userId;
+  const isCurrentLocalUser = Boolean(viewerUserId) && viewerUserId === participant.userId;
 
   return {
     partnerId: participant.partnerId,
     nickname: participant.nickname,
-    displayName: resolveDisplayName(
-      participant.partnerId,
-      participant.nickname,
-      isCreator,
-    ),
+    displayName: resolveDisplayName(participant.partnerId, participant.nickname, isCreator),
     avatarUrl: participant.avatar,
     isCurrentLocalUser,
   };

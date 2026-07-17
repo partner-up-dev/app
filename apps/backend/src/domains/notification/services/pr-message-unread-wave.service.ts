@@ -40,17 +40,13 @@ const collectRecipientUserIds = async (
   request: PartnerRequest,
   authorUserId: UserId,
 ): Promise<UserId[]> => {
-  const activeParticipants =
-    await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
 
   return Array.from(
     new Set(
       activeParticipants
         .map((participant) => participant.userId)
-        .filter(
-          (userId): userId is UserId =>
-            userId !== null && userId !== authorUserId,
-        ),
+        .filter((userId): userId is UserId => userId !== null && userId !== authorUserId),
     ),
   );
 };
@@ -85,9 +81,7 @@ export const createPRMessageUnreadWaveNotificationOpportunities = async ({
     request.id,
     recipientUserIds,
   );
-  const inboxStateByUserId = new Map(
-    existingInboxStates.map((state) => [state.userId, state]),
-  );
+  const inboxStateByUserId = new Map(existingInboxStates.map((state) => [state.userId, state]));
   const runAt = resolvePRMessageNotificationRunAt(messageCreatedAt);
 
   let opportunityCount = 0;
@@ -95,8 +89,7 @@ export const createPRMessageUnreadWaveNotificationOpportunities = async ({
 
   for (const recipientUserId of recipientUserIds) {
     try {
-      const notificationOpt =
-        await userNotificationOptRepo.findByUserId(recipientUserId);
+      const notificationOpt = await userNotificationOptRepo.findByUserId(recipientUserId);
       const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
         notificationOpt,
         PR_MESSAGE_NOTIFICATION_KIND,
@@ -112,11 +105,7 @@ export const createPRMessageUnreadWaveNotificationOpportunities = async ({
         continue;
       }
 
-      await inboxStateRepo.upsertLastNotifiedMessageId(
-        request.id,
-        recipientUserId,
-        messageId,
-      );
+      await inboxStateRepo.upsertLastNotifiedMessageId(request.id, recipientUserId, messageId);
       const waveKey = `${request.id}:${recipientUserId}`;
       await waveRepo.createOnce({
         notificationKind: PR_MESSAGE_NOTIFICATION_KIND,
@@ -128,18 +117,14 @@ export const createPRMessageUnreadWaveNotificationOpportunities = async ({
         status: "OPEN",
         openedAt: messageCreatedAt,
       });
-      const dedupeKey = buildPRMessageDedupeKey(
-        recipientUserId,
-        request.id,
-        messageId,
-      );
+      const dedupeKey = buildPRMessageDedupeKey(recipientUserId, request.id, messageId);
       const opportunityPayload = {
         prId: request.id,
         recipientUserId,
         waveStartAuthorUserId: authorUserId,
         waveStartMessageId: messageId,
       };
-      const opportunity = await opportunityRepo.createOnce({
+      await opportunityRepo.createOnce({
         jobId: null,
         notificationKind: PR_MESSAGE_NOTIFICATION_KIND,
         lifecycleModel: "WAVE",
@@ -159,10 +144,7 @@ export const createPRMessageUnreadWaveNotificationOpportunities = async ({
         waveStartMessageId: messageId,
         firstUnreadMessageCreatedAt: messageCreatedAt,
       });
-      await opportunityRepo.markScheduledByDedupeKey(
-        dedupeKey,
-        scheduleResult?.jobId ?? null,
-      );
+      await opportunityRepo.markScheduledByDedupeKey(dedupeKey, scheduleResult?.jobId ?? null);
       opportunityCount += 1;
     } catch (error) {
       skippedCount += 1;

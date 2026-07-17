@@ -14,9 +14,7 @@
       gap="xs"
     >
       <span>{{ record.sku.name }}</span>
-      <small class="pm-small"
-        >#{{ record.sku.sortOrder }} · {{ record.sku.status }}</small
-      >
+      <small class="pm-small">#{{ record.sku.sortOrder }} · {{ record.sku.status }}</small>
     </PuCard>
   </div>
 </template>

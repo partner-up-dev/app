@@ -1,11 +1,8 @@
 <template>
-  <div
-    v-if="showMessageThread"
-    class="utility-action-cell"
-    data-region="message-thread"
-  >
+  <div v-if="showMessageThread" class="utility-action-cell" data-region="message-thread">
     <PuButton
-      tone="neutral" variant="outline"
+      tone="neutral"
+      variant="outline"
       block
       data-testid="pr-detail.message-thread.open"
       @click="handleOpenMessages"
@@ -31,9 +28,7 @@ const router = useRouter();
 const { t } = useI18n();
 
 const showMessageThread = computed(
-  () =>
-    props.pr.partnerSection.reminder.supported &&
-    props.pr.partnerSection.viewer.isParticipant,
+  () => props.pr.partnerSection.reminder.supported && props.pr.partnerSection.viewer.isParticipant,
 );
 
 const handleOpenMessages = (): void => {

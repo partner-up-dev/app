@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { beforeEach, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  findConfig: vi.fn(),
-  findPois: vi.fn(),
-  findTags: vi.fn(),
-  readVisible: vi.fn(),
+  findConfig: vi.fn<() => unknown>(),
+  findPois: vi.fn<() => unknown>(),
+  findTags: vi.fn<() => unknown>(),
+  readVisible: vi.fn<() => unknown>(),
 }));
 
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({

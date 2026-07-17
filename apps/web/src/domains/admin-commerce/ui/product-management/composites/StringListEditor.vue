@@ -2,13 +2,7 @@
   <div class="pm-list-editor">
     <div class="pm-section-header">
       <h4 class="pm-subsection-title">{{ title }}</h4>
-      <PuButton
-        shape="pill"
-        tone="neutral" variant="outline"
-        size="sm"
-
-        @click="handleAdd"
-      >
+      <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="handleAdd">
         <template #leading>
           <span class="i-mdi-plus" />
         </template>
@@ -20,13 +14,7 @@
     </p>
     <div v-for="(item, index) in items" :key="item.id" class="pm-inline-row">
       <input v-model="item.value" class="pm-field-input" type="text" />
-      <PuButton
-        shape="pill"
-        tone="danger" variant="outline"
-        size="sm"
-
-        @click="handleRemove(index)"
-      >
+      <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="handleRemove(index)">
         <template #leading>
           <span class="i-mdi-close" />
         </template>

@@ -13,9 +13,7 @@ if (!configPath) {
 }
 
 const rawConfig = await readFile(configPath, "utf8");
-const config = parseRideHailingProviderRegistrationConfig(
-  JSON.parse(rawConfig) as unknown,
-);
+const config = parseRideHailingProviderRegistrationConfig(JSON.parse(rawConfig) as unknown);
 const result = await registerRideHailingProviderInstance(config);
 
 console.info(

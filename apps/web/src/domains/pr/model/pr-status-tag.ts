@@ -22,12 +22,9 @@ const PR_STATUS_TAG_TONES = {
   EXPIRED: "neutral",
 } as const satisfies Record<PRDisplayStatus, string>;
 
-export const resolvePRStatusTagText = (
-  status: PRDisplayStatus,
-  t: Translate,
-): string => t(PR_STATUS_TEXT_KEYS[status]);
+export const resolvePRStatusTagText = (status: PRDisplayStatus, t: Translate): string =>
+  t(PR_STATUS_TEXT_KEYS[status]);
 
 export const resolvePRStatusTagTone = (
   status: PRDisplayStatus,
-): (typeof PR_STATUS_TAG_TONES)[PRDisplayStatus] =>
-  PR_STATUS_TAG_TONES[status];
+): (typeof PR_STATUS_TAG_TONES)[PRDisplayStatus] => PR_STATUS_TAG_TONES[status];

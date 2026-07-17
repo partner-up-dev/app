@@ -5,9 +5,7 @@ import { parseEnv } from "node:util";
 const normalizeEnvKey = (key: string): string =>
   process.platform === "win32" ? key.toUpperCase() : key;
 
-const externalEnvKeys = new Set(
-  Object.keys(process.env).map(normalizeEnvKey),
-);
+const externalEnvKeys = new Set(Object.keys(process.env).map(normalizeEnvKey));
 
 const workspaceEnvFiles = ["apps/web/.env", "apps/backend/.env"] as const;
 

@@ -9,21 +9,13 @@ type PRPartnerProfileResponse = InferResponseType<
   (typeof client.api.pr)[":id"]["partners"][":partnerId"]["profile"]["$get"]
 >;
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };
 
-export const usePRPartnerProfile = (
-  prId: Ref<number | null>,
-  partnerId: Ref<number | null>,
-) => {
-  const queryKey = computed(() =>
-    queryKeys.pr.partnerProfile(prId.value, partnerId.value),
-  );
+export const usePRPartnerProfile = (prId: Ref<number | null>, partnerId: Ref<number | null>) => {
+  const queryKey = computed(() => queryKeys.pr.partnerProfile(prId.value, partnerId.value));
 
   return useQuery<PRPartnerProfileResponse>({
     queryKey,
@@ -35,19 +27,15 @@ export const usePRPartnerProfile = (
         throw new Error(i18n.global.t("errors.fetchRequestFailed"));
       }
 
-      const res = await client.api.pr[":id"].partners[":partnerId"].profile.$get(
-        {
-          param: {
-            id: activePrId.toString(),
-            partnerId: activePartnerId.toString(),
-          },
+      const res = await client.api.pr[":id"].partners[":partnerId"].profile.$get({
+        param: {
+          id: activePrId.toString(),
+          partnerId: activePartnerId.toString(),
         },
-      );
+      });
 
       if (!res.ok) {
-        throw new Error(
-          await readErrorMessage(res, i18n.global.t("errors.fetchRequestFailed")),
-        );
+        throw new Error(await readErrorMessage(res, i18n.global.t("errors.fetchRequestFailed")));
       }
 
       return await res.json();

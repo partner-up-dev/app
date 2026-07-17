@@ -12,11 +12,8 @@ export type CreatePRCommandResult = {
 
 const buildCanonicalPRPath = (id: PRId): string => `/pr/${id}`;
 
-const shouldPublishImmediately = (
-  creatorIdentity: CreatorIdentityInput,
-): boolean =>
-  creatorIdentity.authenticatedUserId !== null ||
-  creatorIdentity.oauthOpenId !== null;
+const shouldPublishImmediately = (creatorIdentity: CreatorIdentityInput): boolean =>
+  creatorIdentity.authenticatedUserId !== null || creatorIdentity.oauthOpenId !== null;
 
 export const finalizeCreatedPR = async ({
   id,

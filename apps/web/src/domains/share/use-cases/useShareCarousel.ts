@@ -35,9 +35,7 @@ export const useShareCarousel = ({
   autoRotateIntervalMs = 3000,
   spmRouteKey = null,
 }: UseShareCarouselOptions) => {
-  const enabledMethods = computed(() =>
-    allMethods.value.filter((m) => m.enabled ?? true),
-  );
+  const enabledMethods = computed(() => allMethods.value.filter((m) => m.enabled ?? true));
 
   const currentMethodId = ref<ShareMethodId>(defaultMethodId);
   const switchDirection = ref<"next" | "prev">("next");
@@ -57,17 +55,11 @@ export const useShareCarousel = ({
 
   const currentMethod = computed(() => {
     const enabled = enabledMethods.value;
-    return (
-      enabled.find((m) => m.id === currentMethodId.value) ??
-      enabled[0] ??
-      FALLBACK_METHOD
-    );
+    return enabled.find((m) => m.id === currentMethodId.value) ?? enabled[0] ?? FALLBACK_METHOD;
   });
 
   const transitionName = computed(() =>
-    switchDirection.value === "next"
-      ? "method-switch-next"
-      : "method-switch-prev",
+    switchDirection.value === "next" ? "method-switch-next" : "method-switch-prev",
   );
 
   const markUserInteraction = (): void => {

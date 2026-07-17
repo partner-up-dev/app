@@ -2,10 +2,7 @@
   <div class="product-local-date-calendar-picker">
     <div class="product-local-date-calendar-picker__header">
       <span>{{ monthLabel }}</span>
-      <span
-        v-if="rangeLabel"
-        class="product-local-date-calendar-picker__range"
-      >
+      <span v-if="rangeLabel" class="product-local-date-calendar-picker__range">
         {{ rangeLabel }}
       </span>
     </div>
@@ -27,10 +24,8 @@
         type="button"
         class="product-local-date-calendar-picker__cell"
         :class="{
-          'product-local-date-calendar-picker__cell--disabled':
-            !cell.isSelectable,
-          'product-local-date-calendar-picker__cell--selected':
-            cell.isSelected,
+          'product-local-date-calendar-picker__cell--disabled': !cell.isSelectable,
+          'product-local-date-calendar-picker__cell--selected': cell.isSelected,
           'product-local-date-calendar-picker__cell--today': cell.isToday,
         }"
         :disabled="props.disabled || !cell.isSelectable"
@@ -105,21 +100,17 @@ const selectableDateSet = computed(
   () => new Set(normalizeProductLocalDateKeys(props.selectableDateKeys)),
 );
 
-const visibleDateSet = computed(
-  () => new Set<ProductLocalDateKey>(orderedVisibleDateKeys.value),
-);
+const visibleDateSet = computed(() => new Set<ProductLocalDateKey>(orderedVisibleDateKeys.value));
 
 const selectedDateKeys = computed<ProductLocalDateKey[]>(() =>
   normalizeProductLocalDateKeys(props.modelValue).filter(
-    (dateKey) =>
-      visibleDateSet.value.has(dateKey) && selectableDateSet.value.has(dateKey),
+    (dateKey) => visibleDateSet.value.has(dateKey) && selectableDateSet.value.has(dateKey),
   ),
 );
 
 const monthLabel = computed(() => {
   const firstDateKey = orderedVisibleDateKeys.value[0];
-  const lastDateKey =
-    orderedVisibleDateKeys.value[orderedVisibleDateKeys.value.length - 1];
+  const lastDateKey = orderedVisibleDateKeys.value[orderedVisibleDateKeys.value.length - 1];
   if (!firstDateKey || !lastDateKey) {
     return "";
   }
@@ -133,8 +124,7 @@ const monthLabel = computed(() => {
 
 const rangeLabel = computed(() => {
   const firstDateKey = orderedVisibleDateKeys.value[0];
-  const lastDateKey =
-    orderedVisibleDateKeys.value[orderedVisibleDateKeys.value.length - 1];
+  const lastDateKey = orderedVisibleDateKeys.value[orderedVisibleDateKeys.value.length - 1];
   if (!firstDateKey || !lastDateKey) {
     return "";
   }

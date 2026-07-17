@@ -1,11 +1,6 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
-import {
-  bills,
-  type Bill,
-  type BillId,
-  type NewBill,
-} from "../entities/bill";
+import { bills, type Bill, type BillId, type NewBill } from "../entities/bill";
 import type { TradeOrderId } from "../entities/trade-order";
 import type { BillStatus } from "../domains/bill/model";
 import type { RepositoryExecutor } from "./_executor";
@@ -19,10 +14,7 @@ export class BillRepository {
   }
 
   async findById(id: BillId): Promise<Bill | null> {
-    const result = await this.executor
-      .select()
-      .from(bills)
-      .where(eq(bills.id, id));
+    const result = await this.executor.select().from(bills).where(eq(bills.id, id));
     return result[0] ?? null;
   }
 

@@ -4,8 +4,7 @@ import type { ScenarioUser } from "../../../../apps/backend/tests/pr-core/_kit/b
 const STORAGE_USER_ID_KEY = "partner_up_user_id";
 const STORAGE_ACCESS_TOKEN_KEY = "partner_up_access_token";
 const STORAGE_SESSION_ROLE_KEY = "partner_up_session_role";
-const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_KEY =
-  "__partner_up_official_account_follow_prompt_v1__";
+const OFFICIAL_ACCOUNT_FOLLOW_PROMPT_KEY = "__partner_up_official_account_follow_prompt_v1__";
 
 const resolvePrimaryScenarioRole = (
   roles: ScenarioUser["user"]["role"],
@@ -15,10 +14,7 @@ const resolvePrimaryScenarioRole = (
   return "anonymous";
 };
 
-export async function installScenarioUserSession(
-  page: Page,
-  user: ScenarioUser,
-): Promise<void> {
+export async function installScenarioUserSession(page: Page, user: ScenarioUser): Promise<void> {
   await page.addInitScript(
     (session) => {
       window.localStorage.setItem(session.userIdKey, session.userId);

@@ -24,10 +24,7 @@ describe("deriveBillReconcilePlan", () => {
     overrides: Record<string, number> = {},
   ): BillLineSettlementProjection[] =>
     lines.map((line) => {
-      const paidFen =
-        line.kind === "CHARGE"
-          ? (overrides[line.id] ?? line.amountFen)
-          : 0;
+      const paidFen = line.kind === "CHARGE" ? (overrides[line.id] ?? line.amountFen) : 0;
       return {
         billLineId: line.id,
         status: paidFen >= line.amountFen ? "PAID" : paidFen > 0 ? "PROCESSING" : "UNPAID",
@@ -82,9 +79,7 @@ describe("deriveBillReconcilePlan", () => {
     expect(result).toEqual({
       direction: "REFUND",
       deltaFen: 1200,
-      allocations: [
-        { userId: "u1", amountFen: 1200, refundOfBillLineId: "line-1" },
-      ],
+      allocations: [{ userId: "u1", amountFen: 1200, refundOfBillLineId: "line-1" }],
     });
   });
 

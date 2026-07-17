@@ -36,9 +36,7 @@ export const throwAuthenticatedRequired = (): never => {
   });
 };
 
-export async function resolveDraftCreator(
-  input: CreatorIdentityInput,
-): Promise<User | null> {
+export async function resolveDraftCreator(input: CreatorIdentityInput): Promise<User | null> {
   if (input.authenticatedUserId) {
     const user = await userRepo.findById(input.authenticatedUserId);
     if (!user || user.status !== "ACTIVE") {

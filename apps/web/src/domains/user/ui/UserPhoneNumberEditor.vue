@@ -36,11 +36,7 @@
       </div>
     </PuFormItem>
 
-    <PuInlineNotice
-      v-if="mutationErrorMessage"
-      tone="error"
-      :message="mutationErrorMessage"
-    />
+    <PuInlineNotice v-if="mutationErrorMessage" tone="error" :message="mutationErrorMessage" />
   </div>
 </template>
 

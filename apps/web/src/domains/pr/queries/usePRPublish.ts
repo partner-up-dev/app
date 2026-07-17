@@ -4,11 +4,7 @@ import type { PRId } from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 import { queryKeys } from "@/shared/api/query-keys";
-import {
-  buildApiError,
-  readApiErrorPayload,
-  resolveApiErrorMessage,
-} from "@/shared/api/error";
+import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import {
   handleWeChatAuthRequiredError,
   isWeChatAuthRequiredError,
@@ -41,18 +37,12 @@ export const usePublishPR = () => {
           handleWeChatAuthRequiredError(res.status, payload, window.location.href)
         ) {
           throw buildApiError(
-            resolveApiErrorMessage(
-              payload,
-              i18n.global.t("prPage.wechatReminder.loginHint"),
-            ),
+            resolveApiErrorMessage(payload, i18n.global.t("prPage.wechatReminder.loginHint")),
             payload,
           );
         }
         throw buildApiError(
-          resolveApiErrorMessage(
-            payload,
-            i18n.global.t("errors.publishRequestFailed"),
-          ),
+          resolveApiErrorMessage(payload, i18n.global.t("errors.publishRequestFailed")),
           payload,
         );
       }

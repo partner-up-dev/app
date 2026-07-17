@@ -88,7 +88,7 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 - For shared partner-bounds validation failures, backend and frontend should converge on one user-facing Chinese message rather than surfacing route-specific copies.
 - Human-readable explanation remains backend-owned on command failures. Frontend owns placement and presentation.
 - Problem-details transport shape is a cross-unit reusable substrate. Domain modules own their `type` and `code` registries.
-- Backend production code must express expected API failures through Problem Details helpers or typed domain helpers. The backend Problem Details lint allows `HTTPException` only in the global error adapter, where third-party or compatibility exceptions are normalized into the same response contract.
+- Backend production code must express expected API failures through Problem Details helpers or typed domain helpers. The canonical backend Oxlint and ast-grep slices reject `hono/http-exception` imports and `new HTTPException(...)`, with `src/index.ts` as the sole compatibility adapter that may read Hono `HTTPException` and normalize it into the same response contract.
 
 ## 5. Stable Route Families
 

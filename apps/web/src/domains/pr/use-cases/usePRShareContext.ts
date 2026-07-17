@@ -2,10 +2,7 @@ import { computed, type ComputedRef } from "vue";
 import type { PRId } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import type { PRShareData } from "@/domains/share/model/types";
-import {
-  normalizePublicUrl,
-  type ShareSpmRouteKey,
-} from "@/shared/url/spm";
+import { normalizePublicUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
 
 type UsePRShareContextOptions = {
   id: ComputedRef<PRId | null>;
@@ -50,10 +47,7 @@ export const usePRShareContext = ({ id, pr }: UsePRShareContextOptions) => {
   });
 
   const canRenderShare = computed(
-    () =>
-      id.value !== null &&
-      prShareData.value !== null &&
-      pr.value?.id === id.value,
+    () => id.value !== null && prShareData.value !== null && pr.value?.id === id.value,
   );
 
   return {

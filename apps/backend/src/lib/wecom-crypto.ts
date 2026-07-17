@@ -46,9 +46,7 @@ const unpadPkcs7 = (buffer: Buffer) => {
 const normalizeBase64 = (value: string) => {
   const trimmed = value.trim();
   // Some gateways may convert '+' to spaces; normalize before stripping whitespace.
-  const normalizedSpaces = trimmed.replace(/\s/g, (char) =>
-    char === " " ? "+" : "",
-  );
+  const normalizedSpaces = trimmed.replace(/\s/g, (char) => (char === " " ? "+" : ""));
   const compact = normalizedSpaces.replace(/\s+/g, "");
   const padNeeded = compact.length % 4 === 0 ? 0 : 4 - (compact.length % 4);
   return padNeeded === 0 ? compact : `${compact}${"=".repeat(padNeeded)}`;
@@ -71,10 +69,7 @@ export const verifySignature = ({
   signature,
 }: WeComSignatureParams) => {
   const parts = [token, timestamp, nonce, encrypted].sort();
-  const digest = crypto
-    .createHash("sha1")
-    .update(parts.join(""), "utf8")
-    .digest("hex");
+  const digest = crypto.createHash("sha1").update(parts.join(""), "utf8").digest("hex");
   return digest === signature;
 };
 
@@ -90,10 +85,7 @@ export const decryptWeComMessage = (
 
   const normalizedEncrypted = normalizeBase64(encrypted);
   const encryptedBuffer = Buffer.from(normalizedEncrypted, "base64");
-  const decrypted = Buffer.concat([
-    decipher.update(encryptedBuffer),
-    decipher.final(),
-  ]);
+  const decrypted = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
 
   const unpadded = unpadPkcs7(decrypted);
 
@@ -130,10 +122,7 @@ export const diagnoseWeComCiphertext = (
 
   const normalizedEncrypted = normalizeBase64(encrypted);
   const encryptedBuffer = Buffer.from(normalizedEncrypted, "base64");
-  const decrypted = Buffer.concat([
-    decipher.update(encryptedBuffer),
-    decipher.final(),
-  ]);
+  const decrypted = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
 
   if (decrypted.length === 0) {
     return { bufferLength: 0, paddingByte: null, paddingValid: null };
@@ -163,9 +152,7 @@ export const diagnoseWeComCiphertext = (
 };
 
 export const extractXmlTagValue = (xml: string, tag: string) => {
-  const pattern = new RegExp(
-    `<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`,
-  );
+  const pattern = new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`);
   const match = xml.match(pattern);
   if (!match) {
     return null;

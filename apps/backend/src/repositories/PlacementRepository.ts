@@ -6,27 +6,19 @@ import {
   type Placement,
   type PlacementId,
 } from "../entities/placement";
-import type {
-  PlacementType,
-} from "../domains/merchandising/model";
+import type { PlacementType } from "../domains/merchandising/model";
 import type { RepositoryExecutor } from "./_executor";
 
 export class PlacementRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewPlacement): Promise<Placement> {
-    const result = await this.executor
-      .insert(placements)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(placements).values(data).returning();
     return result[0]!;
   }
 
   async findById(id: PlacementId): Promise<Placement | null> {
-    const result = await this.executor
-      .select()
-      .from(placements)
-      .where(eq(placements.id, id));
+    const result = await this.executor.select().from(placements).where(eq(placements.id, id));
     return result[0] ?? null;
   }
 
@@ -34,16 +26,10 @@ export class PlacementRepository {
     return this.executor
       .select()
       .from(placements)
-      .orderBy(
-        asc(placements.placementType),
-        asc(placements.priority),
-        desc(placements.createdAt),
-      );
+      .orderBy(asc(placements.placementType), asc(placements.priority), desc(placements.createdAt));
   }
 
-  async listActiveByType(input: {
-    placementType: PlacementType;
-  }): Promise<Placement[]> {
+  async listActiveByType(input: { placementType: PlacementType }): Promise<Placement[]> {
     return this.executor
       .select()
       .from(placements)
@@ -58,10 +44,7 @@ export class PlacementRepository {
       .orderBy(desc(placements.priority), desc(placements.createdAt));
   }
 
-  async updateById(
-    id: PlacementId,
-    data: Partial<NewPlacement>,
-  ): Promise<Placement | null> {
+  async updateById(id: PlacementId, data: Partial<NewPlacement>): Promise<Placement | null> {
     const result = await this.executor
       .update(placements)
       .set({

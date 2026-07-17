@@ -4,8 +4,7 @@ import { scenario } from "../_infra/scenario/scenario";
 import { UserRepository } from "../../../apps/backend/src/repositories/UserRepository";
 
 const ANALYTICS_SEED_USER_ID = "00000000-0000-0000-0000-000000000002";
-const ANALYTICS_SEED_PIN_HASH =
-  "$2b$10$auNSGAK22Rb99icLScxQHu6qb9P3uHV1kuyImx3QuOQg5MpgYfRL2";
+const ANALYTICS_SEED_PIN_HASH = "$2b$10$auNSGAK22Rb99icLScxQHu6qb9P3uHV1kuyImx3QuOQg5MpgYfRL2";
 
 const userRepo = new UserRepository();
 
@@ -40,9 +39,7 @@ scenario("admin_analytics_entry_allows_analytics_role_only", async (ctx) => {
 
     await page.goto("/admin/pr");
     await page.waitForURL(
-      (url) =>
-        url.pathname === "/admin/login" &&
-        url.searchParams.get("redirect") === "/admin/pr",
+      (url) => url.pathname === "/admin/login" && url.searchParams.get("redirect") === "/admin/pr",
       { timeout: 10_000 },
     );
   });

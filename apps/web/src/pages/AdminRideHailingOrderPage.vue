@@ -40,10 +40,7 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
         <PuInlineNotice
           v-else-if="workspaceQuery.error.value"
           tone="error"
@@ -70,11 +67,7 @@
               <div>
                 <dt>执行阶段</dt>
                 <dd>
-                  {{
-                    executionPhaseLabel(
-                      selectedRecord.rideHailingOrder.executionPhase,
-                    )
-                  }}
+                  {{ executionPhaseLabel(selectedRecord.rideHailingOrder.executionPhase) }}
                 </dd>
               </div>
               <div>
@@ -247,14 +240,9 @@ import {
   type AdminRideHailingOrderWorkspaceResponse,
 } from "@/domains/admin-ride-hailing/queries/useAdminRideHailing";
 
-const cancellableExecutionPhases = new Set([
-  "DISPATCHING",
-  "ACCEPTED",
-  "ARRIVED_AT_PICKUP",
-]);
+const cancellableExecutionPhases = new Set(["DISPATCHING", "ACCEPTED", "ARRIVED_AT_PICKUP"]);
 
-type OrderRecord =
-  AdminRideHailingOrderWorkspaceResponse["orders"][number];
+type OrderRecord = AdminRideHailingOrderWorkspaceResponse["orders"][number];
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
@@ -267,22 +255,16 @@ const cancelSuccessMessage = ref<string | null>(null);
 const showCancelConfirmDialog = ref(false);
 
 const orders = computed(() => workspaceQuery.data.value?.orders ?? []);
-const selectedOrderId = computed(
-  () => selectedOrderIdRaw.value || orders.value[0]?.order.id || "",
-);
+const selectedOrderId = computed(() => selectedOrderIdRaw.value || orders.value[0]?.order.id || "");
 const selectedRecord = computed(
-  () =>
-    orders.value.find((record) => record.order.id === selectedOrderId.value) ??
-    null,
+  () => orders.value.find((record) => record.order.id === selectedOrderId.value) ?? null,
 );
 
 const canCancelSelectedOrder = computed(() => {
   if (!selectedRecord.value) return false;
   return (
     selectedRecord.value.order.status === "OPEN" &&
-    cancellableExecutionPhases.has(
-      selectedRecord.value.rideHailingOrder.executionPhase,
-    )
+    cancellableExecutionPhases.has(selectedRecord.value.rideHailingOrder.executionPhase)
   );
 });
 
@@ -291,19 +273,14 @@ const cancellationBlockedMessage = computed(() => {
   if (selectedRecord.value.order.status !== "OPEN") {
     return "当前订单状态不是 OPEN，不能取消。";
   }
-  if (
-    !cancellableExecutionPhases.has(
-      selectedRecord.value.rideHailingOrder.executionPhase,
-    )
-  ) {
+  if (!cancellableExecutionPhases.has(selectedRecord.value.rideHailingOrder.executionPhase)) {
     return "当前执行阶段不支持取消。";
   }
   return null;
 });
 
 const pageErrorMessage = computed(
-  () =>
-    localErrorMessage.value || cancelMutation.error.value?.message || null,
+  () => localErrorMessage.value || cancelMutation.error.value?.message || null,
 );
 
 const routeTitle = (record: OrderRecord): string =>
@@ -323,9 +300,7 @@ const orderStatusLabel = (status: OrderRecord["order"]["status"]): string => {
   return "已完成";
 };
 
-const executionPhaseLabel = (
-  phase: OrderRecord["rideHailingOrder"]["executionPhase"],
-): string => {
+const executionPhaseLabel = (phase: OrderRecord["rideHailingOrder"]["executionPhase"]): string => {
   if (phase === "INITIATING") return "初始化中";
   if (phase === "DISPATCHING") return "派单中";
   if (phase === "ACCEPTED") return "已接单";
@@ -361,15 +336,13 @@ const formatCurrencyFen = (amountFen: number): string =>
   }).format(amountFen / 100);
 
 const routeDistanceLabel = (record: OrderRecord): string => {
-  const meters =
-    record.rideHailingOrder.routeSnapshot.drivingPlan?.distanceMeters ?? null;
+  const meters = record.rideHailingOrder.routeSnapshot.drivingPlan?.distanceMeters ?? null;
   if (meters === null) return "-";
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
 };
 
 const routeDurationLabel = (record: OrderRecord): string => {
-  const seconds =
-    record.rideHailingOrder.routeSnapshot.drivingPlan?.durationSeconds ?? null;
+  const seconds = record.rideHailingOrder.routeSnapshot.drivingPlan?.durationSeconds ?? null;
   if (seconds === null) return "-";
   const minutes = Math.round(seconds / 60);
   return `${minutes} 分钟`;
@@ -401,8 +374,7 @@ const confirmCancelOrder = async (): Promise<void> => {
         : "取消成功。";
     showCancelConfirmDialog.value = false;
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : "取消网约车订单失败";
+    localErrorMessage.value = error instanceof Error ? error.message : "取消网约车订单失败";
   }
 };
 

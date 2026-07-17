@@ -54,7 +54,7 @@ PartnerUp helps users find a partner (搭子) effectively and safely.
 - Do not add an `intent-skills` managed block unless explicitly requested.
 - Keep tests and guardrails aligned with behavior changes; do not ship by build-only confidence.
 - Use the root `pnpm check:*` scripts as canonical static-validation entrypoints. Run `pnpm check:static` for the full local gate, or a narrower layer: `check:format`, `check:lint`, `check:type`, `check:config`, `check:dead-code`, `check:security`, or `check:build`.
-- Biome default checks are changed-file scoped; use `pnpm format:check:all` and `pnpm lint:biome:all` only when intentionally working on all-repo baselines.
+- Oxfmt and Oxlint checks are full-repository gates. Markdown and MDX are intentionally outside Oxfmt ownership; generated output, migrations, task packets, and other configured volatile paths remain excluded.
 - `pnpm check:dead-code` and `pnpm check:security` are report-first layers. Promote findings into blocking gates only after baseline and ownership are explicit.
 - Run test suites from the repository root through Vitest projects: `pnpm test:unit:backend`, `pnpm test:unit:web`, `pnpm test:scenario:backend`, `pnpm test:scenario:system`, or `pnpm test:scenario:all`. Scenario Vitest project setup loads `apps/web/.env` and `apps/backend/.env`, then owns temporary database and server lifecycle.
 - Cross-unit user journey scenario tests belong under `tests/scenario/` and should run through the real web client, real backend HTTP, and an isolated database when the behavior crosses both app units.

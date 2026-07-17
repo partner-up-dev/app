@@ -1,11 +1,7 @@
 <template>
   <PuPageScaffold content-placement="center" class="about-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('aboutPage.title')"
-        :subtitle="t('aboutPage.description')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('aboutPage.title')" :subtitle="t('aboutPage.description')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -64,11 +60,7 @@
         </PuButton>
       </section>
 
-      <p
-        v-if="backendBuildMetadataQuery.error.value"
-        class="fetch-warning"
-        role="status"
-      >
+      <p v-if="backendBuildMetadataQuery.error.value" class="fetch-warning" role="status">
         {{ t("aboutPage.backendCommitLoadFailed") }}
       </p>
     </section>

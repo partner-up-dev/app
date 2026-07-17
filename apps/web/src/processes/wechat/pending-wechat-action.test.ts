@@ -50,10 +50,10 @@ describe("PR discovery create WeChat pending action", () => {
       allowEditAfterReady: { route: true },
     });
     const pending = readPendingWeChatAction();
-    expect(pending?.kind).toBe("PR_DISCOVERY_CREATE");
-    if (pending?.kind === "PR_DISCOVERY_CREATE") {
-      expect(pending.allowEditAfterReady).toEqual({ route: true });
-    }
+    expect(pending).toMatchObject({
+      kind: "PR_DISCOVERY_CREATE",
+      allowEditAfterReady: { route: true },
+    });
   });
 
   it("rejects malformed edit policy and clears it", () => {

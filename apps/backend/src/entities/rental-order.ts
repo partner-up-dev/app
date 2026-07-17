@@ -16,8 +16,7 @@ export const rentalOrders = pgTable(
       .$type<TradeOrderId>()
       .primaryKey()
       .references(() => tradeOrders.id, { onDelete: "cascade" }),
-    serviceStartAt: timestamp("service_start_at", { withTimezone: true })
-      .notNull(),
+    serviceStartAt: timestamp("service_start_at", { withTimezone: true }).notNull(),
     serviceEndAt: timestamp("service_end_at", { withTimezone: true }).notNull(),
     contactPhone: text("contact_phone").notNull(),
     registrants: jsonb("registrants")
@@ -35,9 +34,7 @@ export const rentalOrders = pgTable(
     supplierCancellationOutcome: text("supplier_cancellation_outcome")
       .$type<RentalSupplierCancellationOutcome | null>()
       .default(null),
-    entryGuidance: jsonb("entry_guidance")
-      .$type<RentalEntryGuidance | null>()
-      .default(null),
+    entryGuidance: jsonb("entry_guidance").$type<RentalEntryGuidance | null>().default(null),
     bookingNote: text("booking_note"),
     cancellationNote: text("cancellation_note"),
     serviceEndedAt: timestamp("service_ended_at", { withTimezone: true }),
@@ -45,9 +42,7 @@ export const rentalOrders = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    serviceStartIdx: index("rental_orders_service_start_idx").on(
-      table.serviceStartAt,
-    ),
+    serviceStartIdx: index("rental_orders_service_start_idx").on(table.serviceStartAt),
   }),
 );
 

@@ -3,9 +3,7 @@ import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 export const isWeChatMiniProgramWebViewMockingEnabled = (): boolean =>
   import.meta.env.VITE_WECHAT_MINIPROGRAM_WEBVIEW_MOCKING_ENABLED === "true";
 
-export const isWeChatMiniProgramWebViewUserAgent = (
-  userAgent: string,
-): boolean =>
+export const isWeChatMiniProgramWebViewUserAgent = (userAgent: string): boolean =>
   /micromessenger/i.test(userAgent) && /miniprogram/i.test(userAgent);
 
 export const isWeChatMiniProgramWebView = (): boolean => {
@@ -21,8 +19,5 @@ export const isWeChatMiniProgramWebView = (): boolean => {
     return true;
   }
 
-  return (
-    isWeChatBrowser() &&
-    isWeChatMiniProgramWebViewUserAgent(navigator.userAgent)
-  );
+  return isWeChatBrowser() && isWeChatMiniProgramWebViewUserAgent(navigator.userAgent);
 };

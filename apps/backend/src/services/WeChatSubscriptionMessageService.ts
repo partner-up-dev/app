@@ -33,16 +33,12 @@ const CONFIG_KEY_CONFIRMATION_REMINDER_TEMPLATE_ID =
   "wechat.submsg_confirmation_reminder_template_id";
 const CONFIG_KEY_ACTIVITY_START_REMINDER_TEMPLATE_ID =
   "wechat.submsg_activity_start_reminder_template_id";
-const CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID =
-  "wechat.submsg_new_partner_template_id";
+const CONFIG_KEY_NEW_PARTNER_TEMPLATE_ID = "wechat.submsg_new_partner_template_id";
 const CONFIG_KEY_MEETING_POINT_UPDATED_TEMPLATE_ID =
   "wechat.submsg_meeting_point_updated_template_id";
-const CONFIG_KEY_PR_READY_TEMPLATE_ID =
-  "wechat.submsg_pr_ready_template_id";
-const CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID =
-  "wechat.submsg_waitlist_promoted_template_id";
-const CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID =
-  "wechat.submsg_pr_message_template_id";
+const CONFIG_KEY_PR_READY_TEMPLATE_ID = "wechat.submsg_pr_ready_template_id";
+const CONFIG_KEY_WAITLIST_PROMOTED_TEMPLATE_ID = "wechat.submsg_waitlist_promoted_template_id";
+const CONFIG_KEY_PR_MESSAGE_TEMPLATE_ID = "wechat.submsg_pr_message_template_id";
 
 type SubscriptionTemplateKind =
   | "REMINDER_CONFIRMATION"
@@ -142,8 +138,7 @@ export interface SendPRReadyNotificationParams {
   page: string | null;
 }
 
-const clipText = (value: string, max: number): string =>
-  value.trim().slice(0, max);
+const clipText = (value: string, max: number): string => value.trim().slice(0, max);
 
 type SubscriptionMessageData = Record<string, { value: string }>;
 
@@ -219,9 +214,7 @@ export class WeChatSubscriptionMessageService {
     const { templateId } = await this.getOfficialAccountConfig(input.kind);
     const accessToken = await this.getAccessToken();
 
-    const url = new URL(
-      "https://api.weixin.qq.com/cgi-bin/message/subscribe/bizsend",
-    );
+    const url = new URL("https://api.weixin.qq.com/cgi-bin/message/subscribe/bizsend");
     url.searchParams.set("access_token", accessToken);
 
     const response = await proxyFetch(url, {
@@ -238,9 +231,7 @@ export class WeChatSubscriptionMessageService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `WeChat subscribe bizsend failed: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`WeChat subscribe bizsend failed: ${response.status} ${response.statusText}`);
     }
 
     const payload = subscribeSendResponseSchema.parse(await response.json());
@@ -257,15 +248,11 @@ export class WeChatSubscriptionMessageService {
   private async isConfigured(kind: SubscriptionTemplateKind): Promise<boolean> {
     const templateId = await this.resolveTemplateId(kind);
     return Boolean(
-      env.WECHAT_OFFICIAL_ACCOUNT_APP_ID &&
-        env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET &&
-        templateId,
+      env.WECHAT_OFFICIAL_ACCOUNT_APP_ID && env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET && templateId,
     );
   }
 
-  private async resolveTemplateId(
-    kind: SubscriptionTemplateKind,
-  ): Promise<string | null> {
+  private async resolveTemplateId(kind: SubscriptionTemplateKind): Promise<string | null> {
     return this.configService.getValue(resolveTemplateConfigKey(kind));
   }
 
@@ -289,10 +276,7 @@ export class WeChatSubscriptionMessageService {
   }
 
   private async getAccessToken(): Promise<string> {
-    if (
-      accessTokenCache &&
-      accessTokenCache.expiresAtMs - CLOCK_SKEW_MS > Date.now()
-    ) {
+    if (accessTokenCache && accessTokenCache.expiresAtMs - CLOCK_SKEW_MS > Date.now()) {
       return accessTokenCache.token;
     }
 
@@ -311,9 +295,7 @@ export class WeChatSubscriptionMessageService {
 
     const res = await proxyFetch(url);
     if (!res.ok) {
-      throw new Error(
-        `WeChat access_token request failed: ${res.status} ${res.statusText}`,
-      );
+      throw new Error(`WeChat access_token request failed: ${res.status} ${res.statusText}`);
     }
 
     const payload = tokenResponseSchema.parse(await res.json());

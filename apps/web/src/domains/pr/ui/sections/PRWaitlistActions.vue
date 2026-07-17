@@ -21,7 +21,8 @@
     <div v-if="showWaitlistAction" class="action-group">
       <PuButton
         class="action-group__button"
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -43,7 +44,8 @@
 
     <div v-if="showCancelWaitlistAction" class="action-group">
       <PuButton
-        tone="neutral" variant="soft"
+        tone="neutral"
+        variant="soft"
         :loading="cancelWaitlistMutation.isPending.value"
         block
         data-testid="pr-detail.waitlist.cancel"
@@ -107,10 +109,7 @@
     />
   </PuModal>
 
-  <PuModal
-    :open="showWaitlistSuccessPrompt"
-    @close="closeWaitlistSuccessPrompt"
-  >
+  <PuModal :open="showWaitlistSuccessPrompt" @close="closeWaitlistSuccessPrompt">
     <PRWaitlistSuccessPrompt
       ref="waitlistSuccessPromptRef"
       :open="showWaitlistSuccessPrompt"
@@ -202,9 +201,9 @@ const openDisabled = computed(() => !showWaitlistAction.value || waitlisted.valu
 const showActionArea = computed(() =>
   Boolean(
     waitlistBlockedMessage.value ||
-      waitlistNoticeText.value ||
-      showWaitlistAction.value ||
-      showCancelWaitlistAction.value,
+    waitlistNoticeText.value ||
+    showWaitlistAction.value ||
+    showCancelWaitlistAction.value,
   ),
 );
 

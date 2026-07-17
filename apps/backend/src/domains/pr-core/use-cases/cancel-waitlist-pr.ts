@@ -11,10 +11,7 @@ import { refreshTemporalStatus } from "../temporal-refresh";
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
 
-export async function cancelWaitlistPRByUserId(
-  id: PRId,
-  userId: UserId,
-): Promise<PublicPR> {
+export async function cancelWaitlistPRByUserId(id: PRId, userId: UserId): Promise<PublicPR> {
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
@@ -24,12 +21,18 @@ export async function cancelWaitlistPRByUserId(
 
   const pendingSlot = await partnerRepo.findPendingByPrIdAndUserId(id, userId);
   if (!pendingSlot) {
-    return throwHttpProblem({ status: 400, detail: "Cannot cancel waitlist - partner is not waitlisted" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Cannot cancel waitlist - partner is not waitlisted",
+    });
   }
 
   const cancelledSlot = await partnerRepo.cancelPendingSlot(pendingSlot.id);
   if (!cancelledSlot) {
-    return throwHttpProblem({ status: 409, detail: "Cannot cancel waitlist - slot is no longer pending" });
+    return throwHttpProblem({
+      status: 409,
+      detail: "Cannot cancel waitlist - slot is no longer pending",
+    });
   }
 
   await resetPRJoinGateResolutionsForUser({

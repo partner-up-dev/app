@@ -1,19 +1,10 @@
 import type { TradeOrder } from "./order";
 
-export type RentalBookingStatus =
-  | "PENDING_BOOKING"
-  | "BOOKING_CONFIRMED"
-  | "BOOKING_REJECTED";
+export type RentalBookingStatus = "PENDING_BOOKING" | "BOOKING_CONFIRMED" | "BOOKING_REJECTED";
 
-export type RentalCancellationHandlingStatus =
-  | "NONE"
-  | "REQUESTED"
-  | "HANDLING"
-  | "HANDLED";
+export type RentalCancellationHandlingStatus = "NONE" | "REQUESTED" | "HANDLING" | "HANDLED";
 
-export type RentalSupplierCancellationOutcome =
-  | "BOOKING_CANCELLED"
-  | "BOOKING_REMAINS";
+export type RentalSupplierCancellationOutcome = "BOOKING_CANCELLED" | "BOOKING_REMAINS";
 
 export type RentalEntryGuidance = {
   entryByPhone?: string | null;

@@ -11,16 +11,10 @@ const ACCESS_TOKEN_HEADER = "x-access-token";
 const ADMIN_LOGIN_PATH_SUFFIX = "/auth/admin/login";
 
 const getRequestPath = (input: RequestInfo | URL): string => {
-  const rawUrl =
-    typeof input === "string"
-      ? input
-      : input instanceof URL
-        ? input.href
-        : input.url;
+  const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 
   try {
-    const baseUrl =
-      typeof window === "undefined" ? "http://localhost" : window.location.origin;
+    const baseUrl = typeof window === "undefined" ? "http://localhost" : window.location.origin;
     return new URL(rawUrl, baseUrl).pathname;
   } catch {
     return rawUrl;
@@ -35,8 +29,7 @@ const redirectToAdminLogin = (): void => {
     return;
   }
 
-  const currentPath =
-    window.location.pathname + window.location.search + window.location.hash;
+  const currentPath = window.location.pathname + window.location.search + window.location.hash;
   const target = `/admin/login?redirect=${encodeURIComponent(currentPath)}`;
 
   if (window.location.pathname === "/admin/login") {

@@ -30,10 +30,7 @@ const sanitizeGeneratedHtml = (html: string): string => {
       .replace(/<script[^>]*>/gi, "")
       .replace(/<link\b[^>]*>/gi, "")
       .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-      .replace(
-        /(?:\s|\/)on[a-z0-9_-]+\s*=\s*(?:"[\s\S]*?"|'[\s\S]*?'|[^\s>]+)/gi,
-        " ",
-      )
+      .replace(/(?:\s|\/)on[a-z0-9_-]+\s*=\s*(?:"[\s\S]*?"|'[\s\S]*?'|[^\s>]+)/gi, " ")
       .replace(/(?:\s|\/)on[a-z0-9_-]+\s*=\s*(?=>)/gi, " ")
       .replace(/javascript:/gi, "");
 
@@ -52,7 +49,10 @@ const sanitizeGeneratedHtml = (html: string): string => {
 const assertHtmlSafe = (html: string): void => {
   const pattern = findUnsafePattern(html);
   if (pattern) {
-    return throwHttpProblem({ status: 500, detail: `LLM produced unsafe HTML (${pattern.source})` });
+    return throwHttpProblem({
+      status: 500,
+      detail: `LLM produced unsafe HTML (${pattern.source})`,
+    });
   }
 };
 
@@ -65,7 +65,10 @@ const sanitizeAndAssertHtmlSafe = (html: string): string => {
   const sanitized = sanitizeGeneratedHtml(html);
   const secondPattern = findUnsafePattern(sanitized);
   if (secondPattern) {
-    return throwHttpProblem({ status: 500, detail: `LLM produced unsafe HTML (${secondPattern.source})` });
+    return throwHttpProblem({
+      status: 500,
+      detail: `LLM produced unsafe HTML (${secondPattern.source})`,
+    });
   }
 
   return sanitized;
@@ -87,18 +90,14 @@ const buildStrictSafetyStylePrompt = (posterStylePrompt: string): string => {
   return `${posterStylePrompt}\n\n${safetySuffix}`;
 };
 
-const sanitizePosterResponse = (
-  result: PosterHtmlResponse,
-): PosterHtmlResponse => {
+const sanitizePosterResponse = (result: PosterHtmlResponse): PosterHtmlResponse => {
   return {
     ...result,
     html: sanitizeAndAssertHtmlSafe(result.html),
   };
 };
 
-const sanitizeThumbnailResponse = (
-  result: PosterHtmlResponse,
-): PosterHtmlResponse => {
+const sanitizeThumbnailResponse = (result: PosterHtmlResponse): PosterHtmlResponse => {
   return {
     ...result,
     html: sanitizeAndAssertHtmlSafe(result.html),
@@ -143,14 +142,11 @@ export class ShareService {
       return safe;
     } catch {
       // Retry once with stricter style constraints to reduce unsafe constructs.
-      const strictResult =
-        await this.shareAIService.generateXiaohongshuPosterHtml({
-          pr: prFields,
-          caption: params.caption,
-          posterStylePrompt: buildStrictSafetyStylePrompt(
-            params.posterStylePrompt,
-          ),
-        });
+      const strictResult = await this.shareAIService.generateXiaohongshuPosterHtml({
+        pr: prFields,
+        caption: params.caption,
+        posterStylePrompt: buildStrictSafetyStylePrompt(params.posterStylePrompt),
+      });
 
       const safe = sanitizePosterResponse(strictResult);
       assertNotEmptyHtml(safe.html);
@@ -182,11 +178,9 @@ export class ShareService {
     const pr = await this.prService.getPR(params.prId);
     const prFields = this.toPartnerRequestFields(pr);
 
-    const description = await this.shareAIService.generateWeChatCardDescription(
-      {
-        pr: prFields,
-      },
-    );
+    const description = await this.shareAIService.generateWeChatCardDescription({
+      pr: prFields,
+    });
 
     return description;
   }
@@ -237,14 +231,8 @@ export class ShareService {
     });
   }
 
-  async getCachedWechatThumbnail(params: {
-    prId: PRId;
-    style: number;
-  }): Promise<string | null> {
-    const url = await this.prRepo.findWechatThumbnail(
-      params.prId,
-      params.style,
-    );
+  async getCachedWechatThumbnail(params: { prId: PRId; style: number }): Promise<string | null> {
+    const url = await this.prRepo.findWechatThumbnail(params.prId, params.style);
     if (!url) return null;
     if (!this.isRemoteUrl(url)) return null;
     return url;

@@ -33,24 +33,14 @@ type TrackWeChatOAuthTraceOptions = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const readString = (
-  record: Record<string, unknown>,
-  key: string,
-): string | null => {
+const readString = (record: Record<string, unknown>, key: string): string | null => {
   const value = record[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : null;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 };
 
-const readPositiveNumber = (
-  record: Record<string, unknown>,
-  key: string,
-): number | null => {
+const readPositiveNumber = (record: Record<string, unknown>, key: string): number | null => {
   const value = record[key];
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 };
 
 const parseTraceRecord = (value: unknown): WeChatOAuthTraceRecord | null => {
@@ -73,10 +63,7 @@ const writeTraceRecord = (record: WeChatOAuthTraceRecord): void => {
   if (typeof window === "undefined") return;
 
   try {
-    window.sessionStorage.setItem(
-      WECHAT_OAUTH_TRACE_STORAGE_KEY,
-      JSON.stringify(record),
-    );
+    window.sessionStorage.setItem(WECHAT_OAUTH_TRACE_STORAGE_KEY, JSON.stringify(record));
   } catch {
     // The backend trace still works when sessionStorage is unavailable.
   }
@@ -86,9 +73,7 @@ export const readWeChatOAuthTrace = (): WeChatOAuthTraceRecord | null => {
   if (typeof window === "undefined") return null;
 
   try {
-    const rawValue = window.sessionStorage.getItem(
-      WECHAT_OAUTH_TRACE_STORAGE_KEY,
-    );
+    const rawValue = window.sessionStorage.getItem(WECHAT_OAUTH_TRACE_STORAGE_KEY);
     if (!rawValue) return null;
     return parseTraceRecord(JSON.parse(rawValue));
   } catch {
@@ -106,9 +91,7 @@ export const clearWeChatOAuthTrace = (): void => {
   }
 };
 
-export const startWeChatOAuthTrace = (
-  flow: WeChatOAuthTraceFlow,
-): WeChatOAuthTraceRecord => {
+export const startWeChatOAuthTrace = (flow: WeChatOAuthTraceFlow): WeChatOAuthTraceRecord => {
   const record: WeChatOAuthTraceRecord = {
     traceId: createTelemetryId(),
     flow,

@@ -9,8 +9,16 @@
       <PuHeader
         v-if="!selectedType || selectedTypeDetail || (selectedType && panelRef?.hasLoadFailed)"
         class="pr-discovery-page__header"
-        :title="selectedType ? (selectedTypeDetail?.title ?? t('prDiscovery.loadFailed')) : t('prDiscovery.catalogTitle')"
-        :subtitle="selectedType ? (selectedTypeDetail?.description ?? undefined) : t('prDiscovery.catalogSubtitle')"
+        :title="
+          selectedType
+            ? (selectedTypeDetail?.title ?? t('prDiscovery.loadFailed'))
+            : t('prDiscovery.catalogTitle')
+        "
+        :subtitle="
+          selectedType
+            ? (selectedTypeDetail?.description ?? undefined)
+            : t('prDiscovery.catalogSubtitle')
+        "
         title-as="h1"
       >
         <template #leading>
@@ -47,7 +55,7 @@
             data-testid="prd.header.other-types"
             @click="showOtherTypes = true"
           >
-            {{ t('prDiscovery.otherTypesAction') }}
+            {{ t("prDiscovery.otherTypesAction") }}
           </PuButton>
         </template>
       </PuHeader>
@@ -86,10 +94,7 @@
     </template>
   </PuPageScaffold>
 
-  <PuDrawer
-    v-model:visible="showOtherTypes"
-    :title="t('prDiscovery.otherTypesTitle')"
-  >
+  <PuDrawer v-model:visible="showOtherTypes" :title="t('prDiscovery.otherTypesTitle')">
     <div data-testid="prd.other-types.drawer">
       <PuLoadingState v-if="catalogQuery.isLoading.value" :message="t('common.loading')" />
       <PuInlineNotice

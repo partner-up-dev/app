@@ -22,10 +22,7 @@ export {
   type NotificationDispatchFailureReason,
   type NotificationDispatchSendResult,
 } from "./model/dispatch-result";
-export {
-  canNotifyForUnreadWave,
-  hasUnreadWaveNotification,
-} from "./model/unread-wave";
+export { canNotifyForUnreadWave, hasUnreadWaveNotification } from "./model/unread-wave";
 export {
   clearPRMessageNotificationCredits,
   consumePRMessageNotificationCredit,

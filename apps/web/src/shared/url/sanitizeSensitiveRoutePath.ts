@@ -6,8 +6,7 @@ const SENSITIVE_ROUTE_PARAM_NAMES = [
   "wechatOAuthHandoff",
 ] as const;
 
-const SENSITIVE_HASH_PATTERN =
-  /(?:access_token|code|state|token|wechatOAuthHandoff)=/i;
+const SENSITIVE_HASH_PATTERN = /(?:access_token|code|state|token|wechatOAuthHandoff)=/i;
 
 export const sanitizeSensitiveRoutePath = (rawPath: string): string => {
   try {

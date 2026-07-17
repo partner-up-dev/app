@@ -56,9 +56,7 @@ export const buildMeetingPointInput = (
   };
 };
 
-export const buildPRContentInput = (
-  draft: AdminPRBasicDraft,
-): AdminCreatePRInput | null => {
+export const buildPRContentInput = (draft: AdminPRBasicDraft): AdminCreatePRInput | null => {
   const startAt = toIsoDateTime(draft.startAt);
   const endAt = toIsoDateTime(draft.endAt);
   if (!startAt || !endAt) {
@@ -76,10 +74,7 @@ export const buildPRContentInput = (
     maxPartners: draft.maxPartners,
     preferences: normalizeComma(draft.preferencesText),
     notes: draft.notes.trim() || null,
-    meetingPoint: buildMeetingPointInput(
-      draft.meetingPointDescription,
-      draft.meetingPointImageUrl,
-    ),
+    meetingPoint: buildMeetingPointInput(draft.meetingPointDescription, draft.meetingPointImageUrl),
     joinGateConfig: draft.joinGateConfig,
     confirmationEnabled: draft.confirmationEnabled,
     confirmationStartOffsetMinutes: draft.confirmationStartOffsetMinutes,

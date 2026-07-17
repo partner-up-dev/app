@@ -13,7 +13,10 @@ export type PaymentProviderInstanceId = string & {
 export const paymentProviderInstances = pgTable(
   "payment_provider_instances",
   {
-    id: uuid("id").$type<PaymentProviderInstanceId>().primaryKey().default(sql`gen_random_uuid()`),
+    id: uuid("id")
+      .$type<PaymentProviderInstanceId>()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     providerType: text("provider_type").$type<PaymentProviderType>().notNull(),
     instanceKey: text("instance_key").notNull(),
     status: text("status").$type<PaymentProviderInstanceStatus>().notNull().default("ACTIVE"),

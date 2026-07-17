@@ -29,11 +29,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -45,10 +43,7 @@
           align="start"
         />
         <template v-else-if="selectedRecord">
-          <BentoItem
-            :title="t('adminCommerceFulfillment.summaryTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceFulfillment.summaryTitle')" span="full">
             <dl class="summary-grid">
               <div>
                 <dt>{{ t("adminCommerceFulfillment.fulfillmentIdLabel") }}</dt>
@@ -75,10 +70,7 @@
                   {{ t("adminCommerceFulfillment.cancellationOutcomeLabel") }}
                 </dt>
                 <dd>
-                  {{
-                    selectedRecord.fulfillment.supplierCancellationOutcome ??
-                    "-"
-                  }}
+                  {{ selectedRecord.fulfillment.supplierCancellationOutcome ?? "-" }}
                 </dd>
               </div>
               <div>
@@ -88,10 +80,7 @@
             </dl>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceFulfillment.bookingOpsTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceFulfillment.bookingOpsTitle')" span="full">
             <div class="form-stack">
               <label class="field">
                 <span class="field-label">{{
@@ -102,9 +91,9 @@
               <div class="inline-actions">
                 <PuButton
                   shape="pill"
-                  tone="neutral" variant="outline"
+                  tone="neutral"
+                  variant="outline"
                   size="sm"
-
                   :disabled="isConfirming"
                   @click="handleConfirmBooking"
                 >
@@ -114,12 +103,7 @@
                       : t("adminCommerceFulfillment.confirmBookingAction")
                   }}
                 </PuButton>
-                <PuButton
-                  size="sm"
-
-                  :disabled="isRejecting"
-                  @click="handleRejectBooking"
-                >
+                <PuButton size="sm" :disabled="isRejecting" @click="handleRejectBooking">
                   {{
                     isRejecting
                       ? t("adminCommerceFulfillment.processingAction")
@@ -130,10 +114,7 @@
             </div>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceFulfillment.cancellationOpsTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceFulfillment.cancellationOpsTitle')" span="full">
             <div class="form-stack">
               <div
                 class="status-strip"
@@ -147,17 +128,14 @@
                 <span class="field-label">{{
                   t("adminCommerceFulfillment.cancellationNoteLabel")
                 }}</span>
-                <textarea
-                  v-model="cancellationNote"
-                  class="text-area"
-                ></textarea>
+                <textarea v-model="cancellationNote" class="text-area"></textarea>
               </label>
               <div class="inline-actions">
                 <PuButton
                   shape="pill"
-                  tone="danger" variant="outline"
+                  tone="danger"
+                  variant="outline"
                   size="sm"
-
                   :disabled="!canResolveCancellation || isApprovingCancellation"
                   data-testid="admin-fulfillment.approve-cancellation"
                   @click="handleApproveCancellation"
@@ -170,7 +148,6 @@
                 </PuButton>
                 <PuButton
                   size="sm"
-
                   :disabled="!canResolveCancellation || isDenyingCancellation"
                   data-testid="admin-fulfillment.deny-cancellation"
                   @click="handleDenyCancellation"
@@ -185,47 +162,24 @@
             </div>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceFulfillment.entryGuidanceTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceFulfillment.entryGuidanceTitle')" span="full">
             <div class="form-stack">
               <label class="field">
-                <span class="field-label">{{
-                  t("adminCommerceFulfillment.entryPhoneLabel")
-                }}</span>
-                <input
-                  v-model="entryGuidance.entryByPhone"
-                  class="text-input"
-                  type="text"
-                />
+                <span class="field-label">{{ t("adminCommerceFulfillment.entryPhoneLabel") }}</span>
+                <input v-model="entryGuidance.entryByPhone" class="text-input" type="text" />
               </label>
               <label class="field">
                 <span class="field-label">{{
                   t("adminCommerceFulfillment.entryRealNameLabel")
                 }}</span>
-                <input
-                  v-model="entryGuidance.entryByRealName"
-                  class="text-input"
-                  type="text"
-                />
+                <input v-model="entryGuidance.entryByRealName" class="text-input" type="text" />
               </label>
               <label class="field">
-                <span class="field-label">{{
-                  t("adminCommerceFulfillment.entryNoteLabel")
-                }}</span>
-                <textarea
-                  v-model="entryGuidance.note"
-                  class="text-area"
-                ></textarea>
+                <span class="field-label">{{ t("adminCommerceFulfillment.entryNoteLabel") }}</span>
+                <textarea v-model="entryGuidance.note" class="text-area"></textarea>
               </label>
               <div class="inline-actions">
-                <PuButton
-                  size="sm"
-
-                  :disabled="isSavingGuidance"
-                  @click="handleSaveGuidance"
-                >
+                <PuButton size="sm" :disabled="isSavingGuidance" @click="handleSaveGuidance">
                   {{
                     isSavingGuidance
                       ? t("adminCommerceFulfillment.processingAction")
@@ -236,16 +190,13 @@
             </div>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceFulfillment.rawStateTitle')"
-            span="full"
-          >
-            <pre class="json-pre">{{
-              prettyJson(selectedRecord.fulfillment)
-            }}</pre>
+          <BentoItem :title="t('adminCommerceFulfillment.rawStateTitle')" span="full">
+            <pre class="json-pre">{{ prettyJson(selectedRecord.fulfillment) }}</pre>
           </BentoItem>
 
-          <PuInlineNotice tone="error" dismissible
+          <PuInlineNotice
+            tone="error"
+            dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -300,40 +251,29 @@ const entryGuidance = ref({
 });
 const localErrorMessage = ref<string | null>(null);
 
-const fulfillments = computed(
-  () => workspaceQuery.data.value?.fulfillments ?? [],
-);
-const selectedFulfillmentId = computed(
-  () => selectedFulfillmentIdRaw.value || null,
-);
+const fulfillments = computed(() => workspaceQuery.data.value?.fulfillments ?? []);
+const selectedFulfillmentId = computed(() => selectedFulfillmentIdRaw.value || null);
 const selectedRecord = computed(
   () =>
-    fulfillments.value.find(
-      (record) => record.fulfillment.id === selectedFulfillmentId.value,
-    ) ?? null,
+    fulfillments.value.find((record) => record.fulfillment.id === selectedFulfillmentId.value) ??
+    null,
 );
 
 const isConfirming = computed(() => confirmMutation.isPending.value);
 const isRejecting = computed(() => rejectMutation.isPending.value);
-const isApprovingCancellation = computed(
-  () => approveCancellationMutation.isPending.value,
-);
-const isDenyingCancellation = computed(
-  () => denyCancellationMutation.isPending.value,
-);
+const isApprovingCancellation = computed(() => approveCancellationMutation.isPending.value);
+const isDenyingCancellation = computed(() => denyCancellationMutation.isPending.value);
 const isSavingGuidance = computed(() => guidanceMutation.isPending.value);
 const pendingCancellationAttempt = computed(
   () =>
     selectedRecord.value?.order?.terminationAttempts.find(
-      (attempt) =>
-        attempt.status === "PENDING" &&
-        attempt.resolutionPath === "RENTAL_FULFILLMENT",
+      (attempt) => attempt.status === "PENDING" && attempt.resolutionPath === "RENTAL_FULFILLMENT",
     ) ?? null,
 );
 const canResolveCancellation = computed(
   () =>
-    selectedRecord.value?.fulfillment.cancellationHandlingStatus ===
-      "REQUESTED" && pendingCancellationAttempt.value !== null,
+    selectedRecord.value?.fulfillment.cancellationHandlingStatus === "REQUESTED" &&
+    pendingCancellationAttempt.value !== null,
 );
 const cancellationGateLabel = computed(() =>
   canResolveCancellation.value
@@ -356,12 +296,9 @@ watch(
   fulfillments,
   (nextFulfillments) => {
     if (
-      !nextFulfillments.some(
-        (record) => record.fulfillment.id === selectedFulfillmentIdRaw.value,
-      )
+      !nextFulfillments.some((record) => record.fulfillment.id === selectedFulfillmentIdRaw.value)
     ) {
-      selectedFulfillmentIdRaw.value =
-        nextFulfillments[0]?.fulfillment.id ?? "";
+      selectedFulfillmentIdRaw.value = nextFulfillments[0]?.fulfillment.id ?? "";
     }
   },
   { immediate: true },
@@ -390,8 +327,7 @@ const handleConfirmBooking = async () => {
       bookingNote: bookingNote.value.trim() || null,
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -404,8 +340,7 @@ const handleRejectBooking = async () => {
       bookingNote: bookingNote.value.trim() || null,
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -418,8 +353,7 @@ const handleApproveCancellation = async () => {
       reason: cancellationNote.value.trim() || null,
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -432,8 +366,7 @@ const handleDenyCancellation = async () => {
       reason: cancellationNote.value.trim() || null,
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 
@@ -450,8 +383,7 @@ const handleSaveGuidance = async () => {
       },
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 

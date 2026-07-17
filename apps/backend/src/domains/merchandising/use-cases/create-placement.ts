@@ -1,11 +1,7 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
-import type {
-  PlacementBindingRule,
-  ButtonPlacementCreative,
-  PlacementType,
-} from "../model";
+import type { PlacementBindingRule, ButtonPlacementCreative, PlacementType } from "../model";
 import {
   isPlacementMatchingRuleJson,
   resolvePlacementBindingContractForOffer,

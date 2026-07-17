@@ -13,12 +13,7 @@
       collapsible
       variant="outline"
     >
-      <PuLoadingState
-        v-if="isLoading"
-        compact
-        align="start"
-        :message="t('common.loading')"
-      />
+      <PuLoadingState v-if="isLoading" compact align="start" :message="t('common.loading')" />
 
       <PRDiscoveryTypeHorizontalList
         v-else
@@ -39,12 +34,7 @@
       {{ t("prDiscovery.otherTypesTitle") }}
     </h3>
 
-    <PuLoadingState
-      v-if="isLoading"
-      compact
-      align="start"
-      :message="t('common.loading')"
-    />
+    <PuLoadingState v-if="isLoading" compact align="start" :message="t('common.loading')" />
 
     <PRDiscoveryTypeHorizontalList
       v-else
@@ -119,5 +109,4 @@ const shouldRenderSection = computed(() => {
   @include mx.pu-font(section);
   color: var(--sys-color-on-surface);
 }
-
 </style>

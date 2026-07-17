@@ -23,8 +23,7 @@ import {
   sendWeChatSubscriptionNotification,
 } from "./channels";
 
-const WECHAT_MEETING_POINT_UPDATED_JOB_TYPE =
-  "wechat.notification.meeting-point-updated";
+const WECHAT_MEETING_POINT_UPDATED_JOB_TYPE = "wechat.notification.meeting-point-updated";
 
 let meetingPointUpdatedHandlerRegistered = false;
 
@@ -32,8 +31,7 @@ async function handleMeetingPointUpdatedJob(
   payloadRaw: Record<string, unknown>,
   context: JobHandlerContext,
 ): Promise<void> {
-  const parseResult =
-    meetingPointUpdatedNotificationJobPayloadSchema.safeParse(payloadRaw);
+  const parseResult = meetingPointUpdatedNotificationJobPayloadSchema.safeParse(payloadRaw);
   if (!parseResult.success) {
     throw new Error("Invalid meeting point updated notification job payload");
   }
@@ -60,8 +58,7 @@ async function handleMeetingPointUpdatedJob(
       payload,
       result: "FAILED",
       errorCode: "MEETING_POINT_UPDATED_CHANNEL_NOT_CONFIGURED",
-      errorMessage:
-        "Meeting point update subscription message channel is not configured",
+      errorMessage: "Meeting point update subscription message channel is not configured",
     });
     return;
   }
@@ -82,9 +79,7 @@ async function handleMeetingPointUpdatedJob(
       payload,
       result: "SUCCESS",
     });
-    const consumeResult = await consumeMeetingPointUpdatedNotificationCredit(
-      prepared.recipient.id,
-    );
+    const consumeResult = await consumeMeetingPointUpdatedNotificationCredit(prepared.recipient.id);
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
       await cancelWeChatMeetingPointUpdatedJobsForUser(prepared.recipient.id);
     }
@@ -110,10 +105,7 @@ export function registerWeChatMeetingPointUpdatedJobs(): void {
   if (meetingPointUpdatedHandlerRegistered) {
     return;
   }
-  jobRunner.registerHandler(
-    WECHAT_MEETING_POINT_UPDATED_JOB_TYPE,
-    handleMeetingPointUpdatedJob,
-  );
+  jobRunner.registerHandler(WECHAT_MEETING_POINT_UPDATED_JOB_TYPE, handleMeetingPointUpdatedJob);
   meetingPointUpdatedHandlerRegistered = true;
 }
 
@@ -134,8 +126,7 @@ export async function scheduleWeChatMeetingPointUpdatedNotifications(input: {
     return;
   }
 
-  const recipientUserIds =
-    await collectMeetingPointUpdatedNotificationRecipients(input.request);
+  const recipientUserIds = await collectMeetingPointUpdatedNotificationRecipients(input.request);
   const scheduledAt = new Date();
   const updatedAtIso = input.updatedAt.toISOString();
 
@@ -178,9 +169,7 @@ export async function scheduleWeChatMeetingPointUpdatedNotifications(input: {
   }
 }
 
-export async function cancelWeChatMeetingPointUpdatedJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatMeetingPointUpdatedJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_MEETING_POINT_UPDATED_JOB_TYPE,
     dedupeKeyPrefix: buildMeetingPointUpdatedDedupePrefixForUser(userId),

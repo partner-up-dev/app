@@ -23,9 +23,7 @@ export type SystemScenarioEnvironment = {
 
 let currentEnvironment: SystemScenarioEnvironment | null = null;
 
-export function installScenarioEnvironment(
-  environment: SystemScenarioEnvironment,
-): void {
+export function installScenarioEnvironment(environment: SystemScenarioEnvironment): void {
   currentEnvironment = environment;
 }
 

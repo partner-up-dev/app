@@ -1,10 +1,7 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-support-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('contactSupportPage.title')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('contactSupportPage.title')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -21,10 +18,7 @@
       </PuHeader>
     </template>
 
-    <section
-      class="contact-actions"
-      :aria-label="t('contactSupportPage.actionsTitle')"
-    >
+    <section class="contact-actions" :aria-label="t('contactSupportPage.actionsTitle')">
       <div class="contact-card contact-card--support">
         <PuChip tone="secondary" size="lg">
           {{ t("contactSupportPage.supportBadge") }}
@@ -67,10 +61,7 @@
       </div>
     </section>
 
-    <nav
-      class="support-entry-links"
-      :aria-label="t('aboutPage.footerNavLabel')"
-    >
+    <nav class="support-entry-links" :aria-label="t('aboutPage.footerNavLabel')">
       <RouterLink class="support-entry-link" :to="{ name: 'contact-author' }">
         {{ t("contactSupportPage.authorEntry") }}
       </RouterLink>

@@ -129,8 +129,7 @@ export const POSTER_STYLES: Record<number, PosterStyle> = {
       className: "bg-gradient-modern",
     },
     typography: {
-      primaryFont:
-        '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      primaryFont: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       primarySize: "42px",
       primaryWeight: "700",
       primaryColor: "#000000",

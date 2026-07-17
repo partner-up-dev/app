@@ -3,18 +3,10 @@
     <div class="join-gate-editor__header">
       <div>
         <h3 class="join-gate-editor__title">加入门槛</h3>
-        <p class="join-gate-editor__hint">
-          Join Notice 会在加入前展示，同意后继续加入流程。
-        </p>
+        <p class="join-gate-editor__hint">Join Notice 会在加入前展示，同意后继续加入流程。</p>
       </div>
       <div class="join-gate-editor__actions">
-        <PuButton
-          shape="pill"
-          tone="neutral" variant="outline"
-          size="sm"
-
-          @click="addJoinNotice"
-        >
+        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addJoinNotice">
           添加 Join Notice
         </PuButton>
       </div>
@@ -31,13 +23,7 @@
     >
       <div class="join-gate-row__header">
         <strong>{{ gate.kind }}</strong>
-        <PuButton
-          shape="pill"
-          tone="danger" variant="outline"
-          size="sm"
-
-          @click="removeGate(index)"
-        >
+        <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeGate(index)">
           删除
         </PuButton>
       </div>
@@ -64,11 +50,7 @@
           />
         </PuFormItem>
 
-        <PuFormItem
-          v-if="gate.kind === 'JOIN_NOTICE'"
-          label="须知正文"
-          class="field--full"
-        >
+        <PuFormItem v-if="gate.kind === 'JOIN_NOTICE'" label="须知正文" class="field--full">
           <PuTextarea
             :model-value="gate.body"
             rows="5"
@@ -88,12 +70,7 @@ import type {
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
 } from "@partner-up-dev/backend";
-import {
-  PuButton,
-  PuFormItem,
-  PuInput,
-  PuTextarea,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuInput, PuTextarea } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   modelValue: PRJoinGateConfig;
@@ -104,13 +81,9 @@ const emit = defineEmits<{
   "update:modelValue": [value: PRJoinGateConfig];
 }>();
 
-const normalizedGates = computed(() =>
-  props.modelValue.map((gate) => normalizeGateSource(gate)),
-);
+const normalizedGates = computed(() => props.modelValue.map((gate) => normalizeGateSource(gate)));
 
-const normalizeGateSource = (
-  gate: PRJoinGateConfigItem,
-): PRJoinGateConfigItem => {
+const normalizeGateSource = (gate: PRJoinGateConfigItem): PRJoinGateConfigItem => {
   return {
     kind: "JOIN_NOTICE",
     key: gate.key,
@@ -122,7 +95,10 @@ const normalizeGateSource = (
 };
 
 const commit = (gates: PRJoinGateConfig): void => {
-  emit("update:modelValue", gates.map((gate) => normalizeGateSource(gate)));
+  emit(
+    "update:modelValue",
+    gates.map((gate) => normalizeGateSource(gate)),
+  );
 };
 
 const updateGateAt = (index: number, gate: PRJoinGateConfigItem): void => {

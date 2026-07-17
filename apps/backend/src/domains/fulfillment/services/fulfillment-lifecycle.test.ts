@@ -4,21 +4,15 @@ import { resolveOrderPrepaidSettlementFulfillmentConsequence } from "./prepaid-s
 
 describe("order prepaid settlement execution consequence", () => {
   it("routes Rental prepaid settlement to Rental booking activation", () => {
-    assert.deepEqual(
-      resolveOrderPrepaidSettlementFulfillmentConsequence("RENTAL"),
-      {
-        kind: "ACTIVATE_RENTAL_BOOKING",
-      },
-    );
+    assert.deepEqual(resolveOrderPrepaidSettlementFulfillmentConsequence("RENTAL"), {
+      kind: "ACTIVATE_RENTAL_BOOKING",
+    });
   });
 
   it("does not start RideHailing execution from prepaid bill settlement", () => {
-    assert.deepEqual(
-      resolveOrderPrepaidSettlementFulfillmentConsequence("RIDE_HAILING"),
-      {
-        kind: "NONE",
-        reason: "Order family has no prepaid settlement consequence",
-      },
-    );
+    assert.deepEqual(resolveOrderPrepaidSettlementFulfillmentConsequence("RIDE_HAILING"), {
+      kind: "NONE",
+      reason: "Order family has no prepaid settlement consequence",
+    });
   });
 });

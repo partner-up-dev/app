@@ -2,9 +2,7 @@ import type { SplitRuleSnapshot } from "../model";
 
 const TOTAL_PERCENT_BPS = 10_000;
 
-export function buildEqualRelativeSplitRule(
-  userIds: string[],
-): SplitRuleSnapshot {
+export function buildEqualRelativeSplitRule(userIds: string[]): SplitRuleSnapshot {
   if (userIds.length === 0) {
     throw new Error("Equal split requires at least one user");
   }

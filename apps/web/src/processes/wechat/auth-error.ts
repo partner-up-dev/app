@@ -1,8 +1,5 @@
 import type { ApiErrorPayload } from "@/shared/api/error";
-import {
-  redirectToWeChatOAuthBind,
-  requestWeChatOAuthLogin,
-} from "@/processes/wechat/oauth-login";
+import { redirectToWeChatOAuthBind, requestWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import {
   AUTHENTICATED_REQUIRED_CODE,
   handleAuthenticatedRequiredResponse,

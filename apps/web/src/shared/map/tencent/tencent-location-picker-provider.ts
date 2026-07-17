@@ -2,7 +2,6 @@ import type { MapCoordinate } from "@/shared/map/types";
 import { loadTencentLBSSdk } from "./tencent-lbs-loader";
 import type {
   TencentLatLng,
-  TencentMap,
   TencentMapEvent,
   TencentMapListener,
   TencentMapSdk,

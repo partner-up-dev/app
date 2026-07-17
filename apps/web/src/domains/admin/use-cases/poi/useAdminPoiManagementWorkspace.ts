@@ -4,31 +4,22 @@ import {
   useAdminPois,
 } from "@/domains/admin/queries/useAdminPoiManagement";
 import { useAdminPoiActions } from "@/domains/admin/use-cases/poi/useAdminPoiActions";
-import {
-  useAdminPoiEditor,
-  weekdayOptions,
-} from "@/domains/admin/use-cases/poi/useAdminPoiEditor";
+import { useAdminPoiEditor, weekdayOptions } from "@/domains/admin/use-cases/poi/useAdminPoiEditor";
 import type { PickedLocation } from "@/domains/location/model/location-picker";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 
-export const useAdminPoiManagementWorkspace = (
-  isAdmin: MaybeRef<boolean>,
-) => {
+export const useAdminPoiManagementWorkspace = (isAdmin: MaybeRef<boolean>) => {
   const poisQuery = useAdminPois(isAdmin);
   const poiActions = useAdminPoiActions();
 
   const selectedPoiIdRaw = ref("");
   const newPoiName = ref("");
   const rejectReasonDraft = ref("");
-  const poiMutationAction = ref<
-    "create" | "save-poi" | "publish-poi" | "reject-poi" | null
-  >(null);
+  const poiMutationAction = ref<"create" | "save-poi" | "publish-poi" | "reject-poi" | null>(null);
 
   const pois = computed<PoiRecord[]>(() => poisQuery.data.value ?? []);
-  const poiIdSet = computed<Set<string>>(
-    () => new Set(pois.value.map((poi) => String(poi.id))),
-  );
+  const poiIdSet = computed<Set<string>>(() => new Set(pois.value.map((poi) => String(poi.id))));
   const selectedPoiId = computed<number | null>(() => {
     const rawId = selectedPoiIdRaw.value.trim();
     if (!rawId) return null;
@@ -52,23 +43,16 @@ export const useAdminPoiManagementWorkspace = (
     return !pois.value.some((poi) => poi.name === poiName);
   });
   const isCreatingPoi = computed(
-    () =>
-      poiActions.isPending.create.value && poiMutationAction.value === "create",
+    () => poiActions.isPending.create.value && poiMutationAction.value === "create",
   );
   const isSavingPoi = computed(
-    () =>
-      poiActions.isPending.upsert.value &&
-      poiMutationAction.value === "save-poi",
+    () => poiActions.isPending.upsert.value && poiMutationAction.value === "save-poi",
   );
   const isPublishingPoi = computed(
-    () =>
-      poiActions.isPending.publish.value &&
-      poiMutationAction.value === "publish-poi",
+    () => poiActions.isPending.publish.value && poiMutationAction.value === "publish-poi",
   );
   const isRejectingPoi = computed(
-    () =>
-      poiActions.isPending.reject.value &&
-      poiMutationAction.value === "reject-poi",
+    () => poiActions.isPending.reject.value && poiMutationAction.value === "reject-poi",
   );
   const canPublishPoi = computed(
     () =>
@@ -218,8 +202,7 @@ export const useAdminPoiManagementWorkspace = (
     selectedPoiHasCoordinate: poiEditor.selectedPoiHasCoordinate,
     selectedPoiPickerLocation: poiEditor.selectedPoiPickerLocation,
     selectedPoiCapText: poiEditor.selectedPoiCapText,
-    selectedPoiMeetingPointDescription:
-      poiEditor.selectedPoiMeetingPointDescription,
+    selectedPoiMeetingPointDescription: poiEditor.selectedPoiMeetingPointDescription,
     selectedPoiMeetingPointImageUrl: poiEditor.selectedPoiMeetingPointImageUrl,
     selectedPoiAvailabilityRules: poiEditor.selectedPoiAvailabilityRules,
     markSelectedPoiDirty: poiEditor.markSelectedPoiDirty,

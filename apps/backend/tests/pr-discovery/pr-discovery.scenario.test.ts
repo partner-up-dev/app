@@ -69,7 +69,7 @@ scenario("pr_discovery_list_and_card_share_one_persisted_open_feed", async (ctx)
     200,
   );
   assert.deepEqual(
-    [...response.candidates.map(({ prId }) => prId)].sort((a, b) => a - b),
+    response.candidates.map(({ prId }) => prId).sort((a, b) => a - b),
     [first.id, second.id].sort((a, b) => a - b),
   );
   assert.deepEqual(

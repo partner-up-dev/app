@@ -7,28 +7,19 @@ import {
   updateAdminPaymentProviderInstance,
 } from "../domains/admin-payment-management";
 import type { PaymentProviderInstanceId } from "../entities/payment";
-import {
-  adminAuthMiddleware,
-  type AdminAuthEnv,
-} from "../auth/admin-middleware";
+import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
 
 const app = new Hono<AdminAuthEnv>();
 
-const nullableTrimmedUrlSchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim().length === 0) return null;
-    return value;
-  },
-  z.string().trim().url().nullable().optional(),
-);
+const nullableTrimmedUrlSchema = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim().length === 0) return null;
+  return value;
+}, z.string().trim().url().nullable().optional());
 
-const nullableTrimmedSecretSchema = z.preprocess(
-  (value) => {
-    if (typeof value === "string" && value.trim().length === 0) return null;
-    return value;
-  },
-  z.string().trim().min(1).nullable().optional(),
-);
+const nullableTrimmedSecretSchema = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim().length === 0) return null;
+  return value;
+}, z.string().trim().min(1).nullable().optional());
 
 const providerInstanceIdParamSchema = z.object({
   providerInstanceId: z.string().uuid(),
@@ -54,11 +45,7 @@ const adminPaymentProviderInstanceInputSchema = z.object({
   }),
 });
 
-type JsonEndpoint<
-  Input,
-  Output,
-  Status extends number = 200,
-> = {
+type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
   outputFormat: "json";
@@ -72,10 +59,7 @@ type UuidParam<Key extends string> = {
 
 type AdminPaymentManagementSchema = {
   "/payment/provider-instances/workspace": {
-    $get: JsonEndpoint<
-      EmptyInput,
-      Awaited<ReturnType<typeof getAdminPaymentProviderWorkspace>>
-    >;
+    $get: JsonEndpoint<EmptyInput, Awaited<ReturnType<typeof getAdminPaymentProviderWorkspace>>>;
   };
   "/payment/provider-instances": {
     $post: JsonEndpoint<
@@ -93,10 +77,7 @@ type AdminPaymentManagementSchema = {
   };
 };
 
-export const adminPaymentManagementRoute: Hono<
-  AdminAuthEnv,
-  AdminPaymentManagementSchema
-> = app
+export const adminPaymentManagementRoute: Hono<AdminAuthEnv, AdminPaymentManagementSchema> = app
   .use("*", adminAuthMiddleware)
   .get("/payment/provider-instances/workspace", async (c) => {
     const result = await getAdminPaymentProviderWorkspace();

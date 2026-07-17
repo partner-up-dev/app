@@ -19,9 +19,7 @@ function getTerminationAttempt(
   order: { terminationAttempts: OrderTerminationAttempt[] },
   attemptId: string,
 ): OrderTerminationAttempt {
-  const attempt = order.terminationAttempts.find(
-    (candidate) => candidate.attemptId === attemptId,
-  );
+  const attempt = order.terminationAttempts.find((candidate) => candidate.attemptId === attemptId);
   if (!attempt) {
     throw new Error("Termination attempt not found");
   }
@@ -34,19 +32,18 @@ export async function finalizeRentalOrderTermination(input: {
   decision: FulfillmentTerminationDecision;
   decidedAt?: string;
 }) {
-  const orderRecord = await new TradeOrderRepository().findById(
-    input.orderId as TradeOrderId,
-  );
+  const orderRecord = await new TradeOrderRepository().findById(input.orderId as TradeOrderId);
   if (!orderRecord) {
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
 
   if (orderRecord.family !== "RENTAL") {
-    return throwHttpProblem({ status: 409, detail: "Only Rental orders use this termination flow" });
+    return throwHttpProblem({
+      status: 409,
+      detail: "Only Rental orders use this termination flow",
+    });
   }
-  const rentalOrderRecord = await new RentalOrderRepository().findByOrderId(
-    orderRecord.id,
-  );
+  const rentalOrderRecord = await new RentalOrderRepository().findByOrderId(orderRecord.id);
   if (!rentalOrderRecord) {
     return throwHttpProblem({
       status: 500,
@@ -76,7 +73,10 @@ export async function finalizeRentalOrderTermination(input: {
         terminationAttempts: denied.terminationAttempts,
       });
       if (!persisted) {
-        return throwHttpProblem({ status: 500, detail: "Failed to persist denied rental termination" });
+        return throwHttpProblem({
+          status: 500,
+          detail: "Failed to persist denied rental termination",
+        });
       }
       const rentalOrder = await rentalOrderRepo.findByOrderId(order.id as TradeOrderId);
       if (rentalOrder) {
@@ -126,8 +126,7 @@ export async function finalizeRentalOrderTermination(input: {
       attemptId: input.attemptId,
       decidedAt,
       reason: input.decision.reason ?? "Rental termination approved",
-      effectKind:
-        reconciliation.deltaFen > 0 ? "POLICY_REFUND" : "NONE",
+      effectKind: reconciliation.deltaFen > 0 ? "POLICY_REFUND" : "NONE",
       effectAmountFen: reconciliation.deltaFen,
     });
     const persisted = await tradeOrderRepo.applyTerminationState({
@@ -136,7 +135,10 @@ export async function finalizeRentalOrderTermination(input: {
       terminationAttempts: approved.terminationAttempts,
     });
     if (!persisted) {
-      return throwHttpProblem({ status: 500, detail: "Failed to persist approved rental termination" });
+      return throwHttpProblem({
+        status: 500,
+        detail: "Failed to persist approved rental termination",
+      });
     }
     const rentalOrder = await rentalOrderRepo.findByOrderId(order.id as TradeOrderId);
     if (rentalOrder) {
@@ -150,12 +152,10 @@ export async function finalizeRentalOrderTermination(input: {
     return {
       orderId: persisted.id,
       status: persisted.status,
-      effectKind:
-        reconciliation.deltaFen > 0 ? ("POLICY_REFUND" as const) : ("NONE" as const),
+      effectKind: reconciliation.deltaFen > 0 ? ("POLICY_REFUND" as const) : ("NONE" as const),
       effectAmountFen: reconciliation.deltaFen,
       targetChargeTotalFen: targetAmountSeed.targetChargeTotalFen,
-      refundLineIds:
-        reconciliation.direction === "REFUND" ? reconciliation.createdLineIds : [],
+      refundLineIds: reconciliation.direction === "REFUND" ? reconciliation.createdLineIds : [],
     };
   });
 

@@ -5,8 +5,7 @@ import {
 
 export const useAdminPRFeedbackQuestionnaire = () => {
   const updateInstanceMutation = useUpdateAdminPRFeedbackQuestionnaireInstance();
-  const materializeInstanceMutation =
-    useMaterializeAdminPRFeedbackQuestionnaireInstance();
+  const materializeInstanceMutation = useMaterializeAdminPRFeedbackQuestionnaireInstance();
 
   const updateInstance = async ({
     prId,

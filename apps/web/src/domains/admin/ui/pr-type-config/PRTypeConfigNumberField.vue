@@ -1,13 +1,7 @@
 <template>
   <label class="field">
     <span class="field-label">{{ label }}</span>
-    <input
-      :value="textValue"
-      class="field-input"
-      type="number"
-      :min="min"
-      @input="onInput"
-    />
+    <input :value="textValue" class="field-input" type="number" :min="min" @input="onInput" />
   </label>
 </template>
 

@@ -7,10 +7,7 @@
     data-testid="order-detail.page"
   >
     <template #pageHeader>
-      <PuHeader
-        title="订单详情"
-        title-as="h1"
-      >
+      <PuHeader title="订单详情" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -57,10 +54,7 @@
         :message="orderErrorMessage"
       />
 
-      <div
-        v-else-if="orderQuery.isPending.value"
-        class="order-detail-page__loading"
-      >
+      <div v-else-if="orderQuery.isPending.value" class="order-detail-page__loading">
         正在加载订单...
       </div>
 
@@ -120,10 +114,7 @@
               </div>
             </div>
 
-            <p
-              class="order-detail-page__status"
-              data-testid="order-detail.payment-status"
-            >
+            <p class="order-detail-page__status" data-testid="order-detail.payment-status">
               支付状态：{{ paymentStatusLabel }}
             </p>
 
@@ -146,10 +137,7 @@
               <h2>取消政策</h2>
             </div>
 
-            <div
-              class="order-detail-page__policy"
-              data-testid="order-detail.cancellation-policy"
-            >
+            <div class="order-detail-page__policy" data-testid="order-detail.cancellation-policy">
               <p v-for="summary in cancellationPolicySummary" :key="summary">
                 {{ summary }}
               </p>
@@ -189,10 +177,7 @@
               <h2>场地预订</h2>
             </div>
 
-            <p
-              class="order-detail-page__status"
-              data-testid="order-detail.fulfillment-status"
-            >
+            <p class="order-detail-page__status" data-testid="order-detail.fulfillment-status">
               {{ fulfillmentStatusLabel }}
             </p>
 

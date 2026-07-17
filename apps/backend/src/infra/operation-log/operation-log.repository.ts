@@ -38,12 +38,7 @@ export class OperationLogRepository {
     return db
       .select()
       .from(operationLogs)
-      .where(
-        and(
-          eq(operationLogs.aggregateType, aggregateType),
-          eq(operationLogs.action, action),
-        ),
-      )
+      .where(and(eq(operationLogs.aggregateType, aggregateType), eq(operationLogs.action, action)))
       .orderBy(desc(operationLogs.createdAt))
       .limit(limit);
   }

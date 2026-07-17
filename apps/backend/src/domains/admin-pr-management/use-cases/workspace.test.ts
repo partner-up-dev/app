@@ -6,8 +6,8 @@ vi.mock("../../pr/services", () => ({
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES: 30,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES: 120,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES: 30,
-  countActivePartnersForPR: vi.fn(async () => 2),
-  resolvePRPlaceDisplayName: vi.fn(() => "Library"),
+  countActivePartnersForPR: vi.fn<() => Promise<number>>(async () => 2),
+  resolvePRPlaceDisplayName: vi.fn<() => string>(() => "Library"),
 }));
 
 vi.mock("../../../repositories/PartnerRequestRepository", () => ({

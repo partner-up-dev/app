@@ -6,10 +6,7 @@
         {{ typedHeroTitle }}
       </span>
       <span
-        v-if="
-          heroTitleTyping.length > 0 &&
-          typedHeroTitle.length < heroTitleTyping.length
-        "
+        v-if="heroTitleTyping.length > 0 && typedHeroTitle.length < heroTitleTyping.length"
         class="hero-title-caret"
         aria-hidden="true"
       ></span>
@@ -344,8 +341,7 @@ onUnmounted(() => {
   width: 13.8rem;
   height: 13.8rem;
   border-radius: 999px;
-  border: 1px solid
-    color-mix(in srgb, var(--sys-color-primary) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sys-color-primary) 28%, transparent);
 }
 
 .hero-art-ring--offset {
@@ -416,7 +412,10 @@ onUnmounted(() => {
 
   .hero-action--primary,
   .hero-action--secondary {
-    min-height: calc(calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) + var(--sys-spacing-small));
+    min-height: calc(
+      calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)) +
+        var(--sys-spacing-small)
+    );
     padding: var(--sys-spacing-small) var(--sys-spacing-medium);
   }
 

@@ -15,7 +15,8 @@ on:
       - "scripts/**"
       - "tests/**"
       - "tools/**"
-      - "biome.json"
+      - ".oxfmtrc.json"
+      - ".oxlintrc.json"
       - "knip.json"
       - "sgconfig.yml"
       - "package.json"
@@ -61,7 +62,7 @@ jobs:
       - name: Install Semgrep
         run: python -m pip install semgrep==1.166.0
 
-      - name: Check changed-file formatting
+      - name: Check repository formatting
         run: pnpm check:format
 
       - name: Run static lint

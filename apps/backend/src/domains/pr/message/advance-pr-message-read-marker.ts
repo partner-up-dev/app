@@ -20,7 +20,10 @@ export async function advancePRMessageReadMarker(input: {
 
   const targetMessage = await messageRepo.findByPrIdAndId(prId, lastReadMessageId);
   if (!targetMessage) {
-    return throwHttpProblem({ status: 400, detail: "Read marker must point to an existing message in this PR" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Read marker must point to an existing message in this PR",
+    });
   }
 
   const [inboxState, latestVisibleMessageId] = await Promise.all([

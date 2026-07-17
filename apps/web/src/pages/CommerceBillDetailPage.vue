@@ -1,14 +1,7 @@
 <template>
-  <PuPageScaffold
-    viewport="screen"
-    class="bill-detail-page"
-    data-testid="bill-detail.page"
-  >
+  <PuPageScaffold viewport="screen" class="bill-detail-page" data-testid="bill-detail.page">
     <template #pageHeader>
-      <PuHeader
-        title="账单详情"
-        title-as="h1"
-      >
+      <PuHeader title="账单详情" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -45,10 +38,7 @@
               size="md"
               data-testid="bill-detail.status"
             />
-            <span
-              class="bill-detail-page__total-amount"
-              data-testid="bill-detail.total-amount"
-            >
+            <span class="bill-detail-page__total-amount" data-testid="bill-detail.total-amount">
               总金额 {{ totalAmountLabel }}
             </span>
           </div>

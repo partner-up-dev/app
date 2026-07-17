@@ -14,10 +14,7 @@ test("getBucketStartMs aligns timestamps to the current resolution bucket", () =
   const expectedBucketStartMs = Date.UTC(2026, 3, 12, 9, 0, 0, 0);
 
   assert.equal(getBucketStartMs(timestampMs, resolutionMs), expectedBucketStartMs);
-  assert.equal(
-    getBucketIndex(timestampMs, resolutionMs),
-    expectedBucketStartMs / resolutionMs,
-  );
+  assert.equal(getBucketIndex(timestampMs, resolutionMs), expectedBucketStartMs / resolutionMs);
 });
 
 test("resolveScheduleTiming returns canonical bucket-based timing fields", () => {

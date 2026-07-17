@@ -1,12 +1,6 @@
 import { createPrivateKey, createPublicKey } from "node:crypto";
-import {
-  ProblemDetailsError,
-  throwHttpProblem,
-} from "../../../lib/problem-details";
-import type {
-  WeChatPayPlatformCertificate,
-  WeChatPayProviderInstanceConfig,
-} from "../model";
+import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
+import type { WeChatPayPlatformCertificate, WeChatPayProviderInstanceConfig } from "../model";
 
 const normalizePemText = (value: string): string => {
   const trimmed = value.trim();
@@ -49,11 +43,7 @@ const assertMerchantPrivateKeyPem = (privateKeyPem: string): void => {
   }
 };
 
-const assertPublicKeyLikePem = (input: {
-  pem: string;
-  detail: string;
-  code: string;
-}): void => {
+const assertPublicKeyLikePem = (input: { pem: string; detail: string; code: string }): void => {
   try {
     const key = createPublicKey(input.pem);
     if (key.asymmetricKeyType !== "rsa") {
@@ -104,9 +94,7 @@ export const normalizeAndValidateWeChatPayProviderConfig = (
   const apiV3Key = config.apiV3Key.trim();
   assertApiV3Key(apiV3Key);
 
-  const privateKeyPem = normalizePemText(
-    config.merchantCertificate.privateKeyPem,
-  );
+  const privateKeyPem = normalizePemText(config.merchantCertificate.privateKeyPem);
   assertMerchantPrivateKeyPem(privateKeyPem);
 
   const certificatePem = config.merchantCertificate.certificatePem
@@ -131,8 +119,6 @@ export const normalizeAndValidateWeChatPayProviderConfig = (
       privateKeyPem,
       certificatePem,
     },
-    platformCertificates: normalizePlatformCertificates(
-      config.platformCertificates,
-    ),
+    platformCertificates: normalizePlatformCertificates(config.platformCertificates),
   };
 };

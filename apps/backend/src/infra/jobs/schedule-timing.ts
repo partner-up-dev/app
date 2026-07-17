@@ -41,33 +41,22 @@ const ensureDbInteger = (value: number, label: string): number => {
   return value;
 };
 
-export const getBucketStartMs = (
-  timestampMs: number,
-  resolutionMs: number,
-): number => Math.floor(timestampMs / resolutionMs) * resolutionMs;
+export const getBucketStartMs = (timestampMs: number, resolutionMs: number): number =>
+  Math.floor(timestampMs / resolutionMs) * resolutionMs;
 
-export const getBucketIndex = (
-  timestampMs: number,
-  resolutionMs: number,
-): number => Math.floor(timestampMs / resolutionMs);
+export const getBucketIndex = (timestampMs: number, resolutionMs: number): number =>
+  Math.floor(timestampMs / resolutionMs);
 
-export const resolveScheduleTiming = (
-  config: ScheduleTimingConfig,
-): ResolvedScheduleTiming => {
+export const resolveScheduleTiming = (config: ScheduleTimingConfig): ResolvedScheduleTiming => {
   const resolutionMs = ensureDbInteger(
     positiveOr(config.resolutionMs, DEFAULT_RESOLUTION_MS),
     "resolutionMs",
   );
   const earlyToleranceUnits = ensureDbInteger(
-    nonNegativeOr(
-      config.earlyToleranceUnits,
-      DEFAULT_EARLY_TOLERANCE_UNITS,
-    ),
+    nonNegativeOr(config.earlyToleranceUnits, DEFAULT_EARLY_TOLERANCE_UNITS),
     "earlyToleranceUnits",
   );
-  const lateToleranceUnitsRaw = resolveLateToleranceUnits(
-    config.lateToleranceUnits,
-  );
+  const lateToleranceUnitsRaw = resolveLateToleranceUnits(config.lateToleranceUnits);
   const lateToleranceUnits =
     lateToleranceUnitsRaw === NO_LATE_TOLERANCE_UNITS
       ? NO_LATE_TOLERANCE_UNITS
@@ -92,8 +81,7 @@ export const getClaimWindowBounds = (input: {
 } => {
   const runAtMs = input.runAt.getTime();
   const dueBucket = getBucketIndex(runAtMs, input.resolutionMs);
-  const earliestClaimAtMs =
-    (dueBucket - input.earlyToleranceUnits) * input.resolutionMs;
+  const earliestClaimAtMs = (dueBucket - input.earlyToleranceUnits) * input.resolutionMs;
   const latestClaimExclusiveAtMs =
     input.lateToleranceUnits === NO_LATE_TOLERANCE_UNITS
       ? null

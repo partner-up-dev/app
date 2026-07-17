@@ -7,7 +7,6 @@
   >
     <template #actions>
       <PuButton
-
         data-testid="pr-detail.draft-publish.action"
         :loading="publishMutation.isPending.value"
         @click="handlePublishDraft"
@@ -43,10 +42,7 @@ const { t } = useI18n();
 const publishMutation = usePublishPR();
 const showDraftPublishCard = computed(() => props.pr.status === "DRAFT");
 const pendingReplayReady = computed(
-  () =>
-    props.prId !== null &&
-    showDraftPublishCard.value &&
-    !publishMutation.isPending.value,
+  () => props.prId !== null && showDraftPublishCard.value && !publishMutation.isPending.value,
 );
 
 const handlePublishDraft = async () => {

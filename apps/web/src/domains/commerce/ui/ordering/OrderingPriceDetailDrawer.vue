@@ -1,15 +1,7 @@
 <template>
-  <PuDrawer
-    :visible="open"
-    title="价格明细"
-    max-width="44rem"
-    @close="emit('close')"
-  >
+  <PuDrawer :visible="open" title="价格明细" max-width="44rem" @close="emit('close')">
     <div class="ordering-price-detail" :data-testid="dataTestid">
-      <div
-        v-if="explanations.length === 0"
-        class="ordering-price-detail__empty"
-      >
+      <div v-if="explanations.length === 0" class="ordering-price-detail__empty">
         暂无可展示的价格明细。
       </div>
       <div
@@ -21,9 +13,7 @@
           <strong>{{ explanation.label }}</strong>
           <span>{{ explanation.description }}</span>
         </div>
-        <b>{{
-          formatFen(explanation.resultAmountFen ?? explanation.deltaFen)
-        }}</b>
+        <b>{{ formatFen(explanation.resultAmountFen ?? explanation.deltaFen) }}</b>
       </div>
     </div>
   </PuDrawer>

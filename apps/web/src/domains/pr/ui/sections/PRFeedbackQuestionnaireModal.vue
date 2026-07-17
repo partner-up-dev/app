@@ -1,9 +1,5 @@
 <template>
-  <PuModal
-    :open="open"
-    :title="questionnaire?.title ?? '活动反馈'"
-    @close="$emit('close')"
-  >
+  <PuModal :open="open" :title="questionnaire?.title ?? '活动反馈'" @close="$emit('close')">
     <FeedbackQuestionnaireForm
       v-if="questionnaire"
       :instance-id="questionnaire.instanceId"

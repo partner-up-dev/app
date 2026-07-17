@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type App, createApp, defineComponent, h } from "vue";
+import { type App, createApp, h } from "vue";
 import type { PRDiscoveryCatalogItem } from "@/domains/pr/model/pr-discovery-types";
 import PRDiscoveryCard from "./PRDiscoveryCard.vue";
 

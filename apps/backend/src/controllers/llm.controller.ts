@@ -47,18 +47,12 @@ export const llmRoute = app.post(
     if (styleRaw !== undefined) {
       // Try parse as integer index first
       const asNumber = Number(styleRaw);
-      if (
-        !Number.isNaN(asNumber) &&
-        Number.isInteger(asNumber) &&
-        String(asNumber) === styleRaw
-      ) {
+      if (!Number.isNaN(asNumber) && Number.isInteger(asNumber) && String(asNumber) === styleRaw) {
         style = asNumber;
       } else {
         // Fall back to string enum if matches
         const s = String(styleRaw);
-        if (
-          ["friendly", "concise", "warm", "trendy", "professional"].includes(s)
-        ) {
+        if (["friendly", "concise", "warm", "trendy", "professional"].includes(s)) {
           style = s as XiaohongshuStyle;
         } else {
           return c.json({ error: "invalid style parameter" }, 400);
@@ -66,8 +60,10 @@ export const llmRoute = app.post(
       }
     }
 
-    const { caption, posterStylePrompt } =
-      await shareAIService.generateXiaohongshuCaption(prFields, style);
+    const { caption, posterStylePrompt } = await shareAIService.generateXiaohongshuCaption(
+      prFields,
+      style,
+    );
     return c.json({ caption, posterStylePrompt });
   },
 );

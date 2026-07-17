@@ -1,31 +1,18 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { env } from "../lib/env";
-import {
-  isAuthenticatedAuthRole,
-  type AuthClaims,
-  type AuthRole,
-} from "./types";
+import { isAuthenticatedAuthRole, type AuthClaims, type AuthRole } from "./types";
 
 const TOKEN_VERSION = "v1";
 
-const encodeBase64Url = (value: string): string =>
-  Buffer.from(value, "utf8").toString("base64url");
+const encodeBase64Url = (value: string): string => Buffer.from(value, "utf8").toString("base64url");
 
-const decodeBase64Url = (value: string): string =>
-  Buffer.from(value, "base64url").toString("utf8");
+const decodeBase64Url = (value: string): string => Buffer.from(value, "base64url").toString("utf8");
 
 const sign = (payloadSegment: string): string => {
-  return createHmac("sha256", env.AUTH_JWT_SECRET)
-    .update(payloadSegment)
-    .digest("base64url");
+  return createHmac("sha256", env.AUTH_JWT_SECRET).update(payloadSegment).digest("base64url");
 };
 
-const AUTH_ROLES: readonly AuthRole[] = [
-  "anonymous",
-  "authenticated",
-  "service",
-  "analytics",
-];
+const AUTH_ROLES: readonly AuthRole[] = ["anonymous", "authenticated", "service", "analytics"];
 
 const isAuthRole = (value: unknown): value is AuthRole =>
   typeof value === "string" && AUTH_ROLES.includes(value as AuthRole);
@@ -52,9 +39,7 @@ const parsePayload = (segment: string): AuthClaims | null => {
     const claims = parsed as Partial<AuthClaims>;
     const roles = parseRoles(claims.roles);
     if (!roles) return null;
-    const role = isAuthRole(claims.role)
-      ? claims.role
-      : resolvePrimaryRole(roles);
+    const role = isAuthRole(claims.role) ? claims.role : resolvePrimaryRole(roles);
     const exp = Number(claims.exp);
     const iat = Number(claims.iat);
     if (!roles.includes(role)) return null;
@@ -80,11 +65,8 @@ export const issueAccessToken = (
   nowMs: number = Date.now(),
 ): string => {
   const nowSec = Math.floor(nowMs / 1000);
-  const resolvedRoles = Array.isArray(roles)
-    ? Array.from(new Set(roles))
-    : [roles];
-  const normalizedRoles: AuthRole[] =
-    resolvedRoles.length > 0 ? resolvedRoles : ["anonymous"];
+  const resolvedRoles = Array.isArray(roles) ? Array.from(new Set(roles)) : [roles];
+  const normalizedRoles: AuthRole[] = resolvedRoles.length > 0 ? resolvedRoles : ["anonymous"];
   const claims: AuthClaims = {
     role: resolvePrimaryRole(normalizedRoles),
     roles: normalizedRoles,
@@ -100,10 +82,7 @@ export const issueAccessToken = (
   return `${signingInput}.${signature}`;
 };
 
-export const verifyAccessToken = (
-  token: string,
-  nowMs: number = Date.now(),
-): AuthClaims | null => {
+export const verifyAccessToken = (token: string, nowMs: number = Date.now()): AuthClaims | null => {
   const segments = token.split(".");
   if (segments.length !== 3) return null;
 
@@ -130,10 +109,7 @@ export const verifyAccessToken = (
   return claims;
 };
 
-export const shouldRenewAccessToken = (
-  claims: AuthClaims,
-  nowMs: number = Date.now(),
-): boolean => {
+export const shouldRenewAccessToken = (claims: AuthClaims, nowMs: number = Date.now()): boolean => {
   const nowSec = Math.floor(nowMs / 1000);
   return claims.exp - nowSec <= env.AUTH_JWT_RENEW_WINDOW_SECONDS;
 };

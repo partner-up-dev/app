@@ -8,10 +8,7 @@ import {
 
 test("empty POI availability rules mean all day available", () => {
   assert.equal(
-    isTimeWindowAvailableByPoiRules([], [
-      "2026-04-24T15:00:00.000Z",
-      "2026-04-24T16:00:00.000Z",
-    ]),
+    isTimeWindowAvailableByPoiRules([], ["2026-04-24T15:00:00.000Z", "2026-04-24T16:00:00.000Z"]),
     true,
   );
 });
@@ -81,9 +78,6 @@ test("exclude rules make overlapping windows unavailable", () => {
 test("PR availability check skips lookup when location is null", async () => {
   await assertPRTimeWindowAvailableAtLocation({
     location: null,
-    timeWindow: [
-      "2026-04-24T04:30:00.000Z",
-      "2026-04-24T05:30:00.000Z",
-    ],
+    timeWindow: ["2026-04-24T04:30:00.000Z", "2026-04-24T05:30:00.000Z"],
   });
 });

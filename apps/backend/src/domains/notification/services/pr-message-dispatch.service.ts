@@ -1,9 +1,5 @@
 import type { PartnerRequest } from "../../../entities/partner-request";
-import {
-  resolvePrimaryUserRole,
-  type User,
-  type UserRole,
-} from "../../../entities/user";
+import { resolvePrimaryUserRole, type User, type UserRole } from "../../../entities/user";
 import { env } from "../../../lib/env";
 import { NotificationDeliveryRepository } from "../../../repositories/NotificationDeliveryRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
@@ -43,9 +39,7 @@ type PRMessageDispatchBlocked = {
   errorMessage: string;
 };
 
-export type PRMessageDispatchPreparation =
-  | PRMessageDispatchReady
-  | PRMessageDispatchBlocked;
+export type PRMessageDispatchPreparation = PRMessageDispatchReady | PRMessageDispatchBlocked;
 
 const resolvePrUrl = (request: PartnerRequest): string | null => {
   const frontendUrl = env.FRONTEND_URL?.trim();
@@ -65,10 +59,8 @@ const resolvePrUrl = (request: PartnerRequest): string | null => {
 const resolveThreadTitle = (request: PartnerRequest): string =>
   request.title?.trim() || request.type || `PR#${request.id}`;
 
-const resolveAuthorName = (
-  nickname: string | null,
-  role: UserRole | null,
-): string => (role === "service" ? "系统消息" : nickname?.trim() || "搭子");
+const resolveAuthorName = (nickname: string | null, role: UserRole | null): string =>
+  role === "service" ? "系统消息" : nickname?.trim() || "搭子";
 
 const formatUnreadMessageSummary = (messageCount: number): string =>
   `${Math.max(1, messageCount)}条留言，请尽快查看`;
@@ -180,26 +172,19 @@ export const preparePRMessageNotificationDispatch = async (
   }
 
   const unreadAfterMessageId = inboxState?.lastReadMessageId ?? null;
-  const [latestUnreadMessage, unreadMessageCount, fallbackAuthor] =
-    await Promise.all([
-      messageRepo.findLatestWithAuthorAfterId(payload.prId, unreadAfterMessageId),
-      messageRepo.countByPrIdAfterId(payload.prId, unreadAfterMessageId),
-      userRepo.findById(payload.waveStartAuthorUserId),
-    ]);
+  const [latestUnreadMessage, unreadMessageCount, fallbackAuthor] = await Promise.all([
+    messageRepo.findLatestWithAuthorAfterId(payload.prId, unreadAfterMessageId),
+    messageRepo.countByPrIdAfterId(payload.prId, unreadAfterMessageId),
+    userRepo.findById(payload.waveStartAuthorUserId),
+  ]);
 
   const latestUnreadMessageCreatedAtIso =
-    latestUnreadMessage?.createdAt.toISOString() ??
-    payload.firstUnreadMessageCreatedAtIso;
+    latestUnreadMessage?.createdAt.toISOString() ?? payload.firstUnreadMessageCreatedAtIso;
   const latestUnreadAuthorName = latestUnreadMessage
-    ? resolveAuthorName(
-        latestUnreadMessage.authorNickname,
-        latestUnreadMessage.authorRole,
-      )
+    ? resolveAuthorName(latestUnreadMessage.authorNickname, latestUnreadMessage.authorRole)
     : resolveAuthorName(
         fallbackAuthor?.nickname ?? null,
-        fallbackAuthor?.role
-          ? resolvePrimaryUserRole(fallbackAuthor.role)
-          : null,
+        fallbackAuthor?.role ? resolvePrimaryUserRole(fallbackAuthor.role) : null,
       );
 
   return {
@@ -221,11 +206,10 @@ export const preparePRMessageNotificationDispatch = async (
 export const consumePRMessageNotificationCredit = async (
   recipientUserId: User["id"],
 ): Promise<{ remainingCount: number; consumed: boolean }> => {
-  const consumeResult =
-    await userNotificationOptRepo.consumeOneWechatNotificationCredit(
-      recipientUserId,
-      PR_MESSAGE_NOTIFICATION_KIND,
-    );
+  const consumeResult = await userNotificationOptRepo.consumeOneWechatNotificationCredit(
+    recipientUserId,
+    PR_MESSAGE_NOTIFICATION_KIND,
+  );
   return {
     consumed: consumeResult.consumed,
     remainingCount: consumeResult.remainingCount,

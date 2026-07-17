@@ -1,9 +1,5 @@
 <template>
-  <div
-    v-if="communityQrCode"
-    class="utility-action-cell"
-    data-region="type-community"
-  >
+  <div v-if="communityQrCode" class="utility-action-cell" data-region="type-community">
     <PuButton
       tone="neutral"
       variant="outline"

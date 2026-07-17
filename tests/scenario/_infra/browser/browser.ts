@@ -1,9 +1,4 @@
-import {
-  chromium,
-  type Browser,
-  type BrowserContextOptions,
-  type Page,
-} from "playwright";
+import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { getScenarioEnvironment } from "../environment/scenario-environment";
 
 let browser: Browser | null = null;

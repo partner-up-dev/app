@@ -37,19 +37,15 @@ export type CreatePRMessageResponse = {
   thread: PRMessageThreadState;
 };
 
-const coalesceMessageId = (value: PRMessageId | null | undefined): number =>
-  value ?? 0;
+const coalesceMessageId = (value: PRMessageId | null | undefined): number => value ?? 0;
 
 export const hasUnreadPRMessages = (input: {
   latestVisibleMessageId: PRMessageId | null;
   lastReadMessageId: PRMessageId | null;
 }): boolean =>
-  coalesceMessageId(input.latestVisibleMessageId) >
-  coalesceMessageId(input.lastReadMessageId);
+  coalesceMessageId(input.latestVisibleMessageId) > coalesceMessageId(input.lastReadMessageId);
 
-export const toPRMessageThreadItem = (
-  message: PRMessageWithAuthor,
-): PRMessageThreadItem => ({
+export const toPRMessageThreadItem = (message: PRMessageWithAuthor): PRMessageThreadItem => ({
   id: message.id,
   messageType: message.authorRole === "service" ? "SYSTEM" : "USER",
   body: message.body,
@@ -59,10 +55,7 @@ export const toPRMessageThreadItem = (
     role: message.authorRole,
     nickname: message.authorNickname?.trim() || null,
     avatarUrl: message.authorAvatar,
-    label:
-      message.authorRole === "service"
-        ? "系统消息"
-        : message.authorNickname?.trim() || "搭子",
+    label: message.authorRole === "service" ? "系统消息" : message.authorNickname?.trim() || "搭子",
   },
 });
 
@@ -87,8 +80,7 @@ export const buildPRMessageThreadResponse = (input: {
   messages: PRMessageWithAuthor[];
   inboxState: Pick<PRMessageInboxState, "lastReadMessageId"> | null;
 }): PRMessageThreadResponse => {
-  const latestVisibleMessageId =
-    input.messages[input.messages.length - 1]?.id ?? null;
+  const latestVisibleMessageId = input.messages[input.messages.length - 1]?.id ?? null;
 
   return {
     items: input.messages.map(toPRMessageThreadItem),

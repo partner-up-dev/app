@@ -23,17 +23,12 @@
           :class="{
             'place-card--selected': selected,
             'place-card--create': asPlaceCardViewModel(item).isCreateCard,
-            'place-card--with-image': Boolean(
-              asPlaceCardViewModel(item).coverImage,
-            ),
+            'place-card--with-image': Boolean(asPlaceCardViewModel(item).coverImage),
             'place-card--route': asPlaceCardViewModel(item).kind === 'route',
           }"
           @click="handleCardClick(asPlaceCardViewModel(item))"
         >
-          <div
-            v-if="asPlaceCardViewModel(item).isCreateCard"
-            class="place-card__create"
-          >
+          <div v-if="asPlaceCardViewModel(item).isCreateCard" class="place-card__create">
             <span class="place-card__create-icon i-mdi-plus" aria-hidden="true"></span>
           </div>
 
@@ -63,10 +58,7 @@
 
     <Transition name="place-label" mode="out-in">
       <div :key="selectedPlaceCaptionKey" class="place-caption">
-        <div
-          v-if="selectedRoutePoints.length > 0"
-          class="place-caption__route-shell"
-        >
+        <div v-if="selectedRoutePoints.length > 0" class="place-caption__route-shell">
           <ol class="place-caption__route-list">
             <li
               v-for="(point, index) in selectedRoutePoints"

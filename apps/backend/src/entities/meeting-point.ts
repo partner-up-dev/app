@@ -19,9 +19,7 @@ const normalizeNullableText = (value: unknown): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-export const normalizeMeetingPointConfig = (
-  rawConfig: unknown,
-): MeetingPointConfig | null => {
+export const normalizeMeetingPointConfig = (rawConfig: unknown): MeetingPointConfig | null => {
   if (typeof rawConfig !== "object" || rawConfig === null) {
     return null;
   }
@@ -35,9 +33,7 @@ export const normalizeMeetingPointConfig = (
   return config.description || config.imageUrl ? config : null;
 };
 
-export const normalizeMeetingPointConfigMap = (
-  rawMap: unknown,
-): MeetingPointConfigMap => {
+export const normalizeMeetingPointConfigMap = (rawMap: unknown): MeetingPointConfigMap => {
   if (typeof rawMap !== "object" || rawMap === null || Array.isArray(rawMap)) {
     return {};
   }

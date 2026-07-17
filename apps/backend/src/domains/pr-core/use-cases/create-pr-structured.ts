@@ -157,7 +157,7 @@ export async function createPRFromStructured(
       source: createSource,
       creationAuthority,
       status: initialStatus,
-      ...(options.operationLog?.detail ?? {}),
+      ...options.operationLog?.detail,
     },
   });
 

@@ -20,3 +20,17 @@ rules:
     paths:
       include:
         - apps/web/src/**/*.vue
+      exclude:
+        - apps/web/src/shared/ui/sections/PRNotificationSubscriptions.vue
+
+  - id: partner-up-reviewed-v-html-notification-subscriptions
+    languages:
+      - generic
+    severity: WARNING
+    message: v-html usage must be backed by trusted template ownership or explicit sanitization.
+    # wx-open-subscribe requires these two repository-owned static templates.
+    # Keep every other v-html form, including single-quoted and unquoted bindings, reviewable.
+    pattern-regex: 'v-html(?!\s*=\s*"(?:openSubscribeStyleTemplate|openSubscribeButtonTemplate)")'
+    paths:
+      include:
+        - apps/web/src/shared/ui/sections/PRNotificationSubscriptions.vue

@@ -17,68 +17,39 @@
           <PuButton
             v-if="interactive && locationGalleryAvailable"
             class="facts-entry-button"
-            tone="neutral" variant="ghost"
+            tone="neutral"
+            variant="ghost"
             block
             @click="showLocationGalleryModal = true"
           >
             <span class="facts-entry-button__body">
-              <span class="facts-entry-button__label">{{
-                t("prCard.location")
-              }}</span>
+              <span class="facts-entry-button__label">{{ t("prCard.location") }}</span>
               <span class="facts-entry-button__trailing">
                 <span class="facts-entry-button__action">
                   {{ t("prCard.viewLocationImages") }}
                 </span>
-                <span
-                  class="facts-entry-button__icon i-mdi-chevron-right"
-                  aria-hidden="true"
-                />
+                <span class="facts-entry-button__icon i-mdi-chevron-right" aria-hidden="true" />
               </span>
             </span>
           </PuButton>
 
-          <PuDescriptionItem
-            v-else
-            :label="t('prCard.location')"
-            value-align="end"
-          >
+          <PuDescriptionItem v-else :label="t('prCard.location')" value-align="end">
             <span class="facts-inline-value">
               <span>{{ locationDisplayText }}</span>
-              <span
-                v-if="locationEditableAfterReady"
-                class="facts-editable-mark"
-              >
-                可调整
-              </span>
+              <span v-if="locationEditableAfterReady" class="facts-editable-mark"> 可调整 </span>
             </span>
           </PuDescriptionItem>
 
-          <p
-            v-if="interactive && locationGalleryAvailable"
-            class="facts-entry__value"
-          >
+          <p v-if="interactive && locationGalleryAvailable" class="facts-entry__value">
             <span class="facts-inline-value">
               <span>{{ locationDisplayText }}</span>
-              <span
-                v-if="locationEditableAfterReady"
-                class="facts-editable-mark"
-              >
-                可调整
-              </span>
+              <span v-if="locationEditableAfterReady" class="facts-editable-mark"> 可调整 </span>
             </span>
           </p>
         </section>
 
-        <section
-          v-if="routeAvailable"
-          class="facts-entry"
-          data-testid="pr-detail.route"
-        >
-          <PuDescriptionItem
-            v-if="interactive"
-            :label="t('prCard.route')"
-            value-align="end"
-          >
+        <section v-if="routeAvailable" class="facts-entry" data-testid="pr-detail.route">
+          <PuDescriptionItem v-if="interactive" :label="t('prCard.route')" value-align="end">
             <template #action>
               <button
                 class="facts-row-action"
@@ -91,32 +62,19 @@
                 @click="showRouteMapModal = true"
               >
                 <span>{{ t("prCard.viewRouteMap") }}</span>
-                <span
-                  class="facts-row-action__icon i-mdi-chevron-right"
-                  aria-hidden="true"
-                />
+                <span class="facts-row-action__icon i-mdi-chevron-right" aria-hidden="true" />
               </button>
             </template>
           </PuDescriptionItem>
 
-          <PuDescriptionItem
-            v-else
-            :label="t('prCard.route')"
-            value-align="end"
-          >
+          <PuDescriptionItem v-else :label="t('prCard.route')" value-align="end">
             <span class="facts-inline-value">
               <span>{{ routeDisplayText }}</span>
-              <span v-if="routeEditableAfterReady" class="facts-editable-mark">
-                可调整
-              </span>
+              <span v-if="routeEditableAfterReady" class="facts-editable-mark"> 可调整 </span>
             </span>
           </PuDescriptionItem>
 
-          <RoutePointList
-            class="facts-route-list"
-            :route="prRoute"
-            variant="compact"
-          />
+          <RoutePointList class="facts-route-list" :route="prRoute" variant="compact" />
         </section>
 
         <section
@@ -136,31 +94,23 @@
           <PuButton
             v-else-if="interactive && meetingPointImageUrl"
             class="facts-entry-button"
-            tone="neutral" variant="ghost"
+            tone="neutral"
+            variant="ghost"
             block
             @click="showMeetingPointGalleryModal = true"
           >
             <span class="facts-entry-button__body">
-              <span class="facts-entry-button__label">{{
-                t("prCard.meetingPoint")
-              }}</span>
+              <span class="facts-entry-button__label">{{ t("prCard.meetingPoint") }}</span>
               <span class="facts-entry-button__trailing">
                 <span class="facts-entry-button__action">
                   {{ t("prCard.viewMeetingPointImage") }}
                 </span>
-                <span
-                  class="facts-entry-button__icon i-mdi-chevron-right"
-                  aria-hidden="true"
-                />
+                <span class="facts-entry-button__icon i-mdi-chevron-right" aria-hidden="true" />
               </span>
             </span>
           </PuButton>
 
-          <PuDescriptionItem
-            v-else
-            :label="t('prCard.meetingPoint')"
-            value-align="end"
-          >
+          <PuDescriptionItem v-else :label="t('prCard.meetingPoint')" value-align="end">
             {{ meetingPointDescription ?? t("prPage.partnerSection.notSet") }}
           </PuDescriptionItem>
 
@@ -177,9 +127,7 @@
             <span data-testid="pr-detail.facts.time-value">
               {{ localizedTimeText }}
             </span>
-            <span v-if="timeEditableAfterReady" class="facts-editable-mark">
-              可调整
-            </span>
+            <span v-if="timeEditableAfterReady" class="facts-editable-mark"> 可调整 </span>
           </span>
         </PuDescriptionItem>
 
@@ -196,11 +144,7 @@
         </PuDescriptionItem>
 
         <section class="facts-entry">
-          <PuDescriptionItem
-            v-if="interactive"
-            label="参与概览"
-            value-align="end"
-          >
+          <PuDescriptionItem v-if="interactive" label="参与概览" value-align="end">
             <template #action>
               <button
                 class="facts-row-action"
@@ -209,10 +153,7 @@
                 @click="showRosterModal = true"
               >
                 <span>{{ participantCountText }}</span>
-                <span
-                  class="facts-row-action__icon i-mdi-chevron-right"
-                  aria-hidden="true"
-                />
+                <span class="facts-row-action__icon i-mdi-chevron-right" aria-hidden="true" />
               </button>
             </template>
           </PuDescriptionItem>
@@ -251,11 +192,7 @@
           </div>
         </section>
 
-        <PuDescriptionItem
-          v-if="normalizedNotes"
-          :label="t('prCard.notes')"
-          value-align="start"
-        >
+        <PuDescriptionItem v-if="normalizedNotes" :label="t('prCard.notes')" value-align="start">
           <p class="facts-notes">{{ normalizedNotes }}</p>
         </PuDescriptionItem>
       </PuDescriptionList>
@@ -621,5 +558,4 @@ watch(
     outline-offset: 2px;
   }
 }
-
 </style>

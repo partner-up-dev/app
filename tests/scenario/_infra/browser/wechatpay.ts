@@ -11,11 +11,7 @@ export async function installFakeWeChatPayBridge(
     type BridgeCallback = (response: { err_msg?: string }) => void;
     type BridgeWindow = Window & {
       WeixinJSBridge: {
-        invoke(
-          method: string,
-          payload: BridgePayload,
-          callback: BridgeCallback,
-        ): void;
+        invoke(method: string, payload: BridgePayload, callback: BridgeCallback): void;
       };
     };
 
@@ -27,9 +23,7 @@ export async function installFakeWeChatPayBridge(
         throw new Error("Fake WeChatPay bridge missing prepay_id package");
       }
       const response = await fetch(
-        `${origin}/__fake_wechatpay/prepays/${encodeURIComponent(
-          prepayId,
-        )}/succeed`,
+        `${origin}/__fake_wechatpay/prepays/${encodeURIComponent(prepayId)}/succeed`,
         {
           method: "POST",
         },

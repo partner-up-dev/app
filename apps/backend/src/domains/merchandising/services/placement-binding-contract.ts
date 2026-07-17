@@ -6,11 +6,7 @@ export function resolvePlacementBindingContractForOffer(
 ): PlacementBindingContract {
   if (offer.productType === "RENTAL") {
     return {
-      requiredFieldKeys: [
-        "participantCount",
-        "serviceStartAt",
-        "serviceEndAt",
-      ],
+      requiredFieldKeys: ["participantCount", "serviceStartAt", "serviceEndAt"],
     };
   }
 

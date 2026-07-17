@@ -1,8 +1,5 @@
 <template>
-  <section
-    v-if="shouldShowPreferenceControl"
-    class="pr-discovery-preference-control"
-  >
+  <section v-if="shouldShowPreferenceControl" class="pr-discovery-preference-control">
     <div class="preference-cell-list">
       <PuCell
         v-for="cell in preferenceCells"
@@ -46,10 +43,7 @@
             />
           </PuChipGroup>
 
-          <PuFormItem
-            class="preference-custom-field"
-            :label="t('prDiscovery.customTagTitle')"
-          >
+          <PuFormItem class="preference-custom-field" :label="t('prDiscovery.customTagTitle')">
             <PuChipGroup class="preference-custom-field__chips" wrap gap="sm">
               <PuChipInput
                 v-for="tag in activeDrawerCustomTags"
@@ -89,12 +83,7 @@
 
       <template #footer>
         <div class="drawer-actions">
-          <PuButton
-            shape="pill"
-            tone="neutral"
-            variant="outline"
-            @click="closePreferenceDrawer"
-          >
+          <PuButton shape="pill" tone="neutral" variant="outline" @click="closePreferenceDrawer">
             {{ t("common.cancel") }}
           </PuButton>
           <PuButton shape="pill" @click="handleSavePreferenceDrawer">

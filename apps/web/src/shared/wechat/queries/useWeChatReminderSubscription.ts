@@ -19,12 +19,9 @@ export const useWeChatReminderSubscription = () =>
       });
 
       if (!res.ok) {
-        throw new Error(
-          i18n.global.t("errors.fetchWechatReminderSubscriptionFailed"),
-        );
+        throw new Error(i18n.global.t("errors.fetchWechatReminderSubscriptionFailed"));
       }
 
       return await res.json();
     },
   });
-

@@ -1,8 +1,5 @@
 import type { PickedLocation } from "./location-picker";
-import {
-  parsePickedLocation,
-  serializePickedLocation,
-} from "./location-picker";
+import { parsePickedLocation, serializePickedLocation } from "./location-picker";
 
 const LAST_PICKED_LOCATION_KEY = "partner-up:location-picker:last-result";
 
@@ -14,10 +11,7 @@ const getSessionStorage = (): Storage | null => {
 };
 
 export const saveLastPickedLocation = (location: PickedLocation): void => {
-  getSessionStorage()?.setItem(
-    LAST_PICKED_LOCATION_KEY,
-    serializePickedLocation(location),
-  );
+  getSessionStorage()?.setItem(LAST_PICKED_LOCATION_KEY, serializePickedLocation(location));
 };
 
 export const readLastPickedLocation = (): PickedLocation | null => {

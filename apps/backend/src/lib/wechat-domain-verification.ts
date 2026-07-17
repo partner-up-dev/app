@@ -4,8 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export const MPWX_DOMAIN_VERIFICATION_FILENAME = "XdiIXm3WSq.txt";
-export const WXOA_DOMAIN_VERIFICATION_FILENAME =
-  "MP_verify_bDsck6MFYTmV24vd.txt";
+export const WXOA_DOMAIN_VERIFICATION_FILENAME = "MP_verify_bDsck6MFYTmV24vd.txt";
 
 const verificationFileRoots = [
   "../../../frontend/public/",
@@ -21,9 +20,7 @@ const buildVerificationFileCandidates = (filename: string): URL[] => {
 
 const cachedVerificationContents = new Map<string, string>();
 
-export const getWechatDomainVerificationContent = (
-  filename: string,
-): string => {
+export const getWechatDomainVerificationContent = (filename: string): string => {
   const cachedContent = cachedVerificationContents.get(filename);
   if (cachedContent !== undefined) {
     return cachedContent;
@@ -45,9 +42,7 @@ export const getWechatDomainVerificationContent = (
     }
   }
 
-  const attemptedPaths = verificationFileCandidates.map((candidate) =>
-    fileURLToPath(candidate),
-  );
+  const attemptedPaths = verificationFileCandidates.map((candidate) => fileURLToPath(candidate));
   throw new Error(
     `WeChat domain verification file "${filename}" not found. Tried: ${attemptedPaths.join(", ")}`,
   );

@@ -17,22 +17,15 @@
     data-region="join-action"
     data-testid="pr-detail.join-action"
   >
-    <PuInlineNotice
-      v-if="releaseNoticeText"
-      tone="warning"
-      :message="releaseNoticeText"
-    />
+    <PuInlineNotice v-if="releaseNoticeText" tone="warning" :message="releaseNoticeText" />
 
-    <PuInlineNotice
-      v-if="joinBlockedMessage"
-      tone="warning"
-      :message="joinBlockedMessage"
-    />
+    <PuInlineNotice v-if="joinBlockedMessage" tone="warning" :message="joinBlockedMessage" />
 
     <div v-if="showJoinAction" class="action-group">
       <PuButton
         class="action-group__button"
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         :disabled="openDisabled"
         :loading="flowPending"
         block
@@ -53,12 +46,7 @@
     </div>
   </section>
 
-  <PuModal
-    :open="showJoinGateModal"
-    max-width="420px"
-    title="加入活动"
-    @close="closeJoinGateModal"
-  >
+  <PuModal :open="showJoinGateModal" max-width="420px" title="加入活动" @close="closeJoinGateModal">
     <PRJoinGates
       :pr-id="resolvedPrId"
       :enabled="showJoinGateModal"
@@ -169,11 +157,11 @@ const showJoinAction = computed(() => {
   const detailViewer = viewer.value;
   return Boolean(
     detailViewer &&
-      !detailViewer.isCreator &&
-      !detailViewer.isParticipant &&
-      !detailViewer.isWaitlisted &&
-      detailViewer.canJoin &&
-      !detailViewer.canWaitlist,
+    !detailViewer.isCreator &&
+    !detailViewer.isParticipant &&
+    !detailViewer.isWaitlisted &&
+    detailViewer.canJoin &&
+    !detailViewer.canWaitlist,
   );
 });
 const joinBlockedMessage = computed(() => {
@@ -193,7 +181,7 @@ const joinBlockedMessage = computed(() => {
 const showActionArea = computed(() =>
   Boolean(
     resolvedPr.value &&
-      (releaseNoticeText.value || joinBlockedMessage.value || showJoinAction.value),
+    (releaseNoticeText.value || joinBlockedMessage.value || showJoinAction.value),
   ),
 );
 

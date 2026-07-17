@@ -19,17 +19,13 @@ export type UpdateAdminCommerceOfferInput = {
   endsAt?: Date | null;
 };
 
-export async function updateAdminCommerceOffer(
-  input: UpdateAdminCommerceOfferInput,
-) {
+export async function updateAdminCommerceOffer(input: UpdateAdminCommerceOfferInput) {
   const offer = await offerRepo.findById(input.offerId);
   if (!offer) {
     return throwHttpProblem({ status: 404, detail: "Offer not found" });
   }
 
-  const spus = await Promise.all(
-    input.spuIds.map((spuId) => productSpuRepo.findById(spuId)),
-  );
+  const spus = await Promise.all(input.spuIds.map((spuId) => productSpuRepo.findById(spuId)));
   if (spus.some((spu) => spu === null)) {
     return throwHttpProblem({
       status: 404,

@@ -25,10 +25,7 @@ export class ConfigService {
     return value ?? fallback;
   }
 
-  async getJsonArrayOrFallback(
-    key: string,
-    fallback: string[],
-  ): Promise<string[]> {
+  async getJsonArrayOrFallback(key: string, fallback: string[]): Promise<string[]> {
     try {
       const raw = await withTimeout(
         repo.findValueByKey(key),
@@ -40,10 +37,7 @@ export class ConfigService {
 
       try {
         const parsed = JSON.parse(raw);
-        if (
-          Array.isArray(parsed) &&
-          parsed.every((v) => typeof v === "string")
-        ) {
+        if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) {
           return parsed;
         }
         return fallback;

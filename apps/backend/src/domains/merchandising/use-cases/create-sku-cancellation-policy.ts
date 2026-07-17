@@ -22,9 +22,7 @@ export type CreateSkuCancellationPolicyInput = {
 const productSkuRepo = new ProductSkuRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 
-export async function createSkuCancellationPolicy(
-  input: CreateSkuCancellationPolicyInput,
-) {
+export async function createSkuCancellationPolicy(input: CreateSkuCancellationPolicyInput) {
   const sku = await productSkuRepo.findById(input.skuId);
   if (!sku) {
     return throwHttpProblem({ status: 404, detail: "Product SKU not found" });

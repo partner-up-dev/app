@@ -9,8 +9,8 @@
       </div>
       <div class="gate-actions">
         <PuButton
-          tone="neutral" variant="soft"
-
+          tone="neutral"
+          variant="soft"
           :disabled="interactionPending"
           data-testid="pr-detail.join-gate.join-notice.cancel"
           @click="emit('cancel')"
@@ -18,7 +18,6 @@
           取消
         </PuButton>
         <PuButton
-
           :loading="interactionPending"
           data-testid="pr-detail.join-gate.join-notice.accept"
           @click="resolveJoinNotice(activeGate)"
@@ -51,10 +50,7 @@ import {
 } from "@/domains/pr/queries/usePRJoinGates";
 import { PuButton } from "@partner-up-dev/design-web";
 
-type JoinNoticeGate = Extract<
-  PRJoinGateProjectionItem,
-  { kind: "JOIN_NOTICE" }
->;
+type JoinNoticeGate = Extract<PRJoinGateProjectionItem, { kind: "JOIN_NOTICE" }>;
 
 const props = defineProps<{
   prId: PRId | null;
@@ -78,34 +74,21 @@ const enabledRef = computed(() => props.enabled);
 const joinGatesQuery = usePRJoinGates(prIdRef, enabledRef);
 
 const gates = computed(() => joinGatesQuery.data.value?.gates ?? []);
-const activeGate = computed(
-  () => gates.value.find((gate) => !gate.resolved) ?? null,
-);
+const activeGate = computed(() => gates.value.find((gate) => !gate.resolved) ?? null);
 const loading = computed(
-  () =>
-    props.enabled &&
-    joinGatesQuery.isFetching.value &&
-    joinGatesQuery.data.value === undefined,
+  () => props.enabled && joinGatesQuery.isFetching.value && joinGatesQuery.data.value === undefined,
 );
 const interactionPending = computed(
   () =>
-    props.pending ||
-    joinGatesQuery.isFetching.value ||
-    joinGatesQuery.resolveGate.isPending.value,
+    props.pending || joinGatesQuery.isFetching.value || joinGatesQuery.resolveGate.isPending.value,
 );
 const queryErrorMessage = computed(() => {
   const error = joinGatesQuery.error.value;
   return error instanceof Error ? error.message : null;
 });
-const visibleError = computed(
-  () => props.error ?? queryErrorMessage.value ?? null,
-);
+const visibleError = computed(() => props.error ?? queryErrorMessage.value ?? null);
 const showFallbackConfirm = computed(
-  () =>
-    props.enabled &&
-    !loading.value &&
-    !queryErrorMessage.value &&
-    gates.value.length === 0,
+  () => props.enabled && !loading.value && !queryErrorMessage.value && gates.value.length === 0,
 );
 const allConfiguredGatesResolved = computed(
   () =>

@@ -1,12 +1,4 @@
-import {
-  bigserial,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { bigserial, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import type {
   CatalogStatus,
   ProductPresentation,

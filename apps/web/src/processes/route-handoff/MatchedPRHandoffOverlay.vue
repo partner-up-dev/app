@@ -18,8 +18,7 @@
           ref="cardShellRef"
           class="matched-pr-handoff__card-shell"
           :class="{
-            'matched-pr-handoff__card-shell--flip-running':
-              cardAlignmentStage === 'RUNNING',
+            'matched-pr-handoff__card-shell--flip-running': cardAlignmentStage === 'RUNNING',
           }"
           :style="cardShellStyle"
         >
@@ -39,8 +38,8 @@
             <template #trigger="{ open, pending, disabled, joined, errorMessage }">
               <div class="matched-pr-handoff__actions">
                 <PuButton
-
-                  tone="neutral" variant="soft"
+                  tone="neutral"
+                  variant="soft"
                   block
                   data-testid="pr-discovery.form.matched.cancel"
                   :disabled="pending"
@@ -49,24 +48,16 @@
                   {{ t("common.cancel") }}
                 </PuButton>
                 <PuButton
-
                   block
                   data-testid="pr-discovery.form.matched.join"
                   :loading="pending"
                   :disabled="disabled"
                   @click="handleConfirm(open)"
                 >
-                  {{
-                    joined
-                      ? t("prPage.partnerSection.rosterJoined")
-                      : t("prPage.join")
-                  }}
+                  {{ joined ? t("prPage.partnerSection.rosterJoined") : t("prPage.join") }}
                 </PuButton>
               </div>
-              <p
-                v-if="errorMessage"
-                class="matched-pr-handoff__error"
-              >
+              <p v-if="errorMessage" class="matched-pr-handoff__error">
                 {{ errorMessage }}
               </p>
             </template>

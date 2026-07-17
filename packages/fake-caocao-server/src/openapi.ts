@@ -127,7 +127,9 @@ const formatAjvErrors = (
   return errors.map((error) => {
     const instancePath = error.instancePath.length > 0 ? error.instancePath : "/";
     if (error.keyword === "required") {
-      const missingProperty = String((error.params as { missingProperty?: unknown }).missingProperty);
+      const missingProperty = String(
+        (error.params as { missingProperty?: unknown }).missingProperty,
+      );
       return `${location}(${operationId})${instancePath}${instancePath.endsWith("/") ? "" : "/"}${missingProperty} is required`;
     }
     if (error.keyword === "additionalProperties") {
@@ -182,9 +184,7 @@ export class OpenApiContract {
       ) {
         return value ?? {};
       }
-      throw new OpenApiValidationError("body", [
-        `${operationId} does not accept a request body`,
-      ]);
+      throw new OpenApiValidationError("body", [`${operationId} does not accept a request body`]);
     }
 
     const valid = operation.requestBody.validator(value);
@@ -200,9 +200,7 @@ export class OpenApiContract {
   validateResponse(operationId: string, status: number, value: unknown): void {
     const operation = this.getOperation(operationId);
     const validator =
-      operation.responseValidators.get(status) ??
-      operation.responseValidators.get(200) ??
-      null;
+      operation.responseValidators.get(status) ?? operation.responseValidators.get(200) ?? null;
     if (!validator) {
       throw new Error(`OpenAPI response schema missing: ${operationId} ${status}`);
     }
@@ -295,10 +293,7 @@ export class OpenApiContract {
   private resolveRequestBody(operation: OpenApiOperation): ValidationRequestSchema | null {
     const content = operation.requestBody?.content;
     if (!content) return null;
-    for (const contentType of [
-      "application/json",
-      "application/x-www-form-urlencoded",
-    ] as const) {
+    for (const contentType of ["application/json", "application/x-www-form-urlencoded"] as const) {
       const schema = content[contentType]?.schema;
       if (!schema) continue;
       const dereferenced = this.dereferenceSchema(schema);
@@ -311,13 +306,10 @@ export class OpenApiContract {
     return null;
   }
 
-  private resolveResponseSchema(
-    response: { content?: Record<string, { schema?: JsonSchema }> },
-  ): JsonSchema | null {
-    for (const contentType of [
-      "application/json",
-      "application/x-www-form-urlencoded",
-    ] as const) {
+  private resolveResponseSchema(response: {
+    content?: Record<string, { schema?: JsonSchema }>;
+  }): JsonSchema | null {
+    for (const contentType of ["application/json", "application/x-www-form-urlencoded"] as const) {
       const schema = response.content?.[contentType]?.schema;
       if (schema) return schema;
     }

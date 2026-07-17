@@ -14,19 +14,11 @@
         <img
           class="preview-image"
           :src="images[currentIndex]"
-          :alt="
-            t('prCard.locationGallery.imageAlt', { index: currentIndex + 1 })
-          "
+          :alt="t('prCard.locationGallery.imageAlt', { index: currentIndex + 1 })"
         />
 
         <div class="controls">
-          <PuButton
-            shape="pill"
-            size="sm"
-
-            :disabled="images.length <= 1"
-            @click="goPrev"
-          >
+          <PuButton shape="pill" size="sm" :disabled="images.length <= 1" @click="goPrev">
             {{ t("prCard.locationGallery.prev") }}
           </PuButton>
 
@@ -39,13 +31,7 @@
             }}
           </span>
 
-          <PuButton
-            shape="pill"
-            size="sm"
-
-            :disabled="images.length <= 1"
-            @click="goNext"
-          >
+          <PuButton shape="pill" size="sm" :disabled="images.length <= 1" @click="goNext">
             {{ t("prCard.locationGallery.next") }}
           </PuButton>
         </div>
@@ -76,8 +62,7 @@ const currentIndex = ref(0);
 
 const goPrev = () => {
   if (props.images.length <= 1) return;
-  currentIndex.value =
-    (currentIndex.value - 1 + props.images.length) % props.images.length;
+  currentIndex.value = (currentIndex.value - 1 + props.images.length) % props.images.length;
 };
 
 const goNext = () => {

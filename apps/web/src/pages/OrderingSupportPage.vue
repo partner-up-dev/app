@@ -2,14 +2,8 @@
   <OrderingPageShell :title="pageTitle" :back-fallback-to="backFallbackTo">
     <div class="ordering-support" data-testid="ordering.support.page">
       <template v-if="supportHandoff">
-        <section
-          class="ordering-support__hero"
-          :aria-label="t('ordering.support.heroAria')"
-        >
-          <span
-            class="ordering-support__icon i-mdi-progress-wrench"
-            aria-hidden="true"
-          ></span>
+        <section class="ordering-support__hero" :aria-label="t('ordering.support.heroAria')">
+          <span class="ordering-support__icon i-mdi-progress-wrench" aria-hidden="true"></span>
           <h1>{{ t("ordering.support.heroTitle") }}</h1>
           <p>{{ t("ordering.support.heroDescription") }}</p>
         </section>
@@ -36,11 +30,7 @@
           </div>
 
           <p class="ordering-support__poster-hint">
-            {{
-              summaryPosterUrl
-                ? t("ordering.support.posterSavedHint")
-                : summaryPosterHint
-            }}
+            {{ summaryPosterUrl ? t("ordering.support.posterSavedHint") : summaryPosterHint }}
           </p>
         </section>
 
@@ -51,12 +41,8 @@
           class="ordering-support__summary-fallback"
         />
 
-        <section
-          class="ordering-support__contact"
-          :aria-label="t('ordering.support.contactAria')"
-        >
+        <section class="ordering-support__contact" :aria-label="t('ordering.support.contactAria')">
           <PuButton
-
             shape="rect"
             size="lg"
             data-testid="ordering.support.contact.open"
@@ -94,7 +80,6 @@
             </div>
 
             <PuButton
-
               shape="rect"
               block
               data-testid="ordering.support.contact.close"
@@ -119,7 +104,6 @@
         <h1>{{ t("ordering.support.recoveryTitle") }}</h1>
         <p>{{ recoveryDescription }}</p>
         <PuButton
-
           shape="rect"
           size="lg"
           data-testid="ordering.support.recovery.action"
@@ -130,11 +114,7 @@
       </section>
     </div>
 
-    <div
-      v-if="supportHandoff"
-      class="ordering-support__poster-source"
-      aria-hidden="true"
-    >
+    <div v-if="supportHandoff" class="ordering-support__poster-source" aria-hidden="true">
       <OrderingSupportSummaryCard
         v-if="supportHandoff"
         ref="summaryCardRef"
@@ -256,7 +236,7 @@ const handleRecoveryAction = (): void => {
   void router.push(orderingEntry.value ? { name: "order-new" } : { path: "/" });
 };
 
-const loadHtml2Canvas = async (): Promise<typeof import("html2canvas")["default"]> => {
+const loadHtml2Canvas = async (): Promise<(typeof import("html2canvas"))["default"]> => {
   const module = await import("html2canvas");
   return module.default;
 };

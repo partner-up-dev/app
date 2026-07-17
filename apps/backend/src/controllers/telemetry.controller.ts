@@ -18,12 +18,7 @@ const userTelemetryEventNameSchema = z
 
 const instantDateTimeSchema = z.string().datetime({ offset: true });
 
-const userTelemetryAttributeValueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.null(),
-]);
+const userTelemetryAttributeValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 
 const userTelemetryEventSchema = z.object({
   event_id: z.string().uuid(),
@@ -41,14 +36,13 @@ const userTelemetryBatchSchema = z.object({
   events: z.array(userTelemetryEventSchema).min(1).max(100),
 });
 
-export const telemetryRoute = app
-  .post(
-    "/user/events",
-    authMiddleware,
-    zValidator("json", userTelemetryBatchSchema),
-    async (c) => {
-      const { events } = c.req.valid("json");
-      const result = await ingestUserTelemetryEvents(events);
-      return c.json(result);
-    },
-  );
+export const telemetryRoute = app.post(
+  "/user/events",
+  authMiddleware,
+  zValidator("json", userTelemetryBatchSchema),
+  async (c) => {
+    const { events } = c.req.valid("json");
+    const result = await ingestUserTelemetryEvents(events);
+    return c.json(result);
+  },
+);

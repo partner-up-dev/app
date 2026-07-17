@@ -7,7 +7,8 @@
   >
     <div class="action-group">
       <PuButton
-        tone="danger" variant="outline"
+        tone="danger"
+        variant="outline"
         :disabled="!viewer.canExit"
         :loading="exitMutation.isPending.value"
         block
@@ -28,9 +29,7 @@
       :open="showExitConfirmModal"
       title="确认退出"
       description="退出后你的参与名额会被释放，确认继续？"
-      :confirm-text="
-        exitMutation.isPending.value ? t('prPage.exiting') : t('common.confirm')
-      "
+      :confirm-text="exitMutation.isPending.value ? t('prPage.exiting') : t('common.confirm')"
       tone="error"
       :confirm-loading="exitMutation.isPending.value"
       @close="showExitConfirmModal = false"

@@ -45,84 +45,73 @@ const buildProviderPayload = (instanceKey: string, signKey: string | null) => ({
   },
 });
 
-scenario(
-  "admin_ride_hailing_provider_instance_create_list_update_preserves_secret",
-  async () => {
-    const admin = await givenAdminUser("ride-hailing-provider-admin");
-    const instanceKey = `scenario-caocao-admin-${randomUUID()}`;
+scenario("admin_ride_hailing_provider_instance_create_list_update_preserves_secret", async () => {
+  const admin = await givenAdminUser("ride-hailing-provider-admin");
+  const instanceKey = `scenario-caocao-admin-${randomUUID()}`;
 
-    const createResponse = await requestJson(
-      "/api/admin/ride-hailing/provider-instances",
-      {
-        method: "POST",
-        token: admin.token,
-        body: buildProviderPayload(instanceKey, "scenario-caocao-secret"),
-      },
-    );
-    const created =
-      await expectJsonResponse<AdminRideHailingProviderInstanceResponse>(
-        createResponse,
-        200,
-      );
+  const createResponse = await requestJson("/api/admin/ride-hailing/provider-instances", {
+    method: "POST",
+    token: admin.token,
+    body: buildProviderPayload(instanceKey, "scenario-caocao-secret"),
+  });
+  const created = await expectJsonResponse<AdminRideHailingProviderInstanceResponse>(
+    createResponse,
+    200,
+  );
 
-    assert.equal(created.providerType, "CAOCAO");
-    assert.equal(created.instanceKey, instanceKey);
-    assert.equal(created.config.signKeyConfigured, true);
-    assert.equal("signKey" in created.config, false);
-    assert.equal(
-      created.callbackUrl,
-      `https://api.partner-up.test/api/ride-hailing/caocao/${created.id}/callback/order-status`,
-    );
+  assert.equal(created.providerType, "CAOCAO");
+  assert.equal(created.instanceKey, instanceKey);
+  assert.equal(created.config.signKeyConfigured, true);
+  assert.equal("signKey" in created.config, false);
+  assert.equal(
+    created.callbackUrl,
+    `https://api.partner-up.test/api/ride-hailing/caocao/${created.id}/callback/order-status`,
+  );
 
-    const workspaceResponse = await requestJson(
-      "/api/admin/ride-hailing/provider-instances/workspace",
-      {
-        method: "GET",
-        token: admin.token,
-      },
-    );
-    const workspace =
-      await expectJsonResponse<AdminRideHailingProviderWorkspaceResponse>(
-        workspaceResponse,
-        200,
-      );
-    const listed = workspace.providerInstances.find(
-      (providerInstance) => providerInstance.id === created.id,
-    );
-    assert.ok(listed);
-    assert.equal("signKey" in listed.config, false);
+  const workspaceResponse = await requestJson(
+    "/api/admin/ride-hailing/provider-instances/workspace",
+    {
+      method: "GET",
+      token: admin.token,
+    },
+  );
+  const workspace = await expectJsonResponse<AdminRideHailingProviderWorkspaceResponse>(
+    workspaceResponse,
+    200,
+  );
+  const listed = workspace.providerInstances.find(
+    (providerInstance) => providerInstance.id === created.id,
+  );
+  assert.ok(listed);
+  assert.equal("signKey" in listed.config, false);
 
-    const updateResponse = await requestJson(
-      `/api/admin/ride-hailing/provider-instances/${created.id}`,
-      {
-        method: "PATCH",
-        token: admin.token,
-        body: {
-          ...buildProviderPayload(instanceKey, ""),
-          displayName: "Scenario Caocao Admin Updated",
-          status: "DISABLED",
-          config: {
-            ...buildProviderPayload(instanceKey, "").config,
-            caocaoClientId: "scenario-caocao-admin-client-updated",
-          },
+  const updateResponse = await requestJson(
+    `/api/admin/ride-hailing/provider-instances/${created.id}`,
+    {
+      method: "PATCH",
+      token: admin.token,
+      body: {
+        ...buildProviderPayload(instanceKey, ""),
+        displayName: "Scenario Caocao Admin Updated",
+        status: "DISABLED",
+        config: {
+          ...buildProviderPayload(instanceKey, "").config,
+          caocaoClientId: "scenario-caocao-admin-client-updated",
         },
       },
-    );
-    const updated =
-      await expectJsonResponse<AdminRideHailingProviderInstanceResponse>(
-        updateResponse,
-        200,
-      );
+    },
+  );
+  const updated = await expectJsonResponse<AdminRideHailingProviderInstanceResponse>(
+    updateResponse,
+    200,
+  );
 
-    assert.equal(updated.displayName, "Scenario Caocao Admin Updated");
-    assert.equal(updated.status, "DISABLED");
-    assert.equal(updated.config.caocaoClientId, "scenario-caocao-admin-client-updated");
-    assert.equal("signKey" in updated.config, false);
+  assert.equal(updated.displayName, "Scenario Caocao Admin Updated");
+  assert.equal(updated.status, "DISABLED");
+  assert.equal(updated.config.caocaoClientId, "scenario-caocao-admin-client-updated");
+  assert.equal("signKey" in updated.config, false);
 
-    const stored = await providerRepo.findById(
-      created.id as RideHailingProviderInstanceId,
-    );
-    assert.ok(stored);
-    assert.equal(stored.config.signKey, "scenario-caocao-secret");
-  },
-);
+  const stored = await providerRepo.findById(created.id as RideHailingProviderInstanceId);
+  assert.ok(stored);
+  assert.equal(stored.config.signKey, "scenario-caocao-secret");
+});

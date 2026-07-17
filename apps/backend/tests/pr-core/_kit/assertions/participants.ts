@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import type { UserId } from "../../../../src/entities/user";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
-import {
-  probeActiveParticipantCount,
-  probeActiveParticipantUserIds,
-} from "../probes/participants";
+import { probeActiveParticipantCount, probeActiveParticipantUserIds } from "../probes/participants";
 
 export async function expectActiveParticipantCount(
   pr: ScenarioPartnerRequest,

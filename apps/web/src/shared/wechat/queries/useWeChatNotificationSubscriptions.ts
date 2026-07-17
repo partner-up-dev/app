@@ -12,19 +12,14 @@ export const useWeChatNotificationSubscriptions = () =>
   useQuery<WeChatNotificationSubscriptionsResponse>({
     queryKey: queryKeys.wechat.notificationSubscriptions(),
     queryFn: async () => {
-      const res = await client.api.wechat.notifications.subscriptions.$get(
-        undefined,
-        {
-          init: {
-            credentials: "include",
-          },
+      const res = await client.api.wechat.notifications.subscriptions.$get(undefined, {
+        init: {
+          credentials: "include",
         },
-      );
+      });
 
       if (!res.ok) {
-        throw new Error(
-          i18n.global.t("errors.fetchWechatReminderSubscriptionFailed"),
-        );
+        throw new Error(i18n.global.t("errors.fetchWechatReminderSubscriptionFailed"));
       }
 
       return await res.json();

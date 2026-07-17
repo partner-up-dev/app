@@ -18,9 +18,7 @@ export const useUpdateCurrentUserPhoneNumber = () => {
 
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.updateCurrentUserProfileFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.updateCurrentUserProfileFailed"));
       }
 
       return await res.json();

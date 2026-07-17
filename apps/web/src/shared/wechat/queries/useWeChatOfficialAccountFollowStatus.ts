@@ -15,22 +15,14 @@ export const useWeChatOfficialAccountFollowStatus = () => {
   return useQuery<WeChatOfficialAccountFollowStatusResponse>({
     queryKey: queryKeys.wechat.officialAccountFollowStatus(),
     queryFn: async () => {
-      const res =
-        await client.api.wechat["official-account"]["follow-status"].$get(
-          undefined,
-          {
-            init: {
-              credentials: "include",
-            },
-          },
-        );
+      const res = await client.api.wechat["official-account"]["follow-status"].$get(undefined, {
+        init: {
+          credentials: "include",
+        },
+      });
 
       if (!res.ok) {
-        throw new Error(
-          i18n.global.t(
-            "errors.fetchWechatOfficialAccountFollowStatusFailed",
-          ),
-        );
+        throw new Error(i18n.global.t("errors.fetchWechatOfficialAccountFollowStatusFailed"));
       }
 
       return await res.json();

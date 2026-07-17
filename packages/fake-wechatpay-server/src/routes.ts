@@ -377,10 +377,7 @@ export function createFakeWeChatPayApp(input: FakeWeChatPayServerAppInput): Hono
 
   app.post("/__fake_wechatpay/prepays/:prepayId/succeed", async (c) => {
     await readJson(c);
-    const transaction = findTransactionByPrepayIdOrThrow(
-      state,
-      c.req.param("prepayId"),
-    );
+    const transaction = findTransactionByPrepayIdOrThrow(state, c.req.param("prepayId"));
     if (!transaction) {
       return plainJson({ message: "Fake prepay not found" }, { status: 404 });
     }
@@ -406,10 +403,7 @@ export function createFakeWeChatPayApp(input: FakeWeChatPayServerAppInput): Hono
 
   app.post("/__fake_wechatpay/prepays/:prepayId/close", async (c) => {
     failBodySchema.parse(await readJson(c));
-    const transaction = findTransactionByPrepayIdOrThrow(
-      state,
-      c.req.param("prepayId"),
-    );
+    const transaction = findTransactionByPrepayIdOrThrow(state, c.req.param("prepayId"));
     if (!transaction) {
       return plainJson({ message: "Fake prepay not found" }, { status: 404 });
     }
@@ -424,10 +418,7 @@ export function createFakeWeChatPayApp(input: FakeWeChatPayServerAppInput): Hono
 
   app.post("/__fake_wechatpay/prepays/:prepayId/fail", async (c) => {
     failBodySchema.parse(await readJson(c));
-    const transaction = findTransactionByPrepayIdOrThrow(
-      state,
-      c.req.param("prepayId"),
-    );
+    const transaction = findTransactionByPrepayIdOrThrow(state, c.req.param("prepayId"));
     if (!transaction) {
       return plainJson({ message: "Fake prepay not found" }, { status: 404 });
     }

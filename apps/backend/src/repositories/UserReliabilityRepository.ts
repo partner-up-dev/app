@@ -32,29 +32,14 @@ export class UserReliabilityRepository {
     const current = await this.findByUserId(userId);
     if (!current) return;
 
-    const nextJoinCount = Math.max(
-      0,
-      current.reliabilityJoinCount + (delta.joined ?? 0),
-    );
-    const nextConfirmCount = Math.max(
-      0,
-      current.reliabilityConfirmCount + (delta.confirmed ?? 0),
-    );
-    const nextAttendCount = Math.max(
-      0,
-      current.reliabilityAttendCount + (delta.attended ?? 0),
-    );
-    const nextReleaseCount = Math.max(
-      0,
-      current.reliabilityReleaseCount + (delta.released ?? 0),
-    );
+    const nextJoinCount = Math.max(0, current.reliabilityJoinCount + (delta.joined ?? 0));
+    const nextConfirmCount = Math.max(0, current.reliabilityConfirmCount + (delta.confirmed ?? 0));
+    const nextAttendCount = Math.max(0, current.reliabilityAttendCount + (delta.attended ?? 0));
+    const nextReleaseCount = Math.max(0, current.reliabilityReleaseCount + (delta.released ?? 0));
 
-    const nextJoinToConfirmRatio =
-      nextJoinCount > 0 ? nextConfirmCount / nextJoinCount : 0;
-    const nextConfirmToAttendRatio =
-      nextConfirmCount > 0 ? nextAttendCount / nextConfirmCount : 0;
-    const nextReleaseFrequency =
-      nextJoinCount > 0 ? nextReleaseCount / nextJoinCount : 0;
+    const nextJoinToConfirmRatio = nextJoinCount > 0 ? nextConfirmCount / nextJoinCount : 0;
+    const nextConfirmToAttendRatio = nextConfirmCount > 0 ? nextAttendCount / nextConfirmCount : 0;
+    const nextReleaseFrequency = nextJoinCount > 0 ? nextReleaseCount / nextJoinCount : 0;
 
     await db
       .update(userReliability)

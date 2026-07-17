@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import type { MessageThreadVisibilityProbe } from "../probes/messages";
 
-export function expectMessageThreadVisible(
-  probe: MessageThreadVisibilityProbe,
-): void {
+export function expectMessageThreadVisible(probe: MessageThreadVisibilityProbe): void {
   assert.equal(
     probe.httpStatus,
     200,
@@ -11,9 +9,7 @@ export function expectMessageThreadVisible(
   );
 }
 
-export function expectMessageThreadForbidden(
-  probe: MessageThreadVisibilityProbe,
-): void {
+export function expectMessageThreadForbidden(probe: MessageThreadVisibilityProbe): void {
   assert.equal(
     probe.httpStatus,
     403,

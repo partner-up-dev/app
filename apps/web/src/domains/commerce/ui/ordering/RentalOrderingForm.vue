@@ -33,10 +33,7 @@
         v-if="primarySpu?.presentation.sellingPoints.length"
         class="rental-ordering-form__selling-points"
       >
-        <li
-          v-for="point in primarySpu.presentation.sellingPoints"
-          :key="point"
-        >
+        <li v-for="point in primarySpu.presentation.sellingPoints" :key="point">
           {{ point }}
         </li>
       </ul>
@@ -74,11 +71,7 @@
 
       <div class="rental-ordering-form__section">
         <h2>联系方式</h2>
-        <PuFormItem
-          label="联系人电话"
-          for-id="rental-contact-phone"
-          required
-        >
+        <PuFormItem label="联系人电话" for-id="rental-contact-phone" required>
           <input
             id="rental-contact-phone"
             v-model.trim="contactPhone"
@@ -114,14 +107,9 @@
       </div>
 
       <div class="rental-ordering-form__section rental-ordering-form__section--subtle">
-        <div
-          class="rental-ordering-form__policy"
-          data-testid="ordering.rental.cancellation-policy"
-        >
+        <div class="rental-ordering-form__policy" data-testid="ordering.rental.cancellation-policy">
           <strong>取消政策</strong>
-          <p v-if="selectedCancellationSummary.length === 0">
-            暂无可展示的取消政策。
-          </p>
+          <p v-if="selectedCancellationSummary.length === 0">暂无可展示的取消政策。</p>
           <p
             v-for="summary in selectedCancellationSummary"
             :key="`${summary.visibleLabel}-${summary.refundPercent}`"

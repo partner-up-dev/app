@@ -14,7 +14,8 @@ on:
       - "pnpm-workspace.yaml"
       - ".node-version"
       - ".npmrc"
-      - "biome.json"
+      - ".oxfmtrc.json"
+      - ".oxlintrc.json"
       - ".github/workflows/frontend-gate.yml"
   workflow_dispatch:
 

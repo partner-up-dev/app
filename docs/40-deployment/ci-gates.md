@@ -4,6 +4,8 @@
 
 Hosted PR validation is split by gate owner:
 
+- static gate: `.github/workflows/static-gate.yml`; full-repository Oxfmt and
+  Oxlint checks plus structure, policy, dead-code, and security reporting
 - backend gate: `.github/workflows/backend-gate.yml`; backend typecheck,
   backend unit tests, DB artifact lint, and backend scenario tests
 - frontend gate: `.github/workflows/frontend-gate.yml`; frontend unit tests,

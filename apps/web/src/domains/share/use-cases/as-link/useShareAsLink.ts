@@ -2,11 +2,7 @@ import { computed, ref } from "vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { trackEvent } from "@/shared/telemetry/track";
 import { parsePRIdFromPathname } from "@/domains/pr/routing/routes";
-import {
-  buildProductShareUrl,
-  resolveSpmFromUrl,
-  type ShareSpmRouteKey,
-} from "@/shared/url/spm";
+import { buildProductShareUrl, resolveSpmFromUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
 
 export type ShareState = "idle" | "sharing" | "shared" | "copied" | "error";
 

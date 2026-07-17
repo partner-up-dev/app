@@ -3,22 +3,11 @@ import { z } from "zod";
 export const STUDY_SPRINT_PR_TYPE = "STUDY_SPRINT";
 export const STUDY_SPRINT_DEFAULT_DURATION_MINUTES = 30;
 
-export const studySprintRoomStatusSchema = z.enum([
-  "OPEN",
-  "CLOSED",
-]);
-export type StudySprintRoomStatus = z.infer<
-  typeof studySprintRoomStatusSchema
->;
+export const studySprintRoomStatusSchema = z.enum(["OPEN", "CLOSED"]);
+export type StudySprintRoomStatus = z.infer<typeof studySprintRoomStatusSchema>;
 
-export const studySprintSessionStatusSchema = z.enum([
-  "FOCUSING",
-  "COMPLETED",
-  "LEFT",
-]);
-export type StudySprintSessionStatus = z.infer<
-  typeof studySprintSessionStatusSchema
->;
+export const studySprintSessionStatusSchema = z.enum(["FOCUSING", "COMPLETED", "LEFT"]);
+export type StudySprintSessionStatus = z.infer<typeof studySprintSessionStatusSchema>;
 
 export const studySprintSessionEventTypeSchema = z.enum([
   "STARTED",
@@ -26,9 +15,7 @@ export const studySprintSessionEventTypeSchema = z.enum([
   "COMPLETED",
   "LEFT",
 ]);
-export type StudySprintSessionEventType = z.infer<
-  typeof studySprintSessionEventTypeSchema
->;
+export type StudySprintSessionEventType = z.infer<typeof studySprintSessionEventTypeSchema>;
 
 export const studySprintSessionEventPayloadSchema = z
   .object({
@@ -37,9 +24,7 @@ export const studySprintSessionEventPayloadSchema = z
     note: z.string().trim().max(240).optional(),
   })
   .strict();
-export type StudySprintSessionEventPayload = z.infer<
-  typeof studySprintSessionEventPayloadSchema
->;
+export type StudySprintSessionEventPayload = z.infer<typeof studySprintSessionEventPayloadSchema>;
 
 export type StudySprintParticipantSnapshot = {
   partnerId: number;

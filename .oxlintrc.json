@@ -1,0 +1,76 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "vue", "vitest"],
+  "options": {
+    "maxWarnings": 0
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "hono/http-exception",
+            "message": "Use Problem Details helpers from src/lib/problem-details.ts instead of importing hono/http-exception."
+          }
+        ]
+      }
+    ],
+    "vitest/no-focused-tests": "error",
+    "vitest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expectTypeOf",
+          "assert",
+          "assert.*",
+          "assertType",
+          "assertAuthenticatedRequired",
+          "assertPRTimeWindowAvailableAtLocation",
+          "assertThrowsProblemDetails",
+          "assertValidationFails"
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "apps/backend/tests/_infra/scenario/scenario.ts",
+        "tests/scenario/_infra/scenario/scenario.ts"
+      ],
+      "rules": {
+        "vitest/expect-expect": "off",
+        "vitest/valid-title": "off"
+      }
+    },
+    {
+      "files": ["tests/scenario/_infra/scenario/scenario.ts"],
+      "rules": {
+        "vitest/no-conditional-tests": "off"
+      }
+    },
+    {
+      "files": ["apps/backend/src/index.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "apps/backend/drizzle/**",
+    "apps/backend/data-migrations/**",
+    "apps/backend/seeds/**",
+    "tasks/**",
+    "scratch/**",
+    "images/**",
+    "pnpm-lock.yaml"
+  ]
+}

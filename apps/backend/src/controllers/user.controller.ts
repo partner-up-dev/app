@@ -17,9 +17,7 @@ import { env } from "../lib/env";
 const app = new Hono<AuthEnv>();
 
 const defaultAvatarsDir =
-  process.platform === "win32"
-    ? path.join(process.cwd(), "avatars")
-    : "/mnt/oss/avatars";
+  process.platform === "win32" ? path.join(process.cwd(), "avatars") : "/mnt/oss/avatars";
 const avatarsDir = env.AVATARS_DIR ?? defaultAvatarsDir;
 
 const updateCurrentUserSchema = z.object({
@@ -115,17 +113,13 @@ export const userRoute = app
       avatar: resolveAvatarUrl(c.req.url, profile.avatar),
     });
   })
-  .put(
-    "/me/phone-number",
-    zValidator("json", updateCurrentUserPhoneNumberSchema),
-    async (c) => {
-      const userId = requireAuthenticatedUserId(c);
-      const { phoneNumber } = c.req.valid("json");
-      const profile = await updateCurrentUserPhoneNumber(userId, phoneNumber);
+  .put("/me/phone-number", zValidator("json", updateCurrentUserPhoneNumberSchema), async (c) => {
+    const userId = requireAuthenticatedUserId(c);
+    const { phoneNumber } = c.req.valid("json");
+    const profile = await updateCurrentUserPhoneNumber(userId, phoneNumber);
 
-      return c.json({
-        ...profile,
-        avatar: resolveAvatarUrl(c.req.url, profile.avatar),
-      });
-    },
-  );
+    return c.json({
+      ...profile,
+      avatar: resolveAvatarUrl(c.req.url, profile.avatar),
+    });
+  });

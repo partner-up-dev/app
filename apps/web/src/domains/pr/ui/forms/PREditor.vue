@@ -1,14 +1,7 @@
 <template>
-  <form
-    class="partner-request-form"
-    data-testid="pr-editor.form"
-    @submit.prevent="submitForm"
-  >
+  <form class="partner-request-form" data-testid="pr-editor.form" @submit.prevent="submitForm">
     <PuLoadingState v-if="isDetailLoading" :message="t('common.loading')" />
-    <PuInlineNotice tone="error"
-      v-else-if="detailError"
-      :message="detailError.message"
-    />
+    <PuInlineNotice tone="error" v-else-if="detailError" :message="detailError.message" />
     <PuEmptyState
       v-else-if="!hasEditableFields"
       icon="i-mdi-lock-outline"
@@ -38,9 +31,7 @@
       <div v-if="canEditType" class="form-field">
         <label>
           {{ t("partnerRequestForm.type") }}
-          <span class="required">{{
-            t("partnerRequestForm.requiredMark")
-          }}</span>
+          <span class="required">{{ t("partnerRequestForm.requiredMark") }}</span>
         </label>
         <input
           v-model="typeModel"
@@ -55,9 +46,9 @@
 
       <PuButton
         v-if="showAdvancedToggle"
-
         class="advanced-toggle"
-        tone="neutral" variant="dashed"
+        tone="neutral"
+        variant="dashed"
         block
         data-testid="pr-editor.form.advanced-toggle"
         :aria-expanded="isAdvancedOpen"
@@ -78,7 +69,10 @@
             label="时间"
             :hint="timeHint"
           />
-          <div v-if="isCreateEditor && authoringOptions?.startOptions.length" class="authoring-suggestions">
+          <div
+            v-if="isCreateEditor && authoringOptions?.startOptions.length"
+            class="authoring-suggestions"
+          >
             <span>时间建议</span>
             <PuButton
               v-for="option in authoringOptions.startOptions"
@@ -115,7 +109,10 @@
               {{ option.label }}
             </option>
           </datalist>
-          <div v-if="isCreateEditor && authoringOptions?.routeOptions.length" class="authoring-suggestions">
+          <div
+            v-if="isCreateEditor && authoringOptions?.routeOptions.length"
+            class="authoring-suggestions"
+          >
             <label for="pr-editor-authoring-route">路线建议</label>
             <select
               id="pr-editor-authoring-route"
@@ -123,7 +120,11 @@
               @change="selectAuthoringRoute"
             >
               <option value="">自定义路线</option>
-              <option v-for="option in authoringOptions.routeOptions" :key="option.id" :value="option.id">
+              <option
+                v-for="option in authoringOptions.routeOptions"
+                :key="option.id"
+                :value="option.id"
+              >
                 {{ option.id }}
               </option>
             </select>
@@ -182,7 +183,10 @@
               shape="pill"
               add-on-blur
             />
-            <div v-if="isCreateEditor && authoringOptions?.preferenceTags.length" class="authoring-suggestions">
+            <div
+              v-if="isCreateEditor && authoringOptions?.preferenceTags.length"
+              class="authoring-suggestions"
+            >
               <span>偏好建议</span>
               <PuButton
                 v-for="tag in authoringOptions.preferenceTags"
@@ -210,7 +214,9 @@
         </div>
       </Transition>
 
-      <PuInlineNotice tone="error" dismissible
+      <PuInlineNotice
+        tone="error"
+        dismissible
         v-if="commandErrorMessage"
         :message="commandErrorMessage"
         @close="resetCommandErrors"

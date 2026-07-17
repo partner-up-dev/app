@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import {
-  buildProblemDetailsPayload,
-  ProblemDetailsError,
-} from "./problem-details";
+import { buildProblemDetailsPayload, ProblemDetailsError } from "./problem-details";
 
 const buildTestProblem = () =>
   new ProblemDetailsError({

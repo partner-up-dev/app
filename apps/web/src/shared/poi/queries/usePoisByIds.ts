@@ -4,9 +4,7 @@ import type { InferResponseType } from "hono";
 import { client } from "@/lib/rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-export type PoisByNamesResponse = InferResponseType<
-  (typeof client.api.pois)["by-names"]["$get"]
->;
+export type PoisByNamesResponse = InferResponseType<(typeof client.api.pois)["by-names"]["$get"]>;
 
 export const usePoisByNames = (namesCsv: Ref<string | null>) => {
   const normalizedNamesCsv = computed(() => {

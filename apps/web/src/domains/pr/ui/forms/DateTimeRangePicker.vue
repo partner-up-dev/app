@@ -20,9 +20,9 @@
         </div>
         <div class="time-actions">
           <PuButton
-
             class="clear-time"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             size="sm"
             :disabled="!startTime"
             @click="clearStartTime"
@@ -30,9 +30,9 @@
             {{ t("dateTimeRangePicker.clearTime") }}
           </PuButton>
           <PuButton
-
             class="clear-time"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             size="sm"
             :disabled="!startDate && !startTime"
             @click="clearStart"
@@ -59,9 +59,9 @@
         </div>
         <div class="time-actions">
           <PuButton
-
             class="clear-time"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             size="sm"
             :disabled="!endTime"
             @click="clearEndTime"
@@ -69,9 +69,9 @@
             {{ t("dateTimeRangePicker.clearTime") }}
           </PuButton>
           <PuButton
-
             class="clear-time"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             size="sm"
             :disabled="!endDate && !endTime"
             @click="clearEnd"
@@ -265,7 +265,9 @@ input {
 
   .clear-time {
     width: 100%;
-    min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+    min-height: calc(
+      var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)
+    );
   }
 }
 </style>

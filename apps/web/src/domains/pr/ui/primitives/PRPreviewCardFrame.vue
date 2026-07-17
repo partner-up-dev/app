@@ -35,9 +35,7 @@
         </div>
 
         <div class="pr-preview-card__meta">
-          <span v-if="timeLabel" class="pr-preview-card__time">
-            🕒 {{ timeLabel }}
-          </span>
+          <span v-if="timeLabel" class="pr-preview-card__time"> 🕒 {{ timeLabel }} </span>
           <span v-if="placeLabel" class="pr-preview-card__location">
             {{ placeIcon }} {{ placeLabel }}
           </span>
@@ -63,10 +61,7 @@ import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { PuImg, PuTag } from "@partner-up-dev/design-web";
 import type { PRDisplayStatus } from "@/domains/pr/model/pr-display-status";
-import {
-  resolvePRStatusTagText,
-  resolvePRStatusTagTone,
-} from "@/domains/pr/model/pr-status-tag";
+import { resolvePRStatusTagText, resolvePRStatusTagTone } from "@/domains/pr/model/pr-status-tag";
 
 const props = withDefaults(
   defineProps<{
@@ -104,9 +99,7 @@ const slots = useSlots();
 const hasActions = computed(() => Boolean(slots.actions));
 const rootComponent = computed(() => (props.mode === "link" ? RouterLink : "button"));
 const rootProps = computed(() =>
-  props.mode === "link"
-    ? { to: props.to ?? "" }
-    : { type: "button", disabled: props.disabled },
+  props.mode === "link" ? { to: props.to ?? "" } : { type: "button", disabled: props.disabled },
 );
 
 const toPreferenceDisplayLabel = (tag: string): string | null => {
@@ -126,13 +119,10 @@ const toPreferenceDisplayLabel = (tag: string): string | null => {
 
 const preferenceLabel = computed(
   () =>
-    props.preferenceTags
-      .map(toPreferenceDisplayLabel)
-      .find((tag): tag is string => tag !== null) ?? null,
+    props.preferenceTags.map(toPreferenceDisplayLabel).find((tag): tag is string => tag !== null) ??
+    null,
 );
-const statusTagText = computed(() =>
-  props.status ? resolvePRStatusTagText(props.status, t) : "",
-);
+const statusTagText = computed(() => (props.status ? resolvePRStatusTagText(props.status, t) : ""));
 const statusTagTone = computed(() =>
   props.status ? resolvePRStatusTagTone(props.status) : "neutral",
 );
@@ -189,8 +179,7 @@ const statusTagTone = computed(() =>
 }
 
 .pr-preview-card__body {
-  padding: var(--pr-preview-card-body-padding-block)
-    var(--pr-preview-card-body-padding-inline);
+  padding: var(--pr-preview-card-body-padding-block) var(--pr-preview-card-body-padding-inline);
 }
 
 .pr-preview-card__header {

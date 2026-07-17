@@ -11,17 +11,12 @@ import type { RepositoryExecutor } from "./_executor";
 export class StudySprintSessionEventRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
-  async create(
-    data: NewStudySprintSessionEvent,
-  ): Promise<StudySprintSessionEvent> {
+  async create(data: NewStudySprintSessionEvent): Promise<StudySprintSessionEvent> {
     const result = await this.executor
       .insert(studySprintSessionEvents)
       .values(data)
       .onConflictDoNothing({
-        target: [
-          studySprintSessionEvents.sessionId,
-          studySprintSessionEvents.clientSeq,
-        ],
+        target: [studySprintSessionEvents.sessionId, studySprintSessionEvents.clientSeq],
       })
       .returning();
 

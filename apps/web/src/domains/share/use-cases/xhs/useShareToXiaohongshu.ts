@@ -8,10 +8,7 @@ import { useGeneratePoster } from "@/domains/share/use-cases/poster/useGenerateP
 import { renderPosterHtmlToBlob } from "@/domains/share/use-cases/poster/renderHtmlPoster";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
-import {
-  buildProductShareUrl,
-  type ShareSpmRouteKey,
-} from "@/shared/url/spm";
+import { buildProductShareUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
 import { client } from "@/lib/rpc";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -80,8 +77,7 @@ export const useShareToXiaohongshu = ({
   const taggedShareUrl = computed(() =>
     buildProductShareUrl({
       rawUrl: shareUrl,
-      baseHref:
-        typeof window === "undefined" ? "http://localhost/" : window.location.href,
+      baseHref: typeof window === "undefined" ? "http://localhost/" : window.location.href,
       routeKey: spmRouteKey,
       methodKey: "xiaohongshu",
     }),
@@ -177,10 +173,7 @@ export const useShareToXiaohongshu = ({
           scale: 2,
         });
       } catch (error) {
-        console.warn(
-          "HTML poster generation failed, fallback to template:",
-          error,
-        );
+        console.warn("HTML poster generation failed, fallback to template:", error);
         blob = await generatePoster(currentCaption, captionCounter.value);
       }
 
@@ -319,12 +312,7 @@ export const useShareToXiaohongshu = ({
   watch(
     () => posterUrl.value,
     (newUrl, oldUrl) => {
-      if (
-        oldUrl &&
-        oldUrl.startsWith("blob:") &&
-        newUrl &&
-        !newUrl.startsWith("blob:")
-      ) {
+      if (oldUrl && oldUrl.startsWith("blob:") && newUrl && !newUrl.startsWith("blob:")) {
         URL.revokeObjectURL(oldUrl);
       }
     },
@@ -332,10 +320,7 @@ export const useShareToXiaohongshu = ({
 
   const handleCopyCaptionWithUrl = async (): Promise<void> => {
     try {
-      const content = formatCaptionWithUrl(
-        caption.value?.caption || "",
-        taggedShareUrl.value,
-      );
+      const content = formatCaptionWithUrl(caption.value?.caption || "", taggedShareUrl.value);
       await copyToClipboard(content);
       flashState("copied");
     } catch (error) {

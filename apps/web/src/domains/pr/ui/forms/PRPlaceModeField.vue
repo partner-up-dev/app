@@ -57,11 +57,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRRoute } from "@partner-up-dev/backend";
-import {
-  PuSegmented,
-  PuSegmentedItem,
-  type PuSegmentedValue,
-} from "@partner-up-dev/design-web";
+import { PuSegmented, PuSegmentedItem, type PuSegmentedValue } from "@partner-up-dev/design-web";
 import type { Route } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";
 import {
@@ -114,9 +110,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const placeMode = computed<PRPlaceMode>(() =>
-  resolvePRPlaceMode(props.modelValue),
-);
+const placeMode = computed<PRPlaceMode>(() => resolvePRPlaceMode(props.modelValue));
 
 const placeModeOptions = computed<SegmentedOption[]>(() => [
   {

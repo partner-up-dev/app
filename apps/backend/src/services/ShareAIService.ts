@@ -163,8 +163,7 @@ HTML/CSS 约束：同上（无脚本、无外链、单一 #poster-root）。
 `,
 ];
 
-const DEFAULT_POSTER_STYLE_PROMPT =
-  DEFAULT_SHARE_XHS_POSTER_HTML_STYLE_PROMPTS[0];
+const DEFAULT_POSTER_STYLE_PROMPT = DEFAULT_SHARE_XHS_POSTER_HTML_STYLE_PROMPTS[0];
 
 const xhsPosterHtmlResponseSchema = z.object({
   html: z.string().min(1),
@@ -338,8 +337,7 @@ export class ShareAIService {
 
       return {
         caption: object.caption,
-        posterStylePrompt:
-          object.posterStylePrompt || DEFAULT_POSTER_STYLE_PROMPT,
+        posterStylePrompt: object.posterStylePrompt || DEFAULT_POSTER_STYLE_PROMPT,
       };
     } catch {
       // Fallback: generate caption only and use default posterStylePrompt
@@ -388,10 +386,7 @@ HTML/CSS 约束：
 
     const system = `${baseConstraints}\n\n设计风格：${params.posterStylePrompt}`;
 
-    const prompt = await this.buildXhsPosterHtmlPrompt(
-      params.pr,
-      params.caption,
-    );
+    const prompt = await this.buildXhsPosterHtmlPrompt(params.pr, params.caption);
 
     const { object } = await generateObject({
       model: this.client(env.LLM_DEFAULT_MODEL),
@@ -424,9 +419,7 @@ HTML/CSS 约束：
     return object;
   }
 
-  async generateWeChatCardDescription(params: {
-    pr: PartnerRequestFields;
-  }): Promise<string> {
+  async generateWeChatCardDescription(params: { pr: PartnerRequestFields }): Promise<string> {
     const prompt = await this.buildWeChatCardDescriptionPrompt(params.pr);
 
     const { object } = await generateObject({
@@ -441,9 +434,7 @@ HTML/CSS 约束：
     return object.description;
   }
 
-  private async buildXiaohongshuCaptionPrompt(
-    prData: PartnerRequestFields,
-  ): Promise<string> {
+  private async buildXiaohongshuCaptionPrompt(prData: PartnerRequestFields): Promise<string> {
     const variablesJson = buildXiaohongshuCaptionPromptVariablesJson(prData);
 
     return await XIAOHONGSHU_CAPTION_PROMPT_TEMPLATE.format({ variablesJson });
@@ -486,9 +477,7 @@ HTML/CSS 约束：
     return await XHS_POSTER_HTML_PROMPT_TEMPLATE.format({ variablesJson });
   }
 
-  private async buildWeChatThumbnailHtmlPrompt(
-    pr: PartnerRequestFields,
-  ): Promise<string> {
+  private async buildWeChatThumbnailHtmlPrompt(pr: PartnerRequestFields): Promise<string> {
     const variablesJson = buildWeChatThumbnailPromptVariablesJson(pr);
 
     return await WECHAT_THUMBNAIL_HTML_PROMPT_TEMPLATE.format({
@@ -496,9 +485,7 @@ HTML/CSS 约束：
     });
   }
 
-  private async buildWeChatCardDescriptionPrompt(
-    pr: PartnerRequestFields,
-  ): Promise<string> {
+  private async buildWeChatCardDescriptionPrompt(pr: PartnerRequestFields): Promise<string> {
     const variablesJson = buildWeChatThumbnailPromptVariablesJson(pr);
 
     return await WECHAT_CARD_DESCRIPTION_PROMPT_TEMPLATE.format({

@@ -1,12 +1,11 @@
 <template>
   <div class="join-success-prompt">
     <template v-if="joinSuccessPromptStep === 'CONFIRMATION_FOLLOWUP'">
-      <PRJoinConfirmationFollowupPanel
-        :confirmation-window-text="confirmationWindowText"
-      />
+      <PRJoinConfirmationFollowupPanel :confirmation-window-text="confirmationWindowText" />
 
       <PuButton
-        tone="neutral" variant="soft"
+        tone="neutral"
+        variant="soft"
         block
         data-testid="pr-detail.join-success.confirmation-followup.done"
         @click="handleJoinConfirmationFollowupDone"
@@ -42,7 +41,8 @@
       </section>
 
       <PuButton
-        tone="neutral" variant="soft"
+        tone="neutral"
+        variant="soft"
         block
         data-testid="pr-detail.join-success.done"
         @click="handleJoinSuccessSubscriptionDone"
@@ -60,7 +60,6 @@
       />
       <div class="join-success-prompt__actions">
         <PuButton
-
           block
           data-testid="pr-detail.join-success.community-followup.done"
           @click="handleJoinCommunityFollowupDone"

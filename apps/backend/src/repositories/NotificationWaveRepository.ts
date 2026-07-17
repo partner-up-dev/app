@@ -7,9 +7,7 @@ import {
 } from "../entities/notification-wave";
 
 export class NotificationWaveRepository {
-  async createOnce(
-    row: NewNotificationWaveRow,
-  ): Promise<NotificationWaveRow | null> {
+  async createOnce(row: NewNotificationWaveRow): Promise<NotificationWaveRow | null> {
     const result = await db
       .insert(notificationWaves)
       .values(row)
@@ -36,4 +34,3 @@ export class NotificationWaveRepository {
     return result[0] ?? null;
   }
 }
-

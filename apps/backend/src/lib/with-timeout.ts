@@ -1,5 +1,5 @@
 export class TimeoutError extends Error {
-  override name = 'TimeoutError';
+  override name = "TimeoutError";
 }
 
 export async function withTimeout<T>(

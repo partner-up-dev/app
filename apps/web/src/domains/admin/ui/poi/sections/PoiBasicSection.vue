@@ -10,13 +10,10 @@
         <PuButton
           shape="pill"
           size="sm"
-
           :disabled="selectedPoiId === null || isSavingPoi"
           @click="emit('save-poi')"
         >
-          {{
-            isSavingPoi ? t("adminPois.savingPoi") : t("adminPois.savePoiAction")
-          }}
+          {{ isSavingPoi ? t("adminPois.savingPoi") : t("adminPois.savePoiAction") }}
         </PuButton>
       </template>
 
@@ -41,9 +38,9 @@
             <div class="coordinate-field__actions">
               <PuButton
                 shape="pill"
-                tone="neutral" variant="outline"
+                tone="neutral"
+                variant="outline"
                 size="sm"
-
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.pick-coordinate"
                 @click="isLocationPickerOpen = true"
@@ -56,9 +53,9 @@
               <PuButton
                 v-if="selectedPoiHasCoordinate"
                 shape="pill"
-                tone="danger" variant="outline"
+                tone="danger"
+                variant="outline"
                 size="sm"
-
                 :disabled="selectedPoiId === null"
                 data-testid="admin-pois.clear-coordinate"
                 @click="emit('clear-coordinates')"
@@ -71,10 +68,7 @@
             </div>
           </div>
           <p class="coordinate-field__value">
-            {{
-              selectedPoiCoordinateText ||
-              t("adminPois.coordinateEmpty")
-            }}
+            {{ selectedPoiCoordinateText || t("adminPois.coordinateEmpty") }}
           </p>
           <p class="hint">{{ t("adminPois.coordinateHint") }}</p>
         </div>
@@ -104,11 +98,7 @@
         @reject="handleGalleryUploadReject"
         @update:model-value="handleGalleryUploadUpdate"
       />
-      <PuInlineNotice
-        v-if="galleryUploadError"
-        tone="error"
-        :message="galleryUploadError"
-      />
+      <PuInlineNotice v-if="galleryUploadError" tone="error" :message="galleryUploadError" />
     </BentoItem>
 
     <BentoItem :title="t('adminPois.availabilityAndCapacityTitle')" span="full">
@@ -129,9 +119,9 @@
       <div class="section-header">
         <PuButton
           shape="pill"
-          tone="neutral" variant="outline"
+          tone="neutral"
+          variant="outline"
           size="sm"
-
           :disabled="selectedPoiId === null"
           @click="emit('add-availability-rule')"
         >
@@ -153,9 +143,9 @@
             {{ t("adminPois.availabilityRuleTitle", { index: index + 1 }) }}
           </strong>
           <PuButton
-            tone="danger" variant="outline"
+            tone="danger"
+            variant="outline"
             size="sm"
-
             @click="emit('remove-availability-rule', index)"
           >
             {{ t("adminPois.removeRuleAction") }}
@@ -265,10 +255,7 @@
               </div>
             </label>
 
-            <label
-              v-if="rule.frequency === 'MONTHLY' || rule.frequency === 'YEARLY'"
-              class="field"
-            >
+            <label v-if="rule.frequency === 'MONTHLY' || rule.frequency === 'YEARLY'" class="field">
               <span class="field-label">{{ t("adminPois.ruleMonthDaysLabel") }}</span>
               <input
                 v-model="rule.monthDaysText"
@@ -295,9 +282,7 @@
     <BentoItem :title="t('adminPois.meetingPointTitle')" span="full">
       <div class="grid">
         <label class="field field--full">
-          <span class="field-label">{{
-            t("adminPois.meetingPointDescriptionLabel")
-          }}</span>
+          <span class="field-label">{{ t("adminPois.meetingPointDescriptionLabel") }}</span>
           <textarea
             v-model="selectedPoiMeetingPointDescription"
             class="field-input field-textarea"
@@ -407,10 +392,9 @@ const selectedPoiMeetingPointDescription = defineModel<string>(
   "selectedPoiMeetingPointDescription",
   { required: true },
 );
-const selectedPoiMeetingPointImageUrl = defineModel<string>(
-  "selectedPoiMeetingPointImageUrl",
-  { required: true },
-);
+const selectedPoiMeetingPointImageUrl = defineModel<string>("selectedPoiMeetingPointImageUrl", {
+  required: true,
+});
 
 const { t } = useI18n();
 const isLocationPickerOpen = ref(false);
@@ -449,46 +433,28 @@ const ruleFrequencyOptions = computed<PuSelectOption[]>(() => [
   { label: t("adminPois.frequencyYearly"), value: "YEARLY" },
 ]);
 
-const isRuleMode = (
-  value: PuSelectValue,
-): value is EditableAvailabilityRule["mode"] =>
+const isRuleMode = (value: PuSelectValue): value is EditableAvailabilityRule["mode"] =>
   value === "INCLUDE" || value === "EXCLUDE";
 
-const isRuleKind = (
-  value: PuSelectValue,
-): value is EditableAvailabilityRule["kind"] =>
+const isRuleKind = (value: PuSelectValue): value is EditableAvailabilityRule["kind"] =>
   value === "ABSOLUTE" || value === "RECURRING";
 
-const isRuleFrequency = (
-  value: PuSelectValue,
-): value is EditableAvailabilityRule["frequency"] =>
-  value === "DAILY" ||
-  value === "WEEKLY" ||
-  value === "MONTHLY" ||
-  value === "YEARLY";
+const isRuleFrequency = (value: PuSelectValue): value is EditableAvailabilityRule["frequency"] =>
+  value === "DAILY" || value === "WEEKLY" || value === "MONTHLY" || value === "YEARLY";
 
-const updateRuleMode = (
-  rule: EditableAvailabilityRule,
-  value: PuSelectValue,
-): void => {
+const updateRuleMode = (rule: EditableAvailabilityRule, value: PuSelectValue): void => {
   if (!isRuleMode(value)) return;
   rule.mode = value;
   emit("mark-dirty");
 };
 
-const updateRuleKind = (
-  rule: EditableAvailabilityRule,
-  value: PuSelectValue,
-): void => {
+const updateRuleKind = (rule: EditableAvailabilityRule, value: PuSelectValue): void => {
   if (!isRuleKind(value)) return;
   rule.kind = value;
   emit("mark-dirty");
 };
 
-const updateRuleFrequency = (
-  rule: EditableAvailabilityRule,
-  value: PuSelectValue,
-): void => {
+const updateRuleFrequency = (rule: EditableAvailabilityRule, value: PuSelectValue): void => {
   if (!isRuleFrequency(value)) return;
   rule.frequency = value;
   emit("mark-dirty");
@@ -500,8 +466,7 @@ const meetingPointImageUploadValue = computed<PuFileUploadValue>({
     return imageUrl ? imageUploadItemFromUrl(imageUrl) : null;
   },
   set: (value) => {
-    selectedPoiMeetingPointImageUrl.value =
-      value?.source === "url" && value.url ? value.url : "";
+    selectedPoiMeetingPointImageUrl.value = value?.source === "url" && value.url ? value.url : "";
   },
 });
 
@@ -531,9 +496,7 @@ const handleLocationPicked = (location: PickedLocation) => {
   isLocationPickerOpen.value = false;
 };
 
-const handleMeetingPointImageUpdate = (
-  value: PuFileUploadValue,
-): void => {
+const handleMeetingPointImageUpdate = (value: PuFileUploadValue): void => {
   meetingPointImageUploadValue.value = value;
   meetingPointImageError.value = null;
 };
@@ -550,9 +513,7 @@ const handleMeetingPointImageRemove = (): void => {
   meetingPointImageError.value = null;
 };
 
-const handleMeetingPointImageReject = (
-  rejections: PuFileUploadRejection[],
-): void => {
+const handleMeetingPointImageReject = (rejections: PuFileUploadRejection[]): void => {
   meetingPointImageError.value = rejections[0]?.message ?? null;
 };
 </script>
@@ -683,6 +644,5 @@ const handleMeetingPointImageReject = (
   .coordinate-field__actions {
     justify-content: flex-start;
   }
-
 }
 </style>

@@ -5,9 +5,7 @@ import { applyBillSettlementToOrder } from "../../trade/use-cases/apply-bill-set
 
 const billLineRepo = new BillLineRepository();
 
-export async function applyPaymentSettlementConsequence(input: {
-  billLineId: string;
-}): Promise<{
+export async function applyPaymentSettlementConsequence(input: { billLineId: string }): Promise<{
   applied: boolean;
   reason: string;
   rentalOrderId?: string;

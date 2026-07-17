@@ -28,10 +28,7 @@ import type {
   RideHailingRouteSnapshot,
   RideHailingVehicleSnapshot,
 } from "../model";
-import {
-  getOrderItemSkuName,
-  getRideHailingChoiceSetItem,
-} from "../services";
+import { getOrderItemSkuName, getRideHailingChoiceSetItem } from "../services";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
@@ -301,7 +298,9 @@ export async function buildRideHailingDetailProjection(input: {
 
   let providerDetail: ProviderDetailProjection | null = null;
   const shouldQueryLiveGeometry = shouldQueryProviderLiveGeometry(rideOrder.executionPhase);
-  const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(rideOrder.executionPhase);
+  const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(
+    rideOrder.executionPhase,
+  );
   let routeQueryAttempted = false;
   let routeQuerySucceeded = false;
   let routeQuerySkippedReason: string | null = null;

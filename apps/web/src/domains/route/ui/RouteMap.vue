@@ -28,10 +28,7 @@
     >
       <template #fallback>
         <div class="route-map__fallback">
-          <span
-            class="route-map__fallback-icon i-mdi-map-marker-path"
-            aria-hidden="true"
-          ></span>
+          <span class="route-map__fallback-icon i-mdi-map-marker-path" aria-hidden="true"></span>
           <p>{{ t("route.mapUnavailable") }}</p>
           <ol class="route-map__points">
             <li v-for="(point, index) in routePoints" :key="index">
@@ -43,10 +40,7 @@
     </SharedMap>
 
     <div v-else class="route-map__fallback route-map__fallback--static">
-      <span
-        class="route-map__fallback-icon i-mdi-map-marker-path"
-        aria-hidden="true"
-      ></span>
+      <span class="route-map__fallback-icon i-mdi-map-marker-path" aria-hidden="true"></span>
       <p>{{ t("route.noCoordinateHint") }}</p>
       <ol class="route-map__points">
         <li v-for="(point, index) in routePoints" :key="index">

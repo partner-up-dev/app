@@ -47,9 +47,7 @@ export type PricingRuleBuildLabels = {
 const isFixedTotalPricingModel = (
   value: unknown,
 ): value is { type: "FIXED_TOTAL"; amountFen: number } =>
-  isRecord(value) &&
-  value.type === "FIXED_TOTAL" &&
-  typeof value.amountFen === "number";
+  isRecord(value) && value.type === "FIXED_TOTAL" && typeof value.amountFen === "number";
 
 const readTargetIdText = (target: CommercePricingRule["target"]): string => {
   if (target.level === "SKU" && typeof target.skuId === "number") {
@@ -61,15 +59,11 @@ const readTargetIdText = (target: CommercePricingRule["target"]): string => {
   return "";
 };
 
-export const toPricingRuleDrafts = (
-  rules: readonly CommercePricingRule[],
-): PricingRuleDraft[] =>
+export const toPricingRuleDrafts = (rules: readonly CommercePricingRule[]): PricingRuleDraft[] =>
   rules.map((rule) => {
     const resetPricingModel =
       rule.action.type === "RESET" ? rule.action.payload.pricingModel : null;
-    const fixedResetModel = isFixedTotalPricingModel(resetPricingModel)
-      ? resetPricingModel
-      : null;
+    const fixedResetModel = isFixedTotalPricingModel(resetPricingModel) ? resetPricingModel : null;
 
     return {
       draftId: createDraftId("pricing-rule"),
@@ -98,20 +92,13 @@ const buildPricingRuleTarget = (
     return { level: "ORDER" };
   }
 
-  const targetId = parseOptionalPositiveInteger(
-    rule.targetIdText,
-    labels.targetIdLabel,
-  );
+  const targetId = parseOptionalPositiveInteger(rule.targetIdText, labels.targetIdLabel);
 
   if (rule.targetLevel === "SPU") {
-    return targetId === undefined
-      ? { level: "SPU" }
-      : { level: "SPU", spuId: targetId };
+    return targetId === undefined ? { level: "SPU" } : { level: "SPU", spuId: targetId };
   }
 
-  return targetId === undefined
-    ? { level: "SKU" }
-    : { level: "SKU", skuId: targetId };
+  return targetId === undefined ? { level: "SKU" } : { level: "SKU", skuId: targetId };
 };
 
 export const buildPricingRules = (
@@ -145,11 +132,9 @@ export const buildPricingRules = (
               ? rule.resetPricingModel
               : {
                   type: "FIXED_TOTAL",
-                  amountFen: parseIntegerField(
-                    rule.resetAmountFen,
-                    labels.resetAmountFenLabel,
-                    { min: 0 },
-                  ),
+                  amountFen: parseIntegerField(rule.resetAmountFen, labels.resetAmountFenLabel, {
+                    min: 0,
+                  }),
                 },
         },
       };
@@ -159,10 +144,7 @@ export const buildPricingRules = (
       id,
       label: rule.label.trim(),
       description: rule.description.trim(),
-      conditionRule: buildPricingConditionRule(
-        rule.conditionDraft,
-        rule.targetLevel,
-      ),
+      conditionRule: buildPricingConditionRule(rule.conditionDraft, rule.targetLevel),
       action,
       target: buildPricingRuleTarget(rule, labels),
       continue: rule.continue,
@@ -278,9 +260,7 @@ export const getPricingConditionRuleFields = (
 export const createPricingConditionRuleDraft = (): JsonLogicRuleDraft =>
   toJsonLogicRuleDraft(null, getPricingConditionRuleFields("SKU"));
 
-export const toPricingConditionRuleDraft = (
-  rule: unknown,
-): JsonLogicRuleDraft =>
+export const toPricingConditionRuleDraft = (rule: unknown): JsonLogicRuleDraft =>
   toJsonLogicRuleDraft(rule, getPricingConditionRuleFields("SKU"));
 
 export const buildPricingConditionRule = (

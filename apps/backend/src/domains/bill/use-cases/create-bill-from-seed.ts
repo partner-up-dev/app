@@ -26,16 +26,19 @@ export async function createBillFromSeed(
   });
 
   await billLineRepo.createMany(
-    seed.chargeLines.map((line) => ({
-      billId: bill.id,
-      userId: line.userId as UserId,
-      kind: "CHARGE",
-      amountFen: line.amountFen,
-      currency: seed.currency,
-      label: line.label,
-      description: line.description ?? null,
-      settledAt: line.amountFen <= 0 ? autoSettledAt : null,
-    }) satisfies NewBillLine),
+    seed.chargeLines.map(
+      (line) =>
+        ({
+          billId: bill.id,
+          userId: line.userId as UserId,
+          kind: "CHARGE",
+          amountFen: line.amountFen,
+          currency: seed.currency,
+          label: line.label,
+          description: line.description ?? null,
+          settledAt: line.amountFen <= 0 ? autoSettledAt : null,
+        }) satisfies NewBillLine,
+    ),
   );
 
   return {

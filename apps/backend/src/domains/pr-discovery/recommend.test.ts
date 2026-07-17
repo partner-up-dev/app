@@ -3,10 +3,10 @@ import { beforeEach, test, vi } from "vitest";
 import type { PRRoute } from "../../entities/partner-request";
 
 const mocks = vi.hoisted(() => ({
-  findConfig: vi.fn(),
-  findRequests: vi.fn(),
-  countActiveByPrIds: vi.fn(),
-  findActiveByUserId: vi.fn(),
+  findConfig: vi.fn<() => unknown>(),
+  findRequests: vi.fn<() => unknown>(),
+  countActiveByPrIds: vi.fn<() => unknown>(),
+  findActiveByUserId: vi.fn<() => unknown>(),
 }));
 vi.mock("../pr-core/services/pr-read.service", () => ({
   readVisiblePartnerRequestsByType: mocks.findRequests,

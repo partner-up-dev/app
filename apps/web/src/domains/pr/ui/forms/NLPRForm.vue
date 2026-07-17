@@ -45,7 +45,9 @@
 
     <PuLoadingState v-if="isSubmitting" :message="t('nlForm.parsing')" />
 
-    <PuInlineNotice tone="error" dismissible
+    <PuInlineNotice
+      tone="error"
+      dismissible
       v-if="createMutation.isError.value"
       :message="submitErrorMessage"
       @close="createMutation.reset()"

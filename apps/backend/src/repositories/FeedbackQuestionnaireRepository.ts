@@ -16,10 +16,7 @@ import type { UserId } from "../entities/user";
 
 export class FeedbackQuestionnaireRepository {
   async createTemplate(data: NewFeedbackQuestionnaireTemplate) {
-    const result = await db
-      .insert(feedbackQuestionnaireTemplates)
-      .values(data)
-      .returning();
+    const result = await db.insert(feedbackQuestionnaireTemplates).values(data).returning();
     return result[0];
   }
 
@@ -35,10 +32,7 @@ export class FeedbackQuestionnaireRepository {
     return result[0] ?? null;
   }
 
-  async findTemplateByKeyVersion(input: {
-    key: string;
-    version: string;
-  }) {
+  async findTemplateByKeyVersion(input: { key: string; version: string }) {
     const result = await db
       .select()
       .from(feedbackQuestionnaireTemplates)
@@ -72,10 +66,7 @@ export class FeedbackQuestionnaireRepository {
   }
 
   async createInstance(data: NewFeedbackQuestionnaireInstance) {
-    const result = await db
-      .insert(feedbackQuestionnaireInstances)
-      .values(data)
-      .returning();
+    const result = await db.insert(feedbackQuestionnaireInstances).values(data).returning();
     return result[0];
   }
 
@@ -113,10 +104,7 @@ export class FeedbackQuestionnaireRepository {
       .where(
         and(
           eq(feedbackQuestionnaireResponses.instanceId, input.instanceId),
-          eq(
-            feedbackQuestionnaireResponses.respondentUserId,
-            input.respondentUserId,
-          ),
+          eq(feedbackQuestionnaireResponses.respondentUserId, input.respondentUserId),
         ),
       );
     return result[0] ?? null;

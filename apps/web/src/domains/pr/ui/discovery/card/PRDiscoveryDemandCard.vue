@@ -39,9 +39,7 @@
       />
     </div>
     <div v-else class="pr-discovery-demand-card__cover pr-discovery-demand-card__cover--fallback">
-      <span class="pr-discovery-demand-card__fallback-location">{{
-        displayLocationName
-      }}</span>
+      <span class="pr-discovery-demand-card__fallback-location">{{ displayLocationName }}</span>
     </div>
 
     <div class="pr-discovery-demand-card__body">

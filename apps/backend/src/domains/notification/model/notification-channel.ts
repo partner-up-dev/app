@@ -9,7 +9,5 @@ export const notificationChannelSchema = z.enum([
 
 export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
 
-export const WECHAT_SUBSCRIPTION_NOTIFICATION_CHANNEL =
-  "WECHAT_SUBSCRIPTION" as const;
+export const WECHAT_SUBSCRIPTION_NOTIFICATION_CHANNEL = "WECHAT_SUBSCRIPTION" as const;
 export const WECHAT_TEMPLATE_NOTIFICATION_CHANNEL = "WECHAT_TEMPLATE" as const;
-

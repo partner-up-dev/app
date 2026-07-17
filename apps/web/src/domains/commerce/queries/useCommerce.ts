@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
-import { computed, onScopeDispose, type Ref, unref, watch } from "vue";
+import { computed, onScopeDispose, type Ref, watch } from "vue";
 import {
   consumeNextCommerceOrderDetailTrigger,
   createCommerceOrderDetailDebugHeaders,
@@ -625,9 +625,7 @@ export const useRideHailingCancellationFeePreview = () =>
       });
 
       try {
-        const response = await client.api.commerce.orders[":orderId"][
-          "cancel-fee-preview"
-        ].$get(
+        const response = await client.api.commerce.orders[":orderId"]["cancel-fee-preview"].$get(
           {
             param: {
               orderId,

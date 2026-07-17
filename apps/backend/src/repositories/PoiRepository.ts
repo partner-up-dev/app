@@ -1,8 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import {
-  normalizeMeetingPointConfig,
-  type MeetingPointConfig,
-} from "../entities/meeting-point";
+import { normalizeMeetingPointConfig, type MeetingPointConfig } from "../entities/meeting-point";
 import {
   normalizePoiAvailabilityRules,
   pois,
@@ -48,18 +45,12 @@ export class PoiRepository {
     return await db.select().from(pois);
   }
 
-  async findById(
-    id: number,
-    options: { includeUnpublished?: boolean } = {},
-  ): Promise<Poi | null> {
+  async findById(id: number, options: { includeUnpublished?: boolean } = {}): Promise<Poi | null> {
     const result = await this.findByIds([id], options);
     return result[0] ?? null;
   }
 
-  async findByIds(
-    ids: number[],
-    options: { includeUnpublished?: boolean } = {},
-  ): Promise<Poi[]> {
+  async findByIds(ids: number[], options: { includeUnpublished?: boolean } = {}): Promise<Poi[]> {
     const normalizedIds = normalizeNumericIds(ids);
     if (normalizedIds.length === 0) {
       return [];
@@ -139,9 +130,7 @@ export class PoiRepository {
     const normalizedAvailabilityRules = shouldReplaceAvailabilityRules
       ? normalizePoiAvailabilityRules(data.availabilityRules)
       : [];
-    const normalizedMeetingPoint = normalizeMeetingPointConfig(
-      data.meetingPoint,
-    );
+    const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
     const result = await db
       .insert(pois)
@@ -182,9 +171,7 @@ export class PoiRepository {
             ? { reviewedByUserId: data.reviewedByUserId }
             : {}),
           ...(data.reviewedAt !== undefined ? { reviewedAt: data.reviewedAt } : {}),
-          ...(data.rejectReason !== undefined
-            ? { rejectReason: data.rejectReason }
-            : {}),
+          ...(data.rejectReason !== undefined ? { rejectReason: data.rejectReason } : {}),
           updatedAt: new Date(),
         },
       })
@@ -209,12 +196,8 @@ export class PoiRepository {
     const normalizedName = name.trim();
     const normalizedFullAddress = data.fullAddress?.trim() || null;
     const normalizedGallery = normalizeGallery(data.gallery);
-    const normalizedAvailabilityRules = normalizePoiAvailabilityRules(
-      data.availabilityRules ?? [],
-    );
-    const normalizedMeetingPoint = normalizeMeetingPointConfig(
-      data.meetingPoint,
-    );
+    const normalizedAvailabilityRules = normalizePoiAvailabilityRules(data.availabilityRules ?? []);
+    const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
     const result = await db
       .insert(pois)
@@ -261,9 +244,7 @@ export class PoiRepository {
       data.availabilityRules === undefined
         ? []
         : normalizePoiAvailabilityRules(data.availabilityRules);
-    const normalizedMeetingPoint = normalizeMeetingPointConfig(
-      data.meetingPoint,
-    );
+    const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
     const result = await db
       .update(pois)
@@ -328,7 +309,7 @@ export class PoiRepository {
         status: data.status,
         reviewedByUserId: data.reviewedByUserId,
         reviewedAt: new Date(),
-        rejectReason: data.status === "REJECTED" ? data.rejectReason ?? null : null,
+        rejectReason: data.status === "REJECTED" ? (data.rejectReason ?? null) : null,
         updatedAt: new Date(),
       })
       .where(eq(pois.id, id))

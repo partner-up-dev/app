@@ -12,10 +12,7 @@
     </template>
 
     <PuCard as="section" class="wechat-oauth-callback-page__card">
-      <PuLoadingState
-        v-if="status === 'processing'"
-        :message="statusMessage"
-      />
+      <PuLoadingState v-if="status === 'processing'" :message="statusMessage" />
       <p v-else class="wechat-oauth-callback-page__error">
         {{ statusMessage }}
       </p>
@@ -28,10 +25,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { PuCard, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 import { client } from "@/lib/rpc";
-import {
-  useUserSessionStore,
-  type AuthSessionPayload,
-} from "@/shared/auth/useUserSessionStore";
+import { useUserSessionStore, type AuthSessionPayload } from "@/shared/auth/useUserSessionStore";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
 
 const { t } = useI18n();
@@ -98,8 +92,7 @@ const handleCallback = async (): Promise<void> => {
       } | null;
       clearWeChatOAuthLoginPending();
       status.value = "failed";
-      errorMessage.value =
-        payload?.error ?? t("wechatOAuthCallbackPage.failed");
+      errorMessage.value = payload?.error ?? t("wechatOAuthCallbackPage.failed");
       return;
     }
 
@@ -115,15 +108,12 @@ const handleCallback = async (): Promise<void> => {
 
     clearWeChatOAuthLoginPending();
     status.value = "failed";
-    errorMessage.value =
-      "error" in payload ? payload.error : t("wechatOAuthCallbackPage.failed");
+    errorMessage.value = "error" in payload ? payload.error : t("wechatOAuthCallbackPage.failed");
   } catch (error) {
     clearWeChatOAuthLoginPending();
     status.value = "failed";
     errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : t("wechatOAuthCallbackPage.failed");
+      error instanceof Error ? error.message : t("wechatOAuthCallbackPage.failed");
   }
 };
 

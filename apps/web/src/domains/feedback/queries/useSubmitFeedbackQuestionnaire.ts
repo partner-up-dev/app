@@ -3,10 +3,7 @@ import type { FeedbackQuestionnaireAnswers, PRId } from "@partner-up-dev/backend
 import { client } from "@/lib/rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };

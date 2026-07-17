@@ -2,21 +2,12 @@ import { throwHttpProblem } from "../lib/problem-details";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import {
-  authMiddleware,
-  issueAnonymousAuth,
-  issueAuthForUser,
-} from "../auth/middleware";
+import { authMiddleware, issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
 import type { AuthEnv } from "../auth/middleware";
 import { hasAnyUserRole, hasUserRole, type UserId } from "../entities/user";
 import { UserRepository } from "../repositories/UserRepository";
-import {
-  registerAnonymousUser,
-  verifyUserCredential,
-} from "../domains/user";
-import {
-  setAnonymousSessionCookie,
-} from "../auth/anonymous-session";
+import { registerAnonymousUser, verifyUserCredential } from "../domains/user";
+import { setAnonymousSessionCookie } from "../auth/anonymous-session";
 
 const app = new Hono<AuthEnv>();
 const userRepo = new UserRepository();

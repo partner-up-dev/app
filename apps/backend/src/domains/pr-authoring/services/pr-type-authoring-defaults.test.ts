@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const updateNotes = vi.hoisted(() => vi.fn());
+const updateNotes = vi.hoisted(() => vi.fn<() => unknown>());
 vi.mock("../../../repositories/PartnerRequestRepository", () => ({
   PartnerRequestRepository: class {
     updateNotes = updateNotes;

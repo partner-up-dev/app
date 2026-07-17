@@ -12,11 +12,7 @@
     <p v-if="rules.length === 0" class="pm-hint">
       {{ t("adminCommerceProducts.emptyPricingRules") }}
     </p>
-    <article
-      v-for="(rule, index) in rules"
-      :key="rule.draftId"
-      class="pm-repeated-item"
-    >
+    <article v-for="(rule, index) in rules" :key="rule.draftId" class="pm-repeated-item">
       <div class="pm-section-header">
         <strong>{{ t("adminCommerceProducts.pricingRuleTitle", { index: index + 1 }) }}</strong>
         <PuButton shape="pill" tone="danger" variant="outline" size="sm" @click="removeRule(index)">
@@ -36,7 +32,9 @@
           <input v-model="rule.label" class="pm-field-input" type="text" />
         </label>
         <label class="pm-field pm-field--full">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.pricingRuleDescriptionLabel") }}</span>
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.pricingRuleDescriptionLabel")
+          }}</span>
           <input v-model="rule.description" class="pm-field-input" type="text" />
         </label>
         <PricingConditionRuleEditor
@@ -45,7 +43,9 @@
           :target-level="rule.targetLevel"
         />
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.pricingRuleActionLabel") }}</span>
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.pricingRuleActionLabel")
+          }}</span>
           <select v-model="rule.actionType" class="pm-field-input">
             <option value="MINUS">{{ t("adminCommerceProducts.pricingRuleActionMinus") }}</option>
             <option value="RATIO">{{ t("adminCommerceProducts.pricingRuleActionRatio") }}</option>
@@ -62,9 +62,13 @@
         </label>
         <template v-if="rule.actionType === 'RESET'">
           <label class="pm-field">
-            <span class="pm-field-label">{{ t("adminCommerceProducts.pricingModelTypeLabel") }}</span>
+            <span class="pm-field-label">{{
+              t("adminCommerceProducts.pricingModelTypeLabel")
+            }}</span>
             <select v-model="rule.resetPricingModelMode" class="pm-field-input">
-              <option value="FIXED_TOTAL">{{ t("adminCommerceProducts.pricingModelFixed") }}</option>
+              <option value="FIXED_TOTAL">
+                {{ t("adminCommerceProducts.pricingModelFixed") }}
+              </option>
               <option v-if="rule.resetPricingModel !== null" value="PRESERVE">
                 {{ t("adminCommerceProducts.pricingModelDynamicPreserved") }}
               </option>
@@ -72,7 +76,12 @@
           </label>
           <label v-if="rule.resetPricingModelMode === 'FIXED_TOTAL'" class="pm-field">
             <span class="pm-field-label">{{ t("adminCommerceProducts.resetAmountFenLabel") }}</span>
-            <input v-model.number="rule.resetAmountFen" class="pm-field-input" type="number" min="0" />
+            <input
+              v-model.number="rule.resetAmountFen"
+              class="pm-field-input"
+              type="number"
+              min="0"
+            />
           </label>
           <p v-else class="pm-hint pm-field--full">
             {{ t("adminCommerceProducts.dynamicPricingPreservedHint") }}

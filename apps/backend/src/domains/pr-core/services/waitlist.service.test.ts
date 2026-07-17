@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import type { PartnerRequest } from "../../../entities/partner-request";
 
-const buildRequest = (
-  overrides: Partial<PartnerRequest> = {},
-): PartnerRequest => ({
+const buildRequest = (overrides: Partial<PartnerRequest> = {}): PartnerRequest => ({
   id: 1,
   title: "Test PR",
   type: "test",

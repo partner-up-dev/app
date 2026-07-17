@@ -13,8 +13,7 @@ export const PUBLIC_CONFIG_KEYS = {
   wechatOfficialAccountQrCode: "wechat_official_account_qr_code",
 } as const;
 
-export type PublicConfigKey =
-  (typeof PUBLIC_CONFIG_KEYS)[keyof typeof PUBLIC_CONFIG_KEYS];
+export type PublicConfigKey = (typeof PUBLIC_CONFIG_KEYS)[keyof typeof PUBLIC_CONFIG_KEYS];
 
 export const usePublicConfig = (key: PublicConfigKey) => {
   return useQuery({

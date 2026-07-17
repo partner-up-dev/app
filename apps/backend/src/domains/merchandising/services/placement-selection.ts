@@ -1,10 +1,7 @@
 import type { Placement } from "../../../entities/placement";
 import { doesPlacementRuleMatch } from "./placement-rule-engine";
 
-export type PlacementSelectionCandidate = Pick<
-  Placement,
-  "id" | "priority" | "matchingRule"
-> &
+export type PlacementSelectionCandidate = Pick<Placement, "id" | "priority" | "matchingRule"> &
   Partial<Pick<Placement, "status" | "effectiveFrom" | "effectiveTo">>;
 
 export function isPlacementActiveAt(
@@ -17,9 +14,7 @@ export function isPlacementActiveAt(
   return true;
 }
 
-export function listMatchingPlacementCandidates<
-  T extends PlacementSelectionCandidate,
->(input: {
+export function listMatchingPlacementCandidates<T extends PlacementSelectionCandidate>(input: {
   candidates: readonly T[];
   context: unknown;
 }): T[] {

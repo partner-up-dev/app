@@ -20,11 +20,9 @@ export type WeChatLoginStatePayload = {
   createdAt: number;
 };
 
-const encodeBase64Url = (raw: string): string =>
-  Buffer.from(raw, "utf8").toString("base64url");
+const encodeBase64Url = (raw: string): string => Buffer.from(raw, "utf8").toString("base64url");
 
-const decodeBase64Url = (raw: string): string =>
-  Buffer.from(raw, "base64url").toString("utf8");
+const decodeBase64Url = (raw: string): string => Buffer.from(raw, "base64url").toString("utf8");
 
 const parseJsonSafely = <TPayload>(raw: string): TPayload | null => {
   try {
@@ -49,10 +47,7 @@ export class WeChatAuthSessionService {
   }
 
   private sign(encodedPayload: string): string {
-    return crypto
-      .createHmac("sha256", this.getSecret())
-      .update(encodedPayload)
-      .digest("base64url");
+    return crypto.createHmac("sha256", this.getSecret()).update(encodedPayload).digest("base64url");
   }
 
   private isSignatureValid(provided: string, expected: string): boolean {
@@ -77,9 +72,7 @@ export class WeChatAuthSessionService {
     return `${encodedPayload}.${signature}`;
   }
 
-  private parseSignedToken<TPayload extends object>(
-    token: string,
-  ): SignedPayload<TPayload> | null {
+  private parseSignedToken<TPayload extends object>(token: string): SignedPayload<TPayload> | null {
     const [encodedPayload, providedSignature] = token.split(".");
 
     if (!encodedPayload || !providedSignature) {

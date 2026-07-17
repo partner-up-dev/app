@@ -34,9 +34,7 @@ export default defineProject({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@/": fileURLToPath(new URL("./src/", import.meta.url)),
-      "@partner-up-dev/backend": fileURLToPath(
-        new URL("../backend/src/index.ts", import.meta.url),
-      ),
+      "@partner-up-dev/backend": fileURLToPath(new URL("../backend/src/index.ts", import.meta.url)),
     },
   },
   css: {

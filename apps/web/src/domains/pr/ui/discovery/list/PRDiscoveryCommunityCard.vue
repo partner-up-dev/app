@@ -123,8 +123,7 @@ const description = computed(() => t("prDiscovery.typeDetail.communityDescriptio
   isolation: isolate;
 }
 
-.pr-discovery-community-card-shell
-  :deep(.pr-discovery-community-card--list)::before {
+.pr-discovery-community-card-shell :deep(.pr-discovery-community-card--list)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -133,16 +132,13 @@ const description = computed(() => t("prDiscovery.typeDetail.communityDescriptio
   z-index: 0;
 }
 
-.pr-discovery-community-card-shell
-  :deep(.pr-discovery-community-card--list > .pu-card__header),
-.pr-discovery-community-card-shell
-  :deep(.pr-discovery-community-card--list > .pu-card__body) {
+.pr-discovery-community-card-shell :deep(.pr-discovery-community-card--list > .pu-card__header),
+.pr-discovery-community-card-shell :deep(.pr-discovery-community-card--list > .pu-card__body) {
   position: relative;
   z-index: 1;
 }
 
-.pr-discovery-community-card-shell--flash
-  :deep(.pr-discovery-community-card--list)::before {
+.pr-discovery-community-card-shell--flash :deep(.pr-discovery-community-card--list)::before {
   animation: community-card-surface-flash 900ms ease-in-out 1;
 }
 

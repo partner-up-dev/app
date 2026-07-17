@@ -1,8 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  PartnerRequestFields,
-  PRRoute,
-} from "../../../entities/partner-request";
+import type { PartnerRequestFields, PRRoute } from "../../../entities/partner-request";
 
 export const PR_PLACE_MODE_CONFLICT_CODE = "PR_PLACE_MODE_CONFLICT";
 const ROUTE_SUMMARY_MAX_LENGTH = 16;
@@ -21,9 +18,7 @@ const truncateToLength = (value: string, maxLength: number): string => {
   return `${value.slice(0, maxLength - 1)}…`;
 };
 
-export const buildPRRouteSummary = (
-  route: PRRoute | null | undefined,
-): string | null => {
+export const buildPRRouteSummary = (route: PRRoute | null | undefined): string | null => {
   if (!route || route.length < 2) {
     return null;
   }
@@ -34,16 +29,14 @@ export const buildPRRouteSummary = (
     return null;
   }
 
-  const availableLength =
-    ROUTE_SUMMARY_MAX_LENGTH - ROUTE_SUMMARY_SEPARATOR.length;
+  const availableLength = ROUTE_SUMMARY_MAX_LENGTH - ROUTE_SUMMARY_SEPARATOR.length;
   let startBudget = Math.min(startName.length, Math.ceil(availableLength / 2));
   let endBudget = Math.min(endName.length, availableLength - startBudget);
   startBudget = Math.min(startName.length, availableLength - endBudget);
 
-  return [
-    truncateToLength(startName, startBudget),
-    truncateToLength(endName, endBudget),
-  ].join(ROUTE_SUMMARY_SEPARATOR);
+  return [truncateToLength(startName, startBudget), truncateToLength(endName, endBudget)].join(
+    ROUTE_SUMMARY_SEPARATOR,
+  );
 };
 
 export const resolvePRPlaceDisplayName = (input: {

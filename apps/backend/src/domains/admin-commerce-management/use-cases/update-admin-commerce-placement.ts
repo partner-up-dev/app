@@ -29,9 +29,7 @@ export type UpdateAdminCommercePlacementInput = {
   bindingRules: PlacementBindingRule[];
 };
 
-export async function updateAdminCommercePlacement(
-  input: UpdateAdminCommercePlacementInput,
-) {
+export async function updateAdminCommercePlacement(input: UpdateAdminCommercePlacementInput) {
   const placement = await placementRepo.findById(input.placementId);
   if (!placement) {
     return throwHttpProblem({ status: 404, detail: "Placement not found" });

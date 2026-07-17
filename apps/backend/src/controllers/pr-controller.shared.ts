@@ -18,10 +18,7 @@ import {
 import { prMessageBodySchema } from "../entities/pr-message";
 import { hasUserRole, type UserId } from "../entities/user";
 import { throwHttpProblem } from "../lib/problem-details";
-import {
-  isWeChatAbilityMockingEnabled,
-  resolveWeChatAbilityMockOpenId,
-} from "../lib/wechat-ability-mocking";
+import { resolveWeChatAbilityMockOpenId } from "../lib/wechat-ability-mocking";
 import { UserRepository } from "../repositories/UserRepository";
 import { WeChatOAuthService } from "../services/WeChatOAuthService";
 

@@ -3,10 +3,7 @@ import { eq } from "drizzle-orm";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { expectActiveParticipantsInclude } from "./_kit/assertions/participants";
-import {
-  buildScenarioFields,
-  givenDraftPR,
-} from "./_kit/builders/partner-requests";
+import { buildScenarioFields, givenDraftPR } from "./_kit/builders/partner-requests";
 import { givenAnonymousUser, givenUser } from "./_kit/builders/users";
 import { getTestDb } from "../_infra/probes/sql-probe";
 import { partnerRequests, type PRId, type PRStatus } from "../../src/entities";
@@ -81,10 +78,7 @@ scenario("anonymous_publish_draft_requires_authenticated_user", async (ctx) => {
     method: "POST",
     token: anonymous.token,
   });
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^application\/problem\+json/,
-  );
+  assert.match(response.headers.get("content-type") ?? "", /^application\/problem\+json/);
   const body = await expectJsonResponse<ProblemDetailsResponse>(response, 401);
   assert.equal(body.code, "AUTHENTICATED_REQUIRED");
 });
@@ -145,10 +139,7 @@ scenario("authenticated_publish_rejects_draft_with_past_start_time", async (ctx)
     token: publisher.token,
   });
 
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^application\/problem\+json/,
-  );
+  assert.match(response.headers.get("content-type") ?? "", /^application\/problem\+json/);
   const body = await expectJsonResponse<ProblemDetailsResponse>(response, 400);
   assert.equal(body.code, "PR_START_TIME_PASSED");
 
@@ -171,7 +162,7 @@ scenario("authenticated_user_can_edit_creatorless_draft_content", async (ctx) =>
     title: "Scenario draft content initial",
   });
   const updatedFields = buildScenarioFields("Scenario draft content updated");
-    const editableFields = toUserEditableFields(updatedFields);
+  const editableFields = toUserEditableFields(updatedFields);
   ctx.record("draftAuthorUserId", draftAuthor.user.id);
   ctx.record("editorUserId", editor.user.id);
   ctx.record("prId", pr.id);
@@ -203,37 +194,34 @@ scenario("authenticated_user_can_edit_creatorless_draft_content", async (ctx) =>
   assert.equal(stored?.createdBy, null);
 });
 
-scenario(
-  "user_content_edit_rejects_type_field",
-  async (ctx) => {
-    const draftAuthor = await givenAnonymousUser("type-field-author");
-    const editor = await givenUser("type-field-editor");
-    const pr = await givenDraftPR({
-      creator: draftAuthor,
-      title: "Scenario type field initial",
-    });
-    const updatedFields = {
-      ...buildScenarioFields("Scenario type field updated"),
-      type: "changed-type",
-    };
-    ctx.record("prId", pr.id);
+scenario("user_content_edit_rejects_type_field", async (ctx) => {
+  const draftAuthor = await givenAnonymousUser("type-field-author");
+  const editor = await givenUser("type-field-editor");
+  const pr = await givenDraftPR({
+    creator: draftAuthor,
+    title: "Scenario type field initial",
+  });
+  const updatedFields = {
+    ...buildScenarioFields("Scenario type field updated"),
+    type: "changed-type",
+  };
+  ctx.record("prId", pr.id);
 
-    const response = await requestJson(`/api/pr/${pr.id}/content`, {
-      method: "PATCH",
-      token: editor.token,
-      body: {
-        fields: updatedFields,
-      },
-    });
-    await expectJsonResponse<ProblemDetailsResponse>(response, 400);
+  const response = await requestJson(`/api/pr/${pr.id}/content`, {
+    method: "PATCH",
+    token: editor.token,
+    body: {
+      fields: updatedFields,
+    },
+  });
+  await expectJsonResponse<ProblemDetailsResponse>(response, 400);
 
-    const db = getTestDb();
-    const [stored] = await db
-      .select({
-        type: partnerRequests.type,
-      })
-      .from(partnerRequests)
-      .where(eq(partnerRequests.id, pr.id));
-    assert.equal(stored?.type, "badminton");
-  },
-);
+  const db = getTestDb();
+  const [stored] = await db
+    .select({
+      type: partnerRequests.type,
+    })
+    .from(partnerRequests)
+    .where(eq(partnerRequests.id, pr.id));
+  assert.equal(stored?.type, "badminton");
+});

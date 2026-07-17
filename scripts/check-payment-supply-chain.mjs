@@ -4,11 +4,7 @@ import { resolve } from "node:path";
 const lockfilePath = resolve("pnpm-lock.yaml");
 const lockfile = readFileSync(lockfilePath, "utf8");
 
-const blockedPatterns = [
-  /axios@1\.14\.1\b/,
-  /axios@0\.30\.4\b/,
-  /plain-crypto-js\b/,
-];
+const blockedPatterns = [/axios@1\.14\.1\b/, /axios@0\.30\.4\b/, /plain-crypto-js\b/];
 
 const failures = [];
 

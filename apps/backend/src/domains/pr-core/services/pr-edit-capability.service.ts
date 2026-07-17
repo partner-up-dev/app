@@ -53,9 +53,7 @@ const timeWindowsEqual = (
   right: [string | null, string | null],
 ): boolean => left[0] === right[0] && left[1] === right[1];
 
-const resolveReadyEditableFields = (
-  policy: PRAllowEditAfterReady | null,
-): PREditableField[] => {
+const resolveReadyEditableFields = (policy: PRAllowEditAfterReady | null): PREditableField[] => {
   if (!policy) return [];
   const fields: PREditableField[] = [];
   if (policy.timeWindow) fields.push("time");
@@ -68,9 +66,7 @@ export const buildPREditPostReadyCapability = (
   policy: PRAllowEditAfterReady | null,
 ): PREditPostReadyCapability => ({
   editableFields: resolveReadyEditableFields(policy),
-  constraints: {
-    ...(policy?.timeWindow ? { timeWindow: policy.timeWindow } : {}),
-  },
+  constraints: policy?.timeWindow ? { timeWindow: policy.timeWindow } : {},
 });
 
 export const buildPREditCapability = (
@@ -90,9 +86,7 @@ export const buildPREditCapability = (
   }
 
   if (request.status === "READY") {
-    const postReadyCapability = buildPREditPostReadyCapability(
-      request.allowEditAfterReady,
-    );
+    const postReadyCapability = buildPREditPostReadyCapability(request.allowEditAfterReady);
     return {
       canEdit: postReadyCapability.editableFields.length > 0,
       editableFields: postReadyCapability.editableFields,
@@ -141,10 +135,7 @@ const assertTimeWindowWithinPolicy = (
     });
   }
 
-  if (
-    start.getTime() < rangeStart.getTime() ||
-    end.getTime() > rangeEnd.getTime()
-  ) {
+  if (start.getTime() < rangeStart.getTime() || end.getTime() > rangeEnd.getTime()) {
     return throwHttpProblem({
       status: 400,
       detail: "PR time window is outside the editable-after-ready range",
@@ -173,9 +164,7 @@ export const assertPRContentEditable = (params: {
   }
 
   const capability = buildPREditCapability(request, request.createdBy);
-  const disallowed = changedFields.filter(
-    (field) => !capability.editableFields.includes(field),
-  );
+  const disallowed = changedFields.filter((field) => !capability.editableFields.includes(field));
   if (disallowed.length > 0) {
     return throwHttpProblem({
       status: 400,

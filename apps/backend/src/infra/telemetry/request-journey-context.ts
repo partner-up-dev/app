@@ -14,8 +14,7 @@ declare module "hono" {
   }
 }
 
-const uuidSchema =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidSchema = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const parseJourneyIdHeader = (
   rawJourneyId: string | null | undefined,
@@ -42,9 +41,7 @@ export const journeyContextMiddleware: MiddlewareHandler = async (c, next) => {
   await next();
 };
 
-export const getRequestJourneyContext = (
-  c: Context,
-): RequestJourneyContext =>
+export const getRequestJourneyContext = (c: Context): RequestJourneyContext =>
   c.get("journeyContext") ?? {
     journeyId: null,
     rawJourneyId: null,

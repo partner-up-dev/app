@@ -36,9 +36,7 @@ export const resolveCurrentSpmAttribution = (): string | undefined => {
   }
 
   try {
-    const stored = sanitizeSpmValue(
-      window.sessionStorage.getItem(SPM_ATTRIBUTION_STORAGE_KEY),
-    );
+    const stored = sanitizeSpmValue(window.sessionStorage.getItem(SPM_ATTRIBUTION_STORAGE_KEY));
     cachedSpmAttribution = stored;
     if (!stored) {
       window.sessionStorage.removeItem(SPM_ATTRIBUTION_STORAGE_KEY);

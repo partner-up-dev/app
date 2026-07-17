@@ -21,10 +21,7 @@ export const useCloudStorage = () => {
     });
   };
 
-  const uploadImage = async (
-    file: File | Blob,
-    options: UploadImageOptions,
-  ): Promise<string> => {
+  const uploadImage = async (file: File | Blob, options: UploadImageOptions): Promise<string> => {
     isUploading.value = true;
     uploadError.value = null;
 
@@ -41,8 +38,7 @@ export const useCloudStorage = () => {
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
         throw new Error(
-          error.error ||
-            `${i18n.global.t("errors.uploadFailed")}: ${res.statusText}`,
+          error.error || `${i18n.global.t("errors.uploadFailed")}: ${res.statusText}`,
         );
       }
 

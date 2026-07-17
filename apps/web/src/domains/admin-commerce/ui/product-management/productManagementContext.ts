@@ -59,12 +59,8 @@ export const provideAdminCommerceProductManagementContext = (
   const localErrorMessage = ref<string | null>(null);
 
   const products = computed(() => workspaceQuery.data.value?.products ?? []);
-  const selectedSpuId = computed<number | null>(() =>
-    parsePositiveId(selectedSpuIdRaw.value),
-  );
-  const selectedSkuId = computed<number | null>(() =>
-    parsePositiveId(selectedSkuIdRaw.value),
-  );
+  const selectedSpuId = computed<number | null>(() => parsePositiveId(selectedSpuIdRaw.value));
+  const selectedSkuId = computed<number | null>(() => parsePositiveId(selectedSkuIdRaw.value));
   const selectedProduct = computed<ProductRecord | null>(
     () => products.value.find((product) => product.spu.id === selectedSpuId.value) ?? null,
   );
@@ -73,8 +69,7 @@ export const provideAdminCommerceProductManagementContext = (
   );
   const selectedSkuRecord = computed<SkuRecord | null>(
     () =>
-      selectedProduct.value?.skus.find((record) => record.sku.id === selectedSkuId.value) ??
-      null,
+      selectedProduct.value?.skus.find((record) => record.sku.id === selectedSkuId.value) ?? null,
   );
   const errorMessage = computed(() => localErrorMessage.value);
 

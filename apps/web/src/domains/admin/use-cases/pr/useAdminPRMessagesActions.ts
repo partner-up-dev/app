@@ -9,13 +9,7 @@ export const useAdminPRMessagesActions = () => {
   const updateMessageMutation = useUpdateAdminPRMessage();
   const deleteMessageMutation = useDeleteAdminPRMessage();
 
-  const createMessage = async ({
-    prId,
-    body,
-  }: {
-    prId: number;
-    body: string;
-  }) =>
+  const createMessage = async ({ prId, body }: { prId: number; body: string }) =>
     await createMessageMutation.mutateAsync({
       prId,
       input: { body },
@@ -36,13 +30,7 @@ export const useAdminPRMessagesActions = () => {
       input: { body },
     });
 
-  const deleteMessage = async ({
-    prId,
-    messageId,
-  }: {
-    prId: number;
-    messageId: number;
-  }) =>
+  const deleteMessage = async ({ prId, messageId }: { prId: number; messageId: number }) =>
     await deleteMessageMutation.mutateAsync({
       prId,
       messageId,

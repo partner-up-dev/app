@@ -7,10 +7,7 @@ import {
   normalizeAutomaticPartnerBounds,
 } from "./partner-bounds.service";
 
-const assertThrowsProblemDetails = (
-  fn: () => void,
-  expectedMessage: string,
-): void => {
+const assertThrowsProblemDetails = (fn: () => void, expectedMessage: string): void => {
   assert.throws(fn, (error: unknown) => {
     assert.ok(error instanceof ProblemDetailsError);
     assert.equal(error.status, 400);

@@ -13,21 +13,14 @@ import { z } from "zod";
 import type { WeChatNotificationKind } from "./user-notification-opt";
 import { users, type UserId } from "./user";
 
-export const notificationWaveStatusSchema = z.enum([
-  "OPEN",
-  "NOTIFIED",
-  "RESOLVED",
-  "CANCELED",
-]);
+export const notificationWaveStatusSchema = z.enum(["OPEN", "NOTIFIED", "RESOLVED", "CANCELED"]);
 export type NotificationWaveStatus = z.infer<typeof notificationWaveStatusSchema>;
 
 export const notificationWaves = pgTable(
   "notification_waves",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    notificationKind: text("notification_kind")
-      .$type<WeChatNotificationKind>()
-      .notNull(),
+    notificationKind: text("notification_kind").$type<WeChatNotificationKind>().notNull(),
     aggregateType: text("aggregate_type").notNull(),
     aggregateId: text("aggregate_id").notNull(),
     recipientUserId: uuid("recipient_user_id")
@@ -36,10 +29,7 @@ export const notificationWaves = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     waveKey: text("wave_key").notNull(),
     waveStartMessageId: bigint("wave_start_message_id", { mode: "number" }),
-    status: text("status")
-      .$type<NotificationWaveStatus>()
-      .notNull()
-      .default("OPEN"),
+    status: text("status").$type<NotificationWaveStatus>().notNull().default("OPEN"),
     openedAt: timestamp("opened_at").notNull().defaultNow(),
     lastNotifiedAt: timestamp("last_notified_at"),
     resolvedAt: timestamp("resolved_at"),

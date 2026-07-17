@@ -1,5 +1,4 @@
-export const prettyJson = (value: unknown): string =>
-  JSON.stringify(value, null, 2);
+export const prettyJson = (value: unknown): string => JSON.stringify(value, null, 2);
 
 export const parseJsonText = <T>(value: string, label: string): T => {
   try {

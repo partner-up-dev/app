@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="create-card-shell"
-    :class="{ 'create-card-shell--flash': autoExpandHighlightActive }"
-  >
+  <div class="create-card-shell" :class="{ 'create-card-shell--flash': autoExpandHighlightActive }">
     <PuCard
       as="section"
       class="create-card-panel"
@@ -21,9 +18,7 @@
           :model-value="timeWindow"
           :allow-edit-after-ready="allowEditAfterReady"
           @update:model-value="emit('update:timeWindow', $event)"
-          @update:allow-edit-after-ready="
-            emit('update:allowEditAfterReady', $event)
-          "
+          @update:allow-edit-after-ready="emit('update:allowEditAfterReady', $event)"
         />
 
         <PRDiscoveryInlinePlaceSelector
@@ -36,7 +31,6 @@
         <p v-if="errorMessage" class="create-card__error">{{ errorMessage }}</p>
 
         <PuButton
-
           shape="pill"
           size="sm"
           data-testid="pr-discovery.create-card.create"
@@ -176,10 +170,8 @@ const emitCreate = () => {
   z-index: 0;
 }
 
-.create-card-shell
-  :deep(.create-card-panel > .pu-card__header),
-.create-card-shell
-  :deep(.create-card-panel > .pu-card__body) {
+.create-card-shell :deep(.create-card-panel > .pu-card__header),
+.create-card-shell :deep(.create-card-panel > .pu-card__body) {
   position: relative;
   z-index: 1;
 }

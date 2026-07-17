@@ -50,10 +50,7 @@
       :message="t('home.landing.discoveryHighlights.loadFailed')"
     >
       <template #actions>
-        <RouterLink
-          class="pr-discovery-highlights__fallback-action"
-          :to="{ name: 'pr-discovery' }"
-        >
+        <RouterLink class="pr-discovery-highlights__fallback-action" :to="{ name: 'pr-discovery' }">
           {{ t("home.landing.discoveryHighlights.browseAction") }}
         </RouterLink>
       </template>
@@ -69,10 +66,7 @@
       :description="t('home.landing.discoveryHighlights.empty')"
     >
       <template #actions>
-        <RouterLink
-          class="pr-discovery-highlights__fallback-action"
-          :to="{ name: 'pr-discovery' }"
-        >
+        <RouterLink class="pr-discovery-highlights__fallback-action" :to="{ name: 'pr-discovery' }">
           {{ t("home.landing.discoveryHighlights.browseAction") }}
         </RouterLink>
       </template>
@@ -180,5 +174,4 @@ const { targetRef: sectionRef, isInView, itemMotionStyle } = useInViewStagger();
   outline: 2px solid var(--sys-color-primary);
   outline-offset: 2px;
 }
-
 </style>

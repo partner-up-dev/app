@@ -16,12 +16,9 @@ export interface SkippedMaintenanceTickSummary {
   durationMs: number;
 }
 
-export type ExternalMaintenanceTickResult =
-  | MaintenanceTickSummary
-  | SkippedMaintenanceTickSummary;
+export type ExternalMaintenanceTickResult = MaintenanceTickSummary | SkippedMaintenanceTickSummary;
 
-let externalMaintenanceTickInFlight: Promise<MaintenanceTickSummary> | null =
-  null;
+let externalMaintenanceTickInFlight: Promise<MaintenanceTickSummary> | null = null;
 
 export async function runExternalMaintenanceTick(): Promise<MaintenanceTickSummary> {
   const startedAt = Date.now();

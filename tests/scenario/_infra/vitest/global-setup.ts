@@ -15,21 +15,12 @@ import {
   resetAndMigrateTestDatabase,
   type ScenarioDatabaseHandle,
 } from "../../../../apps/backend/tests/_infra/db/test-database";
-import {
-  startBackendServer,
-  type StartedBackendServer,
-} from "../server/backend-server";
-import {
-  startFrontendServer,
-  type StartedFrontendServer,
-} from "../server/frontend-server";
+import { startBackendServer, type StartedBackendServer } from "../server/backend-server";
+import { startFrontendServer, type StartedFrontendServer } from "../server/frontend-server";
 import { getAvailablePort } from "../server/ports";
 import { loadWorkspaceEnvFiles } from "../environment/env-files";
 
-const repoRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../..",
-);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 let backendServer: StartedBackendServer | null = null;
 let database: ScenarioDatabaseHandle | null = null;

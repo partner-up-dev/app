@@ -1,15 +1,6 @@
 {
   "name": "@partner-up-dev/app",
   "private": true,
-  "packageManager": "pnpm@10.28.1",
-  "engines": {
-    "node": ">=22 <23"
-  },
-  "pnpm": {
-    "overrides": {
-      "axios": "1.16.1"
-    }
-  },
   "scripts": {
     "dev": "pnpm dev:web & pnpm dev:backend",
     "dev:ensure": "node ./scripts/ensure-dev-servers.mjs",
@@ -27,14 +18,14 @@
     "build:frontend": "pnpm build:web",
     "build:backend": "pnpm --filter @partner-up-dev/backend build",
     "build": "pnpm check:build",
-    "format": "biome format --write .",
-    "format:check": "biome format --changed --no-errors-on-unmatched .",
-    "format:check:all": "biome format .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "format:check:all": "pnpm format:check",
     "check:static": "pnpm check:format && pnpm check:lint && pnpm check:type && pnpm check:config && pnpm check:dead-code && pnpm check:security && pnpm check:build",
     "check:format": "pnpm format:check",
-    "check:lint": "pnpm lint:biome && pnpm lint:structure && pnpm lint:policy",
-    "check:lint:backend": "pnpm lint:biome:backend && pnpm lint:structure:backend && pnpm lint:backend",
-    "check:lint:web": "pnpm lint:biome:web && pnpm --filter @partner-up-dev/web lint:tokens:strict && pnpm --filter @partner-up-dev/web audit:naming",
+    "check:lint": "pnpm lint:oxlint && pnpm lint:structure && pnpm lint:policy",
+    "check:lint:backend": "pnpm lint:oxlint:backend && pnpm lint:structure:backend",
+    "check:lint:web": "pnpm lint:oxlint:web && pnpm --filter @partner-up-dev/web lint:tokens:strict && pnpm --filter @partner-up-dev/web audit:naming",
     "check:lint:frontend": "pnpm check:lint:web",
     "check:type": "pnpm check:type:backend && pnpm check:type:web && pnpm --filter @partner-up-dev/fake-wechatpay-server typecheck && pnpm --filter @partner-up-dev/fake-caocao-server typecheck",
     "check:type:backend": "pnpm --filter @partner-up-dev/backend typecheck",
@@ -49,15 +40,14 @@
     "check:build:web": "pnpm build:web",
     "check:build:frontend": "pnpm check:build:web",
     "lint": "pnpm check:lint",
-    "lint:biome": "biome lint --changed --no-errors-on-unmatched .",
-    "lint:biome:all": "biome lint .",
-    "lint:biome:backend": "biome lint --changed --no-errors-on-unmatched apps/backend packages scripts",
-    "lint:biome:web": "biome lint --changed --no-errors-on-unmatched apps/web",
-    "lint:biome:frontend": "pnpm lint:biome:web",
-    "lint:backend": "pnpm --filter @partner-up-dev/backend lint",
+    "lint:oxlint": "oxlint --deny-warnings .",
+    "lint:oxlint:all": "pnpm lint:oxlint",
+    "lint:oxlint:backend": "oxlint --deny-warnings apps/backend packages scripts",
+    "lint:oxlint:web": "oxlint --deny-warnings apps/web",
+    "lint:oxlint:frontend": "pnpm lint:oxlint:web",
     "lint:structure": "pnpm lint:structure:backend",
-    "lint:structure:backend": "ast-grep scan apps/backend/src --config sgconfig.yml --globs '*.ts' --globs '!**/*.test.ts' --globs '!apps/backend/src/index.ts' --globs '!apps/backend/src/scripts/lint/problem-details.ts'",
-    "lint:policy": "pnpm lint:backend && pnpm --filter @partner-up-dev/web lint:tokens:strict && pnpm --filter @partner-up-dev/web audit:naming && pnpm lint:payment-supply-chain && pnpm lint:pr-time-contract",
+    "lint:structure:backend": "ast-grep scan apps/backend/src --config sgconfig.yml --globs '*.ts' --globs '!**/*.test.ts' --globs '!apps/backend/src/index.ts'",
+    "lint:policy": "pnpm --filter @partner-up-dev/web lint:tokens:strict && pnpm --filter @partner-up-dev/web audit:naming && pnpm lint:payment-supply-chain && pnpm lint:pr-time-contract",
     "lint:dead-code": "knip",
     "lint:dead-code:report": "knip --no-exit-code --reporter compact --max-show-issues 50",
     "lint:payment-supply-chain": "node ./scripts/check-payment-supply-chain.mjs",
@@ -84,20 +74,30 @@
     "db:studio": "pnpm --filter @partner-up-dev/backend db:studio"
   },
   "devDependencies": {
-    "@partner-up-dev/fake-caocao-server": "workspace:*",
     "@ast-grep/cli": "0.43.0",
-    "@biomejs/biome": "2.5.0",
     "@hono/node-server": "^1.19.9",
+    "@partner-up-dev/fake-caocao-server": "workspace:*",
     "@partner-up-dev/fake-wechatpay-server": "workspace:*",
     "@tanstack/intent": "^0.0.41",
     "@vitejs/plugin-vue": "^5.2.4",
     "happy-dom": "^20.9.0",
     "knip": "6.17.1",
+    "oxfmt": "0.59.0",
+    "oxlint": "1.74.0",
     "playwright": "^1.59.1",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3",
     "vite": "^6.4.1",
     "vitest": "^4.1.6",
     "vue": "^3.5.34"
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "pnpm": {
+    "overrides": {
+      "axios": "1.16.1"
+    }
   }
 }

@@ -23,9 +23,7 @@ export type UpdateAdminCommerceProductSpuInput = {
   facts: Record<string, unknown>;
 };
 
-export async function updateAdminCommerceProductSpu(
-  input: UpdateAdminCommerceProductSpuInput,
-) {
+export async function updateAdminCommerceProductSpu(input: UpdateAdminCommerceProductSpuInput) {
   const spu = await productSpuRepo.findById(input.spuId);
   if (!spu) {
     return throwHttpProblem({ status: 404, detail: "Product SPU not found" });

@@ -79,8 +79,8 @@ const resolvedPlaceLabel = computed(
     normalizeLabel(prDetail.value?.core.location),
 );
 
-const resolvedPlaceIcon = computed(
-  () => ((prDetail.value?.core.route?.length ?? 0) >= 2 ? "🧭" : "📍"),
+const resolvedPlaceIcon = computed(() =>
+  (prDetail.value?.core.route?.length ?? 0) >= 2 ? "🧭" : "📍",
 );
 
 const resolvedPreferenceTags = computed(() => prDetail.value?.core.preferences ?? []);

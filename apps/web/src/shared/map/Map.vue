@@ -35,11 +35,7 @@
       </button>
     </div>
 
-    <div
-      v-if="customZoomControlsVisible"
-      class="map-shell__zoom-controls"
-      aria-label="地图缩放"
-    >
+    <div v-if="customZoomControlsVisible" class="map-shell__zoom-controls" aria-label="地图缩放">
       <button
         type="button"
         class="map-shell__zoom-button"
@@ -58,17 +54,8 @@
       </button>
     </div>
 
-    <div
-      v-if="overlayVisible"
-      class="map-shell__fallback"
-      role="status"
-      aria-live="polite"
-    >
-      <slot
-        name="fallback"
-        :status="status"
-        :message="fallbackMessage"
-      >
+    <div v-if="overlayVisible" class="map-shell__fallback" role="status" aria-live="polite">
+      <slot name="fallback" :status="status" :message="fallbackMessage">
         <span class="map-shell__fallback-icon i-mdi-map-marker-path" aria-hidden="true"></span>
         <span class="map-shell__fallback-text">{{ fallbackMessage }}</span>
       </slot>

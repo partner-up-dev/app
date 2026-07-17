@@ -5,9 +5,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 import { i18n } from "@/locales/i18n";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 
-export type MyCreatedPRsResponse = InferResponseType<
-  (typeof client.api.pr.mine.created)["$get"]
->;
+export type MyCreatedPRsResponse = InferResponseType<(typeof client.api.pr.mine.created)["$get"]>;
 
 export const useMyCreatedPRs = () => {
   const userSessionStore = useUserSessionStore();
@@ -18,9 +16,7 @@ export const useMyCreatedPRs = () => {
       const res = await client.api.pr.mine.created.$get();
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.fetchMyCreatedRequestsFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.fetchMyCreatedRequestsFailed"));
       }
 
       return await res.json();

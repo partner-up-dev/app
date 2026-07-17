@@ -228,7 +228,7 @@ export function assertMigrationEnvironment(value: string): asserts value is Migr
 export function assertSupportedNextMigrationFolder(folder: string): void {
   if (folder !== "drizzle" && folder !== "data-migrations") {
     throw new Error(
-      `Unsupported migration folder \"${folder}\". Expected one of: drizzle, data-migrations.`,
+      `Unsupported migration folder "${folder}". Expected one of: drizzle, data-migrations.`,
     );
   }
 }

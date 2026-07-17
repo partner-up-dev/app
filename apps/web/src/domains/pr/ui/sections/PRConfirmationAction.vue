@@ -8,7 +8,8 @@
     <div v-if="showConfirmAction" class="action-group">
       <PuButton
         class="action-group__button"
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         :disabled="!viewer.canConfirm"
         :loading="attendanceActions.confirmPending.value"
         block

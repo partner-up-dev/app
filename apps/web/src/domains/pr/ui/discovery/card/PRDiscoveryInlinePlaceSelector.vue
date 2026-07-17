@@ -15,9 +15,7 @@
         />
 
         <SharedMap
-          v-else-if="
-            selectedOption?.kind === 'location' && selectedOption.coordinate
-          "
+          v-else-if="selectedOption?.kind === 'location' && selectedOption.coordinate"
           :markers="locationMarkers"
           :active-geometry="{ kind: 'all' }"
           :fit-padding="44"

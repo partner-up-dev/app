@@ -18,11 +18,7 @@
     />
 
     <div class="date-panel" role="tabpanel">
-      <div
-        class="batch-list"
-        data-region="pr-list"
-        data-testid="prd.list.pr-list"
-      >
+      <div class="batch-list" data-region="pr-list" data-testid="prd.list.pr-list">
         <div v-if="visibleListItems.length > 0" class="pr-list">
           <template v-for="item in visibleListItems" :key="item.key">
             <PRPreviewCard
@@ -51,11 +47,7 @@
           </template>
         </div>
 
-        <PuInlineNotice
-          v-if="createErrorMessage"
-          tone="error"
-          :message="createErrorMessage"
-        />
+        <PuInlineNotice v-if="createErrorMessage" tone="error" :message="createErrorMessage" />
         <PuEmptyState
           v-else-if="isListExhausted"
           :title="t('prDiscovery.exhausted')"
@@ -75,9 +67,7 @@
           v-else
           compact
           :description="
-            hasBrowseTimeWindows
-              ? t('prDiscovery.noPRsInSelectedDate')
-              : t('prDiscovery.noBatches')
+            hasBrowseTimeWindows ? t('prDiscovery.noPRsInSelectedDate') : t('prDiscovery.noBatches')
           "
           data-testid="prd.list.empty"
         />

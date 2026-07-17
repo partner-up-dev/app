@@ -34,10 +34,7 @@
             {{ t("adminPois.reviewedAt", { time: selectedReviewedAt }) }}
           </p>
 
-          <PuFormItem
-            :label="t('adminPois.rejectReasonLabel')"
-            for-id="admin-pois-reject-reason"
-          >
+          <PuFormItem :label="t('adminPois.rejectReasonLabel')" for-id="admin-pois-reject-reason">
             <PuTextarea
               id="admin-pois-reject-reason"
               v-model="rejectReasonDraft"
@@ -48,33 +45,25 @@
           <div class="action-row">
             <PuButton
               shape="pill"
-              tone="neutral" variant="outline"
+              tone="neutral"
+              variant="outline"
               size="sm"
-
               :disabled="!canPublishPoi"
               :loading="isPublishingPoi"
               @click="emit('publish-poi')"
             >
-              {{
-                isPublishingPoi
-                  ? t("adminPois.publishingPoi")
-                  : t("adminPois.publishPoiAction")
-              }}
+              {{ isPublishingPoi ? t("adminPois.publishingPoi") : t("adminPois.publishPoiAction") }}
             </PuButton>
             <PuButton
               shape="pill"
-              tone="danger" variant="outline"
+              tone="danger"
+              variant="outline"
               size="sm"
-
               :disabled="!canRejectPoi"
               :loading="isRejectingPoi"
               @click="emit('reject-poi')"
             >
-              {{
-                isRejectingPoi
-                  ? t("adminPois.rejectingPoi")
-                  : t("adminPois.rejectPoiAction")
-              }}
+              {{ isRejectingPoi ? t("adminPois.rejectingPoi") : t("adminPois.rejectPoiAction") }}
             </PuButton>
           </div>
         </template>
@@ -88,12 +77,7 @@ import { useI18n } from "vue-i18n";
 import type { AdminPoisResponse } from "@/domains/admin/queries/useAdminPoiManagement";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import BentoLayout from "@/domains/admin/ui/layout/BentoLayout.vue";
-import {
-  PuButton,
-  PuFormItem,
-  PuTag,
-  PuTextarea,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuFormItem, PuTag, PuTextarea } from "@partner-up-dev/design-web";
 
 type PoiRecord = NonNullable<AdminPoisResponse>[number];
 type PoiStatus = PoiRecord["status"];
@@ -130,14 +114,8 @@ const statusLabel = (status: PoiStatus): string => {
   }
 };
 
-const statusTagTone = (
-  status: PoiStatus,
-): "primary" | "secondary" | "danger" =>
-  status === "PUBLISHED"
-    ? "primary"
-    : status === "REJECTED"
-      ? "danger"
-      : "secondary";
+const statusTagTone = (status: PoiStatus): "primary" | "secondary" | "danger" =>
+  status === "PUBLISHED" ? "primary" : status === "REJECTED" ? "danger" : "secondary";
 </script>
 
 <style lang="scss" scoped>
@@ -161,5 +139,4 @@ const statusTagTone = (
   gap: var(--sys-spacing-small);
   flex-wrap: wrap;
 }
-
 </style>

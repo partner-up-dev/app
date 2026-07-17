@@ -119,4 +119,4 @@ export type ProductSku = {
     policyVersion: number;
   } | null;
 };
-import type { PricingModel, PricingRule } from "./pricing";
+import type { PricingModel } from "./pricing";

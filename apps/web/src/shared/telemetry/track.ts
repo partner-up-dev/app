@@ -448,7 +448,7 @@ export const trackRawUserTelemetryEvent = (input: {
         currentSpm,
         sourceQr,
       }),
-      ...(input.attributes ?? {}),
+      ...input.attributes,
     },
     payload: payloadRecord,
   });

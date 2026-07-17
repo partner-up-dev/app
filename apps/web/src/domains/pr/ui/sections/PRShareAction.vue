@@ -1,7 +1,8 @@
 <template>
   <div v-if="showShareAction" class="utility-action-group" data-region="share">
     <PuButton
-      tone="neutral" variant="outline"
+      tone="neutral"
+      variant="outline"
       block
       data-testid="pr-detail.share.open"
       @click="showShareDrawer = true"
@@ -41,9 +42,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const showShareDrawer = ref(false);
 
-const showShareAction = computed(
-  () => props.spmRouteKey !== null && props.prShareData !== null,
-);
+const showShareAction = computed(() => props.spmRouteKey !== null && props.prShareData !== null);
 </script>
 
 <style lang="scss" scoped>

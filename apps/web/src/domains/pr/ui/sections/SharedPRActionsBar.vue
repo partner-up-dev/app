@@ -7,19 +7,14 @@
     v-if="canJoin || canExit || showEditContentAction || showModifyStatusAction"
     class="actions"
   >
-    <PuButton
-      v-if="canJoin"
-
-      :disabled="joinPending"
-      @click="emit('join')"
-    >
+    <PuButton v-if="canJoin" :disabled="joinPending" @click="emit('join')">
       {{ joinPending ? t("prPage.joining") : t("prPage.join") }}
     </PuButton>
 
     <PuButton
       v-if="canExit"
-      tone="danger" variant="outline"
-
+      tone="danger"
+      variant="outline"
       :disabled="exitPending"
       @click="emit('exit')"
     >
@@ -28,8 +23,8 @@
 
     <PuButton
       v-if="showEditContentAction"
-      tone="neutral" variant="soft"
-
+      tone="neutral"
+      variant="soft"
       @click="emit('edit-content')"
     >
       {{ t("prPage.editContent") }}
@@ -37,8 +32,8 @@
 
     <PuButton
       v-if="showModifyStatusAction"
-      tone="neutral" variant="soft"
-
+      tone="neutral"
+      variant="soft"
       @click="emit('modify-status')"
     >
       {{ t("prPage.modifyStatus") }}

@@ -68,7 +68,9 @@
         </PuChip>
       </PuChipGroup>
       <div class="flex flex-col gap-1">
-        <h3 class="pr-discovery-card__title" data-testid="prd.discovery-card.title">{{ item.title }}</h3>
+        <h3 class="pr-discovery-card__title" data-testid="prd.discovery-card.title">
+          {{ item.title }}
+        </h3>
         <p
           v-if="item.description"
           class="pr-discovery-card__description"
@@ -402,8 +404,7 @@ const handleClick = () => {
 
 .pr-discovery-card--shorter .pr-discovery-card__summary {
   gap: var(--sys-spacing-xsmall);
-  padding: var(--sys-spacing-small) var(--sys-spacing-medium)
-    var(--sys-spacing-medium);
+  padding: var(--sys-spacing-small) var(--sys-spacing-medium) var(--sys-spacing-medium);
 }
 
 .pr-discovery-card--outline:hover,

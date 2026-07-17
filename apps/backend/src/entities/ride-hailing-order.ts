@@ -20,7 +20,10 @@ export const rideHailingOrders = pgTable(
       .references(() => tradeOrders.id, { onDelete: "cascade" }),
     routeSnapshot: jsonb("route_snapshot").$type<RideHailingRouteSnapshot>().notNull(),
     departureAt: timestamp("departure_at", { withTimezone: true }),
-    riders: jsonb("riders").$type<RideHailingRiderSnapshot[]>().notNull().default(sql`'[]'::jsonb`),
+    riders: jsonb("riders")
+      .$type<RideHailingRiderSnapshot[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     contactPhone: text("contact_phone").notNull(),
     executionPhase: text("execution_phase")
       .$type<RideHailingExecutionPhase>()

@@ -10,8 +10,8 @@ const testState = vi.hoisted(() => ({
   detail: undefined as PRDetailView | undefined,
   isLoading: false,
   error: null as Error | null,
-  routerBack: vi.fn(),
-  routerReplace: vi.fn(),
+  routerBack: vi.fn<() => void>(),
+  routerReplace: vi.fn<(location: string) => void>(),
 }));
 
 vi.mock("vue-i18n", () => ({
@@ -67,34 +67,24 @@ afterEach(() => {
 describe("PRPairingCodePage", () => {
   test("renders the full-screen pairing code for READY active participants", async () => {
     const pairingIdentity = derivePRPairingIdentity(123);
-    const host = await mountPage(
-      buildPRDetail({ status: "READY", isParticipant: true }),
-    );
-    const page = host.querySelector<HTMLElement>(
-      '[data-page="pr-pairing-code"]',
-    );
+    const host = await mountPage(buildPRDetail({ status: "READY", isParticipant: true }));
+    const page = host.querySelector<HTMLElement>('[data-page="pr-pairing-code"]');
 
-    expect(getByTestId(host, "pr-pairing-code.code")?.textContent).toContain(
-      pairingIdentity.code,
-    );
+    expect(getByTestId(host, "pr-pairing-code.code")?.textContent).toContain(pairingIdentity.code);
     expect(page).not.toBeNull();
     expect(page?.style.backgroundColor).toBe(pairingIdentity.backgroundColor);
     expect(page?.style.color).toBe(pairingIdentity.foregroundColor);
   });
 
   test("does not reveal the code to non-participants", async () => {
-    const host = await mountPage(
-      buildPRDetail({ status: "READY", isParticipant: false }),
-    );
+    const host = await mountPage(buildPRDetail({ status: "READY", isParticipant: false }));
 
     expect(getByTestId(host, "pr-pairing-code.code")).toBeNull();
     expect(host.textContent).toContain("prPage.pairingCodePage.unavailable");
   });
 
   test("returns to the PR detail page when there is no browser back entry", async () => {
-    const host = await mountPage(
-      buildPRDetail({ status: "READY", isParticipant: true }),
-    );
+    const host = await mountPage(buildPRDetail({ status: "READY", isParticipant: true }));
 
     getByTestId(host, "pr-pairing-code.back")?.click();
     await nextTick();
@@ -114,10 +104,8 @@ const mountPage = async (detail: PRDetailView): Promise<HTMLElement> => {
   return host;
 };
 
-const getByTestId = (
-  host: HTMLElement,
-  testId: string,
-): HTMLElement | null => host.querySelector(`[data-testid="${testId}"]`);
+const getByTestId = (host: HTMLElement, testId: string): HTMLElement | null =>
+  host.querySelector(`[data-testid="${testId}"]`);
 
 const buildPRDetail = ({
   status,

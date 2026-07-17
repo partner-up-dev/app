@@ -95,11 +95,11 @@ export async function resolveBillLineCheckoutBasis(input: {
           ? "退款账单行不能由用户发起支付"
           : line.amountFen <= 0
             ? "该账单行无需支付"
-          : settlementStatus === "PAID"
-            ? "该账单行已支付"
-            : !isOrderUnpaidWindowOpen(order.timeout.unpaidExpiresAt)
-              ? "订单支付窗口已过期"
-            : null;
+            : settlementStatus === "PAID"
+              ? "该账单行已支付"
+              : !isOrderUnpaidWindowOpen(order.timeout.unpaidExpiresAt)
+                ? "订单支付窗口已过期"
+                : null;
 
   return {
     line,

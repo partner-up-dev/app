@@ -23,9 +23,7 @@ export const offers = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::bigint[]`),
-    pricingPolicy: jsonb("pricing_policy")
-      .$type<{ rules: PricingRule[] }>()
-      .notNull(),
+    pricingPolicy: jsonb("pricing_policy").$type<{ rules: PricingRule[] }>().notNull(),
     termsVersion: integer("terms_version").notNull().default(1),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),

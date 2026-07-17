@@ -30,9 +30,7 @@ export const useGenerateXhsPosterHtml = () => {
 
       if (!res.ok) {
         const payload = (await res.json()) as { error?: string };
-        throw new Error(
-          payload.error ?? i18n.global.t("errors.generateXhsPosterHtmlFailed"),
-        );
+        throw new Error(payload.error ?? i18n.global.t("errors.generateXhsPosterHtmlFailed"));
       }
 
       return (await res.json()) as PosterHtmlResponse;

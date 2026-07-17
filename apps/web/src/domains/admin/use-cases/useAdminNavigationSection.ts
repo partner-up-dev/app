@@ -9,11 +9,7 @@ export const useAdminNavigationSection = <SectionId extends string>(
   const supportedSectionIds = new Set<string>(sectionIds);
 
   return computed(() => {
-    const hashSectionId = route.hash.startsWith("#")
-      ? route.hash.slice(1)
-      : route.hash;
-    return supportedSectionIds.has(hashSectionId)
-      ? (hashSectionId as SectionId)
-      : defaultSectionId;
+    const hashSectionId = route.hash.startsWith("#") ? route.hash.slice(1) : route.hash;
+    return supportedSectionIds.has(hashSectionId) ? (hashSectionId as SectionId) : defaultSectionId;
   });
 };

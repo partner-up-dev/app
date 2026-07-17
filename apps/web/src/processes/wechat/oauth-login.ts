@@ -59,17 +59,12 @@ export const resetWeChatOAuthLoginRedirectStateForTest = (): void => {
   clearWeChatOAuthLoginPending();
 };
 
-export const redirectToWeChatOAuthBind = async (
-  returnTo: string,
-): Promise<void> => {
+export const redirectToWeChatOAuthBind = async (returnTo: string): Promise<void> => {
   if (typeof window === "undefined") return;
 
   const trace = startWeChatOAuthTrace("bind");
   trackWeChatOAuthTrace("bind_requested");
-  const query = appendWeChatOAuthTraceQuery(
-    new URLSearchParams({ returnTo }),
-    trace,
-  );
+  const query = appendWeChatOAuthTraceQuery(new URLSearchParams({ returnTo }), trace);
   const res = await fetch(resolveApiUrl("/api/wechat/oauth/bind", query), {
     credentials: "include",
   });

@@ -1,9 +1,5 @@
 <template>
-  <article
-    v-if="variant === 'inline'"
-    class="route-item-row"
-    :data-role="role"
-  >
+  <article v-if="variant === 'inline'" class="route-item-row" :data-role="role">
     <div class="route-item-row__field">
       <button
         class="route-item-row__location"
@@ -37,10 +33,7 @@
       <span class="i-mdi-minus-circle" aria-hidden="true"></span>
     </button>
 
-    <div
-      v-if="canMoveUp || canMoveDown"
-      class="route-item-row__order-actions"
-    >
+    <div v-if="canMoveUp || canMoveDown" class="route-item-row__order-actions">
       <button
         v-if="canMoveUp"
         class="route-item-row__order-action"
@@ -169,9 +162,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const role = computed<RoutePointRole>(() =>
-  resolveRoutePointRole(props.index, props.total),
-);
+const role = computed<RoutePointRole>(() => resolveRoutePointRole(props.index, props.total));
 
 const locationText = computed(() => {
   const name = props.modelValue.name.trim();
@@ -182,9 +173,7 @@ const locationText = computed(() => {
   return t(`route.placeholder.${role.value}`);
 });
 
-const immersiveTitle = computed(() =>
-  t(`route.immersive.${role.value}.title`),
-);
+const immersiveTitle = computed(() => t(`route.immersive.${role.value}.title`));
 </script>
 
 <style scoped lang="scss">

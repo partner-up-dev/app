@@ -4,10 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { throwHttpProblem } from "../lib/problem-details";
 import { meetingPointConfigSchema } from "../entities/meeting-point";
 import { poiAvailabilityRulesSchema } from "../entities/poi";
-import {
-  adminAuthMiddleware,
-  type AdminAuthEnv,
-} from "../auth/admin-middleware";
+import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
 import { PoiRepository } from "../repositories/PoiRepository";
 import { findPoisByIds, findPoisByNames } from "../domains/poi";
 import {
@@ -15,10 +12,7 @@ import {
   listRequestsAffectedByPoiMeetingPoint,
   scheduleMeetingPointNotificationsForChangedRequests,
 } from "../domains/pr/services";
-import {
-  publishAdminPoiApplication,
-  rejectAdminPoiApplication,
-} from "../domains/poi";
+import { publishAdminPoiApplication, rejectAdminPoiApplication } from "../domains/poi";
 
 const app = new Hono<AdminAuthEnv>();
 const poiRepo = new PoiRepository();
@@ -170,9 +164,7 @@ export const adminPoiRoute = app
       const previousName = existingPoi?.name ?? name;
       const affectedRequests = uniqueRequestsById([
         ...(await listRequestsAffectedByPoiMeetingPoint(previousName)),
-        ...(previousName === name
-          ? []
-          : await listRequestsAffectedByPoiMeetingPoint(name)),
+        ...(previousName === name ? [] : await listRequestsAffectedByPoiMeetingPoint(name)),
       ]);
       const previousMeetingPoints =
         await captureEffectiveMeetingPointsForRequests(affectedRequests);
@@ -200,19 +192,15 @@ export const adminPoiRoute = app
       return c.json(toPoiResponse(poi));
     },
   )
-  .post(
-    "/pois/:poiId/publish",
-    zValidator("param", poiIdParamSchema),
-    async (c) => {
-      const { poiId } = c.req.valid("param");
-      const auth = c.get("auth");
-      const result = await publishAdminPoiApplication({
-        poiId,
-        reviewedByUserId: auth.userId ?? null,
-      });
-      return c.json(result);
-    },
-  )
+  .post("/pois/:poiId/publish", zValidator("param", poiIdParamSchema), async (c) => {
+    const { poiId } = c.req.valid("param");
+    const auth = c.get("auth");
+    const result = await publishAdminPoiApplication({
+      poiId,
+      reviewedByUserId: auth.userId ?? null,
+    });
+    return c.json(result);
+  })
   .post(
     "/pois/:poiId/reject",
     zValidator("param", poiIdParamSchema),

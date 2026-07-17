@@ -1,12 +1,7 @@
 <template>
   <PuPageScaffold class="pr-page" data-page="pr-detail">
     <template #pageHeader>
-      <PuHeader
-        v-if="prDetail"
-        :title="prDisplayTitle"
-        data-region="summary"
-        title-as="h1"
-      >
+      <PuHeader v-if="prDetail" :title="prDisplayTitle" data-region="summary" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -25,9 +20,9 @@
           <div v-if="showHeaderQuickActions" class="header-quick-actions">
             <PuButton
               v-if="showEditContentAction"
-              tone="neutral" variant="outline"
+              tone="neutral"
+              variant="outline"
               size="sm"
-
               data-testid="pr-detail.creator.edit-content"
               @click="openEditContentModal"
             >
@@ -35,9 +30,9 @@
             </PuButton>
             <PuButton
               v-if="showModifyStatusAction"
-              tone="neutral" variant="outline"
+              tone="neutral"
+              variant="outline"
               size="sm"
-
               data-testid="pr-detail.creator.modify-status"
               @click="openModifyStatusModal"
             >
@@ -85,7 +80,6 @@
             {{ t("common.cancel") }}
           </PuButton>
           <PuButton
-
             :loading="editorPending"
             :disabled="!isEditContentFormValid"
             data-testid="pr-detail.creator.edit-content.submit"
@@ -114,19 +108,16 @@
           <PuButton tone="neutral" variant="outline" @click="closeModifyStatusModal">
             {{ t("common.cancel") }}
           </PuButton>
-          <PuButton
-            :loading="updateStatusPending"
-            @click="submitUpdateStatusForm"
-          >
+          <PuButton :loading="updateStatusPending" @click="submitUpdateStatusForm">
             {{ t("modifyStatusModal.confirmAction") }}
           </PuButton>
         </div>
 
-        <PuInlineNotice tone="error" dismissible
+        <PuInlineNotice
+          tone="error"
+          dismissible
           v-if="hasUpdateStatusError"
-          :message="
-            updateStatusError?.message || t('modifyStatusModal.updateFailed')
-          "
+          :message="updateStatusError?.message || t('modifyStatusModal.updateFailed')"
           @close="resetStatusUpdate"
         />
       </PuModal>
@@ -143,9 +134,7 @@
       </div>
 
       <div class="primary-stack" data-region="primary-actions">
-        <PRWaitlistActions
-          :pr="prDetail"
-        />
+        <PRWaitlistActions :pr="prDetail" />
 
         <PRConfirmationAction :pr="prDetail" />
 
@@ -180,10 +169,7 @@
           :pr-share-data="prShareData"
         />
 
-        <PRDiscoveryEntryLink
-          v-if="prDetail.partnerSection.reminder.supported"
-        />
-
+        <PRDiscoveryEntryLink v-if="prDetail.partnerSection.reminder.supported" />
       </div>
 
       <PRNotificationSubscriptionsSection

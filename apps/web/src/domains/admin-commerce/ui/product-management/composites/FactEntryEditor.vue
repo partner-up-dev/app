@@ -19,10 +19,7 @@
         </select>
       </label>
 
-      <label
-        v-if="fact.valueKind === 'string' || fact.valueKind === 'number'"
-        class="pm-field"
-      >
+      <label v-if="fact.valueKind === 'string' || fact.valueKind === 'number'" class="pm-field">
         <span class="pm-field-label">{{ t("adminCommerceProducts.factValueLabel") }}</span>
         <input v-model="fact.valueText" class="pm-field-input" type="text" />
       </label>

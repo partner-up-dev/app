@@ -80,14 +80,7 @@ const roleSuffixes = [
   "View",
 ];
 
-const variantPropNames = new Set([
-  "appearance",
-  "layout",
-  "mode",
-  "size",
-  "tone",
-  "variant",
-]);
+const variantPropNames = new Set(["appearance", "layout", "mode", "size", "tone", "variant"]);
 
 const weakWordGuidance = {
   Base: "Prefer naming the actual abstraction contract.",
@@ -149,11 +142,9 @@ const walkVueFiles = async (dir) => {
   return nested.flat();
 };
 
-const relativePath = (filePath) =>
-  path.relative(appRoot, filePath).split(path.sep).join("/");
+const relativePath = (filePath) => path.relative(appRoot, filePath).split(path.sep).join("/");
 
-const splitPascal = (value) =>
-  value.match(/[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|\d+/g) ?? [value];
+const splitPascal = (value) => value.match(/[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|\d+/g) ?? [value];
 
 const kebab = (value) =>
   splitPascal(value)
@@ -185,9 +176,9 @@ const firstStaticClass = (template) => {
 };
 
 const extractImports = (script) =>
-  Array.from(
-    script.matchAll(/import\s+([A-Z][A-Za-z0-9_]*)\s+from\s+["'][^"']+\.vue["']/g),
-  ).map((match) => match[1]);
+  Array.from(script.matchAll(/import\s+([A-Z][A-Za-z0-9_]*)\s+from\s+["'][^"']+\.vue["']/g)).map(
+    (match) => match[1],
+  );
 
 const extractProps = (script) => {
   const props = new Set();
@@ -262,10 +253,7 @@ const readComponent = async (filePath) => {
 
 const findWeakWordFindings = (component) =>
   component.words
-    .filter(
-      (word) =>
-        weakWords.has(word) && !isKnownFalsePositive(word, component.fileName),
-    )
+    .filter((word) => weakWords.has(word) && !isKnownFalsePositive(word, component.fileName))
     .map((word) => ({
       severity: word === "Content" || word === "Common" ? "medium" : "low",
       rule: "weak-name-word",
@@ -361,9 +349,7 @@ const findSplitFindings = (components) => {
   }
 
   const actionBars = components.filter((component) => component.suffix === "ActionBar");
-  const sharedActionBars = actionBars.filter((component) =>
-    component.words.includes("Shared"),
-  );
+  const sharedActionBars = actionBars.filter((component) => component.words.includes("Shared"));
   for (const component of sharedActionBars) {
     findings.push({
       severity: "low",

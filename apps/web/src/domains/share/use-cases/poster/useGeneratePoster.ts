@@ -88,10 +88,7 @@ export const useGeneratePoster = () => {
           // Ensure fonts are loaded in cloned document
           const clonedElement = clonedDoc.querySelector(".poster-template");
           if (clonedElement) {
-            (clonedElement as HTMLElement).style.setProperty(
-              "font-display",
-              "block",
-            );
+            (clonedElement as HTMLElement).style.setProperty("font-display", "block");
           }
         },
       });
@@ -114,10 +111,7 @@ export const useGeneratePoster = () => {
       console.error("Failed to generate poster:", error);
       throw new Error(
         i18n.global.t("errors.posterGenerationFailed", {
-          message:
-            error instanceof Error
-              ? error.message
-              : i18n.global.t("common.operationFailed"),
+          message: error instanceof Error ? error.message : i18n.global.t("common.operationFailed"),
         }),
       );
     } finally {

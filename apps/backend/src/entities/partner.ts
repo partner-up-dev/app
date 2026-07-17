@@ -1,12 +1,4 @@
-import {
-  bigint,
-  boolean,
-  bigserial,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, boolean, bigserial, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { type UserId, users } from "./user";
@@ -27,12 +19,7 @@ export const partnerStatusSchema = z.enum([
 ]);
 export type PartnerStatus = z.infer<typeof partnerStatusSchema>;
 
-export const partnerPaymentStatusSchema = z.enum([
-  "NONE",
-  "PENDING",
-  "PAID",
-  "FAILED",
-]);
+export const partnerPaymentStatusSchema = z.enum(["NONE", "PENDING", "PAID", "FAILED"]);
 export type PartnerPaymentStatus = z.infer<typeof partnerPaymentStatusSchema>;
 
 export const partners = pgTable("partners", {
@@ -51,19 +38,12 @@ export const partners = pgTable("partners", {
   exitedAt: timestamp("exited_at"),
   releasedAt: timestamp("released_at"),
   releaseReason: text("release_reason"),
-  alternativePrReminderOptIn: boolean("alternative_pr_reminder_opt_in")
-    .notNull()
-    .default(false),
-  alternativePrReminderOptedInAt: timestamp(
-    "alternative_pr_reminder_opted_in_at",
-  ),
+  alternativePrReminderOptIn: boolean("alternative_pr_reminder_opt_in").notNull().default(false),
+  alternativePrReminderOptedInAt: timestamp("alternative_pr_reminder_opted_in_at"),
   attendedAt: timestamp("attended_at"),
   checkInAt: timestamp("check_in_at"),
   didAttend: boolean("did_attend"),
-  paymentStatus: text("payment_status")
-    .$type<PartnerPaymentStatus>()
-    .notNull()
-    .default("NONE"),
+  paymentStatus: text("payment_status").$type<PartnerPaymentStatus>().notNull().default("NONE"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

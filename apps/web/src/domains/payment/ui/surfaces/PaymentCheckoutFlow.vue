@@ -5,10 +5,7 @@
     data-testid="payment-checkout.page"
   >
     <template #pageHeader>
-      <PuHeader
-        title="支付"
-        title-as="h1"
-      >
+      <PuHeader title="支付" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -326,12 +323,9 @@ watch(
   { immediate: true },
 );
 
-watch(
-  billLineIdRef,
-  () => {
-    resetAttemptFeedback();
-  },
-);
+watch(billLineIdRef, () => {
+  resetAttemptFeedback();
+});
 
 const selectedProviderId = computed(() => providerSelection.selectedValues.value[0] ?? null);
 const selectedProvider = computed(

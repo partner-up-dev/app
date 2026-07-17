@@ -1,8 +1,5 @@
 import { db } from "../../lib/db";
-import {
-  userTelemetryEvents,
-  userTelemetryRejectedEvents,
-} from "../../entities/user-telemetry";
+import { userTelemetryEvents, userTelemetryRejectedEvents } from "../../entities/user-telemetry";
 import {
   validateRegisteredUserTelemetryEvent,
   type UserTelemetryAttributes,
@@ -56,9 +53,7 @@ const parseOptionalDate = (value: string): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const normalizeRawEvent = (
-  event: RawUserTelemetryEventInput,
-): Record<string, unknown> => ({
+const normalizeRawEvent = (event: RawUserTelemetryEventInput): Record<string, unknown> => ({
   event_id: event.event_id,
   event_name: event.event_name,
   event_version: event.event_version,

@@ -18,7 +18,10 @@ export type TradeOrderId = string & { readonly __brand: "TradeOrderId" };
 export const tradeOrders = pgTable(
   "trade_orders",
   {
-    id: uuid("id").$type<TradeOrderId>().primaryKey().default(sql`gen_random_uuid()`),
+    id: uuid("id")
+      .$type<TradeOrderId>()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     family: text("family").$type<OrderFamily>().notNull(),
     offerId: bigint("offer_id", { mode: "number" })
       .$type<OfferId>()

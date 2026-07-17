@@ -52,11 +52,7 @@ export const resolvePRParticipantUser = async (
   }
 
   const anonymous = await userRepo.findById(input.anonymousUserId);
-  if (
-    !anonymous ||
-    anonymous.status !== "ACTIVE" ||
-    !hasUserRole(anonymous.role, "anonymous")
-  ) {
+  if (!anonymous || anonymous.status !== "ACTIVE" || !hasUserRole(anonymous.role, "anonymous")) {
     return throwHttpProblem({ status: 401, detail: "Invalid anonymous user session" });
   }
 

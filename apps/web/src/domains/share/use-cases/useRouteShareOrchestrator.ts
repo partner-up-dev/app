@@ -2,11 +2,7 @@ import { onBeforeUnmount, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import type { RouteLocationNormalizedLoaded } from "vue-router";
 import { i18n } from "@/locales/i18n";
-import {
-  buildProductShareUrl,
-  normalizePublicUrl,
-  type ShareSpmRouteKey,
-} from "@/shared/url/spm";
+import { buildProductShareUrl, normalizePublicUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
 import { sanitizeSensitiveRoutePath } from "@/shared/url/sanitizeSensitiveRoutePath";
 import {
   hasPendingWeChatOAuthHandoff,
@@ -130,12 +126,7 @@ export const useRouteShareOrchestrator = () => {
 
   watch(
     () =>
-      [
-        route.fullPath,
-        route.name,
-        route.meta.wechatSharePolicy,
-        resolveCurrentLocale(),
-      ] as const,
+      [route.fullPath, route.name, route.meta.wechatSharePolicy, resolveCurrentLocale()] as const,
     () => {
       void startRouteSession();
     },
@@ -157,19 +148,13 @@ export const useRouteShareOrchestrator = () => {
 
   onMounted(() => {
     window.addEventListener("pageshow", handlePageShow);
-    window.addEventListener(
-      WECHAT_OAUTH_HANDOFF_CLEARED_EVENT,
-      handleWeChatOAuthHandoffCleared,
-    );
+    window.addEventListener(WECHAT_OAUTH_HANDOFF_CLEARED_EVENT, handleWeChatOAuthHandoffCleared);
     document.addEventListener("visibilitychange", handleVisibilityChange);
   });
 
   onBeforeUnmount(() => {
     window.removeEventListener("pageshow", handlePageShow);
-    window.removeEventListener(
-      WECHAT_OAUTH_HANDOFF_CLEARED_EVENT,
-      handleWeChatOAuthHandoffCleared,
-    );
+    window.removeEventListener(WECHAT_OAUTH_HANDOFF_CLEARED_EVENT, handleWeChatOAuthHandoffCleared);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
   });
 

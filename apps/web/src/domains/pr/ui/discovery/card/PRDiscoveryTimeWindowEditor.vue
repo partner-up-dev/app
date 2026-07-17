@@ -24,10 +24,7 @@
         :empty-label="emptyLabel"
         :test-id="datePickerTestId"
       >
-        <PuFormItem
-          :label="datePickerAriaLabel"
-          :for-id="datePickerTestId"
-        >
+        <PuFormItem :label="datePickerAriaLabel" :for-id="datePickerTestId">
           <PuSelect
             :id="datePickerTestId"
             :model-value="datePickerModelValue"
@@ -49,10 +46,7 @@
         :empty-label="emptyLabel"
         :test-id="timePickerTestId"
       >
-        <PuFormItem
-          :label="timePickerAriaLabel"
-          :for-id="timePickerTestId"
-        >
+        <PuFormItem :label="timePickerAriaLabel" :for-id="timePickerTestId">
           <PuSelect
             :id="timePickerTestId"
             :model-value="timePickerModelValue"

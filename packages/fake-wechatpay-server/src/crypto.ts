@@ -1,10 +1,4 @@
-import {
-  createCipheriv,
-  createSign,
-  createVerify,
-  randomBytes,
-  randomUUID,
-} from "node:crypto";
+import { createCipheriv, createSign, createVerify, randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 
 const authorizationPartsSchema = z.object({
@@ -15,19 +9,15 @@ const authorizationPartsSchema = z.object({
   timestamp: z.string().regex(/^\d+$/),
 });
 
-export type WeChatPayAuthorizationParts = z.infer<
-  typeof authorizationPartsSchema
->;
+export type WeChatPayAuthorizationParts = z.infer<typeof authorizationPartsSchema>;
 
 export const createNonce = (): string => randomUUID().replaceAll("-", "");
 
-export const createAesNonce = (): string =>
-  randomBytes(9).toString("base64url").slice(0, 12);
+export const createAesNonce = (): string => randomBytes(9).toString("base64url").slice(0, 12);
 
 export const unixTimestamp = (): string => String(Math.floor(Date.now() / 1000));
 
-const joinByLineFeed = (...pieces: readonly string[]): string =>
-  [...pieces, ""].join("\n");
+const joinByLineFeed = (...pieces: readonly string[]): string => [...pieces, ""].join("\n");
 
 export const buildRequestSignatureMessage = (input: {
   method: string;
@@ -50,13 +40,8 @@ export const buildResponseSignatureMessage = (input: {
   bodyText: string;
 }): string => joinByLineFeed(input.timestamp, input.nonce, input.bodyText);
 
-export const signRsaSha256 = (input: {
-  message: string;
-  privateKeyPem: string;
-}): string =>
-  createSign("sha256WithRSAEncryption")
-    .update(input.message)
-    .sign(input.privateKeyPem, "base64");
+export const signRsaSha256 = (input: { message: string; privateKeyPem: string }): string =>
+  createSign("sha256WithRSAEncryption").update(input.message).sign(input.privateKeyPem, "base64");
 
 export const verifyRsaSha256 = (input: {
   message: string;
@@ -67,18 +52,14 @@ export const verifyRsaSha256 = (input: {
     .update(input.message)
     .verify(input.publicKeyPem, input.signature, "base64");
 
-export const parseAuthorizationHeader = (
-  value: string | null,
-): WeChatPayAuthorizationParts => {
+export const parseAuthorizationHeader = (value: string | null): WeChatPayAuthorizationParts => {
   if (!value?.startsWith("WECHATPAY2-SHA256-RSA2048 ")) {
     throw new Error("Missing WECHATPAY2-SHA256-RSA2048 Authorization header");
   }
 
   const pairs: Record<string, string> = {};
   const pattern = /([a-z_]+)="([^"]*)"/g;
-  for (const match of value.slice("WECHATPAY2-SHA256-RSA2048 ".length).matchAll(
-    pattern,
-  )) {
+  for (const match of value.slice("WECHATPAY2-SHA256-RSA2048 ".length).matchAll(pattern)) {
     pairs[match[1] ?? ""] = match[2] ?? "";
   }
 

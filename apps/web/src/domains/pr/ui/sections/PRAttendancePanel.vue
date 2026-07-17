@@ -3,7 +3,8 @@
     <PuButton
       v-if="hasJoined && canConfirm"
       class="confirm-slot-action"
-      tone="primary" variant="outline"
+      tone="primary"
+      variant="outline"
       @click="emit('confirm-slot')"
       :disabled="confirmPending"
     >
@@ -13,7 +14,8 @@
     <PuButton
       v-if="hasJoined && canCheckIn"
       class="checkin-attended-action"
-      tone="tertiary" variant="solid"
+      tone="tertiary"
+      variant="solid"
       @click="emit('submit-check-in')"
       :disabled="checkInPending"
     >
@@ -61,5 +63,4 @@ const { t } = useI18n();
   min-width: 0;
   font-weight: 600;
 }
-
 </style>

@@ -1,8 +1,5 @@
 import { and, desc, eq, sql } from "drizzle-orm";
-import {
-  expectJsonResponse,
-  requestJson,
-} from "../../../_infra/http/backend-app";
+import { expectJsonResponse, requestJson } from "../../../_infra/http/backend-app";
 import { getTestDb } from "../../../_infra/probes/sql-probe";
 import { partners, type PartnerStatus } from "../../../../src/entities/partner";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
@@ -40,19 +37,12 @@ export async function probePartnerSlotStatus(input: {
   const [slot] = await getTestDb()
     .select({ status: partners.status })
     .from(partners)
-    .where(
-      and(
-        eq(partners.prId, input.pr.id),
-        eq(partners.userId, input.user.user.id),
-      ),
-    )
+    .where(and(eq(partners.prId, input.pr.id), eq(partners.userId, input.user.user.id)))
     .orderBy(desc(partners.id));
   return slot?.status;
 }
 
-export async function probePendingWaitlistCount(
-  pr: ScenarioPartnerRequest,
-): Promise<number> {
+export async function probePendingWaitlistCount(pr: ScenarioPartnerRequest): Promise<number> {
   const rows = await getTestDb()
     .select({ count: sql<number>`count(*)::int` })
     .from(partners)

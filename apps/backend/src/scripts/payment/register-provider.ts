@@ -21,11 +21,7 @@ const providerConfigSchema = z.object({
     privateKeyPem: z.string().min(1),
     certificatePem: z.string().min(1).nullable().optional(),
   }),
-  platformCertificates: z
-    .array(platformCertificateSchema)
-    .min(1)
-    .nullable()
-    .optional(),
+  platformCertificates: z.array(platformCertificateSchema).min(1).nullable().optional(),
 });
 
 const registrationConfigSchema = z.object({

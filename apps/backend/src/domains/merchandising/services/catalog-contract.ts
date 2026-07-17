@@ -1,10 +1,4 @@
-import type {
-  ProductSku,
-  ProductSpu,
-  ProductType,
-  ServicePolicy,
-  SkuFacts,
-} from "../model";
+import type { ProductSku, ProductSpu, ProductType, ServicePolicy, SkuFacts } from "../model";
 
 function assertProductTypeMatchesServicePolicy(
   productType: ProductType,
@@ -15,10 +9,7 @@ function assertProductTypeMatchesServicePolicy(
   }
 }
 
-function assertSkuFactsMatchProductType(
-  productType: ProductType,
-  facts: SkuFacts,
-): void {
+function assertSkuFactsMatchProductType(productType: ProductType, facts: SkuFacts): void {
   if (productType === "RENTAL") {
     if ("type" in facts && facts.type === "RENTAL") return;
     throw new Error("Rental SKU facts must match SPU productType");
@@ -43,10 +34,7 @@ export function assertProductSpuContract(input: {
   productType: ProductType;
   servicePolicy: ServicePolicy;
 }): void {
-  assertProductTypeMatchesServicePolicy(
-    input.productType,
-    input.servicePolicy,
-  );
+  assertProductTypeMatchesServicePolicy(input.productType, input.servicePolicy);
 }
 
 export function assertProductSkuContract(input: {
@@ -64,9 +52,7 @@ export function assertOfferMatchesSpus(input: {
     throw new Error("Offer must reference at least one SPU");
   }
 
-  if (
-    input.spus.some((spu) => spu.productType !== input.productType)
-  ) {
+  if (input.spus.some((spu) => spu.productType !== input.productType)) {
     throw new Error("Offer productType must match every referenced SPU");
   }
 }

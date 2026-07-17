@@ -5,7 +5,8 @@
     data-region="study-sprint-pomodoro"
   >
     <PuButton
-      tone="neutral" variant="outline"
+      tone="neutral"
+      variant="outline"
       block
       :disabled="!canEnter"
       data-testid="pr-detail.study-sprint-pomodoro.open"
@@ -36,9 +37,7 @@ const props = defineProps<{
 const router = useRouter();
 
 const showAction = computed(
-  () =>
-    props.pr.core.type === "STUDY_SPRINT" &&
-    props.pr.partnerSection.viewer.isParticipant,
+  () => props.pr.core.type === "STUDY_SPRINT" && props.pr.partnerSection.viewer.isParticipant,
 );
 const canEnter = computed(() => props.pr.status === "ACTIVE");
 
@@ -52,9 +51,7 @@ const durationMinutes = computed(() => {
   return Math.max(1, Math.ceil(diffMs / 60_000));
 });
 
-const actionLabel = computed(
-  () => `开始一起专注${durationMinutes.value}分钟`,
-);
+const actionLabel = computed(() => `开始一起专注${durationMinutes.value}分钟`);
 
 const handleOpen = (): void => {
   if (!showAction.value || !canEnter.value) return;

@@ -80,7 +80,10 @@ export type OfferQuoteFulfillmentSnapshot =
 export const commerceQuotes = pgTable(
   "commerce_quotes",
   {
-    id: uuid("id").$type<OfferQuoteId>().primaryKey().default(sql`gen_random_uuid()`),
+    id: uuid("id")
+      .$type<OfferQuoteId>()
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     listingSessionId: uuid("listing_session_id").$type<OfferListingSessionId>().notNull(),
     offerId: bigint("offer_id", { mode: "number" })
       .$type<OfferId>()

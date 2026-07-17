@@ -10,9 +10,7 @@ export async function recordRentalEntryGuidance(input: {
   entryByRealName?: string | null;
   note?: string | null;
 }) {
-  const rentalOrder = await rentalOrderRepo.findByOrderId(
-    input.fulfillmentId as TradeOrderId,
-  );
+  const rentalOrder = await rentalOrderRepo.findByOrderId(input.fulfillmentId as TradeOrderId);
   if (!rentalOrder) {
     return throwHttpProblem({ status: 404, detail: "Rental order not found" });
   }

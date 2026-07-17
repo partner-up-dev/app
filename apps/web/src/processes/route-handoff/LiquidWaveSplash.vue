@@ -113,9 +113,7 @@ let fillCompleted = false;
 let resizeObserver: ResizeObserver | null = null;
 let motionQuery: MediaQueryList | null = null;
 
-const viewBox = computed(
-  () => `0 0 ${viewportSize.value.width} ${viewportSize.value.height}`,
-);
+const viewBox = computed(() => `0 0 ${viewportSize.value.width} ${viewportSize.value.height}`);
 
 const splashStyle = computed(() => ({
   clipPath: revealClipPath.value,
@@ -136,8 +134,7 @@ const easeOutCubic = (value: number): number => 1 - (1 - value) ** 3;
 const interpolate = (start: number, end: number, progress: number): number =>
   start + (end - start) * progress;
 
-const getCurrentTime = (): number =>
-  typeof window === "undefined" ? 0 : window.performance.now();
+const getCurrentTime = (): number => (typeof window === "undefined" ? 0 : window.performance.now());
 
 const updateViewportSize = () => {
   if (typeof window === "undefined") {
@@ -173,8 +170,7 @@ const getFallProgress = (progress: number): number => {
 
 const getRiseProgress = (progress: number): number => {
   const impactPush = easeOutCubic(clamp(progress / 0.28, 0, 1)) * 0.54;
-  const pressureSettle =
-    smoothstep(0.18, 1, progress) * smoothstep(0.08, 0.92, progress) * 0.46;
+  const pressureSettle = smoothstep(0.18, 1, progress) * smoothstep(0.08, 0.92, progress) * 0.46;
   return clamp(impactPush + pressureSettle, 0, 1);
 };
 
@@ -183,10 +179,7 @@ const getWaveAmplitude = (progress: number, shortSide: number): number => {
   const flowAmplitude = clamp(shortSide * 0.064, 28, 54);
   const flowSurge = Math.pow(Math.sin(Math.PI * progress), 0.72);
   const nearEmpty = smoothstep(0.72, 1, progress);
-  return (
-    interpolate(calmAmplitude, flowAmplitude, flowSurge) *
-    (1 - nearEmpty * 0.62)
-  );
+  return interpolate(calmAmplitude, flowAmplitude, flowSurge) * (1 - nearEmpty * 0.62);
 };
 
 const getOriginCenter = () => {
@@ -226,22 +219,15 @@ const updateRevealClipPath = (progress: number) => {
 
   const center = getOriginCenter();
   const origin = props.originRect;
-  const startRadius = origin
-    ? Math.max(origin.width, origin.height) * 0.48
-    : 16;
+  const startRadius = origin ? Math.max(origin.width, origin.height) * 0.48 : 16;
   const pressureProgress = easeOutCubic(progress);
-  const radius =
-    startRadius + (getCoverRadius() - startRadius) * pressureProgress;
+  const radius = startRadius + (getCoverRadius() - startRadius) * pressureProgress;
   revealClipPath.value = `circle(${radius.toFixed(2)}px at ${center.x.toFixed(
     2,
   )}px ${center.y.toFixed(2)}px)`;
 };
 
-const buildWavePath = (
-  layer: WaveLayerConfig,
-  now: number,
-  progress: number,
-): string => {
+const buildWavePath = (layer: WaveLayerConfig, now: number, progress: number): string => {
   const { height, width } = viewportSize.value;
   const shortSide = Math.min(width, height);
   const amplitude = getWaveAmplitude(progress, shortSide) * layer.amplitudeScale;
@@ -268,33 +254,22 @@ const buildWavePath = (
     baseY +
     layer.yOffset +
     amplitude * Math.sin((x / wavelength) * Math.PI * 2 + phase) +
-    amplitude *
-      0.46 *
-      Math.sin((x / secondaryWavelength) * Math.PI * 2 + phase * 0.72) +
-    amplitude *
-      0.2 *
-      Math.sin((x / tertiaryWavelength) * Math.PI * 2 - phase * 0.54);
+    amplitude * 0.46 * Math.sin((x / secondaryWavelength) * Math.PI * 2 + phase * 0.72) +
+    amplitude * 0.2 * Math.sin((x / tertiaryWavelength) * Math.PI * 2 - phase * 0.54);
 
-  const segments: string[] = [
-    `M ${startX.toFixed(2)} ${waveY(startX).toFixed(2)}`,
-  ];
+  const segments: string[] = [`M ${startX.toFixed(2)} ${waveY(startX).toFixed(2)}`];
   for (let x = 0; x <= width; x += step) {
     segments.push(`L ${x.toFixed(2)} ${waveY(x).toFixed(2)}`);
   }
   segments.push(`L ${endX.toFixed(2)} ${waveY(endX).toFixed(2)}`);
-  segments.push(
-    `L ${endX.toFixed(2)} ${(height + offscreenPadding).toFixed(2)}`,
-  );
-  segments.push(
-    `L ${startX.toFixed(2)} ${(height + offscreenPadding).toFixed(2)} Z`,
-  );
+  segments.push(`L ${endX.toFixed(2)} ${(height + offscreenPadding).toFixed(2)}`);
+  segments.push(`L ${startX.toFixed(2)} ${(height + offscreenPadding).toFixed(2)} Z`);
 
   return segments.join(" ");
 };
 
 const renderFrame = (now: number) => {
-  const progress =
-    props.phase === "FILL" ? getFillProgress(now) : getDrainProgress(now);
+  const progress = props.phase === "FILL" ? getFillProgress(now) : getDrainProgress(now);
   updateRevealClipPath(progress);
 
   if (prefersReducedMotion.value && props.phase === "FILL") {

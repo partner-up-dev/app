@@ -21,9 +21,7 @@
       />
       <p v-else class="qr-empty">
         {{
-          officialAccountQrCodeLoading
-            ? t("common.loading")
-            : t("officialAccountFollow.qrMissing")
+          officialAccountQrCodeLoading ? t("common.loading") : t("officialAccountFollow.qrMissing")
         }}
       </p>
     </div>
@@ -35,8 +33,7 @@ import { useI18n } from "vue-i18n";
 import { useWeChatOfficialAccountQrCode } from "@/shared/wechat/useWeChatOfficialAccountQrCode";
 
 const { t } = useI18n();
-const { officialAccountQrCodeLoading, officialAccountQrCodeUrl } =
-  useWeChatOfficialAccountQrCode();
+const { officialAccountQrCodeLoading, officialAccountQrCodeUrl } = useWeChatOfficialAccountQrCode();
 </script>
 
 <style lang="scss" scoped>

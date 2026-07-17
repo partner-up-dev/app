@@ -24,9 +24,7 @@ import { initializeSlotsForPR } from "../../src/domains/pr-core/services/slot-ma
 
 const prRepo = new PartnerRequestRepository();
 
-async function givenCreatorlessOpenPartnerRequest(
-  title: string,
-): Promise<ScenarioPartnerRequest> {
+async function givenCreatorlessOpenPartnerRequest(title: string): Promise<ScenarioPartnerRequest> {
   const fields = buildScenarioFields(title);
   const request = await prRepo.create({
     title: fields.title,
@@ -84,15 +82,9 @@ scenario("open_pr_join_keeps_pr_open_after_min_partners", async (ctx) => {
   ctx.record("duplicateJoinResponsePartners", duplicateJoin.partners);
   await expectActiveParticipantCount(pr, 2);
 
-  expectMessageThreadVisible(
-    await probeMessageThreadVisibility({ pr, viewer: creator }),
-  );
-  expectMessageThreadVisible(
-    await probeMessageThreadVisibility({ pr, viewer: joiner }),
-  );
-  expectMessageThreadForbidden(
-    await probeMessageThreadVisibility({ pr, viewer: outsider }),
-  );
+  expectMessageThreadVisible(await probeMessageThreadVisibility({ pr, viewer: creator }));
+  expectMessageThreadVisible(await probeMessageThreadVisibility({ pr, viewer: joiner }));
+  expectMessageThreadForbidden(await probeMessageThreadVisibility({ pr, viewer: outsider }));
 });
 
 scenario("min_one_pr_publishes_open_with_creator_slot", async (ctx) => {
@@ -114,9 +106,7 @@ scenario("min_one_pr_publishes_open_with_creator_slot", async (ctx) => {
 
 scenario("creatorless_open_pr_first_join_claims_current_creator", async (ctx) => {
   const joiner = await givenUser("creatorless-first-joiner");
-  const pr = await givenCreatorlessOpenPartnerRequest(
-    "Creatorless first join current creator",
-  );
+  const pr = await givenCreatorlessOpenPartnerRequest("Creatorless first join current creator");
 
   ctx.record("joinerUserId", joiner.user.id);
   ctx.record("prId", pr.id);
@@ -158,9 +148,7 @@ scenario("current_creator_exit_hands_off_to_earliest_remaining_active", async (c
 
 scenario("last_current_creator_exit_clears_created_by", async (ctx) => {
   const joiner = await givenUser("creatorless-last-exit-joiner");
-  const pr = await givenCreatorlessOpenPartnerRequest(
-    "Creatorless last current creator exit",
-  );
+  const pr = await givenCreatorlessOpenPartnerRequest("Creatorless last current creator exit");
 
   ctx.record("joinerUserId", joiner.user.id);
   ctx.record("prId", pr.id);

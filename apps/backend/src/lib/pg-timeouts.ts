@@ -25,9 +25,7 @@ export async function applyLocalStatementTimeout(
     return null;
   }
 
-  await executor.execute(
-    sql.raw(`set local statement_timeout = ${normalizedTimeoutMs}`),
-  );
+  await executor.execute(sql.raw(`set local statement_timeout = ${normalizedTimeoutMs}`));
   return normalizedTimeoutMs;
 }
 

@@ -17,9 +17,7 @@ import type { WeChatNotificationKind } from "./user-notification-opt";
 import { users, type UserId } from "./user";
 
 export const notificationLifecycleModelSchema = z.enum(["ONE_SHOT", "WAVE"]);
-export type NotificationLifecycleModel = z.infer<
-  typeof notificationLifecycleModelSchema
->;
+export type NotificationLifecycleModel = z.infer<typeof notificationLifecycleModelSchema>;
 
 export const notificationOpportunityStatusSchema = z.enum([
   "CREATED",
@@ -30,9 +28,7 @@ export const notificationOpportunityStatusSchema = z.enum([
   "FAILED",
   "CANCELED",
 ]);
-export type NotificationOpportunityStatus = z.infer<
-  typeof notificationOpportunityStatusSchema
->;
+export type NotificationOpportunityStatus = z.infer<typeof notificationOpportunityStatusSchema>;
 
 export const notificationChannelSchema = z.enum([
   "WECHAT_SUBSCRIPTION",
@@ -49,12 +45,8 @@ export const notificationOpportunities = pgTable(
     jobId: bigint("job_id", { mode: "number" }).references(() => jobs.id, {
       onDelete: "set null",
     }),
-    notificationKind: text("notification_kind")
-      .$type<WeChatNotificationKind>()
-      .notNull(),
-    lifecycleModel: text("lifecycle_model")
-      .$type<NotificationLifecycleModel>()
-      .notNull(),
+    notificationKind: text("notification_kind").$type<WeChatNotificationKind>().notNull(),
+    lifecycleModel: text("lifecycle_model").$type<NotificationLifecycleModel>().notNull(),
     aggregateType: text("aggregate_type").notNull(),
     aggregateId: text("aggregate_id").notNull(),
     recipientUserId: uuid("recipient_user_id")
@@ -62,10 +54,7 @@ export const notificationOpportunities = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     channel: text("channel").$type<NotificationChannel>().notNull(),
-    status: text("status")
-      .$type<NotificationOpportunityStatus>()
-      .notNull()
-      .default("CREATED"),
+    status: text("status").$type<NotificationOpportunityStatus>().notNull().default("CREATED"),
     runAt: timestamp("run_at").notNull(),
     dedupeKey: text("dedupe_key").notNull(),
     payload: jsonb("payload")
@@ -76,28 +65,21 @@ export const notificationOpportunities = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => ({
-    dedupeKeyUq: uniqueIndex("notification_opportunities_dedupe_key_uq").on(
-      table.dedupeKey,
-    ),
+    dedupeKeyUq: uniqueIndex("notification_opportunities_dedupe_key_uq").on(table.dedupeKey),
     jobIdIdx: index("notification_opportunities_job_id_idx").on(table.jobId),
     aggregateIdx: index("notification_opportunities_aggregate_idx").on(
       table.aggregateType,
       table.aggregateId,
     ),
-    recipientStatusIdx: index(
-      "notification_opportunities_recipient_status_idx",
-    ).on(table.recipientUserId, table.status),
+    recipientStatusIdx: index("notification_opportunities_recipient_status_idx").on(
+      table.recipientUserId,
+      table.status,
+    ),
   }),
 );
 
-export const insertNotificationOpportunitySchema = createInsertSchema(
-  notificationOpportunities,
-);
-export const selectNotificationOpportunitySchema = createSelectSchema(
-  notificationOpportunities,
-);
+export const insertNotificationOpportunitySchema = createInsertSchema(notificationOpportunities);
+export const selectNotificationOpportunitySchema = createSelectSchema(notificationOpportunities);
 
-export type NotificationOpportunityRow =
-  typeof notificationOpportunities.$inferSelect;
-export type NewNotificationOpportunityRow =
-  typeof notificationOpportunities.$inferInsert;
+export type NotificationOpportunityRow = typeof notificationOpportunities.$inferSelect;
+export type NewNotificationOpportunityRow = typeof notificationOpportunities.$inferInsert;

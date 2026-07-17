@@ -69,9 +69,5 @@ test("route auto-login and a concurrent redirect share redirecting state", async
   ]);
 
   assert.deepEqual([first, second], ["redirecting", "redirecting"]);
-  assert.deepEqual(calls, [
-    "mark:/pr/1",
-    "redirecting:true",
-    "login:https://partner-up.test/pr/1",
-  ]);
+  assert.deepEqual(calls, ["mark:/pr/1", "redirecting:true", "login:https://partner-up.test/pr/1"]);
 });

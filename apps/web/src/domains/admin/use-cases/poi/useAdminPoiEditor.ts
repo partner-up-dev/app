@@ -58,15 +58,11 @@ const normalizeNullablePositiveInteger = (value: unknown): number | null => {
   if (typeof value === "string" && value.trim().length === 0) {
     return null;
   }
-  const parsed =
-    typeof value === "number" ? value : Number(String(value).trim());
+  const parsed = typeof value === "number" ? value : Number(String(value).trim());
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-const formatPoiCoordinate = (
-  coordinate: PoiCoordinateInput,
-  label: string,
-): string | null => {
+const formatPoiCoordinate = (coordinate: PoiCoordinateInput, label: string): string | null => {
   if (!coordinate) {
     return null;
   }
@@ -77,9 +73,7 @@ const formatPoiCoordinate = (
 const toDatetimeLocalValue = (isoValue: string): string => {
   const parsed = Date.parse(isoValue);
   if (!Number.isFinite(parsed)) return "";
-  return new Date(parsed + PRODUCT_TIME_ZONE_OFFSET_MS)
-    .toISOString()
-    .slice(0, 16);
+  return new Date(parsed + PRODUCT_TIME_ZONE_OFFSET_MS).toISOString().slice(0, 16);
 };
 
 const fromDatetimeLocalValue = (value: string): string | null => {
@@ -88,28 +82,19 @@ const fromDatetimeLocalValue = (value: string): string | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 };
 
-const toNumberListText = (values: readonly number[]): string =>
-  values.join(",");
+const toNumberListText = (values: readonly number[]): string => values.join(",");
 
-const parseNumberList = (
-  value: string,
-  min: number,
-  max: number,
-): number[] =>
+const parseNumberList = (value: string, min: number, max: number): number[] =>
   Array.from(
     new Set(
       value
         .split(",")
         .map((entry) => Number(entry.trim()))
-        .filter(
-          (entry) => Number.isInteger(entry) && entry >= min && entry <= max,
-        ),
+        .filter((entry) => Number.isInteger(entry) && entry >= min && entry <= max),
     ),
   ).sort((left, right) => left - right);
 
-const toEditableAvailabilityRule = (
-  rule: PoiAvailabilityRuleInput,
-): EditableAvailabilityRule => {
+const toEditableAvailabilityRule = (rule: PoiAvailabilityRuleInput): EditableAvailabilityRule => {
   if (rule.kind === "ABSOLUTE") {
     return {
       id: rule.id,
@@ -170,10 +155,7 @@ const buildAvailabilityRulesInput = (
     if (rule.frequency === "MONTHLY" && monthDays.length === 0) {
       return [];
     }
-    if (
-      rule.frequency === "YEARLY" &&
-      (monthDays.length === 0 || months.length === 0)
-    ) {
+    if (rule.frequency === "YEARLY" && (monthDays.length === 0 || months.length === 0)) {
       return [];
     }
 
@@ -186,10 +168,7 @@ const buildAvailabilityRulesInput = (
         startTime: rule.startTime || "09:00",
         endTime: rule.endTime || "18:00",
         weekdays: rule.frequency === "WEEKLY" ? [...rule.weekdays] : [],
-        monthDays:
-          rule.frequency === "MONTHLY" || rule.frequency === "YEARLY"
-            ? monthDays
-            : [],
+        monthDays: rule.frequency === "MONTHLY" || rule.frequency === "YEARLY" ? monthDays : [],
         months: rule.frequency === "YEARLY" ? months : [],
       },
     ];
@@ -248,8 +227,7 @@ export const useAdminPoiEditor = ({
   });
 
   const selectedPoiCapText = computed<string>({
-    get: () =>
-      selectedPoiCap.value === null ? "" : String(selectedPoiCap.value),
+    get: () => (selectedPoiCap.value === null ? "" : String(selectedPoiCap.value)),
     set: (value) => {
       setSelectedPoiCap(normalizeNullablePositiveInteger(value));
     },
@@ -317,13 +295,11 @@ export const useAdminPoiEditor = ({
     },
   });
 
-  const selectedPoiAvailabilityRules = computed<EditableAvailabilityRule[]>(
-    () => {
-      const poiId = selectedPoiId.value;
-      if (!poiId) return [];
-      return poiAvailabilityRulesById.value[poiId] ?? [];
-    },
-  );
+  const selectedPoiAvailabilityRules = computed<EditableAvailabilityRule[]>(() => {
+    const poiId = selectedPoiId.value;
+    if (!poiId) return [];
+    return poiAvailabilityRulesById.value[poiId] ?? [];
+  });
 
   const markSelectedPoiDirty = () => {
     const poiId = selectedPoiId.value;
@@ -333,10 +309,7 @@ export const useAdminPoiEditor = ({
     dirtyPoiIds.value = nextDirtyPoiIds;
   };
 
-  const setSelectedPoiGallery = (
-    gallery: string[],
-    options?: { markDirty?: boolean },
-  ) => {
+  const setSelectedPoiGallery = (gallery: string[], options?: { markDirty?: boolean }) => {
     const poiId = selectedPoiId.value;
     if (!poiId) return;
 
@@ -415,10 +388,7 @@ export const useAdminPoiEditor = ({
     const poiId = selectedPoiId.value;
     if (!poiId) return;
 
-    const normalized =
-      meetingPoint?.description || meetingPoint?.imageUrl
-        ? meetingPoint
-        : null;
+    const normalized = meetingPoint?.description || meetingPoint?.imageUrl ? meetingPoint : null;
     poiMeetingPointById.value = {
       ...poiMeetingPointById.value,
       [poiId]: normalized,
@@ -486,8 +456,7 @@ export const useAdminPoiEditor = ({
         nextBd09Map[poi.id] = poi.bd09 ?? null;
         nextCapMap[poi.id] = poi.perTimeWindowCap ?? null;
         nextMeetingPointMap[poi.id] = poi.meetingPoint ?? null;
-        nextAvailabilityRulesMap[poi.id] =
-          poi.availabilityRules.map(toEditableAvailabilityRule);
+        nextAvailabilityRulesMap[poi.id] = poi.availabilityRules.map(toEditableAvailabilityRule);
       }
 
       poiGalleryById.value = nextMap;
@@ -535,19 +504,11 @@ export const useAdminPoiEditor = ({
       ? (poiFullAddressById.value[selectedPoiId.value] ?? null)
       : null,
     gallery: normalizeGallery(selectedPoiGallery.value),
-    gcj02: selectedPoiId.value
-      ? (poiGcj02ById.value[selectedPoiId.value] ?? null)
-      : null,
-    wgs84: selectedPoiId.value
-      ? (poiWgs84ById.value[selectedPoiId.value] ?? null)
-      : null,
-    bd09: selectedPoiId.value
-      ? (poiBd09ById.value[selectedPoiId.value] ?? null)
-      : null,
+    gcj02: selectedPoiId.value ? (poiGcj02ById.value[selectedPoiId.value] ?? null) : null,
+    wgs84: selectedPoiId.value ? (poiWgs84ById.value[selectedPoiId.value] ?? null) : null,
+    bd09: selectedPoiId.value ? (poiBd09ById.value[selectedPoiId.value] ?? null) : null,
     perTimeWindowCap: selectedPoiCap.value,
-    availabilityRules: buildAvailabilityRulesInput(
-      selectedPoiAvailabilityRules.value,
-    ),
+    availabilityRules: buildAvailabilityRulesInput(selectedPoiAvailabilityRules.value),
     meetingPoint: selectedPoiMeetingPoint.value,
   });
 
@@ -573,10 +534,9 @@ export const useAdminPoiEditor = ({
     setSelectedPoiMeetingPoint(poi.meetingPoint ?? null, {
       markDirty: false,
     });
-    setSelectedPoiAvailabilityRules(
-      poi.availabilityRules.map(toEditableAvailabilityRule),
-      { markDirty: false },
-    );
+    setSelectedPoiAvailabilityRules(poi.availabilityRules.map(toEditableAvailabilityRule), {
+      markDirty: false,
+    });
     const nextDirtyPoiIds = new Set(dirtyPoiIds.value);
     nextDirtyPoiIds.delete(poiId);
     dirtyPoiIds.value = nextDirtyPoiIds;

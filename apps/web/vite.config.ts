@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import vue from "@vitejs/plugin-vue";
 import { parse as parseJsonc } from "jsonc-parser";
@@ -136,9 +136,9 @@ const resolvePortlessHostHeader = (portlessUrl: string | null, hostname: string)
   }
 };
 
-const readGitValue = (command: string): string | null => {
+const readGitValue = (): string | null => {
   try {
-    const output = execSync(command, {
+    const output = execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: process.cwd(),
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8",
@@ -235,9 +235,7 @@ export default defineConfig(({ mode }) => {
     ? (portlessUrl ?? "")
     : (normalizeEnvValue(env.VITE_API_URL) ?? "");
   const frontendCommitHash =
-    normalizeEnvValue(env.VITE_FRONTEND_COMMIT_HASH) ??
-    readGitValue("git rev-parse HEAD") ??
-    "unknown";
+    normalizeEnvValue(env.VITE_FRONTEND_COMMIT_HASH) ?? readGitValue() ?? "unknown";
   const usePollingForDevWatch = shouldUsePollingForDevWatch();
 
   return {

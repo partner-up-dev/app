@@ -9,26 +9,11 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const frontendFilter = "@partner-up-dev/web";
 const packageName = "@partner-up-dev/design-web";
 const skillName = "design-web";
-const skillRoot = resolve(
-  repoRoot,
-  "apps/web/node_modules",
-  packageName,
-  "skills",
-  skillName,
-);
+const skillRoot = resolve(repoRoot, "apps/web/node_modules", packageName, "skills", skillName);
 const codexHookPath = resolve(repoRoot, ".codex", "hooks.json");
 const doHookInstall = !process.argv.includes("--skip-hooks");
 const sessionStartHookTimeoutSeconds = 60;
-const hookArgs = [
-  "exec",
-  "intent",
-  "hooks",
-  "install",
-  "--scope",
-  "project",
-  "--agents",
-  "codex",
-];
+const hookArgs = ["exec", "intent", "hooks", "install", "--scope", "project", "--agents", "codex"];
 
 const usage = `Usage:
   node scripts/sync-design-web-package.mjs [version-or-spec]
@@ -86,7 +71,6 @@ const configureProjectHooks = () => {
   }
 };
 
-
 const run = (command, args) => {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
@@ -130,7 +114,9 @@ const main = () => {
     print(`[step 2/${totalSteps}] Skip Codex hook install (passed --skip-hooks)`);
   }
   configureProjectHooks();
-  print(`[step 2/${totalSteps}] SessionStart hook policy applied; PreToolUse removed; timeout set to ${sessionStartHookTimeoutSeconds}s`);
+  print(
+    `[step 2/${totalSteps}] SessionStart hook policy applied; PreToolUse removed; timeout set to ${sessionStartHookTimeoutSeconds}s`,
+  );
 
   print(`[step 3/${totalSteps}] Verify intent skill discovery for ${packageName}#${skillName}`);
   const listOutput = run("pnpm", ["exec", "intent", "list", "--json"]);
@@ -138,12 +124,7 @@ const main = () => {
 
   print(`[step ${totalSteps}/${totalSteps}] Load + validate package-shipped skill`);
   run("pnpm", ["exec", "intent", "load", `${packageName}#${skillName}`]);
-  run("pnpm", [
-    "exec",
-    "intent",
-    "validate",
-    skillRoot,
-  ]);
+  run("pnpm", ["exec", "intent", "validate", skillRoot]);
 
   const packageJsonPath = resolve(repoRoot, "apps/web/node_modules", packageName, "package.json");
   try {

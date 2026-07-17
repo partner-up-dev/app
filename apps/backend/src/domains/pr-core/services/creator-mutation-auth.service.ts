@@ -35,7 +35,10 @@ export async function authorizeCreatorMutation(
   }
 
   if (auth.role === "anonymous" || auth.userId !== request.createdBy) {
-    return throwHttpProblem({ status: 403, detail: "Only the creator can modify this partner request" });
+    return throwHttpProblem({
+      status: 403,
+      detail: "Only the creator can modify this partner request",
+    });
   }
 
   return {

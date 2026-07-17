@@ -57,12 +57,10 @@ export const buildWaitlistPromotedDedupeKey = (
   recipientUserId: UserId,
   prId: PRId,
   partnerId: PartnerId,
-): string =>
-  `${WAITLIST_PROMOTED_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${partnerId}`;
+): string => `${WAITLIST_PROMOTED_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${partnerId}`;
 
-export const buildWaitlistPromotedDedupePrefixForUser = (
-  userId: UserId,
-): string => `${WAITLIST_PROMOTED_DEDUPE_PREFIX}:${userId}:`;
+export const buildWaitlistPromotedDedupePrefixForUser = (userId: UserId): string =>
+  `${WAITLIST_PROMOTED_DEDUPE_PREFIX}:${userId}:`;
 
 const resolvePrUrl = (request: PartnerRequest): string | null => {
   const frontendUrl = env.FRONTEND_URL?.trim();
@@ -106,9 +104,7 @@ export const prepareWaitlistPromotedNotificationDispatch = async (
     };
   }
 
-  const notificationOpt = await userNotificationOptRepo.findByUserId(
-    recipient.id,
-  );
+  const notificationOpt = await userNotificationOptRepo.findByUserId(recipient.id);
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     WAITLIST_PROMOTED_NOTIFICATION_KIND,
@@ -130,11 +126,10 @@ export const prepareWaitlistPromotedNotificationDispatch = async (
     };
   }
 
-  const promotedSlot =
-    await partnerRepo.findActiveParticipantSummaryByPrIdAndPartnerId(
-      payload.prId,
-      payload.partnerId as PartnerId,
-    );
+  const promotedSlot = await partnerRepo.findActiveParticipantSummaryByPrIdAndPartnerId(
+    payload.prId,
+    payload.partnerId as PartnerId,
+  );
   if (!promotedSlot || promotedSlot.userId !== recipient.id) {
     return {
       status: "SKIPPED",

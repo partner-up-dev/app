@@ -29,7 +29,10 @@ export async function upgradeAnonymousUserWithWeChat(
 
   const occupied = await userRepo.findByOpenId(input.openId);
   if (occupied) {
-    return throwHttpProblem({ status: 409, detail: "WeChat account is already bound to another user" });
+    return throwHttpProblem({
+      status: 409,
+      detail: "WeChat account is already bound to another user",
+    });
   }
 
   const updated = await userRepo.upgradeAnonymousUserWithWeChat({

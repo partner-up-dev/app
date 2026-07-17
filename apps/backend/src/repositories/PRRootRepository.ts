@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
   partnerRequests,
@@ -20,10 +20,7 @@ export class PRRootRepository {
   }
 
   async findById(id: PRId): Promise<PartnerRequest | null> {
-    const result = await db
-      .select()
-      .from(partnerRequests)
-      .where(eq(partnerRequests.id, id));
+    const result = await db.select().from(partnerRequests).where(eq(partnerRequests.id, id));
     return result[0] ?? null;
   }
 
@@ -85,10 +82,7 @@ export class PRRootRepository {
     return result[0] ?? null;
   }
 
-  async updateFields(
-    id: PRId,
-    fields: PartnerRequestFields,
-  ): Promise<PartnerRequest | null> {
+  async updateFields(id: PRId, fields: PartnerRequestFields): Promise<PartnerRequest | null> {
     const result = await db
       .update(partnerRequests)
       .set({
@@ -108,10 +102,7 @@ export class PRRootRepository {
     return result[0] ?? null;
   }
 
-  async setCreatedBy(
-    id: PRId,
-    userId: UserId | null,
-  ): Promise<PartnerRequest | null> {
+  async setCreatedBy(id: PRId, userId: UserId | null): Promise<PartnerRequest | null> {
     const result = await db
       .update(partnerRequests)
       .set({ createdBy: userId })
@@ -132,10 +123,7 @@ export class PRRootRepository {
     return result[0] ?? null;
   }
 
-  async addWechatThumbnail(
-    id: PRId,
-    cache: WechatThumbnailCache,
-  ): Promise<PartnerRequest | null> {
+  async addWechatThumbnail(id: PRId, cache: WechatThumbnailCache): Promise<PartnerRequest | null> {
     const result = await db
       .update(partnerRequests)
       .set({ wechatThumbnail: cache })

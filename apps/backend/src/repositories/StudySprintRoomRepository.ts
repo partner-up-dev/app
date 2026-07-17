@@ -13,10 +13,7 @@ export class StudySprintRoomRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewStudySprintRoom): Promise<StudySprintRoom> {
-    const result = await this.executor
-      .insert(studySprintRooms)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(studySprintRooms).values(data).returning();
     return result[0]!;
   }
 

@@ -48,11 +48,11 @@ const areRoutesEqual = (
     const other = right[index];
     return Boolean(
       other &&
-        point.name === other.name &&
-        point.full_address === other.full_address &&
-        areCoordinatePairsEqual(point.wgs84, other.wgs84) &&
-        areCoordinatePairsEqual(point.bd09, other.bd09) &&
-        areCoordinatePairsEqual(point.gcj02, other.gcj02),
+      point.name === other.name &&
+      point.full_address === other.full_address &&
+      areCoordinatePairsEqual(point.wgs84, other.wgs84) &&
+      areCoordinatePairsEqual(point.bd09, other.bd09) &&
+      areCoordinatePairsEqual(point.gcj02, other.gcj02),
     );
   });
 };

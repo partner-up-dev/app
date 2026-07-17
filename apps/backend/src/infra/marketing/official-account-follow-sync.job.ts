@@ -1,14 +1,9 @@
 import { z } from "zod";
 import { UserRepository } from "../../repositories/UserRepository";
 import { WeChatOfficialAccountFollowerService } from "../../services/WeChatOfficialAccountFollowerService";
-import {
-  NO_LATE_TOLERANCE_UNITS,
-  jobRunner,
-  type JobHandlerContext,
-} from "../jobs";
+import { NO_LATE_TOLERANCE_UNITS, jobRunner, type JobHandlerContext } from "../jobs";
 
-const OFFICIAL_ACCOUNT_FOLLOW_SYNC_JOB_TYPE =
-  "wechat.official-account.follow-sync";
+const OFFICIAL_ACCOUNT_FOLLOW_SYNC_JOB_TYPE = "wechat.official-account.follow-sync";
 const FOLLOW_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const BOOTSTRAP_DELAY_MS = 20_000;
 const FOLLOW_SYNC_RESOLUTION_MS = 60_000;
@@ -25,9 +20,7 @@ let handlerRegistered = false;
 const buildDedupeKey = (runAt: Date): string =>
   `${DEDUPE_PREFIX}:${Math.floor(runAt.getTime() / FOLLOW_SYNC_INTERVAL_MS)}`;
 
-export const scheduleOfficialAccountFollowSyncJob = async (
-  runAt: Date,
-): Promise<void> => {
+export const scheduleOfficialAccountFollowSyncJob = async (runAt: Date): Promise<void> => {
   await jobRunner.scheduleOnce({
     jobType: OFFICIAL_ACCOUNT_FOLLOW_SYNC_JOB_TYPE,
     runAt,
@@ -40,9 +33,7 @@ export const scheduleOfficialAccountFollowSyncJob = async (
 };
 
 const scheduleNextRun = async (): Promise<void> => {
-  await scheduleOfficialAccountFollowSyncJob(
-    new Date(Date.now() + FOLLOW_SYNC_INTERVAL_MS),
-  );
+  await scheduleOfficialAccountFollowSyncJob(new Date(Date.now() + FOLLOW_SYNC_INTERVAL_MS));
 };
 
 async function handleOfficialAccountFollowSyncJob(
@@ -71,10 +62,7 @@ async function handleOfficialAccountFollowSyncJob(
     const page = await followerService.fetchFollowerOpenIdPage(nextOpenId);
     pages += 1;
     scannedOpenIds += page.openIds.length;
-    updatedUsers += await userRepo.markOfficialAccountFollowersByOpenIds(
-      page.openIds,
-      followedAt,
-    );
+    updatedUsers += await userRepo.markOfficialAccountFollowersByOpenIds(page.openIds, followedAt);
 
     if (!page.nextOpenId || page.count === 0) {
       break;
@@ -92,9 +80,7 @@ async function handleOfficialAccountFollowSyncJob(
   }
 
   if (pages >= MAX_PAGES_PER_RUN && nextOpenId !== null) {
-    throw new Error(
-      `Official-account follow sync exceeded ${MAX_PAGES_PER_RUN} pages`,
-    );
+    throw new Error(`Official-account follow sync exceeded ${MAX_PAGES_PER_RUN} pages`);
   }
 
   console.info("[OfficialAccountFollowSync] completed", {
@@ -117,7 +103,5 @@ export function registerOfficialAccountFollowSyncJobs(): void {
 }
 
 export async function bootstrapOfficialAccountFollowSyncJob(): Promise<void> {
-  await scheduleOfficialAccountFollowSyncJob(
-    new Date(Date.now() + BOOTSTRAP_DELAY_MS),
-  );
+  await scheduleOfficialAccountFollowSyncJob(new Date(Date.now() + BOOTSTRAP_DELAY_MS));
 }

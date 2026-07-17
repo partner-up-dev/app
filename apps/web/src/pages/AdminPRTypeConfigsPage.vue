@@ -110,7 +110,11 @@
               data-testid="admin-pr-type-config.save"
               @click="save"
             >
-              {{ saveMutation.isPending.value ? t("adminPRTypeConfigs.saving") : t("adminPRTypeConfigs.saveAction") }}
+              {{
+                saveMutation.isPending.value
+                  ? t("adminPRTypeConfigs.saving")
+                  : t("adminPRTypeConfigs.saveAction")
+              }}
             </PuButton>
             <PuInlineNotice
               v-if="saveMutation.error.value"
@@ -125,11 +129,7 @@
             <div v-else-if="!(tagsQuery.data.value ?? []).length" class="hint">
               {{ t("adminPRTypeConfigs.emptyPreferenceTags") }}
             </div>
-            <div
-              v-for="tag in tagsQuery.data.value ?? []"
-              :key="tag.id"
-              class="preference-tag-row"
-            >
+            <div v-for="tag in tagsQuery.data.value ?? []" :key="tag.id" class="preference-tag-row">
               <span>
                 <strong>{{ tag.label }}</strong>
                 <small>{{ tag.description }}</small>
@@ -392,7 +392,19 @@ const moderate = async (tagId: number, moderationStatus: "PUBLISHED" | "REJECTED
 </script>
 
 <style scoped lang="scss">
-.preference-tag-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid var(--pu-color-border-subtle); }
-.preference-tag-row span:first-child { display: grid; gap: var(--pu-space-1); }
-.preference-tag-row small { color: var(--pu-color-text-secondary); }
+.preference-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sys-spacing-medium);
+  padding: calc(var(--sys-spacing-medium) * 0.75) 0;
+  border-bottom: 1px solid var(--pu-color-border-subtle);
+}
+.preference-tag-row span:first-child {
+  display: grid;
+  gap: var(--pu-space-1);
+}
+.preference-tag-row small {
+  color: var(--pu-color-text-secondary);
+}
 </style>

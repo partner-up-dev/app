@@ -10,9 +10,7 @@ const parseTime = (value: string | null): Date | null => {
   return date;
 };
 
-export const deriveStudySprintDurationMinutes = (
-  pr: PartnerRequest,
-): number => {
+export const deriveStudySprintDurationMinutes = (pr: PartnerRequest): number => {
   const startAt = parseTime(pr.time[0]);
   const endAt = parseTime(pr.time[1]);
   if (!startAt || !endAt) return STUDY_SPRINT_DEFAULT_DURATION_MINUTES;

@@ -182,7 +182,10 @@ export const partnerRequests = pgTable("partner_requests", {
   maxPartners: integer("max_partners"),
   budget: text("budget"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  preferences: text("preferences").array().notNull().default(sql`ARRAY[]::text[]`),
+  preferences: text("preferences")
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
   notes: text("notes"),
   meetingPoint: jsonb("meeting_point").$type<MeetingPointConfig | null>().default(null),
   allowEditAfterReady: jsonb("allow_edit_after_ready")
@@ -192,7 +195,11 @@ export const partnerRequests = pgTable("partner_requests", {
     .$type<PRJoinGateConfig>()
     .notNull()
     .default(sql`'[]'::jsonb`),
-  orders: uuid("orders").array().$type<TradeOrderId[]>().notNull().default(sql`ARRAY[]::uuid[]`),
+  orders: uuid("orders")
+    .array()
+    .$type<TradeOrderId[]>()
+    .notNull()
+    .default(sql`ARRAY[]::uuid[]`),
   feedbackQuestionnaireInstanceId: bigint("feedback_questionnaire_instance_id", {
     mode: "number",
   })

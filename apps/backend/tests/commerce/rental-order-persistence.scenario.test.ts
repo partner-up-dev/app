@@ -85,10 +85,7 @@ const defaultRentalPlacementBindingRules = () => [
   },
 ];
 
-const buildRentalOrderItem = (input: {
-  itemId: string;
-  sku: ProductSku;
-}) => ({
+const buildRentalOrderItem = (input: { itemId: string; sku: ProductSku }) => ({
   itemId: input.itemId,
   sku: {
     id: input.sku.id,
@@ -131,9 +128,7 @@ async function givenRentalPr(
 }
 
 async function listPrOrderParticipants(prId: PRId, createdBy: string) {
-  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(
-    prId,
-  );
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(prId);
 
   return buildOrderParticipantsFromContext({
     participants: activeParticipants.map((participant) => ({
@@ -503,14 +498,12 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
 
   const openedChargeLine = await billLineRepo.openProviderExecutionSlot({
     id: chargeLine.id,
-    paymentProviderInstanceId:
-      providerResult.providerInstanceId as PaymentProviderInstanceId,
+    paymentProviderInstanceId: providerResult.providerInstanceId as PaymentProviderInstanceId,
   });
   assert.ok(openedChargeLine, "Charge BillLine should open a provider slot");
   await billLineRepo.markSettledFromProvider({
     id: openedChargeLine.id,
-    paymentProviderInstanceId:
-      providerResult.providerInstanceId as PaymentProviderInstanceId,
+    paymentProviderInstanceId: providerResult.providerInstanceId as PaymentProviderInstanceId,
     attemptCount: openedChargeLine.attemptCount,
     settledAt: new Date(),
   });
@@ -542,16 +535,11 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     reason: "Order is not eligible for prepaid settlement consequence",
   });
   assert.equal(
-    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))
-      ?.bookingStatus,
+    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))?.bookingStatus,
     "PENDING_BOOKING",
   );
 
-  await tradeOrderRepo.updateStatus(
-    orderResult.orderId as TradeOrderId,
-    "CANCELLED",
-    new Date(),
-  );
+  await tradeOrderRepo.updateStatus(orderResult.orderId as TradeOrderId, "CANCELLED", new Date());
 
   const cancelledResult = await applyPaymentSettlementConsequence({
     billLineId: openedChargeLine.id,
@@ -562,114 +550,103 @@ scenario("commerce_late_payment_after_cancel_does_not_start_fulfillment", async 
     reason: "Order is not eligible for prepaid settlement consequence",
   });
   assert.equal(
-    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))
-      ?.bookingStatus,
+    (await rentalOrderRepo.findByOrderId(orderResult.orderId as TradeOrderId))?.bookingStatus,
     "PENDING_BOOKING",
   );
 });
 
-scenario(
-  "commerce_pr_offer_allows_new_order_after_terminal_order",
-  async (ctx) => {
-    const creator = await givenUser("rental-terminal-order-reorder");
-    const prId = await givenRentalPr(creator);
-    const { offer, sku, spu } = await givenRentalCatalog();
-    const placement = await createPlacement({
-      placementType: "BUTTON",
-      offerId: offer.id,
-      status: "ACTIVE",
-      matchingRule: { "===": [{ var: "kind" }, "PR"] },
-      priority: 10,
-      creative: {
-        ctaLabel: "预订场地",
-      },
-      bindingRules: defaultRentalPlacementBindingRules(),
-    });
+scenario("commerce_pr_offer_allows_new_order_after_terminal_order", async (ctx) => {
+  const creator = await givenUser("rental-terminal-order-reorder");
+  const prId = await givenRentalPr(creator);
+  const { offer, sku } = await givenRentalCatalog();
+  const placement = await createPlacement({
+    placementType: "BUTTON",
+    offerId: offer.id,
+    status: "ACTIVE",
+    matchingRule: { "===": [{ var: "kind" }, "PR"] },
+    priority: 10,
+    creative: {
+      ctaLabel: "预订场地",
+    },
+    bindingRules: defaultRentalPlacementBindingRules(),
+  });
 
-    const createOrder = async () => {
-      const itemId = randomUUID();
-      const participants = await listPrOrderParticipants(prId, creator.user.id);
+  const createOrder = async () => {
+    const itemId = randomUUID();
+    const participants = await listPrOrderParticipants(prId, creator.user.id);
 
-      return db.transaction(async (tx) => {
-        const result = await createRentalOrder(
-          {
-            createdBy: creator.user.id,
-            participants,
-            offerId: offer.id,
-            items: [buildRentalOrderItem({ itemId, sku })],
-            pricingSnapshot: {
-              currency: "CNY",
-              itemBreakdowns: [
-                {
-                  itemId,
-                  resolvedAmountFen: 1200,
-                  explanations: [],
-                },
-              ],
-              orderLevelExplanations: [],
-              subtotalFen: 1200,
-              totalFen: 1200,
-            },
-            serviceStartAt,
-            serviceEndAt,
-            contactPhone: "13800138003",
-            registrants: [
+    return db.transaction(async (tx) => {
+      const result = await createRentalOrder(
+        {
+          createdBy: creator.user.id,
+          participants,
+          offerId: offer.id,
+          items: [buildRentalOrderItem({ itemId, sku })],
+          pricingSnapshot: {
+            currency: "CNY",
+            itemBreakdowns: [
               {
-                name: "赵六",
-                phone: "13800138003",
-                nationalIdMasked: null,
+                itemId,
+                resolvedAmountFen: 1200,
+                explanations: [],
               },
             ],
+            orderLevelExplanations: [],
+            subtotalFen: 1200,
+            totalFen: 1200,
           },
-          tx,
-        );
+          serviceStartAt,
+          serviceEndAt,
+          contactPhone: "13800138003",
+          registrants: [
+            {
+              name: "赵六",
+              phone: "13800138003",
+              nationalIdMasked: null,
+            },
+          ],
+        },
+        tx,
+      );
 
-        await attachOrderToPr(
-          {
-            orderId: result.orderId as TradeOrderId,
-            prId,
-            offerId: offer.id as OfferId,
-            orderCreatedBy: creator.user.id,
-          },
-          tx,
-        );
+      await attachOrderToPr(
+        {
+          orderId: result.orderId as TradeOrderId,
+          prId,
+          offerId: offer.id as OfferId,
+          orderCreatedBy: creator.user.id,
+        },
+        tx,
+      );
 
-        return result;
-      });
-    };
-
-    const firstOrder = await createOrder();
-    ctx.record("firstOrderId", firstOrder.orderId);
-    ctx.record("placementId", placement.id);
-
-    await assert.rejects(
-      () => createOrder(),
-      /An active order already exists for this PR and offer/,
-    );
-
-    const orderProjection = await matchPlacementInstance({
-      type: "BUTTON",
-      matchingContext: { kind: "PR" },
+      return result;
     });
-    assert.equal(orderProjection.placements[0]?.offerId, offer.id);
+  };
 
-    await tradeOrderRepo.updateStatus(
-      firstOrder.orderId as TradeOrderId,
-      "CANCELLED",
-      new Date(),
-    );
+  const firstOrder = await createOrder();
+  ctx.record("firstOrderId", firstOrder.orderId);
+  ctx.record("placementId", placement.id);
 
-    const orderingProjection = await matchPlacementInstance({
-      type: "BUTTON",
-      matchingContext: { kind: "PR" },
-    });
-    assert.equal(orderingProjection.placements[0]?.offerId, offer.id);
+  await assert.rejects(() => createOrder(), /An active order already exists for this PR and offer/);
 
-    const secondOrder = await createOrder();
-    ctx.record("secondOrderId", secondOrder.orderId);
-    assert.notEqual(secondOrder.orderId, firstOrder.orderId);
-  },
-);
+  const orderProjection = await matchPlacementInstance({
+    type: "BUTTON",
+    matchingContext: { kind: "PR" },
+  });
+  assert.equal(orderProjection.placements[0]?.offerId, offer.id);
+
+  await tradeOrderRepo.updateStatus(firstOrder.orderId as TradeOrderId, "CANCELLED", new Date());
+
+  const orderingProjection = await matchPlacementInstance({
+    type: "BUTTON",
+    matchingContext: { kind: "PR" },
+  });
+  assert.equal(orderingProjection.placements[0]?.offerId, offer.id);
+
+  const secondOrder = await createOrder();
+  ctx.record("secondOrderId", secondOrder.orderId);
+  assert.notEqual(secondOrder.orderId, firstOrder.orderId);
+});
 
 scenario("commerce_placement_resolution_does_not_filter_product_type", async () => {
   await givenUser("placement-non-rental-offer-creator");
@@ -727,7 +704,7 @@ scenario("commerce_placement_resolution_does_not_filter_product_type", async () 
 scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
   const creator = await givenUser("rental-typed-order-rollback");
   const prId = await givenRentalPr(creator);
-  const { offer, sku, spu } = await givenRentalCatalog();
+  const { offer, sku } = await givenRentalCatalog();
   const itemId = randomUUID();
   const participants = await listPrOrderParticipants(prId, creator.user.id);
 
@@ -768,8 +745,7 @@ scenario("commerce_rental_order_create_rolls_back_typed_rows", async () => {
   );
   assert.equal(leakedBaseOrders.length, 0);
   assert.equal(
-    (await rentalOrderRepo.listByOrderIds(leakedBaseOrders.map((order) => order.id)))
-      .length,
+    (await rentalOrderRepo.listByOrderIds(leakedBaseOrders.map((order) => order.id))).length,
     0,
   );
 });
@@ -782,7 +758,7 @@ scenario("commerce_create_order_blocks_participant_with_unpaid_order", async () 
   const existingParticipants = await listPrOrderParticipants(existingPrId, creator.user.id);
   const existingItemId = randomUUID();
 
-  const existingOrder = await createRentalOrder({
+  await createRentalOrder({
     createdBy: creator.user.id,
     participants: existingParticipants,
     offerId: offer.id,

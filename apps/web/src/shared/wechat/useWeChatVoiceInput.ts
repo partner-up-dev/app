@@ -31,9 +31,7 @@ const formatWeChatError = (error: unknown): string => {
   return i18n.global.t("common.operationFailed");
 };
 
-export const useWeChatVoiceInput = (options?: {
-  onTranscript?: (text: string) => void;
-}) => {
+export const useWeChatVoiceInput = (options?: { onTranscript?: (text: string) => void }) => {
   const { initWeChatSdk } = useWeChatShare();
 
   const isRecordingRef = ref(false);

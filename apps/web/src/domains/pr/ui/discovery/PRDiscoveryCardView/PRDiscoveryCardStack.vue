@@ -31,10 +31,7 @@
             class="card-stage__projection-side card-stage__projection-side--skip"
             :style="leftProjectionShellStyle"
           >
-            <span
-              class="card-stage__projection-light"
-              :style="leftProjectionLightStyle"
-            >
+            <span class="card-stage__projection-light" :style="leftProjectionLightStyle">
               <span class="card-stage__projection-source" />
               <span class="card-stage__projection-bloom" />
               <span class="card-stage__projection-rim" />
@@ -45,10 +42,7 @@
             class="card-stage__projection-side card-stage__projection-side--detail"
             :style="rightProjectionShellStyle"
           >
-            <span
-              class="card-stage__projection-light"
-              :style="rightProjectionLightStyle"
-            >
+            <span class="card-stage__projection-light" :style="rightProjectionLightStyle">
               <span class="card-stage__projection-source" />
               <span class="card-stage__projection-bloom" />
               <span class="card-stage__projection-rim" />
@@ -71,18 +65,13 @@
           :notes="previewCard.notes"
           :cover-image="previewCard.coverImage"
           :detail-pr-id="previewCard.detailPrId"
-          :action-available="
-            previewCard.detailPrId !== null || previewCard.createTarget !== null
-          "
+          :action-available="previewCard.detailPrId !== null || previewCard.createTarget !== null"
           :preview="true"
           :preview-depth="previewIndex + 1"
           aria-hidden="true"
         />
 
-        <div
-          class="card-stage__front-shell"
-          :key="resolvedActivePRDiscoveryCard.cardKey"
-        >
+        <div class="card-stage__front-shell" :key="resolvedActivePRDiscoveryCard.cardKey">
           <PRDiscoveryDemandCard
             ref="frontPRDiscoveryCardRef"
             class="card-stage__front"
@@ -104,10 +93,10 @@
 
     <div class="card-mode__actions">
       <PuButton
-
         class="card-mode__action"
         shape="pill"
-        tone="danger" variant="outline"
+        tone="danger"
+        variant="outline"
         data-testid="prd.card.skip"
         :disabled="pending"
         @click="handleSkipActionClick"
@@ -115,7 +104,6 @@
         {{ t("prDiscovery.card.skipButton") }}
       </PuButton>
       <PuButton
-
         class="card-mode__action"
         shape="pill"
         data-testid="prd.card.detail"
@@ -131,12 +119,7 @@
     </p>
   </div>
 
-  <div
-    v-else
-    class="card-empty-stack"
-    data-testid="prd.card.surface"
-    data-mode-state="empty"
-  >
+  <div v-else class="card-empty-stack" data-testid="prd.card.surface" data-mode-state="empty">
     <div class="card-empty">
       <p class="card-empty__title">
         {{ cardEmptyTitle }}
@@ -145,19 +128,13 @@
         {{ cardEmptySubtitle }}
       </p>
 
-      <div
-        v-if="showCreate"
-        class="card-empty__create"
-        data-region="create-pr"
-      >
+      <div v-if="showCreate" class="card-empty__create" data-region="create-pr">
         <PRDiscoveryTimeWindowInlineEditor
           :type="type"
           :model-value="cardCreateTimeWindow"
           :allow-edit-after-ready="cardCreateAllowEditAfterReady"
           @update:model-value="handleCardCreateTimeWindowChange"
-          @update:allow-edit-after-ready="
-            handleCardCreateAllowEditAfterReadyChange
-          "
+          @update:allow-edit-after-ready="handleCardCreateAllowEditAfterReadyChange"
         />
 
         <PRDiscoveryInlinePlaceSelector
@@ -174,7 +151,6 @@
         </p>
 
         <PuButton
-
           shape="pill"
           size="sm"
           data-testid="prd.card.empty-create"

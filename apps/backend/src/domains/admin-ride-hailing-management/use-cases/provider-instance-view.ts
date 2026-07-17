@@ -9,17 +9,12 @@ export type AdminCaocaoProviderInstanceConfigView = Omit<
   signKeyConfigured: boolean;
 };
 
-export type AdminRideHailingProviderInstanceView = Omit<
-  RideHailingProviderInstance,
-  "config"
-> & {
+export type AdminRideHailingProviderInstanceView = Omit<RideHailingProviderInstance, "config"> & {
   callbackUrl: string | null;
   config: AdminCaocaoProviderInstanceConfigView;
 };
 
-const resolveCallbackUrl = (
-  providerInstance: RideHailingProviderInstance,
-): string | null => {
+const resolveCallbackUrl = (providerInstance: RideHailingProviderInstance): string | null => {
   if (
     providerInstance.providerType !== "CAOCAO" ||
     providerInstance.config.adapterMode !== "CAOCAO_OPEN_API" ||

@@ -27,10 +27,7 @@ export const useUserSessionStore = defineStore("userSession", () => {
   );
 
   const hasAdminAccess = computed(
-    () =>
-      role.value === "service" &&
-      Boolean(userId.value) &&
-      Boolean(accessToken.value),
+    () => role.value === "service" && Boolean(userId.value) && Boolean(accessToken.value),
   );
 
   const syncStorage = () => {

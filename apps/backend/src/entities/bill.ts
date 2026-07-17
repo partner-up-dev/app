@@ -36,9 +36,7 @@ export const bills = pgTable(
   },
   (table) => ({
     sourceOrderIdx: index("bills_source_order_idx").on(table.sourceOrderId),
-    sourceOrderUnique: uniqueIndex("bills_source_order_unique").on(
-      table.sourceOrderId,
-    ),
+    sourceOrderUnique: uniqueIndex("bills_source_order_unique").on(table.sourceOrderId),
   }),
 );
 
@@ -65,9 +63,9 @@ export const billLines = pgTable(
     refundOfBillLineId: uuid("refund_of_bill_line_id")
       .$type<BillLineId | null>()
       .references((): AnyPgColumn => billLines.id, { onDelete: "restrict" }),
-    paymentProviderInstanceId: uuid("payment_provider_instance_id").$type<
-      PaymentProviderInstanceId | null
-    >(),
+    paymentProviderInstanceId: uuid(
+      "payment_provider_instance_id",
+    ).$type<PaymentProviderInstanceId | null>(),
     attemptCount: integer("attempt_count").notNull().default(0),
     settledAt: timestamp("settled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -75,12 +73,10 @@ export const billLines = pgTable(
   (table) => ({
     billKindIdx: index("bill_lines_bill_kind_idx").on(table.billId, table.kind),
     userIdx: index("bill_lines_user_idx").on(table.userId),
-    refundOfBillLineIdx: index("bill_lines_refund_of_bill_line_idx").on(
-      table.refundOfBillLineId,
+    refundOfBillLineIdx: index("bill_lines_refund_of_bill_line_idx").on(table.refundOfBillLineId),
+    paymentProviderInstanceIdx: index("bill_lines_payment_provider_instance_idx").on(
+      table.paymentProviderInstanceId,
     ),
-    paymentProviderInstanceIdx: index(
-      "bill_lines_payment_provider_instance_idx",
-    ).on(table.paymentProviderInstanceId),
   }),
 );
 

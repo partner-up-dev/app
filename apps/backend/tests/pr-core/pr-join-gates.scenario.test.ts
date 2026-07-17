@@ -2,20 +2,14 @@ import assert from "node:assert/strict";
 import { and, eq } from "drizzle-orm";
 import { scenario } from "../_infra/scenario/scenario";
 import { exitPR } from "./_kit/actions/exit";
-import {
-  getJoinGateProjection,
-  resolveJoinNoticeGate,
-} from "./_kit/actions/join-gates";
+import { getJoinGateProjection, resolveJoinNoticeGate } from "./_kit/actions/join-gates";
 import { joinPartnerRequest } from "./_kit/actions/join";
 import { expectActiveParticipantCount } from "./_kit/assertions/participants";
 import { givenPublishedPartnerRequest } from "./_kit/builders/partner-requests";
 import { givenUser } from "./_kit/builders/users";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
-import {
-  partnerRequests,
-  prJoinNoticeAcceptances,
-} from "../../src/entities";
+import { partnerRequests, prJoinNoticeAcceptances } from "../../src/entities";
 
 type ProblemDetailsResponse = {
   code?: string;

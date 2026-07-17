@@ -43,9 +43,7 @@ export async function expectJsonResponse<T>(
   const body = await readJsonResponse<T>(response);
   if (response.status !== expectedStatus) {
     throw new Error(
-      `Expected HTTP ${expectedStatus}, got ${response.status}: ${JSON.stringify(
-        body,
-      )}`,
+      `Expected HTTP ${expectedStatus}, got ${response.status}: ${JSON.stringify(body)}`,
     );
   }
   return body;

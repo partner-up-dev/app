@@ -4,9 +4,9 @@ import type { PRJoinGateConfig } from "../../../entities";
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
 const mocks = vi.hoisted(() => ({
-  findById: vi.fn(),
-  updatePartnerRules: vi.fn(),
-  updateJoinGateConfig: vi.fn(),
+  findById: vi.fn<() => unknown>(),
+  updatePartnerRules: vi.fn<() => unknown>(),
+  updateJoinGateConfig: vi.fn<() => unknown>(),
 }));
 vi.mock("../../../repositories/PartnerRequestRepository", () => ({
   PartnerRequestRepository: class {
@@ -16,9 +16,8 @@ vi.mock("../../../repositories/PartnerRequestRepository", () => ({
   },
 }));
 
-const { materializePRTypeParticipationSnapshot } = await import(
-  "./pr-type-participation-defaults.service"
-);
+const { materializePRTypeParticipationSnapshot } =
+  await import("./pr-type-participation-defaults.service");
 
 const configGate: PRJoinGateConfig[number] = {
   kind: "JOIN_NOTICE",

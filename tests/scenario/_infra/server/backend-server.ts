@@ -5,9 +5,7 @@ export type StartedBackendServer = {
   close(): Promise<void>;
 };
 
-export async function startBackendServer(
-  port: number,
-): Promise<StartedBackendServer> {
+export async function startBackendServer(port: number): Promise<StartedBackendServer> {
   const { app } = await import("../../../../apps/backend/src/index");
 
   const server = await new Promise<ServerType>((resolve, reject) => {

@@ -4,9 +4,9 @@
       <PuButton
         class="method-nav-action"
         shape="pill"
-        tone="neutral" variant="ghost"
+        tone="neutral"
+        variant="ghost"
         size="sm"
-
         @click="goToPrevMethod"
         :disabled="enabledMethods.length <= 1"
         :aria-label="t('share.prevMethodAria')"
@@ -17,9 +17,9 @@
       <PuButton
         class="method-nav-action"
         shape="pill"
-        tone="neutral" variant="ghost"
+        tone="neutral"
+        variant="ghost"
         size="sm"
-
         @click="goToNextMethod"
         :disabled="enabledMethods.length <= 1"
         :aria-label="t('share.nextMethodAria')"

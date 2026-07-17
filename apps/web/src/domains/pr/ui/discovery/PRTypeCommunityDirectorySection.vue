@@ -10,10 +10,7 @@
       <p>{{ t("aboutPage.typeCommunities.description") }}</p>
     </div>
 
-    <p
-      v-if="catalogQuery.isLoading.value"
-      class="pr-type-community-directory__state"
-    >
+    <p v-if="catalogQuery.isLoading.value" class="pr-type-community-directory__state">
       {{ t("aboutPage.typeCommunities.loading") }}
     </p>
     <p
@@ -22,18 +19,11 @@
     >
       {{ t("aboutPage.typeCommunities.loadFailed") }}
     </p>
-    <p
-      v-else-if="catalogItems.length === 0"
-      class="pr-type-community-directory__state"
-    >
+    <p v-else-if="catalogItems.length === 0" class="pr-type-community-directory__state">
       {{ t("aboutPage.typeCommunities.empty") }}
     </p>
     <div v-else class="pr-type-community-directory__list">
-      <div
-        v-for="item in catalogItems"
-        :key="item.type"
-        class="pr-type-community-directory__row"
-      >
+      <div v-for="item in catalogItems" :key="item.type" class="pr-type-community-directory__row">
         <span class="pr-type-community-directory__label">{{ item.title }}</span>
         <button
           type="button"
@@ -161,10 +151,7 @@ const closeCommunity = (): void => {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sys-spacing-small);
-  min-height: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
+  min-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   padding: var(--sys-spacing-small) 0;
 }
 

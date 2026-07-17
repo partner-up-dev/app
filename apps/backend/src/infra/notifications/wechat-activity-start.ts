@@ -26,8 +26,7 @@ import {
   sendWeChatSubscriptionNotification,
 } from "./channels";
 
-const WECHAT_ACTIVITY_START_REMINDER_JOB_TYPE =
-  "wechat.notification.activity-start-reminder";
+const WECHAT_ACTIVITY_START_REMINDER_JOB_TYPE = "wechat.notification.activity-start-reminder";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -38,8 +37,7 @@ async function handleActivityStartReminderJob(
   payloadRaw: Record<string, unknown>,
   context: JobHandlerContext,
 ): Promise<void> {
-  const parseResult =
-    activityStartReminderNotificationJobPayloadSchema.safeParse(payloadRaw);
+  const parseResult = activityStartReminderNotificationJobPayloadSchema.safeParse(payloadRaw);
   if (!parseResult.success) {
     throw new Error("Invalid activity start reminder job payload");
   }
@@ -66,8 +64,7 @@ async function handleActivityStartReminderJob(
       payload,
       result: "FAILED",
       errorCode: "ACTIVITY_START_REMINDER_CHANNEL_NOT_CONFIGURED",
-      errorMessage:
-        "Activity start reminder subscription message channel is not configured",
+      errorMessage: "Activity start reminder subscription message channel is not configured",
     });
     return;
   }
@@ -127,9 +124,7 @@ export async function scheduleWeChatActivityStartReminderJobForParticipant(
   request: PartnerRequest,
   userId: UserId,
 ): Promise<void> {
-  if (
-    !(await shouldScheduleActivityStartReminderNotification({ request, userId }))
-  ) {
+  if (!(await shouldScheduleActivityStartReminderNotification({ request, userId }))) {
     return;
   }
 
@@ -186,9 +181,7 @@ export async function cancelWeChatActivityStartReminderJobsForUser(
   });
 }
 
-export async function rebuildWeChatActivityStartReminderJobsForUser(
-  userId: UserId,
-): Promise<void> {
+export async function rebuildWeChatActivityStartReminderJobsForUser(userId: UserId): Promise<void> {
   await cancelWeChatActivityStartReminderJobsForUser(userId);
 
   const slots = await partnerRepo.findActiveByUserId(userId);

@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="admin-navigation-panel"
-    :class="{ 'is-collapsed': isPanelCollapsed }"
-  >
+  <section class="admin-navigation-panel" :class="{ 'is-collapsed': isPanelCollapsed }">
     <div class="admin-navigation-panel__header">
       <div class="admin-navigation-panel__heading">
         <h1 class="admin-navigation-panel__title">
@@ -50,10 +47,7 @@
           @click="toggleGroup(group.id)"
         >
           <span>{{ t(group.labelKey) }}</span>
-          <span
-            class="admin-navigation-panel__chevron"
-            aria-hidden="true"
-          ></span>
+          <span class="admin-navigation-panel__chevron" aria-hidden="true"></span>
         </button>
 
         <div
@@ -83,9 +77,9 @@
       v-if="showLogout"
       v-show="!isPanelCollapsed"
       shape="pill"
-      tone="neutral" variant="outline"
+      tone="neutral"
+      variant="outline"
       size="sm"
-
       @click="$emit('logout')"
     >
       {{ t("adminCommon.logoutAction") }}
@@ -120,11 +114,8 @@ const adminSessionStore = useAdminSessionStore();
 const { roles } = storeToRefs(adminSessionStore);
 const expandedGroupIds = ref<Set<string>>(new Set());
 const isPanelCollapsed = ref(false);
-const hasRequiredRole = (
-  requiredRoles: readonly AdminSessionRole[] | undefined,
-): boolean =>
-  !requiredRoles?.length ||
-  roles.value.some((role) => requiredRoles.includes(role));
+const hasRequiredRole = (requiredRoles: readonly AdminSessionRole[] | undefined): boolean =>
+  !requiredRoles?.length || roles.value.some((role) => requiredRoles.includes(role));
 
 const visibleNavigationGroups = computed(() =>
   adminNavigationGroups
@@ -179,8 +170,7 @@ const buildItemTarget = (item: AdminNavigationItem): RouteLocationRaw => ({
   hash: item.hash,
 });
 
-const isGroupExpanded = (groupId: string): boolean =>
-  expandedGroupIds.value.has(groupId);
+const isGroupExpanded = (groupId: string): boolean => expandedGroupIds.value.has(groupId);
 
 const panelToggleLabel = computed(() =>
   isPanelCollapsed.value
@@ -193,9 +183,7 @@ const togglePanel = (): void => {
 };
 
 const toggleGroup = (groupId: string): void => {
-  expandedGroupIds.value = expandedGroupIds.value.has(groupId)
-    ? new Set()
-    : new Set([groupId]);
+  expandedGroupIds.value = expandedGroupIds.value.has(groupId) ? new Set() : new Set([groupId]);
 };
 
 const isItemActive = (item: AdminNavigationItem): boolean => {
@@ -203,8 +191,7 @@ const isItemActive = (item: AdminNavigationItem): boolean => {
   if (!item.hash) return route.hash.length === 0;
   return (
     route.hash === item.hash ||
-    (route.hash.length === 0 &&
-      defaultSectionByRouteName.value.get(item.routeName) === item.hash)
+    (route.hash.length === 0 && defaultSectionByRouteName.value.get(item.routeName) === item.hash)
   );
 };
 
@@ -332,8 +319,7 @@ watch(
   display: block;
 }
 
-.admin-navigation-panel__group.is-active
-  .admin-navigation-panel__group-trigger {
+.admin-navigation-panel__group.is-active .admin-navigation-panel__group-trigger {
   color: var(--sys-color-primary);
 }
 

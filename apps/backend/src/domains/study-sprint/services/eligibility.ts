@@ -40,10 +40,7 @@ export const requireStudySprintActiveParticipant = async (input: {
     });
   }
 
-  const partner = await partnerRepo.findActiveByPrIdAndUserId(
-    input.prId,
-    input.userId,
-  );
+  const partner = await partnerRepo.findActiveByPrIdAndUserId(input.prId, input.userId);
   if (!partner) {
     return throwHttpProblem({
       status: 403,

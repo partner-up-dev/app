@@ -4,10 +4,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string; detail?: string };
   return payload.error || payload.detail || fallback;
 };
@@ -39,9 +36,7 @@ export type AdminRideHailingProviderInstanceInput = {
   };
 };
 
-export const useAdminRideHailingProviderWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminRideHailingProviderWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminRideHailingProviderWorkspaceResponse>({
     queryKey: queryKeys.admin.rideHailingProviderInstances(),
     queryFn: async () => {
@@ -55,9 +50,7 @@ export const useAdminRideHailingProviderWorkspace = (
     enabled: computed(() => unref(enabled)),
   });
 
-export const useAdminRideHailingOrderWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminRideHailingOrderWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminRideHailingOrderWorkspaceResponse>({
     queryKey: queryKeys.admin.rideHailingOrdersWorkspace(),
     queryFn: async () => {
@@ -75,10 +68,9 @@ export const useCreateAdminRideHailingProviderInstance = () => {
 
   return useMutation({
     mutationFn: async (input: AdminRideHailingProviderInstanceInput) => {
-      const res =
-        await adminClient.api.admin["ride-hailing"]["provider-instances"].$post({
-          json: input,
-        });
+      const res = await adminClient.api.admin["ride-hailing"]["provider-instances"].$post({
+        json: input,
+      });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "创建网约车服务商失败"));
       }
@@ -124,13 +116,12 @@ export const useUpdateAdminRideHailingProviderInstance = () => {
       providerInstanceId: string;
       input: AdminRideHailingProviderInstanceInput;
     }) => {
-      const res =
-        await adminClient.api.admin["ride-hailing"]["provider-instances"][
-          ":providerInstanceId"
-        ].$patch({
-          param: { providerInstanceId },
-          json: input,
-        });
+      const res = await adminClient.api.admin["ride-hailing"]["provider-instances"][
+        ":providerInstanceId"
+      ].$patch({
+        param: { providerInstanceId },
+        json: input,
+      });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新网约车服务商失败"));
       }

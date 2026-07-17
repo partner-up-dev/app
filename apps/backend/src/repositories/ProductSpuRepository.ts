@@ -12,32 +12,20 @@ export class ProductSpuRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewProductSpu): Promise<ProductSpu> {
-    const result = await this.executor
-      .insert(productSpus)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(productSpus).values(data).returning();
     return result[0]!;
   }
 
   async findById(id: ProductSpuId): Promise<ProductSpu | null> {
-    const result = await this.executor
-      .select()
-      .from(productSpus)
-      .where(eq(productSpus.id, id));
+    const result = await this.executor.select().from(productSpus).where(eq(productSpus.id, id));
     return result[0] ?? null;
   }
 
   async listAll(): Promise<ProductSpu[]> {
-    return this.executor
-      .select()
-      .from(productSpus)
-      .orderBy(desc(productSpus.createdAt));
+    return this.executor.select().from(productSpus).orderBy(desc(productSpus.createdAt));
   }
 
-  async updateById(
-    id: ProductSpuId,
-    data: Partial<NewProductSpu>,
-  ): Promise<ProductSpu | null> {
+  async updateById(id: ProductSpuId, data: Partial<NewProductSpu>): Promise<ProductSpu | null> {
     const result = await this.executor
       .update(productSpus)
       .set({

@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { beforeEach, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  findConfig: vi.fn(),
-  findTags: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
+  findConfig: vi.fn<() => unknown>(),
+  findTags: vi.fn<() => unknown>(),
+  create: vi.fn<(input: { type: string; label: string }) => Promise<unknown>>(),
+  update: vi.fn<() => unknown>(),
 }));
 
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({
@@ -21,9 +21,8 @@ vi.mock("../../repositories/PRTypePreferenceTagRepository", () => ({
   },
 }));
 
-const { normalizePRAuthoringPreferenceLabels, submitPRAuthoringPreferenceTags } = await import(
-  "./use-cases/submit-preference-tags"
-);
+const { normalizePRAuthoringPreferenceLabels, submitPRAuthoringPreferenceTags } =
+  await import("./use-cases/submit-preference-tags");
 
 const config = { type: "study" };
 const rejected = {

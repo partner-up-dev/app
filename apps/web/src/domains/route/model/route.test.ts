@@ -130,15 +130,10 @@ describe("route helpers", () => {
 
   test("route validation reports first blocking route issue", () => {
     expect(getRouteValidationIssue(null)).toBe("min-points");
-    expect(getRouteValidationIssue(createEmptyRouteDraft())).toBe(
-      "name-required",
+    expect(getRouteValidationIssue(createEmptyRouteDraft())).toBe("name-required");
+    expect(getRouteValidationIssue([{ ...route[0], gcj02: null }, route[1]])).toBe(
+      "coordinate-required",
     );
-    expect(
-      getRouteValidationIssue([
-        { ...route[0], gcj02: null },
-        route[1],
-      ]),
-    ).toBe("coordinate-required");
     expect(getRouteValidationIssue(route)).toBeNull();
   });
 });

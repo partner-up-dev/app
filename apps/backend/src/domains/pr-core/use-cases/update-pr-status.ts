@@ -25,11 +25,7 @@ export async function updatePRStatus(
   const refreshedRequest = await refreshTemporalStatus(request);
 
   const currentStatus = refreshedRequest.status as string;
-  if (
-    status === "READY" &&
-    actorUserId !== null &&
-    refreshedRequest.createdBy !== actorUserId
-  ) {
+  if (status === "READY" && actorUserId !== null && refreshedRequest.createdBy !== actorUserId) {
     return throwHttpProblem({
       status: 403,
       detail: "Only the creator can mark this partner request ready",

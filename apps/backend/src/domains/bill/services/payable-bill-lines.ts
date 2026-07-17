@@ -44,10 +44,7 @@ export const isBillLinePayable = (
   if (candidate.order && candidate.order.status !== "OPEN") {
     return false;
   }
-  if (
-    candidate.order &&
-    !isOrderUnpaidWindowOpen(candidate.order.timeout.unpaidExpiresAt, now)
-  ) {
+  if (candidate.order && !isOrderUnpaidWindowOpen(candidate.order.timeout.unpaidExpiresAt, now)) {
     return false;
   }
 

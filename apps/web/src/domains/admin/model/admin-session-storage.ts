@@ -45,9 +45,7 @@ const isAdminSessionRole = (value: string | null): value is AdminSessionRole =>
 const normalizeAdminSessionRoles = (
   roles: readonly string[] | null | undefined,
 ): AdminSessionRole[] => {
-  const normalized = [...new Set(roles ?? [])].filter((role) =>
-    isAdminSessionRole(role),
-  );
+  const normalized = [...new Set(roles ?? [])].filter((role) => isAdminSessionRole(role));
 
   if (normalized.includes("service") || normalized.includes("analytics")) {
     return normalized.filter((role) => role !== "anonymous");
@@ -70,9 +68,7 @@ const readStoredAdminSessionRoles = (): AdminSessionRole[] => {
     try {
       const parsed = JSON.parse(rawRoles) as unknown;
       if (Array.isArray(parsed)) {
-        return normalizeAdminSessionRoles(
-          parsed.filter((role) => typeof role === "string"),
-        );
+        return normalizeAdminSessionRoles(parsed.filter((role) => typeof role === "string"));
       }
     } catch {
       return ["anonymous"];
@@ -129,9 +125,7 @@ export const getStoredAdminSessionRoles = (): AdminSessionRole[] => {
   return readStoredAdminSessionRoles();
 };
 
-export const setStoredAdminSessionRoles = (
-  roles: readonly AdminSessionRole[],
-): void => {
+export const setStoredAdminSessionRoles = (roles: readonly AdminSessionRole[]): void => {
   const nextRoles = normalizeAdminSessionRoles(roles);
   const primaryRole = resolvePrimaryAdminSessionRole(nextRoles);
 
@@ -153,12 +147,9 @@ export const clearStoredAdminSession = (): void => {
   writeStorage(STORAGE_ADMIN_SESSION_ROLES_KEY, null);
 };
 
-export const getStoredAdminHasAnyRole = (
-  requiredRoles: readonly AdminSessionRole[],
-): boolean =>
+export const getStoredAdminHasAnyRole = (requiredRoles: readonly AdminSessionRole[]): boolean =>
   Boolean(getStoredAdminUserId()) &&
   Boolean(getStoredAdminAccessToken()) &&
   getStoredAdminSessionRoles().some((role) => requiredRoles.includes(role));
 
-export const getStoredAdminHasAccess = (): boolean =>
-  getStoredAdminHasAnyRole(["service"]);
+export const getStoredAdminHasAccess = (): boolean => getStoredAdminHasAnyRole(["service"]);

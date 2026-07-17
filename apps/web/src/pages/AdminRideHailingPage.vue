@@ -10,7 +10,6 @@
           <PuButton
             shape="pill"
             size="sm"
-
             data-testid="admin-ride-hailing.create"
             @click="startCreate"
           >
@@ -18,9 +17,7 @@
           </PuButton>
         </div>
 
-        <div v-if="providerInstances.length === 0" class="hint">
-          暂无 Provider Instance
-        </div>
+        <div v-if="providerInstances.length === 0" class="hint">暂无 Provider Instance</div>
         <div v-else class="provider-rail-list">
           <PuCard
             v-for="record in providerInstances"
@@ -49,11 +46,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -228,17 +223,15 @@
               <div>
                 <dt>Updated At</dt>
                 <dd>
-                  {{
-                    selectedProvider
-                      ? formatTimestamp(selectedProvider.updatedAt)
-                      : "-"
-                  }}
+                  {{ selectedProvider ? formatTimestamp(selectedProvider.updatedAt) : "-" }}
                 </dd>
               </div>
             </dl>
           </BentoItem>
 
-          <PuInlineNotice tone="error" dismissible
+          <PuInlineNotice
+            tone="error"
+            dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"

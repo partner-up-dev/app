@@ -22,9 +22,8 @@ const route: PRRoute = [
 ];
 
 test("resolveActivityStartReminderLocation uses route summary before fallback text", async () => {
-  const { resolveActivityStartReminderLocation } = await import(
-    "./activity-start-reminder-dispatch.service"
-  );
+  const { resolveActivityStartReminderLocation } =
+    await import("./activity-start-reminder-dispatch.service");
 
   assert.equal(
     resolveActivityStartReminderLocation({
@@ -36,9 +35,8 @@ test("resolveActivityStartReminderLocation uses route summary before fallback te
 });
 
 test("resolveActivityStartReminderLocation keeps location-mode copy", async () => {
-  const { resolveActivityStartReminderLocation } = await import(
-    "./activity-start-reminder-dispatch.service"
-  );
+  const { resolveActivityStartReminderLocation } =
+    await import("./activity-start-reminder-dispatch.service");
 
   assert.equal(
     resolveActivityStartReminderLocation({
@@ -50,9 +48,8 @@ test("resolveActivityStartReminderLocation keeps location-mode copy", async () =
 });
 
 test("resolveActivityStartReminderLocation falls back when no place is present", async () => {
-  const { resolveActivityStartReminderLocation } = await import(
-    "./activity-start-reminder-dispatch.service"
-  );
+  const { resolveActivityStartReminderLocation } =
+    await import("./activity-start-reminder-dispatch.service");
 
   assert.equal(
     resolveActivityStartReminderLocation({

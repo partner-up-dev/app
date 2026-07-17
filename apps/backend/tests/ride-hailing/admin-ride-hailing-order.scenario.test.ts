@@ -2,15 +2,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { scenario } from "../_infra/scenario/scenario";
-import {
-  expectJsonResponse,
-  requestJson,
-} from "../_infra/http/backend-app";
-import {
-  givenAdminUser,
-  givenUser,
-  type ScenarioUser,
-} from "../pr-core/_kit/builders/users";
+import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
+import { givenAdminUser, givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
 import { createOffer, createProductSpu } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,
@@ -304,8 +297,7 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
 
     const baseOrder = await tradeOrderRepo.findById(result.orderId);
     assert.ok(baseOrder);
-    const choiceSetItem =
-      baseOrder.items[0]?.kind === "CHOICE_SET" ? baseOrder.items[0] : null;
+    const choiceSetItem = baseOrder.items[0]?.kind === "CHOICE_SET" ? baseOrder.items[0] : null;
     assert.ok(choiceSetItem);
     const submittedCandidate = choiceSetItem.candidates[0];
     assert.ok(submittedCandidate);
@@ -334,18 +326,14 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
       executionPhase: "DISPATCHING",
     });
 
-    const workspaceResponse = await requestJson(
-      "/api/admin/ride-hailing/orders/workspace",
-      {
-        method: "GET",
-        token: admin.token,
-      },
+    const workspaceResponse = await requestJson("/api/admin/ride-hailing/orders/workspace", {
+      method: "GET",
+      token: admin.token,
+    });
+    const workspace = await expectJsonResponse<AdminRideHailingOrderWorkspaceResponse>(
+      workspaceResponse,
+      200,
     );
-    const workspace =
-      await expectJsonResponse<AdminRideHailingOrderWorkspaceResponse>(
-        workspaceResponse,
-        200,
-      );
     const record = workspace.orders.find((order) => order.order.id === baseOrder.id);
     assert.ok(record);
     assert.equal(record.order.status, "OPEN");
@@ -360,8 +348,7 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
         token: admin.token,
       },
     );
-    const cancelled =
-      await expectJsonResponse<RideHailingCancelResponse>(cancelResponse, 200);
+    const cancelled = await expectJsonResponse<RideHailingCancelResponse>(cancelResponse, 200);
 
     assert.equal(cancelled.orderId, baseOrder.id);
     assert.equal(cancelled.status, "CANCELLED");
@@ -387,11 +374,10 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
         token: admin.token,
       },
     );
-    const refreshedWorkspace =
-      await expectJsonResponse<AdminRideHailingOrderWorkspaceResponse>(
-        refreshedWorkspaceResponse,
-        200,
-      );
+    const refreshedWorkspace = await expectJsonResponse<AdminRideHailingOrderWorkspaceResponse>(
+      refreshedWorkspaceResponse,
+      200,
+    );
     const refreshedRecord = refreshedWorkspace.orders.find(
       (order) => order.order.id === baseOrder.id,
     );

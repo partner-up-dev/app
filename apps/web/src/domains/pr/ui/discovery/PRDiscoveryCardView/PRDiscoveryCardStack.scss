@@ -28,18 +28,14 @@
   --card-stage-page-width: min(100vw, var(--dcs-layout-page-max-width));
   --card-stage-card-width: calc(
     var(--card-stage-page-width) - (var(--sys-spacing-medium) * 2) -
-      (var(--card-mode-inline-breathing-room) * 2) - var(--pu-safe-left) - var(
-        --pu-safe-right
-      )
+      (var(--card-mode-inline-breathing-room) * 2) - var(--pu-safe-left) - var(--pu-safe-right)
   );
   isolation: isolate;
   padding-inline-start: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-left) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-left) + var(--card-mode-inline-breathing-room)
   );
   padding-inline-end: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-right) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-right) + var(--card-mode-inline-breathing-room)
   );
 }
 
@@ -192,71 +188,39 @@
 }
 
 .card-stage__projection-side--skip .card-stage__projection-source {
-  background: radial-gradient(
-    ellipse at 14% 50%,
-    var(--sys-color-error) 0%,
-    transparent 72%
-  );
+  background: radial-gradient(ellipse at 14% 50%, var(--sys-color-error) 0%, transparent 72%);
 }
 
 .card-stage__projection-side--skip .card-stage__projection-bloom {
-  background: radial-gradient(
-    ellipse at 10% 50%,
-    var(--sys-color-error) 0%,
-    transparent 84%
-  );
+  background: radial-gradient(ellipse at 10% 50%, var(--sys-color-error) 0%, transparent 84%);
 }
 
 .card-stage__projection-side--skip .card-stage__projection-rim {
   inset-inline-start: 4%;
-  background: linear-gradient(
-    90deg,
-    var(--sys-color-error) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, var(--sys-color-error) 0%, transparent 100%);
 }
 
 .card-stage__projection-side--skip .card-stage__projection-spill {
   inset-inline-start: -40%;
-  background: linear-gradient(
-    90deg,
-    var(--sys-color-error) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, var(--sys-color-error) 0%, transparent 100%);
 }
 
 .card-stage__projection-side--detail .card-stage__projection-source {
-  background: radial-gradient(
-    ellipse at 86% 50%,
-    var(--sys-color-primary) 0%,
-    transparent 72%
-  );
+  background: radial-gradient(ellipse at 86% 50%, var(--sys-color-primary) 0%, transparent 72%);
 }
 
 .card-stage__projection-side--detail .card-stage__projection-bloom {
-  background: radial-gradient(
-    ellipse at 90% 50%,
-    var(--sys-color-primary) 0%,
-    transparent 84%
-  );
+  background: radial-gradient(ellipse at 90% 50%, var(--sys-color-primary) 0%, transparent 84%);
 }
 
 .card-stage__projection-side--detail .card-stage__projection-rim {
   inset-inline-end: 4%;
-  background: linear-gradient(
-    270deg,
-    var(--sys-color-primary) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(270deg, var(--sys-color-primary) 0%, transparent 100%);
 }
 
 .card-stage__projection-side--detail .card-stage__projection-spill {
   inset-inline-end: -40%;
-  background: linear-gradient(
-    270deg,
-    var(--sys-color-primary) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(270deg, var(--sys-color-primary) 0%, transparent 100%);
 }
 
 @keyframes card-front-promote {
@@ -282,12 +246,10 @@
   margin: 0;
   color: var(--sys-color-error);
   padding-inline-start: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-left) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-left) + var(--card-mode-inline-breathing-room)
   );
   padding-inline-end: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-right) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-right) + var(--card-mode-inline-breathing-room)
   );
 }
 
@@ -296,12 +258,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sys-spacing-small);
   padding-inline-start: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-left) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-left) + var(--card-mode-inline-breathing-room)
   );
   padding-inline-end: calc(
-    var(--sys-spacing-medium) + var(--pu-safe-right) +
-      var(--card-mode-inline-breathing-room)
+    var(--sys-spacing-medium) + var(--pu-safe-right) + var(--card-mode-inline-breathing-room)
   );
   padding-bottom: var(--sys-spacing-small);
 }

@@ -28,10 +28,7 @@ export type AdminWeChatPayProviderInstanceConfigView = Omit<
   };
 };
 
-export type AdminPaymentProviderInstanceView = Omit<
-  PaymentProviderInstance,
-  "config"
-> & {
+export type AdminPaymentProviderInstanceView = Omit<PaymentProviderInstance, "config"> & {
   chargeNotifyUrl: string | null;
   refundNotifyUrl: string | null;
   config: AdminWeChatPayProviderInstanceConfigView;
@@ -73,9 +70,7 @@ export function toAdminPaymentProviderInstanceView(
     ...publicConfig
   } = config;
 
-  const platformCertificateItems = (platformCertificates ?? []).map(
-    toPlatformCertificateView,
-  );
+  const platformCertificateItems = (platformCertificates ?? []).map(toPlatformCertificateView);
 
   return {
     ...providerInstance,
@@ -86,10 +81,8 @@ export function toAdminPaymentProviderInstanceView(
       apiV3KeyConfigured: config.apiV3Key.length > 0,
       merchantCertificate: {
         serialNo: merchantCertificate.serialNo,
-        privateKeyPemConfigured:
-          merchantCertificate.privateKeyPem.length > 0,
-        certificatePemConfigured:
-          (merchantCertificate.certificatePem ?? "").length > 0,
+        privateKeyPemConfigured: merchantCertificate.privateKeyPem.length > 0,
+        certificatePemConfigured: (merchantCertificate.certificatePem ?? "").length > 0,
       },
       platformCertificates: {
         count: platformCertificateItems.length,

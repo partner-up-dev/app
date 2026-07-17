@@ -44,10 +44,7 @@ export const usePRMessages = (id: Ref<PRId | null>) => {
       if (!res.ok) {
         const payload = await readApiErrorPayload(res);
         throw new Error(
-          resolveApiErrorMessage(
-            payload,
-            i18n.global.t("errors.fetchRequestFailed"),
-          ),
+          resolveApiErrorMessage(payload, i18n.global.t("errors.fetchRequestFailed")),
         );
       }
 
@@ -76,30 +73,25 @@ export const useCreatePRMessage = () => {
 
       if (!res.ok) {
         const payload = await readApiErrorPayload(res);
-        throw new Error(
-          resolveApiErrorMessage(payload, i18n.global.t("common.operationFailed")),
-        );
+        throw new Error(resolveApiErrorMessage(payload, i18n.global.t("common.operationFailed")));
       }
 
       return await res.json();
     },
     onSuccess: (data, variables) => {
-      queryClient.setQueryData<PRMessagesResponse>(
-        queryKeys.pr.messages(variables.id),
-        (prev) => {
-          if (!prev) {
-            return {
-              items: [data.message],
-              thread: data.thread,
-            };
-          }
-
+      queryClient.setQueryData<PRMessagesResponse>(queryKeys.pr.messages(variables.id), (prev) => {
+        if (!prev) {
           return {
-            items: [...prev.items, data.message],
+            items: [data.message],
             thread: data.thread,
           };
-        },
-      );
+        }
+
+        return {
+          items: [...prev.items, data.message],
+          thread: data.thread,
+        };
+      });
     },
   });
 };
@@ -123,27 +115,22 @@ export const useAdvancePRMessageReadMarker = () => {
 
       if (!res.ok) {
         const payload = await readApiErrorPayload(res);
-        throw new Error(
-          resolveApiErrorMessage(payload, i18n.global.t("common.operationFailed")),
-        );
+        throw new Error(resolveApiErrorMessage(payload, i18n.global.t("common.operationFailed")));
       }
 
       return await res.json();
     },
     onSuccess: (data, variables) => {
-      queryClient.setQueryData<PRMessagesResponse>(
-        queryKeys.pr.messages(variables.id),
-        (prev) => {
-          if (!prev) {
-            return prev;
-          }
+      queryClient.setQueryData<PRMessagesResponse>(queryKeys.pr.messages(variables.id), (prev) => {
+        if (!prev) {
+          return prev;
+        }
 
-          return {
-            ...prev,
-            thread: data.thread,
-          };
-        },
-      );
+        return {
+          ...prev,
+          thread: data.thread,
+        };
+      });
     },
   });
 };

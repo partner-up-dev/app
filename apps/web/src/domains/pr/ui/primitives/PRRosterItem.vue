@@ -3,10 +3,7 @@
     :is="rootComponent"
     v-bind="rootProps"
     class="pr-roster-item"
-    :class="[
-      `pr-roster-item--${props.variant}`,
-      { 'pr-roster-item--link': hasLink },
-    ]"
+    :class="[`pr-roster-item--${props.variant}`, { 'pr-roster-item--link': hasLink }]"
   >
     <div class="pr-roster-item__body">
       <div class="pr-roster-item__identity">
@@ -57,9 +54,7 @@
       shape="pill"
       size="xs"
     />
-    <span v-else class="pr-roster-item__state-text">{{
-      props.stateLabel
-    }}</span>
+    <span v-else class="pr-roster-item__state-text">{{ props.stateLabel }}</span>
   </component>
 </template>
 

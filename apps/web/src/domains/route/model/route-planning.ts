@@ -2,8 +2,7 @@ import type { MapCoordinate } from "@/shared/map/types";
 import type { Route } from "@/domains/route/model/route";
 import { pickRoutePointCoordinate } from "@/domains/route/model/route";
 
-const TENCENT_DRIVING_DIRECTION_ENDPOINT =
-  "https://apis.map.qq.com/ws/direction/v1/driving/";
+const TENCENT_DRIVING_DIRECTION_ENDPOINT = "https://apis.map.qq.com/ws/direction/v1/driving/";
 
 export type TencentDrivingRoutePlan = {
   id: string;
@@ -24,10 +23,7 @@ export class TencentDirectionPlanningError extends Error {
   }
 }
 
-type Fetcher = (
-  input: RequestInfo | URL,
-  init?: RequestInit,
-) => Promise<Response>;
+type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 let jsonpRequestCounter = 0;
 
@@ -41,9 +37,7 @@ const asFiniteNumber = (value: unknown): number | null => {
 const formatCoordinate = (coordinate: MapCoordinate): string =>
   `${coordinate.lat},${coordinate.lng}`;
 
-export const decompressTencentDirectionPolyline = (
-  raw: readonly number[],
-): MapCoordinate[] => {
+export const decompressTencentDirectionPolyline = (raw: readonly number[]): MapCoordinate[] => {
   const points = raw.map((value) => Number(value));
   if (points.length < 2 || points.some((value) => !Number.isFinite(value))) {
     return [];
@@ -107,9 +101,7 @@ export const buildTencentDrivingDirectionUrl = ({
   return url.toString();
 };
 
-const parseWaypoint = (
-  value: unknown,
-): TencentDrivingRoutePlan["waypoints"][number] | null => {
+const parseWaypoint = (value: unknown): TencentDrivingRoutePlan["waypoints"][number] | null => {
   if (!isRecord(value) || !isRecord(value.location)) {
     return null;
   }
@@ -127,17 +119,12 @@ const parseWaypoint = (
   };
 };
 
-const parseRoute = (
-  value: unknown,
-  index: number,
-): TencentDrivingRoutePlan | null => {
+const parseRoute = (value: unknown, index: number): TencentDrivingRoutePlan | null => {
   if (!isRecord(value) || !Array.isArray(value.polyline)) {
     return null;
   }
 
-  const rawPolyline = value.polyline.filter(
-    (point): point is number => typeof point === "number",
-  );
+  const rawPolyline = value.polyline.filter((point): point is number => typeof point === "number");
   const polyline = decompressTencentDirectionPolyline(rawPolyline);
   if (polyline.length < 2) {
     return null;
@@ -147,10 +134,7 @@ const parseRoute = (
     ? value.waypoints
         .map(parseWaypoint)
         .filter(
-          (
-            waypoint,
-          ): waypoint is TencentDrivingRoutePlan["waypoints"][number] =>
-            waypoint !== null,
+          (waypoint): waypoint is TencentDrivingRoutePlan["waypoints"][number] => waypoint !== null,
         )
     : [];
 
@@ -173,9 +157,7 @@ export const parseTencentDrivingDirectionResponse = (
   const status = asFiniteNumber(payload.status);
   if (status !== 0) {
     const message =
-      typeof payload.message === "string"
-        ? payload.message
-        : "Tencent route planning failed.";
+      typeof payload.message === "string" ? payload.message : "Tencent route planning failed.";
     throw new TencentDirectionPlanningError(message);
   }
 
@@ -184,9 +166,7 @@ export const parseTencentDrivingDirectionResponse = (
     return [];
   }
 
-  return routes
-    .map(parseRoute)
-    .filter((route): route is TencentDrivingRoutePlan => route !== null);
+  return routes.map(parseRoute).filter((route): route is TencentDrivingRoutePlan => route !== null);
 };
 
 export const fetchTencentDrivingRoutePlans = async ({

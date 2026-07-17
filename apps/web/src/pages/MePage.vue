@@ -1,11 +1,7 @@
 <template>
   <PuPageScaffold class="me-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('mePage.title')"
-        :subtitle="t('mePage.description')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('mePage.title')" :subtitle="t('mePage.description')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -32,9 +28,7 @@
       <PuInlineNotice tone="error" v-if="errorMessage" :message="errorMessage" />
 
       <PuLoadingState
-        v-if="
-          userSessionStore.isAuthenticated && currentUserQuery.isLoading.value
-        "
+        v-if="userSessionStore.isAuthenticated && currentUserQuery.isLoading.value"
         :message="t('mePage.loading')"
       />
 
@@ -48,9 +42,9 @@
             v-if="userSessionStore.isAuthenticated"
             class="profile-session-action"
             shape="pill"
-            tone="danger" variant="outline"
+            tone="danger"
+            variant="outline"
             size="sm"
-
             data-testid="me.session.logout"
             :loading="logoutPending"
             @click="handleLogout"
@@ -58,11 +52,7 @@
             <template #leading>
               <span class="i-mdi:logout" aria-hidden="true"></span>
             </template>
-            {{
-              logoutPending
-                ? t("mePage.logout.pending")
-                : t("mePage.logout.action")
-            }}
+            {{ logoutPending ? t("mePage.logout.pending") : t("mePage.logout.action") }}
           </PuButton>
         </div>
 
@@ -78,10 +68,7 @@
           />
 
           <div class="profile-form">
-            <PuFormItem
-              :label="t('mePage.profile.nicknameLabel')"
-              for-id="me-profile-nickname"
-            >
+            <PuFormItem :label="t('mePage.profile.nicknameLabel')" for-id="me-profile-nickname">
               <input
                 id="me-profile-nickname"
                 v-model="nicknameDraft"
@@ -106,14 +93,12 @@
               <PuButton
                 shape="pill"
                 size="sm"
-
                 :disabled="!canSaveNickname"
                 :loading="updateProfileMutation.isPending.value"
                 @click="handleSaveNickname"
               >
                 {{ t("mePage.profile.saveNickname") }}
               </PuButton>
-
             </div>
 
             <PuFileUpload
@@ -131,11 +116,7 @@
               @reject="handleAvatarUploadReject"
               @update:model-value="handleAvatarUploadUpdate"
             />
-            <PuInlineNotice
-              v-if="avatarUploadError"
-              tone="error"
-              :message="avatarUploadError"
-            />
+            <PuInlineNotice v-if="avatarUploadError" tone="error" :message="avatarUploadError" />
           </div>
         </div>
 
@@ -161,7 +142,6 @@
                 class="wechat-identity-action"
                 shape="pill"
                 size="sm"
-
                 :disabled="wechatIdentityActionDisabled"
                 :loading="wechatIdentityActionPending"
                 @click="handleStartWeChatIdentity"
@@ -173,33 +153,23 @@
 
           <div class="profile-meta-row profile-meta-row--compact">
             <div class="profile-meta-body">
-              <span class="profile-meta-label">{{
-                t("mePage.credentials.userIdLabel")
-              }}</span>
+              <span class="profile-meta-label">{{ t("mePage.credentials.userIdLabel") }}</span>
               <code class="credential-value">{{ storedUserIdLabel }}</code>
             </div>
             <PuButton
               class="credential-clipboard-action"
               shape="pill"
-              tone="neutral" variant="ghost"
+              tone="neutral"
+              variant="ghost"
               size="sm"
-
               :disabled="!storedUserId"
               @click="handleCopyCredential(storedUserId)"
             >
               <span class="sr-only">
-                {{
-                  copiedField === "userId"
-                    ? t("common.copied")
-                    : t("common.copy")
-                }}
+                {{ copiedField === "userId" ? t("common.copied") : t("common.copy") }}
               </span>
               <span
-                :class="
-                  copiedField === 'userId'
-                    ? 'i-mdi:check'
-                    : 'i-mdi:content-copy'
-                "
+                :class="copiedField === 'userId' ? 'i-mdi:check' : 'i-mdi:content-copy'"
                 aria-hidden="true"
               ></span>
             </PuButton>
@@ -213,10 +183,7 @@
             <h2>{{ t("mePage.history.title") }}</h2>
             <p>{{ t("mePage.history.description") }}</p>
           </div>
-          <span
-            class="shortcut-card__icon i-mdi:arrow-right"
-            aria-hidden="true"
-          ></span>
+          <span class="shortcut-card__icon i-mdi:arrow-right" aria-hidden="true"></span>
         </RouterLink>
 
         <RouterLink
@@ -227,23 +194,17 @@
             <h2>{{ t("mePage.locationApplications.title") }}</h2>
             <p>{{ t("mePage.locationApplications.description") }}</p>
           </div>
-          <span
-            class="shortcut-card__icon i-mdi:arrow-right"
-            aria-hidden="true"
-          ></span>
+          <span class="shortcut-card__icon i-mdi:arrow-right" aria-hidden="true"></span>
         </RouterLink>
       </div>
 
       <template v-if="userSessionStore.isAuthenticated">
-        <WeChatNotificationSubscriptionsCard
-          :title="t('mePage.reminder.title')"
-        >
+        <WeChatNotificationSubscriptionsCard :title="t('mePage.reminder.title')">
           <PRNotificationSubscriptions
             :updating-label="t('prPage.wechatReminder.updating')"
             @error-change="handleNotificationSubscriptionErrorChange"
           />
         </WeChatNotificationSubscriptionsCard>
-
       </template>
     </div>
 

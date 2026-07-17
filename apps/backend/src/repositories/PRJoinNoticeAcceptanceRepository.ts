@@ -59,10 +59,7 @@ export class PRJoinNoticeAcceptanceRepository {
     return result[0] ?? null;
   }
 
-  async deleteByPrIdAndUserId(input: {
-    prId: PRId;
-    userId: UserId;
-  }): Promise<void> {
+  async deleteByPrIdAndUserId(input: { prId: PRId; userId: UserId }): Promise<void> {
     await db
       .delete(prJoinNoticeAcceptances)
       .where(

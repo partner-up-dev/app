@@ -2,7 +2,7 @@
   // Application
   "app": {
     "name": "搭一把",
-    "siteName": "搭一把 - PartnerUp"
+    "siteName": "搭一把 - PartnerUp",
   },
   "common": {
     "loading": "加载中...",
@@ -18,7 +18,7 @@
     "copy": "复制",
     "copied": "已复制!",
     "copyFailed": "复制失败",
-    "operationFailed": "操作失败"
+    "operationFailed": "操作失败",
   },
   "wechatMiniProgramWebView": {
     "title": "请用微信扫一扫打开网页",
@@ -30,8 +30,8 @@
     "copyLinkAction": "复制当前链接",
     "operations": {
       "wechatShare": "进行微信群聊/朋友圈分享",
-      "openSubscribe": "订阅通知"
-    }
+      "openSubscribe": "订阅通知",
+    },
   },
   "status": {
     "draft": "草稿",
@@ -40,7 +40,7 @@
     "full": "已满人",
     "active": "进行中",
     "closed": "已结束",
-    "expired": "已过期"
+    "expired": "已过期",
   },
   "home": {
     "title": "搭一把",
@@ -60,7 +60,7 @@
       "valueProps": {
         "item1": "从一句话开始",
         "item2": "一键分享微信、小红书",
-        "item3": "无需登录即可加入"
+        "item3": "无需登录即可加入",
       },
       "discoveryHighlights": {
         "title": "大家都在找什么搭子",
@@ -68,16 +68,16 @@
         "tags": {
           "time": "时间匹配",
           "place": "地点匹配",
-          "support": "同类社群"
+          "support": "同类社群",
         },
         "loading": "正在加载搭子类型...",
         "loadFailed": "搭子类型暂时加载失败，但你仍可浏览发现目录。",
         "empty": "当前还没有可发现的搭子类型。",
-        "browseAction": "浏览发现目录"
+        "browseAction": "浏览发现目录",
       },
       "discoveryCatalogEntry": {
         "description": "浏览全部搭子类型，选择适合你的需求开始寻找。",
-        "action": "浏览搭子目录"
+        "action": "浏览搭子目录",
       },
       "secondaryActionsTitle": "都不合适？",
       "secondaryActionsHint": "用自然语言告诉我们你想找什么搭子并一键生成海报，不需要注册",
@@ -89,43 +89,43 @@
       "webPageQrAction": "保存网页二维码",
       "footerIntroBody": "安全、快速地找对搭子",
       "footerNavTitle": "底部导航",
-      "footerNavMine": "我的"
+      "footerNavMine": "我的",
     },
     "bookmarkNudge": {
       "webQrModalTitle": "保存本页二维码",
       "webQrModalDescription": "长按保存二维码，之后在微信扫一扫即可再次打开这个网页。",
       "webQrModalQrAlt": "本网页二维码",
-      "webQrModalQrMissing": "本网页二维码暂未配置，请稍后再试。"
+      "webQrModalQrMissing": "本网页二维码暂未配置，请稍后再试。",
     },
     "topics": {
       "movie": {
         "name": "看电影",
-        "example": "万胜围万达影院，周六都可，想看《流浪地球3》"
+        "example": "万胜围万达影院，周六都可，想看《流浪地球3》",
       },
       "sports": {
         "name": "打篮球",
-        "example": "周三晚八点，健身广场，三对三"
+        "example": "周三晚八点，健身广场，三对三",
       },
       "explore": {
         "name": "探店",
-        "example": "这周末有人一起去逛山姆吗？想吃牛肉卷了"
+        "example": "这周末有人一起去逛山姆吗？想吃牛肉卷了",
       },
       "hiking": {
         "name": "徒步",
-        "example": "想爬白云山看日出，这两周都可以"
+        "example": "想爬白云山看日出，这两周都可以",
       },
       "study": {
         "name": "学习",
-        "example": "找人一起学习备考"
-      }
-    }
+        "example": "找人一起学习备考",
+      },
+    },
   },
   "contactAuthorPage": {
     "title": "联系作者",
     "description": "扫码添加团队作者微信，欢迎反馈功能建议或缺陷问题。",
     "footerEntry": "需要帮助",
     "qrAlt": "作者微信二维码",
-    "qrMissing": "暂未配置作者微信二维码"
+    "qrMissing": "暂未配置作者微信二维码",
   },
   "contactSupportPage": {
     "title": "获取帮助",
@@ -144,12 +144,12 @@
       "badge": "类型社群",
       "title": "加入同类型搭子群",
       "description": "按搭子类型选择社群，获取同类支持并联系搭子。",
-      "action": "选择搭子社群"
+      "action": "选择搭子社群",
     },
     "authorEntry": "产品建议或 Bug 反馈？联系作者",
     "useCases": {
-      "support": "投诉 / 使用问题 / 功能建议 -> 联系企业微信客服"
-    }
+      "support": "投诉 / 使用问题 / 功能建议 -> 联系企业微信客服",
+    },
   },
   "officialAccountFollow": {
     "nudgeTitle": "现在还不想找搭子？",
@@ -160,7 +160,7 @@
     "modalDescription": "我们是“搭一把”，致力于为您带来安全、高效和舒适的搭子体验",
     "qrAlt": "搭一把公众号二维码",
     "qrMissing": "公众号二维码暂未配置，请稍后再试。",
-    "doneAction": "完成"
+    "doneAction": "完成",
   },
   "aboutPage": {
     "title": "关于",
@@ -180,10 +180,10 @@
       "loadFailed": "搭子类型社群加载失败，请稍后重试。",
       "empty": "当前没有可加入的搭子类型社群。",
       "action": "查看二维码",
-      "modalTitle": "加入{typeTitle}搭子群"
+      "modalTitle": "加入{typeTitle}搭子群",
     },
     "footerEntry": "关于",
-    "footerNavLabel": "页脚导航"
+    "footerNavLabel": "页脚导航",
   },
   "createPage": {
     "title": "创建搭子请求",
@@ -196,7 +196,7 @@
     "formModeDescription": "逐项填写活动信息，支持保存草稿后再发布。",
     "savePending": "保存中...",
     "createPending": "创建中...",
-    "createFailed": "创建失败"
+    "createFailed": "创建失败",
   },
   "prDiscovery": {
     "catalogTitle": "发现搭子",
@@ -246,18 +246,18 @@
       "placeApply": "申请新地点",
       "placeAriaLabel": "地点或路线选择",
       "placePlaceholder": "请选择地点或路线",
-      "placeTitle": "地点 / 路线"
+      "placeTitle": "地点 / 路线",
     },
     "directory": {
       "candidateListTitle": "候选搭子请求",
       "noCandidateTitle": "暂时没有符合条件的搭子请求",
-      "noCandidateBody": "可以调整条件继续查找，或创建新的搭子请求。"
+      "noCandidateBody": "可以调整条件继续查找，或创建新的搭子请求。",
     },
     "typeDetail": {
       "communityTitle": "搭子群",
       "communityDescription": "加入搭子群，申请场次、获取活动支持、联系搭子",
       "communityQrAlt": "{typeTitle} 搭子群二维码",
-      "communityQrMissing": "该类型暂未配置搭子群二维码。"
+      "communityQrMissing": "该类型暂未配置搭子群二维码。",
     },
     "otherTypes": { "title": "找其他类型搭子" },
     "joinCandidateAction": "加入这场",
@@ -292,7 +292,7 @@
       "swipeSkipHint": "下一个",
       "swipeDetailHint": "查看详情",
       "emptyTitle": "没有了",
-      "emptySubtitle": "都不合适的？创建一个。"
+      "emptySubtitle": "都不合适的？创建一个。",
     },
     "placeSelector": {
       "locationLabel": "地点",
@@ -304,7 +304,7 @@
       "routeAriaLabel": "路线选择",
       "applyRoute": "申请新路线",
       "switchRouteDirection": "调转路线方向",
-      "emptyPlaceholder": "暂无可选地点"
+      "emptyPlaceholder": "暂无可选地点",
     },
     "formMode": {
       "locationEyebrow": "地点",
@@ -330,7 +330,7 @@
       "emptyRecommendationBody": "这些场次与条件接近；如果都不合适，我们会按你的条件发起新的搭子请求。",
       "createFallbackAction": "都不合适，帮我找",
       "recommendationFailed": "获取推荐失败，请稍后重试。",
-      "otherTypesLoadFailed": "加载其他类型入口失败，请稍后再试。"
+      "otherTypesLoadFailed": "加载其他类型入口失败，请稍后再试。",
     },
     "createCard": {
       "title": "都不合适？",
@@ -349,9 +349,9 @@
         "wechatAuthRequired": "请先完成微信登录，再创建搭子请求。",
         "createFailed": "创建搭子请求失败，请稍后重试。",
         "missingTimeWindow": "请选择开始时间。",
-        "missingPlace": "请选择地点或路线。"
-      }
-    }
+        "missingPlace": "请选择地点或路线。",
+      },
+    },
   },
   "prAuthoring": {
     "typeFallback": "搭子请求",
@@ -372,8 +372,8 @@
     "routeApplicationValidation": {
       "minPoints": "路线至少需要两个地点。",
       "nameRequired": "请为每个地点填写名称。",
-      "coordinateRequired": "请为每个地点提供坐标。"
-    }
+      "coordinateRequired": "请为每个地点提供坐标。",
+    },
   },
   "ordering": {
     "pageTitle": "下单",
@@ -416,7 +416,7 @@
       "summaryPending": "订单摘要图准备中...",
       "canvasBlobFailed": "生成图片失败。",
       "summaryElementMissing": "未找到订单摘要卡片。",
-      "posterGenerationFailed": "订单摘要图生成失败。"
+      "posterGenerationFailed": "订单摘要图生成失败。",
     },
     "summary": {
       "eyebrow": "PartnerUp 下单摘要",
@@ -446,9 +446,9 @@
         "vehicle": "车型",
         "route": "路线",
         "departure": "出发",
-        "riders": "同乘人"
-      }
-    }
+        "riders": "同乘人",
+      },
+    },
   },
   "prPage": {
     "join": "加入",
@@ -462,7 +462,7 @@
     "cancelWaitlisting": "取消中...",
     "cancelWaitlistConfirm": {
       "title": "确认取消候补",
-      "message": "取消后会离开当前候补队列，重新候补将按新的提交时间排序。"
+      "message": "取消后会离开当前候补队列，重新候补将按新的提交时间排序。",
     },
     "exit": "退出",
     "exiting": "退出中...",
@@ -472,7 +472,7 @@
     "checkInMissed": "我未到场",
     "checkingIn": "提交中...",
     "feedbackQuestionnaire": {
-      "openAction": "填写活动反馈"
+      "openAction": "填写活动反馈",
     },
     "slotJoined": "你已加入（{partnerId}）",
     "slotConfirmed": "你已确认（{partnerId}）",
@@ -487,7 +487,7 @@
       "title": "发布草稿",
       "description": "草稿发布后会进入招募状态，并自动绑定创建者身份。",
       "action": "发布并开始招募",
-      "pending": "发布中..."
+      "pending": "发布中...",
     },
     "displayFallbackTitle": "搭子请求",
     "metaFallbackTitle": "搭子请求 - 搭一把",
@@ -504,7 +504,7 @@
       "unconfiguredHint": "当前环境未配置公众号提醒通道。",
       "loginHint": "需要先完成微信登录后才能开启提醒。",
       "enabledHint": "已开启提醒：确认开始和确认截止前 30 分钟会发送通知。",
-      "disabledHint": "提醒已关闭，可随时开启。"
+      "disabledHint": "提醒已关闭，可随时开启。",
     },
     "notificationSubscriptions": {
       "title": "通知订阅",
@@ -517,51 +517,51 @@
         "REMINDER_CONFIRMATION": {
           "title": "确认席位提醒",
           "enabledHint": "确认开始和截止前 30 分钟提醒",
-          "disabledHint": "暂无可用提醒"
+          "disabledHint": "暂无可用提醒",
         },
         "ACTIVITY_START_REMINDER": {
           "title": "活动开始提醒",
           "enabledHint": "活动开始前 20 分钟提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“活动开始提醒”通知模板。"
+          "unconfiguredHint": "当前环境未配置“活动开始提醒”通知模板。",
         },
         "NEW_PARTNER": {
           "title": "新搭子",
           "enabledHint": "有人加入活动时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“新搭子”通知模板。"
+          "unconfiguredHint": "当前环境未配置“新搭子”通知模板。",
         },
         "MEETING_POINT_UPDATED": {
           "title": "碰头地点更新",
           "enabledHint": "碰头地点变更时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“碰头地点更新”通知模板。"
+          "unconfiguredHint": "当前环境未配置“碰头地点更新”通知模板。",
         },
         "PR_READY": {
           "title": "已成团提醒",
           "enabledHint": "PR 进入已成团状态时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“已成团提醒”通知模板。"
+          "unconfiguredHint": "当前环境未配置“已成团提醒”通知模板。",
         },
         "WAITLIST_PROMOTED": {
           "title": "候补补位",
           "enabledHint": "候补成功补位时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“候补补位”通知模板。"
+          "unconfiguredHint": "当前环境未配置“候补补位”通知模板。",
         },
         "WAITLIST_ALTERNATIVE_AVAILABLE": {
           "title": "同类名额提醒",
           "enabledHint": "同类同地点有名额时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“候补提醒”通知模板。"
+          "unconfiguredHint": "当前环境未配置“候补提醒”通知模板。",
         },
         "PR_MESSAGE": {
           "title": "留言",
           "enabledHint": "有新留言时提醒",
           "disabledHint": "暂无可用通知",
-          "unconfiguredHint": "当前环境未配置“留言”通知模板。"
-        }
-      }
+          "unconfiguredHint": "当前环境未配置“留言”通知模板。",
+        },
+      },
     },
     "joinConfirmationFollowup": {
       "title": "完成参加确认",
@@ -569,7 +569,7 @@
       "descriptionFallback": "参加确认会保留你的名额，也让同组搭子更早知道成团状态。请在限定时间内完成确认；逾期后系统会释放名额给候补用户。",
       "windowRange": "{start} 至 {end}",
       "windowDeadline": "{deadline} 前",
-      "notificationReason": "订阅后会在确认开放和截止前提醒你完成确认。"
+      "notificationReason": "订阅后会在确认开放和截止前提醒你完成确认。",
     },
     "joinSuccessSubscriptions": {
       "description": "刚加入成功，现在可以顺手开启你关心的提醒。",
@@ -577,51 +577,51 @@
       "notificationReasons": {
         "NEW_PARTNER": "有人加入时及时知道当前搭子人数，方便确认成团进展。",
         "PR_READY": "PR 已成团后及时提醒你进入执行准备阶段，后续可以关注订单、碰头和到场安排。",
-        "MEETING_POINT_UPDATED": "碰头地点更新后及时收到提醒，减少到场前找不到集合点的风险。"
-      }
+        "MEETING_POINT_UPDATED": "碰头地点更新后及时收到提醒，减少到场前找不到集合点的风险。",
+      },
     },
     "joinCommunityFollowup": {
       "title": "社群与公众号",
-      "closeAction": "完成"
+      "closeAction": "完成",
     },
     "typeCommunityEntry": {
-      "action": "加入同类型搭子群"
+      "action": "加入同类型搭子群",
     },
     "discoveryEntry": {
-      "action": "继续发现搭子"
+      "action": "继续发现搭子",
     },
     "waitlistSuccessSubscriptions": {
       "description": "候补已提交，现在可以开启补位通知。",
       "notificationReasons": {
         "WAITLIST_PROMOTED": "候补成功补位时及时收到提醒，方便确认后续安排。",
-        "WAITLIST_ALTERNATIVE_AVAILABLE": "同类同地点有其它名额时及时收到提醒，可直接去新的 PR 加入。"
-      }
+        "WAITLIST_ALTERNATIVE_AVAILABLE": "同类同地点有其它名额时及时收到提醒，可直接去新的 PR 加入。",
+      },
     },
     "waitlistAlternativeReminder": {
-      "optionLabel": "同类同地点的其它活动有名额时提醒我"
+      "optionLabel": "同类同地点的其它活动有名额时提醒我",
     },
     "shareEntry": {
       "title": "分享邀请",
       "hint": "把当前活动分享给合适的搭子。",
-      "action": "分享"
+      "action": "分享",
     },
     "messageEntry": {
       "title": "留言",
       "hint": "和当前参与者围绕本次活动做异步沟通。",
-      "action": "留言"
+      "action": "留言",
     },
     "pairingCodeEntry": {
-      "action": "配对码 {code}"
+      "action": "配对码 {code}",
     },
     "pairingCodePage": {
       "title": "搭子配对码",
       "backToDetail": "返回搭子请求",
-      "unavailable": "当前不能查看搭子配对码"
+      "unavailable": "当前不能查看搭子配对码",
     },
     "messagePage": {
       "title": "留言",
       "subtitle": "留言是非即时的，您发送的留言会被通知给本搭子请求内的搭子。",
-      "backToDetail": "返回活动详情"
+      "backToDetail": "返回活动详情",
     },
     "messageThread": {
       "title": "活动留言",
@@ -634,7 +634,7 @@
       "inputPlaceholder": "例如：我会晚到 10 分钟，大家先在入口处集合。",
       "submitAction": "发送留言",
       "submittingAction": "发送中...",
-      "authorFallback": "搭子"
+      "authorFallback": "搭子",
     },
     "partnerSection": {
       "title": "参与",
@@ -687,8 +687,8 @@
       "timelineTitle": "参与时间线",
       "timelinePRStart": "PR 开始",
       "timelineConfirmationWindow": "确认窗口",
-      "timelineJoinLock": "停止加入"
-    }
+      "timelineJoinLock": "停止加入",
+    },
   },
   "adminCommon": {
     "title": "Admin",
@@ -741,7 +741,7 @@
     "navAnalyticsPRDiscoverySubtitle": "查看发现视图、候选动作与 Authoring handoff 漏斗。",
     "collapseNavigationAction": "折叠导航面板",
     "expandNavigationAction": "展开导航面板",
-    "logoutAction": "退出登录"
+    "logoutAction": "退出登录",
   },
   "adminAnalytics": {
     "title": "BI 看板",
@@ -793,7 +793,7 @@
       "READY": "已达最低人数",
       "ACTIVE": "进行中",
       "CLOSED": "已关闭",
-      "EXPIRED": "已过期"
+      "EXPIRED": "已过期",
     },
     "prDiscoveryFunnelTitle": "PR Discovery 漏斗",
     "prDiscoveryFunnelSubtitle": "按 PR 类型、视图和来源观察发现到候选动作及 Authoring handoff。",
@@ -823,7 +823,7 @@
       "structured_form": "结构化表单",
       "pr_discovery": "PR Discovery",
       "natural_language": "自然语言创建",
-      "unknown": "未知"
+      "unknown": "未知",
     },
     "prJoinImpressionMetric": "Join CTA 曝光",
     "prJoinImpressionDetail": "只统计 ctaType=JOIN",
@@ -835,7 +835,7 @@
     "prJoinClickToBackendRateDetail": "pr.joined / Join CTA 点击",
     "prJoinProjectionContextDetail": "投影事件 {events} 个；route_unknown {route} 个，auth_unknown {auth} 个；已认证 Journey {authenticated} 个，身份未知 Journey {unknown} 个。",
     "funnelStepColumn": "步骤",
-    "emptyTable": "暂无记录"
+    "emptyTable": "暂无记录",
   },
   "adminPois": {
     "title": "POIs 配置",
@@ -915,7 +915,7 @@
     "ruleWeekdaysLabel": "星期",
     "ruleMonthDaysLabel": "日期",
     "ruleMonthsLabel": "月份",
-    "ruleNumberListPlaceholder": "用英文逗号分隔，例如 1,15,31"
+    "ruleNumberListPlaceholder": "用英文逗号分隔，例如 1,15,31",
   },
   "adminCommerceProducts": {
     "spusTitle": "SPU 列表",
@@ -1036,7 +1036,7 @@
     "requiresOperatorHandlingLabel": "需要人工处理",
     "visibleLabelLabel": "用户可见文案",
     "savePolicyAction": "保存取消策略",
-    "savingAction": "保存中..."
+    "savingAction": "保存中...",
   },
   "adminCommerceJsonLogic": {
     "modeAria": "规则模式",
@@ -1062,8 +1062,8 @@
       "LESS_THAN_OR_EQUALS": "小于等于",
       "IS_TRUE": "为是",
       "IS_FALSE": "为否",
-      "CONTAINS": "包含"
-    }
+      "CONTAINS": "包含",
+    },
   },
   "adminCommercePlacementOffer": {
     "offersTitle": "Offer 列表",
@@ -1110,7 +1110,7 @@
     "timeStartSourceLabel": "PR 开始时间",
     "timeEndSourceLabel": "PR 结束时间",
     "savePlacementAction": "保存 Placement",
-    "savingAction": "保存中..."
+    "savingAction": "保存中...",
   },
   "adminCommerceOrderBill": {
     "ordersTitle": "订单列表",
@@ -1129,7 +1129,7 @@
     "emptyBill": "当前订单还没有账单。",
     "billIdLabel": "Bill ID",
     "billStatusLabel": "账单状态",
-    "effectiveTotalLabel": "当前有效总额（fen）"
+    "effectiveTotalLabel": "当前有效总额（fen）",
   },
   "adminCommerceFulfillment": {
     "fulfillmentsTitle": "履约列表",
@@ -1161,7 +1161,7 @@
     "entryRealNameLabel": "入场实名",
     "entryNoteLabel": "补充说明",
     "saveGuidanceAction": "保存入场指引",
-    "rawStateTitle": "原始履约状态"
+    "rawStateTitle": "原始履约状态",
   },
   "adminFeedbackQuestionnaires": {
     "title": "反馈问卷",
@@ -1187,7 +1187,7 @@
     "invalidJson": "Definition JSON 格式无效。",
     "invalidDefinition": "Definition 需要是 JSON object。",
     "created": "模板已创建。",
-    "saved": "模板已保存。"
+    "saved": "模板已保存。",
   },
   "adminLogin": {
     "title": "管理员登录",
@@ -1198,7 +1198,7 @@
     "passwordPlaceholder": "输入 admin 密码",
     "loggingIn": "登录中...",
     "loginAction": "登录",
-    "seedHint": "本地 seed 默认 admin：00000000-0000-0000-0000-000000000001 / admin123"
+    "seedHint": "本地 seed 默认 admin：00000000-0000-0000-0000-000000000001 / admin123",
   },
   "adminPRTypeConfigs": {
     "catalogTitle": "PR 类型配置",
@@ -1237,7 +1237,7 @@
     "publishAction": "发布",
     "rejectAction": "驳回",
     "saveAction": "保存 PR 类型配置",
-    "saving": "保存中..."
+    "saving": "保存中...",
   },
   "adminPR": {
     "title": "PR 管理",
@@ -1304,7 +1304,7 @@
     "batchStatusExpired": "EXPIRED",
     "visibilityVisible": "VISIBLE",
     "visibilityHidden": "HIDDEN",
-    "saving": "保存中..."
+    "saving": "保存中...",
   },
   "adminPRMessages": {
     "title": "PR 留言",
@@ -1324,13 +1324,13 @@
     "messageSaving": "保存中...",
     "messageDeleting": "删除中...",
     "editedAt": "已编辑 {time}",
-    "deleteConfirm": "确认删除这条留言？"
+    "deleteConfirm": "确认删除这条留言？",
   },
   "createdPRList": {
     "title": "我的搭子请求",
     "empty": "还没有创建过搭子请求",
     "loading": "正在加载你创建的请求...",
-    "loadFailed": "加载失败"
+    "loadFailed": "加载失败",
   },
   "myPrsPage": {
     "title": "我的搭子请求",
@@ -1341,7 +1341,7 @@
     "loading": "正在加载列表...",
     "createdEmpty": "你还没有创建过搭子请求。",
     "joinedEmpty": "你还没有加入过搭子请求。",
-    "loadFailed": "加载失败"
+    "loadFailed": "加载失败",
   },
   "mePage": {
     "title": "我的",
@@ -1366,7 +1366,7 @@
       "savePhone": "保存手机号",
       "savingNickname": "保存中...",
       "changeAvatar": "修改头像",
-      "uploadingAvatar": "上传中..."
+      "uploadingAvatar": "上传中...",
     },
     "wechat": {
       "title": "绑定微信",
@@ -1378,43 +1378,43 @@
       "boundAction": "已绑定微信",
       "bindSuccess": "微信绑定成功。",
       "bindConflict": "该微信账号已经绑定到其他用户，当前账户未发生变更。",
-      "bindFailed": "微信绑定失败，请稍后重试。"
+      "bindFailed": "微信绑定失败，请稍后重试。",
     },
     "wechatLogin": {
       "title": "微信登录",
       "wechatHint": "在微信内完成授权后，可恢复或绑定你的微信身份。",
       "nonWechatHint": "请在微信内打开本页后再进行微信登录。",
       "action": "微信登录",
-      "pending": "拉起授权中..."
+      "pending": "拉起授权中...",
     },
     "reminder": {
       "title": "服务通知",
       "authHint": "先完成微信登录，再开启服务通知。",
       "authAction": "去微信登录",
       "wechatOnlyAction": "仅支持微信内开启",
-      "unavailableAction": "当前不可用"
+      "unavailableAction": "当前不可用",
     },
     "logout": {
       "action": "退出登录",
       "pending": "退出中...",
-      "failed": "退出登录失败，请稍后重试。"
+      "failed": "退出登录失败，请稍后重试。",
     },
     "credentials": {
       "title": "匿名身份",
       "description": "当前设备浏览器会保存这个 ID，用于下次回来时恢复你的匿名身份。",
       "userIdLabel": "用户 ID",
-      "missingUserId": "当前设备还没有用户 ID"
+      "missingUserId": "当前设备还没有用户 ID",
     },
     "history": {
       "title": "我的搭子请求",
       "description": "查看我创建过和加入过的活动记录。",
-      "action": "打开列表"
+      "action": "打开列表",
     },
     "locationApplications": {
       "title": "我的地点申请",
       "description": "查看已提交的地点，以及审核中的状态。",
-      "action": "查看申请"
-    }
+      "action": "查看申请",
+    },
   },
   "locationApplicationPage": {
     "title": "申请新地点",
@@ -1436,8 +1436,8 @@
     "status": {
       "PENDING": "待审核",
       "PUBLISHED": "已发布",
-      "REJECTED": "已驳回"
-    }
+      "REJECTED": "已驳回",
+    },
   },
   "wechatOAuthCallbackPage": {
     "title": "正在完成微信登录",
@@ -1445,7 +1445,7 @@
     "processing": "正在处理微信授权回调...",
     "missingParams": "未收到微信授权参数，请返回重试。",
     "failed": "微信登录失败，请返回重试。",
-    "failedWithMessage": "微信登录失败：{message}"
+    "failedWithMessage": "微信登录失败：{message}",
   },
   "userProfilePage": {
     "title": "用户资料",
@@ -1457,7 +1457,7 @@
     "avatarAlt": "{name} 的头像",
     "avatarFallback": "搭",
     "notFoundTitle": "未找到该用户资料",
-    "notFoundDescription": "该搭子可能已退出当前请求，或资料暂不可用。"
+    "notFoundDescription": "该搭子可能已退出当前请求，或资料暂不可用。",
   },
   "dateTimeRangePicker": {
     "defaultLabel": "时间 (开始/结束)",
@@ -1467,7 +1467,7 @@
     "endDatePlaceholder": "请选择结束日期",
     "endTimePlaceholder": "请选择结束时间",
     "clearTime": "清除时间",
-    "clear": "清除"
+    "clear": "清除",
   },
   "timelinePolicyPicker": {
     "title": "参与时间线",
@@ -1483,17 +1483,17 @@
     "windowStart": "PR 时间窗起点",
     "offsetMinutes": "距开始前 {minutes} 分钟",
     "offsetHours": "距开始前 {hours} 小时",
-    "offsetHoursMinutes": "距开始前 {hours} 小时 {minutes} 分钟"
+    "offsetHoursMinutes": "距开始前 {hours} 小时 {minutes} 分钟",
   },
   "modifyStatusModal": {
     "title": "修改需求状态",
     "confirmAction": "确认修改",
-    "updateFailed": "修改失败"
+    "updateFailed": "修改失败",
   },
   "editContentModal": {
     "title": "编辑搭子请求",
     "confirmAction": "确认修改",
-    "updateFailed": "更新失败"
+    "updateFailed": "更新失败",
   },
   "share": {
     "prevMethodAria": "上一个分享方式",
@@ -1501,7 +1501,7 @@
     "methods": {
       "webShare": "链接分享",
       "wechat": "分享到微信",
-      "xiaohongshu": "分享到小红书"
+      "xiaohongshu": "分享到小红书",
     },
     "asLink": {
       "previewTitle": "二维码海报",
@@ -1512,7 +1512,7 @@
       "qrPosterFailed": "二维码海报生成失败",
       "copyLinkButton": "复制链接",
       "shared": "已分享",
-      "shareFailed": "分享失败"
+      "shareFailed": "分享失败",
     },
     "wechat": {
       "previewTitle": "微信分享卡片预览",
@@ -1529,7 +1529,7 @@
       "pageDescriptionContactAuthor": "有功能建议或发现问题？来这里直接联系作者，反馈会被优先看到。",
       "fallbackKeyText": "搭",
       "thumbAlt": "微信分享缩略图",
-      "selfLabel": "你"
+      "selfLabel": "你",
     },
     "xiaohongshu": {
       "regenerateButton": "换一个",
@@ -1546,12 +1546,12 @@
       "openAppButton": "分享到小红书",
       "generatePosterFirst": "请先生成海报",
       "downloadFailed": "下载失败，请重试",
-      "defaultPosterStylePrompt": "简洁大方的信息展示风格，文字清晰易读，留白充足，色彩克制，传递可信感"
-    }
+      "defaultPosterStylePrompt": "简洁大方的信息展示风格，文字清晰易读，留白充足，色彩克制，传递可信感",
+    },
   },
   "prInput": {
     "label": "自然语言描述你的搭子需求",
-    "placeholder": "如：{example}"
+    "placeholder": "如：{example}",
   },
   "nlForm": {
     "submit": "解析",
@@ -1567,7 +1567,7 @@
     "voiceStopFailed": "录音结束失败（{message}）",
     "voiceTranslateFailed": "语音转写失败（{message}）",
     "voiceEmptyResult": "没听清，再试一次吧",
-    "voiceHint": "在微信内点击麦克风键开始录音，再次点击转文字"
+    "voiceHint": "在微信内点击麦克风键开始录音，再次点击转文字",
   },
   "route": {
     "title": "路线",
@@ -1591,25 +1591,25 @@
     "pointRole": {
       "departure": "起点",
       "waypoint": "途经点",
-      "arrival": "终点"
+      "arrival": "终点",
     },
     "placeholder": {
       "departure": "请选择出发地",
       "waypoint": "请选择途经点",
-      "arrival": "请选择目的地"
+      "arrival": "请选择目的地",
     },
     "immersive": {
       "departure": {
         "title": "从哪里出发",
-        "text": "出发"
+        "text": "出发",
       },
       "waypoint": {
-        "title": "途经哪里"
+        "title": "途经哪里",
       },
       "arrival": {
-        "title": "到哪里去"
-      }
-    }
+        "title": "到哪里去",
+      },
+    },
   },
   "locationPicker": {
     "title": "选择地点",
@@ -1629,7 +1629,7 @@
     "addressLabel": "详细地址",
     "addressPlaceholder": "选择后可编辑地址",
     "coordinateLabel": "GCJ-02 坐标",
-    "coordinateEmpty": "待选择"
+    "coordinateEmpty": "待选择",
   },
   "partnerRequestForm": {
     "title": "标题",
@@ -1661,7 +1661,7 @@
     "routePointRole": {
       "departure": "起点",
       "waypoint": "途经点",
-      "arrival": "终点"
+      "arrival": "终点",
     },
     "minPartners": "最少人数",
     "minPartnersPlaceholder": "最少参与人数",
@@ -1676,7 +1676,7 @@
     "notesPlaceholder": "补充说明",
     "requiredMark": "*",
     "advancedShow": "展开可选项",
-    "advancedHide": "收起可选项"
+    "advancedHide": "收起可选项",
   },
   "prCard": {
     "type": "类型",
@@ -1697,7 +1697,7 @@
       "prev": "上一张",
       "next": "下一张",
       "counter": "{current} / {total}",
-      "imageAlt": "场地图片 {index}"
+      "imageAlt": "场地图片 {index}",
     },
     "partners": "人数",
     "budget": "预算",
@@ -1710,7 +1710,7 @@
     "partnersExact": "{count}人",
     "partnersRange": "{min}-{max}人",
     "partnersAtLeast": "至少{min}人",
-    "partnersAtMost": "最多{max}人"
+    "partnersAtMost": "最多{max}人",
   },
   "validation": {
     "typeRequired": "类型不能为空",
@@ -1721,7 +1721,7 @@
     "maxPartnersMustBeAtLeastMinPartners": "最多必须大于等于最少",
     "routeMinPoints": "路线至少需要起点和终点",
     "routePointNameRequired": "路线点名称不能为空",
-    "routePointCoordinateRequired": "路线点需要 GCJ-02、WGS84 或 BD-09 坐标"
+    "routePointCoordinateRequired": "路线点需要 GCJ-02、WGS84 或 BD-09 坐标",
   },
   "errors": {
     "prTypeUserCreationDisabled": "该 PR 类型只允许运营创建，请选择已有 PR。",
@@ -1767,14 +1767,14 @@
     "fetchCurrentUserProfileFailed": "获取当前用户资料失败",
     "updateCurrentUserProfileFailed": "更新当前用户资料失败",
     "updateCurrentUserAvatarFailed": "更新当前头像失败",
-    "startWechatBindFailed": "发起微信绑定失败"
+    "startWechatBindFailed": "发起微信绑定失败",
   },
   "posterStyles": {
     "fresh": "清新活泼",
     "minimal": "极简风格",
     "warm": "温暖风格",
     "modern": "现代风格",
-    "elegant": "优雅风格"
+    "elegant": "优雅风格",
   },
   "prStatus": {
     "DRAFT": "草稿",
@@ -1782,6 +1782,6 @@
     "READY": "已成团",
     "ACTIVE": "进行中",
     "CLOSED": "已结束",
-    "EXPIRED": "已过期"
-  }
+    "EXPIRED": "已过期",
+  },
 }

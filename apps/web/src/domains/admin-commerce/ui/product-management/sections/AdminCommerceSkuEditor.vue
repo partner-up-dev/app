@@ -36,20 +36,34 @@
         </label>
         <label class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.participantCountLabel") }}</span>
-          <input v-model.number="skuForm.rentalParticipantCount" class="pm-field-input" type="number" min="1" />
+          <input
+            v-model.number="skuForm.rentalParticipantCount"
+            class="pm-field-input"
+            type="number"
+            min="1"
+          />
         </label>
         <label class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.durationMinutesLabel") }}</span>
-          <input v-model.number="skuForm.rentalDurationMinutes" class="pm-field-input" type="number" min="1" />
+          <input
+            v-model.number="skuForm.rentalDurationMinutes"
+            class="pm-field-input"
+            type="number"
+            min="1"
+          />
         </label>
       </div>
       <div v-else class="pm-grid">
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.rideProviderInstanceIdLabel") }}</span>
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.rideProviderInstanceIdLabel")
+          }}</span>
           <input v-model="skuForm.rideProviderInstanceId" class="pm-field-input" type="text" />
         </label>
         <label class="pm-field">
-          <span class="pm-field-label">{{ t("adminCommerceProducts.providerVehicleTypeCodeLabel") }}</span>
+          <span class="pm-field-label">{{
+            t("adminCommerceProducts.providerVehicleTypeCodeLabel")
+          }}</span>
           <input v-model="skuForm.rideProviderVehicleTypeCode" class="pm-field-input" type="text" />
         </label>
       </div>
@@ -69,7 +83,12 @@
         </label>
         <label v-if="skuForm.pricingModelType === 'FIXED_TOTAL'" class="pm-field">
           <span class="pm-field-label">{{ t("adminCommerceProducts.amountFenLabel") }}</span>
-          <input v-model.number="skuForm.fixedAmountFen" class="pm-field-input" type="number" min="0" />
+          <input
+            v-model.number="skuForm.fixedAmountFen"
+            class="pm-field-input"
+            type="number"
+            min="0"
+          />
         </label>
       </div>
       <p v-if="skuForm.pricingModelType === 'DYNAMIC_QUOTE'" class="pm-hint">
@@ -78,13 +97,12 @@
     </section>
 
     <div class="pm-inline-actions">
-      <PuButton
-        size="sm"
-
-        :disabled="isSavingSku || selectedSpuId === null"
-        @click="handleSaveSku"
-      >
-        {{ isSavingSku ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.saveSkuAction") }}
+      <PuButton size="sm" :disabled="isSavingSku || selectedSpuId === null" @click="handleSaveSku">
+        {{
+          isSavingSku
+            ? t("adminCommerceProducts.savingAction")
+            : t("adminCommerceProducts.saveSkuAction")
+        }}
       </PuButton>
     </div>
   </div>

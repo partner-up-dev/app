@@ -1,4 +1,1 @@
-export {
-  useUserSessionStore,
-  type AuthSessionPayload,
-} from "@/shared/auth/useUserSessionStore";
+export { useUserSessionStore, type AuthSessionPayload } from "@/shared/auth/useUserSessionStore";

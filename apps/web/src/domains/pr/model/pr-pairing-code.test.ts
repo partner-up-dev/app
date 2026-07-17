@@ -23,32 +23,22 @@ describe("PR pairing code", () => {
 
     expect(firstIdentity).toEqual(secondIdentity);
     expect(firstIdentity.code).toMatch(/^\d{4}$/);
-    expect(firstIdentity.backgroundColor).toMatch(
-      /^hsl\(\d+\.\d{3}, \d+%, \d+%\)$/,
-    );
+    expect(firstIdentity.backgroundColor).toMatch(/^hsl\(\d+\.\d{3}, \d+%, \d+%\)$/);
     expect(firstIdentity.foregroundColor).toMatch(/^#[0-9a-f]{6}$/);
     expect(otherIdentity.code).not.toBe(firstIdentity.code);
-    expect(otherIdentity.backgroundColor).not.toBe(
-      firstIdentity.backgroundColor,
-    );
+    expect(otherIdentity.backgroundColor).not.toBe(firstIdentity.backgroundColor);
   });
 
   test("is visible only for READY active participants", () => {
-    expect(
-      canShowPRPairingCode(
-        buildPRDetail({ status: "READY", isParticipant: true }),
-      ),
-    ).toBe(true);
-    expect(
-      canShowPRPairingCode(
-        buildPRDetail({ status: "OPEN", isParticipant: true }),
-      ),
-    ).toBe(false);
-    expect(
-      canShowPRPairingCode(
-        buildPRDetail({ status: "READY", isParticipant: false }),
-      ),
-    ).toBe(false);
+    expect(canShowPRPairingCode(buildPRDetail({ status: "READY", isParticipant: true }))).toBe(
+      true,
+    );
+    expect(canShowPRPairingCode(buildPRDetail({ status: "OPEN", isParticipant: true }))).toBe(
+      false,
+    );
+    expect(canShowPRPairingCode(buildPRDetail({ status: "READY", isParticipant: false }))).toBe(
+      false,
+    );
   });
 });
 

@@ -14,9 +14,7 @@ export async function applyOrderPrepaidSettlementFulfillmentConsequence(input: {
   orderId: string;
   family: TradeOrder["family"];
 }): Promise<OrderPrepaidSettlementFulfillmentResult> {
-  const consequence = resolveOrderPrepaidSettlementFulfillmentConsequence(
-    input.family,
-  );
+  const consequence = resolveOrderPrepaidSettlementFulfillmentConsequence(input.family);
 
   if (consequence.kind === "NONE") {
     return {

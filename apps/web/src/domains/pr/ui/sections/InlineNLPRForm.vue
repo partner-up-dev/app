@@ -58,11 +58,7 @@
       </PuFormItem>
     </Field>
 
-    <PuInlineNotice
-      v-if="voiceErrorMessage"
-      tone="error"
-      :message="voiceErrorMessage"
-    />
+    <PuInlineNotice v-if="voiceErrorMessage" tone="error" :message="voiceErrorMessage" />
 
     <PuInlineNotice
       v-if="createMutation.isError.value"
@@ -86,13 +82,7 @@ import { useLandingTypewriterPlaceholder } from "@/domains/landing/use-cases/use
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
-import {
-  PuButton,
-  PuForm,
-  PuFormItem,
-  PuInlineNotice,
-  PuInput,
-} from "@partner-up-dev/design-web";
+import { PuButton, PuForm, PuFormItem, PuInlineNotice, PuInput } from "@partner-up-dev/design-web";
 
 const getLocalWeekdayLabel = (date: Date): string => {
   return new Intl.DateTimeFormat(undefined, {
@@ -103,8 +93,7 @@ const getLocalWeekdayLabel = (date: Date): string => {
 const router = useRouter();
 const { t } = useI18n();
 const createMutation = useCreatePRFromNaturalLanguage();
-const { activeExampleText, typedExampleText } =
-  useLandingTypewriterPlaceholder();
+const { activeExampleText, typedExampleText } = useLandingTypewriterPlaceholder();
 const draftStore = useNaturalLanguageDraftStore();
 const { rawText: draftRawText } = storeToRefs(draftStore);
 const placeholderText = computed(() =>
@@ -192,11 +181,7 @@ const onSubmit = async () => {
 };
 
 const handleVoiceToggle = async (): Promise<void> => {
-  if (
-    !isVoiceSupported.value ||
-    isSubmitting.value ||
-    isVoiceProcessing.value
-  ) {
+  if (!isVoiceSupported.value || isSubmitting.value || isVoiceProcessing.value) {
     return;
   }
 

@@ -80,9 +80,7 @@
         :open="priceDetailOpen"
         :explanations="priceExplanations"
         :data-testid="
-          rentalOrdering
-            ? 'ordering.rental.price-detail'
-            : 'ordering.ride-hailing.price-detail'
+          rentalOrdering ? 'ordering.rental.price-detail' : 'ordering.ride-hailing.price-detail'
         "
         @close="priceDetailOpen = false"
       />
@@ -307,10 +305,7 @@ const openInfoDialog = (input: {
   };
 };
 
-const openMyBillsDialog = (input: {
-  title: string;
-  description: string;
-}): void => {
+const openMyBillsDialog = (input: { title: string; description: string }): void => {
   orderingDialog.value = {
     open: true,
     kind: "go-to-my-bills",

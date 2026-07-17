@@ -5,4 +5,3 @@ export const normalizeUrl = (rawUrl: string, baseHref: string): string => {
     return rawUrl;
   }
 };
-

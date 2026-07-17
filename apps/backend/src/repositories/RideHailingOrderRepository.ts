@@ -12,16 +12,11 @@ export class RideHailingOrderRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewRideHailingOrder): Promise<RideHailingOrder> {
-    const result = await this.executor
-      .insert(rideHailingOrders)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(rideHailingOrders).values(data).returning();
     return result[0]!;
   }
 
-  async findByOrderId(
-    orderId: TradeOrderId,
-  ): Promise<RideHailingOrder | null> {
+  async findByOrderId(orderId: TradeOrderId): Promise<RideHailingOrder | null> {
     const result = await this.executor
       .select()
       .from(rideHailingOrders)

@@ -120,16 +120,13 @@ app.use("*", async (c, next) => {
   try {
     await next();
   } finally {
-    if (
+    const shouldSkipRequestTail =
       c.req.method === "OPTIONS" ||
       c.req.path === "/health" ||
       c.req.path === `/${MPWX_DOMAIN_VERIFICATION_FILENAME}` ||
-      c.req.path.startsWith("/internal/")
-    ) {
-      return;
-    }
+      c.req.path.startsWith("/internal/");
 
-    if (process.env.BACKEND_SCENARIO_DISABLE_REQUEST_TAIL !== "true") {
+    if (!shouldSkipRequestTail && process.env.BACKEND_SCENARIO_DISABLE_REQUEST_TAIL !== "true") {
       kickRequestTailMaintenance();
     }
   }
@@ -285,10 +282,7 @@ const runRequestTailMaintenance = async (): Promise<void> => {
   }
 };
 
-export type {
-  OrderingEntryPayload,
-  OrderingOfferDetail,
-} from "./domains/merchandising";
+export type { OrderingEntryPayload, OrderingOfferDetail } from "./domains/merchandising";
 export type {
   PRAuthoringDefaultSelection,
   PRAuthoringLocationOption,
@@ -325,11 +319,7 @@ export type {
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
 } from "./entities/join-gate";
-export type {
-  PartnerId,
-  PartnerPaymentStatus,
-  PartnerStatus,
-} from "./entities/partner";
+export type { PartnerId, PartnerPaymentStatus, PartnerStatus } from "./entities/partner";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
 // Export types for frontend use
 export type {

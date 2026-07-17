@@ -68,9 +68,7 @@ export class WeComService {
 
     const json = tokenResponseSchema.parse(await res.json());
     if (json.errcode !== 0 || !json.access_token || !json.expires_in) {
-      throw new Error(
-        `WeCom gettoken error: ${json.errcode} ${json.errmsg ?? "unknown"}`,
-      );
+      throw new Error(`WeCom gettoken error: ${json.errcode} ${json.errmsg ?? "unknown"}`);
     }
 
     tokenCache = {
@@ -101,16 +99,12 @@ export class WeComService {
     });
 
     if (!res.ok) {
-      throw new Error(
-        `WeCom message send failed: ${res.status} ${res.statusText}`,
-      );
+      throw new Error(`WeCom message send failed: ${res.status} ${res.statusText}`);
     }
 
     const json = sendMessageResponseSchema.parse(await res.json());
     if (json.errcode !== 0) {
-      throw new Error(
-        `WeCom message send error: ${json.errcode} ${json.errmsg ?? "unknown"}`,
-      );
+      throw new Error(`WeCom message send error: ${json.errcode} ${json.errmsg ?? "unknown"}`);
     }
   }
 }

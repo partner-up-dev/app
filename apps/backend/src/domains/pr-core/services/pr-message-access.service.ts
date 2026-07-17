@@ -24,7 +24,10 @@ export async function requirePRMessageParticipantAccess(
 
   const participant = await partnerRepo.findActiveByPrIdAndUserId(prId, userId);
   if (!participant) {
-    return throwHttpProblem({ status: 403, detail: "Only current active participants can access PR messages" });
+    return throwHttpProblem({
+      status: 403,
+      detail: "Only current active participants can access PR messages",
+    });
   }
 
   return {

@@ -35,12 +35,7 @@
       </p>
 
       <div class="mini-program-jssdk-notice__actions">
-        <PuButton
-          tone="primary" variant="outline"
-          shape="rect"
-
-          @click="copyCurrentUrl"
-        >
+        <PuButton tone="primary" variant="outline" shape="rect" @click="copyCurrentUrl">
           {{ copyButtonLabel }}
         </PuButton>
         <PuButton shape="rect" @click="emit('close')">
@@ -70,8 +65,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const copyState = ref<"idle" | "copied" | "error">("idle");
 const openRef = toRef(props, "open");
-const { targetUrl, qrCodeDataUrl, qrCodeError } =
-  useCurrentWebPageQrCode(openRef);
+const { targetUrl, qrCodeDataUrl, qrCodeError } = useCurrentWebPageQrCode(openRef);
 
 const copyButtonLabel = computed(() => {
   if (copyState.value === "copied") return t("common.copied");

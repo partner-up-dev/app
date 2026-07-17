@@ -67,11 +67,7 @@ export class PartnerRequestService {
     return updatePRStatusUseCase(id, status, actorUserId);
   }
 
-  async updatePRContent(
-    id: PRId,
-    fields: PartnerRequestFields,
-    actorUserId: UserId | null,
-  ) {
+  async updatePRContent(id: PRId, fields: PartnerRequestFields, actorUserId: UserId | null) {
     return updatePRContentUseCase(id, fields, actorUserId);
   }
 

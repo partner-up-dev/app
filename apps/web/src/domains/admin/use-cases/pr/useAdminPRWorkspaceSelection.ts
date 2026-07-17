@@ -37,9 +37,7 @@ export const useAdminPRWorkspaceSelection = ({
   });
   const selectedPRIdRaw = ref("");
 
-  const workspace = computed<AdminPRWorkspace | null>(
-    () => workspaceQuery.data.value ?? null,
-  );
+  const workspace = computed<AdminPRWorkspace | null>(() => workspaceQuery.data.value ?? null);
   const prs = computed<AdminPRRecord[]>(() => workspace.value?.prs ?? []);
   const typeOptions = computed(() => workspace.value?.typeOptions ?? []);
   const poiOptions = computed<string[]>(() =>
@@ -70,9 +68,7 @@ export const useAdminPRWorkspaceSelection = ({
       }
       if (
         normalizedLocation &&
-        !(pr.placeDisplayName ?? pr.location ?? "")
-          .toLowerCase()
-          .includes(normalizedLocation)
+        !(pr.placeDisplayName ?? pr.location ?? "").toLowerCase().includes(normalizedLocation)
       ) {
         return false;
       }

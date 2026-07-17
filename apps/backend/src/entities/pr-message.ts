@@ -1,12 +1,4 @@
-import {
-  bigserial,
-  bigint,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigserial, bigint, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { partnerRequests, type PRId } from "./partner-request";
@@ -14,11 +6,7 @@ import { users, type UserId } from "./user";
 
 export const PR_MESSAGE_BODY_MAX_LENGTH = 1000;
 
-export const prMessageBodySchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(PR_MESSAGE_BODY_MAX_LENGTH);
+export const prMessageBodySchema = z.string().trim().min(1).max(PR_MESSAGE_BODY_MAX_LENGTH);
 
 export const prMessages = pgTable(
   "pr_messages",
@@ -42,9 +30,7 @@ export const prMessages = pgTable(
       table.createdAt,
       table.id,
     ),
-    authorUserIdIdx: index("pr_messages_author_user_id_idx").on(
-      table.authorUserId,
-    ),
+    authorUserIdIdx: index("pr_messages_author_user_id_idx").on(table.authorUserId),
   }),
 );
 

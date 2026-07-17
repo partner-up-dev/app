@@ -4,7 +4,9 @@
   </div>
   <div v-else class="pm-form-stack">
     <label class="pm-field">
-      <span class="pm-field-label">{{ t("adminCommerceProducts.operatorBufferMinutesLabel") }}</span>
+      <span class="pm-field-label">{{
+        t("adminCommerceProducts.operatorBufferMinutesLabel")
+      }}</span>
       <input
         v-model.number="policyForm.operatorBufferMinutes"
         class="pm-field-input"
@@ -16,25 +18,29 @@
     <section class="pm-editor-section">
       <div class="pm-section-header">
         <h3 class="pm-section-title">{{ t("adminCommerceProducts.cancellationTiersLabel") }}</h3>
-        <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="addCancellationTier">
+        <PuButton
+          shape="pill"
+          tone="neutral"
+          variant="outline"
+          size="sm"
+          @click="addCancellationTier"
+        >
           <template #leading>
             <span class="i-mdi-plus" />
           </template>
           {{ t("adminCommerceProducts.addCancellationTierAction") }}
         </PuButton>
       </div>
-      <article
-        v-for="(tier, index) in policyForm.tiers"
-        :key="tier.id"
-        class="pm-repeated-item"
-      >
+      <article v-for="(tier, index) in policyForm.tiers" :key="tier.id" class="pm-repeated-item">
         <div class="pm-section-header">
-          <strong>{{ t("adminCommerceProducts.cancellationTierTitle", { index: index + 1 }) }}</strong>
+          <strong>{{
+            t("adminCommerceProducts.cancellationTierTitle", { index: index + 1 })
+          }}</strong>
           <PuButton
             shape="pill"
-            tone="danger" variant="outline"
+            tone="danger"
+            variant="outline"
             size="sm"
-
             :disabled="policyForm.tiers.length <= 1"
             @click="removeCancellationTier(index)"
           >
@@ -63,7 +69,13 @@
           </label>
           <label class="pm-field">
             <span class="pm-field-label">{{ t("adminCommerceProducts.refundPercentLabel") }}</span>
-            <input v-model.number="tier.refundPercent" class="pm-field-input" type="number" min="0" max="100" />
+            <input
+              v-model.number="tier.refundPercent"
+              class="pm-field-input"
+              type="number"
+              min="0"
+              max="100"
+            />
           </label>
           <PuToggleSwitch
             v-model="tier.requiresOperatorHandling"
@@ -75,7 +87,11 @@
 
     <div class="pm-inline-actions">
       <PuButton size="sm" :disabled="isSavingPolicy" @click="handleSavePolicy">
-        {{ isSavingPolicy ? t("adminCommerceProducts.savingAction") : t("adminCommerceProducts.savePolicyAction") }}
+        {{
+          isSavingPolicy
+            ? t("adminCommerceProducts.savingAction")
+            : t("adminCommerceProducts.savePolicyAction")
+        }}
       </PuButton>
     </div>
   </div>
@@ -151,9 +167,7 @@ const handleSavePolicy = async () => {
       input: buildPolicyInput(policyForm.value, buildLabels()),
     });
   } catch (error) {
-    context.setErrorMessage(
-      error instanceof Error ? error.message : t("common.operationFailed"),
-    );
+    context.setErrorMessage(error instanceof Error ? error.message : t("common.operationFailed"));
   }
 };
 </script>

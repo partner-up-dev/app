@@ -16,9 +16,7 @@ const hasRouterBackEntry = (): boolean => {
   return typeof historyState?.back === "string" && historyState.back.length > 0;
 };
 
-export function useFallbackBack(
-  fallbackTo?: MaybeRefOrGetter<RouteLocationRaw | undefined>,
-) {
+export function useFallbackBack(fallbackTo?: MaybeRefOrGetter<RouteLocationRaw | undefined>) {
   const router = useRouter();
 
   const handleBack = async (): Promise<void> => {

@@ -84,7 +84,7 @@ describe("Caocao provider config", () => {
           endpointBaseUrl: "https://openapi.caocaokeji.cn/v2",
         },
       }),
-    ).toThrow();
+    ).toThrow(/Required|Invalid/);
   });
 });
 
@@ -707,6 +707,8 @@ describe("Caocao live order projection", () => {
 
   it("queries authoritative final settlement from queryOrderDetailV2 orderFeeVo.totalFee", async () => {
     const requestPaths: string[] = [];
+    let requestInit: RequestInit | undefined;
+    let requestedOrderId: string | null = null;
     const fetchImpl: typeof fetch = async (input, init) => {
       const requestUrl =
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -714,8 +716,8 @@ describe("Caocao live order projection", () => {
       requestPaths.push(url.pathname);
 
       if (url.pathname.endsWith("/common/queryOrderDetailV2")) {
-        expect(init).toBeUndefined();
-        expect(url.searchParams.get("order_id")).toBe("CC123456");
+        requestInit = init;
+        requestedOrderId = url.searchParams.get("order_id");
         return new Response(
           JSON.stringify({
             code: 200,
@@ -743,6 +745,8 @@ describe("Caocao live order projection", () => {
     const bill = await adapter.queryFinalSettlement({ providerOrderId: "CC123456" });
 
     expect(requestPaths).toEqual(["/v2/common/queryOrderDetailV2"]);
+    expect(requestInit).toBeUndefined();
+    expect(requestedOrderId).toBe("CC123456");
     expect(bill).toEqual({
       amountFen: 1200,
       currency: "CNY",
@@ -760,6 +764,7 @@ describe("Caocao live order projection", () => {
 
   it("queries cancellation fee preview from queryCancelFee", async () => {
     const requestPaths: string[] = [];
+    let requestedOrderNo: string | null = null;
     const fetchImpl: typeof fetch = async (input) => {
       const requestUrl =
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -767,7 +772,7 @@ describe("Caocao live order projection", () => {
       requestPaths.push(url.pathname);
 
       if (url.pathname.endsWith("/common/queryCancelFee")) {
-        expect(url.searchParams.get("order_no")).toBe("CC123456");
+        requestedOrderNo = url.searchParams.get("order_no");
         return new Response(
           JSON.stringify({
             code: 200,
@@ -791,6 +796,7 @@ describe("Caocao live order projection", () => {
     const preview = await adapter.queryCancelFee({ providerOrderId: "CC123456" });
 
     expect(requestPaths).toEqual(["/v2/common/queryCancelFee"]);
+    expect(requestedOrderNo).toBe("CC123456");
     expect(preview).toEqual({
       cancelFeeFen: 800,
       providerOrderId: "CC123456",

@@ -45,11 +45,7 @@ class OperationLogServiceImpl {
   }
 
   /** Query logs for an aggregate (for admin / debugging). */
-  async queryByAggregate(
-    aggregateType: string,
-    aggregateId: string,
-    limit?: number,
-  ) {
+  async queryByAggregate(aggregateType: string, aggregateId: string, limit?: number) {
     return repo.findByAggregate(aggregateType, aggregateId, limit);
   }
 

@@ -1,13 +1,7 @@
 <template>
-  <PuPageScaffold viewport="screen"
-    class="pr-messages-page"
-    data-page="pr-messages"
-  >
+  <PuPageScaffold viewport="screen" class="pr-messages-page" data-page="pr-messages">
     <template #pageHeader>
-      <PuHeader
-        :title="t('prPage.messagePage.title')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('prPage.messagePage.title')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -24,17 +18,13 @@
       </PuHeader>
     </template>
 
-    <PuInlineNotice tone="error"
+    <PuInlineNotice
+      tone="error"
       v-if="id === null"
       :message="t('errors.missingPartnerRequestId')"
     />
 
-    <PRMessageThread
-      v-else
-      :pr-id="id"
-      :show-header="false"
-      layout="page"
-    />
+    <PRMessageThread v-else :pr-id="id" :show-header="false" layout="page" />
 
     <template #footer>
       <PageFooter variant="minimal" data-region="support" />

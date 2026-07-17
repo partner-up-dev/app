@@ -1,9 +1,6 @@
 import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  PaymentProviderInstanceConfig,
-  PaymentProviderType,
-} from "../model";
+import type { PaymentProviderInstanceConfig, PaymentProviderType } from "../model";
 import { normalizeAndValidateWeChatPayProviderConfig } from "../services/wechatpay-config-validation";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 
@@ -17,10 +14,8 @@ export type RegisterPaymentProviderInstanceInput = {
 
 const isWeChatPayApiV3Config = (
   config: PaymentProviderInstanceConfig,
-): config is Extract<
-  PaymentProviderInstanceConfig,
-  { adapterMode: "WECHAT_PAY_API_V3" }
-> => config.adapterMode === "WECHAT_PAY_API_V3";
+): config is Extract<PaymentProviderInstanceConfig, { adapterMode: "WECHAT_PAY_API_V3" }> =>
+  config.adapterMode === "WECHAT_PAY_API_V3";
 
 const mergeRegistrationConfig = (input: {
   next: PaymentProviderInstanceConfig;
@@ -68,21 +63,20 @@ export async function registerPaymentProviderInstance(
       ? normalizeAndValidateWeChatPayProviderConfig(config)
       : config;
 
-    const providerResult =
-      (existingProvider
-        ? await providerRepo.updateRegistration({
-            id: existingProvider.id,
-            displayName: input.displayName,
-            config: validatedConfig,
-          })
-        : await providerRepo.create({
-            providerType: input.providerType,
-            instanceKey: input.instanceKey,
-            status: "ACTIVE",
-            displayName: input.displayName,
-            clientId: input.clientId,
-            config: validatedConfig,
-          }));
+    const providerResult = existingProvider
+      ? await providerRepo.updateRegistration({
+          id: existingProvider.id,
+          displayName: input.displayName,
+          config: validatedConfig,
+        })
+      : await providerRepo.create({
+          providerType: input.providerType,
+          instanceKey: input.instanceKey,
+          status: "ACTIVE",
+          displayName: input.displayName,
+          clientId: input.clientId,
+          config: validatedConfig,
+        });
     if (!providerResult) {
       return throwHttpProblem({
         status: 404,

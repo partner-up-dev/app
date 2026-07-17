@@ -11,81 +11,81 @@ paths:
     get:
       operationId: queryCity
       parameters:
-        - $ref: '#/components/parameters/ClientId'
-        - $ref: '#/components/parameters/Timestamp'
-        - $ref: '#/components/parameters/Sign'
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/Timestamp"
+        - $ref: "#/components/parameters/Sign"
         - name: latitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
         - name: longitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
       responses:
-        '200':
+        "200":
           description: Query city success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryCitySuccessResponse'
+                $ref: "#/components/schemas/QueryCitySuccessResponse"
   /common/estimatePriceWithDetail:
     get:
       operationId: estimatePriceWithDetail
       parameters:
-        - $ref: '#/components/parameters/ClientId'
-        - $ref: '#/components/parameters/Timestamp'
-        - $ref: '#/components/parameters/Sign'
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/Timestamp"
+        - $ref: "#/components/parameters/Sign"
         - name: city_code
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/CityCode'
+            $ref: "#/components/schemas/CityCode"
         - name: car_type
           in: query
           required: true
           schema:
             type: string
-            enum: ['2', '3', '5', '7', '14', '15']
+            enum: ["2", "3", "5", "7", "14", "15"]
         - name: from_latitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
         - name: from_longitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
         - name: to_latitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
         - name: to_longitude
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/DecimalString'
+            $ref: "#/components/schemas/DecimalString"
         - name: order_type
           in: query
           required: false
           schema:
             type: string
-            enum: ['1', '2', '3', '4', '5', '6']
+            enum: ["1", "2", "3", "4", "5", "6"]
         - name: departure_time
           in: query
           required: false
           schema:
-            $ref: '#/components/schemas/CaocaoDateTimeString'
+            $ref: "#/components/schemas/CaocaoDateTimeString"
         - name: carpool_type
           in: query
           required: false
           schema:
             type: string
-            enum: ['0', '1']
+            enum: ["0", "1"]
         - name: count_person
           in: query
           required: false
@@ -102,7 +102,7 @@ paths:
           in: query
           required: false
           schema:
-            $ref: '#/components/schemas/PhoneNumber'
+            $ref: "#/components/schemas/PhoneNumber"
         - name: route_strategy
           in: query
           required: false
@@ -116,12 +116,12 @@ paths:
             type: string
             minLength: 1
       responses:
-        '200':
+        "200":
           description: Estimate success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EstimatePriceSuccessResponse'
+                $ref: "#/components/schemas/EstimatePriceSuccessResponse"
   /common/orderCarV2:
     post:
       operationId: orderCarV2
@@ -130,21 +130,21 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/OrderCarV2Request'
+              $ref: "#/components/schemas/OrderCarV2Request"
       responses:
-        '200':
+        "200":
           description: Create order success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderCarV2SuccessResponse'
+                $ref: "#/components/schemas/OrderCarV2SuccessResponse"
   /common/queryOrderDetailV2:
     get:
       operationId: queryOrderDetailV2
       parameters:
-        - $ref: '#/components/parameters/ClientId'
-        - $ref: '#/components/parameters/Timestamp'
-        - $ref: '#/components/parameters/Sign'
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/Timestamp"
+        - $ref: "#/components/parameters/Sign"
         - name: order_id
           in: query
           required: true
@@ -152,19 +152,19 @@ paths:
             type: string
             minLength: 1
       responses:
-        '200':
+        "200":
           description: Query order detail success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryOrderDetailSuccessResponse'
+                $ref: "#/components/schemas/QueryOrderDetailSuccessResponse"
   /common/queryDriverLocationByOrderId:
     get:
       operationId: queryDriverLocationByOrderId
       parameters:
-        - $ref: '#/components/parameters/ClientId'
-        - $ref: '#/components/parameters/Timestamp'
-        - $ref: '#/components/parameters/Sign'
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/Timestamp"
+        - $ref: "#/components/parameters/Sign"
         - name: order_id
           in: query
           required: true
@@ -172,12 +172,12 @@ paths:
             type: string
             minLength: 1
       responses:
-        '200':
+        "200":
           description: Query driver location success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryDriverLocationSuccessResponse'
+                $ref: "#/components/schemas/QueryDriverLocationSuccessResponse"
   /common/queryDriverPolyline:
     post:
       operationId: queryDriverPolyline
@@ -186,14 +186,14 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/QueryDriverPolylineRequest'
+              $ref: "#/components/schemas/QueryDriverPolylineRequest"
       responses:
-        '200':
+        "200":
           description: Query driver polyline success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryDriverPolylineSuccessResponse'
+                $ref: "#/components/schemas/QueryDriverPolylineSuccessResponse"
   /common/cancelOrderV3:
     post:
       operationId: cancelOrderV3
@@ -202,21 +202,21 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CancelOrderV3Request'
+              $ref: "#/components/schemas/CancelOrderV3Request"
       responses:
-        '200':
+        "200":
           description: Cancel order success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CancelOrderSuccessResponse'
+                $ref: "#/components/schemas/CancelOrderSuccessResponse"
   /common/queryCancelFee:
     get:
       operationId: queryCancelFee
       parameters:
-        - $ref: '#/components/parameters/ClientId'
-        - $ref: '#/components/parameters/Timestamp'
-        - $ref: '#/components/parameters/Sign'
+        - $ref: "#/components/parameters/ClientId"
+        - $ref: "#/components/parameters/Timestamp"
+        - $ref: "#/components/parameters/Sign"
         - name: order_no
           in: query
           required: true
@@ -224,12 +224,12 @@ paths:
             type: string
             minLength: 1
       responses:
-        '200':
+        "200":
           description: Query cancel fee success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryCancelFeeSuccessResponse'
+                $ref: "#/components/schemas/QueryCancelFeeSuccessResponse"
   /common/queryCalculateBill:
     post:
       operationId: queryCalculateBill
@@ -238,14 +238,14 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/QueryCalculateBillRequest'
+              $ref: "#/components/schemas/QueryCalculateBillRequest"
       responses:
-        '200':
+        "200":
           description: Query calculate bill success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryCalculateBillSuccessResponse'
+                $ref: "#/components/schemas/QueryCalculateBillSuccessResponse"
   /common/feeConfirm:
     post:
       operationId: feeConfirm
@@ -254,14 +254,14 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/FeeConfirmRequest'
+              $ref: "#/components/schemas/FeeConfirmRequest"
       responses:
-        '200':
+        "200":
           description: Fee confirm success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FeeConfirmSuccessResponse'
+                $ref: "#/components/schemas/FeeConfirmSuccessResponse"
 webhooks:
   notifyOrderStatus:
     post:
@@ -271,14 +271,14 @@ webhooks:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/NotifyOrderStatusForm'
+              $ref: "#/components/schemas/NotifyOrderStatusForm"
       responses:
-        '200':
+        "200":
           description: Callback ack
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CallbackAckResponse'
+                $ref: "#/components/schemas/CallbackAckResponse"
 components:
   parameters:
     ClientId:
@@ -400,7 +400,7 @@ components:
           type: string
           minLength: 1
         location:
-          $ref: '#/components/schemas/DriverInfoLocation'
+          $ref: "#/components/schemas/DriverInfoLocation"
         name:
           type: string
           minLength: 1
@@ -408,12 +408,12 @@ components:
           type: string
           minLength: 1
         phone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         phone_passenger:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         serviceType:
           type: string
-          enum: ['2', '3', '4', '5', '7', '12', '14', '15']
+          enum: ["2", "3", "4", "5", "7", "12", "14", "15"]
     OrderFeeDetailFeeVo:
       type: object
       additionalProperties: false
@@ -442,26 +442,26 @@ components:
         companyPayAmount:
           type:
             - integer
-            - 'null'
+            - "null"
         detailFeeVos:
           type: array
           items:
-            $ref: '#/components/schemas/OrderFeeDetailFeeVo'
+            $ref: "#/components/schemas/OrderFeeDetailFeeVo"
         doubleTollFlag:
           type: integer
           enum: [0]
         originTotalFee:
           type:
             - integer
-            - 'null'
+            - "null"
         personalPayAmount:
           type:
             - integer
-            - 'null'
+            - "null"
         totalFee:
           type:
             - integer
-            - 'null'
+            - "null"
     OrderPayVo:
       type: object
       additionalProperties: false
@@ -472,11 +472,11 @@ components:
         giftAmount:
           type:
             - integer
-            - 'null'
+            - "null"
         principalAmount:
           type:
             - integer
-            - 'null'
+            - "null"
     OrderInvoiceVo:
       type: object
       additionalProperties: false
@@ -487,11 +487,11 @@ components:
         companyAmount:
           type:
             - integer
-            - 'null'
+            - "null"
         personalAmount:
           type:
             - integer
-            - 'null'
+            - "null"
     DriverPolylineLink:
       type: object
       additionalProperties: false
@@ -520,7 +520,7 @@ components:
         links:
           type: array
           items:
-            $ref: '#/components/schemas/DriverPolylineLink'
+            $ref: "#/components/schemas/DriverPolylineLink"
         time:
           type: integer
     DriverEtaInfoVO:
@@ -590,7 +590,7 @@ components:
         - city_name
       properties:
         city_code:
-          $ref: '#/components/schemas/CityCode'
+          $ref: "#/components/schemas/CityCode"
         city_name:
           type: string
           minLength: 1
@@ -614,7 +614,7 @@ components:
         detail:
           type: array
           items:
-            $ref: '#/components/schemas/EstimateChargeDetail'
+            $ref: "#/components/schemas/EstimateChargeDetail"
         distance:
           type: integer
         duration:
@@ -686,23 +686,23 @@ components:
         beginChargeTime:
           type:
             - string
-            - 'null'
+            - "null"
           pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
         callbackInfo:
           type:
             - string
-            - 'null'
+            - "null"
         callerPhone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         cityCode:
-          $ref: '#/components/schemas/CityCode'
+          $ref: "#/components/schemas/CityCode"
         companyNo:
           type: string
           minLength: 1
         departureTime:
           type:
             - string
-            - 'null'
+            - "null"
           pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
         endAddress:
           type: string
@@ -718,7 +718,7 @@ components:
         extraInfo:
           type: string
         fromLocation:
-          $ref: '#/components/schemas/Coordinate'
+          $ref: "#/components/schemas/Coordinate"
         invoiceStatus:
           type: integer
           enum: [0, 1, 2]
@@ -730,9 +730,9 @@ components:
           type: string
           minLength: 1
         orderLocation:
-          $ref: '#/components/schemas/Coordinate'
+          $ref: "#/components/schemas/Coordinate"
         orderTime:
-          $ref: '#/components/schemas/CaocaoDateTimeString'
+          $ref: "#/components/schemas/CaocaoDateTimeString"
         origin:
           type: integer
           enum: [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -740,19 +740,19 @@ components:
           type: string
           minLength: 1
         passengerPhone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         preOrderEndFlag:
           type: boolean
         realEndAddress:
           type: string
           minLength: 1
         realEndLocation:
-          $ref: '#/components/schemas/RealCoordinate'
+          $ref: "#/components/schemas/RealCoordinate"
         realStartAddress:
           type: string
           minLength: 1
         realStartLocation:
-          $ref: '#/components/schemas/RealCoordinate'
+          $ref: "#/components/schemas/RealCoordinate"
         requireLevel:
           type: integer
           enum: [2, 3, 4, 5, 7, 12, 14, 15]
@@ -769,13 +769,13 @@ components:
         startServiceTime:
           type:
             - string
-            - 'null'
+            - "null"
           pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
         status:
           type: string
-          enum: ['1', '3', '5', '9', '12', '20']
+          enum: ["1", "3", "5", "9", "12", "20"]
         toLocation:
-          $ref: '#/components/schemas/Coordinate'
+          $ref: "#/components/schemas/Coordinate"
         type:
           type: integer
           enum: [1, 2, 3, 4, 5, 6]
@@ -787,15 +787,15 @@ components:
         - orderFeeVo
       properties:
         basicOrderVO:
-          $ref: '#/components/schemas/QueryOrderDetailBasicOrderVO'
+          $ref: "#/components/schemas/QueryOrderDetailBasicOrderVO"
         driverInfoVo:
-          $ref: '#/components/schemas/DriverInfoVo'
+          $ref: "#/components/schemas/DriverInfoVo"
         orderInvoiceVo:
-          $ref: '#/components/schemas/OrderInvoiceVo'
+          $ref: "#/components/schemas/OrderInvoiceVo"
         orderFeeVo:
-          $ref: '#/components/schemas/OrderFeeVo'
+          $ref: "#/components/schemas/OrderFeeVo"
         orderPayVo:
-          $ref: '#/components/schemas/OrderPayVo'
+          $ref: "#/components/schemas/OrderPayVo"
     QueryDriverPolylineData:
       type: object
       additionalProperties: false
@@ -814,7 +814,7 @@ components:
         allTime:
           type: integer
         driverEtaInfoVO:
-          $ref: '#/components/schemas/DriverEtaInfoVO'
+          $ref: "#/components/schemas/DriverEtaInfoVO"
         driverNo:
           type: string
           minLength: 1
@@ -830,7 +830,7 @@ components:
         steps:
           type: array
           items:
-            $ref: '#/components/schemas/DriverPolylineStep'
+            $ref: "#/components/schemas/DriverPolylineStep"
     CancelFeeData:
       type: object
       additionalProperties: false
@@ -874,7 +874,7 @@ components:
         code:
           type: integer
         data:
-          type: 'null'
+          type: "null"
         msg:
           type: string
           minLength: 1
@@ -894,7 +894,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/QueryCityData'
+          $ref: "#/components/schemas/QueryCityData"
         msg:
           type: string
           const: OK
@@ -914,7 +914,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/EstimatePriceData'
+          $ref: "#/components/schemas/EstimatePriceData"
         msg:
           type: string
           const: OK
@@ -934,7 +934,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/OrderCarV2Data'
+          $ref: "#/components/schemas/OrderCarV2Data"
         msg:
           type: string
           const: OK
@@ -954,7 +954,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/QueryOrderDetailData'
+          $ref: "#/components/schemas/QueryOrderDetailData"
         msg:
           type: string
           const: OK
@@ -974,7 +974,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/DriverLocation'
+          $ref: "#/components/schemas/DriverLocation"
         msg:
           type: string
           const: OK
@@ -994,7 +994,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/QueryDriverPolylineData'
+          $ref: "#/components/schemas/QueryDriverPolylineData"
         msg:
           type: string
           const: OK
@@ -1014,7 +1014,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/CancelFeeData'
+          $ref: "#/components/schemas/CancelFeeData"
         msg:
           type: string
           const: OK
@@ -1034,7 +1034,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/CancelFeeData'
+          $ref: "#/components/schemas/CancelFeeData"
         msg:
           type: string
           const: OK
@@ -1060,7 +1060,7 @@ components:
           type: string
           minLength: 1
         timestamp:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
     QueryCalculateBillData:
       type: object
       additionalProperties: false
@@ -1088,7 +1088,7 @@ components:
           type: integer
           const: 200
         data:
-          $ref: '#/components/schemas/QueryCalculateBillData'
+          $ref: "#/components/schemas/QueryCalculateBillData"
         msg:
           type: string
           const: OK
@@ -1108,7 +1108,7 @@ components:
           type: integer
           const: 200
         data:
-          type: 'null'
+          type: "null"
         msg:
           type: string
           const: OK
@@ -1156,36 +1156,36 @@ components:
             - estimate_price_key
           properties:
             is_simultaneously_call:
-              const: '0'
+              const: "0"
         - required:
             - service_type_price
           properties:
             is_simultaneously_call:
-              const: '1'
+              const: "1"
       properties:
         accept_cp_driver:
           type: string
-          enum: ['0', '1']
+          enum: ["0", "1"]
         accept_relay_order:
           type: string
-          enum: ['0', '1']
+          enum: ["0", "1"]
         callback_info:
           type: string
           minLength: 1
         caller_phone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         car_type:
           type: string
-          enum: ['2', '3', '4', '5', '7', '12', '14', '15']
+          enum: ["2", "3", "4", "5", "7", "12", "14", "15"]
         city_code:
-          $ref: '#/components/schemas/CityCode'
+          $ref: "#/components/schemas/CityCode"
         client_id:
           type: string
           minLength: 1
         count_person:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
         departure_time:
-          $ref: '#/components/schemas/CaocaoDateTimeString'
+          $ref: "#/components/schemas/CaocaoDateTimeString"
         dynamic_rule_id:
           type: string
         end_address:
@@ -1197,7 +1197,7 @@ components:
         end_poi_id:
           type: string
         estimate_price:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
         estimate_price_key:
           type: string
           minLength: 1
@@ -1211,33 +1211,33 @@ components:
         flight_no:
           type: string
         flt_takeoff_time:
-          $ref: '#/components/schemas/CaocaoDateTimeString'
+          $ref: "#/components/schemas/CaocaoDateTimeString"
         from_latitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         from_longitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         is_simultaneously_call:
           type: string
-          enum: ['0', '1']
+          enum: ["0", "1"]
         line_type:
           type: string
           pattern: '^\d+$'
         order_latitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         order_longitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         order_tags:
           type: string
         order_type:
           type: string
-          enum: ['1', '2', '3', '4', '5', '6']
+          enum: ["1", "2", "3", "4", "5", "6"]
         passenger_hide_phone:
           type: string
-          enum: ['0', '1']
+          enum: ["0", "1"]
         passenger_name:
           type: string
         passenger_phone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         service_type_price:
           type: string
           minLength: 1
@@ -1258,9 +1258,9 @@ components:
           type: string
           pattern: '^\d+$'
         to_latitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         to_longitude:
-          $ref: '#/components/schemas/DecimalString'
+          $ref: "#/components/schemas/DecimalString"
         waypointList:
           type: string
     QueryDriverPolylineRequest:
@@ -1278,7 +1278,7 @@ components:
           minLength: 1
         navigation_polyline_type:
           type: string
-          enum: ['1', '3']
+          enum: ["1", "3"]
         order_id:
           type: string
           minLength: 1
@@ -1302,7 +1302,28 @@ components:
       properties:
         cancel_code:
           type: string
-          enum: ['1', '2', '3', '4', '5', '6', '8', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '24', '25']
+          enum:
+            [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "8",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "24",
+              "25",
+            ]
         cancel_reason:
           type: string
           minLength: 1
@@ -1320,7 +1341,7 @@ components:
           pattern: '^\d+$'
         who_cancel:
           type: string
-          enum: ['1', '2']
+          enum: ["1", "2"]
     FeeConfirmRequest:
       type: object
       additionalProperties: false
@@ -1333,9 +1354,9 @@ components:
         - timestamp
       properties:
         allowance_amount:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
         cao_allowance_amount:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
         client_id:
           type: string
           minLength: 1
@@ -1368,15 +1389,47 @@ components:
           type: string
           minLength: 1
         driver_phone:
-          $ref: '#/components/schemas/PhoneNumber'
+          $ref: "#/components/schemas/PhoneNumber"
         event:
           type: string
-          enum: ['1', '2', '3', '4', '5', '6', '9', '11', '12', '13', '14', '20', '21', '22', '23', '24', '25', '26', '27', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50']
+          enum:
+            [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "9",
+              "11",
+              "12",
+              "13",
+              "14",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24",
+              "25",
+              "26",
+              "27",
+              "40",
+              "41",
+              "42",
+              "43",
+              "44",
+              "45",
+              "46",
+              "47",
+              "48",
+              "49",
+              "50",
+            ]
         ext_order_id:
           type: string
           minLength: 1
         final_amount_fen:
-          $ref: '#/components/schemas/IntegerString'
+          $ref: "#/components/schemas/IntegerString"
         order_id:
           type: string
           minLength: 1

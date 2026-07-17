@@ -9,8 +9,7 @@ import { isWeChatAbilityEnv } from "@/shared/wechat/ability-mocking";
 export const usePRReminderSubscription = (id: Ref<PRId | null>) => {
   const { t } = useI18n();
   const wechatReminderSubscriptionQuery = useWeChatReminderSubscription();
-  const updateWechatReminderSubscriptionMutation =
-    useUpdateWeChatReminderSubscription();
+  const updateWechatReminderSubscriptionMutation = useUpdateWeChatReminderSubscription();
 
   const isWeChatEnv = computed(() =>
     typeof navigator === "undefined" ? false : isWeChatAbilityEnv(),

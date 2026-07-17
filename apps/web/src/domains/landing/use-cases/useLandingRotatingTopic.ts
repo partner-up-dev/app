@@ -26,9 +26,7 @@ const rotatingTopics: ReadonlyArray<{ name: string; example: string }> = [
 
 const topicIndex = ref(0);
 const rotatingTopicName = ref(rotatingTopics[topicIndex.value]?.name ?? "");
-const rotatingTopicExample = ref(
-  rotatingTopics[topicIndex.value]?.example ?? "",
-);
+const rotatingTopicExample = ref(rotatingTopics[topicIndex.value]?.example ?? "");
 
 const normalizeIndex = (index: number) => {
   const total = rotatingTopics.length;

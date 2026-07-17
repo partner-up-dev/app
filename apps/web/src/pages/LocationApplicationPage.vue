@@ -23,11 +23,7 @@
     </template>
 
     <div class="location-application-page__body">
-      <PuInlineNotice
-        v-if="submitSuccessTitle"
-        tone="success"
-        :message="submitSuccessTitle"
-      />
+      <PuInlineNotice v-if="submitSuccessTitle" tone="success" :message="submitSuccessTitle" />
       <PuInlineNotice tone="error" v-if="pageError" :message="pageError" />
 
       <PuCard as="section" gap="md">
@@ -69,11 +65,7 @@
               @reject="handleImageUploadReject"
               @update:model-value="handleImageUploadUpdate"
             />
-            <PuInlineNotice
-              v-if="imageUploadError"
-              tone="error"
-              :message="imageUploadError"
-            />
+            <PuInlineNotice v-if="imageUploadError" tone="error" :message="imageUploadError" />
           </PuFormItem>
 
           <PuButton
@@ -96,10 +88,7 @@
           </div>
         </div>
 
-        <PuLoadingState
-          v-if="applicationsQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
+        <PuLoadingState v-if="applicationsQuery.isLoading.value" :message="t('common.loading')" />
         <p v-else-if="applications.length === 0" class="empty-text">
           {{ t("locationApplicationPage.emptyMine") }}
         </p>

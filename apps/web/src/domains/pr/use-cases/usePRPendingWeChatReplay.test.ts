@@ -1,15 +1,7 @@
 // @vitest-environment happy-dom
 
 import { afterEach, describe, expect, test, vi } from "vitest";
-import {
-  computed,
-  createApp,
-  defineComponent,
-  h,
-  nextTick,
-  ref,
-  type App,
-} from "vue";
+import { computed, createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import {
   clearPendingWeChatAction,
   readPendingWeChatAction,
@@ -39,7 +31,7 @@ describe("usePRPendingWeChatReplay", () => {
     const prId = ref<number | null>(123);
     const pageReady = ref(true);
     const handlerReady = ref(false);
-    const replay = vi.fn();
+    const replay = vi.fn<() => Promise<void> | void>();
     const registry = createPRPendingReplayRegistry();
 
     setPendingWeChatAction({ kind: "PR_JOIN", prId: 123 });
@@ -71,7 +63,7 @@ describe("usePRPendingWeChatReplay", () => {
     const prId = ref<number | null>(123);
     const pageReady = ref(true);
     const showHandler = ref(false);
-    const replay = vi.fn();
+    const replay = vi.fn<() => Promise<void> | void>();
     const registryBox: { value: PRPendingReplayRegistry | null } = {
       value: null,
     };
@@ -115,7 +107,7 @@ describe("usePRPendingWeChatReplay", () => {
 
   test("ignores pending actions for another PR", async () => {
     const prId = ref<number | null>(123);
-    const replay = vi.fn();
+    const replay = vi.fn<() => Promise<void> | void>();
     const registry = createPRPendingReplayRegistry();
 
     setPendingWeChatAction({ kind: "PR_CONFIRM", prId: 456 });

@@ -1,8 +1,5 @@
 import { computed } from "vue";
-import {
-  PUBLIC_CONFIG_KEYS,
-  usePublicConfig,
-} from "@/shared/config/queries/usePublicConfig";
+import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
 
 const normalizeHttpUrl = (value: string | null | undefined): string | null => {
   if (!value) return null;
@@ -20,19 +17,12 @@ const normalizeHttpUrl = (value: string | null | undefined): string | null => {
 };
 
 export const useHomePageWechatQrCode = () => {
-  const homePageWechatQrCodeQuery = usePublicConfig(
-    PUBLIC_CONFIG_KEYS.homePageWechatQrCode,
-  );
+  const homePageWechatQrCodeQuery = usePublicConfig(PUBLIC_CONFIG_KEYS.homePageWechatQrCode);
 
-  const homePageWechatQrCodeLoading = computed(
-    () => homePageWechatQrCodeQuery.isLoading.value,
-  );
+  const homePageWechatQrCodeLoading = computed(() => homePageWechatQrCodeQuery.isLoading.value);
 
   const homePageWechatQrCodeUrl = computed(() => {
-    if (
-      homePageWechatQrCodeQuery.isLoading.value ||
-      homePageWechatQrCodeQuery.error.value
-    ) {
+    if (homePageWechatQrCodeQuery.isLoading.value || homePageWechatQrCodeQuery.error.value) {
       return null;
     }
 

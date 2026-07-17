@@ -21,24 +21,20 @@
         {{ statusPlaceholder }}
       </span>
 
-      <strong
-        class="bill-card__amount"
-        data-testid="order-detail.ride-hailing.bill-card.amount"
-      >
+      <strong class="bill-card__amount" data-testid="order-detail.ride-hailing.bill-card.amount">
         {{ amountLabel }}
       </strong>
     </div>
     <PuButton
-        :action="billLinkAction"
-        shape="rect"
-        tone="neutral"
-        variant="soft"
-        size="sm"
-        data-testid="order-detail.ride-hailing.bill-card.view"
-      >
-        查看
-      </PuButton>
-
+      :action="billLinkAction"
+      shape="rect"
+      tone="neutral"
+      variant="soft"
+      size="sm"
+      data-testid="order-detail.ride-hailing.bill-card.view"
+    >
+      查看
+    </PuButton>
   </PuCard>
 </template>
 

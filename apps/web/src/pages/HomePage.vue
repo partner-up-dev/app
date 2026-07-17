@@ -34,10 +34,7 @@
             </div>
             <span class="creator-action-text">
               {{ t("home.landing.secondaryCreateAction") }}
-              <span
-                class="creator-action-icon i-mdi:arrow-right"
-                aria-hidden="true"
-              ></span>
+              <span class="creator-action-icon i-mdi:arrow-right" aria-hidden="true"></span>
             </span>
           </RouterLink>
           <LandingWeChatAccessSection />
@@ -195,9 +192,7 @@ onUnmounted(() => {
 .home-section--hero {
   min-height: var(--pu-vh);
   justify-content: space-between;
-  padding-top: calc(
-    var(--landing-section-padding-block) + var(--pu-safe-top)
-  );
+  padding-top: calc(var(--landing-section-padding-block) + var(--pu-safe-top));
   animation-delay: 40ms;
 }
 
@@ -350,14 +345,8 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .home-section {
     gap: var(--landing-section-gap-compact);
-    padding-left: calc(
-      var(--landing-section-padding-inline-compact) +
-        var(--pu-safe-left)
-    );
-    padding-right: calc(
-      var(--landing-section-padding-inline-compact) +
-        var(--pu-safe-right)
-    );
+    padding-left: calc(var(--landing-section-padding-inline-compact) + var(--pu-safe-left));
+    padding-right: calc(var(--landing-section-padding-inline-compact) + var(--pu-safe-right));
   }
 
   .section-header h2 {

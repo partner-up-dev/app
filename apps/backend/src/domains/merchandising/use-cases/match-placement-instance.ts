@@ -10,10 +10,7 @@ import {
   listMatchingPlacementCandidates,
   resolvePlacementBindings,
 } from "../services";
-import {
-  getOrderingOfferDetail,
-  type OrderingOfferDetail,
-} from "./get-ordering-offer-detail";
+import { getOrderingOfferDetail, type OrderingOfferDetail } from "./get-ordering-offer-detail";
 
 const placementRepo = new PlacementRepository();
 const offerRepo = new OfferRepository();
@@ -115,15 +112,10 @@ const readPrIdFromMatchingContext = (matchingContext: unknown): number | undefin
     return undefined;
   }
   const candidate = (matchingContext as Record<string, unknown>).prId;
-  return typeof candidate === "number" && Number.isInteger(candidate)
-    ? candidate
-    : undefined;
+  return typeof candidate === "number" && Number.isInteger(candidate) ? candidate : undefined;
 };
 
-const readRecordProperty = (
-  value: unknown,
-  key: string,
-): unknown | undefined => {
+const readRecordProperty = (value: unknown, key: string): unknown | undefined => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return undefined;
   }
@@ -136,9 +128,7 @@ const readTimeString = (matchingContext: unknown, key: "startAt" | "endAt") => {
   return typeof value === "string" ? new Date(value).toISOString() : null;
 };
 
-const readCoordinate = (
-  value: unknown,
-): { latitude: number; longitude: number } | null => {
+const readCoordinate = (value: unknown): { latitude: number; longitude: number } | null => {
   if (!Array.isArray(value) || value.length < 2) return null;
   const latitude = value[0];
   const longitude = value[1];
@@ -152,9 +142,7 @@ const readRoutePlace = (value: unknown) => {
   }
   const record = value as Record<string, unknown>;
   const coordinate =
-    readCoordinate(record.gcj02) ??
-    readCoordinate(record.bd09) ??
-    readCoordinate(record.wgs84);
+    readCoordinate(record.gcj02) ?? readCoordinate(record.bd09) ?? readCoordinate(record.wgs84);
   if (!coordinate || typeof record.name !== "string") return null;
   return {
     name: record.name,
@@ -216,20 +204,14 @@ export async function resolvePlacementOrderingEntry(input: {
   const startAt = readTimeString(input.matchingContext, "startAt");
   const endAt = readTimeString(input.matchingContext, "endAt");
   const activeParticipants =
-    prId === undefined
-      ? []
-      : await partnerRepo.listActiveParticipantSummariesByPrId(prId as PRId);
+    prId === undefined ? [] : await partnerRepo.listActiveParticipantSummariesByPrId(prId as PRId);
   const viewerParticipant = input.viewerUserId
-    ? (activeParticipants.find(
-        (participant) => participant.userId === input.viewerUserId,
-      ) ?? null)
+    ? (activeParticipants.find((participant) => participant.userId === input.viewerUserId) ?? null)
     : null;
   if (
     prId !== undefined &&
     (!input.viewerUserId ||
-      !activeParticipants.some(
-        (participant) => participant.userId === input.viewerUserId,
-      ))
+      !activeParticipants.some((participant) => participant.userId === input.viewerUserId))
   ) {
     return throwHttpProblem({
       status: 403,

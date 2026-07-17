@@ -1,9 +1,9 @@
-import { pgTable, text } from 'drizzle-orm/pg-core';
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { pgTable, text } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-export const config = pgTable('config', {
-  key: text('key').primaryKey(),
-  value: text('value').notNull(),
+export const config = pgTable("config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const insertConfigSchema = createInsertSchema(config);

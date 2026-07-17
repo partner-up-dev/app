@@ -27,16 +27,10 @@
               :pr-type="candidate.type"
               entry-surface="pr_discovery_form_candidate"
               :candidate-rank="index + 1"
-              @joined="
-                emit('join-candidate-joined', candidate.prId, index + 1)
-              "
-              @success-closed="
-                emit('join-candidate-success-closed', candidate.prId, index + 1)
-              "
+              @joined="emit('join-candidate-joined', candidate.prId, index + 1)"
+              @success-closed="emit('join-candidate-success-closed', candidate.prId, index + 1)"
             >
-              <template
-                #trigger="{ open, pending, disabled, joined, errorMessage }"
-              >
+              <template #trigger="{ open, pending, disabled, joined, errorMessage }">
                 <div class="candidate-join-flow">
                   <PuButton
                     shape="rect"
@@ -46,9 +40,7 @@
                     :data-rank="index + 1"
                     :loading="pending"
                     :disabled="disabled"
-                    @click="
-                      handleJoinCandidateClick(candidate.prId, index + 1, open)
-                    "
+                    @click="handleJoinCandidateClick(candidate.prId, index + 1, open)"
                   >
                     {{
                       joined
@@ -56,11 +48,7 @@
                         : t("prDiscovery.joinCandidateAction")
                     }}
                   </PuButton>
-                  <PuInlineNotice
-                    v-if="errorMessage"
-                    tone="error"
-                    :message="errorMessage"
-                  />
+                  <PuInlineNotice v-if="errorMessage" tone="error" :message="errorMessage" />
                 </div>
               </template>
             </PRJoinAction>

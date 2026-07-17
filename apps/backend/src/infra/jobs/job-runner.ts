@@ -4,10 +4,7 @@ import { jobs } from "../../entities/job";
 import { db } from "../../lib/db";
 import { toErrorMessage } from "../../lib/error-message";
 import { applyLocalStatementTimeout } from "../../lib/pg-timeouts";
-import {
-  NO_LATE_TOLERANCE_UNITS,
-  resolveScheduleTiming,
-} from "./schedule-timing";
+import { NO_LATE_TOLERANCE_UNITS, resolveScheduleTiming } from "./schedule-timing";
 
 const TICK_LOCK_NAMESPACE = 2_147_483_001;
 const TICK_LOCK_KEY = 1;
@@ -145,9 +142,7 @@ class JobRunnerImpl {
     this.handlers.delete(jobType);
   }
 
-  async deletePendingJobsByDedupe(
-    config: DeletePendingJobsByDedupeConfig,
-  ): Promise<number> {
+  async deletePendingJobsByDedupe(config: DeletePendingJobsByDedupeConfig): Promise<number> {
     const dedupeKey = config.dedupeKey?.trim();
     const dedupeKeyPrefix = config.dedupeKeyPrefix?.trim();
     if (!dedupeKey && !dedupeKeyPrefix) {
@@ -177,10 +172,7 @@ class JobRunnerImpl {
   async scheduleOnce(config: ScheduleOnceConfig): Promise<ScheduleOnceResult> {
     const payload = config.payload ?? {};
     const timing = resolveScheduleTiming(config);
-    const maxAttempts = Math.max(
-      1,
-      positiveOr(config.maxAttempts, DEFAULT_MAX_ATTEMPTS),
-    );
+    const maxAttempts = Math.max(1, positiveOr(config.maxAttempts, DEFAULT_MAX_ATTEMPTS));
 
     try {
       const insertedRows = await db
@@ -217,10 +209,7 @@ class JobRunnerImpl {
     const maxBatches = positiveOr(options.maxBatches, DEFAULT_MAX_BATCHES);
     const budgetMs = positiveOr(options.budgetMs, DEFAULT_BUDGET_MS);
     const leaseMs = positiveOr(options.leaseMs, DEFAULT_LEASE_MS);
-    const claimStatementTimeoutMs = positiveOr(
-      options.claimStatementTimeoutMs,
-      budgetMs,
-    );
+    const claimStatementTimeoutMs = positiveOr(options.claimStatementTimeoutMs, budgetMs);
     const startedAt = Date.now();
 
     const summary: RunDueJobsSummary = {
@@ -246,11 +235,7 @@ class JobRunnerImpl {
           break;
         }
 
-        const claim = await this.claimDueBatch(
-          batchSize,
-          leaseMs,
-          claimStatementTimeoutMs,
-        );
+        const claim = await this.claimDueBatch(batchSize, leaseMs, claimStatementTimeoutMs);
         summary.missed += claim.missed;
 
         if (claim.lockSkipped) {
@@ -266,10 +251,7 @@ class JobRunnerImpl {
           summary.claimed += 1;
           const handler = this.handlers.get(job.jobType);
           if (!handler) {
-            await this.markFailed(
-              job.id,
-              `No handler registered for job type "${job.jobType}"`,
-            );
+            await this.markFailed(job.id, `No handler registered for job type "${job.jobType}"`);
             summary.failed += 1;
             continue;
           }
@@ -335,10 +317,8 @@ class JobRunnerImpl {
     leaseMs: number,
     statementTimeoutMs?: number,
   ): Promise<ClaimBatchResult> {
-    const dueBucketSql =
-      sql`floor(extract(epoch from run_at) * 1000.0 / resolution_ms)`;
-    const nowBucketSql =
-      sql`floor(extract(epoch from now()) * 1000.0 / resolution_ms)`;
+    const dueBucketSql = sql`floor(extract(epoch from run_at) * 1000.0 / resolution_ms)`;
+    const nowBucketSql = sql`floor(extract(epoch from now()) * 1000.0 / resolution_ms)`;
 
     return db.transaction(async (tx) => {
       await applyLocalStatementTimeout(tx, statementTimeoutMs);
@@ -452,11 +432,7 @@ class JobRunnerImpl {
       .where(eq(jobs.id, jobId));
   }
 
-  private async markRetry(
-    jobId: number,
-    message: string,
-    attempts: number,
-  ): Promise<void> {
+  private async markRetry(jobId: number, message: string, attempts: number): Promise<void> {
     const retryDelayMs = Math.min(MAX_RETRY_DELAY_MS, attempts * BASE_RETRY_DELAY_MS);
     await db
       .update(jobs)

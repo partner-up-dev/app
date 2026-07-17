@@ -640,7 +640,9 @@ scenario("commerce_rental_ordering_unpaid_dialog_opens_my_bills", async (ctx) =>
     });
     assert.equal(new URL(page.url()).pathname, "/bills");
 
-    const firstBillViewAction = page.getByTestId("order-detail.ride-hailing.bill-card.view").first();
+    const firstBillViewAction = page
+      .getByTestId("order-detail.ride-hailing.bill-card.view")
+      .first();
     await firstBillViewAction.waitFor({
       state: "visible",
       timeout: 10_000,

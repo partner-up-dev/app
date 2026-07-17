@@ -42,21 +42,14 @@ const canvasToBlob = async (canvas: HTMLCanvasElement): Promise<Blob> => {
   });
 };
 
-const wrapText = (
-  context: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-): string[] => {
+const wrapText = (context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
   const chars = Array.from(text.trim());
   const lines: string[] = [];
   let currentLine = "";
 
   for (const char of chars) {
     const candidate = `${currentLine}${char}`;
-    if (
-      currentLine.length > 0 &&
-      context.measureText(candidate).width > maxWidth
-    ) {
+    if (currentLine.length > 0 && context.measureText(candidate).width > maxWidth) {
       lines.push(currentLine);
       currentLine = char;
       if (lines.length === MAX_TITLE_LINES) break;
@@ -72,10 +65,7 @@ const wrapText = (
   if (lines.length === MAX_TITLE_LINES && lines[MAX_TITLE_LINES - 1]) {
     const lastIndex = MAX_TITLE_LINES - 1;
     let lastLine = lines[lastIndex];
-    while (
-      lastLine.length > 1 &&
-      context.measureText(`${lastLine}...`).width > maxWidth
-    ) {
+    while (lastLine.length > 1 && context.measureText(`${lastLine}...`).width > maxWidth) {
       lastLine = lastLine.slice(0, -1);
     }
     lines[lastIndex] = `${lastLine}...`;
@@ -105,10 +95,7 @@ const drawRoundedRect = (
   context.closePath();
 };
 
-const renderQrPosterBlob = async ({
-  title,
-  targetUrl,
-}: PosterInput): Promise<Blob> => {
+const renderQrPosterBlob = async ({ title, targetUrl }: PosterInput): Promise<Blob> => {
   const { default: QRCode } = await import("qrcode");
   const qrCodeDataUrl = await QRCode.toDataURL(targetUrl, {
     errorCorrectionLevel: "M",
@@ -143,11 +130,7 @@ const renderQrPosterBlob = async ({
   context.textAlign = "center";
   context.textBaseline = "top";
 
-  const titleLines = wrapText(
-    context,
-    title,
-    POSTER_WIDTH - POSTER_PADDING * 2,
-  );
+  const titleLines = wrapText(context, title, POSTER_WIDTH - POSTER_PADDING * 2);
   const titleBlockHeight = titleLines.length * TITLE_LINE_HEIGHT;
   const titleStartY = 92;
   titleLines.forEach((line, index) => {

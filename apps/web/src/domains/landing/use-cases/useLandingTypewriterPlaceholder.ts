@@ -24,9 +24,7 @@ export const useLandingTypewriterPlaceholder = () => {
   let stopAnimation = false;
 
   const activeExampleText = computed(
-    () =>
-      rotatingTopics[normalizeIndex(activeTopicIndex.value, topicCount)]?.example ??
-      "",
+    () => rotatingTopics[normalizeIndex(activeTopicIndex.value, topicCount)]?.example ?? "",
   );
 
   const wait = async (delayMs: number): Promise<void> => {
@@ -77,9 +75,7 @@ export const useLandingTypewriterPlaceholder = () => {
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (prefersReducedMotion) {
       typedExampleText.value = activeExampleText.value;

@@ -16,8 +16,7 @@ const parseTimeOfDay = (value: string): number | null => {
   return Number(match[1]) * 60 + Number(match[2]);
 };
 
-const minuteOfUtcDay = (value: Date): number =>
-  value.getUTCHours() * 60 + value.getUTCMinutes();
+const minuteOfUtcDay = (value: Date): number => value.getUTCHours() * 60 + value.getUTCMinutes();
 
 const isWithinDailyWindow = (input: {
   startMinute: number;
@@ -26,10 +25,7 @@ const isWithinDailyWindow = (input: {
   windowEndMinute: number;
 }): boolean => {
   if (input.windowStartMinute > input.windowEndMinute) return false;
-  return (
-    input.startMinute >= input.windowStartMinute &&
-    input.endMinute <= input.windowEndMinute
-  );
+  return input.startMinute >= input.windowStartMinute && input.endMinute <= input.windowEndMinute;
 };
 
 export function validateRentalServicePolicyAvailability(input: {
@@ -49,14 +45,12 @@ export function validateRentalServicePolicyAvailability(input: {
     return "预约时间无效";
   }
 
-  const leadTimeMs =
-    input.servicePolicy.bookingLeadTimeMinutes * 60 * 1000;
+  const leadTimeMs = input.servicePolicy.bookingLeadTimeMinutes * 60 * 1000;
   if (serviceStartAt.getTime() - now.getTime() < leadTimeMs) {
     return "预约时间未满足商品提前预订要求";
   }
 
-  const serviceWindow =
-    input.servicePolicy.serviceWindow ?? defaultRentalServiceWindow();
+  const serviceWindow = input.servicePolicy.serviceWindow ?? defaultRentalServiceWindow();
   if (!serviceWindow.weekdays.includes(serviceStartAt.getUTCDay())) {
     return "预约时间不在商品可服务日期内";
   }

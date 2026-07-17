@@ -3,12 +3,19 @@ import { spawnSync } from "node:child_process";
 const strict = process.argv.includes("--strict");
 const report = process.argv.includes("--report");
 
-if (!strict && !report) {
+if (strict === report) {
   console.error("Usage: node scripts/run-semgrep.mjs --report|--strict");
   process.exit(2);
 }
 
-const args = ["scan", "--config", "tools/semgrep/security.yml", "--metrics=off", "--quiet"];
+const args = [
+  "scan",
+  "--config",
+  "tools/semgrep/security.yml",
+  "--metrics=off",
+  "--quiet",
+  strict ? "--error" : "--no-error",
+];
 
 const resolveCommand = process.platform === "win32" ? "where semgrep" : "command -v semgrep";
 const resolved = spawnSync(resolveCommand, {
@@ -17,8 +24,9 @@ const resolved = spawnSync(resolveCommand, {
 });
 
 if ((resolved.status ?? 1) !== 0) {
-  const message =
-    "semgrep is not installed; skipping security report. CI installs semgrep before running this command.";
+  const message = strict
+    ? "semgrep is not installed; the strict security check cannot run. CI installs semgrep before running this command."
+    : "semgrep is not installed; skipping the security report. CI installs semgrep before running this command.";
 
   if (strict) {
     console.error(message);
@@ -37,7 +45,9 @@ const result = spawnSync("semgrep", args, {
 if (result.error) {
   const message =
     result.error.code === "ENOENT"
-      ? "semgrep is not installed; skipping security report. CI installs semgrep before running this command."
+      ? strict
+        ? "semgrep is not installed; the strict security check cannot run. CI installs semgrep before running this command."
+        : "semgrep is not installed; skipping the security report. CI installs semgrep before running this command."
       : `semgrep failed to start: ${result.error.message}`;
 
   if (strict) {
@@ -54,5 +64,7 @@ if (strict) {
 }
 
 if ((result.status ?? 0) !== 0) {
-  console.warn("semgrep reported findings; report mode keeps this non-blocking.");
+  console.warn(
+    `semgrep exited with status ${result.status ?? "unknown"}; report mode remains non-blocking.`,
+  );
 }

@@ -2,10 +2,7 @@ import { useMutation } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { adminClient } from "@/lib/admin-rpc";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };

@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  bigserial,
-  text,
-  jsonb,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { pgTable, bigserial, text, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,14 +11,8 @@ export const operationLogs = pgTable("operation_logs", {
   action: text("action").notNull(),
   aggregateType: text("aggregate_type").notNull(),
   aggregateId: text("aggregate_id").notNull(),
-  detail: jsonb("detail")
-    .$type<Record<string, unknown>>()
-    .notNull()
-    .default({}),
-  resultStatus: text("result_status")
-    .$type<OperationResultStatus>()
-    .notNull()
-    .default("success"),
+  detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
+  resultStatus: text("result_status").$type<OperationResultStatus>().notNull().default("success"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -6,10 +6,7 @@ const getHTMLElementCtor = (doc: Document): typeof HTMLElement | null => {
   return win?.HTMLElement ?? null;
 };
 
-const isHTMLElementInDoc = (
-  doc: Document,
-  node: unknown,
-): node is HTMLElement => {
+const isHTMLElementInDoc = (doc: Document, node: unknown): node is HTMLElement => {
   const Ctor = getHTMLElementCtor(doc);
   return Ctor !== null && node instanceof Ctor;
 };
@@ -33,34 +30,23 @@ const assertHtmlSafe = (html: string): void => {
 const CSP_META =
   "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:;\">";
 
-const BASE_STYLE =
-  "<style>html,body{margin:0;padding:0;width:100%;height:100%;}</style>";
+const BASE_STYLE = "<style>html,body{margin:0;padding:0;width:100%;height:100%;}</style>";
 
 const injectCsp = (rawHtml: string): string => {
   if (/content-security-policy/i.test(rawHtml)) return rawHtml;
 
   if (/<head[\s>]/i.test(rawHtml)) {
-    return rawHtml.replace(
-      /<head(\s[^>]*)?>/i,
-      (m) => `${m}${CSP_META}${BASE_STYLE}`,
-    );
+    return rawHtml.replace(/<head(\s[^>]*)?>/i, (m) => `${m}${CSP_META}${BASE_STYLE}`);
   }
 
   if (/<html[\s>]/i.test(rawHtml)) {
-    return rawHtml.replace(
-      /<html(\s[^>]*)?>/i,
-      (m) => `${m}<head>${CSP_META}${BASE_STYLE}</head>`,
-    );
+    return rawHtml.replace(/<html(\s[^>]*)?>/i, (m) => `${m}<head>${CSP_META}${BASE_STYLE}</head>`);
   }
 
   return `<!doctype html><html><head>${CSP_META}${BASE_STYLE}</head><body>${rawHtml}</body></html>`;
 };
 
-const pickRenderRoot = (
-  doc: Document,
-  width: number,
-  height: number,
-): HTMLElement => {
+const pickRenderRoot = (doc: Document, width: number, height: number): HTMLElement => {
   const posterRoot = doc.getElementById("poster-root");
   if (isHTMLElementInDoc(doc, posterRoot)) return posterRoot;
 
@@ -69,8 +55,7 @@ const pickRenderRoot = (
     throw new Error(i18n.global.t("errors.iframeBodyUnavailable"));
   }
 
-  const singleChild =
-    body.childElementCount === 1 ? body.firstElementChild : null;
+  const singleChild = body.childElementCount === 1 ? body.firstElementChild : null;
   const root = isHTMLElementInDoc(doc, singleChild) ? singleChild : body;
 
   // Ensure predictable sizing even when LLM forgets to set it.
@@ -82,8 +67,7 @@ const pickRenderRoot = (
 };
 
 const waitForFonts = async (doc: Document, timeoutMs = 2000): Promise<void> => {
-  const fonts = (doc as unknown as { fonts?: { ready: Promise<unknown> } })
-    .fonts;
+  const fonts = (doc as unknown as { fonts?: { ready: Promise<unknown> } }).fonts;
   if (!fonts) return;
 
   await Promise.race([

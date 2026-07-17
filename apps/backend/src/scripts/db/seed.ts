@@ -20,9 +20,7 @@ export async function runSeeds(connectionString: string): Promise<void> {
 
     for (const seedFile of seedFiles) {
       const durationMs = await applySeedFile(sql, seedFile);
-      console.info(
-        `[db:seed] apply ${seedFile.relativePath} (${durationMs}ms)`,
-      );
+      console.info(`[db:seed] apply ${seedFile.relativePath} (${durationMs}ms)`);
     }
 
     console.info(`[db:seed] complete. applied=${seedFiles.length}`);

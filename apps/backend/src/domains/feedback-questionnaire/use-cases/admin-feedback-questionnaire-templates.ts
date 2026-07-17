@@ -66,7 +66,10 @@ const assertKeyVersionAvailable = async (input: {
     version: input.version,
   });
   if (!existing || existing.id === input.currentTemplateId) return;
-  return throwHttpProblem({ status: 409, detail: "Feedback questionnaire template key/version already exists" });
+  return throwHttpProblem({
+    status: 409,
+    detail: "Feedback questionnaire template key/version already exists",
+  });
 };
 
 export const listAdminFeedbackQuestionnaireTemplates = async (): Promise<

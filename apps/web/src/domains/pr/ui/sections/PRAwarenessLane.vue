@@ -90,9 +90,7 @@ const props = defineProps<{
 const { t } = useI18n();
 type RosterItem = PartnerSection["roster"][number];
 
-const rosterStateText = (
-  state: RosterItem["state"],
-): string => {
+const rosterStateText = (state: RosterItem["state"]): string => {
   switch (state) {
     case "CONFIRMED":
       return t("prPage.partnerSection.rosterConfirmed");
@@ -107,9 +105,8 @@ const rosterStateText = (
   }
 };
 
-const isRosterLinkable = (
-  state: RosterItem["state"],
-): boolean => state !== "RELEASED" && state !== "EXITED";
+const isRosterLinkable = (state: RosterItem["state"]): boolean =>
+  state !== "RELEASED" && state !== "EXITED";
 const isActiveRosterState = (state: RosterItem["state"]): boolean =>
   state === "JOINED" || state === "CONFIRMED" || state === "ATTENDED";
 const activeRoster = computed(() =>
@@ -218,5 +215,4 @@ const rosterAvatarFallback = (displayName: string): string => {
 .roster-history__count {
   @include mx.pu-font(support);
 }
-
 </style>

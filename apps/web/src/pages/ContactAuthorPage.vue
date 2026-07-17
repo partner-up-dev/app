@@ -1,10 +1,7 @@
 <template>
   <PuPageScaffold content-placement="center" class="contact-author-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('contactAuthorPage.title')"
-        title-as="h1"
-      >
+      <PuHeader :title="t('contactAuthorPage.title')" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -21,12 +18,10 @@
       </PuHeader>
     </template>
 
-    <PuLoadingState
-      v-if="publicConfigQuery.isLoading.value"
-      :message="t('common.loading')"
-    />
+    <PuLoadingState v-if="publicConfigQuery.isLoading.value" :message="t('common.loading')" />
 
-    <PuInlineNotice tone="error"
+    <PuInlineNotice
+      tone="error"
       v-if="publicConfigQuery.error.value"
       :message="
         publicConfigQuery.error.value instanceof Error
@@ -55,12 +50,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  PUBLIC_CONFIG_KEYS,
-  usePublicConfig,
-} from "@/shared/config/queries/usePublicConfig";
+import { PUBLIC_CONFIG_KEYS, usePublicConfig } from "@/shared/config/queries/usePublicConfig";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import { PuButton, PuHeader, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuHeader,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const DEFAULT_AUTHOR_QR_CODE_URL =
   "https://oss-app.partner-up.cn/5264495b163398842ad04ee5ee42a3df.jpg";
@@ -84,16 +82,12 @@ const normalizeHttpUrl = (value: string | null | undefined): string | null => {
 };
 
 const qrCodeUrl = computed(() => {
-  if (
-    publicConfigQuery.isLoading.value ||
-    publicConfigQuery.error.value
-  ) {
+  if (publicConfigQuery.isLoading.value || publicConfigQuery.error.value) {
     return DEFAULT_AUTHOR_QR_CODE_URL;
   }
 
   return normalizeHttpUrl(publicConfigQuery.data.value?.value) ?? DEFAULT_AUTHOR_QR_CODE_URL;
 });
-
 </script>
 
 <style lang="scss" scoped>

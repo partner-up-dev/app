@@ -18,9 +18,7 @@ export interface CreateOfferInput {
 }
 
 export async function createOffer(input: CreateOfferInput) {
-  const spus = await Promise.all(
-    input.spuIds.map((spuId) => productSpuRepo.findById(spuId)),
-  );
+  const spus = await Promise.all(input.spuIds.map((spuId) => productSpuRepo.findById(spuId)));
   if (spus.some((spu) => spu === null)) {
     return throwHttpProblem({
       status: 404,

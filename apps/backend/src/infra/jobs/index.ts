@@ -1,6 +1,4 @@
-export {
-  jobRunner,
-} from "./job-runner";
+export { jobRunner } from "./job-runner";
 export {
   NO_LATE_TOLERANCE_UNITS,
   getBucketIndex,

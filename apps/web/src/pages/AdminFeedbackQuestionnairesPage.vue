@@ -5,10 +5,7 @@
     </template>
 
     <template #main>
-      <PuLoadingState
-        v-if="templatesQuery.isLoading.value"
-        :message="t('common.loading')"
-      />
+      <PuLoadingState v-if="templatesQuery.isLoading.value" :message="t('common.loading')" />
       <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
       <BentoLayout v-else>
@@ -21,7 +18,6 @@
             <PuButton
               shape="pill"
               size="sm"
-
               data-testid="admin-feedback-questionnaires.save"
               :disabled="!canSave"
               :loading="isSaving"
@@ -33,9 +29,7 @@
 
           <div class="grid">
             <label class="field">
-              <span class="field-label">{{
-                t("adminFeedbackQuestionnaires.keyLabel")
-              }}</span>
+              <span class="field-label">{{ t("adminFeedbackQuestionnaires.keyLabel") }}</span>
               <input
                 v-model="draftKey"
                 class="field-input"
@@ -44,9 +38,7 @@
             </label>
 
             <label class="field">
-              <span class="field-label">{{
-                t("adminFeedbackQuestionnaires.versionLabel")
-              }}</span>
+              <span class="field-label">{{ t("adminFeedbackQuestionnaires.versionLabel") }}</span>
               <input
                 v-model="draftVersion"
                 class="field-input"
@@ -55,9 +47,7 @@
             </label>
 
             <label class="field field--full">
-              <span class="field-label">{{
-                t("adminFeedbackQuestionnaires.titleLabel")
-              }}</span>
+              <span class="field-label">{{ t("adminFeedbackQuestionnaires.titleLabel") }}</span>
               <input
                 v-model="draftTitle"
                 class="field-input"
@@ -91,9 +81,9 @@
         <template #actions>
           <PuButton
             shape="pill"
-            tone="neutral" variant="outline"
+            tone="neutral"
+            variant="outline"
             size="sm"
-
             data-testid="admin-feedback-questionnaires.create"
             @click="handleNewTemplate"
           >
@@ -418,12 +408,7 @@ watch(
 .definition-textarea {
   min-height: 28rem;
   resize: vertical;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Consolas,
-    "Liberation Mono",
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 0.875rem;
   line-height: 1.55;
 }

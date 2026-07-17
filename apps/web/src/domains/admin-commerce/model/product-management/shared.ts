@@ -24,8 +24,7 @@ export const parseIntegerField = (
   label: string,
   options: { min?: number; max?: number } = {},
 ): number => {
-  const parsed =
-    typeof value === "number" ? value : Number.parseInt(value.trim(), 10);
+  const parsed = typeof value === "number" ? value : Number.parseInt(value.trim(), 10);
   if (!Number.isInteger(parsed)) {
     throw new Error(`${label} 必须是整数`);
   }
@@ -38,19 +37,13 @@ export const parseIntegerField = (
   return parsed;
 };
 
-export const parseOptionalPositiveInteger = (
-  value: string,
-  label: string,
-): number | undefined => {
+export const parseOptionalPositiveInteger = (value: string, label: string): number | undefined => {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   return parseIntegerField(trimmed, label, { min: 1 });
 };
 
-export const parseNullableNonnegativeInteger = (
-  value: string,
-  label: string,
-): number | null => {
+export const parseNullableNonnegativeInteger = (value: string, label: string): number | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
   return parseIntegerField(trimmed, label, { min: 0 });

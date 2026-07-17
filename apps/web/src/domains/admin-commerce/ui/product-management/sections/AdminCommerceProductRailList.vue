@@ -14,9 +14,7 @@
       gap="xs"
     >
       <span>{{ product.spu.name }}</span>
-      <small class="pm-small"
-        >{{ product.spu.productType }} · {{ product.spu.status }}</small
-      >
+      <small class="pm-small">{{ product.spu.productType }} · {{ product.spu.status }}</small>
     </PuCard>
   </div>
 </template>

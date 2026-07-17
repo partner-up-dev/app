@@ -71,9 +71,7 @@ export const sendWeChatSubscriptionNotification = async (
   }
 };
 
-const send = async (
-  message: WeChatSubscriptionChannelMessage,
-): Promise<string | number | null> => {
+const send = async (message: WeChatSubscriptionChannelMessage): Promise<string | number | null> => {
   if (message.kind === "REMINDER_CONFIRMATION") {
     return service.sendConfirmationReminder({
       openId: message.openId,
@@ -129,10 +127,7 @@ const send = async (
     });
   }
 
-  if (
-    message.kind === "WAITLIST_PROMOTED" ||
-    message.kind === "WAITLIST_ALTERNATIVE_AVAILABLE"
-  ) {
+  if (message.kind === "WAITLIST_PROMOTED" || message.kind === "WAITLIST_ALTERNATIVE_AVAILABLE") {
     return service.sendWaitlistPromotedNotification({
       openId: message.openId,
       title: message.title,

@@ -2,10 +2,9 @@ import type { ScheduleOnceConfig } from "../jobs/job-runner";
 import { NO_LATE_TOLERANCE_UNITS } from "../jobs/schedule-timing";
 import type { ConfirmationReminderTrigger } from "../../entities/notification-delivery";
 
-export type JobSchedulePolicy = Required<Pick<
-  ScheduleOnceConfig,
-  "resolutionMs" | "earlyToleranceUnits" | "lateToleranceUnits"
->>;
+export type JobSchedulePolicy = Required<
+  Pick<ScheduleOnceConfig, "resolutionMs" | "earlyToleranceUnits" | "lateToleranceUnits">
+>;
 
 const SECOND_RESOLUTION_MS = 1_000;
 const PRECISE_RESOLUTION_MS = 1;

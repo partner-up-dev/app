@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import type { Bill } from "../model";
-import {
-  deriveBillTargetDelta,
-  getBillChargeTotal,
-  getBillRefundTotal,
-} from "./bill-totals";
+import { deriveBillTargetDelta, getBillChargeTotal, getBillRefundTotal } from "./bill-totals";
 
 const createBill = (): Bill => ({
   id: "bill-1",

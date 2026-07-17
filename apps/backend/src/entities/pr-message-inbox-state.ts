@@ -1,11 +1,4 @@
-import {
-  bigint,
-  index,
-  pgTable,
-  primaryKey,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigint, index, pgTable, primaryKey, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { partnerRequests, type PRId } from "./partner-request";
 import { prMessages, type PRMessageId } from "./pr-message";
@@ -41,10 +34,8 @@ export const prMessageInboxStates = pgTable(
   }),
 );
 
-export const insertPRMessageInboxStateSchema =
-  createInsertSchema(prMessageInboxStates);
-export const selectPRMessageInboxStateSchema =
-  createSelectSchema(prMessageInboxStates);
+export const insertPRMessageInboxStateSchema = createInsertSchema(prMessageInboxStates);
+export const selectPRMessageInboxStateSchema = createSelectSchema(prMessageInboxStates);
 
 export type PRMessageInboxState = typeof prMessageInboxStates.$inferSelect;
 export type NewPRMessageInboxState = typeof prMessageInboxStates.$inferInsert;

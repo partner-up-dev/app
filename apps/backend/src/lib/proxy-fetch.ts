@@ -10,6 +10,4 @@ export const proxyFetch = (
   url: URL,
   init?: Parameters<typeof fetch>[1],
 ): ReturnType<typeof fetch> =>
-  proxyDispatcher
-    ? fetch(url, { ...init, dispatcher: proxyDispatcher })
-    : fetch(url, init);
+  proxyDispatcher ? fetch(url, { ...init, dispatcher: proxyDispatcher }) : fetch(url, init);

@@ -57,12 +57,10 @@ export const buildMeetingPointUpdatedDedupeKey = (
   recipientUserId: UserId,
   prId: PRId,
   updatedAtIso: string,
-): string =>
-  `${MEETING_POINT_UPDATED_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${updatedAtIso}`;
+): string => `${MEETING_POINT_UPDATED_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${updatedAtIso}`;
 
-export const buildMeetingPointUpdatedDedupePrefixForUser = (
-  userId: UserId,
-): string => `${MEETING_POINT_UPDATED_DEDUPE_PREFIX}:${userId}:`;
+export const buildMeetingPointUpdatedDedupePrefixForUser = (userId: UserId): string =>
+  `${MEETING_POINT_UPDATED_DEDUPE_PREFIX}:${userId}:`;
 
 const resolvePrUrl = (request: Pick<PartnerRequest, "id">): string | null => {
   const frontendUrl = env.FRONTEND_URL?.trim();
@@ -92,8 +90,7 @@ const formatUpdatedAt = (updatedAtIso: string): string =>
 export const collectMeetingPointUpdatedNotificationRecipients = async (
   request: Pick<PartnerRequest, "id">,
 ): Promise<UserId[]> => {
-  const activeParticipants =
-    await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
   const recipientUserIds = Array.from(
     new Set(
       activeParticipants
@@ -105,16 +102,11 @@ export const collectMeetingPointUpdatedNotificationRecipients = async (
   const eligibleRecipientUserIds: UserId[] = [];
   for (const recipientUserId of recipientUserIds) {
     const recipientUser = await userRepo.findById(recipientUserId);
-    if (
-      !recipientUser ||
-      recipientUser.status !== "ACTIVE" ||
-      !recipientUser.openId
-    ) {
+    if (!recipientUser || recipientUser.status !== "ACTIVE" || !recipientUser.openId) {
       continue;
     }
 
-    const notificationOpt =
-      await userNotificationOptRepo.findByUserId(recipientUserId);
+    const notificationOpt = await userNotificationOptRepo.findByUserId(recipientUserId);
     const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
       notificationOpt,
       MEETING_POINT_UPDATED_NOTIFICATION_KIND,
@@ -171,10 +163,7 @@ export const prepareMeetingPointUpdatedNotificationDispatch = async (
     };
   }
 
-  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(
-    payload.prId,
-    user.id,
-  );
+  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(payload.prId, user.id);
   if (!stillParticipant) {
     return {
       status: "SKIPPED",

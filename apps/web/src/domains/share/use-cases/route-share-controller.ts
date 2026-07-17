@@ -1,15 +1,9 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
-import type {
-  RouteShareDescriptor,
-  RouteSharePhase,
-} from "@/domains/share/model/types";
+import type { RouteShareDescriptor, RouteSharePhase } from "@/domains/share/model/types";
 import { trackEvent } from "@/shared/telemetry/track";
 import { useWeChatShareCard } from "@/shared/wechat/useWeChatShareCard";
 
-export type RouteShareReplayTrigger =
-  | "pageshow"
-  | "visibilitychange"
-  | "manual";
+export type RouteShareReplayTrigger = "pageshow" | "visibilitychange" | "manual";
 
 const createRouteShareSessionId = (): string => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -49,9 +43,7 @@ type ShareTelemetryPayload = {
   prId?: number;
 };
 
-const toTelemetryPayload = (
-  descriptor: RouteShareDescriptor,
-): ShareTelemetryPayload => {
+const toTelemetryPayload = (descriptor: RouteShareDescriptor): ShareTelemetryPayload => {
   const payload: ShareTelemetryPayload = {
     routeSessionId: descriptor.routeSessionId,
     entityKey: descriptor.entityKey,
@@ -121,10 +113,7 @@ const toErrorMessage = (error: unknown): string => {
   return "unknown_error";
 };
 
-const trackApplyFailure = (
-  descriptor: RouteShareDescriptor,
-  error: unknown,
-): void => {
+const trackApplyFailure = (descriptor: RouteShareDescriptor, error: unknown): void => {
   trackEvent("share_apply_failed", {
     ...toTelemetryPayload(descriptor),
     phase: descriptor.phase,
@@ -140,9 +129,7 @@ let desiredApplyVersion = 0;
 let appliedApplyVersion = 0;
 let flushRouteShareApplyPromise: Promise<void> | null = null;
 
-const applyRouteShareDescriptor = async (
-  descriptor: RouteShareDescriptor,
-): Promise<void> => {
+const applyRouteShareDescriptor = async (descriptor: RouteShareDescriptor): Promise<void> => {
   const { updateWeChatShareCard } = useWeChatShareCard();
   await updateWeChatShareCard({
     title: descriptor.title,

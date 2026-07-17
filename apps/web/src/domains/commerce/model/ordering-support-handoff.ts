@@ -1,7 +1,6 @@
 import type { OrderingEntryPayload } from "./ordering-entry-storage";
 
-export const ORDERING_SUPPORT_HANDOFF_STORAGE_KEY =
-  "partner-up.ordering-support-handoff";
+export const ORDERING_SUPPORT_HANDOFF_STORAGE_KEY = "partner-up.ordering-support-handoff";
 
 export type OrderingSupportSummaryLine = {
   label: string;
@@ -32,9 +31,7 @@ const isSummaryLine = (value: unknown): value is OrderingSupportSummaryLine => {
   return typeof record.label === "string" && typeof record.value === "string";
 };
 
-const isSummarySection = (
-  value: unknown,
-): value is OrderingSupportSummarySection => {
+const isSummarySection = (value: unknown): value is OrderingSupportSummarySection => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }

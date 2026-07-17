@@ -33,11 +33,7 @@
       <p>{{ t("home.landing.footerIntroBody") }}</p>
     </section>
 
-    <nav
-      v-else
-      class="page-footer__nav"
-      :aria-label="t('aboutPage.footerNavLabel')"
-    >
+    <nav v-else class="page-footer__nav" :aria-label="t('aboutPage.footerNavLabel')">
       <RouterLink
         v-for="link in visibleFooterLinks"
         :key="link.routeName"
@@ -50,9 +46,7 @@
 
     <section v-if="variant === 'brand'" class="page-footer__legal">
       <p class="page-footer__copyright">© 搭一把科技有限公司</p>
-      <a href="https://beian.miit.gov.cn/" class="page-footer__beian"
-        >粤ICP备2024324879号</a
-      >
+      <a href="https://beian.miit.gov.cn/" class="page-footer__beian">粤ICP备2024324879号</a>
     </section>
   </footer>
 </template>
@@ -160,8 +154,7 @@ const visibleFooterLinks = computed(() =>
   padding-left: var(
     --page-footer-padding-inline-start,
     calc(
-      var(--landing-section-padding-inline-compact, var(--sys-spacing-medium)) +
-        var(--pu-safe-left)
+      var(--landing-section-padding-inline-compact, var(--sys-spacing-medium)) + var(--pu-safe-left)
     )
   );
   padding-right: var(
@@ -175,7 +168,8 @@ const visibleFooterLinks = computed(() =>
     var(
         --page-footer-padding-bottom,
         var(--landing-section-padding-block, var(--sys-spacing-large))
-      ) + var(--pu-safe-bottom)
+      ) +
+      var(--pu-safe-bottom)
   );
   animation-delay: 260ms;
   background-color: var(--sys-color-surface-container);
@@ -262,7 +256,9 @@ const visibleFooterLinks = computed(() =>
 
   h2 {
     @include mx.pu-font(title);
-    line-height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+    line-height: calc(
+      var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall)
+    );
     color: var(--sys-color-on-surface);
     margin: 0;
   }

@@ -49,26 +49,22 @@ export const uploadRoute = app
       }
     },
   )
-  .get(
-    "/images/:purpose/:key",
-    zValidator("param", imageKeySchema),
-    async (c) => {
-      const { purpose, key } = c.req.valid("param");
+  .get("/images/:purpose/:key", zValidator("param", imageKeySchema), async (c) => {
+    const { purpose, key } = c.req.valid("param");
 
-      try {
-        const storedImage = await readStoredImage(purpose, key);
-        const responseBytes = new Uint8Array(storedImage.buffer.byteLength);
-        responseBytes.set(storedImage.buffer);
-        return c.body(responseBytes, 200, {
-          "Content-Type": storedImage.contentType,
-          "Content-Disposition": `inline; filename="${storedImage.key}"`,
-          "Cache-Control": "public, max-age=31536000",
-        });
-      } catch (error) {
-        if (error instanceof ImageStorageError) {
-          throw toImageStorageProblem(error);
-        }
-        throw error;
+    try {
+      const storedImage = await readStoredImage(purpose, key);
+      const responseBytes = new Uint8Array(storedImage.buffer.byteLength);
+      responseBytes.set(storedImage.buffer);
+      return c.body(responseBytes, 200, {
+        "Content-Type": storedImage.contentType,
+        "Content-Disposition": `inline; filename="${storedImage.key}"`,
+        "Cache-Control": "public, max-age=31536000",
+      });
+    } catch (error) {
+      if (error instanceof ImageStorageError) {
+        throw toImageStorageProblem(error);
       }
-    },
-  );
+      throw error;
+    }
+  });

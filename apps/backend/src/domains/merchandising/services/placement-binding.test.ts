@@ -78,11 +78,7 @@ describe("placement binding rules", () => {
     expect(
       validatePlacementBindingRulesAgainstContract({
         contract: {
-          requiredFieldKeys: [
-            "participantCount",
-            "serviceStartAt",
-            "serviceEndAt",
-          ],
+          requiredFieldKeys: ["participantCount", "serviceStartAt", "serviceEndAt"],
         },
         rules: [
           {

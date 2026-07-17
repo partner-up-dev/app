@@ -9,25 +9,17 @@ export async function probeActiveParticipantCount(prId: PRId): Promise<number> {
     .select({ id: partners.id })
     .from(partners)
     .where(
-      and(
-        eq(partners.prId, prId),
-        inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"]),
-      ),
+      and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
     );
   return rows.length;
 }
 
-export async function probeActiveParticipantUserIds(
-  prId: PRId,
-): Promise<UserId[]> {
+export async function probeActiveParticipantUserIds(prId: PRId): Promise<UserId[]> {
   const rows = await getTestDb()
     .select({ userId: partners.userId })
     .from(partners)
     .where(
-      and(
-        eq(partners.prId, prId),
-        inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"]),
-      ),
+      and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
     );
   return rows.map((row) => row.userId);
 }

@@ -1,11 +1,7 @@
 <template>
   <PuPageScaffold class="user-profile-page">
     <template #pageHeader>
-      <PuHeader
-        :title="t('userProfilePage.title')"
-        :subtitle="subtitle"
-        title-as="h1"
-      >
+      <PuHeader :title="t('userProfilePage.title')" :subtitle="subtitle" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -22,10 +18,7 @@
       </PuHeader>
     </template>
 
-    <PuLoadingState
-      v-if="isLoading"
-      :message="t('userProfilePage.loading')"
-    />
+    <PuLoadingState v-if="isLoading" :message="t('userProfilePage.loading')" />
 
     <PuEmptyState
       v-else-if="isNotFound"
@@ -35,16 +28,10 @@
       variant="outline"
     />
 
-    <PuInlineNotice tone="error"
-      v-else-if="errorMessage"
-      :message="errorMessage"
-    />
+    <PuInlineNotice tone="error" v-else-if="errorMessage" :message="errorMessage" />
 
     <PuCard v-else-if="profile" as="section" gap="md">
-      <div
-        v-if="profile.isCurrentLocalUser"
-        class="profile-actions"
-      >
+      <div v-if="profile.isCurrentLocalUser" class="profile-actions">
         <RouterLink class="edit-profile-link" :to="{ name: 'me' }">
           {{ t("userProfilePage.editProfileLink") }}
         </RouterLink>
@@ -92,9 +79,7 @@ import {
 } from "@partner-up-dev/design-web";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
-import {
-  prDetailPath,
-} from "@/domains/pr/routing/routes";
+import { prDetailPath } from "@/domains/pr/routing/routes";
 import { usePRPartnerProfile } from "@/domains/user/queries/usePRPartnerProfile";
 
 const route = useRoute();

@@ -3,8 +3,8 @@
     <!-- Options Section -->
     <div v-if="prData" class="options-section">
       <PuButton
-        tone="neutral" variant="outline"
-
+        tone="neutral"
+        variant="outline"
         block
         @click="handleRegenerate"
         :disabled="isCaptionGenerating"
@@ -78,7 +78,8 @@
         </PuButton>
         <PuButton
           class="outline-action poster-download-action"
-          tone="neutral" variant="outline"
+          tone="neutral"
+          variant="outline"
           @click="handleDownloadPoster"
           :disabled="!caption?.caption || posterIsGenerating || inWeChatBrowser"
         >

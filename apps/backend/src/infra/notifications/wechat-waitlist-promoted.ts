@@ -23,8 +23,7 @@ import {
   sendWeChatSubscriptionNotification,
 } from "./channels";
 
-const WECHAT_WAITLIST_PROMOTED_JOB_TYPE =
-  "wechat.notification.waitlist-promoted";
+const WECHAT_WAITLIST_PROMOTED_JOB_TYPE = "wechat.notification.waitlist-promoted";
 
 let waitlistPromotedHandlerRegistered = false;
 
@@ -32,8 +31,7 @@ async function handleWaitlistPromotedJob(
   payloadRaw: Record<string, unknown>,
   context: JobHandlerContext,
 ): Promise<void> {
-  const parseResult =
-    waitlistPromotedNotificationJobPayloadSchema.safeParse(payloadRaw);
+  const parseResult = waitlistPromotedNotificationJobPayloadSchema.safeParse(payloadRaw);
   if (!parseResult.success) {
     throw new Error("Invalid waitlist promoted notification job payload");
   }
@@ -60,8 +58,7 @@ async function handleWaitlistPromotedJob(
       payload,
       result: "FAILED",
       errorCode: "WAITLIST_PROMOTED_CHANNEL_NOT_CONFIGURED",
-      errorMessage:
-        "Waitlist promoted subscription message channel is not configured",
+      errorMessage: "Waitlist promoted subscription message channel is not configured",
     });
     return;
   }
@@ -81,9 +78,7 @@ async function handleWaitlistPromotedJob(
       payload,
       result: "SUCCESS",
     });
-    const consumeResult = await consumeWaitlistPromotedNotificationCredit(
-      prepared.recipient.id,
-    );
+    const consumeResult = await consumeWaitlistPromotedNotificationCredit(prepared.recipient.id);
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
       await cancelWeChatWaitlistPromotedJobsForUser(prepared.recipient.id);
     }
@@ -109,10 +104,7 @@ export function registerWeChatWaitlistPromotedJobs(): void {
   if (waitlistPromotedHandlerRegistered) {
     return;
   }
-  jobRunner.registerHandler(
-    WECHAT_WAITLIST_PROMOTED_JOB_TYPE,
-    handleWaitlistPromotedJob,
-  );
+  jobRunner.registerHandler(WECHAT_WAITLIST_PROMOTED_JOB_TYPE, handleWaitlistPromotedJob);
   waitlistPromotedHandlerRegistered = true;
 }
 
@@ -142,11 +134,7 @@ export async function scheduleWeChatWaitlistPromotedNotificationForParticipant(i
     return;
   }
 
-  const dedupeKey = buildWaitlistPromotedDedupeKey(
-    input.userId,
-    input.request.id,
-    input.partnerId,
-  );
+  const dedupeKey = buildWaitlistPromotedDedupeKey(input.userId, input.request.id, input.partnerId);
   const scheduleResult = await jobRunner.scheduleOnce({
     jobType: WECHAT_WAITLIST_PROMOTED_JOB_TYPE,
     runAt: scheduledAt,
@@ -173,9 +161,7 @@ export async function scheduleWeChatWaitlistPromotedNotificationForParticipant(i
   await markNotificationOpportunityScheduled(dedupeKey, scheduleResult.jobId);
 }
 
-export async function cancelWeChatWaitlistPromotedJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatWaitlistPromotedJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_WAITLIST_PROMOTED_JOB_TYPE,
     dedupeKeyPrefix: buildWaitlistPromotedDedupePrefixForUser(userId),

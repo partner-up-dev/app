@@ -49,8 +49,7 @@ async function handlePRReadyJob(
     return;
   }
 
-  const configured =
-    await isWeChatSubscriptionNotificationConfigured(PR_READY_NOTIFICATION_KIND);
+  const configured = await isWeChatSubscriptionNotificationConfigured(PR_READY_NOTIFICATION_KIND);
   if (!configured) {
     await recordPRReadyNotificationDelivery({
       jobId: context.jobId,
@@ -78,9 +77,7 @@ async function handlePRReadyJob(
       payload,
       result: "SUCCESS",
     });
-    const consumeResult = await consumePRReadyNotificationCredit(
-      prepared.recipient.id,
-    );
+    const consumeResult = await consumePRReadyNotificationCredit(prepared.recipient.id);
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
       await cancelWeChatPRReadyJobsForUser(prepared.recipient.id);
     }
@@ -114,23 +111,16 @@ export async function scheduleWeChatPRReadyNotifications(input: {
   request: PartnerRequest;
   readyAt: Date;
 }): Promise<void> {
-  const configured =
-    await isWeChatSubscriptionNotificationConfigured(PR_READY_NOTIFICATION_KIND);
+  const configured = await isWeChatSubscriptionNotificationConfigured(PR_READY_NOTIFICATION_KIND);
   if (!configured) {
     return;
   }
 
-  const recipientUserIds = await collectPRReadyNotificationRecipients(
-    input.request,
-  );
+  const recipientUserIds = await collectPRReadyNotificationRecipients(input.request);
   const scheduledAt = new Date();
 
   for (const recipientUserId of recipientUserIds) {
-    const dedupeKey = buildPRReadyDedupeKey(
-      recipientUserId,
-      input.request.id,
-      input.readyAt,
-    );
+    const dedupeKey = buildPRReadyDedupeKey(recipientUserId, input.request.id, input.readyAt);
     const scheduleResult = await jobRunner.scheduleOnce({
       jobType: WECHAT_PR_READY_JOB_TYPE,
       runAt: scheduledAt,
@@ -162,9 +152,7 @@ export async function scheduleWeChatPRReadyNotifications(input: {
   }
 }
 
-export async function cancelWeChatPRReadyJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatPRReadyJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_PR_READY_JOB_TYPE,
     dedupeKeyPrefix: buildPRReadyDedupePrefixForUser(userId),

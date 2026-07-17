@@ -1,14 +1,7 @@
 <template>
-  <PuPageScaffold
-    viewport="screen"
-    class="commerce-bills-page"
-    data-testid="my-bills.page"
-  >
+  <PuPageScaffold viewport="screen" class="commerce-bills-page" data-testid="my-bills.page">
     <template #pageHeader>
-      <PuHeader
-        title="我的账单"
-        title-as="h1"
-      >
+      <PuHeader title="我的账单" title-as="h1">
         <template #leading>
           <PuButton
             tone="neutral"
@@ -58,11 +51,7 @@
         data-testid="my-bills.empty"
       />
 
-      <section
-        v-else
-        class="commerce-bills-page__list"
-        data-testid="my-bills.list"
-      >
+      <section v-else class="commerce-bills-page__list" data-testid="my-bills.list">
         <div
           v-for="billId in billIds"
           :key="billId"

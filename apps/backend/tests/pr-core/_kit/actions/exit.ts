@@ -1,7 +1,4 @@
-import {
-  expectJsonResponse,
-  requestJson,
-} from "../../../_infra/http/backend-app";
+import { expectJsonResponse, requestJson } from "../../../_infra/http/backend-app";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
 import type { ScenarioUser } from "../builders/users";
 

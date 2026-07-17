@@ -8,7 +8,8 @@
     <div v-if="showCheckInAction" class="action-group">
       <PuButton
         class="action-group__button"
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         :disabled="!viewer.canCheckIn"
         :loading="attendanceActions.checkInPending.value"
         block
@@ -29,7 +30,8 @@
     <div v-if="showFeedbackRetryAction" class="action-group">
       <PuButton
         class="action-group__button"
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         block
         data-testid="pr-detail.feedback.open"
         @click="openFeedbackQuestionnaire"
@@ -105,17 +107,11 @@ const checkInTip = computed(() => {
 });
 
 const showFeedbackRetryAction = computed(
-  () =>
-    viewer.value.slotState === "ATTENDED" &&
-    hasPendingFeedbackQuestionnaire.value,
+  () => viewer.value.slotState === "ATTENDED" && hasPendingFeedbackQuestionnaire.value,
 );
 
 const showActionArea = computed(() =>
-  Boolean(
-    showCheckInAction.value ||
-      showFeedbackRetryAction.value ||
-      primaryActionError.value,
-  ),
+  Boolean(showCheckInAction.value || showFeedbackRetryAction.value || primaryActionError.value),
 );
 
 usePRPrimaryActionImpression({
@@ -131,8 +127,7 @@ const openFeedbackQuestionnaire = (): void => {
 
 const handleCheckIn = async (): Promise<void> => {
   if (!showCheckInAction.value) return;
-  if (!viewer.value.canCheckIn || attendanceActions.checkInPending.value)
-    return;
+  if (!viewer.value.canCheckIn || attendanceActions.checkInPending.value) return;
   primaryActionError.value = null;
   trackPRPrimaryActionClick(props.pr, "CHECK_IN");
   try {

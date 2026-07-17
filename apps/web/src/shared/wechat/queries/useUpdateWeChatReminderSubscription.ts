@@ -2,10 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { client } from "@/lib/rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 import { i18n } from "@/locales/i18n";
-import {
-  readApiErrorPayload,
-  resolveApiErrorMessage,
-} from "@/shared/api/error";
+import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { handleWeChatAuthRequiredError } from "@/processes/wechat/auth-error";
 
 type UpdateWeChatReminderSubscriptionInput = {

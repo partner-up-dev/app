@@ -4,9 +4,9 @@
   </PuButton>
   <PuButton
     shape="pill"
-    tone="neutral" variant="outline"
+    tone="neutral"
+    variant="outline"
     size="sm"
-
     :disabled="selectedSpuId === null"
     @click="context.prepareNewSku"
   >

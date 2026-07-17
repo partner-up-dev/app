@@ -8,9 +8,7 @@
         {{ t("prPage.waitlistSuccessSubscriptions.description") }}
       </p>
 
-      <WeChatNotificationSubscriptionsCard
-        :title="t('prPage.notificationSubscriptions.title')"
-      >
+      <WeChatNotificationSubscriptionsCard :title="t('prPage.notificationSubscriptions.title')">
         <PRNotificationSubscriptions
           :visible-kinds="waitlistSuccessNotificationKinds"
           :description-prefixes="waitlistNotificationDescriptionPrefixes"
@@ -20,7 +18,8 @@
       </WeChatNotificationSubscriptionsCard>
 
       <PuButton
-        tone="neutral" variant="soft"
+        tone="neutral"
+        variant="soft"
         block
         data-testid="pr-detail.waitlist-success.done"
         @click="handleWaitlistSubscriptionDone"
@@ -32,11 +31,7 @@
     <template v-else>
       <OfficialAccountFollowPanel />
       <div class="waitlist-success-prompt__actions">
-        <PuButton
-          tone="neutral" variant="soft"
-
-          @click="handleCloseWaitlistOfficialAccountPrompt"
-        >
+        <PuButton tone="neutral" variant="soft" @click="handleCloseWaitlistOfficialAccountPrompt">
           {{ t("officialAccountFollow.laterAction") }}
         </PuButton>
         <PuButton @click="handleWaitlistOfficialAccountDone">

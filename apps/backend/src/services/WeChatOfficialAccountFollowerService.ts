@@ -49,10 +49,7 @@ let accessTokenCache: TokenCache | null = null;
 
 export class WeChatOfficialAccountFollowerService {
   isConfigured(): boolean {
-    return Boolean(
-      env.WECHAT_OFFICIAL_ACCOUNT_APP_ID &&
-        env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET,
-    );
+    return Boolean(env.WECHAT_OFFICIAL_ACCOUNT_APP_ID && env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET);
   }
 
   async fetchFollowerOpenIdPage(
@@ -90,10 +87,7 @@ export class WeChatOfficialAccountFollowerService {
   }
 
   private async getAccessToken(): Promise<string> {
-    if (
-      accessTokenCache &&
-      accessTokenCache.expiresAtMs - CLOCK_SKEW_MS > Date.now()
-    ) {
+    if (accessTokenCache && accessTokenCache.expiresAtMs - CLOCK_SKEW_MS > Date.now()) {
       return accessTokenCache.token;
     }
 

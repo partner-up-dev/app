@@ -8,10 +8,7 @@ type UsePRDetailHeadOptions = {
   shareUrl: Ref<string>;
 };
 
-export const usePRDetailHead = ({
-  pr,
-  shareUrl,
-}: UsePRDetailHeadOptions): void => {
+export const usePRDetailHead = ({ pr, shareUrl }: UsePRDetailHeadOptions): void => {
   const { t } = useI18n();
 
   const canonicalShare = computed(() => pr.value?.share.canonical ?? null);
@@ -20,9 +17,7 @@ export const usePRDetailHead = ({
       ? t("prPage.metaTitleWithName", { title: canonicalShare.value.title })
       : t("prPage.metaFallbackTitle"),
   );
-  const shareTitle = computed(
-    () => canonicalShare.value?.title || t("prPage.metaFallbackTitle"),
-  );
+  const shareTitle = computed(() => canonicalShare.value?.title || t("prPage.metaFallbackTitle"));
   const description = computed(
     () =>
       canonicalShare.value?.description ||
@@ -38,10 +33,7 @@ export const usePRDetailHead = ({
     if (typeof window === "undefined") {
       return detail.share.canonical.defaultImagePath;
     }
-    return new URL(
-      detail.share.canonical.defaultImagePath,
-      window.location.origin,
-    ).toString();
+    return new URL(detail.share.canonical.defaultImagePath, window.location.origin).toString();
   });
 
   useHead({

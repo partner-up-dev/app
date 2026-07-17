@@ -7,11 +7,7 @@ import {
   type PRMessageId,
 } from "../entities/pr-message";
 import type { PRId } from "../entities/partner-request";
-import {
-  resolvePrimaryUserRole,
-  type UserId,
-  type UserRole,
-} from "../entities/user";
+import { resolvePrimaryUserRole, type UserId, type UserRole } from "../entities/user";
 import { users } from "../entities/user";
 
 export type PRMessageWithAuthor = {
@@ -32,10 +28,7 @@ export class PRMessageRepository {
     return result[0] ?? null;
   }
 
-  async findByPrIdAndId(
-    prId: PRId,
-    id: PRMessageId,
-  ): Promise<PRMessage | null> {
+  async findByPrIdAndId(prId: PRId, id: PRMessageId): Promise<PRMessage | null> {
     const result = await db
       .select()
       .from(prMessages)
@@ -154,10 +147,7 @@ export class PRMessageRepository {
     };
   }
 
-  async countByPrIdAfterId(
-    prId: PRId,
-    afterMessageId: PRMessageId | null,
-  ): Promise<number> {
+  async countByPrIdAfterId(prId: PRId, afterMessageId: PRMessageId | null): Promise<number> {
     const predicate =
       afterMessageId === null
         ? eq(prMessages.prId, prId)
@@ -191,10 +181,7 @@ export class PRMessageRepository {
   }
 
   async deleteById(id: PRMessageId): Promise<PRMessage | null> {
-    const result = await db
-      .delete(prMessages)
-      .where(eq(prMessages.id, id))
-      .returning();
+    const result = await db.delete(prMessages).where(eq(prMessages.id, id)).returning();
     return result[0] ?? null;
   }
 

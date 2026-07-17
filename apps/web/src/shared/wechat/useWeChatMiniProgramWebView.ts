@@ -5,8 +5,7 @@ export const useWeChatMiniProgramWebView = () => {
   const miniProgramWebViewRef = ref(isWeChatMiniProgramWebView());
 
   const refreshFromKnownSignals = (): void => {
-    miniProgramWebViewRef.value =
-      miniProgramWebViewRef.value || isWeChatMiniProgramWebView();
+    miniProgramWebViewRef.value = miniProgramWebViewRef.value || isWeChatMiniProgramWebView();
   };
 
   const refreshFromJssdk = (): void => {
@@ -15,8 +14,7 @@ export const useWeChatMiniProgramWebView = () => {
     }
 
     wx.miniProgram.getEnv((res) => {
-      miniProgramWebViewRef.value =
-        miniProgramWebViewRef.value || Boolean(res.miniprogram);
+      miniProgramWebViewRef.value = miniProgramWebViewRef.value || Boolean(res.miniprogram);
     });
   };
 
@@ -32,11 +30,7 @@ export const useWeChatMiniProgramWebView = () => {
   });
 
   onBeforeUnmount(() => {
-    document.removeEventListener(
-      "WeixinJSBridgeReady",
-      handleBridgeReady,
-      false,
-    );
+    document.removeEventListener("WeixinJSBridgeReady", handleBridgeReady, false);
   });
 
   return {

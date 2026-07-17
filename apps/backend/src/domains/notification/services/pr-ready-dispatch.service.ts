@@ -26,9 +26,7 @@ export const prReadyNotificationJobPayloadSchema = z.object({
   scheduledAtIso: z.string().datetime().optional(),
 });
 
-export type PRReadyNotificationJobPayload = z.infer<
-  typeof prReadyNotificationJobPayloadSchema
->;
+export type PRReadyNotificationJobPayload = z.infer<typeof prReadyNotificationJobPayloadSchema>;
 
 type PRReadyDispatchReady = {
   status: "READY";
@@ -48,15 +46,9 @@ type PRReadyDispatchBlocked = {
   errorMessage: string;
 };
 
-export type PRReadyDispatchPreparation =
-  | PRReadyDispatchReady
-  | PRReadyDispatchBlocked;
+export type PRReadyDispatchPreparation = PRReadyDispatchReady | PRReadyDispatchBlocked;
 
-export const buildPRReadyDedupeKey = (
-  recipientUserId: UserId,
-  prId: PRId,
-  readyAt: Date,
-): string =>
+export const buildPRReadyDedupeKey = (recipientUserId: UserId, prId: PRId, readyAt: Date): string =>
   `${PR_READY_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${readyAt.getTime()}`;
 
 export const buildPRReadyDedupePrefixForUser = (userId: UserId): string =>
@@ -79,31 +71,22 @@ const resolvePrUrl = (request: PartnerRequest): string | null => {
 const resolveTitle = (request: PartnerRequest): string =>
   request.title?.trim() || `${request.type}搭子`;
 
-const resolveType = (request: PartnerRequest): string =>
-  request.type?.trim() || "搭子活动";
+const resolveType = (request: PartnerRequest): string => request.type?.trim() || "搭子活动";
 
 export const collectPRReadyNotificationRecipients = async (
   request: PartnerRequest,
 ): Promise<UserId[]> => {
-  const activeParticipants =
-    await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
-  const recipientUserIds = Array.from(
-    new Set(activeParticipants.map((item) => item.userId)),
-  );
+  const activeParticipants = await partnerRepo.listActiveParticipantSummariesByPrId(request.id);
+  const recipientUserIds = Array.from(new Set(activeParticipants.map((item) => item.userId)));
 
   const eligibleRecipientUserIds: UserId[] = [];
   for (const recipientUserId of recipientUserIds) {
     const recipientUser = await userRepo.findById(recipientUserId);
-    if (
-      !recipientUser ||
-      recipientUser.status !== "ACTIVE" ||
-      !recipientUser.openId
-    ) {
+    if (!recipientUser || recipientUser.status !== "ACTIVE" || !recipientUser.openId) {
       continue;
     }
 
-    const notificationOpt =
-      await userNotificationOptRepo.findByUserId(recipientUserId);
+    const notificationOpt = await userNotificationOptRepo.findByUserId(recipientUserId);
     const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
       notificationOpt,
       PR_READY_NOTIFICATION_KIND,
@@ -138,9 +121,7 @@ export const preparePRReadyNotificationDispatch = async (
     };
   }
 
-  const notificationOpt = await userNotificationOptRepo.findByUserId(
-    recipient.id,
-  );
+  const notificationOpt = await userNotificationOptRepo.findByUserId(recipient.id);
   const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
     notificationOpt,
     PR_READY_NOTIFICATION_KIND,
@@ -153,10 +134,7 @@ export const preparePRReadyNotificationDispatch = async (
     };
   }
 
-  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(
-    payload.prId,
-    recipient.id,
-  );
+  const stillParticipant = await partnerRepo.findActiveByPrIdAndUserId(payload.prId, recipient.id);
   if (!stillParticipant) {
     return {
       status: "SKIPPED",
@@ -229,9 +207,7 @@ export const consumePRReadyNotificationCredit = async (
     PR_READY_NOTIFICATION_KIND,
   );
 
-export const clearPRReadyNotificationCredits = async (
-  recipientUserId: UserId,
-): Promise<void> => {
+export const clearPRReadyNotificationCredits = async (recipientUserId: UserId): Promise<void> => {
   await userNotificationOptRepo.clearWechatNotificationCredits(
     recipientUserId,
     PR_READY_NOTIFICATION_KIND,

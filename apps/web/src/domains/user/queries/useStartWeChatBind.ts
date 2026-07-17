@@ -12,9 +12,7 @@ type StartWeChatBindResponse = {
 
 export const useStartWeChatBind = () =>
   useMutation({
-    mutationFn: async ({
-      returnTo,
-    }: StartWeChatBindInput): Promise<StartWeChatBindResponse> => {
+    mutationFn: async ({ returnTo }: StartWeChatBindInput): Promise<StartWeChatBindResponse> => {
       const res = await client.api.wechat.oauth.bind.$get(
         {
           query: { returnTo },
@@ -28,9 +26,7 @@ export const useStartWeChatBind = () =>
 
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.startWechatBindFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.startWechatBindFailed"));
       }
 
       return await res.json();

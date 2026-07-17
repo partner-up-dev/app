@@ -4,10 +4,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string; detail?: string };
   return payload.error || payload.detail || fallback;
 };
@@ -40,14 +37,11 @@ export type AdminPaymentProviderInstanceInput = {
   };
 };
 
-export const useAdminPaymentProviderWorkspace = (
-  enabled: MaybeRef<boolean> = true,
-) =>
+export const useAdminPaymentProviderWorkspace = (enabled: MaybeRef<boolean> = true) =>
   useQuery<AdminPaymentProviderWorkspaceResponse>({
     queryKey: queryKeys.admin.paymentProviderInstances(),
     queryFn: async () => {
-      const res =
-        await adminClient.api.admin.payment["provider-instances"].workspace.$get();
+      const res = await adminClient.api.admin.payment["provider-instances"].workspace.$get();
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "获取支付服务商失败"));
       }
@@ -88,13 +82,12 @@ export const useUpdateAdminPaymentProviderInstance = () => {
       providerInstanceId: string;
       input: AdminPaymentProviderInstanceInput;
     }) => {
-      const res =
-        await adminClient.api.admin.payment["provider-instances"][
-          ":providerInstanceId"
-        ].$patch({
-          param: { providerInstanceId },
-          json: input,
-        });
+      const res = await adminClient.api.admin.payment["provider-instances"][
+        ":providerInstanceId"
+      ].$patch({
+        param: { providerInstanceId },
+        json: input,
+      });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新支付服务商失败"));
       }

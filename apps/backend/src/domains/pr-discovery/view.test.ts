@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { beforeEach, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  findByType: vi.fn(),
-  listAll: vi.fn(),
-  findByTypePR: vi.fn(),
-  countActiveByPrIds: vi.fn(),
-  findPois: vi.fn(),
-  listPois: vi.fn(),
+  findByType: vi.fn<() => unknown>(),
+  listAll: vi.fn<() => unknown>(),
+  findByTypePR: vi.fn<() => unknown>(),
+  countActiveByPrIds: vi.fn<() => unknown>(),
+  findPois: vi.fn<() => unknown>(),
+  listPois: vi.fn<() => unknown>(),
 }));
 vi.mock("../pr-core/services/pr-read.service", () => ({
   readVisiblePartnerRequestsByType: mocks.findByTypePR,
@@ -26,7 +26,7 @@ vi.mock("../../repositories/PartnerRequestRepository", () => ({
 vi.mock("../../repositories/PartnerRepository", () => ({
   PartnerRepository: class {
     countActiveByPrIds = mocks.countActiveByPrIds;
-    findActiveByUserId = vi.fn();
+    findActiveByUserId = vi.fn<() => unknown>();
   },
 }));
 vi.mock("../../repositories/PoiRepository", () => ({

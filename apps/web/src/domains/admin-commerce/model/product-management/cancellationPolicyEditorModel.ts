@@ -42,9 +42,7 @@ export const emptyPolicyInput = (): AdminSkuCancellationPolicyInput => ({
   ],
 });
 
-export const toPolicyForm = (
-  input: AdminSkuCancellationPolicyInput,
-): PolicyEditorForm => ({
+export const toPolicyForm = (input: AdminSkuCancellationPolicyInput): PolicyEditorForm => ({
   operatorBufferMinutes: input.operatorBufferMinutes,
   tiers: input.tiers.map((tier) => ({
     id: createDraftId("tier"),

@@ -78,11 +78,11 @@ const areRoutesEqual = (left: PRRoute, right: PRRoute): boolean =>
     const other = right[index];
     return Boolean(
       other &&
-        point.name === other.name &&
-        point.full_address === other.full_address &&
-        JSON.stringify(point.wgs84) === JSON.stringify(other.wgs84) &&
-        JSON.stringify(point.bd09) === JSON.stringify(other.bd09) &&
-        JSON.stringify(point.gcj02) === JSON.stringify(other.gcj02),
+      point.name === other.name &&
+      point.full_address === other.full_address &&
+      JSON.stringify(point.wgs84) === JSON.stringify(other.wgs84) &&
+      JSON.stringify(point.bd09) === JSON.stringify(other.bd09) &&
+      JSON.stringify(point.gcj02) === JSON.stringify(other.gcj02),
     );
   });
 

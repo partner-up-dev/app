@@ -14,11 +14,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -58,10 +56,7 @@
                   {{ t("adminPR.emptySearchResults") }}
                 </div>
 
-                <div
-                  v-else
-                  class="pr-result-list pr-result-list--grid pr-result-list--scroll"
-                >
+                <div v-else class="pr-result-list pr-result-list--grid pr-result-list--scroll">
                   <PuCard
                     v-for="pr in filteredPRs"
                     :key="pr.prId"
@@ -97,24 +92,14 @@
                   <p v-if="messagesQuery.isLoading.value" class="hint">
                     {{ t("common.loading") }}
                   </p>
-                  <p
-                    v-else-if="messagesQuery.error.value"
-                    class="error-message"
-                  >
+                  <p v-else-if="messagesQuery.error.value" class="error-message">
                     {{ messagesQuery.error.value.message }}
                   </p>
-                  <div
-                    v-else-if="messageItems.length === 0"
-                    class="empty-state"
-                  >
+                  <div v-else-if="messageItems.length === 0" class="empty-state">
                     {{ t("adminPRMessages.emptyMessages") }}
                   </div>
                   <div v-else class="admin-message-list">
-                    <article
-                      v-for="item in messageItems"
-                      :key="item.id"
-                      class="admin-message-item"
-                    >
+                    <article v-for="item in messageItems" :key="item.id" class="admin-message-item">
                       <div class="section-header section-header--start">
                         <div class="stack stack--tight">
                           <strong class="message-author">
@@ -137,9 +122,9 @@
                           <template v-if="editingMessageId === item.id">
                             <PuButton
                               shape="pill"
-                              tone="neutral" variant="outline"
+                              tone="neutral"
+                              variant="outline"
                               size="sm"
-
                               :disabled="
                                 prMessagesActions.isPending.update.value ||
                                 editingMessageBody.trim().length === 0
@@ -154,12 +139,10 @@
                             </PuButton>
                             <PuButton
                               shape="pill"
-                              tone="neutral" variant="ghost"
+                              tone="neutral"
+                              variant="ghost"
                               size="sm"
-
-                              :disabled="
-                                prMessagesActions.isPending.update.value
-                              "
+                              :disabled="prMessagesActions.isPending.update.value"
                               @click="cancelEditMessage"
                             >
                               {{ t("common.cancel") }}
@@ -168,24 +151,20 @@
                           <template v-else>
                             <PuButton
                               shape="pill"
-                              tone="neutral" variant="outline"
+                              tone="neutral"
+                              variant="outline"
                               size="sm"
-
-                              :disabled="
-                                prMessagesActions.isPending.delete.value
-                              "
+                              :disabled="prMessagesActions.isPending.delete.value"
                               @click="beginEditMessage(item.id, item.body)"
                             >
                               {{ t("adminPRMessages.editAction") }}
                             </PuButton>
                             <PuButton
                               shape="pill"
-                              tone="danger" variant="outline"
+                              tone="danger"
+                              variant="outline"
                               size="sm"
-
-                              :disabled="
-                                prMessagesActions.isPending.delete.value
-                              "
+                              :disabled="prMessagesActions.isPending.delete.value"
                               @click="handleDeleteMessage(item.id)"
                             >
                               {{
@@ -235,7 +214,6 @@
                     <PuButton
                       shape="pill"
                       size="sm"
-
                       :disabled="
                         prMessagesActions.isPending.create.value ||
                         messageDraftBody.trim().length === 0

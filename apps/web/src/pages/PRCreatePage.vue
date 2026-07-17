@@ -51,9 +51,7 @@
           <p>{{ t("createPage.formModeDescription") }}</p>
         </header>
 
-        <PREditor
-          ref="editorRef"
-        />
+        <PREditor ref="editorRef" />
       </section>
     </div>
 

@@ -91,18 +91,10 @@
       </div>
 
       <div class="operations">
-        <PuButton
-          tone="neutral" variant="soft"
-          :disabled="!canOpenRouteMap"
-          @click="openRouteMap"
-        >
+        <PuButton tone="neutral" variant="soft" :disabled="!canOpenRouteMap" @click="openRouteMap">
           {{ t("route.navigateAction") }}
         </PuButton>
-        <PuButton
-          tone="tertiary" variant="solid"
-          :disabled="!canAddWaypoint"
-          @click="addWaypoint"
-        >
+        <PuButton tone="tertiary" variant="solid" :disabled="!canAddWaypoint" @click="addWaypoint">
           {{ t("route.addWaypoint") }}
         </PuButton>
       </div>
@@ -196,19 +188,13 @@ const departurePoint = computed<RoutePoint>(
 );
 
 const arrivalPoint = computed<RoutePoint>(
-  () =>
-    editableRoute.value[editableRoute.value.length - 1] ??
-    createEmptyRouteDraft()[1],
+  () => editableRoute.value[editableRoute.value.length - 1] ?? createEmptyRouteDraft()[1],
 );
 
-const waypointItems = computed<RoutePoint[]>(() =>
-  editableRoute.value.slice(1, -1),
-);
+const waypointItems = computed<RoutePoint[]>(() => editableRoute.value.slice(1, -1));
 
 const canAddWaypoint = computed(() => editableRoute.value.length < props.max);
-const canOpenRouteMap = computed(
-  () => getRouteValidationIssue(editableRoute.value) === null,
-);
+const canOpenRouteMap = computed(() => getRouteValidationIssue(editableRoute.value) === null);
 
 const pendingRoutePoint = computed<RoutePoint | null>(() => {
   const index = pendingPickerIndex.value;
@@ -221,9 +207,7 @@ const pendingPickerTitle = computed(() => {
     return t("locationPicker.title");
   }
   return t("route.pickPointTitle", {
-    role: t(
-      `route.pointRole.${resolveRoutePointRole(index, editableRoute.value.length)}`,
-    ),
+    role: t(`route.pointRole.${resolveRoutePointRole(index, editableRoute.value.length)}`),
   });
 });
 
@@ -295,11 +279,7 @@ const handleEditDatetime = (index: number) => {
     return;
   }
 
-  if (
-    props.variant === "immersive" &&
-    !props.useDepDatetimeEditor &&
-    index === 0
-  ) {
+  if (props.variant === "immersive" && !props.useDepDatetimeEditor && index === 0) {
     emit("editDepTime");
     return;
   }
@@ -307,8 +287,7 @@ const handleEditDatetime = (index: number) => {
   emit("editDatetime", index);
 };
 
-const isRouteComplete = (route: Route): boolean =>
-  getRouteValidationIssue(route) === null;
+const isRouteComplete = (route: Route): boolean => getRouteValidationIssue(route) === null;
 
 const emitRouteChange = (route: Route) => {
   emit("update:modelValue", route);
@@ -376,14 +355,8 @@ const handleLocationPicked = (location: PickedLocation) => {
 
 .route-editor__icon-action {
   display: grid;
-  width: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
-  height: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   place-items: center;
   border: 0;
   border-radius: var(--sys-radius-small);

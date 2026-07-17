@@ -63,9 +63,7 @@ export const feedbackQuestionnaireDefinitionSchema = z.object({
     .min(1),
 });
 
-export type FeedbackQuestionnaireDefinition = z.infer<
-  typeof feedbackQuestionnaireDefinitionSchema
->;
+export type FeedbackQuestionnaireDefinition = z.infer<typeof feedbackQuestionnaireDefinitionSchema>;
 
 export const feedbackQuestionnaireAnswersSchema = z.record(
   questionIdSchema,
@@ -85,9 +83,7 @@ export const feedbackQuestionnaireAnswersSchema = z.record(
   ]),
 );
 
-export type FeedbackQuestionnaireAnswers = z.infer<
-  typeof feedbackQuestionnaireAnswersSchema
->;
+export type FeedbackQuestionnaireAnswers = z.infer<typeof feedbackQuestionnaireAnswersSchema>;
 
 export const feedbackQuestionnaireTemplates = pgTable(
   "feedback_questionnaire_templates",
@@ -96,9 +92,7 @@ export const feedbackQuestionnaireTemplates = pgTable(
     key: text("key").notNull(),
     version: text("version").notNull(),
     title: text("title").notNull(),
-    definition: jsonb("definition")
-      .$type<FeedbackQuestionnaireDefinition>()
-      .notNull(),
+    definition: jsonb("definition").$type<FeedbackQuestionnaireDefinition>().notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -110,22 +104,17 @@ export const feedbackQuestionnaireTemplates = pgTable(
   }),
 );
 
-export const feedbackQuestionnaireInstances = pgTable(
-  "feedback_questionnaire_instances",
-  {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
-    templateId: bigint("template_id", { mode: "number" }).references(
-      () => feedbackQuestionnaireTemplates.id,
-      { onDelete: "set null" },
-    ),
-    title: text("title").notNull(),
-    definition: jsonb("definition")
-      .$type<FeedbackQuestionnaireDefinition>()
-      .notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-);
+export const feedbackQuestionnaireInstances = pgTable("feedback_questionnaire_instances", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  templateId: bigint("template_id", { mode: "number" }).references(
+    () => feedbackQuestionnaireTemplates.id,
+    { onDelete: "set null" },
+  ),
+  title: text("title").notNull(),
+  definition: jsonb("definition").$type<FeedbackQuestionnaireDefinition>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export const feedbackQuestionnaireResponses = pgTable(
   "feedback_questionnaire_responses",
@@ -188,19 +177,11 @@ export const selectFeedbackQuestionnaireResponseSchema = createSelectSchema(
   },
 );
 
-export type FeedbackQuestionnaireTemplate =
-  typeof feedbackQuestionnaireTemplates.$inferSelect;
-export type NewFeedbackQuestionnaireTemplate =
-  typeof feedbackQuestionnaireTemplates.$inferInsert;
-export type FeedbackQuestionnaireTemplateId =
-  FeedbackQuestionnaireTemplate["id"];
-export type FeedbackQuestionnaireInstance =
-  typeof feedbackQuestionnaireInstances.$inferSelect;
-export type NewFeedbackQuestionnaireInstance =
-  typeof feedbackQuestionnaireInstances.$inferInsert;
-export type FeedbackQuestionnaireInstanceId =
-  FeedbackQuestionnaireInstance["id"];
-export type FeedbackQuestionnaireResponse =
-  typeof feedbackQuestionnaireResponses.$inferSelect;
-export type NewFeedbackQuestionnaireResponse =
-  typeof feedbackQuestionnaireResponses.$inferInsert;
+export type FeedbackQuestionnaireTemplate = typeof feedbackQuestionnaireTemplates.$inferSelect;
+export type NewFeedbackQuestionnaireTemplate = typeof feedbackQuestionnaireTemplates.$inferInsert;
+export type FeedbackQuestionnaireTemplateId = FeedbackQuestionnaireTemplate["id"];
+export type FeedbackQuestionnaireInstance = typeof feedbackQuestionnaireInstances.$inferSelect;
+export type NewFeedbackQuestionnaireInstance = typeof feedbackQuestionnaireInstances.$inferInsert;
+export type FeedbackQuestionnaireInstanceId = FeedbackQuestionnaireInstance["id"];
+export type FeedbackQuestionnaireResponse = typeof feedbackQuestionnaireResponses.$inferSelect;
+export type NewFeedbackQuestionnaireResponse = typeof feedbackQuestionnaireResponses.$inferInsert;

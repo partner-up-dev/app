@@ -9,9 +9,7 @@ import {
 } from "../../../infra/notifications/wechat-pr-message";
 import { PRMessageInboxStateRepository } from "../../../repositories/PRMessageInboxStateRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
-import {
-  createPRMessageUnreadWaveNotificationOpportunities,
-} from "../../notification/services/pr-message-unread-wave.service";
+import { createPRMessageUnreadWaveNotificationOpportunities } from "../../notification/services/pr-message-unread-wave.service";
 import { requirePRMessageParticipantAccess } from "../../pr-core/services/pr-message-access.service";
 import {
   PR_MESSAGE_RATE_LIMIT_MAX_MESSAGES,
@@ -23,15 +21,8 @@ import {
 const messageRepo = new PRMessageRepository();
 const inboxStateRepo = new PRMessageInboxStateRepository();
 
-export async function createPRMessage(input: {
-  prId: PRId;
-  authorUserId: UserId;
-  body: string;
-}) {
-  const { request } = await requirePRMessageParticipantAccess(
-    input.prId,
-    input.authorUserId,
-  );
+export async function createPRMessage(input: { prId: PRId; authorUserId: UserId; body: string }) {
+  const { request } = await requirePRMessageParticipantAccess(input.prId, input.authorUserId);
   const body = prMessageBodySchema.parse(input.body);
 
   const recentMessageCount = await messageRepo.countByAuthorSince(
@@ -75,11 +66,7 @@ export async function createPersistedPRMessage(input: {
   const [createdMessageWithAuthor, actorInboxState] = await Promise.all([
     messageRepo.findWithAuthorById(createdMessage.id),
     input.markAuthorRead && input.authorUserId
-      ? inboxStateRepo.upsertLastReadMessageId(
-          input.prId,
-          input.authorUserId,
-          createdMessage.id,
-        )
+      ? inboxStateRepo.upsertLastReadMessageId(input.prId, input.authorUserId, createdMessage.id)
       : Promise.resolve(null),
   ]);
   if (!createdMessageWithAuthor) {

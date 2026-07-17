@@ -20,11 +20,11 @@
       />
 
       <PRPreferenceControl
-      v-if="props.options"
-      v-model="selectedPreferences"
-      :type="props.options.type"
-      :preset-tags="props.options.preferenceTags"
-      @update:model-value="handlePreferenceChange"
+        v-if="props.options"
+        v-model="selectedPreferences"
+        :type="props.options.type"
+        :preset-tags="props.options.preferenceTags"
+        @update:model-value="handlePreferenceChange"
       />
 
       <PuInlineNotice v-if="props.errorMessage" tone="error" :message="props.errorMessage" />
@@ -218,9 +218,9 @@ const splashLiquidPhase = computed<LiquidSplashPhase>(() =>
 const canSubmit = computed(() =>
   Boolean(
     selectedPlace.value &&
-      selectedTime.value?.timeWindows.length &&
-      selectedTime.value.createTimeWindow?.startAt &&
-      !props.pending,
+    selectedTime.value?.timeWindows.length &&
+    selectedTime.value.createTimeWindow?.startAt &&
+    !props.pending,
   ),
 );
 const buildSelection = (): PRDiscoveryFormSelection => ({

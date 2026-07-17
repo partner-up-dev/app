@@ -13,9 +13,7 @@ import {
 const userRepo = new UserRepository();
 
 const defaultAvatarsDir =
-  process.platform === "win32"
-    ? path.join(process.cwd(), "avatars")
-    : "/mnt/oss/avatars";
+  process.platform === "win32" ? path.join(process.cwd(), "avatars") : "/mnt/oss/avatars";
 const avatarsDir = env.AVATARS_DIR ?? defaultAvatarsDir;
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -58,9 +56,7 @@ export const toCurrentUserProfileSnapshot = (
   wechatBound: Boolean(user.openId),
 });
 
-export async function getCurrentUserProfile(
-  userId: UserId,
-): Promise<CurrentUserProfileSnapshot> {
+export async function getCurrentUserProfile(userId: UserId): Promise<CurrentUserProfileSnapshot> {
   const user = await requireUser(userId);
   return toCurrentUserProfileSnapshot(user);
 }
@@ -121,16 +117,15 @@ export async function updateCurrentUserPhoneNumber(
   await requireUser(userId);
 
   const trimmed = phoneNumber?.trim() ?? "";
-  const normalizedPhone =
-    trimmed.length > 0 ? normalizeMainlandChinaMobilePhone(trimmed) : null;
+  const normalizedPhone = trimmed.length > 0 ? normalizeMainlandChinaMobilePhone(trimmed) : null;
   if (trimmed.length > 0 && !normalizedPhone) {
-    return throwHttpProblem({ status: 400, detail: "Phone must match mainland China mobile format" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Phone must match mainland China mobile format",
+    });
   }
 
-  const updated = await userRepo.updatePhoneNumber(
-    userId,
-    normalizedPhone?.phoneE164 ?? null,
-  );
+  const updated = await userRepo.updatePhoneNumber(userId, normalizedPhone?.phoneE164 ?? null);
   if (!updated) {
     return throwHttpProblem({ status: 500, detail: "Failed to update phone number" });
   }
@@ -154,7 +149,10 @@ export async function bindWeChatToCurrentUser(
 
   const existingByOpenId = await userRepo.findByOpenId(normalizedOpenId);
   if (existingByOpenId && existingByOpenId.id !== currentUser.id) {
-    return throwHttpProblem({ status: 409, detail: "WeChat account is already bound to another user" });
+    return throwHttpProblem({
+      status: 409,
+      detail: "WeChat account is already bound to another user",
+    });
   }
 
   if (currentUser.openId === normalizedOpenId) {

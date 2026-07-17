@@ -40,12 +40,8 @@ const normalizeUrls = (urls: readonly string[]): string[] => {
   return normalized;
 };
 
-const stringArraysEqual = (
-  left: readonly string[],
-  right: readonly string[],
-): boolean =>
-  left.length === right.length &&
-  left.every((value, index) => value === right[index]);
+const stringArraysEqual = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
 
 const fileNameFromUrl = (url: string): string => {
   try {
@@ -58,10 +54,7 @@ const fileNameFromUrl = (url: string): string => {
   }
 };
 
-export const imageUploadItemFromUrl = (
-  url: string,
-  name?: string,
-): PuFileUploadItem => ({
+export const imageUploadItemFromUrl = (url: string, name?: string): PuFileUploadItem => ({
   id: `url:${url}`,
   source: "url",
   name: name ?? fileNameFromUrl(url),
@@ -72,9 +65,7 @@ export const imageUploadItemFromUrl = (
 const errorMessageFromUnknown = (error: unknown): string =>
   error instanceof Error ? error.message : "Upload failed";
 
-export const useSingleImageUploadField = (
-  options: SingleImageUploadOptions,
-) => {
+export const useSingleImageUploadField = (options: SingleImageUploadOptions) => {
   const { uploadImage, isUploading, uploadError, clearError } = useCloudStorage();
   const uploadValue = ref<PuFileUploadValue>(null);
   const rejectionError = ref<string | null>(null);
@@ -193,9 +184,7 @@ export const useSingleImageUploadField = (
   };
 };
 
-export const useGalleryImageUploadField = (
-  options: GalleryImageUploadOptions,
-) => {
+export const useGalleryImageUploadField = (options: GalleryImageUploadOptions) => {
   const { uploadImage, isUploading, uploadError, clearError } = useCloudStorage();
   const uploadValue = ref<PuFilesUploadValue>([]);
   const rejectionError = ref<string | null>(null);
@@ -212,9 +201,7 @@ export const useGalleryImageUploadField = (
     const urlItems = normalizeUrls(urls).map((url) => imageUploadItemFromUrl(url));
     const transientItems = uploadValue.value.filter(
       (item) =>
-        item.source === "file" &&
-        Boolean(item.file) &&
-        !cancelledItemIds.value.has(item.id),
+        item.source === "file" && Boolean(item.file) && !cancelledItemIds.value.has(item.id),
     );
     uploadValue.value = [...urlItems, ...transientItems];
   };
@@ -226,9 +213,7 @@ export const useGalleryImageUploadField = (
   );
 
   const replaceItem = (nextItem: PuFileUploadItem): void => {
-    const existingIndex = uploadValue.value.findIndex(
-      (item) => item.id === nextItem.id,
-    );
+    const existingIndex = uploadValue.value.findIndex((item) => item.id === nextItem.id);
     if (existingIndex < 0) {
       uploadValue.value = [...uploadValue.value, nextItem];
       return;
@@ -239,9 +224,7 @@ export const useGalleryImageUploadField = (
   };
 
   const syncUrlsFromUploadValue = (items: PuFilesUploadValue): void => {
-    const urls = items.flatMap((item) =>
-      item.source === "url" && item.url ? [item.url] : [],
-    );
+    const urls = items.flatMap((item) => (item.source === "url" && item.url ? [item.url] : []));
     setUrls(urls);
   };
 
@@ -268,9 +251,7 @@ export const useGalleryImageUploadField = (
       }
       setUrls([...options.getUrls(), url]);
       options.onUploaded?.(url);
-      uploadValue.value = uploadValue.value.filter(
-        (candidate) => candidate.id !== item.id,
-      );
+      uploadValue.value = uploadValue.value.filter((candidate) => candidate.id !== item.id);
     } catch (error) {
       if (cancelledItemIds.value.has(item.id)) {
         return;
@@ -285,9 +266,7 @@ export const useGalleryImageUploadField = (
 
   const handleAdd = async (items: PuFileUploadItem[]): Promise<void> => {
     rejectionError.value = null;
-    const urlItems = items.flatMap((item) =>
-      item.source === "url" && item.url ? [item.url] : [],
-    );
+    const urlItems = items.flatMap((item) => (item.source === "url" && item.url ? [item.url] : []));
     if (urlItems.length > 0) {
       setUrls([...options.getUrls(), ...urlItems]);
       clearError();
@@ -302,9 +281,7 @@ export const useGalleryImageUploadField = (
 
   const handleRemove = (item: PuFileUploadItem): void => {
     cancelledItemIds.value = new Set([...cancelledItemIds.value, item.id]);
-    uploadValue.value = uploadValue.value.filter(
-      (candidate) => candidate.id !== item.id,
-    );
+    uploadValue.value = uploadValue.value.filter((candidate) => candidate.id !== item.id);
     if (item.url) {
       setUrls(options.getUrls().filter((url) => url !== item.url));
     }

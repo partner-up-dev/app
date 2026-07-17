@@ -154,7 +154,7 @@ describe("PRPeekRadioCarousel touch capture", () => {
     if (!carousel) {
       throw new Error("carousel did not mount");
     }
-    const setPointerCapture = vi.fn();
+    const setPointerCapture = vi.fn<(pointerId: number) => void>();
     Object.assign(carousel, { setPointerCapture });
 
     carousel.dispatchEvent(

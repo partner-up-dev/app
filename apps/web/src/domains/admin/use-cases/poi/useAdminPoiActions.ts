@@ -38,8 +38,7 @@ export const useAdminPoiActions = () => {
   const upsertPoi = async (input: AdminPoiUpsertInput) =>
     await upsertPoiMutation.mutateAsync(input);
 
-  const publishPoi = async (poiId: number) =>
-    await publishPoiMutation.mutateAsync({ poiId });
+  const publishPoi = async (poiId: number) => await publishPoiMutation.mutateAsync({ poiId });
 
   const rejectPoi = async ({
     poiId,

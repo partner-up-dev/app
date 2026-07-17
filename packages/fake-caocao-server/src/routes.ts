@@ -162,7 +162,7 @@ const jsonResponse = (
   new Response(JSON.stringify(payload), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      ...(headers ?? {}),
+      ...headers,
     },
     status,
   });

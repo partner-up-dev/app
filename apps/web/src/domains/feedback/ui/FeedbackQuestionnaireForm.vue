@@ -1,25 +1,15 @@
 <template>
   <form class="feedback-form" @submit.prevent="handleSubmit">
     <div class="feedback-form__questions">
-      <template
-        v-for="question in definition.questions"
-        :key="question.id"
-      >
-        <fieldset
-          v-if="question.type === 'single_choice'"
-          class="feedback-form__question"
-        >
+      <template v-for="question in definition.questions" :key="question.id">
+        <fieldset v-if="question.type === 'single_choice'" class="feedback-form__question">
           <legend class="feedback-form__label">
             {{ question.label }}
             <span v-if="question.required" aria-hidden="true">*</span>
           </legend>
 
           <div class="choice-list">
-            <label
-              v-for="option in question.options"
-              :key="option.value"
-              class="choice-row"
-            >
+            <label v-for="option in question.options" :key="option.value" class="choice-row">
               <input
                 type="radio"
                 :name="question.id"
@@ -92,12 +82,7 @@
       >
         {{ pending ? "提交中..." : "提交反馈" }}
       </PuButton>
-      <PuButton
-
-        tone="neutral" variant="soft"
-        :disabled="pending"
-        @click="$emit('cancel')"
-      >
+      <PuButton tone="neutral" variant="soft" :disabled="pending" @click="$emit('cancel')">
         稍后填写
       </PuButton>
     </div>
@@ -205,10 +190,7 @@ const setImageAnswer = (questionId: string, imageUrl: string): void => {
   };
 };
 
-const setImageUploadValue = (
-  questionId: string,
-  value: PuFileUploadValue,
-): void => {
+const setImageUploadValue = (questionId: string, value: PuFileUploadValue): void => {
   imageUploadValues.value = {
     ...imageUploadValues.value,
     [questionId]: value,
@@ -221,20 +203,14 @@ const clearImageUploadValue = (questionId: string): void => {
   imageUploadValues.value = nextValues;
 };
 
-const setImageUploadError = (
-  questionId: string,
-  message: string | null,
-): void => {
+const setImageUploadError = (questionId: string, message: string | null): void => {
   imageUploadErrors.value = {
     ...imageUploadErrors.value,
     [questionId]: message,
   };
 };
 
-const setImageQuestionUploading = (
-  questionId: string,
-  isUploading: boolean,
-): void => {
+const setImageQuestionUploading = (questionId: string, isUploading: boolean): void => {
   const nextIds = new Set(uploadingImageQuestionIds.value);
   if (isUploading) {
     nextIds.add(questionId);
@@ -250,10 +226,7 @@ const isImageQuestionUploading = (questionId: string): boolean =>
 const imageUploadError = (questionId: string): string | null =>
   imageUploadErrors.value[questionId] ?? null;
 
-const handleImageUploadUpdate = (
-  questionId: string,
-  value: PuFileUploadValue,
-): void => {
+const handleImageUploadUpdate = (questionId: string, value: PuFileUploadValue): void => {
   setImageUploadValue(questionId, value);
   setImageUploadError(questionId, null);
 
@@ -270,10 +243,7 @@ const handleImageUploadUpdate = (
   }
 };
 
-const handleImageUploadAdd = async (
-  questionId: string,
-  item: PuFileUploadItem,
-): Promise<void> => {
+const handleImageUploadAdd = async (questionId: string, item: PuFileUploadItem): Promise<void> => {
   setImageUploadError(questionId, null);
 
   if (item.source === "url" && item.url) {
@@ -300,9 +270,7 @@ const handleImageUploadAdd = async (
     setImageAnswer(questionId, imageUrl);
     setImageUploadValue(questionId, imageUploadItemFromUrl(imageUrl, item.name));
   } catch (error) {
-    const message =
-      uploadError.value ??
-      (error instanceof Error ? error.message : "上传失败");
+    const message = uploadError.value ?? (error instanceof Error ? error.message : "上传失败");
     setImageUploadError(questionId, message);
     setImageUploadValue(questionId, {
       ...item,
@@ -321,10 +289,7 @@ const handleImageUploadRemove = (questionId: string): void => {
   clearError();
 };
 
-const handleImageUploadReject = (
-  questionId: string,
-  rejections: PuFileUploadRejection[],
-): void => {
+const handleImageUploadReject = (questionId: string, rejections: PuFileUploadRejection[]): void => {
   setImageUploadError(questionId, rejections[0]?.message ?? null);
 };
 

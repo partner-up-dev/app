@@ -10,10 +10,7 @@
         aria-hidden="true"
       ></span>
       <div class="join-confirmation-followup__text">
-        <h2
-          id="join-confirmation-followup-title"
-          class="join-confirmation-followup__title"
-        >
+        <h2 id="join-confirmation-followup-title" class="join-confirmation-followup__title">
           {{ t("prPage.joinConfirmationFollowup.title") }}
         </h2>
         <p class="join-confirmation-followup__description">

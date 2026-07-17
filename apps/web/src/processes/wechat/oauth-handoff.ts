@@ -3,8 +3,7 @@ import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
 
 export const WECHAT_OAUTH_HANDOFF_QUERY_PARAM = "wechatOAuthHandoff";
-export const WECHAT_OAUTH_HANDOFF_CLEARED_EVENT =
-  "partnerup:wechat-oauth-handoff-cleared";
+export const WECHAT_OAUTH_HANDOFF_CLEARED_EVENT = "partnerup:wechat-oauth-handoff-cleared";
 
 type ConsumeWeChatOAuthHandoffOptions = {
   signal?: AbortSignal;

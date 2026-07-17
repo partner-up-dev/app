@@ -20,7 +20,12 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
 import { adminClient } from "@/lib/admin-rpc";
-import { PuButton, PuInlineNotice, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuInlineNotice,
+  PuLoadingState,
+  PuPageScaffold,
+} from "@partner-up-dev/design-web";
 
 const ANALYTICS_SEED_USER_ID = "00000000-0000-0000-0000-000000000002";
 
@@ -31,10 +36,7 @@ const adminSessionStore = useAdminSessionStore();
 const isPending = ref(true);
 const errorMessage = ref<string | null>(null);
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   try {
     const payload = (await response.json()) as { error?: string };
     return payload.error || fallback;
@@ -70,10 +72,7 @@ const enterBI = async (): Promise<void> => {
     });
 
     if (!response.ok) {
-      errorMessage.value = await readErrorMessage(
-        response,
-        "BI 登录失败，请检查 code。",
-      );
+      errorMessage.value = await readErrorMessage(response, "BI 登录失败，请检查 code。");
       return;
     }
 

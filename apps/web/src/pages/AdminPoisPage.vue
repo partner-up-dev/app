@@ -17,10 +17,7 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="poisQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
+        <PuLoadingState v-if="poisQuery.isLoading.value" :message="t('common.loading')" />
         <PuInlineNotice tone="error" v-else-if="pageError" :message="pageError.message" />
 
         <section v-else-if="pois.length === 0" class="empty-panel">

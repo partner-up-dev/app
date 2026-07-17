@@ -5,26 +5,20 @@ import type { PartnerRequest } from "../../entities/partner-request";
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
 test("resolvePRMessageNotificationRunAt adds a fixed debounce window", async () => {
-  const {
-    PR_MESSAGE_DEBOUNCE_WINDOW_MS,
-    resolvePRMessageNotificationRunAt,
-  } = await import("../../domains/notification");
+  const { PR_MESSAGE_DEBOUNCE_WINDOW_MS, resolvePRMessageNotificationRunAt } =
+    await import("../../domains/notification");
 
   const firstUnreadMessageCreatedAt = new Date("2026-04-14T04:00:00.000Z");
   const runAt = resolvePRMessageNotificationRunAt(firstUnreadMessageCreatedAt);
 
   assert.equal(
     runAt.toISOString(),
-    new Date(
-      firstUnreadMessageCreatedAt.getTime() + PR_MESSAGE_DEBOUNCE_WINDOW_MS,
-    ).toISOString(),
+    new Date(firstUnreadMessageCreatedAt.getTime() + PR_MESSAGE_DEBOUNCE_WINDOW_MS).toISOString(),
   );
 });
 
 test("scheduleWeChatPRMessageNotification uses delayed runAt and wave payload", async () => {
-  const { scheduleWeChatPRMessageNotification } = await import(
-    "./wechat-pr-message"
-  );
+  const { scheduleWeChatPRMessageNotification } = await import("./wechat-pr-message");
   const { jobRunner } = await import("../jobs");
 
   type ScheduleConfig = {
@@ -83,10 +77,7 @@ test("scheduleWeChatPRMessageNotification uses delayed runAt and wave payload", 
   const scheduledConfig = captured as ScheduleConfig;
 
   assert.equal(scheduledConfig.jobType, "wechat.notification.pr-message");
-  assert.equal(
-    scheduledConfig.runAt.toISOString(),
-    "2026-04-14T04:05:00.000Z",
-  );
+  assert.equal(scheduledConfig.runAt.toISOString(), "2026-04-14T04:05:00.000Z");
   assert.equal(scheduledConfig.dedupeKey, "wechat-pr-message:8:42:77");
   assert.deepEqual(scheduledConfig.payload, {
     prId: 42,

@@ -17,10 +17,7 @@
       </p>
     </header>
 
-    <PuInlineNotice
-      tone="info"
-      :message="t('prPage.messageThread.nonRealtimeHint')"
-    />
+    <PuInlineNotice tone="info" :message="t('prPage.messageThread.nonRealtimeHint')" />
 
     <PuInlineNotice
       v-if="messagesQuery.error.value"
@@ -46,10 +43,7 @@
         />
 
         <div v-else-if="threadItems.length === 0" class="message-thread__empty">
-          <span
-            class="message-thread__empty-icon i-mdi-message-text-outline"
-            aria-hidden="true"
-          />
+          <span class="message-thread__empty-icon i-mdi-message-text-outline" aria-hidden="true" />
           <div class="message-thread__empty-text">
             <h2 class="message-thread__empty-title">
               {{ t("prPage.messageThread.emptyTitle") }}
@@ -60,11 +54,7 @@
           </div>
         </div>
 
-        <ul
-          v-else
-          class="message-list"
-          :class="{ 'message-list--page': isPageLayout }"
-        >
+        <ul v-else class="message-list" :class="{ 'message-list--page': isPageLayout }">
           <li
             v-for="item in threadItems"
             :key="item.id"
@@ -91,11 +81,7 @@
     </div>
 
     <PuInlineNotice v-if="submitError" tone="error" :message="submitError" />
-    <PuInlineNotice
-      v-if="readMarkerError"
-      tone="warning"
-      :message="readMarkerError"
-    />
+    <PuInlineNotice v-if="readMarkerError" tone="warning" :message="readMarkerError" />
 
     <PuFormItem
       class="message-thread__composer"
@@ -107,12 +93,13 @@
         v-model="draftBody"
         :placeholder="t('prPage.messageThread.inputPlaceholder')"
         ::maxlength="1000"
-        />
+      />
     </PuFormItem>
 
     <div class="message-thread__actions">
       <PuButton
-        tone="primary" variant="solid"
+        tone="primary"
+        variant="solid"
         :loading="createMessageMutation.isPending.value"
         :disabled="!canSubmitMessage"
         @click="handleSubmitMessage"
@@ -131,7 +118,14 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRId } from "@partner-up-dev/backend";
-import { PuButton, PuCard, PuEmptyState, PuFormItem, PuInlineNotice, PuTextarea } from "@partner-up-dev/design-web";
+import {
+  PuButton,
+  PuCard,
+  PuEmptyState,
+  PuFormItem,
+  PuInlineNotice,
+  PuTextarea,
+} from "@partner-up-dev/design-web";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
   useAdvancePRMessageReadMarker,
@@ -166,9 +160,7 @@ const advanceReadMarkerMutation = useAdvancePRMessageReadMarker();
 const threadItems = computed(() => messagesQuery.data.value?.items ?? []);
 const thread = computed(() => messagesQuery.data.value?.thread ?? null);
 const isPageLayout = computed(() => props.layout === "page");
-const containerComponent = computed(() =>
-  isPageLayout.value ? "section" : PuCard,
-);
+const containerComponent = computed(() => (isPageLayout.value ? "section" : PuCard));
 const containerProps = computed(() =>
   isPageLayout.value
     ? {}
@@ -200,10 +192,7 @@ watch(
     ] as const,
   ([latestVisibleMessageId, lastReadMessageId, isLoading, isMarkingRead]) => {
     if (isLoading || isMarkingRead || latestVisibleMessageId === null) return;
-    if (
-      lastReadMessageId !== null &&
-      latestVisibleMessageId <= lastReadMessageId
-    ) {
+    if (lastReadMessageId !== null && latestVisibleMessageId <= lastReadMessageId) {
       return;
     }
     if (lastReadAdvanceRequestId.value === latestVisibleMessageId) {
@@ -225,9 +214,7 @@ watch(
   { immediate: true },
 );
 
-const resolveAuthorName = (
-  item: PRMessagesResponse["items"][number],
-): string => {
+const resolveAuthorName = (item: PRMessagesResponse["items"][number]): string => {
   if (item.messageType === "SYSTEM") {
     return item.author.label;
   }
@@ -255,8 +242,7 @@ const handleSubmitMessage = async () => {
     });
     draftBody.value = "";
   } catch (error) {
-    submitError.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    submitError.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 </script>

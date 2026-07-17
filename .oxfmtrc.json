@@ -1,0 +1,29 @@
+{
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 100,
+  "singleQuote": false,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "all",
+  "semi": true,
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "embeddedLanguageFormatting": "auto",
+  "sortPackageJson": true,
+  "ignorePatterns": [
+    "**/*.md",
+    "**/*.mdx",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "apps/backend/drizzle/**",
+    "apps/backend/data-migrations/**",
+    "apps/backend/seeds/**",
+    "tasks/**",
+    "scratch/**",
+    "images/**",
+    "pnpm-lock.yaml"
+  ]
+}

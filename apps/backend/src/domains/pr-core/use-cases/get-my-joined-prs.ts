@@ -9,9 +9,7 @@ export type MyPRListItem = {
   id: PRId;
 };
 
-export async function getMyJoinedPRs(
-  userId: UserId,
-): Promise<MyPRListItem[]> {
+export async function getMyJoinedPRs(userId: UserId): Promise<MyPRListItem[]> {
   const slots = await partnerRepo.findActiveByUserId(userId);
   const uniquePrIds = Array.from(new Set(slots.map((slot) => slot.prId)));
   const rows = await readPartnerRequestsByIds(uniquePrIds, {

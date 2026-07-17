@@ -6,8 +6,8 @@
       </p>
       <PuButton
         shape="rect"
-        tone="primary" variant="outline"
-
+        tone="primary"
+        variant="outline"
         @click="showMiniProgramWebViewNotice = true"
       >
         {{ t("share.wechat.openInWechatAction") }}
@@ -17,8 +17,8 @@
     <div v-else class="wechat-chat-method__body">
       <div class="options-section flex flex-col">
         <PuButton
-          tone="neutral" variant="outline"
-
+          tone="neutral"
+          variant="outline"
           @click="handleGenerateAndUpdate"
           :disabled="isWorking"
         >

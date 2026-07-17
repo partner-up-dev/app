@@ -65,11 +65,7 @@
           class="ride-hailing-ordering-content__listing-state"
           data-testid="ordering.ride-hailing.listing-error"
         >
-          <PuInlineNotice
-            tone="error"
-            title="车型报价加载失败"
-            :message="rideListingErrorMessage"
-          >
+          <PuInlineNotice tone="error" title="车型报价加载失败" :message="rideListingErrorMessage">
             <template #actions>
               <PuButton
                 size="sm"
@@ -190,17 +186,9 @@
       />
     </PuDrawer>
 
-    <PuDrawer
-      v-model:visible="ridersDrawerOpen"
-      title="同乘人"
-      max-width="44rem"
-    >
+    <PuDrawer v-model:visible="ridersDrawerOpen" title="同乘人" max-width="44rem">
       <div class="ride-hailing-ordering-content__drawer-content">
-        <PuInlineNotice
-          v-if="ridersLocked"
-          tone="info"
-          message="同乘人由当前搭子请求锁定。"
-        />
+        <PuInlineNotice v-if="ridersLocked" tone="info" message="同乘人由当前搭子请求锁定。" />
         <div
           v-for="rider in rideRiders"
           :key="rider.userId"

@@ -38,10 +38,7 @@ const resolveCookieBaseOptions = (c: Context) => ({
   path: "/",
 });
 
-export const setAnonymousSessionCookie = async (
-  c: Context,
-  userId: string,
-): Promise<void> => {
+export const setAnonymousSessionCookie = async (c: Context, userId: string): Promise<void> => {
   const issuedAtMs = Date.now();
   const payload: AnonymousSessionPayload = {
     userId,
@@ -61,14 +58,8 @@ export const setAnonymousSessionCookie = async (
   );
 };
 
-export const readAnonymousSessionCookie = async (
-  c: Context,
-): Promise<string | null> => {
-  const raw = await getSignedCookie(
-    c,
-    resolveSessionSecret(),
-    ANON_SESSION_COOKIE_NAME,
-  );
+export const readAnonymousSessionCookie = async (c: Context): Promise<string | null> => {
+  const raw = await getSignedCookie(c, resolveSessionSecret(), ANON_SESSION_COOKIE_NAME);
   if (!raw) return null;
 
   const payload = decodePayload(raw, anonSessionPayloadSchema);

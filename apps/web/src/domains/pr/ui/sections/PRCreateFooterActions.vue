@@ -2,28 +2,21 @@
   <footer class="page-footer">
     <PuButton
       v-if="allowDraftSave"
-      tone="neutral" variant="outline"
-
+      tone="neutral"
+      variant="outline"
       :disabled="pending"
       data-testid="pr-create.save-draft"
       @click="emit('submit-as', 'DRAFT')"
     >
-      {{
-        pending && pendingStatus === "DRAFT"
-          ? t("createPage.savePending")
-          : t("common.save")
-      }}
+      {{ pending && pendingStatus === "DRAFT" ? t("createPage.savePending") : t("common.save") }}
     </PuButton>
     <PuButton
-
       :disabled="pending"
       data-testid="pr-create.publish"
       @click="emit('submit-as', 'PUBLISH')"
     >
       {{
-        pending && pendingStatus === "PUBLISH"
-          ? t("createPage.createPending")
-          : t("common.create")
+        pending && pendingStatus === "PUBLISH" ? t("createPage.createPending") : t("common.create")
       }}
     </PuButton>
   </footer>

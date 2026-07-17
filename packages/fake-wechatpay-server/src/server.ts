@@ -1,10 +1,7 @@
 import { serve, type ServerType } from "@hono/node-server";
 import { z } from "zod";
 import { createFakeWeChatPayFixture } from "./fixtures";
-import {
-  createFakeWeChatPayApp,
-  type FakeWeChatPayServerAppInput,
-} from "./routes";
+import { createFakeWeChatPayApp, type FakeWeChatPayServerAppInput } from "./routes";
 import { FakeWeChatPayState } from "./state";
 
 export const fakeWeChatPayServerOptionsSchema = z.object({
@@ -13,9 +10,7 @@ export const fakeWeChatPayServerOptionsSchema = z.object({
   verifyRequests: z.boolean().default(true),
 });
 
-export type FakeWeChatPayServerOptions = Partial<
-  z.input<typeof fakeWeChatPayServerOptionsSchema>
->;
+export type FakeWeChatPayServerOptions = Partial<z.input<typeof fakeWeChatPayServerOptionsSchema>>;
 
 export type StartedFakeWeChatPayServer = {
   readonly origin: string;

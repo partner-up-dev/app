@@ -27,14 +27,10 @@ const pad2 = (value: number): string => String(value).padStart(2, "0");
 const buildDateKeyFromParts = (date: Date): ProductLocalDateKey =>
   `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
 
-export const isProductLocalDateKey = (
-  value: unknown,
-): value is ProductLocalDateKey =>
+export const isProductLocalDateKey = (value: unknown): value is ProductLocalDateKey =>
   typeof value === "string" && ISO_DATE_KEY_PATTERN.test(value.trim());
 
-export const parseProductLocalDateKey = (
-  value: ProductLocalDateKey,
-): Date | null => {
+export const parseProductLocalDateKey = (value: ProductLocalDateKey): Date | null => {
   if (!isProductLocalDateKey(value)) {
     return null;
   }
@@ -43,20 +39,14 @@ export const parseProductLocalDateKey = (
   const year = Number(yearRaw);
   const month = Number(monthRaw);
   const day = Number(dayRaw);
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day)
-  ) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return null;
   }
 
   return new Date(Date.UTC(year, month - 1, day));
 };
 
-export const getTodayProductLocalDateKey = (
-  now: Date = new Date(),
-): ProductLocalDateKey => {
+export const getTodayProductLocalDateKey = (now: Date = new Date()): ProductLocalDateKey => {
   let year = "";
   let month = "";
   let day = "";
@@ -110,29 +100,21 @@ export const listProductLocalDateKeysFrom = (
   return values;
 };
 
-export const normalizeProductLocalDateKeys = (
-  values: readonly string[],
-): ProductLocalDateKey[] =>
+export const normalizeProductLocalDateKeys = (values: readonly string[]): ProductLocalDateKey[] =>
   Array.from(
     new Set(
       values
         .map((value) => value.trim())
-        .filter((value): value is ProductLocalDateKey =>
-          isProductLocalDateKey(value),
-        ),
+        .filter((value): value is ProductLocalDateKey => isProductLocalDateKey(value)),
     ),
   ).sort((left, right) => left.localeCompare(right));
 
-export const formatProductLocalMonthLabel = (
-  value: ProductLocalDateKey,
-): string => {
+export const formatProductLocalMonthLabel = (value: ProductLocalDateKey): string => {
   const parsed = parseProductLocalDateKey(value);
   return parsed ? productLocalMonthFormatter.format(parsed) : value;
 };
 
-export const formatProductLocalShortDateLabel = (
-  value: ProductLocalDateKey,
-): string => {
+export const formatProductLocalShortDateLabel = (value: ProductLocalDateKey): string => {
   const parsed = parseProductLocalDateKey(value);
   return parsed ? productLocalShortDateFormatter.format(parsed) : value;
 };

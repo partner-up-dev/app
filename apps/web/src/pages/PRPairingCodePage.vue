@@ -16,29 +16,15 @@
       <span class="i-mdi-arrow-left" aria-hidden="true"></span>
     </button>
 
-    <div
-      class="pairing-code-page__code"
-      data-testid="pr-pairing-code.code"
-      aria-live="polite"
-    >
+    <div class="pairing-code-page__code" data-testid="pr-pairing-code.code" aria-live="polite">
       {{ pairingCode }}
     </div>
   </main>
 
-  <main
-    v-else
-    class="pairing-code-page pairing-code-page--fallback"
-    data-page="pr-pairing-code"
-  >
+  <main v-else class="pairing-code-page pairing-code-page--fallback" data-page="pr-pairing-code">
     <PuLoadingState v-if="isLoading" :message="t('common.loading')" />
-    <PuInlineNotice tone="error"
-      v-else-if="error"
-      :message="error.message"
-    />
-    <PuInlineNotice tone="error"
-      v-else
-      :message="t('prPage.pairingCodePage.unavailable')"
-    />
+    <PuInlineNotice tone="error" v-else-if="error" :message="error.message" />
+    <PuInlineNotice tone="error" v-else :message="t('prPage.pairingCodePage.unavailable')" />
   </main>
 </template>
 
@@ -50,10 +36,7 @@ import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
 import { usePRRouteId } from "@/domains/pr/routing/usePRRouteId";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import { PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
-import {
-  canShowPRPairingCode,
-  derivePRPairingIdentity,
-} from "@/domains/pr/model/pr-pairing-code";
+import { canShowPRPairingCode, derivePRPairingIdentity } from "@/domains/pr/model/pr-pairing-code";
 
 const router = useRouter();
 const { t } = useI18n();
@@ -106,8 +89,7 @@ const handleBack = async (): Promise<void> => {
   place-items: center;
   min-height: 100vh;
   min-height: 100dvh;
-  padding:
-    max(var(--sys-spacing-medium), env(safe-area-inset-top))
+  padding: max(var(--sys-spacing-medium), env(safe-area-inset-top))
     max(var(--sys-spacing-medium), env(safe-area-inset-right))
     max(var(--sys-spacing-medium), env(safe-area-inset-bottom))
     max(var(--sys-spacing-medium), env(safe-area-inset-left));
@@ -146,8 +128,9 @@ const handleBack = async (): Promise<void> => {
 }
 
 .pairing-code-page__code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
   font-size: 32vw;
   font-weight: 800;
   line-height: 0.9;

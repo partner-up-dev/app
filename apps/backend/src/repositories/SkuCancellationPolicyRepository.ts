@@ -11,20 +11,12 @@ import type { RepositoryExecutor } from "./_executor";
 export class SkuCancellationPolicyRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
-  async create(
-    data: NewSkuCancellationPolicy,
-  ): Promise<SkuCancellationPolicy> {
-    const result = await this.executor
-      .insert(skuCancellationPolicies)
-      .values(data)
-      .returning();
+  async create(data: NewSkuCancellationPolicy): Promise<SkuCancellationPolicy> {
+    const result = await this.executor.insert(skuCancellationPolicies).values(data).returning();
     return result[0]!;
   }
 
-  async findByRef(
-    policyId: string,
-    policyVersion: number,
-  ): Promise<SkuCancellationPolicy | null> {
+  async findByRef(policyId: string, policyVersion: number): Promise<SkuCancellationPolicy | null> {
     const result = await this.executor
       .select()
       .from(skuCancellationPolicies)
@@ -37,9 +29,7 @@ export class SkuCancellationPolicyRepository {
     return result[0] ?? null;
   }
 
-  async findLatestBySkuId(
-    skuId: ProductSkuId,
-  ): Promise<SkuCancellationPolicy | null> {
+  async findLatestBySkuId(skuId: ProductSkuId): Promise<SkuCancellationPolicy | null> {
     const result = await this.executor
       .select()
       .from(skuCancellationPolicies)

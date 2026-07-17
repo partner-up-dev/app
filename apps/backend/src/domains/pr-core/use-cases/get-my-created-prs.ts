@@ -6,9 +6,7 @@ export type MyPRListItem = {
   id: PRId;
 };
 
-export async function getMyCreatedPRs(
-  userId: UserId,
-): Promise<MyPRListItem[]> {
+export async function getMyCreatedPRs(userId: UserId): Promise<MyPRListItem[]> {
   const rows = await readPartnerRequestsByCreatorId(userId, {
     consistency: "strong",
   });

@@ -9,14 +9,9 @@ const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 
 export async function getAdminCommerceOrderBillWorkspace() {
-  const [orders, bills] = await Promise.all([
-    tradeOrderRepo.listAll(),
-    billRepo.listAll(),
-  ]);
+  const [orders, bills] = await Promise.all([tradeOrderRepo.listAll(), billRepo.listAll()]);
   const rentalOrders = await rentalOrderRepo.listByOrderIds(
-    orders
-      .filter((order) => order.family === "RENTAL")
-      .map((order) => order.id),
+    orders.filter((order) => order.family === "RENTAL").map((order) => order.id),
   );
 
   const rentalOrderByOrderId = new Map(
@@ -38,7 +33,7 @@ export async function getAdminCommerceOrderBillWorkspace() {
         order,
         rentalOrder: rentalOrderByOrderId.get(order.id) ?? null,
         bill,
-        billLines: bill ? billLinesByBillId.get(bill.id) ?? [] : [],
+        billLines: bill ? (billLinesByBillId.get(bill.id) ?? []) : [],
       };
     }),
   };

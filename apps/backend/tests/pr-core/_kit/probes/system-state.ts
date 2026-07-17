@@ -1,10 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import {
-  partners,
-  type PartnerId,
-  type PartnerStatus,
-  users,
-} from "../../../../src/entities";
+import { partners, type PartnerId, type PartnerStatus, users } from "../../../../src/entities";
 import { getTestDb } from "../../../_infra/probes/sql-probe";
 import type { ScenarioPartnerRequest } from "../builders/partner-requests";
 import type { ScenarioUser } from "../builders/users";
@@ -31,20 +26,13 @@ export async function probeLatestPartnerSlot(input: {
       didAttend: partners.didAttend,
     })
     .from(partners)
-    .where(
-      and(
-        eq(partners.prId, input.pr.id),
-        eq(partners.userId, input.user.user.id),
-      ),
-    )
+    .where(and(eq(partners.prId, input.pr.id), eq(partners.userId, input.user.user.id)))
     .orderBy(desc(partners.id));
 
   return slot ?? null;
 }
 
-export async function probeUserPhone(
-  user: ScenarioUser,
-): Promise<UserPhoneProbe | null> {
+export async function probeUserPhone(user: ScenarioUser): Promise<UserPhoneProbe | null> {
   const [record] = await getTestDb()
     .select({
       userId: users.id,

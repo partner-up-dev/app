@@ -361,9 +361,7 @@ export class WeChatPayProviderAdapter implements PaymentProviderPort {
   private readonly config: WeChatPayProviderInstanceConfig;
   private readonly providerInstanceId: string;
 
-  constructor(input: {
-    providerInstance: PaymentProviderInstance;
-  }) {
+  constructor(input: { providerInstance: PaymentProviderInstance }) {
     if (!isWeChatPayApiV3Config(input.providerInstance.config)) {
       throw new Error("WeChatPay adapter requires APIv3 provider config");
     }

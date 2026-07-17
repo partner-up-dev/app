@@ -3,11 +3,7 @@
     <p class="hint">{{ t("adminPois.poiCount", { count: pois.length }) }}</p>
 
     <PuFormItem :label="t('adminPois.poiLabel')" for-id="admin-poi-selector">
-      <PuSelect
-        id="admin-poi-selector"
-        v-model="selectedPoiId"
-        :options="poiOptions"
-      />
+      <PuSelect id="admin-poi-selector" v-model="selectedPoiId" :options="poiOptions" />
     </PuFormItem>
 
     <div class="divider" aria-hidden="true" />
@@ -23,17 +19,13 @@
       </PuFormItem>
       <PuButton
         shape="pill"
-        tone="neutral" variant="outline"
+        tone="neutral"
+        variant="outline"
         size="sm"
-
         :disabled="isCreatingPoi || !canCreatePoi"
         @click="emit('create-poi')"
       >
-        {{
-          isCreatingPoi
-            ? t("adminPois.creatingPoi")
-            : t("adminPois.createPoiAction")
-        }}
+        {{ isCreatingPoi ? t("adminPois.creatingPoi") : t("adminPois.createPoiAction") }}
       </PuButton>
     </section>
   </AdminRailPanel>

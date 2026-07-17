@@ -23,24 +23,15 @@ export async function toPublicPR(
   let isViewerWaitlisted = false;
   let isViewerReleased = false;
   if (viewerUserId) {
-    const slot = await partnerRepo.findActiveByPrIdAndUserId(
-      request.id,
-      viewerUserId,
-    );
+    const slot = await partnerRepo.findActiveByPrIdAndUserId(request.id, viewerUserId);
     myPartnerId = slot?.id ?? null;
     if (myPartnerId === null) {
-      const pendingSlot = await partnerRepo.findPendingByPrIdAndUserId(
-        request.id,
-        viewerUserId,
-      );
+      const pendingSlot = await partnerRepo.findPendingByPrIdAndUserId(request.id, viewerUserId);
       myPendingPartnerId = pendingSlot?.id ?? null;
       isViewerWaitlisted = myPendingPartnerId !== null;
     }
     if (myPartnerId === null && myPendingPartnerId === null) {
-      const releasedSlot = await partnerRepo.findReleasedByPrIdAndUserId(
-        request.id,
-        viewerUserId,
-      );
+      const releasedSlot = await partnerRepo.findReleasedByPrIdAndUserId(request.id, viewerUserId);
       isViewerReleased = releasedSlot !== null;
     }
   }

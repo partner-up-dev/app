@@ -1,9 +1,5 @@
 import { desc, eq, inArray } from "drizzle-orm";
-import {
-  rentalOrders,
-  type NewRentalOrder,
-  type RentalOrder,
-} from "../entities/rental-order";
+import { rentalOrders, type NewRentalOrder, type RentalOrder } from "../entities/rental-order";
 import { db } from "../lib/db";
 import type { TradeOrderId } from "../entities/trade-order";
 import type { RepositoryExecutor } from "./_executor";
@@ -26,17 +22,11 @@ export class RentalOrderRepository {
 
   async listByOrderIds(orderIds: TradeOrderId[]): Promise<RentalOrder[]> {
     if (orderIds.length === 0) return [];
-    return this.executor
-      .select()
-      .from(rentalOrders)
-      .where(inArray(rentalOrders.orderId, orderIds));
+    return this.executor.select().from(rentalOrders).where(inArray(rentalOrders.orderId, orderIds));
   }
 
   async listAll(): Promise<RentalOrder[]> {
-    return this.executor
-      .select()
-      .from(rentalOrders)
-      .orderBy(desc(rentalOrders.createdAt));
+    return this.executor.select().from(rentalOrders).orderBy(desc(rentalOrders.createdAt));
   }
 
   async updateByOrderId(

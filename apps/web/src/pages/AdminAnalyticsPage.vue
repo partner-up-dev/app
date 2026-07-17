@@ -16,19 +16,11 @@
         </div>
 
         <PuFormItem :label="t('adminAnalytics.startAtLabel')" for-id="analytics-start-at">
-          <PuInput
-            id="analytics-start-at"
-            v-model="draftStartAt"
-            native-type="datetime-local"
-          />
+          <PuInput id="analytics-start-at" v-model="draftStartAt" native-type="datetime-local" />
         </PuFormItem>
 
         <PuFormItem :label="t('adminAnalytics.endAtLabel')" for-id="analytics-end-at">
-          <PuInput
-            id="analytics-end-at"
-            v-model="draftEndAt"
-            native-type="datetime-local"
-          />
+          <PuInput id="analytics-end-at" v-model="draftEndAt" native-type="datetime-local" />
         </PuFormItem>
 
         <PuFormItem
@@ -79,8 +71,8 @@
         <div class="analytics-filter-rail__actions">
           <PuButton
             shape="rect"
-            tone="primary" variant="solid"
-
+            tone="primary"
+            variant="solid"
             data-testid="admin-analytics.filters.apply"
             @click="applyFilters"
           >
@@ -91,8 +83,8 @@
           </PuButton>
           <PuButton
             shape="rect"
-            tone="neutral" variant="outline"
-
+            tone="neutral"
+            variant="outline"
             data-testid="admin-analytics.filters.reset"
             @click="resetFilters"
           >
@@ -108,9 +100,9 @@
     <template #actions>
       <PuButton
         shape="pill"
-        tone="neutral" variant="soft"
+        tone="neutral"
+        variant="soft"
         size="sm"
-
         :loading="isDashboardRefreshing"
         data-testid="admin-analytics.refresh"
         @click="refreshDashboard"
@@ -124,10 +116,7 @@
 
     <template #main>
       <div class="analytics-dashboard" data-testid="admin-analytics.dashboard">
-        <PuLoadingState
-          v-if="isInitialLoading"
-          :message="t('adminAnalytics.loading')"
-        />
+        <PuLoadingState v-if="isInitialLoading" :message="t('adminAnalytics.loading')" />
         <PuInlineNotice
           v-else-if="dashboardError"
           tone="error"
@@ -142,11 +131,7 @@
             class="kpi-strip"
             data-testid="admin-analytics.pr-discovery-summary"
           >
-            <article
-                v-for="item in prDiscoverySummaryItems"
-              :key="item.key"
-              class="kpi-card"
-            >
+            <article v-for="item in prDiscoverySummaryItems" :key="item.key" class="kpi-card">
               <span class="kpi-card__label">{{ item.label }}</span>
               <strong class="kpi-card__value">{{ item.value }}</strong>
               <span v-if="item.detail" class="kpi-card__detail">
@@ -168,10 +153,7 @@
             </div>
 
             <dl class="nudge-summary-grid">
-              <div
-                v-for="item in biOverviewItems"
-                :key="item.key"
-              >
+              <div v-for="item in biOverviewItems" :key="item.key">
                 <dt>{{ item.label }}</dt>
                 <dd>{{ item.value }}</dd>
                 <span>{{ item.detail }}</span>
@@ -191,10 +173,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
-                      v-for="row in visibleRetentionRows"
-                      :key="row.cohortDate"
-                    >
+                    <tr v-for="row in visibleRetentionRows" :key="row.cohortDate">
                       <td>{{ row.cohortDate }}</td>
                       <td>{{ formatCount(row.activeUsers) }}</td>
                       <td>{{ formatRate(row.retentionRate3Days) }}</td>
@@ -218,10 +197,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
-                      v-for="row in biOverview.prLifecycle.statusRows"
-                      :key="row.status"
-                    >
+                    <tr v-for="row in biOverview.prLifecycle.statusRows" :key="row.status">
                       <td>{{ formatPRStatus(row.status) }}</td>
                       <td>{{ formatCount(row.count) }}</td>
                       <td>{{ formatRate(row.share) }}</td>
@@ -269,10 +245,7 @@
             </div>
 
             <dl class="nudge-summary-grid">
-              <div
-                v-for="item in prCreateSummaryItems"
-                :key="item.key"
-              >
+              <div v-for="item in prCreateSummaryItems" :key="item.key">
                 <dt>{{ item.label }}</dt>
                 <dd>{{ item.value }}</dd>
                 <span>{{ item.detail }}</span>
@@ -291,10 +264,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="step in prCreateFunnel.steps"
-                    :key="step.stepKey"
-                  >
+                  <tr v-for="step in prCreateFunnel.steps" :key="step.stepKey">
                     <td>
                       <strong>{{ step.label }}</strong>
                       <span class="analytics-table__hint">
@@ -323,10 +293,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="row in prCreateFunnel.paths"
-                    :key="row.creationPath"
-                  >
+                  <tr v-for="row in prCreateFunnel.paths" :key="row.creationPath">
                     <td>{{ formatCreatePath(row.creationPath) }}</td>
                     <td>{{ formatCount(row.journeyCount) }}</td>
                     <td>{{ formatCount(row.eventCount) }}</td>
@@ -364,10 +331,7 @@
             </div>
 
             <dl class="nudge-summary-grid">
-              <div
-                v-for="item in prJoinSummaryItems"
-                :key="item.key"
-              >
+              <div v-for="item in prJoinSummaryItems" :key="item.key">
                 <dt>{{ item.label }}</dt>
                 <dd>{{ item.value }}</dd>
                 <span>{{ item.detail }}</span>
@@ -386,10 +350,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="step in prJoinFunnel.steps"
-                    :key="step.stepKey"
-                  >
+                  <tr v-for="step in prJoinFunnel.steps" :key="step.stepKey">
                     <td>
                       <strong>{{ step.label }}</strong>
                       <span class="analytics-table__hint">
@@ -446,7 +407,9 @@
                 </thead>
                 <tbody>
                   <tr v-for="step in dashboard.steps" :key="step.stepKey">
-                    <td><strong>{{ step.label }}</strong></td>
+                    <td>
+                      <strong>{{ step.label }}</strong>
+                    </td>
                     <td>{{ formatCount(step.journeyCount) }}</td>
                     <td>{{ formatCount(step.eventCount) }}</td>
                     <td>{{ formatNullableRate(step.conversionFromPrevious) }}</td>
@@ -471,7 +434,10 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in dashboard.dimensions" :key="`${row.prType}:${row.viewMode}:${row.origin}`">
+                  <tr
+                    v-for="row in dashboard.dimensions"
+                    :key="`${row.prType}:${row.viewMode}:${row.origin}`"
+                  >
                     <td>{{ row.prType }}</td>
                     <td>{{ row.viewMode }}</td>
                     <td>{{ row.origin }}</td>
@@ -485,7 +451,6 @@
               </table>
             </div>
           </section>
-
         </template>
       </div>
     </template>

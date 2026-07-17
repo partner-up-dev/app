@@ -1,16 +1,12 @@
 import { ref } from "vue";
 
-const WECHAT_OAUTH_LOGIN_PENDING_STORAGE_KEY =
-  "partner_up_wechat_oauth_login_pending";
+const WECHAT_OAUTH_LOGIN_PENDING_STORAGE_KEY = "partner_up_wechat_oauth_login_pending";
 
 const readStoredPending = (): boolean => {
   if (typeof window === "undefined") return false;
 
   try {
-    return (
-      window.sessionStorage.getItem(WECHAT_OAUTH_LOGIN_PENDING_STORAGE_KEY) ===
-      "1"
-    );
+    return window.sessionStorage.getItem(WECHAT_OAUTH_LOGIN_PENDING_STORAGE_KEY) === "1";
   } catch {
     return false;
   }
@@ -43,8 +39,7 @@ export const clearWeChatOAuthLoginPending = (): void => {
   writeStoredPending(false);
 };
 
-export const isWeChatOAuthLoginPending = (): boolean =>
-  wechatOAuthLoginPending.value;
+export const isWeChatOAuthLoginPending = (): boolean => wechatOAuthLoginPending.value;
 
 export const useWeChatOAuthLoginPending = () => ({
   pending: wechatOAuthLoginPending,

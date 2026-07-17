@@ -10,7 +10,6 @@ const normalizeValue = (value: string | undefined): string | null => {
 };
 
 export const frontendBuildInfo: FrontendBuildInfo = {
-  frontendCommitHash:
-    normalizeValue(import.meta.env.VITE_FRONTEND_COMMIT_HASH) ?? "unknown",
+  frontendCommitHash: normalizeValue(import.meta.env.VITE_FRONTEND_COMMIT_HASH) ?? "unknown",
   repositoryUrl: "https://github.com/partner-up-dev/app",
 };

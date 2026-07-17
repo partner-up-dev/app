@@ -20,9 +20,7 @@ export const useQrCodeDataUrl = (
       qrCodeErrorRef.value = null;
 
       if (!nextTargetUrl) {
-        qrCodeErrorRef.value = i18n.global.t(
-          "wechatMiniProgramWebView.qrFailed",
-        );
+        qrCodeErrorRef.value = i18n.global.t("wechatMiniProgramWebView.qrFailed");
         return;
       }
 
@@ -41,9 +39,7 @@ export const useQrCodeDataUrl = (
         qrCodeDataUrlRef.value = dataUrl;
       } catch {
         if (currentGenerationId !== generationId) return;
-        qrCodeErrorRef.value = i18n.global.t(
-          "wechatMiniProgramWebView.qrFailed",
-        );
+        qrCodeErrorRef.value = i18n.global.t("wechatMiniProgramWebView.qrFailed");
       }
     },
     { immediate: true },

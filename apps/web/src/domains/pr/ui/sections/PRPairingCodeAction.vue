@@ -6,9 +6,9 @@
     data-testid="pr-detail.pairing-code-action"
   >
     <PuButton
-      tone="neutral" variant="outline"
+      tone="neutral"
+      variant="outline"
       block
-
       data-testid="pr-detail.pairing-code.open"
       @click="handleOpenPairingCode"
     >
@@ -29,10 +29,7 @@ import { computed, type CSSProperties } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { PRDetailView } from "@/domains/pr/model/types";
-import {
-  canShowPRPairingCode,
-  derivePRPairingIdentity,
-} from "@/domains/pr/model/pr-pairing-code";
+import { canShowPRPairingCode, derivePRPairingIdentity } from "@/domains/pr/model/pr-pairing-code";
 import { prPairingCodePath } from "@/domains/pr/routing/routes";
 import { PuButton } from "@partner-up-dev/design-web";
 

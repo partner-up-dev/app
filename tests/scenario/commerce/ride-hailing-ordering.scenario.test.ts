@@ -399,10 +399,7 @@ async function givenRideHailingOrderingPlacement(): Promise<{
         { "===": [{ var: "kind" }, "PR"] },
         { "===": [{ var: "type" }, "ride-hailing-system-scenario"] },
         {
-          or: [
-            { "===": [{ var: "status" }, "READY"] },
-            { "===": [{ var: "status" }, "ACTIVE"] },
-          ],
+          or: [{ "===": [{ var: "status" }, "READY"] }, { "===": [{ var: "status" }, "ACTIVE"] }],
         },
         { var: "hasRoute" },
         { var: "time.hasConcreteTime" },

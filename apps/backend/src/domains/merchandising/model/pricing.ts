@@ -92,9 +92,7 @@ export type DynamicQuotePricingModel = {
   calculatorSpec: QuoteCalculationDsl;
 };
 
-export type PricingModel =
-  | FixedTotalPricingModel
-  | DynamicQuotePricingModel;
+export type PricingModel = FixedTotalPricingModel | DynamicQuotePricingModel;
 
 export type PricingRuleAction =
   | {
@@ -139,15 +137,9 @@ export type PricingRule = {
   continue: boolean;
 };
 
-export type PriceExplanationPhase =
-  | "SKU_BASE"
-  | "SPU_POLICY"
-  | "OFFER_POLICY";
+export type PriceExplanationPhase = "SKU_BASE" | "SPU_POLICY" | "OFFER_POLICY";
 
-export type PriceExplanationSourceType =
-  | "PRICING_MODEL"
-  | "QUOTE_COMPONENT"
-  | "PRICING_RULE";
+export type PriceExplanationSourceType = "PRICING_MODEL" | "QUOTE_COMPONENT" | "PRICING_RULE";
 
 export type PriceExplanation = {
   phase: PriceExplanationPhase;

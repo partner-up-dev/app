@@ -25,9 +25,7 @@ export const resolveTelemetryFailurePayload = (
   const failureCode =
     apiError?.code ??
     apiError?.type ??
-    (typeof apiError?.status === "number"
-      ? `HTTP_${apiError.status}`
-      : fallbackCode);
+    (typeof apiError?.status === "number" ? `HTTP_${apiError.status}` : fallbackCode);
   const failureReason = apiError?.message || fallbackReason;
 
   return {

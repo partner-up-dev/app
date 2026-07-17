@@ -37,11 +37,7 @@ export class UserNotificationOptRepository {
     userId: UserId,
     enabled: boolean,
   ): Promise<UserNotificationOpt | null> {
-    return this.upsertWechatNotificationSubscription(
-      userId,
-      "REMINDER_CONFIRMATION",
-      enabled,
-    );
+    return this.upsertWechatNotificationSubscription(userId, "REMINDER_CONFIRMATION", enabled);
   }
 
   getSubscriptionSnapshot(
@@ -117,11 +113,7 @@ export class UserNotificationOptRepository {
     kind: WeChatNotificationKind,
     enabled: boolean,
   ): Promise<UserNotificationOpt | null> {
-    return this.setWechatNotificationRemainingCount(
-      userId,
-      kind,
-      enabled ? 1 : 0,
-    );
+    return this.setWechatNotificationRemainingCount(userId, kind, enabled ? 1 : 0);
   }
 
   async setWechatNotificationRemainingCount(
@@ -555,10 +547,7 @@ export class UserNotificationOptRepository {
         .where(
           and(
             eq(userNotificationOpts.userId, userId),
-            gt(
-              userNotificationOpts.wechatActivityStartReminderRemainingCount,
-              0,
-            ),
+            gt(userNotificationOpts.wechatActivityStartReminderRemainingCount, 0),
           ),
         )
         .returning();
@@ -678,18 +667,14 @@ export class UserNotificationOptRepository {
         .where(
           and(
             eq(userNotificationOpts.userId, userId),
-            gt(
-              userNotificationOpts.wechatWaitlistAlternativeAvailableRemainingCount,
-              0,
-            ),
+            gt(userNotificationOpts.wechatWaitlistAlternativeAvailableRemainingCount, 0),
           ),
         )
         .returning();
       const row = result[0] ?? null;
       return {
         consumed: row !== null,
-        remainingCount:
-          row?.wechatWaitlistAlternativeAvailableRemainingCount ?? 0,
+        remainingCount: row?.wechatWaitlistAlternativeAvailableRemainingCount ?? 0,
         row,
       };
     }

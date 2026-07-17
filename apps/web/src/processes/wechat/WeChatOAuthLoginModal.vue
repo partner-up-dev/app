@@ -33,14 +33,8 @@ const { pending } = useWeChatOAuthLoginPending();
 }
 
 .wechat-oauth-login-modal__spinner {
-  width: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
-  height: calc(
-    var(--sys-spacing-large) + var(--sys-spacing-small) +
-      var(--sys-spacing-xsmall)
-  );
+  width: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
+  height: calc(var(--sys-spacing-large) + var(--sys-spacing-small) + var(--sys-spacing-xsmall));
   border: 3px solid var(--sys-color-outline-variant);
   border-top-color: var(--sys-color-primary);
   border-radius: 50%;

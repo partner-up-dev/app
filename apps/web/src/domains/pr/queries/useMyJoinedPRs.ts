@@ -5,9 +5,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 import { i18n } from "@/locales/i18n";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 
-export type MyJoinedPRsResponse = InferResponseType<
-  (typeof client.api.pr.mine.joined)["$get"]
->;
+export type MyJoinedPRsResponse = InferResponseType<(typeof client.api.pr.mine.joined)["$get"]>;
 
 export const useMyJoinedPRs = () => {
   const userSessionStore = useUserSessionStore();
@@ -18,9 +16,7 @@ export const useMyJoinedPRs = () => {
       const res = await client.api.pr.mine.joined.$get();
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.fetchMyJoinedRequestsFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.fetchMyJoinedRequestsFailed"));
       }
 
       return await res.json();

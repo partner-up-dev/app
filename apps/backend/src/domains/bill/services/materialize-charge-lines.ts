@@ -18,10 +18,7 @@ export function materializeChargeLinesFromSplitRule(input: {
   }
 
   if (input.splitRule.type === "ABSOLUTE") {
-    const total = input.splitRule.shares.reduce(
-      (sum, share) => sum + share.amountFen,
-      0,
-    );
+    const total = input.splitRule.shares.reduce((sum, share) => sum + share.amountFen, 0);
     if (total !== input.totalFen) {
       throw new Error("Absolute split rule does not match bill total");
     }
@@ -43,10 +40,7 @@ export function materializeChargeLinesFromSplitRule(input: {
     };
   });
 
-  const distributedTotal = provisional.reduce(
-    (sum, share) => sum + share.amountFen,
-    0,
-  );
+  const distributedTotal = provisional.reduce((sum, share) => sum + share.amountFen, 0);
   let remainderFen = input.totalFen - distributedTotal;
 
   const prioritized = [...provisional].sort((left, right) => {
@@ -57,14 +51,13 @@ export function materializeChargeLinesFromSplitRule(input: {
   });
 
   while (remainderFen > 0) {
-    const share = prioritized[(input.totalFen - distributedTotal - remainderFen) % prioritized.length];
+    const share =
+      prioritized[(input.totalFen - distributedTotal - remainderFen) % prioritized.length];
     share.amountFen += 1;
     remainderFen -= 1;
   }
 
-  const amountsByUserId = new Map(
-    prioritized.map((share) => [share.userId, share.amountFen]),
-  );
+  const amountsByUserId = new Map(prioritized.map((share) => [share.userId, share.amountFen]));
 
   return input.splitRule.shares.map((share) => ({
     userId: share.userId,

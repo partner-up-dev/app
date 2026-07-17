@@ -27,20 +27,11 @@ const resolveDefaultImageUrl = (): string => {
 };
 
 export const useWeChatShareCard = () => {
-  const {
-    initWeChatSdk,
-    initError,
-    replayWeChatShareCard,
-    setWeChatShareCard,
-  } = useWeChatShare();
+  const { initWeChatSdk, initError, replayWeChatShareCard, setWeChatShareCard } = useWeChatShare();
 
-  const updateWeChatShareCard = async (
-    input: WeChatShareCardInput,
-  ): Promise<void> => {
+  const updateWeChatShareCard = async (input: WeChatShareCardInput): Promise<void> => {
     await setWeChatShareCard({
-      title:
-        normalizeText(input.title) ||
-        i18n.global.t("share.wechat.defaultShareTitle"),
+      title: normalizeText(input.title) || i18n.global.t("share.wechat.defaultShareTitle"),
       desc: normalizeText(input.desc) || i18n.global.t("home.subtitle"),
       link: normalizeText(input.link) || resolveDefaultLink(),
       imgUrl: normalizeText(input.imgUrl) || resolveDefaultImageUrl(),

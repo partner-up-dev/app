@@ -1,9 +1,5 @@
 import { db } from "../lib/db";
-import {
-  partners,
-  type PartnerId,
-  type PartnerStatus,
-} from "../entities/partner";
+import { partners, type PartnerId, type PartnerStatus } from "../entities/partner";
 import { partnerRequests } from "../entities/partner-request";
 import type { PRId } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
@@ -37,10 +33,7 @@ export type AlternativeWaitlistReminderSlot = {
 
 export type RosterParticipantSummary = {
   partnerId: PartnerId;
-  status: Extract<
-    PartnerStatus,
-    "JOINED" | "CONFIRMED" | "ATTENDED" | "EXITED" | "RELEASED"
-  >;
+  status: Extract<PartnerStatus, "JOINED" | "CONFIRMED" | "ATTENDED" | "EXITED" | "RELEASED">;
   userId: UserId | null;
   nickname: string | null;
   avatar: string | null;
@@ -55,11 +48,7 @@ export class PartnerRepository {
   }
 
   async findByPrId(prId: PRId) {
-    return db
-      .select()
-      .from(partners)
-      .where(eq(partners.prId, prId))
-      .orderBy(asc(partners.id));
+    return db.select().from(partners).where(eq(partners.prId, prId)).orderBy(asc(partners.id));
   }
 
   async findActiveByPrIdAndUserId(prId: PRId, userId: UserId) {
@@ -82,11 +71,7 @@ export class PartnerRepository {
       .select()
       .from(partners)
       .where(
-        and(
-          eq(partners.prId, prId),
-          eq(partners.userId, userId),
-          eq(partners.status, "PENDING"),
-        ),
+        and(eq(partners.prId, prId), eq(partners.userId, userId), eq(partners.status, "PENDING")),
       )
       .orderBy(desc(partners.waitlistedAt), desc(partners.id));
     return result[0] ?? null;
@@ -110,18 +95,13 @@ export class PartnerRepository {
       .select({ id: partners.id })
       .from(partners)
       .where(
-        and(
-          eq(partners.prId, prId),
-          inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"]),
-        ),
+        and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
       )
       .orderBy(asc(partners.id));
     return rows.map((row) => row.id);
   }
 
-  async listActiveParticipantSummariesByPrId(
-    prId: PRId,
-  ): Promise<ActiveParticipantSummary[]> {
+  async listActiveParticipantSummariesByPrId(prId: PRId): Promise<ActiveParticipantSummary[]> {
     const rows = await db
       .select({
         partnerId: partners.id,
@@ -134,19 +114,13 @@ export class PartnerRepository {
       .from(partners)
       .leftJoin(users, eq(users.id, partners.userId))
       .where(
-        and(
-          eq(partners.prId, prId),
-          inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"]),
-        ),
+        and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
       )
       .orderBy(asc(partners.id));
 
     return rows.map((row) => ({
       partnerId: row.partnerId,
-      status: row.status as Extract<
-        PartnerStatus,
-        "JOINED" | "CONFIRMED" | "ATTENDED"
-      >,
+      status: row.status as Extract<PartnerStatus, "JOINED" | "CONFIRMED" | "ATTENDED">,
       userId: row.userId,
       nickname: row.nickname,
       avatar: row.avatar,
@@ -154,9 +128,7 @@ export class PartnerRepository {
     }));
   }
 
-  async listPendingParticipantSummariesByPrId(
-    prId: PRId,
-  ): Promise<PendingParticipantSummary[]> {
+  async listPendingParticipantSummariesByPrId(prId: PRId): Promise<PendingParticipantSummary[]> {
     const rows = await db
       .select({
         partnerId: partners.id,
@@ -181,9 +153,7 @@ export class PartnerRepository {
     }));
   }
 
-  async listRosterParticipantSummariesByPrId(
-    prId: PRId,
-  ): Promise<RosterParticipantSummary[]> {
+  async listRosterParticipantSummariesByPrId(prId: PRId): Promise<RosterParticipantSummary[]> {
     const rows = await db
       .select({
         partnerId: partners.id,
@@ -199,13 +169,7 @@ export class PartnerRepository {
       .where(
         and(
           eq(partners.prId, prId),
-          inArray(partners.status, [
-            "JOINED",
-            "CONFIRMED",
-            "ATTENDED",
-            "EXITED",
-            "RELEASED",
-          ]),
+          inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED", "EXITED", "RELEASED"]),
           sql`${partners.userId} is not null`,
         ),
       )
@@ -252,10 +216,7 @@ export class PartnerRepository {
 
     return {
       partnerId: row.partnerId,
-      status: row.status as Extract<
-        PartnerStatus,
-        "JOINED" | "CONFIRMED" | "ATTENDED"
-      >,
+      status: row.status as Extract<PartnerStatus, "JOINED" | "CONFIRMED" | "ATTENDED">,
       userId: row.userId,
       nickname: row.nickname,
       avatar: row.avatar,
@@ -270,10 +231,7 @@ export class PartnerRepository {
       })
       .from(partners)
       .where(
-        and(
-          eq(partners.prId, prId),
-          inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"]),
-        ),
+        and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
       );
     return result[0]?.count ?? 0;
   }
@@ -364,10 +322,7 @@ export class PartnerRepository {
     return result[0] ?? null;
   }
 
-  async reactivateSlot(
-    id: PartnerId,
-    status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">,
-  ) {
+  async reactivateSlot(id: PartnerId, status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">) {
     const now = new Date();
     const result = await db
       .update(partners)
@@ -388,13 +343,9 @@ export class PartnerRepository {
     return result[0] ?? null;
   }
 
-  async markPending(
-    id: PartnerId,
-    options: { alternativePrReminderOptIn?: boolean } = {},
-  ) {
+  async markPending(id: PartnerId, options: { alternativePrReminderOptIn?: boolean } = {}) {
     const now = new Date();
-    const alternativePrReminderOptIn =
-      options.alternativePrReminderOptIn === true;
+    const alternativePrReminderOptIn = options.alternativePrReminderOptIn === true;
     const result = await db
       .update(partners)
       .set({
@@ -416,10 +367,7 @@ export class PartnerRepository {
     return result[0] ?? null;
   }
 
-  async promotePendingSlot(
-    id: PartnerId,
-    status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">,
-  ) {
+  async promotePendingSlot(id: PartnerId, status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">) {
     const now = new Date();
     const result = await db
       .update(partners)

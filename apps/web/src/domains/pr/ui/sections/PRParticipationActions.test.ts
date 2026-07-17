@@ -17,15 +17,20 @@ vi.mock("vue-i18n", () => ({
 }));
 
 vi.mock("@/shared/telemetry/track", () => ({
-  trackEvent: vi.fn(),
+  trackEvent: vi.fn<(event: string, payload: Record<string, unknown>) => void>(),
 }));
 
 vi.mock("@/domains/pr/queries/usePRActions", () => {
+  type MutationInput = {
+    id: number;
+    alternativePrReminderOptIn?: boolean;
+  };
+
   const createMutation = () => ({
     isPending: ref(false),
     error: ref(null),
-    mutateAsync: vi.fn(),
-    reset: vi.fn(),
+    mutateAsync: vi.fn<(input: MutationInput) => Promise<unknown>>(),
+    reset: vi.fn<() => void>(),
   });
 
   return {
@@ -42,15 +47,15 @@ vi.mock("@/domains/pr/use-cases/usePRAttendanceActions", () => ({
     canCheckIn: ref(true),
     confirmPending: ref(false),
     checkInPending: ref(false),
-    handleConfirmSlot: vi.fn(),
-    submitCheckIn: vi.fn(),
+    handleConfirmSlot: vi.fn<() => Promise<void>>(),
+    submitCheckIn: vi.fn<() => Promise<void>>(),
   }),
 }));
 
 vi.mock("@/domains/feedback/queries/useSubmitFeedbackQuestionnaire", () => ({
   useSubmitFeedbackQuestionnaire: () => ({
     isPending: ref(false),
-    mutateAsync: vi.fn(),
+    mutateAsync: vi.fn<(input: Record<string, unknown>) => Promise<unknown>>(),
   }),
 }));
 

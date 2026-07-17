@@ -1,10 +1,7 @@
 <template>
   <PuPageScaffold class="admin-page-scaffold">
     <div class="admin-page-scaffold__layout">
-      <aside
-        v-if="$slots.navigation || $slots.rail"
-        class="admin-page-scaffold__aside"
-      >
+      <aside v-if="$slots.navigation || $slots.rail" class="admin-page-scaffold__aside">
         <slot name="navigation" />
 
         <div v-if="$slots.rail" class="admin-page-scaffold__context">
@@ -60,8 +57,7 @@ import { PuPageScaffold } from "@partner-up-dev/design-web";
   flex-direction: column;
   gap: var(--sys-spacing-medium);
   max-height: calc(
-    var(--pu-vh) - var(--pu-safe-top) - var(--pu-safe-bottom) -
-      (var(--sys-spacing-medium) * 2)
+    var(--pu-vh) - var(--pu-safe-top) - var(--pu-safe-bottom) - (var(--sys-spacing-medium) * 2)
   );
   overflow-y: auto;
 }

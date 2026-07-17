@@ -3,16 +3,19 @@ import { beforeEach, test, vi } from "vitest";
 import type { PRTypeConfig } from "../../../entities/pr-type-config";
 
 const repository = vi.hoisted(() => ({
-  findByType: vi.fn(),
-  updateByType: vi.fn(),
+  findByType: vi.fn<() => unknown>(),
+  updateByType: vi.fn<(type: string, patch: Record<string, unknown>) => Promise<PRTypeConfig>>(),
 }));
 const coordination = vi.hoisted(() => ({
-  capture: vi.fn(),
-  listAffected: vi.fn(),
-  schedule: vi.fn(),
+  capture: vi.fn<() => unknown>(),
+  listAffected: vi.fn<() => unknown>(),
+  schedule:
+    vi.fn<
+      (input: { previous: Map<unknown, unknown>; requests: unknown[]; updatedAt: Date }) => unknown
+    >(),
 }));
 const questionnaire = vi.hoisted(() => ({
-  findTemplateById: vi.fn(),
+  findTemplateById: vi.fn<() => unknown>(),
 }));
 
 vi.mock("../../../repositories/PRTypeConfigRepository", () => ({
@@ -23,7 +26,7 @@ vi.mock("../../../repositories/PRTypeConfigRepository", () => ({
 }));
 vi.mock("../../../repositories/PoiRepository", () => ({
   PoiRepository: class {
-    findByNames = vi.fn(async () => [{ name: "Library" }]);
+    findByNames = vi.fn<() => Promise<Array<{ name: string }>>>(async () => [{ name: "Library" }]);
   },
 }));
 vi.mock("../../../repositories/FeedbackQuestionnaireRepository", () => ({

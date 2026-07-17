@@ -37,8 +37,7 @@ const thumbStyles = computed(() => ({
   overflow: "hidden" as const,
   background: palette.value.bg,
   borderRadius: "24px",
-  fontFamily:
-    '"PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  fontFamily: '"PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 }));
 
 const shapeStyles = computed(() => ({

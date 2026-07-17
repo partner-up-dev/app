@@ -16,11 +16,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -67,10 +65,7 @@
                   {{ t("adminPR.emptySearchResults") }}
                 </div>
 
-                <div
-                  v-else
-                  class="pr-result-list pr-result-list--grid pr-result-list--scroll"
-                >
+                <div v-else class="pr-result-list pr-result-list--grid pr-result-list--scroll">
                   <PuCard
                     v-for="pr in filteredPRs"
                     :key="pr.prId"
@@ -100,38 +95,24 @@
             >
               <div class="stack">
                 <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prTitleLabel")
-                  }}</span>
+                  <span class="field-label">{{ t("adminPR.prTitleLabel") }}</span>
                   <input v-model="prForm.title" class="field-input" />
                 </label>
 
                 <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prTypeLabel")
-                  }}</span>
-                  <input
-                    v-model="prForm.type"
-                    class="field-input"
-                    list="admin-pr-type-options"
-                  />
+                  <span class="field-label">{{ t("adminPR.prTypeLabel") }}</span>
+                  <input v-model="prForm.type" class="field-input" list="admin-pr-type-options" />
                 </label>
 
                 <div class="grid-2">
-                  <PuFormItem
-                    :label="t('adminPR.prTimeStartLabel')"
-                    for-id="admin-pr-start-at"
-                  >
+                  <PuFormItem :label="t('adminPR.prTimeStartLabel')" for-id="admin-pr-start-at">
                     <PuInput
                       id="admin-pr-start-at"
                       v-model="prForm.startAt"
                       native-type="datetime-local"
                     />
                   </PuFormItem>
-                  <PuFormItem
-                    :label="t('adminPR.prTimeEndLabel')"
-                    for-id="admin-pr-end-at"
-                  >
+                  <PuFormItem :label="t('adminPR.prTimeEndLabel')" for-id="admin-pr-end-at">
                     <PuInput
                       id="admin-pr-end-at"
                       v-model="prForm.endAt"
@@ -145,9 +126,7 @@
                   :label="t('partnerRequestForm.placeMode')"
                   :aria-label="t('partnerRequestForm.placeModeAria')"
                   :location-label="t('adminPR.prLocationLabel')"
-                  :location-placeholder="
-                    t('partnerRequestForm.locationPlaceholder')
-                  "
+                  :location-placeholder="t('partnerRequestForm.locationPlaceholder')"
                   location-options-list-id="admin-pr-form-location-options"
                   :location-error="locationValidationMessage ?? undefined"
                   :route-error="routeValidationMessage ?? undefined"
@@ -189,9 +168,7 @@
 
                 <div class="grid-2">
                   <label class="field">
-                    <span class="field-label">{{
-                      t("adminPR.prMinPartnersLabel")
-                    }}</span>
+                    <span class="field-label">{{ t("adminPR.prMinPartnersLabel") }}</span>
                     <input
                       v-model.number="prForm.minPartners"
                       class="field-input"
@@ -200,9 +177,7 @@
                     />
                   </label>
                   <label class="field">
-                    <span class="field-label">{{
-                      t("adminPR.prMaxPartnersLabel")
-                    }}</span>
+                    <span class="field-label">{{ t("adminPR.prMaxPartnersLabel") }}</span>
                     <input
                       v-model.number="prForm.maxPartners"
                       class="field-input"
@@ -228,31 +203,18 @@
                 />
 
                 <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prPreferencesLabel")
-                  }}</span>
+                  <span class="field-label">{{ t("adminPR.prPreferencesLabel") }}</span>
                   <input v-model="prForm.preferencesText" class="field-input" />
                 </label>
 
                 <label class="field">
-                  <span class="field-label">{{
-                    t("adminPR.prNotesLabel")
-                  }}</span>
-                  <textarea
-                    v-model="prForm.notes"
-                    class="field-input field-textarea"
-                  ></textarea>
+                  <span class="field-label">{{ t("adminPR.prNotesLabel") }}</span>
+                  <textarea v-model="prForm.notes" class="field-input field-textarea"></textarea>
                 </label>
 
-                <PRJoinGateConfigEditor
-                  v-model="prForm.joinGateConfig"
-                  source="PR"
-                />
+                <PRJoinGateConfigEditor v-model="prForm.joinGateConfig" source="PR" />
 
-                <PuFormItem
-                  :label="t('adminPR.prStatusLabel')"
-                  for-id="admin-pr-status"
-                >
+                <PuFormItem :label="t('adminPR.prStatusLabel')" for-id="admin-pr-status">
                   <PuSelect
                     id="admin-pr-status"
                     v-model="prStatusModel"
@@ -260,10 +222,7 @@
                   />
                 </PuFormItem>
 
-                <PuFormItem
-                  :label="t('adminPR.prVisibilityLabel')"
-                  for-id="admin-pr-visibility"
-                >
+                <PuFormItem :label="t('adminPR.prVisibilityLabel')" for-id="admin-pr-visibility">
                   <PuSelect
                     id="admin-pr-visibility"
                     v-model="prVisibilityStatusModel"
@@ -279,10 +238,7 @@
                   }}
                 </p>
 
-                <div
-                  v-if="!isCreatingPR && selectedPR !== null"
-                  class="stack stack--tight"
-                >
+                <div v-if="!isCreatingPR && selectedPR !== null" class="stack stack--tight">
                   <PuFormItem
                     :label="t('adminPR.prFeedbackQuestionnaireInstanceLabel')"
                     for-id="admin-pr-feedback-instance"
@@ -298,20 +254,18 @@
                   </PuFormItem>
                   <PuButton
                     shape="pill"
-                    tone="neutral" variant="outline"
+                    tone="neutral"
+                    variant="outline"
                     size="sm"
-
                     :disabled="
                       selectedPRId === null ||
-                      prFeedbackQuestionnaireUseCase.isPending.updateInstance
-                        .value
+                      prFeedbackQuestionnaireUseCase.isPending.updateInstance.value
                     "
                     data-testid="admin-pr.feedback-instance.save"
                     @click="handleSavePRFeedbackQuestionnaireInstance"
                   >
                     {{
-                      prFeedbackQuestionnaireUseCase.isPending.updateInstance
-                        .value
+                      prFeedbackQuestionnaireUseCase.isPending.updateInstance.value
                         ? t("adminPR.saving")
                         : t("adminPR.saveFeedbackQuestionnaireInstanceAction")
                     }}
@@ -332,9 +286,9 @@
                   </PuFormItem>
                   <PuButton
                     shape="pill"
-                    tone="neutral" variant="outline"
+                    tone="neutral"
+                    variant="outline"
                     size="sm"
-
                     :disabled="
                       selectedPRId === null ||
                       mountFeedbackQuestionnaireTemplateId === null ||
@@ -355,7 +309,6 @@
                   <PuButton
                     shape="pill"
                     size="sm"
-
                     :disabled="
                       isSavingPR ||
                       isDeletingPR ||
@@ -378,24 +331,22 @@
                   <PuButton
                     v-if="!isCreatingPR && selectedPR !== null"
                     shape="pill"
-                    tone="danger" variant="outline"
+                    tone="danger"
+                    variant="outline"
                     size="sm"
-
                     :disabled="isSavingPR || isDeletingPR"
                     @click="requestDeletePR(selectedPR.prId)"
                   >
-                    {{
-                      isDeletingPR
-                        ? t("adminPR.deletingPR")
-                        : t("adminPR.deletePRAction")
-                    }}
+                    {{ isDeletingPR ? t("adminPR.deletingPR") : t("adminPR.deletePRAction") }}
                   </PuButton>
                 </div>
               </div>
             </BentoItem>
           </BentoLayout>
 
-          <PuInlineNotice tone="error" dismissible
+          <PuInlineNotice
+            tone="error"
+            dismissible
             v-if="mutationErrorMessage"
             :message="mutationErrorMessage"
             @close="resetMutationErrors"
@@ -407,9 +358,7 @@
         :open="pendingDeletePRId !== null"
         :title="t('adminPR.deleteConfirmTitle')"
         :description="t('adminPR.deleteConfirmDescription')"
-        :confirm-text="
-          isDeletingPR ? t('adminPR.deletingPR') : t('adminPR.deletePRAction')
-        "
+        :confirm-text="isDeletingPR ? t('adminPR.deletingPR') : t('adminPR.deletePRAction')"
         tone="error"
         :confirm-loading="isDeletingPR"
         :confirm-disabled="pendingDeletePRId === null"

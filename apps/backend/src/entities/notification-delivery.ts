@@ -1,12 +1,4 @@
-import {
-  bigserial,
-  bigint,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigserial, bigint, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { jobs } from "./job";
@@ -14,22 +6,11 @@ import { partnerRequests, type PRId } from "./partner-request";
 import type { WeChatNotificationKind } from "./user-notification-opt";
 import { users, type UserId } from "./user";
 
-export const confirmationReminderTriggerSchema = z.enum([
-  "CONFIRM_START",
-  "CONFIRM_END_MINUS_30M",
-]);
-export type ConfirmationReminderTrigger = z.infer<
-  typeof confirmationReminderTriggerSchema
->;
+export const confirmationReminderTriggerSchema = z.enum(["CONFIRM_START", "CONFIRM_END_MINUS_30M"]);
+export type ConfirmationReminderTrigger = z.infer<typeof confirmationReminderTriggerSchema>;
 
-export const notificationDeliveryResultSchema = z.enum([
-  "SUCCESS",
-  "FAILED",
-  "SKIPPED",
-]);
-export type NotificationDeliveryResult = z.infer<
-  typeof notificationDeliveryResultSchema
->;
+export const notificationDeliveryResultSchema = z.enum(["SUCCESS", "FAILED", "SKIPPED"]);
+export type NotificationDeliveryResult = z.infer<typeof notificationDeliveryResultSchema>;
 
 export const notificationDeliveries = pgTable(
   "notification_deliveries",
@@ -46,17 +27,11 @@ export const notificationDeliveries = pgTable(
       .$type<UserId>()
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    notificationKind: text("notification_kind")
-      .$type<WeChatNotificationKind>()
-      .notNull(),
-    notificationTrigger: text("notification_trigger").$type<
-      ConfirmationReminderTrigger | null
-    >(),
+    notificationKind: text("notification_kind").$type<WeChatNotificationKind>().notNull(),
+    notificationTrigger: text("notification_trigger").$type<ConfirmationReminderTrigger | null>(),
     scheduledAt: timestamp("scheduled_at").notNull(),
     sentAt: timestamp("sent_at"),
-    result: text("result")
-      .$type<NotificationDeliveryResult>()
-      .notNull(),
+    result: text("result").$type<NotificationDeliveryResult>().notNull(),
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -68,11 +43,8 @@ export const notificationDeliveries = pgTable(
   }),
 );
 
-export const insertNotificationDeliverySchema =
-  createInsertSchema(notificationDeliveries);
-export const selectNotificationDeliverySchema =
-  createSelectSchema(notificationDeliveries);
+export const insertNotificationDeliverySchema = createInsertSchema(notificationDeliveries);
+export const selectNotificationDeliverySchema = createSelectSchema(notificationDeliveries);
 
 export type NotificationDeliveryRow = typeof notificationDeliveries.$inferSelect;
-export type NewNotificationDeliveryRow =
-  typeof notificationDeliveries.$inferInsert;
+export type NewNotificationDeliveryRow = typeof notificationDeliveries.$inferInsert;

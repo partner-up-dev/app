@@ -15,9 +15,7 @@ const DEFAULT_ROOT_MARGIN = "0px 0px -8% 0px";
 const DEFAULT_BASE_DELAY_MS = 40;
 const DEFAULT_DELAY_STEP_MS = 84;
 
-export const useInViewStagger = (
-  options: UseInViewStaggerOptions = {},
-) => {
+export const useInViewStagger = (options: UseInViewStaggerOptions = {}) => {
   const {
     threshold = DEFAULT_THRESHOLD,
     rootMargin = DEFAULT_ROOT_MARGIN,

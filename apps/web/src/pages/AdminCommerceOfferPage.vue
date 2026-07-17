@@ -5,13 +5,7 @@
     </template>
 
     <template #actions>
-      <PuButton
-        shape="pill"
-        tone="neutral" variant="outline"
-        size="sm"
-
-        @click="prepareNewOffer"
-      >
+      <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="prepareNewOffer">
         {{ t("adminCommercePlacementOffer.newOfferAction") }}
       </PuButton>
     </template>
@@ -41,11 +35,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -71,9 +63,7 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{
-                  t("adminCommercePlacementOffer.statusLabel")
-                }}</span>
+                <span class="field-label">{{ t("adminCommercePlacementOffer.statusLabel") }}</span>
                 <select v-model="offerForm.status" class="text-input">
                   <option value="DRAFT">DRAFT</option>
                   <option value="ACTIVE">ACTIVE</option>
@@ -83,14 +73,8 @@
               </label>
 
               <label class="field">
-                <span class="field-label">{{
-                  t("adminCommercePlacementOffer.spuIdsLabel")
-                }}</span>
-                <input
-                  v-model="offerForm.spuIdsCsv"
-                  class="text-input"
-                  type="text"
-                />
+                <span class="field-label">{{ t("adminCommercePlacementOffer.spuIdsLabel") }}</span>
+                <input v-model="offerForm.spuIdsCsv" class="text-input" type="text" />
               </label>
 
               <div class="hint">
@@ -101,33 +85,19 @@
                 <span class="field-label">{{
                   t("adminCommercePlacementOffer.termsVersionLabel")
                 }}</span>
-                <input
-                  v-model.number="offerForm.termsVersion"
-                  class="text-input"
-                  type="number"
-                />
+                <input v-model.number="offerForm.termsVersion" class="text-input" type="number" />
               </label>
 
               <label class="field">
                 <span class="field-label">{{
                   t("adminCommercePlacementOffer.startsAtLabel")
                 }}</span>
-                <input
-                  v-model="offerForm.startsAt"
-                  class="text-input"
-                  type="text"
-                />
+                <input v-model="offerForm.startsAt" class="text-input" type="text" />
               </label>
 
               <label class="field">
-                <span class="field-label">{{
-                  t("adminCommercePlacementOffer.endsAtLabel")
-                }}</span>
-                <input
-                  v-model="offerForm.endsAt"
-                  class="text-input"
-                  type="text"
-                />
+                <span class="field-label">{{ t("adminCommercePlacementOffer.endsAtLabel") }}</span>
+                <input v-model="offerForm.endsAt" class="text-input" type="text" />
               </label>
 
               <PricingRulesEditor
@@ -136,12 +106,7 @@
               />
 
               <div class="inline-actions">
-                <PuButton
-                  size="sm"
-
-                  :disabled="isSavingOffer"
-                  @click="handleSaveOffer"
-                >
+                <PuButton size="sm" :disabled="isSavingOffer" @click="handleSaveOffer">
                   {{
                     isSavingOffer
                       ? t("adminCommercePlacementOffer.savingAction")
@@ -152,7 +117,9 @@
             </div>
           </BentoItem>
 
-          <PuInlineNotice tone="error" dismissible
+          <PuInlineNotice
+            tone="error"
+            dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -205,8 +172,7 @@ const selectedOfferId = computed<number | null>(() => {
 });
 
 const selectedOffer = computed(
-  () =>
-    offers.value.find((offer) => offer.id === selectedOfferId.value) ?? null,
+  () => offers.value.find((offer) => offer.id === selectedOfferId.value) ?? null,
 );
 
 const toDateInputValue = (value: string | Date | null | undefined): string => {
@@ -237,16 +203,13 @@ const emptyOfferForm = (): OfferEditorForm => ({
 const offerForm = ref<OfferEditorForm>(emptyOfferForm());
 
 const isSavingOffer = computed(
-  () =>
-    createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
+  () => createOfferMutation.isPending.value || updateOfferMutation.isPending.value,
 );
 
 const availableSpuHint = computed(() =>
   spus.value.length === 0
     ? t("adminCommercePlacementOffer.emptySpuHint")
-    : spus.value
-        .map((spu) => `${spu.id}:${spu.name}(${spu.productType}/${spu.status})`)
-        .join("，"),
+    : spus.value.map((spu) => `${spu.id}:${spu.name}(${spu.productType}/${spu.status})`).join("，"),
 );
 
 const pageErrorMessage = computed(
@@ -260,9 +223,7 @@ const pageErrorMessage = computed(
 watch(
   offers,
   (nextOffers) => {
-    if (
-      !nextOffers.some((offer) => String(offer.id) === selectedOfferIdRaw.value)
-    ) {
+    if (!nextOffers.some((offer) => String(offer.id) === selectedOfferIdRaw.value)) {
       selectedOfferIdRaw.value = nextOffers[0] ? String(nextOffers[0].id) : "";
     }
   },
@@ -317,10 +278,7 @@ const buildOfferInput = (): AdminOfferInput => ({
   termsVersion: offerForm.value.termsVersion,
   startsAt: offerForm.value.startsAt.trim() || null,
   endsAt: offerForm.value.endsAt.trim() || null,
-  pricingRules: buildPricingRules(
-    offerForm.value.pricingRules,
-    buildPricingRuleLabels(),
-  ),
+  pricingRules: buildPricingRules(offerForm.value.pricingRules, buildPricingRuleLabels()),
 });
 
 const handleSaveOffer = async () => {
@@ -340,8 +298,7 @@ const handleSaveOffer = async () => {
       input,
     });
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 

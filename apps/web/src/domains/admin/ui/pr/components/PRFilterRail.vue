@@ -1,29 +1,16 @@
 <template>
   <AdminRailPanel :title="t('adminPR.filtersTitle')">
     <template v-if="showCreateAction" #actions>
-      <PuButton
-        shape="pill"
-        tone="neutral" variant="outline"
-        size="sm"
-
-        @click="emit('create-pr')"
-      >
+      <PuButton shape="pill" tone="neutral" variant="outline" size="sm" @click="emit('create-pr')">
         {{ t("adminPR.newPRAction") }}
       </PuButton>
     </template>
 
     <PuFormItem :label="t('adminPR.searchTypeLabel')" for-id="admin-pr-filter-type">
-      <PuInput
-        id="admin-pr-filter-type"
-        v-model="filters.type"
-        :list="typeOptionsListId"
-      />
+      <PuInput id="admin-pr-filter-type" v-model="filters.type" :list="typeOptionsListId" />
     </PuFormItem>
 
-    <PuFormItem
-      :label="t('adminPR.searchLocationLabel')"
-      for-id="admin-pr-filter-location"
-    >
+    <PuFormItem :label="t('adminPR.searchLocationLabel')" for-id="admin-pr-filter-location">
       <PuInput
         id="admin-pr-filter-location"
         v-model="filters.location"
@@ -32,11 +19,7 @@
     </PuFormItem>
 
     <PuFormItem :label="t('adminPR.searchStatusLabel')" for-id="admin-pr-filter-status">
-      <PuSelect
-        id="admin-pr-filter-status"
-        v-model="filterStatus"
-        :options="statusOptions"
-      />
+      <PuSelect id="admin-pr-filter-status" v-model="filterStatus" :options="statusOptions" />
     </PuFormItem>
 
     <PuFormItem :label="t('adminPR.searchStartLabel')">

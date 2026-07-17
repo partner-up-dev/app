@@ -14,9 +14,7 @@ describe("deriveStudySprintDurationMinutes", () => {
   });
 
   test("falls back to 30 minutes when time window is missing or invalid", () => {
-    expect(deriveStudySprintDurationMinutes(buildPR({ time: [null, null] }))).toBe(
-      30,
-    );
+    expect(deriveStudySprintDurationMinutes(buildPR({ time: [null, null] }))).toBe(30);
     expect(
       deriveStudySprintDurationMinutes(
         buildPR({
@@ -27,9 +25,7 @@ describe("deriveStudySprintDurationMinutes", () => {
   });
 });
 
-const buildPR = (input: {
-  time: [string | null, string | null];
-}): PartnerRequest =>
+const buildPR = (input: { time: [string | null, string | null] }): PartnerRequest =>
   ({
     id: 1,
     title: "自习搭子",

@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { bigint, bigserial, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  bigserial,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { offers, type OfferId } from "./offer";
 import type {
   ButtonPlacementCreative,
@@ -25,10 +34,7 @@ export const placements = pgTable(
     effectiveFrom: timestamp("effective_from", { withTimezone: true }),
     effectiveTo: timestamp("effective_to", { withTimezone: true }),
     creative: jsonb("creative").$type<ButtonPlacementCreative>().notNull(),
-    bindingRules: jsonb("binding_rules")
-      .$type<PlacementBindingRule[]>()
-      .notNull()
-      .default(sql`'[
+    bindingRules: jsonb("binding_rules").$type<PlacementBindingRule[]>().notNull().default(sql`'[
         {
           "fieldKey": "participantCount",
           "contextPath": "activeParticipantCount",

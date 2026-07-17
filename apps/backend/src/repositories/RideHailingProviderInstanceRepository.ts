@@ -16,9 +16,7 @@ import type { RepositoryExecutor } from "./_executor";
 export class RideHailingProviderInstanceRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
-  async create(
-    data: NewRideHailingProviderInstance,
-  ): Promise<RideHailingProviderInstance> {
+  async create(data: NewRideHailingProviderInstance): Promise<RideHailingProviderInstance> {
     const result = await this.executor
       .insert(rideHailingProviderInstances)
       .values(data)
@@ -37,9 +35,7 @@ export class RideHailingProviderInstanceRepository {
       );
   }
 
-  async findById(
-    id: RideHailingProviderInstanceId,
-  ): Promise<RideHailingProviderInstance | null> {
+  async findById(id: RideHailingProviderInstanceId): Promise<RideHailingProviderInstance | null> {
     const result = await this.executor
       .select()
       .from(rideHailingProviderInstances)
@@ -76,10 +72,7 @@ export class RideHailingProviderInstanceRepository {
           eq(rideHailingProviderInstances.status, "ACTIVE"),
         ),
       )
-      .orderBy(
-        asc(rideHailingProviderInstances.createdAt),
-        asc(rideHailingProviderInstances.id),
-      )
+      .orderBy(asc(rideHailingProviderInstances.createdAt), asc(rideHailingProviderInstances.id))
       .limit(1);
     return result[0] ?? null;
   }

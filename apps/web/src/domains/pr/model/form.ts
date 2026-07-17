@@ -1,9 +1,7 @@
 import type { PRFormFields } from "@/domains/pr/model/types";
 import { clonePRRoute } from "@/domains/pr/model/pr-route";
 
-export const clonePRFields = (
-  fields: PRFormFields,
-): PRFormFields => ({
+export const clonePRFields = (fields: PRFormFields): PRFormFields => ({
   title: fields.title,
   type: fields.type,
   time: [fields.time[0], fields.time[1]],

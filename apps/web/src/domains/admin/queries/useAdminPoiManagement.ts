@@ -4,10 +4,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };
@@ -19,9 +16,7 @@ export type AdminPoisByNamesResponse = InferResponseType<
   (typeof adminClient.api.admin.pois)["by-names"]["$get"]
 >;
 
-export type AdminPoisResponse = InferResponseType<
-  (typeof adminClient.api.admin.pois)["$get"]
->;
+export type AdminPoisResponse = InferResponseType<(typeof adminClient.api.admin.pois)["$get"]>;
 
 export type UpsertAdminPoiResponse = InferResponseType<
   (typeof adminClient.api.admin.pois)[":poiId"]["$put"]
@@ -32,8 +27,7 @@ export type CreateAdminPoiResponse = InferResponseType<
 export type ReviewAdminPoiResponse = InferResponseType<
   (typeof adminClient.api.admin.pois)[":poiId"]["publish"]["$post"]
 >;
-export type AdminPoiAvailabilityRulesInput =
-  AdminPoisResponse[number]["availabilityRules"];
+export type AdminPoiAvailabilityRulesInput = AdminPoisResponse[number]["availabilityRules"];
 type MeetingPointInput = {
   description: string | null;
   imageUrl: string | null;
@@ -59,14 +53,9 @@ const normalizeIdsCsv = (idsCsv: string): string =>
     .filter((id) => id.length > 0)
     .join(",");
 
-export const useAdminPoisByIds = (
-  idsCsv: MaybeRef<string>,
-  enabled: MaybeRef<boolean> = true,
-) => {
+export const useAdminPoisByIds = (idsCsv: MaybeRef<string>, enabled: MaybeRef<boolean> = true) => {
   const normalizedIdsCsv = computed(() => normalizeIdsCsv(unref(idsCsv)));
-  const queryKey = computed(() =>
-    queryKeys.admin.poisByIds(normalizedIdsCsv.value),
-  );
+  const queryKey = computed(() => queryKeys.admin.poisByIds(normalizedIdsCsv.value));
 
   return useQuery<AdminPoisByIdsResponse>({
     queryKey,
@@ -94,9 +83,7 @@ export const useAdminPoisByNames = (
   enabled: MaybeRef<boolean> = true,
 ) => {
   const normalizedNamesCsv = computed(() => normalizeIdsCsv(unref(namesCsv)));
-  const queryKey = computed(() =>
-    queryKeys.admin.poisByNames(normalizedNamesCsv.value),
-  );
+  const queryKey = computed(() => queryKeys.admin.poisByNames(normalizedNamesCsv.value));
 
   return useQuery<AdminPoisByNamesResponse>({
     queryKey,
@@ -157,11 +144,7 @@ export const useCreateAdminPoi = () => {
 export const useUpsertAdminPoi = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    UpsertAdminPoiResponse,
-    Error,
-    AdminPoiMutationInput & { poiId: number }
-  >({
+  return useMutation<UpsertAdminPoiResponse, Error, AdminPoiMutationInput & { poiId: number }>({
     mutationFn: async ({
       poiId,
       name,

@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { PlacementSelectionCandidate } from "./placement-selection";
-import {
-  isPlacementActiveAt,
-  listMatchingPlacementCandidates,
-} from "./placement-selection";
+import { isPlacementActiveAt, listMatchingPlacementCandidates } from "./placement-selection";
 import type { PrPlacementRuleContextData } from "./placement-pr-context";
 
 const prContext: PrPlacementRuleContextData = {

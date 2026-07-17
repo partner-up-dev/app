@@ -1,5 +1,5 @@
 import type { CommerceQuote, OfferQuoteId } from "../../../entities/commerce-quote";
-import type { Offer, OfferId } from "../../../entities/offer";
+import type { Offer } from "../../../entities/offer";
 import type { ProductSku } from "../../../entities/product-sku";
 import type { ProductSpu } from "../../../entities/product-spu";
 import { throwHttpProblem } from "../../../lib/problem-details";

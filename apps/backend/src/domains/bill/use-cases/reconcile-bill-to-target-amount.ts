@@ -81,9 +81,11 @@ export async function reconcileBillToTargetAmount(
         description: `Termination attempt ${seed.sourceAttemptId} reconciliation`,
         refundOfBillLineId:
           plan.direction === "REFUND"
-            ? (allocation.refundOfBillLineId as NewBillLine["refundOfBillLineId"]) ??
-              (firstChargeLineByUserId.get(allocation.userId) as NewBillLine["refundOfBillLineId"]) ??
-              null
+            ? ((allocation.refundOfBillLineId as NewBillLine["refundOfBillLineId"]) ??
+              (firstChargeLineByUserId.get(
+                allocation.userId,
+              ) as NewBillLine["refundOfBillLineId"]) ??
+              null)
             : null,
       }) satisfies NewBillLine,
   );

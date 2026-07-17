@@ -13,9 +13,6 @@ export const resolveWeChatAbilityMockOpenId = (): string | null => {
     return null;
   }
 
-  const openId =
-    (
-      env.WECHAT_ABILITY_MOCK_OPEN_ID ?? "dev-mock-openid"
-    ).trim();
+  const openId = (env.WECHAT_ABILITY_MOCK_OPEN_ID ?? "dev-mock-openid").trim();
   return openId.length > 0 ? openId : null;
 };

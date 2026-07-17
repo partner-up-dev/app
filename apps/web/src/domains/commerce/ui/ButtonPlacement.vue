@@ -2,9 +2,9 @@
   <div v-if="placement" class="button-placement">
     <PuButton
       shape="rect"
-      tone="neutral" variant="soft"
+      tone="neutral"
+      variant="soft"
       size="md"
-
       :loading="isOpeningPlacement"
       data-testid="pr-detail.commerce-placement.open"
       @click="openPlacementOrdering(placement)"

@@ -38,7 +38,11 @@
             :error="routeError"
             required
           >
-            <RouteEditor :model-value="routeDraft" variant="inline" @update:model-value="handleRouteChange" />
+            <RouteEditor
+              :model-value="routeDraft"
+              variant="inline"
+              @update:model-value="handleRouteChange"
+            />
           </PuFormItem>
           <PuButton
             shape="rect"
@@ -48,22 +52,26 @@
             :loading="submitMutation.isPending.value"
             data-testid="prd.route-application.submit"
           >
-            {{ t('prAuthoring.routeApplicationSubmitAction') }}
+            {{ t("prAuthoring.routeApplicationSubmitAction") }}
           </PuButton>
         </form>
       </PuCard>
 
       <PuCard v-if="type" as="section" gap="md">
         <div class="section-header">
-          <h2>{{ t('prAuthoring.routeApplicationMineTitle') }}</h2>
-          <p>{{ t('prAuthoring.routeApplicationMineSubtitle') }}</p>
+          <h2>{{ t("prAuthoring.routeApplicationMineTitle") }}</h2>
+          <p>{{ t("prAuthoring.routeApplicationMineSubtitle") }}</p>
         </div>
         <PuLoadingState v-if="applicationsQuery.isLoading.value" :message="t('common.loading')" />
         <p v-else-if="applications.length === 0" class="empty-text">
-          {{ t('prAuthoring.routeApplicationEmptyMine') }}
+          {{ t("prAuthoring.routeApplicationEmptyMine") }}
         </p>
         <div v-else class="application-list">
-          <article v-for="application in applications" :key="application.id" class="application-card">
+          <article
+            v-for="application in applications"
+            :key="application.id"
+            class="application-card"
+          >
             <RouteMap
               class="application-card__map"
               :route="application.route"
@@ -84,7 +92,9 @@
                 />
               </div>
               <p class="application-card__meta">{{ formatCreatedAt(application.createdAt) }}</p>
-              <p v-if="application.rejectReason" class="application-card__reason">{{ application.rejectReason }}</p>
+              <p v-if="application.rejectReason" class="application-card__reason">
+                {{ application.rejectReason }}
+              </p>
             </div>
           </article>
         </div>
@@ -211,16 +221,72 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-.route-application-page__body, .application-form, .application-list, .application-card__body { display: flex; flex-direction: column; }
-.route-application-page__body { gap: var(--sys-spacing-large); }
-.application-form, .application-list, .application-card__body { gap: var(--sys-spacing-medium); }
-.section-header h2, .section-header p, .empty-text, .application-card__meta, .application-card__reason { margin: 0; }
-.section-header p { margin-top: var(--sys-spacing-xsmall); color: var(--sys-color-on-surface-variant); }
-.empty-text, .application-card__meta, .application-card__reason { color: var(--sys-color-on-surface-variant); }
-.application-card { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: var(--sys-spacing-small); align-items: center; padding: var(--sys-spacing-small); border: 1px solid var(--sys-color-outline-variant); border-radius: var(--sys-radius-small); background: var(--sys-color-surface); }
-.application-card__map { width: 8rem; min-height: 5rem; aspect-ratio: 16 / 10; }
-.application-card__title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sys-spacing-small); }
-.application-card__title-row h3 { margin: 0; overflow-wrap: anywhere; }
-.application-card__reason { color: var(--sys-color-error); }
-@media (max-width: 640px) { .application-card { grid-template-columns: 1fr; } .application-card__map { width: 100%; aspect-ratio: 16 / 9; } }
+.route-application-page__body,
+.application-form,
+.application-list,
+.application-card__body {
+  display: flex;
+  flex-direction: column;
+}
+.route-application-page__body {
+  gap: var(--sys-spacing-large);
+}
+.application-form,
+.application-list,
+.application-card__body {
+  gap: var(--sys-spacing-medium);
+}
+.section-header h2,
+.section-header p,
+.empty-text,
+.application-card__meta,
+.application-card__reason {
+  margin: 0;
+}
+.section-header p {
+  margin-top: var(--sys-spacing-xsmall);
+  color: var(--sys-color-on-surface-variant);
+}
+.empty-text,
+.application-card__meta,
+.application-card__reason {
+  color: var(--sys-color-on-surface-variant);
+}
+.application-card {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: var(--sys-spacing-small);
+  align-items: center;
+  padding: var(--sys-spacing-small);
+  border: 1px solid var(--sys-color-outline-variant);
+  border-radius: var(--sys-radius-small);
+  background: var(--sys-color-surface);
+}
+.application-card__map {
+  width: 8rem;
+  min-height: 5rem;
+  aspect-ratio: 16 / 10;
+}
+.application-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sys-spacing-small);
+}
+.application-card__title-row h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.application-card__reason {
+  color: var(--sys-color-error);
+}
+@media (max-width: 640px) {
+  .application-card {
+    grid-template-columns: 1fr;
+  }
+  .application-card__map {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+}
 </style>

@@ -43,9 +43,7 @@
             v-if="!readonly"
             class="ride-hailing-sku-card__checkbox"
             :class="{ 'is-checked': selected }"
-            :data-testid="
-              selected ? 'ordering.ride-hailing.vehicle-card.selected' : undefined
-            "
+            :data-testid="selected ? 'ordering.ride-hailing.vehicle-card.selected' : undefined"
             aria-hidden="true"
           >
             <PuCheckbox

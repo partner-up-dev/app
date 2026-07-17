@@ -24,11 +24,7 @@ const matchingContextSchema = z.object({
   matchingContext: z.unknown(),
 });
 
-type JsonEndpoint<
-  Input,
-  Output,
-  Status extends number = 200,
-> = {
+type JsonEndpoint<Input, Output, Status extends number = 200> = {
   input: Input;
   output: Output;
   outputFormat: "json";

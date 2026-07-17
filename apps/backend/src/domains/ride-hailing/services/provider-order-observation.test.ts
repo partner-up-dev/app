@@ -32,12 +32,12 @@ describe("RideHailing provider order observation", () => {
     { phase: "27", expected: "CANCELLED" },
     { phase: "CANCELLED", expected: "CANCELLED" },
     { phase: "FAILED", expected: "FAILED" },
-  ])("maps provider detail phase $phase into local execution phase $expected", ({
-    phase,
-    expected,
-  }) => {
-    expect(mapProviderDetailPhaseToExecutionPhase({ phase })).toBe(expected);
-  });
+  ])(
+    "maps provider detail phase $phase into local execution phase $expected",
+    ({ phase, expected }) => {
+      expect(mapProviderDetailPhaseToExecutionPhase({ phase })).toBe(expected);
+    },
+  );
 
   it("keeps unmapped provider phases unresolved", () => {
     expect(mapProviderDetailPhaseToExecutionPhase({ phase: "UNKNOWN" })).toBe(null);

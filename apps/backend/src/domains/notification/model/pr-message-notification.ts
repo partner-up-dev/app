@@ -6,8 +6,7 @@ import { WECHAT_SUBSCRIPTION_NOTIFICATION_CHANNEL } from "./notification-channel
 import { PR_MESSAGE_NOTIFICATION_KIND } from "./notification-kind";
 
 export { PR_MESSAGE_NOTIFICATION_KIND };
-export const PR_MESSAGE_NOTIFICATION_CHANNEL =
-  WECHAT_SUBSCRIPTION_NOTIFICATION_CHANNEL;
+export const PR_MESSAGE_NOTIFICATION_CHANNEL = WECHAT_SUBSCRIPTION_NOTIFICATION_CHANNEL;
 export const PR_MESSAGE_DEBOUNCE_WINDOW_MS = 5 * 60 * 1_000;
 
 const PR_MESSAGE_DEDUPE_PREFIX = "wechat-pr-message";
@@ -21,9 +20,7 @@ export const prMessageNotificationJobPayloadSchema = z.object({
   scheduledAtIso: z.string().datetime(),
 });
 
-export type PRMessageNotificationJobPayload = z.infer<
-  typeof prMessageNotificationJobPayloadSchema
->;
+export type PRMessageNotificationJobPayload = z.infer<typeof prMessageNotificationJobPayloadSchema>;
 
 export type PRMessageNotificationScheduleInput = {
   request: {
@@ -43,17 +40,14 @@ export type PRMessageNotificationScheduler = (
   input: PRMessageNotificationScheduleInput,
 ) => Promise<PRMessageNotificationScheduleResult | void>;
 
-export const resolvePRMessageNotificationRunAt = (
-  firstUnreadMessageCreatedAt: Date,
-): Date =>
+export const resolvePRMessageNotificationRunAt = (firstUnreadMessageCreatedAt: Date): Date =>
   new Date(firstUnreadMessageCreatedAt.getTime() + PR_MESSAGE_DEBOUNCE_WINDOW_MS);
 
 export const buildPRMessageDedupeKey = (
   recipientUserId: UserId,
   prId: PRId,
   waveStartMessageId: PRMessageId,
-): string =>
-  `${PR_MESSAGE_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${waveStartMessageId}`;
+): string => `${PR_MESSAGE_DEDUPE_PREFIX}:${recipientUserId}:${prId}:${waveStartMessageId}`;
 
 export const buildPRMessageDedupePrefixForUser = (userId: UserId): string =>
   `${PR_MESSAGE_DEDUPE_PREFIX}:${userId}:`;

@@ -13,18 +13,12 @@ export class ProductSkuRepository {
   constructor(private readonly executor: RepositoryExecutor = db) {}
 
   async create(data: NewProductSku): Promise<ProductSku> {
-    const result = await this.executor
-      .insert(productSkus)
-      .values(data)
-      .returning();
+    const result = await this.executor.insert(productSkus).values(data).returning();
     return result[0]!;
   }
 
   async findById(id: ProductSkuId): Promise<ProductSku | null> {
-    const result = await this.executor
-      .select()
-      .from(productSkus)
-      .where(eq(productSkus.id, id));
+    const result = await this.executor.select().from(productSkus).where(eq(productSkus.id, id));
     return result[0] ?? null;
   }
 
@@ -36,10 +30,7 @@ export class ProductSkuRepository {
       .orderBy(asc(productSkus.sortOrder), asc(productSkus.id));
   }
 
-  async updateById(
-    id: ProductSkuId,
-    data: Partial<NewProductSku>,
-  ): Promise<ProductSku | null> {
+  async updateById(id: ProductSkuId, data: Partial<NewProductSku>): Promise<ProductSku | null> {
     const result = await this.executor
       .update(productSkus)
       .set({

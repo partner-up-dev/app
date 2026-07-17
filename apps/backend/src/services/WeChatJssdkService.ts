@@ -44,8 +44,7 @@ const isFresh = (cached: CachedValue<unknown> | null): boolean => {
 
 const createNonceStr = (): string => crypto.randomBytes(16).toString("hex");
 
-const sha1 = (input: string): string =>
-  crypto.createHash("sha1").update(input).digest("hex");
+const sha1 = (input: string): string => crypto.createHash("sha1").update(input).digest("hex");
 
 const normalizeUrlForSignature = (rawUrl: string): string => {
   const parsed = new URL(rawUrl);
@@ -88,9 +87,7 @@ export class WeChatJssdkService {
 
     const res = await proxyFetch(url);
     if (!res.ok) {
-      throw new Error(
-        `WeChat access_token request failed: ${res.status} ${res.statusText}`,
-      );
+      throw new Error(`WeChat access_token request failed: ${res.status} ${res.statusText}`);
     }
 
     const json = weChatAccessTokenSchema.parse(await res.json());
@@ -116,18 +113,14 @@ export class WeChatJssdkService {
     return cachedAccessToken.value.token;
   }
 
-  private async fetchJsApiTicket(
-    accessToken: string,
-  ): Promise<CachedValue<JsApiTicket>> {
+  private async fetchJsApiTicket(accessToken: string): Promise<CachedValue<JsApiTicket>> {
     const url = new URL("https://api.weixin.qq.com/cgi-bin/ticket/getticket");
     url.searchParams.set("access_token", accessToken);
     url.searchParams.set("type", "jsapi");
 
     const res = await proxyFetch(url);
     if (!res.ok) {
-      throw new Error(
-        `WeChat jsapi_ticket request failed: ${res.status} ${res.statusText}`,
-      );
+      throw new Error(`WeChat jsapi_ticket request failed: ${res.status} ${res.statusText}`);
     }
 
     const json = weChatJsApiTicketSchema.parse(await res.json());

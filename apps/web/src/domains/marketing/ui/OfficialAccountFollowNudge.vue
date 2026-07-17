@@ -22,9 +22,9 @@
       <div class="nudge-actions">
         <PuButton
           shape="pill"
-          tone="neutral" variant="soft"
+          tone="neutral"
+          variant="soft"
           size="sm"
-
           data-testid="official-account-follow-nudge.dismiss"
           @click="emit('dismiss')"
         >
@@ -33,7 +33,6 @@
         <PuButton
           shape="pill"
           size="sm"
-
           data-testid="official-account-follow-nudge.follow"
           @click="handleOpenOfficialAccountQr"
         >

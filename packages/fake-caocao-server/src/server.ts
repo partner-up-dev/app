@@ -12,9 +12,7 @@ export const fakeCaocaoServerOptionsSchema = z.object({
   verifyRequests: z.boolean().default(true),
 });
 
-export type FakeCaocaoServerOptions = Partial<
-  z.input<typeof fakeCaocaoServerOptionsSchema>
-> & {
+export type FakeCaocaoServerOptions = Partial<z.input<typeof fakeCaocaoServerOptionsSchema>> & {
   routePlanner?: FakeCaocaoRoutePlanner | null;
 };
 

@@ -18,9 +18,7 @@ export const useUpdateCurrentUserAvatar = () => {
 
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.updateCurrentUserAvatarFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.updateCurrentUserAvatarFailed"));
       }
 
       return await res.json();

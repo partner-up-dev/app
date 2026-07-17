@@ -27,9 +27,7 @@ const prPlacementRuleContextDataSchema = z.object({
   notes: z.string().nullable(),
 });
 
-export type PrPlacementRuleContextData = z.infer<
-  typeof prPlacementRuleContextDataSchema
->;
+export type PrPlacementRuleContextData = z.infer<typeof prPlacementRuleContextDataSchema>;
 
 export function buildPrPlacementRuleContextData(input: {
   pr: PartnerRequest;

@@ -93,17 +93,14 @@ export class FakeWeChatPayState {
     return transaction;
   }
 
-  findTransactionByOutTradeNo(
-    outTradeNo: string,
-  ): FakeTransactionState | null {
+  findTransactionByOutTradeNo(outTradeNo: string): FakeTransactionState | null {
     return this.transactions.get(outTradeNo) ?? null;
   }
 
   findTransactionByPrepayId(prepayId: string): FakeTransactionState | null {
     return (
-      [...this.transactions.values()].find(
-        (transaction) => transaction.prepayId === prepayId,
-      ) ?? null
+      [...this.transactions.values()].find((transaction) => transaction.prepayId === prepayId) ??
+      null
     );
   }
 
@@ -119,8 +116,7 @@ export class FakeWeChatPayState {
       tradeState: input.tradeState,
       transactionId:
         input.tradeState === "SUCCESS"
-          ? (transaction.transactionId ??
-            createProviderId("fake_tx", transaction.outTradeNo))
+          ? (transaction.transactionId ?? createProviderId("fake_tx", transaction.outTradeNo))
           : transaction.transactionId,
       updatedAt: nowIso(),
     });

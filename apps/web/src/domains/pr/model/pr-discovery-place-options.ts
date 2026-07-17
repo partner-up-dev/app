@@ -78,19 +78,19 @@ export const arePRDiscoveryRoutesEqual = (
 ): boolean =>
   Boolean(
     left &&
-      right &&
-      left.length === right.length &&
-      left.every((point, index) => {
-        const other = right[index];
-        return Boolean(
-          other &&
-            point.name === other.name &&
-            point.full_address === other.full_address &&
-            eqCoordinates(point.wgs84, other.wgs84) &&
-            eqCoordinates(point.bd09, other.bd09) &&
-            eqCoordinates(point.gcj02, other.gcj02),
-        );
-      }),
+    right &&
+    left.length === right.length &&
+    left.every((point, index) => {
+      const other = right[index];
+      return Boolean(
+        other &&
+        point.name === other.name &&
+        point.full_address === other.full_address &&
+        eqCoordinates(point.wgs84, other.wgs84) &&
+        eqCoordinates(point.bd09, other.bd09) &&
+        eqCoordinates(point.gcj02, other.gcj02),
+      );
+    }),
   );
 export const toPRDiscoverySelectedPlace = (
   option: PRDiscoveryPlaceOption | null | undefined,

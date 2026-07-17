@@ -48,19 +48,15 @@ const wechatGenerateDescriptionRequestSchema = z.object({
 });
 
 export const shareRoute = app
-  .post(
-    "/xiaohongshu/poster-html",
-    zValidator("json", xhsPosterHtmlRequestSchema),
-    async (c) => {
-      const { prId, caption, posterStylePrompt } = c.req.valid("json");
-      const result = await service.generateXiaohongshuPosterHtml({
-        prId,
-        caption,
-        posterStylePrompt,
-      });
-      return c.json(result);
-    },
-  )
+  .post("/xiaohongshu/poster-html", zValidator("json", xhsPosterHtmlRequestSchema), async (c) => {
+    const { prId, caption, posterStylePrompt } = c.req.valid("json");
+    const result = await service.generateXiaohongshuPosterHtml({
+      prId,
+      caption,
+      posterStylePrompt,
+    });
+    return c.json(result);
+  })
   .post(
     "/wechat-card/thumbnail-html",
     zValidator("json", wechatCardThumbnailHtmlRequestSchema),
@@ -97,21 +93,16 @@ export const shareRoute = app
       return c.json({ posterUrl });
     },
   )
-  .post(
-    "/xiaohongshu/cache-poster",
-    zValidator("json", xhsCachePosterRequestSchema),
-    async (c) => {
-      const { prId, caption, posterStylePrompt, posterUrl } =
-        c.req.valid("json");
-      await service.cacheXiaohongshuPoster({
-        prId,
-        caption,
-        posterStylePrompt,
-        posterUrl,
-      });
-      return c.json({ success: true });
-    },
-  )
+  .post("/xiaohongshu/cache-poster", zValidator("json", xhsCachePosterRequestSchema), async (c) => {
+    const { prId, caption, posterStylePrompt, posterUrl } = c.req.valid("json");
+    await service.cacheXiaohongshuPoster({
+      prId,
+      caption,
+      posterStylePrompt,
+      posterUrl,
+    });
+    return c.json({ success: true });
+  })
   .post(
     "/wechat-card/cache-thumbnail",
     zValidator("json", wechatCacheThumbnailRequestSchema),

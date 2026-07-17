@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import type { InferResponseType } from "hono";
 import type { PRId, PRStatusManual } from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
@@ -53,16 +52,9 @@ const resolveErrorMessage = (
 ): string => {
   if (
     typeof window !== "undefined" &&
-    handleWeChatAuthRequiredError(
-      response.status,
-      payload,
-      window.location.href,
-    )
+    handleWeChatAuthRequiredError(response.status, payload, window.location.href)
   ) {
-    return resolveApiErrorMessage(
-      payload,
-      i18n.global.t("prPage.wechatReminder.loginHint"),
-    );
+    return resolveApiErrorMessage(payload, i18n.global.t("prPage.wechatReminder.loginHint"));
   }
 
   return resolveApiErrorMessage(payload, fallback);
@@ -75,16 +67,11 @@ const resolveUpdateContentErrorMessage = (
   if (payload?.code === PR_TYPE_IMMUTABLE_CODE) {
     return i18n.global.t("errors.prTypeImmutable");
   }
-  return resolveErrorMessage(
-    response,
-    payload,
-    i18n.global.t("errors.updateContentFailed"),
-  );
+  return resolveErrorMessage(response, payload, i18n.global.t("errors.updateContentFailed"));
 };
 
-const isPRJoinGateUnresolvedError = (
-  payload: ApiErrorPayload | null,
-): boolean => payload?.code === PR_JOIN_GATE_UNRESOLVED_CODE;
+const isPRJoinGateUnresolvedError = (payload: ApiErrorPayload | null): boolean =>
+  payload?.code === PR_JOIN_GATE_UNRESOLVED_CODE;
 
 export const useJoinPR = () => {
   const queryClient = useQueryClient();
@@ -117,10 +104,7 @@ export const useJoinPR = () => {
         const fallbackMessage = isPRJoinGateUnresolvedError(payload)
           ? "请先完成加入前置项"
           : i18n.global.t("errors.joinRequestFailed");
-        throw buildApiError(
-          resolveErrorMessage(res, payload, fallbackMessage),
-          payload,
-        );
+        throw buildApiError(resolveErrorMessage(res, payload, fallbackMessage), payload);
       }
 
       return await res.json();
@@ -143,10 +127,7 @@ export const useWaitlistPR = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      alternativePrReminderOptIn,
-    }: PRWaitlistMutationInput) => {
+    mutationFn: async ({ id, alternativePrReminderOptIn }: PRWaitlistMutationInput) => {
       const res = await client.api.pr[":id"].waitlist.$post(
         {
           param: { id: id.toString() },
@@ -172,10 +153,7 @@ export const useWaitlistPR = () => {
         const fallbackMessage = isPRJoinGateUnresolvedError(payload)
           ? "请先完成候补前置项"
           : i18n.global.t("errors.waitlistRequestFailed");
-        throw buildApiError(
-          resolveErrorMessage(res, payload, fallbackMessage),
-          payload,
-        );
+        throw buildApiError(resolveErrorMessage(res, payload, fallbackMessage), payload);
       }
 
       return await res.json();
@@ -216,11 +194,7 @@ export const useCancelWaitlistPR = () => {
 
       if (!res.ok) {
         throw buildApiError(
-          resolveErrorMessage(
-            res,
-            payload,
-            i18n.global.t("errors.cancelWaitlistFailed"),
-          ),
+          resolveErrorMessage(res, payload, i18n.global.t("errors.cancelWaitlistFailed")),
           payload,
         );
       }
@@ -266,11 +240,7 @@ export const useExitPR = () => {
           });
         }
         throw new Error(
-          resolveErrorMessage(
-            res,
-            payload,
-            i18n.global.t("errors.exitRequestFailed"),
-          ),
+          resolveErrorMessage(res, payload, i18n.global.t("errors.exitRequestFailed")),
         );
       }
 
@@ -312,11 +282,7 @@ export const useConfirmPRSlot = () => {
           });
         }
         throw buildApiError(
-          resolveErrorMessage(
-            res,
-            payload,
-            i18n.global.t("errors.confirmSlotFailed"),
-          ),
+          resolveErrorMessage(res, payload, i18n.global.t("errors.confirmSlotFailed")),
           payload,
         );
       }
@@ -360,11 +326,7 @@ export const useCheckInPRSlot = () => {
 
         const payload = await readApiErrorPayload(res);
         throw new Error(
-          resolveErrorMessage(
-            res,
-            payload,
-            i18n.global.t("errors.checkInSlotFailed"),
-          ),
+          resolveErrorMessage(res, payload, i18n.global.t("errors.checkInSlotFailed")),
         );
       }
 
@@ -390,10 +352,7 @@ export const useUpdatePRContent = () => {
 
       if (!res.ok) {
         const payload = await readApiErrorPayload(res);
-        throw buildApiError(
-          resolveUpdateContentErrorMessage(res, payload),
-          payload,
-        );
+        throw buildApiError(resolveUpdateContentErrorMessage(res, payload), payload);
       }
 
       return await res.json();
@@ -419,11 +378,7 @@ export const useUpdatePRStatus = () => {
       if (!res.ok) {
         const payload = await readApiErrorPayload(res);
         throw new Error(
-          resolveErrorMessage(
-            res,
-            payload,
-            i18n.global.t("errors.updateStatusFailed"),
-          ),
+          resolveErrorMessage(res, payload, i18n.global.t("errors.updateStatusFailed")),
         );
       }
 

@@ -1,4 +1,3 @@
-
 import { throwHttpProblem } from "../../../lib/problem-details";
 
 export const PARTNER_BOUNDS_ERROR_MESSAGES = {
@@ -29,13 +28,8 @@ const assertMaxPartnersValid = (
   if (maxPartners !== null && maxPartners < minPartners) {
     throwPartnerBoundsError(PARTNER_BOUNDS_ERROR_MESSAGES.maxPartnersBelowMin);
   }
-  if (
-    maxPartners !== null &&
-    maxPartners < currentParticipants
-  ) {
-    throwPartnerBoundsError(
-      PARTNER_BOUNDS_ERROR_MESSAGES.maxPartnersBelowCurrentParticipants,
-    );
+  if (maxPartners !== null && maxPartners < currentParticipants) {
+    throwPartnerBoundsError(PARTNER_BOUNDS_ERROR_MESSAGES.maxPartnersBelowCurrentParticipants);
   }
 };
 
@@ -49,11 +43,7 @@ export function assertManualPartnerBoundsValid(
     throwPartnerBoundsError(PARTNER_BOUNDS_ERROR_MESSAGES.minPartnersInvalid);
   }
 
-  assertMaxPartnersValid(
-    validatedMinPartners,
-    maxPartners,
-    currentParticipants,
-  );
+  assertMaxPartnersValid(validatedMinPartners, maxPartners, currentParticipants);
 }
 
 export function normalizeAutomaticPartnerBounds(
@@ -69,11 +59,7 @@ export function normalizeAutomaticPartnerBounds(
       ? minPartners
       : DEFAULT_AUTOMATIC_MIN_PARTNERS;
 
-  assertMaxPartnersValid(
-    normalizedMinPartners,
-    maxPartners,
-    currentParticipants,
-  );
+  assertMaxPartnersValid(normalizedMinPartners, maxPartners, currentParticipants);
 
   return {
     minPartners: normalizedMinPartners,

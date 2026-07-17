@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 
 test("natural-language PR type candidates keep observed PR types ahead of configured types", async () => {
-  const { buildNaturalLanguagePRTypeCandidates, toNaturalLanguagePRTypePromptHints } = await import(
-    "./pr-type-options"
-  );
+  const { buildNaturalLanguagePRTypeCandidates, toNaturalLanguagePRTypePromptHints } =
+    await import("./pr-type-options");
 
   const candidates = buildNaturalLanguagePRTypeCandidates({
     observedPRTypes: ["  羽毛球搭子  ", "Badminton"],
@@ -34,9 +33,8 @@ test("natural-language PR type candidates keep canonical labels from the first s
 });
 
 test("natural-language PR type canonicalization preserves known candidate labels", async () => {
-  const { buildNaturalLanguagePRTypeCandidates, canonicalizeNaturalLanguagePRType } = await import(
-    "./pr-type-options"
-  );
+  const { buildNaturalLanguagePRTypeCandidates, canonicalizeNaturalLanguagePRType } =
+    await import("./pr-type-options");
 
   const candidates = buildNaturalLanguagePRTypeCandidates({
     observedPRTypes: ["Board Game"],

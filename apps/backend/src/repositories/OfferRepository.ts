@@ -1,11 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../lib/db";
-import {
-  offers,
-  type NewOffer,
-  type Offer,
-  type OfferId,
-} from "../entities/offer";
+import { offers, type NewOffer, type Offer, type OfferId } from "../entities/offer";
 import type { RepositoryExecutor } from "./_executor";
 
 export class OfferRepository {
@@ -17,24 +12,15 @@ export class OfferRepository {
   }
 
   async findById(id: OfferId): Promise<Offer | null> {
-    const result = await this.executor
-      .select()
-      .from(offers)
-      .where(eq(offers.id, id));
+    const result = await this.executor.select().from(offers).where(eq(offers.id, id));
     return result[0] ?? null;
   }
 
   async listAll(): Promise<Offer[]> {
-    return this.executor
-      .select()
-      .from(offers)
-      .orderBy(desc(offers.createdAt));
+    return this.executor.select().from(offers).orderBy(desc(offers.createdAt));
   }
 
-  async updateById(
-    id: OfferId,
-    data: Partial<NewOffer>,
-  ): Promise<Offer | null> {
+  async updateById(id: OfferId, data: Partial<NewOffer>): Promise<Offer | null> {
     const result = await this.executor
       .update(offers)
       .set({

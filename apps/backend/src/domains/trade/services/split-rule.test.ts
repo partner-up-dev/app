@@ -16,14 +16,10 @@ describe("buildEqualRelativeSplitRule", () => {
         { userId: "u3", percentBps: 3333 },
       ],
     });
-    expect(
-      result.shares.reduce((sum, share) => sum + share.percentBps, 0),
-    ).toBe(10_000);
+    expect(result.shares.reduce((sum, share) => sum + share.percentBps, 0)).toBe(10_000);
   });
 
   it("rejects an empty user list", () => {
-    expect(() => buildEqualRelativeSplitRule([])).toThrow(
-      "Equal split requires at least one user",
-    );
+    expect(() => buildEqualRelativeSplitRule([])).toThrow("Equal split requires at least one user");
   });
 });

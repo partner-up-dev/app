@@ -13,7 +13,6 @@ import {
   prMessageNotificationJobPayloadSchema,
   recordPRMessageNotificationDelivery,
   resolvePRMessageNotificationRunAt,
-  type PRMessageNotificationJobPayload,
 } from "../../domains/notification";
 import {
   isWeChatSubscriptionNotificationConfigured,
@@ -46,8 +45,7 @@ async function handlePRMessageJob(
     return;
   }
 
-  const configured =
-    await isWeChatSubscriptionNotificationConfigured(PR_MESSAGE_NOTIFICATION_KIND);
+  const configured = await isWeChatSubscriptionNotificationConfigured(PR_MESSAGE_NOTIFICATION_KIND);
   if (!configured) {
     await recordPRMessageNotificationDelivery({
       jobId: context.jobId,
@@ -70,9 +68,7 @@ async function handlePRMessageJob(
   });
 
   if (sendResult.status === "SENT") {
-    const consumeResult = await consumePRMessageNotificationCredit(
-      prepared.recipient.id,
-    );
+    const consumeResult = await consumePRMessageNotificationCredit(prepared.recipient.id);
     if (consumeResult.consumed && consumeResult.remainingCount <= 0) {
       await cancelWeChatPRMessageJobsForUser(prepared.recipient.id);
     }
@@ -119,9 +115,7 @@ export async function scheduleWeChatPRMessageNotification(input: {
   waveStartMessageId: number;
   firstUnreadMessageCreatedAt: Date;
 }): Promise<{ jobId: number | null }> {
-  const runAt = resolvePRMessageNotificationRunAt(
-    input.firstUnreadMessageCreatedAt,
-  );
+  const runAt = resolvePRMessageNotificationRunAt(input.firstUnreadMessageCreatedAt);
 
   const result = await jobRunner.scheduleOnce({
     jobType: WECHAT_PR_MESSAGE_JOB_TYPE,
@@ -137,8 +131,7 @@ export async function scheduleWeChatPRMessageNotification(input: {
       recipientUserId: input.recipientUserId,
       waveStartAuthorUserId: input.authorUserId,
       waveStartMessageId: input.waveStartMessageId,
-      firstUnreadMessageCreatedAtIso:
-        input.firstUnreadMessageCreatedAt.toISOString(),
+      firstUnreadMessageCreatedAtIso: input.firstUnreadMessageCreatedAt.toISOString(),
       scheduledAtIso: runAt.toISOString(),
     },
   });
@@ -148,9 +141,7 @@ export async function scheduleWeChatPRMessageNotification(input: {
   };
 }
 
-export async function cancelWeChatPRMessageJobsForUser(
-  userId: UserId,
-): Promise<number> {
+export async function cancelWeChatPRMessageJobsForUser(userId: UserId): Promise<number> {
   return jobRunner.deletePendingJobsByDedupe({
     jobType: WECHAT_PR_MESSAGE_JOB_TYPE,
     dedupeKeyPrefix: buildPRMessageDedupePrefixForUser(userId),

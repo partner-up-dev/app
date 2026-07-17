@@ -1,13 +1,7 @@
 import { onMounted } from "vue";
 import { client } from "@/lib/rpc";
-import {
-  useUserSessionStore,
-  type AuthSessionPayload,
-} from "@/shared/auth/useUserSessionStore";
-import {
-  getStoredAccessToken,
-  getStoredUserId,
-} from "@/shared/auth/session-storage";
+import { useUserSessionStore, type AuthSessionPayload } from "@/shared/auth/useUserSessionStore";
+import { getStoredAccessToken, getStoredUserId } from "@/shared/auth/session-storage";
 import { hasPendingWeChatOAuthHandoff } from "@/processes/wechat/oauth-handoff";
 import { trackAuthSessionCreated } from "@/shared/telemetry/auth-session";
 
@@ -33,14 +27,11 @@ const applyAndTrackAuthSession = async (
 const registerFreshAnonymousSession = async (
   store: ReturnType<typeof useUserSessionStore>,
 ): Promise<boolean> => {
-  const registerRes = await client.api.auth.register.anonymous.$post(
-    undefined,
-    {
-      init: {
-        credentials: "include",
-      },
+  const registerRes = await client.api.auth.register.anonymous.$post(undefined, {
+    init: {
+      credentials: "include",
     },
-  );
+  });
 
   if (!registerRes.ok) {
     return false;
@@ -53,8 +44,7 @@ const registerFreshAnonymousSession = async (
 
 const runAuthSessionBootstrap = async (): Promise<AuthSessionBootstrapResult> => {
   if (typeof window !== "undefined") {
-    const isOAuthCallback =
-      window.location.pathname === "/wechat/oauth/callback";
+    const isOAuthCallback = window.location.pathname === "/wechat/oauth/callback";
     if (isOAuthCallback) {
       const searchParams = new URLSearchParams(window.location.search);
       const hasOAuthParams =

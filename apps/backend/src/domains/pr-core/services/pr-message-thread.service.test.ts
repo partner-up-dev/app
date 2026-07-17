@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import {
-  hasUnreadPRMessages,
-  toPRMessageThreadItem,
-} from "./pr-message-thread.service";
+import { hasUnreadPRMessages, toPRMessageThreadItem } from "./pr-message-thread.service";
 import { canNotifyForUnreadWave } from "../../notification/model/unread-wave";
 
 test("canNotifyForUnreadWave allows first notification when inbox state is missing", () => {

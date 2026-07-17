@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { initializeSlotsForPR } from "../../../../src/domains/pr-core/services/slot-management.service";
 import type {
   PartnerRequestFields,

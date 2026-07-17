@@ -24,10 +24,8 @@
           class="peek-radio-carousel__option"
           :class="{
             'peek-radio-carousel__option--selected': index === selectedIndex,
-            'peek-radio-carousel__option--peek':
-              Math.abs(index - visualActiveIndex) <= 1,
-            'peek-radio-carousel__option--offstage':
-              Math.abs(index - visualActiveIndex) > 1,
+            'peek-radio-carousel__option--peek': Math.abs(index - visualActiveIndex) <= 1,
+            'peek-radio-carousel__option--offstage': Math.abs(index - visualActiveIndex) > 1,
           }"
           role="radio"
           :aria-checked="index === selectedIndex"
@@ -39,12 +37,7 @@
           @click="handleOptionClick(index)"
           @keydown="handleOptionKeydown($event, index)"
         >
-          <slot
-            name="item"
-            :item="item"
-            :index="index"
-            :selected="index === selectedIndex"
-          />
+          <slot name="item" :item="item" :index="index" :selected="index === selectedIndex" />
         </div>
       </div>
     </div>
@@ -389,10 +382,7 @@ const optionStyle = (index: number): CSSProperties => {
 
 <style lang="scss" scoped>
 .peek-radio-carousel {
-  --peek-radio-carousel-card-width: min(
-    calc(100% - (2 * var(--sys-spacing-medium))),
-    21rem
-  );
+  --peek-radio-carousel-card-width: min(calc(100% - (2 * var(--sys-spacing-medium))), 21rem);
 
   width: 100%;
   min-width: 0;
@@ -402,10 +392,7 @@ const optionStyle = (index: number): CSSProperties => {
 
 .peek-radio-carousel__viewport {
   overflow: hidden;
-  padding:
-    var(--sys-spacing-xsmall)
-    var(--sys-spacing-medium)
-    var(--sys-spacing-small);
+  padding: var(--sys-spacing-xsmall) var(--sys-spacing-medium) var(--sys-spacing-small);
   touch-action: pan-y;
 }
 
@@ -452,10 +439,7 @@ const optionStyle = (index: number): CSSProperties => {
 
 @media (max-width: 768px) {
   .peek-radio-carousel {
-    --peek-radio-carousel-card-width: min(
-      calc(100% - (2 * var(--sys-spacing-small))),
-      18rem
-    );
+    --peek-radio-carousel-card-width: min(calc(100% - (2 * var(--sys-spacing-small))), 18rem);
   }
 
   .peek-radio-carousel__viewport {

@@ -11,7 +11,9 @@
         <input
           :checked="participation.defaultConfirmationEnabled"
           type="checkbox"
-          @change="update({ defaultConfirmationEnabled: ($event.target as HTMLInputElement).checked })"
+          @change="
+            update({ defaultConfirmationEnabled: ($event.target as HTMLInputElement).checked })
+          "
         />
       </label>
       <label class="field">
@@ -19,7 +21,13 @@
         <select
           :value="participation.fullCapacityExpansionPolicy"
           class="field-input"
-          @change="update({ fullCapacityExpansionPolicy: inputValue($event) as AdminPRTypeConfigParticipation['fullCapacityExpansionPolicy'] })"
+          @change="
+            update({
+              fullCapacityExpansionPolicy: inputValue(
+                $event,
+              ) as AdminPRTypeConfigParticipation['fullCapacityExpansionPolicy'],
+            })
+          "
         >
           <option value="DISABLED">DISABLED</option>
           <option value="ENABLED">ENABLED</option>
@@ -43,12 +51,7 @@
         :min="0"
         @update="updateNumber('defaultJoinLockOffsetMinutes', $event)"
       />
-      <JsonField
-        :label="joinGateLabel"
-        :value="jsonText"
-        :error="jsonError"
-        @update="updateJson"
-      />
+      <JsonField :label="joinGateLabel" :value="jsonText" :error="jsonError" @update="updateJson" />
     </div>
     <p v-if="hasNumberErrors" class="error-text">
       {{ Object.values(numberErrors).join("；") }}

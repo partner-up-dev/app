@@ -37,10 +37,7 @@ export const reduceFocusEvidence = (
     targetSeconds,
     Math.max(input.session.creditedFocusSeconds, nextCredited ?? 0),
   );
-  const interruptionSeconds = Math.max(
-    input.session.interruptionSeconds,
-    nextInterruption ?? 0,
-  );
+  const interruptionSeconds = Math.max(input.session.interruptionSeconds, nextInterruption ?? 0);
   const completedByDuration = creditedFocusSeconds >= targetSeconds;
 
   if (input.eventType === "LEFT") {

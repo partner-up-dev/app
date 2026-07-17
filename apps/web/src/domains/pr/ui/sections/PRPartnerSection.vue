@@ -6,13 +6,7 @@
           <h2 class="partner-section__title">
             {{ t("prPage.partnerSection.title") }}
           </h2>
-          <PuTag
-            tone="primary"
-            size="md"
-            :text="slotStateText"
-            variant="soft"
-            shape="pill"
-          />
+          <PuTag tone="primary" size="md" :text="slotStateText" variant="soft" shape="pill" />
         </div>
         <p class="partner-section__subtitle">{{ subtitleParticipantTimeline }}</p>
       </div>
@@ -23,9 +17,7 @@
         <span class="partner-section__summary-label">{{
           t("prPage.partnerSection.summaryCurrent")
         }}</span>
-        <strong class="partner-section__summary-value">{{
-          section.capacity.current
-        }}</strong>
+        <strong class="partner-section__summary-value">{{ section.capacity.current }}</strong>
       </article>
       <article class="partner-section__summary-card">
         <span class="partner-section__summary-label">{{
@@ -47,26 +39,19 @@
         <span class="partner-section__summary-label">{{
           t("prPage.partnerSection.summaryState")
         }}</span>
-        <strong class="partner-section__summary-value">{{
-          readinessText
-        }}</strong>
+        <strong class="partner-section__summary-value">{{ readinessText }}</strong>
       </article>
     </div>
 
     <div class="partner-section__actions">
-      <PuButton
-        v-if="section.viewer.canJoin"
-
-        :disabled="joinPending"
-        @click="emit('join')"
-      >
+      <PuButton v-if="section.viewer.canJoin" :disabled="joinPending" @click="emit('join')">
         {{ joinPending ? t("prPage.joining") : t("prPage.join") }}
       </PuButton>
 
       <PuButton
         v-if="section.viewer.canExit"
-        tone="danger" variant="outline"
-
+        tone="danger"
+        variant="outline"
         :disabled="exitPending"
         @click="emit('exit')"
       >
@@ -75,26 +60,22 @@
 
       <PuButton
         v-if="section.viewer.canConfirm"
-        tone="primary" variant="outline"
-
+        tone="primary"
+        variant="outline"
         :disabled="confirmPending"
         @click="emit('confirm-slot')"
       >
-        {{
-          confirmPending ? t("prPage.confirmingSlot") : t("prPage.confirmSlot")
-        }}
+        {{ confirmPending ? t("prPage.confirmingSlot") : t("prPage.confirmSlot") }}
       </PuButton>
 
       <PuButton
         v-if="section.viewer.canCheckIn"
-        tone="primary" variant="outline"
-
+        tone="primary"
+        variant="outline"
         :disabled="checkInPending"
         @click="emit('submit-check-in')"
       >
-        {{
-          checkInPending ? t("prPage.checkingIn") : t("prPage.checkInAttended")
-        }}
+        {{ checkInPending ? t("prPage.checkingIn") : t("prPage.checkInAttended") }}
       </PuButton>
     </div>
 
@@ -165,10 +146,7 @@
           }}</span>
           <span class="partner-section__timeline-value">
             {{
-              formatWindow(
-                section.timeline.confirmationStartAt,
-                section.timeline.confirmationEndAt,
-              )
+              formatWindow(section.timeline.confirmationStartAt, section.timeline.confirmationEndAt)
             }}
           </span>
         </div>
@@ -197,7 +175,6 @@
 
       <PuButton
         v-if="canToggleReminder"
-
         :disabled="reminderTogglePending"
         @click="emit('toggle-reminder')"
       >
@@ -212,14 +189,13 @@
 
       <PuButton
         v-else-if="isWeChatEnv && reminderConfigured && !reminderAuthenticated"
-        tone="neutral" variant="soft"
-
+        tone="neutral"
+        variant="soft"
         @click="emit('go-wechat-login')"
       >
         {{ t("prPage.wechatReminder.loginAction") }}
       </PuButton>
     </section>
-
   </section>
 </template>
 

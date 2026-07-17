@@ -29,11 +29,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -45,10 +43,7 @@
           align="start"
         />
         <template v-else-if="selectedOrderRecord">
-          <BentoItem
-            :title="t('adminCommerceOrderBill.orderSummaryTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceOrderBill.orderSummaryTitle')" span="full">
             <dl class="summary-grid">
               <div>
                 <dt>{{ t("adminCommerceOrderBill.orderIdLabel") }}</dt>
@@ -65,19 +60,11 @@
             </dl>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceOrderBill.participantsTitle')"
-            span="full"
-          >
-            <pre class="json-pre">{{
-              prettyJson(selectedOrderRecord.order.participants)
-            }}</pre>
+          <BentoItem :title="t('adminCommerceOrderBill.participantsTitle')" span="full">
+            <pre class="json-pre">{{ prettyJson(selectedOrderRecord.order.participants) }}</pre>
           </BentoItem>
 
-          <BentoItem
-            :title="t('adminCommerceOrderBill.terminationAttemptsTitle')"
-            span="full"
-          >
+          <BentoItem :title="t('adminCommerceOrderBill.terminationAttemptsTitle')" span="full">
             <pre class="json-pre">{{
               prettyJson(selectedOrderRecord.order.terminationAttempts)
             }}</pre>
@@ -103,9 +90,7 @@
                 </div>
               </dl>
 
-              <pre class="json-pre">{{
-                prettyJson(selectedOrderRecord.billLines)
-              }}</pre>
+              <pre class="json-pre">{{ prettyJson(selectedOrderRecord.billLines) }}</pre>
             </template>
           </BentoItem>
         </template>
@@ -134,9 +119,7 @@ const selectedOrderIdRaw = ref("");
 const orders = computed(() => workspaceQuery.data.value?.orders ?? []);
 const selectedOrderId = computed(() => selectedOrderIdRaw.value || null);
 const selectedOrderRecord = computed(
-  () =>
-    orders.value.find((record) => record.order.id === selectedOrderId.value) ??
-    null,
+  () => orders.value.find((record) => record.order.id === selectedOrderId.value) ?? null,
 );
 
 const effectiveTotalFen = computed(() => {
@@ -149,9 +132,7 @@ const effectiveTotalFen = computed(() => {
 watch(
   orders,
   (nextOrders) => {
-    if (
-      !nextOrders.some((record) => record.order.id === selectedOrderIdRaw.value)
-    ) {
+    if (!nextOrders.some((record) => record.order.id === selectedOrderIdRaw.value)) {
       selectedOrderIdRaw.value = nextOrders[0]?.order.id ?? "";
     }
   },

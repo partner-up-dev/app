@@ -11,9 +11,7 @@ type FakeWeChatPayBridgeDependencies = {
   bridgeDocument: BridgeDocument;
   fetchImpl: BridgeFetch;
   fakeWeChatPayOrigin: string;
-  presentPaymentClient?: (input: {
-    packageValue: string;
-  }) => Promise<FakeWeChatPayClientDecision>;
+  presentPaymentClient?: (input: { packageValue: string }) => Promise<FakeWeChatPayClientDecision>;
   scheduleTask?: (task: () => void) => void;
 };
 
@@ -61,11 +59,7 @@ const updateFakeWeChatPayState = async (input: {
 }): Promise<WeixinJsBridgeCallbackPayload> => {
   const prepayId = extractPrepayId(input.packageValue);
   const actionPath =
-    input.decision === "SUCCESS"
-      ? "succeed"
-      : input.decision === "CANCEL"
-        ? "close"
-        : "fail";
+    input.decision === "SUCCESS" ? "succeed" : input.decision === "CANCEL" ? "close" : "fail";
   const url = new URL(
     `/__fake_wechatpay/prepays/${encodeURIComponent(prepayId)}/${actionPath}`,
     input.fakeWeChatPayOrigin,
@@ -168,10 +162,7 @@ const presentFakePaymentClient = async (input: {
 
     const description = document.createElement("p");
     description.textContent = fakeClientDescription;
-    description.setAttribute(
-      "style",
-      "margin:0;font-size:14px;line-height:1.5;color:#4b5563",
-    );
+    description.setAttribute("style", "margin:0;font-size:14px;line-height:1.5;color:#4b5563");
 
     const reference = document.createElement("p");
     reference.textContent = `prepay_id=${extractPrepayId(input.packageValue)}`;
@@ -181,10 +172,7 @@ const presentFakePaymentClient = async (input: {
     );
 
     const actionGroup = document.createElement("div");
-    actionGroup.setAttribute(
-      "style",
-      "display:flex;flex-direction:column;gap:8px;margin-top:4px",
-    );
+    actionGroup.setAttribute("style", "display:flex;flex-direction:column;gap:8px;margin-top:4px");
 
     const finish = (decision: FakeWeChatPayClientDecision): void => {
       cleanupExistingFakeClientOverlay();

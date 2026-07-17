@@ -6,9 +6,8 @@ import type { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigR
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 
 test("resolveEffectiveMeetingPoint follows PR, type location, type, then POI fallback order", async () => {
-  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } = await import(
-    "../../../repositories/PRTypeConfigRepository"
-  );
+  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } =
+    await import("../../../repositories/PRTypeConfigRepository");
   const { PoiRepository: PoiRepositoryClass } = await import("../../../repositories/PoiRepository");
 
   const originalFindByType = PRTypeConfigRepositoryClass.prototype.findByType;
@@ -101,9 +100,8 @@ test("resolveEffectiveMeetingPoint follows PR, type location, type, then POI fal
 });
 
 test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is null", async () => {
-  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } = await import(
-    "../../../repositories/PRTypeConfigRepository"
-  );
+  const { PRTypeConfigRepository: PRTypeConfigRepositoryClass } =
+    await import("../../../repositories/PRTypeConfigRepository");
   const { PoiRepository: PoiRepositoryClass } = await import("../../../repositories/PoiRepository");
 
   const originalFindByType = PRTypeConfigRepositoryClass.prototype.findByType;

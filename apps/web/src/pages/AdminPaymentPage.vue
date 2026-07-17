@@ -7,20 +7,12 @@
     <template #rail>
       <AdminRailPanel title="支付服务商">
         <div class="rail-actions">
-          <PuButton
-            shape="pill"
-            size="sm"
-
-            data-testid="admin-payment.create"
-            @click="startCreate"
-          >
+          <PuButton shape="pill" size="sm" data-testid="admin-payment.create" @click="startCreate">
             新建实例
           </PuButton>
         </div>
 
-        <div v-if="providerInstances.length === 0" class="hint">
-          暂无 Payment Provider Instance
-        </div>
+        <div v-if="providerInstances.length === 0" class="hint">暂无 Payment Provider Instance</div>
         <div v-else class="provider-rail-list">
           <PuCard
             v-for="record in providerInstances"
@@ -49,11 +41,9 @@
 
     <template #main>
       <div class="stack">
-        <PuLoadingState
-          v-if="workspaceQuery.isLoading.value"
-          :message="t('common.loading')"
-        />
-        <PuInlineNotice tone="error"
+        <PuLoadingState v-if="workspaceQuery.isLoading.value" :message="t('common.loading')" />
+        <PuInlineNotice
+          tone="error"
           v-else-if="workspaceQuery.error.value"
           :message="workspaceQuery.error.value.message"
         />
@@ -130,9 +120,7 @@
 
                 <div class="field">
                   <span class="field-label">Instance Key</span>
-                  <output class="read-only-output">{{
-                    derivedInstanceKey
-                  }}</output>
+                  <output class="read-only-output">{{ derivedInstanceKey }}</output>
                 </div>
 
                 <label class="field field--wide">
@@ -249,17 +237,15 @@
               <div>
                 <dt>Updated At</dt>
                 <dd>
-                  {{
-                    selectedProvider
-                      ? formatTimestamp(selectedProvider.updatedAt)
-                      : "-"
-                  }}
+                  {{ selectedProvider ? formatTimestamp(selectedProvider.updatedAt) : "-" }}
                 </dd>
               </div>
             </dl>
           </BentoItem>
 
-          <PuInlineNotice tone="error" dismissible
+          <PuInlineNotice
+            tone="error"
+            dismissible
             v-if="pageErrorMessage"
             :message="pageErrorMessage"
             @close="clearErrors"
@@ -299,8 +285,7 @@ import {
 
 const CREATE_PROVIDER_ID = "__create__";
 
-type ProviderInstance =
-  AdminPaymentProviderWorkspaceResponse["providerInstances"][number];
+type ProviderInstance = AdminPaymentProviderWorkspaceResponse["providerInstances"][number];
 
 type ProviderForm = {
   providerType: "WECHAT_PAY";
@@ -327,31 +312,17 @@ const selectedProviderIdRaw = ref("");
 const form = ref<ProviderForm>(createBlankForm());
 const localErrorMessage = ref<string | null>(null);
 
-const providerInstances = computed(
-  () => workspaceQuery.data.value?.providerInstances ?? [],
-);
+const providerInstances = computed(() => workspaceQuery.data.value?.providerInstances ?? []);
 const selectedProviderId = computed(
-  () =>
-    selectedProviderIdRaw.value ||
-    providerInstances.value[0]?.id ||
-    CREATE_PROVIDER_ID,
+  () => selectedProviderIdRaw.value || providerInstances.value[0]?.id || CREATE_PROVIDER_ID,
 );
 const selectedProvider = computed(
-  () =>
-    providerInstances.value.find(
-      (record) => record.id === selectedProviderId.value,
-    ) ?? null,
+  () => providerInstances.value.find((record) => record.id === selectedProviderId.value) ?? null,
 );
-const isCreateMode = computed(
-  () => selectedProviderId.value === CREATE_PROVIDER_ID,
-);
-const isSaving = computed(
-  () => createMutation.isPending.value || updateMutation.isPending.value,
-);
+const isCreateMode = computed(() => selectedProviderId.value === CREATE_PROVIDER_ID);
+const isSaving = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
 const formTitle = computed(() =>
-  isCreateMode.value
-    ? "新建 Payment Provider Instance"
-    : "编辑 Payment Provider Instance",
+  isCreateMode.value ? "新建 Payment Provider Instance" : "编辑 Payment Provider Instance",
 );
 const derivedInstanceKey = computed(() => {
   const mchId = form.value.mchId.trim();
@@ -370,29 +341,21 @@ const chargeModeOptions = computed<PuSelectOption[]>(() => [
   { label: "JSAPI", value: "JSAPI" },
   { label: "H5", value: "H5" },
 ]);
-const secretPlaceholder = computed(() =>
-  isCreateMode.value ? "新建实例必填" : "留空则保留",
-);
-const optionalSecretPlaceholder = computed(() =>
-  isCreateMode.value ? "可选" : "留空则保留",
-);
+const secretPlaceholder = computed(() => (isCreateMode.value ? "新建实例必填" : "留空则保留"));
+const optionalSecretPlaceholder = computed(() => (isCreateMode.value ? "可选" : "留空则保留"));
 const apiV3KeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
-  return selectedProvider.value?.config.apiV3KeyConfigured
-    ? "已配置"
-    : "未配置";
+  return selectedProvider.value?.config.apiV3KeyConfigured ? "已配置" : "未配置";
 });
 const merchantPrivateKeyStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
-  return selectedProvider.value?.config.merchantCertificate
-    .privateKeyPemConfigured
+  return selectedProvider.value?.config.merchantCertificate.privateKeyPemConfigured
     ? "已配置"
     : "未配置";
 });
 const merchantCertificateStateLabel = computed(() => {
   if (isCreateMode.value) return "-";
-  return selectedProvider.value?.config.merchantCertificate
-    .certificatePemConfigured
+  return selectedProvider.value?.config.merchantCertificate.certificatePemConfigured
     ? "已配置"
     : "未配置";
 });
@@ -488,10 +451,7 @@ const requireCreateSecret = (value: string, label: string): void => {
 
 const buildInput = (): AdminPaymentProviderInstanceInput => {
   requireCreateSecret(form.value.apiV3Key, "API v3 Key");
-  requireCreateSecret(
-    form.value.merchantPrivateKeyPem,
-    "Merchant Private Key PEM",
-  );
+  requireCreateSecret(form.value.merchantPrivateKeyPem, "Merchant Private Key PEM");
 
   return {
     providerType: form.value.providerType,
@@ -507,12 +467,8 @@ const buildInput = (): AdminPaymentProviderInstanceInput => {
       apiV3Key: normalizeOptionalString(form.value.apiV3Key),
       merchantCertificate: {
         serialNo: form.value.merchantCertificateSerialNo.trim(),
-        privateKeyPem: normalizeOptionalString(
-          form.value.merchantPrivateKeyPem,
-        ),
-        certificatePem: normalizeOptionalString(
-          form.value.merchantCertificatePem,
-        ),
+        privateKeyPem: normalizeOptionalString(form.value.merchantPrivateKeyPem),
+        certificatePem: normalizeOptionalString(form.value.merchantCertificatePem),
       },
     },
   };
@@ -535,8 +491,7 @@ const handleSave = async () => {
     selectedProviderIdRaw.value = saved.id;
     form.value = formFromProvider(saved);
   } catch (error) {
-    localErrorMessage.value =
-      error instanceof Error ? error.message : t("common.operationFailed");
+    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
   }
 };
 

@@ -42,16 +42,10 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
   const accessToken = ref<string | null>(getStoredAdminAccessToken());
 
   const hasAdminAccess = computed(
-    () =>
-      roles.value.includes("service") &&
-      Boolean(userId.value) &&
-      Boolean(accessToken.value),
+    () => roles.value.includes("service") && Boolean(userId.value) && Boolean(accessToken.value),
   );
   const hasAnalyticsAccess = computed(
-    () =>
-      roles.value.includes("analytics") &&
-      Boolean(userId.value) &&
-      Boolean(accessToken.value),
+    () => roles.value.includes("analytics") && Boolean(userId.value) && Boolean(accessToken.value),
   );
 
   const syncStorage = () => {

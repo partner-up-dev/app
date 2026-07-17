@@ -1,15 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono";
 import type { User, UserId, UserRole } from "../entities/user";
-import {
-  isAuthenticatedAuthRole,
-  type AuthRole,
-  type RequestAuth,
-} from "./types";
-import {
-  issueAccessToken,
-  shouldRenewAccessToken,
-  verifyAccessToken,
-} from "./jwt";
+import { isAuthenticatedAuthRole, type AuthRole, type RequestAuth } from "./types";
+import { issueAccessToken, shouldRenewAccessToken, verifyAccessToken } from "./jwt";
 
 const ACCESS_TOKEN_HEADER = "x-access-token";
 const AUTH_HEADER_PREFIX = "Bearer ";
@@ -21,8 +13,7 @@ export type AuthEnv = {
 };
 
 const readBearerToken = (c: Context): string | null => {
-  const authHeader =
-    c.req.header("authorization") ?? c.req.header("Authorization");
+  const authHeader = c.req.header("authorization") ?? c.req.header("Authorization");
   if (!authHeader?.startsWith(AUTH_HEADER_PREFIX)) return null;
   const token = authHeader.slice(AUTH_HEADER_PREFIX.length).trim();
   return token.length > 0 ? token : null;
@@ -30,9 +21,7 @@ const readBearerToken = (c: Context): string | null => {
 
 const mapUserRolesToAuthRoles = (roles: readonly UserRole[]): AuthRole[] => {
   const nonAnonymousRoles = roles.filter((role) => role !== "anonymous");
-  return nonAnonymousRoles.length > 0
-    ? Array.from(new Set(nonAnonymousRoles))
-    : ["anonymous"];
+  return nonAnonymousRoles.length > 0 ? Array.from(new Set(nonAnonymousRoles)) : ["anonymous"];
 };
 
 const buildAnonymousAuth = (userId: UserId | null = null): RequestAuth => {
@@ -51,10 +40,7 @@ const buildAnonymousAuth = (userId: UserId | null = null): RequestAuth => {
   };
 };
 
-const issueRoleAuth = (
-  userId: UserId,
-  roles: AuthRole[],
-): RequestAuth => {
+const issueRoleAuth = (userId: UserId, roles: AuthRole[]): RequestAuth => {
   const token = issueAccessToken(roles, userId);
   const claims = verifyAccessToken(token);
   if (!claims) {
@@ -127,6 +113,5 @@ export const issueAnonymousAuth = (userId: UserId | null = null): RequestAuth =>
 export const issueUserAuth = (userId: UserId): RequestAuth =>
   issueRoleAuth(userId, ["authenticated"]);
 
-export const issueAuthForUser = (
-  user: Pick<User, "id" | "role">,
-): RequestAuth => issueRoleAuth(user.id, mapUserRolesToAuthRoles(user.role));
+export const issueAuthForUser = (user: Pick<User, "id" | "role">): RequestAuth =>
+  issueRoleAuth(user.id, mapUserRolesToAuthRoles(user.role));

@@ -168,9 +168,7 @@ const toNoticeBlocks = (
 export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
   const quantityPolicy = input.salesPolicy.quantityPolicy;
   const rentalPolicy =
-    input.servicePolicy.type === "RENTAL"
-      ? input.servicePolicy
-      : defaultRentalServicePolicy();
+    input.servicePolicy.type === "RENTAL" ? input.servicePolicy : defaultRentalServicePolicy();
 
   return {
     name: input.name,
@@ -181,8 +179,7 @@ export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
     userSelectedMin: quantityPolicy.type === "USER_SELECTED" ? quantityPolicy.min : 1,
     userSelectedMax: quantityPolicy.type === "USER_SELECTED" ? quantityPolicy.max : 1,
     rentalBookingLeadTimeMinutes: rentalPolicy.bookingLeadTimeMinutes,
-    rentalServiceWeekdaysCsv:
-      rentalPolicy.serviceWindow?.weekdays.join(",") ?? "0,1,2,3,4,5,6",
+    rentalServiceWeekdaysCsv: rentalPolicy.serviceWindow?.weekdays.join(",") ?? "0,1,2,3,4,5,6",
     rentalServiceStartTime: rentalPolicy.serviceWindow?.startTime ?? "00:00",
     rentalServiceEndTime: rentalPolicy.serviceWindow?.endTime ?? "23:59",
     rentalRequiresContactPhone: rentalPolicy.requiresContactPhone,
@@ -256,18 +253,9 @@ const buildServicePolicy = (
       { min: 0 },
     ),
     serviceWindow: {
-      weekdays: parseWeekdays(
-        form.rentalServiceWeekdaysCsv,
-        labels.serviceRentalWeekdaysLabel,
-      ),
-      startTime: assertTimeOfDay(
-        form.rentalServiceStartTime,
-        labels.serviceRentalStartTimeLabel,
-      ),
-      endTime: assertTimeOfDay(
-        form.rentalServiceEndTime,
-        labels.serviceRentalEndTimeLabel,
-      ),
+      weekdays: parseWeekdays(form.rentalServiceWeekdaysCsv, labels.serviceRentalWeekdaysLabel),
+      startTime: assertTimeOfDay(form.rentalServiceStartTime, labels.serviceRentalStartTimeLabel),
+      endTime: assertTimeOfDay(form.rentalServiceEndTime, labels.serviceRentalEndTimeLabel),
     },
     requiresContactPhone: form.rentalRequiresContactPhone,
     requiresRealName: form.rentalRequiresRealName,
@@ -307,9 +295,7 @@ const buildFactsRecord = (
   return record;
 };
 
-const buildPresentation = (
-  form: SpuEditorForm,
-): AdminProductSpuInput["presentation"] => ({
+const buildPresentation = (form: SpuEditorForm): AdminProductSpuInput["presentation"] => ({
   heroImageAssetIds: buildStringList(form.heroImageAssetIds),
   detailImageAssetIds: buildStringList(form.detailImageAssetIds),
   sellingPoints: buildStringList(form.sellingPoints),

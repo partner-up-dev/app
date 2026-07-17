@@ -33,9 +33,7 @@ describe("FakeWeChatPayState", () => {
 
     expect(succeeded?.tradeState).toBe("SUCCESS");
     expect(succeeded?.transactionId).toBe("fake_tx_paymenttx1");
-    expect(state.findTransactionByPrepayId(created.prepayId)?.tradeState).toBe(
-      "SUCCESS",
-    );
+    expect(state.findTransactionByPrepayId(created.prepayId)?.tradeState).toBe("SUCCESS");
   });
 
   test("creates idempotent refunds and keeps refund-to-charge lookup data", () => {

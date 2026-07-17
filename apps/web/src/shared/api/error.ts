@@ -13,9 +13,7 @@ export type ApiError = Error & {
   status?: number;
 };
 
-export const readApiErrorPayload = async (
-  response: Response,
-): Promise<ApiErrorPayload | null> => {
+export const readApiErrorPayload = async (response: Response): Promise<ApiErrorPayload | null> => {
   try {
     return (await response.json()) as ApiErrorPayload;
   } catch {
@@ -30,10 +28,7 @@ export const resolveApiErrorMessage = (
   return payload?.detail ?? payload?.error ?? fallback;
 };
 
-export const buildApiError = (
-  message: string,
-  payload: ApiErrorPayload | null,
-): ApiError => {
+export const buildApiError = (message: string, payload: ApiErrorPayload | null): ApiError => {
   const error = new Error(message) as ApiError;
   if (payload?.code) {
     error.code = payload.code;

@@ -57,11 +57,7 @@
           <span class="location-picker-content__result-main">
             <strong>{{ candidate.name }}</strong>
             <small>
-              {{
-                candidate.address ??
-                candidate.cityName ??
-                coordinateLabel(candidate.coordinate)
-              }}
+              {{ candidate.address ?? candidate.cityName ?? coordinateLabel(candidate.coordinate) }}
             </small>
           </span>
           <span

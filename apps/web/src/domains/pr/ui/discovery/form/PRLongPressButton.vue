@@ -27,7 +27,7 @@
     <span class="pr-discovery-long-press-button__fill" aria-hidden="true" />
     <span class="pr-discovery-long-press-button__splash" aria-hidden="true" />
     <span class="pr-discovery-long-press-button__label">
-      {{ props.pending ? props.pendingLabel ?? props.label : props.label }}
+      {{ props.pending ? (props.pendingLabel ?? props.label) : props.label }}
     </span>
   </button>
 </template>
@@ -419,29 +419,20 @@ const resolveOriginRect = (): LongPressOriginRect => {
     var(--sys-color-primary) 100%
   );
   opacity: 0;
-  transform: translateX(calc(-100% + var(--pr-discovery-long-press-progress, 0) * 100%))
-    scaleX(0.1);
+  transform: translateX(calc(-100% + var(--pr-discovery-long-press-progress, 0) * 100%)) scaleX(0.1);
 }
 
 .pr-discovery-long-press-button--charging {
-  background: color-mix(
-    in srgb,
-    var(--sys-color-primary-container) 18%,
-    var(--sys-color-surface)
-  );
-  animation: pr-discovery-long-press-tremble
-    var(--pr-discovery-long-press-tremble-duration, 112ms) linear infinite;
+  background: color-mix(in srgb, var(--sys-color-primary-container) 18%, var(--sys-color-surface));
+  animation: pr-discovery-long-press-tremble var(--pr-discovery-long-press-tremble-duration, 112ms)
+    linear infinite;
   outline-width: var(--pr-discovery-long-press-pressure-outline, 0);
 }
 
 .pr-discovery-long-press-button--overload {
-  background: color-mix(
-    in srgb,
-    var(--sys-color-primary-container) 28%,
-    var(--sys-color-surface)
-  );
-  animation: pr-discovery-long-press-tremble
-    var(--pr-discovery-long-press-tremble-duration, 76ms) linear infinite;
+  background: color-mix(in srgb, var(--sys-color-primary-container) 28%, var(--sys-color-surface));
+  animation: pr-discovery-long-press-tremble var(--pr-discovery-long-press-tremble-duration, 76ms)
+    linear infinite;
   outline-color: color-mix(in srgb, var(--sys-color-primary) 24%, transparent);
   outline-width: var(--pr-discovery-long-press-pressure-outline, 0);
 }

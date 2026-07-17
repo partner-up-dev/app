@@ -15,7 +15,12 @@
         <select
           :value="authoring.authoringCreationPolicy"
           class="field-input"
-          @change="update({ authoringCreationPolicy: ($event.target as HTMLSelectElement).value as AdminPRTypeConfigAuthoring['authoringCreationPolicy'] })"
+          @change="
+            update({
+              authoringCreationPolicy: ($event.target as HTMLSelectElement)
+                .value as AdminPRTypeConfigAuthoring['authoringCreationPolicy'],
+            })
+          "
         >
           <option value="USER_AND_ADMIN">USER_AND_ADMIN</option>
           <option value="ADMIN_ONLY">ADMIN_ONLY</option>

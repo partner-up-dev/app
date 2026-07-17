@@ -1,14 +1,10 @@
 import type { Poi } from "../../../entities/poi";
 
-export const normalizePoiApplicationTitle = (value: string): string =>
-  value.trim();
+export const normalizePoiApplicationTitle = (value: string): string => value.trim();
 
-export const normalizePoiApplicationImageUrl = (value: string): string =>
-  value.trim();
+export const normalizePoiApplicationImageUrl = (value: string): string => value.trim();
 
-export const normalizePoiRejectReason = (
-  value: string | null | undefined,
-): string | null => {
+export const normalizePoiRejectReason = (value: string | null | undefined): string | null => {
   const normalized = value?.trim() ?? "";
   return normalized.length > 0 ? normalized : null;
 };

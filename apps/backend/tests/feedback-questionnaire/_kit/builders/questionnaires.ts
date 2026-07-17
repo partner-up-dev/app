@@ -11,9 +11,7 @@ const feedbackRepo = new FeedbackQuestionnaireRepository();
 
 let scenarioQuestionnaireSequence = 0;
 
-export function buildFoodTastingFeedbackDefinition(
-  label: string,
-): FeedbackQuestionnaireDefinition {
+export function buildFoodTastingFeedbackDefinition(label: string): FeedbackQuestionnaireDefinition {
   const sequence = scenarioQuestionnaireSequence++;
   return {
     key: `scenario_food_tasting_feedback_${label}_${sequence}`,
@@ -60,8 +58,7 @@ export async function givenFeedbackQuestionnaireTemplate(input: {
   label: string;
   definition?: FeedbackQuestionnaireDefinition;
 }): Promise<FeedbackQuestionnaireTemplate> {
-  const definition =
-    input.definition ?? buildFoodTastingFeedbackDefinition(input.label);
+  const definition = input.definition ?? buildFoodTastingFeedbackDefinition(input.label);
   const template = await feedbackRepo.createTemplate({
     key: definition.key,
     version: definition.version,
@@ -76,9 +73,7 @@ export async function givenFeedbackQuestionnaireTemplate(input: {
 export async function givenFeedbackQuestionnaireInstance(input: {
   template: FeedbackQuestionnaireTemplate;
 }): Promise<FeedbackQuestionnaireInstance> {
-  const instance = await feedbackRepo.createInstanceFromTemplate(
-    input.template.id,
-  );
+  const instance = await feedbackRepo.createInstanceFromTemplate(input.template.id);
   assert.ok(instance, `Failed to create feedback instance: ${input.template.id}`);
   return instance;
 }

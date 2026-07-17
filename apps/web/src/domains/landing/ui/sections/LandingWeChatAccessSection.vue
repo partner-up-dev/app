@@ -3,7 +3,8 @@
     <div class="wechat-access-section__actions">
       <PuButton
         shape="rect"
-        tone="neutral" variant="outline"
+        tone="neutral"
+        variant="outline"
         size="md"
         block
         @click="showOfficialAccountQrModal = true"
@@ -13,7 +14,8 @@
 
       <PuButton
         shape="rect"
-        tone="neutral" variant="outline"
+        tone="neutral"
+        variant="outline"
         size="md"
         block
         @click="showWebPageQrModal = true"
@@ -27,10 +29,7 @@
     </p>
   </section>
 
-  <LandingWebPageQrModal
-    :open="showWebPageQrModal"
-    @close="showWebPageQrModal = false"
-  />
+  <LandingWebPageQrModal :open="showWebPageQrModal" @close="showWebPageQrModal = false" />
   <OfficialAccountQrModal
     :open="showOfficialAccountQrModal"
     @close="showOfficialAccountQrModal = false"

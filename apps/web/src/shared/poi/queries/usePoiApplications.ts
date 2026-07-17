@@ -4,10 +4,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { client } from "@/lib/rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
-const readErrorMessage = async (
-  response: Response,
-  fallback: string,
-): Promise<string> => {
+const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string };
   return payload.error || fallback;
 };
@@ -36,11 +33,7 @@ export const useMyPoiApplications = (enabled: MaybeRef<boolean> = true) =>
 export const useSubmitPoiApplication = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    SubmitPoiApplicationResponse,
-    Error,
-    { title: string; imageUrl: string }
-  >({
+  return useMutation<SubmitPoiApplicationResponse, Error, { title: string; imageUrl: string }>({
     mutationFn: async ({ title, imageUrl }) => {
       const response = await client.api.pois.applications.$post({
         json: {

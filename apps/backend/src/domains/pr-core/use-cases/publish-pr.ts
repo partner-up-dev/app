@@ -61,7 +61,10 @@ export async function publishPR(
   }
 
   if (request.status !== "DRAFT") {
-    return throwHttpProblem({ status: 400, detail: "Only DRAFT partner requests can be published" });
+    return throwHttpProblem({
+      status: 400,
+      detail: "Only DRAFT partner requests can be published",
+    });
   }
 
   let creatorUserId: UserId;
@@ -69,7 +72,10 @@ export async function publishPR(
   if (request.createdBy) {
     if (creatorIdentity.authenticatedUserId) {
       if (creatorIdentity.authenticatedUserId !== request.createdBy) {
-        return throwHttpProblem({ status: 403, detail: "Only the draft creator can publish this partner request" });
+        return throwHttpProblem({
+          status: 403,
+          detail: "Only the draft creator can publish this partner request",
+        });
       }
       const user = await userRepo.findById(request.createdBy);
       if (!user) {
@@ -79,7 +85,10 @@ export async function publishPR(
     } else if (creatorIdentity.oauthOpenId) {
       const oauthUser = await resolveUserByOpenId(creatorIdentity.oauthOpenId);
       if (oauthUser.id !== request.createdBy) {
-        return throwHttpProblem({ status: 403, detail: "Only the draft creator can publish this partner request" });
+        return throwHttpProblem({
+          status: 403,
+          detail: "Only the draft creator can publish this partner request",
+        });
       }
       creatorUserId = oauthUser.id;
     } else {

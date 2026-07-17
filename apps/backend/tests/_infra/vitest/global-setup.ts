@@ -9,10 +9,7 @@ import {
 } from "../db/test-database";
 import { loadWorkspaceEnvFiles } from "../../../../../tests/scenario/_infra/environment/env-files";
 
-const repoRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../../..",
-);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../..");
 
 let database: ScenarioDatabaseHandle | null = null;
 

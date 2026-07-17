@@ -50,9 +50,7 @@ const normalizeCsvNumericIds = (csv: string): number[] =>
     .map((id) => Number(id))
     .filter((id) => Number.isInteger(id) && id > 0);
 
-const toPublicPoiResponse = (
-  poi: Awaited<ReturnType<typeof findPoisByNames>>[number],
-) => ({
+const toPublicPoiResponse = (poi: Awaited<ReturnType<typeof findPoisByNames>>[number]) => ({
   id: poi.id,
   name: poi.name,
   fullAddress: poi.fullAddress,

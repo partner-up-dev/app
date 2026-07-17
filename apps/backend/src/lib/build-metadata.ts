@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 export interface BuildMetadata {
   backendCommitHash: string;
@@ -11,9 +11,9 @@ const normalizeValue = (value: string | undefined): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const readGitValue = (command: string): string | null => {
+const readGitValue = (): string | null => {
   try {
-    const output = execSync(command, {
+    const output = execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: process.cwd(),
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8",
@@ -27,9 +27,7 @@ const readGitValue = (command: string): string | null => {
 const REPOSITORY_URL = "https://github.com/partner-up-dev/app";
 
 const backendCommitHash =
-  normalizeValue(process.env.BACKEND_COMMIT_HASH) ??
-  readGitValue("git rev-parse HEAD") ??
-  "unknown";
+  normalizeValue(process.env.BACKEND_COMMIT_HASH) ?? readGitValue() ?? "unknown";
 
 export const buildMetadata: BuildMetadata = {
   backendCommitHash,

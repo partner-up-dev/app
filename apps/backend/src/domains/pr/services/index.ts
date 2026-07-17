@@ -87,10 +87,7 @@ export {
   initializeSlotsForPR,
   recalculatePRStatus,
 } from "../../pr-core/services/slot-management.service";
-export {
-  isPRExitAllowedStatus,
-  isPRJoinableStatus,
-} from "../../pr-core/services/status-rules";
+export { isPRExitAllowedStatus, isPRJoinableStatus } from "../../pr-core/services/status-rules";
 export {
   getConfirmDeadline,
   getJoinLockTime,

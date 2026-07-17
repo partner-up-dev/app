@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="join-community-followup"
-    data-testid="pr-detail.join-success.community-followup"
-  >
+  <section class="join-community-followup" data-testid="pr-detail.join-success.community-followup">
     <PRTypeCommunityQrPanel
       v-if="showTypeCommunity"
       :type-title="typeTitle"
@@ -43,5 +40,4 @@ defineProps<{
   height: 1px;
   background: var(--sys-color-outline-variant);
 }
-
 </style>

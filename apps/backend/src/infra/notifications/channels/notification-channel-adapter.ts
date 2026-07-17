@@ -89,14 +89,10 @@ export const toFailedDispatchResult = (
   errorMessage: error.message,
 });
 
-const resolveFailureReason = (
-  errorCode: string | null,
-): NotificationDispatchFailureReason =>
+const resolveFailureReason = (errorCode: string | null): NotificationDispatchFailureReason =>
   errorCode === "43101" ? "RECIPIENT_PERMISSION_REVOKED" : "TRANSPORT_ERROR";
 
-export const toChannelErrorLike = (
-  error: unknown,
-): NotificationChannelErrorLike => {
+export const toChannelErrorLike = (error: unknown): NotificationChannelErrorLike => {
   if (error instanceof Error) {
     return {
       code: null,

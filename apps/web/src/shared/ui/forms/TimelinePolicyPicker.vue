@@ -51,9 +51,7 @@
         class="timeline-policy-picker__control"
       >
         <div class="timeline-policy-picker__control-header">
-          <span class="timeline-policy-picker__control-label">{{
-            control.label
-          }}</span>
+          <span class="timeline-policy-picker__control-label">{{ control.label }}</span>
           <span class="timeline-policy-picker__control-value">
             {{ control.summary }}
           </span>
@@ -297,8 +295,7 @@ function handleConfirmationEnabledChange(event: Event): void {
   box-shadow: 0 0 0 1px var(--sys-color-outline-variant);
 }
 
-.timeline-policy-picker__marker[data-kind="reference"]
-  .timeline-policy-picker__marker-dot {
+.timeline-policy-picker__marker[data-kind="reference"] .timeline-policy-picker__marker-dot {
   background: var(--sys-color-tertiary);
 }
 

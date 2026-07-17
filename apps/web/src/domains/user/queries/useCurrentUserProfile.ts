@@ -5,9 +5,7 @@ import { queryKeys } from "@/shared/api/query-keys";
 import { i18n } from "@/locales/i18n";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 
-export type CurrentUserProfileResponse = InferResponseType<
-  (typeof client.api.users.me)["$get"]
->;
+export type CurrentUserProfileResponse = InferResponseType<(typeof client.api.users.me)["$get"]>;
 
 export const useCurrentUserProfile = () => {
   const userSessionStore = useUserSessionStore();
@@ -18,9 +16,7 @@ export const useCurrentUserProfile = () => {
       const res = await client.api.users.me.$get();
       if (!res.ok) {
         const error = (await res.json()) as { error?: string };
-        throw new Error(
-          error.error || i18n.global.t("errors.fetchCurrentUserProfileFailed"),
-        );
+        throw new Error(error.error || i18n.global.t("errors.fetchCurrentUserProfileFailed"));
       }
 
       return await res.json();

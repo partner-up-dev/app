@@ -76,9 +76,7 @@ export const createPlacementMatchingRuleDraft = (): JsonLogicRuleDraft =>
     allowCustomFields: true,
   });
 
-export const toPlacementMatchingRuleDraft = (
-  rule: unknown,
-): JsonLogicRuleDraft =>
+export const toPlacementMatchingRuleDraft = (rule: unknown): JsonLogicRuleDraft =>
   toJsonLogicRuleDraft(rule, placementMatchingRuleFields, {
     allowCustomFields: true,
   });

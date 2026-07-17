@@ -1,7 +1,4 @@
-import {
-  createDraftId,
-  isRecord,
-} from "@/domains/admin-commerce/model/product-management/shared";
+import { createDraftId, isRecord } from "@/domains/admin-commerce/model/product-management/shared";
 import { parseJsonText, prettyJson } from "@/domains/admin-commerce/editor-json";
 
 export type JsonLogicRuleMode = "ALWAYS" | "ALL" | "ANY" | "PRESERVE_CUSTOM";
@@ -60,10 +57,7 @@ const defaultLabels: JsonLogicRuleBuildLabels = {
   customRuleLabel: "自定义规则",
 };
 
-const defaultOperatorByValueKind: Record<
-  JsonLogicValueKind,
-  readonly JsonLogicOperator[]
-> = {
+const defaultOperatorByValueKind: Record<JsonLogicValueKind, readonly JsonLogicOperator[]> = {
   string: ["EQUALS", "NOT_EQUALS"],
   number: [
     "EQUALS",
@@ -81,18 +75,14 @@ const valueLessOperators = new Set<JsonLogicOperator>(["IS_TRUE", "IS_FALSE"]);
 
 export const getJsonLogicOperatorsForField = (
   field: JsonLogicFieldOption,
-): readonly JsonLogicOperator[] =>
-  field.operators ?? defaultOperatorByValueKind[field.valueKind];
+): readonly JsonLogicOperator[] => field.operators ?? defaultOperatorByValueKind[field.valueKind];
 
 export const findJsonLogicField = (
   fields: readonly JsonLogicFieldOption[],
   path: string,
-): JsonLogicFieldOption | null =>
-  fields.find((field) => field.path === path) ?? null;
+): JsonLogicFieldOption | null => fields.find((field) => field.path === path) ?? null;
 
-export const createCustomJsonLogicField = (
-  path: string,
-): JsonLogicFieldOption => ({
+export const createCustomJsonLogicField = (path: string): JsonLogicFieldOption => ({
   path,
   label: path,
   valueKind: "string",
@@ -114,9 +104,8 @@ const resolveJsonLogicField = (
   return null;
 };
 
-export const operatorNeedsJsonLogicValue = (
-  operator: JsonLogicOperator,
-): boolean => !valueLessOperators.has(operator);
+export const operatorNeedsJsonLogicValue = (operator: JsonLogicOperator): boolean =>
+  !valueLessOperators.has(operator);
 
 const defaultValueForField = (field: JsonLogicFieldOption): string => {
   const firstOption = field.valueOptions?.[0];
@@ -161,14 +150,13 @@ export const normalizeJsonLogicConditionDraft = (
   fields: readonly JsonLogicFieldOption[],
   options?: JsonLogicRuleParseOptions,
 ): JsonLogicConditionDraft => {
-  const field =
-    resolveJsonLogicField(fields, condition.fieldPath, options) ?? fields[0];
+  const field = resolveJsonLogicField(fields, condition.fieldPath, options) ?? fields[0];
   if (!field) return condition;
 
   const operators = getJsonLogicOperatorsForField(field);
   const operator = operators.includes(condition.operator)
     ? condition.operator
-    : operators[0] ?? "EQUALS";
+    : (operators[0] ?? "EQUALS");
 
   return {
     ...condition,
@@ -195,17 +183,10 @@ const readVarPath = (value: unknown): string | null => {
   return typeof value.var === "string" ? value.var : null;
 };
 
-const isPrimitiveConditionValue = (
-  value: unknown,
-): value is string | number | boolean =>
-  typeof value === "string" ||
-  typeof value === "number" ||
-  typeof value === "boolean";
+const isPrimitiveConditionValue = (value: unknown): value is string | number | boolean =>
+  typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 
-const parseConditionValueText = (
-  value: unknown,
-  field: JsonLogicFieldOption,
-): string | null => {
+const parseConditionValueText = (value: unknown, field: JsonLogicFieldOption): string | null => {
   if (!isPrimitiveConditionValue(value)) return null;
   if (field.valueKind === "number" && typeof value === "number") {
     return String(value);
@@ -361,9 +342,7 @@ const parseCompoundRule = (
     return null;
   }
 
-  const conditions = expression.map((item) =>
-    parseJsonLogicCondition(item, fields, options),
-  );
+  const conditions = expression.map((item) => parseJsonLogicCondition(item, fields, options));
   if (conditions.some((condition) => condition === null)) return null;
 
   return {
