@@ -1,8 +1,9 @@
 # Conflicts And Open Questions
 
-> **Reconciliation note.** CF-01/CF-02 仍是当前未决合同；OQ-07 已由
-> `../05-toolchain-recovery/` 解决。Anchor Event、旧 `/e/:eventId` 与已删除源码有关的条目只作
-> 历史证据。当前风险与 owner 路由由 `../06-phase3/decision-risk-register.md` 接管。
+> **Reconciliation note.** 下表保留 CF-01/CF-02 的历史冲突快照；Sir 已决定 CF-01 采用
+> authenticated-only PR persistence、CF-02 修正为 header-only auth contract，分别由 `3-7`/`3-8`
+> 执行。OQ-07 已由 `../05-toolchain-recovery/` 解决。Anchor Event、旧 `/e/:eventId` 与已删除源码有关的
+> 条目只作历史证据。当前风险与 owner 路由由 `../06-phase3/decision-risk-register.md` 接管。
 
 ## Conflict Register
 

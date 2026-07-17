@@ -1,4 +1,4 @@
-# Slice 06 Execution Plan
+# Slice 3-6 Execution Plan
 
 ## Required Information Before Editing
 

@@ -1,4 +1,4 @@
-# Slice 01 — Current Baseline And Architecture Fitness
+# Slice 3-1 — Current Baseline And Architecture Fitness
 
 ## Objective & Hypothesis
 

@@ -37,3 +37,13 @@
 - Report-first dead-code/security findings do not become blockers without an owner-approved baseline.
 - Startup, collection, network test-double and product assertion failures are classified separately before fixing.
 - Generated or ignored artifacts are recorded, not confused with source scope.
+
+## Conflict And Phase Exit Gates
+
+- `3-7`/CF-01 requires a product decision, PRD then Product TDD alignment, focused create/auth proof and an
+  anonymous `/pr/new` System journey before it can exit.
+- `3-8`/CF-02 requires durable wording/runtime agreement, typed response proof, Backend waitlist scenario and a
+  focused System journey before it can exit.
+- Phase 3 exits with `3-8` only when all eight packets/evidence logs are current, CF-01/CF-02 are resolved,
+  fitness reports 0 new findings and relevant focused/full System gates are green. Report-first security/dead-code
+  or format NO-SIGNAL states must remain explicitly classified rather than presented as green.

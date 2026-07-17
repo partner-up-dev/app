@@ -1,14 +1,20 @@
-# Phase 3 Slice Map
+# Phase 3 Execution Map
 
 ## Ordered Dependency Graph
 
 ```text
-01 baseline-and-fitness
-  -> 02 /prd read owner
-  -> 03 feedback submission vertical
-  -> 04 PR Type Config boundary
-  -> 05 pr-core retirement
-  -> 06 contract surface narrowing
+Phase 3A foundation/calibration
+  3-1 baseline-and-fitness
+    -> 3-2 /prd read owner
+Phase 3B mutation calibration and PR convergence
+    -> 3-3 feedback submission vertical
+  -> 3-4 PR Type Config boundary
+  -> 3-5 pr-core retirement
+  -> 3-6 contract surface narrowing
+Phase 3C conflict closure
+  -> 3-7 CF-01 anonymous PR creation
+  -> 3-8 CF-02 waitlist auth contract
+  -> Phase 3 exit
 ```
 
 The order optimizes learning and rollback cost. A later slice may be split further but may not bypass its
@@ -16,17 +22,19 @@ predecessor's exit conditions without a new task decision.
 
 | Slice | Primary learning | Behavior risk | Entry dependency | Status |
 | --- | --- | --- | --- | --- |
-| 01 | Can boundary rules be measured with low noise? | None/task tooling only | Current baseline | Complete |
-| 02 | Can Web reach one route/read owner without touching commands? | Low–medium | 01 report stable | Planned |
-| 03 | Can one mutation cross Browser→DB through the target seams? | Medium | 01 + System green | Planned |
-| 04 | Can PR Type Config become a real deep owner? | Medium–high | 02/03 prove protocol | Planned |
-| 05 | Can compatibility aliases be retired incrementally? | High compile-time | 04 owner stable | Planned |
-| 06 | Can Web type coupling narrow without duplicate DTOs? | Broad compile-time | 04/05 public surface stable | Planned |
+| 3-1 | Can boundary rules be measured with low noise? | None/task tooling only | Current baseline | Complete |
+| 3-2 | Can Web reach one route/read owner without touching commands? | Low–medium | `3-1` report stable | Verified Complete; exit commit pending |
+| 3-3 | Can one mutation cross Browser→DB through the target seams? | Medium | `3-1`/`3-2` exited + System green | Verified Complete; exit commit pending |
+| 3-4 | Can PR Type Config become a real deep owner? | Medium–high | `3-3` proves mutation protocol | Planned; next in 3B |
+| 3-5 | Can compatibility aliases be retired incrementally? | High compile-time | `3-4` owner stable | Planned |
+| 3-6 | Can Web type coupling narrow without duplicate DTOs? | Broad compile-time | `3-4`/`3-5` public surface stable | Planned |
+| 3-7 | Can authenticated-only create/publish intent and runtime become one proven contract? | High product/auth | 3B stable + Sir decision | Decided; execution pending |
+| 3-8 | Can waitlist auth wording, transport and journey agree? | Medium cross-unit | `3-7` + stable auth seam | Decided; execution pending |
 
 ## Cross-cutting Decision Lanes
 
-- CF-01 create/publish product semantics: blocked on product-owner decision; excluded from slices 01–03.
-- CF-02 waitlist auth payload wording: durable correction required before waitlist mutation; excluded here.
+- CF-01 create/publish product semantics remains excluded from `3-1`–`3-6` and is resolved explicitly in `3-7`.
+- CF-02 waitlist auth payload wording remains excluded from `3-1`–`3-7` and is resolved explicitly in `3-8`.
 - Security baseline and all-repo format baseline are separate governance tasks, not hidden acceptance criteria.
 - Commerce/provider, OAuth/global RPC and Job/Notification bootstrap remain deferred until the migration protocol
   survives the pilots.
@@ -37,5 +45,6 @@ Each slice must update its packet before execution with current HEAD, focused di
 characterization plan, branch/stop decisions, rollback/forward-fix and verification matrix. A plan is stale as
 soon as its entry paths or governing docs change.
 
-Slice 01 completed without application mutation. Slice 02 remains Planned and must re-baseline because its owned
-Web paths are currently part of a large concurrent dirty worktree.
+`3-1` is committed Complete. `3-2` and `3-3` are verified Complete in the working tree with their exit commit
+pending. Phase 3B has started but still owns `3-4`–`3-6`; Phase 3C begins only at `3-7`. The unrelated root package/workspace
+and task-directory dirty state remains outside Phase 3 ownership.

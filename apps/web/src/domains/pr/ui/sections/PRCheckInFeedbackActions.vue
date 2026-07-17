@@ -40,6 +40,13 @@
       </PuButton>
     </div>
 
+    <PuInlineNotice
+      v-if="showFeedbackSubmitted"
+      tone="success"
+      message="反馈已提交"
+      data-testid="pr-detail.feedback.submitted"
+    />
+
     <p v-if="primaryActionError" class="action-error">
       {{ primaryActionError }}
     </p>
@@ -47,7 +54,8 @@
     <PRFeedbackQuestionnaireModal
       :open="feedbackModalOpen"
       :questionnaire="feedbackQuestionnaire"
-      :pending="submitFeedbackMutation.isPending.value"
+      :pending="feedbackSubmission.isPending.value"
+      :error-message="feedbackSubmission.errorMessage.value"
       @close="feedbackModalOpen = false"
       @submit="submitFeedbackQuestionnaire"
     />
@@ -60,14 +68,14 @@ import { useI18n } from "vue-i18n";
 import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { usePRAttendanceActions } from "@/domains/pr/use-cases/usePRAttendanceActions";
-import { useSubmitFeedbackQuestionnaire } from "@/domains/feedback/queries/useSubmitFeedbackQuestionnaire";
+import { usePRFeedbackQuestionnaireSubmission } from "@/domains/pr/use-cases/usePRFeedbackQuestionnaireSubmission";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
 } from "@/domains/pr/use-cases/usePRPrimaryActionTelemetry";
 import PRFeedbackQuestionnaireModal from "./PRFeedbackQuestionnaireModal.vue";
-import { PuButton } from "@partner-up-dev/design-web";
+import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 
 const props = defineProps<{
   pr: PRDetailView;
@@ -80,7 +88,7 @@ const viewer = computed(() => props.pr.partnerSection.viewer);
 const primaryActionError = ref<string | null>(null);
 const feedbackModalOpen = ref(false);
 const { resolveCheckInTip } = usePRActionCopy(prDetail);
-const submitFeedbackMutation = useSubmitFeedbackQuestionnaire();
+const feedbackSubmission = usePRFeedbackQuestionnaireSubmission(prId);
 
 const attendanceActions = usePRAttendanceActions({
   id: prId,
@@ -109,9 +117,19 @@ const checkInTip = computed(() => {
 const showFeedbackRetryAction = computed(
   () => viewer.value.slotState === "ATTENDED" && hasPendingFeedbackQuestionnaire.value,
 );
+const showFeedbackSubmitted = computed(
+  () =>
+    viewer.value.slotState === "ATTENDED" &&
+    feedbackQuestionnaire.value?.responseState.status === "SUBMITTED",
+);
 
 const showActionArea = computed(() =>
-  Boolean(showCheckInAction.value || showFeedbackRetryAction.value || primaryActionError.value),
+  Boolean(
+    showCheckInAction.value ||
+    showFeedbackRetryAction.value ||
+    showFeedbackSubmitted.value ||
+    primaryActionError.value,
+  ),
 );
 
 usePRPrimaryActionImpression({
@@ -122,6 +140,7 @@ usePRPrimaryActionImpression({
 
 const openFeedbackQuestionnaire = (): void => {
   if (!hasPendingFeedbackQuestionnaire.value) return;
+  feedbackSubmission.resetError();
   feedbackModalOpen.value = true;
 };
 
@@ -146,12 +165,15 @@ const submitFeedbackQuestionnaire = async (
 ): Promise<void> => {
   const questionnaire = feedbackQuestionnaire.value;
   if (!questionnaire) return;
-  await submitFeedbackMutation.mutateAsync({
-    instanceId: questionnaire.instanceId,
-    prId: props.pr.id,
-    answers,
-  });
-  feedbackModalOpen.value = false;
+  try {
+    await feedbackSubmission.submit({
+      instanceId: questionnaire.instanceId,
+      answers,
+    });
+    feedbackModalOpen.value = false;
+  } catch {
+    // The workflow exposes the command error while the mounted form retains its local draft for retry.
+  }
 };
 </script>
 

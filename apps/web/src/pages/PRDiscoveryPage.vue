@@ -3,11 +3,11 @@
     :class="['pr-discovery-page', { 'pr-discovery-page--card': activeViewMode === 'CARD' }]"
     data-page="pr-discovery"
     footer-placement="reveal"
-    :content-placement="panelRef?.pageStatePlacement ?? 'center'"
+    :content-placement="pageStatePlacement"
   >
     <template #pageHeader>
       <PuHeader
-        v-if="!selectedType || selectedTypeDetail || (selectedType && panelRef?.hasLoadFailed)"
+        v-if="!selectedType || selectedTypeDetail || (selectedType && hasLoadFailed)"
         class="pr-discovery-page__header"
         :title="
           selectedType
@@ -61,12 +61,12 @@
       </PuHeader>
     </template>
 
-    <PRDiscoveryPanel ref="panelRef" />
+    <PRDiscoveryPanel ref="panelRef" :read-workflow="readWorkflow" />
 
     <template #footer>
       <div class="pr-discovery-page__footer">
         <div
-          v-if="selectedTypeDetail && panelRef?.isViewResolved"
+          v-if="selectedTypeDetail && isViewResolved"
           class="pr-discovery-page__mode-switch-shell"
           data-testid="prd.mode-switch"
         >
@@ -96,9 +96,9 @@
 
   <PuDrawer v-model:visible="showOtherTypes" :title="t('prDiscovery.otherTypesTitle')">
     <div data-testid="prd.other-types.drawer">
-      <PuLoadingState v-if="catalogQuery.isLoading.value" :message="t('common.loading')" />
+      <PuLoadingState v-if="isCatalogLoading" :message="t('common.loading')" />
       <PuInlineNotice
-        v-else-if="catalogQuery.error.value"
+        v-else-if="catalogError"
         tone="error"
         :message="t('prDiscovery.otherTypesLoadFailed')"
       />
@@ -137,23 +137,20 @@ import { useRoute, useRouter } from "vue-router";
 import OfficialAccountFollowNudge from "@/domains/marketing/ui/OfficialAccountFollowNudge.vue";
 import { useOfficialAccountFollowPrompt } from "@/domains/marketing/use-cases/useOfficialAccountFollowPrompt";
 import type { PRDiscoveryViewMode } from "@/domains/pr/model/discovery";
-import {
-  usePRDiscoveryCatalog,
-  usePRDiscoveryTypeDetail,
-} from "@/domains/pr/queries/usePRDiscovery";
 import PRDiscoveryTypeRadioCardCarousel from "@/domains/pr/ui/discovery/list/PRDiscoveryTypeRadioCardCarousel.vue";
 import PRDiscoveryPanel from "@/domains/pr/ui/PRDiscoveryPanel.vue";
+import {
+  parsePRDiscoveryDateQuery,
+  parsePRDiscoveryTypeQuery,
+  parsePRDiscoveryViewQuery,
+  usePRDiscoveryReadWorkflow,
+} from "@/domains/pr/use-cases/usePRDiscoveryReadWorkflow";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
 
 type PanelExposed = {
-  activeViewMode: PRDiscoveryViewMode;
-  setViewMode: (mode: PRDiscoveryViewMode) => void;
   returnToSelection?: () => void;
   formModeResultState?: "selection" | "no-match";
-  pageStatePlacement?: "center" | "start";
-  isViewResolved: boolean;
-  hasLoadFailed: boolean;
 };
 const { t } = useI18n();
 const route = useRoute();
@@ -162,12 +159,33 @@ const { handleBack: handleCatalogBack } = useFallbackBack();
 const panelRef = ref<PanelExposed | null>(null);
 const showOtherTypes = ref(false);
 const selectedOtherType = ref<string | null>(null);
-const selectedType = computed(() =>
-  typeof route.query.type === "string" && route.query.type.trim() ? route.query.type.trim() : null,
-);
-const catalogQuery = usePRDiscoveryCatalog();
+const selectedType = computed(() => parsePRDiscoveryTypeQuery(route.query.type));
+const selectedDates = computed(() => parsePRDiscoveryDateQuery(route.query.date));
+const explicitViewMode = computed(() => parsePRDiscoveryViewQuery(route.query.view));
+const readWorkflow = usePRDiscoveryReadWorkflow({
+  selectedType,
+  selectedDates,
+  explicitViewMode,
+  replaceViewMode: (viewMode) => {
+    void router.replace({ query: { ...route.query, view: viewMode.toLowerCase() } });
+  },
+  navigateToCatalog: () => {
+    void router.push({ name: "pr-discovery" });
+  },
+});
+const {
+  activeViewMode,
+  catalogItems,
+  catalogError,
+  hasLoadFailed,
+  isCatalogLoading,
+  isViewResolved,
+  pageStatePlacement,
+  selectedTypeDetail,
+  setViewMode,
+} = readWorkflow;
 const otherTypeItems = computed(() =>
-  (catalogQuery.data.value ?? []).filter((item) => item.type !== selectedType.value),
+  catalogItems.value.filter((item) => item.type !== selectedType.value),
 );
 watch(
   otherTypeItems,
@@ -181,11 +199,6 @@ watch(
 watch(selectedType, () => {
   selectedOtherType.value = null;
 });
-const typeDetailQuery = usePRDiscoveryTypeDetail(selectedType);
-const selectedTypeDetail = computed(() =>
-  typeDetailQuery.data.value?.type === selectedType.value ? typeDetailQuery.data.value : null,
-);
-const activeViewMode = computed(() => panelRef.value?.activeViewMode ?? "LIST");
 const followPrompt = useOfficialAccountFollowPrompt("pr_discovery");
 const modeOptions = computed(() => [
   {
@@ -209,11 +222,11 @@ const modeOptions = computed(() => [
 ]);
 const handleModeChange = (value: string | number) => {
   if (value === "LIST" || value === "CARD" || value === "FORM") {
-    panelRef.value?.setViewMode(value);
+    setViewMode(value);
   }
 };
 const handleBack = () => {
-  if (panelRef.value?.hasLoadFailed) {
+  if (hasLoadFailed.value) {
     void router.push({ name: "pr-discovery" });
     return;
   }

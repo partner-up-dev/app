@@ -1,4 +1,4 @@
-# Slice 01 Scope Audit
+# Slice 3-1 Scope Audit
 
 ## Owned Result
 
@@ -25,5 +25,5 @@ MJS implementation/test files.
 
 ## Exit Diff
 
-Runtime/application diff owned by Slice 01: none. Package/config/schema/API/product behavior diff: none. The next
+Runtime/application diff owned by `3-1`: none. Package/config/schema/API/product behavior diff: none. The next
 application slice must refresh its own HEAD, focused dirty paths and architecture-fitness digest before editing.

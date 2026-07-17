@@ -51,3 +51,12 @@ export async function probeFeedbackResponsesByInstanceAndUser(input: {
       ),
     );
 }
+
+export async function probeFeedbackResponsesByInstance(
+  instanceId: FeedbackQuestionnaireInstanceId,
+): Promise<FeedbackQuestionnaireResponse[]> {
+  return await getTestDb()
+    .select()
+    .from(feedbackQuestionnaireResponses)
+    .where(eq(feedbackQuestionnaireResponses.instanceId, instanceId));
+}

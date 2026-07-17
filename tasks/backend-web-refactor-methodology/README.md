@@ -6,7 +6,11 @@
 产品和技术真相仍由 `docs/10-prd`、`docs/20-product-tdd`、`docs/30-unit-tdd` 及最近的
 `AGENTS.md` 拥有。
 
-## Workstreams
+## Historical Workspaces
+
+The numeric directory prefixes below are creation/workstream ordinals, not Program Phase numbers. Program Phases
+are defined only by [`program-roadmap.md`](./program-roadmap.md); `06-phase3/` is the sixth workspace and owns
+Program Phase 3.
 
 | Directory | Owner | Scope |
 | --- | --- | --- |
@@ -15,7 +19,7 @@
 | `03-cross-unit/` | Cross-unit 子任务 | 跨单元契约、产品不变量、测试与运行边界基线 |
 | `04-integration/` | 根代理 | 冲突消解、冻结总表、评分卡与下一阶段入口条件 |
 | `05-toolchain-recovery/` | Toolchain recovery 子任务 | 两套 oxc binding、Web build 与 System scenario 恢复证据 |
-| `06-phase3/` | 根代理 + slice owners | 当前 HEAD 校准、目标状态、durable promotion 与 Phase 3 slice packets |
+| `06-phase3/` | 根代理 + slice owners | Program Phase 3 的当前 HEAD 校准、目标状态、durable promotion 与 executable packets |
 
 ## Evidence Protocol
 
@@ -30,10 +34,14 @@
 
 1. Phase 1 — behavior and authority freeze: historical snapshot complete at `a8cf2d7`.
 2. Phase 2 — read-only baseline: historical snapshot complete; toolchain recovery separately complete.
-3. Phase 3 — target execution: Slice 01 architecture foundation complete; application mutation not started.
+3. Phase 3 — target execution: stage 3A/3B/3C；`3-1` committed Complete，`3-2`/`3-3` verified Complete with
+   exit commit pending，`3-4` is next；`3-7`/`3-8`
+   close CF-01/CF-02 and Phase 3.
+4. Later phases — User/Auth, Commerce, Job/Notification, Observability, then global review/cleanup; see
+   `program-roadmap.md`. These phases are sequenced but not yet authorized for mutation.
 
 Phase 2 后续恢复工作已在 `05-toolchain-recovery/` 完成：两套 oxc binding、Web build 与
-System scenario 均恢复。当前 HEAD `bda22b60` 已迁移 Anchor Event 能力，因此 `01`–`04`
+System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能力，因此 `01`–`04`
 中的旧 Event 与规模证据只作历史快照；当前事实和替代 owner 见 `06-phase3/entry-baseline.md`。
 
 ## Integrated Entry Points
@@ -49,5 +57,6 @@ System scenario 均恢复。当前 HEAD `bda22b60` 已迁移 Anchor Event 能力
 - [`06-phase3/durable-docs-plan.md`](./06-phase3/durable-docs-plan.md)
 - [`06-phase3/verification-log.md`](./06-phase3/verification-log.md)
 - [`06-phase3/scope-audit.md`](./06-phase3/scope-audit.md)
+- [`program-roadmap.md`](./program-roadmap.md)
 - [`06-phase3/01-baseline-and-fitness/00-task-packet.md`](./06-phase3/01-baseline-and-fitness/00-task-packet.md)
 - [`06-phase3/01-baseline-and-fitness/verification-log.md`](./06-phase3/01-baseline-and-fitness/verification-log.md)

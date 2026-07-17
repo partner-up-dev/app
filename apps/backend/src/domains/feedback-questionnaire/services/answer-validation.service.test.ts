@@ -91,4 +91,32 @@ describe("assertFeedbackAnswersMatchDefinition", () => {
       },
     });
   });
+
+  it("rejects unknown questions and invalid options", () => {
+    assertValidationFails({
+      unknown: {
+        type: "textarea",
+        value: "unexpected",
+      },
+    });
+    assertValidationFails({
+      overall_experience: {
+        type: "single_choice",
+        value: "unknown",
+      },
+    });
+  });
+
+  it("rejects textarea answers over the configured maximum", () => {
+    assertValidationFails({
+      overall_experience: {
+        type: "single_choice",
+        value: "good",
+      },
+      comment: {
+        type: "textarea",
+        value: "x".repeat(101),
+      },
+    });
+  });
 });

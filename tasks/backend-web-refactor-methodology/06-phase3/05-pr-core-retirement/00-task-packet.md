@@ -1,4 +1,4 @@
-# Slice 05 — `pr-core` Compatibility Retirement
+# Slice 3-5 — `pr-core` Compatibility Retirement
 
 ## Objective & Hypothesis
 
@@ -14,4 +14,4 @@ not a product/API/schema rewrite.
 
 ## Status
 
-Planned after Slice 04. No mutation started.
+Planned after `3-4`. No mutation started.

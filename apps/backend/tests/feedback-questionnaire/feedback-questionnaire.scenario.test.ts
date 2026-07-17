@@ -22,6 +22,7 @@ import {
 } from "./_kit/builders/questionnaires";
 import {
   probeFeedbackQuestionnaireInstance,
+  probeFeedbackResponsesByInstance,
   probeFeedbackResponsesByInstanceAndUser,
   probePartnerRequest,
 } from "./_kit/probes/questionnaires";
@@ -41,6 +42,7 @@ type AdminFeedbackQuestionnaireTemplateResponse = {
 
 type ProblemDetailsResponse = {
   detail: string;
+  code?: string;
 };
 
 const findTemplateInList = (
@@ -442,6 +444,56 @@ scenario("feedback_post_persists_response_and_upserts_same_user", async (ctx) =>
   assert.equal(secondRows.length, 1);
   assert.equal(secondRows[0]?.id, firstSubmit.responseId);
   assert.deepEqual(secondRows[0]?.answers, secondAnswers);
+});
+
+scenario("feedback_post_rejects_missing_instance_and_invalid_answers", async (ctx) => {
+  const respondent = await givenUser("feedback-invalid-respondent");
+  const template = await givenFeedbackQuestionnaireTemplate({ label: "invalid-response" });
+  const instance = await givenFeedbackQuestionnaireInstance({ template });
+  const missingInstanceId = 2147483647;
+
+  ctx.record("respondentUserId", respondent.user.id);
+  ctx.record("instanceId", instance.id);
+  ctx.record("missingInstanceId", missingInstanceId);
+
+  const missingResponse = await requestJson(`/api/feedback/${missingInstanceId}`, {
+    method: "POST",
+    token: respondent.token,
+    body: { answers: buildNeedsImprovementFeedbackAnswers() },
+  });
+  const missingBody = await expectJsonResponse<ProblemDetailsResponse>(missingResponse, 404);
+  assert.match(missingBody.detail, /instance not found/i);
+
+  const invalidResponse = await requestJson(`/api/feedback/${instance.id}`, {
+    method: "POST",
+    token: respondent.token,
+    body: { answers: {} },
+  });
+  const invalidBody = await expectJsonResponse<ProblemDetailsResponse>(invalidResponse, 400);
+  assert.match(invalidBody.detail, /required/i);
+
+  const rows = await probeFeedbackResponsesByInstanceAndUser({
+    instanceId: instance.id,
+    respondentUserId: respondent.user.id,
+  });
+  assert.equal(rows.length, 0);
+});
+
+scenario("feedback_post_requires_authenticated_user_without_persisting", async (ctx) => {
+  const template = await givenFeedbackQuestionnaireTemplate({ label: "anonymous-response" });
+  const instance = await givenFeedbackQuestionnaireInstance({ template });
+
+  ctx.record("instanceId", instance.id);
+
+  const response = await requestJson(`/api/feedback/${instance.id}`, {
+    method: "POST",
+    body: { answers: buildNeedsImprovementFeedbackAnswers() },
+  });
+  const body = await expectJsonResponse<ProblemDetailsResponse>(response, 401);
+  assert.equal(body.code, "AUTHENTICATED_REQUIRED");
+
+  const rows = await probeFeedbackResponsesByInstance(instance.id);
+  assert.equal(rows.length, 0);
 });
 
 scenario(

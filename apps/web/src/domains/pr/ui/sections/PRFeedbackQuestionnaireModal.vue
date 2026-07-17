@@ -1,5 +1,12 @@
 <template>
   <PuModal :open="open" :title="questionnaire?.title ?? '活动反馈'" @close="$emit('close')">
+    <PuInlineNotice
+      v-if="errorMessage"
+      class="feedback-questionnaire-modal__error"
+      tone="error"
+      :message="errorMessage"
+      data-testid="pr-detail.feedback.error"
+    />
     <FeedbackQuestionnaireForm
       v-if="questionnaire"
       :instance-id="questionnaire.instanceId"
@@ -12,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { PuModal } from "@partner-up-dev/design-web";
+import { PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
 import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import FeedbackQuestionnaireForm from "@/domains/feedback/ui/FeedbackQuestionnaireForm.vue";
@@ -21,6 +28,7 @@ defineProps<{
   open: boolean;
   questionnaire: PRDetailView["feedbackQuestionnaire"];
   pending: boolean;
+  errorMessage: string | null;
 }>();
 
 defineEmits<{
@@ -28,3 +36,9 @@ defineEmits<{
   submit: [answers: FeedbackQuestionnaireAnswers];
 }>();
 </script>
+
+<style lang="scss" scoped>
+.feedback-questionnaire-modal__error {
+  margin-block-end: var(--sys-spacing-medium);
+}
+</style>

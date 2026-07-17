@@ -1,4 +1,4 @@
-# Slice 02 — PR Discovery Read Owner Consolidation
+# Slice 3-2 — PR Discovery Read Owner Consolidation
 
 ## Objective & Hypothesis
 
@@ -24,10 +24,12 @@ action behavior remain untouched.
 
 ## Entry / Exit
 
-- Entry: Slice 01 rules available in report mode; current `/prd` behavior and request pattern characterized.
+- Entry: `3-1` rules available in report mode; current `/prd` behavior and request pattern characterized.
 - Exit: one read workflow owner, no Page+Panel duplicate read hooks, route/testid/timeout/fallback unchanged,
   targeted and full gates green.
 
 ## Status
 
-Planned; first application pilot. No application mutation started.
+Complete from `b674f5ca` on 2026-07-17. One route-scope read workflow now owns all five read hooks; Page/Panel
+consume its plain state/actions, command/auth paths are unchanged, and focused/full gates are green. Unrelated
+root package/workspace and task-directory dirty paths remain excluded.

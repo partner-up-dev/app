@@ -3,6 +3,7 @@ import {
   givenFeedbackQuestionnaireInstance,
   givenFeedbackQuestionnaireTemplate,
 } from "../../../apps/backend/tests/feedback-questionnaire/_kit/builders/questionnaires";
+import { probeFeedbackResponsesByInstanceAndUser } from "../../../apps/backend/tests/feedback-questionnaire/_kit/probes/questionnaires";
 import {
   bindScenarioWeChatOpenId,
   configureJoinGate,
@@ -142,7 +143,7 @@ scenario("pr_detail_participant_confirms_slot", async (ctx) => {
   assert.equal(slot?.status, "CONFIRMED");
 });
 
-scenario("pr_detail_check_in_opens_pending_feedback_questionnaire", async (ctx) => {
+scenario("pr_detail_check_in_submits_feedback_questionnaire_to_postgres", async (ctx) => {
   const creator = await givenUser("system-checkin-feedback-creator");
   const participant = await givenUser("system-checkin-feedback-participant");
   const pr = await givenPublishedPartnerRequest({
@@ -200,11 +201,76 @@ scenario("pr_detail_check_in_opens_pending_feedback_questionnaire", async (ctx) 
       state: "visible",
       timeout: 10_000,
     });
+
+    const feedbackAnswers = {
+      taste_rating: {
+        type: "single_choice",
+        value: "needs_improvement",
+      },
+      improvement_note: {
+        type: "textarea",
+        value: "More seasoning would help.",
+      },
+    };
+    const submitResponsePromise = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === `/api/feedback/${questionnaire.id}` &&
+        response.request().method() === "POST",
+    );
+    const detailResponsePromise = page.waitForResponse(async (response) => {
+      if (
+        new URL(response.url()).pathname !== `/api/pr/${pr.id}` ||
+        response.request().method() !== "GET" ||
+        response.status() !== 200
+      ) {
+        return false;
+      }
+      const body = (await response.json()) as {
+        feedbackQuestionnaire?: { responseState?: { status?: string } } | null;
+      };
+      return body.feedbackQuestionnaire?.responseState?.status === "SUBMITTED";
+    });
+    await page.getByTestId("pr-detail.feedback.choice.taste_rating.needs_improvement").click();
+    await page
+      .locator(`#feedback-${questionnaire.id}-improvement_note`)
+      .fill(feedbackAnswers.improvement_note.value);
+    await page.getByTestId("pr-detail.feedback.submit").click();
+
+    const submitResponse = await submitResponsePromise;
+    assert.equal(submitResponse.status(), 200);
+    assert.deepEqual(submitResponse.request().postDataJSON(), { answers: feedbackAnswers });
+
+    const detailResponse = await detailResponsePromise;
+    assert.equal(detailResponse.status(), 200);
+    const detailBody = (await detailResponse.json()) as {
+      feedbackQuestionnaire?: { responseState?: { status?: string } } | null;
+    };
+    assert.equal(detailBody.feedbackQuestionnaire?.responseState?.status, "SUBMITTED");
+    await page.getByTestId("pr-detail.feedback.submitted").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
   });
 
   const slot = await probeLatestPartnerSlot({ pr, user: participant });
   assert.equal(slot?.status, "ATTENDED");
   assert.equal(slot?.didAttend, true);
+
+  const responses = await probeFeedbackResponsesByInstanceAndUser({
+    instanceId: questionnaire.id,
+    respondentUserId: participant.user.id,
+  });
+  assert.equal(responses.length, 1);
+  assert.deepEqual(responses[0]?.answers, {
+    taste_rating: {
+      type: "single_choice",
+      value: "needs_improvement",
+    },
+    improvement_note: {
+      type: "textarea",
+      value: "More seasoning would help.",
+    },
+  });
 });
 
 scenario("pr_detail_check_in_submits_directly_when_feedback_questionnaire_absent", async (ctx) => {

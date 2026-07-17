@@ -9,17 +9,19 @@
           </legend>
 
           <div class="choice-list">
-            <label v-for="option in question.options" :key="option.value" class="choice-row">
-              <input
-                type="radio"
-                :name="question.id"
-                :value="option.value"
-                :checked="readSingleChoiceValue(question.id) === option.value"
-                :disabled="pending"
-                @change="setSingleChoiceAnswer(question.id, option.value)"
-              />
-              <span>{{ option.label }}</span>
-            </label>
+            <PuRadio
+              v-for="option in question.options"
+              :key="option.value"
+              class="choice-row"
+              :model-value="readSingleChoiceValue(question.id)"
+              :name="question.id"
+              :value="option.value"
+              :disabled="pending"
+              :data-testid="`pr-detail.feedback.choice.${question.id}.${option.value}`"
+              @update:model-value="setSingleChoiceAnswer(question.id, $event)"
+            >
+              {{ option.label }}
+            </PuRadio>
           </div>
         </fieldset>
         <PuFormItem
@@ -82,7 +84,14 @@
       >
         {{ pending ? "提交中..." : "提交反馈" }}
       </PuButton>
-      <PuButton tone="neutral" variant="soft" :disabled="pending" @click="$emit('cancel')">
+      <PuButton
+        :action="{ native: 'button' }"
+        tone="neutral"
+        variant="soft"
+        :disabled="pending"
+        data-testid="pr-detail.feedback.cancel"
+        @click="$emit('cancel')"
+      >
         稍后填写
       </PuButton>
     </div>
@@ -105,11 +114,13 @@ import {
   PuFileUpload,
   PuFormItem,
   PuInlineNotice,
+  PuRadio,
   PuTextarea,
   type PuFileUploadItem,
   type PuFileUploadRejection,
   type PuFileUploadValue,
 } from "@partner-up-dev/design-web";
+import { findMissingFeedbackQuestionLabel } from "@/domains/feedback/model/validate-feedback-questionnaire-draft";
 
 const props = defineProps<{
   instanceId: number;
@@ -129,9 +140,9 @@ const imageUploadErrors = ref<Record<string, string | null>>({});
 const uploadingImageQuestionIds = ref<Set<string>>(new Set());
 const { uploadImage, uploadError, clearError } = useCloudStorage();
 
-const readSingleChoiceValue = (questionId: string): string | null => {
+const readSingleChoiceValue = (questionId: string): string | undefined => {
   const answer = answers.value[questionId];
-  return answer?.type === "single_choice" ? answer.value : null;
+  return answer?.type === "single_choice" ? answer.value : undefined;
 };
 
 const readTextareaValue = (questionId: string): string => {
@@ -157,13 +168,13 @@ const readImageUploadValue = (questionId: string): PuFileUploadValue => {
 const feedbackFieldId = (questionId: string): string =>
   `feedback-${props.instanceId}-${questionId}`;
 
-const setSingleChoiceAnswer = (questionId: string, value: string): void => {
+const setSingleChoiceAnswer = (questionId: string, value: string | number | boolean): void => {
   validationMessage.value = null;
   answers.value = {
     ...answers.value,
     [questionId]: {
       type: "single_choice",
-      value,
+      value: String(value),
     },
   };
 };
@@ -293,20 +304,10 @@ const handleImageUploadReject = (questionId: string, rejections: PuFileUploadRej
   setImageUploadError(questionId, rejections[0]?.message ?? null);
 };
 
-const isAnswered = (questionId: string): boolean => {
-  const answer = answers.value[questionId];
-  if (!answer) return false;
-  if (answer.type === "single_choice") return answer.value.trim().length > 0;
-  if (answer.type === "textarea") return answer.value.trim().length > 0;
-  return answer.imageUrl.trim().length > 0;
-};
-
 const handleSubmit = (): void => {
-  const missingQuestion = props.definition.questions.find(
-    (question) => question.required && !isAnswered(question.id),
-  );
-  if (missingQuestion) {
-    validationMessage.value = `请填写「${missingQuestion.label}」`;
+  const missingQuestionLabel = findMissingFeedbackQuestionLabel(props.definition, answers.value);
+  if (missingQuestionLabel) {
+    validationMessage.value = `请填写「${missingQuestionLabel}」`;
     return;
   }
 

@@ -52,10 +52,12 @@ vi.mock("@/domains/pr/use-cases/usePRAttendanceActions", () => ({
   }),
 }));
 
-vi.mock("@/domains/feedback/queries/useSubmitFeedbackQuestionnaire", () => ({
-  useSubmitFeedbackQuestionnaire: () => ({
+vi.mock("@/domains/pr/use-cases/usePRFeedbackQuestionnaireSubmission", () => ({
+  usePRFeedbackQuestionnaireSubmission: () => ({
     isPending: ref(false),
-    mutateAsync: vi.fn<(input: Record<string, unknown>) => Promise<unknown>>(),
+    errorMessage: ref(null),
+    submit: vi.fn<(input: Record<string, unknown>) => Promise<unknown>>(),
+    resetError: vi.fn<() => void>(),
   }),
 }));
 
@@ -238,6 +240,21 @@ describe("PR participation action components", () => {
 
     expect(hasTestId(host, "pr-detail.feedback.open")).toBe(true);
   });
+
+  test("check-in component renders canonical submitted feedback state", async () => {
+    const host = await mountComponent(PRCheckInFeedbackActions, {
+      pr: buildPRDetail({
+        feedbackSubmitted: true,
+        viewer: {
+          isParticipant: true,
+          slotState: "ATTENDED",
+        },
+      }),
+    });
+
+    expect(hasTestId(host, "pr-detail.feedback.submitted")).toBe(true);
+    expect(hasTestId(host, "pr-detail.feedback.open")).toBe(false);
+  });
 });
 
 const mountComponent = async (
@@ -262,10 +279,12 @@ const buildPRDetail = ({
   viewer = {},
   confirmationEnabled = false,
   feedbackPending = false,
+  feedbackSubmitted = false,
 }: {
   viewer?: ViewerOverride;
   confirmationEnabled?: boolean;
   feedbackPending?: boolean;
+  feedbackSubmitted?: boolean;
 }): PRDetailView =>
   ({
     id: 123,
@@ -317,12 +336,13 @@ const buildPRDetail = ({
         startAt: null,
       },
     },
-    feedbackQuestionnaire: feedbackPending
-      ? {
-          instanceId: 1,
-          responseState: {
-            status: "NOT_SUBMITTED",
-          },
-        }
-      : null,
+    feedbackQuestionnaire:
+      feedbackPending || feedbackSubmitted
+        ? {
+            instanceId: 1,
+            responseState: {
+              status: feedbackSubmitted ? "SUBMITTED" : "NOT_SUBMITTED",
+            },
+          }
+        : null,
   }) as unknown as PRDetailView;

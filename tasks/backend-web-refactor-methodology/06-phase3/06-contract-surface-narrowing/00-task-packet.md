@@ -1,4 +1,4 @@
-# Slice 06 — Web Contract Surface Narrowing
+# Slice 3-6 — Web Contract Surface Narrowing
 
 ## Objective & Hypothesis
 

@@ -1,4 +1,4 @@
-# Slice 01 Entry Delta
+# Slice 3-1 Entry Delta
 
 ## Identity
 
@@ -8,14 +8,14 @@
 | HEAD | `bda22b609e651f0daf6b36559d3fcdc283ac1fa1` |
 | Exit HEAD | `c634d9b6b36c0c751af934543014ef9afd437ce0` (`ref(tooling): migrate static quality gates to oxc`) |
 | Mode | Execute |
-| Authorization | Sir explicitly started Slice 01 |
+| Authorization | Sir explicitly started `3-1` |
 | Worktree | 622 porcelain entries: 613 modified/other, 3 deleted, 6 untracked |
 
-The large dirty set appeared after Phase 3 planning and belongs to concurrent/user work. Slice 01 must not use a
+The large dirty set appeared after Phase 3 planning and belongs to concurrent/user work. `3-1` must not use a
 clean-tree assumption or run broad formatting. Runtime/source counts are informational only until the shared work
 settles; fitness output is tied to the exact entry HEAD plus current working-tree state.
 
-The concurrent quality-gate work committed before the Slice 01 commit was assembled. Its source content was
+The concurrent quality-gate work committed before the `3-1` commit was assembled. Its source content was
 already present during the reviewed scan: after HEAD advanced to `c634d9b6`, the scope digest and 125/0/0
 classification remained byte-for-byte unchanged. The baseline therefore records the exit HEAD while retaining
 the entry HEAD above as execution history.

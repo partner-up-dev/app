@@ -1,4 +1,4 @@
-# Slice 01 Verification Log
+# Slice 3-1 Verification Log
 
 ## Implemented Proof
 
@@ -19,7 +19,7 @@
 | post-quality-gate-commit reconciliation | PASS — HEAD advanced to `c634d9b6`; scope digest and classification unchanged |
 
 Every pnpm invocation emitted the existing project `.npmrc` warning about ignored committed auth settings. No
-credential value was read or printed, and the warning is outside Slice 01 ownership.
+credential value was read or printed, and the warning is outside `3-1` ownership.
 
 ## Exit Interpretation
 

@@ -1,32 +1,19 @@
 <script lang="ts">
 import type { PRDiscoveryViewMode as PRDiscoveryViewModeForExit } from "@/domains/pr/model/discovery";
-import type { PRDiscoveryCatalogItem } from "@/domains/pr/model/pr-discovery-types";
 
 export const isPRDiscoveryFormViewExit = (
   previousViewMode: PRDiscoveryViewModeForExit | undefined,
   nextViewMode: PRDiscoveryViewModeForExit,
 ) => previousViewMode === "FORM" && nextViewMode !== "FORM";
-
-export const shufflePRDiscoveryCatalog = <T>(
-  items: readonly T[],
-  random: () => number = Math.random,
-): T[] => {
-  const shuffled = [...items];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(random() * (index + 1));
-    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
-  }
-  return shuffled;
-};
 </script>
 
 <template>
   <div class="pr-discovery-panel" data-testid="prd.panel">
     <div v-if="!selectedType" class="pr-discovery-panel__catalog" data-testid="prd.catalog">
-      <div v-if="catalogQuery.isLoading.value" class="pr-discovery-panel__catalog-state">
+      <div v-if="isCatalogLoading" class="pr-discovery-panel__catalog-state">
         <PuLoadingState :message="t('common.loading')" />
       </div>
-      <div v-else-if="catalogQuery.error.value" class="pr-discovery-panel__catalog-state">
+      <div v-else-if="catalogError" class="pr-discovery-panel__catalog-state">
         <PuInlineNotice
           tone="error"
           :message="t('prDiscovery.loadFailed')"
@@ -75,10 +62,10 @@ export const shufflePRDiscoveryCatalog = <T>(
           <PRDiscoveryListView
             :type="selectedType"
             :type-detail="selectedTypeDetail"
-            :candidates="directoryQuery.data.value?.candidates ?? []"
-            :list-records="directoryQuery.data.value?.listRecords ?? []"
+            :candidates="directoryCandidates"
+            :list-records="directoryListRecords"
             :authoring-options="selectedAuthoringOptions"
-            :other-types="catalogQuery.data.value ?? []"
+            :other-types="catalogItems"
             :show-create="userCreationAllowed"
             :pending="formPending"
             :error-message="discoveryErrorMessage"
@@ -91,8 +78,8 @@ export const shufflePRDiscoveryCatalog = <T>(
           <PRDiscoveryCardStack
             :type="selectedType"
             :type-detail="selectedTypeDetail"
-            :items="directoryQuery.data.value?.candidates ?? []"
-            :card-groups="directoryQuery.data.value?.cardGroups ?? []"
+            :items="directoryCandidates"
+            :card-groups="directoryCardGroups"
             :authoring-options="selectedAuthoringOptions"
             :show-create="userCreationAllowed"
             :pending="formPending"
@@ -129,27 +116,11 @@ export const shufflePRDiscoveryCatalog = <T>(
 import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRoute, useRouter } from "vue-router";
-import {
-  isPRAuthoringOptionsExhausted,
-  isPRDiscoveryViewMode,
-  type PRDiscoveryCreateReplaySelection,
-  type PRDiscoveryViewMode,
-  readPRDiscoveryViewPreference,
-  resolvePRDiscoveryViewMode,
-  writePRDiscoveryViewPreference,
-} from "@/domains/pr/model/discovery";
+import { useRouter } from "vue-router";
+import { type PRDiscoveryCreateReplaySelection } from "@/domains/pr/model/discovery";
 import { type PRFormFields, toPartnerRequestFields } from "@/domains/pr/model/types";
-import { usePRAuthoringOptions } from "@/domains/pr/queries/usePRAuthoringOptions";
 import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
-import {
-  isPRDiscoveryViewResolutionTimeoutError,
-  usePRDiscoveryCatalog,
-  usePRDiscoveryDirectory,
-  usePRDiscoveryRecommendation,
-  usePRDiscoveryTypeDetail,
-  usePRDiscoveryView,
-} from "@/domains/pr/queries/usePRDiscovery";
+import { usePRDiscoveryRecommendation } from "@/domains/pr/queries/usePRDiscovery";
 import { prDetailPath } from "@/domains/pr/routing/routes";
 import PRDiscoveryCard from "@/domains/pr/ui/discovery/PRDiscoveryCard.vue";
 import PRDiscoveryCardStack from "@/domains/pr/ui/discovery/PRDiscoveryCardView/PRDiscoveryCardStack.vue";
@@ -159,6 +130,7 @@ import PRDiscoveryFormView, {
 import PRDiscoveryListView from "@/domains/pr/ui/discovery/PRDiscoveryListView.vue";
 import PRDiscoverySurface from "@/domains/pr/ui/PRDiscoverySurface.vue";
 import type { PRDiscoveryDirectCreateCommand } from "@/domains/pr/use-cases/usePRDiscoveryCreation";
+import type { PRDiscoveryReadWorkflow } from "@/domains/pr/use-cases/usePRDiscoveryReadWorkflow";
 import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { requestWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import {
@@ -176,49 +148,35 @@ type DirectCreateSelection =
       allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
     });
 
-const route = useRoute();
+const props = defineProps<{ readWorkflow: PRDiscoveryReadWorkflow }>();
 const router = useRouter();
 const { t } = useI18n();
 const userSessionStore = useUserSessionStore();
-const selectedType = computed(() => {
-  const value = route.query.type;
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-});
-
-const catalogQuery = usePRDiscoveryCatalog();
-const randomizedCatalog = ref<PRDiscoveryCatalogItem[]>([]);
-watch(
-  () => catalogQuery.data.value,
-  (catalog) => {
-    randomizedCatalog.value = shufflePRDiscoveryCatalog(catalog ?? []);
-  },
-  { immediate: true },
-);
-const selectedDates = computed<readonly string[]>(() => {
-  const value = route.query.date;
-  if (typeof value === "string") return value.trim() ? [value] : [];
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string");
-  }
-  return [];
-});
-const typeDetailQuery = usePRDiscoveryTypeDetail(selectedType);
-const directoryQuery = usePRDiscoveryDirectory(selectedType, selectedDates);
-const authoringQuery = usePRAuthoringOptions(selectedType);
+const {
+  activeViewMode,
+  catalogError,
+  catalogItems,
+  directoryCandidates,
+  directoryCardGroups,
+  directoryListRecords,
+  discoveryErrorMessage,
+  isCatalogLoading,
+  isDiscoveryExhausted,
+  isDiscoveryLoading,
+  randomizedCatalog,
+  refetchAuthoringOptions,
+  returnToCatalog,
+  selectedAuthoringOptions,
+  selectedType,
+  selectedTypeDetail,
+  setViewMode,
+} = props.readWorkflow;
 const recommendationMutation = usePRDiscoveryRecommendation();
 const createMutation = useCreatePRFromStructured();
 let recommendationRequestId = 0;
 const recommendationResult = ref<Awaited<
   ReturnType<typeof recommendationMutation.mutateAsync>
 > | null>(null);
-const selectedTypeDetail = computed(() => {
-  const detail = typeDetailQuery.data.value;
-  return detail?.type === selectedType.value ? detail : null;
-});
-const selectedAuthoringOptions = computed(() => {
-  const options = authoringQuery.data.value;
-  return options?.type === selectedType.value ? options : null;
-});
 const formModeResultState = computed<"selection" | "no-match">(() =>
   recommendationResult.value && !recommendationResult.value.matchedCandidate
     ? "no-match"
@@ -227,8 +185,6 @@ const formModeResultState = computed<"selection" | "no-match">(() =>
 const userCreationAllowed = computed(
   () => selectedAuthoringOptions.value?.creationAllowed !== false,
 );
-const seenSurfaceKeys = new Set<string>();
-const seenCandidateImpressionKeys = new Set<string>();
 
 const resetPRDiscoveryFormState = () => {
   recommendationRequestId += 1;
@@ -237,79 +193,6 @@ const resetPRDiscoveryFormState = () => {
   recommendationResult.value = null;
 };
 
-const preferredViewMode = computed(() =>
-  readPRDiscoveryViewPreference(
-    typeof window === "undefined" ? null : window.localStorage,
-    selectedType.value ?? "",
-  ),
-);
-const explicitViewMode = computed(() => {
-  const value = route.query.view;
-  const normalized = typeof value === "string" ? value.toUpperCase() : null;
-  return isPRDiscoveryViewMode(normalized) ? normalized : null;
-});
-const requiresServerView = computed(
-  () => explicitViewMode.value === null && preferredViewMode.value === null,
-);
-const viewQuery = usePRDiscoveryView(selectedType, requiresServerView);
-const isViewResolutionTimedOut = computed(() =>
-  isPRDiscoveryViewResolutionTimeoutError(viewQuery.error.value),
-);
-const activeViewMode = ref<PRDiscoveryViewMode>(
-  resolvePRDiscoveryViewMode({
-    serverViewMode: isViewResolutionTimedOut.value ? "LIST" : viewQuery.data.value?.viewMode,
-    preferredViewMode: explicitViewMode.value ?? preferredViewMode.value,
-  }),
-);
-const isViewResolved = computed(
-  () =>
-    Boolean(selectedType.value) &&
-    Boolean(
-      isPRDiscoveryViewMode(viewQuery.data.value?.viewMode) ||
-      isViewResolutionTimedOut.value ||
-      explicitViewMode.value ||
-      preferredViewMode.value,
-    ),
-);
-
-watch(
-  [
-    selectedType,
-    () => viewQuery.data.value?.viewMode,
-    isViewResolutionTimedOut,
-    explicitViewMode,
-    preferredViewMode,
-  ],
-  ([type, serverViewMode, viewTimedOut, explicitMode, preferredMode]) => {
-    activeViewMode.value = type
-      ? resolvePRDiscoveryViewMode({
-          serverViewMode: viewTimedOut ? "LIST" : serverViewMode,
-          preferredViewMode: explicitMode ?? preferredMode,
-        })
-      : "LIST";
-  },
-  { immediate: true },
-);
-watch(
-  () => viewQuery.data.value?.viewMode,
-  (mode) => {
-    if (
-      !selectedType.value ||
-      !isPRDiscoveryViewMode(mode) ||
-      isViewResolutionTimedOut.value ||
-      explicitViewMode.value ||
-      preferredViewMode.value
-    )
-      return;
-    writePRDiscoveryViewPreference(
-      typeof window === "undefined" ? null : window.localStorage,
-      mode,
-      selectedType.value,
-    );
-  },
-  { immediate: true },
-);
-
 watch(selectedType, resetPRDiscoveryFormState);
 watch(activeViewMode, (nextViewMode, previousViewMode) => {
   if (isPRDiscoveryFormViewExit(previousViewMode, nextViewMode)) {
@@ -317,88 +200,12 @@ watch(activeViewMode, (nextViewMode, previousViewMode) => {
   }
 });
 
-watch(
-  [selectedType, activeViewMode],
-  ([type, viewMode]) => {
-    if (!type || !isViewResolved.value) return;
-    const key = `${type}:${viewMode}`;
-    if (seenSurfaceKeys.has(key)) return;
-    seenSurfaceKeys.add(key);
-    trackEvent("pr_discovery_surface_viewed", {
-      prType: type,
-      viewMode,
-      origin: "PR_DISCOVERY",
-    });
-  },
-  { immediate: true },
-);
-
-watch(
-  [selectedType, activeViewMode, () => directoryQuery.data.value?.candidates],
-  ([type, viewMode, candidates]) => {
-    if (!type || !isViewResolved.value || viewMode === "FORM" || !candidates) return;
-    candidates.forEach((candidate, index) => {
-      const key = `${type}:${viewMode}:${candidate.prId}`;
-      if (seenCandidateImpressionKeys.has(key)) return;
-      seenCandidateImpressionKeys.add(key);
-      trackEvent("pr_discovery_candidate_impression", {
-        prType: type,
-        viewMode,
-        origin: "PR_DISCOVERY",
-        prId: candidate.prId,
-        rank: index + 1,
-      });
-    });
-  },
-  { immediate: true },
-);
-
-const isDiscoveryLoading = computed(
-  () =>
-    (requiresServerView.value && viewQuery.isLoading.value) ||
-    typeDetailQuery.isLoading.value ||
-    authoringQuery.isLoading.value ||
-    (activeViewMode.value !== "FORM" && directoryQuery.isLoading.value),
-);
 const formPending = computed(
   () => recommendationMutation.isPending.value || createMutation.isPending.value,
 );
 const formErrorMessage = computed(
   () => recommendationMutation.error.value?.message ?? createMutation.error.value?.message ?? null,
 );
-const pageStatePlacement = computed<"center" | "start">(() =>
-  isDiscoveryLoading.value || Boolean(discoveryErrorMessage.value) ? "center" : "start",
-);
-const isDiscoveryExhausted = computed(
-  () =>
-    activeViewMode.value === "LIST" &&
-    isPRAuthoringOptionsExhausted(selectedAuthoringOptions.value),
-);
-const discoveryErrorMessage = computed(
-  () =>
-    (requiresServerView.value && !isViewResolutionTimedOut.value
-      ? viewQuery.error.value?.message
-      : null) ??
-    typeDetailQuery.error.value?.message ??
-    authoringQuery.error.value?.message ??
-    (activeViewMode.value !== "FORM" ? directoryQuery.error.value?.message : null) ??
-    null,
-);
-
-const setViewMode = (viewMode: PRDiscoveryViewMode) => {
-  activeViewMode.value = viewMode;
-  writePRDiscoveryViewPreference(
-    typeof window === "undefined" ? null : window.localStorage,
-    viewMode,
-    selectedType.value ?? "",
-  );
-  void router.replace({ query: { ...route.query, view: viewMode.toLowerCase() } });
-};
-
-const returnToCatalog = () => {
-  void router.push({ name: "pr-discovery" });
-};
-
 const openCandidate = (path: string, prId: number) => {
   const type = selectedType.value;
   if (!type) return;
@@ -519,7 +326,7 @@ onMounted(async () => {
     userSessionStore.isAuthenticated
   ) {
     if (!selectedAuthoringOptions.value) {
-      const result = await authoringQuery.refetch();
+      const result = await refetchAuthoringOptions();
       if (!result.data || result.data.type !== selectedType.value) return;
     }
     clearPendingWeChatAction();
@@ -534,16 +341,9 @@ const returnToSelection = () => {
   resetPRDiscoveryFormState();
 };
 
-const hasLoadFailed = computed(() => Boolean(discoveryErrorMessage.value));
-
 defineExpose({
-  activeViewMode,
-  setViewMode,
   returnToSelection,
   formModeResultState,
-  pageStatePlacement,
-  isViewResolved,
-  hasLoadFailed,
 });
 
 const recommendCandidates = async (selection: PRDiscoveryFormSelection) => {

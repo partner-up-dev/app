@@ -1,4 +1,4 @@
-# Slice 06 Mental Rehearsal
+# Slice 3-6 Mental Rehearsal
 
 ## Subtask Preflight Matrix
 

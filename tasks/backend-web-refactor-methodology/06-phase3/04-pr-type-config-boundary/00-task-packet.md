@@ -1,4 +1,4 @@
-# Slice 04 — PR Type Configuration Boundary
+# Slice 3-4 — PR Type Configuration Boundary
 
 ## Objective & Hypothesis
 
@@ -15,7 +15,7 @@ values that materialize into PR remain snapshots; later config changes do not re
 
 ## Entry / Exit
 
-- Entry: Slices 02/03 completed; target owner promoted to Unit Topology/system authority; direct consumer inventory current.
+- Entry: `3-2`/`3-3` completed; target owner promoted to Unit Topology/system authority; direct consumer inventory current.
 - Exit: runtime consumers use one read contract or documented exception, Admin remains only mutation owner,
   snapshot/current semantics proven and request cardinality non-regressed.
 

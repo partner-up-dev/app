@@ -6,7 +6,8 @@
 
 ## Status
 
-Phase 3 is out of scope. This file records only its entry conditions and candidate evidence needs.
+Phase 3 is now active and controlled by `../06-phase3/`. This file records only the historical entry conditions
+and candidate evidence that informed the superseding order; it does not authorize or sequence current work.
 
 ## Entry Conditions
 

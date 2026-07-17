@@ -1,4 +1,4 @@
-# Slice 03 — Feedback Submission Vertical
+# Slice 3-3 — Feedback Submission Vertical
 
 ## Objective & Hypothesis
 
@@ -20,10 +20,12 @@ PR participation gating in PR integration surfaces.
 
 ## Entry / Exit
 
-- Entry: Slice 01 report stable; existing opening-only System journey and Backend feedback scenario characterized.
+- Entry: `3-1` report stable and `3-2` exited; existing opening-only System journey and Backend feedback scenario
+  characterized.
 - Exit: browser performs a real valid submission, DB probe proves upsert, canonical PR detail refreshes submitted
   state, errors remain retryable, and all target/full gates pass.
 
 ## Status
 
-Planned; second pilot. No mutation started.
+Verified Complete in the working tree; exit commit pending. Authorized and executed 2026-07-17 at `b674f5ca`.
+Entry delta, evidence, verification and exact scope are frozen in this packet.

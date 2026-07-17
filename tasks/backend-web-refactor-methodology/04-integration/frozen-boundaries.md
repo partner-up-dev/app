@@ -1,6 +1,6 @@
 # Frozen Boundaries
 
-> **Historical snapshot.** 本表冻结于 `a8cf2d7`。当前 HEAD `bda22b60` 已删除 Anchor Event
+> **Historical snapshot.** 本表冻结于 `a8cf2d7`。Phase 3 entry `bda22b60` 已删除 Anchor Event
 > identity/routes，并由 PR Type Configuration、PR Discovery 与 PR Authoring 接管能力；因此
 > FB-04 不再是当前边界，其他条目也必须先经 `../06-phase3/entry-baseline.md` 校准后使用。
 > 保留本表是为了审计旧重构前提，而不是恢复旧 Event 模型。

@@ -6,7 +6,7 @@
   系统性重构的方法论，核心评价标准是降低认知复杂度、依赖复杂度与变更风险，而不是追求目录或模式的表面统一。
 - Hypothesis: 先建立行为基线与依赖地图，再按可验证的业务纵切面渐进替换复杂边界，能够在保持产品行为和跨单元合约稳定的同时持续降低维护成本。
 
-## Guardrails Touched
+## Historical Planning Guardrails
 
 - 本阶段只读分析 `apps/backend`、`apps/web`、相关 durable docs、测试与静态检查配置。
 - 不修改应用代码、产品行为、数据库 schema、API 合约或 durable docs。
@@ -22,7 +22,8 @@
 
 ## Historical Evidence Snapshot
 
-以下数字属于 Phase 2 的 `a8cf2d7` 快照，不代表当前 `bda22b60`。当前可复跑基线、
+以下数字属于 Phase 2 的 `a8cf2d7` 快照；`bda22b60` 是 Phase 3 entry/Anchor-retirement baseline，
+也不是当前 working HEAD。当前可复跑基线、
 过期边界和工具链恢复状态由 `06-phase3/entry-baseline.md` 接管。
 
 - Backend 生产 TypeScript 约 57,298 行，Web 生产 TypeScript/Vue 约 85,932 行；
@@ -41,7 +42,8 @@
 ## Candidate Method Decision
 
 > The original candidate ordering below is historical. The approved executable order is now owned by
-> `06-phase3/slice-map.md`; Slice 01 is complete and `/prd` read ownership is the next planned application pilot.
+> `06-phase3/slice-map.md`; this paragraph is historical. The current sequence has `3-1`–`3-3` verified and
+> `3-4` PR Type Config boundary next.
 
 - 将“彻底”定义为最终消除双重 owner、反向依赖、依赖环和永久兼容缝；执行方式采用
   contract-preserving、domain-sliced、strangler-style 的渐进迁移，禁止大爆炸重写。
@@ -56,9 +58,11 @@
 ## Active Scope
 
 - Phase 1/2: 保留为历史冻结与只读基线，不覆写其原始证据。
-- Phase 3 Execute: Slice 01 architecture foundation 已获授权并完成；durable truth 与 standalone report-first
-  tooling 已晋升，application source mutation 仍未开始。
-- Slice 02 及以后仍需独立 Execute start；不得把 Slice 01 授权扩张到业务代码、配置、迁移或依赖。
+- Phase 3 Execute: Sir 已授权开始；`3-1` 已提交完成，`3-2`/`3-3` 已在工作树验证完成但 exit commit pending，
+  当前控制面与后续顺序见
+  `06-phase3/00-task-packet.md` 和 `program-roadmap.md`。
+- `3-4` 是下一个执行单元；不得把 Phase 3 授权扩张到后续 User/Auth、Commerce、
+  Job/Notification、Observability 或全局清理 phase。
 - 诊断命令可以产生 git-ignored 的缓存、构建或测试产物，但不得安装/升级依赖、执行写迁移或启动长期服务。
 
 ## Delegation And Validation Contract
@@ -78,9 +82,10 @@
   canonical diagnostic matrix are recorded without fixing or mutating application state.
 - Root validation reproduced three Backend and three Web high-impact metrics exactly and
   retained two durable conflicts instead of using implementation convenience to resolve them.
-- Phase 3 Slice 01 is complete: architecture objectives/growth rules, current/target topology, Backend/Web local
+- Phase 3 `3-1` is complete: architecture objectives/growth rules, current/target topology, Backend/Web local
   ownership rules and a reviewed architecture-fitness baseline are durable/task-local in their proper owners.
-- Application mutation remains unstarted. Slice 02 requires a new explicit Execute start and entry re-baseline.
+- `3-2`/`3-3` application mutation and verification are complete in the working tree; their exit commit is
+  pending. Phase 3B has started at `3-3`; `3-4`–`3-6` remain before Phase 3C conflict closure.
 
 ## Phase Exit Summary
 
