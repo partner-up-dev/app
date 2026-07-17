@@ -15,6 +15,9 @@ This file stays backend-operational only. Root request routing, typed input clas
 
 The backend uses a domain-oriented layered architecture:
 
+Repository-wide architecture objectives, module construction and exception rules are owned by
+[`docs/20-product-tdd/architecture-objectives-and-decision-rules.md`](../../docs/20-product-tdd/architecture-objectives-and-decision-rules.md).
+
 ```text
 Controller  ──►  Domain Use Case  ──►  Domain Service  ──►  Repository  ──►  Entity
                            │
@@ -25,6 +28,32 @@ Controller  ──►  Domain Use Case  ──►  Domain Service  ──►  Re
 
 Background tasks are managed by a DB-backed JobRunner (delayed jobs plus due-job claiming). In scale-to-0 serverless, execution is driven by internal tick endpoints and request-tail best-effort kicks instead of in-process intervals.
 
+### Domain Public Surfaces
+
+Target rule: another domain may consume only a curated owner surface containing:
+
+1. commands;
+2. canonical queries/read projections;
+3. stable contracts, value types and problem codes;
+4. events/ports when a real async, transaction, replacement or provider boundary exists.
+
+Repositories, entities/Drizzle rows, internal services, test kits and transport adapters are not cross-domain
+APIs. Put new public symbols in the owning domain's deliberate entrypoint; do not use wildcard barrels to make
+internal paths convenient for callers.
+
+Controllers consume domain commands/queries/contracts and remain protocol conversion only. A controller must not
+start a new direct repository or cross-domain internal-service dependency. A domain may use its own persistence
+internals; another domain must ask through the owner's public surface.
+
+Current compatibility windows are baselined rather than described as compliant architecture:
+
+- `src/domains/pr` is the canonical PR surface while `src/domains/pr-core` still contains lifecycle implementation;
+  `pr-core` gains no new consumers and retires through the named migration slice.
+- Existing controller-to-repository and cross-domain deep imports are architecture-fitness findings. They migrate
+  with their owning behavior slices and do not authorize another edge.
+- Exceptions stay path-specific and record owner, reason, removal condition and verification; do not widen an
+  allowlist to make a rule pass.
+
 ## File Structure
 
 ```text
@@ -33,11 +62,11 @@ src/
 ├── repositories/         # Data access layer (pure CRUD)
 ├── services/             # Legacy service facades and integration-oriented services
 ├── domains/
-│   └── pr-core/          # PartnerRequest lifecycle domain
-│       ├── use-cases/    # One function per business action
-│       ├── services/     # Domain services
-│       ├── services/pr-read.service.ts
-│       └── temporal-refresh.ts
+│   ├── pr/               # Canonical PR surface, reads, messages and sharing
+│   ├── pr-core/          # PR lifecycle compatibility implementation; no new consumers
+│   ├── pr-authoring/     # Authoring options and handoff
+│   ├── pr-discovery/     # Catalog, view, directory and recommendation reads
+│   └── admin-pr-type-config/ # Current operator adapter for PR Type Configuration
 ├── infra/
 │   ├── jobs/             # Unified JobRunner
 │   ├── telemetry/        # Raw telemetry event ingestion

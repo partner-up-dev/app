@@ -1,0 +1,92 @@
+# Backend / Web Refactor Methodology
+
+## Objective & Hypothesis
+
+- Objective: 基于当前仓库证据，形成一套指导 `apps/backend` 与 `apps/web`
+  系统性重构的方法论，核心评价标准是降低认知复杂度、依赖复杂度与变更风险，而不是追求目录或模式的表面统一。
+- Hypothesis: 先建立行为基线与依赖地图，再按可验证的业务纵切面渐进替换复杂边界，能够在保持产品行为和跨单元合约稳定的同时持续降低维护成本。
+
+## Guardrails Touched
+
+- 本阶段只读分析 `apps/backend`、`apps/web`、相关 durable docs、测试与静态检查配置。
+- 不修改应用代码、产品行为、数据库 schema、API 合约或 durable docs。
+- 保留工作区中既有未提交改动，不对其整理、格式化或回退。
+- 方法论必须区分事实、推断与待验证假设，并明确未来进入 Execute 前的启动确认点。
+
+## Verification
+
+- 当前架构、复杂度热点与风险判断均能回指仓库内具体证据。
+- 方法论覆盖：目标函数、基线、边界设计、迁移切片、阶段门、测试策略、度量、回滚与停止条件。
+- Backend 与 Web 的建议既共享同一治理框架，又尊重各自技术栈和依赖方向。
+- 最终输出明确哪些结论可立即采用，哪些需要后续测量或小型试点验证。
+
+## Historical Evidence Snapshot
+
+以下数字属于 Phase 2 的 `a8cf2d7` 快照，不代表当前 `bda22b60`。当前可复跑基线、
+过期边界和工具链恢复状态由 `06-phase3/entry-baseline.md` 接管。
+
+- Backend 生产 TypeScript 约 57,298 行，Web 生产 TypeScript/Vue 约 85,932 行；
+  规模本身不是问题，但巨型控制器、重复状态机和跨层依赖集中在少数热点。
+- 当前静态导入图快照识别到 Backend 3 个强连通依赖环（最大 38 个模块），
+  Web 1 个 5 模块依赖环；这些数字需要在正式执行前固化为可重复脚本基线。
+- Backend 的主要复杂度集中在 PR 双轨兼容、WeChat/OAuth 控制器、
+  Commerce/Provider 编排、持久化边界倒置，以及导入时注册的全局运行时状态。
+- Web 的主要复杂度集中在 Event 多套重复状态机、Admin 工作台、Commerce
+  query/cache/ordering 编排，以及 auth/WeChat/share/handoff 全局流程耦合。
+- `pnpm test:unit:backend` 通过（68 files / 314 tests），
+  `pnpm test:unit:web` 通过（38 files / 162 tests）；Backend/Web 类型检查通过。
+- `pnpm check:dead-code` 当前因本地 `oxc-parser` 原生绑定缺失而不能运行；这是
+  正式基线前应修复的工具链阻塞，不能被解释为代码 dead-code 结论。
+
+## Candidate Method Decision
+
+> The original candidate ordering below is historical. The approved executable order is now owned by
+> `06-phase3/slice-map.md`; Slice 01 is complete and `/prd` read ownership is the next planned application pilot.
+
+- 将“彻底”定义为最终消除双重 owner、反向依赖、依赖环和永久兼容缝；执行方式采用
+  contract-preserving、domain-sliced、strangler-style 的渐进迁移，禁止大爆炸重写。
+- 每个切片遵循：冻结行为与 authority -> 建 characterization/scenario evidence ->
+  Backend 边界迁移 -> Web 边界迁移 -> 真实跨单元验证 -> 观察 -> 删除旧路径。
+- 首个校准切片候选为 `feedback-questionnaire`：边界较窄、已有 scenario，适合验证
+  controller/use-case/repository、Web query/UI 与跨单元测试的整套迁移协议。
+- 校准后按证据优先处理 PR Discovery/PR，再处理 Admin；Commerce/Payment/RideHailing、
+  WeChat/OAuth 和全局 Job/Notification bootstrap 放在护栏成熟后。
+- 进入任何应用代码修改前，必须由用户明确发出开始指令，并先完成 Impact Handshake。
+
+## Active Scope
+
+- Phase 1/2: 保留为历史冻结与只读基线，不覆写其原始证据。
+- Phase 3 Execute: Slice 01 architecture foundation 已获授权并完成；durable truth 与 standalone report-first
+  tooling 已晋升，application source mutation 仍未开始。
+- Slice 02 及以后仍需独立 Execute start；不得把 Slice 01 授权扩张到业务代码、配置、迁移或依赖。
+- 诊断命令可以产生 git-ignored 的缓存、构建或测试产物，但不得安装/升级依赖、执行写迁移或启动长期服务。
+
+## Delegation And Validation Contract
+
+- 工作拆为 `01-backend`、`02-web`、`03-cross-unit` 三个独立子任务，根代理只写
+  `04-integration` 和根控制文件。
+- 每个子任务使用多个聚焦文件，事实与建议分离；关键事实必须进入 `evidence-index.md`。
+- 每项重要结论至少携带一个仓库路径或可复跑命令。计数必须记录搜索范围、排除项和命令。
+- Backend/Web 子任务只做静态只读取证；Cross-unit 子任务独占测试/gate 的执行，避免并行数据库、构建和报告器冲突。
+- 根整合采用低成本复核：引用存在性、关键计数抽样复跑、跨子任务冲突矩阵、canonical gate 结果核对。
+
+## Current Status
+
+- Phase 1 completed in task-local form: product invariants, Backend/Web authority paths,
+  cross-unit contract surfaces and a root frozen-boundary register are explicit.
+- Phase 2 read-only completed: source/dependency/compatibility baselines and a 14-command
+  canonical diagnostic matrix are recorded without fixing or mutating application state.
+- Root validation reproduced three Backend and three Web high-impact metrics exactly and
+  retained two durable conflicts instead of using implementation convenience to resolve them.
+- Phase 3 Slice 01 is complete: architecture objectives/growth rules, current/target topology, Backend/Web local
+  ownership rules and a reviewed architecture-fitness baseline are durable/task-local in their proper owners.
+- Application mutation remains unstarted. Slice 02 requires a new explicit Execute start and entry re-baseline.
+
+## Phase Exit Summary
+
+- Frozen boundaries: `04-integration/frozen-boundaries.md`
+- Read-only baseline: `04-integration/baseline-scorecard.md`
+- Conflicts/open questions: `04-integration/conflicts-and-open-questions.md`
+- Candidate readiness: `04-integration/next-slice-readiness.md`
+- Root verification: `04-integration/verification-log.md`
+- Current Phase 3 control surface: `06-phase3/00-task-packet.md`

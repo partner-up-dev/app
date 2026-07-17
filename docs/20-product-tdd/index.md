@@ -8,6 +8,7 @@ This layer exists because the product is realized by at least two meaningful uni
 
 ## What This Layer Owns
 
+- architecture objectives and decision rules used to grow the units consistently
 - technical units and their responsibilities
 - authoritative state boundaries
 - cross-unit contracts that must stay coherent
@@ -24,21 +25,22 @@ This layer exists because the product is realized by at least two meaningful uni
 
 ## How To Read This Layer
 
-1. `unit-topology.md`
-2. `claim-realization-matrix.md` when translating PRD claims into technical realization
-3. `system-state-and-authority.md`
-4. `ecommerce-contracts.md` when the change touches ecommerce loops, admin
+1. `architecture-objectives-and-decision-rules.md` when placing new behavior, creating a module/public surface, or evaluating an exception
+2. `unit-topology.md`
+3. `claim-realization-matrix.md` when translating PRD claims into technical realization
+4. `system-state-and-authority.md`
+5. `ecommerce-contracts.md` when the change touches ecommerce loops, admin
    commerce surfaces, or PR-attached orders
-5. `ecommerce-provider-contracts.md` when provider-specific commerce behavior affects billing, settlement, cancellation, or user-visible order state
-6. `cross-unit-contracts.md` for shared frontend/backend substrate and contract routing
-7. `pr-lifecycle-contracts.md` when the change touches PR creation, lifecycle, join, waitlist, Study Sprint, share, or action availability
-8. `pr-discovery-and-authoring-contracts.md` when the change touches PR Discovery, Form/Card/List views, Authoring handoff, or POI applications
-9. `pr-messaging-contracts.md` when the change touches PR messages, read markers, or unread-wave handoff
-10. `admin-surface-contracts.md` when the change touches operator/admin cross-unit surfaces outside ecommerce-specific detail
-11. `analytics-and-telemetry-contracts.md`
-12. `bi-domain-contracts.md`
-13. `test-platform.md`
-14. `notification-contracts.md`
+6. `ecommerce-provider-contracts.md` when provider-specific commerce behavior affects billing, settlement, cancellation, or user-visible order state
+7. `cross-unit-contracts.md` for shared frontend/backend substrate and contract routing
+8. `pr-lifecycle-contracts.md` when the change touches PR creation, lifecycle, join, waitlist, Study Sprint, share, or action availability
+9. `pr-discovery-and-authoring-contracts.md` when the change touches PR Discovery, Form/Card/List views, Authoring handoff, or POI applications
+10. `pr-messaging-contracts.md` when the change touches PR messages, read markers, or unread-wave handoff
+11. `admin-surface-contracts.md` when the change touches operator/admin cross-unit surfaces outside ecommerce-specific detail
+12. `analytics-and-telemetry-contracts.md`
+13. `bi-domain-contracts.md`
+14. `test-platform.md`
+15. `notification-contracts.md`
 
 If the change is reference-sensitive, read `docs/15-alignment/README.md` and `docs/15-alignment/ui-map.yaml` first.
 

@@ -1,5 +1,9 @@
 # Unit Topology
 
+Architecture objectives, module construction and exception rules are owned by
+[`architecture-objectives-and-decision-rules.md`](./architecture-objectives-and-decision-rules.md). This file
+owns the current technical units, domain owner map and allowed dependency direction.
+
 ## Technical Units
 
 ### Backend Unit
@@ -56,8 +60,39 @@ Frontend clusters:
 - domain layer: `pr`, `share`, `user`, `admin`, `support`, `landing`
 - shared layer: generic UI, auth/session storage, telemetry runtime, analytics, API helpers
 - page layer: route entrypoints
+- compatibility layer: top-level `lib`, `router` and `stores`; keep existing bridges narrow and add no new owners there
 
 These are subsystem clusters inside the two units, not independent top-level units.
+
+## PR Domain Owner Map
+
+| Capability | Current owner / state | Target dependency direction |
+| --- | --- | --- |
+| PR Lifecycle and canonical PR facts | `domains/pr` is the canonical surface/read owner; lifecycle implementation still delegates extensively to `domains/pr-core` | callers → curated `domains/pr` command/query/contract; compatibility `pr-core` → canonical owner only after cutover |
+| PR Type Configuration | Postgres entity/repository own current persistence; `admin-pr-type-config` owns current operator composition while Authoring/Discovery/Lifecycle consume configuration directly | consumers → neutral PR Type Configuration queries/commands → internal persistence; Admin remains an adapter |
+| PR Authoring | `domains/pr-authoring` plus ordinary PR creation commands | route/controller → Authoring public options/submission surface → ordinary PR command |
+| PR Discovery | `domains/pr-discovery` for catalog, view resolution, directory and recommendation reads | route/controller → Discovery query surface → canonical PR/Type/POI reads |
+| POI | `domains/poi` and POI persistence | Authoring/Discovery consume POI-owned query/contracts rather than duplicating location authority |
+| Feedback Questionnaire | `domains/feedback-questionnaire` and feedback persistence | PR integration consumes feedback command/query/contracts; questionnaire owner remains independent |
+
+`domains/pr-core` is a named compatibility window, not a second PR authority. Existing imports are migration
+evidence; no new caller should depend on it. Anchor Event is no longer a product/domain authority: its durable
+identity/routes/tables were retired when PR Type Configuration, Authoring and Discovery became the current model.
+Empty historical directory names or generic analytics `eventId` fields do not re-establish that authority.
+
+## Allowed Dependency Direction
+
+| Caller | Allowed dependency | Disallowed dependency |
+| --- | --- | --- |
+| Backend controller | domain public command/query/contract | repository, Drizzle row or cross-domain internal service |
+| Backend domain | its own internals; another domain's curated public surface; explicit infra/provider port | another domain's repository or deep implementation path |
+| Web page | domain UI/workflow plus app/shared page infrastructure | raw RPC invocation or reusable business workflow implementation |
+| Web domain workflow | domain query/command/model and generic shared infrastructure | page/AppRoot ownership or another domain's internals |
+| Web query/command adapter | typed HTTP transport, inferred route contracts and query cache | UI/page assembly |
+| Web shared | owner-neutral primitives/infrastructure | domain semantics or domain modules |
+
+Compatibility edges that currently violate this direction must be named and baselined. They are not permission
+for new edges of the same shape.
 
 ## System-Shaping Constraints
 

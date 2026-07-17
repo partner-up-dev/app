@@ -4,6 +4,10 @@
 
 This frontend uses a domain-first structure.
 
+Repository-wide objective ordering, module construction and exception rules are owned by
+[`docs/20-product-tdd/architecture-objectives-and-decision-rules.md`](../../../docs/20-product-tdd/architecture-objectives-and-decision-rules.md).
+This file translates that constitution into Web ownership and dependency rules.
+
 The goal is to keep three axes orthogonal:
 
 - domain ownership
@@ -81,6 +85,29 @@ Owns route entrypoints only.
 
 Pages compose domain UI and app/shared infrastructure. They do not own reusable business logic.
 
+## Workflow, Transport And State Owners
+
+| Owner | Responsibility | Must not own |
+| --- | --- | --- |
+| `lib/rpc` / `lib/admin-rpc` | Hono client construction, headers, token rotation and transport compatibility | domain decisions, navigation or UI state |
+| domain `queries` / `commands` / `adapters` | endpoint invocation, inferred HTTP types, Problem Details mapping, Query cache and invalidation | page assembly or reusable UI interaction state |
+| domain `use-cases` | one domain's user sequence, local orchestration, navigation intent and telemetry intent | raw page layout or a second server cache |
+| `processes` | cross-domain or browser/platform lifecycle such as session, OAuth and route-share handoff | domain-owned eligibility or persistence truth |
+| `pages` | route input, page context, assembly and page-level error aggregation | reusable business workflows or direct ordinary API operations |
+| domain `ui` | presentation and local form/modal/selection interaction | durable truth or cross-page server cache ownership |
+
+State follows the same owner rule:
+
+- Router owns route state and navigation history.
+- TanStack Query owns server-derived cache and invalidation.
+- Domain workflow/UI owns the smallest local draft or interaction state that needs it.
+- Browser storage owns only explicit continuity, attribution or pending-action protocols; it is not product truth.
+- Backend canonical reads remain authoritative for durable entity facts and eligibility.
+
+Instantiate a route workflow once at the narrowest route/domain owner and pass a cohesive view model plus explicit
+actions downward. Do not coordinate a one-level parent/child relationship through a global store, broad
+provide/inject bag or expanded component refs.
+
 ## Boundary Rules
 
 ### Ownership
@@ -113,6 +140,31 @@ Forbidden:
 - UI primitives importing query modules
 - model modules importing Vue SFCs
 - query modules importing page/widget modules
+- model modules importing query adapters or raw RPC transport
+- ordinary pages or domain UI invoking `client.api` / `adminClient.api` directly
+
+## HTTP Contract Rules
+
+- `AppType` and the Hono client remain the compile-time origin of request/response inference.
+- Endpoint invocation stays in a domain query/command/adapter or an explicitly named platform compatibility seam.
+- Do not create handwritten response DTO truth or cast around an inferred contract.
+- Expected command failures use the shared Problem Details mapping; domain code branches on stable status/type/code,
+  while pages/UI own placement and presentation.
+- Query keys come from the central key registry rather than page-local arrays.
+
+## Current Compatibility Windows
+
+These are Current exceptions, not examples for new code:
+
+- `pages/WeChatOAuthCallbackPage.vue` performs the OAuth callback exchange at the route boundary.
+- `pages/BIEntryPage.vue` performs the current BI admin-session entry exchange.
+- `domains/pr/ui/primitives/PRPreviewCard.vue` performs its canonical PR read by id under the focused PR UI contract.
+- Historical model-to-query and model-to-RPC edges are captured by the architecture-fitness baseline and migrate
+  through their owning slices; they must not widen.
+
+Each exception must remain path-specific, keep its owner/reason/removal condition in the current task baseline,
+and be re-reviewed when its surrounding workflow changes. File size, import-edge counts and SCCs remain review
+signals rather than standalone reasons to reorganize working code.
 
 ## Classification Rules
 
