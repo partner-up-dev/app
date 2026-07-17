@@ -38,7 +38,8 @@ Target rule: another domain may consume only a curated owner surface containing:
 4. events/ports when a real async, transaction, replacement or provider boundary exists.
 
 Repositories, entities/Drizzle rows, internal services, test kits and transport adapters are not cross-domain
-APIs. Put new public symbols in the owning domain's deliberate entrypoint; do not use wildcard barrels to make
+APIs. Put new public symbols in the owning domain root `index.ts` or a category-named root entrypoint
+(`commands.ts`, `queries.ts`, `contracts.ts`, `events.ts`, or `ports.ts`); do not use wildcard barrels to make
 internal paths convenient for callers.
 
 Controllers consume domain commands/queries/contracts and remain protocol conversion only. A controller must not

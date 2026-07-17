@@ -11,9 +11,9 @@
 ## Current Mode And Authorization
 
 - 当前模式：`Solidify`。
-- Sir 已明确授权开始 Phase 3；`3-1` 已提交完成，`3-2`/`3-3` 已验证完成且 exit commit pending，`3-4`
-  是下一个 executable slice；后续
-  slice 仍按各自 entry/stop conditions 逐个进入，不将 phase 授权扩张为跨 scope 修改。
+- Sir 已明确授权完成 Phase 3；`3-1`、`3-2`、`3-3` 已由 `ca6151cd` 收口，`3-4` 已在受控工作树验证完成。
+  `3-5` 是下一个 executable slice；后续 slice 仍按各自 entry/stop conditions 逐个进入，不将 phase
+  授权扩张为跨 scope 修改。
 - commit 仍需 Sir 独立命令。
 
 ## Guardrails Touched
@@ -33,9 +33,9 @@
 | Stage | Slice / directory | Purpose | Status |
 | --- | --- | --- | --- |
 | 3A Foundation/calibration | `3-1` · `01-baseline-and-fitness/` | 当前基线、边界矩阵和 report-first fitness rules | Complete; 2026-07-17 |
-| 3A Foundation/calibration | `3-2` · `02-pr-discovery-read-owner/` | `/prd` read-only workflow/query owner 收敛 | Verified Complete; exit commit pending |
-| 3B Mutation calibration / PR convergence | `3-3` · `03-feedback-submission-vertical/` | Feedback browser-to-Postgres mutation calibration | Verified Complete; exit commit pending |
-| 3B Mutation calibration / PR convergence | `3-4` · `04-pr-type-config-boundary/` | PR Type Config public read/write owner 与 consumer migration | Planned; next in 3B |
+| 3A Foundation/calibration | `3-2` · `02-pr-discovery-read-owner/` | `/prd` read-only workflow/query owner 收敛 | Complete; `ca6151cd` |
+| 3B Mutation calibration / PR convergence | `3-3` · `03-feedback-submission-vertical/` | Feedback browser-to-Postgres mutation calibration | Complete; `ca6151cd` |
+| 3B Mutation calibration / PR convergence | `3-4` · `04-pr-type-config-boundary/` | PR Type Config public read/write owner 与 consumer migration | Complete; dedicated exit commit |
 | 3B Mutation calibration / PR convergence | `3-5` · `05-pr-core-retirement/` | canonical `domains/pr` cutover 与 compatibility 退场 | Planned after `3-4` |
 | 3B Mutation calibration / PR convergence | `3-6` · `06-contract-surface-narrowing/` | Web types-only contract surface 与 duplicate DTO 收窄 | Planned after public surfaces stabilize |
 | 3C Conflict closure | `3-7` · `07-cf01-anonymous-pr-creation/` | 对齐 authenticated-only PR persistence 产品与运行合同 | Decided; execute after `3-6` |
@@ -69,10 +69,12 @@ CF-01 和 CF-02 的退出同时构成 Phase 3 exit，不再添加一个没有独
   OQ-07 blocker，但 security SKIPPED 与全仓 format NO-SIGNAL 仍不可包装成通过。
 - 八个 slice 均已具备独立 packet、具体 execution plan、mental rehearsal 和 stop/rollback 分支。
 - `3-1` 已完成：架构目标/生长规则、owner topology、Backend/Web local rules 和 standalone
-  architecture-fitness baseline 均已验证；125 known / 0 new，未接入 blocking gate。
+  architecture-fitness baseline 均已验证；125 known / 0 new，未接入 blocking gate。公开入口现在精确包括
+  root `index.ts` 或四类 category root entrypoint，且有正反 fixture 保证 nested implementation 仍不可跨域导入。
 - 并行 quality-gate work 已提交为 `c634d9b6`；`3-1` 在该 HEAD 上复核 digest 无漂移。
-- Sir 已于 2026-07-17 授权开始 Phase 3；`3-2` 已在工作树验证完成、exit commit pending：单一 `/prd` read workflow、
-  Web unit 142/142、targeted System 11/11、full System 42/42、fitness 125 known / 0 new。
-- `3-3` 已验证完成：generic Feedback command、PR-owned workflow、retryable UI 与 Browser→Postgres proof
-  均通过；`3-2`/`3-3` 的 exit commit pending。3B 已开始但尚有 `3-4`–`3-6`，之后才进入 3C。
+- Sir 已于 2026-07-17 授权开始 Phase 3；`3-2` 已由 `ca6151cd` 收口：单一 `/prd` read workflow、Web unit
+  142/142、targeted System 11/11、full System 42/42、fitness 125 known / 0 new。
+- `3-3` 已由 `ca6151cd` 收口：generic Feedback command、PR-owned workflow、retryable UI 与
+  Browser→Postgres proof 均通过。`3-4` 已完成 neutral PR Type Config owner、Admin adapter 收敛、current/snapshot
+  scenario proof、Backend build/lint/type 与 fitness 125 known / 0 new。3B 仍有 `3-5`–`3-6`，之后才进入 3C。
 - Phase 3 之后的领域 phases 与全局收尾见 `../program-roadmap.md`，不属于本次应用修改授权。

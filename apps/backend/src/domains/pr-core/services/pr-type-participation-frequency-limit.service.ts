@@ -2,10 +2,9 @@ import type { PartnerRequest, PRId, UserId } from "../../../entities";
 import { ProblemDetailsError } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
+import { getPRTypeConfigParticipationFrequencyPolicy } from "../../pr-type-config";
 import { getTimeWindowClose, getTimeWindowStart } from "./time-window.service";
 
-const prTypeConfigRepo = new PRTypeConfigRepository();
 const partnerRepo = new PartnerRepository();
 const prRepo = new PartnerRequestRepository();
 
@@ -56,7 +55,7 @@ export const evaluatePRTypeParticipationFrequencyLimit = async (input: {
   request: PartnerRequest;
   userId: UserId | null;
 }): Promise<PRTypeParticipationFrequencyLimitEvaluation> => {
-  const config = await prTypeConfigRepo.findByType(input.request.type);
+  const config = await getPRTypeConfigParticipationFrequencyPolicy(input.request.type);
   const limit = config?.participationFrequencyLimit ?? null;
   if (!isLimitEnabled(limit) || input.userId === null) {
     return { allowed: true, limit };

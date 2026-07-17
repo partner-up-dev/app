@@ -1,5 +1,8 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
+import {
+  getPRTypeConfigDiscoveryPolicy,
+  listPRTypeConfigDiscoveryCatalogPolicies,
+} from "../../pr-type-config";
 import type {
   PRDiscoveryCatalogItem,
   PRDiscoveryTypeDetail,
@@ -9,10 +12,8 @@ import type {
 import { normalizeDiscoveryType, readTypeConfig } from "../services/read.service";
 import { buildPRDiscoveryTypePlacePresentations } from "../services/type-presentation";
 
-const repo = new PRTypeConfigRepository();
-
 export const listPRDiscoveryCatalog = async (): Promise<PRDiscoveryCatalogItem[]> => {
-  const rows = await repo.listAll();
+  const rows = await listPRTypeConfigDiscoveryCatalogPolicies();
   const presentations = await buildPRDiscoveryTypePlacePresentations(rows);
   return rows.map((row) => ({
     type: row.type,
@@ -96,11 +97,11 @@ export const getPRDiscoveryView = async (
   viewRatios: PRDiscoveryViewRatios;
 }> => {
   const type = normalizeDiscoveryType(rawType);
-  const config = await readTypeConfig(type);
+  const config = await getPRTypeConfigDiscoveryPolicy(type);
   const viewRatios = {
-    FORM: config?.discoveryFormRatio ?? 0,
-    CARD: config?.discoveryCardRatio ?? 0,
-    LIST: config?.discoveryListRatio ?? 0,
+    FORM: config?.viewRatios.FORM ?? 0,
+    CARD: config?.viewRatios.CARD ?? 0,
+    LIST: config?.viewRatios.LIST ?? 0,
   };
   return {
     type,

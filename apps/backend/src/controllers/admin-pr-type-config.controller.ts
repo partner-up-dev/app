@@ -17,17 +17,15 @@ import {
   getAdminPRTypeConfigDetail,
   listAdminPRTypeConfigCatalog,
   listAdminPRTypePreferenceTags,
+  listAdminPRTypeRouteApplications,
   moderateAdminPRTypePreferenceTag,
+  reviewAdminPRTypeRouteApplication,
   updateAdminPRTypeConfigAuthoring,
   updateAdminPRTypeConfigCompletion,
   updateAdminPRTypeConfigCoordination,
   updateAdminPRTypeConfigDiscovery,
   updateAdminPRTypeConfigParticipation,
 } from "../domains/admin-pr-type-config";
-import {
-  listAdminPRTypeRouteApplications,
-  reviewAdminPRTypeRouteApplication,
-} from "../domains/pr-authoring";
 import { prRouteSchema } from "../entities/partner-request";
 
 const app = new Hono<AdminAuthEnv>();

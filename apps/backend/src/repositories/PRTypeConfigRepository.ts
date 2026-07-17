@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { type NewPRTypeConfig, type PRTypeConfig, prTypeConfigs } from "../entities/pr-type-config";
 import { db } from "../lib/db";
 
@@ -13,6 +13,16 @@ export class PRTypeConfigRepository {
       .select()
       .from(prTypeConfigs)
       .where(eq(prTypeConfigs.type, type))
+      .limit(1);
+    return result[0] ?? null;
+  }
+
+  /** Operator creation needs case/whitespace-insensitive uniqueness without changing the persisted key. */
+  async findByNormalizedType(type: string): Promise<PRTypeConfig | null> {
+    const result = await db
+      .select()
+      .from(prTypeConfigs)
+      .where(sql`lower(btrim(${prTypeConfigs.type})) = lower(btrim(${type}))`)
       .limit(1);
     return result[0] ?? null;
   }

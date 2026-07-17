@@ -69,7 +69,7 @@ These are subsystem clusters inside the two units, not independent top-level uni
 | Capability | Current owner / state | Target dependency direction |
 | --- | --- | --- |
 | PR Lifecycle and canonical PR facts | `domains/pr` is the canonical surface/read owner; lifecycle implementation still delegates extensively to `domains/pr-core` | callers → curated `domains/pr` command/query/contract; compatibility `pr-core` → canonical owner only after cutover |
-| PR Type Configuration | Postgres entity/repository own current persistence; `admin-pr-type-config` owns current operator composition while Authoring/Discovery/Lifecycle consume configuration directly | consumers → neutral PR Type Configuration queries/commands → internal persistence; Admin remains an adapter |
+| PR Type Configuration | `domains/pr-type-config` owns current-policy queries, operator commands and stable contracts; its Postgres repository remains internal. `admin-pr-type-config` is the operator composition/HTTP adapter. | consumers → named neutral PR Type Configuration queries/commands/contracts → internal persistence; Admin remains an adapter and does not duplicate policy validation or writes |
 | PR Authoring | `domains/pr-authoring` plus ordinary PR creation commands | route/controller → Authoring public options/submission surface → ordinary PR command |
 | PR Discovery | `domains/pr-discovery` for catalog, view resolution, directory and recommendation reads | route/controller → Discovery query surface → canonical PR/Type/POI reads |
 | POI | `domains/poi` and POI persistence | Authoring/Discovery consume POI-owned query/contracts rather than duplicating location authority |

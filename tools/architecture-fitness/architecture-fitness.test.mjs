@@ -30,6 +30,26 @@ test("valid owner edges do not produce findings", () => {
   );
 });
 
+test("root-level category entrypoints are public while deep implementation paths remain private", () => {
+  const report = scanArchitecture(fixtureRoot);
+  assert.equal(
+    report.findings.some(
+      (item) =>
+        item.rule === RULES.BACKEND_CROSS_DOMAIN_PRIVATE &&
+        item.source.includes("valid-category-catalog"),
+    ),
+    false,
+  );
+  assert.equal(
+    report.findings.some(
+      (item) =>
+        item.rule === RULES.BACKEND_CROSS_DOMAIN_PRIVATE &&
+        item.target.endsWith("catalog/services/private.ts"),
+    ),
+    true,
+  );
+});
+
 test("reports are byte-identical for an unchanged scope", () => {
   assert.equal(
     stableJson(scanArchitecture(fixtureRoot)),

@@ -7,6 +7,10 @@ export {
   moderateAdminPRTypePreferenceTag,
 } from "./use-cases/preference-tags";
 export {
+  listAdminPRTypeRouteApplications,
+  reviewAdminPRTypeRouteApplication,
+} from "./use-cases/route-applications";
+export {
   updateAdminPRTypeConfigAuthoring,
   updateAdminPRTypeConfigCompletion,
   updateAdminPRTypeConfigCoordination,

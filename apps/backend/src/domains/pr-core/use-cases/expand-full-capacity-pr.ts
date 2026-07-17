@@ -2,9 +2,9 @@ import type { PRId } from "../../../entities/partner-request";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { findPoisByNames } from "../../poi";
 import { createPRFromStructured } from "../../pr/model/pr";
+import { getPRTypeConfigExpansionPolicy } from "../../pr-type-config";
 import {
   isPRActiveStatus,
   readVisiblePartnerRequestsByTypeAndTime,
@@ -13,7 +13,6 @@ import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../service
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
-const prTypeConfigRepo = new PRTypeConfigRepository();
 
 const findNextAvailableLocation = (
   pool: string[],
@@ -42,7 +41,7 @@ export async function expandFullCapacityPR(prId: PRId): Promise<void> {
   const sourceActiveCount = await partnerRepo.countActiveByPrId(prId);
   if (sourceActiveCount < request.maxPartners) return;
 
-  const config = await prTypeConfigRepo.findByType(request.type);
+  const config = await getPRTypeConfigExpansionPolicy(request.type);
   if (!config || config.fullCapacityExpansionPolicy !== "ENABLED") return;
 
   const sourceLocation = request.location?.trim() ?? "";

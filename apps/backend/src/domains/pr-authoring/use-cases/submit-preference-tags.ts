@@ -1,11 +1,10 @@
 import type { PRTypePreferenceTag } from "../../../entities/pr-type-preference-tag";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { PRTypePreferenceTagRepository } from "../../../repositories/PRTypePreferenceTagRepository";
 import { normalizePRPreferenceLabel } from "../../pr/services/preference-normalization";
+import { hasPRTypeConfig } from "../../pr-type-config";
 import type { PRTypePreferenceTagSubmissionResponse } from "../contracts";
 
-const typeConfigRepo = new PRTypeConfigRepository();
 const tagRepo = new PRTypePreferenceTagRepository();
 
 export const normalizePRAuthoringPreferenceLabels = (labels: readonly string[]): string[] => {
@@ -34,8 +33,7 @@ export const submitPRAuthoringPreferenceTags = async (input: {
   labels: readonly string[];
 }): Promise<PRTypePreferenceTagSubmissionResponse> => {
   const type = input.type.trim();
-  const config = await typeConfigRepo.findByType(type);
-  if (!config) {
+  if (!(await hasPRTypeConfig(type))) {
     return throwHttpProblem({
       status: 404,
       detail: "PR type not found",

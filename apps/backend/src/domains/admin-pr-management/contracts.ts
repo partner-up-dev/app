@@ -7,7 +7,7 @@ import type {
 import type { PRJoinGateConfig } from "../../entities/join-gate";
 import type { MeetingPointConfig } from "../../entities/meeting-point";
 import type { PRRoute, PRStatus, VisibilityStatus } from "../../entities/partner-request";
-import type { PRTypeConfig } from "../../entities/pr-type-config";
+import type { PRTypeConfigAuthoringPolicy } from "../pr-type-config";
 
 export type AdminPRSummary = {
   prId: number;
@@ -39,7 +39,7 @@ export type AdminPRTypeOption = {
   title: string;
   description: string | null;
   locationOptions: string[];
-  routeOptions: PRTypeConfig["routePool"];
+  routeOptions: PRTypeConfigAuthoringPolicy["routePool"];
   defaultMinPartners: number | null;
   defaultMaxPartners: number | null;
   defaultNotes: string | null;
@@ -49,7 +49,7 @@ export type AdminPRTypeOption = {
   defaultJoinLockOffsetMinutes: number;
   joinGateConfig: PRJoinGateConfig;
   feedbackQuestionnaireTemplateId: FeedbackQuestionnaireTemplateId | null;
-  authoringCreationPolicy: PRTypeConfig["authoringCreationPolicy"];
+  authoringCreationPolicy: PRTypeConfigAuthoringPolicy["authoringCreationPolicy"];
 };
 
 export type AdminPRWorkspace = {

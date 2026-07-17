@@ -1,2 +1,2 @@
 export * from "./use-cases";
-export * from "./services/poi-lookup.service";
+export * from "./queries";

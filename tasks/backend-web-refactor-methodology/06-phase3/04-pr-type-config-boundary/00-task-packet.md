@@ -21,4 +21,8 @@ values that materialize into PR remain snapshots; later config changes do not re
 
 ## Status
 
-Planned after pilots. No mutation started.
+Verified complete in the controlled Phase 3 worktree on 2026-07-17. The owner is `domains/pr-type-config`;
+all production domain imports of `PRTypeConfigRepository` now reside only in its internal persistence adapter.
+Admin is an operator adapter, not a second config owner. No schema, migration or HTTP path changed. Entry and exit
+evidence are frozen in `entry-delta.md` and `exit-evidence.md`; the slice remains uncommitted pending Sir's next
+dedicated exit commit.

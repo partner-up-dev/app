@@ -1,7 +1,6 @@
 import type { PartnerRequest } from "../../../entities/partner-request";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import {
   countActivePartnersForPR,
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
@@ -9,10 +8,10 @@ import {
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
   resolvePRPlaceDisplayName,
 } from "../../pr/services";
+import { listPRTypeConfigOperatorDetails } from "../../pr-type-config";
 import type { AdminPRSummary, AdminPRTypeOption, AdminPRWorkspace } from "../contracts";
 
 const prRepository = new PartnerRequestRepository();
-const typeConfigRepository = new PRTypeConfigRepository();
 const feedbackRepository = new FeedbackQuestionnaireRepository();
 
 export const toAdminPRSummary = async (request: PartnerRequest): Promise<AdminPRSummary> => ({
@@ -43,29 +42,29 @@ export const toAdminPRSummary = async (request: PartnerRequest): Promise<AdminPR
 });
 
 const toTypeOption = (
-  config: Awaited<ReturnType<PRTypeConfigRepository["listAll"]>>[number],
+  config: Awaited<ReturnType<typeof listPRTypeConfigOperatorDetails>>[number],
 ): AdminPRTypeOption => ({
   type: config.type,
-  title: config.title,
-  description: config.description,
-  locationOptions: [...config.locationPool],
-  routeOptions: config.routePool,
-  defaultMinPartners: config.defaultMinPartners,
-  defaultMaxPartners: config.defaultMaxPartners,
-  defaultNotes: config.defaultNotes,
-  defaultConfirmationEnabled: config.defaultConfirmationEnabled,
-  defaultConfirmationStartOffsetMinutes: config.defaultConfirmationStartOffsetMinutes,
-  defaultConfirmationEndOffsetMinutes: config.defaultConfirmationEndOffsetMinutes,
-  defaultJoinLockOffsetMinutes: config.defaultJoinLockOffsetMinutes,
-  joinGateConfig: config.joinGateConfig,
-  feedbackQuestionnaireTemplateId: config.feedbackQuestionnaireTemplateId,
-  authoringCreationPolicy: config.authoringCreationPolicy,
+  title: config.discovery.title,
+  description: config.discovery.description,
+  locationOptions: [...config.authoring.locationPool],
+  routeOptions: config.authoring.routePool,
+  defaultMinPartners: config.authoring.defaultMinPartners,
+  defaultMaxPartners: config.authoring.defaultMaxPartners,
+  defaultNotes: config.authoring.defaultNotes,
+  defaultConfirmationEnabled: config.participation.defaultConfirmationEnabled,
+  defaultConfirmationStartOffsetMinutes: config.participation.defaultConfirmationStartOffsetMinutes,
+  defaultConfirmationEndOffsetMinutes: config.participation.defaultConfirmationEndOffsetMinutes,
+  defaultJoinLockOffsetMinutes: config.participation.defaultJoinLockOffsetMinutes,
+  joinGateConfig: config.participation.joinGateConfig,
+  feedbackQuestionnaireTemplateId: config.completion.feedbackQuestionnaireTemplateId,
+  authoringCreationPolicy: config.authoring.authoringCreationPolicy,
 });
 
 export const getAdminPRWorkspace = async (): Promise<AdminPRWorkspace> => {
   const [requests, configs, templates, instances] = await Promise.all([
     prRepository.listAll(),
-    typeConfigRepository.listAll(),
+    listPRTypeConfigOperatorDetails(),
     feedbackRepository.listTemplates(),
     feedbackRepository.listInstances(),
   ]);

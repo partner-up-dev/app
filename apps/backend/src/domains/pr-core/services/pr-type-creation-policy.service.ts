@@ -1,7 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
-
-const prTypeConfigRepo = new PRTypeConfigRepository();
+import { getPRTypeConfigCreationPolicy } from "../../pr-type-config";
 
 export const PR_TYPE_USER_CREATION_DISABLED_CODE = "PR_TYPE_USER_CREATION_DISABLED";
 
@@ -20,7 +18,7 @@ export async function assertPRTypeCreationAllowed(input: { type: string }): Prom
   const normalizedType = input.type.trim();
   if (normalizedType.length === 0) return;
 
-  const config = await prTypeConfigRepo.findByType(normalizedType);
+  const config = await getPRTypeConfigCreationPolicy(normalizedType);
   if (config && !canCreatePRForType(config)) {
     throwUserCreationDisabled();
   }

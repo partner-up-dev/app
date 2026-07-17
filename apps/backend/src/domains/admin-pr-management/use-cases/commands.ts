@@ -9,9 +9,9 @@ import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
 import { updatePRContent } from "../../pr";
+import { hasPRTypeConfig } from "../../pr-type-config";
 import {
   applyParticipantReleaseEffects,
   promoteWaitlistedPartners,
@@ -23,13 +23,12 @@ import type { AdminPRContentInput, AdminPRCreateInput } from "../contracts";
 import { validateAdminPRTimeWindow } from "../services/validation";
 
 const prRepository = new PartnerRequestRepository();
-const typeConfigRepository = new PRTypeConfigRepository();
 const partnerRepository = new PartnerRepository();
 const reliabilityRepository = new UserReliabilityRepository();
 
 const assertTypeConfigured = async (type: string): Promise<string> => {
   const normalized = type.trim();
-  if (!normalized || !(await typeConfigRepository.findByType(normalized))) {
+  if (!normalized || !(await hasPRTypeConfig(normalized))) {
     return throwHttpProblem({
       status: 422,
       detail: "PR type must be selected from the current type configuration catalog",

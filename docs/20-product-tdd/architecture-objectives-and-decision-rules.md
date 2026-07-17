@@ -63,7 +63,9 @@ A domain public surface may expose only:
 4. **Events and ports** — only where a real asynchronous, transaction, replacement or external-provider boundary exists.
 
 Repositories, Drizzle rows, internal services, framework clients, UI components and convenience re-exports are not
-cross-domain APIs. An interface or port is not justified merely to make mocking or directory movement easier.
+cross-domain APIs. A curated surface is exposed from a domain root `index.ts` or an explicitly category-named root
+entrypoint (`commands.ts`, `queries.ts`, `contracts.ts`, `events.ts`, or `ports.ts`); nested implementation paths
+remain private. An interface or port is not justified merely to make mocking or directory movement easier.
 
 Before adding a public symbol, answer all of the following:
 

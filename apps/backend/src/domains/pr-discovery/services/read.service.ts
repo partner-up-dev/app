@@ -2,8 +2,8 @@ import type { PartnerRequest } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { readVisiblePartnerRequestsByType } from "../../pr-core/services/pr-read.service";
+import { getPRTypeConfigDiscoveryPolicy } from "../../pr-type-config";
 import {
   getProductLocalDateKey,
   getProductLocalDateKeyForTimeWindowStart,
@@ -16,7 +16,6 @@ import {
   toDiscoveryListRecord,
 } from "../contracts";
 
-const typeConfigRepo = new PRTypeConfigRepository();
 const partnerRepo = new PartnerRepository();
 
 export const normalizeDiscoveryType = (value: string): string => {
@@ -77,7 +76,7 @@ export const normalizeDiscoveryDates = (dates: readonly string[]): string[] => {
 };
 
 export const readTypeConfig = async (type: string): Promise<PRDiscoveryConfigRow | null> => {
-  const row = await typeConfigRepo.findByType(type);
+  const row = await getPRTypeConfigDiscoveryPolicy(type);
   if (!row) return null;
   return {
     type: row.type,
@@ -87,9 +86,9 @@ export const readTypeConfig = async (type: string): Promise<PRDiscoveryConfigRow
     communityQrCode: row.communityQrCode,
     locationPool: row.locationPool,
     routePool: row.routePool,
-    discoveryFormRatio: row.discoveryFormRatio,
-    discoveryCardRatio: row.discoveryCardRatio,
-    discoveryListRatio: row.discoveryListRatio,
+    discoveryFormRatio: row.viewRatios.FORM,
+    discoveryCardRatio: row.viewRatios.CARD,
+    discoveryListRatio: row.viewRatios.LIST,
   };
 };
 

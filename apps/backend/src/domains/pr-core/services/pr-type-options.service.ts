@@ -1,23 +1,22 @@
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
+import { listPRTypeConfigTypeNames } from "../../pr-type-config";
 import {
   buildNaturalLanguagePRTypeCandidates,
   type NaturalLanguagePRTypeCandidate,
 } from "./pr-type-options";
 
 const prRepo = new PartnerRequestRepository();
-const prTypeConfigRepo = new PRTypeConfigRepository();
 
 export const resolveNaturalLanguagePRTypeCandidates = async (): Promise<
   NaturalLanguagePRTypeCandidate[]
 > => {
   const [observedPRTypes, configs] = await Promise.all([
     prRepo.listDistinctTypes(),
-    prTypeConfigRepo.listAll(),
+    listPRTypeConfigTypeNames(),
   ]);
 
   return buildNaturalLanguagePRTypeCandidates({
     observedPRTypes,
-    configuredPRTypes: configs.map((config) => config.type),
+    configuredPRTypes: configs,
   });
 };

@@ -4,10 +4,8 @@ import {
   normalizeMeetingPointConfigMap,
 } from "../../../entities/meeting-point";
 import type { PartnerRequest } from "../../../entities/partner-request";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { resolvePublishedPoiByLocation } from "../../poi";
-
-const prTypeConfigRepo = new PRTypeConfigRepository();
+import { getPRTypeConfigMeetingPointPolicy } from "../../pr-type-config";
 
 export type MeetingPointSource = "PR" | "PR_TYPE_LOCATION" | "PR_TYPE" | "POI";
 
@@ -45,7 +43,7 @@ export const resolveEffectiveMeetingPoint = async (
     return null;
   }
 
-  const config = await prTypeConfigRepo.findByType(request.type);
+  const config = await getPRTypeConfigMeetingPointPolicy(request.type);
   if (config) {
     const locationMeetingPoints = normalizeMeetingPointConfigMap(config.locationMeetingPoints);
     const typeLocationMeetingPoint = withSource(

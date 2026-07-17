@@ -1,7 +1,5 @@
-import type { PRTypeConfig } from "../../../entities/pr-type-config";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PoiRepository } from "../../../repositories/PoiRepository";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { PRTypePreferenceTagRepository } from "../../../repositories/PRTypePreferenceTagRepository";
 import { isTimeWindowAvailableByPoiRules } from "../../pr-core/services/poi-availability.service";
 import {
@@ -9,6 +7,10 @@ import {
   readVisiblePartnerRequestsByType,
 } from "../../pr-core/services/pr-read.service";
 import { isPRJoinableStatus } from "../../pr-core/services/status-rules";
+import {
+  getPRTypeConfigAuthoringPolicy,
+  type PRTypeConfigAuthoringPolicy,
+} from "../../pr-type-config";
 import type { PRAuthoringOptions } from "../contracts";
 import {
   buildPRAuthoringLocationOptions,
@@ -16,7 +18,6 @@ import {
 } from "../services/place-options";
 import { listPRAuthoringStartOptions } from "../services/time-window-pool";
 
-const typeConfigRepo = new PRTypeConfigRepository();
 const tagRepo = new PRTypePreferenceTagRepository();
 const poiRepo = new PoiRepository();
 const MINUTE_MS = 60_000;
@@ -47,7 +48,7 @@ const buildAvailableStartKeysByLocation = (input: {
 
 const resolveDefaultSelection = (input: {
   requests: Awaited<ReturnType<typeof readVisiblePartnerRequestsByType>>;
-  timePoolConfig: PRTypeConfig["timePoolConfig"];
+  timePoolConfig: PRTypeConfigAuthoringPolicy["timePoolConfig"];
   now: Date;
 }): PRAuthoringOptions["defaultSelection"] => {
   const selected = input.requests
@@ -107,7 +108,7 @@ export const getPRAuthoringOptions = async (
   now = new Date(),
 ): Promise<PRAuthoringOptions> => {
   const type = normalizePRAuthoringType(rawType);
-  const config = await typeConfigRepo.findByType(type);
+  const config = await getPRTypeConfigAuthoringPolicy(type);
   if (!config) {
     return {
       type,
@@ -194,7 +195,7 @@ export const getPRAuthoringOptions = async (
     creationAllowed: config.authoringCreationPolicy === "USER_AND_ADMIN",
     durationMinutes: config.timePoolConfig.durationMinutes,
     earliestLeadMinutes: config.timePoolConfig.earliestLeadMinutes,
-    timeWindowEditorDefaultMode: config.authoringTimeWindowEditorDefaultMode,
+    timeWindowEditorDefaultMode: config.timeWindowEditorDefaultMode,
     authoringDefaults: {
       minPartners: config.defaultMinPartners,
       maxPartners: config.defaultMaxPartners,

@@ -135,8 +135,19 @@ function backendDomain(file) {
   return file.match(/^apps\/backend\/src\/domains\/([^/]+)\//u)?.[1];
 }
 
-function isBackendDomainRoot(target, domain) {
-  return target === `apps/backend/src/domains/${domain}/index.ts`;
+const BACKEND_PUBLIC_ENTRYPOINTS = new Set([
+  "index.ts",
+  "commands.ts",
+  "queries.ts",
+  "contracts.ts",
+  "events.ts",
+  "ports.ts",
+]);
+
+function isBackendDomainPublicEntrypoint(target, domain) {
+  const domainRoot = `apps/backend/src/domains/${domain}/`;
+  if (!target.startsWith(domainRoot)) return false;
+  return BACKEND_PUBLIC_ENTRYPOINTS.has(target.slice(domainRoot.length));
 }
 
 function finding(rule, source, target, line, typeOnly = false) {
@@ -181,7 +192,7 @@ function evaluateEdge(edge) {
     targetDomain &&
     sourceDomain !== targetDomain &&
     !(sourceDomain === "pr" && targetDomain === "pr-core") &&
-    !isBackendDomainRoot(edge.target, targetDomain)
+    !isBackendDomainPublicEntrypoint(edge.target, targetDomain)
   ) {
     findings.push(
       finding(

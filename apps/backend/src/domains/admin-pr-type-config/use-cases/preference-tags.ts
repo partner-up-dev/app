@@ -1,10 +1,9 @@
 import type { PRTypePreferenceTagModerationStatus } from "../../../entities/pr-type-preference-tag";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { PRTypeConfigRepository } from "../../../repositories/PRTypeConfigRepository";
 import { PRTypePreferenceTagRepository } from "../../../repositories/PRTypePreferenceTagRepository";
+import { hasPRTypeConfig } from "../../pr-type-config";
 import type { AdminPRTypePreferenceTagView } from "../contracts";
 
-const configRepository = new PRTypeConfigRepository();
 const tagRepository = new PRTypePreferenceTagRepository();
 
 const toView = (
@@ -24,7 +23,7 @@ const assertTypeExists = async (type: string): Promise<string> => {
   if (!normalizedType) {
     return throwHttpProblem({ status: 422, detail: "PR type is required" });
   }
-  if (!(await configRepository.findByType(normalizedType))) {
+  if (!(await hasPRTypeConfig(normalizedType))) {
     return throwHttpProblem({
       status: 404,
       detail: "PR type configuration not found",

@@ -6,6 +6,11 @@ import {
   adminPRTypeConfigParticipationSchema,
   adminPRTypePreferenceTagModerationSchema,
 } from "./contracts";
+import { prTypeConfigAuthoringSchema } from "../pr-type-config/contracts";
+
+test("admin routes reuse the PR Type Config owner's core contract", () => {
+  assert.equal(adminPRTypeConfigAuthoringSchema, prTypeConfigAuthoringSchema);
+});
 
 test("owner slice contracts reject metadata and unrelated owner fields", () => {
   const authoring = adminPRTypeConfigAuthoringSchema.safeParse({

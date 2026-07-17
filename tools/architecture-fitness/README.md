@@ -20,3 +20,7 @@ migration state are volatile; durable docs own the rules and exception protocol.
 The parser resolves relative imports and Web `@/` aliases. Package imports stay outside this first slice. Every
 report includes a content-based scope digest, sorted findings and unresolved in-scope import inventory; it contains
 no timestamp or absolute path, so two runs over the same tree are byte-identical.
+
+For Backend domain imports, the reporter treats only a domain root `index.ts` or an explicitly category-named
+root entrypoint (`commands.ts`, `queries.ts`, `contracts.ts`, `events.ts`, or `ports.ts`) as public. A nested
+`services/`, `use-cases/`, `model/`, repository, or entity path remains private.
