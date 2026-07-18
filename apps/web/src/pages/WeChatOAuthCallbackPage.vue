@@ -25,8 +25,11 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { PuCard, PuLoadingState, PuPageScaffold } from "@partner-up-dev/design-web";
 import { client } from "@/lib/rpc";
+import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { useUserSessionStore, type AuthSessionPayload } from "@/shared/auth/useUserSessionStore";
+import { clearWeChatOAuthSensitiveParamsFromAddressBar } from "@/processes/wechat/oauth-login";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
+import { clearWeChatOAuthTrace } from "@/processes/wechat/oauth-trace";
 
 const { t } = useI18n();
 
@@ -65,12 +68,23 @@ type OAuthCallbackResponse =
       returnTo?: string;
     };
 
+const completeCallback = (): void => {
+  clearWeChatOAuthLoginPending();
+  clearWeChatOAuthTrace();
+};
+
+const failCallback = (message: string): void => {
+  completeCallback();
+  status.value = "failed";
+  errorMessage.value = message;
+};
+
 const handleCallback = async (): Promise<void> => {
   const { code, state } = resolveOAuthParams();
+  clearWeChatOAuthSensitiveParamsFromAddressBar();
+
   if (!code || !state) {
-    clearWeChatOAuthLoginPending();
-    status.value = "failed";
-    errorMessage.value = t("wechatOAuthCallbackPage.missingParams");
+    failCallback(t("wechatOAuthCallbackPage.missingParams"));
     return;
   }
 
@@ -87,12 +101,8 @@ const handleCallback = async (): Promise<void> => {
     );
 
     if (!res.ok) {
-      const payload = (await res.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      clearWeChatOAuthLoginPending();
-      status.value = "failed";
-      errorMessage.value = payload?.error ?? t("wechatOAuthCallbackPage.failed");
+      const payload = await readApiErrorPayload(res);
+      failCallback(resolveApiErrorMessage(payload, t("wechatOAuthCallbackPage.failed")));
       return;
     }
 
@@ -100,20 +110,17 @@ const handleCallback = async (): Promise<void> => {
     if (payload.ok && payload.returnTo) {
       if (payload.auth) {
         userSessionStore.applyAuthSession(payload.auth);
-        clearWeChatOAuthLoginPending();
       }
+      completeCallback();
       window.location.replace(payload.returnTo);
       return;
     }
 
-    clearWeChatOAuthLoginPending();
-    status.value = "failed";
-    errorMessage.value = "error" in payload ? payload.error : t("wechatOAuthCallbackPage.failed");
-  } catch (error) {
-    clearWeChatOAuthLoginPending();
-    status.value = "failed";
-    errorMessage.value =
-      error instanceof Error ? error.message : t("wechatOAuthCallbackPage.failed");
+    failCallback(
+      "error" in payload && payload.error ? payload.error : t("wechatOAuthCallbackPage.failed"),
+    );
+  } catch {
+    failCallback(t("wechatOAuthCallbackPage.failed"));
   }
 };
 

@@ -1,4 +1,4 @@
-# 4-1A Durable Documentation Promotion
+# 4-1 Durable Documentation Promotion
 
 The implementation proof is sufficient to promote the source-level authority rule, but not to claim that the normal
 deployment has already changed. The rollout probe remains task-local evidence.

@@ -1,13 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { isWeChatOAuthLoginPending } from "./oauth-login-pending";
-import { requestWeChatOAuthLogin, resetWeChatOAuthLoginRedirectStateForTest } from "./oauth-login";
+import {
+  normalizeOAuthReturnTo,
+  requestWeChatOAuthLogin,
+  resetWeChatOAuthLoginRedirectStateForTest,
+} from "./oauth-login";
 
-const installWindow = (replace: (url: string) => void): void => {
+const installWindow = (
+  replace: (url: string) => void,
+  currentUrl = "https://partner-up.test/",
+): void => {
+  const location = new URL(currentUrl);
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: {
       location: {
+        href: location.toString(),
+        origin: location.origin,
         replace,
       },
       setTimeout: (callback: () => void) => {
@@ -41,6 +51,29 @@ test("requestWeChatOAuthLogin single-flights redirect attempts", () => {
   } finally {
     resetWeChatOAuthLoginRedirectStateForTest();
     assert.equal(isWeChatOAuthLoginPending(), false);
+    uninstallWindow();
+  }
+});
+
+test("normalizes OAuth returnTo at the login boundary", () => {
+  installWindow(() => undefined, "https://app.partner-up.test/pr/42");
+
+  try {
+    assert.equal(
+      normalizeOAuthReturnTo(
+        "https://app.partner-up.test/pr/42?mode=form&code=provider-code&state=provider-state&wechatOAuthHandoff=nonce#access_token=secret",
+      ),
+      "https://app.partner-up.test/pr/42?mode=form",
+    );
+    assert.equal(
+      normalizeOAuthReturnTo("https://attacker.test/phishing?mode=form"),
+      "https://app.partner-up.test/",
+    );
+    assert.equal(
+      normalizeOAuthReturnTo("/me?tab=profile&token=legacy-token"),
+      "https://app.partner-up.test/me?tab=profile",
+    );
+  } finally {
     uninstallWindow();
   }
 });

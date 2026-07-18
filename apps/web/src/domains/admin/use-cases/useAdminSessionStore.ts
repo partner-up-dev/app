@@ -11,21 +11,21 @@ import {
   setStoredAdminUserId,
   type AdminSessionRole,
 } from "@/domains/admin/model/admin-session-storage";
-import type { SessionRole } from "@/shared/auth/session-storage";
+type AdminInputRole = AdminSessionRole | "authenticated";
 
 export type AdminAuthSessionPayload = {
-  role: SessionRole;
-  roles?: readonly SessionRole[];
+  role: AdminInputRole;
+  roles?: readonly AdminInputRole[];
   userId: string | null;
   accessToken: string;
 };
 
-const normalizeRole = (role: SessionRole): AdminSessionRole =>
+const normalizeRole = (role: AdminInputRole): AdminSessionRole =>
   role === "service" || role === "analytics" ? role : "anonymous";
 
 const normalizeRoles = (
-  roles: readonly SessionRole[] | undefined,
-  fallbackRole: SessionRole,
+  roles: readonly AdminInputRole[] | undefined,
+  fallbackRole: AdminInputRole,
 ): AdminSessionRole[] => {
   const normalized = [...new Set(roles ?? [fallbackRole])].map(normalizeRole);
   if (normalized.includes("service") || normalized.includes("analytics")) {

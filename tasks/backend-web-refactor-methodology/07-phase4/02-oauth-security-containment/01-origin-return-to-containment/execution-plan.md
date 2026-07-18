@@ -1,4 +1,4 @@
-# 4-1A Execution Plan
+# 4-1 Execution Plan
 
 1. Add focused characterization tests for paired, untrusted, cross-environment and missing-origin CORS requests;
    add return-target cases for explicit, hostile, relative and absent inputs.

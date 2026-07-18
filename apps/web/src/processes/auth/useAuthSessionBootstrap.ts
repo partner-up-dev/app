@@ -4,11 +4,10 @@ import { useUserSessionStore, type AuthSessionPayload } from "@/shared/auth/useU
 import { getStoredAccessToken, getStoredUserId } from "@/shared/auth/session-storage";
 import { hasPendingWeChatOAuthHandoff } from "@/processes/wechat/oauth-handoff";
 import { trackAuthSessionCreated } from "@/shared/telemetry/auth-session";
+import { runAuthSessionBootstrapCoordinator } from "./auth-session-bootstrap-coordinator";
 
 let hasBootstrappedAuthSession = false;
 let bootstrappingPromise: Promise<void> | null = null;
-
-type AuthSessionBootstrapResult = "completed" | "deferred";
 
 const applyAndTrackAuthSession = async (
   store: ReturnType<typeof useUserSessionStore>,
@@ -24,25 +23,7 @@ const applyAndTrackAuthSession = async (
   }
 };
 
-const registerFreshAnonymousSession = async (
-  store: ReturnType<typeof useUserSessionStore>,
-): Promise<boolean> => {
-  const registerRes = await client.api.auth.register.anonymous.$post(undefined, {
-    init: {
-      credentials: "include",
-    },
-  });
-
-  if (!registerRes.ok) {
-    return false;
-  }
-
-  const payload = (await registerRes.json()) as AuthSessionPayload;
-  await applyAndTrackAuthSession(store, payload);
-  return true;
-};
-
-const runAuthSessionBootstrap = async (): Promise<AuthSessionBootstrapResult> => {
+const runAuthSessionBootstrap = async (): Promise<"completed" | "deferred"> => {
   if (typeof window !== "undefined") {
     const isOAuthCallback = window.location.pathname === "/wechat/oauth/callback";
     if (isOAuthCallback) {
@@ -60,41 +41,46 @@ const runAuthSessionBootstrap = async (): Promise<AuthSessionBootstrapResult> =>
   }
 
   const store = useUserSessionStore();
+  await runAuthSessionBootstrapCoordinator({
+    readAccessToken: getStoredAccessToken,
+    readUserId: () => store.userId ?? getStoredUserId(),
+    registerAnonymous: async () => {
+      const registerRes = await client.api.auth.register.anonymous.$post(undefined, {
+        init: {
+          credentials: "include",
+        },
+      });
 
-  const existingToken = getStoredAccessToken();
-  const storedUserId = store.userId ?? getStoredUserId();
+      if (!registerRes.ok) {
+        return null;
+      }
 
-  if (!existingToken && !storedUserId) {
-    await registerFreshAnonymousSession(store);
-  }
-
-  const currentUserId = store.userId ?? storedUserId;
-
-  const res = await client.api.auth.session.$post(
-    {
-      json: {
-        userId: currentUserId,
-      },
+      return (await registerRes.json()) as AuthSessionPayload;
     },
-    {
-      init: {
-        credentials: "include",
-      },
+    restoreSession: async (userId) => {
+      const res = await client.api.auth.session.$post(
+        {
+          json: { userId },
+        },
+        {
+          init: {
+            credentials: "include",
+          },
+        },
+      );
+
+      if (!res.ok) {
+        return { status: res.status };
+      }
+
+      return {
+        status: res.status,
+        payload: (await res.json()) as AuthSessionPayload,
+      };
     },
-  );
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      store.clearSession();
-    }
-
-    const rotated = getStoredAccessToken();
-    store.setAccessToken(rotated);
-    return "completed";
-  }
-
-  const payload = (await res.json()) as AuthSessionPayload;
-  await applyAndTrackAuthSession(store, payload);
+    clearPublicSession: () => store.clearSession(),
+    applySession: (payload) => applyAndTrackAuthSession(store, payload),
+  });
   return "completed";
 };
 
@@ -130,10 +116,15 @@ export const resetAuthSessionToFreshAnonymous = async (): Promise<void> => {
   const store = useUserSessionStore();
   store.clearSession();
   hasBootstrappedAuthSession = false;
-  const registered = await registerFreshAnonymousSession(store);
-  if (!registered) {
+  const registerRes = await client.api.auth.register.anonymous.$post(undefined, {
+    init: {
+      credentials: "include",
+    },
+  });
+  if (!registerRes.ok) {
     throw new Error("Failed to start anonymous session");
   }
+  await applyAndTrackAuthSession(store, (await registerRes.json()) as AuthSessionPayload);
   hasBootstrappedAuthSession = true;
 };
 

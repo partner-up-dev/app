@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   issueAnonymousAuth,
-  issueAuthForUser,
+  issueOperatorAuthForUser,
   issueUserAuth,
 } from "../../../../src/auth/middleware";
 import type { User } from "../../../../src/entities/user";
@@ -68,6 +68,6 @@ export async function givenAdminUser(label: string): Promise<ScenarioUser> {
 
   return {
     user,
-    token: issueAuthForUser(user).token,
+    token: issueOperatorAuthForUser(user).token,
   };
 }

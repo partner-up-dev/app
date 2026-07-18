@@ -2,16 +2,21 @@
 
 ## Current Mode And Authorization
 
-- Current mode: `Execute` for the narrow `4-1A` origin/return-target containment slice.
-- Sir explicitly authorized `4-0` entry characterization and later explicitly authorized `4-1A` runtime execution
-  on 2026-07-18.
-- `4-1A` is locally complete with a post-rollout public-header observation pending. It does not authorize a session
-  authority, schema, provider choreography, callback/handoff, or later-slice mutation.
+- Current mode: 4-2 and the local semantic portion of 4-3 are complete with durable promotion. 4-3 is owned by
+  [04-oauth-handoff-callback-compatibility](./04-oauth-handoff-callback-compatibility/).
+- Callback authority, provider-console evidence, and production-topology observation remain a distinct 4-3.4
+  external-evidence subtask. It is not silently treated as settled implementation fact and blocks only topology
+  change, real cross-origin proof claims, and legacy-path retirement.
+- Sir explicitly authorized 4-0 entry characterization, 4-1 runtime execution, and 4-2 execution on
+  2026-07-18.
+- `4-1` is locally complete with a post-rollout public-header observation pending. That observation is external to
+  `4-2` and does not block its local session-authority work.
 
 ## Objective
 
-Establish an evidence-backed Phase 4 entry model for public-user session continuity, OAuth handoff, auth transport,
-pending actions, and user ownership. The exit is a revised executable slice map, not an implementation.
+Converge public-user session authority without changing the product's anonymous-first progression or the OAuth
+callback/handoff topology. `4-2` ends with one persisted-user validation boundary, one public-session issuance
+boundary, one browser projection rule, and executable Browser-to-Backend continuity proof.
 
 ## Program Boundary
 
@@ -33,8 +38,8 @@ owned by `../program-roadmap.md`.
 | --- | --- | --- |
 | `4-0` · `01-auth-transport-inventory/` | Read-only authority, SCC, continuity, contract and test-seam characterization | Complete |
 | `4-1` · origin/return-target containment | Make credentialed CORS and OAuth `returnTo` use an explicit environment-owned Web origin | Locally complete; normal rollout header observation pending |
-| `4-2` · session and identity authority | Converge public-user session issuance, validation, restoration and browser projection | Proposal; no implementation authorization |
-| `4-3` · OAuth handoff and callback compatibility | Converge callback, nonce handoff and legacy callback behavior after the security/session boundaries are stable | Proposal; no implementation authorization |
+| `4-2` · session and identity authority | Converge public-user session issuance, validation, restoration and browser projection | Complete locally; durable session rule promoted; owned by `03-session-identity-authority/` |
+| 4-3 · OAuth handoff and callback compatibility | Converge callback, nonce handoff and legacy callback behavior after the security/session boundaries are stable | Local 4-3.1–4-3.3 complete; callback authority/rollout remains evidence-gated |
 | `4-4` · authenticated escalation and pending commands | Make protected-command escalation and command-owned replay deterministic | Proposal; no implementation authorization |
 | `4-5` · conditional compatibility closure | Resolve route auto-login, URL propagation and legacy facade decisions without manufacturing a new shared owner | Proposal; waits for named decisions |
 
@@ -43,10 +48,31 @@ owned by `../program-roadmap.md`.
 [`slice-map.md`](./slice-map.md). “Complete” means the entry characterization is complete; it does not mean that
 Phase 4 runtime work is authorized.
 
-The `4-1A` implementation and evidence are owned by
+The `4-1` implementation and evidence are owned by
 [`02-oauth-security-containment/`](./02-oauth-security-containment/). It contains the live credentialed-CORS
 reflection without changing callback/handoff topology; the normal deployment still needs a state-free public header
 recheck.
+
+`4-2` owns only the public-user boundary. It does not change OAuth callback navigation, handoff-cookie semantics,
+provider-console configuration, pending-command replay, telemetry anonymous IDs, or operator-token validation.
+Its implementation, rehearsal, proof, promotion and 4-3 inputs are owned by
+[`03-session-identity-authority/`](./03-session-identity-authority/); its local exit is complete and does not
+authorize the later slices.
+
+4-3 is deliberately decomposed instead of treating callback compatibility as one opaque change:
+
+1. Backend terminal handoff semantics establishes a no-token, stable result for expected public-identity rejection.
+2. Web terminal recovery and legacy callback hygiene makes a consumed nonce non-retryable while preserving retry
+   only for transport uncertainty and retaining the direct-callback compatibility consumer.
+3. Honest journey proof verifies the local contract without claiming that the proxy-backed System harness proves
+   production cross-origin cookies.
+4. Callback authority and rollout records the provider/edge facts that are required before any topology or
+   compatibility-retirement decision.
+
+The local 4-3.1–4-3.3 contract repair is complete: expected handoff/callback failures are token-free, the Web
+distinguishes terminal consumption from transport uncertainty, direct JSON compatibility is characterized, and the
+verified rule is promoted to the OAuth Unit TDD. 4-3.4 remains externally open and does not authorize topology
+mutation or legacy retirement.
 
 ## Protected Shared State
 
@@ -56,4 +82,4 @@ At entry, the following user-owned or independent work remains outside Phase 4:
 - untracked `tasks/oxc-toolchain-migration/`, `tasks/project-node-runtime/`, and
   `tasks/quality-gate-orchestration/`.
 
-No `4-0` action may stage, edit, validate as owned output, or absorb those paths.
+No 4-3 action may stage, edit, validate as owned output, or absorb those paths.

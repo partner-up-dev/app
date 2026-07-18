@@ -2,10 +2,10 @@
 
 ## Status And Authorization
 
-- Current mode: `Execute` for completed local/staging-deployed `4-1A`; public header observation is blocked from
+- Current mode: `Execute` for completed local/staging-deployed `4-1`; public header observation is blocked from
   this agent environment rather than pending CD.
 - Read-only topology evidence was authorized by Sir on 2026-07-18.
-- Sir explicitly authorized the narrow `4-1A` runtime implementation on 2026-07-18. That authority covered the
+- Sir explicitly authorized the narrow `4-1` runtime implementation on 2026-07-18. That authority covered the
   named Backend source/tests and the resulting durable-doc promotion, not deployment-setting, provider-setting or
   production OAuth changes.
 
@@ -17,7 +17,7 @@ registration. The future callback/handoff topology work belongs to `4-3`.
 
 ## Owned Paths
 
-`4-1A` owns the named Backend origin/return-target source and tests, its task-local evidence, and the precise
+`4-1` owns the named Backend origin/return-target source and tests, its task-local evidence, and the precise
 durable contract promotion. Callback, cookie, handoff, provider and frontend compatibility paths remain protected.
 
 ## Deliverables

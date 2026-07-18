@@ -1,7 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import {
-  getStoredAccessToken,
   getStoredSessionRole,
   getStoredUserId,
   isAuthenticatedSessionRole,
@@ -17,58 +16,50 @@ export type AuthSessionPayload = {
   accessToken: string;
 };
 
+type IncomingAuthSessionPayload = Omit<AuthSessionPayload, "role"> & {
+  role: SessionRole | "service" | "analytics";
+};
+
 export const useUserSessionStore = defineStore("userSession", () => {
   const role = ref<SessionRole>(getStoredSessionRole());
   const userId = ref<string | null>(getStoredUserId());
-  const accessToken = ref<string | null>(getStoredAccessToken());
 
   const isAuthenticated = computed(
     () => isAuthenticatedSessionRole(role.value) && Boolean(userId.value),
   );
 
-  const hasAdminAccess = computed(
-    () => role.value === "service" && Boolean(userId.value) && Boolean(accessToken.value),
-  );
-
   const syncStorage = () => {
     setStoredSessionRole(role.value);
     setStoredUserId(userId.value);
-    setStoredAccessToken(accessToken.value);
   };
 
-  const applyAuthSession = (payload: AuthSessionPayload) => {
-    role.value = payload.role;
-    userId.value = payload.userId;
-    accessToken.value = payload.accessToken;
-    syncStorage();
-  };
+  const applyAuthSession = (payload: IncomingAuthSessionPayload) => {
+    // Operator roles belong to the separate admin context. Keep the legacy
+    // callback/handoff payload assignable without projecting them publicly.
+    if (payload.role === "service" || payload.role === "analytics") {
+      clearSession();
+      return;
+    }
 
-  const setAccessToken = (token: string | null) => {
-    accessToken.value = token;
-    setStoredAccessToken(token);
-  };
-
-  const setRole = (nextRole: SessionRole) => {
+    const nextRole: SessionRole = payload.role === "authenticated" ? "authenticated" : "anonymous";
     role.value = nextRole;
-    setStoredSessionRole(nextRole);
+    userId.value = payload.userId;
+    setStoredAccessToken(payload.accessToken);
+    syncStorage();
   };
 
   const clearSession = () => {
     role.value = "anonymous";
     userId.value = null;
-    accessToken.value = null;
+    setStoredAccessToken(null);
     syncStorage();
   };
 
   return {
     role,
     userId,
-    accessToken,
     isAuthenticated,
-    hasAdminAccess,
     applyAuthSession,
-    setAccessToken,
-    setRole,
     clearSession,
   };
 });

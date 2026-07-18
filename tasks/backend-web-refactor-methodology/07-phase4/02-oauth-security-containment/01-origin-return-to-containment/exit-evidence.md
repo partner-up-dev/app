@@ -1,4 +1,4 @@
-# 4-1A Exit Evidence
+# 4-1 Exit Evidence
 
 ## Outcome
 
@@ -22,7 +22,7 @@ The configuration-authority rule is now promoted to the three owners named in th
 [durable-docs plan](./durable-docs-plan.md). That promotion does not claim callback/provider topology or live
 post-deployment headers; both remain outside this slice.
 
-`4-1A` is locally complete and its staging deployment is successful. Its final public-header observation needs an
+`4-1` is locally complete and its staging deployment is successful. Its final public-header observation needs an
 externally reachable runner, not a code change. `4-2` and `4-3` remain separate, unauthorized slices; `4-3` still
 requires the provider-console/topology evidence recorded in
 [`../03-remaining-information.md`](../03-remaining-information.md).

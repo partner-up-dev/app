@@ -29,7 +29,7 @@ Phase 3: architecture and PR migration protocol               Complete
     3-8 CF-02 waitlist header-only auth contract              Complete
   -> Phase 3 exit                                             Complete
 
-Phase 4: User/Auth                                                 4-0 complete; 4-1A locally complete, rollout observation pending
+Phase 4: User/Auth                                                 4-0–4-3 local semantics complete; 4-1 rollout observation and 4-3 topology evidence pending
 Phase 5: Commerce
 Phase 6: Job/Notification runtime
 Phase 7: Observability/Analytics
@@ -43,11 +43,17 @@ CF-01/CF-02 in `3-7`/`3-8`. The complete Phase 3 evidence is owned by
 
 Phase numbers after Phase 3 express order, not a frozen sub-slice design. Phase 4 completed its entry
 characterization in [`07-phase4/01-auth-transport-inventory/`](./07-phase4/01-auth-transport-inventory/), then
-executed the explicitly authorized, narrow `4-1A` origin/return-target containment slice under
+executed the explicitly authorized, narrow `4-1` origin/return-target containment slice under
 [`07-phase4/02-oauth-security-containment/`](./07-phase4/02-oauth-security-containment/). Its local proof and
-durable authority promotion are complete; its state-free public header observation is pending normal rollout. Each
-later implementation slice still requires its own authorization after refreshed entry evidence, authority graph,
-contract conflicts and low-cost verification plan. This status does not authorize a later-phase mutation.
+durable authority promotion are complete; its state-free public header observation is pending normal rollout.
+`4-2` then completed public session/identity authority with focused and Browser-to-Backend proof, promoting its
+compact rule to the shared session contract. Its scoped packet is
+[`07-phase4/03-session-identity-authority/`](./07-phase4/03-session-identity-authority/). 4-3 under
+[`07-phase4/04-oauth-handoff-callback-compatibility/`](./07-phase4/04-oauth-handoff-callback-compatibility/) then
+completed its local terminal-handoff/direct-callback compatibility repair and promoted the recovery rule to the
+OAuth Unit TDD. Provider-console and edge-topology conclusions remain external evidence gaps; 4-4 and 4-5 still
+require refreshed entry evidence, authority graph, contract conflicts and a low-cost verification plan. This status
+does not authorize them.
 
 ## Program Phase Boundaries
 

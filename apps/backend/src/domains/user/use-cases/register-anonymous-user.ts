@@ -1,13 +1,9 @@
 import { randomUUID } from "crypto";
-import { issueAnonymousAuth } from "../../../auth/middleware";
 import { UserRepository } from "../../../repositories/UserRepository";
 import type { UserId } from "../../../entities/user";
 
 export type AnonymousRegistrationResult = {
-  role: "anonymous";
-  roles: ["anonymous"];
-  userId: string;
-  accessToken: string;
+  userId: UserId;
 };
 
 const userRepo = new UserRepository();
@@ -27,12 +23,7 @@ export async function registerAnonymousUser(): Promise<AnonymousRegistrationResu
     throw new Error("Failed to create anonymous user");
   }
 
-  const auth = issueAnonymousAuth(created.id);
-
   return {
-    role: "anonymous",
-    roles: ["anonymous"],
     userId: created.id,
-    accessToken: auth.token,
   };
 }

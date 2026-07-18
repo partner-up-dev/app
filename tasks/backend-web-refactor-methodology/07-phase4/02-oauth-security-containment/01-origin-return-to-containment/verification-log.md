@@ -1,4 +1,4 @@
-# 4-1A Verification Log
+# 4-1 Verification Log
 
 All checks ran from the repository root without provider credentials, user cookies, OAuth codes or production writes.
 

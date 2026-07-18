@@ -1,4 +1,5 @@
-export type SessionRole = "anonymous" | "authenticated" | "service" | "analytics";
+/** Roles that may be projected into the public-user browser session. */
+export type SessionRole = "anonymous" | "authenticated";
 
 const STORAGE_USER_ID_KEY = "partner_up_user_id";
 const STORAGE_ACCESS_TOKEN_KEY = "partner_up_access_token";
@@ -64,14 +65,10 @@ export const setStoredAccessToken = (accessToken: string | null): void => {
 };
 
 const isSessionRole = (value: string | null): value is SessionRole =>
-  value === "anonymous" ||
-  value === "authenticated" ||
-  value === "service" ||
-  value === "analytics";
+  value === "anonymous" || value === "authenticated";
 
-export const isAuthenticatedSessionRole = (
-  role: SessionRole,
-): role is Exclude<SessionRole, "anonymous"> => role !== "anonymous";
+export const isAuthenticatedSessionRole = (role: SessionRole): role is "authenticated" =>
+  role === "authenticated";
 
 export const getStoredSessionRole = (): SessionRole => {
   if (typeof window === "undefined") {

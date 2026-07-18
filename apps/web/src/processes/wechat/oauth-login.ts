@@ -9,7 +9,81 @@ import {
   trackWeChatOAuthTrace,
 } from "@/processes/wechat/oauth-trace";
 
+const OAUTH_RETURN_TO_SENSITIVE_QUERY_PARAMS = [
+  "access_token",
+  "code",
+  "state",
+  "token",
+  "wechatOAuthHandoff",
+] as const;
+
 let oauthLoginRedirectInProgress = false;
+
+const resolveCurrentBrowserOrigin = (): string | null => {
+  if (typeof window === "undefined") return null;
+
+  const origin = window.location?.origin;
+  if (typeof origin === "string" && origin.length > 0) {
+    return origin;
+  }
+
+  try {
+    return new URL(window.location.href).origin;
+  } catch {
+    return null;
+  }
+};
+
+const clearSensitiveOAuthUrlParts = (url: URL): boolean => {
+  let changed = false;
+  for (const param of OAUTH_RETURN_TO_SENSITIVE_QUERY_PARAMS) {
+    if (url.searchParams.has(param)) {
+      url.searchParams.delete(param);
+      changed = true;
+    }
+  }
+
+  if (url.hash) {
+    url.hash = "";
+    changed = true;
+  }
+
+  return changed;
+};
+
+/**
+ * Removes OAuth credentials from the visible callback URL after their values
+ * have been read. This prevents browser history, reloads, and copied links
+ * from retaining a provider code, state, token, or handoff nonce.
+ */
+export const clearWeChatOAuthSensitiveParamsFromAddressBar = (): void => {
+  if (typeof window === "undefined") return;
+
+  try {
+    const url = new URL(window.location.href);
+    if (!clearSensitiveOAuthUrlParts(url)) return;
+    window.history.replaceState(window.history.state, "", url.toString());
+  } catch {
+    // A broken browser URL must not prevent the callback flow from resolving.
+  }
+};
+
+export const normalizeOAuthReturnTo = (returnTo: string): string => {
+  const currentOrigin = resolveCurrentBrowserOrigin();
+  if (!currentOrigin) return returnTo;
+
+  try {
+    const normalized = new URL(returnTo, currentOrigin);
+    if (normalized.origin !== currentOrigin) {
+      return new URL("/", currentOrigin).toString();
+    }
+
+    clearSensitiveOAuthUrlParts(normalized);
+    return normalized.toString();
+  } catch {
+    return new URL("/", currentOrigin).toString();
+  }
+};
 
 const scheduleOAuthLoginRedirect = (url: string): void => {
   const redirect = (): void => {
@@ -30,7 +104,7 @@ export const resolveOAuthLoginUrl = (
   returnTo: string,
   trace?: ReturnType<typeof startWeChatOAuthTrace>,
 ): string => {
-  const query = new URLSearchParams({ returnTo });
+  const query = new URLSearchParams({ returnTo: normalizeOAuthReturnTo(returnTo) });
   if (trace) {
     appendWeChatOAuthTraceQuery(query, trace);
   }

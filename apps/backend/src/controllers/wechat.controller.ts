@@ -6,10 +6,14 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { clearAnonymousSessionCookie, readAnonymousSessionCookie } from "../auth/anonymous-session";
-import { type AuthEnv, authMiddleware, issueAuthForUser } from "../auth/middleware";
+import { type AuthEnv, authMiddleware, issuePublicAuthForUser } from "../auth/middleware";
 import { AUTHENTICATED_REQUIRED_CODE } from "../domains/pr/contracts";
 import { scheduleAlternativeWaitlistNotificationsForUserSources } from "../domains/pr/ports";
-import { bindWeChatToCurrentUser, upgradeAnonymousUserWithWeChat } from "../domains/user";
+import {
+  bindWeChatToCurrentUser,
+  classifyCurrentPublicUser,
+  upgradeAnonymousUserWithWeChat,
+} from "../domains/user";
 import { hasUserRole, type User, type UserId } from "../entities/user";
 import {
   type WeChatNotificationKind,
@@ -29,6 +33,7 @@ import {
 } from "../infra/notifications";
 import { env } from "../lib/env";
 import { resolveConfiguredFrontendReturnTo } from "../lib/frontend-origin";
+import { ProblemDetailsError, throwHttpProblem } from "../lib/problem-details";
 import {
   isWeChatAbilityMockingEnabled,
   resolveWeChatAbilityMockOpenId,
@@ -54,6 +59,11 @@ const OAUTH_HANDOFF_QUERY_PARAM = "wechatOAuthHandoff";
 const OAUTH_HANDOFF_COOKIE_PATH = "/api/wechat/oauth/handoff";
 const OAUTH_MOCK_CODE = "mock-oauth-code";
 const WECHAT_BIND_REQUIRED_CODE = "WECHAT_BIND_REQUIRED";
+const WECHAT_OAUTH_HANDOFF_EXPIRED_CODE = "WECHAT_OAUTH_HANDOFF_EXPIRED";
+const WECHAT_OAUTH_HANDOFF_INVALID_CODE = "WECHAT_OAUTH_HANDOFF_INVALID";
+const WECHAT_OAUTH_HANDOFF_MISMATCH_CODE = "WECHAT_OAUTH_HANDOFF_MISMATCH";
+const WECHAT_OAUTH_NOT_CONFIGURED_CODE = "WECHAT_OAUTH_NOT_CONFIGURED";
+const WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED_CODE = "WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED";
 
 const signatureQuerySchema = z.object({
   url: z.string().min(1),
@@ -78,6 +88,22 @@ const oauthHandoffQuerySchema = z.object({
   handoff: z.string().min(1),
 });
 
+const oauthHandoffQueryValidator = zValidator<
+  typeof oauthHandoffQuerySchema,
+  "query",
+  AuthEnv,
+  string
+>("query", oauthHandoffQuerySchema, (result, c) => {
+  if (result.success) return;
+  c.header("Cache-Control", "no-store");
+  c.set("suppressAccessTokenHeader", true);
+  return throwHttpProblem({
+    status: 400,
+    detail: "Invalid OAuth handoff",
+    code: WECHAT_OAUTH_HANDOFF_INVALID_CODE,
+  });
+});
+
 const oauthStateCookiePayloadSchema = z.object({
   nonce: z.string().min(1),
   returnTo: z.string().url(),
@@ -91,8 +117,8 @@ const oauthStateCookiePayloadSchema = z.object({
 });
 
 const oauthCallbackAuthPayloadSchema = z.object({
-  role: z.enum(["authenticated", "service", "analytics"]),
-  roles: z.array(z.enum(["anonymous", "authenticated", "service", "analytics"])),
+  role: z.literal("authenticated"),
+  roles: z.tuple([z.literal("authenticated")]),
   userId: z.string().uuid(),
   accessToken: z.string().min(1),
 });
@@ -865,19 +891,49 @@ const readSessionUserId = (c: Context<AuthEnv>): UserId | null => {
   return auth.userId as UserId;
 };
 
+const throwOAuthPublicIdentityNotAllowed = (): never =>
+  throwHttpProblem({
+    status: 403,
+    detail: "OAuth identity is not eligible for a public session",
+    code: WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED_CODE,
+    type: "https://partner-up.app/problems/wechat.oauth_public_identity_not_allowed",
+  });
+
+const assertOAuthPublicAuthenticatedUser = (user: User): void => {
+  const identity = classifyCurrentPublicUser(user);
+  if (!identity || identity.role !== "authenticated") {
+    throwOAuthPublicIdentityNotAllowed();
+  }
+};
+
+function assertOAuthPublicAuthenticatedAuth(
+  auth: ReturnType<typeof issuePublicAuthForUser>,
+): asserts auth is NonNullable<ReturnType<typeof issuePublicAuthForUser>> {
+  if (!auth || auth.role !== "authenticated") {
+    throwOAuthPublicIdentityNotAllowed();
+  }
+}
+
+const throwOAuthHandoffProblem = (
+  c: Context<AuthEnv>,
+  input: Parameters<typeof throwHttpProblem>[0],
+): never => {
+  c.set("suppressAccessTokenHeader", true);
+  return throwHttpProblem(input);
+};
+
 const issueOAuthCallbackAuth = async (
   c: Context<AuthEnv>,
   user: User,
 ): Promise<OAuthCallbackAuthPayload> => {
-  const authenticated = issueAuthForUser(user);
-  if (authenticated.role === "anonymous") {
-    throw new Error("OAuth callback user must have an authenticated role");
-  }
+  assertOAuthPublicAuthenticatedUser(user);
+  const authenticated = issuePublicAuthForUser(user);
+  assertOAuthPublicAuthenticatedAuth(authenticated);
   c.set("auth", authenticated);
 
   return {
-    role: authenticated.role,
-    roles: authenticated.roles,
+    role: "authenticated",
+    roles: ["authenticated"],
     userId: user.id,
     accessToken: authenticated.token,
   };
@@ -1356,12 +1412,17 @@ export const wechatRoute = app
     });
     return c.json({ authorizeUrl });
   })
-  .get("/oauth/handoff", zValidator("query", oauthHandoffQuerySchema), async (c) => {
+  .get("/oauth/handoff", oauthHandoffQueryValidator, async (c) => {
     const handoffStartedAtMs = nowMs();
     const { handoff } = c.req.valid("query");
+    c.header("Cache-Control", "no-store");
     const sessionSecret = resolveOAuthSessionSecret();
     if (!sessionSecret) {
-      return c.json({ error: "WeChat OAuth is not configured" }, 503);
+      return throwOAuthHandoffProblem(c, {
+        status: 503,
+        detail: "WeChat OAuth is not configured",
+        code: WECHAT_OAUTH_NOT_CONFIGURED_CODE,
+      });
     }
 
     const payload = await readSignedCookiePayload(
@@ -1374,7 +1435,11 @@ export const wechatRoute = app
     clearOAuthHandoffCookieByNonce(c, handoff);
 
     if (!payload) {
-      return c.json({ error: "Invalid OAuth handoff" }, 400);
+      return throwOAuthHandoffProblem(c, {
+        status: 400,
+        detail: "Invalid OAuth handoff",
+        code: WECHAT_OAUTH_HANDOFF_INVALID_CODE,
+      });
     }
     const traceContext = buildOAuthTraceContext({
       traceId: payload.traceId,
@@ -1395,7 +1460,11 @@ export const wechatRoute = app
         status: 400,
         errorCode: "expired",
       });
-      return c.json({ error: "OAuth handoff expired" }, 400);
+      return throwOAuthHandoffProblem(c, {
+        status: 400,
+        detail: "OAuth handoff expired",
+        code: WECHAT_OAUTH_HANDOFF_EXPIRED_CODE,
+      });
     }
     if (payload.nonce !== handoff) {
       recordWeChatOAuthTrace({
@@ -1406,7 +1475,11 @@ export const wechatRoute = app
         status: 400,
         errorCode: "mismatch",
       });
-      return c.json({ error: "OAuth handoff mismatch" }, 400);
+      return throwOAuthHandoffProblem(c, {
+        status: 400,
+        detail: "OAuth handoff mismatch",
+        code: WECHAT_OAUTH_HANDOFF_MISMATCH_CODE,
+      });
     }
 
     const user = await userRepo.findById(payload.userId as UserId);
@@ -1416,13 +1489,37 @@ export const wechatRoute = app
         stage: "backend_handoff_failed",
         durationMs: nowMs() - handoffStartedAtMs,
         result: "failure",
-        status: 401,
-        errorCode: "user_not_found",
+        status: 403,
+        errorCode: WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED_CODE,
       });
-      return c.json({ error: "OAuth handoff user not found" }, 401);
+      return throwOAuthHandoffProblem(c, {
+        status: 403,
+        detail: "OAuth identity is not eligible for a public session",
+        code: WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED_CODE,
+        type: "https://partner-up.app/problems/wechat.oauth_public_identity_not_allowed",
+      });
     }
 
-    const authPayload = await issueOAuthCallbackAuth(c, user);
+    let authPayload: OAuthCallbackAuthPayload;
+    try {
+      authPayload = await issueOAuthCallbackAuth(c, user);
+    } catch (error) {
+      c.set("suppressAccessTokenHeader", true);
+      recordWeChatOAuthTrace({
+        context: traceContext,
+        stage: "backend_handoff_failed",
+        durationMs: nowMs() - handoffStartedAtMs,
+        result: "failure",
+        status: error instanceof ProblemDetailsError ? error.status : 500,
+        errorCode:
+          error instanceof ProblemDetailsError
+            ? (error.code ?? error.name)
+            : error instanceof Error
+              ? error.name
+              : "unknown_error",
+      });
+      throw error;
+    }
     recordWeChatOAuthTrace({
       context: traceContext,
       stage: "backend_handoff_completed",
@@ -1437,8 +1534,14 @@ export const wechatRoute = app
   })
   .get("/oauth/callback", zValidator("query", oauthCallbackQuerySchema), async (c) => {
     const callbackStartedAtMs = nowMs();
-    const respondError = (status: ContentfulStatusCode, error: string, returnTo?: string | null) =>
-      c.json({ ok: false, error, returnTo: returnTo ?? undefined }, status);
+    const respondError = (
+      status: ContentfulStatusCode,
+      error: string,
+      returnTo?: string | null,
+    ) => {
+      c.set("suppressAccessTokenHeader", true);
+      return c.json({ ok: false, error, returnTo: returnTo ?? undefined }, status);
+    };
     const respondSuccess = async (returnTo: string) => {
       if (!isOAuthCallbackNavigationRequest(c)) {
         return c.json({ ok: true, returnTo });
@@ -1578,8 +1681,9 @@ export const wechatRoute = app
           clearAnonymousSessionCookie(c);
           clearOAuthStateCookieByNonce(c, state);
           clearOAuthStateCookie(c);
+          assertOAuthPublicAuthenticatedUser(occupiedUser);
 
-          return respondAuthenticatedSuccess(
+          return await respondAuthenticatedSuccess(
             appendBindResultToReturnTo(statePayload.returnTo, "success"),
             occupiedUser,
             traceContext,
@@ -1608,6 +1712,7 @@ export const wechatRoute = app
         clearAnonymousSessionCookie(c);
         clearOAuthStateCookieByNonce(c, state);
         clearOAuthStateCookie(c);
+        assertOAuthPublicAuthenticatedUser(boundUser);
         recordWeChatOAuthTrace({
           context: traceContext,
           stage: "backend_user_resolution_completed",
@@ -1619,7 +1724,7 @@ export const wechatRoute = app
             : "authenticated_bind",
         });
 
-        return respondAuthenticatedSuccess(
+        return await respondAuthenticatedSuccess(
           appendBindResultToReturnTo(statePayload.returnTo, "success"),
           boundUser,
           traceContext,
@@ -1670,7 +1775,7 @@ export const wechatRoute = app
           result: "success",
           branch: "existing_user",
         });
-        return respondAuthenticatedSuccess(
+        return await respondAuthenticatedSuccess(
           statePayload.returnTo,
           existingUser,
           traceContext,
@@ -1730,7 +1835,7 @@ export const wechatRoute = app
                 ? "anonymous_upgrade"
                 : "authenticated_bind",
             });
-            return respondAuthenticatedSuccess(
+            return await respondAuthenticatedSuccess(
               statePayload.returnTo,
               boundCandidate,
               traceContext,
@@ -1770,7 +1875,7 @@ export const wechatRoute = app
         result: "success",
         branch: "created_user",
       });
-      return respondAuthenticatedSuccess(
+      return await respondAuthenticatedSuccess(
         statePayload.returnTo,
         resolvedUser,
         traceContext,
@@ -1788,10 +1893,18 @@ export const wechatRoute = app
         errorCode: error instanceof Error ? error.name : "unknown_error",
       });
       if (statePayload.mode === "bind") {
+        c.set("suppressAccessTokenHeader", true);
         return respondSuccess(appendBindResultToReturnTo(statePayload.returnTo, "failed"));
       }
 
-      const message = error instanceof Error ? error.message : "WeChat OAuth callback failed";
-      return respondError(500, message, statePayload.returnTo);
+      if (error instanceof ProblemDetailsError) {
+        return respondError(
+          error.status as ContentfulStatusCode,
+          error.message,
+          statePayload.returnTo,
+        );
+      }
+
+      return respondError(500, "WeChat OAuth callback failed", statePayload.returnTo);
     }
   });

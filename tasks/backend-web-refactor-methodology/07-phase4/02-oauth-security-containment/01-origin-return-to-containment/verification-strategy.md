@@ -1,4 +1,4 @@
-# 4-1A Verification Strategy
+# 4-1 Verification Strategy
 
 ## Pre-Change Characterization
 

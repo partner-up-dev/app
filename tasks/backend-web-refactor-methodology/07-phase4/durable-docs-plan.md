@@ -30,9 +30,28 @@ claim it has made true, with the following additional thresholds:
 
 Task-local inventories, import graphs, raw route traces, and test counts remain under this workspace.
 
-## 4-1A Promotion Reconciliation
+## 4-1 Promotion Reconciliation
 
-`4-1A` met the narrower CORS/return-target threshold with an Impact Handshake, hostile-origin API/route proof,
+`4-1` met the narrower CORS/return-target threshold with an Impact Handshake, hostile-origin API/route proof,
 focused Web boundary proof and selected System entry proof. It promotes only the configuration-derived authority to
 the Product TDD, Backend runtime, and OAuth handoff Unit TDD documents. It does **not** promote callback/provider
 topology or claim post-rollout behavior before the scheduled state-free header observation.
+
+## 4-2 Promotion Result
+
+Focused Backend/Web proof and the Browser-to-Backend continuity scenario agreed. `4-2` promoted the compact public
+session ownership rule to `docs/20-product-tdd/cross-unit-contracts.md`: public roles, persisted active-user
+validation, User/Auth/Web ownership, anonymous UUID recovery, bounded bootstrap recovery, token projection, and
+operator-session separation. OAuth callback/handoff topology and operator bearer revalidation remain `4-3`/later
+owners and are not promoted here.
+
+## 4-3 Promotion Result
+
+4-3 promoted only the handoff failure rule that focused Backend/Web proof made true: a received terminal handoff
+result closes the one-shot nonce and must not offer same-nonce retry; transport uncertainty retains the nonce for
+retry. The canonical navigation path remains nonce-only, credentialed, and token-free, while expected OAuth
+failure responses suppress token projection.
+
+The durable owner is `docs/30-unit-tdd/wechat-oauth-handoff.md`. No production callback host, cookie-attribute
+observation, provider-console setting, or legacy-consumer retirement was promoted; all remain external 4-3.4
+evidence requirements.

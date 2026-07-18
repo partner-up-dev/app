@@ -67,18 +67,32 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 
 ## 2. Session Contract
 
-- Frontend stores user and admin access tokens in browser storage.
-- Frontend stores the anonymous user UUID in localStorage and sends it to session bootstrap so the backend can restore anonymous visitor continuity.
-- Anonymous and authenticated user sessions both use `Authorization: Bearer <JWT>` transport.
-- Backend distinguishes anonymous, authenticated, service, and analytics sessions from JWT `roles` claims plus current persisted user state.
+- User and admin sessions use separate browser-storage and client contexts. Public-user token storage has one browser
+  projection; the public reactive session projection contains only its role and user ID.
+- A public-user session admits exactly `anonymous` and `authenticated`. `service` and `analytics` are operator roles
+  only; a current user row that carries either operator role is not admitted to the public context, even if it also
+  carries `authenticated`.
 - `users.role` is a text-array role set. Valid role values are `anonymous`, `authenticated`, `service`, and `analytics`.
+- Anonymous and authenticated public-user sessions both use `Authorization: Bearer <JWT>` transport.
+- A subject-bound public bearer is valid only when its JWT integrity/expiry is valid and its current persisted user
+  is `ACTIVE` with a public role. Missing, disabled, or operator-bearing users resolve as anonymous without a user ID.
+- The User domain owns the canonical current-public-identity query (`UserId` to public identity or `null`). Auth
+  transport owns JWT verification, issuance, renewal and `x-access-token` emission; public controllers consume the
+  resolved request identity rather than querying user persistence to re-decide it.
+- The anonymous user UUID is a continuity handle, not a credential: `/auth/session` may restore only an active
+  anonymous user from a UUID when a valid public bearer did not already resolve an identity. An invalid or stale UUID
+  is rejected rather than upgraded or reused.
 - JWTs carry both `roles` and a primary `role` projection for existing session consumers. Authorization decisions that govern privileged surfaces read the full role set.
 - The `authenticated` role is the product's strong user identity marker. Current public user flows obtain it through WeChat OAuth login or anonymous-user WeChat upgrade.
 - Backend may rotate tokens through the `x-access-token` response header.
+- The Web auth process owns public bootstrap. A clean browser registers one anonymous session without an immediate
+  restore request; an existing session is restored once; a `401` recovery clears public state and registers one fresh
+  anonymous session. Other restore failures do not create a retry loop.
 - Frontend must preserve `credentials: "include"` on flows that rely on cookie-backed session state, especially WeChat OAuth, OAuth handoff, and bind paths.
 - Frontend app bootstrap owns best-effort session restoration and anonymous continuity. Command requests rely on backend auth failures plus the RPC auth policy for required identity escalation.
 - Domain command response bodies must not carry user-session payloads such as `auth`, `accessToken`, `role`, or `userId` for session synchronization. Session issuance and rotation belong to auth transport/session infrastructure, primarily the `x-access-token` response header and explicit auth/session endpoints.
-- Admin and user sessions are separate client contexts. Admin session storage can carry `service`, `analytics`, or both.
+- Admin session storage can carry `service`, `analytics`, or both; its bearer validation is a separate transport concern
+  and is not inferred from the public-user resolver.
 - WeChat OAuth callback completion must not place the long-lived access token in route query parameters. Backend-owned OAuth callbacks hand the frontend session across with a short-lived signed cookie plus a non-secret handoff nonce.
 
 ## 3. WeChat Official Account Follow Contract

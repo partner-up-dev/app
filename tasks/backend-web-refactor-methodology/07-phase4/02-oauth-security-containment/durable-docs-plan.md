@@ -1,6 +1,6 @@
 # 4-1 Durable Documentation Plan
 
-The narrow `4-1A` implementation now promotes only the source-level browser-origin authority. The post-rollout
+The narrow `4-1` implementation now promotes only the source-level browser-origin authority. The post-rollout
 header probe is still required before treating live deployment behavior as observed truth.
 
 | Candidate truth | Durable owner | Promotion threshold |

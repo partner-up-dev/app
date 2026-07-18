@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "../auth/middleware";
-import { issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
+import { issuePublicAuthForUser } from "../auth/middleware";
 import {
   AUTHENTICATED_REQUIRED_CODE,
   type CreatorIdentityInput,
@@ -16,7 +16,7 @@ import {
   prStatusManualSchema,
 } from "../entities/partner-request";
 import { prMessageBodySchema } from "../entities/pr-message";
-import { hasUserRole, type UserId } from "../entities/user";
+import type { UserId } from "../entities/user";
 import { throwHttpProblem } from "../lib/problem-details";
 import { resolveWeChatAbilityMockOpenId } from "../lib/wechat-ability-mocking";
 import { UserRepository } from "../repositories/UserRepository";
@@ -194,13 +194,11 @@ export const requireAuthenticatedCreatorIdentity = async (
 
 export const issueResponseAuth = async (c: Context<AuthEnv>, userId: UserId): Promise<void> => {
   const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
+  const auth = user ? issuePublicAuthForUser(user) : null;
+  if (!auth) {
     return throwHttpProblem({ status: 401, detail: "Invalid session user" });
   }
 
-  const auth = hasUserRole(user.role, "anonymous")
-    ? issueAnonymousAuth(user.id)
-    : issueAuthForUser(user);
   c.set("auth", auth);
 };
 

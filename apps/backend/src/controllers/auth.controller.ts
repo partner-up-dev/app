@@ -2,11 +2,12 @@ import { throwHttpProblem } from "../lib/problem-details";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { authMiddleware, issueAnonymousAuth, issueAuthForUser } from "../auth/middleware";
+import { authMiddleware, issueAnonymousAuth, issueOperatorAuthForUser } from "../auth/middleware";
 import type { AuthEnv } from "../auth/middleware";
-import { hasAnyUserRole, hasUserRole, type UserId } from "../entities/user";
+import { hasAnyUserRole } from "../entities/user";
 import { UserRepository } from "../repositories/UserRepository";
 import { registerAnonymousUser, verifyUserCredential } from "../domains/user";
+import { findCurrentPublicUserIdentity } from "../domains/user/queries";
 import { setAnonymousSessionCookie } from "../auth/anonymous-session";
 
 const app = new Hono<AuthEnv>();
@@ -34,7 +35,7 @@ export const authRoute = app
       return throwHttpProblem({ status: 401, detail: "Invalid admin credentials" });
     }
 
-    const authenticated = issueAuthForUser(user);
+    const authenticated = issueOperatorAuthForUser(user);
     c.set("auth", authenticated);
     return c.json({
       role: authenticated.role,
@@ -56,13 +57,20 @@ export const authRoute = app
     }
 
     const registered = await registerAnonymousUser();
+    const anonymous = issueAnonymousAuth(registered.userId);
+    c.set("auth", anonymous);
     await setAnonymousSessionCookie(c, registered.userId);
 
-    return c.json(registered);
+    return c.json({
+      role: "anonymous" as const,
+      roles: anonymous.roles,
+      userId: registered.userId,
+      accessToken: anonymous.token,
+    });
   })
   .post("/session", zValidator("json", authSessionSchema), async (c) => {
     const auth = c.get("auth");
-    if (auth.role !== "anonymous" && auth.userId) {
+    if (auth.userId) {
       return c.json({
         role: auth.role,
         roles: auth.roles,
@@ -75,32 +83,19 @@ export const authRoute = app
     const candidateUserId = body.userId ?? null;
 
     if (candidateUserId) {
-      const candidateUser = await userRepo.findById(candidateUserId as UserId);
-      if (
-        !candidateUser ||
-        candidateUser.status !== "ACTIVE" ||
-        !hasUserRole(candidateUser.role, "anonymous")
-      ) {
+      const candidateIdentity = await findCurrentPublicUserIdentity(candidateUserId);
+      if (!candidateIdentity || candidateIdentity.role !== "anonymous") {
         return throwHttpProblem({ status: 401, detail: "Invalid anonymous user session" });
       }
 
-      const anonymous = issueAnonymousAuth(candidateUser.id);
+      const anonymous = issueAnonymousAuth(candidateIdentity.userId);
       c.set("auth", anonymous);
-      await setAnonymousSessionCookie(c, candidateUser.id);
+      await setAnonymousSessionCookie(c, candidateIdentity.userId);
       return c.json({
         role: "anonymous" as const,
         roles: anonymous.roles,
-        userId: candidateUser.id,
+        userId: candidateIdentity.userId,
         accessToken: anonymous.token,
-      });
-    }
-
-    if (auth.role === "anonymous" && auth.userId) {
-      return c.json({
-        role: auth.role,
-        roles: auth.roles,
-        userId: auth.userId,
-        accessToken: auth.token,
       });
     }
 

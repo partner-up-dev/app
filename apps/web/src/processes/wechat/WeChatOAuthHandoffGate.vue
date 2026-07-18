@@ -1,9 +1,17 @@
 <template>
   <slot v-if="ready" />
 
-  <main v-else class="wechat-oauth-handoff" aria-live="polite">
-    <section class="wechat-oauth-handoff__body" aria-busy="true">
-      <div v-if="state !== 'failed'" class="wechat-oauth-handoff__spinner" aria-hidden="true"></div>
+  <main
+    v-else
+    class="wechat-oauth-handoff"
+    aria-live="polite"
+    data-testid="wechat-oauth-handoff.gate"
+  >
+    <section
+      class="wechat-oauth-handoff__body"
+      :aria-busy="state === 'loading' || state === 'slow'"
+    >
+      <div v-if="!isFailure" class="wechat-oauth-handoff__spinner" aria-hidden="true"></div>
       <div v-else class="wechat-oauth-handoff__mark" aria-hidden="true">!</div>
 
       <p class="wechat-oauth-handoff__eyebrow">微信登录</p>
@@ -11,10 +19,32 @@
       <p class="wechat-oauth-handoff__description">{{ description }}</p>
 
       <div v-if="state !== 'loading'" class="wechat-oauth-handoff__actions">
-        <PuButton v-if="state === 'failed'" tone="primary" variant="solid" @click="retry">
+        <PuButton
+          v-if="state === 'retryable-failed'"
+          data-testid="wechat-oauth-handoff.retry"
+          tone="primary"
+          variant="solid"
+          @click="retry"
+        >
           重新尝试
         </PuButton>
-        <PuButton tone="neutral" variant="soft" @click="continueAsGuest"> 先以访客浏览 </PuButton>
+        <PuButton
+          v-else-if="state === 'terminal-failed'"
+          data-testid="wechat-oauth-handoff.restart"
+          tone="primary"
+          variant="solid"
+          @click="restartWithFreshLogin"
+        >
+          重新登录
+        </PuButton>
+        <PuButton
+          data-testid="wechat-oauth-handoff.continue-as-guest"
+          tone="neutral"
+          variant="soft"
+          @click="continueAsGuest"
+        >
+          先以访客浏览
+        </PuButton>
       </div>
     </section>
   </main>
@@ -30,18 +60,22 @@ import {
   hasPendingWeChatOAuthHandoff,
   WECHAT_OAUTH_HANDOFF_QUERY_PARAM,
 } from "@/processes/wechat/oauth-handoff";
+import { requestWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
 import { clearWeChatOAuthLoginPending } from "@/processes/wechat/oauth-login-pending";
 import { clearWeChatOAuthTrace, trackWeChatOAuthTrace } from "@/processes/wechat/oauth-trace";
 import { PuButton } from "@partner-up-dev/design-web";
 
 const HANDOFF_SLOW_THRESHOLD_MS = 8_000;
 
-type HandoffGateState = "loading" | "slow" | "failed";
+type HandoffGateState = "loading" | "slow" | "retryable-failed" | "terminal-failed";
 
 const ready = ref(!hasPendingWeChatOAuthHandoff());
 const state = ref<HandoffGateState>("loading");
 const route = useRoute();
 const router = useRouter();
+const isFailure = computed(
+  () => state.value === "retryable-failed" || state.value === "terminal-failed",
+);
 
 let attemptId = 0;
 let slowTimer: ReturnType<typeof setTimeout> | null = null;
@@ -49,7 +83,8 @@ let abortController: AbortController | null = null;
 
 const title = computed(() => {
   if (state.value === "slow") return "微信登录还在确认";
-  if (state.value === "failed") return "微信登录没有完成";
+  if (state.value === "retryable-failed") return "微信登录没有完成";
+  if (state.value === "terminal-failed") return "本次微信登录已失效";
   return "正在完成微信登录";
 });
 
@@ -57,8 +92,11 @@ const description = computed(() => {
   if (state.value === "slow") {
     return "当前连接比平常久，可以继续等待，或先以访客状态浏览。";
   }
-  if (state.value === "failed") {
-    return "可能是登录凭证过期或网络中断，请重新尝试。";
+  if (state.value === "retryable-failed") {
+    return "当前连接未能确认完成，可以重新尝试，或先以访客状态浏览。";
+  }
+  if (state.value === "terminal-failed") {
+    return "本次登录凭证已无法继续使用。请重新登录，或先以访客状态浏览。";
   }
   return "请稍候，不需要刷新页面。";
 });
@@ -138,7 +176,7 @@ const runHandoff = async (): Promise<void> => {
     clearSlowTimer();
     abortController = null;
 
-    if (result.consumed) {
+    if (result.kind === "success") {
       trackWeChatOAuthTrace("handoff_completed", {
         attempt: currentAttemptId,
         durationMs: Date.now() - handoffStartedAtMs,
@@ -150,14 +188,33 @@ const runHandoff = async (): Promise<void> => {
       return;
     }
 
+    if (result.kind === "absent") {
+      completeHandoff();
+      return;
+    }
+
+    if (result.kind === "terminal-failure") {
+      clearWeChatOAuthLoginPending();
+      trackWeChatOAuthTrace("handoff_failed", {
+        attempt: currentAttemptId,
+        durationMs: Date.now() - handoffStartedAtMs,
+        result: "failure",
+        failureReason: result.code ?? `http_${result.status}`,
+      });
+      await clearHandoffRoute();
+      clearWeChatOAuthTrace();
+      state.value = "terminal-failed";
+      return;
+    }
+
     clearWeChatOAuthLoginPending();
     trackWeChatOAuthTrace("handoff_failed", {
       attempt: currentAttemptId,
       durationMs: Date.now() - handoffStartedAtMs,
       result: "failure",
-      failureReason: "not_consumed",
+      failureReason: result.status ? `http_${result.status}` : "transport_uncertain",
     });
-    state.value = "failed";
+    state.value = "retryable-failed";
   } catch (error) {
     if (attemptId !== currentAttemptId) return;
 
@@ -175,12 +232,17 @@ const runHandoff = async (): Promise<void> => {
       result: "failure",
       failureReason: error instanceof Error ? error.name : "unknown_error",
     });
-    state.value = "failed";
+    state.value = "retryable-failed";
   }
 };
 
 const retry = (): void => {
   void runHandoff();
+};
+
+const restartWithFreshLogin = (): void => {
+  if (typeof window === "undefined") return;
+  requestWeChatOAuthLogin(window.location.href);
 };
 
 const continueAsGuest = async (): Promise<void> => {

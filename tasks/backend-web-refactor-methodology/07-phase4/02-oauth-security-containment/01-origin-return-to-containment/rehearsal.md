@@ -1,4 +1,4 @@
-# 4-1A Rehearsal
+# 4-1 Rehearsal
 
 | Proposed change | Expected result | Failure branch |
 | --- | --- | --- |
