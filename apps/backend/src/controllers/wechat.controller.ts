@@ -28,6 +28,7 @@ import {
   rebuildWeChatReminderJobsForUser,
 } from "../infra/notifications";
 import { env } from "../lib/env";
+import { resolveConfiguredFrontendReturnTo } from "../lib/frontend-origin";
 import {
   isWeChatAbilityMockingEnabled,
   resolveWeChatAbilityMockOpenId,
@@ -700,71 +701,8 @@ const clearOAuthHandoffCookieByNonce = (c: Context, nonce: string): void => {
   deleteCookie(c, resolveOAuthHandoffCookieName(nonce), resolveOAuthHandoffCookieOptions(c));
 };
 
-const collectAllowedReturnToOrigins = (c: Context): Set<string> => {
-  const origins = new Set<string>();
-
-  origins.add(resolvePublicRequestUrl(c).origin);
-
-  const frontendUrl = parseHttpUrl(env.FRONTEND_URL);
-  if (frontendUrl) {
-    origins.add(frontendUrl.origin);
-  }
-
-  const originHeader = parseHttpUrl(c.req.header("origin"));
-  if (originHeader) {
-    origins.add(originHeader.origin);
-  }
-
-  const refererHeader = parseHttpUrl(c.req.header("referer"));
-  if (refererHeader) {
-    origins.add(refererHeader.origin);
-  }
-
-  return origins;
-};
-
-const resolveFallbackReturnTo = (c: Context): string => {
-  const referer = parseHttpUrl(c.req.header("referer"));
-  if (referer) {
-    return referer.toString();
-  }
-
-  const frontendUrl = parseHttpUrl(env.FRONTEND_URL);
-  if (frontendUrl) {
-    return frontendUrl.toString();
-  }
-
-  const requestUrl = resolvePublicRequestUrl(c);
-  requestUrl.pathname = "/";
-  requestUrl.search = "";
-  requestUrl.hash = "";
-  return requestUrl.toString();
-};
-
-const resolveReturnTo = (rawReturnTo: string | undefined, c: Context): string => {
-  const trimmedReturnTo = rawReturnTo?.trim();
-  if (!trimmedReturnTo) {
-    return resolveFallbackReturnTo(c);
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmedReturnTo, resolvePublicRequestUrl(c).origin);
-  } catch {
-    throw new Error("Invalid returnTo");
-  }
-
-  if (!isHttpProtocol(parsed.protocol)) {
-    throw new Error("Invalid returnTo protocol");
-  }
-
-  const allowedOrigins = collectAllowedReturnToOrigins(c);
-  if (allowedOrigins.size > 0 && !allowedOrigins.has(parsed.origin)) {
-    throw new Error("returnTo origin is not allowed");
-  }
-
-  return parsed.toString();
-};
+const resolveReturnTo = (rawReturnTo: string | undefined): string =>
+  resolveConfiguredFrontendReturnTo(rawReturnTo, env.FRONTEND_URL);
 
 const resolveOAuthCallbackUrl = (c: Context): string => {
   const configuredCallbackUrl = parseHttpUrl(env.WECHAT_OAUTH_CALLBACK_URL);
@@ -1284,7 +1222,7 @@ export const wechatRoute = app
 
     let returnTo: string;
     try {
-      returnTo = resolveReturnTo(rawReturnTo, c);
+      returnTo = resolveReturnTo(rawReturnTo);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid returnTo";
       return c.json({ error: message }, 400);
@@ -1368,7 +1306,7 @@ export const wechatRoute = app
 
     let returnTo: string;
     try {
-      returnTo = resolveReturnTo(rawReturnTo, c);
+      returnTo = resolveReturnTo(rawReturnTo);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid returnTo";
       return c.json({ error: message }, 400);

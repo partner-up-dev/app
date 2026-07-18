@@ -29,7 +29,7 @@ Phase 3: architecture and PR migration protocol               Complete
     3-8 CF-02 waitlist header-only auth contract              Complete
   -> Phase 3 exit                                             Complete
 
-Phase 4: User/Auth
+Phase 4: User/Auth                                                 4-0 complete; 4-1A locally complete, rollout observation pending
 Phase 5: Commerce
 Phase 6: Job/Notification runtime
 Phase 7: Observability/Analytics
@@ -41,9 +41,13 @@ browser-to-Postgres mutation calibration in `3-3` through PR owner convergence i
 CF-01/CF-02 in `3-7`/`3-8`. The complete Phase 3 evidence is owned by
 [`06-phase3/exit-evidence.md`](./06-phase3/exit-evidence.md).
 
-Phase numbers after Phase 3 express order, not a frozen sub-slice design. Phase 4 is at entry-characterization and
-planning only; each later phase is split only after its entry evidence, authority graph, contract conflicts and
-low-cost verification plan are refreshed. This status does not authorize a later-phase mutation.
+Phase numbers after Phase 3 express order, not a frozen sub-slice design. Phase 4 completed its entry
+characterization in [`07-phase4/01-auth-transport-inventory/`](./07-phase4/01-auth-transport-inventory/), then
+executed the explicitly authorized, narrow `4-1A` origin/return-target containment slice under
+[`07-phase4/02-oauth-security-containment/`](./07-phase4/02-oauth-security-containment/). Its local proof and
+durable authority promotion are complete; its state-free public header observation is pending normal rollout. Each
+later implementation slice still requires its own authorization after refreshed entry evidence, authority graph,
+contract conflicts and low-cost verification plan. This status does not authorize a later-phase mutation.
 
 ## Program Phase Boundaries
 

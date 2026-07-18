@@ -65,7 +65,7 @@ deploy steps.
 | `DATABASE_URL` | secret | yes | `DATABASE_URL` |
 | `BACKEND_COMMIT_HASH` | `github.sha` | yes | `BACKEND_COMMIT_HASH` |
 | `PARTNERUP_ENVIRONMENT` | branch mapping | yes, as migration/runtime value | `PARTNERUP_ENVIRONMENT` |
-| `FRONTEND_URL` | variable | yes | `FRONTEND_URL` |
+| `FRONTEND_URL` | variable | yes; public HTTP(S) Web URL | `FRONTEND_URL` |
 | `PAYMENT_NOTIFY_BASE_URL` | variable | yes | `PAYMENT_NOTIFY_BASE_URL` |
 | `AUTH_JWT_SECRET` | secret | yes, minimum 32 characters | `AUTH_JWT_SECRET` |
 | `WECHAT_OFFICIAL_ACCOUNT_APP_ID` | secret | yes | `WECHAT_OFFICIAL_ACCOUNT_APP_ID` |
@@ -82,6 +82,21 @@ deploy steps.
 | `WECOM_CORP_ID` | secret | no | `WECOM_CORP_ID`, empty string when unset |
 | `WECOM_APP_AGENT_ID` | secret | no | `WECOM_APP_AGENT_ID`, empty string when unset |
 | `WECOM_APP_SECRET` | secret | no | `WECOM_APP_SECRET`, empty string when unset |
+
+### Credentialed Browser Origin And OAuth Return Authority
+
+`FRONTEND_URL` is deployment-owned public Web configuration, not a request-derived convenience value. Its parsed
+URL origin is the Backend's only credentialed browser CORS allow origin and the only origin to which OAuth login or
+bind may return.
+
+- The selected GitHub Environment must pair `FRONTEND_URL` with the Web deployment that calls that environment's
+  `VITE_API_URL`; production and staging remain separate pairs.
+- Backend code must not infer a second allowed browser origin from `Origin`, `Referer`, `Host`, forwarded-host
+  headers, or a sibling environment.
+- OAuth `returnTo` may be omitted, relative to `FRONTEND_URL`, or an absolute same-origin HTTP(S) URL. A different
+  origin or protocol is a client error, not a fallback to request metadata.
+- Adding a public Web origin requires an explicit deployment/configuration change and paired positive/hostile
+  preflight proof before release.
 
 `PAYMENT_NOTIFY_BASE_URL` must be the public HTTPS backend API origin that
 WeChatPay can reach for unauthenticated payment callbacks. Do not point it at

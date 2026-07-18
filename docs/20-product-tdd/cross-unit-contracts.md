@@ -41,7 +41,21 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 
 `docs/40-deployment/environments.md` owns local runtime commands, portless app names, LAN mode, fake provider local routes, fixed-port compatibility, foreground readiness, and other operational development workflow details.
 
-## 1.2 Image Upload Contract
+## 1.2 Credentialed Browser Origin And OAuth Return Contract
+
+- A deployed Backend runtime that serves credentialed browser flows has one deployment-owned `FRONTEND_URL`. It
+  must be an HTTP(S) URL; its URL origin is the only trusted public Web origin for that runtime.
+- Credentialed CORS may emit `Access-Control-Allow-Origin` only when the request `Origin` exactly equals that
+  configured origin. Request `Origin`, `Referer`, `Host`, and forwarded-host headers must not expand the trusted
+  origin set.
+- OAuth login and bind `returnTo` values may be absent, relative to `FRONTEND_URL`, or absolute HTTP(S) URLs with
+  exactly that origin. Other protocols and origins are rejected. Caller-controlled headers cannot select a return
+  origin.
+- A second browser origin is a deliberate deployment and contract change: it needs an explicit configuration owner
+  plus paired positive and hostile-origin proof. It is not introduced through aliases, request-header inference, or
+  cross-environment access.
+
+## 1.3 Image Upload Contract
 
 - The active image upload surface is `POST /api/upload/images/:purpose` with multipart field `image`.
 - Backend accepts the allowlisted image purposes: `poster`, `poi`, and `feedback`.

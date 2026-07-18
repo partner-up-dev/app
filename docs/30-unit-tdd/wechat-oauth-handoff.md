@@ -17,6 +17,9 @@ It exists because the product currently uses frontend-held application access to
 ## Local Invariants
 
 - The backend OAuth navigation callback must not put the frontend access token, WeChat OAuth access token, code, or state into `returnTo`.
+- OAuth login and bind resolve `returnTo` only against the deployment-owned `FRONTEND_URL`: absent values use that URL,
+  relative values stay under its origin, and absolute HTTP(S) values must have exactly that origin. `Origin`,
+  `Referer`, request host, and forwarded-host headers cannot broaden the return authority.
 - The `wechatOAuthHandoff` query value is a nonce only. Treat it as non-secret but sensitive enough to remove from browser-visible URLs and telemetry.
 - The signed handoff cookie is short-lived, HttpOnly, path-scoped to the handoff endpoint, and must not contain the frontend access token.
 - Handoff exchange must use `credentials: "include"` so the path-scoped signed cookie reaches the backend.

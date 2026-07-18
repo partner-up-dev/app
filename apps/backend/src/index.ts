@@ -60,6 +60,7 @@ import {
 } from "./infra/notifications";
 import { JOURNEY_ID_HEADER, journeyContextMiddleware } from "./infra/telemetry";
 import { env } from "./lib/env";
+import { resolveCredentialedCorsOrigin } from "./lib/frontend-origin";
 import {
   buildGenericProblemDetailsPayload,
   buildProblemDetailsPayload,
@@ -95,7 +96,7 @@ if (process.env.BACKEND_SCENARIO_DISABLE_REQUEST_LOGGER !== "true") {
 app.use(
   "*",
   cors({
-    origin: (origin) => origin ?? "*",
+    origin: (origin) => resolveCredentialedCorsOrigin(origin, env.FRONTEND_URL),
     credentials: true,
     allowHeaders: [
       "Content-Type",
@@ -314,9 +315,7 @@ export type {
 export type { PartnerId, PartnerPaymentStatus, PartnerStatus } from "./entities/partner";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
 // Export types for frontend use
-export type {
-  PRId,
-} from "./entities/partner-request";
+export type { PRId } from "./entities/partner-request";
 export {
   createNaturalLanguagePRSchema,
   createPRStructuredStatusSchema,
