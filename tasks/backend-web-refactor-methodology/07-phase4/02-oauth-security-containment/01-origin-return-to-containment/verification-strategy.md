@@ -14,4 +14,4 @@
 | Focused Web OAuth/RPC units preserve callback/handoff caller behavior | Met | Four frozen-boundary Web unit files passed; no Web source changed. |
 | Backend type/build, changed-file format and lint gates | Met | Backend type, lint and build gates passed; six changed Backend files pass Oxfmt. |
 | Provider-free System checks for normal login entry and PR auth escalation | Met | Selected PR create and join-pending-replay scenarios passed. |
-| State-free public preflights after rollout | Pending normal deployment | Probe each configured API with its paired Web `Origin` and an arbitrary `Origin`; no cookie or OAuth exchange is needed. |
+| State-free public preflights after rollout | Blocked from this agent environment | Staging Backend/Web CD succeeded, but paired/arbitrary preflight and normal requests time out before TCP/TLS. Re-run the same no-cookie probe from a China-reachable runner/browser; production remains unobserved. |

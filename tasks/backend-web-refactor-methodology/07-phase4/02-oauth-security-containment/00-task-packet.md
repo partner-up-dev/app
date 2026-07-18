@@ -2,7 +2,8 @@
 
 ## Status And Authorization
 
-- Current mode: `Execute` for the completed local `4-1A` implementation; deployment observation remains pending.
+- Current mode: `Execute` for completed local/staging-deployed `4-1A`; public header observation is blocked from
+  this agent environment rather than pending CD.
 - Read-only topology evidence was authorized by Sir on 2026-07-18.
 - Sir explicitly authorized the narrow `4-1A` runtime implementation on 2026-07-18. That authority covered the
   named Backend source/tests and the resulting durable-doc promotion, not deployment-setting, provider-setting or

@@ -19,5 +19,7 @@
 | V-3 | Backend type, lint and build gates | Pass. |
 | V-4 | Selected provider-free System PR-create and PR-join-pending-replay scenarios | Pass: one selected case in each scenario file. |
 | V-5 | Changed-file Oxfmt and `git diff --check` | Pass. |
+| V-6 | GitHub Actions staging deploy runs for commit `e4a51716` | Pass: Backend FC and Web ESA completed successfully; Backend deploy log records the new commit hash. |
+| V-7 | Cookie-free staging paired/arbitrary CORS probe | Blocked before HTTP: this agent environment timed out against every resolved FC IP and the paired ESA Web origin. |
 
-The exact commands, scope caveats and pending rollout observation are in the [verification log](./verification-log.md).
+The exact commands, scope caveats and external-observation blocker are in the [verification log](./verification-log.md).

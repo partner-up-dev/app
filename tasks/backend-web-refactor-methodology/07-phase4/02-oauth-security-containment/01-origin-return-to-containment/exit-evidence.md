@@ -14,7 +14,7 @@ changing callback URL selection, cookies, handoff payloads, frontend callback co
 | OAuth login and bind accept only configured-origin return targets | Met locally | Helper and route tests cover absolute, relative, absent, hostile and hostile-header cases. |
 | Callback, cookie, handoff and Web compatibility boundaries remain unchanged | Met by source-diff audit | The target controller sections are untouched apart from the two entry-route calls; no Web source changed. |
 | Static and selected cross-unit guards remain green | Met | Backend gates, Web frozen-boundary units and two provider-free System cases passed. |
-| Public production/staging header behavior is observed after rollout | Pending deployment | Use the state-free preflight procedure in the [verification log](./verification-log.md). |
+| Public production/staging header behavior is observed after rollout | Blocked externally | Staging CD completed, but this agent environment cannot establish TCP to either the FC API addresses or the paired ESA Web origin; use the state-free procedure from a China-reachable runner. Production remains unobserved. |
 
 ## Durable Promotion And Transition
 
@@ -22,6 +22,7 @@ The configuration-authority rule is now promoted to the three owners named in th
 [durable-docs plan](./durable-docs-plan.md). That promotion does not claim callback/provider topology or live
 post-deployment headers; both remain outside this slice.
 
-`4-1A` is locally complete and ready for normal rollout validation. `4-2` and `4-3` remain separate, unauthorized
-slices; `4-3` still requires the provider-console/topology evidence recorded in
+`4-1A` is locally complete and its staging deployment is successful. Its final public-header observation needs an
+externally reachable runner, not a code change. `4-2` and `4-3` remain separate, unauthorized slices; `4-3` still
+requires the provider-console/topology evidence recorded in
 [`../03-remaining-information.md`](../03-remaining-information.md).

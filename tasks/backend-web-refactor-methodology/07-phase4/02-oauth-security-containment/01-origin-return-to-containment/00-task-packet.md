@@ -2,9 +2,10 @@
 
 ## Status
 
-Implementation is complete locally on 2026-07-18. Focused behavior, static gates, frozen-boundary checks and
-durable-document promotion are complete; the state-free public preflight recheck remains pending the normal
-deployment of this change.
+Implementation and both staging CD workflows completed on 2026-07-18. Focused behavior, static gates,
+frozen-boundary checks and durable-document promotion are complete. The state-free staging preflight was attempted,
+but this agent environment cannot establish TCP connections to the public China endpoints; an externally reachable
+runner/browser must make the final header observation.
 
 ## Owned Runtime Boundary When Authorized
 
