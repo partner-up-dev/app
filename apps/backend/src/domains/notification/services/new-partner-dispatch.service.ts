@@ -8,7 +8,7 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
-import { hasParticipationPolicy } from "../../pr/services";
+import { hasParticipationPolicy } from "../../pr/queries";
 import { NEW_PARTNER_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();

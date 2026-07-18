@@ -56,7 +56,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import { PuSegmented, PuSegmentedItem, type PuSegmentedValue } from "@partner-up-dev/design-web";
 import type { Route } from "@/domains/route/model/route";
 import RouteEditor from "@/domains/route/ui/RouteEditor.vue";

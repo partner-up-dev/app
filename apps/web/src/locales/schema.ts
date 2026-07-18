@@ -193,9 +193,14 @@ export interface MessageSchema {
     nlModeDescription: string;
     formModeTitle: string;
     formModeDescription: string;
-    savePending: string;
     createPending: string;
     createFailed: string;
+  };
+  prCreateAuth: {
+    title: string;
+    description: string;
+    cancel: string;
+    confirm: string;
   };
   prDiscovery: {
     catalogTitle: string;

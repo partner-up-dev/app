@@ -60,9 +60,7 @@
         <PRCreateFooterActions
           v-if="activeMode === 'form'"
           :pending="editorPending"
-          :pending-status="editorPendingStatus"
-          :allow-draft-save="editorAllowDraftSave"
-          @submit-as="submitEditorAs"
+          @submit="submitEditor"
           data-region="actions"
         />
         <PageFooter variant="minimal" data-region="support" />
@@ -76,7 +74,6 @@ import { PuButton, PuHeader, PuPageScaffold, PuTabs } from "@partner-up-dev/desi
 import { computed, isRef, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
 import NLPRForm from "@/domains/pr/ui/forms/NLPRForm.vue";
 import PREditor from "@/domains/pr/ui/forms/PREditor.vue";
 import PRCreateFooterActions from "@/domains/pr/ui/sections/PRCreateFooterActions.vue";
@@ -131,13 +128,7 @@ const readExposed = <T>(value: unknown, fallback: T): T => {
 };
 
 const editorPending = computed(() => readExposed(editorRef.value?.isPending, false));
-const editorPendingStatus = computed(() =>
-  readExposed<CreateSubmissionMode>(editorRef.value?.pendingStatus, "PUBLISH"),
-);
-const editorAllowDraftSave = computed(() => readExposed(editorRef.value?.allowDraftSave, false));
-
-const submitEditorAs = (status: CreateSubmissionMode) => {
-  editorRef.value?.submitAs(status);
+const submitEditor = () => {
   editorRef.value?.submitForm();
 };
 

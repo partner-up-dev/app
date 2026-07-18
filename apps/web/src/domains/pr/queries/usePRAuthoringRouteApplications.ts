@@ -1,4 +1,4 @@
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, type Ref } from "vue";

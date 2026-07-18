@@ -4,7 +4,7 @@ import {
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-} from "../../../../src/domains/pr-core/services/participation-policy.service";
+} from "../../../../src/domains/pr/contracts";
 import type { FeedbackQuestionnaireTemplateId } from "../../../../src/entities/feedback-questionnaire";
 import type {
   PartnerRequestFields,
@@ -19,7 +19,7 @@ import {
 } from "../../../../src/entities/pr-type-config";
 import { PRTypeConfigRepository } from "../../../../src/repositories/PRTypeConfigRepository";
 import { expectJsonResponse, requestJson } from "../../../_infra/http/backend-app";
-import type { ScenarioUser } from "../../../pr-core/_kit/builders/users";
+import type { ScenarioUser } from "../../../pr/_kit/builders/users";
 
 export type ScenarioPRType = {
   type: string;

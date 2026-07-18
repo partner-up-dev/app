@@ -19,7 +19,7 @@ import { RideHailingProviderInstanceRepository } from "../../src/repositories/Ri
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 import { requestJson } from "../_infra/http/backend-app";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenUser } from "../pr-core/_kit/builders/users";
+import { givenUser } from "../pr/_kit/builders/users";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 const paymentProviderRepo = new PaymentProviderInstanceRepository();

@@ -1,24 +1,20 @@
-import type { InferResponseType } from "hono";
+import type {
+  PRDiscoveryCatalogResponse,
+  PRDiscoveryDirectoryResponse as PRDiscoveryDirectoryContract,
+  PRDiscoveryRecommendationResponse as PRDiscoveryRecommendationContract,
+  PRDiscoveryTypeDetailResponse,
+} from "@/domains/pr/contracts";
 import type { PRDiscoveryCreationSuggestion } from "@/domains/pr/model/pr-discovery-creation-suggestion";
-import { client } from "@/lib/rpc";
 
-type DirectoryResponse = InferResponseType<(typeof client.api.pr.discovery)["$get"]>;
-type RecommendationResponse = InferResponseType<
-  (typeof client.api.pr.discovery.recommend)["$post"]
->;
-type CatalogResponse = InferResponseType<(typeof client.api.pr.discovery.catalog)["$get"]>;
-type TypeDetailResponse = InferResponseType<
-  (typeof client.api.pr.discovery.types)[":type"]["$get"]
->;
-export type PRDiscoveryDirectoryResponse = DirectoryResponse;
-export type PRDiscoveryCatalogItem = CatalogResponse[number];
-export type PRDiscoveryTypeDetail = TypeDetailResponse;
-export type PRDiscoveryRecommendationResponse = RecommendationResponse;
-export type PRDiscoveryPersistedCandidate = DirectoryResponse["candidates"][number];
-export type PRDiscoveryListRecord = DirectoryResponse["listRecords"][number];
-export type PRDiscoveryCardGroup = DirectoryResponse["cardGroups"][number];
+export type PRDiscoveryDirectoryResponse = PRDiscoveryDirectoryContract;
+export type PRDiscoveryCatalogItem = PRDiscoveryCatalogResponse[number];
+export type PRDiscoveryTypeDetail = PRDiscoveryTypeDetailResponse;
+export type PRDiscoveryRecommendationResponse = PRDiscoveryRecommendationContract;
+export type PRDiscoveryPersistedCandidate = PRDiscoveryDirectoryContract["candidates"][number];
+export type PRDiscoveryListRecord = PRDiscoveryDirectoryContract["listRecords"][number];
+export type PRDiscoveryCardGroup = PRDiscoveryDirectoryContract["cardGroups"][number];
 export type PRDiscoveryMatchedCandidate =
-  RecommendationResponse["matchedCandidate"] extends infer Candidate
+  PRDiscoveryRecommendationContract["matchedCandidate"] extends infer Candidate
     ? NonNullable<Candidate>
     : never;
 export type PRDiscoveryRecommendationCandidate = PRDiscoveryMatchedCandidate;

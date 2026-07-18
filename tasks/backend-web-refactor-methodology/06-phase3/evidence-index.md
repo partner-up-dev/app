@@ -23,6 +23,10 @@
 | P3-S02-002 | Verification | `3-2` Web/static/targeted/full System gates pass with 0 new fitness findings | `02-pr-discovery-read-owner/verification-log.md` | High |
 | P3-S03-001 | Source/test | Feedback command, form and PR integration now have distinct owners and retryable failure behavior | `03-feedback-submission-vertical/evidence-index.md` | High |
 | P3-S03-002 | Verification | Browser→HTTP→canonical refetch→Postgres proof and all exit gates pass with 0 new fitness findings | `03-feedback-submission-vertical/verification-log.md` | High |
+| P3-S07-001 | Durable/source/test | USER PR creation is authenticated-before-write; WeCom cannot create identity; DRAFT/public-provider/Browser A boundaries agree | `07-cf01-anonymous-pr-creation/05-verification/exit-evidence.md` | High |
+| P3-S07-002 | Verification | CF-01 focused unit/scenario/Web/System gates, full scenario and fitness delta pass | `07-cf01-anonymous-pr-creation/05-verification/01-final-integration-verification/exit-evidence.md` | High |
+| P3-S08-001 | Source/durable | Waitlist serializes `PublicPR` only; `userId` is internal header-issuance input and session rotation uses `x-access-token` | `08-cf02-waitlist-auth-contract/01-trace-characterization/trace-report.md`; `docs/20-product-tdd/pr-lifecycle-contracts.md` | High |
+| P3-S08-002 | Verification | Backend body/header, generic Web transport and Browser waitlist journey pass; full Phase 3 gates add no fitness violations | `08-cf02-waitlist-auth-contract/03-focused-proof-phase-exit/exit-evidence.md` | High |
 
 New evidence entries must include cwd, scope/exclusions, exit code and result summary. Proposals do not become
 facts merely because they appear in a slice plan.

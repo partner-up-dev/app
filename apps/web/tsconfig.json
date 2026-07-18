@@ -14,7 +14,8 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@partner-up-dev/backend": ["../backend/src/index.ts"]
+      "@partner-up-dev/backend": ["../backend/src/index.ts"],
+      "@partner-up-dev/backend/contracts": ["../backend/src/contracts.ts"]
     }
   },
   "include": ["src/**/*", "src/**/*.vue"],

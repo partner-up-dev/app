@@ -4,7 +4,7 @@ import { partnerRequests } from "../../src/entities";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenAdminUser, givenUser } from "../pr-core/_kit/builders/users";
+import { givenAdminUser, givenUser } from "../pr/_kit/builders/users";
 
 type ProblemDetails = { code?: string; detail: string };
 type OperatorDetail = {

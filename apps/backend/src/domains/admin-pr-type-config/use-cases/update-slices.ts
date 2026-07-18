@@ -11,7 +11,7 @@ import {
   captureEffectiveMeetingPointsForRequests,
   listRequestsAffectedByPRTypeMeetingPoint,
   scheduleMeetingPointNotificationsForChangedRequests,
-} from "../../pr-core/services/meeting-point-change-notifier.service";
+} from "../../pr/ports";
 import type {
   AdminPRTypeConfigAuthoring,
   AdminPRTypeConfigCompletion,

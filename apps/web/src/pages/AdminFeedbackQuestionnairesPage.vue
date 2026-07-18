@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
+import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend/contracts";
 import {
   PuButton,
   PuFormItem,

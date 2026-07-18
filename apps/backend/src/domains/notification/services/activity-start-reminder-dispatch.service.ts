@@ -11,7 +11,7 @@ import {
   getTimeWindowStart,
   hasParticipationPolicy,
   resolvePRPlaceDisplayName,
-} from "../../pr/services";
+} from "../../pr/queries";
 import { ACTIVITY_START_REMINDER_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();

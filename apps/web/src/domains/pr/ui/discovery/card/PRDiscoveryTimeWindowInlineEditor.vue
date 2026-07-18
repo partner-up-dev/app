@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend/contracts";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PRTimeWindowPresetOption } from "@/domains/pr/model/pr-discovery-time-window";

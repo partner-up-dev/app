@@ -16,8 +16,12 @@ and domain-specific component contracts in nearer `AGENTS.md` files.
 
 ## Data And Types
 
-- Import backend-owned types from `@partner-up-dev/backend`; do not redeclare
-  API return or entity shapes in components.
+- Import stable Backend value/input types from `@partner-up-dev/backend/contracts`
+  with `import type`. Reserve the root package for `AppType` in transport
+  adapters (`src/lib/rpc.ts`, `src/lib/admin-rpc.ts`) and for explicitly
+  recorded compatibility exceptions such as `PRId` and `OrderingOfferDetail`
+  until their owner gates clear. Never import runtime schemas or constants into
+  components through the root compatibility surface.
 - Let Hono RPC client and Vue Query infer API return types where possible.
 - In components, destructure Vue Query returns such as `data`, `isLoading`,
   and `error`.

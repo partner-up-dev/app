@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { env } from "../../../lib/env";
-import { buildPRRouteSummary } from "../../pr-core/services/pr-place-mode.service";
+import { buildPRRouteSummary } from "../services/pr-place-mode.service";
 import type { PublicPR } from "../read-models/public-pr-view.service";
 
 export type PRCanonicalShareMetadata = {

@@ -1,8 +1,10 @@
 import { throwHttpProblem } from "../lib/problem-details";
 import type { PartnerRequestFields, PRId } from "../entities/partner-request";
-import { PartnerRequestService } from "./PartnerRequestService";
+import { getPR } from "../domains/pr/queries";
 import { ShareAIService, type PosterHtmlResponse } from "./ShareAIService";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
+import { assertPRDraftAccess } from "../domains/pr/services/draft-access-policy.service";
+import { readPartnerRequestById } from "../domains/pr/services/pr-read.service";
 
 const denyList: ReadonlyArray<RegExp> = [
   /<script/i,
@@ -111,12 +113,10 @@ const assertNotEmptyHtml = (html: string): void => {
 };
 
 export class ShareService {
-  private prService: PartnerRequestService;
   private shareAIService: ShareAIService;
   private prRepo: PartnerRequestRepository;
 
   constructor() {
-    this.prService = new PartnerRequestService();
     this.shareAIService = new ShareAIService();
     this.prRepo = new PartnerRequestRepository();
   }
@@ -127,7 +127,7 @@ export class ShareService {
     posterStylePrompt: string;
   }): Promise<PosterHtmlResponse> {
     // Always generate HTML (poster image URL caching is handled via cache endpoints)
-    const pr = await this.prService.getPR(params.prId);
+    const pr = await getPR(params.prId);
     const prFields = this.toPartnerRequestFields(pr);
     const result = await this.shareAIService.generateXiaohongshuPosterHtml({
       pr: prFields,
@@ -160,7 +160,7 @@ export class ShareService {
     style?: number;
   }): Promise<PosterHtmlResponse> {
     // Always generate HTML (thumbnail image URL caching is handled via cache endpoints)
-    const pr = await this.prService.getPR(params.prId);
+    const pr = await getPR(params.prId);
     const prFields = this.toPartnerRequestFields(pr);
 
     const result = await this.shareAIService.generateWeChatCardThumbnailHtml({
@@ -175,7 +175,7 @@ export class ShareService {
   }
 
   async generateWeChatCardDescription(params: { prId: PRId }): Promise<string> {
-    const pr = await this.prService.getPR(params.prId);
+    const pr = await getPR(params.prId);
     const prFields = this.toPartnerRequestFields(pr);
 
     const description = await this.shareAIService.generateWeChatCardDescription({
@@ -191,6 +191,7 @@ export class ShareService {
     posterStylePrompt: string;
     posterUrl: string;
   }): Promise<void> {
+    await this.assertPublicCacheAccess(params.prId);
     await this.prRepo.addXiaohongshuPoster(params.prId, {
       caption: params.caption,
       posterStylePrompt: params.posterStylePrompt,
@@ -208,6 +209,7 @@ export class ShareService {
     caption: string;
     posterStylePrompt: string;
   }): Promise<string | null> {
+    await this.assertPublicCacheAccess(params.prId);
     const url = await this.prRepo.findXiaohongshuPoster(
       params.prId,
       params.caption,
@@ -224,6 +226,7 @@ export class ShareService {
     style: number;
     posterUrl: string;
   }): Promise<void> {
+    await this.assertPublicCacheAccess(params.prId);
     await this.prRepo.addWechatThumbnail(params.prId, {
       style: params.style,
       posterUrl: params.posterUrl,
@@ -232,10 +235,23 @@ export class ShareService {
   }
 
   async getCachedWechatThumbnail(params: { prId: PRId; style: number }): Promise<string | null> {
+    await this.assertPublicCacheAccess(params.prId);
     const url = await this.prRepo.findWechatThumbnail(params.prId, params.style);
     if (!url) return null;
     if (!this.isRemoteUrl(url)) return null;
     return url;
+  }
+
+  private async assertPublicCacheAccess(prId: PRId): Promise<void> {
+    const request = await readPartnerRequestById(prId, { consistency: "eventual" });
+    if (!request) {
+      return throwHttpProblem({ status: 404, detail: "Partner request not found" });
+    }
+    assertPRDraftAccess({
+      request,
+      actor: { userId: null, roles: ["anonymous"] },
+      operation: "read",
+    });
   }
 
   private toPartnerRequestFields(pr: {

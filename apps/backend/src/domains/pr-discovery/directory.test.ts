@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test, vi } from "vitest";
-import { getProductLocalDateKey } from "../pr-core/services/time-window.service";
+import { getProductLocalDateKey } from "../pr/services/time-window.service";
 
 const mocks = vi.hoisted(() => ({
   findByType: vi.fn<() => unknown>(),
@@ -22,9 +22,16 @@ vi.mock("../../repositories/PartnerRepository", () => ({
     findActiveByUserId = mocks.findActiveByUserId;
   },
 }));
-vi.mock("../pr-core/services/pr-read.service", () => ({
-  readVisiblePartnerRequestsByType: mocks.findByType,
-}));
+vi.mock("../pr/queries", async () => {
+  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } = await import(
+    "../pr/services/time-window.service"
+  );
+  return {
+    getProductLocalDateKey,
+    getProductLocalDateKeyForTimeWindowStart,
+    readVisiblePartnerRequestsByType: mocks.findByType,
+  };
+});
 
 const { listPRDiscoveryDirectory } = await import("./use-cases/directory");
 

@@ -1,4 +1,4 @@
-import type { PRStatus } from "@partner-up-dev/backend";
+import type { PRStatus } from "@partner-up-dev/backend/contracts";
 
 export type TelemetryActionResult = "success" | "failure" | "blocked";
 

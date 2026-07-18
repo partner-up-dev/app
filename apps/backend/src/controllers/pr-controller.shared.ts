@@ -6,7 +6,7 @@ import {
   AUTHENTICATED_REQUIRED_CODE,
   type CreatorIdentityInput,
   throwAuthenticatedRequired,
-} from "../domains/pr-core/services/creator-identity.service";
+} from "../domains/pr/contracts";
 import {
   createNaturalLanguagePRSchema,
   createStructuredPRSchema,

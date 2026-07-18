@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/vue-query";
 import { computed, type MaybeRefOrGetter, type Ref, toValue } from "vue";
+import type { PRDiscoveryRecommendationInput } from "@/domains/pr/contracts";
 import { client } from "@/lib/rpc";
 import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { queryKeys } from "@/shared/api/query-keys";
@@ -147,8 +148,7 @@ export const usePRDiscoveryDirectory = (type: Ref<string | null>, dates: Ref<rea
     enabled: () => type.value !== null,
   });
 
-type RecommendPost = (typeof client.api.pr.discovery.recommend)["$post"];
-export type PRDiscoveryRecommendationInput = Parameters<RecommendPost>[0]["json"];
+export type { PRDiscoveryRecommendationInput } from "@/domains/pr/contracts";
 
 export const usePRDiscoveryRecommendation = () =>
   useMutation({

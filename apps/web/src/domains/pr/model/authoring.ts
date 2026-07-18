@@ -1,6 +1,6 @@
 import { clonePRFields } from "@/domains/pr/model/form";
+import type { PRAuthoringOptions } from "@/domains/pr/contracts";
 import type { PRFormFields } from "@/domains/pr/model/types";
-import type { PRAuthoringOptions } from "@/domains/pr/queries/usePRAuthoringOptions";
 
 export type PRAuthoringCreateDefaultEligibility = Readonly<{
   minPartners: boolean;

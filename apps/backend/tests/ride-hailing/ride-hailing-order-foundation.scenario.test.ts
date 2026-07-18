@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
+import { givenUser, type ScenarioUser } from "../pr/_kit/builders/users";
 import { db } from "../../src/lib/db";
 import { createOffer, createProductSpu } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,
   createRideHailingOrderFoundation,
 } from "../../src/domains/trade";
-import { attachOrderToPr } from "../../src/domains/pr-core";
+import { attachOrderToPr } from "../../src/domains/pr/commands";
 import type { OfferId } from "../../src/entities/offer";
 import type { PRId } from "../../src/entities/partner-request";
 import type { TradeOrderId } from "../../src/entities/trade-order";

@@ -103,7 +103,7 @@ import { ref } from "vue";
 import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
-} from "@partner-up-dev/backend";
+} from "@partner-up-dev/backend/contracts";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 import {
   IMAGE_UPLOAD_ACCEPT,

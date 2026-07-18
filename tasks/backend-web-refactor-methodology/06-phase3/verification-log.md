@@ -67,3 +67,20 @@ carry superseded banners rather than being rewritten as current truth.
 - Read-only CF-02 verification reran Backend waitlist scenario (1 file / 4 tests) and the focused System waitlist
   promotion journey (1 selected test); both passed. Existing coverage does not directly assert waitlist response
   body/header separation, so that remains the minimum `3-8` characterization gap.
+
+## Phase 3 Exit
+
+- CF-01 exited with authenticated-before-write USER creation, strict WeCom ingress, legacy DRAFT opacity, Browser A
+  zero-POST/no-replay proof, and public-provider short-circuit coverage. Its final matrix is
+  `07-cf01-anonymous-pr-creation/05-verification/`.
+- CF-02 trace confirmed `c.json(result.pr)` plus shared `x-access-token` rotation. One stale lifecycle sentence was
+  corrected; Backend now asserts the public-only response body plus header existence, and Web asserts generic
+  `authFetch` header persistence.
+- Final focused results: CF-02 Backend 1 file / 5 tests; Web 1 file / 1 test; selected System 1 pass / 5 skipped.
+- Final static gates passed: Backend/Web lint, type and build. Web naming audit remains report-only with two existing
+  weak-name findings. A lint-detected conditional-expect structure in the CF-01 DRAFT policy test was refactored and
+  its 12 focused unit tests rerun green.
+- Final `pnpm test:scenario:all` passed: Backend 22 files / 82 tests and the full System project. Architecture fitness
+  is 37 known / 0 new; `git diff --check` and focused formatter checks pass.
+
+See [`exit-evidence.md`](./exit-evidence.md) for the exact final command set and exclusions.

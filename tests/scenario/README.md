@@ -18,7 +18,7 @@ They are root-owned because they coordinate both technical units:
 ```text
 tests/scenario/
 ├── _infra/                 # cross-unit test mechanics
-└── pr-core/                # PR lifecycle system scenarios
+└── pr/                     # PR lifecycle system scenarios
 ```
 
 Dependency direction:
@@ -92,11 +92,11 @@ HEADED=true pnpm test:scenario:system
 
 Current PR detail coverage:
 
-- `pr-core/pr-create.scenario.test.ts`: covers structured form draft creation
+- `pr/pr-create.scenario.test.ts`: covers structured form draft creation
   for anonymous users and published PR creation for authenticated users.
-- `pr-core/pr-detail-join.scenario.test.ts`: a joiner opens a PR detail page,
+- `pr/pr-detail-join.scenario.test.ts`: a joiner opens a PR detail page,
   joins through the fallback confirmation gate, and reaches the post-join
   confirm action.
-- `pr-core/pr-detail-participation.scenario.test.ts`: covers Join Notice
+- `pr/pr-detail-participation.scenario.test.ts`: covers Join Notice
   join gate, participant confirmation, and waitlist promotion after an active
   participant exits.

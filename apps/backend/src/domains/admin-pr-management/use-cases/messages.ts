@@ -6,8 +6,8 @@ import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
-import { createPersistedPRMessage } from "../../pr/message/create-pr-message";
-import { toPRMessageThreadItem } from "../../pr-core/services/pr-message-thread.service";
+import { createPersistedPRMessage } from "../../pr/commands";
+import { toPRMessageThreadItem } from "../../pr/queries";
 
 const prRepository = new PartnerRequestRepository();
 const messageRepository = new PRMessageRepository();

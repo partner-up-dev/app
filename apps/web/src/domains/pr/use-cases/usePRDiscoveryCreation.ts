@@ -1,4 +1,4 @@
-import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend/contracts";
 import type { PRDiscoveryCreationSuggestion } from "@/domains/pr/model/pr-discovery-creation-suggestion";
 import type { PRDiscoveryPlaceSelection } from "@/domains/pr/model/pr-discovery-place-options";
 import type { TimeWindow } from "@/domains/pr/model/pr-discovery-time-window";

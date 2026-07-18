@@ -69,7 +69,7 @@ import type {
   PRJoinGateConfigItem,
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
-} from "@partner-up-dev/backend";
+} from "@partner-up-dev/backend/contracts";
 import { PuButton, PuFormItem, PuInput, PuTextarea } from "@partner-up-dev/design-web";
 
 const props = defineProps<{

@@ -34,7 +34,7 @@ vi.mock("../../../repositories/FeedbackQuestionnaireRepository", () => ({
     findTemplateById = questionnaire.findTemplateById;
   },
 }));
-vi.mock("../../pr-core/services/meeting-point-change-notifier.service", () => ({
+vi.mock("../../pr/ports", () => ({
   captureEffectiveMeetingPointsForRequests: coordination.capture,
   listRequestsAffectedByPRTypeMeetingPoint: coordination.listAffected,
   scheduleMeetingPointNotificationsForChangedRequests: coordination.schedule,

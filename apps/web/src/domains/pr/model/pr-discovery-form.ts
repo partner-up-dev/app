@@ -1,5 +1,5 @@
-import type { PRRoute } from "@partner-up-dev/backend";
-import type { PRAuthoringOptions } from "@/domains/pr/queries/usePRAuthoringOptions";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
+import type { PRAuthoringOptions } from "@/domains/pr/contracts";
 
 export type PRDiscoveryPlaceSelection =
   | { kind: "location"; location: string }

@@ -21,6 +21,16 @@ the stale `auth payload` claim without inventing a second authentication channel
 
 ## Status
 
-Header-only contract correction decided 2026-07-17; execution remains planned after `3-7`.
+Complete. 08A source trace confirms runtime alignment, 08B corrects the stale lifecycle claim, and 08C adds the
+minimal Backend/Web regression proof plus final Phase 3 gates. CF-02 closes without an auth transport redesign.
 
 Decision evidence, options and recommendation: [`decision-brief.md`](./decision-brief.md).
+
+## Subtasks
+
+- [08A — Trace Characterization](./01-trace-characterization/00-task-packet.md) — Complete
+- [08B — Durable-doc Correction](./02-durable-doc-correction/00-task-packet.md) — Complete
+- [08C — Focused Proof and Phase Exit](./03-focused-proof-phase-exit/00-task-packet.md) — Complete
+
+CF-02 and Phase 3 are complete. See [`03-focused-proof-phase-exit/`](./03-focused-proof-phase-exit/) and the parent
+[`../exit-evidence.md`](../exit-evidence.md) for the final command and scope evidence.

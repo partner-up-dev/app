@@ -1,7 +1,7 @@
 import type { PRTypePreferenceTag } from "../../../entities/pr-type-preference-tag";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PRTypePreferenceTagRepository } from "../../../repositories/PRTypePreferenceTagRepository";
-import { normalizePRPreferenceLabel } from "../../pr/services/preference-normalization";
+import { normalizePRPreferenceLabel } from "../../pr/contracts";
 import { hasPRTypeConfig } from "../../pr-type-config";
 import type { PRTypePreferenceTagSubmissionResponse } from "../contracts";
 

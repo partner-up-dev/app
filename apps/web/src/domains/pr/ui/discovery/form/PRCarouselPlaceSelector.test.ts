@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import type {

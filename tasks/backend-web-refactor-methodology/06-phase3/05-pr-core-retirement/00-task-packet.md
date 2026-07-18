@@ -14,4 +14,8 @@ not a product/API/schema rewrite.
 
 ## Status
 
-Planned after `3-4`. No mutation started.
+Complete on 2026-07-17. Canonical commands, queries, contracts and ports now live under `domains/pr`; the
+`PartnerRequestService` facade was removed and the `domains/pr-core` compatibility window was physically closed.
+Focused unit/scenario, backend lint/type/build and architecture-fitness validation all passed. See
+[`exit-evidence.md`](./exit-evidence.md) for exact results. This closes slice `3-5` only; later Phase 3 slices remain
+independent.

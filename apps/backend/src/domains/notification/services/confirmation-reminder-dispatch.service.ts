@@ -16,7 +16,7 @@ import {
   hasEnabledConfirmationPolicy,
   hasParticipationPolicy,
   resolveParticipationPolicy,
-} from "../../pr/services";
+} from "../../pr/queries";
 import { REMINDER_CONFIRMATION_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();

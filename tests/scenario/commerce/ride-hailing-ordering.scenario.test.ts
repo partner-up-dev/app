@@ -19,11 +19,11 @@ import { ProductSkuRepository } from "../../../apps/backend/src/repositories/Pro
 import {
   bindScenarioWeChatOpenId,
   configurePRStatus,
-} from "../../../apps/backend/tests/pr-core/_kit/actions/system-state";
+} from "../../../apps/backend/tests/pr/_kit/actions/system-state";
 import {
   givenUser,
   type ScenarioUser,
-} from "../../../apps/backend/tests/pr-core/_kit/builders/users";
+} from "../../../apps/backend/tests/pr/_kit/builders/users";
 import { withScenarioPage } from "../_infra/browser/browser";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";

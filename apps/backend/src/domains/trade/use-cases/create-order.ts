@@ -18,7 +18,6 @@ import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
@@ -36,8 +35,8 @@ import {
   type RentalSkuFacts,
   type RideHailingSkuFacts,
 } from "../../merchandising";
-import { attachOrderToPr } from "../../pr-core";
-import { isPROrderAttachableStatus } from "../../pr-core/services/status-rules";
+import { attachOrderToPr } from "../../pr/commands";
+import { getPROrderAttachmentEligibility } from "../../pr/queries";
 import { buildCaocaoCallbackInfo, createRideHailingProviderPort } from "../../ride-hailing";
 import type {
   ChoiceSetOrderItemSnapshot,
@@ -70,7 +69,6 @@ import {
 } from "./offer-quote";
 
 const offerRepo = new OfferRepository();
-const partnerRequestRepo = new PartnerRequestRepository();
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
@@ -250,22 +248,25 @@ async function validatePrAttachmentForEvaluation(input: {
   viewerUserId?: string | null;
 }): Promise<OrderingActionProblem | null> {
   if (!input.prId) return null;
-  const pr = await partnerRequestRepo.findById(input.prId as PRId);
-  if (!pr) {
+  const eligibility = await getPROrderAttachmentEligibility({
+    prId: input.prId as PRId,
+    actorUserId: (input.viewerUserId as UserId | null | undefined) ?? null,
+  });
+  if (eligibility.outcome === "PR_NOT_FOUND") {
     return actionProblem({
       code: "PR_NOT_FOUND",
       title: "无法创建订单",
       detail: "关联的 PR 不存在。",
     });
   }
-  if (!isPROrderAttachableStatus(pr.status)) {
+  if (eligibility.outcome === "PR_NOT_READY") {
     return actionProblem({
       code: "PR_NOT_READY",
       title: "暂不能创建订单",
       detail: "创建订单需要搭子请求「已成团」或「进行中」",
     });
   }
-  if (!input.viewerUserId || pr.createdBy !== input.viewerUserId) {
+  if (eligibility.outcome === "PR_ORDER_CREATOR_REQUIRED") {
     return actionProblem({
       code: "PR_ORDER_CREATOR_REQUIRED",
       title: "暂不能创建订单",

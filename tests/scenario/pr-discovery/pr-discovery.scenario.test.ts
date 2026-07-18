@@ -4,12 +4,12 @@ import {
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
-} from "../../../apps/backend/src/domains/pr-core/services/participation-policy.service";
+} from "../../../apps/backend/src/domains/pr/contracts";
 import { PRTypeConfigRepository } from "../../../apps/backend/src/repositories/PRTypeConfigRepository";
-import { givenPersistedPartnerRequest } from "../../../apps/backend/tests/pr-core/_kit/builders/partner-requests";
-import type { ScenarioUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
-import { givenUser } from "../../../apps/backend/tests/pr-core/_kit/builders/users";
-import { probePartnerRequestIdsByType } from "../../../apps/backend/tests/pr-core/_kit/probes/partner-requests";
+import { givenPersistedPartnerRequest } from "../../../apps/backend/tests/pr/_kit/builders/partner-requests";
+import type { ScenarioUser } from "../../../apps/backend/tests/pr/_kit/builders/users";
+import { givenUser } from "../../../apps/backend/tests/pr/_kit/builders/users";
+import { probePartnerRequestIdsByType } from "../../../apps/backend/tests/pr/_kit/probes/partner-requests";
 import {
   givenPRTypeConfig,
   givenPRTypeVisiblePR,

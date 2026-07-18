@@ -183,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRStatusManual } from "@partner-up-dev/backend";
+import type { PRStatusManual } from "@partner-up-dev/backend/contracts";
 import {
   PuButton,
   PuHeader,

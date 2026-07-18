@@ -14,4 +14,18 @@ their domain adapters. No handwritten DTO package or runtime client abstraction 
 
 ## Status
 
-Planned last in the current sequence. No mutation started.
+Complete on 2026-07-17. `06A`, `06B`, the four original `06C` consumer families, the bounded 06C exit-census
+correction, and `06D` have their required type/build, consumer-census, full System, and architecture-fitness evidence.
+`PRId` and `OrderingOfferDetail` remain recorded root compatibility exceptions rather than being recast as handwritten
+contracts.
+
+## Subtask Index
+
+1. [`06A — Types-only Surface`](01-types-only-surface/00-task-packet.md): classify Backend exports and add one
+   narrow, type-only package subpath.
+2. [`06B — Inferred Domain Aliases`](02-inferred-domain-aliases/00-task-packet.md): keep Hono inference in Web
+   transport/domain adapters and expose aliases without handwritten response DTOs.
+3. [`06C — Consumer-family Migration`](03-consumer-family-migration/00-task-packet.md): complete, including one
+   exit-census correction after its four independent family packets; no behavior or new family scope was added.
+4. [`06D — Root Compatibility Retirement`](04-root-compatibility-retirement/00-task-packet.md): complete after the
+   correction proved root-consumer zero for the types-only surface and full exit gates passed.

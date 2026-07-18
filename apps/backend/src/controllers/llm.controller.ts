@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { PartnerRequestService } from "../services/PartnerRequestService";
+import { getPR } from "../domains/pr/queries";
 import { ShareAIService, XiaohongshuStyle } from "../services/ShareAIService";
 import type { PartnerRequestFields } from "../entities/partner-request";
 
 const app = new Hono();
 const shareAIService = new ShareAIService();
-const prService = new PartnerRequestService();
 
 const xiaohongshuCaptionRequestSchema = z.object({
   prId: z.coerce.number().int().positive(),
@@ -25,7 +24,7 @@ export const llmRoute = app.post(
   async (c) => {
     const { prId } = c.req.valid("json");
 
-    const pr = await prService.getPR(prId);
+    const pr = await getPR(prId);
     const prFields: PartnerRequestFields = {
       title: pr.title ?? undefined,
       type: pr.type,

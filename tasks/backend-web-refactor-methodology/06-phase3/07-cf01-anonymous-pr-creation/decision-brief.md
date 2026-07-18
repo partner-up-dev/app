@@ -94,9 +94,8 @@ Sir selected the authenticated-first server policy shared by options A/C:
 > user. A successful normal create command returns an `OPEN` PR. Anonymous server DRAFT and capability-based draft
 > protocols are outside the product contract.
 
-This decision rejects B and D. It does not yet choose whether anonymous browser input is memory-only (A) or receives
-explicit local-draft continuity across OAuth (C); `3-7` must choose that Web UX without weakening the server rule.
-The current recommendation remains C for continuity, but it is not part of the accepted server-side decision.
+This decision rejects B and D. It initially left Browser A/C open; that branch is now closed below without weakening
+the server rule.
 
 Also record, without expanding `3-7` prematurely:
 
@@ -105,8 +104,10 @@ Also record, without expanding `3-7` prematurely:
 
 The execution packet must also characterize a second current-state wrinkle before changing wording: authenticated
 create inserts DRAFT before publish validation, and no transaction/rollback is evident. A failed publish may leave
-an authenticated DRAFT. The decision above governs the public anonymous path; `3-7` must separately choose whether
-failed authenticated drafts are recoverable product state or cleanup residue, and align DRAFT detail authorization.
+an authenticated DRAFT. That state is now designated cleanup residue for a normal USER create: the implementation
+may remove only the just-created, still-DRAFT row after a failed command; it must not rewrite historical data. If
+safe cleanup cannot be demonstrated across its child effects, the implementation stops for a transaction/owner fork
+rather than presenting an unsupported recoverable-draft UX.
 
 ## Consequence Map
 
@@ -122,5 +123,9 @@ failed authenticated drafts are recoverable product state or cleanup residue, an
 - Server policy: **Decided — authenticated user required before every PR persistence path**
 - Public H5 anonymous server DRAFT: **Rejected**
 - Enterprise/WeCom creatorless DRAFT: **Rejected; must bind an authenticated user or stop creating**
-- Browser continuity choice (memory-only vs local draft): **Open for `3-7` entry**
+- Browser continuity choice: **A selected — authenticate before a create command; no server row or automatic replay
+  before authentication.** The UI must not promise a saved server draft, and it must disclose any local-memory loss
+  boundary before redirect.
+- Failed normal authenticated create: **cleanup residue**, not a recoverable product DRAFT; historical legacy rows
+  are not rewritten by this decision.
 - Legacy/failed-create creatorless DRAFT privacy and ownership hardening: **Required in `3-7` scope**

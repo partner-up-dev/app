@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend/contracts";
 import { PuWheelPicker } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";

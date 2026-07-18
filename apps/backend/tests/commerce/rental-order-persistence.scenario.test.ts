@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
+import { givenUser, type ScenarioUser } from "../pr/_kit/builders/users";
 import { db } from "../../src/lib/db";
 import {
   createOffer,
@@ -20,7 +20,7 @@ import {
   applyPaymentSettlementConsequence,
   registerPaymentProviderInstance,
 } from "../../src/domains/payment";
-import { attachOrderToPr } from "../../src/domains/pr-core";
+import { attachOrderToPr } from "../../src/domains/pr/commands";
 import type { OfferId } from "../../src/entities/offer";
 import type { BillId } from "../../src/entities/bill";
 import type { OfferListingSessionId, OfferQuoteId } from "../../src/entities/commerce-quote";

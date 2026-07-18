@@ -68,16 +68,17 @@ These are subsystem clusters inside the two units, not independent top-level uni
 
 | Capability | Current owner / state | Target dependency direction |
 | --- | --- | --- |
-| PR Lifecycle and canonical PR facts | `domains/pr` is the canonical surface/read owner; lifecycle implementation still delegates extensively to `domains/pr-core` | callers → curated `domains/pr` command/query/contract; compatibility `pr-core` → canonical owner only after cutover |
+| PR Lifecycle and canonical PR facts | `domains/pr` owns the canonical surface, lifecycle implementation and read projections; the former `domains/pr-core` compatibility implementation was retired in Phase 3 slice `3-5` | callers → curated `domains/pr` command/query/contract |
 | PR Type Configuration | `domains/pr-type-config` owns current-policy queries, operator commands and stable contracts; its Postgres repository remains internal. `admin-pr-type-config` is the operator composition/HTTP adapter. | consumers → named neutral PR Type Configuration queries/commands/contracts → internal persistence; Admin remains an adapter and does not duplicate policy validation or writes |
 | PR Authoring | `domains/pr-authoring` plus ordinary PR creation commands | route/controller → Authoring public options/submission surface → ordinary PR command |
 | PR Discovery | `domains/pr-discovery` for catalog, view resolution, directory and recommendation reads | route/controller → Discovery query surface → canonical PR/Type/POI reads |
 | POI | `domains/poi` and POI persistence | Authoring/Discovery consume POI-owned query/contracts rather than duplicating location authority |
 | Feedback Questionnaire | `domains/feedback-questionnaire` and feedback persistence | PR integration consumes feedback command/query/contracts; questionnaire owner remains independent |
 
-`domains/pr-core` is a named compatibility window, not a second PR authority. Existing imports are migration
-evidence; no new caller should depend on it. Anchor Event is no longer a product/domain authority: its durable
-identity/routes/tables were retired when PR Type Configuration, Authoring and Discovery became the current model.
+The `domains/pr-core` compatibility window is closed: its implementation and the private `PartnerRequestService`
+facade were removed after runtime, type-only and test consumers were cut over in Phase 3 slice `3-5`. Anchor Event
+is no longer a product/domain authority: its durable identity/routes/tables were retired when PR Type Configuration,
+Authoring and Discovery became the current model.
 Empty historical directory names or generic analytics `eventId` fields do not re-establish that authority.
 
 ## Allowed Dependency Direction

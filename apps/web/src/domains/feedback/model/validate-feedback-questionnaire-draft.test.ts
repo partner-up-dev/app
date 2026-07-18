@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
+import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend/contracts";
 import { findMissingFeedbackQuestionLabel } from "./validate-feedback-questionnaire-draft";
 
 const definition = {

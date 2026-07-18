@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { PuInlineNotice, PuModal } from "@partner-up-dev/design-web";
-import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
+import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend/contracts";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import FeedbackQuestionnaireForm from "@/domains/feedback/ui/FeedbackQuestionnaireForm.vue";
 

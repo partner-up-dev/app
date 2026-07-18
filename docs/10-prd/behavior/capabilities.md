@@ -10,7 +10,7 @@ by the relevant owner and never becomes a second business object.
 - resolve an arbitrary `PR.type` while offering suggestions from the current type catalog
 - choose one PR-owned time window and one place mode (location or ordered route)
 - use the `/prd` discovery flow to hand no-match criteria to ordinary PR Authoring
-- create and publish PR drafts, including authenticated one-step publish
+- create and publish PRs through the authenticated PR Authoring command, including authenticated one-step publish
 - materialize type-specific defaults (notes, partner bounds, join gates, confirmation policy, and questionnaire selection) into PR-owned fields at creation time
 
 ## 2. PR Discovery

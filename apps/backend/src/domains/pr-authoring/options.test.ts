@@ -23,13 +23,17 @@ vi.mock("../../repositories/PoiRepository", () => ({
     findByNames = mocks.findPois;
   },
 }));
-vi.mock("../pr-core/services/pr-read.service", () => ({
-  isPRActiveStatus: (status: string) => ["OPEN", "READY", "ACTIVE"].includes(status),
-  readVisiblePartnerRequestsByType: mocks.readVisible,
-}));
-vi.mock("../pr-core/services/status-rules", () => ({
-  isPRJoinableStatus: (status: string) => status === "OPEN",
-}));
+vi.mock("../pr/queries", async () => {
+  const { isTimeWindowAvailableByPoiRules } = await import(
+    "../pr/services/poi-availability.service"
+  );
+  return {
+    isPRActiveStatus: (status: string) => ["OPEN", "READY", "ACTIVE"].includes(status),
+    isPRJoinableStatus: (status: string) => status === "OPEN",
+    isTimeWindowAvailableByPoiRules,
+    readVisiblePartnerRequestsByType: mocks.readVisible,
+  };
+});
 
 const { getPRAuthoringOptions } = await import("./use-cases/get-options");
 

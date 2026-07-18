@@ -8,9 +8,22 @@ const mocks = vi.hoisted(() => ({
   countActiveByPrIds: vi.fn<() => unknown>(),
   findActiveByUserId: vi.fn<() => unknown>(),
 }));
-vi.mock("../pr-core/services/pr-read.service", () => ({
-  readVisiblePartnerRequestsByType: mocks.findRequests,
-}));
+vi.mock("../pr/queries", async () => {
+  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } = await import(
+    "../pr/services/time-window.service"
+  );
+  return {
+    getProductLocalDateKey,
+    getProductLocalDateKeyForTimeWindowStart,
+    readVisiblePartnerRequestsByType: mocks.findRequests,
+  };
+});
+vi.mock("../pr/contracts", async () => {
+  const { derivePRPreferenceCategory, normalizePRPreferenceLabels } = await import(
+    "../pr/services/preference-normalization"
+  );
+  return { derivePRPreferenceCategory, normalizePRPreferenceLabels };
+});
 
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({
   PRTypeConfigRepository: class {

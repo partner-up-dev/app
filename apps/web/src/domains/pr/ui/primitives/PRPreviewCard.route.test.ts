@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createApp, type App } from "vue";
-import type { PRRoute, PRStatus } from "@partner-up-dev/backend";
+import type { PRRoute, PRStatus } from "@partner-up-dev/backend/contracts";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import PRPreviewCard from "./PRPreviewCard.vue";
 

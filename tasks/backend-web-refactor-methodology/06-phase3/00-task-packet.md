@@ -11,9 +11,8 @@
 ## Current Mode And Authorization
 
 - 当前模式：`Solidify`。
-- Sir 已明确授权完成 Phase 3；`3-1`、`3-2`、`3-3` 已由 `ca6151cd` 收口，`3-4` 已在受控工作树验证完成。
-  `3-5` 是下一个 executable slice；后续 slice 仍按各自 entry/stop conditions 逐个进入，不将 phase
-  授权扩张为跨 scope 修改。
+- Sir 已明确授权并已完成 Phase 3；`3-1`–`3-8` 均以各自 packet exit evidence 收口。后续领域 phase 仍须按其
+  entry/stop conditions 逐个进入，不将本 phase 的授权扩张为跨 scope 修改。
 - commit 仍需 Sir 独立命令。
 
 ## Guardrails Touched
@@ -36,10 +35,10 @@
 | 3A Foundation/calibration | `3-2` · `02-pr-discovery-read-owner/` | `/prd` read-only workflow/query owner 收敛 | Complete; `ca6151cd` |
 | 3B Mutation calibration / PR convergence | `3-3` · `03-feedback-submission-vertical/` | Feedback browser-to-Postgres mutation calibration | Complete; `ca6151cd` |
 | 3B Mutation calibration / PR convergence | `3-4` · `04-pr-type-config-boundary/` | PR Type Config public read/write owner 与 consumer migration | Complete; dedicated exit commit |
-| 3B Mutation calibration / PR convergence | `3-5` · `05-pr-core-retirement/` | canonical `domains/pr` cutover 与 compatibility 退场 | Planned after `3-4` |
-| 3B Mutation calibration / PR convergence | `3-6` · `06-contract-surface-narrowing/` | Web types-only contract surface 与 duplicate DTO 收窄 | Planned after public surfaces stabilize |
-| 3C Conflict closure | `3-7` · `07-cf01-anonymous-pr-creation/` | 对齐 authenticated-only PR persistence 产品与运行合同 | Decided; execute after `3-6` |
-| 3C Conflict closure | `3-8` · `08-cf02-waitlist-auth-contract/` | 修正 waitlist header-only auth 合同描述并用真实旅程收口 | Decided; execute after `3-7` |
+| 3B Mutation calibration / PR convergence | `3-5` · `05-pr-core-retirement/` | canonical `domains/pr` cutover 与 compatibility 退场 | Complete; exit evidence `05-pr-core-retirement/exit-evidence.md` |
+| 3B Mutation calibration / PR convergence | `3-6` · `06-contract-surface-narrowing/` | Web types-only contract surface 与 duplicate DTO 收窄 | Complete — 06A–06D plus exit-census correction; full scenario and fitness evidence recorded |
+| 3C Conflict closure | `3-7` · `07-cf01-anonymous-pr-creation/` | 对齐 authenticated-only PR persistence 产品与运行合同 | Complete — 07A–07E, full scenario and fitness evidence recorded |
+| 3C Conflict closure | `3-8` · `08-cf02-waitlist-auth-contract/` | 修正 waitlist header-only auth 合同描述并用真实旅程收口 | Complete — 08A–08C, full scenario and fitness evidence recorded |
 
 `3A`–`3C` 是 Phase 3 内的阶段分组，`3-1`–`3-8` 才是可执行 slice；物理目录保留两位序号以避免
 重命名历史证据。每个 slice 独立拥有 `00-task-packet.md`、`execution-plan.md` 和 `rehearsal.md`。
@@ -76,5 +75,23 @@ CF-01 和 CF-02 的退出同时构成 Phase 3 exit，不再添加一个没有独
   142/142、targeted System 11/11、full System 42/42、fitness 125 known / 0 new。
 - `3-3` 已由 `ca6151cd` 收口：generic Feedback command、PR-owned workflow、retryable UI 与
   Browser→Postgres proof 均通过。`3-4` 已完成 neutral PR Type Config owner、Admin adapter 收敛、current/snapshot
-  scenario proof、Backend build/lint/type 与 fitness 125 known / 0 new。3B 仍有 `3-5`–`3-6`，之后才进入 3C。
+  scenario proof、Backend build/lint/type 与 fitness 125 known / 0 new。`3-5` 已完成 canonical PR cutover、
+  compatibility window closure、physical zero-consumer retirement 与 focused validation；`3-6/06A` 已完成
+  types-only package surface 与 resolver proof，`06B` inferred-alias pilots 已完成，`06C.1` PR Discovery
+  consumer family 已以 47 files / 152 tests、Web type/build 收口，`06C.2` PR Lifecycle 已以 7 files / 25 tests、
+  preview rerun、Web type/build 收口，`06C.3` Feedback/Admin 已以 7 files / 16 tests、Web type/build 收口，
+  `06C.4` Share/Commerce/Upload 已以 3 files / 8 tests、Web type/build 收口；06D 的 fresh root census 随即发现
+  `DateTimeRangePicker.vue` 漏掉一条安全 `PartnerRequestFields` root import，该有界 06C exit-census correction
+  已以 authoring/Web type/build proof 收口，repeat census 仅保留 `AppType`、`PRId`、`OrderingOfferDetail` 三条
+  声明例外。`06D` 已删除其余 18 个已由 `/contracts` 承接的 root types，并以 Backend/Web type/build、Backend
+  22 files / 74 tests、System 8 files / 42 tests 与 fitness 37 known / 0 new 收口；`3-7/07A` durable rebaseline
+  已完成，`07B` Backend create guard/WeCom 已以独立复跑的 unit 2 files / 8 tests、Backend scenario 2 files /
+  6 tests、Backend type/build 收口；`07C` legacy-DRAFT hardening、`07D` Browser A implementation 与 `07E` final
+  verification 均已完成：final focused Backend unit 6 files / 27 tests、Backend scenario 5 files / 21 tests、Web
+  unit 5 files / 9 tests、PR create System 1 file / 3 tests、Backend/Web type/build、full scenario（Backend 22
+  files / 81 tests；System 完成）和 fitness 37 known / 0 new 均通过。`3-8/08A` 已完成真实 body/header trace，
+  `08B` 已将 stale waitlist auth-payload wording 修正为 PublicPR-only body + shared `x-access-token` rotation，
+  `08C` 已以 Backend header/body 5 tests、generic Web transport 1 test、targeted System、Backend/Web lint/type/
+  build、full scenario（Backend 22 files / 82 tests；System 完成）及 fitness 37 known / 0 new 收口。Phase 3 已
+  complete；完整最终证据见 [`exit-evidence.md`](./exit-evidence.md)。
 - Phase 3 之后的领域 phases 与全局收尾见 `../program-roadmap.md`，不属于本次应用修改授权。

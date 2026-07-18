@@ -1,12 +1,9 @@
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
-import type { InferResponseType } from "hono";
+import type { PartnerRequestFields } from "@partner-up-dev/backend/contracts";
+import type { PRDetailResponse } from "@/domains/pr/contracts";
 import { normalizePRRouteForSubmit } from "@/domains/pr/model/pr-route";
-import { client } from "@/lib/rpc";
 
-type CanonicalPRDetailView = InferResponseType<(typeof client.api.pr)[":id"]["$get"]>;
-
-export type PRDetailView = CanonicalPRDetailView;
-export type PRPartnerSectionView = CanonicalPRDetailView["partnerSection"];
+export type PRDetailView = PRDetailResponse;
+export type PRPartnerSectionView = PRDetailResponse["partnerSection"];
 
 export type PRFormFields = Omit<PartnerRequestFields, "budget"> & {
   budget?: PartnerRequestFields["budget"];

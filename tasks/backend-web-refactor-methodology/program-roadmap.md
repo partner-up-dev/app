@@ -15,19 +15,19 @@ Inside Phase 3, `3A`–`3C` are stage groups and `3-1`–`3-8` are executable sl
 Phase 1: behavior and authority freeze                         Complete (historical)
 Phase 2: read-only baseline and toolchain recovery             Complete (historical)
 
-Phase 3: architecture and PR migration protocol               Active
+Phase 3: architecture and PR migration protocol               Complete
   Phase 3A: foundation and calibration
     3-1 baseline and fitness                                  Complete
-    3-2 PR Discovery read owner                               Verified; exit commit pending
+    3-2 PR Discovery read owner                               Complete
   Phase 3B: mutation calibration and PR owner convergence
-    3-3 Feedback mutation vertical                            Verified; exit commit pending
-    3-4 PR Type Config boundary                               Planned
-    3-5 pr-core retirement                                    Planned
-    3-6 contract surface narrowing                            Planned
+    3-3 Feedback mutation vertical                            Complete
+    3-4 PR Type Config boundary                               Complete
+    3-5 pr-core retirement                                    Complete
+    3-6 contract surface narrowing                            Complete
   Phase 3C: conflict closure
-    3-7 CF-01 authenticated-only PR persistence               Decided; execution pending
-    3-8 CF-02 waitlist header-only auth contract              Decided; execution pending
-  -> Phase 3 exit
+    3-7 CF-01 authenticated-only PR persistence               Complete
+    3-8 CF-02 waitlist header-only auth contract              Complete
+  -> Phase 3 exit                                             Complete
 
 Phase 4: User/Auth
 Phase 5: Commerce
@@ -36,13 +36,14 @@ Phase 7: Observability/Analytics
 Phase 8: global review and cleanup
 ```
 
-Phase 3A establishes the measurable/read-owner foundation through `3-1`/`3-2`. Phase 3B starts with the
-browser-to-Postgres mutation calibration in `3-3` and continues through PR owner convergence in `3-4`–`3-6`.
-`3-2`/`3-3` have complete verification evidence in the working tree with exit commits pending; `3-4`–`3-6`
-remain unexecuted. Phase 3C is the later conflict-closure stage at `3-7`/`3-8`.
+Phase 3A established the measurable/read-owner foundation through `3-1`/`3-2`. Phase 3B then carried the
+browser-to-Postgres mutation calibration in `3-3` through PR owner convergence in `3-4`–`3-6`; Phase 3C closed
+CF-01/CF-02 in `3-7`/`3-8`. The complete Phase 3 evidence is owned by
+[`06-phase3/exit-evidence.md`](./06-phase3/exit-evidence.md).
 
-Phase numbers after Phase 3 express order, not a frozen sub-slice design. Each later phase is split only after its
-entry evidence, authority graph, contract conflicts and low-cost verification plan are refreshed.
+Phase numbers after Phase 3 express order, not a frozen sub-slice design. Phase 4 is at entry-characterization and
+planning only; each later phase is split only after its entry evidence, authority graph, contract conflicts and
+low-cost verification plan are refreshed. This status does not authorize a later-phase mutation.
 
 ## Program Phase Boundaries
 

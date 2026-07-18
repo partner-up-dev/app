@@ -4,8 +4,9 @@ import type { PRMessageId } from "../../../entities/pr-message";
 import type { UserId } from "../../../entities/user";
 import { PRMessageInboxStateRepository } from "../../../repositories/PRMessageInboxStateRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
-import { requirePRMessageParticipantAccess } from "../../pr-core/services/pr-message-access.service";
-import { buildPRMessageThreadState } from "../../pr-core/services/pr-message-thread.service";
+import { requirePRMessageParticipantAccess } from "../services/pr-message-access.service";
+import { buildPRMessageThreadState } from "../services/pr-message-thread.service";
+import type { PRDraftActor } from "../services/draft-access-policy.service";
 
 const messageRepo = new PRMessageRepository();
 const inboxStateRepo = new PRMessageInboxStateRepository();
@@ -14,9 +15,14 @@ export async function advancePRMessageReadMarker(input: {
   prId: PRId;
   userId: UserId;
   lastReadMessageId: PRMessageId;
+  actor?: PRDraftActor;
 }) {
   const { prId, userId, lastReadMessageId } = input;
-  await requirePRMessageParticipantAccess(prId, userId);
+  await requirePRMessageParticipantAccess(
+    prId,
+    userId,
+    input.actor ?? { userId, roles: ["anonymous"] },
+  );
 
   const targetMessage = await messageRepo.findByPrIdAndId(prId, lastReadMessageId);
   if (!targetMessage) {

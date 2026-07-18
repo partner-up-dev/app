@@ -10,8 +10,8 @@ import { db } from "../../src/lib/db";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { scenario } from "../_infra/scenario/scenario";
-import { bindScenarioWeChatOpenId } from "../pr-core/_kit/actions/system-state";
-import { givenUser } from "../pr-core/_kit/builders/users";
+import { bindScenarioWeChatOpenId } from "../pr/_kit/actions/system-state";
+import { givenUser } from "../pr/_kit/builders/users";
 
 type PaymentClientActionProjection = {
   type?: string;

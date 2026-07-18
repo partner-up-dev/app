@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import { normalizePRRouteForSubmit } from "./pr-route";
 import { toPartnerRequestFields, type PRFormFields } from "./types";
 

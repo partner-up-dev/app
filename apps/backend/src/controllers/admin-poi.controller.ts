@@ -11,7 +11,7 @@ import {
   captureEffectiveMeetingPointsForRequests,
   listRequestsAffectedByPoiMeetingPoint,
   scheduleMeetingPointNotificationsForChangedRequests,
-} from "../domains/pr/services";
+} from "../domains/pr/ports";
 import { publishAdminPoiApplication, rejectAdminPoiApplication } from "../domains/poi";
 
 const app = new Hono<AdminAuthEnv>();

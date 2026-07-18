@@ -10,19 +10,29 @@ import {
 import { PRMessageInboxStateRepository } from "../../../repositories/PRMessageInboxStateRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
 import { createPRMessageUnreadWaveNotificationOpportunities } from "../../notification/services/pr-message-unread-wave.service";
-import { requirePRMessageParticipantAccess } from "../../pr-core/services/pr-message-access.service";
+import { requirePRMessageParticipantAccess } from "../services/pr-message-access.service";
 import {
   PR_MESSAGE_RATE_LIMIT_MAX_MESSAGES,
   PR_MESSAGE_RATE_LIMIT_WINDOW_MS,
   buildPRMessageThreadState,
   toPRMessageThreadItem,
-} from "../../pr-core/services/pr-message-thread.service";
+} from "../services/pr-message-thread.service";
+import type { PRDraftActor } from "../services/draft-access-policy.service";
 
 const messageRepo = new PRMessageRepository();
 const inboxStateRepo = new PRMessageInboxStateRepository();
 
-export async function createPRMessage(input: { prId: PRId; authorUserId: UserId; body: string }) {
-  const { request } = await requirePRMessageParticipantAccess(input.prId, input.authorUserId);
+export async function createPRMessage(input: {
+  prId: PRId;
+  authorUserId: UserId;
+  body: string;
+  actor?: PRDraftActor;
+}) {
+  const { request } = await requirePRMessageParticipantAccess(
+    input.prId,
+    input.authorUserId,
+    input.actor ?? { userId: input.authorUserId, roles: ["anonymous"] },
+  );
   const body = prMessageBodySchema.parse(input.body);
 
   const recentMessageCount = await messageRepo.countByAuthorSince(

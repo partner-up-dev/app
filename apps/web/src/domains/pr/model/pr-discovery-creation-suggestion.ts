@@ -1,4 +1,4 @@
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import {
   type PRDiscoveryPlaceOption,
   type PRDiscoveryPlaceSelection,

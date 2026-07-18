@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
-import { givenAdminUser, givenUser, type ScenarioUser } from "../pr-core/_kit/builders/users";
+import { givenAdminUser, givenUser, type ScenarioUser } from "../pr/_kit/builders/users";
 import { createOffer, createProductSpu } from "../../src/domains/merchandising";
 import {
   buildOrderParticipantsFromContext,

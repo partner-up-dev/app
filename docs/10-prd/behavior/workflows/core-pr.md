@@ -6,9 +6,9 @@
 2. The user either expands the lightweight "start from one sentence" path or enters `/pr/new`.
 3. The system interprets the natural-language intent, may map it to an existing `PR.type`, and may synthesize a new `PR.type` when no current type fits.
 4. The creation flow submits the natural-language create command.
-5. If the selected type's PR Authoring policy allows user creation and the user already has an authenticated account, the system creates and publishes the PR inside the same creation flow.
-6. If the user is anonymous, the system creates a `DRAFT` and waits for a later authenticated publish step.
-7. The publish step assigns current creator responsibility and returns a shareable, revisitable `PR`.
+5. If the selected type permits USER creation and the visitor is authenticated, the unified create command persists and publishes an `OPEN` PR in one operation, bound to that authenticated user.
+6. If the visitor is anonymous, the create action stops before the create request, explains that sign-in is required, and may start OAuth only after explicit user confirmation. No server-side PR or `DRAFT` is created, and no create command is automatically replayed after OAuth.
+7. After authentication, the user explicitly submits the create command; the returned PR is shareable and revisitable.
 
 ## 2. Create a PR Through Structured Form
 
@@ -18,9 +18,9 @@
 4. The user chooses one place mode for the PR. Location mode supplies one primary location. Route mode supplies an ordered `PR.route` from departure to destination, with optional waypoints.
 5. The UI resolves those inputs into one PR-owned create payload with one concrete `type`, one concrete `time_window`, and one place mode.
 6. The creation flow submits the structured create command. The selected type's PR Authoring policy gates user creation, and creation materializes current type defaults such as notes when the create payload has no notes, join gates, and mounted feedback questionnaire instance onto the created PR.
-7. If the user already has an authenticated account, the system creates and publishes the PR inside the same creation flow.
-8. If the user is anonymous, the system creates a `DRAFT` and waits for a later authenticated publish step.
-9. The publish step assigns current creator responsibility and returns a shareable, revisitable `PR`.
+7. If the selected type permits USER creation and the visitor is authenticated, the unified create command persists and publishes an `OPEN` PR in one operation, bound to that authenticated user.
+8. If the visitor is anonymous, the create action stops before the create request, explains that sign-in is required, and may start OAuth only after explicit user confirmation. No server-side PR or `DRAFT` is created, and no create command is automatically replayed after OAuth.
+9. After authentication, the user explicitly submits the create command; the returned PR is shareable and revisitable.
 
 ## 3. Enter Through a Link and Join a PR
 

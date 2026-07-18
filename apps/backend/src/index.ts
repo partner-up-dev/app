@@ -308,33 +308,14 @@ export type {
   PRDiscoveryViewRatios,
 } from "./domains/pr-discovery";
 export type {
-  FeedbackQuestionnaireAnswers,
-  FeedbackQuestionnaireDefinition,
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireTemplateId,
 } from "./entities/feedback-questionnaire";
-export type {
-  PRJoinGateConfig,
-  PRJoinGateConfigItem,
-  PRJoinGateSource,
-  PRJoinNoticeGateConfig,
-} from "./entities/join-gate";
 export type { PartnerId, PartnerPaymentStatus, PartnerStatus } from "./entities/partner";
 export { partnerIdSchema, partnerStatusSchema } from "./entities/partner";
 // Export types for frontend use
 export type {
-  CoordinatePair,
-  CreatePRStructuredStatus,
-  PartnerRequestFields,
-  PRAllowEditAfterReady,
   PRId,
-  PRRoute,
-  PRRoutePoint,
-  PRStatus,
-  PRStatusManual,
-  PRTimeWindow,
-  VisibilityStatus,
-  WeekdayLabel,
 } from "./entities/partner-request";
 export {
   createNaturalLanguagePRSchema,
@@ -351,7 +332,6 @@ export {
   userSexSchema,
   userStatusSchema,
 } from "./entities/user";
-export type { ImageUploadPurpose } from "./infra/storage/image-storage.service";
 
 const isMainModule = (moduleUrl: string): boolean => {
   const entryPath = process.argv[1];

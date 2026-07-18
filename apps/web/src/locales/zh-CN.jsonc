@@ -193,10 +193,15 @@
     "nlModeTitle": "一句话创建",
     "nlModeDescription": "复制你在群里说过的话，系统会自动解析并创建请求。",
     "formModeTitle": "手动填写细节",
-    "formModeDescription": "逐项填写活动信息，支持保存草稿后再发布。",
-    "savePending": "保存中...",
+    "formModeDescription": "逐项填写活动信息，登录后创建搭子请求。",
     "createPending": "创建中...",
     "createFailed": "创建失败",
+  },
+  "prCreateAuth": {
+    "title": "登录后才能创建",
+    "description": "创建前需要登录。当前输入只保存在此浏览器内存中，整页跳转到微信登录时可能会丢失；现在还没有保存到服务器。取消会保留当前编辑内容。",
+    "cancel": "继续编辑",
+    "confirm": "去微信登录",
   },
   "prDiscovery": {
     "catalogTitle": "发现搭子",

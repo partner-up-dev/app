@@ -1,22 +1,12 @@
 <template>
   <footer class="page-footer">
     <PuButton
-      v-if="allowDraftSave"
-      tone="neutral"
-      variant="outline"
-      :disabled="pending"
-      data-testid="pr-create.save-draft"
-      @click="emit('submit-as', 'DRAFT')"
-    >
-      {{ pending && pendingStatus === "DRAFT" ? t("createPage.savePending") : t("common.save") }}
-    </PuButton>
-    <PuButton
       :disabled="pending"
       data-testid="pr-create.publish"
-      @click="emit('submit-as', 'PUBLISH')"
+      @click="emit('submit')"
     >
       {{
-        pending && pendingStatus === "PUBLISH" ? t("createPage.createPending") : t("common.create")
+        pending ? t("createPage.createPending") : t("common.create")
       }}
     </PuButton>
   </footer>
@@ -24,17 +14,14 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
 import { PuButton } from "@partner-up-dev/design-web";
 
 defineProps<{
   pending: boolean;
-  pendingStatus: CreateSubmissionMode;
-  allowDraftSave: boolean;
 }>();
 
 const emit = defineEmits<{
-  "submit-as": [status: CreateSubmissionMode];
+  submit: [];
 }>();
 
 const { t } = useI18n();

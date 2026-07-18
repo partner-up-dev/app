@@ -7,30 +7,31 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import {
   type EffectiveMeetingPoint,
   resolveEffectiveMeetingPoint,
-} from "../../pr-core/services/meeting-point.service";
+} from "../services/meeting-point.service";
 import {
   hasParticipationPolicy,
   resolveParticipationPolicy,
-} from "../../pr-core/services/participation-policy.service";
+} from "../services/participation-policy.service";
 import {
   buildPRPartnerSection,
   type PartnerSectionView,
-} from "../../pr-core/services/partner-section-view.service";
+} from "../services/partner-section-view.service";
 import {
   buildPREditCapability,
   buildPREditPostReadyCapability,
   type PREditCapability,
   type PREditPostReadyCapability,
-} from "../../pr-core/services/pr-edit-capability.service";
-import { resolvePRPlaceDisplayName } from "../../pr-core/services/pr-place-mode.service";
-import { readPartnerRequestById } from "../../pr-core/services/pr-read.service";
-import { evaluatePRTypeParticipationFrequencyLimit } from "../../pr-core/services/pr-type-participation-frequency-limit.service";
+} from "../services/pr-edit-capability.service";
+import { resolvePRPlaceDisplayName } from "../services/pr-place-mode.service";
+import { readPartnerRequestById } from "../services/pr-read.service";
+import { evaluatePRTypeParticipationFrequencyLimit } from "../services/pr-type-participation-frequency-limit.service";
 import { resolveUserByOpenId } from "../../user";
 import {
   buildPRCanonicalShareMetadata,
   type PRCanonicalShareMetadata,
 } from "../sharing/pr-share-metadata.service";
 import { toPublicPR } from "./public-pr-view.service";
+import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
 
 const partnerRepo = new PartnerRepository();
 const feedbackRepo = new FeedbackQuestionnaireRepository();
@@ -118,6 +119,7 @@ export async function getPRDetailView(
   viewerIdentity?: {
     userId?: UserId | null;
     openId?: string | null;
+    roles?: PRDraftActor["roles"];
   },
 ): Promise<PRDetail> {
   const request = await readPartnerRequestById(id, {
@@ -126,6 +128,15 @@ export async function getPRDetailView(
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
+
+  assertPRDraftAccess({
+    request,
+    actor: {
+      userId: viewerIdentity?.userId ?? null,
+      roles: viewerIdentity?.roles ?? ["anonymous"],
+    },
+    operation: "read",
+  });
 
   const viewerOpenId = viewerIdentity?.openId?.trim() ?? null;
   const viewerUserId =

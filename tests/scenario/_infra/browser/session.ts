@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { ScenarioUser } from "../../../../apps/backend/tests/pr-core/_kit/builders/users";
+import type { ScenarioUser } from "../../../../apps/backend/tests/pr/_kit/builders/users";
 
 const STORAGE_USER_ID_KEY = "partner_up_user_id";
 const STORAGE_ACCESS_TOKEN_KEY = "partner_up_access_token";

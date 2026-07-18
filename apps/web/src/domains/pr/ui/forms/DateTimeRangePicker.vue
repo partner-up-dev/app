@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import type { PartnerRequestFields } from "@partner-up-dev/backend";
+import type { PartnerRequestFields } from "@partner-up-dev/backend/contracts";
 import { PuButton } from "@partner-up-dev/design-web";
 import {
   instantToLocalDateTimeInputParts,

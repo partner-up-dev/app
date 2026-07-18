@@ -23,13 +23,13 @@ predecessor's exit conditions without a new task decision.
 | Slice | Primary learning | Behavior risk | Entry dependency | Status |
 | --- | --- | --- | --- | --- |
 | 3-1 | Can boundary rules be measured with low noise? | None/task tooling only | Current baseline | Complete |
-| 3-2 | Can Web reach one route/read owner without touching commands? | Low–medium | `3-1` report stable | Verified Complete; exit commit pending |
-| 3-3 | Can one mutation cross Browser→DB through the target seams? | Medium | `3-1`/`3-2` exited + System green | Verified Complete; exit commit pending |
-| 3-4 | Can PR Type Config become a real deep owner? | Medium–high | `3-3` proves mutation protocol | Planned; next in 3B |
-| 3-5 | Can compatibility aliases be retired incrementally? | High compile-time | `3-4` owner stable | Planned |
-| 3-6 | Can Web type coupling narrow without duplicate DTOs? | Broad compile-time | `3-4`/`3-5` public surface stable | Planned |
-| 3-7 | Can authenticated-only create/publish intent and runtime become one proven contract? | High product/auth | 3B stable + Sir decision | Decided; execution pending |
-| 3-8 | Can waitlist auth wording, transport and journey agree? | Medium cross-unit | `3-7` + stable auth seam | Decided; execution pending |
+| 3-2 | Can Web reach one route/read owner without touching commands? | Low–medium | `3-1` report stable | Complete |
+| 3-3 | Can one mutation cross Browser→DB through the target seams? | Medium | `3-1`/`3-2` exited + System green | Complete |
+| 3-4 | Can PR Type Config become a real deep owner? | Medium–high | `3-3` proves mutation protocol | Complete |
+| 3-5 | Can compatibility aliases be retired incrementally? | High compile-time | `3-4` owner stable | Complete |
+| 3-6 | Can Web type coupling narrow without duplicate DTOs? | Broad compile-time | `3-4`/`3-5` public surface stable | Complete |
+| 3-7 | Can authenticated-only create/publish intent and runtime become one proven contract? | High product/auth | 3B stable + Sir decision | Complete |
+| 3-8 | Can waitlist auth wording, transport and journey agree? | Medium cross-unit | `3-7` + stable auth seam | Complete |
 
 ## Cross-cutting Decision Lanes
 
@@ -45,6 +45,6 @@ Each slice must update its packet before execution with current HEAD, focused di
 characterization plan, branch/stop decisions, rollback/forward-fix and verification matrix. A plan is stale as
 soon as its entry paths or governing docs change.
 
-`3-1` is committed Complete. `3-2` and `3-3` are verified Complete in the working tree with their exit commit
-pending. Phase 3B has started but still owns `3-4`–`3-6`; Phase 3C begins only at `3-7`. The unrelated root package/workspace
-and task-directory dirty state remains outside Phase 3 ownership.
+All slices `3-1`–`3-8` are Complete. Their final cross-slice proof and protected working-tree exclusions are in
+[`exit-evidence.md`](./exit-evidence.md). The unrelated root package/workspace and independent task-directory dirty
+state remains outside Phase 3 ownership.

@@ -4,7 +4,7 @@ import type {
   FeedbackQuestionnaireInstanceId,
   FeedbackQuestionnaireResponse,
 } from "../../../../src/entities/feedback-questionnaire";
-import type { ScenarioUser } from "../../../pr-core/_kit/builders/users";
+import type { ScenarioUser } from "../../../pr/_kit/builders/users";
 
 export type SubmitFeedbackResponse = Pick<FeedbackQuestionnaireResponse, "instanceId"> & {
   responseId: FeedbackQuestionnaireResponse["id"];

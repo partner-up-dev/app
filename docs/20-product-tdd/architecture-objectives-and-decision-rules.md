@@ -104,8 +104,8 @@ folder name is not enough.
 - Cross-domain callers consume a curated domain public surface. They do not import another owner's repository,
   Drizzle schema or internal service path.
 - Persistence adapters remain internal unless a real transaction/replacement boundary requires a port.
-- `domains/pr` is the canonical PR surface. `domains/pr-core` is a compatibility implementation window and must
-  not gain new consumers.
+- `domains/pr` is the sole canonical PR surface. The former `domains/pr-core` compatibility implementation and
+  `PartnerRequestService` facade were retired in Phase 3 slice `3-5`; no source or test consumer remains.
 - Admin modules compose operator workflows but do not become the owner of the policy they edit.
 
 ### Web
@@ -121,6 +121,10 @@ folder name is not enough.
 
 - Backend remains authoritative for durable product truth; Web state cannot silently become a second authority.
 - `AppType` remains the compile-time origin for HTTP inference. Runtime validation and Problem Details remain required.
+- `@partner-up-dev/backend/contracts` is the sole package-level types-only subpath for stable, owner-backed value
+  and input contracts. It uses explicit type exports only: no runtime schema/value, entity row, repository, service,
+  wildcard barrel or persistence-derived alias may enter for migration convenience. A symbol without an independent
+  contract owner remains a root compatibility export until that owner defines it.
 - Do not introduce handwritten response DTO truth or a universal API/service wrapper to make layers look uniform.
 
 ## Compatibility And Exception Protocol

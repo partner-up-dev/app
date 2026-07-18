@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import type { PRId, PRStatusManual } from "@partner-up-dev/backend";
+import type { PRStatusManual } from "@partner-up-dev/backend/contracts";
+import type { PRId } from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 import { queryKeys } from "@/shared/api/query-keys";

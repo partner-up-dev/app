@@ -1,5 +1,5 @@
 import { computed, ref, watch } from "vue";
-import type { ImageUploadPurpose } from "@partner-up-dev/backend";
+import type { ImageUploadPurpose } from "@partner-up-dev/backend/contracts";
 import type {
   PuFileUploadItem,
   PuFileUploadRejection,

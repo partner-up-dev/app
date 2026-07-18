@@ -65,7 +65,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
+import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend/contracts";
 import type { PRDetailView } from "@/domains/pr/model/types";
 import { usePRAttendanceActions } from "@/domains/pr/use-cases/usePRAttendanceActions";
 import { usePRFeedbackQuestionnaireSubmission } from "@/domains/pr/use-cases/usePRFeedbackQuestionnaireSubmission";

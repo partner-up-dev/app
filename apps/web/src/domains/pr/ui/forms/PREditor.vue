@@ -235,10 +235,15 @@
     @cancel="closeReleaseConfirmDialog"
     @confirm="confirmReleaseAndSubmit"
   />
+  <PRCreateAuthDisclosure
+    :open="showAuthDisclosure"
+    @cancel="authGate.cancelAuth"
+    @confirm="authGate.confirmAuth"
+  />
 </template>
 
 <script setup lang="ts">
-import type { PRId, PRStatus } from "@partner-up-dev/backend";
+import type { PRId } from "@partner-up-dev/backend";
 import {
   PuButton,
   PuChipsEditor,
@@ -257,22 +262,20 @@ import {
   resolvePRAuthoringCreateDefaultEligibility,
 } from "@/domains/pr/model/authoring";
 import { clonePRFields, parseNullableNumber } from "@/domains/pr/model/form";
-import type { CreateSubmissionMode } from "@/domains/pr/model/pr-editor";
 import type { PRDetailView, PRFormFields } from "@/domains/pr/model/types";
 import { toPartnerRequestFields, toUserUpdatePRContentFields } from "@/domains/pr/model/types";
 import { useUpdatePRContent } from "@/domains/pr/queries/usePRActions";
 import { usePRAuthoringOptions } from "@/domains/pr/queries/usePRAuthoringOptions";
 import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
 import { usePRDetail } from "@/domains/pr/queries/usePRDetail";
-import { usePublishPR } from "@/domains/pr/queries/usePRPublish";
 import DateTimeRangePicker from "@/domains/pr/ui/forms/DateTimeRangePicker.vue";
 import PRPlaceModeField, {
   type PRPlaceModeFieldValue,
 } from "@/domains/pr/ui/forms/PRPlaceModeField.vue";
+import PRCreateAuthDisclosure from "@/domains/pr/ui/sections/PRCreateAuthDisclosure.vue";
+import { usePRCreateAuthGate } from "@/domains/pr/use-cases/usePRCreateAuthGate";
 import type { PartnerRequestFormInput } from "@/lib/validation";
 import { buildPartnerRequestFormValidationSchema } from "@/lib/validation";
-import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
 import { formatLocalDateTimeWindowLabel } from "@/shared/datetime/formatLocalDateTime";
 import { trackEvent } from "@/shared/telemetry/track";
 
@@ -330,7 +333,6 @@ const buildEditInitialFields = (detail: PRDetailView): PRFormFields => ({
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const userSessionStore = useUserSessionStore();
 
 const resolvedPrId = computed<PRId | null>(() => props.prId ?? null);
 const isCreateEditor = computed(() => resolvedPrId.value === null);
@@ -340,11 +342,10 @@ const isDetailLoading = computed(() => !isCreateEditor.value && detailQuery.isLo
 const detailError = computed(() => (isCreateEditor.value ? null : detailQuery.error.value));
 
 const createMutation = useCreatePRFromStructured();
-const publishMutation = usePublishPR();
 const updateMutation = useUpdatePRContent();
-const pendingStatus = ref<CreateSubmissionMode>("PUBLISH");
-const allowDraftSave = computed(() => isCreateEditor.value && !userSessionStore.isAuthenticated);
 const showReleaseConfirmDialog = ref(false);
+const authGate = usePRCreateAuthGate();
+const showAuthDisclosure = authGate.showAuthDisclosure;
 const pendingReleasePayload = ref<PartnerRequestFormInput | null>(null);
 
 const baseInitialFields = computed<PRFormFields>(() => {
@@ -552,13 +553,11 @@ const timeHint = computed(() => {
 const isPending = computed(
   () =>
     createMutation.isPending.value ||
-    publishMutation.isPending.value ||
     updateMutation.isPending.value,
 );
 const commandErrorMessage = computed(
   () =>
     createMutation.error.value?.message ||
-    publishMutation.error.value?.message ||
     updateMutation.error.value?.message ||
     "",
 );
@@ -571,41 +570,26 @@ const canSubmit = computed(
 
 const resetCommandErrors = () => {
   createMutation.reset();
-  publishMutation.reset();
   updateMutation.reset();
 };
 
-const submitAs = (status: CreateSubmissionMode) => {
-  pendingStatus.value = status;
-};
-
 const submitCreate = async ({ fields }: PartnerRequestFormInput) => {
-  await ensureAuthSessionBootstrapped();
+  if (!(await authGate.ensureCreateAuth())) return;
 
   const result = await createMutation.mutateAsync({
     fields: toPartnerRequestFields(fields),
     createSource: "STRUCTURED_FORM",
   });
 
-  let createdStatus: PRStatus = result.status;
-  if (createdStatus === "DRAFT" && pendingStatus.value === "PUBLISH") {
-    const publishResult = await publishMutation.mutateAsync({ id: result.id });
-    createdStatus = publishResult.pr.status;
-  }
-
   await nextTick();
   trackEvent("pr_create_result", {
     prId: result.id,
-    status: createdStatus,
+    status: result.status,
     prType: fields.type,
     actionResult: "success",
   });
 
-  if (createdStatus !== "DRAFT") {
-    await router.push(`${result.canonicalPath}?entry=create`);
-  } else {
-    await router.push(result.canonicalPath);
-  }
+  await router.push(`${result.canonicalPath}?entry=create`);
   emit("saved");
 };
 
@@ -669,11 +653,8 @@ const confirmReleaseAndSubmit = async () => {
 };
 
 defineExpose({
-  allowDraftSave,
   canSubmit,
   isPending,
-  pendingStatus,
-  submitAs,
   submitForm,
 });
 </script>

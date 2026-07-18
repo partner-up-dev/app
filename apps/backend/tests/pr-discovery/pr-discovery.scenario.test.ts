@@ -5,8 +5,8 @@ import { PRTypeConfigRepository } from "../../src/repositories/PRTypeConfigRepos
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenPersistedPartnerRequest } from "../pr-core/_kit/builders/partner-requests";
-import { givenUser } from "../pr-core/_kit/builders/users";
+import { givenPersistedPartnerRequest } from "../pr/_kit/builders/partner-requests";
+import { givenUser } from "../pr/_kit/builders/users";
 import { givenPRTypeConfig, givenPRTypeVisiblePR } from "./_kit/builders/pr-type-config";
 
 type Candidate = { prId: number; status: "OPEN"; canonicalPath: string };

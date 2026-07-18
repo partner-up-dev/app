@@ -18,8 +18,8 @@
 ## 2. Creation And Publish Rules
 
 - Natural-language and structured create commands always enter through one system-owned create flow.
-- If the creator already has an authenticated account, that create flow persists and publishes the PR in one operation.
-- If the creator is anonymous, that create flow persists a `DRAFT` and waits for a later authenticated publish step.
+- A USER create command requires an authenticated account before any PR or child persistence; successful USER creation persists and publishes an `OPEN` PR in one operation and binds `createdBy` to that authenticated user.
+- An anonymous visitor may author transiently, but the public H5 create path creates no server-side `DRAFT` and has no automatic create replay after OAuth.
 - Structured creation uses one PR-owned form contract. Its `type` field accepts arbitrary input and may offer suggestion options from the current PR type catalog.
 - Structured creation uses one PR-owned `time_window` result. The UI may expose batch and free modes, while the persisted PR still owns one resolved time window. Persisted non-null PR time-window endpoints are instant datetimes, not date-only strings; request inputs may carry timezone offsets, and creation boundaries canonicalize them before persistence.
 - Structured creation uses one PR-owned place-mode result. Route-mode structured creation stores `route` and clears `location`; location-mode structured creation stores `location` and clears `route`.
@@ -34,6 +34,7 @@
 - Publishing a `DRAFT` PR requires an authenticated account.
 - Publishing a `DRAFT` PR also rejects a `PR.time_window[0]` that has already passed.
 - Direct user-owned creation of an `OPEN` PR, including `/prd`-sourced Authoring, requires an authenticated account. The retained system-owned full-capacity expansion path does not assign a viewer as creator.
+- No public or enterprise/WeCom ingress may persist an anonymous or creatorless USER `DRAFT`; explicit `ADMIN` and `SYSTEM` authorities remain separate actor cases and are not anonymous-user fallbacks.
 - `/prd` is the canonical PR Discovery entry for `FORM`, `CARD`, and `LIST` views. `FORM` gathers criteria and hands no-match intent to PR Authoring, `CARD` groups joinable candidates, and `LIST` owns date-based browsing.
 - View ratios are current presentation policy only. Preserve the current default vector (`FORM=50`, `CARD=50`, `LIST=0`) and any configured override values; do not persist assignment/history or rebucketing metadata, and resolve an all-zero or missing configuration to `LIST`.
 - Server view resolution falls back to `LIST` after 500 ms. Non-timeout type or view-resolution failures must leave an explicit route back to the unscoped `/prd` catalog.
@@ -58,6 +59,7 @@
 
 - The durable `PartnerRequest` status set is `DRAFT`, `OPEN`, `READY`, `ACTIVE`, `CLOSED`, and `EXPIRED`.
 - `DRAFT` is creator-private draft state and must not appear in public PR Discovery views or search results.
+- Creatorless historical `DRAFT` rows are legacy remediation state, not a supported anonymous create/publish protocol; ordinary USER reads, edits, and publish must not claim them.
 - `FULL` is a user-visible derived capacity state, not a durable `PartnerRequest.status`: an `OPEN` PR with `maxPartners` present and current active participants greater than or equal to `maxPartners` is presented as full.
 - `READY` means the collaboration object is formed and roster-locked; joining, waitlisting, and exiting are no longer allowed, and progression toward `ACTIVE` may still continue.
 - `READY` locks roster admission, not every PR fact. A PR may carry PR-owned `allowEditAfterReady` policy that lets the current creator keep editing explicitly listed core fields after `READY`; fields absent from that policy remain locked.

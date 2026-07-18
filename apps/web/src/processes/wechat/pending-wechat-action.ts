@@ -1,8 +1,3 @@
-import {
-  isPRDiscoveryCreateReplaySelection,
-  type PRDiscoveryCreateReplaySelection,
-} from "@/domains/pr/model/discovery";
-
 const PENDING_WECHAT_ACTION_STORAGE_KEY = "partner_up_pending_wechat_action";
 const PENDING_WECHAT_ACTION_TTL_MS = 10 * 60 * 1000;
 
@@ -35,19 +30,12 @@ type PendingPRPublishAction = PendingActionBase & {
   prId: number;
 };
 
-type PendingPRDiscoveryCreateAction = PendingActionBase & {
-  kind: "PR_DISCOVERY_CREATE";
-  selection: PRDiscoveryCreateReplaySelection;
-  allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
-};
-
 export type PendingWeChatAction =
   | PendingPRJoinAction
   | PendingPRWaitlistAction
   | PendingPRExitAction
   | PendingPRConfirmAction
-  | PendingPRPublishAction
-  | PendingPRDiscoveryCreateAction;
+  | PendingPRPublishAction;
 
 type NewPendingWeChatAction =
   | {
@@ -70,38 +58,13 @@ type NewPendingWeChatAction =
       kind: "PR_PUBLISH";
       prId: number;
     }
-  | {
-      kind: "PR_DISCOVERY_CREATE";
-      selection: PRDiscoveryCreateReplaySelection;
-      allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
-    };
+  ;
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
 
 const isRecent = (createdAt: number): boolean =>
   Date.now() - createdAt <= PENDING_WECHAT_ACTION_TTL_MS;
-
-const isAllowEditAfterReady = (
-  value: unknown,
-): value is import("@partner-up-dev/backend").PRAllowEditAfterReady | null => {
-  if (value === null) return true;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const candidate = value as Record<string, unknown>;
-  if (Object.keys(candidate).some((key) => !["timeWindow", "location", "route"].includes(key)))
-    return false;
-  if (candidate.location !== undefined && candidate.location !== true) return false;
-  if (candidate.route !== undefined && candidate.route !== true) return false;
-  if (candidate.timeWindow !== undefined) {
-    if (
-      !Array.isArray(candidate.timeWindow) ||
-      candidate.timeWindow.length !== 2 ||
-      !candidate.timeWindow.every((item) => typeof item === "string")
-    )
-      return false;
-  }
-  return true;
-};
 
 const isPendingWeChatAction = (value: unknown): value is PendingWeChatAction => {
   if (!value || typeof value !== "object") return false;
@@ -124,12 +87,6 @@ const isPendingWeChatAction = (value: unknown): value is PendingWeChatAction => 
   }
   if (candidate.kind === "PR_PUBLISH") {
     return isPositiveInteger(candidate.prId);
-  }
-  if (candidate.kind === "PR_DISCOVERY_CREATE") {
-    return (
-      isPRDiscoveryCreateReplaySelection(candidate.selection) &&
-      isAllowEditAfterReady(candidate.allowEditAfterReady)
-    );
   }
   return false;
 };

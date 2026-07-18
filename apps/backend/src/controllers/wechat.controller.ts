@@ -7,8 +7,8 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { clearAnonymousSessionCookie, readAnonymousSessionCookie } from "../auth/anonymous-session";
 import { type AuthEnv, authMiddleware, issueAuthForUser } from "../auth/middleware";
-import { AUTHENTICATED_REQUIRED_CODE } from "../domains/pr-core/services/creator-identity.service";
-import { scheduleAlternativeWaitlistNotificationsForUserSources } from "../domains/pr-core/services/waitlist-alternative-reminder.service";
+import { AUTHENTICATED_REQUIRED_CODE } from "../domains/pr/contracts";
+import { scheduleAlternativeWaitlistNotificationsForUserSources } from "../domains/pr/ports";
 import { bindWeChatToCurrentUser, upgradeAnonymousUserWithWeChat } from "../domains/user";
 import { hasUserRole, type User, type UserId } from "../entities/user";
 import {

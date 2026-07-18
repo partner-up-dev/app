@@ -1,4 +1,4 @@
-import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
+import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend/contracts";
 import type { AdminCreatePRInput } from "@/domains/admin/queries/useAdminPRManagement";
 import { normalizePRRouteForSubmit } from "@/domains/pr/model/pr-route";
 

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import {
-  isPRDiscoveryCreateReplaySelection,
   readPRDiscoveryViewPreference,
   resolvePRDiscoveryViewMode,
   writePRDiscoveryViewPreference,
@@ -34,22 +33,4 @@ describe("PR discovery view model", () => {
     expect(readPRDiscoveryViewPreference(storage, "study")).toBeNull();
   });
 
-  test("validates a pending Discovery create replay selection", () => {
-    expect(
-      isPRDiscoveryCreateReplaySelection({
-        type: "study",
-        timeWindows: [{ startAt: "start", endAt: "end" }],
-        place: { kind: "location", location: "Library" },
-        preferences: ["quiet"],
-      }),
-    ).toBe(true);
-    expect(
-      isPRDiscoveryCreateReplaySelection({
-        type: "study",
-        timeWindows: [{ startAt: "start", endAt: "end" }],
-        place: { kind: "location", locationId: "legacy" },
-        preferences: [],
-      }),
-    ).toBe(false);
-  });
 });

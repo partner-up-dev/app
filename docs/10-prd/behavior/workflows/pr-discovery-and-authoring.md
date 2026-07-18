@@ -48,7 +48,7 @@ PR Authoring.
 
 1. The user can create a PR when the current type's PR Authoring policy allows user creation.
 2. `/prd` resolves place, time, and preference choices into the same structured payload used by `/pr/new`.
-3. The create command is unified with structured creation. Authenticated users create and publish in one operation; anonymous users create a `DRAFT` and publish after authentication.
+3. The unified create command requires authentication before USER persistence. Authenticated users create and publish an `OPEN` PR in one operation. Anonymous visitors remain in transient authoring, receive an explicit sign-in disclosure before OAuth, create no server row, and receive no automatic post-OAuth create replay.
 4. The resulting PR proceeds through the ordinary participation, coordination, and completion loops. Type-community access, platform support, official-account prompts, and POI application links remain separate capabilities.
 5. A current creator may use the PR editor after `READY` only for fields allowed by PR-owned policy. Conflicting time edits require explicit participant-release confirmation.
 

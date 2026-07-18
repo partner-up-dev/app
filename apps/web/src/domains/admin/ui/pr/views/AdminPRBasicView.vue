@@ -379,7 +379,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend";
+import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend/contracts";
 import {
   PuButton,
   PuCard,

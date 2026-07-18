@@ -78,3 +78,12 @@ response, Backend waitlist scenario, Web handling and a focused System journey.
   migration shape and dirty-tree evidence remain task-local.
 - CF-01 is now decided as authenticated-only PR persistence, including enterprise WeCom entry; its PRD/TDD
   promotion remains owned by `3-7`. CF-02's header-only wording correction remains owned by `3-8` after `3-7`.
+
+## `3-7` / `3-8` Promotion Result
+
+- `3-7` promoted the authenticated-before-write USER creation rule, Browser A loss boundary, WeCom non-bypass rule,
+  explicit ADMIN/SYSTEM exceptions and legacy DRAFT cleanup-residue treatment to the owning PRD and PR lifecycle
+  contract documents. Exact tests, issuer-chain details and historical cleanup inventory remain task-local.
+- `3-8` promoted the narrow factual correction that successful waitlist bodies are refreshed public PRs only and that
+  optional session rotation belongs to the shared `x-access-token` transport. The generic Session Contract remains
+  the authority for prohibited command-body auth fields; no waitlist-specific transport rule was added.

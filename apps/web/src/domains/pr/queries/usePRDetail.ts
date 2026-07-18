@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/vue-query";
 import { computed, type Ref } from "vue";
-import type { InferResponseType } from "hono";
+import type { PRDetailResponse } from "@/domains/pr/contracts";
 import type { PRId } from "@partner-up-dev/backend";
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 import { queryKeys } from "@/shared/api/query-keys";
 
-export type PRDetailResponse = InferResponseType<(typeof client.api.pr)[":id"]["$get"]>;
+export type { PRDetailResponse } from "@/domains/pr/contracts";
 
 export const usePRDetail = (id: Ref<PRId | null>) => {
   const queryKey = computed(() => queryKeys.pr.detail(id.value));

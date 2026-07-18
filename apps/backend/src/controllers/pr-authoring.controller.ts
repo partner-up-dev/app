@@ -9,7 +9,7 @@ import {
   submitPRAuthoringPreferenceTags,
   submitPRTypeRouteApplication,
 } from "../domains/pr-authoring";
-import { throwAuthenticatedRequired } from "../domains/pr-core/services/creator-identity.service";
+import { throwAuthenticatedRequired } from "../domains/pr/contracts";
 import { prRouteSchema } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
 

@@ -110,14 +110,18 @@ export const isPRDiscoveryFormViewExit = (
       </PRDiscoverySurface>
     </section>
   </div>
+  <PRCreateAuthDisclosure
+    :open="showAuthDisclosure"
+    @cancel="authGate.cancelAuth"
+    @confirm="authGate.confirmAuth"
+  />
 </template>
 
 <script setup lang="ts">
 import { PuButton, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { type PRDiscoveryCreateReplaySelection } from "@/domains/pr/model/discovery";
 import { type PRFormFields, toPartnerRequestFields } from "@/domains/pr/model/types";
 import { useCreatePRFromStructured } from "@/domains/pr/queries/usePRCreate";
 import { usePRDiscoveryRecommendation } from "@/domains/pr/queries/usePRDiscovery";
@@ -129,29 +133,21 @@ import PRDiscoveryFormView, {
 } from "@/domains/pr/ui/discovery/PRDiscoveryFormView.vue";
 import PRDiscoveryListView from "@/domains/pr/ui/discovery/PRDiscoveryListView.vue";
 import PRDiscoverySurface from "@/domains/pr/ui/PRDiscoverySurface.vue";
+import PRCreateAuthDisclosure from "@/domains/pr/ui/sections/PRCreateAuthDisclosure.vue";
 import type { PRDiscoveryDirectCreateCommand } from "@/domains/pr/use-cases/usePRDiscoveryCreation";
 import type { PRDiscoveryReadWorkflow } from "@/domains/pr/use-cases/usePRDiscoveryReadWorkflow";
-import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
-import { requestWeChatOAuthLogin } from "@/processes/wechat/oauth-login";
-import {
-  clearPendingWeChatAction,
-  readPendingWeChatAction,
-  setPendingWeChatAction,
-} from "@/processes/wechat/pending-wechat-action";
-import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";
+import { usePRCreateAuthGate } from "@/domains/pr/use-cases/usePRCreateAuthGate";
 import { trackEvent } from "@/shared/telemetry/track";
 
 type DirectCreateSelection =
   | PRDiscoveryFormSelection
-  | PRDiscoveryDirectCreateCommand
-  | (PRDiscoveryCreateReplaySelection & {
-      allowEditAfterReady: import("@partner-up-dev/backend").PRAllowEditAfterReady | null;
-    });
+  | PRDiscoveryDirectCreateCommand;
 
 const props = defineProps<{ readWorkflow: PRDiscoveryReadWorkflow }>();
 const router = useRouter();
 const { t } = useI18n();
-const userSessionStore = useUserSessionStore();
+const authGate = usePRCreateAuthGate();
+const showAuthDisclosure = authGate.showAuthDisclosure;
 const {
   activeViewMode,
   catalogError,
@@ -164,7 +160,6 @@ const {
   isDiscoveryExhausted,
   isDiscoveryLoading,
   randomizedCatalog,
-  refetchAuthoringOptions,
   returnToCatalog,
   selectedAuthoringOptions,
   selectedType,
@@ -276,22 +271,7 @@ const createOrdinaryPR = async (selection: DirectCreateSelection) => {
     meetingPoint: null,
   };
   try {
-    await ensureAuthSessionBootstrapped();
-    if (!userSessionStore.isAuthenticated) {
-      const selectionForPending: PRDiscoveryCreateReplaySelection = {
-        type,
-        timeWindows: [{ startAt: timeWindow.startAt, endAt: timeWindow.endAt ?? null }],
-        place: selection.place,
-        preferences: [...selection.preferences],
-      };
-      setPendingWeChatAction({
-        kind: "PR_DISCOVERY_CREATE",
-        selection: selectionForPending,
-        allowEditAfterReady,
-      });
-      if (typeof window !== "undefined") requestWeChatOAuthLogin(window.location.href);
-      return;
-    }
+    if (!(await authGate.ensureCreateAuth())) return;
     const result = await createMutation.mutateAsync({
       fields: toPartnerRequestFields(formFields),
       createSource: "PR_DISCOVERY",
@@ -299,43 +279,9 @@ const createOrdinaryPR = async (selection: DirectCreateSelection) => {
     });
     await router.push(`${result.canonicalPath}?entry=create&origin=PR_DISCOVERY`);
   } catch {
-    if (!userSessionStore.isAuthenticated && typeof window !== "undefined") {
-      const selectionForPending: PRDiscoveryCreateReplaySelection = {
-        type,
-        timeWindows: [{ startAt: timeWindow.startAt, endAt: timeWindow.endAt ?? null }],
-        place: selection.place,
-        preferences: [...selection.preferences],
-      };
-      setPendingWeChatAction({
-        kind: "PR_DISCOVERY_CREATE",
-        selection: selectionForPending,
-        allowEditAfterReady,
-      });
-      requestWeChatOAuthLogin(window.location.href);
-    }
     // The mutation owns the user-visible error state in the FORM surface.
   }
 };
-
-onMounted(async () => {
-  await ensureAuthSessionBootstrapped();
-  const pending = readPendingWeChatAction();
-  if (
-    pending?.kind === "PR_DISCOVERY_CREATE" &&
-    pending.selection.type === selectedType.value &&
-    userSessionStore.isAuthenticated
-  ) {
-    if (!selectedAuthoringOptions.value) {
-      const result = await refetchAuthoringOptions();
-      if (!result.data || result.data.type !== selectedType.value) return;
-    }
-    clearPendingWeChatAction();
-    void createOrdinaryPR({
-      ...pending.selection,
-      allowEditAfterReady: pending.allowEditAfterReady,
-    });
-  }
-});
 
 const returnToSelection = () => {
   resetPRDiscoveryFormState();

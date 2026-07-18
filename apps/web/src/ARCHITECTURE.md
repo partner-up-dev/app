@@ -146,6 +146,10 @@ Forbidden:
 ## HTTP Contract Rules
 
 - `AppType` and the Hono client remain the compile-time origin of request/response inference.
+- Import a stable Backend value/input type only through `@partner-up-dev/backend/contracts` and only with
+  `import type`. The package root remains for `AppType`; a root value-type import is a named migration
+  compatibility edge, not a new default. Do not deep-import Backend implementation paths or turn a local UI model
+  into a second HTTP DTO.
 - Endpoint invocation stays in a domain query/command/adapter or an explicitly named platform compatibility seam.
 - Do not create handwritten response DTO truth or cast around an inferred contract.
 - Expected command failures use the shared Problem Details mapping; domain code branches on stable status/type/code,

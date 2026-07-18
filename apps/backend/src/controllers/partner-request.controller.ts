@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono, type MiddlewareHandler } from "hono";
 import { z } from "zod";
 import { type AuthEnv, authMiddleware } from "../auth/middleware";
+import type { RequestAuth } from "../auth/types";
 import {
   advancePRMessageReadMarker,
   authorizeCreatorMutation,
@@ -29,6 +30,10 @@ import {
 import type { OfferId } from "../entities/offer";
 import { recordUserTelemetryEventForRequest } from "../infra/telemetry";
 import { throwHttpProblem } from "../lib/problem-details";
+import {
+  assertPRDraftAccess,
+  type PRDraftAccessOperation,
+} from "../domains/pr/services/draft-access-policy.service";
 import { PartnerRequestRepository } from "../repositories/PartnerRequestRepository";
 import { TradeOrderRepository } from "../repositories/TradeOrderRepository";
 import {
@@ -106,11 +111,16 @@ const resolveJoinGateSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-const getPROr404 = async (id: number) => {
+const getPROr404 = async (
+  id: number,
+  auth: RequestAuth,
+  operation: PRDraftAccessOperation,
+) => {
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
+  assertPRDraftAccess({ request, actor: auth, operation });
   return request;
 };
 
@@ -161,9 +171,10 @@ export const partnerRequestRoute = app
   })
   .post("/:id/publish", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    const auth = c.get("auth");
+    await getPROr404(id, auth, "publish");
     const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
-    const result = await publishPR(id, creatorIdentity);
+    const result = await publishPR(id, creatorIdentity, auth);
     await issueResponseAuth(c, result.createdBy);
 
     return c.json({
@@ -172,7 +183,7 @@ export const partnerRequestRoute = app
     });
   })
   .get("/mine/created", async (c) => {
-    const userId = requireSessionUserId(c);
+    const userId = requireAuthenticatedUserId(c);
     const items = await getMyCreatedPRs(userId);
     return c.json(items);
   })
@@ -183,9 +194,10 @@ export const partnerRequestRoute = app
   })
   .get("/:id/messages", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    const auth = c.get("auth");
+    await getPROr404(id, auth, "participant-flow");
     const userId = requireSessionUserId(c);
-    const result = await listPRMessages(id, userId);
+    const result = await listPRMessages(id, userId, auth);
 
     return c.json({
       ...result,
@@ -205,7 +217,7 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       const query = c.req.valid("query");
-      const pr = await getPROr404(id);
+      const pr = await getPROr404(id, c.get("auth"), "read");
       const orders = await tradeOrderRepo.listByIdsOfferAndStatuses({
         ids: pr.orders,
         offerId: query.offerId as OfferId,
@@ -227,12 +239,14 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       const { body } = c.req.valid("json");
-      await getPROr404(id);
+      const auth = c.get("auth");
+      await getPROr404(id, auth, "participant-flow");
       const userId = requireAuthenticatedUserId(c);
       const result = await createPRMessage({
         prId: id,
         authorUserId: userId,
         body,
+        actor: auth,
       });
 
       return c.json({
@@ -254,23 +268,27 @@ export const partnerRequestRoute = app
     async (c) => {
       const { id } = c.req.valid("param");
       const { lastReadMessageId } = c.req.valid("json");
-      await getPROr404(id);
+      const auth = c.get("auth");
+      await getPROr404(id, auth, "participant-flow");
       const userId = requireAuthenticatedUserId(c);
       const result = await advancePRMessageReadMarker({
         prId: id,
         userId,
         lastReadMessageId,
+        actor: auth,
       });
       return c.json(result);
     },
   )
   .get("/:id/join-gates", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    const auth = c.get("auth");
+    await getPROr404(id, auth, "participant-flow");
     const userId = getSessionUserId(c);
     const result = await getPRJoinGateProjection({
       prId: id,
       viewerUserId: userId,
+      actor: auth,
     });
     return c.json(result);
   })
@@ -280,7 +298,8 @@ export const partnerRequestRoute = app
     zValidator("json", resolveJoinGateSchema),
     async (c) => {
       const { id, gateKey } = c.req.valid("param");
-      await getPROr404(id);
+      const auth = c.get("auth");
+      await getPROr404(id, auth, "participant-flow");
       const payload = c.req.valid("json");
       const identity = await requireAuthenticatedCreatorIdentity(c);
       const participant = await resolvePRParticipantUser(identity);
@@ -288,6 +307,7 @@ export const partnerRequestRoute = app
         prId: id,
         gateKey,
         viewerUserId: participant.user.id,
+        actor: auth,
         payload,
       });
       await issueResponseAuth(c, participant.user.id);
@@ -300,7 +320,7 @@ export const partnerRequestRoute = app
     zValidator("json", updateStatusSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      await getPROr404(id);
+      await getPROr404(id, c.get("auth"), "status-mutation");
       const { status } = c.req.valid("json");
       const auth = c.get("auth");
 
@@ -314,7 +334,7 @@ export const partnerRequestRoute = app
       }
 
       const fromStatus = creatorAuth.request.status;
-      const result = await updatePRStatus(id, status, creatorAuth.actorUserId);
+      const result = await updatePRStatus(id, status, creatorAuth.actorUserId, auth);
       if (status === "CLOSED") {
         await recordUserTelemetryEventForRequest(c, {
           eventName: "pr.closed",
@@ -334,7 +354,7 @@ export const partnerRequestRoute = app
     zValidator("json", updateContentSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      await getPROr404(id);
+      await getPROr404(id, c.get("auth"), "content-mutation");
       const payload = c.req.valid("json");
       const auth = c.get("auth");
 
@@ -342,7 +362,7 @@ export const partnerRequestRoute = app
 
       const result = await updateUserPRContent(id, payload.fields, creatorAuth.actorUserId, {
         allowRelease: payload.allowRelease === true,
-      });
+      }, auth);
       return c.json(result);
     },
   )
@@ -352,7 +372,7 @@ export const partnerRequestRoute = app
     zValidator("json", emptyCommandSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      await getPROr404(id);
+      await getPROr404(id, c.get("auth"), "participant-flow");
       const participantIdentity = await requireAuthenticatedCreatorIdentity(c);
       const result = await joinPRByIdentity(id, participantIdentity);
       await issueResponseAuth(c, result.userId);
@@ -372,7 +392,7 @@ export const partnerRequestRoute = app
     zValidator("json", waitlistCommandSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      await getPROr404(id);
+      await getPROr404(id, c.get("auth"), "participant-flow");
       const payload = c.req.valid("json");
       const participantIdentity = await requireAuthenticatedCreatorIdentity(c);
       const result = await waitlistPRByIdentity(id, participantIdentity, {
@@ -392,21 +412,21 @@ export const partnerRequestRoute = app
   )
   .post("/:id/waitlist/cancel", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    await getPROr404(id, c.get("auth"), "participant-flow");
     const userId = requireAuthenticatedUserId(c);
-    const result = await cancelWaitlistPRByUserId(id, userId);
+    const result = await cancelWaitlistPRByUserId(id, userId, c.get("auth"));
     return c.json(result);
   })
   .post("/:id/exit", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    await getPROr404(id, c.get("auth"), "participant-flow");
     const userId = requireAuthenticatedUserId(c);
-    const result = await exitPRByUserId(id, userId);
+    const result = await exitPRByUserId(id, userId, c.get("auth"));
     return c.json(result);
   })
   .post("/:id/confirm", zValidator("param", prIdParamSchema), async (c) => {
     const { id } = c.req.valid("param");
-    await getPROr404(id);
+    await getPROr404(id, c.get("auth"), "participant-flow");
     const openId = await requireAuthenticatedOpenId(c);
     const result = await confirmSlot(id, openId);
     return c.json(result);
@@ -417,7 +437,7 @@ export const partnerRequestRoute = app
     zValidator("json", slotCheckInSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      await getPROr404(id);
+      await getPROr404(id, c.get("auth"), "participant-flow");
       const openId = await requireAuthenticatedOpenId(c);
       const { didAttend } = c.req.valid("json");
       if (didAttend === false) {
@@ -437,6 +457,7 @@ export const partnerRequestRoute = app
         prId: id,
         partnerId,
         viewerUserId,
+        actor: c.get("auth"),
       });
 
       return c.json({
@@ -449,6 +470,6 @@ export const partnerRequestRoute = app
     const { id } = c.req.valid("param");
     const openId = await tryReadAuthenticatedOpenId(c);
     const userId = getSessionUserId(c);
-    const result = await getPRDetail(id, { userId, openId });
+    const result = await getPRDetail(id, { userId, openId, roles: c.get("auth").roles });
     return c.json(result);
   });

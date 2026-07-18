@@ -1,10 +1,10 @@
+import type { PRId } from "@partner-up-dev/backend";
 import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
-  PRId,
   PRStatus,
   WeekdayLabel,
-} from "@partner-up-dev/backend";
+} from "@partner-up-dev/backend/contracts";
 import { useMutation } from "@tanstack/vue-query";
 import { client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";

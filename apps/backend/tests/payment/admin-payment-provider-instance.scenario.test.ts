@@ -2,7 +2,7 @@ import { generateKeyPairSync, randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
-import { givenAdminUser } from "../pr-core/_kit/builders/users";
+import { givenAdminUser } from "../pr/_kit/builders/users";
 import { PaymentProviderInstanceRepository } from "../../src/repositories/PaymentProviderInstanceRepository";
 import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 

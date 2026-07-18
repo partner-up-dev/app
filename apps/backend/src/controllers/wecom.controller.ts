@@ -9,11 +9,12 @@ import {
   extractXmlTagValue,
   verifySignature,
 } from "../lib/wecom-crypto";
-import { PartnerRequestService } from "../services/PartnerRequestService";
+import { createPRFromNaturalLanguage } from "../domains/pr/commands";
+import { AUTHENTICATED_REQUIRED_CODE, type CreatorIdentityInput } from "../domains/pr/contracts";
+import { ProblemDetailsError } from "../lib/problem-details";
 import { WeComService } from "../services/WeComService";
 
 const app = new Hono();
-const prService = new PartnerRequestService();
 const wecomService = new WeComService();
 
 const wecomQuerySchema = z.object({
@@ -76,6 +77,9 @@ const getShanghaiWeekdayLabel = (date: Date): string => {
     timeZone: "Asia/Shanghai",
   }).format(date);
 };
+
+const WECOM_AUTHENTICATED_REQUIRED_REPLY =
+  "当前企业微信账号未绑定已登录用户，无法创建；请先完成登录绑定后再试。";
 
 const getEncryptDiagnostics = (value: string) => {
   let spaceCount = 0;
@@ -270,16 +274,30 @@ export const wecomRoute = app
 
       const nowIso = new Date(timestampSeconds * 1000).toISOString();
       const nowWeekday = getShanghaiWeekdayLabel(new Date(timestampSeconds * 1000));
-      const { id } = await prService.createPRFromNaturalLanguage(
-        trimmedContent,
-        nowIso,
-        nowWeekday,
-        {
-          authenticatedUserId: null,
-          anonymousUserId: null,
-          oauthOpenId: null,
-        },
-      );
+      const creatorIdentity: CreatorIdentityInput = {
+        authenticatedUserId: null,
+        anonymousUserId: null,
+        oauthOpenId: null,
+      };
+
+      let id: number;
+      try {
+        ({ id } = await createPRFromNaturalLanguage(
+          trimmedContent,
+          nowIso,
+          nowWeekday,
+          creatorIdentity,
+        ));
+      } catch (error) {
+        if (error instanceof ProblemDetailsError && error.code === AUTHENTICATED_REQUIRED_CODE) {
+          await wecomService.sendTextMessage({
+            toUser: fromUser,
+            content: WECOM_AUTHENTICATED_REQUIRED_REPLY,
+          });
+          return;
+        }
+        throw error;
+      }
 
       const frontendUrl = env.FRONTEND_URL;
       if (!frontendUrl) {

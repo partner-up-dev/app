@@ -34,11 +34,11 @@ Program Phase 3.
 
 1. Phase 1 — behavior and authority freeze: historical snapshot complete at `a8cf2d7`.
 2. Phase 2 — read-only baseline: historical snapshot complete; toolchain recovery separately complete.
-3. Phase 3 — target execution: stage 3A/3B/3C；`3-1` committed Complete，`3-2`/`3-3` verified Complete with
-   exit commit pending，`3-4` is next；`3-7`/`3-8`
-   close CF-01/CF-02 and Phase 3.
-4. Later phases — User/Auth, Commerce, Job/Notification, Observability, then global review/cleanup; see
-   `program-roadmap.md`. These phases are sequenced but not yet authorized for mutation.
+3. Phase 3 — target execution: all stages 3A/3B/3C and slices `3-1`–`3-8` are Complete. The current exit proof is
+   [`06-phase3/exit-evidence.md`](./06-phase3/exit-evidence.md).
+4. Phase 4 — User/Auth: entry characterization and slice planning may proceed; implementation remains unauthorized
+   until its own packet, entry evidence and explicit authorization exist. Commerce, Job/Notification,
+   Observability, then global review/cleanup remain ordered after it; see `program-roadmap.md`.
 
 Phase 2 后续恢复工作已在 `05-toolchain-recovery/` 完成：两套 oxc binding、Web build 与
 System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能力，因此 `01`–`04`

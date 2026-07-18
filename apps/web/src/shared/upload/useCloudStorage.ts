@@ -1,5 +1,5 @@
 import { ref, readonly } from "vue";
-import type { ImageUploadPurpose } from "@partner-up-dev/backend";
+import type { ImageUploadPurpose } from "@partner-up-dev/backend/contracts";
 import { API_URL, client } from "@/lib/rpc";
 import { i18n } from "@/locales/i18n";
 

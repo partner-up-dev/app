@@ -18,7 +18,7 @@ The following working-tree entries pre-existed this documentation pass and remai
 
 No cleanup, deletion, staging or commit was performed.
 
-## Current Execution Boundary
+## Historical Execution Boundary
 
 - Phase 3 execution is authorized. `3-1` is committed Complete; `3-2` and `3-3` are verified Complete in the
   working tree with their exit commit pending. Phase 3B has started at `3-3`; `3-4`–`3-6` remain before Phase 3C.
@@ -29,3 +29,19 @@ No cleanup, deletion, staging or commit was performed.
   durable-doc owner; its exact audit is in `03-feedback-submission-vertical/scope-audit.md`.
 - Current protected state is the unrelated root package/lock/workspace diff plus untracked toolchain/runtime/gate
   task directories. No cleanup, staging or commit has been performed in this slice.
+
+## Phase 3 Exit Scope Audit
+
+- `3-1`–`3-6` retain their per-slice source/test/task evidence; no final-exit cleanup rewrote or absorbed their
+  historical inventories.
+- `3-7` owns the authenticated-first PR creation/DRAFT/Browser A alignment and its durable PRD/Product TDD truth.
+  Its public-provider proof is test-only and does not call an external AI provider.
+- `3-8` owns one lifecycle wording correction and two focused regression tests: real Backend waitlist body/header
+  separation and generic Web `authFetch` header persistence. It does not change runtime auth/session mechanics.
+- A final backend-test assertion-structure cleanup was required by the repository lint rule. It changes no product or
+  HTTP behavior and is covered by its focused DRAFT-policy unit test.
+- The protected unrelated root package/lock/workspace diff and `tasks/oxc-toolchain-migration/`,
+  `tasks/project-node-runtime/`, and `tasks/quality-gate-orchestration/` remain unmodified by the Phase 3 exit.
+
+No schema/migration, historical-data rewrite, broad OAuth/session redesign, provider behavior, staging or commit was
+performed as part of Phase 3 closure.

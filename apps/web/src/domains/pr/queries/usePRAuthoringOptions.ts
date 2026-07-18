@@ -1,13 +1,11 @@
 import { useQuery } from "@tanstack/vue-query";
-import type { InferResponseType } from "hono";
 import { computed, type Ref } from "vue";
+import type { PRAuthoringOptions } from "@/domains/pr/contracts";
 import { client } from "@/lib/rpc";
 import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { queryKeys } from "@/shared/api/query-keys";
 
-export type PRAuthoringOptions = InferResponseType<
-  (typeof client.api.pr.authoring.options)["$get"]
->;
+export type { PRAuthoringOptions } from "@/domains/pr/contracts";
 
 export const usePRAuthoringOptions = (type: Ref<string | null>) =>
   useQuery<PRAuthoringOptions>({

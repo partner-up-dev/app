@@ -1,7 +1,7 @@
 import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
-} from "@partner-up-dev/backend";
+} from "@partner-up-dev/backend/contracts";
 
 const isAnswered = (answers: FeedbackQuestionnaireAnswers, questionId: string): boolean => {
   const answer = answers[questionId];

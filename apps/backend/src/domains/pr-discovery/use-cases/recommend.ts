@@ -5,7 +5,7 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import {
   derivePRPreferenceCategory,
   normalizePRPreferenceLabels,
-} from "../../pr/services/preference-normalization";
+} from "../../pr/contracts";
 import {
   type PRDiscoveryPlaceSelection,
   type PRDiscoveryRecommendationCandidate,

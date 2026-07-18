@@ -8,9 +8,8 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserNotificationOptRepository } from "../../../repositories/UserNotificationOptRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
-import { assertNoUserTimeWindowConflict } from "../../pr-core/services/participation-time-conflict.service";
-import { isPRJoinableStatus } from "../../pr-core/services/status-rules";
-import { refreshTemporalStatus } from "../../pr-core/temporal-refresh";
+import { refreshTemporalStatus } from "../../pr/commands";
+import { assertNoUserTimeWindowConflict, isPRJoinableStatus } from "../../pr/queries";
 import { WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND } from "../model/notification-kind";
 
 const prRepo = new PartnerRequestRepository();

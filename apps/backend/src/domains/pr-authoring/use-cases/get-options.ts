@@ -1,12 +1,12 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PoiRepository } from "../../../repositories/PoiRepository";
 import { PRTypePreferenceTagRepository } from "../../../repositories/PRTypePreferenceTagRepository";
-import { isTimeWindowAvailableByPoiRules } from "../../pr-core/services/poi-availability.service";
 import {
   isPRActiveStatus,
+  isPRJoinableStatus,
+  isTimeWindowAvailableByPoiRules,
   readVisiblePartnerRequestsByType,
-} from "../../pr-core/services/pr-read.service";
-import { isPRJoinableStatus } from "../../pr-core/services/status-rules";
+} from "../../pr/queries";
 import {
   getPRTypeConfigAuthoringPolicy,
   type PRTypeConfigAuthoringPolicy,

@@ -7,9 +7,9 @@ This folder contains backend scenario integration tests scheduled by the root Vi
 ```text
 tests/
 ├── _infra/                 # business-agnostic test mechanics
-└── pr-core/
-    ├── _kit/               # PR Core domain test language
-    └── *.scenario.test.ts  # executable PR Core scenarios
+└── pr/
+    ├── _kit/               # PR domain test language
+    └── *.scenario.test.ts  # executable PR scenarios
 ```
 
 Dependency direction:

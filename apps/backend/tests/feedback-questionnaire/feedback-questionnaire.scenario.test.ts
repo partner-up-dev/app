@@ -6,8 +6,8 @@ import type {
 } from "../../src/entities/feedback-questionnaire";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { scenario } from "../_infra/scenario/scenario";
-import { givenPublishedPartnerRequest } from "../pr-core/_kit/builders/partner-requests";
-import { givenAdminUser, givenUser } from "../pr-core/_kit/builders/users";
+import { givenPublishedPartnerRequest } from "../pr/_kit/builders/partner-requests";
+import { givenAdminUser, givenUser } from "../pr/_kit/builders/users";
 import {
   givenPRTypeConfig,
   givenPRTypeVisiblePR,

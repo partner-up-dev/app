@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
-} from "@partner-up-dev/backend";
+} from "@partner-up-dev/backend/contracts";
 import FeedbackQuestionnaireForm from "./FeedbackQuestionnaireForm.vue";
 
 const definition = {

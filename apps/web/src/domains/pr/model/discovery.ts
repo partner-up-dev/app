@@ -47,43 +47,6 @@ export const isPRAuthoringOptionsExhausted = (
 
 export const PR_DISCOVERY_VIEW_PREFERENCE_KEY = "pr-discovery.view-mode";
 
-export type PRDiscoveryCreateReplaySelection = {
-  type: string;
-  timeWindows: Array<{ startAt: string; endAt: string | null }>;
-  place:
-    | { kind: "location"; location: string }
-    | { kind: "route"; route: import("@partner-up-dev/backend").PRRoute };
-  preferences: string[];
-};
-
-export const isPRDiscoveryCreateReplaySelection = (
-  value: unknown,
-): value is PRDiscoveryCreateReplaySelection => {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<PRDiscoveryCreateReplaySelection>;
-  if (
-    typeof candidate.type !== "string" ||
-    candidate.type.trim().length === 0 ||
-    !Array.isArray(candidate.timeWindows) ||
-    candidate.timeWindows.length === 0 ||
-    !candidate.timeWindows.every(
-      (window) =>
-        typeof window === "object" &&
-        window !== null &&
-        typeof window.startAt === "string" &&
-        (window.endAt === null || typeof window.endAt === "string"),
-    ) ||
-    !Array.isArray(candidate.preferences) ||
-    !candidate.preferences.every((preference) => typeof preference === "string") ||
-    !candidate.place ||
-    typeof candidate.place !== "object"
-  )
-    return false;
-  return candidate.place.kind === "location"
-    ? typeof candidate.place.location === "string" && candidate.place.location.trim().length > 0
-    : candidate.place.kind === "route" && Array.isArray(candidate.place.route);
-};
-
 const viewPreferenceKey = (type: string): string =>
   `${PR_DISCOVERY_VIEW_PREFERENCE_KEY}:${type.trim()}`;
 

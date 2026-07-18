@@ -1,4 +1,4 @@
-import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend";
+import type { FeedbackQuestionnaireDefinition } from "@partner-up-dev/backend/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, type MaybeRef, unref } from "vue";

@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import {
   PuButton,
   PuCard,

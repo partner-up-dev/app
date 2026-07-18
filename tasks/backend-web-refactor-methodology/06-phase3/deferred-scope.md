@@ -15,4 +15,4 @@ CF-01/CF-02 close:
 
 Deferred does not mean ignored. The ordered phase boundaries are recorded in `../program-roadmap.md`. Each future
 phase needs its own poly-file packet, focused contract matrix, provider/security or runtime evidence, and explicit
-entry authorization; Phase 3 execution does not authorize those mutations.
+entry authorization; Phase 3 is complete and does not authorize those mutations.

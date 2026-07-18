@@ -1,4 +1,4 @@
-import type { PRRoute } from "@partner-up-dev/backend";
+import type { PRRoute } from "@partner-up-dev/backend/contracts";
 import type { PRDiscoveryPlaceSelection } from "@/domains/pr/model/pr-discovery-form";
 import { buildRouteEndpointLabel, type Route } from "@/domains/route/model/route";
 import type { MapCoordinate } from "@/shared/map/types";

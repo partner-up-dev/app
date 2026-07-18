@@ -9,9 +9,16 @@ const mocks = vi.hoisted(() => ({
   findPois: vi.fn<() => unknown>(),
   listPois: vi.fn<() => unknown>(),
 }));
-vi.mock("../pr-core/services/pr-read.service", () => ({
-  readVisiblePartnerRequestsByType: mocks.findByTypePR,
-}));
+vi.mock("../pr/queries", async () => {
+  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } = await import(
+    "../pr/services/time-window.service"
+  );
+  return {
+    getProductLocalDateKey,
+    getProductLocalDateKeyForTimeWindowStart,
+    readVisiblePartnerRequestsByType: mocks.findByTypePR,
+  };
+});
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({
   PRTypeConfigRepository: class {
     findByType = mocks.findByType;

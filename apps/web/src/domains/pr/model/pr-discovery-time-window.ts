@@ -1,4 +1,4 @@
-import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend/contracts";
 import {
   buildPRDiscoveryDateKey,
   buildPRDiscoveryFuzzyTimeOptions,

@@ -1,4 +1,5 @@
-import type { PRId, PRStatusManual } from "@partner-up-dev/backend";
+import type { PRStatusManual } from "@partner-up-dev/backend/contracts";
+import type { PRId } from "@partner-up-dev/backend";
 import { type ComputedRef, computed } from "vue";
 import type { PRDetailView, PRFormFields } from "@/domains/pr/model/types";
 import { toUserUpdatePRContentFields } from "@/domains/pr/model/types";

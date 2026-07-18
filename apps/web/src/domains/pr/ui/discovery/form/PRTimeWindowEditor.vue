@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PRAllowEditAfterReady } from "@partner-up-dev/backend";
+import type { PRAllowEditAfterReady } from "@partner-up-dev/backend/contracts";
 import {
   PuFormItem,
   PuMultiStopToggle,

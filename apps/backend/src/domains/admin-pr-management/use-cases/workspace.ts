@@ -2,12 +2,14 @@ import type { PartnerRequest } from "../../../entities/partner-request";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import {
-  countActivePartnersForPR,
   DEFAULT_CONFIRMATION_END_OFFSET_MINUTES,
   DEFAULT_CONFIRMATION_START_OFFSET_MINUTES,
   DEFAULT_JOIN_LOCK_OFFSET_MINUTES,
+} from "../../pr/contracts";
+import {
+  countActivePartnersForPR,
   resolvePRPlaceDisplayName,
-} from "../../pr/services";
+} from "../../pr/queries";
 import { listPRTypeConfigOperatorDetails } from "../../pr-type-config";
 import type { AdminPRSummary, AdminPRTypeOption, AdminPRWorkspace } from "../contracts";
 

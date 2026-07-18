@@ -68,6 +68,11 @@
       @close="createMutation.reset()"
     />
   </PuForm>
+  <PRCreateAuthDisclosure
+    :open="showAuthDisclosure"
+    @cancel="authGate.cancelAuth"
+    @confirm="authGate.confirmAuth"
+  />
 </template>
 
 <script setup lang="ts">
@@ -79,8 +84,9 @@ import { useI18n } from "vue-i18n";
 import { createNaturalLanguagePRValidationSchema } from "@/lib/validation";
 import { useCreatePRFromNaturalLanguage } from "@/domains/pr/queries/usePRCreate";
 import { useLandingTypewriterPlaceholder } from "@/domains/landing/use-cases/useLandingTypewriterPlaceholder";
-import { ensureAuthSessionBootstrapped } from "@/processes/auth/useAuthSessionBootstrap";
 import { useNaturalLanguageDraftStore } from "@/domains/pr/use-cases/useNaturalLanguageDraft";
+import { usePRCreateAuthGate } from "@/domains/pr/use-cases/usePRCreateAuthGate";
+import PRCreateAuthDisclosure from "@/domains/pr/ui/sections/PRCreateAuthDisclosure.vue";
 import { useWeChatVoiceInput } from "@/shared/wechat/useWeChatVoiceInput";
 import { PuButton, PuForm, PuFormItem, PuInlineNotice, PuInput } from "@partner-up-dev/design-web";
 
@@ -93,6 +99,8 @@ const getLocalWeekdayLabel = (date: Date): string => {
 const router = useRouter();
 const { t } = useI18n();
 const createMutation = useCreatePRFromNaturalLanguage();
+const authGate = usePRCreateAuthGate();
+const showAuthDisclosure = authGate.showAuthDisclosure;
 const { activeExampleText, typedExampleText } = useLandingTypewriterPlaceholder();
 const draftStore = useNaturalLanguageDraftStore();
 const { rawText: draftRawText } = storeToRefs(draftStore);
@@ -150,7 +158,7 @@ const resolveRawText = (): string => {
 };
 
 const submitHandler = handleSubmit(async (values) => {
-  await ensureAuthSessionBootstrapped();
+  if (!(await authGate.ensureCreateAuth())) return;
 
   const now = new Date();
   const created = await createMutation.mutateAsync({
@@ -159,11 +167,7 @@ const submitHandler = handleSubmit(async (values) => {
     nowWeekday: getLocalWeekdayLabel(now),
   });
 
-  if (created.status === "DRAFT") {
-    await router.push(created.canonicalPath);
-  } else {
-    await router.push(`${created.canonicalPath}?entry=create`);
-  }
+  await router.push(`${created.canonicalPath}?entry=create`);
   draftStore.clear();
   resetForm({
     values: { rawText: "" },

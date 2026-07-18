@@ -10,15 +10,15 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
-import { updatePRContent } from "../../pr";
-import { hasPRTypeConfig } from "../../pr-type-config";
 import {
   applyParticipantReleaseEffects,
+  createPRFromStructured,
   promoteWaitlistedPartners,
   recalculatePRStatus,
-} from "../../pr/services";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../../pr-core/services/waitlist-alternative-reminder.service";
-import { createPRFromStructured } from "../../pr-core/use-cases/create-pr-structured";
+  updatePRContent,
+} from "../../pr/commands";
+import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../../pr/ports";
+import { hasPRTypeConfig } from "../../pr-type-config";
 import type { AdminPRContentInput, AdminPRCreateInput } from "../contracts";
 import { validateAdminPRTimeWindow } from "../services/validation";
 
@@ -124,7 +124,7 @@ export const updateAdminPRStatus = async (prId: PRId, status: PRStatusManual) =>
   if (!(await prRepository.findById(prId))) {
     return throwHttpProblem({ status: 404, detail: "PR not found" });
   }
-  const { updatePRStatus } = await import("../../pr");
+  const { updatePRStatus } = await import("../../pr/commands");
   return updatePRStatus(prId, status, null);
 };
 

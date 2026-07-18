@@ -2,12 +2,12 @@ import type { PartnerRequest } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import { readVisiblePartnerRequestsByType } from "../../pr-core/services/pr-read.service";
-import { getPRTypeConfigDiscoveryPolicy } from "../../pr-type-config";
 import {
   getProductLocalDateKey,
   getProductLocalDateKeyForTimeWindowStart,
-} from "../../pr-core/services/time-window.service";
+  readVisiblePartnerRequestsByType,
+} from "../../pr/queries";
+import { getPRTypeConfigDiscoveryPolicy } from "../../pr-type-config";
 import {
   type PRDiscoveryCandidate,
   type PRDiscoveryConfigRow,

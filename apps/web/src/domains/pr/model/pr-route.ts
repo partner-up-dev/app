@@ -1,4 +1,4 @@
-import type { PRRoute, PRRoutePoint } from "@partner-up-dev/backend";
+import type { PRRoute, PRRoutePoint } from "@partner-up-dev/backend/contracts";
 import type { Route, RoutePoint, RouteValidationIssue } from "@/domains/route/model/route";
 import {
   cloneRoute,

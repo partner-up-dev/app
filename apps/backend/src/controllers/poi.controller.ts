@@ -10,7 +10,7 @@ import {
   listMyPoiApplications,
   submitPoiApplication,
 } from "../domains/poi";
-import { throwAuthenticatedRequired } from "../domains/pr-core/services/creator-identity.service";
+import { throwAuthenticatedRequired } from "../domains/pr/contracts";
 
 const app = new Hono<AuthEnv>();
 

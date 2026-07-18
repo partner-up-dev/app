@@ -42,14 +42,19 @@ APIs. Put new public symbols in the owning domain root `index.ts` or a category-
 (`commands.ts`, `queries.ts`, `contracts.ts`, `events.ts`, or `ports.ts`); do not use wildcard barrels to make
 internal paths convenient for callers.
 
+For cross-unit type consumption, `@partner-up-dev/backend/contracts` is the sole package-level types-only subpath.
+It may contain only explicit `export type` declarations for stable owner-backed value/input contracts; never add
+runtime schemas, rows, repositories, services, wildcard exports or persistence-derived aliases for Web convenience.
+`AppType` stays at the package root as the transport-owned HTTP inference seam.
+
 Controllers consume domain commands/queries/contracts and remain protocol conversion only. A controller must not
 start a new direct repository or cross-domain internal-service dependency. A domain may use its own persistence
 internals; another domain must ask through the owner's public surface.
 
 Current compatibility windows are baselined rather than described as compliant architecture:
 
-- `src/domains/pr` is the canonical PR surface while `src/domains/pr-core` still contains lifecycle implementation;
-  `pr-core` gains no new consumers and retires through the named migration slice.
+- `src/domains/pr` is the sole canonical PR surface. The former `src/domains/pr-core` compatibility implementation
+  and `PartnerRequestService` facade were retired in Phase 3 slice `3-5`; no source or test consumer remains.
 - Existing controller-to-repository and cross-domain deep imports are architecture-fitness findings. They migrate
   with their owning behavior slices and do not authorize another edge.
 - Exceptions stay path-specific and record owner, reason, removal condition and verification; do not widen an
@@ -64,7 +69,6 @@ src/
 ├── services/             # Legacy service facades and integration-oriented services
 ├── domains/
 │   ├── pr/               # Canonical PR surface, reads, messages and sharing
-│   ├── pr-core/          # PR lifecycle compatibility implementation; no new consumers
 │   ├── pr-authoring/     # Authoring options and handoff
 │   ├── pr-discovery/     # Catalog, view, directory and recommendation reads
 │   └── admin-pr-type-config/ # Current operator adapter for PR Type Configuration

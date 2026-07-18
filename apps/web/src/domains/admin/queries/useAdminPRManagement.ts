@@ -1,4 +1,7 @@
-import type { PRRoute as PartnerRequestRoute, PRJoinGateConfig } from "@partner-up-dev/backend";
+import type {
+  PRJoinGateConfig,
+  PRRoute as PartnerRequestRoute,
+} from "@partner-up-dev/backend/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, type MaybeRef, unref } from "vue";

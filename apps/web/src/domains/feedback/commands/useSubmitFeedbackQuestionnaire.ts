@@ -1,11 +1,21 @@
 import { useMutation } from "@tanstack/vue-query";
-import type { FeedbackQuestionnaireAnswers } from "@partner-up-dev/backend";
+import type { InferRequestType, InferResponseType } from "hono";
 import { client } from "@/lib/rpc";
 import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 
+type FeedbackQuestionnaireRoute = (typeof client.api.feedback)[":instanceId"];
+type SubmitFeedbackQuestionnaireRoute = FeedbackQuestionnaireRoute["$post"];
+
+export type SubmitFeedbackQuestionnaireRequest = InferRequestType<SubmitFeedbackQuestionnaireRoute>;
+export type SubmitFeedbackQuestionnaireAnswers =
+  SubmitFeedbackQuestionnaireRequest["json"]["answers"];
+export type SubmitFeedbackQuestionnaireResponse = InferResponseType<
+  SubmitFeedbackQuestionnaireRoute
+>;
+
 export type SubmitFeedbackQuestionnaireInput = {
   instanceId: number;
-  answers: FeedbackQuestionnaireAnswers;
+  answers: SubmitFeedbackQuestionnaireAnswers;
 };
 
 export const readSubmitFeedbackQuestionnaireError = async (response: Response): Promise<Error> => {
@@ -14,7 +24,7 @@ export const readSubmitFeedbackQuestionnaireError = async (response: Response): 
 };
 
 export const useSubmitFeedbackQuestionnaire = () =>
-  useMutation({
+  useMutation<SubmitFeedbackQuestionnaireResponse, Error, SubmitFeedbackQuestionnaireInput>({
     mutationFn: async (input: SubmitFeedbackQuestionnaireInput) => {
       const response = await client.api.feedback[":instanceId"].$post(
         {
