@@ -6,6 +6,7 @@ import { createApp } from "vue";
 import AppRoot from "@/app/AppRoot.vue";
 import { router } from "@/app/router";
 import { i18n } from "@/locales/i18n";
+import { installRouteWeChatAutoLoginGuard } from "@/processes/wechat/route-wechat-auto-login";
 import { installFakeWeChatPayBridge } from "@/shared/wechat/fake-wechatpay-bridge";
 
 export const createPartnerUpApp = () => {
@@ -25,6 +26,7 @@ export const createPartnerUpApp = () => {
   app.use(pinia);
   app.use(VueQueryPlugin);
   app.use(i18n);
+  installRouteWeChatAutoLoginGuard(router, pinia);
   app.use(router);
 
   return app;

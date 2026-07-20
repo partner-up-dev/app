@@ -34,7 +34,7 @@ export const usePublishPR = () => {
         }
         if (
           typeof window !== "undefined" &&
-          handleWeChatAuthRequiredError(res.status, payload, window.location.href)
+          handleWeChatAuthRequiredError(res.status, payload, window.location.href, res)
         ) {
           throw buildApiError(
             resolveApiErrorMessage(payload, i18n.global.t("prPage.wechatReminder.loginHint")),

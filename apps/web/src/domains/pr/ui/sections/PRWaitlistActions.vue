@@ -130,6 +130,7 @@ import PRWaitlistSuccessPrompt from "@/domains/pr/ui/composites/PRWaitlistSucces
 import PRWaitlistFallbackConfirmGate from "@/domains/pr/ui/gates/PRWaitlistFallbackConfirmGate.vue";
 import { usePRActionCopy } from "@/domains/pr/use-cases/usePRActionCopy";
 import { useRegisterPRPendingReplayHandler } from "@/domains/pr/use-cases/usePRPendingWeChatReplay";
+import type { PendingWeChatAction } from "@/processes/wechat/pending-wechat-action";
 import {
   trackPRPrimaryActionClick,
   usePRPrimaryActionImpression,
@@ -321,12 +322,15 @@ const confirmCancelWaitlist = async (): Promise<void> => {
   }
 };
 
-const replayWaitlist = (): Promise<void> => {
+const replayWaitlist = (pending: PendingWeChatAction): Promise<void> => {
   if (viewer.value.isParticipant || viewer.value.isWaitlisted) {
     return Promise.resolve();
   }
   if (!viewer.value.canWaitlist) {
     return Promise.resolve();
+  }
+  if (pending.kind === "PR_WAITLIST") {
+    alternativePrReminderOptIn.value = pending.alternativePrReminderOptIn;
   }
   openWaitlistGateModal();
   return Promise.resolve();

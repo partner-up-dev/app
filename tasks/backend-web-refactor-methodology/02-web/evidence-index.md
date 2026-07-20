@@ -12,7 +12,7 @@
 | WEB-008 | Command / Fact | cross-owner graph, SCC, hubs | `cwd=/home/yyh/development/Anana/mvp-HA`; command below | 707 cross-owner edges / 94 pairs; one 5-file SCC; hubs reported below | Medium-high (static resolver limits documented) | seconds |
 | WEB-009 | Command / Fact | routes, testids and key-family method count | `cwd=/home/yyh/development/Anana/mvp-HA`; command below | 47 route records, 323 attributes in 91 files, 11 key families | High (textual) | seconds |
 | WEB-010 | Command / Fact | test distribution | `cwd=/home/yyh/development/Anana/mvp-HA`; command below | 48 files; detailed distribution below | High | seconds |
-| WEB-011 | Source / Fact | OAuth sequencing and nonce hygiene | `apps/web/src/processes/wechat/oauth-handoff.ts:28-84`; `apps/web/src/processes/auth/useAuthSessionBootstrap.ts:54-129`; `apps/web/src/processes/wechat/useRouteWeChatAutoLogin.ts:84-112` | nonce exchange includes credentials; bootstrap/auto-login defer | High | minutes |
+| WEB-011 | Source / Fact | OAuth sequencing and nonce hygiene | `apps/web/src/processes/wechat/oauth-handoff.ts`; `apps/web/src/processes/auth/useAuthSessionBootstrap.ts`; `apps/web/src/processes/wechat/route-wechat-auto-login.ts` | nonce exchange includes credentials; bootstrap/auto-login defer. The process was renamed and wired at router entry in Phase 4; see its completion review for the pending stale-navigation repair. | High | minutes |
 | WEB-012 | Source / Fact | canonical PR preview read | `docs/20-product-tdd/pr-lifecycle-contracts.md:41-45`; `apps/web/src/domains/pr/ui/primitives/PRPreviewCard.vue:32-95` | card accepts id/context and queries canonical detail | High | minutes |
 
 <a id="web-001"></a><a id="web-002"></a><a id="web-003"></a><a id="web-005"></a>

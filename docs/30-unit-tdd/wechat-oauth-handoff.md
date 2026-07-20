@@ -20,6 +20,9 @@ It exists because the product currently uses frontend-held application access to
 - OAuth login and bind resolve `returnTo` only against the deployment-owned `FRONTEND_URL`: absent values use that URL,
   relative values stay under its origin, and absolute HTTP(S) values must have exactly that origin. `Origin`,
   `Referer`, request host, and forwarded-host headers cannot broaden the return authority.
+- The active OAuth provider-session boundary trims `openid` and rejects a missing or whitespace-only result before
+  any callback branch can look it up, bind it, upgrade a user, or persist it. A provider user-info identity is
+  compared after the same normalisation.
 - The `wechatOAuthHandoff` query value is a nonce only. Treat it as non-secret but sensitive enough to remove from browser-visible URLs and telemetry.
 - The signed handoff cookie is short-lived, HttpOnly, path-scoped to the handoff endpoint, and must not contain the frontend access token.
 - Handoff exchange must use `credentials: "include"` so the path-scoped signed cookie reaches the backend.
@@ -31,24 +34,32 @@ It exists because the product currently uses frontend-held application access to
   `{ ok, returnTo, auth? | error }` shape until its producers and consumers are observed; apply its auth projection
   only on an explicit successful payload.
 - Auth bootstrap must defer while a handoff nonce is pending. It must not register or refresh an anonymous session before the handoff gate resolves.
-- Route auto-login must not redirect to WeChat while a handoff nonce is pending.
-- Route auto-login must wait for auth bootstrap before deciding whether the current PR route needs WeChat OAuth.
-- OAuth login redirects are single-flight in the frontend runtime. Route auto-login, RPC auth-required handling, and compatibility auth-error handling share the same login redirect policy.
+- Route auto-login is one app-bootstrap-installed router-entry guard. It must not redirect to WeChat while a handoff
+  nonce is pending, and it must wait for auth bootstrap before deciding an explicitly opted-in route.
+- If an opted-in guard awaits bootstrap, it must revalidate its navigation epoch before it writes attempted-route
+  state or starts OAuth. A newer navigation makes the older attempt inert; Vue Router cancellation does not itself
+  abort the older guard Promise.
+- An explicitly opted-in anonymous WeChat route stops its current navigation while the shared OAuth single flight
+  begins, so its protected page work cannot mount before the route-entry decision. `wechatAutoLoginPolicy: "route"`
+  is the only opt-in surface; pages and domain queries do not own route-entry redirects.
+- OAuth login redirects are single-flight in the frontend runtime. Route auto-login, process-owned authenticated-required escalation, and compatibility auth-error handling share the same login redirect policy.
 - Route share orchestration must not build share targets or revisions from a route that still contains the handoff nonce.
-- The frontend RPC auth policy starts this OAuth login flow when an API response is `401` with problem code `AUTHENTICATED_REQUIRED`.
+- The frontend transport classifies `401` with problem code `AUTHENTICATED_REQUIRED` and reports the exact response to the Web auth process. It does not itself navigate or decide a domain continuation; the process supplies compatible OAuth fallback escalation.
 - `AUTHENTICATED_REQUIRED` means the command requires the product `authenticated` role. In the current product, that role is obtained through WeChat OAuth login or anonymous-user WeChat upgrade.
 
 ## UX Semantics
 
 - The app should mount immediately; handoff must not create a blank pre-mount wait.
 - The route content remains gated while handoff is pending, so page-level queries and route auto-login do not run under the wrong anonymous identity.
+- A pending handoff is allowed through the route guard to the handoff gate; after a successful handoff, the same
+  route resolves with the authenticated session before its page work mounts.
 - Slow network is a UI state, not immediate failure. After the slow threshold, show an explicit pending state while the original exchange continues.
 - A user may choose to continue as a visitor. That action cancels the local wait, removes the nonce from the URL, and lets normal auth bootstrap proceed.
 - A received terminal result (a 4xx handoff response or unusable successful payload) consumes the current handoff
   attempt: remove the nonce, keep the recovery surface visible, and offer a fresh login or visitor continuation.
 - A thrown transport error or 5xx response is consumption uncertainty. Retain the nonce and offer retry; a later
   received terminal response closes that same attempt.
-- API-command initiated OAuth returns to the current browser URL. Command owners remain responsible for any domain-specific pending-action replay state they need after handoff.
+- API-command initiated OAuth returns to the current browser URL. A command owner that needs a continuation must persist its browser intent before claiming the matching auth-required response; command owners remain responsible for any domain-specific replay state they need after handoff. A command without an explicit continuation receives no manufactured replay state.
 
 ## Failure Semantics
 

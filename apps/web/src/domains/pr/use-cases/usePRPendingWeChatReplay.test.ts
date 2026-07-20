@@ -7,6 +7,7 @@ import {
   readPendingWeChatAction,
   setPendingWeChatAction,
 } from "@/processes/wechat/pending-wechat-action";
+import type { PendingWeChatAction } from "@/processes/wechat/pending-wechat-action";
 import {
   createPRPendingReplayRegistry,
   providePRPendingReplayRegistry,
@@ -31,7 +32,9 @@ describe("usePRPendingWeChatReplay", () => {
     const prId = ref<number | null>(123);
     const pageReady = ref(true);
     const handlerReady = ref(false);
-    const replay = vi.fn<() => Promise<void> | void>();
+    const replay = vi.fn<() => Promise<void> | void>(() => {
+      expect(readPendingWeChatAction()).toBeNull();
+    });
     const registry = createPRPendingReplayRegistry();
 
     setPendingWeChatAction({ kind: "PR_JOIN", prId: 123 });
@@ -56,6 +59,41 @@ describe("usePRPendingWeChatReplay", () => {
     await flushVue();
 
     expect(replay).toHaveBeenCalledTimes(1);
+    expect(readPendingWeChatAction()).toBeNull();
+  });
+
+  test("passes the matching typed pending action to the handler", async () => {
+    const prId = ref<number | null>(123);
+    const replay = vi.fn<(pending: PendingWeChatAction) => Promise<void> | void>();
+    const registry = createPRPendingReplayRegistry();
+
+    setPendingWeChatAction({
+      kind: "PR_WAITLIST",
+      prId: 123,
+      alternativePrReminderOptIn: true,
+    });
+    registry.register("PR_WAITLIST", {
+      ready: computed(() => true),
+      replay,
+    });
+
+    mountComposable(() => {
+      usePRPendingWeChatReplay({
+        prId,
+        ready: computed(() => true),
+        registry,
+      });
+    });
+
+    await flushVue();
+
+    expect(replay).toHaveBeenCalledOnce();
+    expect(replay).toHaveBeenCalledWith({
+      kind: "PR_WAITLIST",
+      prId: 123,
+      alternativePrReminderOptIn: true,
+      createdAt: expect.any(Number),
+    });
     expect(readPendingWeChatAction()).toBeNull();
   });
 

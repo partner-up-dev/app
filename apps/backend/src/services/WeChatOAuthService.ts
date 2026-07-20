@@ -43,6 +43,11 @@ const normalizeUserSex = (rawSex: number | undefined): UserSex | null => {
   return null;
 };
 
+const normalizeOpenId = (rawOpenId: string | undefined): string | null => {
+  const normalized = rawOpenId?.trim();
+  return normalized && normalized.length > 0 ? normalized : null;
+};
+
 const isUserInfoScopeGranted = (scope: string | null): boolean => {
   if (!scope) return false;
   return scope
@@ -121,8 +126,9 @@ export class WeChatOAuthService {
     }
 
     const payload = weChatOauthAccessTokenResponseSchema.parse(await response.json());
+    const openId = normalizeOpenId(payload.openid);
 
-    if (!payload.openid || !payload.access_token) {
+    if (!openId || !payload.access_token) {
       const message = payload.errmsg ?? "Unknown error";
       throw new Error(
         `WeChat oauth2/access_token response invalid: errcode=${payload.errcode ?? "?"} errmsg=${message}`,
@@ -130,7 +136,7 @@ export class WeChatOAuthService {
     }
 
     return {
-      openId: payload.openid,
+      openId,
       oauthAccessToken: payload.access_token,
       scope: payload.scope ?? null,
     };
@@ -163,14 +169,15 @@ export class WeChatOAuthService {
     }
 
     const payload = weChatOauthUserInfoResponseSchema.parse(await response.json());
-    if (!payload.openid) {
+    const providerOpenId = normalizeOpenId(payload.openid);
+    if (!providerOpenId) {
       const message = payload.errmsg ?? "Unknown error";
       throw new Error(
         `WeChat sns/userinfo response invalid: errcode=${payload.errcode ?? "?"} errmsg=${message}`,
       );
     }
 
-    if (payload.openid !== openId) {
+    if (providerOpenId !== openId) {
       throw new Error("WeChat sns/userinfo openid mismatch");
     }
 

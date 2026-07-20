@@ -53,7 +53,7 @@ const resolveErrorMessage = (
 ): string => {
   if (
     typeof window !== "undefined" &&
-    handleWeChatAuthRequiredError(response.status, payload, window.location.href)
+    handleWeChatAuthRequiredError(response.status, payload, window.location.href, response)
   ) {
     return resolveApiErrorMessage(payload, i18n.global.t("prPage.wechatReminder.loginHint"));
   }
@@ -149,6 +149,7 @@ export const useWaitlistPR = () => {
           setPendingWeChatAction({
             kind: "PR_WAITLIST",
             prId: id,
+            alternativePrReminderOptIn,
           });
         }
         const fallbackMessage = isPRJoinGateUnresolvedError(payload)

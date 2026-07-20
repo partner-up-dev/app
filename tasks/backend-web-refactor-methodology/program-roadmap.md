@@ -29,7 +29,7 @@ Phase 3: architecture and PR migration protocol               Complete
     3-8 CF-02 waitlist header-only auth contract              Complete
   -> Phase 3 exit                                             Complete
 
-Phase 4: User/Auth                                                 4-0–4-3 local semantics complete; 4-1 rollout observation and 4-3 topology evidence pending
+Phase 4: User/Auth                                                 local implementation complete after completion repair; 4-1 rollout observation and 4-3 topology evidence pending
 Phase 5: Commerce
 Phase 6: Job/Notification runtime
 Phase 7: Observability/Analytics
@@ -51,9 +51,18 @@ compact rule to the shared session contract. Its scoped packet is
 [`07-phase4/03-session-identity-authority/`](./07-phase4/03-session-identity-authority/). 4-3 under
 [`07-phase4/04-oauth-handoff-callback-compatibility/`](./07-phase4/04-oauth-handoff-callback-compatibility/) then
 completed its local terminal-handoff/direct-callback compatibility repair and promoted the recovery rule to the
-OAuth Unit TDD. Provider-console and edge-topology conclusions remain external evidence gaps; 4-4 and 4-5 still
-require refreshed entry evidence, authority graph, contract conflicts and a low-cost verification plan. This status
-does not authorize them.
+OAuth Unit TDD. Provider-console and edge-topology conclusions remain external evidence gaps. 4-4 then completed
+its Web-only transport/process boundary, named PR continuation protocol, focused proof, and durable promotion under
+[`07-phase4/05-authenticated-escalation-pending-commands/`](./07-phase4/05-authenticated-escalation-pending-commands/).
+Its attempted browser continuation proof stopped faithfully at a System-harness canonical-host cookie mismatch;
+the packet records the stronger lower proof and re-entry condition without claiming a passing end-to-end journey.
+4-5 then introduced Sir's explicit `/bills` route-entry OAuth promise through one reusable router guard, retired two
+local-private unused WeChat facades with closed local evidence, and promoted the intended product/process rules under
+[`07-phase4/06-route-entry-auth-and-facade-closure/`](./07-phase4/06-route-entry-auth-and-facade-closure/).
+The subsequent completion review under [`07-phase4/07-completion-review/`](./07-phase4/07-completion-review/) repaired
+the stale async-navigation OAuth side effect and whitespace-provider-`openid` acceptance, with focused/full proof and
+durable rule promotion. Phase 4 is locally closed; it still leaves the 4-1 rollout and 4-3.4 provider/topology
+evidence branches open rather than calling local completion a production-topology conclusion.
 
 ## Program Phase Boundaries
 

@@ -27,7 +27,7 @@ export type PRPendingReplayKind = ReplayablePRPendingAction["kind"];
 
 export type PRPendingReplayHandler = {
   ready: Readonly<Ref<boolean>>;
-  replay: () => Promise<void> | void;
+  replay: (pending: ReplayablePRPendingAction) => Promise<void> | void;
 };
 
 export type PRPendingReplayRegistry = {
@@ -143,7 +143,7 @@ export const usePRPendingWeChatReplay = ({
     replayRunning.value = true;
     clearPendingWeChatAction();
     try {
-      await handler.replay();
+      await handler.replay(pending);
     } finally {
       replayRunning.value = false;
     }

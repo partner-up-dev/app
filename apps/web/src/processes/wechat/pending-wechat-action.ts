@@ -13,6 +13,7 @@ type PendingPRJoinAction = PendingActionBase & {
 type PendingPRWaitlistAction = PendingActionBase & {
   kind: "PR_WAITLIST";
   prId: number;
+  alternativePrReminderOptIn: boolean;
 };
 
 type PendingPRExitAction = PendingActionBase & {
@@ -45,6 +46,7 @@ type NewPendingWeChatAction =
   | {
       kind: "PR_WAITLIST";
       prId: number;
+      alternativePrReminderOptIn?: boolean;
     }
   | {
       kind: "PR_EXIT";
@@ -57,8 +59,7 @@ type NewPendingWeChatAction =
   | {
       kind: "PR_PUBLISH";
       prId: number;
-    }
-  ;
+    };
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -77,7 +78,11 @@ const isPendingWeChatAction = (value: unknown): value is PendingWeChatAction => 
     return isPositiveInteger(candidate.prId);
   }
   if (candidate.kind === "PR_WAITLIST") {
-    return isPositiveInteger(candidate.prId);
+    return (
+      isPositiveInteger(candidate.prId) &&
+      (candidate.alternativePrReminderOptIn === undefined ||
+        typeof candidate.alternativePrReminderOptIn === "boolean")
+    );
   }
   if (candidate.kind === "PR_EXIT") {
     return isPositiveInteger(candidate.prId);
@@ -94,10 +99,14 @@ const isPendingWeChatAction = (value: unknown): value is PendingWeChatAction => 
 export const setPendingWeChatAction = (action: NewPendingWeChatAction): void => {
   if (typeof window === "undefined") return;
   try {
-    const payload: PendingWeChatAction = {
-      ...action,
-      createdAt: Date.now(),
-    };
+    const payload: PendingWeChatAction =
+      action.kind === "PR_WAITLIST"
+        ? {
+            ...action,
+            alternativePrReminderOptIn: action.alternativePrReminderOptIn === true,
+            createdAt: Date.now(),
+          }
+        : { ...action, createdAt: Date.now() };
     window.localStorage.setItem(PENDING_WECHAT_ACTION_STORAGE_KEY, JSON.stringify(payload));
   } catch {
     // Ignore storage failures.
@@ -126,6 +135,9 @@ export const readPendingWeChatAction = (): PendingWeChatAction | null => {
     if (!isRecent(parsed.createdAt)) {
       clearPendingWeChatAction();
       return null;
+    }
+    if (parsed.kind === "PR_WAITLIST" && parsed.alternativePrReminderOptIn === undefined) {
+      return { ...parsed, alternativePrReminderOptIn: false };
     }
     return parsed;
   } catch {

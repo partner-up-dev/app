@@ -89,7 +89,12 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
   restore request; an existing session is restored once; a `401` recovery clears public state and registers one fresh
   anonymous session. Other restore failures do not create a retry loop.
 - Frontend must preserve `credentials: "include"` on flows that rely on cookie-backed session state, especially WeChat OAuth, OAuth handoff, and bind paths.
-- Frontend app bootstrap owns best-effort session restoration and anonymous continuity. Command requests rely on backend auth failures plus the RPC auth policy for required identity escalation.
+- Frontend app bootstrap owns best-effort session restoration and anonymous continuity. For required identity
+  escalation, `lib/rpc` observes a recognized backend response and reports the exact `Response` plus its Problem
+  Details payload to the Web auth process; transport owns neither OAuth navigation nor a domain continuation choice.
+- The Web auth process owns compatible OAuth escalation. A command that needs browser continuity first writes its
+  own typed pending intent, then claims that same response; a command with no such intent may use the process
+  fallback without manufacturing replay state.
 - Domain command response bodies must not carry user-session payloads such as `auth`, `accessToken`, `role`, or `userId` for session synchronization. Session issuance and rotation belong to auth transport/session infrastructure, primarily the `x-access-token` response header and explicit auth/session endpoints.
 - Admin session storage can carry `service`, `analytics`, or both; its bearer validation is a separate transport concern
   and is not inferred from the public-user resolver.
@@ -112,7 +117,10 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 - Backend owns stable machine-readable `code` values for domain guard failures and may also expose a stable `type` URI for the same problem family.
 - Backend owns localized `title` and `detail` text for problem responses and selects them from request locale. Responses should set `Content-Language`.
 - Frontend interprets HTTP status plus stable `code` to drive UX for auth-required flows, join failures, and create-path fallbacks.
-- User-facing commands that require the `authenticated` role return `401` with code `AUTHENTICATED_REQUIRED`. The frontend Hono RPC fetch policy handles this code globally by starting the WeChat OAuth login entry for the current browser URL.
+- User-facing commands that require the `authenticated` role return `401` with code `AUTHENTICATED_REQUIRED`. The
+  frontend transport reports that recognized response to the Web auth process, which owns the single-flight WeChat
+  OAuth entry for the current browser URL. Domain code may claim its exact response only after it has persisted an
+  explicitly owned continuation.
 - For shared partner-bounds validation failures, backend and frontend should converge on one user-facing Chinese message rather than surfacing route-specific copies.
 - Human-readable explanation remains backend-owned on command failures. Frontend owns placement and presentation.
 - Problem-details transport shape is a cross-unit reusable substrate. Domain modules own their `type` and `code` registries.

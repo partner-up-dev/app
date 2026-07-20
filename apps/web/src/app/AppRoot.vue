@@ -7,12 +7,20 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount } from "vue";
 import { RouterView } from "vue-router";
+import { registerAuthenticatedRequiredResponseReporter } from "@/lib/rpc";
+import { reportAuthenticatedRequiredResponse } from "@/processes/auth/authenticated-escalation";
 import { useAuthSessionBootstrap } from "@/processes/auth/useAuthSessionBootstrap";
 import WeChatOAuthHandoffGate from "@/processes/wechat/WeChatOAuthHandoffGate.vue";
 import WeChatOAuthLoginModal from "@/processes/wechat/WeChatOAuthLoginModal.vue";
 import MatchedPRHandoffOverlay from "@/processes/route-handoff/MatchedPRHandoffOverlay.vue";
 import { useRouteShareOrchestrator } from "@/domains/share/use-cases/useRouteShareOrchestrator";
+
+const unregisterAuthenticatedEscalation = registerAuthenticatedRequiredResponseReporter(
+  reportAuthenticatedRequiredResponse,
+);
+onBeforeUnmount(unregisterAuthenticatedEscalation);
 
 useAuthSessionBootstrap();
 useRouteShareOrchestrator();

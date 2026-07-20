@@ -79,6 +79,12 @@ Examples:
 - session bootstrap
 - other app-level workflows
 
+Route-entry platform policy is still a process, not page behavior: app bootstrap installs it once before router
+navigation, and a route metadata declaration is its only opt-in surface. An opted-in process may block navigation
+until its lifecycle precondition is decided; after an awaited precondition it must revalidate that its navigation is
+still current before any persisted or redirect side effect. Pages and domain queries must not duplicate its redirect
+or bootstrap mechanics.
+
 ### `src/pages`
 
 Owns route entrypoints only.

@@ -20,7 +20,7 @@
 ## Auth / OAuth handoff
 
 - **Fact — handoff URL 只携带 nonce。** `wechatOAuthHandoff` 不能携带 token、OAuth code 或 state；前端 exchange 必须 `credentials: "include"`，成功应用 auth session 后才从地址栏移除 nonce。来源：[wechat process AGENTS](../../../apps/web/src/processes/wechat/AGENTS.md:3)、[OAuth handoff TDD](../../../docs/30-unit-tdd/wechat-oauth-handoff.md:14)、[oauth-handoff](../../../apps/web/src/processes/wechat/oauth-handoff.ts:49)。
-- **Fact — handoff 是 bootstrap/auto-login 的前置 gate。** pending nonce 时 auth bootstrap 返回 deferred，不注册匿名用户；route auto-login 也先 defer，之后才 bootstrap 和作 OAuth redirect 决策。来源：[auth bootstrap](../../../apps/web/src/processes/auth/useAuthSessionBootstrap.ts:54)、[route auto-login](../../../apps/web/src/processes/wechat/useRouteWeChatAutoLogin.ts:84)。
+- **Fact — handoff 是 bootstrap/auto-login 的前置 gate。** pending nonce 时 auth bootstrap 返回 deferred，不注册匿名用户；route auto-login 也先 defer，之后才 bootstrap 和作 OAuth redirect 决策。来源：[auth bootstrap](../../../apps/web/src/processes/auth/useAuthSessionBootstrap.ts)、[route auto-login](../../../apps/web/src/processes/wechat/route-wechat-auto-login.ts)。该进程在 Phase 4 改为 router-entry guard；其取消导航修复仍在 completion review 中。
 - **Fact — AUTHENTICATED_REQUIRED 的统一入口。** RPC fetch policy 识别 401 后交给 authenticated-required policy；领域 command owner 仍负责自己的 pending-action replay。来源：[rpc](../../../apps/web/src/lib/rpc.ts:25)、[PR lifecycle](../../../docs/20-product-tdd/pr-lifecycle-contracts.md:24)。
 
 ## Share、replay 与浏览器连续性

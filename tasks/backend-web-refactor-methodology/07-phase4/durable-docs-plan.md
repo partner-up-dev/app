@@ -25,7 +25,7 @@ claim it has made true, with the following additional thresholds:
 | --- | --- |
 | OAuth return origin, CORS, cookie or callback contract | An Impact Handshake names the deployed origin set, browser/provider callback topology, invariant URLs/cookies and a hostile-origin proof. |
 | Session truth or authenticated-role rule | Browser and Backend agree on active-user validation, token rotation and anonymous recovery; a System journey proves the chosen behavior. |
-| Pending-command semantics | Product decision states retry/at-most-once behavior; a full escalation journey proves it without making PR create replayable. |
+| Pending-command semantics | The 4-4 packet records the conservative at-most-once continuation decision, its exact command set and either a faithful escalation journey or a recorded harness limitation plus strongest lower proof, without making PR create replayable. |
 | Compatibility retirement | Every producer/consumer is inventoried, the replacement has focused and cross-unit proof, and the compatibility window has a removal condition. |
 
 Task-local inventories, import graphs, raw route traces, and test counts remain under this workspace.
@@ -55,3 +55,49 @@ failure responses suppress token projection.
 The durable owner is `docs/30-unit-tdd/wechat-oauth-handoff.md`. No production callback host, cookie-attribute
 observation, provider-console setting, or legacy-consumer retirement was promoted; all remain external 4-3.4
 evidence requirements.
+
+## 4-4 Promotion Candidate
+
+If its focused and Browser-to-Backend proof agree, 4-4 may promote only these stable technical truths:
+
+- `docs/20-product-tdd/cross-unit-contracts.md`: RPC transport reports an authenticated-required response; a Web
+  process owns the OAuth escalation decision, and a command may record its own continuation before it claims that
+  escalation.
+- `docs/20-product-tdd/pr-lifecycle-contracts.md`: the named PR continuation set, at-most-once behavior, and the
+  explicit no-create-replay rule.
+- `docs/30-unit-tdd/wechat-oauth-handoff.md`: API-command OAuth continuation ordering, without changing callback,
+  cookie, origin, or provider-topology truth.
+
+It must not promote a route auto-login decision, a legacy-facade retirement, provider-console fact, or a claim of
+cross-origin production fidelity. Those remain 4-5 and 4-3.4 work respectively.
+
+## 4-4 Promotion Result
+
+4-4 met the bounded threshold through focused Web protocol proof, the existing Backend mock OAuth/handoff scenario,
+and an explicit System-harness host/cookie limitation record. It promoted only response-to-process escalation,
+command-owned at-most-once PR continuity, and post-handoff continuation ordering. It does not claim a passing
+Browser-to-Backend continuation journey, route auto-login policy, legacy facade retirement, provider-console state,
+or cross-origin production fidelity.
+
+## 4-5 Promotion Result
+
+4-5 promoted Sir's explicit `/bills` route-entry OAuth promise to the PRD, and the one-app-bootstrap guard plus
+explicit-meta rule to the Web architecture and OAuth Unit TDD. Focused guard proof establishes bootstrap ordering,
+handoff deferral, environment/attempt branches, target return URL, and stopped navigation; it does not claim a
+cross-origin browser callback result.
+
+The two deleted Backend facades are local-private retirement facts, recorded in the 4-5 packet rather than as a
+durable deployment guarantee. Source/CI/script/entrypoint/export/bundle inventory, targeted OAuth regression,
+type/build, and dead-code baseline agree. External old checkouts or artifacts remain unobservable and are not
+claimed retired.
+
+## Phase-Completion Review Result
+
+The completion repair makes the explicit-meta ownership rule fully durable: a router-entry process that awaits a
+lifecycle precondition must revalidate its navigation epoch before it writes browser continuity state or redirects.
+That rule is promoted to `apps/web/src/ARCHITECTURE.md` and the OAuth Unit TDD after focused and full-Web proof.
+
+The active OAuth provider-session boundary now normalises and rejects blank `openid` before callback persistence
+paths; the matching provider-identity rule is promoted to the OAuth Unit TDD after focused and full-Backend proof.
+Forwarded host/proto and anonymous-cookie `Secure` observations remain topology hypotheses; no durable runtime rule
+changes without control-plane or deployed evidence.

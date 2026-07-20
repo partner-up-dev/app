@@ -1,5 +1,9 @@
 # 4-0B — Web OAuth, RPC And Continuity Map
 
+> Historical entry characterization. 4-5 later renamed the dormant route process to
+> `route-wechat-auto-login` and installed its router-entry guard for the declared `/bills` promise; this file
+> retains the then-current no-caller observation rather than asserting current runtime state.
+
 ## Runtime Auth SCC
 
 All five links below carry runtime values rather than only types or constants:

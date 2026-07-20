@@ -24,6 +24,31 @@ describe("pending WeChat actions", () => {
     expect(readPendingWeChatAction()).toMatchObject({ kind: "PR_PUBLISH", prId: 42 });
   });
 
+  it("persists the waitlist alternative reminder choice", () => {
+    setPendingWeChatAction({
+      kind: "PR_WAITLIST",
+      prId: 42,
+      alternativePrReminderOptIn: true,
+    });
+    expect(readPendingWeChatAction()).toMatchObject({
+      kind: "PR_WAITLIST",
+      prId: 42,
+      alternativePrReminderOptIn: true,
+    });
+  });
+
+  it("defaults the waitlist alternative reminder choice for legacy storage", () => {
+    storage.setItem(
+      "partner_up_pending_wechat_action",
+      JSON.stringify({ kind: "PR_WAITLIST", prId: 42, createdAt: Date.now() }),
+    );
+    expect(readPendingWeChatAction()).toMatchObject({
+      kind: "PR_WAITLIST",
+      prId: 42,
+      alternativePrReminderOptIn: false,
+    });
+  });
+
   it("rejects the removed discovery-create action and clears it", () => {
     storage.setItem(
       "partner_up_pending_wechat_action",
