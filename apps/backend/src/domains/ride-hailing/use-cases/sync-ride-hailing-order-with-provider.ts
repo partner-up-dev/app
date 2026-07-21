@@ -1,50 +1,62 @@
-import { randomUUID } from "node:crypto";
-import type { NewRideHailingOrder } from "../../../entities/ride-hailing-order";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import {
   type CommerceOrderDetailDebugContext,
   logCommerceOrderDetailDebug,
 } from "../../../lib/commerce-order-detail-debug";
-import { db } from "../../../lib/db";
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
-import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import type {
-  ChoiceSetOrderItemSnapshot,
-  RideHailingChoiceSetResolutionSnapshot,
-  RideHailingDispatchBindingSnapshot,
-  RideHailingExecutionPhase,
-} from "../../trade/model";
-import {
-  closeRideHailingOrderFromProviderCancellation,
-  getRideHailingChoiceSetItem,
-} from "../../trade/services";
+import { ProblemDetailsError } from "../../../lib/problem-details";
+import type { RideHailingExecutionPhase } from "../../trade/contracts";
+import type { RideHailingFareCorrectionRequired } from "../contracts";
+import { RideHailingProviderSyncQueryError } from "../contracts";
 import type {
   RideHailingProviderFinalSettlementResult,
+  RideHailingProviderObservation,
   RideHailingProviderOrderDetail,
+  RideHailingProviderVehicleLocation,
 } from "../model";
-import { mergeDriverSnapshot, mergeVehicleSnapshot, observeProviderOrderDetail } from "../services";
-import { applyRideHailingFinalSettlementConsequence } from "./apply-ride-hailing-final-settlement-consequence";
+import { createRideHailingReconciliationTransactionPort } from "../adapters/ride-hailing-reconciliation-transaction";
+import { observeProviderOrderDetail } from "../services/provider-order-observation";
 import { loadRideHailingProviderExecutionContext } from "./provider-execution-context";
-
-export class RideHailingProviderSyncQueryError extends Error {
-  constructor(
-    message: string,
-    readonly originalError: unknown,
-  ) {
-    super(message);
-    this.name = "RideHailingProviderSyncQueryError";
-  }
-}
 
 export type RideHailingProviderSyncTrigger =
   | "ORDER_DETAIL_POLL"
-  | "CAOCAO_CALLBACK"
+  | "BROWSER_RECONCILE"
+  | "PROVIDER_CALLBACK"
   | "CANCEL_FEE_PREVIEW"
   | "CANCEL_REQUEST";
 
-const jsonEqual = (left: unknown, right: unknown): boolean =>
-  JSON.stringify(left) === JSON.stringify(right);
+export type RideHailingProviderSyncResult = {
+  outcome: "RECONCILED" | "PROCESSING";
+  mutated: boolean;
+  providerDetail: RideHailingProviderOrderDetail | null;
+  providerObservation: RideHailingProviderObservation | null;
+  correctionRequired: RideHailingFareCorrectionRequired | null;
+};
+
+const terminalFinalSettlementPhases = new Set<RideHailingExecutionPhase>(["FINISHED", "CANCELLED"]);
+
+const shouldQueryProviderLiveGeometry = (phase: RideHailingExecutionPhase): boolean =>
+  phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP" || phase === "IN_TRIP";
+
+const resolveProviderNavigationRouteQueryKind = (
+  phase: RideHailingExecutionPhase,
+): "PICKUP" | "DROPOFF" | null => {
+  if (phase === "ACCEPTED" || phase === "ARRIVED_AT_PICKUP") return "PICKUP";
+  if (phase === "IN_TRIP") return "DROPOFF";
+  return null;
+};
+
+const sanitizeProviderVehicleLocation = (
+  location: RideHailingProviderVehicleLocation | null,
+): Omit<RideHailingProviderVehicleLocation, "providerSnapshot"> | null => {
+  if (!location) return null;
+  return {
+    capturedAt: location.capturedAt,
+    headingDegrees: location.headingDegrees,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    speedKph: location.speedKph,
+  };
+};
 
 const summarizeProviderDetail = (
   detail: RideHailingProviderOrderDetail,
@@ -58,58 +70,52 @@ const summarizeProviderDetail = (
   providerHasVehicleLocation: detail.vehicleLocation != null,
 });
 
-const terminalFinalSettlementPhases = new Set(["FINISHED", "CANCELLED"]);
-const providerConfirmedServiceVehiclePhases = new Set<RideHailingExecutionPhase>([
-  "ACCEPTED",
-  "ARRIVED_AT_PICKUP",
-  "IN_TRIP",
-  "FINISHED",
-]);
+const buildProviderObservation = async (input: {
+  context: Awaited<ReturnType<typeof loadRideHailingProviderExecutionContext>>;
+  detail: RideHailingProviderOrderDetail;
+  executionPhase: RideHailingExecutionPhase;
+}): Promise<RideHailingProviderObservation> => {
+  const navigationRouteQueryKind = resolveProviderNavigationRouteQueryKind(input.executionPhase);
+  const vehicleLocation = shouldQueryProviderLiveGeometry(input.executionPhase)
+    ? await input.context.port
+        .queryDriverLocation({ providerOrderId: input.context.providerOrderId })
+        .catch(() => null)
+    : null;
+  const navigationRoute =
+    navigationRouteQueryKind === null
+      ? null
+      : await input.context.port
+          .queryDriverRoute({
+            providerOrderId: input.context.providerOrderId,
+            routeKind: navigationRouteQueryKind,
+          })
+          .catch(() => null);
 
-const isTerminalFinalSettlementPhase = (phase: string | null | undefined): boolean =>
-  phase !== null && phase !== undefined && terminalFinalSettlementPhases.has(phase);
-
-const shouldAttemptTerminalFinalSettlementQuery = (input: {
-  executionPhase: string | null;
-  finalSettlementInputCommitted: boolean;
-}): boolean =>
-  isTerminalFinalSettlementPhase(input.executionPhase) && !input.finalSettlementInputCommitted;
-
-const buildProviderCancellationAttemptId = (): string => `term_provider_cancel_${randomUUID()}`;
-
-const buildProviderConfirmedChoiceSetResolution = (input: {
-  choiceSetItem: ChoiceSetOrderItemSnapshot;
-  dispatchBinding: RideHailingDispatchBindingSnapshot;
-  providerDetail: RideHailingProviderOrderDetail;
-  resolvedAt: string;
-}): RideHailingChoiceSetResolutionSnapshot | null => {
-  if (input.choiceSetItem.resolution) return null;
-  const submittedCandidate = input.providerDetail.providerVehicleTypeCode
-    ? input.dispatchBinding.submittedCandidates.find(
-        (candidate) =>
-          candidate.providerVehicleTypeCode === input.providerDetail.providerVehicleTypeCode,
-      )
-    : input.dispatchBinding.submittedCandidates.length === 1
-      ? input.dispatchBinding.submittedCandidates[0]
-      : null;
-  if (!submittedCandidate) {
-    return null;
-  }
-  const candidate = input.choiceSetItem.candidates.find(
-    (item) => item.sku.id === submittedCandidate.skuId,
-  );
-  if (!candidate) return null;
   return {
-    sku: candidate.sku,
-    providerVehicleTypeCode: submittedCandidate.providerVehicleTypeCode,
-    providerVehicleTypeName: submittedCandidate.providerVehicleTypeName,
-    quoteSnapshot: submittedCandidate.quoteSnapshot,
-    source: "PROVIDER_ACCEPTED",
-    candidateRelation: "IN_CANDIDATES",
-    reason: null,
-    resolvedAt: input.resolvedAt,
+    phase: input.detail.phase,
+    statusLabel: input.detail.statusLabel,
+    providerVehicleTypeCode: input.detail.providerVehicleTypeCode ?? null,
+    providerVehicleTypeName: input.detail.providerVehicleTypeName ?? null,
+    driver: input.detail.driver,
+    vehicle: input.detail.vehicle,
+    vehicleLocation: sanitizeProviderVehicleLocation(
+      vehicleLocation ?? input.detail.vehicleLocation,
+    ),
+    navigationRoute: navigationRoute
+      ? {
+          routeKind: navigationRoute.routeKind,
+          polyline: navigationRoute.polyline,
+          remainingDistanceMeters: navigationRoute.remainingDistanceMeters,
+          remainingDurationSeconds: navigationRoute.remainingDurationSeconds,
+          trafficLightCount: navigationRoute.trafficLightCount,
+          vehicleLocation: sanitizeProviderVehicleLocation(navigationRoute.vehicleLocation),
+        }
+      : null,
   };
 };
+
+const shouldAttemptTerminalFinalSettlementQuery = (phase: RideHailingExecutionPhase): boolean =>
+  terminalFinalSettlementPhases.has(phase);
 
 export async function syncRideHailingOrderWithProvider(input: {
   orderId: TradeOrderId;
@@ -117,10 +123,7 @@ export async function syncRideHailingOrderWithProvider(input: {
   expectedProviderOrderId?: string | null;
   trigger: RideHailingProviderSyncTrigger;
   debug?: CommerceOrderDetailDebugContext;
-}): Promise<{
-  mutated: boolean;
-  providerDetail: RideHailingProviderOrderDetail;
-}> {
+}): Promise<RideHailingProviderSyncResult> {
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.start", {
     inputOrderId: input.orderId,
     expectedProviderInstanceId: input.expectedProviderInstanceId ?? null,
@@ -128,19 +131,37 @@ export async function syncRideHailingOrderWithProvider(input: {
     trigger: input.trigger,
   });
 
-  const context = await loadRideHailingProviderExecutionContext({
-    orderId: input.orderId,
-    expectedProviderInstanceId: input.expectedProviderInstanceId,
-    expectedProviderOrderId: input.expectedProviderOrderId,
-    debug: input.debug,
-  });
+  let context: Awaited<ReturnType<typeof loadRideHailingProviderExecutionContext>>;
+  try {
+    context = await loadRideHailingProviderExecutionContext({
+      orderId: input.orderId,
+      expectedProviderInstanceId: input.expectedProviderInstanceId,
+      expectedProviderOrderId: input.expectedProviderOrderId,
+      debug: input.debug,
+    });
+  } catch (error) {
+    if (
+      input.trigger === "BROWSER_RECONCILE" &&
+      error instanceof ProblemDetailsError &&
+      error.status === 409 &&
+      error.message === "RideHailing order is missing dispatch binding"
+    ) {
+      return {
+        outcome: "PROCESSING",
+        mutated: false,
+        providerDetail: null,
+        providerObservation: null,
+        correctionRequired: null,
+      };
+    }
+    throw error;
+  }
 
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.context", {
-    localOrderId: context.order.id,
-    localOrderStatus: context.order.status,
-    rideExecutionPhase: context.rideOrder.executionPhase,
-    rideDriverName: context.rideOrder.driverSnapshot?.driverName ?? null,
-    rideVehiclePlate: context.rideOrder.vehicleSnapshot?.plate ?? null,
+    localOrderId: context.orderId,
+    rideExecutionPhase: context.executionPhase,
+    rideDriverName: context.driverSnapshot?.driverName ?? null,
+    rideVehiclePlate: context.vehicleSnapshot?.plate ?? null,
     providerInstanceId: context.providerInstance.id,
     providerOrderId: context.providerOrderId,
   });
@@ -152,7 +173,7 @@ export async function syncRideHailingOrderWithProvider(input: {
     });
   } catch (error) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.provider-detail.error", {
-      localOrderId: context.order.id,
+      localOrderId: context.orderId,
       providerInstanceId: context.providerInstance.id,
       providerOrderId: context.providerOrderId,
       trigger: input.trigger,
@@ -172,19 +193,16 @@ export async function syncRideHailingOrderWithProvider(input: {
   }
 
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.provider-detail.success", {
-    localOrderId: context.order.id,
+    localOrderId: context.orderId,
     providerInstanceId: context.providerInstance.id,
     providerOrderId: context.providerOrderId,
     trigger: input.trigger,
     ...summarizeProviderDetail(providerDetail),
   });
 
-  const observation = observeProviderOrderDetail({
-    detail: providerDetail,
-  });
-
+  const observation = observeProviderOrderDetail({ detail: providerDetail });
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.observation", {
-    localOrderId: context.order.id,
+    localOrderId: context.orderId,
     providerOrderId: context.providerOrderId,
     trigger: input.trigger,
     observedExecutionPhase: observation.executionPhase ?? null,
@@ -192,177 +210,41 @@ export async function syncRideHailingOrderWithProvider(input: {
     observedVehiclePlate: observation.vehicleSnapshot?.plate ?? null,
   });
 
-  const phaseSyncMutated = await db.transaction(async (tx) => {
-    const transactionalContext = await loadRideHailingProviderExecutionContext(
-      {
-        orderId: input.orderId,
-        expectedProviderInstanceId: input.expectedProviderInstanceId,
-        expectedProviderOrderId: input.expectedProviderOrderId,
-        debug: input.debug,
-      },
-      tx,
-    );
-    const tradeOrderRepo = new TradeOrderRepository(tx);
-    const rideOrderRepo = new RideHailingOrderRepository(tx);
-    const patch: Partial<NewRideHailingOrder> = {};
-
-    logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.context", {
-      localOrderId: transactionalContext.order.id,
-      localOrderStatus: transactionalContext.order.status,
-      rideExecutionPhase: transactionalContext.rideOrder.executionPhase,
-      rideDriverName: transactionalContext.rideOrder.driverSnapshot?.driverName ?? null,
-      rideVehiclePlate: transactionalContext.rideOrder.vehicleSnapshot?.plate ?? null,
-      providerInstanceId: transactionalContext.providerInstance.id,
-      providerOrderId: transactionalContext.providerOrderId,
-      trigger: input.trigger,
-    });
-
-    if (
-      observation.executionPhase &&
-      observation.executionPhase !== transactionalContext.rideOrder.executionPhase
-    ) {
-      patch.executionPhase = observation.executionPhase;
-    }
-
-    const driverSnapshot = mergeDriverSnapshot({
-      current: transactionalContext.rideOrder.driverSnapshot,
-      observed: observation.driverSnapshot,
-    });
-    if (!jsonEqual(driverSnapshot, transactionalContext.rideOrder.driverSnapshot)) {
-      patch.driverSnapshot = driverSnapshot;
-    }
-
-    const vehicleSnapshot = mergeVehicleSnapshot({
-      current: transactionalContext.rideOrder.vehicleSnapshot,
-      observed: observation.vehicleSnapshot,
-    });
-    if (!jsonEqual(vehicleSnapshot, transactionalContext.rideOrder.vehicleSnapshot)) {
-      patch.vehicleSnapshot = vehicleSnapshot;
-    }
-
-    logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.patch", {
-      localOrderId: transactionalContext.order.id,
-      trigger: input.trigger,
-      patchKeys: Object.keys(patch),
-      executionPhaseBefore: transactionalContext.rideOrder.executionPhase,
-      executionPhaseAfter: patch.executionPhase ?? transactionalContext.rideOrder.executionPhase,
-      driverChanged: "driverSnapshot" in patch,
-      vehicleChanged: "vehicleSnapshot" in patch,
-    });
-
-    let mutatedInTransaction = false;
-    const effectiveExecutionPhase =
-      patch.executionPhase ?? transactionalContext.rideOrder.executionPhase;
-    if (Object.keys(patch).length > 0) {
-      const updated = await rideOrderRepo.updateByOrderId(
-        transactionalContext.rideOrder.orderId,
-        patch,
-      );
-      if (!updated) {
-        return throwHttpProblem({
-          status: 500,
-          detail: "Failed to persist RideHailing provider sync",
-        });
-      }
-      mutatedInTransaction = true;
-      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.persisted-ride-order", {
-        localOrderId: transactionalContext.order.id,
-        trigger: input.trigger,
-        patchKeys: Object.keys(patch),
-      });
-    }
-
-    const choiceSetItem = getRideHailingChoiceSetItem(transactionalContext.order.items);
-    if (
-      choiceSetItem &&
-      transactionalContext.rideOrder.dispatchBinding &&
-      providerConfirmedServiceVehiclePhases.has(effectiveExecutionPhase)
-    ) {
-      const resolution = buildProviderConfirmedChoiceSetResolution({
-        choiceSetItem,
-        dispatchBinding: transactionalContext.rideOrder.dispatchBinding,
-        providerDetail,
-        resolvedAt: new Date().toISOString(),
-      });
-      if (resolution) {
-        await tradeOrderRepo.replaceItems(
-          transactionalContext.order.id,
-          transactionalContext.order.items.map((item) =>
-            item.kind === "CHOICE_SET" && item.itemId === choiceSetItem.itemId
-              ? {
-                  ...choiceSetItem,
-                  resolution,
-                }
-              : item,
-          ),
-        );
-        mutatedInTransaction = true;
-        logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.persisted-resolution", {
-          localOrderId: transactionalContext.order.id,
-          providerOrderId: transactionalContext.providerOrderId,
-          trigger: input.trigger,
-          executionPhase: effectiveExecutionPhase,
-          providerVehicleTypeCode: resolution.providerVehicleTypeCode ?? null,
-          providerVehicleTypeName: resolution.providerVehicleTypeName ?? null,
-        });
-      }
-    }
-
-    if (
-      effectiveExecutionPhase === "CANCELLED" &&
-      (transactionalContext.order.status === "INITIATING" ||
-        transactionalContext.order.status === "OPEN")
-    ) {
-      const closedAt = new Date();
-      const closedOrder = closeRideHailingOrderFromProviderCancellation(
-        transactionalContext.order,
-        {
-          attemptId: buildProviderCancellationAttemptId(),
-          decidedAt: closedAt.toISOString(),
-          reason: `RideHailing provider reported cancellation for ${transactionalContext.providerOrderId}`,
-        },
-      );
-      await tradeOrderRepo.applyTerminationState({
-        id: transactionalContext.order.id,
-        status: closedOrder.status,
-        terminationAttempts: closedOrder.terminationAttempts,
-        closedAt,
-      });
-      mutatedInTransaction = true;
-      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.close-order-status", {
-        localOrderId: transactionalContext.order.id,
-        fromStatus: transactionalContext.order.status,
-        toStatus: closedOrder.status,
-        trigger: input.trigger,
-        providerOrderId: transactionalContext.providerOrderId,
-      });
-    } else if (transactionalContext.order.status === "INITIATING") {
-      await tradeOrderRepo.updateStatus(transactionalContext.order.id, "OPEN");
-      mutatedInTransaction = true;
-      logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.tx.promote-order-status", {
-        localOrderId: transactionalContext.order.id,
-        fromStatus: transactionalContext.order.status,
-        toStatus: "OPEN",
-        trigger: input.trigger,
-      });
-    }
-
-    return mutatedInTransaction;
+  const reconciliationTransaction = createRideHailingReconciliationTransactionPort();
+  const phaseSync = await reconciliationTransaction.applyProviderObservation({
+    orderId: input.orderId,
+    expectedBinding: {
+      providerInstanceId: context.providerInstance.id,
+      providerOrderId: context.providerOrderId,
+    },
+    observation: {
+      executionPhase: observation.executionPhase,
+      driverSnapshot: observation.driverSnapshot,
+      vehicleSnapshot: observation.vehicleSnapshot,
+      providerVehicleTypeCode: providerDetail.providerVehicleTypeCode ?? null,
+    },
+    observedAt: new Date().toISOString(),
   });
+  const effectiveExecutionPhase = phaseSync.effectiveExecutionPhase;
 
-  let finalSettlementMutated = false;
-  const effectiveExecutionPhase = observation.executionPhase ?? context.rideOrder.executionPhase;
-  const shouldAttemptFinalSettlementQuery = shouldAttemptTerminalFinalSettlementQuery({
+  let finalSettlementOutcome: {
+    mutated: boolean;
+    correctionRequired: RideHailingFareCorrectionRequired | null;
+  } = { mutated: false, correctionRequired: null };
+  const providerObservation = await buildProviderObservation({
+    context,
+    detail: providerDetail,
     executionPhase: effectiveExecutionPhase,
-    finalSettlementInputCommitted: context.rideOrder.finalSettlementInput !== null,
   });
+  const shouldAttemptFinalSettlementQuery =
+    shouldAttemptTerminalFinalSettlementQuery(effectiveExecutionPhase);
 
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.post-phase-sync", {
-    localOrderId: context.order.id,
+    localOrderId: context.orderId,
     providerOrderId: context.providerOrderId,
     trigger: input.trigger,
     effectiveExecutionPhase,
-    finalSettlementAlreadyCommitted: context.rideOrder.finalSettlementInput !== null,
+    finalSettlementAlreadyCommitted: context.finalSettlementAlreadyCommitted,
     shouldAttemptFinalSettlementQuery,
   });
 
@@ -374,7 +256,7 @@ export async function syncRideHailingOrderWithProvider(input: {
       });
     } catch (error) {
       logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.query-final-settlement.error", {
-        localOrderId: context.order.id,
+        localOrderId: context.orderId,
         providerInstanceId: context.providerInstance.id,
         providerOrderId: context.providerOrderId,
         trigger: input.trigger,
@@ -390,15 +272,21 @@ export async function syncRideHailingOrderWithProvider(input: {
     }
 
     if (finalSettlementResult) {
-      finalSettlementMutated = await commitRideHailingTerminalFinalSettlement({
-        debug: input.debug,
-        finalSettlement: finalSettlementResult,
+      finalSettlementOutcome = await reconciliationTransaction.commitTerminalSettlement({
         orderId: input.orderId,
-        trigger: input.trigger,
+        expectedBinding: {
+          providerInstanceId: context.providerInstance.id,
+          providerOrderId: context.providerOrderId,
+        },
+        settlement: {
+          amountFen: finalSettlementResult.amountFen,
+          currency: finalSettlementResult.currency,
+          providerOrderId: finalSettlementResult.providerOrderId,
+        },
       });
     } else {
       logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.query-final-settlement.miss", {
-        localOrderId: context.order.id,
+        localOrderId: context.orderId,
         providerOrderId: context.providerOrderId,
         trigger: input.trigger,
         effectiveExecutionPhase,
@@ -406,8 +294,7 @@ export async function syncRideHailingOrderWithProvider(input: {
     }
   }
 
-  const mutated = phaseSyncMutated || finalSettlementMutated;
-
+  const mutated = phaseSync.mutated || finalSettlementOutcome.mutated;
   logCommerceOrderDetailDebug(input.debug, "ride-provider-sync.complete", {
     inputOrderId: input.orderId,
     expectedProviderInstanceId: input.expectedProviderInstanceId ?? null,
@@ -418,82 +305,10 @@ export async function syncRideHailingOrderWithProvider(input: {
   });
 
   return {
+    outcome: "RECONCILED",
     mutated,
     providerDetail,
+    providerObservation,
+    correctionRequired: finalSettlementOutcome.correctionRequired,
   };
-}
-
-async function commitRideHailingTerminalFinalSettlement(input: {
-  orderId: TradeOrderId;
-  finalSettlement: RideHailingProviderFinalSettlementResult;
-  trigger: RideHailingProviderSyncTrigger;
-  debug?: CommerceOrderDetailDebugContext;
-}): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    const transactionalContext = await loadRideHailingProviderExecutionContext(
-      {
-        orderId: input.orderId,
-        expectedProviderOrderId: input.finalSettlement.providerOrderId,
-        debug: input.debug,
-      },
-      tx,
-    );
-    if (
-      !shouldAttemptTerminalFinalSettlementQuery({
-        executionPhase: transactionalContext.rideOrder.executionPhase,
-        finalSettlementInputCommitted: transactionalContext.rideOrder.finalSettlementInput !== null,
-      })
-    ) {
-      logCommerceOrderDetailDebug(
-        input.debug,
-        "ride-provider-sync.query-final-settlement.skip-commit",
-        {
-          localOrderId: transactionalContext.order.id,
-          providerOrderId: transactionalContext.providerOrderId,
-          trigger: input.trigger,
-          executionPhase: transactionalContext.rideOrder.executionPhase,
-          finalSettlementAlreadyCommitted:
-            transactionalContext.rideOrder.finalSettlementInput !== null,
-        },
-      );
-      return false;
-    }
-
-    const rideOrderRepo = new RideHailingOrderRepository(tx);
-    const updatedRideOrder = await rideOrderRepo.updateByOrderId(transactionalContext.order.id, {
-      finalSettlementInput: {
-        ...input.finalSettlement,
-        committedAt: new Date().toISOString(),
-      },
-    });
-    if (!updatedRideOrder) {
-      return throwHttpProblem({
-        status: 500,
-        detail: "Failed to persist RideHailing final settlement input",
-      });
-    }
-
-    const consequence = await applyRideHailingFinalSettlementConsequence(
-      {
-        orderId: transactionalContext.order.id,
-      },
-      tx,
-    );
-
-    logCommerceOrderDetailDebug(
-      input.debug,
-      "ride-provider-sync.query-final-settlement.persisted",
-      {
-        localOrderId: transactionalContext.order.id,
-        providerOrderId: transactionalContext.providerOrderId,
-        trigger: input.trigger,
-        executionPhase: transactionalContext.rideOrder.executionPhase,
-        finalSettlementAmountFen: input.finalSettlement.amountFen,
-        billApplied: consequence.applied,
-        billReason: consequence.reason ?? null,
-      },
-    );
-
-    return true;
-  });
 }

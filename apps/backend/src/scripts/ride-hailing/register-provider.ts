@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import {
   parseRideHailingProviderRegistrationConfig,
   registerRideHailingProviderInstance,
-} from "../../domains/ride-hailing";
+} from "../../domains/ride-hailing/commands";
 
 const configPath = process.argv[2];
 if (!configPath) {

@@ -1,119 +1,52 @@
 import assert from "node:assert/strict";
-import type { Page } from "playwright";
+import { randomUUID } from "node:crypto";
 import {
   createOffer,
   createPlacement,
-  createProductSku,
   createProductSpu,
-  createSkuCancellationPolicy,
-} from "../../../apps/backend/src/domains/merchandising";
-import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
-import {
-  buildOrderParticipantsFromContext,
-  createRentalOrder,
-} from "../../../apps/backend/src/domains/trade";
+} from "../../../apps/backend/src/domains/merchandising/commands";
 import { PartnerRepository } from "../../../apps/backend/src/repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../apps/backend/src/repositories/PartnerRequestRepository";
-import {
-  bindScenarioWeChatOpenId,
-  configurePRStatus,
-} from "../../../apps/backend/tests/pr/_kit/actions/system-state";
-import {
-  givenUser,
-  type ScenarioUser,
-} from "../../../apps/backend/tests/pr/_kit/builders/users";
+import { givenUser } from "../../../apps/backend/tests/pr/_kit/builders/users";
 import { withScenarioPage } from "../_infra/browser/browser";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
-import { installFakeWeChatPayBridge } from "../_infra/browser/wechatpay";
-import { getScenarioEnvironment } from "../_infra/environment/scenario-environment";
 import { scenario } from "../_infra/scenario/scenario";
 
 const partnerRepo = new PartnerRepository();
 const partnerRequestRepo = new PartnerRequestRepository();
-const rentalHeroImageSrc =
-  "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20120'%3E%3Crect%20width='120'%20height='120'%20fill='%2396d945'/%3E%3Cpath%20d='M24%2084h72M32%2036h56v36H32z'%20stroke='%2326381c'%20stroke-width='8'%20fill='none'/%3E%3C/svg%3E";
 
-type ScenarioPartnerRequest = {
-  id: number;
-};
-
-async function givenCommerceRentalPr(input: {
-  creator: ScenarioUser;
-  minPartners: number;
-  maxPartners: number | null;
-  title: string;
-}): Promise<ScenarioPartnerRequest> {
+scenario("commerce_retired_rental_placement_is_absent_from_pr_ordering", async (ctx) => {
+  const creator = await givenUser(`retired-rental-placement-${randomUUID()}`);
+  const title = `Retired Rental PR ${randomUUID()}`;
   const pr = await partnerRequestRepo.create({
     budget: null,
-    createdBy: input.creator.user.id,
+    createdBy: creator.user.id,
     joinGateConfig: [],
     location: "Scenario Court",
-    maxPartners: input.maxPartners,
+    maxPartners: null,
     meetingPoint: null,
-    minPartners: input.minPartners,
+    minPartners: 1,
     notes: null,
     preferences: [],
-    status: "OPEN",
+    status: "READY",
     time: ["2031-01-01T10:00:00.000Z", "2031-01-01T12:00:00.000Z"],
-    title: input.title,
+    title,
     type: "badminton",
   });
-  if (!pr) {
-    throw new Error("Failed to create commerce rental scenario PR");
-  }
-
   await partnerRepo.createSlot({
     prId: pr.id,
     status: "JOINED",
-    userId: input.creator.user.id,
-  });
-
-  return { id: pr.id };
-}
-
-async function addJoinedParticipant(input: {
-  pr: ScenarioPartnerRequest;
-  user: ScenarioUser;
-}): Promise<void> {
-  await partnerRepo.createSlot({
-    prId: input.pr.id,
-    status: "JOINED",
-    userId: input.user.user.id,
-  });
-}
-
-async function givenRentalOrderingPlacement() {
-  const { fakeWeChatPay } = getScenarioEnvironment();
-  await registerPaymentProviderInstance({
-    providerType: "WECHAT_PAY",
-    instanceKey: "system-fake-wechatpay-http-web",
-    displayName: "System Fake WeChatPay HTTP Web",
-    clientId: "web",
-    config: {
-      adapterMode: "WECHAT_PAY_API_V3",
-      appId: fakeWeChatPay.appId,
-      mchId: fakeWeChatPay.mchId,
-      chargeMode: "JSAPI",
-      endpointBaseUrl: fakeWeChatPay.origin,
-      apiV3Key: fakeWeChatPay.apiV3Key,
-      merchantCertificate: fakeWeChatPay.merchantCertificate,
-      platformCertificates: null,
-    },
+    userId: creator.user.id,
   });
 
   const spu = await createProductSpu({
-    name: "系统测试烘焙空间",
+    name: "Retired Rental placement fixture",
     productType: "RENTAL",
     status: "ACTIVE",
     salesPolicy: {
-      skuSelectionPolicy: {
-        type: "EXACTLY_ONE",
-      },
-      quantityPolicy: {
-        type: "FIXED",
-        quantity: 1,
-      },
+      skuSelectionPolicy: { type: "EXACTLY_ONE" },
+      quantityPolicy: { type: "FIXED", quantity: 1 },
     },
     servicePolicy: {
       type: "RENTAL",
@@ -123,87 +56,13 @@ async function givenRentalOrderingPlacement() {
       requiresNationalId: false,
     },
     presentation: {
-      heroImageAssetIds: [rentalHeroImageSrc],
+      heroImageAssetIds: [],
       detailImageAssetIds: [],
-      sellingPoints: ["适合 2 人烘焙体验", "含基础工具与清洁"],
+      sellingPoints: [],
       parameterGroups: [],
-      noticeBlocks: [
-        {
-          title: "入场说明",
-          content: "请按订单登记姓名入场。",
-        },
-      ],
+      noticeBlocks: [],
     },
   });
-
-  const primarySku = await createProductSku({
-    spuId: spu.id,
-    name: "烘焙区 A · 2人 · 2小时",
-    status: "ACTIVE",
-    sortOrder: 10,
-    facts: {
-      type: "RENTAL",
-      zoneCode: "BAKING_A_SYSTEM_TEST",
-      participantCount: 2,
-      durationMinutes: 120,
-    },
-    pricingModel: {
-      type: "FIXED_TOTAL",
-      amountFen: 2000,
-    },
-  });
-
-  const premiumSku = await createProductSku({
-    spuId: spu.id,
-    name: "烘焙区 B · 2人 · 2小时",
-    status: "ACTIVE",
-    sortOrder: 20,
-    facts: {
-      type: "RENTAL",
-      zoneCode: "BAKING_B_SYSTEM_TEST",
-      participantCount: 2,
-      durationMinutes: 120,
-    },
-    pricingModel: {
-      type: "FIXED_TOTAL",
-      amountFen: 3200,
-    },
-  });
-
-  await createSkuCancellationPolicy({
-    policyId: `system-rental-policy-${primarySku.id}`,
-    policyVersion: 1,
-    skuId: primarySku.id,
-    operatorBufferMinutes: 30,
-    tiers: [
-      {
-        code: "before_service",
-        fromMinutesBeforeStart: 0,
-        untilMinutesBeforeStart: null,
-        refundPercent: 100,
-        requiresOperatorHandling: true,
-        visibleLabel: "开始前可退",
-      },
-    ],
-  });
-
-  await createSkuCancellationPolicy({
-    policyId: `system-rental-policy-${premiumSku.id}`,
-    policyVersion: 1,
-    skuId: premiumSku.id,
-    operatorBufferMinutes: 30,
-    tiers: [
-      {
-        code: "before_service",
-        fromMinutesBeforeStart: 0,
-        untilMinutesBeforeStart: null,
-        refundPercent: 100,
-        requiresOperatorHandling: true,
-        visibleLabel: "开始前可退",
-      },
-    ],
-  });
-
   const offer = await createOffer({
     productType: "RENTAL",
     spuIds: [spu.id],
@@ -211,23 +70,15 @@ async function givenRentalOrderingPlacement() {
     pricingRules: [],
     termsVersion: 1,
   });
-
-  return createPlacement({
+  const placement = await createPlacement({
     placementType: "BUTTON",
     offerId: offer.id,
     status: "ACTIVE",
-    matchingRule: {
-      and: [
-        { "===": [{ var: "kind" }, "PR"] },
-        { "===": [{ var: "type" }, "badminton"] },
-        { "===": [{ var: "activeParticipantCount" }, 2] },
-        { var: "time.hasConcreteTime" },
-      ],
-    },
+    matchingRule: { "===": [{ var: "kind" }, "PR"] },
     priority: 100,
     creative: {
-      ctaLabel: "预订场地",
-      description: "为当前 PR 锁定场地",
+      ctaLabel: "预订已退役场地",
+      description: "This fixture must be filtered by the Rental retirement boundary",
     },
     bindingRules: [
       {
@@ -247,424 +98,6 @@ async function givenRentalOrderingPlacement() {
       },
     ],
   });
-}
-
-async function seedStandaloneUnpaidRentalOrder(user: ScenarioUser): Promise<void> {
-  const spu = await createProductSpu({
-    name: `系统测试历史未支付场地单-${user.user.id}`,
-    productType: "RENTAL",
-    status: "ACTIVE",
-    salesPolicy: {
-      skuSelectionPolicy: {
-        type: "EXACTLY_ONE",
-      },
-      quantityPolicy: {
-        type: "FIXED",
-        quantity: 1,
-      },
-    },
-    servicePolicy: {
-      type: "RENTAL",
-      bookingLeadTimeMinutes: 0,
-      requiresContactPhone: true,
-      requiresRealName: true,
-      requiresNationalId: false,
-    },
-    presentation: {
-      heroImageAssetIds: [],
-      detailImageAssetIds: [],
-      sellingPoints: [],
-      parameterGroups: [],
-      noticeBlocks: [],
-    },
-  });
-  const sku = await createProductSku({
-    spuId: spu.id,
-    name: "历史未支付场地单",
-    status: "ACTIVE",
-    facts: {
-      type: "RENTAL",
-      zoneCode: `LEGACY_UNPAID_${user.user.id}`,
-      participantCount: 1,
-      durationMinutes: 60,
-    },
-    pricingModel: {
-      type: "FIXED_TOTAL",
-      amountFen: 1800,
-    },
-  });
-  const offer = await createOffer({
-    productType: "RENTAL",
-    spuIds: [spu.id],
-    status: "ACTIVE",
-    pricingRules: [],
-    termsVersion: 1,
-  });
-  const itemId = `legacy-item-${user.user.id}`;
-  const participants = buildOrderParticipantsFromContext({
-    participants: [
-      {
-        participantId: `legacy-${user.user.id}`,
-        userId: user.user.id,
-        joinedVia: "API",
-      },
-    ],
-    createdBy: user.user.id,
-  });
-
-  await createRentalOrder({
-    createdBy: user.user.id,
-    participants,
-    offerId: offer.id,
-    items: [
-      {
-        itemId,
-        sku: {
-          id: sku.id,
-          version: sku.version,
-          name: sku.name,
-          factsSnapshot: sku.facts,
-          pricingModelSnapshot: sku.pricingModel,
-          cancellationPolicySnapshot: null,
-        },
-        quantity: 1,
-      },
-    ],
-    pricingSnapshot: {
-      currency: "CNY",
-      itemBreakdowns: [
-        {
-          itemId,
-          resolvedAmountFen: 1800,
-          explanations: [],
-        },
-      ],
-      orderLevelExplanations: [],
-      subtotalFen: 1800,
-      totalFen: 1800,
-    },
-    serviceStartAt: "2031-01-02T10:00:00.000Z",
-    serviceEndAt: "2031-01-02T11:00:00.000Z",
-    contactPhone: "13800138009",
-    registrants: [
-      {
-        name: "历史参与者",
-        phone: "13800138009",
-        nationalIdMasked: null,
-      },
-    ],
-  });
-}
-
-async function assertLocatorTextIncludes(input: {
-  actual: Promise<string | null>;
-  expected: string;
-  label: string;
-}): Promise<void> {
-  const actual = (await input.actual) ?? "";
-  assert.ok(
-    actual.includes(input.expected),
-    `${input.label}: expected text to include "${input.expected}", got "${actual}"`,
-  );
-}
-
-async function assertLocatorTextMatches(input: {
-  actual: Promise<string | null>;
-  pattern: RegExp;
-  label: string;
-}): Promise<void> {
-  const actual = (await input.actual) ?? "";
-  assert.match(actual, input.pattern, input.label);
-}
-
-async function fillRentalOrderingRequiredFields(page: Page): Promise<void> {
-  await page.getByTestId("ordering.rental.contact-phone").fill("13800138000");
-  await page.getByTestId("ordering.rental.registrant-name.0").fill("张三");
-  await page.getByTestId("ordering.rental.registrant-name.1").fill("李四");
-}
-
-async function waitForRentalQuoteReady(page: Page, expectedPrice = "20.00"): Promise<void> {
-  await page.waitForFunction((priceText) => {
-    const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
-    return price?.includes(priceText);
-  }, expectedPrice);
-}
-
-async function assertOrderingBlockedDialog(input: {
-  page: Page;
-  expectedDetail: string;
-  expectedTitle?: string;
-}): Promise<void> {
-  const dialog = input.page.getByRole("dialog", {
-    name: input.expectedTitle ?? "暂不能创建订单",
-  });
-  await dialog.waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await dialog.getByText(input.expectedDetail).waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-}
-
-async function assertRentalOrderDetail(input: {
-  page: Page;
-  expectedItemName: string;
-}): Promise<void> {
-  await input.page.getByTestId("order-detail.page").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  assert.match(new URL(input.page.url()).pathname, /^\/orders\/[0-9a-f-]+$/);
-  await input.page.getByTestId("order-detail.bill-detail-link").waitFor({
-    state: "visible",
-    timeout: 10_000,
-  });
-  await assertLocatorTextIncludes({
-    actual: input.page.getByTestId("order-detail.item-name").textContent(),
-    expected: input.expectedItemName,
-    label: "Rental order detail item name",
-  });
-}
-
-scenario("commerce_rental_ordering_reaches_order_detail_for_active_pr", async (ctx) => {
-  const creator = await givenUser("system-commerce-rental-creator");
-  const joiner = await givenUser("system-commerce-rental-joiner");
-  await bindScenarioWeChatOpenId({
-    user: creator,
-    openId: "fake-openid-commerce-rental-creator",
-  });
-  await bindScenarioWeChatOpenId({
-    user: joiner,
-    openId: "fake-openid-commerce-rental-joiner",
-  });
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce rental partner request",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "ACTIVE" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("creatorUserId", creator.user.id);
-  ctx.record("joinerUserId", joiner.user.id);
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  let createdOrderPath: string | null = null;
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-    await installFakeWeChatPayBridge(page, getScenarioEnvironment().fakeWeChatPay.origin);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.getByText("系统测试烘焙空间").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("ordering.rental.product-summary").textContent(),
-      expected: "适合 2 人烘焙体验",
-      label: "Ordering rental product summary",
-    });
-    await page.getByTestId("ordering.rental.product-summary").locator("img").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("ordering.rental.participant-count").textContent(),
-      expected: "2 人",
-      label: "Ordering participant count",
-    });
-
-    const skuOptions = page.getByTestId("ordering.rental.sku-option");
-    assert.equal(await skuOptions.count(), 2);
-    await skuOptions.filter({ hasText: "烘焙区 A" }).waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await skuOptions.filter({ hasText: "烘焙区 B" }).waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("ordering.rental.cancellation-policy").textContent(),
-      expected: "开始前可退",
-      label: "Ordering cancellation policy summary",
-    });
-
-    await fillRentalOrderingRequiredFields(page);
-    await page.waitForFunction(() => {
-      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
-      return price?.includes("20.00");
-    });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("ordering.rental.price").textContent(),
-      pattern: /20\.00/,
-      label: "Default selected SKU price",
-    });
-    await page.getByTestId("ordering.rental.price-detail.toggle").click();
-    await page.getByTestId("ordering.rental.price-detail").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await assertLocatorTextIncludes({
-      actual: page.getByTestId("ordering.rental.price-detail").textContent(),
-      expected: "固定总价",
-      label: "Ordering price detail explanation",
-    });
-    await page.getByRole("button", { name: "Close drawer" }).click();
-
-    await skuOptions.filter({ hasText: "烘焙区 B" }).click();
-    await page.waitForFunction(() => {
-      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
-      return price?.includes("32.00");
-    });
-    await assertLocatorTextMatches({
-      actual: page.getByTestId("ordering.rental.price").textContent(),
-      pattern: /32\.00/,
-      label: "Price after switching rental zone",
-    });
-    await page.getByTestId("ordering.rental.create-order").click();
-
-    await assertRentalOrderDetail({
-      page,
-      expectedItemName: "烘焙区 B · 2人 · 2小时",
-    });
-    createdOrderPath = new URL(page.url()).pathname;
-    await page.goBack();
-    await page.waitForURL((url) => new URL(url).pathname === `/pr/${pr.id}`, {
-      timeout: 10_000,
-    });
-  });
-
-  const orderPath = createdOrderPath;
-  assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
-});
-
-scenario("commerce_rental_ordering_blocks_participant_with_unpaid_order", async (ctx) => {
-  const creator = await givenUser("system-commerce-unpaid-participant-creator");
-  const joiner = await givenUser("system-commerce-unpaid-participant-joiner");
-  await seedStandaloneUnpaidRentalOrder(joiner);
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce unpaid participant rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-  ctx.record("blockedParticipantUserId", joiner.user.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await waitForRentalQuoteReady(page);
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingBlockedDialog({
-      page,
-      expectedTitle: "参与者有未支付订单",
-      expectedDetail: "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
-    });
-    assert.equal(new URL(page.url()).pathname, "/order/new");
-  });
-});
-
-scenario("commerce_rental_ordering_unpaid_dialog_opens_my_bills", async (ctx) => {
-  const creator = await givenUser("system-commerce-my-bills-creator");
-  const joiner = await givenUser("system-commerce-my-bills-joiner");
-  await seedStandaloneUnpaidRentalOrder(creator);
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce my bills rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-  ctx.record("blockedViewerUserId", creator.user.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-    await installFakeWeChatPayBridge(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await waitForRentalQuoteReady(page);
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingBlockedDialog({
-      page,
-      expectedTitle: "参与者有未支付订单",
-      expectedDetail: "订单参与者中有人存在未支付订单，请先完成相关订单支付后再下单。",
-    });
-
-    await page.getByRole("button", { name: "查看我的账单" }).click();
-    await page.getByTestId("my-bills.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await page.getByTestId("my-bills.ordering-block.notice").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    assert.equal(new URL(page.url()).pathname, "/bills");
-
-    const firstBillViewAction = page
-      .getByTestId("order-detail.ride-hailing.bill-card.view")
-      .first();
-    await firstBillViewAction.waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await firstBillViewAction.click();
-    await page.getByTestId("bill-detail.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    assert.match(new URL(page.url()).pathname, /^\/bills\/[0-9a-f-]+$/);
-  });
-});
-
-scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
-  const creator = await givenUser("system-commerce-placement-mismatch-creator");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce placement mismatch PR",
-  });
-  const placement = await givenRentalOrderingPlacement();
 
   ctx.record("prId", pr.id);
   ctx.record("placementId", placement.id);
@@ -672,246 +105,22 @@ scenario("commerce_rental_pr_button_requires_matching_rule", async (ctx) => {
   await withScenarioPage(async (page) => {
     await installScenarioUserSession(page, creator);
     await installDeterministicShareSidecarStubs(page);
-
     await page.goto(`/pr/${pr.id}`);
-    await page
-      .getByRole("heading", {
-        name: "System commerce placement mismatch PR",
-      })
-      .waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
+    await page.getByRole("heading", { name: title }).waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
     await page.waitForLoadState("networkidle");
+
     assert.equal(
       await page.getByTestId("pr-detail.commerce-placement.open").count(),
       0,
-      "PR Button Placement must not render when matchingRule returns false",
+      "An active Rental Placement must not remain an executable PR ordering entry",
+    );
+    assert.equal(
+      await page.getByText("预订已退役场地").count(),
+      0,
+      "Retired Rental creative must not leak into the PR action surface",
     );
   });
-});
-
-scenario("commerce_rental_ordering_blocks_non_ready_pr", async (ctx) => {
-  const creator = await givenUser("system-commerce-non-ready-creator");
-  const joiner = await givenUser("system-commerce-non-ready-joiner");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce non ready rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await waitForRentalQuoteReady(page);
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingBlockedDialog({
-      page,
-      expectedDetail: "创建订单需要搭子请求「已成团」或「进行中」",
-    });
-    assert.equal(new URL(page.url()).pathname, "/order/new");
-  });
-});
-
-scenario("commerce_rental_ordering_recovers_non_ready_pr_by_marking_ready", async (ctx) => {
-  const creator = await givenUser("system-commerce-non-ready-recovery-creator");
-  const joiner = await givenUser("system-commerce-non-ready-recovery-joiner");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce non ready recovery rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await waitForRentalQuoteReady(page);
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingBlockedDialog({
-      page,
-      expectedDetail: "创建订单需要搭子请求「已成团」或「进行中」",
-    });
-
-    await page.getByRole("button", { name: "切换到已成团" }).click();
-    const confirmDialog = page.getByRole("dialog", { name: "确认标记为已成团？" });
-    await confirmDialog.waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await confirmDialog
-      .getByText("将当前搭子请求切换到「已成团」，此状态下不可以加入/退出。确认后请重新点击下单。")
-      .waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-    await confirmDialog.getByRole("button", { name: "确认成团" }).click();
-
-    const successDialog = page.getByRole("dialog", { name: "已成团" });
-    await successDialog.waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await successDialog.getByText("PR 已标记为已成团，请重新点击下单。").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await successDialog.getByRole("button", { name: "我知道了" }).click();
-
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertRentalOrderDetail({
-      page,
-      expectedItemName: "烘焙区 A · 2人 · 2小时",
-    });
-  });
-});
-
-scenario("commerce_rental_ordering_blocks_non_creator", async (ctx) => {
-  const creator = await givenUser("system-commerce-non-creator-creator");
-  const joiner = await givenUser("system-commerce-non-creator-joiner");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce non creator rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, joiner);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await waitForRentalQuoteReady(page);
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertOrderingBlockedDialog({
-      page,
-      expectedDetail: "仅 PR 创建者可以创建订单",
-    });
-    assert.equal(new URL(page.url()).pathname, "/order/new");
-  });
-});
-
-scenario("commerce_rental_cancel_entry_reaches_order_detail", async (ctx) => {
-  const creator = await givenUser("system-commerce-cancel-creator");
-  const joiner = await givenUser("system-commerce-cancel-joiner");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce cancellation rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await page.waitForFunction(() => {
-      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
-      return price?.includes("20.00");
-    });
-    await page.getByTestId("ordering.rental.create-order").click();
-
-    await assertRentalOrderDetail({
-      page,
-      expectedItemName: "烘焙区 A · 2人 · 2小时",
-    });
-  });
-});
-
-scenario("commerce_rental_refund_entry_reaches_order_detail", async (ctx) => {
-  const creator = await givenUser("system-commerce-paid-cancel-creator");
-  const joiner = await givenUser("system-commerce-paid-cancel-joiner");
-  const pr = await givenCommerceRentalPr({
-    creator,
-    minPartners: 2,
-    maxPartners: null,
-    title: "System commerce paid cancellation rental PR",
-  });
-  await addJoinedParticipant({ pr, user: joiner });
-  await configurePRStatus({ pr, status: "READY" });
-  const placement = await givenRentalOrderingPlacement();
-
-  ctx.record("prId", pr.id);
-  ctx.record("placementId", placement.id);
-
-  let orderPath: string | null = null;
-
-  await withScenarioPage(async (page) => {
-    await installScenarioUserSession(page, creator);
-    await installDeterministicShareSidecarStubs(page);
-    await installFakeWeChatPayBridge(page, getScenarioEnvironment().fakeWeChatPay.origin);
-
-    await page.goto(`/pr/${pr.id}`);
-    await page.getByTestId("pr-detail.commerce-placement.open").click();
-    await page.getByTestId("ordering.rental.page").waitFor({
-      state: "visible",
-      timeout: 10_000,
-    });
-    await fillRentalOrderingRequiredFields(page);
-    await page.waitForFunction(() => {
-      const price = document.querySelector('[data-testid="ordering.rental.price"]')?.textContent;
-      return price?.includes("20.00");
-    });
-    await page.getByTestId("ordering.rental.create-order").click();
-    await assertRentalOrderDetail({
-      page,
-      expectedItemName: "烘焙区 A · 2人 · 2小时",
-    });
-    orderPath = new URL(page.url()).pathname;
-  });
-
-  assert.ok(orderPath, "Paid cancellation order path should be recorded");
-  assert.match(orderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
 });

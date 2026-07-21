@@ -74,6 +74,8 @@ export type FakeCaocaoFeeConfirmState = {
 };
 
 export type FakeCaocaoStateSnapshot = {
+  readonly createRequestCount: number;
+  readonly dropNextCreateResponseAfterAccept: boolean;
   readonly failNextCreate: boolean;
   readonly estimates: readonly FakeCaocaoVehicleEstimate[];
   readonly unavailableEstimateCarTypes: readonly string[];
@@ -252,6 +254,8 @@ const syncPhaseTimestamps = (
 };
 
 export class FakeCaocaoState {
+  private createRequestCount = 0;
+  private dropNextCreateResponseAfterAccept = false;
   private failNextCreate = false;
   private readonly estimates = new Map<string, FakeCaocaoVehicleEstimate>();
   private readonly unavailableEstimateCarTypes = new Set<string>();
@@ -267,6 +271,8 @@ export class FakeCaocaoState {
   }
 
   reset(): void {
+    this.createRequestCount = 0;
+    this.dropNextCreateResponseAfterAccept = false;
     this.failNextCreate = false;
     this.estimates.clear();
     this.unavailableEstimateCarTypes.clear();
@@ -280,6 +286,8 @@ export class FakeCaocaoState {
 
   snapshot(): FakeCaocaoStateSnapshot {
     return {
+      createRequestCount: this.createRequestCount,
+      dropNextCreateResponseAfterAccept: this.dropNextCreateResponseAfterAccept,
       estimates: [...this.estimates.values()],
       failNextCreate: this.failNextCreate,
       feeConfirms: [...this.feeConfirms],
@@ -290,6 +298,20 @@ export class FakeCaocaoState {
 
   configureNextCreateFailure(): void {
     this.failNextCreate = true;
+  }
+
+  recordCreateRequest(): void {
+    this.createRequestCount += 1;
+  }
+
+  configureNextCreateResponseLoss(): void {
+    this.dropNextCreateResponseAfterAccept = true;
+  }
+
+  consumeNextCreateResponseLoss(): boolean {
+    if (!this.dropNextCreateResponseAfterAccept) return false;
+    this.dropNextCreateResponseAfterAccept = false;
+    return true;
   }
 
   consumeNextCreateFailure(): boolean {

@@ -3,6 +3,7 @@ import {
   mapProviderDetailPhaseToExecutionPhase,
   mergeDriverSnapshot,
   observeProviderOrderDetail,
+  reconcileRideHailingExecutionPhase,
 } from "./provider-order-observation";
 
 describe("RideHailing provider order observation", () => {
@@ -89,6 +90,49 @@ describe("RideHailing provider order observation", () => {
       driverAvatarUrl: "https://example.test/driver-zhang.png",
       driverName: "李师傅",
       driverPhone: "13800138001",
+    });
+  });
+
+  it.each([
+    {
+      current: "INITIATING" as const,
+      observed: "ACCEPTED" as const,
+      expected: { effectivePhase: "ACCEPTED", reason: "ACTIVE_PHASE_ADVANCED" },
+    },
+    {
+      current: "IN_TRIP" as const,
+      observed: "DISPATCHING" as const,
+      expected: { effectivePhase: "IN_TRIP", reason: "ACTIVE_PHASE_REGRESSION" },
+    },
+    {
+      current: "ACCEPTED" as const,
+      observed: "CANCELLED" as const,
+      expected: { effectivePhase: "CANCELLED", reason: "TERMINAL_PHASE_ACCEPTED" },
+    },
+    {
+      current: "FINISHED" as const,
+      observed: "IN_TRIP" as const,
+      expected: { effectivePhase: "FINISHED", reason: "TERMINAL_PHASE_ALREADY_COMMITTED" },
+    },
+    {
+      current: "CANCELLED" as const,
+      observed: "FINISHED" as const,
+      expected: { effectivePhase: "CANCELLED", reason: "TERMINAL_PHASE_ALREADY_COMMITTED" },
+    },
+  ])("reconciles $current with $observed monotonically", ({ current, observed, expected }) => {
+    expect(reconcileRideHailingExecutionPhase({ current, observed })).toMatchObject(expected);
+  });
+
+  it("keeps the current snapshot when a provider phase is unmapped", () => {
+    expect(
+      reconcileRideHailingExecutionPhase({
+        current: "DISPATCHING",
+        observed: null,
+      }),
+    ).toEqual({
+      accepted: false,
+      effectivePhase: "DISPATCHING",
+      reason: "OBSERVATION_UNMAPPED",
     });
   });
 });

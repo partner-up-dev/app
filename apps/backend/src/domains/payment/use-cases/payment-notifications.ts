@@ -1,7 +1,8 @@
-import type { BillLine, BillLineId } from "../../../entities/bill";
 import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
+import { clearBillLinePaymentExecution, settleBillLinePaymentExecution } from "../../bill/commands";
+import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
+import { getBillLinePaymentExecution } from "../../bill/queries";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import type {
   NormalizedChargeStatus,
@@ -18,7 +19,6 @@ import {
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 const providerRepo = new PaymentProviderInstanceRepository();
-const billLineRepo = new BillLineRepository();
 
 export type WeChatNotificationHeadersInput = {
   timestamp: string | null;
@@ -88,14 +88,11 @@ async function parseWithProviderInstance<T>(input: {
 
 async function loadReferencedBillLine(input: {
   billLineId: string;
-  expectedKind: BillLine["kind"];
+  expectedKind: BillLinePaymentExecutionSnapshot["kind"];
   providerInstanceId: PaymentProviderInstanceId;
   attemptCount: number;
-}): Promise<BillLine> {
-  const line = await billLineRepo.findById(input.billLineId as BillLineId);
-  if (!line) {
-    return throwHttpProblem({ status: 404, detail: "BillLine not found" });
-  }
+}): Promise<BillLinePaymentExecutionSnapshot> {
+  const line = await getBillLinePaymentExecution({ billLineId: input.billLineId });
   if (line.kind !== input.expectedKind) {
     return throwHttpProblem({
       status: 409,
@@ -109,6 +106,7 @@ async function loadReferencedBillLine(input: {
     });
   }
   if (
+    line.attemptCount === input.attemptCount &&
     line.paymentProviderInstanceId &&
     line.paymentProviderInstanceId !== input.providerInstanceId &&
     !line.settledAt
@@ -123,29 +121,28 @@ async function loadReferencedBillLine(input: {
 }
 
 async function settleBillLineFromProvider(input: {
-  line: BillLine;
-  providerInstanceId: PaymentProviderInstanceId;
-  attemptCount: number;
-}): Promise<BillLine> {
-  return (
-    (await billLineRepo.markSettledFromProvider({
-      id: input.line.id,
-      paymentProviderInstanceId: input.providerInstanceId,
-      attemptCount: input.attemptCount,
-      settledAt: new Date(),
-    })) ??
-    (await billLineRepo.findById(input.line.id)) ??
-    input.line
-  );
-}
-
-async function clearBillLineProviderBinding(input: {
-  line: BillLine;
+  line: BillLinePaymentExecutionSnapshot;
   providerInstanceId: PaymentProviderInstanceId;
   attemptCount: number;
 }): Promise<void> {
-  await billLineRepo.clearProviderExecutionSlot({
-    id: input.line.id,
+  const settlement = await settleBillLinePaymentExecution({
+    billLineId: input.line.id,
+    paymentProviderInstanceId: input.providerInstanceId,
+    attemptCount: input.attemptCount,
+    settledAt: new Date(),
+  });
+  if (settlement.status === "SETTLED" && settlement.line.kind === "CHARGE") {
+    await applyPaymentSettlementConsequence({ billLineId: settlement.line.id });
+  }
+}
+
+async function clearBillLineProviderBinding(input: {
+  line: BillLinePaymentExecutionSnapshot;
+  providerInstanceId: PaymentProviderInstanceId;
+  attemptCount: number;
+}): Promise<void> {
+  await clearBillLinePaymentExecution({
+    billLineId: input.line.id,
     paymentProviderInstanceId: input.providerInstanceId,
     attemptCount: input.attemptCount,
   });
@@ -186,12 +183,11 @@ export async function handleWeChatPayChargeNotification(input: {
   });
 
   if (parsed.status === "SUCCEEDED") {
-    const settledLine = await settleBillLineFromProvider({
+    await settleBillLineFromProvider({
       line,
       providerInstanceId: providerInstance.id,
       attemptCount: reference.attemptCount,
     });
-    await applyPaymentSettlementConsequence({ billLineId: settledLine.id });
   } else if (isTerminalUnsettledProviderStatus(parsed.status)) {
     await clearBillLineProviderBinding({
       line,

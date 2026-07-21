@@ -5,16 +5,15 @@ import type {
 import type { TradeOrderId } from "../../../entities/trade-order";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
+import { confirmRideCreateAttemptFromProvider } from "../../trade/commands";
+import { RideHailingProviderSyncQueryError } from "../contracts";
 import {
   caocaoCallbackRoutingTokenMatchesCurrent,
   createRideHailingProviderPort,
   parseCaocaoCallbackInfo,
 } from "../services";
 import type { CaocaoOrderStatusCallback } from "../model";
-import {
-  RideHailingProviderSyncQueryError,
-  syncRideHailingOrderWithProvider,
-} from "./sync-ride-hailing-order-with-provider";
+import { syncRideHailingOrderWithProvider } from "./sync-ride-hailing-order-with-provider";
 
 const providerRepo = new RideHailingProviderInstanceRepository();
 
@@ -144,12 +143,20 @@ async function applyCaocaoCallbackWithProviderInstance(input: {
     });
   }
 
+  await confirmRideCreateAttemptFromProvider({
+    orderId: parsed.localOrderId as TradeOrderId,
+    providerInstanceId: input.providerInstance.id,
+    externalOrderId: parsed.externalOrderId,
+    providerOrderId: parsed.providerOrderId,
+    providerSnapshot: parsed.raw,
+  });
+
   try {
     await syncRideHailingOrderWithProvider({
       orderId: parsed.localOrderId as TradeOrderId,
       expectedProviderInstanceId: input.providerInstance.id,
       expectedProviderOrderId: parsed.providerOrderId,
-      trigger: "CAOCAO_CALLBACK",
+      trigger: "PROVIDER_CALLBACK",
     });
   } catch (error) {
     if (error instanceof RideHailingProviderSyncQueryError) {

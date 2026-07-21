@@ -8,8 +8,8 @@ import type {
   CaocaoProviderInstanceConfig,
   RideHailingProviderInstanceStatus,
   RideHailingProviderType,
-} from "../../ride-hailing/model";
-import { validateRideHailingProviderInstanceConfig } from "../../ride-hailing/services";
+} from "../../ride-hailing/contracts";
+import { validateRideHailingProviderInstanceConfig } from "../../ride-hailing/contracts";
 import {
   toAdminRideHailingProviderInstanceView,
   type AdminRideHailingProviderInstanceView,

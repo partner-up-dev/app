@@ -1,21 +1,14 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
-import type { PricingRule, ProductType } from "../model";
+import type { CreateOfferInput } from "../contracts";
+import type { ProductType } from "../model";
 import { assertOfferMatchesSpus } from "../services";
+
+export type { CreateOfferInput } from "../contracts";
 
 const offerRepo = new OfferRepository();
 const productSpuRepo = new ProductSpuRepository();
-
-export interface CreateOfferInput {
-  productType: ProductType;
-  spuIds: number[];
-  status?: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
-  pricingRules?: PricingRule[];
-  termsVersion?: number;
-  startsAt?: Date | null;
-  endsAt?: Date | null;
-}
 
 export async function createOffer(input: CreateOfferInput) {
   const spus = await Promise.all(input.spuIds.map((spuId) => productSpuRepo.findById(spuId)));

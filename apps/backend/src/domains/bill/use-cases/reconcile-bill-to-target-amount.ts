@@ -6,7 +6,7 @@ import type { UserId } from "../../../entities/user";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
-import type { BillTargetAmountSeed } from "../../trade";
+import type { BillTargetAmountSeed } from "../../trade/contracts";
 import type { BillLineSettlementProjection } from "../model";
 import { deriveBillReconcilePlan } from "../services";
 

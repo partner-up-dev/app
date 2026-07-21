@@ -2,6 +2,7 @@ export * from "./apply-bill-settlement-to-order";
 export * from "./cancel-order-from-order-detail";
 export * from "./cancel-ride-hailing-order-from-order-detail";
 export * from "./create-order";
+export * from "./confirm-ride-create-attempt";
 export * from "./finalize-rental-order-termination";
 export * from "./offer-listing";
 export * from "./offer-quote";

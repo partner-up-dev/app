@@ -1,24 +1,10 @@
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
-import type {
-  CatalogStatus,
-  ProductPresentation,
-  ProductType,
-  ServicePolicy,
-  SpuSalesPolicy,
-} from "../model";
+import type { CreateProductSpuInput } from "../contracts";
 import { assertProductSpuContract } from "../services";
 
-const productSpuRepo = new ProductSpuRepository();
+export type { CreateProductSpuInput } from "../contracts";
 
-export interface CreateProductSpuInput {
-  name: string;
-  productType: ProductType;
-  status?: CatalogStatus;
-  salesPolicy: SpuSalesPolicy;
-  servicePolicy: ServicePolicy;
-  presentation: ProductPresentation;
-  facts?: Record<string, unknown>;
-}
+const productSpuRepo = new ProductSpuRepository();
 
 export async function createProductSpu(input: CreateProductSpuInput) {
   assertProductSpuContract({

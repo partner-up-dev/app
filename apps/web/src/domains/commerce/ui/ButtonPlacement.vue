@@ -17,12 +17,20 @@
     <p v-if="placement.creative.description" class="button-placement__description">
       {{ placement.creative.description }}
     </p>
+    <p
+      v-if="admissionMessage"
+      class="button-placement__admission-message"
+      data-testid="pr-detail.commerce-placement.admission-result"
+      aria-live="polite"
+    >
+      {{ admissionMessage }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { PuButton } from "@partner-up-dev/design-web";
-import { computed, toRef } from "vue";
+import { computed, toRef, watch } from "vue";
 import {
   type PlacementInstanceProjection,
   usePlacementMatch,
@@ -31,7 +39,6 @@ import { usePlacementOrderingEntryFlow } from "@/domains/commerce/use-cases/useP
 
 const props = defineProps<{
   matchingContext: unknown;
-  prId: number | null;
 }>();
 
 const matchingContext = toRef(props, "matchingContext");
@@ -41,6 +48,18 @@ const placementQuery = usePlacementMatch(
 );
 const placement = computed(() => placementQuery.data.value?.placements[0] ?? null);
 const placementOrderingFlow = usePlacementOrderingEntryFlow();
+watch([matchingContext, () => placement.value?.id ?? null], () => {
+  placementOrderingFlow.resetAdmissionOutcome();
+});
+const admissionMessage = computed(() => {
+  if (placementOrderingFlow.admissionOutcome.value === "NON_CREATOR") {
+    return "仅搭子发起人可以创建新订单";
+  }
+  if (placementOrderingFlow.admissionOutcome.value === "INACTIVE") {
+    return "当前下单入口不可用";
+  }
+  return null;
+});
 const isOpeningPlacement = computed(
   () =>
     placement.value !== null &&
@@ -53,7 +72,6 @@ const openPlacementOrdering = async (
   await placementOrderingFlow.openPlacementOrdering({
     placement: selectedPlacement,
     matchingContext: matchingContext.value,
-    prId: props.prId,
   });
 };
 </script>
@@ -68,6 +86,13 @@ const openPlacementOrdering = async (
 .button-placement__description {
   margin: 0;
   color: var(--sys-color-on-surface-variant);
+  font-size: var(--sys-typo-caption-size);
+  line-height: 1.4;
+}
+
+.button-placement__admission-message {
+  margin: 0;
+  color: var(--sys-color-error);
   font-size: var(--sys-typo-caption-size);
   line-height: 1.4;
 }

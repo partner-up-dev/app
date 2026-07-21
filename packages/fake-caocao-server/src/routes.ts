@@ -90,6 +90,8 @@ class FakeCaocaoProviderError extends Error {
   }
 }
 
+class FakeCaocaoCreateResponseLostError extends Error {}
+
 class FakeCaocaoControlError extends Error {
   constructor(
     readonly code: string,
@@ -1101,6 +1103,9 @@ const providerRoute =
       const payload = await handler(request);
       return providerJson(c, operationId, payload);
     } catch (error) {
+      if (error instanceof FakeCaocaoCreateResponseLostError) {
+        return c.json({ message: error.message }, 503);
+      }
       if (error instanceof FakeCaocaoProviderError) {
         return c.json(caocaoFailure(error.code, error.message), 200);
       }
@@ -1238,6 +1243,7 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
       "/common/orderCarV2",
       async ({ body }) => {
         const form = body as Record<string, string>;
+        state.recordCreateRequest();
         if (state.consumeNextCreateFailure()) {
           throw new FakeCaocaoProviderError(50001, "Fake Caocao create failed");
         }
@@ -1293,6 +1299,11 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
           order,
           state,
         });
+        if (state.consumeNextCreateResponseLoss()) {
+          throw new FakeCaocaoCreateResponseLostError(
+            "Fake Caocao accepted create but lost the response",
+          );
+        }
         return caocaoSuccess({
           orderNo: order.providerOrderId,
         });
@@ -1517,6 +1528,18 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
         ok: true,
       };
     }),
+  );
+
+  app.post(
+    "/__fake_caocao/create-response-loss/next",
+    controlRoute(
+      "controlNextCreateResponseLoss",
+      "/__fake_caocao/create-response-loss/next",
+      async () => {
+        state.configureNextCreateResponseLoss();
+        return { ok: true };
+      },
+    ),
   );
 
   app.post(

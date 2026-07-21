@@ -4,7 +4,7 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { deriveBillPaymentState } from "../../bill";
+import { deriveBillPaymentState } from "../../bill/queries";
 import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
 import { confirmRideHailingProviderFeeAfterPayment } from "./ride-hailing-ordering-flow";
 

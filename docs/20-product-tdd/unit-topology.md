@@ -49,7 +49,8 @@ Backend clusters:
 
 - PR lifecycle and coordination: `pr`
 - PR Discovery/Authoring and POI integration: `pr`, `poi`
-- ecommerce: `merchandising`, `trade`, `fulfillment`, `bill`, `payment`
+- ecommerce: `merchandising`, `trade`, historical-Rental `fulfillment`,
+  `ride-hailing`, `bill`, `payment`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
 - cross-cutting infra: events, jobs, notifications, user telemetry, analytics, operation log
@@ -94,6 +95,21 @@ Empty historical directory names or generic analytics `eventId` fields do not re
 
 Compatibility edges that currently violate this direction must be named and baselined. They are not permission
 for new edges of the same shape.
+
+### Commerce Reconciliation Exception
+
+`ride-hailing` owns one deliberately narrow transaction Port for reconciling a
+provider observation with local Commerce facts. Its private persistence adapter
+is the sole Phase-5 location permitted to coordinate Trade, RideHailing, and,
+for a committed terminal fare, Bill. It acquires Trade then RideHailing locks;
+provider I/O occurs before or after that short transaction. The Port exposes
+only semantic observation/final-settlement operations, never a repository,
+Drizzle row, executor, raw provider payload, or generic Commerce transaction.
+
+This is a named exception because the terminal-fare invariant spans those
+owners. A future coordination path must prove an equivalent shared atomic
+invariant and add a narrow semantic Port plus sequence/proof; it must not copy
+this adapter or introduce a generic `withCommerceTransaction` convenience API.
 
 ## System-Shaping Constraints
 

@@ -15,6 +15,7 @@ import type { ProductSku } from "../../../entities/product-sku";
 import type { ProductSpu } from "../../../entities/product-spu";
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import { throwRentalRuntimeRetired } from "../../../lib/rental-runtime-retirement";
 import { CommerceQuoteRepository } from "../../../repositories/CommerceQuoteRepository";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
@@ -26,10 +27,10 @@ import type {
   PriceExplanation,
   RentalSkuFacts,
   RideHailingSkuFacts,
-} from "../../merchandising";
-import { isRentalSkuFacts, isRideHailingSkuFacts } from "../../merchandising";
-import { createRideHailingProviderPort } from "../../ride-hailing";
-import type { RideHailingProviderVehicleQuote } from "../../ride-hailing/model";
+} from "../../merchandising/contracts";
+import { isRentalSkuFacts, isRideHailingSkuFacts } from "../../merchandising/contracts";
+import type { RideHailingProviderVehicleQuote } from "../../ride-hailing/contracts";
+import { createRideHailingDispatchPort } from "../../ride-hailing/ports";
 import type {
   OrderParticipantSnapshot,
   RentalRegistrant,
@@ -424,7 +425,7 @@ async function quoteRideSku(input: {
     return null;
   }
 
-  const port = createRideHailingProviderPort({ providerInstance: provider });
+  const port = createRideHailingDispatchPort({ providerInstance: provider });
   writeRideHailingListingDiagnostic({
     event: "ride_provider_estimate_start",
     listingSessionId: input.listingSessionId,
@@ -602,6 +603,10 @@ export async function listOfferListing(input: {
       status: 409,
       detail: "Offer product type does not match listing input",
     });
+  }
+
+  if (offer.productType === "RENTAL") {
+    return throwRentalRuntimeRetired();
   }
 
   const listingSessionId = randomUUID() as OfferListingSessionId;

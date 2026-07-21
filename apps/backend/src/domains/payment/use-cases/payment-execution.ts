@@ -1,18 +1,28 @@
-import type { BillLine } from "../../../entities/bill";
 import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
-import { throwHttpProblem } from "../../../lib/problem-details";
-import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
+import {
+  clearBillLinePaymentExecution,
+  openBillLinePaymentExecution,
+  settleBillLinePaymentExecution,
+} from "../../bill/commands";
+import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
+import { throwHttpProblem } from "../../../lib/problem-details";
 import { createPaymentProviderPort, ensureWeChatPayPlatformCertificates } from "../services";
 import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
-const billLineRepo = new BillLineRepository();
-const providerInstanceRepo = new PaymentProviderInstanceRepository();
+export type ChargePaymentReconciliation = {
+  line: BillLinePaymentExecutionSnapshot;
+  status: "PENDING" | "SUCCEEDED" | "FAILED" | "CLOSED";
+  providerStatus: string | null;
+  settlementTransition: "SETTLED" | "ALREADY_SETTLED" | "NOT_APPLICABLE";
+};
 
 async function loadProviderInstanceForQuery(
   providerInstanceId: PaymentProviderInstanceId,
 ): Promise<PaymentProviderInstance> {
-  const providerInstance = await providerInstanceRepo.findById(providerInstanceId);
+  const providerInstance = await new PaymentProviderInstanceRepository().findById(
+    providerInstanceId,
+  );
   if (!providerInstance) {
     return throwHttpProblem({
       status: 404,
@@ -23,103 +33,148 @@ async function loadProviderInstanceForQuery(
   return ensureWeChatPayPlatformCertificates(providerInstance);
 }
 
-async function reconcileChargePaymentExecution(line: BillLine): Promise<BillLine> {
-  if (line.settledAt || !line.paymentProviderInstanceId) {
-    return line;
+/**
+ * Reconcile an active Bill-owned attempt against the provider. The browser and
+ * transport callers consume this result, but the Bill command decides whether
+ * an observed success is a real settlement transition or stale history.
+ */
+export async function reconcileChargePaymentExecution(input: {
+  line: BillLinePaymentExecutionSnapshot;
+  paymentProviderInstance?: PaymentProviderInstance;
+  reference?: {
+    paymentProviderInstanceId: string;
+    attemptCount: number;
+  };
+}): Promise<ChargePaymentReconciliation> {
+  const reference =
+    input.reference ??
+    (input.line.paymentProviderInstanceId
+      ? {
+          paymentProviderInstanceId: input.line.paymentProviderInstanceId,
+          attemptCount: input.line.attemptCount,
+        }
+      : null);
+  if (!reference) {
+    return {
+      line: input.line,
+      status: "PENDING",
+      providerStatus: null,
+      settlementTransition: "NOT_APPLICABLE",
+    };
   }
 
-  const providerInstance = await loadProviderInstanceForQuery(
-    line.paymentProviderInstanceId as PaymentProviderInstanceId,
-  );
+  const referenceIsSuperseded =
+    input.line.attemptCount > reference.attemptCount ||
+    (input.line.paymentProviderInstanceId !== null &&
+      (input.line.paymentProviderInstanceId !== reference.paymentProviderInstanceId ||
+        input.line.attemptCount !== reference.attemptCount));
+  if (referenceIsSuperseded) {
+    return throwHttpProblem({
+      status: 409,
+      code: "PAYMENT_ATTEMPT_SUPERSEDED",
+      detail: "Payment attempt was superseded before it could be reconciled",
+    });
+  }
+
+  const isExactSettledAttempt =
+    input.line.settledAt !== null &&
+    input.line.paymentProviderInstanceId === reference.paymentProviderInstanceId &&
+    input.line.attemptCount === reference.attemptCount;
+  if (isExactSettledAttempt) {
+    return {
+      line: input.line,
+      status: "SUCCEEDED",
+      providerStatus: "SETTLED",
+      settlementTransition: "ALREADY_SETTLED",
+    };
+  }
+
+  const providerInstance =
+    input.paymentProviderInstance ??
+    (await loadProviderInstanceForQuery(
+      reference.paymentProviderInstanceId as PaymentProviderInstanceId,
+    ));
   const port = createPaymentProviderPort({ providerInstance });
   const merchantOrderNo = port.deriveChargeMerchantOrderNo({
-    providerInstanceId: providerInstance.id,
-    billLineId: line.id,
+    providerInstanceId: reference.paymentProviderInstanceId,
+    billLineId: input.line.id,
     kind: "CHARGE",
-    attemptCount: line.attemptCount,
+    attemptCount: reference.attemptCount,
   });
   const normalized = await port.queryCharge({
-    providerInstanceId: providerInstance.id,
+    providerInstanceId: reference.paymentProviderInstanceId,
     merchantOrderNo,
   });
 
   if (normalized.status === "SUCCEEDED") {
-    const settledLine =
-      (await billLineRepo.markSettledFromProvider({
-        id: line.id,
-        paymentProviderInstanceId: providerInstance.id,
-        attemptCount: line.attemptCount,
-        settledAt: new Date(),
-      })) ??
-      (await billLineRepo.findById(line.id)) ??
-      line;
-    await applyPaymentSettlementConsequence({ billLineId: settledLine.id });
-    return settledLine;
+    const settlement = await settleBillLinePaymentExecution({
+      billLineId: input.line.id,
+      paymentProviderInstanceId: reference.paymentProviderInstanceId,
+      attemptCount: reference.attemptCount,
+      settledAt: new Date(),
+    });
+    if (settlement.status === "STALE") {
+      return throwHttpProblem({
+        status: 409,
+        code: "PAYMENT_ATTEMPT_SUPERSEDED",
+        detail: "Payment attempt was superseded before provider settlement could be applied",
+      });
+    }
+    if (settlement.status === "SETTLED") {
+      await applyPaymentSettlementConsequence({ billLineId: settlement.line.id });
+    }
+    return {
+      line: settlement.line,
+      status: "SUCCEEDED",
+      providerStatus: normalized.providerStatus,
+      settlementTransition: settlement.status,
+    };
   }
 
   if (normalized.status === "FAILED" || normalized.status === "CLOSED") {
-    return (
-      (await billLineRepo.clearProviderExecutionSlot({
-        id: line.id,
-        paymentProviderInstanceId: providerInstance.id,
-        attemptCount: line.attemptCount,
-      })) ?? line
-    );
+    const line = await clearBillLinePaymentExecution({
+      billLineId: input.line.id,
+      paymentProviderInstanceId: reference.paymentProviderInstanceId,
+      attemptCount: reference.attemptCount,
+    });
+    return {
+      line,
+      status: normalized.status,
+      providerStatus: normalized.providerStatus,
+      settlementTransition: "NOT_APPLICABLE",
+    };
   }
 
-  return line;
+  return {
+    line: input.line,
+    status: "PENDING",
+    providerStatus: normalized.providerStatus,
+    settlementTransition: "NOT_APPLICABLE",
+  };
 }
 
 export async function openOrLoadChargeExecution(input: {
-  line: BillLine;
+  billLineId: string;
   providerInstance: PaymentProviderInstance;
-}): Promise<BillLine> {
-  if (!input.line.paymentProviderInstanceId) {
-    const opened = await billLineRepo.openProviderExecutionSlot({
-      id: input.line.id,
-      paymentProviderInstanceId: input.providerInstance.id,
-    });
-    if (opened) return opened;
-
-    const current = await billLineRepo.findById(input.line.id);
-    if (!current) {
-      return throwHttpProblem({ status: 404, detail: "BillLine not found" });
-    }
-    if (current.settledAt) {
-      return throwHttpProblem({ status: 409, detail: "该账单行已支付" });
-    }
-    if (
-      current.paymentProviderInstanceId &&
-      current.paymentProviderInstanceId !== input.providerInstance.id
-    ) {
-      return throwHttpProblem({
-        status: 409,
-        detail: "BillLine is already bound to another payment provider execution",
-        code: "PAYMENT_PROVIDER_CONFLICT",
-      });
-    }
-    if (current.paymentProviderInstanceId) {
-      return current;
-    }
-
-    return throwHttpProblem({
-      status: 409,
-      detail: "Payment execution could not be opened",
-    });
+}): Promise<BillLinePaymentExecutionSnapshot> {
+  const execution = await openBillLinePaymentExecution({
+    billLineId: input.billLineId,
+    paymentProviderInstanceId: input.providerInstance.id,
+  });
+  if (execution.status === "SETTLED") {
+    return throwHttpProblem({ status: 409, detail: "该账单行已支付" });
   }
-
-  if (input.line.paymentProviderInstanceId !== input.providerInstance.id) {
+  if (execution.status === "BOUND_TO_ANOTHER_PROVIDER") {
     return throwHttpProblem({
       status: 409,
       detail: "BillLine is already bound to another payment provider execution",
       code: "PAYMENT_PROVIDER_CONFLICT",
     });
   }
-
-  return input.line;
+  return execution.line;
 }
 
-export const queryChargePaymentForLineAndReload = async (line: BillLine): Promise<BillLine> => {
-  const reconciled = await reconcileChargePaymentExecution(line);
-  return (await billLineRepo.findById(reconciled.id)) ?? reconciled;
-};
+export const queryChargePaymentForLineAndReload = async (
+  line: BillLinePaymentExecutionSnapshot,
+): Promise<BillLinePaymentExecutionSnapshot> =>
+  (await reconcileChargePaymentExecution({ line })).line;

@@ -4,11 +4,11 @@ import { createServer, type Server } from "node:http";
 import { scenario } from "../_infra/scenario/scenario";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { givenAdminUser, givenUser, type ScenarioUser } from "../pr/_kit/builders/users";
-import { createOffer, createProductSpu } from "../../src/domains/merchandising";
+import { createOffer, createProductSpu } from "../../src/domains/merchandising/commands";
 import {
   buildOrderParticipantsFromContext,
   createRideHailingOrderFoundation,
-} from "../../src/domains/trade";
+} from "../trade/_kit/order-foundation";
 import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../src/repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
@@ -140,6 +140,11 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
   const participants = await listOrderParticipants(creator);
   const { offer } = await givenRideHailingOffer();
   const providerOrderId = `CC-ADMIN-${randomUUID().slice(0, 8)}`;
+  let cancelRequestCount = 0;
+  let resolveFirstCancelRequest: (() => void) | null = null;
+  const firstCancelRequestStarted = new Promise<void>((resolve) => {
+    resolveFirstCancelRequest = resolve;
+  });
 
   const fakeCaocao = createServer((request, response) => {
     if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
@@ -160,17 +165,24 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
     }
 
     if (request.url === "/v2/common/cancelOrderV3" && request.method === "POST") {
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(
-        JSON.stringify({
-          code: 200,
-          success: true,
-          data: {
-            orderNo: providerOrderId,
-            cancelFee: 800,
-          },
-        }),
-      );
+      cancelRequestCount += 1;
+      if (cancelRequestCount === 1) {
+        resolveFirstCancelRequest?.();
+      }
+      const respond = () => {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            code: 200,
+            success: true,
+            data: {
+              orderNo: providerOrderId,
+              cancelFee: 800,
+            },
+          }),
+        );
+      };
+      setTimeout(respond, 150);
       return;
     }
 
@@ -341,19 +353,37 @@ scenario("admin_ride_hailing_order_workspace_can_cancel_dispatching_order", asyn
     assert.equal(record.providerBinding?.providerOrderId, providerOrderId);
     assert.equal(record.providerInstance?.id, provider.id);
 
-    const cancelResponse = await requestJson(
+    const firstCancelResponsePromise = requestJson(
       `/api/admin/ride-hailing/orders/${baseOrder.id}/cancel`,
       {
         method: "POST",
         token: admin.token,
       },
     );
+    await firstCancelRequestStarted;
+    const secondCancelResponsePromise = requestJson(
+      `/api/admin/ride-hailing/orders/${baseOrder.id}/cancel`,
+      {
+        method: "POST",
+        token: admin.token,
+      },
+    );
+    const [cancelResponse, concurrentCancelResponse] = await Promise.all([
+      firstCancelResponsePromise,
+      secondCancelResponsePromise,
+    ]);
     const cancelled = await expectJsonResponse<RideHailingCancelResponse>(cancelResponse, 200);
+    const concurrentCancellation = await expectJsonResponse<{
+      code?: string;
+      detail?: string;
+    }>(concurrentCancelResponse, 409);
 
     assert.equal(cancelled.orderId, baseOrder.id);
     assert.equal(cancelled.status, "CANCELLED");
     assert.equal(cancelled.effectKind, "ABORT_FEE");
     assert.equal(cancelled.effectAmountFen, 800);
+    assert.equal(cancelRequestCount, 1);
+    assert.equal(concurrentCancellation.code, "RIDE_HAILING_CANCELLATION_IN_PROGRESS");
 
     const persistedOrder = await tradeOrderRepo.findById(baseOrder.id);
     assert.ok(persistedOrder);

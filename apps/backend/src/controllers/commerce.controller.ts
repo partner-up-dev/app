@@ -7,15 +7,18 @@ import {
   getBillDetailByOrderId,
   getBillLineCheckoutTarget,
   listViewerBills,
-} from "../domains/bill";
+} from "../domains/bill/queries";
+import { reconcileRideHailingOrder } from "../domains/ride-hailing/commands";
 import {
   cancelOrderFromOrderDetail,
   createOrderCommand,
+  simulateRentalBookingConfirmation,
+} from "../domains/trade/commands";
+import {
   getCommerceOrderDetail,
   listOfferListing,
   queryRideHailingCancellationFeeFromOrderDetail,
-  simulateRentalBookingConfirmation,
-} from "../domains/trade";
+} from "../domains/trade/queries";
 import {
   logCommerceOrderDetailDebug,
   readCommerceOrderDetailDebugContext,
@@ -94,6 +97,10 @@ const genericCreateOrderCommandSchema = z.object({
   items: z.array(quoteBoundOrderItemCommandSchema).min(1),
 });
 
+const createOrderHeaderSchema = z.object({
+  "idempotency-key": z.string().trim().min(8).max(128),
+});
+
 const offerIdParamSchema = z.object({
   offerId: z.coerce.number().int().positive(),
 });
@@ -137,9 +144,12 @@ type CommerceRouteSchema = {
   };
   "/orders": {
     $post: JsonEndpoint<
-      { json: z.infer<typeof genericCreateOrderCommandSchema> },
+      {
+        header: z.infer<typeof createOrderHeaderSchema>;
+        json: z.infer<typeof genericCreateOrderCommandSchema>;
+      },
       Awaited<ReturnType<typeof createOrderCommand>>,
-      201
+      201 | 202
     >;
   };
   "/orders/:orderId": {
@@ -147,6 +157,12 @@ type CommerceRouteSchema = {
   };
   "/orders/:orderId/bill": {
     $get: JsonEndpoint<UuidParam<"orderId">, Awaited<ReturnType<typeof getBillDetailByOrderId>>>;
+  };
+  "/orders/:orderId/ride-hailing/reconcile": {
+    $post: JsonEndpoint<
+      UuidParam<"orderId">,
+      Awaited<ReturnType<typeof reconcileRideHailingOrder>>
+    >;
   };
   "/bills": {
     $get: JsonEndpoint<{}, Awaited<ReturnType<typeof listViewerBills>>>;
@@ -198,15 +214,22 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
       return c.json(result);
     },
   )
-  .post("/orders", zValidator("json", genericCreateOrderCommandSchema), async (c) => {
-    const payload = c.req.valid("json");
-    const userId = requireAuthenticatedUserId(c);
-    const result = await createOrderCommand({
-      ...payload,
-      createdBy: userId,
-    });
-    return c.json(result, 201);
-  })
+  .post(
+    "/orders",
+    zValidator("header", createOrderHeaderSchema),
+    zValidator("json", genericCreateOrderCommandSchema),
+    async (c) => {
+      const { "idempotency-key": idempotencyKey } = c.req.valid("header");
+      const payload = c.req.valid("json");
+      const userId = requireAuthenticatedUserId(c);
+      const result = await createOrderCommand({
+        ...payload,
+        createdBy: userId,
+        idempotencyKey,
+      });
+      return result.outcome === "PROCESSING" ? c.json(result, 202) : c.json(result, 201);
+    },
+  )
   .get("/orders/:orderId", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const auth = c.get("auth");
@@ -254,6 +277,45 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     });
     return c.json(result);
   })
+  .post(
+    "/orders/:orderId/ride-hailing/reconcile",
+    zValidator("param", orderIdParamSchema),
+    async (c) => {
+      const { orderId } = c.req.valid("param");
+      const userId = requireAuthenticatedUserId(c);
+      const debug = withCommerceOrderDetailDebugContext(
+        readCommerceOrderDetailDebugContext(c.req.raw.headers),
+        { orderId, routeOrderId: orderId, source: "commerce.controller.ride-hailing-reconcile" },
+      );
+      const startedAtMs = Date.now();
+
+      logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.request", {
+        viewerUserId: userId,
+      });
+
+      try {
+        const result = await reconcileRideHailingOrder({
+          orderId,
+          viewerUserId: userId,
+          debug,
+        });
+        logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.response", {
+          durationMs: Date.now() - startedAtMs,
+          outcome: result.outcome,
+          mutated: result.mutated,
+          hasProviderObservation: result.providerObservation !== null,
+          correctionRequired: result.correctionRequired !== null,
+        });
+        return c.json(result);
+      } catch (error) {
+        logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.error", {
+          durationMs: Date.now() - startedAtMs,
+          error: error instanceof Error ? error.message : "unknown error",
+        });
+        throw error;
+      }
+    },
+  )
   .get("/bills", async (c) => {
     const userId = requireAuthenticatedUserId(c);
     const result = await listViewerBills({

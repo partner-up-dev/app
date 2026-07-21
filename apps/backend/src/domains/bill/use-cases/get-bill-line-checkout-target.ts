@@ -1,63 +1,26 @@
 import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
-import type { TradeOrder } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
-import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import type { BillLineSettlementStatus } from "../model";
+import { getTradeOrderBillingContext } from "../../trade/queries";
+import type { BillLineCheckoutTargetProjection } from "../contracts";
 import { deriveBillPaymentState, isBillLinePayable, isOrderUnpaidWindowOpen } from "../services";
 
 const billRepo = new BillRepository();
 const billLineRepo = new BillLineRepository();
-const tradeOrderRepo = new TradeOrderRepository();
-
-export type BillLineCheckoutTargetProjection = {
-  bill: {
-    id: string;
-    sourceOrderId: string;
-    status: string;
-    currency: "CNY";
-  };
-  order: {
-    id: string;
-    family: TradeOrder["family"];
-    status: TradeOrder["status"];
-  };
-  line: {
-    id: string;
-    billId: string;
-    userId: string;
-    kind: BillLine["kind"];
-    amountFen: number;
-    currency: "CNY";
-    label: string;
-    description: string | null;
-    settlementStatus: BillLineSettlementStatus;
-    paymentProviderInstanceId: string | null;
-    attemptCount: number;
-    settledAt: string | null;
-  };
-  eligibility: {
-    payable: boolean;
-    disabledReason: string | null;
-  };
-};
-
-const canViewOrder = (order: TradeOrder, userId: string): boolean =>
-  order.createdBy === userId ||
-  order.participants.some((participant) => participant.userId === userId);
-
-export async function resolveBillLineCheckoutBasis(input: {
-  billLineId: BillLineId;
-  viewerUserId: UserId;
-}): Promise<{
+type BillLineCheckoutBasis = {
   line: BillLine;
   bill: NonNullable<Awaited<ReturnType<BillRepository["findById"]>>>;
-  order: TradeOrder;
-  settlementStatus: BillLineSettlementStatus;
+  order: BillLineCheckoutTargetProjection["order"];
+  settlementStatus: BillLineCheckoutTargetProjection["line"]["settlementStatus"];
   disabledReason: string | null;
-}> {
+};
+
+const resolveBillLineCheckoutBasis = async (input: {
+  billLineId: BillLineId;
+  viewerUserId: UserId;
+}): Promise<BillLineCheckoutBasis> => {
   const line = await billLineRepo.findById(input.billLineId);
   if (!line) {
     return throwHttpProblem({ status: 404, detail: "BillLine not found" });
@@ -68,14 +31,10 @@ export async function resolveBillLineCheckoutBasis(input: {
     return throwHttpProblem({ status: 404, detail: "Bill not found" });
   }
 
-  const order = await tradeOrderRepo.findById(bill.sourceOrderId);
-  if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found for BillLine" });
-  }
-
-  if (!canViewOrder(order, input.viewerUserId)) {
-    return throwHttpProblem({ status: 403, detail: "Payment checkout is not accessible" });
-  }
+  const order = await getTradeOrderBillingContext({
+    orderId: bill.sourceOrderId,
+    viewerUserId: input.viewerUserId,
+  });
 
   if (line.userId !== input.viewerUserId) {
     return throwHttpProblem({
@@ -97,7 +56,7 @@ export async function resolveBillLineCheckoutBasis(input: {
             ? "该账单行无需支付"
             : settlementStatus === "PAID"
               ? "该账单行已支付"
-              : !isOrderUnpaidWindowOpen(order.timeout.unpaidExpiresAt)
+              : !isOrderUnpaidWindowOpen(order.unpaidExpiresAt)
                 ? "订单支付窗口已过期"
                 : null;
 
@@ -108,7 +67,7 @@ export async function resolveBillLineCheckoutBasis(input: {
     settlementStatus,
     disabledReason,
   };
-}
+};
 
 export async function getBillLineCheckoutTarget(input: {
   billLineId: string;
@@ -134,6 +93,7 @@ export async function getBillLineCheckoutTarget(input: {
       id: basis.order.id,
       family: basis.order.family,
       status: basis.order.status,
+      unpaidExpiresAt: basis.order.unpaidExpiresAt,
     },
     line: {
       id: basis.line.id,
@@ -155,7 +115,12 @@ export async function getBillLineCheckoutTarget(input: {
         isBillLinePayable({
           line: basis.line,
           bill: basis.bill,
-          order: basis.order,
+          order: {
+            status: basis.order.status,
+            timeout: {
+              unpaidExpiresAt: basis.order.unpaidExpiresAt,
+            },
+          },
         }),
       disabledReason: basis.disabledReason,
     },

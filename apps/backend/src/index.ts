@@ -283,7 +283,7 @@ const runRequestTailMaintenance = async (): Promise<void> => {
   }
 };
 
-export type { OrderingEntryPayload, OrderingOfferDetail } from "./domains/merchandising";
+export type { OrderingEntryPayload, OrderingOfferDetail } from "./domains/merchandising/contracts";
 export type {
   PRAuthoringDefaultSelection,
   PRAuthoringLocationOption,

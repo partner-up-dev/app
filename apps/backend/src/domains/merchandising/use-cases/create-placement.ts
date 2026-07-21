@@ -1,27 +1,17 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
-import type { PlacementBindingRule, ButtonPlacementCreative, PlacementType } from "../model";
+import type { CreatePlacementInput } from "../contracts";
 import {
   isPlacementMatchingRuleJson,
   resolvePlacementBindingContractForOffer,
   validatePlacementBindingRulesAgainstContract,
 } from "../services";
 
+export type { CreatePlacementInput } from "../contracts";
+
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();
-
-export interface CreatePlacementInput {
-  placementType?: PlacementType;
-  offerId: number;
-  status?: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
-  matchingRule: unknown;
-  priority?: number;
-  effectiveFrom?: Date | null;
-  effectiveTo?: Date | null;
-  creative: ButtonPlacementCreative;
-  bindingRules?: PlacementBindingRule[];
-}
 
 export async function createPlacement(input: CreatePlacementInput) {
   if (!isPlacementMatchingRuleJson(input.matchingRule)) {

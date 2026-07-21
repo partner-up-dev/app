@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   handleCaocaoOrderStatusCallback,
   handleLegacyCaocaoOrderStatusCallback,
-} from "../domains/ride-hailing";
+} from "../domains/ride-hailing/commands";
 
 const rideHailingProviderApp = new Hono();
 const legacyRideHailingProviderApp = new Hono();

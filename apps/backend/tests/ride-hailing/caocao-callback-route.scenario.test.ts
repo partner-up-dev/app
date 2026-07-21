@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
-import { createOffer, createProductSpu, type PricingRule } from "../../src/domains/merchandising";
-import { applyPaymentSettlementConsequence } from "../../src/domains/payment";
+import { createOffer, createProductSpu } from "../../src/domains/merchandising/commands";
+import type { PricingRule } from "../../src/domains/merchandising/model";
+import {
+  applyPaymentSettlementConsequence,
+  openOrLoadChargeExecution,
+} from "../../src/domains/payment/commands";
+import { settleBillLinePaymentExecution } from "../../src/domains/bill/commands";
 import {
   buildCaocaoCallbackInfo,
   createCaocaoSignature,
   encodeCaocaoExternalOrderId,
-} from "../../src/domains/ride-hailing";
+} from "../../src/domains/ride-hailing/services/caocao-provider";
 import type { RideHailingExecutionPhase } from "../../src/domains/trade/model";
 import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { TradeOrderId } from "../../src/entities/trade-order";
@@ -869,13 +874,18 @@ scenario(
         },
       });
       const paymentProviderInstanceId = paymentProvider.id as PaymentProviderInstanceId;
-      const settledLine = await billLineRepo.markSettledFromProvider({
-        id: chargeLine.id,
+      const openedExecution = await openOrLoadChargeExecution({
+        billLineId: chargeLine.id,
+        providerInstance: paymentProvider,
+      });
+      assert.equal(openedExecution.paymentProviderInstanceId, paymentProviderInstanceId);
+      const settlement = await settleBillLinePaymentExecution({
+        billLineId: chargeLine.id,
         paymentProviderInstanceId,
-        attemptCount: chargeLine.attemptCount,
+        attemptCount: openedExecution.attemptCount,
         settledAt: new Date(),
       });
-      assert.ok(settledLine);
+      assert.equal(settlement.status, "SETTLED");
 
       const settlementConsequence = await applyPaymentSettlementConsequence({
         billLineId: chargeLine.id,

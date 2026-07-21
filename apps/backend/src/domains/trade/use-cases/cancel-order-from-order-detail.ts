@@ -4,9 +4,9 @@ import {
   logCommerceOrderDetailDebug,
 } from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import { throwRentalRuntimeRetired } from "../../../lib/rental-runtime-retirement";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { cancelRideHailingOrderFromOrderDetail } from "./cancel-ride-hailing-order-from-order-detail";
-import { cancelRentalOrderFromOrderDetail } from "./rental-ordering-flow";
 
 const tradeOrderRepo = new TradeOrderRepository();
 
@@ -41,7 +41,7 @@ export async function cancelOrderFromOrderDetail(input: {
       localOrderId: order.id,
       localOrderStatus: order.status,
     });
-    return cancelRentalOrderFromOrderDetail(input);
+    return throwRentalRuntimeRetired();
   }
 
   if (order.family === "RIDE_HAILING") {

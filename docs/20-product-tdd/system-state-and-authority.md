@@ -10,7 +10,7 @@ This file intentionally keeps the authority map in one place. Use this family ma
 | Identity and session state | users, anonymous UUID continuity, authenticated session, WeChat binding and official-account follow markers. |
 | PR discovery and location state | Current PR Type Configuration, discovery view policy, type presets, POIs, POI submissions, and location availability. |
 | Messaging and notification state | PR messages, inbox state, notification opportunities, waves, deliveries, jobs, outbox events. |
-| Commerce, payment, and provider state | merchandising, listing quotes, orders, rental and RideHailing execution, bills, provider registry, payment execution. |
+| Commerce, payment, and provider state | merchandising, listing quotes, orders, retained historical Rental execution, active RideHailing execution, bills, provider registry, payment execution. |
 | Analytics and BI state | telemetry storage, enrichment, aggregate/projection tables, BI facts. |
 | Frontend non-authoritative state | route-local UI state, TanStack Query caches, local/session storage, share replay, capability fallback state. |
 
@@ -33,11 +33,13 @@ Persisted in Postgres via backend entities and repositories:
 - ecommerce listing / quote truth, including persisted Offer Listing quote
   snapshots and quote validity state
 - ecommerce trade truth, including Order, order snapshots, PR-attached order
-  relation, and order termination attempts
-- ecommerce family execution truth, including Rental execution fields on
-  `rental_orders` and RideHailing execution fields on `ride_hailing_orders`;
-  RideHailing provider binding lives in Trade order choice-set resolution
-  snapshots
+  relation, order termination attempts, and `CreateOrderAttempt` idempotency /
+  provider-unknown recovery state
+- ecommerce family execution truth, including retained historical Rental
+  execution fields on `rental_orders` and active RideHailing execution fields
+  on `ride_hailing_orders`; RideHailing provider binding lives in
+  `ride_hailing_orders.dispatchBinding`, while the Trade choice-set resolution
+  records only the final vehicle resolved by the provider lifecycle
 - ecommerce bill truth, including Bill, BillLine, BillLine payment execution
   slot identity, BillLine settlement confirmation, and settlement derivation
 - ecommerce payment provider registry truth, including configured provider

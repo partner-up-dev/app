@@ -9,6 +9,7 @@ import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { PR_ACTIVE_ORDER_EXISTS_CODE } from "../order-attachment-contracts";
 import { isPROrderAttachableStatus } from "../services/status-rules";
 
 export async function attachOrderToPr(
@@ -25,7 +26,8 @@ export async function attachOrderToPr(
   const [request] = await executor
     .select()
     .from(partnerRequests)
-    .where(eq(partnerRequests.id, input.prId));
+    .where(eq(partnerRequests.id, input.prId))
+    .for("update");
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
@@ -70,6 +72,7 @@ export async function attachOrderToPr(
   if (existingOrders.length > 0) {
     return throwHttpProblem({
       status: 409,
+      code: PR_ACTIVE_ORDER_EXISTS_CODE,
       detail: "An active order already exists for this PR and offer",
     });
   }

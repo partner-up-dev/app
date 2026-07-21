@@ -26,12 +26,12 @@
         :message="t('ordering.invalidEntryMessage')"
       />
 
-      <RentalOrderingForm
-        v-else-if="rentalOrdering && orderingContentInput"
-        :input="orderingContentInput"
-        :listing-refresh-key="listingRefreshKey"
-        @update:output="contentOutput = $event"
-        @update:summary="contentSummary = $event"
+      <PuInlineNotice
+        v-else-if="rentalOrdering"
+        tone="info"
+        title="租赁服务暂不可用"
+        message="当前暂不开放租赁下单，请返回搭子请求或联系客服。"
+        data-testid="ordering.rental.retired"
       />
 
       <RideHailingOrderingContent
@@ -47,19 +47,6 @@
     </div>
 
     <template #footer-action>
-      <OrderingFooterActionBar
-        v-if="rentalOrdering"
-        :amount-label="priceDisplayLabel"
-        :can-create="canCreate"
-        :loading="createOrderMutation.isPending.value"
-        :price-detail-enabled="true"
-        price-testid="ordering.rental.price"
-        price-detail-testid="ordering.rental.price-detail.toggle"
-        create-testid="ordering.rental.create-order"
-        :create-label="t('ordering.submitAction')"
-        @open-price-detail="priceDetailOpen = true"
-        @create="submitOrder"
-      />
       <OrderingFooterActionBar
         v-if="rideOrdering"
         :amount-label="priceDisplayLabel"
@@ -123,7 +110,6 @@ import {
 import OrderingFooterActionBar from "@/domains/commerce/ui/ordering/OrderingFooterActionBar.vue";
 import OrderingPageShell from "@/domains/commerce/ui/ordering/OrderingPageShell.vue";
 import OrderingPriceDetailDrawer from "@/domains/commerce/ui/ordering/OrderingPriceDetailDrawer.vue";
-import RentalOrderingForm from "@/domains/commerce/ui/ordering/RentalOrderingForm.vue";
 import RideHailingOrderingContent from "@/domains/commerce/ui/ordering/RideHailingOrderingContent.vue";
 import type { RideHailingListingBlocker } from "@/domains/commerce/ui/ordering/ride-hailing-listing-state";
 import { useOrderingHandoffStore } from "@/domains/commerce/use-cases/useOrderingHandoffStore";
@@ -158,6 +144,7 @@ const { orderingEntry } = storeToRefs(orderingHandoff);
 const missingInput = computed(() => orderingEntry.value === null);
 
 const createOrderMutation = useCreateOrder();
+const createOrderIdempotencyKey = ref<string | null>(null);
 const updatePrStatusMutation = useUpdatePRStatus();
 
 const ordering = computed(() => orderingEntry.value?.offerDetail ?? null);
@@ -354,20 +341,25 @@ const closeOrderingDialog = (): void => {
 };
 
 const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void> => {
+  const idempotencyKey = createOrderIdempotencyKey.value ?? crypto.randomUUID();
+  createOrderIdempotencyKey.value = idempotencyKey;
   try {
-    const created = await createOrderMutation.mutateAsync(input);
+    const created = await createOrderMutation.mutateAsync({ command: input, idempotencyKey });
     if (created.outcome === "CANCELLED") {
+      createOrderIdempotencyKey.value = null;
       openBlockedDialog({
         title: created.reason.title,
         detail: created.reason.detail,
       });
       return;
     }
+    createOrderIdempotencyKey.value = null;
     await router.replace({ path: `/orders/${created.orderId}` });
   } catch (error) {
     closeOrderingDialog();
     const apiError = error as { code?: string; message?: string };
     if (apiError.code === "ORDERING_QUOTE_EXPIRED") {
+      createOrderIdempotencyKey.value = null;
       listingRefreshKey.value += 1;
       openBlockedDialog({
         title: "报价已过期",
@@ -376,6 +368,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       return;
     }
     if (apiError.code === "ORDERING_PARTICIPANT_UNPAID_ORDER_EXISTS") {
+      createOrderIdempotencyKey.value = null;
       openMyBillsDialog({
         title: "参与者有未支付订单",
         description:
@@ -384,6 +377,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
       return;
     }
     if (apiError.code === "PR_NOT_READY" && canOfferPrReadyRecovery.value) {
+      createOrderIdempotencyKey.value = null;
       openPrNotReadyRecoveryDialog({
         title: "暂不能创建订单",
         detail: apiError.message ?? "创建订单需要搭子请求「已成团」或「进行中」",
@@ -400,6 +394,7 @@ const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void>
 watch(
   () => orderingEntry.value?.offerDetail.productType,
   () => {
+    createOrderIdempotencyKey.value = null;
     contentOutput.value = null;
     contentSummary.value = { price: null };
     priceDetailOpen.value = false;
@@ -412,6 +407,7 @@ watch(
 watch(
   createOrderInput,
   () => {
+    createOrderIdempotencyKey.value = null;
     if (createOrderMutation.error.value) {
       createOrderMutation.reset();
     }
@@ -438,12 +434,26 @@ const refreshOrderingEntryFromPlacementContext = async (): Promise<void> => {
 
   orderingEntryRefreshPending.value = true;
   try {
-    const refreshedEntry = await resolvePlacementOrderingEntry({
+    const refreshedAdmission = await resolvePlacementOrderingEntry({
       placementInstanceId: placementContext.placementInstanceId,
       matchingContext: placementContext.matchingContext,
     });
+    if (refreshedAdmission.outcome === "EXISTING_ORDER") {
+      await router.replace({ path: `/orders/${refreshedAdmission.orderId}` });
+      return;
+    }
+    if (refreshedAdmission.outcome !== "CREATOR_ELIGIBLE") {
+      openReturnToPrDialog({
+        title: "无法刷新下单信息",
+        description:
+          refreshedAdmission.outcome === "NON_CREATOR"
+            ? "仅搭子发起人可以创建新订单，请返回搭子请求。"
+            : "当前下单入口不可用，请返回搭子请求后重试。",
+      });
+      return;
+    }
     orderingHandoff.setOrderingEntry({
-      ...refreshedEntry,
+      ...refreshedAdmission.orderingEntry,
       placementContext,
     });
   } catch (error) {

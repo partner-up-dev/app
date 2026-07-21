@@ -3,22 +3,23 @@ import type {
   RideHailingProviderInstance,
   RideHailingProviderInstanceId,
 } from "../../../entities/ride-hailing-provider";
-import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
+import type { TradeOrderId } from "../../../entities/trade-order";
 import {
   type CommerceOrderDetailDebugContext,
   logCommerceOrderDetailDebug,
 } from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
-import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import type { RideHailingProviderPort } from "../model";
 import { createRideHailingProviderPort } from "../services";
 
 export type RideHailingProviderExecutionContext = {
-  order: TradeOrder;
-  rideOrder: RideHailingOrder;
+  orderId: TradeOrderId;
+  executionPhase: RideHailingOrder["executionPhase"];
+  driverSnapshot: RideHailingOrder["driverSnapshot"];
+  vehicleSnapshot: RideHailingOrder["vehicleSnapshot"];
+  finalSettlementAlreadyCommitted: boolean;
   providerInstance: RideHailingProviderInstance;
   providerOrderId: string;
   port: RideHailingProviderPort;
@@ -27,46 +28,42 @@ export type RideHailingProviderExecutionContext = {
 const summarizeExecutionContext = (
   context: Pick<
     RideHailingProviderExecutionContext,
-    "order" | "rideOrder" | "providerInstance" | "providerOrderId"
+    | "orderId"
+    | "executionPhase"
+    | "driverSnapshot"
+    | "vehicleSnapshot"
+    | "finalSettlementAlreadyCommitted"
+    | "providerInstance"
+    | "providerOrderId"
   >,
 ): Record<string, unknown> => ({
-  localOrderId: context.order.id,
-  localOrderStatus: context.order.status,
-  localOrderFamily: context.order.family,
-  rideExecutionPhase: context.rideOrder.executionPhase,
-  rideFinalSettlementCommitted: context.rideOrder.finalSettlementInput !== null,
+  localOrderId: context.orderId,
+  rideExecutionPhase: context.executionPhase,
+  rideFinalSettlementCommitted: context.finalSettlementAlreadyCommitted,
   providerInstanceId: context.providerInstance.id,
   providerInstanceStatus: context.providerInstance.status,
   providerOrderId: context.providerOrderId,
 });
 
-export async function loadRideHailingProviderExecutionContext(
-  input: {
-    orderId: TradeOrderId;
-    expectedProviderInstanceId?: string | null;
-    expectedProviderOrderId?: string | null;
-    debug?: CommerceOrderDetailDebugContext;
-  },
-  executor?: RepositoryExecutor,
-): Promise<RideHailingProviderExecutionContext> {
+export async function loadRideHailingProviderExecutionContext(input: {
+  orderId: TradeOrderId;
+  expectedProviderInstanceId?: string | null;
+  expectedProviderOrderId?: string | null;
+  debug?: CommerceOrderDetailDebugContext;
+}): Promise<RideHailingProviderExecutionContext> {
   logCommerceOrderDetailDebug(input.debug, "ride-provider-context.start", {
     inputOrderId: input.orderId,
     expectedProviderInstanceId: input.expectedProviderInstanceId ?? null,
     expectedProviderOrderId: input.expectedProviderOrderId ?? null,
-    hasExecutor: executor !== undefined,
   });
 
-  const tradeOrderRepo = new TradeOrderRepository(executor);
-  const rideOrderRepo = new RideHailingOrderRepository(executor);
-  const providerRepo = new RideHailingProviderInstanceRepository(executor);
+  const rideOrderRepo = new RideHailingOrderRepository();
+  const providerRepo = new RideHailingProviderInstanceRepository();
 
-  const order = await tradeOrderRepo.findById(input.orderId);
-  if (!order || order.family !== "RIDE_HAILING") {
-    logCommerceOrderDetailDebug(input.debug, "ride-provider-context.order-not-found", {
+  const rideOrder = await rideOrderRepo.findByOrderId(input.orderId);
+  if (!rideOrder) {
+    logCommerceOrderDetailDebug(input.debug, "ride-provider-context.ride-order-missing", {
       inputOrderId: input.orderId,
-      foundOrderId: order?.id ?? null,
-      foundOrderFamily: order?.family ?? null,
-      foundOrderStatus: order?.status ?? null,
     });
     return throwHttpProblem({
       status: 404,
@@ -74,23 +71,10 @@ export async function loadRideHailingProviderExecutionContext(
     });
   }
 
-  const rideOrder = await rideOrderRepo.findByOrderId(input.orderId);
-  if (!rideOrder) {
-    logCommerceOrderDetailDebug(input.debug, "ride-provider-context.ride-order-missing", {
-      inputOrderId: input.orderId,
-      localOrderId: order.id,
-    });
-    return throwHttpProblem({
-      status: 500,
-      detail: "RideHailing order facts are missing",
-    });
-  }
-
   const dispatchBinding = rideOrder.dispatchBinding;
   if (!dispatchBinding?.providerOrderId) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.binding-missing", {
-      localOrderId: order.id,
-      localOrderStatus: order.status,
+      localOrderId: input.orderId,
       rideExecutionPhase: rideOrder.executionPhase,
       providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
       providerOrderId: dispatchBinding?.providerOrderId ?? null,
@@ -106,7 +90,7 @@ export async function loadRideHailingProviderExecutionContext(
     dispatchBinding.providerInstanceId !== input.expectedProviderInstanceId
   ) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.instance-mismatch", {
-      localOrderId: order.id,
+      localOrderId: input.orderId,
       expectedProviderInstanceId: input.expectedProviderInstanceId,
       actualProviderInstanceId: dispatchBinding.providerInstanceId,
       providerOrderId: dispatchBinding.providerOrderId,
@@ -122,7 +106,7 @@ export async function loadRideHailingProviderExecutionContext(
     dispatchBinding.providerOrderId !== input.expectedProviderOrderId
   ) {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.order-mismatch", {
-      localOrderId: order.id,
+      localOrderId: input.orderId,
       providerInstanceId: dispatchBinding.providerInstanceId,
       expectedProviderOrderId: input.expectedProviderOrderId,
       actualProviderOrderId: dispatchBinding.providerOrderId,
@@ -138,7 +122,7 @@ export async function loadRideHailingProviderExecutionContext(
   );
   if (!providerInstance || providerInstance.status !== "ACTIVE") {
     logCommerceOrderDetailDebug(input.debug, "ride-provider-context.provider-missing", {
-      localOrderId: order.id,
+      localOrderId: input.orderId,
       providerInstanceId: dispatchBinding.providerInstanceId,
       providerOrderId: dispatchBinding.providerOrderId,
       foundProviderId: providerInstance?.id ?? null,
@@ -151,8 +135,11 @@ export async function loadRideHailingProviderExecutionContext(
   }
 
   const context = {
-    order,
-    rideOrder,
+    orderId: input.orderId,
+    executionPhase: rideOrder.executionPhase,
+    driverSnapshot: rideOrder.driverSnapshot,
+    vehicleSnapshot: rideOrder.vehicleSnapshot,
+    finalSettlementAlreadyCommitted: rideOrder.finalSettlementInput !== null,
     providerInstance,
     providerOrderId: dispatchBinding.providerOrderId,
     port: createRideHailingProviderPort({ providerInstance }),

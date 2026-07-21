@@ -2,7 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, authMiddleware } from "../auth/middleware";
-import { createPaymentCharge, getPaymentTx, listPaymentProviders } from "../domains/payment";
+import { createPaymentCharge } from "../domains/payment/commands";
+import { getPaymentTx, listPaymentProviders } from "../domains/payment/queries";
 import { throwHttpProblem } from "../lib/problem-details";
 
 const app = new Hono<AuthEnv>();

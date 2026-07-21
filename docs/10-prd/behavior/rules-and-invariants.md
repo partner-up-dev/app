@@ -122,6 +122,8 @@
 ## 3.1 Commerce Ordering Rules
 
 - PR-attached ordering is entered through a system-authored Button Placement on PR detail and assembled on `/order/new`.
+- Only the PR creator receives a new-order Button Placement CTA. An active non-creator may continue an already-created
+  matching order, but never enters `/order/new` to start a new PR-scoped order.
 - PR-attached ordering may be created only while the PR is `READY` or `ACTIVE`.
 - At most one non-terminal order should exist for one PR and Offer pair. Re-opening the matching placement should continue the existing order instead of creating a second one.
 - Offer Listing is the user-visible quote surface. A listing may include only products and SKUs that are currently offerable for the selected context.
@@ -133,13 +135,20 @@
 - An anonymous visitor who enters `/bills` from WeChat begins WeChat OAuth at route entry before the viewer-scoped
   bills read. This is an explicit route promise, not an upfront-login rule for ordinary browsing or every
   authenticated Commerce route.
-- Rental ordering buys one fixed quoted SKU.
+- Rental runtime is retired: no new Rental placement, listing, quote, order, payment, booking, cancellation, or
+  guidance flow is available. Historical Rental order and bill reads remain available.
 - RideHailing ordering authorizes a choice set: the user selects one or more acceptable vehicle candidates, and the provider/order lifecycle resolves one final vehicle after dispatch.
 - RideHailing visible vehicle candidates depend on route and departure time. Provider-unavailable candidates should be absent from the list, not shown as disabled options with reasons.
 - RideHailing displayed price before create is the selected candidate range, not the final bill cap.
 - RideHailing final bill follows the resolved provider settlement. A provider upgrade or substitution outside the selected candidate set is recorded rather than rejected, and the final settlement remains the bill basis.
 - Before a user cancels an active RideHailing order from Order Detail, the product should query the provider's current cancellation-fee preview and show the fee before the user confirms cancellation. If the previewed fee is greater than zero, the user must explicitly accept that fee before the cancellation request is sent.
 - If RideHailing provider dispatch fails during create-order, the domain may create and cancel an order, but the user experience remains an ordering failure dialog on `/order/new` rather than navigation to Order Detail.
+- A payment-client return does not itself settle a commerce bill. Checkout reconciles backend provider/Bill truth;
+  successful reconciliation returns to the Bill, while closed, failed, or unknown returns remain retryable on Checkout.
+- Checkout may preserve only a same-browser-session opaque payment lookup to resume backend reconciliation after a
+  redirect or reload. That lookup is not settlement truth and does not promise cross-device return continuation.
+- A later authoritative RideHailing fare disagreement after final-bill settlement never rewrites settled history. The
+  current system exposes a correction-required boundary only; automatic Bill adjustment or refund remains deferred.
 
 ## 4. Identity And Authentication Rules
 

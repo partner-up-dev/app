@@ -5,7 +5,7 @@ import { z } from "zod";
 import {
   handleWeChatPayChargeNotification,
   handleWeChatPayRefundNotification,
-} from "../domains/payment";
+} from "../domains/payment/commands";
 
 const app = new Hono();
 

@@ -14,6 +14,10 @@ import {
   parseRideHailingProviderRegistrationConfig,
   resolveCaocaoOrderStatusCallbackUrl,
 } from ".";
+import {
+  RideHailingProviderCreateOutcomeUnknownError,
+  RideHailingProviderCreateRejectedError,
+} from "../model";
 
 const providerInstanceId = "00000000-0000-0000-0000-000000000501" as RideHailingProviderInstanceId;
 const orderId = "123e4567-e89b-12d3-a456-426614174000";
@@ -394,6 +398,62 @@ describe("Caocao create ride", () => {
       submittedCandidateIds: ["sku-5", "sku-3"],
       providerVehicleTypeCodes: ["5", "3"],
     });
+  });
+
+  it("distinguishes a provider rejection from an unknown create response", async () => {
+    const createInput = {
+      orderId,
+      candidates: [
+        {
+          candidateId: "sku-3",
+          providerVehicleTypeCode: "3",
+          providerVehicleTypeName: "曹操快车",
+          estimateAmountFen: 4200,
+          providerQuoteId: "price-key-3",
+        },
+      ],
+      contactPhone: "13800138000",
+      departureAt: null,
+      passenger: { name: "乘客", phone: "13800138000" },
+      route: {
+        origin: { name: "起点", address: "起点地址", latitude: 30.291, longitude: 120.212 },
+        waypoints: [],
+        destination: { name: "终点", address: "终点地址", latitude: 30.24, longitude: 120.102 },
+      },
+    };
+    const buildFetch = (createResponse: Response): typeof fetch => {
+      let callCount = 0;
+      return async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return new Response(
+            JSON.stringify({ code: 200, data: { cityCode: "020" }, success: true }),
+            { status: 200 },
+          );
+        }
+        return createResponse;
+      };
+    };
+
+    const rejected = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl: buildFetch(
+        new Response(JSON.stringify({ code: 50001, msg: "rejected", success: false }), {
+          status: 200,
+        }),
+      ),
+    });
+    await expect(rejected.createRide(createInput)).rejects.toBeInstanceOf(
+      RideHailingProviderCreateRejectedError,
+    );
+
+    const unknown = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl: buildFetch(new Response("lost", { status: 503 })),
+    });
+    await expect(unknown.createRide(createInput)).rejects.toBeInstanceOf(
+      RideHailingProviderCreateOutcomeUnknownError,
+    );
   });
 });
 

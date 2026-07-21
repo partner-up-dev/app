@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
-  createEmptyProductPresentation,
   createOffer,
   createProductSku,
   createProductSpu,
+} from "../../src/domains/merchandising/commands";
+import {
+  createEmptyProductPresentation,
   type PricingModel,
-} from "../../src/domains/merchandising";
+} from "../../src/domains/merchandising/model";
 import { resolveQuoteBoundOrderItems } from "../../src/domains/trade/use-cases/offer-quote";
 import {
   type CommerceQuote,

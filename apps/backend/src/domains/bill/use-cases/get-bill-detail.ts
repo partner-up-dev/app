@@ -6,7 +6,7 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
-import { getOrderItemSkuName } from "../../trade";
+import { getOrderItemSkuName } from "../../trade/contracts";
 import { deriveBillPaymentState, isBillLinePayable } from "../services";
 
 const billRepo = new BillRepository();

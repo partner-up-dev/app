@@ -158,7 +158,6 @@
           <ButtonPlacement
             v-if="canMountButtonPlacement && placementMatchingContext"
             :matching-context="placementMatchingContext"
-            :pr-id="prDetail.id"
           />
         </div>
 

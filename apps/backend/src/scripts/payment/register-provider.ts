@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { registerPaymentProviderInstance } from "../../domains/payment";
+import { registerPaymentProviderInstance } from "../../domains/payment/commands";
 
 const platformCertificateSchema = z.object({
   serialNo: z.string().min(1),

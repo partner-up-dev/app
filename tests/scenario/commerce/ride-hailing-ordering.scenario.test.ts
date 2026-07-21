@@ -5,11 +5,10 @@ import {
   createOffer,
   createPlacement,
   createProductSpu,
-  type PricingModel,
-  type SkuFacts,
-} from "../../../apps/backend/src/domains/merchandising";
-import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment";
-import { registerRideHailingProviderInstance } from "../../../apps/backend/src/domains/ride-hailing";
+} from "../../../apps/backend/src/domains/merchandising/commands";
+import type { PricingModel, SkuFacts } from "../../../apps/backend/src/domains/merchandising/model";
+import { registerPaymentProviderInstance } from "../../../apps/backend/src/domains/payment/commands";
+import { registerRideHailingProviderInstance } from "../../../apps/backend/src/domains/ride-hailing/commands";
 import { commerceQuotes } from "../../../apps/backend/src/entities/commerce-quote";
 import type { PRRoute } from "../../../apps/backend/src/entities/partner-request";
 import { db } from "../../../apps/backend/src/lib/db";
@@ -20,10 +19,7 @@ import {
   bindScenarioWeChatOpenId,
   configurePRStatus,
 } from "../../../apps/backend/tests/pr/_kit/actions/system-state";
-import {
-  givenUser,
-  type ScenarioUser,
-} from "../../../apps/backend/tests/pr/_kit/builders/users";
+import { givenUser, type ScenarioUser } from "../../../apps/backend/tests/pr/_kit/builders/users";
 import { withScenarioPage } from "../_infra/browser/browser";
 import { installScenarioUserSession } from "../_infra/browser/session";
 import { installDeterministicShareSidecarStubs } from "../_infra/browser/share-sidecars";
@@ -1030,6 +1026,78 @@ scenario("commerce_ride_hailing_ordering_reaches_order_detail_for_active_pr", as
 
   const createdOrderPath = orderPath;
   assert.match(createdOrderPath ?? "", /^\/orders\/[0-9a-f-]+$/);
+});
+
+scenario("commerce_ride_hailing_placement_entry_uses_backend_admission", async (ctx) => {
+  await resetFakeCaocao();
+  const creator = await givenUser("system-placement-admission-creator", {
+    phoneNumber: "13800138009",
+  });
+  const participant = await givenUser("system-placement-admission-participant");
+  const pr = await givenRideHailingPr({
+    creator,
+    title: "System Placement admission PR",
+  });
+  await partnerRepo.createSlot({
+    prId: pr.id,
+    status: "JOINED",
+    userId: participant.user.id,
+  });
+  await configurePRStatus({ pr, status: "READY" });
+  await registerScenarioPaymentProvider();
+  const placement = await givenRideHailingOrderingPlacement();
+
+  ctx.record("creatorUserId", creator.user.id);
+  ctx.record("participantUserId", participant.user.id);
+  ctx.record("prId", pr.id);
+  ctx.record("placementId", placement.placementId);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, participant);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.getByTestId("pr-detail.commerce-placement.admission-result").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+    await assertLocatorTextIncludes({
+      actual: page.getByTestId("pr-detail.commerce-placement.admission-result").textContent(),
+      expected: "仅搭子发起人可以创建新订单",
+      label: "non-creator Placement admission result",
+    });
+    assert.equal(new URL(page.url()).pathname, `/pr/${pr.id}`);
+  });
+
+  let createdOrderPath = "";
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, creator);
+    await installDeterministicShareSidecarStubs(page);
+
+    await openRideHailingOrderingFromPr({ page, prId: pr.id });
+    assert.equal(new URL(page.url()).pathname, "/order/new");
+    await selectPremierAsAdditionalCandidate(page);
+    await page.getByTestId("ordering.ride-hailing.create-order").click();
+    await assertRideHailingOrderDetail(page);
+    createdOrderPath = new URL(page.url()).pathname;
+  });
+  assert.match(createdOrderPath, /^\/orders\/[0-9a-f-]+$/);
+
+  await withScenarioPage(async (page) => {
+    await installScenarioUserSession(page, participant);
+    await installDeterministicShareSidecarStubs(page);
+
+    await page.goto(`/pr/${pr.id}`);
+    await page.getByTestId("pr-detail.commerce-placement.open").click();
+    await page.waitForURL((url) => new URL(url).pathname === createdOrderPath, {
+      timeout: 10_000,
+    });
+    await page.getByTestId("order-detail.page").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+  });
 });
 
 scenario("commerce_ride_hailing_order_detail_cancel_dispatching_order", async (ctx) => {

@@ -7,8 +7,11 @@ import type {
   PricingModel,
   ProductPresentation,
   SkuFacts,
-} from "../../merchandising";
-import { assertProductSkuContract, createEmptyProductPresentation } from "../../merchandising";
+} from "../../merchandising/contracts";
+import {
+  assertProductSkuContract,
+  createEmptyProductPresentation,
+} from "../../merchandising/contracts";
 
 const productSpuRepo = new ProductSpuRepository();
 const productSkuRepo = new ProductSkuRepository();

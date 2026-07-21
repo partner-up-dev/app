@@ -65,7 +65,19 @@
             title="支付暂时不可用"
             :message="errorNoticeMessage"
             data-testid="payment-checkout.notice"
-          />
+          >
+            <template v-if="canRetryPaymentTxReconciliation" #actions>
+              <PuButton
+                tone="primary"
+                variant="outline"
+                size="sm"
+                data-testid="payment-checkout.reconcile-retry"
+                @click="retryPaymentTxReconciliation"
+              >
+                重新确认支付结果
+              </PuButton>
+            </template>
+          </PuInlineNotice>
 
           <PuInlineNotice
             v-if="providersQuery.isError.value"
@@ -160,6 +172,7 @@
       :close-on-overlay="false"
       :close-on-escape="false"
       tone="info"
+      data-testid="payment-checkout.reconciling"
     >
       <div class="payment-checkout-page__progress-dialog">
         <PuLoadingState
@@ -206,18 +219,24 @@ import {
   resolveBillLineSettlementTag,
 } from "@/domains/commerce/model/bill-display";
 import { useBillLineCheckoutTarget } from "@/domains/commerce/queries/useCommerce";
+import { invalidateCheckoutTerminalQueries } from "@/domains/payment/queries/checkout-terminal-cache";
 import {
-  fetchPaymentTx,
   type PaymentTxResponse,
   useCreatePaymentCharge,
   usePaymentProviders,
+  usePaymentTx,
 } from "@/domains/payment/queries/usePayment";
 import PaymentCheckoutHero from "@/domains/payment/ui/primitives/PaymentCheckoutHero.vue";
 import {
   launchPaymentClientAction,
   type PaymentClientActionResult,
 } from "@/domains/payment/use-cases/launch-payment-client-action";
-import { queryKeys } from "@/shared/api/query-keys";
+import {
+  clearPaymentCheckoutAttemptHint,
+  readPaymentCheckoutAttemptHint,
+  rememberPaymentCheckoutAttemptHint,
+} from "@/domains/payment/use-cases/checkout-attempt-resume";
+import { resolveCheckoutReconciliationDecision } from "@/domains/payment/use-cases/checkout-reconciliation-state";
 import { useFallbackBack } from "@/shared/routing/useFallbackBack";
 
 type DialogState = {
@@ -243,9 +262,12 @@ const targetQuery = useBillLineCheckoutTarget(billLineIdRef);
 const providersQuery = usePaymentProviders();
 const createPaymentChargeMutation = useCreatePaymentCharge();
 
-const paymentTx = ref<PaymentTxResponse | null>(null);
+const reconciliationPaymentTxId = ref<string | null>(null);
+const paymentTxQuery = usePaymentTx(reconciliationPaymentTxId);
+const paymentTx = computed(() => paymentTxQuery.data.value ?? null);
 const attemptPhase = ref<PaymentAttemptPhase>("IDLE");
 const isReconcilingPaymentTx = ref(false);
+const isResumingPaymentTx = ref(false);
 const lastClientActionResult = ref<PaymentClientActionResult | null>(null);
 const errorNoticeMessage = ref<string | null>(null);
 const handledTerminalKey = ref<string | null>(null);
@@ -300,9 +322,6 @@ const selectableProviderIds = computed(() =>
     .map((provider) => provider.paymentProviderInstanceId),
 );
 const selectableProviderIdSet = computed(() => new Set(selectableProviderIds.value));
-
-const isPaymentTxTerminal = (status: PaymentTxResponse["status"] | null | undefined): boolean =>
-  status === "SUCCEEDED" || status === "FAILED" || status === "CLOSED";
 
 const isPaymentTxNonTerminal = (status: PaymentTxResponse["status"] | null | undefined): boolean =>
   status === "ACTION_REQUIRED" || status === "PROCESSING";
@@ -362,12 +381,16 @@ const selectionLocked = computed(
 const isProgressDialogOpen = computed(() => attemptPhase.value === "RECONCILING");
 
 const showsFooter = computed(() => target.value?.eligibility.payable === true);
+const canRetryPaymentTxReconciliation = computed(
+  () => reconciliationPaymentTxId.value !== null && errorNoticeMessage.value !== null,
+);
 
 const payDisabled = computed(() => {
   if (!target.value?.eligibility.payable) return true;
   if (providersQuery.isPending.value || providers.value.length === 0) return true;
   if (providersQuery.isError.value) return true;
   if (selectedProvider.value === null) return true;
+  if (canRetryPaymentTxReconciliation.value) return true;
   return selectionLocked.value;
 });
 
@@ -393,13 +416,19 @@ const openDialog = (input: Omit<DialogState, "open">): void => {
 
 const resetAttemptFeedback = (): void => {
   attemptPhase.value = "IDLE";
-  paymentTx.value = null;
+  reconciliationPaymentTxId.value = null;
   lastClientActionResult.value = null;
   errorNoticeMessage.value = null;
   handledTerminalKey.value = null;
   clearPaymentTxPollingTimer();
   clearSuccessReturnTimer();
   closeDialog();
+};
+
+const clearCurrentPaymentTxHint = (): void => {
+  const billLineId = target.value?.line.id ?? props.billLineId;
+  if (billLineId === null) return;
+  clearPaymentCheckoutAttemptHint({ billLineId });
 };
 
 const schedulePaymentTxReconciliation = (): void => {
@@ -415,35 +444,11 @@ const invalidateCheckoutQueries = async (): Promise<void> => {
   const checkoutTarget = target.value;
   if (!checkoutTarget) return;
 
-  await queryClient.invalidateQueries({
-    queryKey: queryKeys.commerce.billLineCheckoutTarget(checkoutTarget.line.id),
+  await invalidateCheckoutTerminalQueries(queryClient, {
+    billLineId: checkoutTarget.line.id,
+    billId: checkoutTarget.bill.id,
+    orderId: checkoutTarget.order.id,
   });
-  await queryClient.invalidateQueries({
-    queryKey: queryKeys.commerce.billDetail(checkoutTarget.bill.id),
-  });
-  await queryClient.invalidateQueries({
-    queryKey: queryKeys.commerce.orderDetail(checkoutTarget.order.id),
-  });
-  if (paymentTx.value) {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.payment.tx(paymentTx.value.paymentTxId),
-    });
-  }
-
-  await Promise.all([
-    queryClient.refetchQueries({
-      queryKey: queryKeys.commerce.billLineCheckoutTarget(checkoutTarget.line.id),
-      type: "all",
-    }),
-    queryClient.refetchQueries({
-      queryKey: queryKeys.commerce.billDetail(checkoutTarget.bill.id),
-      type: "all",
-    }),
-    queryClient.refetchQueries({
-      queryKey: queryKeys.commerce.orderDetail(checkoutTarget.order.id),
-      type: "all",
-    }),
-  ]);
 };
 
 const scheduleSuccessfulReturn = async (): Promise<void> => {
@@ -481,10 +486,11 @@ const buildTerminalDialog = (nextPaymentTx: PaymentTxResponse): Omit<DialogState
 const handlePaymentTxSnapshot = async (
   nextPaymentTx: PaymentTxResponse,
 ): Promise<PaymentTxResponse> => {
-  paymentTx.value = nextPaymentTx;
+  reconciliationPaymentTxId.value = nextPaymentTx.paymentTxId;
   errorNoticeMessage.value = null;
+  const decision = resolveCheckoutReconciliationDecision(nextPaymentTx.status);
 
-  if (!isPaymentTxTerminal(nextPaymentTx.status)) {
+  if (decision === "CONTINUE_RECONCILING") {
     attemptPhase.value = "RECONCILING";
     schedulePaymentTxReconciliation();
     return nextPaymentTx;
@@ -497,7 +503,8 @@ const handlePaymentTxSnapshot = async (
   }
   handledTerminalKey.value = terminalKey;
 
-  if (nextPaymentTx.status === "SUCCEEDED") {
+  clearCurrentPaymentTxHint();
+  if (decision === "RETURN_TO_BILL") {
     attemptPhase.value = "SUCCEEDED";
     await scheduleSuccessfulReturn();
     return nextPaymentTx;
@@ -509,19 +516,31 @@ const handlePaymentTxSnapshot = async (
   return nextPaymentTx;
 };
 
-const reconcilePaymentTx = async (): Promise<PaymentTxResponse | null> => {
-  const paymentTxId = paymentTx.value?.paymentTxId ?? null;
+const reconcilePaymentTx = async (
+  paymentTxId: string | null = reconciliationPaymentTxId.value ??
+    paymentTx.value?.paymentTxId ??
+    null,
+): Promise<PaymentTxResponse | null> => {
   if (paymentTxId === null || isReconcilingPaymentTx.value) {
     return paymentTx.value;
   }
 
   isReconcilingPaymentTx.value = true;
   try {
-    const nextPaymentTx = await fetchPaymentTx(paymentTxId);
+    const nextPaymentTx = await paymentTxQuery.reconcile(paymentTxId);
     return await handlePaymentTxSnapshot(nextPaymentTx);
   } catch (error) {
     clearPaymentTxPollingTimer();
     attemptPhase.value = "IDLE";
+    const errorCode =
+      error instanceof Error ? ("code" in error ? error.code : undefined) : undefined;
+    if (errorCode === "PAYMENT_ATTEMPT_SUPERSEDED") {
+      clearCurrentPaymentTxHint();
+      reconciliationPaymentTxId.value = null;
+      await invalidateCheckoutQueries();
+      errorNoticeMessage.value = "此前的支付尝试已失效，请先确认账单状态后再决定是否重新支付。";
+      return null;
+    }
     errorNoticeMessage.value =
       error instanceof Error ? error.message : "确认支付结果失败，请稍后重试。";
     return paymentTx.value;
@@ -530,7 +549,45 @@ const reconcilePaymentTx = async (): Promise<PaymentTxResponse | null> => {
   }
 };
 
+const resumePaymentTxFromHint = async (): Promise<void> => {
+  const checkoutTarget = target.value;
+  if (!checkoutTarget || paymentTx.value !== null || isResumingPaymentTx.value) return;
+
+  const hint = readPaymentCheckoutAttemptHint({ billLineId: checkoutTarget.line.id });
+  if (!hint) return;
+
+  isResumingPaymentTx.value = true;
+  reconciliationPaymentTxId.value = hint.paymentTxId;
+  attemptPhase.value = "RECONCILING";
+  try {
+    await reconcilePaymentTx(hint.paymentTxId);
+  } finally {
+    isResumingPaymentTx.value = false;
+  }
+};
+
+const retryPaymentTxReconciliation = async (): Promise<void> => {
+  if (reconciliationPaymentTxId.value === null) return;
+  errorNoticeMessage.value = null;
+  attemptPhase.value = "RECONCILING";
+  await reconcilePaymentTx(reconciliationPaymentTxId.value);
+};
+
+watch(
+  () => target.value?.line.id ?? null,
+  (billLineId) => {
+    if (billLineId === null) return;
+    void resumePaymentTxFromHint();
+  },
+  { immediate: true },
+);
+
 const handlePay = async (): Promise<void> => {
+  if (canRetryPaymentTxReconciliation.value) {
+    await retryPaymentTxReconciliation();
+    return;
+  }
+
   const checkoutTarget = target.value;
   const provider = selectedProvider.value;
   if (!checkoutTarget?.eligibility.payable || provider === null) {
@@ -544,12 +601,18 @@ const handlePay = async (): Promise<void> => {
       paymentProviderInstanceId: provider.paymentProviderInstanceId,
       billLineId: checkoutTarget.line.id,
     });
-    paymentTx.value = result.paymentTx;
+    reconciliationPaymentTxId.value = result.paymentTx.paymentTxId;
+    paymentTxQuery.seed(result.paymentTx);
+    rememberPaymentCheckoutAttemptHint({
+      billLineId: checkoutTarget.line.id,
+      paymentTxId: result.paymentTx.paymentTxId,
+    });
     attemptPhase.value = "WAITING_FOR_CLIENT";
     const clientActionResult = await launchPaymentClientAction(result.clientAction);
     lastClientActionResult.value = clientActionResult;
     if (clientActionResult.clientKind === "PAYMENT_REDIRECT") {
-      attemptPhase.value = "IDLE";
+      attemptPhase.value = "RECONCILING";
+      await reconcilePaymentTx();
       return;
     }
 

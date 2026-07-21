@@ -4,46 +4,28 @@ import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PlacementRepository } from "../../../repositories/PlacementRepository";
 import type { PlacementId } from "../../../entities/placement";
 import type { PRId } from "../../../entities/partner-request";
+import type { UserId } from "../../../entities/user";
+import { getPRPlacementOrderingAdmission } from "../../pr/queries";
+import type { MatchPlacementInstanceResult, PlacementOrderingEntryResult } from "../contracts";
 import type { PlacementType } from "../model";
 import {
   isPlacementActiveAt,
   listMatchingPlacementCandidates,
   resolvePlacementBindings,
 } from "../services";
-import { getOrderingOfferDetail, type OrderingOfferDetail } from "./get-ordering-offer-detail";
+import { getOrderingOfferDetail } from "./get-ordering-offer-detail";
+
+export type {
+  MatchPlacementInstanceResult,
+  OrderingEntryPayload,
+  PlacementOrderingEntryResult,
+} from "../contracts";
 
 const placementRepo = new PlacementRepository();
 const offerRepo = new OfferRepository();
 const partnerRepo = new PartnerRepository();
 
-export type PlacementInstanceProjection = {
-  id: number;
-  type: PlacementType;
-  offerId: number;
-  creative: {
-    ctaLabel: string;
-    description?: string | null;
-  };
-  bindingRules: Array<{
-    fieldKey: string;
-    contextPath: string;
-    lock: true;
-  }>;
-};
-
-export type MatchPlacementInstanceResult = {
-  placements: PlacementInstanceProjection[];
-};
-
-export type OrderingEntryPayload = {
-  source: {
-    offerId: number;
-  };
-  offerDetail: OrderingOfferDetail;
-  prId?: number;
-  bindings: Record<string, unknown>;
-  bindingLocks: Record<string, true>;
-};
+type PlacementInstanceProjection = MatchPlacementInstanceResult["placements"][number];
 
 const isOfferActiveNow = (
   offer: { status: string; startsAt: Date | null; endsAt: Date | null },
@@ -72,6 +54,7 @@ export async function matchPlacementInstance(input: {
     if (!isPlacementActiveAt(placement)) continue;
     const offer = await offerRepo.findById(placement.offerId);
     if (!offer || !isOfferActiveNow(offer)) continue;
+    if (offer.productType === "RENTAL") continue;
     placements.push({
       id: placement.id,
       type: placement.placementType,
@@ -179,13 +162,30 @@ export async function resolvePlacementOrderingEntry(input: {
   placementInstanceId: PlacementId;
   matchingContext: unknown;
   viewerUserId?: string | null;
-}): Promise<OrderingEntryPayload> {
+}): Promise<PlacementOrderingEntryResult> {
   const placement = await placementRepo.findById(input.placementInstanceId);
   if (!placement) {
     return throwHttpProblem({ status: 404, detail: "Placement not found" });
   }
+
+  const prId = readPrIdFromMatchingContext(input.matchingContext);
+  if (prId === undefined) {
+    return { outcome: "INACTIVE" };
+  }
+
+  const admission = await getPRPlacementOrderingAdmission({
+    prId: prId as PRId,
+    offerId: placement.offerId,
+    actorUserId: (input.viewerUserId ?? null) as UserId | null,
+  });
+  if (admission.outcome === "EXISTING_ORDER") {
+    return admission;
+  }
   if (!isPlacementActiveAt(placement)) {
-    return throwHttpProblem({ status: 409, detail: "Placement is not active" });
+    return { outcome: "INACTIVE" };
+  }
+  if (admission.outcome !== "CREATOR_ELIGIBLE") {
+    return admission;
   }
 
   const bindings = resolvePlacementBindings({
@@ -195,7 +195,6 @@ export async function resolvePlacementOrderingEntry(input: {
   const bindingLocks = Object.fromEntries(
     placement.bindingRules.map((rule) => [rule.fieldKey, true] as const),
   );
-  const prId = readPrIdFromMatchingContext(input.matchingContext);
   const activeParticipantCount = readRecordProperty(
     input.matchingContext,
     "activeParticipantCount",
@@ -208,49 +207,45 @@ export async function resolvePlacementOrderingEntry(input: {
   const viewerParticipant = input.viewerUserId
     ? (activeParticipants.find((participant) => participant.userId === input.viewerUserId) ?? null)
     : null;
-  if (
-    prId !== undefined &&
-    (!input.viewerUserId ||
-      !activeParticipants.some((participant) => participant.userId === input.viewerUserId))
-  ) {
-    return throwHttpProblem({
-      status: 403,
-      detail: "Only active PR participants can resolve this ordering entry",
-    });
-  }
   const offerDetail = await getOrderingOfferDetail({
     offerId: placement.offerId,
   });
+  if (offerDetail.productType === "RENTAL") {
+    return { outcome: "INACTIVE" };
+  }
 
   return {
-    source: {
-      offerId: placement.offerId,
-    },
-    offerDetail,
-    ...(prId === undefined ? {} : { prId }),
-    bindingLocks,
-    bindings: {
-      ...bindings,
-      ...(typeof activeParticipantCount === "number"
-        ? { participantCount: activeParticipantCount }
-        : {}),
-      ...(startAt ? { serviceStartAt: startAt } : {}),
-      ...(endAt ? { serviceEndAt: endAt } : {}),
-      ...(routeSnapshot ? { route: routeSnapshot } : {}),
-      ...(viewerParticipant?.phoneNumber?.trim()
-        ? { contactPhone: viewerParticipant.phoneNumber.trim() }
-        : {}),
-      ...(activeParticipants.length === 0
-        ? {}
-        : {
-            orderParticipants: activeParticipants.map((participant) => ({
-              userId: participant.userId,
-              displayName: participant.nickname ?? "参与者",
-              phoneMasked: participant.phoneNumber
-                ? `${participant.phoneNumber.slice(0, 3)}****${participant.phoneNumber.slice(-4)}`
-                : null,
-            })),
-          }),
+    outcome: "CREATOR_ELIGIBLE",
+    orderingEntry: {
+      source: {
+        offerId: placement.offerId,
+      },
+      offerDetail,
+      prId,
+      bindingLocks,
+      bindings: {
+        ...bindings,
+        ...(typeof activeParticipantCount === "number"
+          ? { participantCount: activeParticipantCount }
+          : {}),
+        ...(startAt ? { serviceStartAt: startAt } : {}),
+        ...(endAt ? { serviceEndAt: endAt } : {}),
+        ...(routeSnapshot ? { route: routeSnapshot } : {}),
+        ...(viewerParticipant?.phoneNumber?.trim()
+          ? { contactPhone: viewerParticipant.phoneNumber.trim() }
+          : {}),
+        ...(activeParticipants.length === 0
+          ? {}
+          : {
+              orderParticipants: activeParticipants.map((participant) => ({
+                userId: participant.userId,
+                displayName: participant.nickname ?? "参与者",
+                phoneMasked: participant.phoneNumber
+                  ? `${participant.phoneNumber.slice(0, 3)}****${participant.phoneNumber.slice(-4)}`
+                  : null,
+              })),
+            }),
+      },
     },
   };
 }

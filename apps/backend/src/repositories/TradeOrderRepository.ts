@@ -27,6 +27,15 @@ export class TradeOrderRepository {
     return result[0] ?? null;
   }
 
+  async findByIdForUpdate(id: TradeOrderId): Promise<TradeOrder | null> {
+    const result = await this.executor
+      .select()
+      .from(tradeOrders)
+      .where(eq(tradeOrders.id, id))
+      .for("update");
+    return result[0] ?? null;
+  }
+
   async listAll(): Promise<TradeOrder[]> {
     return this.executor.select().from(tradeOrders).orderBy(desc(tradeOrders.createdAt));
   }

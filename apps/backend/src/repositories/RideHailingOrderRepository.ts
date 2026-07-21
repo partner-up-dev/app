@@ -24,6 +24,15 @@ export class RideHailingOrderRepository {
     return result[0] ?? null;
   }
 
+  async findByOrderIdForUpdate(orderId: TradeOrderId): Promise<RideHailingOrder | null> {
+    const result = await this.executor
+      .select()
+      .from(rideHailingOrders)
+      .where(eq(rideHailingOrders.orderId, orderId))
+      .for("update");
+    return result[0] ?? null;
+  }
+
   async listByOrderIds(orderIds: TradeOrderId[]): Promise<RideHailingOrder[]> {
     if (orderIds.length === 0) return [];
     return this.executor

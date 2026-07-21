@@ -1,6 +1,7 @@
 import type { TradeOrder } from "../../../entities/trade-order";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import { throwRentalRuntimeRetired } from "../../../lib/rental-runtime-retirement";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { resolveOrderPrepaidSettlementFulfillmentConsequence } from "../services/prepaid-settlement-consequence";
 
@@ -14,6 +15,9 @@ export async function applyOrderPrepaidSettlementFulfillmentConsequence(input: {
   orderId: string;
   family: TradeOrder["family"];
 }): Promise<OrderPrepaidSettlementFulfillmentResult> {
+  if (input.family === "RENTAL") {
+    return throwRentalRuntimeRetired();
+  }
   const consequence = resolveOrderPrepaidSettlementFulfillmentConsequence(input.family);
 
   if (consequence.kind === "NONE") {

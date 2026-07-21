@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { validateRentalServicePolicyAvailability } from "./rental-service-policy";
-import type { RentalServicePolicy } from "../../merchandising";
+import type { RentalServicePolicy } from "../../merchandising/contracts";
 
 const basePolicy: RentalServicePolicy = {
   type: "RENTAL",

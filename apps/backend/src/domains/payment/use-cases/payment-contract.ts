@@ -1,9 +1,8 @@
-import type { BillLine, BillLineId } from "../../../entities/bill";
 import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
 import type { UserId } from "../../../entities/user";
-import { resolveBillLineCheckoutBasis } from "../../bill";
+import { getBillLineCheckoutTarget, getBillLinePaymentExecution } from "../../bill/queries";
+import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
 import type { NormalizedPaymentStatus, PaymentClientAction } from "../model";
@@ -14,11 +13,13 @@ import {
   ensureWeChatPayPlatformCertificates,
   resolveWeChatPayChargeNotifyUrl,
 } from "../services";
-import { openOrLoadChargeExecution, queryChargePaymentForLineAndReload } from "./payment-execution";
-import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
+import {
+  openOrLoadChargeExecution,
+  queryChargePaymentForLineAndReload,
+  reconcileChargePaymentExecution,
+} from "./payment-execution";
 
 const providerRepo = new PaymentProviderInstanceRepository();
-const billLineRepo = new BillLineRepository();
 const userRepo = new UserRepository();
 
 export type PaymentProviderOptionProjection = {
@@ -40,7 +41,7 @@ export type PaymentTxProjection = {
   billLineId: string;
   billId: string;
   orderId: string;
-  kind: BillLine["kind"];
+  kind: BillLinePaymentExecutionSnapshot["kind"];
   amountFen: number;
   currency: "CNY";
   attemptCount: number;
@@ -88,7 +89,7 @@ const buildProviderOption = (
 
 const buildPaymentTxProjection = (input: {
   paymentTxId: string;
-  line: BillLine;
+  line: BillLinePaymentExecutionSnapshot;
   orderId: string;
   providerInstance: PaymentProviderInstance;
   status: PaymentTxProjection["status"];
@@ -147,88 +148,29 @@ const loadProviderInstanceForQuery = async (
 const queryChargePaymentTx = async (input: {
   paymentTxId: string;
   paymentProviderInstance: PaymentProviderInstance;
-  line: BillLine;
+  line: BillLinePaymentExecutionSnapshot;
   orderId: string;
   attemptCount: number;
 }): Promise<PaymentTxProjection> => {
-  if (
-    input.line.settledAt &&
-    input.line.paymentProviderInstanceId === input.paymentProviderInstance.id &&
-    input.line.attemptCount === input.attemptCount
-  ) {
-    return buildPaymentTxProjection({
-      paymentTxId: input.paymentTxId,
-      line: input.line,
-      orderId: input.orderId,
-      providerInstance: input.paymentProviderInstance,
-      status: "SUCCEEDED",
-      providerStatus: "SETTLED",
+  const reconciled = await reconcileChargePaymentExecution({
+    line: input.line,
+    paymentProviderInstance: input.paymentProviderInstance,
+    reference: {
+      paymentProviderInstanceId: input.paymentProviderInstance.id,
       attemptCount: input.attemptCount,
-      settledAt: input.line.settledAt?.toISOString() ?? null,
-    });
-  }
-
-  const port = createPaymentProviderPort({
-    providerInstance: input.paymentProviderInstance,
+    },
   });
-  const merchantOrderNo = port.deriveChargeMerchantOrderNo({
-    providerInstanceId: input.paymentProviderInstance.id,
-    billLineId: input.line.id,
-    kind: "CHARGE",
-    attemptCount: input.attemptCount,
-  });
-  const normalized = await port.queryCharge({
-    providerInstanceId: input.paymentProviderInstance.id,
-    merchantOrderNo,
-  });
-
-  if (normalized.status === "SUCCEEDED") {
-    const settledLine =
-      (await billLineRepo.markSettledFromProvider({
-        id: input.line.id as BillLineId,
-        paymentProviderInstanceId: input.paymentProviderInstance.id,
-        attemptCount: input.attemptCount,
-        settledAt: new Date(),
-      })) ??
-      (await billLineRepo.findById(input.line.id as BillLineId)) ??
-      input.line;
-    await applyPaymentSettlementConsequence({ billLineId: settledLine.id });
-    return buildPaymentTxProjection({
-      paymentTxId: input.paymentTxId,
-      line: settledLine,
-      orderId: input.orderId,
-      providerInstance: input.paymentProviderInstance,
-      status: "SUCCEEDED",
-      providerStatus: normalized.providerStatus,
-      attemptCount: input.attemptCount,
-      settledAt: settledLine.settledAt?.toISOString() ?? null,
-    });
-  }
-
-  let line = input.line;
-  if (
-    (normalized.status === "FAILED" || normalized.status === "CLOSED") &&
-    input.line.paymentProviderInstanceId === input.paymentProviderInstance.id &&
-    input.line.attemptCount === input.attemptCount &&
-    !input.line.settledAt
-  ) {
-    line =
-      (await billLineRepo.clearProviderExecutionSlot({
-        id: input.line.id as BillLineId,
-        paymentProviderInstanceId: input.paymentProviderInstance.id,
-        attemptCount: input.attemptCount,
-      })) ?? input.line;
-  }
 
   return buildPaymentTxProjection({
     paymentTxId: input.paymentTxId,
-    line,
+    line: reconciled.line,
     orderId: input.orderId,
     providerInstance: input.paymentProviderInstance,
-    status: toPaymentTxStatus(normalized.status),
-    providerStatus: normalized.providerStatus,
+    status: toPaymentTxStatus(reconciled.status),
+    providerStatus: reconciled.providerStatus,
     attemptCount: input.attemptCount,
-    settledAt: null,
+    settledAt:
+      reconciled.status === "SUCCEEDED" ? (reconciled.line.settledAt?.toISOString() ?? null) : null,
   });
 };
 
@@ -256,14 +198,14 @@ export async function createPaymentCharge(input: {
     return throwHttpProblem({ status: 401, detail: "Authentication required" });
   }
 
-  const basis = await resolveBillLineCheckoutBasis({
-    billLineId: input.billLineId as BillLineId,
-    viewerUserId: input.viewerUserId as UserId,
+  const checkoutTarget = await getBillLineCheckoutTarget({
+    billLineId: input.billLineId,
+    viewerUserId: input.viewerUserId,
   });
-  if (basis.disabledReason) {
-    return throwHttpProblem({ status: 409, detail: basis.disabledReason });
+  if (checkoutTarget.eligibility.disabledReason) {
+    return throwHttpProblem({ status: 409, detail: checkoutTarget.eligibility.disabledReason });
   }
-  const expiresAt = new Date(basis.order.timeout.unpaidExpiresAt);
+  const expiresAt = new Date(checkoutTarget.order.unpaidExpiresAt);
   if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
     return throwHttpProblem({
       status: 409,
@@ -275,9 +217,10 @@ export async function createPaymentCharge(input: {
     paymentProviderInstanceId: input.paymentProviderInstanceId as PaymentProviderInstanceId,
     clientId: input.clientId,
   });
-  const syncedLine = basis.line.paymentProviderInstanceId
-    ? await queryChargePaymentForLineAndReload(basis.line)
-    : basis.line;
+  const currentLine = await getBillLinePaymentExecution({ billLineId: input.billLineId });
+  const syncedLine = currentLine.paymentProviderInstanceId
+    ? await queryChargePaymentForLineAndReload(currentLine)
+    : currentLine;
   if (syncedLine.settledAt) {
     return throwHttpProblem({ status: 409, detail: "该账单行已支付" });
   }
@@ -293,7 +236,7 @@ export async function createPaymentCharge(input: {
   }
 
   const line = await openOrLoadChargeExecution({
-    line: syncedLine,
+    billLineId: syncedLine.id,
     providerInstance: requestedProvider,
   });
   if (line.kind !== "CHARGE") {
@@ -346,7 +289,7 @@ export async function createPaymentCharge(input: {
     paymentTx: buildPaymentTxProjection({
       paymentTxId,
       line,
-      orderId: basis.order.id,
+      orderId: checkoutTarget.order.id,
       providerInstance: requestedProvider,
       status: "ACTION_REQUIRED",
       providerStatus: prepay.providerStatus,
@@ -373,10 +316,11 @@ export async function getPaymentTx(input: {
     });
   }
 
-  const basis = await resolveBillLineCheckoutBasis({
-    billLineId: reference.billLineId as BillLineId,
-    viewerUserId: input.viewerUserId as UserId,
+  const checkoutTarget = await getBillLineCheckoutTarget({
+    billLineId: reference.billLineId,
+    viewerUserId: input.viewerUserId,
   });
+  const line = await getBillLinePaymentExecution({ billLineId: reference.billLineId });
   const providerInstance = await loadProviderInstanceForQuery(
     reference.paymentProviderInstanceId as PaymentProviderInstanceId,
   );
@@ -384,8 +328,8 @@ export async function getPaymentTx(input: {
   return queryChargePaymentTx({
     paymentTxId: input.paymentTxId,
     paymentProviderInstance: providerInstance,
-    line: basis.line,
-    orderId: basis.order.id,
+    line,
+    orderId: checkoutTarget.order.id,
     attemptCount: reference.attemptCount,
   });
 }

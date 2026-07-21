@@ -300,6 +300,7 @@ import {
   useCancelOrder,
   useRideHailingCancellationFeePreview,
 } from "@/domains/commerce/queries/useCommerce";
+import type { RideHailingProviderObservation } from "@/domains/commerce/queries/ride-hailing-reconciliation";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
 import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
@@ -383,6 +384,7 @@ const writeRideHailingOrderMapRenderLog = (payload: Record<string, unknown>): vo
 const props = defineProps<{
   detail: CommerceOrderDetailResponse;
   ride: RideHailingDetail;
+  providerObservation: RideHailingProviderObservation | null;
   routeOrderId: string | null;
 }>();
 
@@ -490,7 +492,7 @@ const statusCopyByPhase: Record<
   },
   INITIATING: {
     title: "正在创建",
-    description: "正在准备派单",
+    description: "正在等待服务商确认，请勿重复提交。",
   },
   IN_TRIP: {
     title: "行程中",
@@ -651,7 +653,7 @@ const confirmRideHailingCancellation = async (): Promise<void> => {
 const orderMapViewModel = computed(() =>
   buildRideHailingOrderMapViewModel({
     executionPhase: props.ride.executionPhase,
-    live: props.ride.live,
+    live: props.providerObservation,
     route: props.ride.route,
   }),
 );
@@ -664,7 +666,7 @@ const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
 );
 
 const rideHailingOrderMapRenderDiagnostics = computed(() => {
-  const providerPolyline = props.ride.live?.navigationRoute?.polyline ?? null;
+  const providerPolyline = props.providerObservation?.navigationRoute?.polyline ?? null;
   const plannedPolyline = props.ride.route.drivingPlan?.polyline ?? null;
   return {
     activeGeometry: summarizeActiveGeometry(orderMapViewModel.value.activeGeometry),
@@ -672,7 +674,7 @@ const rideHailingOrderMapRenderDiagnostics = computed(() => {
     extraMarkerCount: orderMapViewModel.value.extraMarkers.length,
     extraPolylineCount: orderMapViewModel.value.extraPolylines.length,
     extraPolylineIds: orderMapViewModel.value.extraPolylines.map((polyline) => polyline.id),
-    livePhase: props.ride.live?.phase ?? null,
+    livePhase: props.providerObservation?.phase ?? null,
     mapMode: orderMapViewModel.value.mode,
     orderId: props.detail.order.id,
     overviewGeometry: summarizeActiveGeometry(orderMapViewModel.value.overviewGeometry),
@@ -695,7 +697,7 @@ const rideHailingOrderMapRenderDiagnostics = computed(() => {
         : null,
     ),
     providerPolylinePointCount: providerPolyline?.length ?? 0,
-    providerRouteKind: props.ride.live?.navigationRoute?.routeKind ?? null,
+    providerRouteKind: props.providerObservation?.navigationRoute?.routeKind ?? null,
     routeOrderId: props.routeOrderId,
     showFallbackPolyline: orderMapViewModel.value.showFallbackPolyline,
   };

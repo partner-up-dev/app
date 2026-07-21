@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { startFakeWeChatPayServer } from "@partner-up-dev/fake-wechatpay-server";
 import { sql } from "drizzle-orm";
-import { createOffer, createProductSku, createProductSpu } from "../../src/domains/merchandising";
-import { registerPaymentProviderInstance } from "../../src/domains/payment/use-cases/register-payment-provider-instance";
-import { buildOrderParticipantsFromContext, createRentalOrder } from "../../src/domains/trade";
+import { createBillFromSeed } from "../../src/domains/bill/commands";
+import { settleBillLinePaymentExecution } from "../../src/domains/bill/commands";
+import { createOffer, createProductSpu } from "../../src/domains/merchandising/commands";
+import { registerPaymentProviderInstance } from "../../src/domains/payment/commands";
 import type { BillId } from "../../src/entities/bill";
+import type { OfferId } from "../../src/entities/offer";
 import { db } from "../../src/lib/db";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
+import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
+import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { scenario } from "../_infra/scenario/scenario";
 import { bindScenarioWeChatOpenId } from "../pr/_kit/actions/system-state";
@@ -47,11 +51,13 @@ type ProblemDetailsResponse = {
 };
 
 const billLineRepo = new BillLineRepository();
+const rideHailingOrderRepo = new RideHailingOrderRepository();
+const tradeOrderRepo = new TradeOrderRepository();
 
-async function givenRentalBillLineForPayment(input: { userId: string }): Promise<string> {
+async function givenBillLineForPayment(input: { userId: string }): Promise<string> {
   const spu = await createProductSpu({
-    name: "Provider SSOT rental room",
-    productType: "RENTAL",
+    name: "Provider SSOT payment fixture",
+    productType: "RIDE_HAILING",
     status: "ACTIVE",
     salesPolicy: {
       skuSelectionPolicy: {
@@ -63,11 +69,7 @@ async function givenRentalBillLineForPayment(input: { userId: string }): Promise
       },
     },
     servicePolicy: {
-      type: "RENTAL",
-      bookingLeadTimeMinutes: 0,
-      requiresContactPhone: true,
-      requiresRealName: true,
-      requiresNationalId: false,
+      type: "RIDE_HAILING",
     },
     presentation: {
       heroImageAssetIds: [],
@@ -77,84 +79,64 @@ async function givenRentalBillLineForPayment(input: { userId: string }): Promise
       noticeBlocks: [],
     },
   });
-  const sku = await createProductSku({
-    spuId: spu.id,
-    name: "Provider SSOT rental sku",
-    status: "ACTIVE",
-    facts: {
-      type: "RENTAL",
-      zoneCode: "PROVIDER_SSOT_ZONE",
-      participantCount: 1,
-      durationMinutes: 60,
-    },
-    pricingModel: {
-      type: "FIXED_TOTAL",
-      amountFen: 1200,
-    },
-  });
   const offer = await createOffer({
-    productType: "RENTAL",
+    productType: "RIDE_HAILING",
     spuIds: [spu.id],
     status: "ACTIVE",
     pricingRules: [],
     termsVersion: 1,
   });
-  const itemId = randomUUID();
-  const order = await createRentalOrder({
+  const order = await tradeOrderRepo.create({
+    family: "RIDE_HAILING",
+    offerId: offer.id as OfferId,
     createdBy: input.userId,
-    participants: buildOrderParticipantsFromContext({
-      participants: [
-        {
-          participantId: `participant-${input.userId}`,
-          userId: input.userId,
-          joinedVia: "API",
-        },
-      ],
-      createdBy: input.userId,
-    }),
-    offerId: offer.id,
-    items: [
+    status: "OPEN",
+    participants: [
       {
-        itemId,
-        sku: {
-          id: sku.id,
-          version: sku.version,
-          name: sku.name,
-          factsSnapshot: sku.facts,
-          pricingModelSnapshot: sku.pricingModel,
-          cancellationPolicySnapshot: null,
-        },
-        quantity: 1,
+        participantId: `participant-${input.userId}`,
+        userId: input.userId,
+        role: "CREATOR",
+        joinedVia: "API",
       },
     ],
-    pricingSnapshot: {
-      currency: "CNY",
-      itemBreakdowns: [
-        {
-          itemId,
-          resolvedAmountFen: 1200,
-          explanations: [],
-        },
-      ],
-      orderLevelExplanations: [],
-      subtotalFen: 1200,
-      totalFen: 1200,
+    splitRuleSnapshot: {
+      type: "RELATIVE",
+      shares: [{ userId: input.userId, percentBps: 10000 }],
     },
-    serviceStartAt: "2031-03-01T10:00:00.000Z",
-    serviceEndAt: "2031-03-01T11:00:00.000Z",
+    pricingExecutionSnapshot: null,
+    items: [],
+    timeout: {
+      unpaidExpiresAt: "2099-03-01T10:00:00.000Z",
+      defaultWindowMinutes: 30,
+    },
+  });
+  await rideHailingOrderRepo.create({
+    orderId: order.id,
+    routeSnapshot: {
+      origin: { name: "支付起点", latitude: 30.2, longitude: 120.1 },
+      waypoints: [],
+      destination: { name: "支付终点", latitude: 30.3, longitude: 120.2 },
+    },
+    riders: [],
     contactPhone: "13800138088",
-    registrants: [
+    executionPhase: "COMPLETED",
+  });
+  const bill = await createBillFromSeed({
+    sourceOrderId: order.id,
+    currency: "CNY",
+    chargeLines: [
       {
-        name: "支付测试",
-        phone: "13800138088",
-        nationalIdMasked: null,
+        userId: input.userId,
+        amountFen: 1200,
+        label: "Provider SSOT charge",
+        description: "Payment-owned test fixture",
       },
     ],
   });
 
-  const lines = await billLineRepo.listByBillId(order.billId as BillId);
+  const lines = await billLineRepo.listByBillId(bill.billId as BillId);
   const chargeLine = lines.find((line) => line.kind === "CHARGE");
-  assert.ok(chargeLine, "Rental order should create a charge BillLine");
+  assert.ok(chargeLine, "Payment fixture should contain a charge BillLine");
   return chargeLine.id;
 }
 
@@ -212,7 +194,7 @@ scenario(
           platformCertificates: null,
         },
       });
-      const billLineId = await givenRentalBillLineForPayment({
+      const billLineId = await givenBillLineForPayment({
         userId: payer.user.id,
       });
 
@@ -299,7 +281,7 @@ scenario(
 
       const secondCharge = await expectJsonResponse<PaymentChargeProjection>(
         await requestJson(
-          `/api/payment/${providerTwo.providerInstanceId}/charge?bill-line=${billLineId}`,
+          `/api/payment/${providerOne.providerInstanceId}/charge?bill-line=${billLineId}`,
           {
             method: "POST",
             token: payer.token,
@@ -321,6 +303,33 @@ scenario(
       ctx.record("secondOutTradeNo", secondTransaction.outTradeNo);
 
       fakeWeChatPay.state.markTransaction({
+        outTradeNo: firstTransaction.outTradeNo,
+        tradeState: "SUCCESS",
+      });
+      const staleSettlement = await settleBillLinePaymentExecution({
+        billLineId,
+        paymentProviderInstanceId: providerOne.providerInstanceId,
+        attemptCount: 1,
+        settledAt: new Date(),
+      });
+      assert.equal(staleSettlement.status, "STALE");
+
+      const supersededPaymentTx = await expectJsonResponse<ProblemDetailsResponse>(
+        await requestJson(`/api/payment/${firstPaymentTxId}`, {
+          method: "GET",
+          token: payer.token,
+        }),
+        409,
+      );
+      assert.equal(supersededPaymentTx.code, "PAYMENT_ATTEMPT_SUPERSEDED");
+
+      const afterStaleSuccess = await billLineRepo.findById(billLineId);
+      assert.ok(afterStaleSuccess, "BillLine should exist after a stale provider success");
+      assert.equal(afterStaleSuccess.paymentProviderInstanceId, providerOne.providerInstanceId);
+      assert.equal(afterStaleSuccess.attemptCount, 2);
+      assert.equal(afterStaleSuccess.settledAt, null);
+
+      fakeWeChatPay.state.markTransaction({
         outTradeNo: secondTransaction.outTradeNo,
         tradeState: "SUCCESS",
       });
@@ -335,24 +344,18 @@ scenario(
       assert.equal(settledTx.attemptCount, 2);
       assert.ok(settledTx.settledAt, "PaymentTx poll should project settledAt");
 
-      const historicalFailedTx = await expectJsonResponse<PaymentTxProjection>(
+      const historicalSupersededTx = await expectJsonResponse<ProblemDetailsResponse>(
         await requestJson(`/api/payment/${firstPaymentTxId}`, {
           method: "GET",
           token: payer.token,
         }),
-        200,
+        409,
       );
-      assert.equal(historicalFailedTx.status, "FAILED");
-      assert.equal(historicalFailedTx.attemptCount, 1);
-      assert.equal(
-        historicalFailedTx.settledAt,
-        null,
-        "Historical failed tx should not inherit later settledAt",
-      );
+      assert.equal(historicalSupersededTx.code, "PAYMENT_ATTEMPT_SUPERSEDED");
 
       const settledLine = await billLineRepo.findById(billLineId);
       assert.ok(settledLine, "BillLine should exist after settlement");
-      assert.equal(settledLine.paymentProviderInstanceId, providerTwo.providerInstanceId);
+      assert.equal(settledLine.paymentProviderInstanceId, providerOne.providerInstanceId);
       assert.equal(settledLine.attemptCount, 2);
       assert.ok(settledLine.settledAt);
 

@@ -6,7 +6,7 @@ import type {
   ProductType,
   SkuFacts,
   SpuSalesPolicy,
-} from "../../merchandising";
+} from "../../merchandising/contracts";
 
 export type OrderFamily = "RENTAL" | "RIDE_HAILING";
 

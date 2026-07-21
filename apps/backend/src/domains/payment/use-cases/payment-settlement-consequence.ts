@@ -1,19 +1,12 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
-import type { BillLineId } from "../../../entities/bill";
-import { BillLineRepository } from "../../../repositories/BillLineRepository";
-import { applyBillSettlementToOrder } from "../../trade/use-cases/apply-bill-settlement-to-order";
-
-const billLineRepo = new BillLineRepository();
+import { getBillLinePaymentExecution } from "../../bill/queries";
+import { applyBillSettlementToOrder } from "../../trade/commands";
 
 export async function applyPaymentSettlementConsequence(input: { billLineId: string }): Promise<{
   applied: boolean;
   reason: string;
   rentalOrderId?: string;
 }> {
-  const billLine = await billLineRepo.findById(input.billLineId as BillLineId);
-  if (!billLine) {
-    return throwHttpProblem({ status: 404, detail: "BillLine not found" });
-  }
+  const billLine = await getBillLinePaymentExecution({ billLineId: input.billLineId });
   if (billLine.kind !== "CHARGE" || !billLine.settledAt) {
     return {
       applied: false,

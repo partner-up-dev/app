@@ -1,4 +1,4 @@
-import type { SplitRuleSnapshot } from "../../trade";
+import type { SplitRuleSnapshot } from "../../trade/contracts";
 
 export type BillChargeLineSeed = {
   userId: string;

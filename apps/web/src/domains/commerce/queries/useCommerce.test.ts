@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { shouldPollCommerceOrderDetail } from "./useCommerce";
+import {
+  resolveCommerceOrderDetailPollAction,
+  shouldPollCommerceOrderDetail,
+} from "./useCommerce";
 
 describe("commerce order detail polling", () => {
   test("polls active ride-hailing phases", () => {
@@ -28,5 +31,32 @@ describe("commerce order detail polling", () => {
     ).toBe(false);
     expect(shouldPollCommerceOrderDetail({ rideHailing: null })).toBe(false);
     expect(shouldPollCommerceOrderDetail(null)).toBe(false);
+  });
+
+  test("reconciles only a bound active Ride and otherwise refreshes the pure Detail projection", () => {
+    expect(
+      resolveCommerceOrderDetailPollAction({
+        rideHailing: {
+          executionPhase: "INITIATING",
+          provider: { providerOrderId: null },
+        },
+      }),
+    ).toBe("REFRESH_DETAIL");
+    expect(
+      resolveCommerceOrderDetailPollAction({
+        rideHailing: {
+          executionPhase: "ACCEPTED",
+          provider: { providerOrderId: "provider-order-1" },
+        },
+      }),
+    ).toBe("RECONCILE");
+    expect(
+      resolveCommerceOrderDetailPollAction({
+        rideHailing: {
+          executionPhase: "FINISHED",
+          provider: { providerOrderId: "provider-order-1" },
+        },
+      }),
+    ).toBe("STOP");
   });
 });

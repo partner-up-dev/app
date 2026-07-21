@@ -1,4 +1,4 @@
-import type { RentalServicePolicy } from "../../merchandising";
+import type { RentalServicePolicy } from "../../merchandising/contracts";
 
 const MINUTES_PER_DAY = 24 * 60;
 

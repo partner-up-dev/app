@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   type BillId,
   type BillLine,
@@ -132,7 +132,8 @@ export class BillLineRepository {
       .where(
         and(
           eq(billLines.id, input.id),
-          gte(billLines.attemptCount, input.attemptCount),
+          eq(billLines.paymentProviderInstanceId, input.paymentProviderInstanceId),
+          eq(billLines.attemptCount, input.attemptCount),
           isNull(billLines.settledAt),
         ),
       )

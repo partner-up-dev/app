@@ -38,6 +38,8 @@ export const queryKeys = {
       ["commerce", "placement", contextId, type] as const,
     billList: () => ["commerce", "bill", "list"] as const,
     orderDetail: (orderId: string | null) => ["commerce", "order", orderId] as const,
+    rideHailingObservation: (orderId: string | null) =>
+      ["commerce", "ride-hailing-observation", orderId] as const,
     billDetail: (billId: string | null) => ["commerce", "bill", billId] as const,
     billLineCheckoutTarget: (billLineId: string | null) =>
       ["commerce", "bill-line", billLineId] as const,

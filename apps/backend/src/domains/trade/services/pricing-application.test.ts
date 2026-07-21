@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Offer } from "../../../entities/offer";
 import type { ProductSku } from "../../../entities/product-sku";
 import type { ProductSpu } from "../../../entities/product-spu";
-import type { PricingRule } from "../../merchandising";
+import type { PricingRule } from "../../merchandising/contracts";
 import { PricingApplication } from "./pricing-application";
 
 const now = new Date("2026-05-31T00:00:00.000Z");

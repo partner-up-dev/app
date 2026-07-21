@@ -1,6 +1,6 @@
 import type { RideHailingProviderInstance } from "../../../entities/ride-hailing-provider";
-import type { CaocaoProviderInstanceConfig } from "../../ride-hailing/model";
-import { resolveCaocaoOrderStatusCallbackUrl } from "../../ride-hailing/services";
+import type { CaocaoProviderInstanceConfig } from "../../ride-hailing/contracts";
+import { resolveRideHailingProviderOrderStatusCallbackUrl } from "../../ride-hailing/ports";
 
 export type AdminCaocaoProviderInstanceConfigView = Omit<
   CaocaoProviderInstanceConfig,
@@ -14,17 +14,8 @@ export type AdminRideHailingProviderInstanceView = Omit<RideHailingProviderInsta
   config: AdminCaocaoProviderInstanceConfigView;
 };
 
-const resolveCallbackUrl = (providerInstance: RideHailingProviderInstance): string | null => {
-  if (
-    providerInstance.providerType !== "CAOCAO" ||
-    providerInstance.config.adapterMode !== "CAOCAO_OPEN_API" ||
-    !providerInstance.config.callbackBaseUrl
-  ) {
-    return null;
-  }
-
-  return resolveCaocaoOrderStatusCallbackUrl(providerInstance);
-};
+const resolveCallbackUrl = (providerInstance: RideHailingProviderInstance): string | null =>
+  resolveRideHailingProviderOrderStatusCallbackUrl(providerInstance);
 
 export function toAdminRideHailingProviderInstanceView(
   providerInstance: RideHailingProviderInstance,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Offer } from "../../../entities/offer";
 import type { ProductSku } from "../../../entities/product-sku";
 import type { ProductSpu } from "../../../entities/product-spu";
-import type { PricingRule } from "../../merchandising";
+import type { PricingRule } from "../../merchandising/contracts";
 import {
   buildOrderPricingExecutionSnapshot,
   resolvePricingFromExecutionSnapshot,

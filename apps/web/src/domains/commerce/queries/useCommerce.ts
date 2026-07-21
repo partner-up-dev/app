@@ -10,13 +10,16 @@ import {
   markNextCommerceOrderDetailTrigger,
   readCommerceOrderDetailDebugValue,
 } from "@/domains/commerce/use-cases/order-detail-debug";
+import {
+  useRideHailingOrderReconciliation,
+  useRideHailingProviderObservation,
+} from "@/domains/commerce/queries/ride-hailing-reconciliation";
 import { client } from "@/lib/rpc";
 import { buildApiError, readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { queryKeys } from "@/shared/api/query-keys";
 
 type CommerceApi = typeof client.api.commerce;
 type PlacementApi = typeof client.api.placements;
-type PrApi = typeof client.api.pr;
 
 export type PlacementMatchResponse = InferResponseType<PlacementApi["$post"]>;
 export type PlacementInstanceProjection = PlacementMatchResponse["placements"][number];
@@ -24,8 +27,6 @@ export type PlacementInstanceProjection = PlacementMatchResponse["placements"][n
 export type OrderingEntryResponse = InferResponseType<
   PlacementApi[":instanceId"]["ordering-entry"]["$post"]
 >;
-
-export type PrOfferOrderLookupResponse = InferResponseType<PrApi[":id"]["orders"]["$get"]>;
 
 export type OfferListingInput = Parameters<
   CommerceApi["offers"][":offerId"]["listing"]["$post"]
@@ -36,6 +37,10 @@ export type OfferListingResponse = InferResponseType<
 >;
 
 export type CreateOrderInput = Parameters<CommerceApi["orders"]["$post"]>[0]["json"];
+export type CreateOrderMutationInput = {
+  command: CreateOrderInput;
+  idempotencyKey: string;
+};
 
 export type CommerceOrderDetailResponse = InferResponseType<
   CommerceApi["orders"][":orderId"]["$get"]
@@ -62,6 +67,27 @@ const activeRideHailingDetailPollingPhases = new Set([
   "IN_TRIP",
 ]);
 
+export type CommerceOrderDetailPollAction = "RECONCILE" | "REFRESH_DETAIL" | "STOP";
+
+export const resolveCommerceOrderDetailPollAction = (
+  detail:
+    | {
+        rideHailing?: {
+          executionPhase?: string | null;
+          provider?: {
+            providerOrderId?: string | null;
+          } | null;
+        } | null;
+      }
+    | null
+    | undefined,
+): CommerceOrderDetailPollAction => {
+  const rideHailing = detail?.rideHailing ?? null;
+  const phase = rideHailing?.executionPhase ?? null;
+  if (phase === null || !activeRideHailingDetailPollingPhases.has(phase)) return "STOP";
+  return rideHailing?.provider?.providerOrderId ? "RECONCILE" : "REFRESH_DETAIL";
+};
+
 export const shouldPollCommerceOrderDetail = (
   detail:
     | {
@@ -72,8 +98,7 @@ export const shouldPollCommerceOrderDetail = (
     | null
     | undefined,
 ): boolean => {
-  const phase = detail?.rideHailing?.executionPhase ?? null;
-  return phase !== null && activeRideHailingDetailPollingPhases.has(phase);
+  return resolveCommerceOrderDetailPollAction(detail) !== "STOP";
 };
 
 const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise<T> => {
@@ -181,24 +206,6 @@ export const resolvePlacementOrderingEntry = async (input: {
   return readJsonOrThrow<OrderingEntryResponse>(response, "Failed to resolve ordering entry");
 };
 
-export const listPrOrdersForOffer = async (input: {
-  prId: number;
-  offerId: number;
-  statusIn: Array<"INITIATING" | "OPEN">;
-}): Promise<PrOfferOrderLookupResponse> => {
-  const response = await client.api.pr[":id"].orders.$get(
-    {
-      param: { id: String(input.prId) },
-      query: {
-        offerId: String(input.offerId),
-        statusIn: input.statusIn,
-      },
-    },
-    { init: { credentials: "include" } },
-  );
-  return readJsonOrThrow<PrOfferOrderLookupResponse>(response, "Failed to load PR orders");
-};
-
 export const useOfferListing = (
   input: Ref<{
     offerId: number;
@@ -234,9 +241,12 @@ export const useCreateOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateOrderInput) => {
+    mutationFn: async (input: CreateOrderMutationInput) => {
       const response = await client.api.commerce.orders.$post(
-        { json: input },
+        {
+          header: { "idempotency-key": input.idempotencyKey },
+          json: input.command,
+        },
         {
           init: {
             credentials: "include",
@@ -331,6 +341,55 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
     },
     enabled: () => orderId.value !== null,
   });
+  const reconcileRideHailingOrder = useRideHailingOrderReconciliation();
+  const providerObservationQuery = useRideHailingProviderObservation(orderId);
+
+  const pollCommerceOrderDetail = async (): Promise<void> => {
+    const currentOrderId = orderId.value;
+    const action = resolveCommerceOrderDetailPollAction(query.data.value);
+    if (currentOrderId === null || action === "STOP") return;
+
+    pollingTickCount += 1;
+    logCommerceOrderDetailDebug("detail.poll.tick", {
+      routeOrderId: currentOrderId,
+      pollingTickCount,
+      action,
+      ...summarizeOrderDetailDebug(query.data.value),
+    });
+
+    if (action === "RECONCILE") {
+      if (reconcileRideHailingOrder.isPending.value) {
+        logCommerceOrderDetailDebug("detail.poll.skip", {
+          routeOrderId: currentOrderId,
+          pollingTickCount,
+          action,
+          reason: "reconcile-pending",
+        });
+        return;
+      }
+      try {
+        await reconcileRideHailingOrder.mutateAsync({
+          orderId: currentOrderId,
+          trigger: "polling-interval",
+        });
+      } catch {
+        // The mutation owns diagnostics; a later bounded tick may observe recovery.
+      }
+      return;
+    }
+
+    if (query.isFetching.value) {
+      logCommerceOrderDetailDebug("detail.poll.skip", {
+        routeOrderId: currentOrderId,
+        pollingTickCount,
+        action,
+        reason: "detail-fetching",
+      });
+      return;
+    }
+    markNextCommerceOrderDetailTrigger(currentOrderId, "polling-interval-processing");
+    await query.refetch();
+  };
 
   let pollingIntervalId: ReturnType<typeof setInterval> | null = null;
   const stopPolling = () => {
@@ -350,14 +409,7 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
       stopPolling();
       if (!shouldPoll) return;
       pollingIntervalId = setInterval(() => {
-        pollingTickCount += 1;
-        markNextCommerceOrderDetailTrigger(orderId.value, "polling-interval");
-        logCommerceOrderDetailDebug("detail.poll.tick", {
-          routeOrderId: orderId.value,
-          pollingTickCount,
-          ...summarizeOrderDetailDebug(query.data.value),
-        });
-        void query.refetch();
+        void pollCommerceOrderDetail();
       }, ACTIVE_RIDE_HAILING_DETAIL_POLLING_MS);
     },
     { immediate: true },
@@ -382,7 +434,10 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
 
   onScopeDispose(stopPolling);
 
-  return query;
+  return {
+    ...query,
+    providerObservation: computed(() => providerObservationQuery.data.value ?? null),
+  };
 };
 
 export const useBillDetail = (billId: Ref<string | null>, debug?: BillDetailDebugOptions) => {
@@ -667,36 +722,3 @@ export const useRideHailingCancellationFeePreview = () =>
       }
     },
   });
-
-export const useMockRentalBookingConfirmation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (orderId: string) => {
-      const response = await client.api.commerce.orders[":orderId"][
-        "mock-rental-booking-confirmation"
-      ].$post(
-        {
-          param: {
-            orderId,
-          },
-        },
-        {
-          init: {
-            credentials: "include",
-          },
-        },
-      );
-      return readJsonOrThrow<
-        InferResponseType<
-          CommerceApi["orders"][":orderId"]["mock-rental-booking-confirmation"]["$post"]
-        >
-      >(response, "Failed to confirm rental booking");
-    },
-    onSuccess: (_, orderId) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.commerce.orderDetail(orderId),
-      });
-    },
-  });
-};

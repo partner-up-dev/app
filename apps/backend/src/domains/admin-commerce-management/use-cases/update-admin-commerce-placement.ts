@@ -6,12 +6,12 @@ import type {
   ButtonPlacementCreative,
   PlacementBindingRule,
   PlacementType,
-} from "../../merchandising";
+} from "../../merchandising/contracts";
 import {
   isPlacementMatchingRuleJson,
   resolvePlacementBindingContractForOffer,
   validatePlacementBindingRulesAgainstContract,
-} from "../../merchandising";
+} from "../../merchandising/contracts";
 
 const offerRepo = new OfferRepository();
 const placementRepo = new PlacementRepository();

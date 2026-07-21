@@ -7,8 +7,8 @@ import type {
   ProductType,
   ServicePolicy,
   SpuSalesPolicy,
-} from "../../merchandising";
-import { assertProductSpuContract } from "../../merchandising";
+} from "../../merchandising/contracts";
+import { assertProductSpuContract } from "../../merchandising/contracts";
 
 const productSpuRepo = new ProductSpuRepository();
 

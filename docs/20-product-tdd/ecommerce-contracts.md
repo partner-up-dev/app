@@ -10,9 +10,10 @@ It owns:
 - ecommerce domain grouping
 - stable user-facing route and page topology
 - PR-attached order invariant
-- cross-unit owner boundaries for Merchandising, Trade, Fulfillment, Bill, and
-  Payment
-- minimum frontend journey spine for Rental and RideHailing
+- cross-unit owner boundaries for Merchandising, Trade, historical Rental
+  compatibility, RideHailing, Bill, and Payment
+- minimum frontend journey spine for active RideHailing and retained historical
+  Rental reads
 - provider behavior only where it affects cross-unit user experience, billing,
   settlement, or cancellation semantics
 
@@ -31,6 +32,7 @@ Backend implementation should group ecommerce work under these domain families:
 - `merchandising`
 - `trade`
 - `fulfillment`
+- `ride-hailing`
 - `bill`
 - `payment`
 
@@ -46,8 +48,9 @@ Frontend should reflect the same coarse grouping on admin navigation:
 - `RideHailing` for provider-instance configuration and ride-hailing-specific
   operator tools
 
-Rental execution operations belong under `Trade`-adjacent operator work rather
-than under Merchandising configuration.
+Rental execution records remain a historical compatibility concern. They do
+not authorize a new Rental runtime workflow or make Fulfillment an active
+product owner for new Rental traffic.
 
 ## Authoritative Owners
 
@@ -75,6 +78,7 @@ Owns:
 
 - Order as the binding commerce contract
 - order snapshots
+- CreateOrderAttempt idempotency and provider-unknown recovery state
 - PR-context order creation flow
 - pricing execution for a concrete order draft/request
 - translation from fulfillment termination decision into bill target amount
@@ -90,14 +94,28 @@ Owns:
 
 - service-side execution truth that cannot be reduced to Order, Bill, or
   Payment
-- Rental booking result and cancellation handling
-- RideHailing execution truth needed for usage-based final settlement
-- authoritative termination admissibility decision
+- retained Rental execution data needed for historical reads
 
 Does not own:
 
 - contract pricing truth definitions
 - bill settlement truth
+- active RideHailing execution or a new Rental runtime path
+
+### RideHailing
+
+Owns:
+
+- provider dispatch binding and execution snapshots
+- normalized provider observation, monotonic execution reconciliation, and
+  final-settlement coordination
+- the narrow atomic coordination boundary required to persist an observation
+  and, after a committed terminal fare, its first final Bill consequence
+
+Does not own:
+
+- the base Trade contract or PR attachment rule
+- Bill obligation semantics or Payment provider execution
 
 ### Bill
 
@@ -153,8 +171,17 @@ BillLine owns the local provider execution slot for an obligation line:
   means paid; for `REFUND` lines it means refunded.
 - provider-specific merchant order/refund numbers are derived by the provider
   adapter from BillLine-local key material and are not persisted as Bill truth.
+- The canonical payment-attempt identity is the tuple
+  `(kind, billLineId, paymentProviderInstanceId, attemptCount)`. The backend
+  `PaymentTx` resource identifier and a provider-constrained merchant reference
+  are explicit projections of that one tuple, not separate business attempts.
+- A provider observation may settle a BillLine only when its complete tuple
+  matches the currently bound provider instance and attempt count. A replay of
+  that settled tuple performs no second immediate settlement consequence; an
+  older tuple is explicitly superseded and must not be projected as the newer
+  attempt.
 
-Current checkout interaction contract:
+Current checkout interaction and recovery contract:
 
 - billing-owned reads provide checkout target truth
 - payment-owned writes and polling provide provider execution truth
@@ -169,6 +196,18 @@ Current checkout interaction contract:
 - if a bill line already has an unfinished provider binding, selecting a
   different provider is rejected at charge-initiation time rather than hidden in
   provider discovery
+- a payment-client return is a UX input only. Checkout must reconcile through
+  provider query/callback and BillLine settlement truth; successful
+  reconciliation returns to Bill Detail, while closed, failed, or unknown
+  returns remain explicitly retryable on Checkout.
+- Before invoking a payment client, Checkout may retain an opaque,
+  same-browser-session `billLineId → paymentTxId` lookup hint. On a redirect
+  return or reload it must re-query the transient `PaymentTx` resource; the
+  hint contains no provider or Bill settlement status and cannot decide UI
+  success on its own.
+- Cross-device or otherwise uncorrelated payment return is not currently a
+  supported recovery contract. It requires an explicit future provider-return
+  design rather than browser-state inference.
 
 ## User-Facing Route Spine
 
@@ -177,6 +216,9 @@ Stable user-facing ecommerce route families are:
 - `/products/:productId`
 - `/offers/:offerId`
 - `/orders/:orderId`
+- `/bills` and `/bills/:billId` for viewer-scoped obligation reads
+- `/payment/checkout` for the bill-line checkout handoff; it is not a generic
+  product-resource route family
 
 Current constraints:
 
@@ -205,8 +247,10 @@ This means:
 
 - before create, primary action belongs on `/order/new`
 - after create, primary action belongs on `Order Detail`
-- payment, cancellation, fulfillment result, and final bill should stay inside
-  `Order Detail` unless an external gateway constraint later forces a detour
+- cancellation and fulfillment result should stay inside `Order Detail` unless
+  an external gateway constraint later forces a detour
+- payment starts from Bill Detail, enters `/payment/checkout` for a concrete
+  bill line, and returns to Bill Detail only after backend reconciliation
 
 ## Placement Contract
 
@@ -224,20 +268,23 @@ This means:
   are contained only inside `matchingContext`.
 - A Placement Instance contains `offerId` and creative
   `{ ctaLabel, description? }`. It does not contain a navigation target.
-- On click, Button Placement's entry flow checks existing PR-linked orders with
-  explicit status enum values, then either routes to Order Detail or resolves an
-  Ordering entry with `POST /api/placements/:instanceId/ordering-entry`, stores
-  the generic Ordering handoff, and opens `/order/new`.
 - Ordering entry resolution is a Placement boundary operation that calls the
   Offer domain for an `OrderingOfferDetail` projection, resolves bindings, and
   assembles `OrderingEntryPayload`.
 - Placement does not own Offer facts, price evaluation, order lifecycle,
   fulfillment, or product-specific Ordering Content layout.
 
-PR-context visibility rules:
+### Target PR-Context Admission Rule
 
-- active PR participants can see PR-context Button Placements
-- non-active participants should not mount Button Placement
+Phase 5 targets the following rule; the active implementation is characterized
+in the Phase 5 packet until focused/browser proof promotes it to Current:
+
+- active PR participants may see Commerce context and continue an existing
+  matching order
+- only the PR creator receives a new-order Button Placement CTA when no
+  matching non-terminal order exists
+- a non-creator without an existing matching order must not enter `/order/new`
+- non-active participants should not mount PR-context Commerce entry UI
 
 ## PR-Attached Order Invariant
 
@@ -320,8 +367,8 @@ Pricing ownership:
   but the current Ordering UI short-circuits the user-facing behavior to
   `现在出发`; PR-derived time is not imported into the active ordering surface
   for this slice.
-- For Rental, listing issues fixed quotes for the available rental SKUs matching
-  the current listing facts.
+- Rental is excluded from active Offer Listing: no new Rental quote may be
+  issued while runtime retirement is in effect.
 - Ordering Page owns create-order orchestration. Ordering Content must not call
   create-order.
 - Create-order product item payload is quote-only and does not repeat
@@ -350,24 +397,14 @@ Pricing ownership:
   own order or fulfillment management, but it does not attach PR or coordinate
   the base trade order.
 
-## Rental Frontend Journey Contract
+## Rental Runtime-Retirement Contract
 
-The baseline Rental user-visible chain is:
-
-1. PR Page placement entry
-2. `/order/new` ordering assembly and Offer Listing quote issuance
-3. Order creation from fixed quote id, unless any intended participant still has another unpaid payable order obligation
-4. Order Detail `待支付`
-5. same Order Detail `待确认预订`
-6. same Order Detail resolves to:
-   - `预约成功`
-   - `预约失败`
-   - `取消处理中`
-   - `已取消`
-   - `已完成`
-
-Cancellation entry should live on `Order Detail`, not as a separate user-facing
-route.
+Rental is retained only for historical compatibility. New Rental placement,
+listing, quote, order, payment, booking, cancellation, and entry-guidance
+traffic receives the stable `RENTAL_RUNTIME_RETIRED` HTTP 410 boundary and
+must not create an Order, Bill, provider execution, or fulfillment side effect.
+Historical Rental order and bill detail remain readable; retained schema and
+migrations are not a promise to restore the product flow.
 
 ## RideHailing Frontend Journey Contract
 
@@ -387,17 +424,13 @@ forcing the whole order-detail projection to become a high-frequency payload.
 
 ## Fulfillment And Billing Contract
 
-Rental:
+Rental (runtime retired):
 
-- prepaid
-- create-order must reject when any intended participant still has another unpaid payable order obligation; this guard applies before the new order row is created
-- the current payable-obligation guard is Bill-owned and only considers positive unsettled `CHARGE` lines whose source order unpaid window is still open
-- zero-amount `CHARGE` lines are created as settled and historical zero-amount charge lines must be backfilled to the same paid semantics
-- Bill exists before execution begins
-- typed order creation keeps the standard unpaid payment window on the base
-  Order timeout snapshot
-- Rental execution state is stored on `rental_orders`
-- booking state becomes actionable after prepaid settlement
+- `rental_orders` and related historical Bill data remain readable
+- no new Rental order, Bill, provider execution, booking, cancellation, or
+  guidance state may be created or advanced
+- retained schema/migrations are a data-retention decision, not a runtime
+  capability or a future fulfillment contract
 
 RideHailing:
 
@@ -420,6 +453,16 @@ RideHailing:
   service vehicle confirmed by the provider lifecycle.
 - execution phase and ride execution snapshots are stored on
   `ride_hailing_orders`
+- `GET /orders/:orderId` is a local projection and never performs provider I/O
+  or writes RideHailing/Bill state. Browser polling may issue the explicit
+  reconcile command; verified provider callbacks and cancellation preflight use
+  the same reconciliation path.
+- Provider I/O occurs outside the local reconciliation transaction. RideHailing
+  owns two semantic atomic operations: apply a normalized provider observation,
+  then commit a terminal fare and its first final-Bill consequence. Both
+  recheck the dispatch binding after fixed Trade then RideHailing locks; the
+  Port does not expose raw provider payloads, repositories, rows, or a generic
+  Commerce executor.
 - provider adapter computes external order id dynamically; the provider-side
   order id returned by create is stored in the RideHailing dispatch binding
   together with provider instance identity
@@ -457,6 +500,14 @@ RideHailing:
   later returns a non-zero settlement amount, backend may still materialize
   that result through the same final Bill model
 
+### Current Final-Settlement Correction Boundary
+
+When a later authoritative provider settlement disagrees after a final Bill has
+been committed, reconciliation returns an explicit `correctionRequired`
+result and leaves both committed fare and Bill history unchanged. Automatic
+compensating adjustment/refund is intentionally deferred pending a separate
+product decision and proof; it must not be inferred from this boundary.
+
 ## Termination Contract
 
 Order cancellation is contract termination, not merely a bill or fulfillment
@@ -467,7 +518,9 @@ Topology:
 - family typed Order state is authoritative on service-side termination
   admissibility
 - Order translates service-side reality into buyer-side equivalent total
-- Bill materializes the delta needed to converge to that target total
+- Bill materializes the delta needed to converge to a decided termination
+  target; a later RideHailing fare disagreement follows the correction-required
+  boundary above instead of silently rewriting that target
 
 Current stable shapes:
 

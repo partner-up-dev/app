@@ -22,6 +22,10 @@ import type {
   RideHailingProviderVehicleLocation,
   RideHailingProviderVehicleQuote,
 } from "../model";
+import {
+  RideHailingProviderCreateOutcomeUnknownError,
+  RideHailingProviderCreateRejectedError,
+} from "../model";
 
 type CaocaoParamValue = string | number | boolean | null | undefined;
 type CaocaoParamInput = Record<string, CaocaoParamValue>;
@@ -738,9 +742,17 @@ const parseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData>
   };
 };
 
-const assertCaocaoSuccess = <TData>(response: CaocaoRawResponse<TData>): TData => {
+const assertCaocaoSuccess = <TData>(
+  response: CaocaoRawResponse<TData>,
+  failureSemantics: "DEFAULT" | "CREATE" = "DEFAULT",
+): TData => {
   if (response.code === 200 && response.success) {
     return response.data as TData;
+  }
+  if (failureSemantics === "CREATE") {
+    throw new RideHailingProviderCreateRejectedError(
+      `Caocao rejected create: ${response.code} ${response.msg ?? ""}`.trim(),
+    );
   }
   if (response.code === 406) {
     return throwHttpProblem({
@@ -812,6 +824,25 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     return encodeCaocaoExternalOrderId(orderId);
   }
 
+  buildCreateRideCallbackInfo(): string {
+    return buildCaocaoCallbackInfo({ providerInstance: this.input.providerInstance });
+  }
+
+  buildCreateRideSubmission(
+    candidates: RideHailingProviderCreateRideCandidate[],
+  ): RideHailingProviderCreateRideSubmission {
+    const submission = buildCaocaoCreateRideSubmissionParams(candidates);
+    return {
+      submissionMode: submission.mode,
+      submittedCandidateIds: submission.submittedCandidates.map(
+        (candidate) => candidate.candidateId,
+      ),
+      providerVehicleTypeCodes: submission.submittedCandidates.map(
+        (candidate) => candidate.providerVehicleTypeCode,
+      ),
+    };
+  }
+
   parseExternalOrderId(externalOrderId: string): string | null {
     return decodeCaocaoExternalOrderId(externalOrderId);
   }
@@ -866,42 +897,62 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
   }> {
     const externalOrderId = this.buildExternalOrderId(input.orderId);
     const submission = buildCaocaoCreateRideSubmissionParams(input.candidates);
-    const requestParams = await this.buildCreateRideRequestParams({
-      callback_info: input.callbackInfo,
-      caller_phone: input.contactPhone,
-      departure_at: input.departureAt,
-      end_address: input.route.destination.address,
-      end_name: input.route.destination.name,
-      ext_order_id: externalOrderId,
-      from_latitude: input.route.origin.latitude,
-      from_longitude: input.route.origin.longitude,
-      passenger_name: input.passenger.name,
-      passenger_phone: input.passenger.phone,
-      start_address: input.route.origin.address,
-      start_name: input.route.origin.name,
-      to_latitude: input.route.destination.latitude,
-      to_longitude: input.route.destination.longitude,
-      ...submission.params,
-    });
-    const data = await this.request<Record<string, unknown>>(
-      "POST",
-      "/common/orderCarV2",
-      requestParams,
-    );
-    return {
-      providerOrderId: readRequiredStringField(data, "orderNo"),
-      externalOrderId,
-      dispatchSubmission: {
-        submissionMode: submission.mode,
-        submittedCandidateIds: submission.submittedCandidates.map(
-          (candidate) => candidate.candidateId,
-        ),
-        providerVehicleTypeCodes: submission.submittedCandidates.map(
-          (candidate) => candidate.providerVehicleTypeCode,
-        ),
-      },
-      providerSnapshot: data,
-    };
+    let requestParams: CaocaoParamInput;
+    try {
+      requestParams = await this.buildCreateRideRequestParams({
+        callback_info: input.callbackInfo,
+        caller_phone: input.contactPhone,
+        departure_at: input.departureAt,
+        end_address: input.route.destination.address,
+        end_name: input.route.destination.name,
+        ext_order_id: externalOrderId,
+        from_latitude: input.route.origin.latitude,
+        from_longitude: input.route.origin.longitude,
+        passenger_name: input.passenger.name,
+        passenger_phone: input.passenger.phone,
+        start_address: input.route.origin.address,
+        start_name: input.route.origin.name,
+        to_latitude: input.route.destination.latitude,
+        to_longitude: input.route.destination.longitude,
+        ...submission.params,
+      });
+    } catch (error) {
+      throw new RideHailingProviderCreateOutcomeUnknownError(
+        error instanceof Error
+          ? error.message
+          : "Caocao create request preparation outcome unknown",
+        { cause: error },
+      );
+    }
+
+    try {
+      const data = await this.request<Record<string, unknown>>(
+        "POST",
+        "/common/orderCarV2",
+        requestParams,
+        "CREATE",
+      );
+      return {
+        providerOrderId: readRequiredStringField(data, "orderNo"),
+        externalOrderId,
+        dispatchSubmission: {
+          submissionMode: submission.mode,
+          submittedCandidateIds: submission.submittedCandidates.map(
+            (candidate) => candidate.candidateId,
+          ),
+          providerVehicleTypeCodes: submission.submittedCandidates.map(
+            (candidate) => candidate.providerVehicleTypeCode,
+          ),
+        },
+        providerSnapshot: data,
+      };
+    } catch (error) {
+      if (error instanceof RideHailingProviderCreateRejectedError) throw error;
+      throw new RideHailingProviderCreateOutcomeUnknownError(
+        error instanceof Error ? error.message : "Caocao create outcome is unknown",
+        { cause: error },
+      );
+    }
   }
 
   async queryOrderDetail(input: {
@@ -1179,6 +1230,7 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
     method: "GET" | "POST",
     endpointPath: string,
     params: CaocaoParamInput = {},
+    failureSemantics: "DEFAULT" | "CREATE" = "DEFAULT",
   ): Promise<TData> {
     const signedParams = buildCaocaoSignedParams({
       params,
@@ -1217,6 +1269,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
       });
     }
 
-    return assertCaocaoSuccess(parseCaocaoResponseBody<TData>(responseBody));
+    return assertCaocaoSuccess(parseCaocaoResponseBody<TData>(responseBody), failureSemantics);
   }
 }

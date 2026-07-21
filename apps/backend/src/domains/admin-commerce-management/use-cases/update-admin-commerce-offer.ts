@@ -2,8 +2,8 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type { OfferId } from "../../../entities/offer";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
-import type { PricingRule, ProductType } from "../../merchandising";
-import { assertOfferMatchesSpus } from "../../merchandising";
+import type { PricingRule, ProductType } from "../../merchandising/contracts";
+import { assertOfferMatchesSpus } from "../../merchandising/contracts";
 
 const offerRepo = new OfferRepository();
 const productSpuRepo = new ProductSpuRepository();

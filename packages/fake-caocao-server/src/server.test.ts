@@ -1031,4 +1031,39 @@ describe("startFakeCaocaoServer", () => {
     expect(stateBody.failNextCreate).toBe(false);
     expect(stateBody.orders).toHaveLength(0);
   });
+
+  test("accepts one create while dropping its response and exposes provider call count", async () => {
+    server = await startFakeCaocaoServer();
+    const armed = await fetch(`${server.origin}/__fake_caocao/create-response-loss/next`, {
+      method: "POST",
+    });
+    expect(armed.ok).toBe(true);
+
+    const createResponse = await fetch(`${server.origin}/common/orderCarV2`, {
+      body: signedSearchParams({
+        clientId: server.fixture.clientId,
+        params: defaultCreateParams({
+          car_type: "3",
+          estimate_price: "3600",
+          estimate_price_key: "fake_quote_3_3600",
+          ext_order_id: "external-response-lost",
+          timestamp: "52",
+        }),
+        signKey: server.fixture.signKey,
+      }).toString(),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: "POST",
+    });
+    expect(createResponse.status).toBe(503);
+
+    const stateResponse = await fetch(`${server.origin}/__fake_caocao/state`);
+    const stateBody = (await stateResponse.json()) as {
+      createRequestCount: number;
+      dropNextCreateResponseAfterAccept: boolean;
+      orders: unknown[];
+    };
+    expect(stateBody.createRequestCount).toBe(1);
+    expect(stateBody.dropNextCreateResponseAfterAccept).toBe(false);
+    expect(stateBody.orders).toHaveLength(1);
+  });
 });

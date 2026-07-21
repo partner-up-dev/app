@@ -1,65 +1,23 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { Offer, OfferId } from "../../../entities/offer";
 import type { ProductSku } from "../../../entities/product-sku";
-import type { ProductSpu } from "../../../entities/product-spu";
 import { OfferRepository } from "../../../repositories/OfferRepository";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { ProductSpuRepository } from "../../../repositories/ProductSpuRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
-import type {
-  CatalogStatus,
-  FixedTotalPricingModel,
-  ProductPresentation,
-  ProductType,
-  RentalSkuFacts,
-  RideHailingSkuFacts,
-  SpuSalesPolicy,
-} from "../model";
+import type { OrderingOfferDetail } from "../contracts";
+import type { FixedTotalPricingModel } from "../model";
+
+export type { OrderingOfferDetail } from "../contracts";
+export { isRentalSkuFacts, isRideHailingSkuFacts } from "../contracts";
 
 const offerRepo = new OfferRepository();
 const productSpuRepo = new ProductSpuRepository();
 const productSkuRepo = new ProductSkuRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();
 
-export type OrderingOfferDetailSku = {
-  skuId: number;
-  spuId: number;
-  name: string;
-  status: CatalogStatus;
-  sortOrder: number;
-  presentation: ProductPresentation;
-  facts: ProductSku["facts"];
-  pricingModel: ProductSku["pricingModel"];
-  cancellationPolicySummary: Array<{
-    visibleLabel: string;
-    refundPercent: number;
-    requiresOperatorHandling: boolean;
-  }>;
-};
-
-export type OrderingOfferDetailSpu = {
-  spuId: number;
-  name: string;
-  status: CatalogStatus;
-  productType: ProductType;
-  salesPolicy: SpuSalesPolicy;
-  servicePolicy: ProductSpu["servicePolicy"];
-  presentation: ProductPresentation;
-  facts: ProductSpu["facts"];
-  skuOptions: OrderingOfferDetailSku[];
-};
-
-export type OrderingOfferDetail = {
-  offerId: number;
-  productType: ProductType;
-  spuIds: number[];
-  skuIds: number[];
-  pricingPolicy: Offer["pricingPolicy"];
-  termsVersion: number;
-  startsAt: string | null;
-  endsAt: string | null;
-  spus: OrderingOfferDetailSpu[];
-};
+type OrderingOfferDetailSpu = OrderingOfferDetail["spus"][number];
+type OrderingOfferDetailSku = OrderingOfferDetailSpu["skuOptions"][number];
 
 const isActiveNow = (offer: Offer, now = new Date()): boolean => {
   if (offer.status !== "ACTIVE") return false;
@@ -82,30 +40,6 @@ async function buildCancellationPolicySummary(sku: ProductSku) {
     })) ?? []
   );
 }
-
-export const isRentalSkuFacts = (value: unknown): value is RentalSkuFacts => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const record = value as Record<string, unknown>;
-  return (
-    record.type === "RENTAL" &&
-    typeof record.zoneCode === "string" &&
-    typeof record.participantCount === "number" &&
-    typeof record.durationMinutes === "number"
-  );
-};
-
-export const isRideHailingSkuFacts = (value: unknown): value is RideHailingSkuFacts => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.rideHailingProviderInstanceId === "string" &&
-    typeof record.providerVehicleTypeCode === "string"
-  );
-};
 
 export const isFixedTotalPricingModel = (
   value: ProductSku["pricingModel"],

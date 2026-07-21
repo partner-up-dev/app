@@ -2,7 +2,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type { ProductSkuId } from "../../../entities/product-sku";
 import { ProductSkuRepository } from "../../../repositories/ProductSkuRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
-import { assertSkuPolicyBinding } from "../../merchandising";
+import { assertSkuPolicyBinding } from "../../merchandising/contracts";
 
 const productSkuRepo = new ProductSkuRepository();
 const skuCancellationPolicyRepo = new SkuCancellationPolicyRepository();

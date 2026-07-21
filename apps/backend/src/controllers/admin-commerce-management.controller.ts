@@ -4,14 +4,16 @@ import { z } from "zod";
 import {
   createOffer,
   createPlacement,
-  type CreateOfferInput,
-  type CreatePlacementInput,
-  type CreateProductSkuInput,
-  type CreateProductSpuInput,
   createProductSku,
   createProductSpu,
   createSkuCancellationPolicy,
-} from "../domains/merchandising";
+} from "../domains/merchandising/commands";
+import type {
+  CreateOfferInput,
+  CreatePlacementInput,
+  CreateProductSkuInput,
+  CreateProductSpuInput,
+} from "../domains/merchandising/contracts";
 import {
   confirmRentalBooking,
   recordRentalEntryGuidance,

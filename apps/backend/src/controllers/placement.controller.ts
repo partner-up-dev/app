@@ -2,13 +2,15 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware, type AuthEnv } from "../auth/middleware";
+import type {
+  MatchPlacementInstanceResult,
+  PlacementOrderingEntryResult,
+} from "../domains/merchandising/contracts";
 import {
   matchPlacementInstance,
-  type MatchPlacementInstanceResult,
-  type OrderingEntryPayload,
   resolvePlacementOrderingEntry,
   resolvePlacementInstanceBindings,
-} from "../domains/merchandising";
+} from "../domains/merchandising/queries";
 
 const app = new Hono<AuthEnv>();
 
@@ -41,7 +43,7 @@ type PlacementRouteSchema = {
   "/:instanceId/ordering-entry": {
     $post: JsonEndpoint<
       { param: { instanceId: string }; json: z.infer<typeof matchingContextSchema> },
-      OrderingEntryPayload
+      PlacementOrderingEntryResult
     >;
   };
   "/:instanceId/bindings": {

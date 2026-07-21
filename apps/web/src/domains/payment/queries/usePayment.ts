@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, type Ref } from "vue";
 import { client } from "@/lib/rpc";
@@ -21,7 +21,7 @@ const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise
   return (await response.json()) as T;
 };
 
-export const fetchPaymentTx = async (paymentTxId: string): Promise<PaymentTxResponse> => {
+const fetchPaymentTx = async (paymentTxId: string): Promise<PaymentTxResponse> => {
   const response = await client.api.payment[":paymentTxId"].$get(
     {
       param: {
@@ -56,8 +56,16 @@ export const usePaymentProviders = () =>
     },
   });
 
-export const usePaymentTx = (paymentTxId: Ref<string | null>) =>
-  useQuery<PaymentTxResponse>({
+const paymentTxQueryOptions = (paymentTxId: string) =>
+  queryOptions({
+    queryKey: queryKeys.payment.tx(paymentTxId),
+    queryFn: () => fetchPaymentTx(paymentTxId),
+    retry: false,
+  });
+
+export const usePaymentTx = (paymentTxId: Ref<string | null>) => {
+  const queryClient = useQueryClient();
+  const query = useQuery<PaymentTxResponse>({
     queryKey: computed(() => queryKeys.payment.tx(paymentTxId.value)),
     queryFn: async () => {
       if (paymentTxId.value === null) {
@@ -65,8 +73,23 @@ export const usePaymentTx = (paymentTxId: Ref<string | null>) =>
       }
       return fetchPaymentTx(paymentTxId.value);
     },
-    enabled: () => paymentTxId.value !== null,
+    enabled: false,
+    retry: false,
   });
+
+  const reconcile = async (requestedPaymentTxId: string): Promise<PaymentTxResponse> =>
+    queryClient.fetchQuery(paymentTxQueryOptions(requestedPaymentTxId));
+
+  const seed = (snapshot: PaymentTxResponse): void => {
+    queryClient.setQueryData(queryKeys.payment.tx(snapshot.paymentTxId), snapshot);
+  };
+
+  return {
+    ...query,
+    reconcile,
+    seed,
+  };
+};
 
 export const useCreatePaymentCharge = () =>
   useMutation({

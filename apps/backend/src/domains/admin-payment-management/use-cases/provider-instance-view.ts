@@ -3,7 +3,7 @@ import { env } from "../../../lib/env";
 import type {
   WeChatPayPlatformCertificate,
   WeChatPayProviderInstanceConfig,
-} from "../../payment/model";
+} from "../../payment/contracts";
 
 export type AdminWeChatPayPlatformCertificateView = Omit<
   WeChatPayPlatformCertificate,

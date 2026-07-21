@@ -63,6 +63,7 @@
           v-if="rideHailingDetail"
           :detail="detail"
           :ride="rideHailingDetail"
+          :provider-observation="orderQuery.providerObservation.value"
           :route-order-id="orderId"
         />
 
@@ -144,7 +145,7 @@
             </div>
 
             <PuButton
-              v-if="detail.cancellation.canRequest"
+              v-if="detail.order.family !== 'RENTAL' && detail.cancellation.canRequest"
               tone="danger"
               variant="outline"
               :loading="cancelMutation.isPending.value"
@@ -181,18 +182,6 @@
               {{ fulfillmentStatusLabel }}
             </p>
 
-            <PuButton
-              v-if="canConfirmRentalBooking"
-              size="lg"
-              tone="secondary"
-              variant="solid"
-              :loading="confirmationMutation.isPending.value"
-              data-testid="order-detail.mock-rental-confirm"
-              @click="simulateBookingConfirmation"
-            >
-              模拟确认预订
-            </PuButton>
-
             <PuInlineNotice
               v-if="detail.fulfillment?.bookingStatus === 'BOOKING_CONFIRMED'"
               tone="success"
@@ -222,7 +211,6 @@ import {
   type CommerceOrderDetailResponse,
   useCancelOrder,
   useCommerceOrderDetail,
-  useMockRentalBookingConfirmation,
 } from "@/domains/commerce/queries/useCommerce";
 import RideHailingOrderContent from "@/domains/commerce/ui/order-detail/RideHailingOrderContent.vue";
 import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
@@ -244,7 +232,6 @@ const orderId = computed(() => {
 
 const orderQuery = useCommerceOrderDetail(orderId);
 const cancelMutation = useCancelOrder();
-const confirmationMutation = useMockRentalBookingConfirmation();
 
 const detail = computed(() => orderQuery.data.value ?? null);
 const rideHailingDetail = computed(() => detail.value?.rideHailing ?? null);
@@ -321,13 +308,6 @@ const fulfillmentStatusLabel = computed(() => {
   return "支付完成，等待场地方确认预订。";
 });
 
-const canConfirmRentalBooking = computed(
-  () =>
-    detail.value?.order.status === "OPEN" &&
-    detail.value?.payment.status === "PAID" &&
-    detail.value.fulfillment?.bookingStatus === "PENDING_BOOKING",
-);
-
 const cancellationPolicySummary = computed(() => {
   const items = detail.value?.order.items ?? [];
   return items.flatMap((item) => {
@@ -393,10 +373,6 @@ const cancelOrder = async (): Promise<void> => {
   await cancelMutation.mutateAsync(orderId.value);
 };
 
-const simulateBookingConfirmation = async (): Promise<void> => {
-  if (!orderId.value) return;
-  await confirmationMutation.mutateAsync(orderId.value);
-};
 </script>
 
 <style scoped lang="scss">

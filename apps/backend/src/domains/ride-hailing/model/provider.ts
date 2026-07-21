@@ -114,6 +114,20 @@ export type RideHailingProviderCreateRideSubmission = {
   providerVehicleTypeCodes: string[];
 };
 
+export class RideHailingProviderCreateRejectedError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "RideHailingProviderCreateRejectedError";
+  }
+}
+
+export class RideHailingProviderCreateOutcomeUnknownError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "RideHailingProviderCreateOutcomeUnknownError";
+  }
+}
+
 export type RideHailingProviderCoordinate = {
   latitude: number;
   longitude: number;
@@ -164,6 +178,24 @@ export type RideHailingProviderOrderDetail = {
   providerSnapshot: unknown;
 };
 
+export type RideHailingProviderObservation = {
+  phase: string;
+  statusLabel: string;
+  providerVehicleTypeCode: string | null;
+  providerVehicleTypeName: string | null;
+  driver: RideHailingProviderOrderDetail["driver"];
+  vehicle: RideHailingProviderOrderDetail["vehicle"];
+  vehicleLocation: Omit<RideHailingProviderVehicleLocation, "providerSnapshot"> | null;
+  navigationRoute: {
+    routeKind: RideHailingProviderNavigationRouteKind;
+    polyline: RideHailingProviderCoordinate[];
+    remainingDistanceMeters: number | null;
+    remainingDurationSeconds: number | null;
+    trafficLightCount: number | null;
+    vehicleLocation: Omit<RideHailingProviderVehicleLocation, "providerSnapshot"> | null;
+  } | null;
+};
+
 export type RideHailingProviderFinalSettlementResult = {
   amountFen: number;
   currency: "CNY";
@@ -203,6 +235,10 @@ export type RideHailingProviderConfirmFeeInput = {
 
 export type RideHailingProviderPort = {
   buildExternalOrderId(orderId: string): string;
+  buildCreateRideCallbackInfo(): string | null;
+  buildCreateRideSubmission(
+    candidates: RideHailingProviderCreateRideCandidate[],
+  ): RideHailingProviderCreateRideSubmission;
   parseExternalOrderId(externalOrderId: string): string | null;
   estimate(input: RideHailingProviderEstimateInput): Promise<RideHailingProviderVehicleQuote>;
   createRide(input: RideHailingProviderCreateRideInput): Promise<{

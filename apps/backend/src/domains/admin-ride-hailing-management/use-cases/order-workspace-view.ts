@@ -2,7 +2,7 @@ import type { Bill } from "../../../entities/bill";
 import type { RideHailingOrder } from "../../../entities/ride-hailing-order";
 import type { RideHailingProviderInstance } from "../../../entities/ride-hailing-provider";
 import type { TradeOrder } from "../../../entities/trade-order";
-import type { RideHailingDispatchBindingSnapshot } from "../../trade/model";
+import type { RideHailingDispatchBindingSnapshot } from "../../trade/contracts";
 
 export type AdminRideHailingProviderInstanceSummaryView = Pick<
   RideHailingProviderInstance,

@@ -6,8 +6,8 @@ import type { ProductSkuId } from "./product-sku";
 import { productSkus } from "./product-sku";
 import type { ProductSpuId } from "./product-spu";
 import { productSpus } from "./product-spu";
-import type { ProductType } from "../domains/merchandising/model";
-import type { PriceExplanation } from "../domains/merchandising";
+import type { PriceExplanation } from "../domains/merchandising/model/pricing";
+import type { ProductType } from "../domains/merchandising/model/product";
 import type {
   OrderParticipantSnapshot,
   RentalRegistrant,

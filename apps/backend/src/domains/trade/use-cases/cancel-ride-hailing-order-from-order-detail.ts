@@ -10,15 +10,15 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import { RideHailingProviderSyncQueryError } from "../../ride-hailing/contracts";
 import {
-  createRideHailingProviderPort,
-  RideHailingProviderSyncQueryError,
-  type RideHailingProviderSyncTrigger,
-  syncRideHailingOrderWithProvider,
-} from "../../ride-hailing";
+  createRideHailingDispatchPort,
+  synchronizeRideHailingBeforeCancellation,
+} from "../../ride-hailing/ports";
 import {
   appendTerminationAttempt,
   approveTerminationAttempt,
+  denyTerminationAttempt,
   markTerminationAttemptResolving,
   toTradeOrderModel,
 } from "../services";
@@ -83,12 +83,12 @@ const assertActorMayCancelRideHailingOrder = (
 async function syncRideHailingOrderBeforeCancellationDecision(input: {
   orderId: TradeOrderId;
   debug?: CommerceOrderDetailDebugContext;
-  trigger: RideHailingProviderSyncTrigger;
+  purpose: "FEE_PREVIEW" | "CANCEL_REQUEST";
 }) {
   try {
-    await syncRideHailingOrderWithProvider({
+    await synchronizeRideHailingBeforeCancellation({
       orderId: input.orderId,
-      trigger: input.trigger,
+      purpose: input.purpose,
       debug: input.debug,
     });
   } catch (error) {
@@ -162,7 +162,7 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
 
   await syncRideHailingOrderBeforeCancellationDecision({
     orderId: orderRecord.id,
-    trigger: "CANCEL_FEE_PREVIEW",
+    purpose: "FEE_PREVIEW",
     debug: input.debug,
   });
 
@@ -218,7 +218,7 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     });
   }
 
-  const port = createRideHailingProviderPort({ providerInstance });
+  const port = createRideHailingDispatchPort({ providerInstance });
   logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.start", {
     ...summarizeOrderRecord(syncedOrderRecord),
     ...summarizeRideOrder(syncedRideOrder),
@@ -333,9 +333,9 @@ async function cancelRideHailingOrder(input: {
       ...summarizeOrderRecord(orderRecord),
       ...summarizeRideOrder(initialRideOrder),
     });
-    await syncRideHailingOrderWithProvider({
+    await synchronizeRideHailingBeforeCancellation({
       orderId: orderRecord.id,
-      trigger: "CANCEL_REQUEST",
+      purpose: "CANCEL_REQUEST",
       debug: input.debug,
     });
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.pre-sync.success", {
@@ -457,56 +457,15 @@ async function cancelRideHailingOrder(input: {
     });
   }
 
-  const port = createRideHailingProviderPort({ providerInstance });
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.start", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: dispatchBinding.providerOrderId,
-    actorAuthority: input.actor.authority,
-    providerWhoCancel: input.actor.providerWhoCancel,
-  });
-
-  let providerCancellation: Awaited<ReturnType<typeof port.cancelRide>>;
-  try {
-    providerCancellation = await port.cancelRide({
-      providerOrderId: dispatchBinding.providerOrderId,
-      cancelCode: 12,
-      cancelReason: input.actor.providerCancelReason,
-      whoCancel: input.actor.providerWhoCancel,
-    });
-  } catch (error) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.error", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      providerInstanceId: dispatchBinding.providerInstanceId,
-      providerOrderId: dispatchBinding.providerOrderId,
-      error:
-        error instanceof Error
-          ? {
-              message: error.message,
-              name: error.name,
-              stack: error.stack ?? null,
-            }
-          : error,
-    });
-    throw error;
-  }
-
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.success", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: dispatchBinding.providerOrderId,
-    cancelFeeFen: providerCancellation.cancelFeeFen,
-  });
-  const decidedAt = new Date().toISOString();
-
-  return db.transaction(async (tx) => {
+  const port = createRideHailingDispatchPort({ providerInstance });
+  const claim = await db.transaction(async (tx) => {
     const transactionalTradeOrderRepo = new TradeOrderRepository(tx);
     const transactionalRideOrderRepo = new RideHailingOrderRepository(tx);
 
-    const currentOrderRecord = await transactionalTradeOrderRepo.findById(orderRecord.id);
+    // Every cancellation/callback/reconciliation transaction locks Trade first, then Ride.
+    const currentOrderRecord = await transactionalTradeOrderRepo.findByIdForUpdate(orderRecord.id);
     if (!currentOrderRecord) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.order-missing", {
+      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.order-missing", {
         localOrderId: orderRecord.id,
       });
       return throwHttpProblem({ status: 404, detail: "Order not found" });
@@ -522,7 +481,7 @@ async function cancelRideHailingOrder(input: {
     }
     assertActorMayCancelRideHailingOrder(currentOrderRecord, input.actor);
     if (currentOrderRecord.status !== "OPEN") {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.order-status-blocked", {
+      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.order-status-blocked", {
         ...summarizeOrderRecord(currentOrderRecord),
       });
       return throwHttpProblem({
@@ -531,9 +490,11 @@ async function cancelRideHailingOrder(input: {
       });
     }
 
-    const currentRideOrder = await transactionalRideOrderRepo.findByOrderId(currentOrderRecord.id);
+    const currentRideOrder = await transactionalRideOrderRepo.findByOrderIdForUpdate(
+      currentOrderRecord.id,
+    );
     if (!currentRideOrder) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.ride-order-missing", {
+      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.ride-order-missing", {
         ...summarizeOrderRecord(currentOrderRecord),
       });
       return throwHttpProblem({
@@ -541,12 +502,12 @@ async function cancelRideHailingOrder(input: {
         detail: "RideHailing order facts are missing",
       });
     }
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.ride-order", {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.ride-order", {
       ...summarizeOrderRecord(currentOrderRecord),
       ...summarizeRideOrder(currentRideOrder),
     });
     if (!isCancellableRideHailingExecutionPhase(currentRideOrder.executionPhase)) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.phase-blocked", {
+      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.phase-blocked", {
         ...summarizeOrderRecord(currentOrderRecord),
         ...summarizeRideOrder(currentRideOrder),
       });
@@ -555,12 +516,30 @@ async function cancelRideHailingOrder(input: {
         detail: "RideHailing order cannot be cancelled from its current phase",
       });
     }
+    if (!currentRideOrder.dispatchBinding?.providerOrderId) {
+      return throwHttpProblem({
+        status: 409,
+        detail: "RideHailing order is missing dispatch binding",
+      });
+    }
+    if (
+      currentOrderRecord.terminationAttempts.some(
+        (attempt) => attempt.status === "PENDING" || attempt.status === "APPROVED",
+      )
+    ) {
+      return throwHttpProblem({
+        status: 409,
+        detail: "RideHailing cancellation is already in progress",
+        code: "RIDE_HAILING_CANCELLATION_IN_PROGRESS",
+      });
+    }
 
     const order = toTradeOrderModel(currentOrderRecord);
     const attemptId = createAttemptId();
+    const requestedAt = new Date().toISOString();
     const appended = appendTerminationAttempt(order, {
       attemptId,
-      requestedAt: decidedAt,
+      requestedAt,
       requestedBy: input.actor.actorUserId as UserId,
     });
     const resolving = markTerminationAttemptResolving(
@@ -568,8 +547,147 @@ async function cancelRideHailingOrder(input: {
       attemptId,
       "RIDE_HAILING_FULFILLMENT",
     );
-    const approved = approveTerminationAttempt(resolving, {
+    const persisted = await transactionalTradeOrderRepo.applyTerminationState({
+      id: order.id as TradeOrderId,
+      status: resolving.status,
+      terminationAttempts: resolving.terminationAttempts,
+    });
+    if (!persisted) {
+      return throwHttpProblem({
+        status: 500,
+        detail: "Failed to persist RideHailing cancellation claim",
+      });
+    }
+
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.persisted", {
+      ...summarizeOrderRecord(currentOrderRecord),
+      ...summarizeRideOrder(currentRideOrder),
       attemptId,
+      providerOrderId: currentRideOrder.dispatchBinding.providerOrderId,
+    });
+    return {
+      attemptId,
+      providerOrderId: currentRideOrder.dispatchBinding.providerOrderId,
+    };
+  });
+
+  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.start", {
+    ...summarizeOrderRecord(syncedOrderRecord),
+    ...summarizeRideOrder(syncedRideOrder),
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: claim.providerOrderId,
+    actorAuthority: input.actor.authority,
+    providerWhoCancel: input.actor.providerWhoCancel,
+    attemptId: claim.attemptId,
+  });
+
+  let providerCancellation: Awaited<ReturnType<typeof port.cancelRide>>;
+  try {
+    providerCancellation = await port.cancelRide({
+      providerOrderId: claim.providerOrderId,
+      cancelCode: 12,
+      cancelReason: input.actor.providerCancelReason,
+      whoCancel: input.actor.providerWhoCancel,
+    });
+  } catch (error) {
+    logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.error", {
+      ...summarizeOrderRecord(syncedOrderRecord),
+      providerInstanceId: dispatchBinding.providerInstanceId,
+      providerOrderId: claim.providerOrderId,
+      attemptId: claim.attemptId,
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              name: error.name,
+              stack: error.stack ?? null,
+            }
+          : error,
+    });
+    await db.transaction(async (tx) => {
+      const transactionalTradeOrderRepo = new TradeOrderRepository(tx);
+      const transactionalRideOrderRepo = new RideHailingOrderRepository(tx);
+      const currentOrderRecord = await transactionalTradeOrderRepo.findByIdForUpdate(
+        orderRecord.id,
+      );
+      if (!currentOrderRecord) return;
+      await transactionalRideOrderRepo.findByOrderIdForUpdate(orderRecord.id);
+      const pendingClaim = currentOrderRecord.terminationAttempts.some(
+        (attempt) => attempt.attemptId === claim.attemptId && attempt.status === "PENDING",
+      );
+      if (!pendingClaim || currentOrderRecord.status !== "OPEN") return;
+      const denied = denyTerminationAttempt(toTradeOrderModel(currentOrderRecord), {
+        attemptId: claim.attemptId,
+        decidedAt: new Date().toISOString(),
+        reason: "RideHailing provider cancellation request failed",
+      });
+      await transactionalTradeOrderRepo.applyTerminationState({
+        id: orderRecord.id as TradeOrderId,
+        status: denied.status,
+        terminationAttempts: denied.terminationAttempts,
+      });
+    });
+    throw error;
+  }
+
+  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.success", {
+    ...summarizeOrderRecord(syncedOrderRecord),
+    providerInstanceId: dispatchBinding.providerInstanceId,
+    providerOrderId: claim.providerOrderId,
+    attemptId: claim.attemptId,
+    cancelFeeFen: providerCancellation.cancelFeeFen,
+  });
+  const decidedAt = new Date().toISOString();
+
+  return db.transaction(async (tx) => {
+    const transactionalTradeOrderRepo = new TradeOrderRepository(tx);
+    const transactionalRideOrderRepo = new RideHailingOrderRepository(tx);
+
+    // Completion uses the same Trade -> Ride lock order and never performs provider I/O.
+    const currentOrderRecord = await transactionalTradeOrderRepo.findByIdForUpdate(orderRecord.id);
+    if (!currentOrderRecord) {
+      return throwHttpProblem({ status: 404, detail: "Order not found" });
+    }
+    const currentRideOrder = await transactionalRideOrderRepo.findByOrderIdForUpdate(
+      orderRecord.id,
+    );
+    if (!currentRideOrder) {
+      return throwHttpProblem({ status: 500, detail: "RideHailing order facts are missing" });
+    }
+
+    const existingApproved = currentOrderRecord.terminationAttempts.find(
+      (attempt) => attempt.attemptId === claim.attemptId && attempt.status === "APPROVED",
+    );
+    if (currentOrderRecord.status === "CANCELLED" && existingApproved) {
+      const result = {
+        orderId: currentOrderRecord.id,
+        attemptId: claim.attemptId,
+        status: currentOrderRecord.status,
+        effectKind: existingApproved.effectKind ?? ("NONE" as const),
+        effectAmountFen: existingApproved.effectAmountFen ?? 0,
+        refunds: [],
+      };
+      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.idempotent", {
+        ...summarizeOrderRecord(currentOrderRecord),
+        ...summarizeRideOrder(currentRideOrder),
+        attemptId: claim.attemptId,
+      });
+      return result;
+    }
+
+    const pendingClaim = currentOrderRecord.terminationAttempts.some(
+      (attempt) => attempt.attemptId === claim.attemptId && attempt.status === "PENDING",
+    );
+    if (!pendingClaim || currentOrderRecord.status !== "OPEN") {
+      return throwHttpProblem({
+        status: 409,
+        detail: "RideHailing cancellation claim is no longer active",
+        code: "RIDE_HAILING_CANCELLATION_CLAIM_STALE",
+      });
+    }
+
+    const approved = approveTerminationAttempt(toTradeOrderModel(currentOrderRecord), {
+      attemptId: claim.attemptId,
       decidedAt,
       reason: input.actor.terminationReason,
       effectKind: providerCancellation.cancelFeeFen > 0 ? "ABORT_FEE" : "NONE",
@@ -579,16 +697,17 @@ async function cancelRideHailingOrder(input: {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.termination-approved", {
       ...summarizeOrderRecord(currentOrderRecord),
       ...summarizeRideOrder(currentRideOrder),
-      attemptId,
+      attemptId: claim.attemptId,
       approvedStatus: approved.status,
       effectKind: providerCancellation.cancelFeeFen > 0 ? "ABORT_FEE" : "NONE",
       effectAmountFen: providerCancellation.cancelFeeFen,
     });
 
     const persisted = await transactionalTradeOrderRepo.applyTerminationState({
-      id: order.id as TradeOrderId,
+      id: orderRecord.id as TradeOrderId,
       status: approved.status,
       terminationAttempts: approved.terminationAttempts,
+      closedAt: new Date(),
     });
     if (!persisted) {
       return throwHttpProblem({
@@ -600,11 +719,11 @@ async function cancelRideHailingOrder(input: {
     logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.order-persisted", {
       localOrderId: persisted.id,
       persistedOrderStatus: persisted.status,
-      attemptId,
+      attemptId: claim.attemptId,
     });
 
     const updatedRideOrder = await transactionalRideOrderRepo.updateByOrderId(
-      order.id as TradeOrderId,
+      orderRecord.id as TradeOrderId,
       {
         executionPhase: "CANCELLED",
       },
@@ -618,7 +737,7 @@ async function cancelRideHailingOrder(input: {
 
     const result = {
       orderId: persisted.id,
-      attemptId,
+      attemptId: claim.attemptId,
       status: persisted.status,
       effectKind:
         providerCancellation.cancelFeeFen > 0 ? ("ABORT_FEE" as const) : ("NONE" as const),
@@ -630,7 +749,7 @@ async function cancelRideHailingOrder(input: {
       localOrderId: persisted.id,
       persistedOrderStatus: persisted.status,
       persistedRideExecutionPhase: updatedRideOrder.executionPhase,
-      attemptId,
+      attemptId: claim.attemptId,
       effectKind: result.effectKind,
       effectAmountFen: result.effectAmountFen,
     });

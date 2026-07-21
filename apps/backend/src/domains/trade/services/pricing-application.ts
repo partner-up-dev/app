@@ -9,7 +9,7 @@ import type {
   PricingModel,
   PricingRule,
   PricingRuleTarget,
-} from "../../merchandising";
+} from "../../merchandising/contracts";
 import type { OrderItemPricingSnapshot, OrderPricingSnapshot } from "../model";
 
 const jsonLogicModule = jsonLogicNamespace as typeof jsonLogicNamespace & {

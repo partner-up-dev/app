@@ -24,6 +24,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OkResponse"
+  /__fake_caocao/create-response-loss/next:
+    post:
+      operationId: controlNextCreateResponseLoss
+      responses:
+        "200":
+          description: Configure next create to be accepted while its response is lost
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
   /__fake_caocao/estimates:
     post:
       operationId: controlUpdateEstimate
@@ -427,12 +437,19 @@ components:
       type: object
       additionalProperties: false
       required:
+        - createRequestCount
+        - dropNextCreateResponseAfterAccept
         - estimates
         - failNextCreate
         - feeConfirms
         - orders
         - unavailableEstimateCarTypes
       properties:
+        createRequestCount:
+          type: integer
+          minimum: 0
+        dropNextCreateResponseAfterAccept:
+          type: boolean
         estimates:
           type: array
           items:

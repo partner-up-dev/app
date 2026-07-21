@@ -6,8 +6,8 @@ import type {
   PaymentProviderType,
   WeChatPayChargeMode,
   WeChatPayProviderInstanceConfig,
-} from "../../payment/model";
-import { normalizeAndValidateWeChatPayProviderConfig } from "../../payment/services/wechatpay-config-validation";
+} from "../../payment/contracts";
+import { normalizeAndValidateWeChatPayProviderConfig } from "../../payment/contracts";
 import {
   type AdminPaymentProviderInstanceView,
   toAdminPaymentProviderInstanceView,

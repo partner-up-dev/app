@@ -43,6 +43,12 @@
           align="start"
         />
         <template v-else-if="selectedRecord">
+          <PuInlineNotice
+            tone="info"
+            title="Rental 履约已停用"
+            message="租赁履约运行时已停止，历史记录仅供核对，不再接受确认、取消或入场指引操作。"
+            data-testid="admin-fulfillment.rental-retired"
+          />
           <BentoItem :title="t('adminCommerceFulfillment.summaryTitle')" span="full">
             <dl class="summary-grid">
               <div>
@@ -80,127 +86,9 @@
             </dl>
           </BentoItem>
 
-          <BentoItem :title="t('adminCommerceFulfillment.bookingOpsTitle')" span="full">
-            <div class="form-stack">
-              <label class="field">
-                <span class="field-label">{{
-                  t("adminCommerceFulfillment.bookingNoteLabel")
-                }}</span>
-                <textarea v-model="bookingNote" class="text-area"></textarea>
-              </label>
-              <div class="inline-actions">
-                <PuButton
-                  shape="pill"
-                  tone="neutral"
-                  variant="outline"
-                  size="sm"
-                  :disabled="isConfirming"
-                  @click="handleConfirmBooking"
-                >
-                  {{
-                    isConfirming
-                      ? t("adminCommerceFulfillment.processingAction")
-                      : t("adminCommerceFulfillment.confirmBookingAction")
-                  }}
-                </PuButton>
-                <PuButton size="sm" :disabled="isRejecting" @click="handleRejectBooking">
-                  {{
-                    isRejecting
-                      ? t("adminCommerceFulfillment.processingAction")
-                      : t("adminCommerceFulfillment.rejectBookingAction")
-                  }}
-                </PuButton>
-              </div>
-            </div>
-          </BentoItem>
-
-          <BentoItem :title="t('adminCommerceFulfillment.cancellationOpsTitle')" span="full">
-            <div class="form-stack">
-              <div
-                class="status-strip"
-                :class="{ 'status-strip--active': canResolveCancellation }"
-                data-testid="admin-fulfillment.cancellation-gate"
-              >
-                <strong>{{ cancellationGateLabel }}</strong>
-                <span>{{ pendingCancellationAttempt?.attemptId ?? "-" }}</span>
-              </div>
-              <label class="field">
-                <span class="field-label">{{
-                  t("adminCommerceFulfillment.cancellationNoteLabel")
-                }}</span>
-                <textarea v-model="cancellationNote" class="text-area"></textarea>
-              </label>
-              <div class="inline-actions">
-                <PuButton
-                  shape="pill"
-                  tone="danger"
-                  variant="outline"
-                  size="sm"
-                  :disabled="!canResolveCancellation || isApprovingCancellation"
-                  data-testid="admin-fulfillment.approve-cancellation"
-                  @click="handleApproveCancellation"
-                >
-                  {{
-                    isApprovingCancellation
-                      ? t("adminCommerceFulfillment.processingAction")
-                      : t("adminCommerceFulfillment.approveCancellationAction")
-                  }}
-                </PuButton>
-                <PuButton
-                  size="sm"
-                  :disabled="!canResolveCancellation || isDenyingCancellation"
-                  data-testid="admin-fulfillment.deny-cancellation"
-                  @click="handleDenyCancellation"
-                >
-                  {{
-                    isDenyingCancellation
-                      ? t("adminCommerceFulfillment.processingAction")
-                      : t("adminCommerceFulfillment.denyCancellationAction")
-                  }}
-                </PuButton>
-              </div>
-            </div>
-          </BentoItem>
-
-          <BentoItem :title="t('adminCommerceFulfillment.entryGuidanceTitle')" span="full">
-            <div class="form-stack">
-              <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.entryPhoneLabel") }}</span>
-                <input v-model="entryGuidance.entryByPhone" class="text-input" type="text" />
-              </label>
-              <label class="field">
-                <span class="field-label">{{
-                  t("adminCommerceFulfillment.entryRealNameLabel")
-                }}</span>
-                <input v-model="entryGuidance.entryByRealName" class="text-input" type="text" />
-              </label>
-              <label class="field">
-                <span class="field-label">{{ t("adminCommerceFulfillment.entryNoteLabel") }}</span>
-                <textarea v-model="entryGuidance.note" class="text-area"></textarea>
-              </label>
-              <div class="inline-actions">
-                <PuButton size="sm" :disabled="isSavingGuidance" @click="handleSaveGuidance">
-                  {{
-                    isSavingGuidance
-                      ? t("adminCommerceFulfillment.processingAction")
-                      : t("adminCommerceFulfillment.saveGuidanceAction")
-                  }}
-                </PuButton>
-              </div>
-            </div>
-          </BentoItem>
-
           <BentoItem :title="t('adminCommerceFulfillment.rawStateTitle')" span="full">
             <pre class="json-pre">{{ prettyJson(selectedRecord.fulfillment) }}</pre>
           </BentoItem>
-
-          <PuInlineNotice
-            tone="error"
-            dismissible
-            v-if="pageErrorMessage"
-            :message="pageErrorMessage"
-            @close="clearErrors"
-          />
         </template>
       </div>
     </template>
@@ -215,41 +103,14 @@ import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
-import {
-  useApproveRentalFulfillmentCancellation,
-  useAdminCommerceFulfillmentWorkspace,
-  useConfirmRentalFulfillmentBooking,
-  useDenyRentalFulfillmentCancellation,
-  useRecordRentalFulfillmentEntryGuidance,
-  useRejectRentalFulfillmentBooking,
-} from "@/domains/admin-commerce/queries/useAdminCommerce";
+import { useAdminCommerceFulfillmentWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import { prettyJson } from "@/domains/admin-commerce/editor-json";
-import {
-  PuButton,
-  PuCard,
-  PuEmptyState,
-  PuInlineNotice,
-  PuLoadingState,
-} from "@partner-up-dev/design-web";
+import { PuCard, PuEmptyState, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 
 const { t } = useI18n();
 const { isAdmin, logout } = useAdminAccess();
 const workspaceQuery = useAdminCommerceFulfillmentWorkspace(isAdmin);
-const confirmMutation = useConfirmRentalFulfillmentBooking();
-const rejectMutation = useRejectRentalFulfillmentBooking();
-const approveCancellationMutation = useApproveRentalFulfillmentCancellation();
-const denyCancellationMutation = useDenyRentalFulfillmentCancellation();
-const guidanceMutation = useRecordRentalFulfillmentEntryGuidance();
-
 const selectedFulfillmentIdRaw = ref("");
-const bookingNote = ref("");
-const cancellationNote = ref("");
-const entryGuidance = ref({
-  entryByPhone: "",
-  entryByRealName: "",
-  note: "",
-});
-const localErrorMessage = ref<string | null>(null);
 
 const fulfillments = computed(() => workspaceQuery.data.value?.fulfillments ?? []);
 const selectedFulfillmentId = computed(() => selectedFulfillmentIdRaw.value || null);
@@ -259,38 +120,6 @@ const selectedRecord = computed(
     null,
 );
 
-const isConfirming = computed(() => confirmMutation.isPending.value);
-const isRejecting = computed(() => rejectMutation.isPending.value);
-const isApprovingCancellation = computed(() => approveCancellationMutation.isPending.value);
-const isDenyingCancellation = computed(() => denyCancellationMutation.isPending.value);
-const isSavingGuidance = computed(() => guidanceMutation.isPending.value);
-const pendingCancellationAttempt = computed(
-  () =>
-    selectedRecord.value?.order?.terminationAttempts.find(
-      (attempt) => attempt.status === "PENDING" && attempt.resolutionPath === "RENTAL_FULFILLMENT",
-    ) ?? null,
-);
-const canResolveCancellation = computed(
-  () =>
-    selectedRecord.value?.fulfillment.cancellationHandlingStatus === "REQUESTED" &&
-    pendingCancellationAttempt.value !== null,
-);
-const cancellationGateLabel = computed(() =>
-  canResolveCancellation.value
-    ? t("adminCommerceFulfillment.cancellationPendingLabel")
-    : t("adminCommerceFulfillment.cancellationNoPendingLabel"),
-);
-
-const pageErrorMessage = computed(
-  () =>
-    localErrorMessage.value ||
-    confirmMutation.error.value?.message ||
-    rejectMutation.error.value?.message ||
-    approveCancellationMutation.error.value?.message ||
-    denyCancellationMutation.error.value?.message ||
-    guidanceMutation.error.value?.message ||
-    null,
-);
 
 watch(
   fulfillments,
@@ -304,103 +133,11 @@ watch(
   { immediate: true },
 );
 
-watch(
-  selectedRecord,
-  (record) => {
-    bookingNote.value = record?.fulfillment.bookingNote ?? "";
-    cancellationNote.value = record?.fulfillment.cancellationNote ?? "";
-    entryGuidance.value = {
-      entryByPhone: record?.fulfillment.entryGuidance?.entryByPhone ?? "",
-      entryByRealName: record?.fulfillment.entryGuidance?.entryByRealName ?? "",
-      note: record?.fulfillment.entryGuidance?.note ?? "",
-    };
-  },
-  { immediate: true },
-);
-
-const handleConfirmBooking = async () => {
-  localErrorMessage.value = null;
-  try {
-    if (!selectedRecord.value) return;
-    await confirmMutation.mutateAsync({
-      fulfillmentId: selectedRecord.value.fulfillment.id,
-      bookingNote: bookingNote.value.trim() || null,
-    });
-  } catch (error) {
-    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
-  }
-};
-
-const handleRejectBooking = async () => {
-  localErrorMessage.value = null;
-  try {
-    if (!selectedRecord.value) return;
-    await rejectMutation.mutateAsync({
-      fulfillmentId: selectedRecord.value.fulfillment.id,
-      bookingNote: bookingNote.value.trim() || null,
-    });
-  } catch (error) {
-    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
-  }
-};
-
-const handleApproveCancellation = async () => {
-  localErrorMessage.value = null;
-  try {
-    if (!selectedRecord.value) return;
-    await approveCancellationMutation.mutateAsync({
-      fulfillmentId: selectedRecord.value.fulfillment.id,
-      reason: cancellationNote.value.trim() || null,
-    });
-  } catch (error) {
-    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
-  }
-};
-
-const handleDenyCancellation = async () => {
-  localErrorMessage.value = null;
-  try {
-    if (!selectedRecord.value) return;
-    await denyCancellationMutation.mutateAsync({
-      fulfillmentId: selectedRecord.value.fulfillment.id,
-      reason: cancellationNote.value.trim() || null,
-    });
-  } catch (error) {
-    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
-  }
-};
-
-const handleSaveGuidance = async () => {
-  localErrorMessage.value = null;
-  try {
-    if (!selectedRecord.value) return;
-    await guidanceMutation.mutateAsync({
-      fulfillmentId: selectedRecord.value.fulfillment.id,
-      input: {
-        entryByPhone: entryGuidance.value.entryByPhone.trim() || null,
-        entryByRealName: entryGuidance.value.entryByRealName.trim() || null,
-        note: entryGuidance.value.note.trim() || null,
-      },
-    });
-  } catch (error) {
-    localErrorMessage.value = error instanceof Error ? error.message : t("common.operationFailed");
-  }
-};
-
-const clearErrors = () => {
-  localErrorMessage.value = null;
-  confirmMutation.reset();
-  rejectMutation.reset();
-  approveCancellationMutation.reset();
-  denyCancellationMutation.reset();
-  guidanceMutation.reset();
-};
 </script>
 
 <style lang="scss" scoped>
 .stack,
-.fulfillment-rail-list,
-.form-stack {
+.fulfillment-rail-list {
   display: flex;
   flex-direction: column;
 }
@@ -408,10 +145,6 @@ const clearErrors = () => {
 .stack,
 .fulfillment-rail-list {
   gap: var(--sys-spacing-medium);
-}
-
-.form-stack {
-  gap: var(--sys-spacing-large);
 }
 
 .summary-grid {
@@ -422,7 +155,6 @@ const clearErrors = () => {
 }
 
 .summary-grid dt,
-.field-label,
 .hint,
 small {
   @include mx.pu-font(body);
@@ -432,45 +164,6 @@ small {
 .summary-grid dd {
   margin: 0;
   @include mx.pu-font(section);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sys-spacing-xsmall);
-}
-
-.status-strip {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sys-spacing-small);
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-medium);
-  color: var(--sys-color-on-surface-variant);
-}
-
-.status-strip--active {
-  border-color: var(--sys-color-primary);
-  color: var(--sys-color-on-surface);
-}
-
-.text-input,
-.text-area {
-  width: 100%;
-  min-width: 0;
-  padding: var(--sys-spacing-small);
-  border: 1px solid var(--sys-color-outline-variant);
-  border-radius: var(--sys-radius-medium);
-  background: var(--sys-color-surface);
-  color: var(--sys-color-on-surface);
-}
-
-.inline-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sys-spacing-small);
-  flex-wrap: wrap;
 }
 
 .json-pre {

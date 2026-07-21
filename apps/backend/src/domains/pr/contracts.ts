@@ -27,3 +27,4 @@ export {
   normalizePRPreferenceLabel,
   normalizePRPreferenceLabels,
 } from "./services/preference-normalization";
+export { PR_ACTIVE_ORDER_EXISTS_CODE } from "./order-attachment-contracts";

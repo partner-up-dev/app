@@ -2,7 +2,7 @@ import type {
   RideHailingDriverSnapshot,
   RideHailingExecutionPhase,
   RideHailingVehicleSnapshot,
-} from "../../trade/model";
+} from "../../trade/contracts";
 import type { RideHailingProviderOrderDetail } from "../model";
 
 export type RideHailingProviderOrderObservation = {
@@ -10,6 +10,23 @@ export type RideHailingProviderOrderObservation = {
   driverSnapshot: RideHailingDriverSnapshot | null;
   vehicleSnapshot: RideHailingVehicleSnapshot | null;
 };
+
+export type RideHailingExecutionPhaseReconciliation = {
+  accepted: boolean;
+  effectivePhase: RideHailingExecutionPhase;
+  reason:
+    | "OBSERVATION_UNMAPPED"
+    | "SAME_PHASE"
+    | "ACTIVE_PHASE_ADVANCED"
+    | "ACTIVE_PHASE_REGRESSION"
+    | "TERMINAL_PHASE_ACCEPTED"
+    | "TERMINAL_PHASE_ALREADY_COMMITTED";
+};
+
+type TerminalRideHailingExecutionPhase = Extract<
+  RideHailingExecutionPhase,
+  "FINISHED" | "CANCELLED" | "FAILED"
+>;
 
 const normalizePhase = (phase: string): string => phase.trim().toUpperCase();
 
@@ -30,6 +47,86 @@ const providerCancelledPhases = new Set([
   "27",
 ]);
 const providerFailedPhases = new Set(["FAILED", "FAIL", "FAILURE"]);
+
+const activeExecutionPhaseRanks: Record<
+  Exclude<RideHailingExecutionPhase, "FINISHED" | "CANCELLED" | "FAILED">,
+  number
+> = {
+  INITIATING: 0,
+  DISPATCHING: 1,
+  ACCEPTED: 2,
+  ARRIVED_AT_PICKUP: 3,
+  IN_TRIP: 4,
+};
+
+const terminalExecutionPhases = new Set<RideHailingExecutionPhase>([
+  "FINISHED",
+  "CANCELLED",
+  "FAILED",
+]);
+
+export function isRideHailingExecutionPhaseTerminal(
+  phase: RideHailingExecutionPhase,
+): phase is TerminalRideHailingExecutionPhase {
+  return terminalExecutionPhases.has(phase);
+}
+
+/**
+ * Provider callbacks and browser-triggered observations can arrive out of
+ * order. A committed terminal projection is immutable in this bounded model;
+ * a later correction requires an explicitly designed correction flow rather
+ * than a silent state rewrite. Active phases use a single forward-only rank.
+ */
+export function reconcileRideHailingExecutionPhase(input: {
+  current: RideHailingExecutionPhase;
+  observed: RideHailingExecutionPhase | null;
+}): RideHailingExecutionPhaseReconciliation {
+  if (!input.observed) {
+    return {
+      accepted: false,
+      effectivePhase: input.current,
+      reason: "OBSERVATION_UNMAPPED",
+    };
+  }
+
+  if (input.observed === input.current) {
+    return {
+      accepted: false,
+      effectivePhase: input.current,
+      reason: "SAME_PHASE",
+    };
+  }
+
+  if (isRideHailingExecutionPhaseTerminal(input.current)) {
+    return {
+      accepted: false,
+      effectivePhase: input.current,
+      reason: "TERMINAL_PHASE_ALREADY_COMMITTED",
+    };
+  }
+
+  if (isRideHailingExecutionPhaseTerminal(input.observed)) {
+    return {
+      accepted: true,
+      effectivePhase: input.observed,
+      reason: "TERMINAL_PHASE_ACCEPTED",
+    };
+  }
+
+  if (activeExecutionPhaseRanks[input.observed] > activeExecutionPhaseRanks[input.current]) {
+    return {
+      accepted: true,
+      effectivePhase: input.observed,
+      reason: "ACTIVE_PHASE_ADVANCED",
+    };
+  }
+
+  return {
+    accepted: false,
+    effectivePhase: input.current,
+    reason: "ACTIVE_PHASE_REGRESSION",
+  };
+}
 
 export function mapProviderDetailPhaseToExecutionPhase(
   detail: Pick<RideHailingProviderOrderDetail, "phase">,

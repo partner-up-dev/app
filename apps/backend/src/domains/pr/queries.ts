@@ -5,6 +5,10 @@ export { getPRPartnerProfile } from "./queries/get-pr-partner-profile";
 export { getPR } from "./queries/get-pr";
 export { listPRMessages } from "./queries/list-pr-messages";
 export { getPROrderAttachmentEligibility } from "./queries/order-attachment-eligibility";
+export {
+  getPRPlacementOrderingAdmission,
+  type PRPlacementOrderingAdmission,
+} from "./queries/placement-ordering-admission";
 export { getPRJoinGateProjection } from "./services/join-gates.service";
 export { isTimeWindowAvailableByPoiRules } from "./services/poi-availability.service";
 export { resolvePRPlaceDisplayName } from "./services/pr-place-mode.service";

@@ -3,11 +3,11 @@ import { randomUUID } from "node:crypto";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenUser, type ScenarioUser } from "../pr/_kit/builders/users";
 import { db } from "../../src/lib/db";
-import { createOffer, createProductSpu } from "../../src/domains/merchandising";
+import { createOffer, createProductSpu } from "../../src/domains/merchandising/commands";
 import {
   buildOrderParticipantsFromContext,
   createRideHailingOrderFoundation,
-} from "../../src/domains/trade";
+} from "../trade/_kit/order-foundation";
 import { attachOrderToPr } from "../../src/domains/pr/commands";
 import type { OfferId } from "../../src/entities/offer";
 import type { PRId } from "../../src/entities/partner-request";

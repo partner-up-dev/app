@@ -4,21 +4,14 @@ import {
   logCommerceOrderDetailDebug,
 } from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import { throwRentalRuntimeRetired } from "../../../lib/rental-runtime-retirement";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { deriveBillPaymentState } from "../../bill";
-import { requestRentalCancellationHandling } from "../../fulfillment";
-import { confirmRentalBooking } from "../../fulfillment/use-cases/confirm-rental-booking";
+import { deriveBillPaymentState } from "../../bill/queries";
 import type { OrderItemSnapshot, OrderTerminationAttempt, RentalRegistrant } from "../model";
-import {
-  canRequestOrderTermination,
-  resolveRentalTerminationPolicy,
-  toRentalOrderModel,
-} from "../services";
-import { finalizeRentalOrderTermination } from "./finalize-rental-order-termination";
-import { requestOrderTermination } from "./request-order-termination";
+import { canRequestOrderTermination } from "../services";
 import {
   buildRideHailingDetailProjection,
   type RideHailingOrderDetailProjection,
@@ -206,112 +199,16 @@ export async function getCommerceOrderDetail(input: {
   return result;
 }
 
-export async function cancelRentalOrderFromOrderDetail(input: {
+export async function cancelRentalOrderFromOrderDetail(_input: {
   orderId: string;
   actorUserId: string;
 }) {
-  const order = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
-  if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found" });
-  }
-  if (order.family !== "RENTAL") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Only Rental orders can use this cancellation flow",
-    });
-  }
-  if (order.createdBy !== input.actorUserId) {
-    return throwHttpProblem({
-      status: 403,
-      detail: "Only order creator can cancel this order",
-    });
-  }
-  if (order.status !== "OPEN") {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Order cannot be cancelled from its current status",
-    });
-  }
-
-  const rentalOrderRecord = await rentalOrderRepo.findByOrderId(order.id);
-  if (!rentalOrderRecord) {
-    return throwHttpProblem({
-      status: 500,
-      detail: "Rental order facts are missing",
-    });
-  }
-  const rentalOrder = toRentalOrderModel(order, rentalOrderRecord);
-  const requestedAt = new Date().toISOString();
-  const policyResolution = resolveRentalTerminationPolicy(rentalOrder, {
-    attemptId: "preview",
-    requestedAt,
-  });
-  const bill = await billRepo.findBySourceOrderId(order.id);
-  const billLines = bill ? await billLineRepo.listByBillId(bill.id) : [];
-  const paymentState = deriveBillPaymentState({
-    lines: billLines,
-  });
-  const requiresFulfillmentGate =
-    policyResolution.requiresOperatorHandling && paymentState.paidChargeFen > 0;
-
-  const requested = await requestOrderTermination({
-    orderId: input.orderId,
-    requestedBy: input.actorUserId,
-    requestedAt,
-    resolutionPath: requiresFulfillmentGate ? "RENTAL_FULFILLMENT" : "TRADE_LOCAL",
-  });
-
-  if (requiresFulfillmentGate) {
-    await requestRentalCancellationHandling({
-      fulfillmentId: rentalOrderRecord.orderId,
-      cancellationNote: "用户取消订单，等待履约处理",
-    });
-
-    return {
-      orderId: input.orderId,
-      attemptId: requested.attemptId,
-      status: order.status,
-      effectKind: "NONE" as const,
-      effectAmountFen: 0,
-      refunds: [],
-    };
-  }
-
-  return finalizeRentalOrderTermination({
-    orderId: input.orderId,
-    attemptId: requested.attemptId,
-    decision: {
-      outcome: "APPROVED",
-      reason: "用户取消订单",
-    },
-  });
+  return throwRentalRuntimeRetired();
 }
 
-export async function simulateRentalBookingConfirmation(input: {
+export async function simulateRentalBookingConfirmation(_input: {
   orderId: string;
   actorUserId: string;
 }) {
-  const order = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
-  if (!order) {
-    return throwHttpProblem({ status: 404, detail: "Order not found" });
-  }
-  if (order.createdBy !== input.actorUserId) {
-    return throwHttpProblem({
-      status: 403,
-      detail: "Only order creator can progress fake fulfillment",
-    });
-  }
-
-  const rentalOrder = await rentalOrderRepo.findByOrderId(order.id);
-  if (!rentalOrder) {
-    return throwHttpProblem({
-      status: 409,
-      detail: "Rental order facts are missing",
-    });
-  }
-
-  return confirmRentalBooking({
-    fulfillmentId: rentalOrder.orderId,
-    bookingNote: "Phase 3 fake rental booking confirmation",
-  });
+  return throwRentalRuntimeRetired();
 }

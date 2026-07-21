@@ -5,7 +5,7 @@ import type {
   OrderItemSnapshot,
   SkuSnapshot,
 } from "../model";
-import type { FixedTotalPricingModel, PricingModel } from "../../merchandising";
+import type { FixedTotalPricingModel, PricingModel } from "../../merchandising/contracts";
 
 const isFixedTotalPricingModel = (value: PricingModel): value is FixedTotalPricingModel =>
   value.type === "FIXED_TOTAL";
