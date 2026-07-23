@@ -28,7 +28,7 @@ export const usePRAttendanceActions = ({
     if (id.value === null) return;
 
     await confirmSlotMutation.mutateAsync({ id: id.value });
-    trackEvent("pr_confirm_success", {
+    trackEvent("pr.confirm.succeeded", {
       prId: id.value,
       prType: pr.value?.core.type,
     });
@@ -42,7 +42,7 @@ export const usePRAttendanceActions = ({
       id: id.value,
     });
 
-    trackEvent("pr_checkin_submitted", {
+    trackEvent("pr.checkin.submitted", {
       prId: id.value,
       prType: pr.value?.core.type,
       didAttend: true,

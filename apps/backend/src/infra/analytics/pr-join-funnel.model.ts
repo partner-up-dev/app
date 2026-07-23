@@ -1,4 +1,5 @@
 import { getUserTelemetryDimEvents } from "./user-event-dim";
+import { resolveAnalyticsRange } from "./analytics-range";
 
 export type PRJoinFunnelQueryInput = {
   startAt?: Date;
@@ -81,8 +82,6 @@ type StepAccumulator = {
   eventCount: number;
 };
 
-const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
-
 export const PR_JOIN_FUNNEL_EVENT_NAMES = [
   "pr.primary_cta.impression",
   "pr.primary_cta.click",
@@ -118,16 +117,11 @@ const PR_JOIN_FUNNEL_STEPS: FunnelStepDefinition[] = [
 ];
 
 export const resolvePRJoinFunnelFilters = (input: PRJoinFunnelQueryInput): PRJoinFunnelFilters => {
-  const endAt = input.endAt ?? new Date();
-  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
-
-  if (startAt.getTime() >= endAt.getTime()) {
-    throw new Error("startAt must be before endAt");
-  }
+  const range = resolveAnalyticsRange(input);
 
   return {
-    startAt: startAt.toISOString(),
-    endAt: endAt.toISOString(),
+    startAt: range.startAt,
+    endAt: range.endAt,
   };
 };
 

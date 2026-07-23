@@ -8,8 +8,6 @@ vars:
   nodeModulesLayerArn: ${env('ALIYUN_FC_NODE_MODULES_LAYER_ARN')}
   roleArn: ${env('ALIYUN_FC_ROLE_ARN')}
   resourceGroupId: ${env('ALIYUN_FC_RESOURCE_GROUP_ID')}
-  logProject: ${env('ALIYUN_FC_LOG_PROJECT')}
-  logStore: ${env('ALIYUN_FC_LOG_STORE')}
   vpcId: ${env('ALIYUN_FC_VPC_ID')}
   securityGroupId: ${env('ALIYUN_FC_SECURITY_GROUP_ID')}
   vSwitchIdPrimary: ${env('ALIYUN_FC_VSWITCH_ID_PRIMARY')}
@@ -48,14 +46,6 @@ resources:
           - -c
           - ./fc-start.sh
         healthCheckConfig: {}
-      logConfig:
-        enableRequestMetrics: true
-        enableInstanceMetrics: true
-        logBeginRule: DefaultRegex
-        project: ${vars.logProject}
-        enableCustomExtraLog: true
-        enableLlmMetrics: false
-        logstore: ${vars.logStore}
       environmentVariables:
         PORT: "3000"
         NODE_ENV: production

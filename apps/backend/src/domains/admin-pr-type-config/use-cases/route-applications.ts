@@ -1,6 +1,5 @@
 import { type PRRoute, prRouteSchema } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PRTypeRouteApplicationRepository } from "../../../repositories/PRTypeRouteApplicationRepository";
 import {
@@ -86,12 +85,5 @@ export const reviewAdminPRTypeRouteApplication = async (input: {
       code: "PR_TYPE_ROUTE_APPLICATION_NOT_FOUND",
     });
   }
-  operationLogService.log({
-    actorId: input.reviewedByUserId,
-    action: `pr_type.route_application.${input.status === "ACCEPTED" ? "accept" : "reject"}`,
-    aggregateType: "pr_type_route_application",
-    aggregateId: String(updated.id),
-    detail: { type: updated.type, status: updated.status, rejectReason: updated.rejectReason },
-  });
   return toPRTypeRouteApplicationView(updated);
 };

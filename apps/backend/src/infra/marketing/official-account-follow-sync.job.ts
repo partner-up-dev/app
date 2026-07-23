@@ -46,32 +46,24 @@ async function handleOfficialAccountFollowSyncJob(
   }
 
   if (!followerService.isConfigured()) {
-    console.info("[OfficialAccountFollowSync] skipped: WeChat OA not configured");
     await scheduleNextRun();
     return;
   }
 
   let nextOpenId: string | null = null;
   let pages = 0;
-  let scannedOpenIds = 0;
-  let updatedUsers = 0;
   const seenNextOpenIds = new Set<string>();
   const followedAt = new Date();
 
   while (pages < MAX_PAGES_PER_RUN) {
     const page = await followerService.fetchFollowerOpenIdPage(nextOpenId);
     pages += 1;
-    scannedOpenIds += page.openIds.length;
-    updatedUsers += await userRepo.markOfficialAccountFollowersByOpenIds(page.openIds, followedAt);
+    await userRepo.markOfficialAccountFollowersByOpenIds(page.openIds, followedAt);
 
     if (!page.nextOpenId || page.count === 0) {
       break;
     }
     if (seenNextOpenIds.has(page.nextOpenId)) {
-      console.warn(
-        "[OfficialAccountFollowSync] stopped because next_openid repeated",
-        page.nextOpenId,
-      );
       break;
     }
 
@@ -83,11 +75,6 @@ async function handleOfficialAccountFollowSyncJob(
     throw new Error(`Official-account follow sync exceeded ${MAX_PAGES_PER_RUN} pages`);
   }
 
-  console.info("[OfficialAccountFollowSync] completed", {
-    pages,
-    scannedOpenIds,
-    updatedUsers,
-  });
   await scheduleNextRun();
 }
 

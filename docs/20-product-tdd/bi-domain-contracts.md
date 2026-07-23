@@ -49,6 +49,20 @@ Current implementation note: production user-behavior BI readers use PostgreSQL 
 
 BI query windows over user telemetry are instant ranges. API query parameters must carry timezone information, SQL filters must compare against `timestamptz`, and product-local date keys must be derived explicitly at projection time. Raw SQL projections must receive telemetry instants as boundary-decoded `Date` values rather than parsing timestamp strings inside BI code. BI code must not silently reinterpret telemetry instants as server-local `timestamp without time zone` values.
 
+All interactive Analytics endpoints use one offset-aware, half-open
+`[startAt, endAt)` contract. If a boundary is omitted, the default window is
+the preceding seven days anchored to the supplied or current end instant. The
+maximum span is 31 days. Missing offsets, equal/reversed bounds, and longer
+ranges are Problem Details client errors rather than internal failures.
+
+The PR Discovery dashboard reads
+`fact_pr_discovery_funnel_event`. That fact exposes only typed event identity,
+Discovery dimensions/event fields, and deterministic nearest-prior
+route/auth context. It exposes no arbitrary payload. Its six v1 event names
+are Registry-governed, malformed historical numeric fields project to `NULL`,
+and equal-time context uses `event_id` as the deterministic tie-break after
+`occurred_at`.
+
 ## Context Completeness
 
 BI must not guess missing context.
@@ -72,7 +86,18 @@ BI dashboard routes require the `analytics` role.
 - `/admin/analytics` redirects to the BI overview route.
 - `/admin/analytics/overview` owns BI health / overview panels.
 - `/admin/analytics/pr-funnels` owns PR create and join funnel panels.
-- `/admin/analytics/pr-discovery` owns PR Discovery behavior panels, including view-mode funnels, natural extension, view-other-PR-types conversion, outcomes, sources, and failures.
+- `/admin/analytics/pr-discovery` owns the current six-step PR Discovery
+  funnel and `prType` / `viewMode` / `origin` dimensions.
+
+Web BI query, filter, presentation, and panel behavior is owned by
+`domains/analytics`. The three route pages only assemble the Admin
+scaffold/navigation with one Analytics surface; `domains/admin` does not own a
+parallel BI query or view model.
+
+SPM and `source_qr` are carried at the typed fact boundary so future metrics
+can be defined without reparsing raw events. No first-touch, last-touch, or
+source-attribution panel is implied until its product formula is explicitly
+owned.
 
 `/bi?code=...` remains the lightweight BI entry route for the seeded analytics user:
 

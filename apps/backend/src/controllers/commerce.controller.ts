@@ -19,11 +19,6 @@ import {
   listOfferListing,
   queryRideHailingCancellationFeeFromOrderDetail,
 } from "../domains/trade/queries";
-import {
-  logCommerceOrderDetailDebug,
-  readCommerceOrderDetailDebugContext,
-  withCommerceOrderDetailDebugContext,
-} from "../lib/commerce-order-detail-debug";
 import { requireAuthenticatedUserId } from "./pr-controller.shared";
 
 const app = new Hono<AuthEnv>();
@@ -233,40 +228,11 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .get("/orders/:orderId", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const auth = c.get("auth");
-    const debug = withCommerceOrderDetailDebugContext(
-      readCommerceOrderDetailDebugContext(c.req.raw.headers),
-      { orderId, routeOrderId: orderId, source: "commerce.controller.order-detail" },
-    );
-    const startedAtMs = Date.now();
-
-    logCommerceOrderDetailDebug(debug, "controller.order-detail.request", {
+    const result = await getCommerceOrderDetail({
+      orderId,
       viewerUserId: auth.userId,
     });
-
-    try {
-      const result = await getCommerceOrderDetail({
-        orderId,
-        viewerUserId: auth.userId,
-        debug,
-      });
-      logCommerceOrderDetailDebug(debug, "controller.order-detail.response", {
-        durationMs: Date.now() - startedAtMs,
-        responseOrderId: result.order.id,
-        responseOrderStatus: result.order.status,
-        responseOrderFamily: result.order.family,
-        responseRideExecutionPhase: result.rideHailing?.executionPhase ?? null,
-        responseRideProviderOrderId: result.rideHailing?.provider.providerOrderId ?? null,
-        responseBillId: result.bill?.id ?? null,
-        responseBillStatus: result.bill?.status ?? null,
-      });
-      return c.json(result);
-    } catch (error) {
-      logCommerceOrderDetailDebug(debug, "controller.order-detail.error", {
-        durationMs: Date.now() - startedAtMs,
-        error: error instanceof Error ? error.message : "unknown error",
-      });
-      throw error;
-    }
+    return c.json(result);
   })
   .get("/orders/:orderId/bill", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
@@ -283,37 +249,11 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     async (c) => {
       const { orderId } = c.req.valid("param");
       const userId = requireAuthenticatedUserId(c);
-      const debug = withCommerceOrderDetailDebugContext(
-        readCommerceOrderDetailDebugContext(c.req.raw.headers),
-        { orderId, routeOrderId: orderId, source: "commerce.controller.ride-hailing-reconcile" },
-      );
-      const startedAtMs = Date.now();
-
-      logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.request", {
+      const result = await reconcileRideHailingOrder({
+        orderId,
         viewerUserId: userId,
       });
-
-      try {
-        const result = await reconcileRideHailingOrder({
-          orderId,
-          viewerUserId: userId,
-          debug,
-        });
-        logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.response", {
-          durationMs: Date.now() - startedAtMs,
-          outcome: result.outcome,
-          mutated: result.mutated,
-          hasProviderObservation: result.providerObservation !== null,
-          correctionRequired: result.correctionRequired !== null,
-        });
-        return c.json(result);
-      } catch (error) {
-        logCommerceOrderDetailDebug(debug, "controller.ride-hailing-reconcile.error", {
-          durationMs: Date.now() - startedAtMs,
-          error: error instanceof Error ? error.message : "unknown error",
-        });
-        throw error;
-      }
+      return c.json(result);
     },
   )
   .get("/bills", async (c) => {
@@ -326,39 +266,11 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .get("/bills/:billId", zValidator("param", billIdParamSchema), async (c) => {
     const { billId } = c.req.valid("param");
     const auth = c.get("auth");
-    const debug = withCommerceOrderDetailDebugContext(
-      readCommerceOrderDetailDebugContext(c.req.raw.headers),
-      { billId, source: "commerce.controller.bill-detail" },
-    );
-    const startedAtMs = Date.now();
-
-    logCommerceOrderDetailDebug(debug, "controller.bill-detail.request", {
+    const result = await getBillDetail({
+      billId,
       viewerUserId: auth.userId,
     });
-
-    try {
-      const result = await getBillDetail({
-        billId,
-        viewerUserId: auth.userId,
-      });
-      logCommerceOrderDetailDebug(debug, "controller.bill-detail.response", {
-        durationMs: Date.now() - startedAtMs,
-        responseBillId: result.bill.id,
-        responseSourceOrderId: result.bill.sourceOrderId,
-        responseBillStatus: result.bill.status,
-        responseSettlementStatus: result.bill.settlementStatus,
-        responseOrderId: result.order.id,
-        responseOrderStatus: result.order.status,
-        responseLineCount: result.lines.length,
-      });
-      return c.json(result);
-    } catch (error) {
-      logCommerceOrderDetailDebug(debug, "controller.bill-detail.error", {
-        durationMs: Date.now() - startedAtMs,
-        error: error instanceof Error ? error.message : "unknown error",
-      });
-      throw error;
-    }
+    return c.json(result);
   })
   .get("/bill-lines/:billLineId", zValidator("param", billLineIdParamSchema), async (c) => {
     const { billLineId } = c.req.valid("param");
@@ -372,36 +284,11 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
   .post("/orders/:orderId/cancel", zValidator("param", orderIdParamSchema), async (c) => {
     const { orderId } = c.req.valid("param");
     const userId = requireAuthenticatedUserId(c);
-    const debug = withCommerceOrderDetailDebugContext(
-      readCommerceOrderDetailDebugContext(c.req.raw.headers),
-      { orderId, routeOrderId: orderId, source: "commerce.controller.cancel-order" },
-    );
-    const startedAtMs = Date.now();
-
-    logCommerceOrderDetailDebug(debug, "controller.cancel-order.request", {
+    const result = await cancelOrderFromOrderDetail({
+      orderId,
       actorUserId: userId,
     });
-
-    try {
-      const result = await cancelOrderFromOrderDetail({
-        orderId,
-        actorUserId: userId,
-        debug,
-      });
-      logCommerceOrderDetailDebug(debug, "controller.cancel-order.response", {
-        durationMs: Date.now() - startedAtMs,
-        resultStatus: "status" in result ? result.status : null,
-        effectKind: "effectKind" in result ? result.effectKind : null,
-        effectAmountFen: "effectAmountFen" in result ? result.effectAmountFen : null,
-      });
-      return c.json(result);
-    } catch (error) {
-      logCommerceOrderDetailDebug(debug, "controller.cancel-order.error", {
-        durationMs: Date.now() - startedAtMs,
-        error: error instanceof Error ? error.message : "unknown error",
-      });
-      throw error;
-    }
+    return c.json(result);
   })
   .get(
     "/orders/:orderId/cancel-fee-preview",
@@ -409,34 +296,11 @@ export const commerceRoute: Hono<AuthEnv, CommerceRouteSchema> = app
     async (c) => {
       const { orderId } = c.req.valid("param");
       const userId = requireAuthenticatedUserId(c);
-      const debug = withCommerceOrderDetailDebugContext(
-        readCommerceOrderDetailDebugContext(c.req.raw.headers),
-        { orderId, routeOrderId: orderId, source: "commerce.controller.cancel-fee-preview" },
-      );
-      const startedAtMs = Date.now();
-
-      logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.request", {
+      const result = await queryRideHailingCancellationFeeFromOrderDetail({
+        orderId,
         actorUserId: userId,
       });
-
-      try {
-        const result = await queryRideHailingCancellationFeeFromOrderDetail({
-          orderId,
-          actorUserId: userId,
-          debug,
-        });
-        logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.response", {
-          durationMs: Date.now() - startedAtMs,
-          cancelFeeFen: result.cancelFeeFen,
-        });
-        return c.json(result);
-      } catch (error) {
-        logCommerceOrderDetailDebug(debug, "controller.cancel-fee-preview.error", {
-          durationMs: Date.now() - startedAtMs,
-          error: error instanceof Error ? error.message : "unknown error",
-        });
-        throw error;
-      }
+      return c.json(result);
     },
   )
   .post(

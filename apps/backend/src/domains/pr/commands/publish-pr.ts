@@ -13,7 +13,6 @@ import {
 import { resolveUserByOpenId } from "../../user";
 import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
 import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
-import { operationLogService } from "../../../infra/operation-log";
 import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
 import { assertPRStartTimeHasNotPassed } from "../services/pr-time-window-guard.service";
 import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
@@ -140,14 +139,6 @@ export async function publishPR(
   if (!latest) {
     return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
   }
-
-  operationLogService.log({
-    actorId: creatorUserId,
-    action: "pr.publish",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { fromStatus: "DRAFT", toStatus: latest.status },
-  });
 
   await reconcileAlternativeWaitlistNotificationsForCandidate(latest);
 

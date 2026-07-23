@@ -13,9 +13,8 @@ export const findPRTypeConfigRecordByNormalizedType = async (
 export const listPRTypeConfigRecords = async (): Promise<PRTypeConfig[]> =>
   await repository.listAll();
 
-export const createPRTypeConfigRecord = async (
-  input: NewPRTypeConfig,
-): Promise<PRTypeConfig> => await repository.create(input);
+export const createPRTypeConfigRecord = async (input: NewPRTypeConfig): Promise<PRTypeConfig> =>
+  await repository.create(input);
 
 export const updatePRTypeConfigRecord = async (
   type: string,

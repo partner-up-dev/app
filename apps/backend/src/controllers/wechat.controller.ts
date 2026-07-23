@@ -69,8 +69,6 @@ const signatureQuerySchema = z.object({
 
 const oauthLoginQuerySchema = z.object({
   returnTo: z.string().optional(),
-  traceId: z.string().uuid().optional(),
-  traceStartedAtMs: z.coerce.number().int().positive().optional(),
 });
 
 const oauthMockAuthorizeQuerySchema = z.object({
@@ -108,9 +106,6 @@ const oauthStateCookiePayloadSchema = z.object({
   mode: z.enum(["login", "bind"]),
   bindUserId: z.string().uuid().nullable(),
   anonymousUserId: z.string().uuid().nullable(),
-  traceId: z.string().uuid().nullable().optional(),
-  traceStartedAtMs: z.number().int().positive().nullable().optional(),
-  backendLoginStartedAtMs: z.number().int().positive().nullable().optional(),
   expiresAtMs: z.number().int().positive(),
 });
 
@@ -124,10 +119,6 @@ const oauthCallbackAuthPayloadSchema = z.object({
 const oauthHandoffCookiePayloadSchema = z.object({
   nonce: z.string().min(1),
   userId: z.string().uuid(),
-  traceId: z.string().uuid().nullable().optional(),
-  traceStartedAtMs: z.number().int().positive().nullable().optional(),
-  backendLoginStartedAtMs: z.number().int().positive().nullable().optional(),
-  backendCallbackStartedAtMs: z.number().int().positive().nullable().optional(),
   expiresAtMs: z.number().int().positive(),
 });
 const reminderSubscriptionUpdateSchema = z.object({
@@ -153,78 +144,6 @@ type NotificationSubscriptionState = {
 };
 
 const nowMs = (): number => Date.now();
-
-type OAuthTraceStage =
-  | "backend_login_received"
-  | "backend_login_redirect_prepared"
-  | "backend_bind_received"
-  | "backend_bind_redirect_prepared"
-  | "backend_callback_state_validated"
-  | "backend_code_exchange_completed"
-  | "backend_user_resolution_completed"
-  | "backend_callback_redirect_prepared"
-  | "backend_callback_json_success"
-  | "backend_callback_failed"
-  | "backend_handoff_received"
-  | "backend_handoff_completed"
-  | "backend_handoff_failed";
-
-type OAuthTraceContext = {
-  traceId: string | null;
-  traceStartedAtMs: number | null;
-  backendLoginStartedAtMs: number | null;
-  backendCallbackStartedAtMs?: number | null;
-};
-
-const resolveElapsedMs = (
-  startedAtMs: number | null | undefined,
-  endedAtMs = nowMs(),
-): number | undefined => {
-  if (!startedAtMs || startedAtMs > endedAtMs) return undefined;
-  return endedAtMs - startedAtMs;
-};
-
-const buildOAuthTraceContext = (input: {
-  traceId?: string | null;
-  traceStartedAtMs?: number | null;
-  backendLoginStartedAtMs?: number | null;
-  backendCallbackStartedAtMs?: number | null;
-}): OAuthTraceContext => ({
-  traceId: input.traceId ?? null,
-  traceStartedAtMs: input.traceStartedAtMs ?? null,
-  backendLoginStartedAtMs: input.backendLoginStartedAtMs ?? null,
-  backendCallbackStartedAtMs: input.backendCallbackStartedAtMs ?? null,
-});
-
-const recordWeChatOAuthTrace = (input: {
-  context: OAuthTraceContext;
-  stage: OAuthTraceStage;
-  durationMs?: number;
-  result?: "success" | "failure";
-  mode?: OAuthStateMode;
-  branch?: string;
-  status?: number;
-  errorCode?: string;
-}): void => {
-  const { traceId } = input.context;
-  if (!traceId) return;
-
-  const payload: Record<string, unknown> = {
-    traceId,
-    stage: input.stage,
-    durationMs: input.durationMs,
-    sinceFrontendStartMs: resolveElapsedMs(input.context.traceStartedAtMs),
-    sinceBackendLoginStartMs: resolveElapsedMs(input.context.backendLoginStartedAtMs),
-    sinceBackendCallbackStartMs: resolveElapsedMs(input.context.backendCallbackStartedAtMs),
-    result: input.result,
-    mode: input.mode,
-    branch: input.branch,
-    status: input.status,
-    errorCode: input.errorCode,
-  };
-
-  console.info("[WeChatOAuthTrace]", payload);
-};
 
 const isOAuthRuntimeAvailable = (): boolean =>
   oauthService.isConfigured() || isWeChatAbilityMockingEnabled();
@@ -855,29 +774,18 @@ const buildOAuthStatePayload = (
   mode: OAuthStateMode,
   bindUserId: UserId | null = null,
   anonymousUserId: UserId | null = null,
-  traceContext: OAuthTraceContext = buildOAuthTraceContext({}),
 ): OAuthStateCookiePayload => ({
   nonce: randomUUID(),
   returnTo,
   mode,
   bindUserId,
   anonymousUserId,
-  traceId: traceContext.traceId,
-  traceStartedAtMs: traceContext.traceStartedAtMs,
-  backendLoginStartedAtMs: traceContext.backendLoginStartedAtMs,
   expiresAtMs: nowMs() + OAUTH_STATE_TTL_SECONDS * 1000,
 });
 
-const buildOAuthHandoffPayload = (
-  userId: UserId,
-  traceContext: OAuthTraceContext = buildOAuthTraceContext({}),
-): OAuthHandoffCookiePayload => ({
+const buildOAuthHandoffPayload = (userId: UserId): OAuthHandoffCookiePayload => ({
   nonce: randomUUID(),
   userId,
-  traceId: traceContext.traceId,
-  traceStartedAtMs: traceContext.traceStartedAtMs,
-  backendLoginStartedAtMs: traceContext.backendLoginStartedAtMs,
-  backendCallbackStartedAtMs: traceContext.backendCallbackStartedAtMs,
   expiresAtMs: nowMs() + OAUTH_HANDOFF_TTL_SECONDS * 1000,
 });
 
@@ -959,51 +867,33 @@ const issueOAuthCallbackAuth = async (
   };
 };
 
-type DeferredWeChatProfileRefreshReason =
-  | "login_existing_user"
-  | "login_anonymous_upgrade"
-  | "login_authenticated_bind"
-  | "login_created_user";
-
 const hasMissingWeChatProfile = (user: Pick<User, "nickname" | "sex" | "avatar">): boolean =>
   !user.nickname || user.sex === null || !user.avatar;
 
 const fetchAndApplyWeChatProfileIfMissing = async (input: {
   userId: UserId;
   session: WeChatOAuthLoginSession;
-  reason: DeferredWeChatProfileRefreshReason;
 }): Promise<void> => {
-  const startedAtMs = Date.now();
   try {
     const profile = await oauthService.fetchUserInfo(
       input.session.oauthAccessToken,
       input.session.openId,
       input.session.scope,
     );
-    const updatedUser = await userRepo.updateWeChatProfileFieldsIfMissing({
+    await userRepo.updateWeChatProfileFieldsIfMissing({
       userId: input.userId,
       nickname: profile.nickname,
       sex: profile.sex,
       avatar: profile.avatar,
     });
-    console.log("[WeChatOAuth] profile refresh completed", {
-      reason: input.reason,
-      durationMs: Date.now() - startedAtMs,
-      updated: Boolean(updatedUser),
-    });
-  } catch (error) {
-    console.error("[WeChatOAuth] profile refresh failed", {
-      reason: input.reason,
-      durationMs: Date.now() - startedAtMs,
-      error: error instanceof Error ? error.message : String(error),
-    });
+  } catch {
+    // Profile refresh is best-effort and cannot change a completed OAuth result.
   }
 };
 
 const scheduleWeChatProfileRefreshIfMissing = (input: {
   user: Pick<User, "id" | "nickname" | "sex" | "avatar">;
   session: WeChatOAuthLoginSession | null;
-  reason: DeferredWeChatProfileRefreshReason;
 }): void => {
   const session = input.session;
   if (!session || !hasMissingWeChatProfile(input.user)) {
@@ -1014,7 +904,6 @@ const scheduleWeChatProfileRefreshIfMissing = (input: {
     void fetchAndApplyWeChatProfileIfMissing({
       userId: input.user.id,
       session,
-      reason: input.reason,
     });
   }, 0);
 };
@@ -1311,18 +1200,7 @@ export const wechatRoute = app
     return c.redirect(resolveMockOAuthCallbackUrl(c, state), 302);
   })
   .get("/oauth/login", zValidator("query", oauthLoginQuerySchema), async (c) => {
-    const loginStartedAtMs = nowMs();
-    const { returnTo: rawReturnTo, traceId, traceStartedAtMs } = c.req.valid("query");
-    const traceContext = buildOAuthTraceContext({
-      traceId: traceId ?? null,
-      traceStartedAtMs: traceStartedAtMs ?? null,
-      backendLoginStartedAtMs: loginStartedAtMs,
-    });
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_login_received",
-      mode: "login",
-    });
+    const { returnTo: rawReturnTo } = c.req.valid("query");
 
     let returnTo: string;
     try {
@@ -1344,23 +1222,9 @@ export const wechatRoute = app
         return c.json({ error: "Mock WeChat openid is not configured" }, 503);
       }
 
-      const statePayload = buildOAuthStatePayload(
-        returnTo,
-        "login",
-        bindUserId,
-        anonymousUserId,
-        traceContext,
-      );
+      const statePayload = buildOAuthStatePayload(returnTo, "login", bindUserId, anonymousUserId);
       await setOAuthStateCookie(c, statePayload);
       const mockAuthorizeUrl = resolveMockOAuthAuthorizeUrl(c, statePayload.nonce);
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_login_redirect_prepared",
-        mode: "login",
-        durationMs: nowMs() - loginStartedAtMs,
-        result: "success",
-        branch: "mock",
-      });
       return c.redirect(mockAuthorizeUrl, 302);
     }
 
@@ -1368,41 +1232,16 @@ export const wechatRoute = app
       return c.json({ error: "WeChat OAuth is not configured" }, 503);
     }
 
-    const statePayload = buildOAuthStatePayload(
-      returnTo,
-      "login",
-      bindUserId,
-      anonymousUserId,
-      traceContext,
-    );
+    const statePayload = buildOAuthStatePayload(returnTo, "login", bindUserId, anonymousUserId);
     await setOAuthStateCookie(c, statePayload);
 
     const callbackUrl = resolveOAuthCallbackUrl(c);
     const authorizeUrl = oauthService.createAuthorizeUrl(callbackUrl, statePayload.nonce);
 
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_login_redirect_prepared",
-      mode: "login",
-      durationMs: nowMs() - loginStartedAtMs,
-      result: "success",
-      branch: "wechat",
-    });
     return c.redirect(authorizeUrl, 302);
   })
   .get("/oauth/bind", zValidator("query", oauthLoginQuerySchema), async (c) => {
-    const bindStartedAtMs = nowMs();
-    const { returnTo: rawReturnTo, traceId, traceStartedAtMs } = c.req.valid("query");
-    const traceContext = buildOAuthTraceContext({
-      traceId: traceId ?? null,
-      traceStartedAtMs: traceStartedAtMs ?? null,
-      backendLoginStartedAtMs: bindStartedAtMs,
-    });
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_bind_received",
-      mode: "bind",
-    });
+    const { returnTo: rawReturnTo } = c.req.valid("query");
 
     if (!isOAuthRuntimeAvailable()) {
       return c.json({ error: "WeChat OAuth is not configured" }, 503);
@@ -1432,13 +1271,7 @@ export const wechatRoute = app
       return c.json({ error: "Current user is already bound to WeChat" }, 409);
     }
 
-    const statePayload = buildOAuthStatePayload(
-      returnTo,
-      "bind",
-      currentUserId,
-      null,
-      traceContext,
-    );
+    const statePayload = buildOAuthStatePayload(returnTo, "bind", currentUserId);
     await setOAuthStateCookie(c, statePayload);
 
     const authorizeUrl = isWeChatAbilityMockingEnabled()
@@ -1450,18 +1283,9 @@ export const wechatRoute = app
       return c.json({ error: "WeChat OAuth is not configured" }, 503);
     }
 
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_bind_redirect_prepared",
-      mode: "bind",
-      durationMs: nowMs() - bindStartedAtMs,
-      result: "success",
-      branch: isWeChatAbilityMockingEnabled() ? "mock" : "wechat",
-    });
     return c.json({ authorizeUrl });
   })
   .get("/oauth/handoff", oauthHandoffQueryValidator, async (c) => {
-    const handoffStartedAtMs = nowMs();
     const { handoff } = c.req.valid("query");
     c.header("Cache-Control", "no-store");
     const sessionSecret = resolveOAuthSessionSecret();
@@ -1489,25 +1313,7 @@ export const wechatRoute = app
         code: WECHAT_OAUTH_HANDOFF_INVALID_CODE,
       });
     }
-    const traceContext = buildOAuthTraceContext({
-      traceId: payload.traceId,
-      traceStartedAtMs: payload.traceStartedAtMs,
-      backendLoginStartedAtMs: payload.backendLoginStartedAtMs,
-      backendCallbackStartedAtMs: payload.backendCallbackStartedAtMs,
-    });
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_handoff_received",
-    });
     if (payload.expiresAtMs <= nowMs()) {
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_handoff_failed",
-        durationMs: nowMs() - handoffStartedAtMs,
-        result: "failure",
-        status: 400,
-        errorCode: "expired",
-      });
       return throwOAuthHandoffProblem(c, {
         status: 400,
         detail: "OAuth handoff expired",
@@ -1515,14 +1321,6 @@ export const wechatRoute = app
       });
     }
     if (payload.nonce !== handoff) {
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_handoff_failed",
-        durationMs: nowMs() - handoffStartedAtMs,
-        result: "failure",
-        status: 400,
-        errorCode: "mismatch",
-      });
       return throwOAuthHandoffProblem(c, {
         status: 400,
         detail: "OAuth handoff mismatch",
@@ -1532,14 +1330,6 @@ export const wechatRoute = app
 
     const user = await userRepo.findById(payload.userId as UserId);
     if (!user || user.status !== "ACTIVE") {
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_handoff_failed",
-        durationMs: nowMs() - handoffStartedAtMs,
-        result: "failure",
-        status: 403,
-        errorCode: WECHAT_OAUTH_PUBLIC_IDENTITY_NOT_ALLOWED_CODE,
-      });
       return throwOAuthHandoffProblem(c, {
         status: 403,
         detail: "OAuth identity is not eligible for a public session",
@@ -1553,35 +1343,14 @@ export const wechatRoute = app
       authPayload = await issueOAuthCallbackAuth(c, user);
     } catch (error) {
       c.set("suppressAccessTokenHeader", true);
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_handoff_failed",
-        durationMs: nowMs() - handoffStartedAtMs,
-        result: "failure",
-        status: error instanceof ProblemDetailsError ? error.status : 500,
-        errorCode:
-          error instanceof ProblemDetailsError
-            ? (error.code ?? error.name)
-            : error instanceof Error
-              ? error.name
-              : "unknown_error",
-      });
       throw error;
     }
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_handoff_completed",
-      durationMs: nowMs() - handoffStartedAtMs,
-      result: "success",
-    });
     return c.json({
       ok: true,
       auth: authPayload,
-      traceId: payload.traceId ?? undefined,
     });
   })
   .get("/oauth/callback", zValidator("query", oauthCallbackQuerySchema), async (c) => {
-    const callbackStartedAtMs = nowMs();
     const respondError = (
       status: ContentfulStatusCode,
       error: string,
@@ -1597,33 +1366,14 @@ export const wechatRoute = app
 
       return c.redirect(returnTo, 302);
     };
-    const respondAuthenticatedSuccess = async (
-      returnTo: string,
-      user: User,
-      traceContext: OAuthTraceContext,
-      branch: string,
-    ) => {
+    const respondAuthenticatedSuccess = async (returnTo: string, user: User) => {
       if (!isOAuthCallbackNavigationRequest(c)) {
         const authPayload = await issueOAuthCallbackAuth(c, user);
-        recordWeChatOAuthTrace({
-          context: traceContext,
-          stage: "backend_callback_json_success",
-          durationMs: nowMs() - callbackStartedAtMs,
-          result: "success",
-          branch,
-        });
         return c.json({ ok: true, returnTo, auth: authPayload });
       }
 
-      const handoffPayload = buildOAuthHandoffPayload(user.id, traceContext);
+      const handoffPayload = buildOAuthHandoffPayload(user.id);
       await setOAuthHandoffCookie(c, handoffPayload);
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_callback_redirect_prepared",
-        durationMs: nowMs() - callbackStartedAtMs,
-        result: "success",
-        branch,
-      });
       return c.redirect(appendOAuthHandoffToReturnTo(returnTo, handoffPayload.nonce), 302);
     };
     const resolveActiveUserById = async (userId: UserId): Promise<User> => {
@@ -1685,47 +1435,17 @@ export const wechatRoute = app
       return respondError(400, "OAuth state mismatch");
     }
 
-    const traceContext = buildOAuthTraceContext({
-      traceId: statePayload.traceId,
-      traceStartedAtMs: statePayload.traceStartedAtMs,
-      backendLoginStartedAtMs: statePayload.backendLoginStartedAtMs,
-      backendCallbackStartedAtMs: callbackStartedAtMs,
-    });
-    recordWeChatOAuthTrace({
-      context: traceContext,
-      stage: "backend_callback_state_validated",
-      mode: statePayload.mode,
-    });
-
     try {
       if (statePayload.mode === "bind" && statePayload.bindUserId) {
-        const exchangeStartedAtMs = nowMs();
         const bindOpenId = useMockOAuthFlow
           ? resolveWeChatAbilityMockOpenId()
           : (await oauthService.exchangeCodeForSession(code)).openId;
-        recordWeChatOAuthTrace({
-          context: traceContext,
-          stage: "backend_code_exchange_completed",
-          mode: "bind",
-          durationMs: useMockOAuthFlow ? 0 : nowMs() - exchangeStartedAtMs,
-          result: "success",
-          branch: useMockOAuthFlow ? "mock" : "wechat",
-        });
         if (!bindOpenId) {
           throw new Error("Mock WeChat openid is not configured");
         }
 
-        const userResolutionStartedAtMs = nowMs();
         const occupiedUser = await userRepo.findByOpenId(bindOpenId);
         if (occupiedUser && occupiedUser.status === "ACTIVE") {
-          recordWeChatOAuthTrace({
-            context: traceContext,
-            stage: "backend_user_resolution_completed",
-            mode: "bind",
-            durationMs: nowMs() - userResolutionStartedAtMs,
-            result: "success",
-            branch: "occupied_user",
-          });
           clearAnonymousSessionCookie(c);
           clearOAuthStateCookieByNonce(c, state);
           clearOAuthStateCookie(c);
@@ -1734,8 +1454,6 @@ export const wechatRoute = app
           return await respondAuthenticatedSuccess(
             appendBindResultToReturnTo(statePayload.returnTo, "success"),
             occupiedUser,
-            traceContext,
-            "bind_occupied_user",
           );
         }
 
@@ -1761,29 +1479,16 @@ export const wechatRoute = app
         clearOAuthStateCookieByNonce(c, state);
         clearOAuthStateCookie(c);
         assertOAuthPublicAuthenticatedUser(boundUser);
-        recordWeChatOAuthTrace({
-          context: traceContext,
-          stage: "backend_user_resolution_completed",
-          mode: "bind",
-          durationMs: nowMs() - userResolutionStartedAtMs,
-          result: "success",
-          branch: hasUserRole(bindTargetUser.role, "anonymous")
-            ? "anonymous_upgrade"
-            : "authenticated_bind",
-        });
 
         return await respondAuthenticatedSuccess(
           appendBindResultToReturnTo(statePayload.returnTo, "success"),
           boundUser,
-          traceContext,
-          "bind_target_user",
         );
       }
 
       let loginOpenId: string | null = null;
       let loginSession: WeChatOAuthLoginSession | null = null;
 
-      const exchangeStartedAtMs = nowMs();
       if (useMockOAuthFlow) {
         loginOpenId = resolveWeChatAbilityMockOpenId();
       } else {
@@ -1791,44 +1496,21 @@ export const wechatRoute = app
         loginSession = session;
         loginOpenId = session.openId;
       }
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_code_exchange_completed",
-        mode: "login",
-        durationMs: useMockOAuthFlow ? 0 : nowMs() - exchangeStartedAtMs,
-        result: "success",
-        branch: useMockOAuthFlow ? "mock" : "wechat",
-      });
 
       if (!loginOpenId) {
         throw new Error("Mock WeChat openid is not configured");
       }
 
-      const userResolutionStartedAtMs = nowMs();
       const existingUser = await userRepo.findByOpenId(loginOpenId);
       if (existingUser) {
         scheduleWeChatProfileRefreshIfMissing({
           user: existingUser,
           session: loginSession,
-          reason: "login_existing_user",
         });
         clearAnonymousSessionCookie(c);
         clearOAuthStateCookieByNonce(c, state);
         clearOAuthStateCookie(c);
-        recordWeChatOAuthTrace({
-          context: traceContext,
-          stage: "backend_user_resolution_completed",
-          mode: "login",
-          durationMs: nowMs() - userResolutionStartedAtMs,
-          result: "success",
-          branch: "existing_user",
-        });
-        return await respondAuthenticatedSuccess(
-          statePayload.returnTo,
-          existingUser,
-          traceContext,
-          "login_existing_user",
-        );
+        return await respondAuthenticatedSuccess(statePayload.returnTo, existingUser);
       }
 
       const bindCandidateUserId =
@@ -1854,7 +1536,6 @@ export const wechatRoute = app
               scheduleWeChatProfileRefreshIfMissing({
                 user: boundCandidate,
                 session: loginSession,
-                reason: "login_anonymous_upgrade",
               });
             }
           } else {
@@ -1864,7 +1545,6 @@ export const wechatRoute = app
               scheduleWeChatProfileRefreshIfMissing({
                 user: boundCandidate,
                 session: loginSession,
-                reason: "login_authenticated_bind",
               });
             }
           }
@@ -1873,22 +1553,7 @@ export const wechatRoute = app
             clearAnonymousSessionCookie(c);
             clearOAuthStateCookieByNonce(c, state);
             clearOAuthStateCookie(c);
-            recordWeChatOAuthTrace({
-              context: traceContext,
-              stage: "backend_user_resolution_completed",
-              mode: "login",
-              durationMs: nowMs() - userResolutionStartedAtMs,
-              result: "success",
-              branch: hasUserRole(bindCandidateUser.role, "anonymous")
-                ? "anonymous_upgrade"
-                : "authenticated_bind",
-            });
-            return await respondAuthenticatedSuccess(
-              statePayload.returnTo,
-              boundCandidate,
-              traceContext,
-              "login_bind_candidate",
-            );
+            return await respondAuthenticatedSuccess(statePayload.returnTo, boundCandidate);
           }
         }
       }
@@ -1909,37 +1574,15 @@ export const wechatRoute = app
       scheduleWeChatProfileRefreshIfMissing({
         user: resolvedUser,
         session: loginSession,
-        reason: "login_created_user",
       });
 
       clearAnonymousSessionCookie(c);
       clearOAuthStateCookieByNonce(c, state);
       clearOAuthStateCookie(c);
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_user_resolution_completed",
-        mode: "login",
-        durationMs: nowMs() - userResolutionStartedAtMs,
-        result: "success",
-        branch: "created_user",
-      });
-      return await respondAuthenticatedSuccess(
-        statePayload.returnTo,
-        resolvedUser,
-        traceContext,
-        "login_created_user",
-      );
+      return await respondAuthenticatedSuccess(statePayload.returnTo, resolvedUser);
     } catch (error) {
       clearOAuthStateCookieByNonce(c, state);
       clearOAuthStateCookie(c);
-      recordWeChatOAuthTrace({
-        context: traceContext,
-        stage: "backend_callback_failed",
-        mode: statePayload.mode,
-        durationMs: nowMs() - callbackStartedAtMs,
-        result: "failure",
-        errorCode: error instanceof Error ? error.name : "unknown_error",
-      });
       if (statePayload.mode === "bind") {
         c.set("suppressAccessTokenHeader", true);
         return respondSuccess(appendBindResultToReturnTo(statePayload.returnTo, "failed"));

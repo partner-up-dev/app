@@ -108,7 +108,7 @@ export const useOfficialAccountFollowPrompt = (source: OfficialAccountFollowProm
 
   const markPromptPresented = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "shown");
-    trackEvent("official_account_follow_nudge_shown", {
+    trackEvent("official.account.follow.nudge.shown", {
       source,
     });
   };
@@ -136,7 +136,7 @@ export const useOfficialAccountFollowPrompt = (source: OfficialAccountFollowProm
   const dismissPrompt = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "dismissed");
     isVisible.value = false;
-    trackEvent("official_account_follow_nudge_action_click", {
+    trackEvent("official.account.follow.nudge.action.click", {
       source,
       action: "dismiss",
     });
@@ -145,7 +145,7 @@ export const useOfficialAccountFollowPrompt = (source: OfficialAccountFollowProm
   const markPromptCompleted = (): void => {
     markCooldown(SYNC_ALIGNED_COOLDOWN_MS, "completed");
     isVisible.value = false;
-    trackEvent("official_account_follow_nudge_action_click", {
+    trackEvent("official.account.follow.nudge.action.click", {
       source,
       action: "complete",
     });

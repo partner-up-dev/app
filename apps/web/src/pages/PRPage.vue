@@ -341,7 +341,7 @@ useRouteShareDescriptorRegistration(routeShareDescriptor);
 
 const trackCreatorActionClick = (actionType: CreatorSecondaryActionType) => {
   if (id.value === null) return;
-  trackEvent("pr_secondary_action_click", {
+  trackEvent("pr.secondary_action.click", {
     prId: id.value,
     actionType,
   });

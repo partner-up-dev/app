@@ -1,7 +1,6 @@
 import type { PartnerId } from "../../../entities/partner";
 import type { PRId, PRStatusManual, VisibilityStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -69,16 +68,12 @@ export const createAdminPR = async (
     },
     {
       creationAuthority: "ADMIN",
-      createSource: "ADMIN",
       publicationMode: "create-open",
       joinGateConfig: input.joinGateConfig,
       confirmationEnabled: input.confirmationEnabled,
       confirmationStartOffsetMinutes: input.confirmationStartOffsetMinutes,
       confirmationEndOffsetMinutes: input.confirmationEndOffsetMinutes,
       joinLockOffsetMinutes: input.joinLockOffsetMinutes,
-      operationLog: {
-        action: "pr.admin_create",
-      },
     },
   );
 };
@@ -152,19 +147,6 @@ export const deleteAdminPR = async (input: { prId: PRId; actorUserId: UserId | n
   if (result.outcome === "PR_MISSING") {
     return throwHttpProblem({ status: 404, detail: "PR not found" });
   }
-  operationLogService.log({
-    actorId: input.actorUserId,
-    action: "pr.admin_delete",
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: {
-      title: result.request.title,
-      type: result.request.type,
-      location: result.request.location,
-      status: result.request.status,
-      partnerCount: result.deletedPartnerCount,
-    },
-  });
   return {
     ok: true as const,
     prId: input.prId,
@@ -220,13 +202,6 @@ export const releaseAdminPRParticipant = async (input: {
   const effects = await applyParticipantReleaseEffects({
     prId: input.prId,
     releasedUserIds: [releasedSlot.userId],
-  });
-  operationLogService.log({
-    actorId: input.actorUserId,
-    action: "partner.admin_manual_release",
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: { partnerId: releasedSlot.id, reason, trigger: "admin_manual", manual: true },
   });
   const latest = await prRepository.findById(input.prId);
   if (latest) await reconcileAlternativeWaitlistNotificationsForCandidate(latest);

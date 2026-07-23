@@ -120,7 +120,6 @@ const selectedRecord = computed(
     null,
 );
 
-
 watch(
   fulfillments,
   (nextFulfillments) => {
@@ -132,7 +131,6 @@ watch(
   },
   { immediate: true },
 );
-
 </script>
 
 <style lang="scss" scoped>

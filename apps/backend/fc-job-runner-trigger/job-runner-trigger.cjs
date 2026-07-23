@@ -91,12 +91,6 @@ exports.handler = async function handler() {
     );
   }
 
-  console.log("[job-runner-trigger] tick success", {
-    total: tickUrls.length,
-    succeeded: successes.length,
-    urls: successes.map((item) => item.url),
-  });
-
   return {
     ok: true,
     total: tickUrls.length,

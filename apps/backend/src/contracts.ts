@@ -29,3 +29,8 @@ export type {
   WeekdayLabel,
 } from "./entities/partner-request";
 export type { ImageUploadPurpose } from "./infra/storage/image-storage.service";
+export type {
+  ActiveUserTelemetryEvent,
+  ActiveUserTelemetryEventName,
+  ActiveUserTelemetryEventVersion,
+} from "./infra/telemetry/user-event-registry";

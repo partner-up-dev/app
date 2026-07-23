@@ -1,6 +1,5 @@
 import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -72,14 +71,6 @@ export async function exitPRByUserId(
     recipientUserId: userId,
   });
   await recalculatePRStatus(id);
-
-  operationLogService.log({
-    actorId: userId,
-    action: "partner.exit",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { partnerId: exitedSlot.id },
-  });
 
   await promoteWaitlistedPartners(id);
   await reconcileCurrentCreator(id);

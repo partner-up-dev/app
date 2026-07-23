@@ -32,7 +32,7 @@ Phase 3: architecture and PR migration protocol               Complete
 Phase 4: User/Auth                                                 local implementation complete; external rollout/topology evidence pending
 Phase 5: Commerce                                                  local source convergence committed (`171319de`); 5-7a evidence and explicit deferrals remain
 Phase 6: Job/Notification runtime                                 Complete locally; real O11y/delivery retirement handed to Phase 7
-Phase 7: Observability/Analytics                                  not started
+Phase 7: Legacy O11y retirement / Analytics                       Complete
 Phase 8: global review and cleanup                                not started
 ```
 
@@ -83,8 +83,30 @@ compatibility are forward-retired. RideHailing qualifying settlement
 atomically creates one typed fee-confirmation Job, while provider I/O occurs
 after commit through an `order_id`-only internal handler. The scale-to-zero
 tick/request-tail seams, protected aggregate diagnostics and full local gates
-are proven. `notification_deliveries` remains inert audit history until Phase
-7 supplies governed observability.
+are proven. `notification_deliveries` remains inert audit history until the
+post-Phase-7 professional observability/data-retention task supplies its
+replacement decision.
+
+Phase 7 began with its corrected read-only `7-0` entry at baseline
+`537a9b4f`. Sir rejected SLS-first/structured-output formalization: those
+surfaces are legacy convenience to delete before a professional, long-lived
+program-observability task is designed. The packet under
+[`10-phase7-observability-analytics/`](./10-phase7-observability-analytics/)
+therefore uses `7-1`–`7-5`: exact retirement decisions, clean-baseline
+source/deployment cleanup, user-telemetry SSoT/failure isolation, BI/Web
+convergence, then Phase review/future-task handoff. `7-1` is complete:
+repository SLS coupling and production pseudo-observability are approved for
+deletion, CLI/dev/test output is retained, and `operation_logs` is approved
+for forward retirement. Sir started the remaining Phase on 2026-07-23.
+`7-2`–`7-5` are locally complete with canonical static, Backend/Web unit,
+Backend scenario and System scenario proof. The completed shape includes the
+clean runtime/deployment baseline, Registry/failure convergence, Discovery
+typed fact, shared Analytics range, Web Analytics owner decomposition, and a
+real browser-to-dashboard proof. Sir confirms no configured SLS saved
+query/dashboard exists and closes further platform inventory; D7-04 is
+therefore closed by operator evidence/decision. This does not claim
+platform-side access/deletion by Codex or implemented professional
+observability.
 
 ## Program Phase Boundaries
 
@@ -96,7 +118,7 @@ are proven. `notification_deliveries` remains inert audit history until Phase
 | 4 User/Auth | Session, OAuth, pending actions, auth transport and user ownership | Phase 3 auth seams stable; current auth SCC/continuity inventory | Local session/workflow owner closure; external rollout/provider-topology claims remain separately evidenced |
 | 5 Commerce | Order/payment/bill/fulfillment/provider authority and compensation | User/Auth contract stable; provider/idempotency matrix | Local Commerce owner closure with explicit external-evidence and deferred-risk handoffs; no false deployment claim |
 | 6 Job/Notification | JobRunner, scheduling, dispatch and retry/bootstrap ownership | Phase 5 local side-effect boundaries plus explicit 5-7a/F-02 handoffs | Explicit runtime owner, durable Job control/creation state, attempt-O11y boundary, idempotency/retry policy and lifecycle proof; `6-0`, D6-N-01, D6-J-02 and D6-F-01 have closed the read-only owner design before execution |
-| 7 Observability | Telemetry, analytics, operational signals and authority boundaries | Prior domain surfaces and Job/program-O11y boundary stable | Signals follow domain semantics without becoming product truth |
+| 7 Legacy O11y retirement / Analytics | Remove rejected SLS/structured-output pseudo-observability; converge user telemetry and BI without conflating signal families | Prior domain surfaces stable; negative baseline and exact deletion boundary recorded | Deployable clean baseline, Registry/fact/Web Analytics convergence, and requirement-only handoff to a future professional program-O11y task |
 | 8 Global review | Cross-phase consistency, expired compatibility and report-first findings | Phases 3–7 exited | Global fitness review, targeted cleanup, durable-doc/link/gate reconciliation |
 
 ## Program Guardrails

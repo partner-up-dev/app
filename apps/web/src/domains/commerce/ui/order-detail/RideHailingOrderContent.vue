@@ -168,11 +168,7 @@
             data-testid="order-detail.ride-hailing.bill-section"
           >
             <h3>账单</h3>
-            <BillCard
-              :bill-id="billId"
-              :order-id="props.detail.order.id"
-              :route-order-id="props.routeOrderId"
-            />
+            <BillCard :bill-id="billId" />
           </section>
 
           <section
@@ -294,7 +290,7 @@ import {
   PuImg,
   PuInlineNotice,
 } from "@partner-up-dev/design-web";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import {
   type CommerceOrderDetailResponse,
   useCancelOrder,
@@ -303,16 +299,10 @@ import {
 import type { RideHailingProviderObservation } from "@/domains/commerce/queries/ride-hailing-reconciliation";
 import BillCard from "@/domains/commerce/ui/order-detail/BillCard.vue";
 import RideHailingSkuCard from "@/domains/commerce/ui/ordering/RideHailingSkuCard.vue";
-import { logCommerceOrderDetailDebug } from "@/domains/commerce/use-cases/order-detail-debug";
 import type { Route, RoutePoint } from "@/domains/route/model/route";
 import RouteMap from "@/domains/route/ui/RouteMap.vue";
 import RoutePointList from "@/domains/route/ui/RoutePointList.vue";
-import type {
-  MapActiveGeometry,
-  MapCoordinate,
-  MapFitPadding,
-  MapViewportFollowMode,
-} from "@/shared/map/types";
+import type { MapFitPadding, MapViewportFollowMode } from "@/shared/map/types";
 import { buildRideHailingOrderMapViewModel } from "./ride-hailing-order-map-view-model";
 
 type RideHailingDetail = NonNullable<CommerceOrderDetailResponse["rideHailing"]>;
@@ -332,60 +322,10 @@ type ResolvedRideHailingVehicleCard = {
   priceLabel: string;
 };
 
-const summarizeMapCoordinate = (
-  point: MapCoordinate | null | undefined,
-): { lat: number; lng: number } | null =>
-  point
-    ? {
-        lat: point.lat,
-        lng: point.lng,
-      }
-    : null;
-
-const summarizeActiveGeometry = (
-  geometry: MapActiveGeometry | null | undefined,
-): Record<string, unknown> => {
-  if (!geometry) {
-    return {
-      kind: null,
-    };
-  }
-  switch (geometry.kind) {
-    case "marker":
-      return {
-        kind: geometry.kind,
-        markerId: geometry.id,
-      };
-    case "polyline":
-      return {
-        kind: geometry.kind,
-        polylineId: geometry.id,
-      };
-    case "selection":
-      return {
-        kind: geometry.kind,
-        markerIds: geometry.markerIds ?? [],
-        polylineIds: geometry.polylineIds ?? [],
-      };
-    default:
-      return {
-        kind: geometry.kind,
-      };
-  }
-};
-
-const writeRideHailingOrderMapRenderLog = (payload: Record<string, unknown>): void => {
-  console.info("[RideHailingOrderMapRender]", {
-    at: new Date().toISOString(),
-    ...payload,
-  });
-};
-
 const props = defineProps<{
   detail: CommerceOrderDetailResponse;
   ride: RideHailingDetail;
   providerObservation: RideHailingProviderObservation | null;
-  routeOrderId: string | null;
 }>();
 
 const cancelMutation = useCancelOrder();
@@ -617,37 +557,21 @@ const closeCancelConfirmDialog = (): void => {
 };
 
 const previewRideHailingCancellationFee = async (): Promise<void> => {
-  logCommerceOrderDetailDebug("ride-content.cancel-preview.click", {
-    routeOrderId: props.routeOrderId,
-    detailOrderId: props.detail.order.id,
-    providerOrderId: props.ride.provider.providerOrderId,
-    executionPhase: props.ride.executionPhase,
-  });
   const preview = await cancelFeePreviewMutation.mutateAsync(props.detail.order.id);
   if (preview.cancelFeeFen <= 0) {
-    await executeRideHailingCancellation("no-fee-preview");
+    await executeRideHailingCancellation();
     return;
   }
   showCancelConfirmDialog.value = true;
 };
 
-const executeRideHailingCancellation = async (
-  source: "fee-confirm" | "no-fee-preview",
-): Promise<void> => {
-  logCommerceOrderDetailDebug("ride-content.cancel.execute", {
-    source,
-    routeOrderId: props.routeOrderId,
-    detailOrderId: props.detail.order.id,
-    providerOrderId: props.ride.provider.providerOrderId,
-    executionPhase: props.ride.executionPhase,
-    cancelFeeFen: cancelFeeFen.value,
-  });
+const executeRideHailingCancellation = async (): Promise<void> => {
   await cancelMutation.mutateAsync(props.detail.order.id);
   showCancelConfirmDialog.value = false;
 };
 
 const confirmRideHailingCancellation = async (): Promise<void> => {
-  await executeRideHailingCancellation("fee-confirm");
+  await executeRideHailingCancellation();
 };
 
 const orderMapViewModel = computed(() =>
@@ -663,54 +587,6 @@ const routeMapViewportFollowMode = computed<MapViewportFollowMode>(() =>
   (orderMapViewModel.value.mode === "PICKING_UP" || orderMapViewModel.value.mode === "IN_TRIP")
     ? "active-marker"
     : "none",
-);
-
-const rideHailingOrderMapRenderDiagnostics = computed(() => {
-  const providerPolyline = props.providerObservation?.navigationRoute?.polyline ?? null;
-  const plannedPolyline = props.ride.route.drivingPlan?.polyline ?? null;
-  return {
-    activeGeometry: summarizeActiveGeometry(orderMapViewModel.value.activeGeometry),
-    executionPhase: props.ride.executionPhase,
-    extraMarkerCount: orderMapViewModel.value.extraMarkers.length,
-    extraPolylineCount: orderMapViewModel.value.extraPolylines.length,
-    extraPolylineIds: orderMapViewModel.value.extraPolylines.map((polyline) => polyline.id),
-    livePhase: props.providerObservation?.phase ?? null,
-    mapMode: orderMapViewModel.value.mode,
-    orderId: props.detail.order.id,
-    overviewGeometry: summarizeActiveGeometry(orderMapViewModel.value.overviewGeometry),
-    planRoute: orderMapViewModel.value.planRoute,
-    plannedPolylinePointCount: plannedPolyline?.length ?? 0,
-    providerPolylineFirstPoint: summarizeMapCoordinate(
-      providerPolyline?.[0]
-        ? {
-            lat: providerPolyline[0]?.latitude ?? Number.NaN,
-            lng: providerPolyline[0]?.longitude ?? Number.NaN,
-          }
-        : null,
-    ),
-    providerPolylineLastPoint: summarizeMapCoordinate(
-      providerPolyline && providerPolyline.length > 0
-        ? {
-            lat: providerPolyline[providerPolyline.length - 1]?.latitude ?? Number.NaN,
-            lng: providerPolyline[providerPolyline.length - 1]?.longitude ?? Number.NaN,
-          }
-        : null,
-    ),
-    providerPolylinePointCount: providerPolyline?.length ?? 0,
-    providerRouteKind: props.providerObservation?.navigationRoute?.routeKind ?? null,
-    routeOrderId: props.routeOrderId,
-    showFallbackPolyline: orderMapViewModel.value.showFallbackPolyline,
-  };
-});
-
-watch(
-  rideHailingOrderMapRenderDiagnostics,
-  (payload) => {
-    writeRideHailingOrderMapRenderLog(payload);
-  },
-  {
-    immediate: true,
-  },
 );
 
 const directImageSrc = (value: string | null | undefined): string | null => {
@@ -735,26 +611,6 @@ const formatFen = (amountFen: number | null | undefined): string => {
     currency: "CNY",
   }).format(amountFen / 100);
 };
-
-watch(
-  () => ({
-    routeOrderId: props.routeOrderId,
-    detailOrderId: props.detail.order.id,
-    detailOrderStatus: props.detail.order.status,
-    providerOrderId: props.ride.provider.providerOrderId,
-    executionPhase: props.ride.executionPhase,
-    driverName: props.ride.driver?.driverName ?? null,
-    vehiclePlate: props.ride.vehicle?.plate ?? null,
-    billId: billId.value,
-    mapMode: orderMapViewModel.value.mode,
-    viewportFollowMode: routeMapViewportFollowMode.value,
-    panelStop: panelStop.value,
-  }),
-  (snapshot) => {
-    logCommerceOrderDetailDebug("ride-content.snapshot", snapshot);
-  },
-  { immediate: true },
-);
 </script>
 
 <style scoped lang="scss">

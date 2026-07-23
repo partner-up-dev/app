@@ -49,9 +49,7 @@ export const toPRTypeConfigAuthoringPolicy = (
   authoringCreationPolicy: config.authoringCreationPolicy,
 });
 
-export const toPRTypeConfigCreationPolicy = (
-  config: PRTypeConfig,
-): PRTypeConfigCreationPolicy => ({
+export const toPRTypeConfigCreationPolicy = (config: PRTypeConfig): PRTypeConfigCreationPolicy => ({
   authoringCreationPolicy: config.authoringCreationPolicy,
 });
 
@@ -101,9 +99,7 @@ export const toPRTypeConfigOperatorCatalogItem = (
   },
 });
 
-export const toPRTypeConfigOperatorDetail = (
-  config: PRTypeConfig,
-): PRTypeConfigOperatorDetail => ({
+export const toPRTypeConfigOperatorDetail = (config: PRTypeConfig): PRTypeConfigOperatorDetail => ({
   type: config.type,
   authoring: {
     locationPool: [...config.locationPool],

@@ -1,14 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import { createHash } from "crypto";
 import { Hono } from "hono";
 import { z } from "zod";
 import { env } from "../lib/env";
-import {
-  decryptWeComMessage,
-  diagnoseWeComCiphertext,
-  extractXmlTagValue,
-  verifySignature,
-} from "../lib/wecom-crypto";
+import { decryptWeComMessage, extractXmlTagValue, verifySignature } from "../lib/wecom-crypto";
 import { createPRFromNaturalLanguage } from "../domains/pr/commands";
 import { AUTHENTICATED_REQUIRED_CODE, type CreatorIdentityInput } from "../domains/pr/contracts";
 import { ProblemDetailsError } from "../lib/problem-details";
@@ -34,15 +28,6 @@ const safeDecode = (value: string) => {
     return value;
   }
 };
-
-const maskValue = (value: string) => {
-  if (value.length <= 8) {
-    return "***";
-  }
-  return `${value.slice(0, 4)}***${value.slice(-4)}`;
-};
-
-const hashValue = (value: string) => createHash("sha1").update(value, "utf8").digest("hex");
 
 const getCryptoConfig = () => {
   const token = env.WECOM_TOKEN;
@@ -81,46 +66,6 @@ const getShanghaiWeekdayLabel = (date: Date): string => {
 const WECOM_AUTHENTICATED_REQUIRED_REPLY =
   "当前企业微信账号未绑定已登录用户，无法创建；请先完成登录绑定后再试。";
 
-const getEncryptDiagnostics = (value: string) => {
-  let spaceCount = 0;
-  let plusCount = 0;
-  let nonBase64Count = 0;
-
-  for (const ch of value) {
-    if (ch === " ") {
-      spaceCount += 1;
-      continue;
-    }
-    if (ch === "+") {
-      plusCount += 1;
-    }
-    if (!/[A-Za-z0-9+/=]/.test(ch)) {
-      nonBase64Count += 1;
-    }
-  }
-
-  return {
-    length: value.length,
-    spaceCount,
-    plusCount,
-    nonBase64Count,
-  };
-};
-
-const getCipherDiagnostics = (value: string) => {
-  const normalized = value.trim();
-  const buffer = Buffer.from(normalized, "base64");
-  const roundtrip = buffer.toString("base64");
-  const normalizedRoundtrip = normalized.replace(/=+$/, "");
-
-  return {
-    bufferLength: buffer.length,
-    bufferLengthMod16: buffer.length % 16,
-    base64LengthMod4: normalized.length % 4,
-    roundtripMatches: roundtrip.replace(/=+$/, "") === normalizedRoundtrip,
-  };
-};
-
 export const wecomRoute = app
   .get("/message", zValidator("query", wecomVerifySchema), async (c) => {
     const { msg_signature, timestamp, nonce, echostr } = c.req.valid("query");
@@ -139,13 +84,6 @@ export const wecomRoute = app
     });
 
     if (!valid) {
-      console.warn("WeCom URL verify signature invalid", {
-        msgSignature: maskValue(decodedSignature),
-        timestamp: decodedTimestamp,
-        nonce: decodedNonce,
-        echostrLength: decodedEchostr.length,
-        encodingAesKeyLength: encodingAesKey.length,
-      });
       return c.text("Invalid signature", 400);
     }
 
@@ -154,12 +92,6 @@ export const wecomRoute = app
       return c.text(xml);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Decrypt failed";
-      console.warn("WeCom URL verify decrypt failed", {
-        message,
-        echostrLength: decodedEchostr.length,
-        encodingAesKeyLength: encodingAesKey.length,
-        corpIdLength: corpId.length,
-      });
       return c.text(message, 400);
     }
   })
@@ -173,38 +105,9 @@ export const wecomRoute = app
     const encryptedRaw = extractXmlTagValue(body, "Encrypt");
     const encrypted = encryptedRaw ? safeDecode(encryptedRaw) : null;
 
-    console.info("WeCom raw body diagnostics", {
-      bodyLength: body.length,
-      bodyHash: hashValue(body),
-      encryptRawLength: encryptedRaw?.length ?? 0,
-      encryptRawHash: encryptedRaw ? hashValue(encryptedRaw) : undefined,
-    });
-
     if (!encrypted) {
-      console.warn("WeCom message missing Encrypt", {
-        bodyLength: body.length,
-        encodingAesKeyLength: encodingAesKey.length,
-        corpIdLength: corpId.length,
-      });
       return c.text("Missing Encrypt", 400);
     }
-
-    const encryptDiagnostics = getEncryptDiagnostics(encrypted);
-    if (encryptDiagnostics.spaceCount > 0 || encryptDiagnostics.nonBase64Count > 0) {
-      console.warn("WeCom Encrypt diagnostics", encryptDiagnostics);
-    }
-
-    console.info("WeCom decrypt debug", {
-      msgSignature: maskValue(decodedSignature),
-      tokenHash: hashValue(token),
-      encodingAesKeyMask: maskValue(encodingAesKey),
-      encodingAesKeyHash: hashValue(encodingAesKey),
-      corpIdMask: maskValue(corpId),
-      corpIdLength: corpId.length,
-      encryptLength: encrypted.length,
-      encryptHash: hashValue(encrypted),
-    });
-    console.info("WeCom cipher diagnostics", getCipherDiagnostics(encrypted));
 
     const valid = verifySignature({
       token,
@@ -215,13 +118,6 @@ export const wecomRoute = app
     });
 
     if (!valid) {
-      console.warn("WeCom message signature invalid", {
-        msgSignature: maskValue(decodedSignature),
-        timestamp: decodedTimestamp,
-        nonce: decodedNonce,
-        encryptLength: encrypted.length,
-        encodingAesKeyLength: encodingAesKey.length,
-      });
       return c.text("Invalid signature", 400);
     }
 
@@ -229,24 +125,7 @@ export const wecomRoute = app
       let xml: string;
       try {
         ({ xml } = decryptWeComMessage(encodingAesKey, corpId, encrypted));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Decrypt failed";
-        try {
-          const paddingDiagnostics = diagnoseWeComCiphertext(encodingAesKey, encrypted);
-          console.warn("WeCom padding diagnostics", paddingDiagnostics);
-        } catch (diagnoseError) {
-          const diagMessage =
-            diagnoseError instanceof Error ? diagnoseError.message : "Padding diagnose failed";
-          console.warn("WeCom padding diagnostics failed", {
-            message: diagMessage,
-          });
-        }
-        console.warn("WeCom message decrypt failed", {
-          message,
-          encryptLength: encrypted.length,
-          encodingAesKeyLength: encodingAesKey.length,
-          corpIdLength: corpId.length,
-        });
+      } catch {
         return;
       }
       const msgType = extractXmlTagValue(xml, "MsgType")?.trim();
@@ -313,9 +192,7 @@ export const wecomRoute = app
       });
     })();
 
-    task.catch((error) => {
-      console.error("WeCom async reply failed", error);
-    });
+    void task.catch(() => undefined);
 
     return c.text("");
   });

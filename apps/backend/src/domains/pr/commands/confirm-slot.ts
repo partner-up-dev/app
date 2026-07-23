@@ -1,5 +1,4 @@
 import type { PRId } from "../../../entities/partner-request";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -53,14 +52,6 @@ export async function confirmSlot(id: PRId, openId: string): Promise<PublicPR> {
   if (slot.status === "JOINED") {
     await partnerRepo.markConfirmed(slot.id);
     await userReliabilityRepo.applyDelta(user.id, { confirmed: 1 });
-
-    operationLogService.log({
-      actorId: user.id,
-      action: "partner.confirm",
-      aggregateType: "partner_request",
-      aggregateId: String(id),
-      detail: { partnerId: slot.id },
-    });
   }
 
   const latest = await prRepo.findById(refreshedRequest.id);

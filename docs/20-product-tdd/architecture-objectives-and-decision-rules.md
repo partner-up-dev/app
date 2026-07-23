@@ -162,6 +162,27 @@ Create a new domain only when evidence establishes a distinct long-lived owner, 
 authority, lifecycle/invariants, external boundary or business vocabulary. A large file, a new screen or a desired
 folder name is not enough.
 
+### Rejected-Mechanism Reset Rule
+
+An explicitly rejected diagnostic, compatibility, or coordination mechanism
+does not become a requirement for its successor merely because current code
+depends on it.
+
+1. Inventory its source, configuration, durable data, external state, and
+   operator dependencies.
+2. Preserve only a separately justified behavior, retention, legal, or
+   recovery obligation.
+3. Retire the rejected local contract and its supporting graph before choosing
+   a long-lived replacement when that retirement is safe.
+4. Hand the successor the questions, constraints, and proof obligations it
+   must satisfy—not the rejected API, schema, output format, query, or vendor.
+5. Describe the resulting absence truthfully. A clean baseline is not an
+   implemented replacement.
+
+Coexistence is still valid when a proven migration or behavior obligation
+requires it, but that compatibility window must use the ordinary exception
+protocol and name its exit condition.
+
 ## Unit-specific Consequences
 
 ### Backend

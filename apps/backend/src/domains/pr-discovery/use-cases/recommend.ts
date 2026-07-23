@@ -2,10 +2,7 @@ import type { PRRoute } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
-import {
-  derivePRPreferenceCategory,
-  normalizePRPreferenceLabels,
-} from "../../pr/contracts";
+import { derivePRPreferenceCategory, normalizePRPreferenceLabels } from "../../pr/contracts";
 import {
   type PRDiscoveryPlaceSelection,
   type PRDiscoveryRecommendationCandidate,

@@ -213,13 +213,13 @@ export const usePRDiscoveryReadWorkflow = ({
   const seenSurfaceKeys = new Set<string>();
   const seenCandidateImpressionKeys = new Set<string>();
   watch(
-    [selectedType, activeViewMode],
-    ([type, viewMode]) => {
-      if (!type || !isViewResolved.value) return;
+    [selectedType, activeViewMode, isViewResolved],
+    ([type, viewMode, viewResolved]) => {
+      if (!type || !viewResolved) return;
       const key = `${type}:${viewMode}`;
       if (seenSurfaceKeys.has(key)) return;
       seenSurfaceKeys.add(key);
-      trackEvent("pr_discovery_surface_viewed", {
+      trackEvent("pr.discovery.surface.viewed", {
         prType: type,
         viewMode,
         origin: "PR_DISCOVERY",
@@ -228,14 +228,14 @@ export const usePRDiscoveryReadWorkflow = ({
     { immediate: true },
   );
   watch(
-    [selectedType, activeViewMode, directoryCandidates],
-    ([type, viewMode, candidates]) => {
-      if (!type || !isViewResolved.value || viewMode === "FORM") return;
+    [selectedType, activeViewMode, isViewResolved, directoryCandidates],
+    ([type, viewMode, viewResolved, candidates]) => {
+      if (!type || !viewResolved || viewMode === "FORM") return;
       candidates.forEach((candidate, index) => {
         const key = `${type}:${viewMode}:${candidate.prId}`;
         if (seenCandidateImpressionKeys.has(key)) return;
         seenCandidateImpressionKeys.add(key);
-        trackEvent("pr_discovery_candidate_impression", {
+        trackEvent("pr.discovery.candidate.impression", {
           prType: type,
           viewMode,
           origin: "PR_DISCOVERY",

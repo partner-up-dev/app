@@ -8,7 +8,6 @@ export * from "./join-gate";
 export * from "./meeting-point";
 export * from "./notification-delivery";
 export * from "./offer";
-export * from "./operation-log";
 export * from "./partner";
 export * from "./partner-request";
 export * from "./payment";

@@ -1,7 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { UserId } from "../../../entities/user";
 import { PoiRepository } from "../../../repositories/PoiRepository";
-import { operationLogService } from "../../../infra/operation-log";
 import {
   normalizePoiApplicationImageUrl,
   normalizePoiApplicationTitle,
@@ -33,16 +32,6 @@ export async function submitPoiApplication(input: {
   if (!created) {
     return throwHttpProblem({ status: 409, detail: "POI already exists" });
   }
-
-  operationLogService.log({
-    actorId: input.submittedByUserId,
-    action: "poi.application.submit",
-    aggregateType: "poi",
-    aggregateId: String(created.id),
-    detail: {
-      status: created.status,
-    },
-  });
 
   return toPoiApplicationView(created);
 }

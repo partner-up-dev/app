@@ -76,7 +76,7 @@ export const useShareAsLink = ({
     const analyticsContext = prId ? { prId } : {};
 
     if (spmRouteKey === "pr" && prId !== undefined) {
-      trackEvent("pr_secondary_action_click", {
+      trackEvent("pr.secondary_action.click", {
         prId,
         actionType: "SHARE_LINK_TRIGGER",
       });
@@ -84,14 +84,14 @@ export const useShareAsLink = ({
 
     try {
       await copyToClipboard(normalizedUrl.value);
-      trackEvent("share_link_copy_success", {
+      trackEvent("share.link.copy.success", {
         url: normalizedUrl.value,
         spm: shareSpm.value,
         ...analyticsContext,
       });
       flashState("copied");
     } catch (error) {
-      trackEvent("share_link_failed", {
+      trackEvent("share.link.failed", {
         url: normalizedUrl.value,
         stage: "copy",
         spm: shareSpm.value,

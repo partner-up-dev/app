@@ -28,8 +28,7 @@ export const createRequestTailMaintenanceRunner = (
 ): RequestTailMaintenanceRunner => {
   const now = input.now ?? (() => new Date());
   const timeout = input.timeout ?? withTimeout;
-  const onError =
-    input.onError ?? ((error: unknown) => console.error("[RequestTail] maintenance failed", error));
+  const onError = input.onError ?? (() => undefined);
   let nextTickAtMs = 0;
   let inFlight: Promise<void> | null = null;
 

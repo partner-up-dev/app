@@ -134,8 +134,9 @@ cross-owner integration adapter may use a transaction-bound writer for
 6. Job state/type vocabulary contains no business uncertainty or
    reconciliation state.
 7. Phase 6 adds no attempt console sink; durable Job state and protected
-   aggregates remain non-business authority until Phase 7 supplies governed
-   correlated observability.
+   aggregates remain non-business authority until a future professional path
+   supplies governed correlated observability. Phase 7 later removed the
+   rejected pseudo-observability baseline without supplying that replacement.
 8. Existing job rows have an explicit forward-compatibility path.
 9. A lease-expired handler cannot overwrite a newer claim.
 10. Transaction-bound creation rolls back with its named owner mutation.

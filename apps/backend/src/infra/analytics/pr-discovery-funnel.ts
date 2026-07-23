@@ -1,9 +1,8 @@
-import { and, asc, gte, inArray, lt } from "drizzle-orm";
-import { userTelemetryEvents } from "../../entities";
+import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { factPRDiscoveryFunnelEvents } from "../../entities";
 import { db } from "../../lib/db";
 import {
   buildPRDiscoveryFunnelResponseFromRows,
-  PR_DISCOVERY_EVENT_NAMES,
   type PRDiscoveryFunnelFactRow,
   type PRDiscoveryFunnelQueryInput,
   type PRDiscoveryFunnelResponse,
@@ -16,21 +15,41 @@ export async function getPRDiscoveryFunnelAnalytics(
   const filters = resolvePRDiscoveryFunnelFilters(input);
   const rows = await db
     .select({
-      eventName: userTelemetryEvents.eventName,
-      eventVersion: userTelemetryEvents.eventVersion,
-      journeyId: userTelemetryEvents.journeyId,
-      occurredAt: userTelemetryEvents.occurredAt,
-      payload: userTelemetryEvents.payload,
+      eventId: factPRDiscoveryFunnelEvents.eventId,
+      eventName: factPRDiscoveryFunnelEvents.eventName,
+      eventVersion: factPRDiscoveryFunnelEvents.eventVersion,
+      journeyId: factPRDiscoveryFunnelEvents.journeyId,
+      traceId: factPRDiscoveryFunnelEvents.traceId,
+      occurredAt: factPRDiscoveryFunnelEvents.occurredAt,
+      stepKey: factPRDiscoveryFunnelEvents.stepKey,
+      prType: factPRDiscoveryFunnelEvents.prType,
+      viewMode: factPRDiscoveryFunnelEvents.viewMode,
+      origin: factPRDiscoveryFunnelEvents.origin,
+      prId: factPRDiscoveryFunnelEvents.prId,
+      rank: factPRDiscoveryFunnelEvents.rank,
+      action: factPRDiscoveryFunnelEvents.action,
+      outcome: factPRDiscoveryFunnelEvents.outcome,
+      handoffReason: factPRDiscoveryFunnelEvents.handoffReason,
+      routePath: factPRDiscoveryFunnelEvents.routePath,
+      routeName: factPRDiscoveryFunnelEvents.routeName,
+      spm: factPRDiscoveryFunnelEvents.spm,
+      sourceQr: factPRDiscoveryFunnelEvents.sourceQr,
+      routeContextStatus: factPRDiscoveryFunnelEvents.routeContextStatus,
+      anonymousId: factPRDiscoveryFunnelEvents.anonymousId,
+      authenticatedUserHash: factPRDiscoveryFunnelEvents.authenticatedUserHash,
+      authContextStatus: factPRDiscoveryFunnelEvents.authContextStatus,
     })
-    .from(userTelemetryEvents)
+    .from(factPRDiscoveryFunnelEvents)
     .where(
       and(
-        inArray(userTelemetryEvents.eventName, [...PR_DISCOVERY_EVENT_NAMES]),
-        gte(userTelemetryEvents.occurredAt, new Date(filters.startAt)),
-        lt(userTelemetryEvents.occurredAt, new Date(filters.endAt)),
+        gte(factPRDiscoveryFunnelEvents.occurredAt, new Date(filters.startAt)),
+        lt(factPRDiscoveryFunnelEvents.occurredAt, new Date(filters.endAt)),
+        ...(filters.prType ? [eq(factPRDiscoveryFunnelEvents.prType, filters.prType)] : []),
+        ...(filters.viewMode ? [eq(factPRDiscoveryFunnelEvents.viewMode, filters.viewMode)] : []),
+        ...(filters.origin ? [eq(factPRDiscoveryFunnelEvents.origin, filters.origin)] : []),
       ),
     )
-    .orderBy(asc(userTelemetryEvents.occurredAt));
+    .orderBy(asc(factPRDiscoveryFunnelEvents.occurredAt), asc(factPRDiscoveryFunnelEvents.eventId));
 
   return buildPRDiscoveryFunnelResponseFromRows(filters, rows as PRDiscoveryFunnelFactRow[]);
 }

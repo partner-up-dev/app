@@ -2,7 +2,6 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import type { PRId } from "../../../entities/partner-request";
 import { prMessageBodySchema } from "../../../entities/pr-message";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import {
   PRMessageRepository,
   type PRMessageWithAuthor,
@@ -29,8 +28,6 @@ type AtomicPRMessageSource = {
   authorUserId: UserId;
   body: string;
   authorKind: PRMessagePersistenceAuthorKind;
-  actorUserId: UserId | null;
-  action: string;
   prMissingDetail: string;
 };
 
@@ -58,17 +55,6 @@ const persistAtomicPRMessage = async (
   if (persisted.outcome === "AUTHOR_NOT_ACTIVE_PARTICIPANT") {
     return throwHttpProblem({ status: 403, detail: ACTIVE_PARTICIPANT_MESSAGE_DETAIL });
   }
-
-  operationLogService.log({
-    actorId: input.actorUserId,
-    action: input.action,
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: {
-      messageId: persisted.message.id,
-    },
-  });
-
   return persisted.message;
 };
 
@@ -104,8 +90,6 @@ export async function createPRMessage(input: {
     authorUserId: input.authorUserId,
     body,
     authorKind: "ACTIVE_PARTICIPANT",
-    actorUserId: input.authorUserId,
-    action: "pr.create_message",
     prMissingDetail: "Partner request not found",
   });
   return toCreatedMessageResponse(message);
@@ -126,8 +110,6 @@ export async function createOperatorPRMessage(input: {
     authorUserId: input.authorUserId,
     body: prMessageBodySchema.parse(input.body),
     authorKind: "OPERATOR_OR_SYSTEM",
-    actorUserId: input.authorUserId,
-    action: "pr.create_system_message",
     prMissingDetail: "PR not found",
   });
   return toCreatedMessageResponse(message);
@@ -149,8 +131,6 @@ export async function createCoreFieldChangePRMessage(input: {
     authorUserId: input.authorUserId,
     body: prMessageBodySchema.parse(input.body),
     authorKind: "OPERATOR_OR_SYSTEM",
-    actorUserId: input.authorUserId,
-    action: "pr.notify_core_field_change",
     prMissingDetail: "Partner request not found",
   });
 }

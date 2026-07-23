@@ -2,7 +2,6 @@ import type { PRId } from "../../../entities/partner-request";
 import type { PRMessageId } from "../../../entities/pr-message";
 import { prMessageBodySchema } from "../../../entities/pr-message";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
@@ -58,13 +57,6 @@ export const updateAdminPRMessage = async (input: {
   const withAuthor = await messageRepository.findWithAuthorById(updated.id);
   if (!withAuthor)
     return throwHttpProblem({ status: 500, detail: "Failed to reload updated PR message" });
-  operationLogService.log({
-    actorId: input.actorUserId,
-    action: "pr.admin_update_message",
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: { messageId: input.messageId },
-  });
   return { message: toMessage(withAuthor) };
 };
 
@@ -80,12 +72,5 @@ export const deleteAdminPRMessage = async (input: {
   if (result.outcome === "PR_MISSING" || result.outcome === "MESSAGE_NOT_VISIBLE") {
     return throwHttpProblem({ status: 404, detail: "PR message not found" });
   }
-  operationLogService.log({
-    actorId: input.actorUserId,
-    action: "pr.admin_delete_message",
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: { messageId: input.messageId },
-  });
   return { ok: true as const, messageId: input.messageId };
 };

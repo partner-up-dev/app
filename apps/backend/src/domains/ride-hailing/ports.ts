@@ -1,6 +1,5 @@
 import type { TradeOrderId } from "../../entities/trade-order";
 import type { BillLinePaymentExecutionSettlement } from "../bill/contracts";
-import type { CommerceOrderDetailDebugContext } from "../../lib/commerce-order-detail-debug";
 import type {
   RideHailingFareCorrectionRequired,
   RideHailingProviderBindingExpectation,
@@ -137,7 +136,6 @@ export function resolveRideHailingProviderOrderStatusCallbackUrl(
 export async function synchronizeRideHailingBeforeCancellation(input: {
   orderId: string;
   purpose: "FEE_PREVIEW" | "CANCEL_REQUEST";
-  debug?: CommerceOrderDetailDebugContext;
 }): Promise<void> {
   // Keep the normal dispatch Port loadable without constructing the
   // reconciliation persistence adapter. Only cancellation actually needs the
@@ -147,6 +145,5 @@ export async function synchronizeRideHailingBeforeCancellation(input: {
   await syncRideHailingOrderWithProvider({
     orderId: input.orderId as TradeOrderId,
     trigger: input.purpose === "FEE_PREVIEW" ? "CANCEL_FEE_PREVIEW" : "CANCEL_REQUEST",
-    debug: input.debug,
   });
 }

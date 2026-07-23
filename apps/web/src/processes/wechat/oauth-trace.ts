@@ -101,15 +101,6 @@ export const startWeChatOAuthTrace = (flow: WeChatOAuthTraceFlow): WeChatOAuthTr
   return record;
 };
 
-export const appendWeChatOAuthTraceQuery = (
-  query: URLSearchParams,
-  trace: WeChatOAuthTraceRecord,
-): URLSearchParams => {
-  query.set("traceId", trace.traceId);
-  query.set("traceStartedAtMs", String(trace.startedAtMs));
-  return query;
-};
-
 export const trackWeChatOAuthTrace = (
   phase: WeChatOAuthTracePhase,
   options: TrackWeChatOAuthTraceOptions = {},
@@ -118,7 +109,7 @@ export const trackWeChatOAuthTrace = (
   if (!record) return;
 
   const nowMs = Date.now();
-  trackEvent("wechat_oauth_trace", {
+  trackEvent("wechat.oauth.trace", {
     traceId: record.traceId,
     flow: record.flow,
     phase,

@@ -1,7 +1,6 @@
 import type { PartnerId, PartnerStatus } from "../../../entities/partner";
 import type { PartnerRequest, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -54,14 +53,6 @@ const applyPromotedPartnerPostCommitSideEffects = async (input: {
     prId: latest.id,
     slotId: input.partnerId,
     recipientUserId: input.userId,
-  });
-
-  operationLogService.log({
-    actorId: input.userId,
-    action: "partner.waitlist_promoted",
-    aggregateType: "partner_request",
-    aggregateId: String(input.prId),
-    detail: { partnerId: input.partnerId, status: input.status },
   });
 };
 

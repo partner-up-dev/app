@@ -4,7 +4,6 @@ import type {
   PRAllowEditAfterReady,
   PRStatus,
 } from "../../../entities/partner-request";
-import { operationLogService } from "../../../infra/operation-log";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { type CreatorIdentityInput } from "../services/creator-identity.service";
 import {
@@ -30,26 +29,14 @@ import { type CreatePRCommandResult, finalizeCreatedPR } from "./create-pr.share
 
 const prRepo = new PartnerRequestRepository();
 
-export type StructuredCreateSource =
-  | "STRUCTURED_FORM"
-  | "NATURAL_LANGUAGE"
-  | "PR_DISCOVERY"
-  | "ADMIN"
-  | "CAPACITY_EXPANSION";
-
 type PartnerBoundsMode = "manual" | "automatic";
 type PublicationMode = "finalize-by-creator-identity" | "create-open";
 
 export type StructuredCreateOptions = {
-  createSource?: StructuredCreateSource;
   creationAuthority?: PRCreationAuthority;
   joinGateConfig?: PRJoinGateConfig;
   partnerBoundsMode?: PartnerBoundsMode;
   publicationMode?: PublicationMode;
-  operationLog?: {
-    action?: string;
-    detail?: Record<string, string | number | boolean | null>;
-  };
   confirmationEnabled?: boolean;
   confirmationStartOffsetMinutes?: number | null;
   confirmationEndOffsetMinutes?: number | null;
@@ -71,21 +58,6 @@ const resolvePartnerBounds = (
     minPartners,
     maxPartners: fields.maxPartners,
   };
-};
-
-const resolveOperationAction = (source: StructuredCreateSource): string => {
-  switch (source) {
-    case "PR_DISCOVERY":
-      return "pr.create_from_discovery";
-    case "NATURAL_LANGUAGE":
-      return "pr.create_from_nl";
-    case "CAPACITY_EXPANSION":
-      return "pr.create_capacity_expansion";
-    case "ADMIN":
-      return "pr.admin_create";
-    case "STRUCTURED_FORM":
-      return "pr.create_structured";
-  }
 };
 
 export async function createPRFromStructured(
@@ -116,7 +88,6 @@ export async function createPRFromStructured(
   });
 
   const createdBy = creator?.id ?? null;
-  const createSource = options.createSource ?? "STRUCTURED_FORM";
   const publicationMode = options.publicationMode ?? "finalize-by-creator-identity";
   const initialStatus: PRStatus = publicationMode === "create-open" ? "OPEN" : "DRAFT";
 
@@ -149,19 +120,6 @@ export async function createPRFromStructured(
     type: request.type,
     prNotes: request.notes,
     prJoinGateConfig: options.joinGateConfig,
-  });
-
-  operationLogService.log({
-    actorId: createdBy,
-    action: options.operationLog?.action ?? resolveOperationAction(createSource),
-    aggregateType: "partner_request",
-    aggregateId: String(request.id),
-    detail: {
-      source: createSource,
-      creationAuthority,
-      status: initialStatus,
-      ...options.operationLog?.detail,
-    },
   });
 
   if (publicationMode === "create-open") {

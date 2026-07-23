@@ -211,7 +211,7 @@ const trackJoinResult = (payload: {
     return;
   }
 
-  trackEvent("pr_join_result", {
+  trackEvent("pr.join.result", {
     prId,
     prType: resolvedPRType.value ?? undefined,
     entrySurface: props.entrySurface ?? undefined,

@@ -62,7 +62,7 @@ const toTelemetryPayload = (descriptor: RouteShareDescriptor): ShareTelemetryPay
 };
 
 const trackDescriptorSubmitted = (descriptor: RouteShareDescriptor): void => {
-  trackEvent("share_descriptor_submitted", {
+  trackEvent("share.descriptor.submitted", {
     ...toTelemetryPayload(descriptor),
     phase: descriptor.phase,
   });
@@ -72,7 +72,7 @@ const trackDescriptorDiscarded = (
   descriptor: RouteShareDescriptor,
   reason: "session_mismatch" | "phase_regression",
 ): void => {
-  trackEvent("share_descriptor_discarded_stale", {
+  trackEvent("share.descriptor.discarded.stale", {
     ...toTelemetryPayload(descriptor),
     phase: descriptor.phase,
     reason,
@@ -82,7 +82,7 @@ const trackDescriptorDiscarded = (
 
 const trackApplySuccess = (descriptor: RouteShareDescriptor): void => {
   if (descriptor.phase === "FALLBACK") {
-    trackEvent("share_apply_fallback_success", {
+    trackEvent("share.apply.fallback.success", {
       ...toTelemetryPayload(descriptor),
       phase: "FALLBACK",
     });
@@ -90,14 +90,14 @@ const trackApplySuccess = (descriptor: RouteShareDescriptor): void => {
   }
 
   if (descriptor.phase === "BASE") {
-    trackEvent("share_apply_base_success", {
+    trackEvent("share.apply.base.success", {
       ...toTelemetryPayload(descriptor),
       phase: "BASE",
     });
     return;
   }
 
-  trackEvent("share_apply_enriched_success", {
+  trackEvent("share.apply.enriched.success", {
     ...toTelemetryPayload(descriptor),
     phase: "ENRICHED",
   });
@@ -114,7 +114,7 @@ const toErrorMessage = (error: unknown): string => {
 };
 
 const trackApplyFailure = (descriptor: RouteShareDescriptor, error: unknown): void => {
-  trackEvent("share_apply_failed", {
+  trackEvent("share.apply.failed", {
     ...toTelemetryPayload(descriptor),
     phase: descriptor.phase,
     stage: "apply",
@@ -206,7 +206,7 @@ export const startRouteShareSession = async (
   const routeSessionId = createRouteShareSessionId();
   currentRouteShareSessionIdRef.value = routeSessionId;
 
-  trackEvent("share_session_started", {
+  trackEvent("share.session.started", {
     routeSessionId,
     hasFallback: fallbackDescriptor !== null,
   });
@@ -276,7 +276,7 @@ export const replayCurrentRouteShareDescriptor = async (
   const current = currentRouteShareDescriptorRef.value;
   if (!current) return;
 
-  trackEvent("share_replay_triggered", {
+  trackEvent("share.replay.triggered", {
     ...toTelemetryPayload(current),
     phase: current.phase,
     trigger,

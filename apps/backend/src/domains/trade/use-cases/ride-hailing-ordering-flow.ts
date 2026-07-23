@@ -1,8 +1,4 @@
 import type { TradeOrder } from "../../../entities/trade-order";
-import {
-  type CommerceOrderDetailDebugContext,
-  logCommerceOrderDetailDebug,
-} from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import type {
@@ -66,14 +62,9 @@ const projectCandidateVehicle = (
  */
 export async function buildRideHailingDetailProjection(input: {
   order: TradeOrder;
-  debug?: CommerceOrderDetailDebugContext;
 }): Promise<RideHailingOrderDetailProjection> {
   const rideOrder = await rideOrderRepo.findByOrderId(input.order.id);
   if (!rideOrder) {
-    logCommerceOrderDetailDebug(input.debug, "ride-detail.build.ride-order-missing", {
-      localOrderId: input.order.id,
-      localOrderStatus: input.order.status,
-    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
@@ -82,7 +73,7 @@ export async function buildRideHailingDetailProjection(input: {
 
   const choiceSetItem = getRideHailingChoiceSetItem(input.order.items);
   const dispatchBinding = rideOrder.dispatchBinding;
-  const result: RideHailingOrderDetailProjection = {
+  return {
     route: rideOrder.routeSnapshot,
     departureAt: rideOrder.departureAt?.toISOString() ?? null,
     riders: rideOrder.riders,
@@ -101,13 +92,4 @@ export async function buildRideHailingDetailProjection(input: {
     vehicle: rideOrder.vehicleSnapshot,
     live: null,
   };
-
-  logCommerceOrderDetailDebug(input.debug, "ride-detail.build.complete", {
-    localOrderId: input.order.id,
-    localOrderStatus: input.order.status,
-    rideExecutionPhase: result.executionPhase,
-    providerOrderId: result.provider.providerOrderId,
-    liveProviderQuery: false,
-  });
-  return result;
 }

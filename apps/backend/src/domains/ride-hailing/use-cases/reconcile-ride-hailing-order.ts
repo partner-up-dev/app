@@ -1,4 +1,3 @@
-import type { CommerceOrderDetailDebugContext } from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { assertTradeOrderViewerAccess } from "../../trade/queries";
 import { RideHailingProviderSyncQueryError } from "../contracts";
@@ -12,7 +11,6 @@ export type RideHailingReconcileResult = Omit<RideHailingProviderSyncResult, "pr
 export async function reconcileRideHailingOrder(input: {
   orderId: string;
   viewerUserId: string;
-  debug?: CommerceOrderDetailDebugContext;
 }): Promise<RideHailingReconcileResult> {
   await assertTradeOrderViewerAccess({
     orderId: input.orderId,
@@ -23,7 +21,6 @@ export async function reconcileRideHailingOrder(input: {
     const result = await syncRideHailingOrderWithProvider({
       orderId: input.orderId as Parameters<typeof syncRideHailingOrderWithProvider>[0]["orderId"],
       trigger: "BROWSER_RECONCILE",
-      debug: input.debug,
     });
     const { providerDetail: _providerDetail, ...publicResult } = result;
     return publicResult;

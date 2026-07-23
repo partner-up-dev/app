@@ -1,4 +1,5 @@
 import { getUserTelemetryDimEvents } from "./user-event-dim";
+import { resolveAnalyticsRange } from "./analytics-range";
 
 export const PR_DISCOVERY_EVENT_NAMES = [
   "pr.discovery.surface.viewed",
@@ -29,11 +30,29 @@ export type PRDiscoveryFunnelFilters = {
 };
 
 export type PRDiscoveryFunnelFactRow = {
+  eventId: string;
   eventName: string;
   eventVersion: number;
   journeyId: string;
+  traceId: string | null;
   occurredAt: Date;
-  payload: unknown;
+  stepKey: string;
+  prType: string | null;
+  viewMode: string | null;
+  origin: string | null;
+  prId: number | null;
+  rank: number | null;
+  action: string | null;
+  outcome: string | null;
+  handoffReason: string | null;
+  routePath: string | null;
+  routeName: string | null;
+  spm: string | null;
+  sourceQr: string | null;
+  routeContextStatus: string;
+  anonymousId: string | null;
+  authenticatedUserHash: string | null;
+  authContextStatus: string;
 };
 
 export type PRDiscoveryFunnelStep = {
@@ -79,8 +98,6 @@ type FunnelStepDefinition = {
   eventNames: readonly PRDiscoveryEventName[];
 };
 
-const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
-
 const PR_DISCOVERY_STEPS: readonly FunnelStepDefinition[] = [
   {
     stepKey: "surface_viewed",
@@ -117,26 +134,14 @@ const PR_DISCOVERY_STEPS: readonly FunnelStepDefinition[] = [
 export const resolvePRDiscoveryFunnelFilters = (
   input: PRDiscoveryFunnelQueryInput,
 ): PRDiscoveryFunnelFilters => {
-  const endAt = input.endAt ?? new Date();
-  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
-  if (startAt.getTime() >= endAt.getTime()) throw new Error("startAt must be before endAt");
+  const range = resolveAnalyticsRange(input);
   return {
-    startAt: startAt.toISOString(),
-    endAt: endAt.toISOString(),
+    startAt: range.startAt,
+    endAt: range.endAt,
     ...(input.prType ? { prType: input.prType } : {}),
     ...(input.viewMode ? { viewMode: input.viewMode } : {}),
     ...(input.origin ? { origin: input.origin } : {}),
   };
-};
-
-const asRecord = (value: unknown): Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-
-const dimensionValue = (payload: unknown, key: string): string | null => {
-  const value = asRecord(payload)[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
 };
 
 const isInWindow = (date: Date, filters: PRDiscoveryFunnelFilters): boolean => {
@@ -156,13 +161,10 @@ export const buildPRDiscoveryFunnelResponseFromRows = (
 ): PRDiscoveryFunnelResponse => {
   const filtered = rows.filter((row) => {
     if (!isInWindow(row.occurredAt, filters)) return false;
-    const prType = dimensionValue(row.payload, "prType");
-    const viewMode = dimensionValue(row.payload, "viewMode");
-    const origin = dimensionValue(row.payload, "origin");
     return (
-      (!filters.prType || prType === filters.prType) &&
-      (!filters.viewMode || viewMode === filters.viewMode) &&
-      (!filters.origin || origin === filters.origin)
+      (!filters.prType || row.prType === filters.prType) &&
+      (!filters.viewMode || row.viewMode === filters.viewMode) &&
+      (!filters.origin || row.origin === filters.origin)
     );
   });
 
@@ -188,9 +190,9 @@ export const buildPRDiscoveryFunnelResponseFromRows = (
       accumulators[stepIndex].journeys.add(row.journeyId);
       accumulators[stepIndex].eventCount += 1;
     }
-    const prType = dimensionValue(row.payload, "prType");
-    const viewMode = dimensionValue(row.payload, "viewMode");
-    const origin = dimensionValue(row.payload, "origin");
+    const prType = row.prType;
+    const viewMode = row.viewMode;
+    const origin = row.origin;
     if (
       prType &&
       viewMode &&

@@ -1,6 +1,5 @@
 import { type PRRoute, prRouteSchema } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PRTypeRouteApplicationRepository } from "../../../repositories/PRTypeRouteApplicationRepository";
 import { getPRTypeConfigAuthoringPolicy } from "../../pr-type-config";
@@ -42,13 +41,6 @@ export const submitPRTypeRouteApplication = async (input: {
     type,
     route,
     submittedByUserId: input.submittedByUserId,
-  });
-  operationLogService.log({
-    actorId: input.submittedByUserId,
-    action: "pr_type.route_application.submit",
-    aggregateType: "pr_type_route_application",
-    aggregateId: String(created.id),
-    detail: { type, status: created.status },
   });
   return toPRTypeRouteApplicationView(created);
 };

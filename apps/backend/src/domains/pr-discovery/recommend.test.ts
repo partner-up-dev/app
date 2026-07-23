@@ -9,9 +9,8 @@ const mocks = vi.hoisted(() => ({
   findActiveByUserId: vi.fn<() => unknown>(),
 }));
 vi.mock("../pr/queries", async () => {
-  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } = await import(
-    "../pr/services/time-window.service"
-  );
+  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } =
+    await import("../pr/services/time-window.service");
   return {
     getProductLocalDateKey,
     getProductLocalDateKeyForTimeWindowStart,
@@ -19,9 +18,8 @@ vi.mock("../pr/queries", async () => {
   };
 });
 vi.mock("../pr/contracts", async () => {
-  const { derivePRPreferenceCategory, normalizePRPreferenceLabels } = await import(
-    "../pr/services/preference-normalization"
-  );
+  const { derivePRPreferenceCategory, normalizePRPreferenceLabels } =
+    await import("../pr/services/preference-normalization");
   return { derivePRPreferenceCategory, normalizePRPreferenceLabels };
 });
 

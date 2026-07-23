@@ -8,7 +8,6 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
-import { logger } from "hono/logger";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
 import { adminCommerceManagementRoute } from "./controllers/admin-commerce-management.controller";
@@ -70,35 +69,16 @@ registerNotificationSendJobs();
 registerRideHailingFeeConfirmationJobs();
 registerOfficialAccountFollowSyncJobs();
 if (process.env.BACKEND_SCENARIO_DISABLE_BOOTSTRAP !== "true") {
-  void bootstrapOfficialAccountFollowSyncJob().catch((error) => {
-    console.error("[OfficialAccountFollowSync] failed to bootstrap sync job", error);
-  });
+  void bootstrapOfficialAccountFollowSyncJob().catch(() => undefined);
 }
 
 // Middleware
-if (process.env.BACKEND_SCENARIO_DISABLE_REQUEST_LOGGER !== "true") {
-  app.use("*", logger());
-}
 app.use(
   "*",
   cors({
     origin: (origin) => resolveCredentialedCorsOrigin(origin, env.FRONTEND_URL),
     credentials: true,
-    allowHeaders: [
-      "Content-Type",
-      "Authorization",
-      JOURNEY_ID_HEADER,
-      "x-client-id",
-      "x-commerce-order-debug",
-      "x-commerce-order-debug-session",
-      "x-commerce-order-debug-request",
-      "x-commerce-order-debug-channel",
-      "x-commerce-order-debug-source",
-      "x-commerce-order-debug-trigger",
-      "x-commerce-order-debug-route-order-id",
-      "x-commerce-order-debug-order-id",
-      "x-commerce-order-debug-bill-id",
-    ],
+    allowHeaders: ["Content-Type", "Authorization", JOURNEY_ID_HEADER, "x-client-id"],
     exposeHeaders: ["x-access-token"],
   }),
 );
@@ -166,7 +146,6 @@ app.onError((err, c) => {
       422,
     );
   }
-  console.error(err);
   return respondProblem(
     buildGenericProblemDetailsPayload({
       status: 500,
@@ -237,7 +216,6 @@ const requestTailMaintenance = createRequestTailMaintenanceRunner({
     leaseMs: env.JOB_RUNNER_LEASE_MS,
     minIntervalMs: env.REQUEST_TAIL_JOB_TICK_MIN_INTERVAL_MS,
   },
-  onError: (error) => console.error("[RequestTail] job tick failed", error),
 });
 
 const kickRequestTailMaintenance = requestTailMaintenance.kick;

@@ -137,7 +137,6 @@ test("applies a successful handoff session and removes the nonce", async () => {
           role: "authenticated",
           userId: "user-1",
         },
-        traceId: "trace-1",
       }),
       { status: 200 },
     ),
@@ -145,7 +144,7 @@ test("applies a successful handoff session and removes the nonce", async () => {
 
   const result = await consumeWeChatOAuthHandoff();
 
-  assert.deepEqual(result, { kind: "success", traceId: "trace-1" });
+  assert.deepEqual(result, { kind: "success" });
   assert.deepEqual(testState.applyAuthSession.mock.calls[0]?.[0], {
     accessToken: "public-token",
     role: "authenticated",

@@ -10,10 +10,7 @@ import type {
   PRTypeConfigOperatorDetail,
   PRTypeConfigParticipationFrequencyPolicy,
 } from "./contracts";
-import {
-  findPRTypeConfigRecord,
-  listPRTypeConfigRecords,
-} from "./services/persistence";
+import { findPRTypeConfigRecord, listPRTypeConfigRecords } from "./services/persistence";
 import {
   toPRTypeConfigAuthoringPolicy,
   toPRTypeConfigCreationDefaults,

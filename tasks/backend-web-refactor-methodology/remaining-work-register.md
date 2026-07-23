@@ -7,6 +7,8 @@
 - **Deferred** is an explicit product/scope or future-owner handoff, not a
   hidden completion claim.
 - **Not started** has no executable source authorization or packet yet.
+- **Decision pending** has a read-only executable packet but no authorization
+  for its source/deployment slices.
 - **Independent** is outside this refactor program's Phase boundary and must
   be committed/reviewed separately.
 
@@ -18,8 +20,8 @@
 | 2 | Phase 5 `5-7a` provider/runtime proof | External evidence | Internet-reachable staging observer plus an operator-approved signed CaoCao callback and safe WeChatPay notify smoke |
 | 3 | Phase 6 entry: Job/Notification runtime inventory and design | Complete | topology, business-template/Job-task ownership, Job `UNTIL_ACKNOWLEDGED`, PR-inbox retirement, state placement, official fee-confirm contract and no-console O11y boundary are recorded |
 | 4 | Phase 6 implementation and local review | Complete locally on 2026-07-23 | `6-1`–`6-5` source, migration, durable promotion and static/unit/backend/system proof are closed; `notification_deliveries` remains inert audit history |
-| 5 | Phase 7 Observability/Analytics | Not started | build real telemetry backend/correlation/query/retention/access/alerts/runbooks, then decide `notification_deliveries` retirement |
-| 6 | Phase 8 global review/cleanup | Not started | Phases 3–7 have closed or explicitly recorded their remaining external/deferred boundaries |
+| 5 | Phase 7 Legacy O11y retirement / Analytics | Complete on 2026-07-23 | clean baseline, Registry/failure convergence, typed facts/API, Web Analytics owner and canonical proof are closed; D7-04 is closed by Sir's confirmation that no configured SLS saved query/dashboard exists and no further platform inventory is required |
+| 6 | Phase 8 global review/cleanup | Not started | Phases 3–7 have closed locally or explicitly recorded their remaining external/deferred boundaries |
 
 Phase 4 and 5 external observation can be prepared in parallel with Phase 6
 read-only entry work, but neither may be promoted to a deployed-fact claim
@@ -38,7 +40,7 @@ without the named operator evidence.
 | Rental schema/data reclamation | Deferred | separate data-retention/migration authorization; do not infer it from runtime retirement |
 | Phase 4 canonical-host browser proof | Re-entry condition | a faithful host/cookie harness or explicit decision that lower-layer proof is sufficient |
 | Historical micro-packet status prose | Documentation debt | some Phase 3/4 slice packets retain time-of-execution “commit pending” wording; root roadmap and this register are current, while any historical-log annotation must preserve the original evidence context |
-| Existing Commerce/RideHailing debug stdout | Deferred to Phase 7 O11y cleanup | system scenarios still expose Phase 5 request/listing diagnostics; remove or replace them through governed telemetry rather than treating console output as observability |
+| Existing Commerce/RideHailing debug stdout | Completed in Phase 7 | diagnostic protocol/output and the full-suite-discovered RideHailing listing structured writer are removed without a replacement logger or telemetry path |
 
 ## Independent Worktree Boundaries
 
@@ -58,7 +60,18 @@ Phase 6 is locally complete. `6-1`–`6-5` prove the generic Job/Notification
 owner, all producer handoffs, semantic PR-message acknowledgement, forward
 retirement of opportunity/wave/inbox and concrete/no-cycle compatibility,
 atomic RideHailing fee-confirmation Job handoff, and local runtime/recovery
-seams. The scoped Job/CaoCao console diagnostics are removed. Real O11y,
-existing Phase 5 debug stdout and `notification_deliveries` retirement move to
-Phase 7. No generic-outbox implementation is implied. The
-controlling roadmap is [`program-roadmap.md`](./program-roadmap.md).
+seams. The scoped Job/CaoCao console diagnostics are removed. Existing Phase 5
+debug stdout moves to Phase 7 clean-baseline cleanup. Real O11y and
+`notification_deliveries` retirement remain a post-Phase-7 future task.
+Phase 7 is locally complete under
+[`10-phase7-observability-analytics/`](./10-phase7-observability-analytics/).
+`7-0`/`7-1` own the corrected baseline and retirement decisions; `7-2`
+removes repository coupling, runtime diagnostics, and `operation_logs`; `7-3`
+converges Registry/telemetry failure behavior; `7-4` closes typed facts,
+Analytics API/Web ownership, and the real cross-unit proof; `7-5` reconciles
+durable truth and canonical gates. D7-04 is closed by explicitly labelled
+operator evidence/decision, without claiming an SLS audit or deletion by
+Codex. Professional program O11y and `notification_deliveries` replacement
+proof are future-task handoffs, not hidden Phase 7 implementation. No generic-outbox
+implementation is implied. The controlling roadmap is
+[`program-roadmap.md`](./program-roadmap.md).

@@ -1,8 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  resolveCommerceOrderDetailPollAction,
-  shouldPollCommerceOrderDetail,
-} from "./useCommerce";
+import { resolveCommerceOrderDetailPollAction, shouldPollCommerceOrderDetail } from "./useCommerce";
 
 describe("commerce order detail polling", () => {
   test("polls active ride-hailing phases", () => {

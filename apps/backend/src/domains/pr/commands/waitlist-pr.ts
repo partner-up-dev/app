@@ -1,6 +1,5 @@
 import type { PRId } from "../../../entities/partner-request";
 import type { User } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -117,17 +116,6 @@ export async function waitlistPRAsUser(
   }
 
   const pendingSlot = admission.slot;
-
-  operationLogService.log({
-    actorId: user.id,
-    action: "partner.waitlist_join",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: {
-      partnerId: pendingSlot.id,
-      alternativePrReminderOptIn: options.alternativePrReminderOptIn === true,
-    },
-  });
 
   if (options.alternativePrReminderOptIn === true && pendingSlot.waitlistCycleId) {
     await reconcileAlternativeWaitlistNotificationsForSource({

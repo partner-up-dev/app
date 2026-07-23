@@ -1,6 +1,5 @@
 import type { PRId } from "../../../entities/partner-request";
 import type { User } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -151,7 +150,6 @@ export async function joinPRAsUser(
   }
 
   const assignedPartnerId = admission.slot.id;
-  const targetStatus = admission.status;
   await reconcileCurrentCreator(id);
 
   const afterRecalculate = await prRepo.findById(id);
@@ -163,14 +161,6 @@ export async function joinPRAsUser(
   ) {
     await expandFullCapacityPR(id);
   }
-
-  operationLogService.log({
-    actorId: user.id,
-    action: "partner.join",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { partnerId: assignedPartnerId, status: targetStatus },
-  });
 
   const latest = await prRepo.findById(id);
   if (!latest) {

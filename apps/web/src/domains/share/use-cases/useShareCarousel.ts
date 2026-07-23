@@ -84,12 +84,12 @@ export const useShareCarousel = ({
     markUserInteraction();
     moveMethod(-1);
     const prId = resolveCurrentPRId();
-    trackEvent("share_method_switch", {
+    trackEvent("share.method.switch", {
       methodId: currentMethodId.value,
       prId,
     });
     if (spmRouteKey === "pr" && prId !== undefined) {
-      trackEvent("pr_secondary_action_click", {
+      trackEvent("pr.secondary_action.click", {
         prId,
         actionType: "SHARE_METHOD_SWITCH",
         methodId: currentMethodId.value,
@@ -101,12 +101,12 @@ export const useShareCarousel = ({
     markUserInteraction();
     moveMethod(1);
     const prId = resolveCurrentPRId();
-    trackEvent("share_method_switch", {
+    trackEvent("share.method.switch", {
       methodId: currentMethodId.value,
       prId,
     });
     if (spmRouteKey === "pr" && prId !== undefined) {
-      trackEvent("pr_secondary_action_click", {
+      trackEvent("pr.secondary_action.click", {
         prId,
         actionType: "SHARE_METHOD_SWITCH",
         methodId: currentMethodId.value,

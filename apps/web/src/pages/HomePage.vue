@@ -79,7 +79,7 @@ const handleHeroValuesReveal = () => {
 };
 
 const handleFallbackCreateClick = () => {
-  trackEvent("home_create_entry_click", {
+  trackEvent("home.create.entry.click", {
     source: "fallback_section",
     target: "pr-create",
   });

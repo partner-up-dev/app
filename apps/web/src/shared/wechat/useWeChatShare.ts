@@ -338,7 +338,7 @@ export const useWeChatShare = () => {
     }
 
     if (trigger === "sdk_ready" && current.phase) {
-      trackEvent("share_replay_triggered", {
+      trackEvent("share.replay.triggered", {
         ...toShareCardTelemetryPayload(current),
         routeSessionId: current.routeSessionId ?? "unknown",
         phase: current.phase,

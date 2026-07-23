@@ -1,7 +1,6 @@
 import type { PartnerId } from "../../../entities/partner";
 import type { PartnerRequest } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { resetPRJoinGateResolutionsForUser } from "./join-gates.service";
 
@@ -39,20 +38,6 @@ export async function closeAlternativeWaitlistSourcesAfterJoin(input: {
       prId: sourceSlot.prId,
       userId: input.userId,
       partnerId: sourceSlot.partnerId,
-    });
-
-    operationLogService.log({
-      actorId: input.userId,
-      action: "partner.waitlist_cancel_alternative_joined",
-      aggregateType: "partner_request",
-      aggregateId: String(sourceSlot.prId),
-      detail: {
-        sourcePartnerId: sourceSlot.partnerId,
-        sourcePrId: sourceSlot.prId,
-        alternativePrId: input.alternativeRequest.id,
-        alternativePartnerId: input.alternativePartnerId,
-        reason: "alternative_pr_joined",
-      },
     });
   }
 }

@@ -86,16 +86,16 @@ vi.mock("@partner-up-dev/design-web", async () => {
     },
     PuDialog: {
       props: ["open", "title", "description"],
-      template: '<div v-if="open"><span>{{ title }}</span><span>{{ description }}</span><slot /></div>',
+      template:
+        '<div v-if="open"><span>{{ title }}</span><span>{{ description }}</span><slot /></div>',
     },
     PuHeader: { template: '<header><slot name="leading" /></header>' },
     PuInlineNotice: {
       inheritAttrs: false,
       props: ["message"],
-      template:
-        '<div v-bind="$attrs"><span>{{ message }}</span><slot name="actions" /></div>',
+      template: '<div v-bind="$attrs"><span>{{ message }}</span><slot name="actions" /></div>',
     },
-    PuLoadingState: { template: '<div />' },
+    PuLoadingState: { template: "<div />" },
     PuPageScaffold: {
       template:
         '<main><slot name="pageHeader" /><slot /><footer><slot name="footer" /></footer></main>',
@@ -208,9 +208,9 @@ describe("PaymentCheckoutFlow PaymentTx reconciliation", () => {
     });
 
     expect(mocks.getPaymentTx).toHaveBeenCalledTimes(2);
-    expect(
-      queryClient.getQueryData(queryKeys.payment.tx(failedPaymentTx.paymentTxId)),
-    ).toEqual(failedPaymentTx);
+    expect(queryClient.getQueryData(queryKeys.payment.tx(failedPaymentTx.paymentTxId))).toEqual(
+      failedPaymentTx,
+    );
     expect(readPaymentCheckoutAttemptHint({ billLineId: "bill-line-1" })).toBeNull();
   });
 });

@@ -75,10 +75,19 @@
   已本地实现和验证；`6-3` 的 one-shot、PR-message atomic window、visible ACK
   与 legacy state/decoder retirement 已完成。`6-4` 已按曹操官方合同完成
   atomic settlement → generic Job handoff；`6-5` 已完成 runtime/recovery、
-  scoped console/stdout 清理和全量本地复审。真实 O11y、既有 Commerce 调试
-  stdout 与 `notification_deliveries` 退役移交 Phase 7。其控制面在
+  scoped console/stdout 清理和全量本地复审。既有 Commerce/FC/SLS
+  pseudo-observability cleanup 与 Analytics 收敛移交 Phase 7；真正专业的
+  program O11y 及依赖其 replacement proof 的 `notification_deliveries` 退役
+  属于 Phase 7 clean-baseline 之后的独立未来任务。Phase 6 控制面在
   `09-phase6-job-notification/`。
-  Phase 7 Observability/Analytics、Phase 8 global review/cleanup 尚未开始；其
+  Phase 7 的 `7-0` 只读入口已经按 Sir 的纠正重切，并建立
+  `10-phase7-observability-analytics/` 控制面；`7-1` 删除边界已经批准，
+  包括前向退役 `operation_logs`。Sir 已于 2026-07-23 明确开始剩余
+  Phase；`7-2`–`7-5` 已完成并通过全量本地门禁。Sir 随后确认 SLS
+  没有配置 saved query/dashboard，并决定本 Phase 不再盘点平台遗留；
+  D7-04 以明确标注的 operator evidence/decision 关闭，而不虚构 Codex
+  执行过平台审计或删除。Phase 7 因此完整收口。Phase 8 global
+  review/cleanup 尚未开始；其
   入口、依赖和零散工作见 `remaining-work-register.md`。
 - 独立 Node/Oxc/quality-gate 工作不属于本程序 Phase；不得被上述任一领域提交吸收。
 
@@ -103,9 +112,20 @@
   `09-phase6-job-notification/`: generic Job/Notification ownership, producer
   handoffs, semantic ACK, legacy state/decoder retirement, atomic
   fee-confirmation recovery, runtime seams and full local review are proven.
-  Real O11y, existing Phase 5 debug stdout and delivery-table retirement belong
-  to Phase 7.
-  Phase 7 and 8 remain ordered but have no executable packet. See
+  Existing Phase 5 debug stdout belongs to Phase 7 clean-baseline cleanup.
+  Real O11y and delivery-table retirement belong to a post-Phase-7 future
+  task.
+- Phase 7 `7-0` is complete as a corrected read-only negative-baseline entry.
+  Its packet withdraws SLS-first/structured-output as a target, makes their
+  retirement the first source slice, keeps Analytics as a separate evidence
+  family, and hands professional program O11y plus any
+  `notification_deliveries` retirement to a future task. `7-1` decisions are
+  complete; Sir started the remaining Phase on 2026-07-23. `7-2`–`7-5` are
+  complete with canonical static/unit/Backend/System scenario proof. D7-04 is
+  closed by Sir's confirmation that no configured SLS saved query/dashboard
+  exists and no further platform inventory is required. Phase 7 is closed
+  without claiming external SLS access or deletion by Codex.
+- Phase 8 remains ordered but has no executable packet. See
   `remaining-work-register.md` for the complete inventory.
 
 ## Phase Exit Summary
@@ -119,4 +139,5 @@
 - Phase 4 control surface: `07-phase4/00-task-packet.md`
 - Phase 5 control surface: `08-phase5/00-task-packet.md`
 - Phase 6 control surface: `09-phase6-job-notification/00-task-packet.md`
+- Phase 7 control surface: `10-phase7-observability-analytics/00-task-packet.md`
 - Current remaining-work register: `remaining-work-register.md`

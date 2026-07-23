@@ -30,10 +30,10 @@ const readPublicBrowserSession = async (page: Page): Promise<PublicBrowserSessio
 
 const waitForAnonymousBrowserSession = async (
   page: Page,
-  expectedUserId?: string,
+  constraint: { userId?: string; differentFromUserId?: string } = {},
 ): Promise<PublicBrowserSession> => {
   await page.waitForFunction(
-    ({ accessTokenKey, expectedId, roleKey, userIdKey }) => {
+    ({ accessTokenKey, differentFromId, expectedId, roleKey, userIdKey }) => {
       const userId = window.localStorage.getItem(userIdKey);
       const accessToken = window.localStorage.getItem(accessTokenKey);
       const role = window.localStorage.getItem(roleKey);
@@ -41,12 +41,14 @@ const waitForAnonymousBrowserSession = async (
         Boolean(userId) &&
         Boolean(accessToken) &&
         role === "anonymous" &&
-        (!expectedId || userId === expectedId)
+        (!expectedId || userId === expectedId) &&
+        (!differentFromId || userId !== differentFromId)
       );
     },
     {
       accessTokenKey: STORAGE_ACCESS_TOKEN_KEY,
-      expectedId: expectedUserId ?? null,
+      differentFromId: constraint.differentFromUserId ?? null,
+      expectedId: constraint.userId ?? null,
       roleKey: STORAGE_SESSION_ROLE_KEY,
       userIdKey: STORAGE_USER_ID_KEY,
     },
@@ -72,7 +74,7 @@ scenario(
 
       await removeStoredAccessToken(page);
       await page.reload();
-      const restored = await waitForAnonymousBrowserSession(page, initial.userId);
+      const restored = await waitForAnonymousBrowserSession(page, { userId: initial.userId });
       assert.equal(restored.userId, initial.userId);
       assert.ok(restored.accessToken.length > 0);
 
@@ -83,7 +85,9 @@ scenario(
 
       await removeStoredAccessToken(page);
       await page.reload();
-      const replacement = await waitForAnonymousBrowserSession(page);
+      const replacement = await waitForAnonymousBrowserSession(page, {
+        differentFromUserId: initial.userId,
+      });
       assert.notEqual(replacement.userId, initial.userId);
       assert.ok(replacement.accessToken.length > 0);
 

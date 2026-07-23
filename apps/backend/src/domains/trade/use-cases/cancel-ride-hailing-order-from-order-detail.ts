@@ -1,10 +1,6 @@
 import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { UserId } from "../../../entities/user";
-import {
-  type CommerceOrderDetailDebugContext,
-  logCommerceOrderDetailDebug,
-} from "../../../lib/commerce-order-detail-debug";
 import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
@@ -42,32 +38,6 @@ function createAttemptId(): string {
   return `term_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const summarizeOrderRecord = (
-  orderRecord: {
-    id: string;
-    family: string;
-    status: string;
-    createdBy: string;
-  } | null,
-): Record<string, unknown> => ({
-  localOrderId: orderRecord?.id ?? null,
-  localOrderFamily: orderRecord?.family ?? null,
-  localOrderStatus: orderRecord?.status ?? null,
-  localOrderCreatedBy: orderRecord?.createdBy ?? null,
-});
-
-const summarizeRideOrder = (
-  rideOrder: {
-    executionPhase: string;
-    driverSnapshot: { driverName?: string | null } | null;
-    vehicleSnapshot: { plate?: string | null } | null;
-  } | null,
-): Record<string, unknown> => ({
-  rideExecutionPhase: rideOrder?.executionPhase ?? null,
-  rideDriverName: rideOrder?.driverSnapshot?.driverName ?? null,
-  rideVehiclePlate: rideOrder?.vehicleSnapshot?.plate ?? null,
-});
-
 const assertActorMayCancelRideHailingOrder = (
   orderRecord: { createdBy: string },
   actor: RideHailingCancellationActor,
@@ -82,14 +52,12 @@ const assertActorMayCancelRideHailingOrder = (
 
 async function syncRideHailingOrderBeforeCancellationDecision(input: {
   orderId: TradeOrderId;
-  debug?: CommerceOrderDetailDebugContext;
   purpose: "FEE_PREVIEW" | "CANCEL_REQUEST";
 }) {
   try {
     await synchronizeRideHailingBeforeCancellation({
       orderId: input.orderId,
       purpose: input.purpose,
-      debug: input.debug,
     });
   } catch (error) {
     if (error instanceof RideHailingProviderSyncQueryError) {
@@ -106,26 +74,12 @@ async function syncRideHailingOrderBeforeCancellationDecision(input: {
 export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
   orderId: string;
   actorUserId: string;
-  debug?: CommerceOrderDetailDebugContext;
 }) {
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.start", {
-    inputOrderId: input.orderId,
-    actorUserId: input.actorUserId,
-  });
-
   const orderRecord = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
   if (!orderRecord) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.order-not-found", {
-      inputOrderId: input.orderId,
-      actorUserId: input.actorUserId,
-    });
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
   if (orderRecord.family !== "RIDE_HAILING") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.family-mismatch", {
-      ...summarizeOrderRecord(orderRecord),
-      actorUserId: input.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Only RideHailing orders can use this cancellation flow",
@@ -139,10 +93,6 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     terminationReason: "用户取消订单",
   });
   if (orderRecord.status !== "OPEN" && orderRecord.status !== "INITIATING") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.order-status-blocked", {
-      ...summarizeOrderRecord(orderRecord),
-      actorUserId: input.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Order cannot be cancelled from its current status",
@@ -151,9 +101,6 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
 
   const initialRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
   if (!initialRideOrder) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.ride-order-missing", {
-      ...summarizeOrderRecord(orderRecord),
-    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
@@ -163,7 +110,6 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
   await syncRideHailingOrderBeforeCancellationDecision({
     orderId: orderRecord.id,
     purpose: "FEE_PREVIEW",
-    debug: input.debug,
   });
 
   const syncedOrderRecord = await tradeOrderRepo.findById(orderRecord.id);
@@ -171,10 +117,6 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
   if (syncedOrderRecord.status !== "OPEN") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.synced-status-blocked", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      actorUserId: input.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Order cannot be cancelled from its current status",
@@ -189,11 +131,6 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
     });
   }
   if (!isCancellableRideHailingExecutionPhase(syncedRideOrder.executionPhase)) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.phase-blocked", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      ...summarizeRideOrder(syncedRideOrder),
-      actorUserId: input.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "RideHailing order cannot be cancelled from its current phase",
@@ -219,23 +156,10 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
   }
 
   const port = createRideHailingDispatchPort({ providerInstance });
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.start", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: dispatchBinding.providerOrderId,
-  });
 
   try {
     const preview = await port.queryCancelFee({
       providerOrderId: dispatchBinding.providerOrderId,
-    });
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.success", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: dispatchBinding.providerInstanceId,
-      providerOrderId: dispatchBinding.providerOrderId,
-      cancelFeeFen: preview.cancelFeeFen,
     });
 
     return {
@@ -243,21 +167,7 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
       cancelFeeFen: preview.cancelFeeFen,
       currency: "CNY" as const,
     };
-  } catch (error) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel-fee-preview.provider-request.error", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: dispatchBinding.providerInstanceId,
-      providerOrderId: dispatchBinding.providerOrderId,
-      error:
-        error instanceof Error
-          ? {
-              message: error.message,
-              name: error.name,
-              stack: error.stack ?? null,
-            }
-          : error,
-    });
+  } catch {
     return throwHttpProblem({
       status: 503,
       detail: "RideHailing cancellation fee query failed",
@@ -269,32 +179,12 @@ export async function queryRideHailingCancellationFeeFromOrderDetail(input: {
 async function cancelRideHailingOrder(input: {
   orderId: string;
   actor: RideHailingCancellationActor;
-  debug?: CommerceOrderDetailDebugContext;
 }) {
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.start", {
-    inputOrderId: input.orderId,
-    actorUserId: input.actor.actorUserId,
-    actorAuthority: input.actor.authority,
-  });
-
   const orderRecord = await tradeOrderRepo.findById(input.orderId as TradeOrderId);
   if (!orderRecord) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.order-not-found", {
-      inputOrderId: input.orderId,
-      actorUserId: input.actor.actorUserId,
-    });
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.order-loaded", {
-    ...summarizeOrderRecord(orderRecord),
-    actorUserId: input.actor.actorUserId,
-    actorAuthority: input.actor.authority,
-  });
   if (orderRecord.family !== "RIDE_HAILING") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.family-mismatch", {
-      ...summarizeOrderRecord(orderRecord),
-      actorUserId: input.actor.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Only RideHailing orders can use this cancellation flow",
@@ -302,10 +192,6 @@ async function cancelRideHailingOrder(input: {
   }
   assertActorMayCancelRideHailingOrder(orderRecord, input.actor);
   if (orderRecord.status !== "OPEN" && orderRecord.status !== "INITIATING") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.order-status-blocked", {
-      ...summarizeOrderRecord(orderRecord),
-      actorUserId: input.actor.actorUserId,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Order cannot be cancelled from its current status",
@@ -314,80 +200,33 @@ async function cancelRideHailingOrder(input: {
 
   const initialRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
   if (!initialRideOrder) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.initial-ride-order-missing", {
-      ...summarizeOrderRecord(orderRecord),
-    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
     });
   }
 
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.initial-ride-order", {
-    ...summarizeOrderRecord(orderRecord),
-    ...summarizeRideOrder(initialRideOrder),
-  });
-
   try {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.pre-sync.start", {
-      ...summarizeOrderRecord(orderRecord),
-      ...summarizeRideOrder(initialRideOrder),
-    });
     await synchronizeRideHailingBeforeCancellation({
       orderId: orderRecord.id,
       purpose: "CANCEL_REQUEST",
-      debug: input.debug,
-    });
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.pre-sync.success", {
-      ...summarizeOrderRecord(orderRecord),
     });
   } catch (error) {
     if (error instanceof RideHailingProviderSyncQueryError) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.pre-sync.query-error", {
-        ...summarizeOrderRecord(orderRecord),
-        error:
-          error.originalError instanceof Error
-            ? {
-                message: error.originalError.message,
-                name: error.originalError.name,
-                stack: error.originalError.stack ?? null,
-              }
-            : error.originalError,
-      });
       return throwHttpProblem({
         status: 503,
         detail: "RideHailing provider detail query failed before cancellation",
         code: "RIDE_HAILING_PROVIDER_DETAIL_QUERY_FAILED",
       });
     }
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.pre-sync.error", {
-      ...summarizeOrderRecord(orderRecord),
-      error:
-        error instanceof Error
-          ? {
-              message: error.message,
-              name: error.name,
-              stack: error.stack ?? null,
-            }
-          : error,
-    });
     throw error;
   }
 
   const syncedOrderRecord = await tradeOrderRepo.findById(orderRecord.id);
   if (!syncedOrderRecord) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-order-missing", {
-      localOrderId: orderRecord.id,
-    });
     return throwHttpProblem({ status: 404, detail: "Order not found" });
   }
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-order", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-  });
   if (syncedOrderRecord.status !== "OPEN") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-order-status-blocked", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-    });
     return throwHttpProblem({
       status: 409,
       detail: "Order cannot be cancelled from its current status",
@@ -396,23 +235,12 @@ async function cancelRideHailingOrder(input: {
 
   const syncedRideOrder = await rideOrderRepo.findByOrderId(orderRecord.id);
   if (!syncedRideOrder) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-ride-order-missing", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-    });
     return throwHttpProblem({
       status: 500,
       detail: "RideHailing order facts are missing",
     });
   }
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-ride-order", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    ...summarizeRideOrder(syncedRideOrder),
-  });
   if (!isCancellableRideHailingExecutionPhase(syncedRideOrder.executionPhase)) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.synced-phase-blocked", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      ...summarizeRideOrder(syncedRideOrder),
-    });
     return throwHttpProblem({
       status: 409,
       detail: "RideHailing order cannot be cancelled from its current phase",
@@ -421,36 +249,16 @@ async function cancelRideHailingOrder(input: {
 
   const dispatchBinding = syncedRideOrder.dispatchBinding;
   if (!dispatchBinding?.providerOrderId) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.binding-missing", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      ...summarizeRideOrder(syncedRideOrder),
-      providerInstanceId: dispatchBinding?.providerInstanceId ?? null,
-      providerOrderId: dispatchBinding?.providerOrderId ?? null,
-    });
     return throwHttpProblem({
       status: 409,
       detail: "RideHailing order is missing dispatch binding",
     });
   }
 
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.binding-loaded", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: dispatchBinding.providerOrderId,
-  });
-
   const providerInstance = await providerRepo.findById(
     dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
   );
   if (!providerInstance || providerInstance.status !== "ACTIVE") {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-missing", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      providerInstanceId: dispatchBinding.providerInstanceId,
-      providerOrderId: dispatchBinding.providerOrderId,
-      foundProviderId: providerInstance?.id ?? null,
-      foundProviderStatus: providerInstance?.status ?? null,
-    });
     return throwHttpProblem({
       status: 404,
       detail: "RideHailing provider instance not found",
@@ -465,15 +273,9 @@ async function cancelRideHailingOrder(input: {
     // Every cancellation/callback/reconciliation transaction locks Trade first, then Ride.
     const currentOrderRecord = await transactionalTradeOrderRepo.findByIdForUpdate(orderRecord.id);
     if (!currentOrderRecord) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.order-missing", {
-        localOrderId: orderRecord.id,
-      });
       return throwHttpProblem({ status: 404, detail: "Order not found" });
     }
     if (currentOrderRecord.family !== "RIDE_HAILING") {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.family-mismatch", {
-        ...summarizeOrderRecord(currentOrderRecord),
-      });
       return throwHttpProblem({
         status: 409,
         detail: "Only RideHailing orders can use this cancellation flow",
@@ -481,9 +283,6 @@ async function cancelRideHailingOrder(input: {
     }
     assertActorMayCancelRideHailingOrder(currentOrderRecord, input.actor);
     if (currentOrderRecord.status !== "OPEN") {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.order-status-blocked", {
-        ...summarizeOrderRecord(currentOrderRecord),
-      });
       return throwHttpProblem({
         status: 409,
         detail: "Order cannot be cancelled from its current status",
@@ -494,23 +293,12 @@ async function cancelRideHailingOrder(input: {
       currentOrderRecord.id,
     );
     if (!currentRideOrder) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.ride-order-missing", {
-        ...summarizeOrderRecord(currentOrderRecord),
-      });
       return throwHttpProblem({
         status: 500,
         detail: "RideHailing order facts are missing",
       });
     }
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.ride-order", {
-      ...summarizeOrderRecord(currentOrderRecord),
-      ...summarizeRideOrder(currentRideOrder),
-    });
     if (!isCancellableRideHailingExecutionPhase(currentRideOrder.executionPhase)) {
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.phase-blocked", {
-        ...summarizeOrderRecord(currentOrderRecord),
-        ...summarizeRideOrder(currentRideOrder),
-      });
       return throwHttpProblem({
         status: 409,
         detail: "RideHailing order cannot be cancelled from its current phase",
@@ -559,26 +347,10 @@ async function cancelRideHailingOrder(input: {
       });
     }
 
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.claim.persisted", {
-      ...summarizeOrderRecord(currentOrderRecord),
-      ...summarizeRideOrder(currentRideOrder),
-      attemptId,
-      providerOrderId: currentRideOrder.dispatchBinding.providerOrderId,
-    });
     return {
       attemptId,
       providerOrderId: currentRideOrder.dispatchBinding.providerOrderId,
     };
-  });
-
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.start", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    ...summarizeRideOrder(syncedRideOrder),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: claim.providerOrderId,
-    actorAuthority: input.actor.authority,
-    providerWhoCancel: input.actor.providerWhoCancel,
-    attemptId: claim.attemptId,
   });
 
   let providerCancellation: Awaited<ReturnType<typeof port.cancelRide>>;
@@ -590,20 +362,6 @@ async function cancelRideHailingOrder(input: {
       whoCancel: input.actor.providerWhoCancel,
     });
   } catch (error) {
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.error", {
-      ...summarizeOrderRecord(syncedOrderRecord),
-      providerInstanceId: dispatchBinding.providerInstanceId,
-      providerOrderId: claim.providerOrderId,
-      attemptId: claim.attemptId,
-      error:
-        error instanceof Error
-          ? {
-              message: error.message,
-              name: error.name,
-              stack: error.stack ?? null,
-            }
-          : error,
-    });
     await db.transaction(async (tx) => {
       const transactionalTradeOrderRepo = new TradeOrderRepository(tx);
       const transactionalRideOrderRepo = new RideHailingOrderRepository(tx);
@@ -630,13 +388,6 @@ async function cancelRideHailingOrder(input: {
     throw error;
   }
 
-  logCommerceOrderDetailDebug(input.debug, "ride-cancel.provider-request.success", {
-    ...summarizeOrderRecord(syncedOrderRecord),
-    providerInstanceId: dispatchBinding.providerInstanceId,
-    providerOrderId: claim.providerOrderId,
-    attemptId: claim.attemptId,
-    cancelFeeFen: providerCancellation.cancelFeeFen,
-  });
   const decidedAt = new Date().toISOString();
 
   return db.transaction(async (tx) => {
@@ -667,11 +418,6 @@ async function cancelRideHailingOrder(input: {
         effectAmountFen: existingApproved.effectAmountFen ?? 0,
         refunds: [],
       };
-      logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.idempotent", {
-        ...summarizeOrderRecord(currentOrderRecord),
-        ...summarizeRideOrder(currentRideOrder),
-        attemptId: claim.attemptId,
-      });
       return result;
     }
 
@@ -694,15 +440,6 @@ async function cancelRideHailingOrder(input: {
       effectAmountFen: providerCancellation.cancelFeeFen,
     });
 
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.termination-approved", {
-      ...summarizeOrderRecord(currentOrderRecord),
-      ...summarizeRideOrder(currentRideOrder),
-      attemptId: claim.attemptId,
-      approvedStatus: approved.status,
-      effectKind: providerCancellation.cancelFeeFen > 0 ? "ABORT_FEE" : "NONE",
-      effectAmountFen: providerCancellation.cancelFeeFen,
-    });
-
     const persisted = await transactionalTradeOrderRepo.applyTerminationState({
       id: orderRecord.id as TradeOrderId,
       status: approved.status,
@@ -715,12 +452,6 @@ async function cancelRideHailingOrder(input: {
         detail: "Failed to persist approved RideHailing termination",
       });
     }
-
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.order-persisted", {
-      localOrderId: persisted.id,
-      persistedOrderStatus: persisted.status,
-      attemptId: claim.attemptId,
-    });
 
     const updatedRideOrder = await transactionalRideOrderRepo.updateByOrderId(
       orderRecord.id as TradeOrderId,
@@ -745,15 +476,6 @@ async function cancelRideHailingOrder(input: {
       refunds: [],
     };
 
-    logCommerceOrderDetailDebug(input.debug, "ride-cancel.tx.complete", {
-      localOrderId: persisted.id,
-      persistedOrderStatus: persisted.status,
-      persistedRideExecutionPhase: updatedRideOrder.executionPhase,
-      attemptId: claim.attemptId,
-      effectKind: result.effectKind,
-      effectAmountFen: result.effectAmountFen,
-    });
-
     return result;
   });
 }
@@ -761,7 +483,6 @@ async function cancelRideHailingOrder(input: {
 export async function cancelRideHailingOrderFromOrderDetail(input: {
   orderId: string;
   actorUserId: string;
-  debug?: CommerceOrderDetailDebugContext;
 }) {
   return cancelRideHailingOrder({
     orderId: input.orderId,
@@ -772,14 +493,12 @@ export async function cancelRideHailingOrderFromOrderDetail(input: {
       providerWhoCancel: 1,
       terminationReason: "用户取消订单",
     },
-    debug: input.debug,
   });
 }
 
 export async function cancelRideHailingOrderFromAdmin(input: {
   orderId: string;
   actorUserId: string;
-  debug?: CommerceOrderDetailDebugContext;
 }) {
   return cancelRideHailingOrder({
     orderId: input.orderId,
@@ -790,6 +509,5 @@ export async function cancelRideHailingOrderFromAdmin(input: {
       providerWhoCancel: 2,
       terminationReason: "管理员取消订单",
     },
-    debug: input.debug,
   });
 }

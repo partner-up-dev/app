@@ -1,6 +1,5 @@
 import type { PartnerRequestFields, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { createPRContentMeetingPointTransactionPort } from "../adapters/pr-content-meeting-point-transaction";
@@ -214,17 +213,6 @@ export async function updatePRContent(
       slotId: participant.partnerId,
       recipientUserId: participant.userId,
     });
-    operationLogService.log({
-      actorId: actorUserId,
-      action: "partner.release_after_pr_core_field_change",
-      aggregateType: "partner_request",
-      aggregateId: String(id),
-      detail: {
-        partnerId: participant.partnerId,
-        releasedUserId: participant.userId,
-        reason: RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE,
-      },
-    });
   }
 
   if (committedReleasedParticipants.length > 0) {
@@ -250,16 +238,6 @@ export async function updatePRContent(
       });
     }
   }
-
-  operationLogService.log({
-    actorId: actorUserId,
-    action: "pr.update_content",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: {
-      changedFields: changedFields.join(","),
-    },
-  });
 
   const coreFieldChangeMessageBody =
     refreshedRequest.status === "DRAFT" ? null : buildCoreFieldChangeMessageBody(changedFields);

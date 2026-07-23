@@ -49,44 +49,6 @@ const pricingApplication = new PricingApplication();
 
 const RIDE_QUOTE_TTL_MS = 2 * 60 * 1000;
 
-const writeRideHailingListingDiagnostic = (payload: Record<string, unknown>): void => {
-  process.stdout.write(
-    `${JSON.stringify({
-      marker: "RideHailingListingDiagnostic",
-      ...payload,
-    })}\n`,
-  );
-};
-
-const summarizeRideHailingRoute = (route: RideHailingRouteSnapshot) => ({
-  destination: {
-    latitude: route.destination.latitude,
-    longitude: route.destination.longitude,
-    name: route.destination.name,
-  },
-  origin: {
-    latitude: route.origin.latitude,
-    longitude: route.origin.longitude,
-    name: route.origin.name,
-  },
-  waypointCount: route.waypoints.length,
-});
-
-const serializeDiagnosticError = (error: unknown): Record<string, unknown> => {
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.split("\n").slice(0, 6).join("\n") ?? null,
-    };
-  }
-  return {
-    message: String(error),
-    name: typeof error,
-    stack: null,
-  };
-};
-
 export type OfferListingParticipantInput = {
   userId: string;
   displayName?: string | null;
@@ -399,7 +361,6 @@ async function listRentalItems(input: {
 async function quoteRideSku(input: {
   offer: Offer;
   context: RideSkuContext;
-  listingSessionId: OfferListingSessionId;
   route: RideHailingRouteSnapshot;
   departureAt: string | null;
 }): Promise<{
@@ -411,33 +372,10 @@ async function quoteRideSku(input: {
     input.context.sku.facts.rideHailingProviderInstanceId as RideHailingProviderInstanceId,
   );
   if (!provider || provider.status !== "ACTIVE") {
-    writeRideHailingListingDiagnostic({
-      event: "ride_provider_unavailable",
-      listingSessionId: input.listingSessionId,
-      offerId: input.offer.id,
-      providerFound: provider !== null,
-      providerInstanceId: input.context.sku.facts.rideHailingProviderInstanceId,
-      providerStatus: provider?.status ?? null,
-      providerVehicleTypeCode: input.context.sku.facts.providerVehicleTypeCode,
-      skuId: input.context.sku.id,
-      spuId: input.context.spu.id,
-    });
     return null;
   }
 
   const port = createRideHailingDispatchPort({ providerInstance: provider });
-  writeRideHailingListingDiagnostic({
-    event: "ride_provider_estimate_start",
-    listingSessionId: input.listingSessionId,
-    offerId: input.offer.id,
-    providerInstanceId: provider.id,
-    providerStatus: provider.status,
-    providerType: provider.providerType,
-    providerVehicleTypeCode: input.context.sku.facts.providerVehicleTypeCode,
-    route: summarizeRideHailingRoute(input.route),
-    skuId: input.context.sku.id,
-    spuId: input.context.spu.id,
-  });
   const providerQuote = await port.estimate({
     params: {
       car_type: input.context.sku.facts.providerVehicleTypeCode,
@@ -496,19 +434,6 @@ async function listRideItems(input: {
           ]
         : [],
   );
-  writeRideHailingListingDiagnostic({
-    event: "ride_listing_contexts_resolved",
-    contextCount: contexts.length,
-    listingSessionId: input.listingSessionId,
-    offerId: input.offer.id,
-    route: summarizeRideHailingRoute(input.listingContext.route),
-    skus: contexts.map((context) => ({
-      providerInstanceId: context.sku.facts.rideHailingProviderInstanceId,
-      providerVehicleTypeCode: context.sku.facts.providerVehicleTypeCode,
-      skuId: context.sku.id,
-      spuId: context.spu.id,
-    })),
-  });
   const rows = (
     await Promise.all(
       contexts.map(async (context) => {
@@ -517,21 +442,10 @@ async function listRideItems(input: {
           quoted = await quoteRideSku({
             offer: input.offer,
             context,
-            listingSessionId: input.listingSessionId,
             route: input.listingContext.route,
             departureAt: input.listingContext.departureAt,
           });
-        } catch (error) {
-          writeRideHailingListingDiagnostic({
-            event: "ride_listing_candidate_failed",
-            error: serializeDiagnosticError(error),
-            listingSessionId: input.listingSessionId,
-            offerId: input.offer.id,
-            providerInstanceId: context.sku.facts.rideHailingProviderInstanceId,
-            providerVehicleTypeCode: context.sku.facts.providerVehicleTypeCode,
-            skuId: context.sku.id,
-            spuId: context.spu.id,
-          });
+        } catch {
           quoted = null;
         }
         if (!quoted) return null;

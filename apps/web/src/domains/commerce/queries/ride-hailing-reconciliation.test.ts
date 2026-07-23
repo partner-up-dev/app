@@ -113,9 +113,7 @@ describe("RideHailing controlled reconciliation", () => {
     mountedApps.push(app);
 
     try {
-      await expect(
-        reconcileMutation?.mutateAsync({ orderId, trigger: "polling-interval" }),
-      ).resolves.toMatchObject({
+      await expect(reconcileMutation?.mutateAsync({ orderId })).resolves.toMatchObject({
         outcome: "RECONCILED",
         providerObservation: observation,
       });

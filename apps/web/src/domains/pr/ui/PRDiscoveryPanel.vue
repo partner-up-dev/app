@@ -139,9 +139,7 @@ import type { PRDiscoveryReadWorkflow } from "@/domains/pr/use-cases/usePRDiscov
 import { usePRCreateAuthGate } from "@/domains/pr/use-cases/usePRCreateAuthGate";
 import { trackEvent } from "@/shared/telemetry/track";
 
-type DirectCreateSelection =
-  | PRDiscoveryFormSelection
-  | PRDiscoveryDirectCreateCommand;
+type DirectCreateSelection = PRDiscoveryFormSelection | PRDiscoveryDirectCreateCommand;
 
 const props = defineProps<{ readWorkflow: PRDiscoveryReadWorkflow }>();
 const router = useRouter();
@@ -204,7 +202,7 @@ const formErrorMessage = computed(
 const openCandidate = (path: string, prId: number) => {
   const type = selectedType.value;
   if (!type) return;
-  trackEvent("pr_discovery_candidate_action", {
+  trackEvent("pr.discovery.candidate.action", {
     prType: type,
     viewMode: activeViewMode.value,
     origin: "PR_DISCOVERY",
@@ -297,7 +295,7 @@ const recommendCandidates = async (selection: PRDiscoveryFormSelection) => {
   if (!type) return;
   const requestId = ++recommendationRequestId;
   recommendationResult.value = null;
-  trackEvent("pr_discovery_criteria_submitted", {
+  trackEvent("pr.discovery.criteria.submitted", {
     prType: type,
     viewMode: activeViewMode.value,
     origin: "PR_DISCOVERY",
@@ -311,7 +309,7 @@ const recommendCandidates = async (selection: PRDiscoveryFormSelection) => {
     });
     if (requestId !== recommendationRequestId || selectedType.value !== type) return;
     recommendationResult.value = result;
-    trackEvent("pr_discovery_recommendation_returned", {
+    trackEvent("pr.discovery.recommendation.returned", {
       prType: type,
       viewMode: activeViewMode.value,
       origin: "PR_DISCOVERY",
@@ -321,7 +319,7 @@ const recommendCandidates = async (selection: PRDiscoveryFormSelection) => {
       ? [result.matchedCandidate]
       : result.orderedCandidates;
     visibleCandidates.forEach((candidate, index) => {
-      trackEvent("pr_discovery_candidate_impression", {
+      trackEvent("pr.discovery.candidate.impression", {
         prType: type,
         viewMode: activeViewMode.value,
         origin: "PR_DISCOVERY",

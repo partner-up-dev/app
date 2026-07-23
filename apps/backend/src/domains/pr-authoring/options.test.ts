@@ -24,9 +24,8 @@ vi.mock("../../repositories/PoiRepository", () => ({
   },
 }));
 vi.mock("../pr/queries", async () => {
-  const { isTimeWindowAvailableByPoiRules } = await import(
-    "../pr/services/poi-availability.service"
-  );
+  const { isTimeWindowAvailableByPoiRules } =
+    await import("../pr/services/poi-availability.service");
   return {
     isPRActiveStatus: (status: string) => ["OPEN", "READY", "ACTIVE"].includes(status),
     isPRJoinableStatus: (status: string) => status === "OPEN",

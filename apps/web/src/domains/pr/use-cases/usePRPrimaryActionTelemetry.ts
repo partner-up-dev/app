@@ -26,7 +26,7 @@ const supportsPRReminderTelemetry = (pr: PRDetailView): boolean =>
 
 export const trackPRPrimaryActionClick = (pr: PRDetailView, ctaType: PRPrimaryCtaType): void => {
   if (!supportsPRReminderTelemetry(pr)) return;
-  trackEvent("pr_primary_cta_click", {
+  trackEvent("pr.primary_cta.click", {
     prId: pr.id,
     ctaType,
     viewerState: resolveViewerState(pr),
@@ -58,7 +58,7 @@ export const usePRPrimaryActionImpression = ({
       const impressionKey = `${prId}:${nextCtaType}:${viewerState}`;
       if (lastPrimaryImpressionKey.value === impressionKey) return;
       lastPrimaryImpressionKey.value = impressionKey;
-      trackEvent("pr_primary_cta_impression", {
+      trackEvent("pr.primary_cta.impression", {
         prId,
         ctaType: nextCtaType,
         viewerState,

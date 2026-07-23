@@ -1,5 +1,4 @@
 import type { PRId } from "../../../entities/partner-request";
-import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
@@ -51,14 +50,6 @@ export async function checkIn(id: PRId, openId: string): Promise<PublicPR> {
   if (slot.status !== "ATTENDED") {
     await userReliabilityRepo.applyDelta(user.id, { attended: 1 });
   }
-
-  operationLogService.log({
-    actorId: user.id,
-    action: "partner.check_in",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { partnerId: slot.id, didAttend: true },
-  });
 
   const latest = await prRepo.findById(id);
   if (!latest) {

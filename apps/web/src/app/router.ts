@@ -24,7 +24,9 @@ const CommerceBillDetailPage = () => import("@/pages/CommerceBillDetailPage.vue"
 const PaymentCheckoutPage = () => import("@/pages/PaymentCheckoutPage.vue");
 const UserProfilePage = () => import("@/pages/UserProfilePage.vue");
 const AdminLoginPage = () => import("@/pages/AdminLoginPage.vue");
-const AdminAnalyticsPage = () => import("@/pages/AdminAnalyticsPage.vue");
+const AdminAnalyticsOverviewPage = () => import("@/pages/AdminAnalyticsOverviewPage.vue");
+const AdminPRFunnelAnalyticsPage = () => import("@/pages/AdminPRFunnelAnalyticsPage.vue");
+const AdminPRDiscoveryAnalyticsPage = () => import("@/pages/AdminPRDiscoveryAnalyticsPage.vue");
 const BIEntryPage = () => import("@/pages/BIEntryPage.vue");
 const AdminPRTypeConfigsPage = () => import("@/pages/AdminPRTypeConfigsPage.vue");
 const AdminPRPage = () => import("@/pages/AdminPRPage.vue");
@@ -231,7 +233,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/admin/analytics/overview",
     name: "admin-analytics-overview",
-    component: AdminAnalyticsPage,
+    component: AdminAnalyticsOverviewPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["analytics"],
@@ -240,7 +242,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/admin/analytics/pr-funnels",
     name: "admin-analytics-pr-funnels",
-    component: AdminAnalyticsPage,
+    component: AdminPRFunnelAnalyticsPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["analytics"],
@@ -249,7 +251,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/admin/analytics/pr-discovery",
     name: "admin-analytics-pr-discovery",
-    component: AdminAnalyticsPage,
+    component: AdminPRDiscoveryAnalyticsPage,
     meta: {
       wechatSharePolicy: "route",
       requiredRoles: ["analytics"],
@@ -458,7 +460,7 @@ router.afterEach((to) => {
     captureSpmAttributionFromUrl(window.location.href);
   }
 
-  trackEvent("page_view", {
+  trackEvent("page.viewed", {
     page: sanitizeSensitiveRoutePath(to.fullPath),
     routeName: typeof to.name === "string" ? to.name : undefined,
     prId: parsePositiveInt(to.params.id),

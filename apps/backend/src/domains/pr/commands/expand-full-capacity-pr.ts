@@ -99,7 +99,6 @@ export async function expandFullCapacityPR(prId: PRId): Promise<void> {
     },
     { authenticatedUserId: null, anonymousUserId: null, oauthOpenId: null },
     {
-      createSource: "CAPACITY_EXPANSION",
       creationAuthority: "SYSTEM",
       partnerBoundsMode: "automatic",
       publicationMode: "create-open",
@@ -108,13 +107,6 @@ export async function expandFullCapacityPR(prId: PRId): Promise<void> {
       confirmationStartOffsetMinutes: request.confirmationStartOffsetMinutes,
       confirmationEndOffsetMinutes: request.confirmationEndOffsetMinutes,
       joinLockOffsetMinutes: request.joinLockOffsetMinutes,
-      operationLog: {
-        detail: {
-          sourcePrId: prId,
-          location: targetLocation,
-          activeCountAtSource: sourceActiveCount,
-        },
-      },
     },
   );
   const createdRoot = await prRepo.findById(created.id);

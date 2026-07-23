@@ -32,26 +32,6 @@ export type CaocaoCallbackRouterDecision =
       reason: "duplicate-callback-info" | "invalid-callback-info";
     };
 
-export type CaocaoCallbackRouterLogEvent = {
-  event: "caocao_callback_router_request";
-  method: string;
-  path: string;
-  requestId: string | null;
-  routingReason:
-    | CaocaoCallbackRouterDecision["reason"]
-    | "body-too-large"
-    | "method-not-allowed"
-    | "not-found"
-    | "upstream-error"
-    | "upstream-timeout";
-  targetEnvironment: CaocaoCallbackRouterTargetEnvironment | null;
-  upstreamStatus: number | null;
-  responseStatus: number;
-  durationMs: number;
-};
-
-export type CaocaoCallbackRouterLogger = (event: CaocaoCallbackRouterLogEvent) => void;
-
 export type CaocaoCallbackRouterConfig = {
   callbackPath: string;
   host: string;
@@ -60,7 +40,6 @@ export type CaocaoCallbackRouterConfig = {
   upstreamTimeoutMs: number;
   stagingOrigin: URL;
   productionOrigin: URL;
-  logger: CaocaoCallbackRouterLogger;
 };
 
 type CreateCaocaoCallbackRouterInput = Partial<
@@ -105,10 +84,6 @@ const parsePositiveInteger = (
   return parsed;
 };
 
-const defaultLogger: CaocaoCallbackRouterLogger = (event) => {
-  console.info(JSON.stringify(event));
-};
-
 export function createCaocaoCallbackRouterConfig(
   input: CreateCaocaoCallbackRouterInput = {},
 ): CaocaoCallbackRouterConfig {
@@ -127,7 +102,6 @@ export function createCaocaoCallbackRouterConfig(
       input.productionOrigin ?? CAOCAO_CALLBACK_ROUTER_DEFAULT_PRODUCTION_ORIGIN,
       "productionOrigin",
     ),
-    logger: input.logger ?? defaultLogger,
   };
 }
 
@@ -314,43 +288,14 @@ const forwardToUpstream = async (input: {
   }
 };
 
-const getRequestId = (headers: IncomingHttpHeaders): string | null =>
-  readHeader(headers, "x-request-id") ?? readHeader(headers, "x-correlation-id");
-
-const logRequest = (input: {
-  config: CaocaoCallbackRouterConfig;
-  startedAtMs: number;
-  method: string;
-  requestUrl: URL;
-  requestId: string | null;
-  routingReason: CaocaoCallbackRouterLogEvent["routingReason"];
-  targetEnvironment: CaocaoCallbackRouterTargetEnvironment | null;
-  upstreamStatus: number | null;
-  responseStatus: number;
-}): void => {
-  input.config.logger({
-    event: "caocao_callback_router_request",
-    method: input.method,
-    path: input.requestUrl.pathname,
-    requestId: input.requestId,
-    routingReason: input.routingReason,
-    targetEnvironment: input.targetEnvironment,
-    upstreamStatus: input.upstreamStatus,
-    responseStatus: input.responseStatus,
-    durationMs: Date.now() - input.startedAtMs,
-  });
-};
-
 export function createCaocaoCallbackRouterHandler(
   configInput: CreateCaocaoCallbackRouterInput = {},
 ): (request: IncomingMessage, response: ServerResponse) => void {
   const config = createCaocaoCallbackRouterConfig(configInput);
 
   return (request, response) => {
-    const startedAtMs = Date.now();
     const method = request.method ?? "";
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
-    const requestId = getRequestId(request.headers);
 
     void (async () => {
       if (requestUrl.pathname !== config.callbackPath) {
@@ -358,17 +303,6 @@ export function createCaocaoCallbackRouterHandler(
           code: 404,
           success: false,
           message: "Not found",
-        });
-        logRequest({
-          config,
-          startedAtMs,
-          method,
-          requestUrl,
-          requestId,
-          routingReason: "not-found",
-          targetEnvironment: null,
-          upstreamStatus: null,
-          responseStatus: 404,
         });
         return;
       }
@@ -380,17 +314,6 @@ export function createCaocaoCallbackRouterHandler(
           success: false,
           message: "Method not allowed",
         });
-        logRequest({
-          config,
-          startedAtMs,
-          method,
-          requestUrl,
-          requestId,
-          routingReason: "method-not-allowed",
-          targetEnvironment: null,
-          upstreamStatus: null,
-          responseStatus: 405,
-        });
         return;
       }
 
@@ -401,17 +324,6 @@ export function createCaocaoCallbackRouterHandler(
           code: 400,
           success: false,
           message: "Invalid callback_info",
-        });
-        logRequest({
-          config,
-          startedAtMs,
-          method,
-          requestUrl,
-          requestId,
-          routingReason: decision.reason,
-          targetEnvironment: null,
-          upstreamStatus: null,
-          responseStatus: 400,
         });
         return;
       }
@@ -426,17 +338,6 @@ export function createCaocaoCallbackRouterHandler(
         requestUrl,
       });
       await writeUpstreamResponse(response, upstreamResponse);
-      logRequest({
-        config,
-        startedAtMs,
-        method,
-        requestUrl,
-        requestId,
-        routingReason: decision.reason,
-        targetEnvironment: decision.targetEnvironment,
-        upstreamStatus: upstreamResponse.status,
-        responseStatus: upstreamResponse.status,
-      });
     })().catch((error: unknown) => {
       const responseStatus =
         error instanceof CaocaoCallbackRouterHttpError
@@ -450,13 +351,6 @@ export function createCaocaoCallbackRouterHandler(
           : isAbortError(error)
             ? "Upstream request timed out"
             : "Upstream request failed";
-      const routingReason =
-        error instanceof CaocaoCallbackRouterHttpError && error.status === 413
-          ? "body-too-large"
-          : isAbortError(error)
-            ? "upstream-timeout"
-            : "upstream-error";
-
       if (!response.headersSent) {
         writeJson(response, responseStatus, {
           code: responseStatus,
@@ -466,18 +360,6 @@ export function createCaocaoCallbackRouterHandler(
       } else {
         response.end();
       }
-
-      logRequest({
-        config,
-        startedAtMs,
-        method,
-        requestUrl,
-        requestId,
-        routingReason,
-        targetEnvironment: null,
-        upstreamStatus: null,
-        responseStatus,
-      });
     });
   };
 }

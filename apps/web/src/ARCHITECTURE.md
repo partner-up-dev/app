@@ -38,7 +38,7 @@ Examples:
 - generic UI primitives
 - styling infrastructure
 - browser/platform utilities
-- analytics transport
+- user-telemetry collector, queue, and transport
 - generic storage and URL helpers
 
 `shared` must not own domain-specific business semantics.
@@ -52,6 +52,7 @@ Examples:
 - `domains/pr` (including Discovery and time-window policy surfaces)
 - `domains/share`
 - `domains/admin`
+- `domains/analytics`
 - `domains/auth`
 
 Inside a domain, subfolders encode responsibility, not convenience.
@@ -109,6 +110,12 @@ State follows the same owner rule:
 - Domain workflow/UI owns the smallest local draft or interaction state that needs it.
 - Browser storage owns only explicit continuity, attribution or pending-action protocols; it is not product truth.
 - Backend canonical reads remain authoritative for durable entity facts and eligibility.
+
+`domains/analytics` owns BI query adapters, applied/draft filter state,
+presentation models, and dashboard surfaces. `domains/admin` supplies only the
+shared operator access, scaffold, and navigation used by those route pages.
+User-behavior event collection/queue/transport remains owner-neutral
+infrastructure under `shared/telemetry`; it does not own BI meaning.
 
 Instantiate a route workflow once at the narrowest route/domain owner and pass a cohesive view model plus explicit
 actions downward. Do not coordinate a one-level parent/child relationship through a global store, broad

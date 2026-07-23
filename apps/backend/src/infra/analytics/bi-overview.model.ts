@@ -1,5 +1,6 @@
 import type { PRStatus } from "../../entities/partner-request";
 import { addDaysUtc8, formatDateKeyUtc8 } from "./time-window";
+import { resolveAnalyticsRange } from "./analytics-range";
 
 export type BIOverviewQueryInput = {
   startAt?: Date;
@@ -84,24 +85,12 @@ export type RetentionActivityFactRow = {
   identityKey: string | null;
 };
 
-const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1_000;
-
 const FORMED_STATUSES = new Set<PRStatus>(["READY", "ACTIVE", "CLOSED"]);
 
 const ACTIVE_OR_OPEN_STATUSES = new Set<PRStatus>(["OPEN", "READY", "ACTIVE"]);
 
 export const resolveBIOverviewFilters = (input: BIOverviewQueryInput): BIOverviewFilters => {
-  const endAt = input.endAt ?? new Date();
-  const startAt = input.startAt ?? new Date(endAt.getTime() - DEFAULT_WINDOW_MS);
-
-  if (startAt.getTime() >= endAt.getTime()) {
-    throw new Error("startAt must be before endAt");
-  }
-
-  return {
-    startAt: startAt.toISOString(),
-    endAt: endAt.toISOString(),
-  };
+  return resolveAnalyticsRange(input);
 };
 
 const buildRate = (numerator: number, denominator: number): number =>

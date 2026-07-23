@@ -1,7 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { UserId } from "../../../entities/user";
 import { PoiRepository } from "../../../repositories/PoiRepository";
-import { operationLogService } from "../../../infra/operation-log";
 import { normalizePoiRejectReason, toPoiApplicationView } from "../services/poi-application";
 
 const poiRepo = new PoiRepository();
@@ -17,16 +16,6 @@ export async function publishAdminPoiApplication(input: {
   if (!updated) {
     return throwHttpProblem({ status: 404, detail: "POI not found" });
   }
-
-  operationLogService.log({
-    actorId: input.reviewedByUserId,
-    action: "poi.application.publish",
-    aggregateType: "poi",
-    aggregateId: String(updated.id),
-    detail: {
-      status: updated.status,
-    },
-  });
 
   return toPoiApplicationView(updated);
 }
@@ -44,17 +33,6 @@ export async function rejectAdminPoiApplication(input: {
   if (!updated) {
     return throwHttpProblem({ status: 404, detail: "POI not found" });
   }
-
-  operationLogService.log({
-    actorId: input.reviewedByUserId,
-    action: "poi.application.reject",
-    aggregateType: "poi",
-    aggregateId: String(updated.id),
-    detail: {
-      status: updated.status,
-      rejectReason: updated.rejectReason,
-    },
-  });
 
   return toPoiApplicationView(updated);
 }

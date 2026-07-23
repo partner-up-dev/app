@@ -12,7 +12,7 @@ This directory is not the default home for new domain business logic.
 
 - Use `src/services/` only when the code is truly a legacy compatibility facade or a service that does not fit a clearer domain / infra owner yet.
 - If the logic owns business transitions, eligibility, or state semantics, it belongs under a domain owner instead.
-- If the logic is cross-cutting infrastructure such as events, jobs, analytics, or operation logs, it belongs under `src/infra/*`.
+- If the logic is cross-cutting infrastructure such as events, jobs, or analytics, it belongs under `src/infra/*`.
 
 ## Guardrails
 

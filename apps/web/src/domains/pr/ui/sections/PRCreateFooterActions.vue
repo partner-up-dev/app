@@ -1,13 +1,7 @@
 <template>
   <footer class="page-footer">
-    <PuButton
-      :disabled="pending"
-      data-testid="pr-create.publish"
-      @click="emit('submit')"
-    >
-      {{
-        pending ? t("createPage.createPending") : t("common.create")
-      }}
+    <PuButton :disabled="pending" data-testid="pr-create.publish" @click="emit('submit')">
+      {{ pending ? t("createPage.createPending") : t("common.create") }}
     </PuButton>
   </footer>
 </template>

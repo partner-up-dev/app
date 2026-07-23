@@ -182,13 +182,13 @@ const startHeroAnimation = () => {
 };
 
 const handlePrimaryClick = () => {
-  trackEvent("home_hero_primary_click", {
+  trackEvent("home.hero.primary.click", {
     target: "pr-discovery",
   });
 };
 
 const handleSecondaryClick = () => {
-  trackEvent("home_create_entry_click", {
+  trackEvent("home.create.entry.click", {
     source: "hero_secondary",
     target: "pr-create",
   });

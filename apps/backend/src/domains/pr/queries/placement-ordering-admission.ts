@@ -14,13 +14,8 @@ export type PRPlacementOrderingAdmission =
   | { outcome: "INACTIVE" };
 
 export type PlacementOrderingAdmissionDependencies = {
-  findActiveParticipant: (
-    prId: PRId,
-    userId: UserId,
-  ) => Promise<{ userId: UserId } | null>;
-  findPartnerRequest: (
-    prId: PRId,
-  ) => Promise<{
+  findActiveParticipant: (prId: PRId, userId: UserId) => Promise<{ userId: UserId } | null>;
+  findPartnerRequest: (prId: PRId) => Promise<{
     createdBy: UserId | null;
     orders: TradeOrderId[];
     status: string;
@@ -36,8 +31,7 @@ const partnerRequestRepo = new PartnerRequestRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
 const defaultDependencies: PlacementOrderingAdmissionDependencies = {
-  findActiveParticipant: (prId, userId) =>
-    partnerRepo.findActiveByPrIdAndUserId(prId, userId),
+  findActiveParticipant: (prId, userId) => partnerRepo.findActiveByPrIdAndUserId(prId, userId),
   findPartnerRequest: (prId) => partnerRequestRepo.findById(prId),
   listActiveOrders: ({ ids, offerId }) =>
     tradeOrderRepo.listByIdsOfferAndStatuses({

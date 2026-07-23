@@ -13,12 +13,6 @@ type WeComDecryptedPayload = {
   corpId: string;
 };
 
-type WeComPaddingDiagnostics = {
-  bufferLength: number;
-  paddingByte: number | null;
-  paddingValid: boolean | null;
-};
-
 const unpadPkcs7 = (buffer: Buffer) => {
   if (buffer.length === 0) {
     throw new Error("WeCom message empty");
@@ -109,46 +103,6 @@ export const decryptWeComMessage = (
   }
 
   return { xml, corpId: receivedCorpId };
-};
-
-export const diagnoseWeComCiphertext = (
-  encodingAesKey: string,
-  encrypted: string,
-): WeComPaddingDiagnostics => {
-  const aesKey = getAesKey(encodingAesKey);
-  const iv = aesKey.subarray(0, 16);
-  const decipher = crypto.createDecipheriv("aes-256-cbc", aesKey, iv);
-  decipher.setAutoPadding(false);
-
-  const normalizedEncrypted = normalizeBase64(encrypted);
-  const encryptedBuffer = Buffer.from(normalizedEncrypted, "base64");
-  const decrypted = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
-
-  if (decrypted.length === 0) {
-    return { bufferLength: 0, paddingByte: null, paddingValid: null };
-  }
-
-  const paddingByte = decrypted[decrypted.length - 1];
-  if (paddingByte < 1 || paddingByte > 32) {
-    return { bufferLength: decrypted.length, paddingByte, paddingValid: false };
-  }
-
-  if (paddingByte > decrypted.length) {
-    return { bufferLength: decrypted.length, paddingByte, paddingValid: false };
-  }
-
-  const start = decrypted.length - paddingByte;
-  for (let i = start; i < decrypted.length; i += 1) {
-    if (decrypted[i] !== paddingByte) {
-      return {
-        bufferLength: decrypted.length,
-        paddingByte,
-        paddingValid: false,
-      };
-    }
-  }
-
-  return { bufferLength: decrypted.length, paddingByte, paddingValid: true };
 };
 
 export const extractXmlTagValue = (xml: string, tag: string) => {

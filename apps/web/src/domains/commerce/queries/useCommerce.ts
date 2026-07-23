@@ -2,15 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, onScopeDispose, type Ref, watch } from "vue";
 import {
-  consumeNextCommerceOrderDetailTrigger,
-  createCommerceOrderDetailDebugHeaders,
-  createCommerceOrderDetailDebugId,
-  describeCommerceOrderDetailDebugError,
-  logCommerceOrderDetailDebug,
-  markNextCommerceOrderDetailTrigger,
-  readCommerceOrderDetailDebugValue,
-} from "@/domains/commerce/use-cases/order-detail-debug";
-import {
   useRideHailingOrderReconciliation,
   useRideHailingProviderObservation,
 } from "@/domains/commerce/queries/ride-hailing-reconciliation";
@@ -107,37 +98,6 @@ const readJsonOrThrow = async <T>(response: Response, fallback: string): Promise
     throw buildApiError(resolveApiErrorMessage(payload, fallback), payload);
   }
   return (await response.json()) as T;
-};
-
-const summarizeOrderDetailDebug = (
-  detail: CommerceOrderDetailResponse | null | undefined,
-): Record<string, unknown> => ({
-  dataOrderId: detail?.order.id ?? null,
-  dataOrderFamily: detail?.order.family ?? null,
-  dataOrderStatus: detail?.order.status ?? null,
-  rideProviderOrderId: detail?.rideHailing?.provider.providerOrderId ?? null,
-  rideExecutionPhase: detail?.rideHailing?.executionPhase ?? null,
-  billId: detail?.bill?.id ?? null,
-  billStatus: detail?.bill?.status ?? null,
-  billLineCount: detail?.bill?.lines.length ?? 0,
-});
-
-const summarizeBillDetailDebug = (
-  detail: BillDetailResponse | null | undefined,
-): Record<string, unknown> => ({
-  responseBillId: detail?.bill.id ?? null,
-  responseSourceOrderId: detail?.bill.sourceOrderId ?? null,
-  responseBillStatus: detail?.bill.status ?? null,
-  responseBillSettlementStatus: detail?.bill.settlementStatus ?? null,
-  responseOrderId: detail?.order.id ?? null,
-  responseOrderStatus: detail?.order.status ?? null,
-  responseLineCount: detail?.lines.length ?? 0,
-});
-
-type BillDetailDebugOptions = {
-  source?: string;
-  orderId?: Ref<string | null> | string | null;
-  routeOrderId?: Ref<string | null> | string | null;
 };
 
 export const usePlacementMatch = (
@@ -267,9 +227,6 @@ export const useCreateOrder = () => {
 };
 
 export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
-  let lastRequestedOrderId: string | null = null;
-  let pollingTickCount = 0;
-
   const query = useQuery<CommerceOrderDetailResponse>({
     queryKey: computed(() => queryKeys.commerce.orderDetail(orderId.value)),
     queryFn: async () => {
@@ -278,66 +235,19 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
         throw new Error("Missing order id");
       }
 
-      const requestId = createCommerceOrderDetailDebugId("detail");
-      const trigger =
-        consumeNextCommerceOrderDetailTrigger(currentOrderId) ??
-        (lastRequestedOrderId === null
-          ? "initial-order-load"
-          : lastRequestedOrderId === currentOrderId
-            ? "query-refetch"
-            : "order-id-change");
-      const startedAtMs = Date.now();
-
-      logCommerceOrderDetailDebug("detail.query.start", {
-        requestId,
-        trigger,
-        routeOrderId: currentOrderId,
-      });
-      lastRequestedOrderId = currentOrderId;
-
-      try {
-        const response = await client.api.commerce.orders[":orderId"].$get(
-          {
-            param: {
-              orderId: currentOrderId,
-            },
+      const response = await client.api.commerce.orders[":orderId"].$get(
+        {
+          param: {
+            orderId: currentOrderId,
           },
-          {
-            init: {
-              credentials: "include",
-              headers: createCommerceOrderDetailDebugHeaders({
-                channel: "detail",
-                source: "useCommerceOrderDetail",
-                requestId,
-                orderId: currentOrderId,
-                routeOrderId: currentOrderId,
-                trigger,
-              }),
-            },
+        },
+        {
+          init: {
+            credentials: "include",
           },
-        );
-        const detail = await readJsonOrThrow<CommerceOrderDetailResponse>(
-          response,
-          "Failed to load order",
-        );
-        logCommerceOrderDetailDebug("detail.query.success", {
-          requestId,
-          trigger,
-          routeOrderId: currentOrderId,
-          durationMs: Date.now() - startedAtMs,
-          ...summarizeOrderDetailDebug(detail),
-        });
-        return detail;
-      } catch (error) {
-        logCommerceOrderDetailDebug("detail.query.error", {
-          requestId,
-          trigger,
-          routeOrderId: currentOrderId,
-          durationMs: Date.now() - startedAtMs,
-          error: describeCommerceOrderDetailDebugError(error),
-        });
-        throw error;
-      }
+        },
+      );
+      return readJsonOrThrow<CommerceOrderDetailResponse>(response, "Failed to load order");
     },
     enabled: () => orderId.value !== null,
   });
@@ -349,45 +259,19 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
     const action = resolveCommerceOrderDetailPollAction(query.data.value);
     if (currentOrderId === null || action === "STOP") return;
 
-    pollingTickCount += 1;
-    logCommerceOrderDetailDebug("detail.poll.tick", {
-      routeOrderId: currentOrderId,
-      pollingTickCount,
-      action,
-      ...summarizeOrderDetailDebug(query.data.value),
-    });
-
     if (action === "RECONCILE") {
-      if (reconcileRideHailingOrder.isPending.value) {
-        logCommerceOrderDetailDebug("detail.poll.skip", {
-          routeOrderId: currentOrderId,
-          pollingTickCount,
-          action,
-          reason: "reconcile-pending",
-        });
-        return;
-      }
+      if (reconcileRideHailingOrder.isPending.value) return;
       try {
         await reconcileRideHailingOrder.mutateAsync({
           orderId: currentOrderId,
-          trigger: "polling-interval",
         });
       } catch {
-        // The mutation owns diagnostics; a later bounded tick may observe recovery.
+        // Polling is best-effort; a later bounded tick may observe recovery.
       }
       return;
     }
 
-    if (query.isFetching.value) {
-      logCommerceOrderDetailDebug("detail.poll.skip", {
-        routeOrderId: currentOrderId,
-        pollingTickCount,
-        action,
-        reason: "detail-fetching",
-      });
-      return;
-    }
-    markNextCommerceOrderDetailTrigger(currentOrderId, "polling-interval-processing");
+    if (query.isFetching.value) return;
     await query.refetch();
   };
 
@@ -401,33 +285,11 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
   watch(
     () => orderId.value !== null && shouldPollCommerceOrderDetail(query.data.value),
     (shouldPoll) => {
-      logCommerceOrderDetailDebug("detail.poll.evaluate", {
-        routeOrderId: orderId.value,
-        shouldPoll,
-        ...summarizeOrderDetailDebug(query.data.value),
-      });
       stopPolling();
       if (!shouldPoll) return;
       pollingIntervalId = setInterval(() => {
         void pollCommerceOrderDetail();
       }, ACTIVE_RIDE_HAILING_DETAIL_POLLING_MS);
-    },
-    { immediate: true },
-  );
-
-  watch(
-    () => ({
-      routeOrderId: orderId.value,
-      status: query.status.value,
-      fetchStatus: query.fetchStatus.value,
-      isPending: query.isPending.value,
-      isFetching: query.isFetching.value,
-      isRefetching: query.isRefetching.value,
-      error: query.error.value ? describeCommerceOrderDetailDebugError(query.error.value) : null,
-      ...summarizeOrderDetailDebug(query.data.value),
-    }),
-    (snapshot) => {
-      logCommerceOrderDetailDebug("detail.query.state", snapshot);
     },
     { immediate: true },
   );
@@ -440,10 +302,8 @@ export const useCommerceOrderDetail = (orderId: Ref<string | null>) => {
   };
 };
 
-export const useBillDetail = (billId: Ref<string | null>, debug?: BillDetailDebugOptions) => {
-  let lastRequestedBillId: string | null = null;
-
-  const query = useQuery<BillDetailResponse>({
+export const useBillDetail = (billId: Ref<string | null>) =>
+  useQuery<BillDetailResponse>({
     queryKey: computed(() => queryKeys.commerce.billDetail(billId.value)),
     queryFn: async () => {
       const currentBillId = billId.value;
@@ -451,99 +311,23 @@ export const useBillDetail = (billId: Ref<string | null>, debug?: BillDetailDebu
         throw new Error("Missing bill id");
       }
 
-      const requestId = createCommerceOrderDetailDebugId("bill");
-      const trigger =
-        lastRequestedBillId === null
-          ? "initial-bill-load"
-          : lastRequestedBillId === currentBillId
-            ? "bill-refetch"
-            : "bill-id-change";
-      const startedAtMs = Date.now();
-      const debugOrderId = readCommerceOrderDetailDebugValue(debug?.orderId);
-      const debugRouteOrderId = readCommerceOrderDetailDebugValue(debug?.routeOrderId);
-
-      logCommerceOrderDetailDebug("bill.query.start", {
-        requestId,
-        trigger,
-        billId: currentBillId,
-        orderId: debugOrderId,
-        routeOrderId: debugRouteOrderId,
-        source: debug?.source ?? "useBillDetail",
-      });
-      lastRequestedBillId = currentBillId;
-
-      try {
-        const response = await client.api.commerce.bills[":billId"].$get(
-          {
-            param: {
-              billId: currentBillId,
-            },
+      const response = await client.api.commerce.bills[":billId"].$get(
+        {
+          param: {
+            billId: currentBillId,
           },
-          {
-            init: {
-              credentials: "include",
-              headers: createCommerceOrderDetailDebugHeaders({
-                channel: "bill",
-                source: debug?.source ?? "useBillDetail",
-                requestId,
-                orderId: debugOrderId,
-                routeOrderId: debugRouteOrderId,
-                billId: currentBillId,
-                trigger,
-              }),
-            },
+        },
+        {
+          init: {
+            credentials: "include",
           },
-        );
-        const detail = await readJsonOrThrow<BillDetailResponse>(response, "Failed to load bill");
-        logCommerceOrderDetailDebug("bill.query.success", {
-          requestId,
-          trigger,
-          billId: currentBillId,
-          orderId: debugOrderId,
-          routeOrderId: debugRouteOrderId,
-          durationMs: Date.now() - startedAtMs,
-          ...summarizeBillDetailDebug(detail),
-        });
-        return detail;
-      } catch (error) {
-        logCommerceOrderDetailDebug("bill.query.error", {
-          requestId,
-          trigger,
-          billId: currentBillId,
-          orderId: debugOrderId,
-          routeOrderId: debugRouteOrderId,
-          durationMs: Date.now() - startedAtMs,
-          error: describeCommerceOrderDetailDebugError(error),
-        });
-        throw error;
-      }
+        },
+      );
+      return readJsonOrThrow<BillDetailResponse>(response, "Failed to load bill");
     },
     enabled: () => billId.value !== null,
     refetchOnMount: "always",
   });
-
-  watch(
-    () => ({
-      billId: billId.value,
-      orderId: readCommerceOrderDetailDebugValue(debug?.orderId),
-      routeOrderId: readCommerceOrderDetailDebugValue(debug?.routeOrderId),
-      source: debug?.source ?? "useBillDetail",
-      status: query.status.value,
-      fetchStatus: query.fetchStatus.value,
-      isPending: query.isPending.value,
-      isFetching: query.isFetching.value,
-      isRefetching: query.isRefetching.value,
-      error: query.error.value ? describeCommerceOrderDetailDebugError(query.error.value) : null,
-      ...summarizeBillDetailDebug(query.data.value),
-    }),
-    (snapshot) => {
-      logCommerceOrderDetailDebug("bill.query.state", snapshot);
-    },
-    { immediate: true },
-  );
-
-  return query;
-};
 
 export const useViewerBillList = () =>
   useQuery<ViewerBillListResponse>({
@@ -592,69 +376,26 @@ export const useBillLineCheckoutTarget = (billLineId: Ref<string | null>) =>
 
 export const useCancelOrder = () => {
   const queryClient = useQueryClient();
-  const pendingCancelRequestIds = new Map<string, string>();
 
   return useMutation({
     mutationFn: async (orderId: string) => {
-      const requestId = createCommerceOrderDetailDebugId("cancel");
-      pendingCancelRequestIds.set(orderId, requestId);
-      const startedAtMs = Date.now();
-
-      logCommerceOrderDetailDebug("cancel.mutation.start", {
-        requestId,
-        orderId,
-      });
-
-      try {
-        const response = await client.api.commerce.orders[":orderId"].cancel.$post(
-          {
-            param: {
-              orderId,
-            },
+      const response = await client.api.commerce.orders[":orderId"].cancel.$post(
+        {
+          param: {
+            orderId,
           },
-          {
-            init: {
-              credentials: "include",
-              headers: createCommerceOrderDetailDebugHeaders({
-                channel: "cancel",
-                source: "useCancelOrder",
-                requestId,
-                orderId,
-                routeOrderId: orderId,
-                trigger: "mutation",
-              }),
-            },
+        },
+        {
+          init: {
+            credentials: "include",
           },
-        );
-        const result = await readJsonOrThrow<
-          InferResponseType<CommerceApi["orders"][":orderId"]["cancel"]["$post"]>
-        >(response, "Failed to cancel order");
-        logCommerceOrderDetailDebug("cancel.mutation.success", {
-          requestId,
-          orderId,
-          durationMs: Date.now() - startedAtMs,
-          resultStatus: "status" in result ? result.status : null,
-          effectKind: "effectKind" in result ? result.effectKind : null,
-          effectAmountFen: "effectAmountFen" in result ? result.effectAmountFen : null,
-        });
-        return result;
-      } catch (error) {
-        logCommerceOrderDetailDebug("cancel.mutation.error", {
-          requestId,
-          orderId,
-          durationMs: Date.now() - startedAtMs,
-          error: describeCommerceOrderDetailDebugError(error),
-        });
-        throw error;
-      }
+        },
+      );
+      return readJsonOrThrow<
+        InferResponseType<CommerceApi["orders"][":orderId"]["cancel"]["$post"]>
+      >(response, "Failed to cancel order");
     },
     onSuccess: (_, orderId) => {
-      const requestId = pendingCancelRequestIds.get(orderId) ?? null;
-      markNextCommerceOrderDetailTrigger(orderId, "cancel-mutation-success");
-      logCommerceOrderDetailDebug("cancel.query.invalidate", {
-        requestId,
-        orderId,
-      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.commerce.orderDetail(orderId),
       });
@@ -662,63 +403,27 @@ export const useCancelOrder = () => {
         queryKey: ["commerce"],
       });
     },
-    onSettled: (_, __, orderId) => {
-      pendingCancelRequestIds.delete(orderId);
-    },
   });
 };
 
 export const useRideHailingCancellationFeePreview = () =>
   useMutation({
     mutationFn: async (orderId: string) => {
-      const requestId = createCommerceOrderDetailDebugId("cancel-fee-preview");
-      const startedAtMs = Date.now();
-
-      logCommerceOrderDetailDebug("cancel-fee-preview.mutation.start", {
-        requestId,
-        orderId,
-      });
-
-      try {
-        const response = await client.api.commerce.orders[":orderId"]["cancel-fee-preview"].$get(
-          {
-            param: {
-              orderId,
-            },
+      const response = await client.api.commerce.orders[":orderId"]["cancel-fee-preview"].$get(
+        {
+          param: {
+            orderId,
           },
-          {
-            init: {
-              credentials: "include",
-              headers: createCommerceOrderDetailDebugHeaders({
-                channel: "cancel",
-                source: "useRideHailingCancellationFeePreview",
-                requestId,
-                orderId,
-                routeOrderId: orderId,
-                trigger: "mutation",
-              }),
-            },
+        },
+        {
+          init: {
+            credentials: "include",
           },
-        );
-        const result = await readJsonOrThrow<RideHailingCancellationFeePreviewResponse>(
-          response,
-          "Failed to query cancellation fee",
-        );
-        logCommerceOrderDetailDebug("cancel-fee-preview.mutation.success", {
-          requestId,
-          orderId,
-          durationMs: Date.now() - startedAtMs,
-          cancelFeeFen: result.cancelFeeFen,
-        });
-        return result;
-      } catch (error) {
-        logCommerceOrderDetailDebug("cancel-fee-preview.mutation.error", {
-          requestId,
-          orderId,
-          durationMs: Date.now() - startedAtMs,
-          error: describeCommerceOrderDetailDebugError(error),
-        });
-        throw error;
-      }
+        },
+      );
+      return readJsonOrThrow<RideHailingCancellationFeePreviewResponse>(
+        response,
+        "Failed to query cancellation fee",
+      );
     },
   });

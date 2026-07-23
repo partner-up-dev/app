@@ -4,7 +4,6 @@ import { test } from "vitest";
 process.env.DATABASE_URL ??= "postgres://unit:unit@localhost:5432/unit";
 process.env.FRONTEND_URL = "https://app.partner-up.cn";
 process.env.BACKEND_SCENARIO_DISABLE_BOOTSTRAP = "true";
-process.env.BACKEND_SCENARIO_DISABLE_REQUEST_LOGGER = "true";
 process.env.BACKEND_SCENARIO_DISABLE_REQUEST_TAIL = "true";
 
 const { app } = await import("./index");
@@ -59,6 +58,10 @@ for (const corsCase of corsCases) {
     assert.equal(response.headers.get("Access-Control-Allow-Origin"), corsCase.expectedAllowOrigin);
     if (corsCase.expectedAllowOrigin !== null) {
       assert.equal(response.headers.get("Access-Control-Allow-Credentials"), "true");
+      assert.doesNotMatch(
+        response.headers.get("Access-Control-Allow-Headers") ?? "",
+        /x-commerce-order-debug/i,
+      );
     }
   });
 

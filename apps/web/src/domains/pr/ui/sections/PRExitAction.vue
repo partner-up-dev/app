@@ -79,7 +79,7 @@ const confirmExit = async (): Promise<void> => {
   if (!viewer.value.canExit) return;
   try {
     await exitMutation.mutateAsync({ id: props.pr.id });
-    trackEvent("pr_exit_success", {
+    trackEvent("pr.exit.succeeded", {
       prId: props.pr.id,
       prType: props.pr.core.type,
     });

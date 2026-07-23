@@ -4,7 +4,6 @@
  */
 
 import type { PartnerRequest } from "../../entities/partner-request";
-import { operationLogService } from "../../infra/operation-log";
 import { PartnerRequestRepository } from "../../repositories/PartnerRequestRepository";
 import { UserReliabilityRepository } from "../../repositories/UserReliabilityRepository";
 import { cancelActivityStartReminderForParticipant } from "./services/activity-start-reminder-reconciler.service";
@@ -71,13 +70,6 @@ async function markReadyIfJoinLocked(request: PartnerRequest): Promise<PartnerRe
 
   const transition = await prReadyTransition.transitionIfJoinLocked({ prId: request.id });
   if (transition.outcome === "TRANSITIONED") {
-    operationLogService.log({
-      actorId: null,
-      action: "pr.auto_ready",
-      aggregateType: "partner_request",
-      aggregateId: String(request.id),
-      detail: { trigger: "join_lock", readyCycleId: transition.readyCycleId },
-    });
     return transition.request;
   }
   return transition.outcome === "PR_MISSING" ? request : transition.request;
@@ -106,17 +98,6 @@ async function releaseUnconfirmedSlotsIfNeeded(request: PartnerRequest): Promise
       prId: request.id,
       slotId: slot.id,
       recipientUserId: slot.userId,
-    });
-
-    operationLogService.log({
-      actorId: slot.userId,
-      action: "partner.auto_release_unconfirmed",
-      aggregateType: "partner_request",
-      aggregateId: String(request.id),
-      detail: {
-        partnerId: slot.id,
-        trigger: "confirmation_end",
-      },
     });
   }
 

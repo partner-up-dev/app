@@ -13,23 +13,22 @@ type WeComReply = { toUser: string; content: string };
 type NaturalLanguageResult = { id: number };
 
 const { decryptSpy, createNaturalLanguageSpy, sendTextMessageSpy } = vi.hoisted(() => ({
-  decryptSpy: vi.fn<
-    (encodingAesKey: string, corpId: string, encrypted: string) => { xml: string }
-  >(),
-  createNaturalLanguageSpy: vi.fn<
-    (
-      rawText: string,
-      nowIso: string,
-      nowWeekday: string,
-      creatorIdentity: CreatorIdentityInput,
-    ) => Promise<NaturalLanguageResult>
-  >(),
+  decryptSpy:
+    vi.fn<(encodingAesKey: string, corpId: string, encrypted: string) => { xml: string }>(),
+  createNaturalLanguageSpy:
+    vi.fn<
+      (
+        rawText: string,
+        nowIso: string,
+        nowWeekday: string,
+        creatorIdentity: CreatorIdentityInput,
+      ) => Promise<NaturalLanguageResult>
+    >(),
   sendTextMessageSpy: vi.fn<(params: WeComReply) => Promise<void>>(),
 }));
 
 vi.mock("../lib/wecom-crypto", () => ({
   decryptWeComMessage: decryptSpy,
-  diagnoseWeComCiphertext: vi.fn<(encodingAesKey: string, encrypted: string) => unknown>(),
   extractXmlTagValue: (xml: string, tag: string): string | null =>
     xml.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))?.[1] ?? null,
   verifySignature: vi.fn<(input: unknown) => boolean>().mockReturnValue(true),

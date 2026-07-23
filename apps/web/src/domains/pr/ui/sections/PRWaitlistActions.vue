@@ -226,7 +226,7 @@ const trackWaitlistResult = (payload: {
   failureCode?: string;
   failureReason?: string;
 }): void => {
-  trackEvent("pr_waitlist_result", {
+  trackEvent("pr.waitlist.result", {
     prId: props.pr.id,
     prType: props.pr.core.type,
     entrySurface: "pr_detail",

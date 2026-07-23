@@ -132,8 +132,8 @@ const fetchPRLifecycleStatusRows = async (
           lt(partnerRequests.createdAt, new Date(endAt)),
         )
       : sql`${partnerRequests.time}[2] is not null
-          and nullif(${partnerRequests.time}[2], '')::timestamp >= ${startAt}::timestamp
-          and nullif(${partnerRequests.time}[2], '')::timestamp < ${endAt}::timestamp`;
+          and nullif(${partnerRequests.time}[2], '')::timestamptz >= ${startAt}::timestamptz
+          and nullif(${partnerRequests.time}[2], '')::timestamptz < ${endAt}::timestamptz`;
 
   const rows = await db
     .select({

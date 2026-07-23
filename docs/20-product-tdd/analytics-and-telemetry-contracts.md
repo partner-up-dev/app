@@ -8,7 +8,10 @@ PartnerUp separates three signal families:
 
 - Business fact data: authoritative product state in domain tables, for example current PR status, partner slots, users, PR Type Configuration, and POIs.
 - User behavior events: user-caused behavior streams captured in `user_telemetry_*`.
-- Program behavior signals: software observability and program-internal behavior, for example logs, traces, metrics, operation logs, jobs, and future internal event collection.
+- Program behavior signals: software observability and program-internal
+  behavior, for example logs, traces, metrics, generic Job control facts, and
+  future internal event collection. The retired `operation_logs` table is not
+  a current signal source.
 
 BI may combine all three families. User behavior telemetry must not become the source of truth for business facts that already live in authoritative tables.
 
@@ -159,6 +162,11 @@ BI event dictionaries and fact event-name references are projections from or che
 
 `event_kind` is intentionally not part of the accepted envelope, storage schema, or registry contract. Query semantics must come from explicit `event_name` / `event_family` selection and BI usage metadata, not from a broad role bucket.
 
+The Web consumes a type-only projection of active frontend-owned Registry
+contracts. Event names and payload types are derived from that projection; the
+Web must not maintain a second alias/name map or a parallel payload registry.
+Runtime schemas remain Backend-owned and do not cross the package boundary.
+
 ## Context Events
 
 The first supported context events are:
@@ -236,6 +244,22 @@ Ingest must validate:
 - mandatory `journey_id`.
 
 Invalid, unknown, or schema-incompatible events enter `user_telemetry_rejected_events` with validation details instead of silently polluting the raw ledger.
+
+Batch ingest reports accepted, rejected, and idempotent counts separately.
+Acceptance is passive evidence: a telemetry failure must never change the
+result of a successful product command.
+
+On the Web, collection, queueing, and HTTP transport are separate
+responsibilities. Behavior call sites submit a typed event without awaiting or
+branching on transport success. The bounded queue may retry network,
+back-pressure, and server failures; deterministic client rejection is
+terminal. This delivery policy may lose evidence, but it may not become
+product authority or block user behavior.
+
+Backend-confirmed command recording follows the same rule. It may report a
+local recorded/rejected/skipped/failed outcome for tests and diagnosis, but it
+must contain its own persistence failure after the business transaction has
+committed.
 
 ## Storage Direction
 

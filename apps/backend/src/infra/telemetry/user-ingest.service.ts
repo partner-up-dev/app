@@ -19,8 +19,10 @@ export type RawUserTelemetryEventInput = {
 };
 
 export type UserTelemetryIngestResult = {
-  ingested: number;
+  total: number;
+  accepted: number;
   rejected: number;
+  idempotent: number;
 };
 
 type AcceptedUserTelemetryEvent = {
@@ -68,7 +70,9 @@ const normalizeRawEvent = (event: RawUserTelemetryEventInput): Record<string, un
 export async function ingestUserTelemetryEvents(
   events: RawUserTelemetryEventInput[],
 ): Promise<UserTelemetryIngestResult> {
-  if (events.length === 0) return { ingested: 0, rejected: 0 };
+  if (events.length === 0) {
+    return { total: 0, accepted: 0, rejected: 0, idempotent: 0 };
+  }
 
   return await db.transaction(async (tx) => {
     const acceptedEvents: AcceptedUserTelemetryEvent[] = [];
@@ -115,7 +119,12 @@ export async function ingestUserTelemetryEvents(
     }
 
     if (acceptedEvents.length === 0) {
-      return { ingested: 0, rejected: rejectedEvents.length };
+      return {
+        total: events.length,
+        accepted: 0,
+        rejected: rejectedEvents.length,
+        idempotent: 0,
+      };
     }
 
     const insertedEvents = await tx
@@ -136,9 +145,13 @@ export async function ingestUserTelemetryEvents(
       .onConflictDoNothing()
       .returning({ eventId: userTelemetryEvents.eventId });
 
+    const accepted = insertedEvents.length;
+    const idempotent = acceptedEvents.length - accepted;
     return {
-      ingested: insertedEvents.length,
+      total: events.length,
+      accepted,
       rejected: rejectedEvents.length,
+      idempotent,
     };
   });
 }

@@ -32,5 +32,4 @@ describe("PR discovery view model", () => {
     values.set("pr-discovery.view-mode:study", "unexpected");
     expect(readPRDiscoveryViewPreference(storage, "study")).toBeNull();
   });
-
 });

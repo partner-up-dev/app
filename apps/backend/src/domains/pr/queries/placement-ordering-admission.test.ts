@@ -30,9 +30,9 @@ const createDependencies = (input?: {
   existingOrderId?: TradeOrderId | null;
   status?: string;
 }): PlacementOrderingAdmissionDependencies => ({
-  findActiveParticipant: vi.fn<
-    PlacementOrderingAdmissionDependencies["findActiveParticipant"]
-  >(async (_prId, userId) => (input?.active === false ? null : { userId })),
+  findActiveParticipant: vi.fn<PlacementOrderingAdmissionDependencies["findActiveParticipant"]>(
+    async (_prId, userId) => (input?.active === false ? null : { userId }),
+  ),
   findPartnerRequest: vi.fn<PlacementOrderingAdmissionDependencies["findPartnerRequest"]>(
     async () => ({
       createdBy: input?.createdBy === undefined ? creatorId : input.createdBy,
@@ -40,8 +40,8 @@ const createDependencies = (input?: {
       status: input?.status ?? "READY",
     }),
   ),
-  listActiveOrders: vi.fn<PlacementOrderingAdmissionDependencies["listActiveOrders"]>(
-    async () => (input?.existingOrderId ? [{ id: input.existingOrderId }] : []),
+  listActiveOrders: vi.fn<PlacementOrderingAdmissionDependencies["listActiveOrders"]>(async () =>
+    input?.existingOrderId ? [{ id: input.existingOrderId }] : [],
   ),
 });
 

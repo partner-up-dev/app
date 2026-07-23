@@ -1,5 +1,31 @@
 import { integer, pgView, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
+export const factPRDiscoveryFunnelEvents = pgView("fact_pr_discovery_funnel_event", {
+  eventId: uuid("event_id").notNull(),
+  eventName: text("event_name").notNull(),
+  eventVersion: integer("event_version").notNull(),
+  journeyId: uuid("journey_id").notNull(),
+  traceId: text("trace_id"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+  stepKey: text("step_key").notNull(),
+  prType: text("pr_type"),
+  viewMode: text("view_mode"),
+  origin: text("origin"),
+  prId: integer("pr_id"),
+  rank: integer("rank"),
+  action: text("action"),
+  outcome: text("outcome"),
+  handoffReason: text("handoff_reason"),
+  routePath: text("route_path"),
+  routeName: text("route_name"),
+  spm: text("spm"),
+  sourceQr: text("source_qr"),
+  routeContextStatus: text("route_context_status").notNull(),
+  anonymousId: text("anonymous_id"),
+  authenticatedUserHash: text("authenticated_user_hash"),
+  authContextStatus: text("auth_context_status").notNull(),
+}).existing();
+
 export const factPRJoinFunnelEvents = pgView("fact_pr_join_funnel_event", {
   eventId: uuid("event_id").notNull(),
   eventName: text("event_name").notNull(),

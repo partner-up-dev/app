@@ -91,7 +91,7 @@ export const useSharedPRActions = ({
       const result = await joinMutation.mutateAsync({
         id: id.value,
       });
-      trackEvent("pr_join_result", {
+      trackEvent("pr.join.result", {
         prId: id.value,
         ...analyticsPRContext.value,
         actionResult: "success",
@@ -99,7 +99,7 @@ export const useSharedPRActions = ({
       onActionSuccess?.();
       return result;
     } catch (error) {
-      trackEvent("pr_join_result", {
+      trackEvent("pr.join.result", {
         prId: id.value,
         ...analyticsPRContext.value,
         ...resolveTelemetryFailurePayload(error, "PR_JOIN_FAILED", t("errors.joinRequestFailed")),
@@ -114,7 +114,7 @@ export const useSharedPRActions = ({
     const result = await exitMutation.mutateAsync({
       id: id.value,
     });
-    trackEvent("pr_exit_success", {
+    trackEvent("pr.exit.succeeded", {
       prId: id.value,
       ...analyticsPRContext.value,
     });

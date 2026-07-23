@@ -4,7 +4,6 @@ import type { PRId, PRStatusManual } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
-import { operationLogService } from "../../../infra/operation-log";
 import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
 import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
 import { createPRReadyTransitionTransactionPort } from "../adapters/pr-ready-transition-transaction";
@@ -72,14 +71,6 @@ export async function updatePRStatus(
       detail: "Failed to update status",
     });
   }
-
-  operationLogService.log({
-    actorId: actorUserId,
-    action: "pr.update_status",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { fromStatus: currentStatus, toStatus: status },
-  });
 
   await reconcileAlternativeWaitlistNotificationsForCandidate(updated);
 

@@ -21,4 +21,5 @@ export {
 export {
   recordUserTelemetryEventForRequest,
   type RequestUserTelemetryEventInput,
+  type RequestUserTelemetryOutcome,
 } from "./request-event-recorder";

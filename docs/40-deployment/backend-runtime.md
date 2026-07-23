@@ -47,8 +47,6 @@ deploy steps.
 | `ALIYUN_FC_RESOURCE_GROUP_ID` | variable | validator / templates | FC resource group |
 | `ALIYUN_FC_NODE_MODULES_LAYER_NAME` | variable | validator / layer scripts | layer lookup / publish |
 | `ALIYUN_FC_NODE_MODULES_LAYER_ARN` | resolved by deploy script | `apps/backend/s.yaml` | backend FC layer |
-| `ALIYUN_FC_LOG_PROJECT` | variable | validator / `apps/backend/s.yaml` | FC log config |
-| `ALIYUN_FC_LOG_STORE` | variable | validator / `apps/backend/s.yaml` | FC log config |
 | `ALIYUN_FC_VPC_ID` | variable | validator / templates | VPC config |
 | `ALIYUN_FC_SECURITY_GROUP_ID` | variable | validator / templates | VPC config |
 | `ALIYUN_FC_VSWITCH_ID_PRIMARY` | variable | validator / templates | VPC config |

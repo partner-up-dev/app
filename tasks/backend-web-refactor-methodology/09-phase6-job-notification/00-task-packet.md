@@ -171,7 +171,9 @@ generic outbox or a generic Commerce transaction abstraction.
   drain was superseded by the same forward cut-off.
 - Durable docs describe inbox/opportunity/wave and concrete per-kind decoders
   as forward-retired after migration `0094`; `notification_deliveries` alone
-  remains inert audit history pending Phase 7 observability.
+  remains inert audit history pending a future professional observability and
+  data-retention decision. Phase 7 later established a clean baseline rather
+  than that replacement.
 - `docs/40-deployment/backend-runtime.md` remains the runtime owner for FC
   trigger cadence and target configuration; a source inventory cannot promote
   an environment-specific fact there.

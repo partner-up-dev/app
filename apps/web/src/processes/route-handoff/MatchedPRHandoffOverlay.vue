@@ -232,7 +232,7 @@ const handleConfirm = (open: () => Promise<void>) => {
     return;
   }
 
-  trackEvent("pr_discovery_candidate_action", {
+  trackEvent("pr.discovery.candidate.action", {
     prType: "unknown",
     origin: "PR_DISCOVERY",
     viewMode: "FORM",

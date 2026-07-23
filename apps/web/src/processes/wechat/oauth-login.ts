@@ -3,11 +3,7 @@ import {
   clearWeChatOAuthLoginPending,
   markWeChatOAuthLoginPending,
 } from "@/processes/wechat/oauth-login-pending";
-import {
-  appendWeChatOAuthTraceQuery,
-  startWeChatOAuthTrace,
-  trackWeChatOAuthTrace,
-} from "@/processes/wechat/oauth-trace";
+import { startWeChatOAuthTrace, trackWeChatOAuthTrace } from "@/processes/wechat/oauth-trace";
 
 const OAUTH_RETURN_TO_SENSITIVE_QUERY_PARAMS = [
   "access_token",
@@ -100,14 +96,8 @@ const scheduleOAuthLoginRedirect = (url: string): void => {
   window.setTimeout(redirect, 0);
 };
 
-export const resolveOAuthLoginUrl = (
-  returnTo: string,
-  trace?: ReturnType<typeof startWeChatOAuthTrace>,
-): string => {
+export const resolveOAuthLoginUrl = (returnTo: string): string => {
   const query = new URLSearchParams({ returnTo: normalizeOAuthReturnTo(returnTo) });
-  if (trace) {
-    appendWeChatOAuthTraceQuery(query, trace);
-  }
   return resolveApiUrl("/api/wechat/oauth/login", query);
 };
 
@@ -116,11 +106,11 @@ export const requestWeChatOAuthLogin = (returnTo: string): boolean => {
   if (oauthLoginRedirectInProgress) return true;
 
   oauthLoginRedirectInProgress = true;
-  const trace = startWeChatOAuthTrace("login");
+  startWeChatOAuthTrace("login");
   trackWeChatOAuthTrace("login_requested");
   markWeChatOAuthLoginPending();
   trackWeChatOAuthTrace("redirect_scheduled");
-  scheduleOAuthLoginRedirect(resolveOAuthLoginUrl(returnTo, trace));
+  scheduleOAuthLoginRedirect(resolveOAuthLoginUrl(returnTo));
   return true;
 };
 
@@ -136,9 +126,9 @@ export const resetWeChatOAuthLoginRedirectStateForTest = (): void => {
 export const redirectToWeChatOAuthBind = async (returnTo: string): Promise<void> => {
   if (typeof window === "undefined") return;
 
-  const trace = startWeChatOAuthTrace("bind");
+  startWeChatOAuthTrace("bind");
   trackWeChatOAuthTrace("bind_requested");
-  const query = appendWeChatOAuthTraceQuery(new URLSearchParams({ returnTo }), trace);
+  const query = new URLSearchParams({ returnTo });
   const res = await fetch(resolveApiUrl("/api/wechat/oauth/bind", query), {
     credentials: "include",
   });

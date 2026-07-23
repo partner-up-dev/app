@@ -550,16 +550,9 @@ const timeHint = computed(() => {
   return `可调整范围：${formatLocalDateTimeWindowLabel(range)}`;
 });
 
-const isPending = computed(
-  () =>
-    createMutation.isPending.value ||
-    updateMutation.isPending.value,
-);
+const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value);
 const commandErrorMessage = computed(
-  () =>
-    createMutation.error.value?.message ||
-    updateMutation.error.value?.message ||
-    "",
+  () => createMutation.error.value?.message || updateMutation.error.value?.message || "",
 );
 const creationBlocked = computed(
   () => isCreateEditor.value && authoringOptions.value?.creationAllowed === false,
@@ -582,7 +575,7 @@ const submitCreate = async ({ fields }: PartnerRequestFormInput) => {
   });
 
   await nextTick();
-  trackEvent("pr_create_result", {
+  trackEvent("pr.create.result", {
     prId: result.id,
     status: result.status,
     prType: fields.type,

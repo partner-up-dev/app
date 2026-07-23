@@ -81,4 +81,24 @@ describe("request-tail maintenance runner", () => {
     assert.equal(calls, 2);
     assert.equal(errors, 2);
   });
+
+  it("keeps default best-effort failures passive", async () => {
+    let calls = 0;
+    const runner = createRequestTailMaintenanceRunner({
+      config: { ...config, minIntervalMs: 0 },
+      runner: {
+        runDueJobs: async () => {
+          calls += 1;
+          throw new Error("injected tick failure");
+        },
+      },
+      timeout: async <T>(task: Promise<T>) => task,
+    });
+
+    runner.kick();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    runner.kick();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    assert.equal(calls, 2);
+  });
 });

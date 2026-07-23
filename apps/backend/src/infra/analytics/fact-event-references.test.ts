@@ -3,6 +3,7 @@ import { test } from "vitest";
 import { type FactEventReferenceGroup, getFactEventReferenceIssues } from "./fact-event-references";
 import { PR_CREATE_FUNNEL_EVENT_NAMES } from "./pr-create-funnel.model";
 import { PR_JOIN_FUNNEL_EVENT_NAMES } from "./pr-join-funnel.model";
+import { PR_DISCOVERY_EVENT_NAMES } from "./pr-discovery-funnel.model";
 
 const currentFactReferences: FactEventReferenceGroup[] = [
   {
@@ -14,6 +15,11 @@ const currentFactReferences: FactEventReferenceGroup[] = [
     factName: "fact_pr_create_funnel_event",
     eventNames: PR_CREATE_FUNNEL_EVENT_NAMES,
     requiredBIUsage: "pr_create_funnel",
+  },
+  {
+    factName: "fact_pr_discovery_funnel_event",
+    eventNames: PR_DISCOVERY_EVENT_NAMES,
+    requiredBIUsage: "pr_discovery_funnel",
   },
 ];
 

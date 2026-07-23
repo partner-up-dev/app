@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { prStatusSchema } from "../../entities/partner-request";
 
 export const userTelemetryAttributeValueSchema = z.union([
   z.string(),
@@ -17,15 +18,21 @@ export type UserTelemetryPayload = z.infer<typeof userTelemetryPayloadSchema>;
 
 export type UserTelemetryConsentClass = "functional" | "analytics" | "sensitive";
 
-export type UserTelemetryEventContract = {
-  eventName: string;
+export type UserTelemetryEventContract<
+  TEventName extends string = string,
+  TEventVersion extends number = number,
+  TAttributesSchema extends z.ZodTypeAny = z.ZodTypeAny,
+  TPayloadSchema extends z.ZodTypeAny = z.ZodTypeAny,
+  TOwner extends string = string,
+> = {
+  eventName: TEventName;
   eventFamily: string;
-  eventVersion: number;
-  owner: string;
+  eventVersion: TEventVersion;
+  owner: TOwner;
   trigger: string;
   forbidden: string;
-  attributesSchema: z.ZodType<UserTelemetryAttributes>;
-  payloadSchema: z.ZodType<UserTelemetryPayload>;
+  attributesSchema: TAttributesSchema;
+  payloadSchema: TPayloadSchema;
   consentClass: UserTelemetryConsentClass;
   biUsage: readonly string[];
   deprecated?: {
@@ -33,6 +40,29 @@ export type UserTelemetryEventContract = {
     reason: string;
   };
 };
+
+/** Preserve name/version/schema literals for the derived canonical event type. */
+export const defineUserTelemetryEventContract = <
+  const TEventName extends string,
+  const TEventVersion extends number,
+  const TAttributesSchema extends z.ZodTypeAny,
+  const TPayloadSchema extends z.ZodTypeAny,
+  const TOwner extends string,
+>(
+  contract: UserTelemetryEventContract<
+    TEventName,
+    TEventVersion,
+    TAttributesSchema,
+    TPayloadSchema,
+    TOwner
+  >,
+): UserTelemetryEventContract<
+  TEventName,
+  TEventVersion,
+  TAttributesSchema,
+  TPayloadSchema,
+  TOwner
+> => contract;
 
 export type UserTelemetryRegistryValidationResult =
   | {
@@ -50,42 +80,56 @@ export type UserTelemetryRegistryValidationResult =
 const looseAttributesSchema = userTelemetryAttributesSchema;
 const loosePayloadSchema = userTelemetryPayloadSchema;
 
-const contextEvent = (
-  eventName: string,
+const contextEvent = <const TEventName extends string>(
+  eventName: TEventName,
   eventFamily: string,
   trigger: string,
   biUsage: readonly string[],
-): UserTelemetryEventContract => ({
-  eventName,
-  eventFamily,
-  eventVersion: 1,
-  owner: "infra.telemetry",
-  trigger,
-  forbidden: "Do not emit as a substitute for a user behavior event.",
-  attributesSchema: looseAttributesSchema,
-  payloadSchema: loosePayloadSchema,
-  consentClass: "analytics",
-  biUsage,
-});
+): UserTelemetryEventContract<
+  TEventName,
+  1,
+  typeof looseAttributesSchema,
+  typeof loosePayloadSchema,
+  "infra.telemetry"
+> =>
+  defineUserTelemetryEventContract({
+    eventName,
+    eventFamily,
+    eventVersion: 1,
+    owner: "infra.telemetry",
+    trigger,
+    forbidden: "Do not emit as a substitute for a user behavior event.",
+    attributesSchema: looseAttributesSchema,
+    payloadSchema: loosePayloadSchema,
+    consentClass: "analytics",
+    biUsage,
+  });
 
-const looseEvent = (
-  eventName: string,
+const looseEvent = <const TEventName extends string, const TOwner extends string>(
+  eventName: TEventName,
   eventFamily: string,
-  owner: string,
+  owner: TOwner,
   biUsage: readonly string[],
-): UserTelemetryEventContract => ({
-  eventName,
-  eventFamily,
-  eventVersion: 1,
-  owner,
-  trigger:
-    "Registered legacy-compatible event. Call-site trigger must be documented before semantic version changes.",
-  forbidden: "Do not emit for automatic system lifecycle facts.",
-  attributesSchema: looseAttributesSchema,
-  payloadSchema: loosePayloadSchema,
-  consentClass: "analytics",
-  biUsage,
-});
+): UserTelemetryEventContract<
+  TEventName,
+  1,
+  typeof looseAttributesSchema,
+  typeof loosePayloadSchema,
+  TOwner
+> =>
+  defineUserTelemetryEventContract({
+    eventName,
+    eventFamily,
+    eventVersion: 1,
+    owner,
+    trigger:
+      "Registered legacy-compatible event. Call-site trigger must be documented before semantic version changes.",
+    forbidden: "Do not emit for automatic system lifecycle facts.",
+    attributesSchema: looseAttributesSchema,
+    payloadSchema: loosePayloadSchema,
+    consentClass: "analytics",
+    biUsage,
+  });
 
 const prDiscoveryBasePayloadSchema = z
   .object({
@@ -96,23 +140,74 @@ const prDiscoveryBasePayloadSchema = z
   })
   .strict();
 
-const prDiscoveryEvent = (
-  eventName: string,
-  payloadSchema: z.ZodType<UserTelemetryPayload>,
+const prDiscoveryEvent = <
+  const TEventName extends string,
+  const TPayloadSchema extends z.ZodTypeAny,
+>(
+  eventName: TEventName,
+  payloadSchema: TPayloadSchema,
   biUsage: readonly string[],
-): UserTelemetryEventContract => ({
-  eventName,
-  eventFamily: "pr.discovery",
-  eventVersion: 1,
-  owner: "frontend.pr-discovery",
-  trigger: "User-visible PR Discovery interaction or transition.",
-  forbidden:
-    "Do not include route-scoped identity, experiment assignment metadata, config history, or anonymous identity fields.",
-  attributesSchema: looseAttributesSchema,
-  payloadSchema,
-  consentClass: "analytics",
-  biUsage,
-});
+): UserTelemetryEventContract<
+  TEventName,
+  1,
+  typeof looseAttributesSchema,
+  TPayloadSchema,
+  "frontend.pr-discovery"
+> =>
+  defineUserTelemetryEventContract({
+    eventName,
+    eventFamily: "pr.discovery",
+    eventVersion: 1,
+    owner: "frontend.pr-discovery",
+    trigger: "User-visible PR Discovery interaction or transition.",
+    forbidden:
+      "Do not include route-scoped identity, experiment assignment metadata, config history, or anonymous identity fields.",
+    attributesSchema: looseAttributesSchema,
+    payloadSchema,
+    consentClass: "analytics",
+    biUsage,
+  });
+
+const prIdTelemetrySchema = z.number().int().positive();
+
+const prCreatedPayloadSchema = z
+  .object({
+    pr_id: prIdTelemetrySchema,
+    creation_path: z.enum(["pr_discovery", "structured_form", "natural_language"]),
+    status: prStatusSchema,
+  })
+  .strict();
+
+const prJoinedPayloadSchema = z
+  .object({
+    pr_id: prIdTelemetrySchema,
+    result_status: z.literal("success"),
+  })
+  .strict();
+
+const prWaitlistedPayloadSchema = z
+  .object({
+    pr_id: prIdTelemetrySchema,
+    result_status: z.literal("success"),
+    alternative_pr_reminder_opt_in: z.boolean(),
+  })
+  .strict();
+
+const prClosedPayloadSchema = z
+  .object({
+    pr_id: prIdTelemetrySchema,
+    from_status: prStatusSchema,
+    to_status: z.literal("CLOSED"),
+  })
+  .strict();
+
+const authSessionCreatedPayloadSchema = z
+  .object({
+    session_role: z.string().trim().min(1).max(64),
+    anonymous_id: z.string().trim().min(1).max(256),
+    authenticated_user_hash: z.string().trim().min(1).max(256).nullable(),
+  })
+  .strict();
 
 const userTelemetryEventRegistry = [
   contextEvent(
@@ -139,12 +234,15 @@ const userTelemetryEventRegistry = [
     "The frontend leaves a route inside the current journey.",
     ["route_context"],
   ),
-  contextEvent(
-    "auth.session.created",
-    "auth.session",
-    "A browser auth session is created or refreshed with identity context.",
-    ["identity_context", "retention"],
-  ),
+  defineUserTelemetryEventContract({
+    ...contextEvent(
+      "auth.session.created",
+      "auth.session",
+      "A browser auth session is created or refreshed with identity context.",
+      ["identity_context", "retention"],
+    ),
+    payloadSchema: authSessionCreatedPayloadSchema,
+  }),
   contextEvent(
     "consent.changed",
     "consent.lifecycle",
@@ -230,10 +328,22 @@ const userTelemetryEventRegistry = [
     "pr_lifecycle_user_command",
   ]),
   looseEvent("pr.checkin.submitted", "pr.checkin", "frontend.pr", ["pr_lifecycle_user_command"]),
-  looseEvent("pr.created", "pr.created", "backend.pr", ["pr_create_funnel"]),
-  looseEvent("pr.joined", "pr.joined", "backend.pr", ["pr_join_funnel"]),
-  looseEvent("pr.waitlisted", "pr.waitlisted", "backend.pr", ["pr_join_funnel"]),
-  looseEvent("pr.closed", "pr.closed", "backend.pr", ["pr_close_funnel"]),
+  defineUserTelemetryEventContract({
+    ...looseEvent("pr.created", "pr.created", "backend.pr", ["pr_create_funnel"]),
+    payloadSchema: prCreatedPayloadSchema,
+  }),
+  defineUserTelemetryEventContract({
+    ...looseEvent("pr.joined", "pr.joined", "backend.pr", ["pr_join_funnel"]),
+    payloadSchema: prJoinedPayloadSchema,
+  }),
+  defineUserTelemetryEventContract({
+    ...looseEvent("pr.waitlisted", "pr.waitlisted", "backend.pr", ["pr_join_funnel"]),
+    payloadSchema: prWaitlistedPayloadSchema,
+  }),
+  defineUserTelemetryEventContract({
+    ...looseEvent("pr.closed", "pr.closed", "backend.pr", ["pr_close_funnel"]),
+    payloadSchema: prClosedPayloadSchema,
+  }),
   looseEvent("share.method.switch", "share.method", "frontend.share", ["share_usage"]),
   looseEvent("share.link.native.success", "share.link", "frontend.share", ["share_usage"]),
   looseEvent("share.link.copy.success", "share.link", "frontend.share", ["share_usage"]),
@@ -278,7 +388,35 @@ const userTelemetryEventRegistry = [
   ]),
 ] as const satisfies readonly UserTelemetryEventContract[];
 
+type RegistryEventContract = (typeof userTelemetryEventRegistry)[number];
+
+/** Registry entries without a deprecation marker are the active contract. */
+export type ActiveUserTelemetryEventContract = Exclude<
+  RegistryEventContract,
+  { deprecated: { replacement?: string; reason: string } }
+>;
+
+export type ActiveUserTelemetryEventName = ActiveUserTelemetryEventContract["eventName"];
+
+export type ActiveUserTelemetryEventVersion<
+  TEventName extends ActiveUserTelemetryEventName = ActiveUserTelemetryEventName,
+> = Extract<ActiveUserTelemetryEventContract, { eventName: TEventName }>["eventVersion"];
+
+export type ActiveUserTelemetryEvent = ActiveUserTelemetryEventContract extends infer TContract
+  ? TContract extends ActiveUserTelemetryEventContract
+    ? {
+        eventName: TContract["eventName"];
+        eventVersion: TContract["eventVersion"];
+        eventFamily: TContract["eventFamily"];
+        owner: TContract["owner"];
+        attributes: z.infer<TContract["attributesSchema"]>;
+        payload: z.infer<TContract["payloadSchema"]>;
+      }
+    : never
+  : never;
+
 const registryByKey = new Map<string, UserTelemetryEventContract>();
+const activeRegistryByName = new Map<string, ActiveUserTelemetryEventContract>();
 
 for (const contract of userTelemetryEventRegistry) {
   const key = buildRegistryKey(contract.eventName, contract.eventVersion);
@@ -289,9 +427,16 @@ for (const contract of userTelemetryEventRegistry) {
     );
   }
   registryByKey.set(key, contract);
+
+  if (contract.deprecated === undefined) {
+    if (activeRegistryByName.has(contract.eventName)) {
+      throw new Error(`Duplicate active user telemetry event ${contract.eventName}`);
+    }
+    activeRegistryByName.set(contract.eventName, contract as ActiveUserTelemetryEventContract);
+  }
 }
 
-export const getUserTelemetryEventRegistry = (): readonly UserTelemetryEventContract[] =>
+export const getUserTelemetryEventRegistry = (): typeof userTelemetryEventRegistry =>
   userTelemetryEventRegistry;
 
 export const getUserTelemetryEventContract = (
@@ -299,6 +444,13 @@ export const getUserTelemetryEventContract = (
   eventVersion: number,
 ): UserTelemetryEventContract | null =>
   registryByKey.get(buildRegistryKey(eventName, eventVersion)) ?? null;
+
+/** Resolve the active version for a new backend emission. */
+export const resolveActiveUserTelemetryEventContract = (
+  eventName: string,
+): ActiveUserTelemetryEventContract | null => {
+  return activeRegistryByName.get(eventName) ?? null;
+};
 
 export const validateRegisteredUserTelemetryEvent = (input: {
   eventName: string;

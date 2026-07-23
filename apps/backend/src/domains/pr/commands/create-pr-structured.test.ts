@@ -5,11 +5,10 @@ import type { User, UserId } from "../../../entities/user";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/test";
 
-const { createSpy, slotSpy, materializeSpy, logSpy, findByIdSpy, oauthSpy } = vi.hoisted(() => ({
+const { createSpy, slotSpy, materializeSpy, findByIdSpy, oauthSpy } = vi.hoisted(() => ({
   createSpy: vi.fn<(data: Record<string, unknown>) => Promise<{ id: number; status: "OPEN" }>>(),
   slotSpy: vi.fn<(prId: number, creatorUserId: UserId | null) => Promise<void>>(),
   materializeSpy: vi.fn<(input: unknown) => Promise<void>>(),
-  logSpy: vi.fn<(input: unknown) => void>(),
   findByIdSpy: vi.fn<(id: UserId) => Promise<User | null>>(),
   oauthSpy: vi.fn<(openId: string) => Promise<User>>(),
 }));
@@ -28,10 +27,6 @@ vi.mock("../../../repositories/UserRepository", () => ({
 
 vi.mock("../../user", () => ({
   resolveUserByOpenId: oauthSpy,
-}));
-
-vi.mock("../../../infra/operation-log", () => ({
-  operationLogService: { log: logSpy },
 }));
 
 vi.mock("../services/slot-management.service", () => ({
@@ -99,7 +94,6 @@ describe("createPRFromStructured creation guard", () => {
     assert.equal(createSpy.mock.calls.length, 0);
     assert.equal(slotSpy.mock.calls.length, 0);
     assert.equal(materializeSpy.mock.calls.length, 0);
-    assert.equal(logSpy.mock.calls.length, 0);
   });
 
   test("rejects an active service actor under USER before any write", async () => {
@@ -120,7 +114,6 @@ describe("createPRFromStructured creation guard", () => {
     assert.equal(createSpy.mock.calls.length, 0);
     assert.equal(slotSpy.mock.calls.length, 0);
     assert.equal(materializeSpy.mock.calls.length, 0);
-    assert.equal(logSpy.mock.calls.length, 0);
   });
 
   test("does not fall back to OAuth when authenticated id is invalid", async () => {
@@ -146,14 +139,12 @@ describe("createPRFromStructured creation guard", () => {
     assert.equal(createSpy.mock.calls.length, 0);
     assert.equal(slotSpy.mock.calls.length, 0);
     assert.equal(materializeSpy.mock.calls.length, 0);
-    assert.equal(logSpy.mock.calls.length, 0);
   });
 
   test("preserves creatorless OPEN SYSTEM expansion", async () => {
     const result = await createPRFromStructured(buildFields(), emptyIdentity, {
       creationAuthority: "SYSTEM",
       publicationMode: "create-open",
-      createSource: "CAPACITY_EXPANSION",
     });
 
     assert.equal(result.status, "OPEN");
@@ -162,6 +153,5 @@ describe("createPRFromStructured creation guard", () => {
     assert.equal(createSpy.mock.calls[0]?.[0].createdBy, null);
     assert.deepEqual(slotSpy.mock.calls[0], [9001, null]);
     assert.equal(materializeSpy.mock.calls.length, 1);
-    assert.equal(logSpy.mock.calls.length, 1);
   });
 });

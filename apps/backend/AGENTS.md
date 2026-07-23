@@ -22,7 +22,6 @@ Repository-wide architecture objectives, module construction and exception rules
 Controller  ──►  Domain Use Case  ──►  Domain Service  ──►  Repository  ──►  Entity
                            │
                            ├──►  Job Runner
-                           ├──►  Operation Log Service
                            └──►  Telemetry / Analytics
 ```
 
@@ -76,7 +75,6 @@ src/
 │   ├── jobs/             # Unified JobRunner
 │   ├── telemetry/        # Raw telemetry event ingestion
 │   ├── analytics/        # Product analytics read/export queries
-│   └── operation-log/    # Operation log service
 ├── controllers/          # Hono routes + validation (no business logic)
 ├── lib/                  # DB engine + utilities
 └── index.ts              # Entrypoint, mounts routes, request-tail maintenance, exports AppType
@@ -108,7 +106,7 @@ Backend-local entrypoints:
 - Domain use-cases (`src/domains/*/use-cases`): new business actions should be added here directly rather than through `src/services` facades.
 - Domain services (`src/domains/*/services`): domain rules and reusable domain logic belong here.
 - Controller layer (`src/controllers`): protocol conversion only; see `src/controllers/AGENTS.md`.
-- Infra layer (`src/infra`): job runner, telemetry ingest, analytics read/export queries, notifications, and operation log.
+- Infra layer (`src/infra`): job runner, telemetry ingest, analytics read/export queries, and notifications.
 - Unit tests under `src/**/*.test.ts` cover local rules, pure domain services, schema/bounds logic, and isolated error mapping. Scenario tests under `tests/<domain>/**/*.scenario.test.ts` cover cross-module behavior through HTTP APIs with real Postgres migrations, especially persisted state transitions, route/controller/use-case/repository coordination, and user-visible business promises.
 - `pnpm check:lint:backend` is the canonical backend source lint slice.
 - The backend API error contract is enforced by the canonical lint slices: Oxlint rejects imports from `hono/http-exception` (with `src/index.ts` as the compatibility adapter exception), while ast-grep rejects `new HTTPException(...)` in backend production source. Expected API failures should use Problem Details helpers from `src/lib/problem-details.ts` or typed domain helpers built on them.
@@ -135,5 +133,4 @@ Immediate rules:
 3. JSON response: always return via `c.json()` so RPC can infer types.
 4. Error handling: use global `app.onError` to unify error response shapes; throw expected API failures through Problem Details helpers or typed domain helpers.
 5. Side effects: durable async work should use explicit job scheduling or domain-specific services with persisted state.
-6. Operation logs: use `operationLogService.log()` (fire-and-forget) for audit trail on domain actions.
-7. Background jobs: persist delayed jobs through `jobRunner.scheduleOnce()` and drive execution via tick endpoints or request-tail kick; never use raw `setInterval`.
+6. Background jobs: persist delayed jobs through `jobRunner.scheduleOnce()` and drive execution via tick endpoints or request-tail kick; never use raw `setInterval`.

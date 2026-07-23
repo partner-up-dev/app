@@ -25,7 +25,7 @@ Target authoritative persistence after the declared compatibility windows:
 - `users.wechat_official_account_followed_at` as the positive marker that the backend has confirmed a user follows the WeChat official account
 - current PR Type Configuration selected by `PR.type`, view ratios for `/prd`, type-owned preference tags and moderation state, current type defaults, type-owned location/route suggestions, type-owned meeting-point defaults, POIs with integer identity, name-based location matching, optional full address and coordinate pairs, submission status, meeting-point fallback configuration, per-time-window capacity and availability rules, and join-notice acceptances
 - feedback questionnaire templates, feedback questionnaire instances, and feedback questionnaire responses
-- config, operation logs, Jobs, Job creation reservations, and user notification options
+- config, Jobs, Job creation reservations, and user notification options
 - analytics aggregate / projection tables, including user telemetry enrichment and BI facts
 - ecommerce merchandising truth, including Product Catalog (`SPU` / `SKU`),
   Offer, Placement Instance, Offer pricing rules, SKU pricing models, SKU
@@ -63,11 +63,12 @@ may recreate those state families. Generic `notification.send.v1` Jobs and the
 semantic visible-thread acknowledgement are the current path.
 
 `notification_deliveries` alone remains transitional audit compatibility data
-until Phase 7 provides governed attempt observability. It is neither
-authoritative notification state nor Job control, and current generic
-notification work does not write it. Historical per-kind handlers, decoders
-and Delivery writers are forward-retired; the retained rows are inert audit
-history rather than an active compatibility path.
+until a future professional observability path and data-retention decision are
+proven. Phase 7 intentionally provides neither. It is not authoritative
+notification state or Job control, and current generic notification work does
+not write it. Historical per-kind handlers, decoders and Delivery writers are
+forward-retired; the retained rows are inert audit history rather than an
+active compatibility path.
 
 Current PRMessage rows retain a nullable tombstone and expose an all-row
 acknowledgement cursor; ordinary visible thread/context reads exclude
@@ -156,7 +157,7 @@ The backend is authoritative for:
 - POI-owned availability rules that determine whether a PR location accepts a full PR time window
 - PR type preference-tag pool, moderation state, default PR notes for future materialization, place/route suggestions, view policy, and type-specific discovery/authoring behavior
 - PR type questionnaire template pointer used for future PR materialization
-- notifications, analytics persistence, and operation logs
+- notifications and analytics persistence
 - user telemetry storage, event registry acceptance, telemetry enrichment, and BI projections
 
 The frontend is authoritative for:

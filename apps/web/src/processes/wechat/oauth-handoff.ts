@@ -13,7 +13,6 @@ type ConsumeWeChatOAuthHandoffOptions = {
 export type ConsumeWeChatOAuthHandoffResult =
   | {
       kind: "success";
-      traceId?: string;
     }
   | {
       kind: "terminal-failure";
@@ -105,8 +104,5 @@ export const consumeWeChatOAuthHandoff = async (
   userSessionStore.applyAuthSession(payload.auth);
   clearWeChatOAuthHandoffFromAddressBar();
   clearWeChatOAuthLoginPending();
-  return {
-    kind: "success",
-    traceId: payload.traceId ?? undefined,
-  };
+  return { kind: "success" };
 };

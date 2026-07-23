@@ -17,7 +17,8 @@ Owns:
 - authoritative persistence
 - auth/session verification
 - durable Job control/creation modes, Notification semantics/channel edges,
-  program observability, analytics persistence, and operation logs
+  runtime diagnostics, future program-observability integration, and analytics
+  persistence
 - integrations with WeChat, WeCom, LLM, and operational configuration
 
 ### Frontend Unit
@@ -54,13 +55,13 @@ Backend clusters:
   `ride-hailing`, `bill`, `payment`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
-- cross-cutting infra: jobs, notifications, user telemetry, analytics, operation log
+- cross-cutting infra: jobs, notifications, user telemetry, analytics
 
 Frontend clusters:
 
 - app/process layer: app bootstrap, router, auth bootstrap, WeChat processes
-- domain layer: `pr`, `share`, `user`, `admin`, `support`, `landing`
-- shared layer: generic UI, auth/session storage, telemetry runtime, analytics, API helpers
+- domain layer: `pr`, `share`, `user`, `admin`, `analytics`, `support`, `landing`
+- shared layer: generic UI, auth/session storage, user-telemetry runtime, and API helpers
 - page layer: route entrypoints
 - compatibility layer: top-level `lib`, `router` and `stores`; keep existing bridges narrow and add no new owners there
 
@@ -170,7 +171,7 @@ this adapter or introduce a generic `withCommerceTransaction` convenience API.
   creator-publish operations rather than an executor or reusable callback; it
   locks the PR then the selected active entrant under a bounded serializable
   retry. It owns only local slot/capacity/reliability/status mutation. Provider
-  calls, Job/Notification policy, expansion, operation logs and unrelated
+  calls, Job/Notification policy, expansion and unrelated
   policy/location facts stay outside that short boundary.
 - PR-message attention invalidation follows the same source-boundary rule. A
   participant removal, terminal transition, message tombstone or root deletion
@@ -180,8 +181,9 @@ this adapter or introduce a generic `withCommerceTransaction` convenience API.
   PR-message handler or historical-row drain remains.
 - Opportunity/wave/inbox persistence and every legacy per-kind Notification
   handler/decoder are forward-retired. `notification_deliveries` alone remains
-  inert transitional audit history pending Phase 7; no dependency may use it
-  for execution or business authority.
+  inert transitional audit history pending a professional observability and
+  data-retention decision; no dependency may use it for execution or business
+  authority.
 - The monorepo shares backend exports with the frontend at compile time, so some contract drift is intentionally caught by types even though runtime interaction still happens over HTTP.
 - Data evolution is forward-only, which constrains how backend state contracts may change over time.
 - WeChat and browser-environment differences materially shape which user flows are available and how the units coordinate them.

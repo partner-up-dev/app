@@ -12,10 +12,7 @@ export {
 export { getPRJoinGateProjection } from "./services/join-gates.service";
 export { isTimeWindowAvailableByPoiRules } from "./services/poi-availability.service";
 export { resolvePRPlaceDisplayName } from "./services/pr-place-mode.service";
-export {
-  isPRActiveStatus,
-  readVisiblePartnerRequestsByType,
-} from "./services/pr-read.service";
+export { isPRActiveStatus, readVisiblePartnerRequestsByType } from "./services/pr-read.service";
 export { toPRMessageThreadItem } from "./services/pr-message-thread.service";
 export { countActivePartnersForPR } from "./services/slot-management.service";
 export { isPRJoinableStatus } from "./services/status-rules";

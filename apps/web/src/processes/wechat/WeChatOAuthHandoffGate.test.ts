@@ -5,7 +5,7 @@ import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import WeChatOAuthHandoffGate from "./WeChatOAuthHandoffGate.vue";
 
 type HandoffResult =
-  | { kind: "success"; traceId?: string }
+  | { kind: "success" }
   | { kind: "terminal-failure"; status: number; code?: string }
   | { kind: "retryable-failure"; status?: number }
   | { kind: "absent" };
@@ -101,7 +101,7 @@ afterEach(() => {
 
 describe("WeChatOAuthHandoffGate", () => {
   test("releases protected content only after a successful handoff", async () => {
-    testState.consume.mockResolvedValueOnce({ kind: "success", traceId: "trace-1" });
+    testState.consume.mockResolvedValueOnce({ kind: "success" });
 
     const host = await mountGate();
 

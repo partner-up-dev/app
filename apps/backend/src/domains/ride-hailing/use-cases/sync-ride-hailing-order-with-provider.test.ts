@@ -49,10 +49,6 @@ const providerDetail: RideHailingProviderOrderDetail = {
 
 const context = (): RideHailingProviderExecutionContext => ({
   orderId,
-  executionPhase: "DISPATCHING",
-  driverSnapshot: null,
-  vehicleSnapshot: null,
-  finalSettlementAlreadyCommitted: false,
   providerInstance: {
     id: providerInstanceId,
     providerType: "CAOCAO",

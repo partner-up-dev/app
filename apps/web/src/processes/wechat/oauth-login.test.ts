@@ -46,8 +46,8 @@ test("requestWeChatOAuthLogin single-flights redirect attempts", () => {
     const redirectUrl = new URL(redirects[0], "https://partner-up.test");
     assert.equal(redirectUrl.pathname, "/api/wechat/oauth/login");
     assert.equal(redirectUrl.searchParams.get("returnTo"), "https://partner-up.test/pr/1");
-    assert.match(redirectUrl.searchParams.get("traceId") ?? "", /^[0-9a-f-]{36}$/);
-    assert.match(redirectUrl.searchParams.get("traceStartedAtMs") ?? "", /^\d+$/);
+    assert.equal(redirectUrl.searchParams.get("traceId"), null);
+    assert.equal(redirectUrl.searchParams.get("traceStartedAtMs"), null);
   } finally {
     resetWeChatOAuthLoginRedirectStateForTest();
     assert.equal(isWeChatOAuthLoginPending(), false);

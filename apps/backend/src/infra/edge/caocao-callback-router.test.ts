@@ -11,7 +11,6 @@ import { afterEach, test } from "vitest";
 import {
   createCaocaoCallbackRouterServer,
   resolveCaocaoCallbackRouterDecision,
-  type CaocaoCallbackRouterLogEvent,
 } from "./caocao-callback-router";
 
 type CapturedRequest = {
@@ -90,14 +89,12 @@ const createUpstream = async (
 };
 
 const createRouter = async (input: {
-  logs?: CaocaoCallbackRouterLogEvent[];
   maxBodyBytes?: number;
   productionOrigin: string;
   stagingOrigin: string;
 }): Promise<TestServer> =>
   listen(
     createCaocaoCallbackRouterServer({
-      logger: (event) => input.logs?.push(event),
       maxBodyBytes: input.maxBodyBytes,
       productionOrigin: input.productionOrigin,
       stagingOrigin: input.stagingOrigin,
@@ -144,9 +141,7 @@ test("resolveCaocaoCallbackRouterDecision maps callback_info tokens", () => {
 test("router forwards stg callback_info requests to the staging origin with raw body", async () => {
   const staging = await createUpstream("staging");
   const production = await createUpstream("production");
-  const logs: CaocaoCallbackRouterLogEvent[] = [];
   const router = await createRouter({
-    logs,
     productionOrigin: production.origin,
     stagingOrigin: staging.origin,
   });
@@ -190,8 +185,6 @@ test("router forwards stg callback_info requests to the staging origin with raw 
   assert.equal(staging.requests[0].headers["x-forwarded-port"], undefined);
   assert.equal(staging.requests[0].headers["x-forwarded-proto"], undefined);
   assert.equal(staging.requests[0].headers["x-real-ip"], undefined);
-  assert.equal(logs.at(-1)?.targetEnvironment, "staging");
-  assert.equal(logs.at(-1)?.routingReason, "stg-token");
 });
 
 test("router forwards prod and missing callback_info requests to production", async () => {

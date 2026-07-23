@@ -26,9 +26,6 @@ export type {
   RideHailingExecutionPhase,
   RideHailingVehicleSnapshot,
 } from "./model";
-export {
-  getOrderItemSkuName,
-  getRideHailingChoiceSetItem,
-} from "./services/order-items";
+export { getOrderItemSkuName, getRideHailingChoiceSetItem } from "./services/order-items";
 export { resolvePricingFromExecutionSnapshot } from "./services/order-pricing-execution";
 export { closeRideHailingOrderFromProviderCancellation } from "./services/order-termination";

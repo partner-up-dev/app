@@ -23,9 +23,8 @@ vi.mock("../../repositories/PartnerRepository", () => ({
   },
 }));
 vi.mock("../pr/queries", async () => {
-  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } = await import(
-    "../pr/services/time-window.service"
-  );
+  const { getProductLocalDateKey, getProductLocalDateKeyForTimeWindowStart } =
+    await import("../pr/services/time-window.service");
   return {
     getProductLocalDateKey,
     getProductLocalDateKeyForTimeWindowStart,

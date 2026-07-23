@@ -129,7 +129,6 @@ export const partnerRequestRoute = app
 
     const creatorIdentity = await requireAuthenticatedCreatorIdentity(c);
     const result = await createPRFromStructured(fields, creatorIdentity, {
-      createSource: createSource ?? "STRUCTURED_FORM",
       allowEditAfterReady: command.allowEditAfterReady ?? null,
     });
 

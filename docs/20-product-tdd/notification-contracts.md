@@ -40,10 +40,11 @@ Notification Wave entity, or PR-message inbox/read-marker state. The former
 Notification Job handler/decoder were forward-retired after their generic Job
 and semantic-acknowledgement replacements were proven.
 `notification_deliveries` remains only as transitional audit compatibility
-data until Phase 7 provides governed attempt observability; it is not
-authoritative delivery or retry state. A future provider receipt/read fact may
-earn a Notification-owned entity only when a provider exposes a real
-asynchronous lifecycle independent of Job execution.
+data until a future professional observability path and explicit retention
+decision provide governed attempt evidence; Phase 7 intentionally provides
+neither. It is not authoritative delivery or retry state. A future provider
+receipt/read fact may earn a Notification-owned entity only when a provider
+exposes a real asynchronous lifecycle independent of Job execution.
 
 ## Business Template And Channel Contract
 
@@ -316,10 +317,11 @@ safe bounded provider reference. Raw message payload, OpenID and unnecessary
 PII must not enter telemetry.
 
 SQL `notification_deliveries` remains transitional audit compatibility data
-until Phase 7 provides governed observability queryability, retention,
-correlation and recovery/alert coverage. No current generic notification path
-writes it, and its rows do not control Job execution. Telemetry failure must
-not change Job control state.
+until a future professional observability path proves queryability, retention,
+correlation and recovery/alert coverage and owns the historical-data decision.
+Phase 7 establishes a clean baseline rather than that replacement. No current
+generic notification path writes it, and its rows do not control Job
+execution. Telemetry failure must not change Job control state.
 
 ## Frontend Contract
 

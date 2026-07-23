@@ -31,10 +31,6 @@ export async function createPRFromNaturalLanguage(
   });
 
   return createPRFromStructured(canonicalizedFields, creatorIdentity, {
-    createSource: "NATURAL_LANGUAGE",
     partnerBoundsMode: "automatic",
-    operationLog: {
-      detail: { rawText },
-    },
   });
 }

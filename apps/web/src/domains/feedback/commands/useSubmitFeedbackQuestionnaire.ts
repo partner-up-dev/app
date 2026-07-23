@@ -9,9 +9,8 @@ type SubmitFeedbackQuestionnaireRoute = FeedbackQuestionnaireRoute["$post"];
 export type SubmitFeedbackQuestionnaireRequest = InferRequestType<SubmitFeedbackQuestionnaireRoute>;
 export type SubmitFeedbackQuestionnaireAnswers =
   SubmitFeedbackQuestionnaireRequest["json"]["answers"];
-export type SubmitFeedbackQuestionnaireResponse = InferResponseType<
-  SubmitFeedbackQuestionnaireRoute
->;
+export type SubmitFeedbackQuestionnaireResponse =
+  InferResponseType<SubmitFeedbackQuestionnaireRoute>;
 
 export type SubmitFeedbackQuestionnaireInput = {
   instanceId: number;

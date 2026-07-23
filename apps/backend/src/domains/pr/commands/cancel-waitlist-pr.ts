@@ -1,7 +1,6 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import { operationLogService } from "../../../infra/operation-log";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { resetPRJoinGateResolutionsForUser } from "../services/join-gates.service";
@@ -45,14 +44,6 @@ export async function cancelWaitlistPRByUserId(
     prId: id,
     userId,
     partnerId: pendingSlot.id,
-  });
-
-  operationLogService.log({
-    actorId: userId,
-    action: "partner.waitlist_cancel",
-    aggregateType: "partner_request",
-    aggregateId: String(id),
-    detail: { partnerId: pendingSlot.id },
   });
 
   const latest = await prRepo.findById(id);

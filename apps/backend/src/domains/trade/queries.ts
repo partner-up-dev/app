@@ -5,9 +5,7 @@ import type { TradeOrderBillingContext } from "./contracts";
 
 export { getCommerceOrderDetail } from "./use-cases/rental-ordering-flow";
 export { listOfferListing } from "./use-cases/offer-listing";
-export {
-  queryRideHailingCancellationFeeFromOrderDetail,
-} from "./use-cases/cancel-ride-hailing-order-from-order-detail";
+export { queryRideHailingCancellationFeeFromOrderDetail } from "./use-cases/cancel-ride-hailing-order-from-order-detail";
 
 const tradeOrderRepo = new TradeOrderRepository();
 
