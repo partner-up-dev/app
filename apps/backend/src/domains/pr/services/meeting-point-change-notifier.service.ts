@@ -1,6 +1,4 @@
 import type { PartnerRequest, PRId } from "../../../entities/partner-request";
-import { scheduleWeChatMeetingPointUpdatedNotifications } from "../../../infra/notifications";
-import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import {
   areEffectiveMeetingPointsEqual,
   type EffectiveMeetingPoint,
@@ -8,9 +6,14 @@ import {
   resolveMeetingPointNotificationDescription,
 } from "./meeting-point.service";
 
-const prRepo = new PartnerRequestRepository();
-
 export type MeetingPointSnapshot = Map<PRId, EffectiveMeetingPoint | null>;
+export type EffectiveMeetingPointResolver = (
+  request: PartnerRequest,
+) => Promise<EffectiveMeetingPoint | null>;
+export type MeetingPointNotificationChange = {
+  request: PartnerRequest;
+  meetingPointDescription: string;
+};
 
 const dedupeRequests = (requests: PartnerRequest[]): PartnerRequest[] => {
   const byId = new Map<PRId, PartnerRequest>();
@@ -22,22 +25,30 @@ const dedupeRequests = (requests: PartnerRequest[]): PartnerRequest[] => {
 
 export const captureEffectiveMeetingPointsForRequests = async (
   requests: PartnerRequest[],
+  resolve: EffectiveMeetingPointResolver = resolveEffectiveMeetingPoint,
 ): Promise<MeetingPointSnapshot> => {
   const result: MeetingPointSnapshot = new Map();
   for (const request of dedupeRequests(requests)) {
-    result.set(request.id, await resolveEffectiveMeetingPoint(request));
+    result.set(request.id, await resolve(request));
   }
   return result;
 };
 
-export const scheduleMeetingPointNotificationsForChangedRequests = async (input: {
+/**
+ * Source-agnostic effective-change detector. It is intentionally pure with
+ * respect to scheduling so transaction-owned writers can reuse it without a
+ * domain-to-infrastructure side effect.
+ */
+export const collectMeetingPointNotificationChanges = async (input: {
   previous: MeetingPointSnapshot;
   requests: PartnerRequest[];
-  updatedAt: Date;
-}): Promise<void> => {
+  resolve?: EffectiveMeetingPointResolver;
+}): Promise<MeetingPointNotificationChange[]> => {
+  const resolve = input.resolve ?? resolveEffectiveMeetingPoint;
+  const changes: MeetingPointNotificationChange[] = [];
   for (const request of dedupeRequests(input.requests)) {
     const previousMeetingPoint = input.previous.get(request.id) ?? null;
-    const nextMeetingPoint = await resolveEffectiveMeetingPoint(request);
+    const nextMeetingPoint = await resolve(request);
     if (areEffectiveMeetingPointsEqual(previousMeetingPoint, nextMeetingPoint)) {
       continue;
     }
@@ -47,28 +58,7 @@ export const scheduleMeetingPointNotificationsForChangedRequests = async (input:
       continue;
     }
 
-    await scheduleWeChatMeetingPointUpdatedNotifications({
-      request,
-      meetingPointDescription,
-      updatedAt: input.updatedAt,
-    });
+    changes.push({ request, meetingPointDescription });
   }
-};
-
-export const listRequestsAffectedByPRTypeMeetingPoint = async (
-  previousType: string,
-  nextType: string,
-): Promise<PartnerRequest[]> => {
-  const [previousTypeRequests, nextTypeRequests] = await Promise.all([
-    prRepo.findByType(previousType),
-    previousType === nextType ? Promise.resolve([]) : prRepo.findByType(nextType),
-  ]);
-  return dedupeRequests([...previousTypeRequests, ...nextTypeRequests]);
-};
-
-export const listRequestsAffectedByPoiMeetingPoint = async (
-  poiId: string,
-): Promise<PartnerRequest[]> => {
-  const requests = await prRepo.listAll();
-  return requests.filter((request) => request.location === poiId);
+  return changes;
 };

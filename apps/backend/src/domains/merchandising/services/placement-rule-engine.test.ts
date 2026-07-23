@@ -24,6 +24,7 @@ const prBase: PartnerRequest = {
   preferences: ["quiet"],
   route: null,
   status: "OPEN",
+  readyCycleId: null,
   time: ["2031-01-01T10:00:00.000Z", "2031-01-01T12:00:00.000Z"],
   title: "Cooking court booking",
   type: "cooking",

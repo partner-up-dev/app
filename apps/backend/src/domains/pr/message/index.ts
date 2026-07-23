@@ -1,3 +1,7 @@
 export { listPRMessages } from "./list-pr-messages";
-export { createPRMessage, createPersistedPRMessage } from "./create-pr-message";
-export { advancePRMessageReadMarker } from "./advance-pr-message-read-marker";
+export {
+  createCoreFieldChangePRMessage,
+  createOperatorPRMessage,
+  createPRMessage,
+} from "./create-pr-message";
+export { acknowledgePRMessageAttention } from "./acknowledge-pr-message-attention";

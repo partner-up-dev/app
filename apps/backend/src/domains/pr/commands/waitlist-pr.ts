@@ -4,18 +4,20 @@ import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import { createPrAdmissionTransactionPort } from "../adapters/pr-admission-transaction";
 import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
 import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
 import { assertPRTypeParticipationFrequencyLimitAllows } from "../services/pr-type-participation-frequency-limit.service";
 import { type PublicPR, toPublicPR } from "../services/pr-view.service";
 import { countActivePartnersForPR } from "../services/slot-management.service";
 import { isWaitlistOpenForRequest } from "../services/waitlist.service";
-import { scheduleAlternativeWaitlistNotificationsForSource } from "../services/waitlist-alternative-reminder.service";
+import { reconcileAlternativeWaitlistNotificationsForSource } from "../services/waitlist-alternative-reconciler.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { assertPRDraftAccess } from "../services/draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
+const prAdmissionTransaction = createPrAdmissionTransactionPort();
 
 export async function waitlistPRAsUser(
   id: PRId,
@@ -82,23 +84,39 @@ export async function waitlistPRAsUser(
     });
   }
 
-  const latestHistoricalSlot = await partnerRepo.findReusableInactiveByPrIdAndUserId(id, user.id);
-  const pendingSlot = latestHistoricalSlot
-    ? await partnerRepo.markPending(latestHistoricalSlot.id, {
-        alternativePrReminderOptIn: options.alternativePrReminderOptIn,
-      })
-    : await partnerRepo.createSlot({
-        prId: id,
-        userId: user.id,
-        status: "PENDING",
-        alternativePrReminderOptIn: options.alternativePrReminderOptIn,
-      });
-  if (!pendingSlot) {
+  const admission = await prAdmissionTransaction.enterWaitlist({
+    prId: id,
+    userId: user.id,
+    alternativePrReminderOptIn: options.alternativePrReminderOptIn,
+  });
+  if (admission.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
+  }
+  if (admission.outcome === "NOT_WAITLISTABLE") {
     return throwHttpProblem({
-      status: 500,
-      detail: "Failed to persist waitlist participation record",
+      status: 400,
+      detail: "Cannot waitlist - partner request is not at waitlistable capacity",
     });
   }
+  if (admission.outcome === "INELIGIBLE") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Cannot waitlist - admission eligibility changed; refresh and try again",
+      code: "PR_ADMISSION_ELIGIBILITY_CHANGED",
+    });
+  }
+  if (admission.outcome === "ALREADY_ACTIVE" || admission.outcome === "ALREADY_WAITLISTED") {
+    const latest = await prRepo.findById(id);
+    if (!latest) {
+      return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
+    }
+    return toPublicPR(latest, user.id);
+  }
+  if (admission.outcome !== "WAITLISTED") {
+    return throwHttpProblem({ status: 500, detail: "Unexpected waitlist admission outcome" });
+  }
+
+  const pendingSlot = admission.slot;
 
   operationLogService.log({
     actorId: user.id,
@@ -111,10 +129,11 @@ export async function waitlistPRAsUser(
     },
   });
 
-  if (options.alternativePrReminderOptIn === true) {
-    await scheduleAlternativeWaitlistNotificationsForSource({
+  if (options.alternativePrReminderOptIn === true && pendingSlot.waitlistCycleId) {
+    await reconcileAlternativeWaitlistNotificationsForSource({
       sourceRequest: refreshedRequest,
       sourcePartnerId: pendingSlot.id,
+      sourceWaitlistCycleId: pendingSlot.waitlistCycleId,
       recipientUserId: user.id,
     });
   }

@@ -1,21 +1,22 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
+import { and, eq } from "drizzle-orm";
 import { createOffer, createProductSpu } from "../../src/domains/merchandising/commands";
 import type { PricingRule } from "../../src/domains/merchandising/model";
-import {
-  applyPaymentSettlementConsequence,
-  openOrLoadChargeExecution,
-} from "../../src/domains/payment/commands";
-import { settleBillLinePaymentExecution } from "../../src/domains/bill/commands";
+import { openOrLoadChargeExecution } from "../../src/domains/payment/commands";
 import {
   buildCaocaoCallbackInfo,
   createCaocaoSignature,
   encodeCaocaoExternalOrderId,
 } from "../../src/domains/ride-hailing/services/caocao-provider";
 import type { RideHailingExecutionPhase } from "../../src/domains/trade/model";
+import { settleBillLinePaymentAndApplyOrderConsequence } from "../../src/domains/trade/commands";
+import { jobs } from "../../src/entities/job";
 import type { PaymentProviderInstanceId } from "../../src/entities/payment";
 import type { TradeOrderId } from "../../src/entities/trade-order";
+import { jobRunner } from "../../src/infra/jobs";
+import { db } from "../../src/lib/db";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { BillRepository } from "../../src/repositories/BillRepository";
 import { PaymentProviderInstanceRepository } from "../../src/repositories/PaymentProviderInstanceRepository";
@@ -879,24 +880,169 @@ scenario(
         providerInstance: paymentProvider,
       });
       assert.equal(openedExecution.paymentProviderInstanceId, paymentProviderInstanceId);
-      const settlement = await settleBillLinePaymentExecution({
+      const settlement = await settleBillLinePaymentAndApplyOrderConsequence({
         billLineId: chargeLine.id,
         paymentProviderInstanceId,
         attemptCount: openedExecution.attemptCount,
         settledAt: new Date(),
       });
       assert.equal(settlement.status, "SETTLED");
-
-      const settlementConsequence = await applyPaymentSettlementConsequence({
-        billLineId: chargeLine.id,
-      });
-
-      assert.deepEqual(settlementConsequence, {
-        applied: true,
-        reason: "RideHailing provider fee confirmed",
+      assert.equal(confirmFeeCount, 0);
+      const creationKey = `ride-hailing:fee-confirm:${bill.id}`;
+      const scheduled = await db
+        .select()
+        .from(jobs)
+        .where(
+          and(eq(jobs.jobType, "ride-hailing.fee-confirm.v1"), eq(jobs.creationKey, creationKey)),
+        );
+      assert.equal(scheduled.length, 1);
+      assert.equal(scheduled[0]?.status, "PENDING");
+      assert.deepEqual(scheduled[0]?.payload, {
+        schemaVersion: 1,
         orderId: orderSeed.order.id,
       });
+
+      const replay = await settleBillLinePaymentAndApplyOrderConsequence({
+        billLineId: chargeLine.id,
+        paymentProviderInstanceId,
+        attemptCount: openedExecution.attemptCount,
+        settledAt: new Date(),
+      });
+      assert.equal(replay.status, "ALREADY_SETTLED");
+      const afterReplay = await db
+        .select()
+        .from(jobs)
+        .where(
+          and(eq(jobs.jobType, "ride-hailing.fee-confirm.v1"), eq(jobs.creationKey, creationKey)),
+        );
+      assert.equal(afterReplay.length, 1);
+
+      const run = await jobRunner.runDueJobs({ batchSize: 100, maxBatches: 10 });
+      assert.ok(run.succeeded >= 1);
       assert.equal(confirmFeeCount, 1);
+      const completed = await db.select().from(jobs).where(eq(jobs.id, scheduled[0]!.id));
+      assert.equal(completed[0]?.status, "SUCCEEDED");
+    } finally {
+      await closeServer(fakeCaocao);
+    }
+  },
+);
+
+scenario(
+  "Caocao terminal settlement schedules fee confirmation for an all-zero final bill",
+  async () => {
+    const creator = await givenUser("caocao-zero-final-bill-owner");
+    let confirmFeeCount = 0;
+    const fakeCaocao = createServer((request, response) => {
+      if (request.url?.startsWith("/v2/common/queryOrderDetailV2")) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            code: 200,
+            data: {
+              basicOrderVO: {
+                requireLevel: 3,
+                status: "6",
+              },
+              orderFeeVo: {
+                totalFee: 5000,
+              },
+            },
+            success: true,
+          }),
+        );
+        return;
+      }
+      if (request.url?.startsWith("/v2/common/feeConfirm")) {
+        confirmFeeCount += 1;
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ code: 200, data: {}, success: true }));
+        return;
+      }
+      response.writeHead(404, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ code: 404, success: false }));
+    });
+    const endpointBaseUrl = await listen(fakeCaocao);
+
+    try {
+      const provider = await createScenarioCaocaoProvider({
+        endpointBaseUrl,
+        displayName: "Scenario Caocao Zero Final Bill",
+        instanceKey: `scenario-caocao-zero-final-bill-${randomUUID()}`,
+        caocaoClientId: "scenario-caocao-zero-final-bill-client",
+        signKey: "scenario-caocao-zero-final-bill-secret",
+      });
+      const orderSeed = await seedCallbackScenarioRideOrder({
+        creatorUserId: creator.user.id,
+        pricingRules: [
+          {
+            id: 1,
+            label: "全额减免",
+            description: "零费用终局账单仍需确认供应商费用",
+            conditionRule: true,
+            action: {
+              type: "RATIO",
+              payload: {
+                ratioBps: 0,
+              },
+            },
+            target: {
+              level: "ORDER",
+            },
+            continue: true,
+          },
+        ],
+        providerId: provider.id,
+        providerOrderId: "CC-ZERO-FINAL-123",
+        rideExecutionPhase: "DISPATCHING",
+        tradeStatus: "OPEN",
+        skuName: "Scenario Caocao Zero Express",
+        spuName: "Scenario Caocao Zero Final Bill SPU",
+      });
+
+      const response = await requestJson(
+        `/api/ride-hailing/caocao/${provider.id}/callback/order-status`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+          },
+          body: buildCallbackForm({
+            callbackInfo: buildCaocaoCallbackInfo({
+              providerInstance: provider,
+              routingToken: "stg",
+            }),
+            signKey: "scenario-caocao-zero-final-bill-secret",
+            orderId: orderSeed.order.id,
+            providerOrderId: "CC-ZERO-FINAL-123",
+            event: "6",
+          }).toString(),
+        },
+      );
+      assert.equal(response.status, 200);
+
+      const bill = await billRepo.findBySourceOrderId(orderSeed.order.id);
+      assert.ok(bill);
+      const lines = await billLineRepo.listByBillId(bill.id);
+      assert.equal(lines.length, 1);
+      assert.equal(lines[0]?.amountFen, 0);
+      assert.ok(lines[0]?.settledAt);
+      const scheduled = await db
+        .select()
+        .from(jobs)
+        .where(
+          and(
+            eq(jobs.jobType, "ride-hailing.fee-confirm.v1"),
+            eq(jobs.creationKey, `ride-hailing:fee-confirm:${bill.id}`),
+          ),
+        );
+      assert.equal(scheduled.length, 1);
+      assert.equal(confirmFeeCount, 0);
+
+      await jobRunner.runDueJobs({ batchSize: 100, maxBatches: 10 });
+      assert.equal(confirmFeeCount, 1);
+      const completed = await db.select().from(jobs).where(eq(jobs.id, scheduled[0]!.id));
+      assert.equal(completed[0]?.status, "SUCCEEDED");
     } finally {
       await closeServer(fakeCaocao);
     }

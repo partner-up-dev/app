@@ -1,30 +1,31 @@
 import type { PartnerId } from "../../../entities/partner";
 import type { PRId, PRStatusManual, VisibilityStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import {
-  cancelWeChatActivityStartReminderJobsForParticipant,
-  cancelWeChatReminderJobsForParticipant,
-} from "../../../infra/notifications";
 import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
+import { cancelNotification } from "../../notification";
 import {
   applyParticipantReleaseEffects,
   createPRFromStructured,
   promoteWaitlistedPartners,
   recalculatePRStatus,
+  releasePRParticipantByAdmin,
   updatePRContent,
 } from "../../pr/commands";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../../pr/ports";
+import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../../pr/ports";
+import { reconcileConfirmationRemindersForParticipant } from "../../pr";
 import { hasPRTypeConfig } from "../../pr-type-config";
 import type { AdminPRContentInput, AdminPRCreateInput } from "../contracts";
 import { validateAdminPRTimeWindow } from "../services/validation";
+import { createAdminPRMessageWindowLifecycleTransactionPort } from "./pr-message-window-lifecycle-transaction";
 
 const prRepository = new PartnerRequestRepository();
 const partnerRepository = new PartnerRepository();
 const reliabilityRepository = new UserReliabilityRepository();
+const messageWindowLifecycle = createAdminPRMessageWindowLifecycleTransactionPort();
 
 const assertTypeConfigured = async (type: string): Promise<string> => {
   const normalized = type.trim();
@@ -117,6 +118,14 @@ export const updateAdminPRContent = async (prId: PRId, input: AdminPRContentInpu
     confirmationEndOffsetMinutes: input.confirmationEndOffsetMinutes,
     joinLockOffsetMinutes: input.joinLockOffsetMinutes,
   });
+  const activeParticipants = await partnerRepository.listActiveParticipantSummariesByPrId(prId);
+  for (const participant of activeParticipants) {
+    await reconcileConfirmationRemindersForParticipant({
+      prId,
+      slotId: participant.partnerId,
+      recipientUserId: participant.userId,
+    });
+  }
   return prRepository.updateJoinGateConfig(prId, input.joinGateConfig ?? existing.joinGateConfig);
 };
 
@@ -139,28 +148,29 @@ export const updateAdminPRVisibility = async (
 };
 
 export const deleteAdminPR = async (input: { prId: PRId; actorUserId: UserId | null }) => {
-  const existing = await prRepository.findById(input.prId);
-  if (!existing) return throwHttpProblem({ status: 404, detail: "PR not found" });
-  const partnerCount = await partnerRepository.countTotalByPrId(input.prId);
-  const deleted = await prRepository.deleteById(input.prId);
-  if (!deleted) return throwHttpProblem({ status: 500, detail: "Failed to delete PR" });
+  const result = await messageWindowLifecycle.deleteRoot({ prId: input.prId });
+  if (result.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "PR not found" });
+  }
   operationLogService.log({
     actorId: input.actorUserId,
     action: "pr.admin_delete",
     aggregateType: "partner_request",
     aggregateId: String(input.prId),
     detail: {
-      title: existing.title,
-      type: existing.type,
-      location: existing.location,
-      status: existing.status,
-      partnerCount,
+      title: result.request.title,
+      type: result.request.type,
+      location: result.request.location,
+      status: result.request.status,
+      partnerCount: result.deletedPartnerCount,
     },
   });
-  return { ok: true as const, prId: input.prId, deletedPartnerCount: partnerCount };
+  return {
+    ok: true as const,
+    prId: input.prId,
+    deletedPartnerCount: result.deletedPartnerCount,
+  };
 };
-
-const releaseableStatuses = new Set(["JOINED", "CONFIRMED"]);
 
 export const releaseAdminPRParticipant = async (input: {
   prId: PRId;
@@ -170,28 +180,46 @@ export const releaseAdminPRParticipant = async (input: {
 }) => {
   const reason = input.reason.trim();
   if (!reason) return throwHttpProblem({ status: 400, detail: "Release reason is required" });
-  if (!(await prRepository.findById(input.prId)))
+  const releaseResult = await releasePRParticipantByAdmin({
+    prId: input.prId,
+    partnerId: input.partnerId,
+    releaseReason: reason,
+  });
+  if (releaseResult.outcome === "PR_MISSING") {
     return throwHttpProblem({ status: 404, detail: "PR not found" });
-  const slot = await partnerRepository.findById(input.partnerId);
-  if (!slot || slot.prId !== input.prId)
+  }
+  if (releaseResult.outcome === "PARTICIPANT_NOT_FOUND") {
     return throwHttpProblem({ status: 404, detail: "Partner slot not found" });
-  if (!releaseableStatuses.has(slot.status)) {
+  }
+  if (releaseResult.outcome === "PARTICIPANT_NOT_RELEASEABLE") {
     return throwHttpProblem({
       status: 400,
       detail: "Only JOINED or CONFIRMED slots can be released manually",
     });
   }
-  const releasedSlot = await partnerRepository.markReleased(slot.id, { releaseReason: reason });
-  if (!releasedSlot)
-    return throwHttpProblem({ status: 500, detail: "Failed to release partner slot" });
-  await reliabilityRepository.applyDelta(slot.userId, { released: 1 });
-  await cancelWeChatReminderJobsForParticipant(input.prId, slot.userId);
-  await cancelWeChatActivityStartReminderJobsForParticipant(input.prId, slot.userId);
+  const releasedSlot = releaseResult.slot;
+  await reliabilityRepository.applyDelta(releasedSlot.userId, { released: 1 });
+  await cancelNotification({
+    template: "pr.activity-start-reminder",
+    recipientUserId: releasedSlot.userId,
+    scope: {
+      kind: "AGGREGATE",
+      aggregate: { type: "partner_request", id: String(input.prId) },
+    },
+  });
+  await cancelNotification({
+    template: "pr.confirmation-reminder",
+    recipientUserId: releasedSlot.userId,
+    scope: {
+      kind: "AGGREGATE",
+      aggregate: { type: "partner_request", id: String(input.prId) },
+    },
+  });
   await recalculatePRStatus(input.prId);
   await promoteWaitlistedPartners(input.prId);
   const effects = await applyParticipantReleaseEffects({
     prId: input.prId,
-    releasedUserIds: [slot.userId],
+    releasedUserIds: [releasedSlot.userId],
   });
   operationLogService.log({
     actorId: input.actorUserId,
@@ -201,12 +229,12 @@ export const releaseAdminPRParticipant = async (input: {
     detail: { partnerId: releasedSlot.id, reason, trigger: "admin_manual", manual: true },
   });
   const latest = await prRepository.findById(input.prId);
-  if (latest) await scheduleAlternativeWaitlistNotificationsForCandidate(latest);
+  if (latest) await reconcileAlternativeWaitlistNotificationsForCandidate(latest);
   return {
     ok: true as const,
     prId: input.prId,
     partnerId: releasedSlot.id,
-    previousStatus: slot.status,
+    previousStatus: releaseResult.previousStatus,
     currentStatus: releasedSlot.status,
     reason,
     creatorTransferredToUserId: effects.creatorTransferredToUserId,

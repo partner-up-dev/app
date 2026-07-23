@@ -199,6 +199,9 @@ const parseInteger = (value: string | null, field: string): number => {
   return parsed;
 };
 
+const parseOptionalInteger = (value: string | null, field: string): number | null =>
+  value === null ? null : parseInteger(value, field);
+
 const parseNumber = (value: string | null, field: string): number => {
   const parsed = value === null ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed)) {
@@ -1494,8 +1497,11 @@ export function createFakeCaocaoApp(input: FakeCaocaoServerAppInput): Hono {
           throw new FakeCaocaoProviderError(40001, "Missing order_id");
         }
         state.confirmFee({
-          allowanceAmountFen: parseInteger(readFirst(form, "allowance_amount"), "allowance_amount"),
-          caocaoAllowanceAmountFen: parseInteger(
+          allowanceAmountFen: parseOptionalInteger(
+            readFirst(form, "allowance_amount"),
+            "allowance_amount",
+          ),
+          caocaoAllowanceAmountFen: parseOptionalInteger(
             readFirst(form, "cao_allowance_amount"),
             "cao_allowance_amount",
           ),

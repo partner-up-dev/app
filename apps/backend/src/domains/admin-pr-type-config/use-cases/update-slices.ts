@@ -1,17 +1,9 @@
-import { throwHttpProblem } from "../../../lib/problem-details";
 import {
-  getPRTypeConfigOperatorDetail,
   updatePRTypeConfigAuthoring as updateAuthoring,
   updatePRTypeConfigCompletion as updateCompletion,
-  updatePRTypeConfigCoordination as updateCoordination,
   updatePRTypeConfigDiscovery as updateDiscovery,
   updatePRTypeConfigParticipation as updateParticipation,
 } from "../../pr-type-config";
-import {
-  captureEffectiveMeetingPointsForRequests,
-  listRequestsAffectedByPRTypeMeetingPoint,
-  scheduleMeetingPointNotificationsForChangedRequests,
-} from "../../pr/ports";
 import type {
   AdminPRTypeConfigAuthoring,
   AdminPRTypeConfigCompletion,
@@ -20,18 +12,7 @@ import type {
   AdminPRTypeConfigDiscovery,
   AdminPRTypeConfigParticipation,
 } from "../contracts";
-const requireExistingType = async (type: string): Promise<string> => {
-  const normalizedType = type.trim();
-  const existing = await getPRTypeConfigOperatorDetail(normalizedType);
-  if (!existing) {
-    return throwHttpProblem({
-      status: 404,
-      detail: "PR type configuration not found",
-      code: "PR_TYPE_CONFIG_NOT_FOUND",
-    });
-  }
-  return normalizedType;
-};
+import { createPRTypeCoordinationMeetingPointTransactionPort } from "./pr-type-coordination-meeting-point-transaction";
 
 export const updateAdminPRTypeConfigAuthoring = async (
   type: string,
@@ -58,20 +39,10 @@ export const updateAdminPRTypeConfigCoordination = async (
   type: string,
   input: AdminPRTypeConfigCoordination,
 ): Promise<AdminPRTypeConfigDetail> => {
-  const normalizedType = await requireExistingType(type);
-  const affectedRequests = await listRequestsAffectedByPRTypeMeetingPoint(
-    normalizedType,
-    normalizedType,
-  );
-  const previousMeetingPoints = await captureEffectiveMeetingPointsForRequests(affectedRequests);
-  const updatedAt = new Date();
-  const saved = await updateCoordination(normalizedType, input);
-  await scheduleMeetingPointNotificationsForChangedRequests({
-    previous: previousMeetingPoints,
-    requests: await listRequestsAffectedByPRTypeMeetingPoint(normalizedType, normalizedType),
-    updatedAt,
+  return await createPRTypeCoordinationMeetingPointTransactionPort().update({
+    type,
+    input,
   });
-  return saved;
 };
 
 export const updateAdminPRTypeConfigCompletion = async (

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
-import { WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND } from "../../src/domains/notification";
-import { prepareWaitlistAlternativeAvailableNotificationDispatch } from "../../src/domains/notification/services/waitlist-alternative-available-dispatch.service";
+import { getWaitlistAlternativeAvailableNotificationContext } from "../../src/domains/pr/notification-contexts";
 import {
   type PartnerRequestFields,
   type PRId,
@@ -9,13 +8,12 @@ import {
   type PRStatus,
   partnerRequests,
 } from "../../src/entities";
-import { UserNotificationOptRepository } from "../../src/repositories/UserNotificationOptRepository";
+import { PartnerRepository } from "../../src/repositories/PartnerRepository";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { getTestDb } from "../_infra/probes/sql-probe";
 import { scenario } from "../_infra/scenario/scenario";
 import { givenDraftPR } from "./_kit/builders/partner-requests";
 import { joinPartnerRequest } from "./_kit/actions/join";
-import { bindScenarioWeChatOpenId } from "./_kit/actions/system-state";
 import { waitlistPR } from "./_kit/actions/waitlist";
 import { givenUser, type ScenarioUser } from "./_kit/builders/users";
 
@@ -69,7 +67,7 @@ const buildRoute = (endName = "天河体育中心"): PRRoute => [
   },
 ];
 
-const userNotificationOptRepo = new UserNotificationOptRepository();
+const partnerRepo = new PartnerRepository();
 
 scenario("public_share_cache_rejects_draft_without_writing_cache", async (ctx) => {
   const pr = await givenDraftPR({ creator: null, title: "Scenario draft share cache" });
@@ -260,15 +258,6 @@ scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ct
   });
   assert.equal(joined.status, "OPEN");
 
-  await bindScenarioWeChatOpenId({
-    user: candidate,
-    openId: "openid-route-alt-candidate",
-  });
-  await userNotificationOptRepo.addOneWechatNotificationCredit(
-    candidate.user.id,
-    WAITLIST_ALTERNATIVE_AVAILABLE_NOTIFICATION_KIND,
-  );
-
   const waitlisted = await waitlistPR({
     pr: source,
     user: candidate,
@@ -277,15 +266,18 @@ scenario("route_pr_stays_out_of_location_based_waitlist_alternatives", async (ct
   if (waitlisted.myPendingPartnerId === null) {
     throw new Error("Expected route PR pending waitlist slot");
   }
+  const sourceSlot = await partnerRepo.findById(waitlisted.myPendingPartnerId);
+  assert.ok(sourceSlot?.waitlistCycleId, "Expected current source waitlist cycle");
 
-  const prepared = await prepareWaitlistAlternativeAvailableNotificationDispatch({
+  const context = await getWaitlistAlternativeAvailableNotificationContext({
     sourcePrId: source.id,
     sourcePartnerId: waitlisted.myPendingPartnerId,
+    sourceWaitlistCycleId: sourceSlot.waitlistCycleId,
     candidatePrId: alternative.id,
     recipientUserId: candidate.user.id,
   });
-  assert.equal(prepared.status, "SKIPPED");
-  if (prepared.status !== "READY") {
-    assert.equal(prepared.errorCode, "CANDIDATE_PR_MISMATCH");
+  assert.equal(context.state, "SKIPPED");
+  if (context.state !== "READY") {
+    assert.equal(context.reason, "CANDIDATE_PR_MISMATCH");
   }
 });

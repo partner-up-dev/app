@@ -1,13 +1,20 @@
 import { randomUUID } from "node:crypto";
+import type { BillId, BillLine, BillLineId } from "../../../entities/bill";
+import type { PaymentProviderInstanceId } from "../../../entities/payment";
 import type { NewRideHailingOrder } from "../../../entities/ride-hailing-order";
 import type { TradeOrderId } from "../../../entities/trade-order";
+import { createTransactionBoundJobWriter, NO_LATE_TOLERANCE_UNITS } from "../../../infra/jobs";
 import { db } from "../../../lib/db";
 import { throwHttpProblem } from "../../../lib/problem-details";
+import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
+import type { TransactionExecutor } from "../../../repositories/_executor";
 import { createBillFromSeed } from "../../bill/commands";
 import { materializeChargeLinesFromSplitRule } from "../../bill/contracts";
+import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
+import { deriveBillPaymentState } from "../../bill/queries";
 import {
   closeRideHailingOrderFromProviderCancellation,
   getRideHailingChoiceSetItem,
@@ -21,6 +28,10 @@ import type {
   RideHailingFareCorrectionRequired,
   RideHailingProviderBindingExpectation,
 } from "../contracts";
+import {
+  buildRideHailingFeeConfirmationCreationKey,
+  rideHailingFeeConfirmationJobIdentity,
+} from "../fee-confirmation-task";
 import type { RideHailingReconciliationTransactionPort } from "../ports";
 import {
   mergeDriverSnapshot,
@@ -44,6 +55,40 @@ const isTerminalFinalSettlementPhase = (phase: RideHailingExecutionPhase): boole
   terminalFinalSettlementPhases.has(phase);
 
 const buildProviderCancellationAttemptId = (): string => `term_provider_cancel_${randomUUID()}`;
+
+const toPaymentExecutionSnapshot = (line: BillLine): BillLinePaymentExecutionSnapshot => ({
+  id: line.id,
+  billId: line.billId,
+  userId: line.userId,
+  kind: line.kind,
+  amountFen: line.amountFen,
+  currency: line.currency,
+  label: line.label,
+  description: line.description,
+  paymentProviderInstanceId: line.paymentProviderInstanceId,
+  attemptCount: line.attemptCount,
+  settledAt: line.settledAt,
+});
+
+const scheduleFeeConfirmation = async (input: {
+  transaction: TransactionExecutor;
+  billId: BillId;
+  orderId: TradeOrderId;
+}): Promise<void> => {
+  await createTransactionBoundJobWriter(input.transaction).scheduleOncePerCause({
+    jobType: rideHailingFeeConfirmationJobIdentity.type,
+    jobVersion: rideHailingFeeConfirmationJobIdentity.version,
+    creationKey: buildRideHailingFeeConfirmationCreationKey(input.billId),
+    runAt: new Date(),
+    resolutionMs: 1_000,
+    earlyToleranceUnits: 0,
+    lateToleranceUnits: NO_LATE_TOLERANCE_UNITS,
+    payload: {
+      schemaVersion: 1,
+      orderId: input.orderId,
+    },
+  });
+};
 
 const buildProviderConfirmedChoiceSetResolution = (input: {
   choiceSetItem: ChoiceSetOrderItemSnapshot;
@@ -98,8 +143,9 @@ const assertExpectedBinding = (input: {
 
 /**
  * The sole persistence adapter permitted to coordinate Trade, RideHailing,
- * and (for a committed terminal fare) Bill. Provider I/O deliberately stays
- * in the sync orchestration before/after these short transactions.
+ * Bill and the causally keyed fee-confirmation Job. Provider I/O deliberately
+ * stays in the sync orchestration or Job handler outside these short
+ * transactions.
  */
 export function createRideHailingReconciliationTransactionPort(): RideHailingReconciliationTransactionPort {
   return {
@@ -293,7 +339,8 @@ export function createRideHailingReconciliationTransactionPort(): RideHailingRec
         }
 
         const existingBill = await billRepo.findBySourceOrderId(lockedTradeOrder.id);
-        if (!existingBill) {
+        let billId = existingBill?.id ?? null;
+        if (!billId) {
           if (!lockedTradeOrder.pricingExecutionSnapshot) {
             return throwHttpProblem({
               status: 500,
@@ -311,7 +358,7 @@ export function createRideHailingReconciliationTransactionPort(): RideHailingRec
             totalFen: pricingSnapshot.totalFen,
             splitRule: lockedTradeOrder.splitRuleSnapshot,
           });
-          await createBillFromSeed(
+          const createdBill = await createBillFromSeed(
             {
               sourceOrderId: lockedTradeOrder.id,
               currency: pricingSnapshot.currency,
@@ -324,9 +371,106 @@ export function createRideHailingReconciliationTransactionPort(): RideHailingRec
             },
             tx,
           );
+          billId = createdBill.billId as BillId;
+        }
+
+        const billLines = await new BillLineRepository(tx).listByBillId(billId);
+        if (deriveBillPaymentState({ lines: billLines }).allChargesPaid) {
+          await scheduleFeeConfirmation({
+            transaction: tx,
+            billId,
+            orderId: lockedTradeOrder.id,
+          });
         }
 
         return { mutated: true, correctionRequired: null };
+      });
+    },
+
+    async settlePaymentAndScheduleFeeConfirmation(input) {
+      return db.transaction(async (tx) => {
+        const billLineRepo = new BillLineRepository(tx);
+        const billRepo = new BillRepository(tx);
+        const tradeOrderRepo = new TradeOrderRepository(tx);
+        const rideOrderRepo = new RideHailingOrderRepository(tx);
+
+        // Plain reads identify the owner. The mutation order remains
+        // Trade -> Ride -> exact BillLine CAS -> deterministic Job key.
+        const observedLine = await billLineRepo.findById(input.billLineId as BillLineId);
+        if (!observedLine) {
+          return throwHttpProblem({ status: 404, detail: "BillLine not found" });
+        }
+        const bill = await billRepo.findById(observedLine.billId);
+        if (!bill) {
+          return throwHttpProblem({ status: 404, detail: "Bill not found" });
+        }
+
+        const lockedTradeOrder = await tradeOrderRepo.findByIdForUpdate(bill.sourceOrderId);
+        if (!lockedTradeOrder || lockedTradeOrder.family !== "RIDE_HAILING") {
+          return throwHttpProblem({
+            status: 409,
+            detail: "BillLine does not belong to a RideHailing order",
+          });
+        }
+        const lockedRideOrder = await rideOrderRepo.findByOrderIdForUpdate(lockedTradeOrder.id);
+        if (!lockedRideOrder) {
+          return throwHttpProblem({
+            status: 500,
+            detail: "RideHailing order facts are missing for payment settlement",
+          });
+        }
+        if (!lockedRideOrder.finalSettlementInput) {
+          return throwHttpProblem({
+            status: 409,
+            detail: "RideHailing final settlement input is missing",
+          });
+        }
+        if (!lockedRideOrder.dispatchBinding?.providerOrderId) {
+          return throwHttpProblem({
+            status: 409,
+            detail: "RideHailing provider binding is missing",
+          });
+        }
+
+        const settledAt = new Date(input.settledAt);
+        if (Number.isNaN(settledAt.getTime())) {
+          return throwHttpProblem({ status: 400, detail: "Settlement timestamp is invalid" });
+        }
+        const settled = await billLineRepo.markSettledFromProvider({
+          id: observedLine.id,
+          paymentProviderInstanceId: input.paymentProviderInstanceId as PaymentProviderInstanceId,
+          attemptCount: input.attemptCount,
+          settledAt,
+        });
+        if (!settled) {
+          const current = await billLineRepo.findById(observedLine.id);
+          if (!current) {
+            return throwHttpProblem({ status: 404, detail: "BillLine not found" });
+          }
+          const isSameAttempt =
+            current.paymentProviderInstanceId === input.paymentProviderInstanceId &&
+            current.attemptCount === input.attemptCount;
+          return {
+            status: isSameAttempt && current.settledAt ? "ALREADY_SETTLED" : "STALE",
+            line: toPaymentExecutionSnapshot(current),
+          };
+        }
+
+        if (settled.kind === "CHARGE") {
+          const lines = await billLineRepo.listByBillId(bill.id);
+          if (deriveBillPaymentState({ lines }).allChargesPaid) {
+            await scheduleFeeConfirmation({
+              transaction: tx,
+              billId: bill.id,
+              orderId: lockedTradeOrder.id,
+            });
+          }
+        }
+
+        return {
+          status: "SETTLED",
+          line: toPaymentExecutionSnapshot(settled),
+        };
       });
     },
   };

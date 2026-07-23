@@ -11,10 +11,10 @@ This file owns shared frontend/backend contract substrate and routes mature doma
 | Local development runtime and commands | [`../40-deployment/environments.md`](../40-deployment/environments.md) |
 | PR lifecycle, creation, join, waitlist, Study Sprint, share descriptors | [`pr-lifecycle-contracts.md`](./pr-lifecycle-contracts.md) |
 | PR Discovery, Form/Card/List views, Authoring handoff, POI application | [`pr-discovery-and-authoring-contracts.md`](./pr-discovery-and-authoring-contracts.md) |
-| PR messaging, read markers, message visibility, unread-wave handoff | [`pr-messaging-contracts.md`](./pr-messaging-contracts.md) |
+| PR messaging, message visibility, visible-thread acknowledgment, Notification window handoff | [`pr-messaging-contracts.md`](./pr-messaging-contracts.md) |
 | Admin and operator cross-unit surfaces | [`admin-surface-contracts.md`](./admin-surface-contracts.md) |
 | Ecommerce placement, ordering, billing, RideHailing, commerce admin | [`ecommerce-contracts.md`](./ecommerce-contracts.md) |
-| Notification opportunities, waves, dispatch, prompt boundaries | [`notification-contracts.md`](./notification-contracts.md) |
+| Notification business templates, user options, Job creation modes, dispatch, prompt boundaries | [`notification-contracts.md`](./notification-contracts.md) |
 | User telemetry | [`analytics-and-telemetry-contracts.md`](./analytics-and-telemetry-contracts.md) |
 | BI source/projection and analytics authorization | [`bi-domain-contracts.md`](./bi-domain-contracts.md) |
 | Scenario test platform | [`test-platform.md`](./test-platform.md) |
@@ -167,7 +167,7 @@ Route-family details belong to the focused owner files in the Contract Owner Map
 
 - The primary coordination path is browser route -> frontend process and UI -> typed backend API -> backend persistence and side effects -> frontend cache and UI refresh.
 - Rules that affect eligibility, status, timing, or identity must coordinate through backend-owned contracts; frontend may optimize UX and does not invent new domain truth.
-- Best-effort outbox and job processing may complete after the initiating API response, so frontend must not assume all downstream side effects have already happened unless the API contract says so.
+- Best-effort job processing may complete after the initiating API response, so frontend must not assume all downstream side effects have already happened unless the API contract says so. A future durable outbox may make the same asynchronous guarantee only after its owner and atomic handoff contract are explicit; it is not a current runtime capability.
 - Unsupported browser capabilities and auth or config gaps surface through backend status and code plus frontend fallback UX rather than through separate frontend-owned policy logic.
 
 ## 8. System Scenario Verification Contract

@@ -1,16 +1,28 @@
-import type { MeetingPointConfig } from "../../../entities/meeting-point";
+import type { MeetingPointConfig, MeetingPointConfigMap } from "../../../entities/meeting-point";
 import {
   normalizeMeetingPointConfig,
   normalizeMeetingPointConfigMap,
 } from "../../../entities/meeting-point";
 import type { PartnerRequest } from "../../../entities/partner-request";
-import { resolvePublishedPoiByLocation } from "../../poi";
-import { getPRTypeConfigMeetingPointPolicy } from "../../pr-type-config";
+// Depend on POI's low-level query surface rather than its public barrel: the
+// latter also exports POI mutation use cases, which depend on this PR rule.
+import { resolvePublishedPoiByLocation } from "../../poi/queries";
+import { getPRTypeConfigMeetingPointPolicy } from "../../pr-type-config/queries";
 
 export type MeetingPointSource = "PR" | "PR_TYPE_LOCATION" | "PR_TYPE" | "POI";
 
 export type EffectiveMeetingPoint = MeetingPointConfig & {
   source: MeetingPointSource;
+};
+
+export type MeetingPointResolutionReader = {
+  findPRTypeMeetingPointPolicy(type: string): Promise<{
+    meetingPoint: MeetingPointConfig | null;
+    locationMeetingPoints: MeetingPointConfigMap;
+  } | null>;
+  findPublishedPoiByLocation(location: string): Promise<{
+    meetingPoint: MeetingPointConfig | null;
+  } | null>;
 };
 
 const withSource = (
@@ -30,7 +42,13 @@ const normalizeLocation = (location: string | null): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-export const resolveEffectiveMeetingPoint = async (
+const defaultMeetingPointResolutionReader: MeetingPointResolutionReader = {
+  findPRTypeMeetingPointPolicy: getPRTypeConfigMeetingPointPolicy,
+  findPublishedPoiByLocation: resolvePublishedPoiByLocation,
+};
+
+const resolveEffectiveMeetingPointWithReader = async (
+  reader: MeetingPointResolutionReader,
   request: Pick<PartnerRequest, "type" | "location" | "meetingPoint">,
 ): Promise<EffectiveMeetingPoint | null> => {
   const prMeetingPoint = withSource("PR", normalizeMeetingPointConfig(request.meetingPoint));
@@ -43,7 +61,7 @@ export const resolveEffectiveMeetingPoint = async (
     return null;
   }
 
-  const config = await getPRTypeConfigMeetingPointPolicy(request.type);
+  const config = await reader.findPRTypeMeetingPointPolicy(request.type);
   if (config) {
     const locationMeetingPoints = normalizeMeetingPointConfigMap(config.locationMeetingPoints);
     const typeLocationMeetingPoint = withSource(
@@ -63,9 +81,26 @@ export const resolveEffectiveMeetingPoint = async (
     }
   }
 
-  const poi = await resolvePublishedPoiByLocation(location);
+  const poi = await reader.findPublishedPoiByLocation(location);
   return withSource("POI", normalizeMeetingPointConfig(poi?.meetingPoint));
 };
+
+/**
+ * The caller can bind explicit transaction-local readers without giving this
+ * pure resolution rule a database or source-owner dependency.
+ */
+export const createEffectiveMeetingPointResolver =
+  (
+    reader: MeetingPointResolutionReader,
+  ): ((
+    request: Pick<PartnerRequest, "type" | "location" | "meetingPoint">,
+  ) => Promise<EffectiveMeetingPoint | null>) =>
+  async (request) =>
+    await resolveEffectiveMeetingPointWithReader(reader, request);
+
+export const resolveEffectiveMeetingPoint = createEffectiveMeetingPointResolver(
+  defaultMeetingPointResolutionReader,
+);
 
 export const areEffectiveMeetingPointsEqual = (
   left: EffectiveMeetingPoint | null,

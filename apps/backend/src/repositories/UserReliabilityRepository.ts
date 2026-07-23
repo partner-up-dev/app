@@ -1,11 +1,14 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../lib/db";
 import { userReliability, type UserReliability } from "../entities/user-reliability";
 import type { UserId } from "../entities/user";
+import type { RepositoryExecutor } from "./_executor";
 
 export class UserReliabilityRepository {
+  constructor(private readonly executor: RepositoryExecutor = db) {}
+
   async findByUserId(userId: UserId): Promise<UserReliability | null> {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(userReliability)
       .where(eq(userReliability.userId, userId));
@@ -13,7 +16,7 @@ export class UserReliabilityRepository {
   }
 
   async ensureExists(userId: UserId): Promise<void> {
-    await db
+    await this.executor
       .insert(userReliability)
       .values({ userId })
       .onConflictDoNothing({ target: userReliability.userId });
@@ -29,19 +32,29 @@ export class UserReliabilityRepository {
     },
   ): Promise<void> {
     await this.ensureExists(userId);
-    const current = await this.findByUserId(userId);
-    if (!current) return;
 
-    const nextJoinCount = Math.max(0, current.reliabilityJoinCount + (delta.joined ?? 0));
-    const nextConfirmCount = Math.max(0, current.reliabilityConfirmCount + (delta.confirmed ?? 0));
-    const nextAttendCount = Math.max(0, current.reliabilityAttendCount + (delta.attended ?? 0));
-    const nextReleaseCount = Math.max(0, current.reliabilityReleaseCount + (delta.released ?? 0));
+    // Keep each ratio based on the exact same post-delta expressions as its
+    // corresponding counters. PostgreSQL evaluates this as one row-level
+    // update, so concurrent deltas cannot overwrite one another via a stale
+    // read-compute-write cycle.
+    const nextJoinCount = sql<number>`GREATEST(0, ${userReliability.reliabilityJoinCount} + ${
+      delta.joined ?? 0
+    })`;
+    const nextConfirmCount = sql<number>`GREATEST(0, ${
+      userReliability.reliabilityConfirmCount
+    } + ${delta.confirmed ?? 0})`;
+    const nextAttendCount = sql<number>`GREATEST(0, ${
+      userReliability.reliabilityAttendCount
+    } + ${delta.attended ?? 0})`;
+    const nextReleaseCount = sql<number>`GREATEST(0, ${
+      userReliability.reliabilityReleaseCount
+    } + ${delta.released ?? 0})`;
 
-    const nextJoinToConfirmRatio = nextJoinCount > 0 ? nextConfirmCount / nextJoinCount : 0;
-    const nextConfirmToAttendRatio = nextConfirmCount > 0 ? nextAttendCount / nextConfirmCount : 0;
-    const nextReleaseFrequency = nextJoinCount > 0 ? nextReleaseCount / nextJoinCount : 0;
+    const nextJoinToConfirmRatio = sql<number>`CASE WHEN ${nextJoinCount} > 0 THEN ${nextConfirmCount}::double precision / ${nextJoinCount} ELSE 0 END`;
+    const nextConfirmToAttendRatio = sql<number>`CASE WHEN ${nextConfirmCount} > 0 THEN ${nextAttendCount}::double precision / ${nextConfirmCount} ELSE 0 END`;
+    const nextReleaseFrequency = sql<number>`CASE WHEN ${nextJoinCount} > 0 THEN ${nextReleaseCount}::double precision / ${nextJoinCount} ELSE 0 END`;
 
-    await db
+    await this.executor
       .update(userReliability)
       .set({
         reliabilityJoinCount: nextJoinCount,

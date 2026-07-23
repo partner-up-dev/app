@@ -15,8 +15,8 @@ export type CreatePRMessageResponse = InferResponseType<
   (typeof client.api.pr)[":id"]["messages"]["$post"]
 >;
 
-export type AdvancePRMessageReadMarkerResponse = InferResponseType<
-  (typeof client.api.pr)[":id"]["messages"]["read-marker"]["$post"]
+export type AcknowledgePRMessageAttentionResponse = InferResponseType<
+  (typeof client.api.pr)[":id"]["messages"]["acknowledgement"]["$post"]
 >;
 
 export const usePRMessages = (id: Ref<PRId | null>) => {
@@ -96,15 +96,17 @@ export const useCreatePRMessage = () => {
   });
 };
 
-export const useAdvancePRMessageReadMarker = () => {
-  const queryClient = useQueryClient();
-
+/**
+ * The visible-route workflow owns when this mutation runs. This transport hook
+ * only carries the server-provided cursor back to the semantic PR endpoint.
+ */
+export const useAcknowledgePRMessageAttention = () => {
   return useMutation({
-    mutationFn: async (input: { id: PRId; lastReadMessageId: number }) => {
-      const res = await client.api.pr[":id"]["messages"]["read-marker"].$post(
+    mutationFn: async (input: { id: PRId; acknowledgementCursor: number }) => {
+      const res = await client.api.pr[":id"]["messages"]["acknowledgement"].$post(
         {
           param: { id: input.id.toString() },
-          json: { lastReadMessageId: input.lastReadMessageId },
+          json: { acknowledgementCursor: input.acknowledgementCursor },
         },
         {
           init: {
@@ -119,18 +121,6 @@ export const useAdvancePRMessageReadMarker = () => {
       }
 
       return await res.json();
-    },
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData<PRMessagesResponse>(queryKeys.pr.messages(variables.id), (prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          thread: data.thread,
-        };
-      });
     },
   });
 };

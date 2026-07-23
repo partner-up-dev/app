@@ -1,5 +1,1 @@
-export type { WeChatSubscriptionChannelMessage } from "./notification-channel-adapter";
-export {
-  isWeChatSubscriptionNotificationConfigured,
-  sendWeChatSubscriptionNotification,
-} from "./wechat-subscription.adapter";
+export { createWeChatSubscriptionPreparedNotificationChannel } from "./wechat-subscription.adapter";

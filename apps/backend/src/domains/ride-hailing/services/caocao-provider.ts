@@ -310,19 +310,6 @@ const toCaocaoNavigationPolylineType = (
   routeKind: RideHailingProviderNavigationRouteQueryKind,
 ): number => (routeKind === "PICKUP" ? 1 : 3);
 
-const summarizeNavigationRouteEndpoint = (
-  polyline: RideHailingProviderNavigationRoute["polyline"],
-  position: "first" | "last",
-): { latitude: number; longitude: number } | null => {
-  const point = position === "first" ? polyline[0] : polyline[polyline.length - 1];
-  return point
-    ? {
-        latitude: point.latitude,
-        longitude: point.longitude,
-      }
-    : null;
-};
-
 const parseCaocaoOrderDetail = (data: Record<string, unknown>): RideHailingProviderOrderDetail => {
   const basicOrder = readOptionalRecordField(data, ["basicOrderVO"]);
   const driverRaw = readOptionalRecordField(data, ["driverInfoVo"]);
@@ -496,96 +483,6 @@ const parseCaocaoResponseJson = async (response: Response): Promise<unknown> => 
     };
   }
 };
-
-const writeCaocaoDiagnosticLog = (payload: Record<string, unknown>): void => {
-  process.stdout.write(
-    `${JSON.stringify({
-      marker: "RideHailingProviderCaocao",
-      ...payload,
-    })}\n`,
-  );
-};
-
-const writeCaocaoRouteQuerySuccessLog = (input: {
-  endpointPath: string;
-  providerInstanceId: string;
-  providerOrderId: string;
-  requestedNavigationPolylineType: number;
-  requestedRouteKind: RideHailingProviderNavigationRouteQueryKind;
-  route: RideHailingProviderNavigationRoute;
-  returnedNavigationPolylineType: number | null;
-}): void => {
-  writeCaocaoDiagnosticLog({
-    endpointPath: input.endpointPath,
-    event: "caocao_route_query_success",
-    polylineFirstPoint: summarizeNavigationRouteEndpoint(input.route.polyline, "first"),
-    polylineLastPoint: summarizeNavigationRouteEndpoint(input.route.polyline, "last"),
-    polylinePointCount: input.route.polyline.length,
-    providerInstanceId: input.providerInstanceId,
-    providerOrderId: input.providerOrderId,
-    remainingDistanceMeters: input.route.remainingDistanceMeters,
-    remainingDurationSeconds: input.route.remainingDurationSeconds,
-    requestedNavigationPolylineType: input.requestedNavigationPolylineType,
-    requestedRouteKind: input.requestedRouteKind,
-    returnedNavigationPolylineType: input.returnedNavigationPolylineType,
-    returnedRouteKind: input.route.routeKind,
-    trafficLightCount: input.route.trafficLightCount,
-    vehicleLocation: input.route.vehicleLocation
-      ? {
-          capturedAt: input.route.vehicleLocation.capturedAt,
-          headingDegrees: input.route.vehicleLocation.headingDegrees,
-          latitude: input.route.vehicleLocation.latitude,
-          longitude: input.route.vehicleLocation.longitude,
-          speedKph: input.route.vehicleLocation.speedKph,
-        }
-      : null,
-  });
-};
-
-const tryParseCaocaoResponseBody = <TData>(body: unknown): CaocaoRawResponse<TData> | null => {
-  try {
-    return parseCaocaoResponseBody<TData>(body);
-  } catch {
-    return null;
-  }
-};
-
-const buildCaocaoResponseDiagnostic = (input: {
-  endpointPath: string;
-  httpStatus: number;
-  method: "GET" | "POST";
-  params: CaocaoParamInput;
-  providerInstanceId: string;
-  providerType: RideHailingProviderInstance["providerType"];
-  responseBody: unknown;
-}) => {
-  const parsed = tryParseCaocaoResponseBody(input.responseBody);
-  return {
-    endpointPath: input.endpointPath,
-    event:
-      input.httpStatus !== 200 || parsed?.code !== 200 || parsed?.success !== true
-        ? "caocao_provider_failure"
-        : input.endpointPath === "/common/estimatePriceWithDetail"
-          ? "caocao_estimate_response"
-          : "caocao_response",
-    httpStatus: input.httpStatus,
-    method: input.method,
-    params: normalizeCaocaoParams(input.params),
-    providerCode: parsed?.code ?? null,
-    providerInstanceId: input.providerInstanceId,
-    providerMsg: parsed?.msg ?? null,
-    providerSuccess: parsed?.success ?? null,
-    providerType: input.providerType,
-    responseBody: input.responseBody,
-  };
-};
-
-const shouldLogCaocaoDiagnostic = (input: {
-  diagnostic: ReturnType<typeof buildCaocaoResponseDiagnostic>;
-}): boolean =>
-  input.diagnostic.event === "caocao_provider_failure" ||
-  input.diagnostic.endpointPath === "/common/queryCity" ||
-  input.diagnostic.endpointPath === "/common/estimatePriceWithDetail";
 
 export function createCaocaoSignature(input: {
   params: CaocaoSignedParams;
@@ -1003,17 +900,7 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
         order_id: input.providerOrderId,
       },
     );
-    const route = parseCaocaoDriverRoute(data);
-    writeCaocaoRouteQuerySuccessLog({
-      endpointPath: "/common/queryDriverPolyline",
-      providerInstanceId: this.input.providerInstance.id,
-      providerOrderId: input.providerOrderId,
-      requestedNavigationPolylineType,
-      requestedRouteKind: input.routeKind,
-      route,
-      returnedNavigationPolylineType: readOptionalNumberField(data, ["navigationPolylineType"]),
-    });
-    return route;
+    return parseCaocaoDriverRoute(data);
   }
 
   async cancelRide(input: RideHailingProviderCancelInput): Promise<{
@@ -1052,8 +939,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
   async confirmFee(input: RideHailingProviderConfirmFeeInput): Promise<void> {
     await this.request("POST", "/common/feeConfirm", {
       order_id: input.providerOrderId,
-      allowance_amount: input.allowanceAmountFen,
-      cao_allowance_amount: input.caocaoAllowanceAmountFen,
     });
   }
 
@@ -1250,18 +1135,6 @@ export class CaocaoProviderAdapter implements RideHailingProviderPort {
             body: serializeCaocaoFormBody(signedParams),
           });
     const responseBody = await parseCaocaoResponseJson(response);
-    const diagnostic = buildCaocaoResponseDiagnostic({
-      endpointPath,
-      httpStatus: response.status,
-      method,
-      params,
-      providerInstanceId: this.input.providerInstance.id,
-      providerType: this.input.providerInstance.providerType,
-      responseBody,
-    });
-    if (shouldLogCaocaoDiagnostic({ diagnostic })) {
-      writeCaocaoDiagnosticLog(diagnostic);
-    }
     if (!response.ok) {
       return throwHttpProblem({
         status: 502,

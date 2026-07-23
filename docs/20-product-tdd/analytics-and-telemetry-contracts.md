@@ -12,6 +12,15 @@ PartnerUp separates three signal families:
 
 BI may combine all three families. User behavior telemetry must not become the source of truth for business facts that already live in authoritative tables.
 
+Notification provider attempts are program behavior signals, not user behavior
+events and not product delivery truth. Future observability may emit zero to
+many correlated attempt signals per Job to logs, traces and metrics; Phase 6
+does not approximate that infrastructure with console output. Sampling, loss,
+retention or query availability in that future stream must never change Job
+retry, dedupe-window or acknowledgment, nor an owner's reconciliation,
+preference/credit or other business behavior. Those facts remain in their
+authoritative durable owners.
+
 ## User Behavior Collection Principles
 
 User-behavior telemetry is a ledger, not a report.

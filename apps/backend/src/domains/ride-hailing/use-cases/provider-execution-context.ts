@@ -68,6 +68,7 @@ export async function loadRideHailingProviderExecutionContext(input: {
     return throwHttpProblem({
       status: 404,
       detail: "RideHailing order not found",
+      code: "RIDE_HAILING_ORDER_NOT_FOUND",
     });
   }
 
@@ -82,6 +83,7 @@ export async function loadRideHailingProviderExecutionContext(input: {
     return throwHttpProblem({
       status: 409,
       detail: "RideHailing order is missing dispatch binding",
+      code: "RIDE_HAILING_PROVIDER_BINDING_MISSING",
     });
   }
 
@@ -131,6 +133,7 @@ export async function loadRideHailingProviderExecutionContext(input: {
     return throwHttpProblem({
       status: 404,
       detail: "RideHailing provider instance not found",
+      code: "RIDE_HAILING_PROVIDER_INSTANCE_NOT_FOUND",
     });
   }
 

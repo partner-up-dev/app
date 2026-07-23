@@ -24,7 +24,7 @@
       :message="t('errors.missingPartnerRequestId')"
     />
 
-    <PRMessageThread v-else :pr-id="id" :show-header="false" layout="page" />
+    <PRMessageThread v-else :pr-id="id" :show-header="false" acknowledge-attention layout="page" />
 
     <template #footer>
       <PageFooter variant="minimal" data-region="support" />

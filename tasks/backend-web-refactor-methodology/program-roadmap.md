@@ -29,11 +29,11 @@ Phase 3: architecture and PR migration protocol               Complete
     3-8 CF-02 waitlist header-only auth contract              Complete
   -> Phase 3 exit                                             Complete
 
-Phase 4: User/Auth                                                 local implementation complete after completion repair; 4-1 rollout observation and 4-3 topology evidence pending
-Phase 5: Commerce
-Phase 6: Job/Notification runtime
-Phase 7: Observability/Analytics
-Phase 8: global review and cleanup
+Phase 4: User/Auth                                                 local implementation complete; external rollout/topology evidence pending
+Phase 5: Commerce                                                  local source convergence committed (`171319de`); 5-7a evidence and explicit deferrals remain
+Phase 6: Job/Notification runtime                                 Complete locally; real O11y/delivery retirement handed to Phase 7
+Phase 7: Observability/Analytics                                  not started
+Phase 8: global review and cleanup                                not started
 ```
 
 Phase 3A established the measurable/read-owner foundation through `3-1`/`3-2`. Phase 3B then carried the
@@ -64,6 +64,28 @@ the stale async-navigation OAuth side effect and whitespace-provider-`openid` ac
 durable rule promotion. Phase 4 is locally closed; it still leaves the 4-1 rollout and 4-3.4 provider/topology
 evidence branches open rather than calling local completion a production-topology conclusion.
 
+Phase 5 completed its local owner convergence in `171319de`: Quote-to-order
+admission now has a durable attempt boundary, Checkout uses one PaymentTx cache
+authority, RideHailing observation is explicit rather than a Detail-read side
+effect, and core compatibility roots are retired. `5-7b` local review is
+complete. `5-7a` remains an external staging/provider proof branch. The
+retained Rental Bill payment path is a Sir-accepted risk, while post-settlement
+RideHailing fee-confirmation recovery is deliberately handed to Phase 6's
+atomic-settlement + typed-Job handoff; official docs permit an `order_id`-only
+call and Sir accepts lost-response duplicate-effect risk. No generic outbox,
+owner ambiguity state, or operator recovery model is implied.
+
+Phase 6 completed its local Job/Notification convergence on 2026-07-23.
+Business notification producers now use one versioned generic Job owner;
+semantic PR-message acknowledgement replaces inbox/read-marker persistence;
+opportunity/wave/inbox state, concrete per-kind decoders and no-cycle payload
+compatibility are forward-retired. RideHailing qualifying settlement
+atomically creates one typed fee-confirmation Job, while provider I/O occurs
+after commit through an `order_id`-only internal handler. The scale-to-zero
+tick/request-tail seams, protected aggregate diagnostics and full local gates
+are proven. `notification_deliveries` remains inert audit history until Phase
+7 supplies governed observability.
+
 ## Program Phase Boundaries
 
 | Phase | Intended owner problem | Required entry evidence | Exit shape |
@@ -71,10 +93,10 @@ evidence branches open rather than calling local completion a production-topolog
 | 1 | Freeze observable behavior and authority claims | Repository and durable truth at historical entry | Product invariants, authority paths and conflicts recorded |
 | 2 | Establish a read-only structural/runtime baseline and recover trustworthy gates | Phase 1 freeze | Reproducible baseline; Web build and System scenario restored |
 | 3 | Prove the target architecture on PR/read/mutation/contracts and close CF-01/CF-02 | `3-1` fitness baseline | `3-1`–`3-8` green; conflicts resolved in durable truth and System journeys |
-| 4 User/Auth | Session, OAuth, pending actions, auth transport and user ownership | Phase 3 auth seams stable; current auth SCC/continuity inventory | One explicit session/workflow owner per journey; no duplicate auth truth |
-| 5 Commerce | Order/payment/bill/fulfillment/provider authority and compensation | User/Auth contract stable; provider/idempotency matrix | Deep Commerce owners with proven callback, settlement and recovery paths |
-| 6 Job/Notification | JobRunner, scheduling, delivery and retry/bootstrap ownership | Commerce side effects stable; runtime topology and retry evidence | Explicit runtime owner, idempotency/retry policy and lifecycle proof |
-| 7 Observability | Telemetry, analytics, operational signals and authority boundaries | Prior domain events/surfaces stable | Signals follow domain semantics without becoming product truth |
+| 4 User/Auth | Session, OAuth, pending actions, auth transport and user ownership | Phase 3 auth seams stable; current auth SCC/continuity inventory | Local session/workflow owner closure; external rollout/provider-topology claims remain separately evidenced |
+| 5 Commerce | Order/payment/bill/fulfillment/provider authority and compensation | User/Auth contract stable; provider/idempotency matrix | Local Commerce owner closure with explicit external-evidence and deferred-risk handoffs; no false deployment claim |
+| 6 Job/Notification | JobRunner, scheduling, dispatch and retry/bootstrap ownership | Phase 5 local side-effect boundaries plus explicit 5-7a/F-02 handoffs | Explicit runtime owner, durable Job control/creation state, attempt-O11y boundary, idempotency/retry policy and lifecycle proof; `6-0`, D6-N-01, D6-J-02 and D6-F-01 have closed the read-only owner design before execution |
+| 7 Observability | Telemetry, analytics, operational signals and authority boundaries | Prior domain surfaces and Job/program-O11y boundary stable | Signals follow domain semantics without becoming product truth |
 | 8 Global review | Cross-phase consistency, expired compatibility and report-first findings | Phases 3–7 exited | Global fitness review, targeted cleanup, durable-doc/link/gate reconciliation |
 
 ## Program Guardrails
@@ -85,3 +107,6 @@ evidence branches open rather than calling local completion a production-topolog
 - Compatibility is removed only after its replacement has both focused and cross-unit proof.
 - Global cleanup is evidence-driven: no broad formatting, directory churn or dead-code deletion disguised as
   architecture progress.
+- A deferred risk may cross phases only through explicit ownership, atomicity,
+  retry/idempotency and proof decisions. Owner state or operator workflow is
+  added only when the business semantics actually require it.

@@ -87,7 +87,11 @@
 - A questionnaire instance represents the mounted question definition snapshot for a consumer such as PR. Participant answers belong to response records keyed by the mounted instance and respondent identity.
 - PR participation gating for mounted feedback is owned by PR integration. The feedback submission command validates questionnaire answers against the mounted instance and stores responses in the feedback capability.
 - PR messages are visible only to current active participants; users who exit or are released must no longer see that PR's message thread.
-- Only current active participants may view the thread or act on read markers and participant posting, while operators may inject system messages through admin tooling without becoming participants themselves.
+- Only current active participants may view the thread, explicitly acknowledge a message-attention window, and post participant messages, while operators may inject system messages through admin tooling without becoming participants themselves.
+- A recipient's unacknowledged PR-message attention window ends when that
+  recipient leaves the active roster or the PR becomes `CLOSED` or `EXPIRED`.
+  Compatible system/message content may still be retained on a terminal PR,
+  but it does not create a new attention notification.
 - Study Sprint Pomodoro rooms are visible only to current active participants of an `ACTIVE` `STUDY_SPRINT` PR.
 - Study Sprint Pomodoro timers are participant-owned and independent. Completing a timer does not exit the participant from the room and does not mutate PR participation state.
 - Study Sprint Pomodoro aggregates are accountability summaries only. They must not update personal reputation, user reliability, PR punishment, reminders, or participant status in MVP.
@@ -171,15 +175,16 @@
 - Confirmation can be disabled at PR level. When disabled, the PR has no confirm action, confirmation reminders, confirmation-window auto-confirm, or confirmation-deadline slot release. Join lock, check-in, and the persistent PR detail notification-subscription management path continue to use their own eligibility rules.
 - Check-in feedback is not mandatory by default; absence of check-in should remain "unknown" rather than auto-converted into "did not attend".
 - Mounted post-activity feedback is optional unless the PR integration presents it for the current collaboration. Absence of a questionnaire response is tracked as missing feedback for that questionnaire instance, separate from attendance state.
-- PR messaging is a non-realtime coordination layer and must not introduce chat-room semantics such as presence, typing, or read receipts.
+- PR messaging is a non-realtime coordination layer and must not introduce chat-room semantics such as presence, typing, read receipts, persisted viewer read position, or a backend-owned unread badge in the current product.
 - Notification subscription is modeled by remaining send quota, not by a simple toggle.
 - Successful join in a PR that supports reminder registration should immediately offer the join-success follow-up sequence while leaving a durable management path on the detail page. When confirmation is enabled, the sequence first shows a dedicated confirmation follow-up explaining confirmation importance, the confirmation window, the slot-release consequence, and the confirmation reminder subscription. The general notification-subscription follow-up then focuses on new-partner reminders and meeting-point reminders. After those follow-ups, join success may show the official-account follow prompt.
 - The dedicated confirmation follow-up includes the confirmation deadline when that deadline is known. PRs with confirmation disabled start the join-success sequence at the general notification-subscription follow-up.
 - Confirmation-start reminders must become claimable and deliverable at or after the configured confirmation-start instant, because the linked confirm action is gated by the same window.
 - Successful waitlist entry should offer a focused `WAITLIST_PROMOTED` subscription prompt so the user can receive one notification when the pending slot becomes active.
 - Successful waitlist entry may also offer `WAITLIST_ALTERNATIVE_AVAILABLE` when the user selected cross-PR alternative reminders for that waitlist slot.
-- PR message notifications are limited to at most one send per `PR / recipient / unread wave`.
-- The current `PR_MESSAGE` timing policy is one fixed short-debounce summary opportunity per unread wave.
+- PR message notifications are limited to at most one send per `PR / recipient / message-attention window`.
+- A message-attention window opens on the first eligible message and closes only when the recipient explicitly views the visible thread or the business context becomes ineligible. Hidden fetches and prefetches do not close it; the acknowledgment is notification-frequency input, not a durable general-purpose read receipt.
+- The current `PR_MESSAGE` timing policy is one fixed short-debounce summary task per message-attention window.
 - Before a PR message notification is sent, the system must re-validate that the recipient is still a current active participant of that PR.
 - Availability of join, confirm, and similar operations is enforced by authoritative command handling; preflight reads may surface the same guardrails before the user acts.
 - The join command remains authoritative for unresolved join gates and must reject joining when any configured custom gate is unresolved for the current viewer or PR.

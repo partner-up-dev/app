@@ -2,11 +2,9 @@ import type { PartnerRequest, PRId, UserId } from "../../../entities";
 import { ProblemDetailsError } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { getPRTypeConfigParticipationFrequencyPolicy } from "../../pr-type-config";
 import { getTimeWindowClose, getTimeWindowStart } from "./time-window.service";
-
-const partnerRepo = new PartnerRepository();
-const prRepo = new PartnerRequestRepository();
 
 export const PR_TYPE_PARTICIPATION_FREQUENCY_LIMITED_CODE =
   "PR_TYPE_PARTICIPATION_FREQUENCY_LIMITED";
@@ -44,7 +42,12 @@ const comparePRByTimeWindow = (left: PartnerRequest, right: PartnerRequest): num
   return left.id - right.id;
 };
 
-const resolvePRSequence = async (type: string, targetPrId: PRId): Promise<PartnerRequest[]> => {
+const resolvePRSequence = async (
+  type: string,
+  targetPrId: PRId,
+  executor?: RepositoryExecutor,
+): Promise<PartnerRequest[]> => {
+  const prRepo = new PartnerRequestRepository(executor);
   const roots = await prRepo.findByType(type);
   return roots
     .filter((root) => root.visibilityStatus === "VISIBLE" || root.id === targetPrId)
@@ -54,6 +57,7 @@ const resolvePRSequence = async (type: string, targetPrId: PRId): Promise<Partne
 export const evaluatePRTypeParticipationFrequencyLimit = async (input: {
   request: PartnerRequest;
   userId: UserId | null;
+  executor?: RepositoryExecutor;
 }): Promise<PRTypeParticipationFrequencyLimitEvaluation> => {
   const config = await getPRTypeConfigParticipationFrequencyPolicy(input.request.type);
   const limit = config?.participationFrequencyLimit ?? null;
@@ -61,7 +65,7 @@ export const evaluatePRTypeParticipationFrequencyLimit = async (input: {
     return { allowed: true, limit };
   }
 
-  const sequence = await resolvePRSequence(input.request.type, input.request.id);
+  const sequence = await resolvePRSequence(input.request.type, input.request.id, input.executor);
   const targetIndex = sequence.findIndex((root) => root.id === input.request.id);
   if (targetIndex < 0) {
     return { allowed: true, limit };
@@ -70,6 +74,7 @@ export const evaluatePRTypeParticipationFrequencyLimit = async (input: {
   const sequenceIndexByPrId = new Map<PRId, number>(
     sequence.map((root, index) => [root.id, index]),
   );
+  const partnerRepo = new PartnerRepository(input.executor);
   const activeSlots = await partnerRepo.findActiveByUserId(input.userId);
   const previousParticipation = activeSlots
     .map((slot) => ({
@@ -103,6 +108,7 @@ export const evaluatePRTypeParticipationFrequencyLimit = async (input: {
 export const assertPRTypeParticipationFrequencyLimitAllows = async (input: {
   request: PartnerRequest;
   userId: UserId;
+  executor?: RepositoryExecutor;
 }): Promise<void> => {
   const evaluation = await evaluatePRTypeParticipationFrequencyLimit(input);
   if (evaluation.allowed) return;

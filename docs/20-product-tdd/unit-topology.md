@@ -16,7 +16,8 @@ Owns:
 - domain rules, eligibility checks, and state transitions
 - authoritative persistence
 - auth/session verification
-- background jobs, outbox processing, notification delivery, analytics persistence, and operation logs
+- durable Job control/creation modes, Notification semantics/channel edges,
+  program observability, analytics persistence, and operation logs
 - integrations with WeChat, WeCom, LLM, and operational configuration
 
 ### Frontend Unit
@@ -53,7 +54,7 @@ Backend clusters:
   `ride-hailing`, `bill`, `payment`
 - identity and user: `auth`, `user`
 - admin and operations: admin management, POI/config/meta
-- cross-cutting infra: events, jobs, notifications, user telemetry, analytics, operation log
+- cross-cutting infra: jobs, notifications, user telemetry, analytics, operation log
 
 Frontend clusters:
 
@@ -73,6 +74,7 @@ These are subsystem clusters inside the two units, not independent top-level uni
 | PR Type Configuration | `domains/pr-type-config` owns current-policy queries, operator commands and stable contracts; its Postgres repository remains internal. `admin-pr-type-config` is the operator composition/HTTP adapter. | consumers → named neutral PR Type Configuration queries/commands/contracts → internal persistence; Admin remains an adapter and does not duplicate policy validation or writes |
 | PR Authoring | `domains/pr-authoring` plus ordinary PR creation commands | route/controller → Authoring public options/submission surface → ordinary PR command |
 | PR Discovery | `domains/pr-discovery` for catalog, view resolution, directory and recommendation reads | route/controller → Discovery query surface → canonical PR/Type/POI reads |
+| PR Messaging | `domains/pr` owns messages, visibility, message/lifecycle source facts and the visible-thread acknowledgment surface; Notification owns semantic attention-window schedule/release and private Job mapping | Web/route → PR message command/query → Notification semantic schedule/acknowledgment; PR lifecycle/admin transactions supply only executor plus PR/recipient facts, and no caller imports Job persistence, creation keys or provider template data |
 | POI | `domains/poi` and POI persistence | Authoring/Discovery consume POI-owned query/contracts rather than duplicating location authority |
 | Feedback Questionnaire | `domains/feedback-questionnaire` and feedback persistence | PR integration consumes feedback command/query/contracts; questionnaire owner remains independent |
 
@@ -100,11 +102,12 @@ for new edges of the same shape.
 
 `ride-hailing` owns one deliberately narrow transaction Port for reconciling a
 provider observation with local Commerce facts. Its private persistence adapter
-is the sole Phase-5 location permitted to coordinate Trade, RideHailing, and,
-for a committed terminal fare, Bill. It acquires Trade then RideHailing locks;
-provider I/O occurs before or after that short transaction. The Port exposes
-only semantic observation/final-settlement operations, never a repository,
-Drizzle row, executor, raw provider payload, or generic Commerce transaction.
+is the sole location permitted to coordinate Trade, RideHailing, Bill and the
+causally keyed fee-confirmation Job reservation. It acquires Trade then
+RideHailing locks; provider I/O occurs before or after that short transaction.
+The Port exposes only semantic observation, final-settlement and exact
+BillLine-settlement/Job-handoff operations, never a repository, Drizzle row,
+executor, raw provider payload, or generic Commerce transaction.
 
 This is a named exception because the terminal-fare invariant spans those
 owners. A future coordination path must prove an equivalent shared atomic
@@ -114,7 +117,71 @@ this adapter or introduce a generic `withCommerceTransaction` convenience API.
 ## System-Shaping Constraints
 
 - Scale-to-zero backend runtime means delayed work must rely on DB-backed jobs and externally triggerable ticks rather than long-lived in-memory schedulers.
-- Job scheduling semantics are backend-infra owned: JobRunner persists bucket timing attributes on each job record and decides due/missed status centrally; notification modules only supply per-type timing policy.
+- Job scheduling semantics are backend-infra owned: JobRunner persists bucket
+  timing, claim/lease/retry/terminal execution control and declared creation modes.
+  `UNTIL_ACKNOWLEDGED` holds a creation reservation independently of execution
+  terminality. Notification supplies business timing/creation policy and maps a
+  semantic acknowledgment to the private Job key; PR/Web do not own Job
+  mechanics.
+- Notification owns business template IDs, channel bindings, user-option
+  preference/credit semantics, eligibility, rendering and provider outcome
+  classification. Job owns the durable Notification Task. Attempt-by-attempt
+  diagnostic history belongs to correlated program observability. JobRunner
+  consumes only a generic complete/retry/fail/skip disposition; any business
+  outcome or uncertainty that changes reconciliation remains durable on the
+  semantic domain owner.
+- Notification runtime composition consumes PR revalidation facts through the
+  narrow `domains/pr/notification-contexts` query entrypoint. It must not
+  import a broad PR barrel at module initialization: that can re-enter legacy
+  Notification compatibility wiring and capture an uninitialized projection.
+  The projection returns PR-owned current facts/anchors, never a derived Job
+  `runAt`, Job key or Job policy; Notification derives those private mechanics.
+- A current-state revalidation projection is a read boundary, not a hidden
+  lifecycle command. In particular, waitlist-alternative eligibility may use
+  pure temporal predicates over persisted PR facts but must never invoke
+  temporal refresh, promotion, release or status mutation while deciding
+  whether a Notification task can be created or dispatched.
+- When a PR transition cannot tolerate task loss, PR may use one named,
+  owner-internal transaction adapter to call an executor-facing semantic
+  Notification port. Notification binds its private Job writer internally; the
+  source never receives a writer, Job identity or creation key. The public
+  Notification surface stays semantic-only, and this is not permission for a
+  generic cross-domain transaction helper. Waitlist promotion and New Partner
+  active admission are the current proofs: their cycle identities are PR-owned,
+  while Notification uses those facts only to key and revalidate a task. New
+  Partner additionally freezes its exact recipient fan-out in that transaction
+  because current membership cannot reconstruct the original event audience.
+  PR-ready uses the same narrow shape for both manual and temporal READY entry:
+  PR owns the row lock, durable ready cycle and roster observation; Notification
+  owns source eligibility and private Job policy. Its handoff commits or rolls
+  back with the PR transition, never through a post-commit concrete scheduler.
+- Effective meeting-point changes use the same named-transaction principle
+  without turning it into a universal helper. PR-content, PR-type coordination
+  and POI each own the lock/mutation/before-after observation appropriate to
+  their source, then call Notification's narrow transaction-bound handoff.
+  The immutable source event facts are one operation UUID, visible description
+  and timestamp; a multi-PR source operation may share its UUID/correlation,
+  but every PR remains a distinct causation/fan-out. The PR effective-point
+  rule consumes POI and PR-type facts through their explicit query entrypoints,
+  never aggregate barrels that also export mutation use cases: initialization
+  order must not decide semantic resolution.
+- PR capacity and queue ordering use a separate owner-internal admission
+  adapter. It exposes semantic direct-admit, waitlist-entry, promotion and
+  creator-publish operations rather than an executor or reusable callback; it
+  locks the PR then the selected active entrant under a bounded serializable
+  retry. It owns only local slot/capacity/reliability/status mutation. Provider
+  calls, Job/Notification policy, expansion, operation logs and unrelated
+  policy/location facts stay outside that short boundary.
+- PR-message attention invalidation follows the same source-boundary rule. A
+  participant removal, terminal transition, message tombstone or root deletion
+  locks the PR then the affected active roster and asks Notification to release
+  semantic recipient/aggregate windows within that transaction. Notification,
+  not PR/Admin/Controller, maps those facts to private Job keys. No concrete
+  PR-message handler or historical-row drain remains.
+- Opportunity/wave/inbox persistence and every legacy per-kind Notification
+  handler/decoder are forward-retired. `notification_deliveries` alone remains
+  inert transitional audit history pending Phase 7; no dependency may use it
+  for execution or business authority.
 - The monorepo shares backend exports with the frontend at compile time, so some contract drift is intentionally caught by types even though runtime interaction still happens over HTTP.
 - Data evolution is forward-only, which constrains how backend state contracts may change over time.
 - WeChat and browser-environment differences materially shape which user flows are available and how the units coordinate them.

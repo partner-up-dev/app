@@ -1346,8 +1346,6 @@ components:
       type: object
       additionalProperties: false
       required:
-        - allowance_amount
-        - cao_allowance_amount
         - client_id
         - order_id
         - sign

@@ -1,14 +1,10 @@
 import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
 import { PaymentProviderInstanceRepository } from "../../../repositories/PaymentProviderInstanceRepository";
-import {
-  clearBillLinePaymentExecution,
-  openBillLinePaymentExecution,
-  settleBillLinePaymentExecution,
-} from "../../bill/commands";
+import { clearBillLinePaymentExecution, openBillLinePaymentExecution } from "../../bill/commands";
+import { settleBillLinePaymentAndApplyOrderConsequence } from "../../trade/commands";
 import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { createPaymentProviderPort, ensureWeChatPayPlatformCertificates } from "../services";
-import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 export type ChargePaymentReconciliation = {
   line: BillLinePaymentExecutionSnapshot;
@@ -107,7 +103,7 @@ export async function reconcileChargePaymentExecution(input: {
   });
 
   if (normalized.status === "SUCCEEDED") {
-    const settlement = await settleBillLinePaymentExecution({
+    const settlement = await settleBillLinePaymentAndApplyOrderConsequence({
       billLineId: input.line.id,
       paymentProviderInstanceId: reference.paymentProviderInstanceId,
       attemptCount: reference.attemptCount,
@@ -119,9 +115,6 @@ export async function reconcileChargePaymentExecution(input: {
         code: "PAYMENT_ATTEMPT_SUPERSEDED",
         detail: "Payment attempt was superseded before provider settlement could be applied",
       });
-    }
-    if (settlement.status === "SETTLED") {
-      await applyPaymentSettlementConsequence({ billLineId: settlement.line.id });
     }
     return {
       line: settlement.line,

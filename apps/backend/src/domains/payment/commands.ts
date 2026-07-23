@@ -1,4 +1,3 @@
-export { applyPaymentSettlementConsequence } from "./use-cases/payment-settlement-consequence";
 export { createPaymentCharge } from "./use-cases/payment-contract";
 export { createRefundExecutionForRefundLine } from "./use-cases/create-refund-execution";
 export { openOrLoadChargeExecution } from "./use-cases/payment-execution";

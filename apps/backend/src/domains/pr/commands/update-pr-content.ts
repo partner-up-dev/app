@@ -1,18 +1,18 @@
 import type { PartnerRequestFields, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import {
-  cancelWeChatActivityStartReminderJobsForParticipant,
-  cancelWeChatReminderJobsForParticipant,
-} from "../../../infra/notifications";
 import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { createPersistedPRMessage } from "../message/create-pr-message";
+import { createPRContentMeetingPointTransactionPort } from "../adapters/pr-content-meeting-point-transaction";
+import { createCoreFieldChangePRMessage } from "./create-pr-message";
 import {
-  captureEffectiveMeetingPointsForRequests,
-  scheduleMeetingPointNotificationsForChangedRequests,
-} from "../services/meeting-point-change-notifier.service";
+  cancelActivityStartReminderForParticipant,
+  reconcileActivityStartReminderForParticipant,
+} from "../services/activity-start-reminder-reconciler.service";
+import {
+  cancelConfirmationRemindersForParticipant,
+  reconcileConfirmationRemindersForParticipant,
+} from "../services/confirmation-reminder-reconciler.service";
 import {
   assertNoUserTimeWindowConflict,
   findUserTimeWindowConflict,
@@ -30,15 +30,14 @@ import { type PublicPR, toPublicPR } from "../services/pr-view.service";
 import {
   countActivePartnersForPR,
   listActiveParticipantSummariesForPR,
-  recalculatePRStatus,
-  syncSlotCapacity,
 } from "../services/slot-management.service";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
+import { promoteWaitlistedPartners } from "../services/waitlist.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();
-const partnerRepo = new PartnerRepository();
+const prContentMeetingPointTransaction = createPRContentMeetingPointTransactionPort();
 const RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE =
   "TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE";
 export const PARTICIPANT_RELEASE_REQUIRED_CODE = "PARTICIPANT_RELEASE_REQUIRED";
@@ -138,7 +137,7 @@ export async function updatePRContent(
     location: normalizedFields.location,
     timeWindow: normalizedFields.time,
   });
-  const previousMeetingPoints = await captureEffectiveMeetingPointsForRequests([refreshedRequest]);
+  let releasedParticipants: Awaited<ReturnType<typeof listActiveParticipantSummariesForPR>> = [];
 
   if (timeChanged && refreshedRequest.status !== "DRAFT") {
     const activeParticipants = await listActiveParticipantSummariesForPR(id);
@@ -174,30 +173,7 @@ export async function updatePRContent(
         });
       }
 
-      for (const participant of conflictedParticipants) {
-        const released = await partnerRepo.markReleased(participant.partnerId, {
-          releaseReason: RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE,
-        });
-        if (!released) {
-          return throwHttpProblem({
-            status: 500,
-            detail: "Failed to release conflicted participant",
-          });
-        }
-        await cancelWeChatReminderJobsForParticipant(id, participant.userId);
-        await cancelWeChatActivityStartReminderJobsForParticipant(id, participant.userId);
-        operationLogService.log({
-          actorId: actorUserId,
-          action: "partner.release_after_pr_core_field_change",
-          aggregateType: "partner_request",
-          aggregateId: String(id),
-          detail: {
-            partnerId: participant.partnerId,
-            releasedUserId: participant.userId,
-            reason: RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE,
-          },
-        });
-      }
+      releasedParticipants = conflictedParticipants;
     } else {
       for (const participant of activeParticipants) {
         await assertNoUserTimeWindowConflict({
@@ -209,23 +185,70 @@ export async function updatePRContent(
     }
   }
 
-  const updated = await prRepo.updateFields(id, normalizedFields);
-  if (!updated) {
-    return throwHttpProblem({ status: 500, detail: "Failed to update content" });
+  const transactionResult = await prContentMeetingPointTransaction.update({
+    prId: id,
+    fields: normalizedFields,
+    releaseParticipants: releasedParticipants.map((participant) => ({
+      partnerId: participant.partnerId,
+      releaseReason: RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE,
+    })),
+    validateSlotCapacity: minMaxChanged,
+    recalculateStatus:
+      minMaxChanged && refreshedRequest.status !== "DRAFT" && !options.preserveStatus,
+  });
+  if (transactionResult.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
+  }
+  const releasedPartnerIds = new Set(transactionResult.releasedPartnerIds);
+  const committedReleasedParticipants = releasedParticipants.filter((participant) =>
+    releasedPartnerIds.has(participant.partnerId),
+  );
+
+  for (const participant of committedReleasedParticipants) {
+    await cancelActivityStartReminderForParticipant({
+      prId: id,
+      recipientUserId: participant.userId,
+    });
+    await cancelConfirmationRemindersForParticipant({
+      prId: id,
+      slotId: participant.partnerId,
+      recipientUserId: participant.userId,
+    });
+    operationLogService.log({
+      actorId: actorUserId,
+      action: "partner.release_after_pr_core_field_change",
+      aggregateType: "partner_request",
+      aggregateId: String(id),
+      detail: {
+        partnerId: participant.partnerId,
+        releasedUserId: participant.userId,
+        reason: RELEASE_REASON_TIME_CONFLICT_AFTER_CORE_FIELD_CHANGE,
+      },
+    });
   }
 
-  if (minMaxChanged) {
-    await syncSlotCapacity(id, normalizedFields.maxPartners);
-  }
-  await prRepo.clearPosterCache(id);
-
-  if (minMaxChanged && refreshedRequest.status !== "DRAFT" && !options.preserveStatus) {
-    await recalculatePRStatus(id);
+  if (committedReleasedParticipants.length > 0) {
+    await promoteWaitlistedPartners(id);
   }
 
   const latest = await prRepo.findById(id);
   if (!latest) {
     return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
+  }
+
+  if (timeChanged && refreshedRequest.status !== "DRAFT") {
+    const remainingParticipants = await listActiveParticipantSummariesForPR(id);
+    for (const participant of remainingParticipants) {
+      await reconcileActivityStartReminderForParticipant({
+        prId: id,
+        recipientUserId: participant.userId,
+      });
+      await reconcileConfirmationRemindersForParticipant({
+        prId: id,
+        slotId: participant.partnerId,
+        recipientUserId: participant.userId,
+      });
+    }
   }
 
   operationLogService.log({
@@ -241,23 +264,14 @@ export async function updatePRContent(
   const coreFieldChangeMessageBody =
     refreshedRequest.status === "DRAFT" ? null : buildCoreFieldChangeMessageBody(changedFields);
   if (coreFieldChangeMessageBody !== null && actorUserId !== null) {
-    await createPersistedPRMessage({
-      request: latest,
+    await createCoreFieldChangePRMessage({
       prId: id,
       authorUserId: actorUserId,
       body: coreFieldChangeMessageBody,
-      actorUserId,
-      action: "pr.notify_core_field_change",
-      markAuthorRead: true,
     });
   }
 
-  await scheduleMeetingPointNotificationsForChangedRequests({
-    previous: previousMeetingPoints,
-    requests: [latest],
-    updatedAt: new Date(),
-  });
-  await scheduleAlternativeWaitlistNotificationsForCandidate(latest);
+  await reconcileAlternativeWaitlistNotificationsForCandidate(latest);
 
   return toPublicPR(latest, null);
 }

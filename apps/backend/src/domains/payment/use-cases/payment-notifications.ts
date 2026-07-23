@@ -1,5 +1,6 @@
 import type { PaymentProviderInstance, PaymentProviderInstanceId } from "../../../entities/payment";
-import { clearBillLinePaymentExecution, settleBillLinePaymentExecution } from "../../bill/commands";
+import { clearBillLinePaymentExecution } from "../../bill/commands";
+import { settleBillLinePaymentAndApplyOrderConsequence } from "../../trade/commands";
 import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
 import { getBillLinePaymentExecution } from "../../bill/queries";
 import { throwHttpProblem } from "../../../lib/problem-details";
@@ -16,7 +17,6 @@ import {
   refreshWeChatPayPlatformCertificates,
   UnknownWeChatPayPlatformCertificateSerialError,
 } from "../services";
-import { applyPaymentSettlementConsequence } from "./payment-settlement-consequence";
 
 const providerRepo = new PaymentProviderInstanceRepository();
 
@@ -125,15 +125,12 @@ async function settleBillLineFromProvider(input: {
   providerInstanceId: PaymentProviderInstanceId;
   attemptCount: number;
 }): Promise<void> {
-  const settlement = await settleBillLinePaymentExecution({
+  await settleBillLinePaymentAndApplyOrderConsequence({
     billLineId: input.line.id,
     paymentProviderInstanceId: input.providerInstanceId,
     attemptCount: input.attemptCount,
     settledAt: new Date(),
   });
-  if (settlement.status === "SETTLED" && settlement.line.kind === "CHARGE") {
-    await applyPaymentSettlementConsequence({ billLineId: settlement.line.id });
-  }
 }
 
 async function clearBillLineProviderBinding(input: {

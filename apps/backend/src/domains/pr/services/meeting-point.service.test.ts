@@ -160,3 +160,47 @@ test("resolveEffectiveMeetingPoint skips automatic fallbacks when location is nu
     PoiRepositoryClass.prototype.findByName = originalFindByName;
   }
 });
+
+test("createEffectiveMeetingPointResolver uses caller-bound facts instead of global reads", async () => {
+  const { createEffectiveMeetingPointResolver } = await import("./meeting-point.service");
+  let typeReads = 0;
+  let poiReads = 0;
+  const resolve = createEffectiveMeetingPointResolver({
+    async findPRTypeMeetingPointPolicy() {
+      typeReads += 1;
+      return {
+        meetingPoint: null,
+        locationMeetingPoints: {
+          poiA: {
+            description: "事务内 A 店门口",
+            imageUrl: null,
+          },
+        },
+      };
+    },
+    async findPublishedPoiByLocation() {
+      poiReads += 1;
+      return {
+        meetingPoint: {
+          description: "不应读取 POI 兜底",
+          imageUrl: null,
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(
+    await resolve({
+      type: "board-game",
+      location: "poiA",
+      meetingPoint: null,
+    }),
+    {
+      source: "PR_TYPE_LOCATION",
+      description: "事务内 A 店门口",
+      imageUrl: null,
+    },
+  );
+  assert.equal(typeReads, 1);
+  assert.equal(poiReads, 0);
+});

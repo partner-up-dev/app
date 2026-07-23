@@ -1,12 +1,10 @@
-import type { RideHailingProviderInstanceId } from "../../../entities/ride-hailing-provider";
-import type { TradeOrder, TradeOrderId } from "../../../entities/trade-order";
+import type { TradeOrder } from "../../../entities/trade-order";
 import {
   type CommerceOrderDetailDebugContext,
   logCommerceOrderDetailDebug,
 } from "../../../lib/commerce-order-detail-debug";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrderRepository";
-import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import type {
   RideHailingChoiceSetCandidateSnapshot,
   RideHailingDriverSnapshot,
@@ -16,9 +14,7 @@ import type {
   RideHailingVehicleSnapshot,
 } from "../model";
 import { getOrderItemSkuName, getRideHailingChoiceSetItem } from "../services";
-import { createRideHailingDispatchPort } from "../../ride-hailing/ports";
 
-const providerRepo = new RideHailingProviderInstanceRepository();
 const rideOrderRepo = new RideHailingOrderRepository();
 
 type RideHailingCandidateVehicleProjection = {
@@ -114,30 +110,4 @@ export async function buildRideHailingDetailProjection(input: {
     liveProviderQuery: false,
   });
   return result;
-}
-
-export async function confirmRideHailingProviderFeeAfterPayment(input: { orderId: string }) {
-  const rideOrder = await rideOrderRepo.findByOrderId(input.orderId as TradeOrderId);
-  if (!rideOrder) {
-    return { applied: false, reason: "RideHailing order facts are missing" };
-  }
-  const dispatchBinding = rideOrder.dispatchBinding;
-  if (!dispatchBinding?.providerOrderId) {
-    return { applied: false, reason: "RideHailing provider order is missing" };
-  }
-  const provider = await providerRepo.findById(
-    dispatchBinding.providerInstanceId as RideHailingProviderInstanceId,
-  );
-  if (!provider) {
-    return { applied: false, reason: "RideHailing provider instance is missing" };
-  }
-  const port = createRideHailingDispatchPort({ providerInstance: provider });
-  await port.confirmFee({
-    providerOrderId: dispatchBinding.providerOrderId,
-  });
-  return {
-    applied: true,
-    reason: "RideHailing provider fee confirmed",
-    orderId: input.orderId,
-  };
 }

@@ -10,6 +10,7 @@ import {
 } from "../entities/poi";
 import type { UserId } from "../entities/user";
 import { db } from "../lib/db";
+import type { RepositoryExecutor } from "./_executor";
 
 const normalizeIds = (ids: string[]): string[] => {
   const set = new Set<string>();
@@ -41,12 +42,19 @@ const normalizeGallery = (gallery: string[]): string[] => {
 };
 
 export class PoiRepository {
+  constructor(private readonly executor: RepositoryExecutor = db) {}
+
   async listAll(): Promise<Poi[]> {
-    return await db.select().from(pois);
+    return await this.executor.select().from(pois);
   }
 
   async findById(id: number, options: { includeUnpublished?: boolean } = {}): Promise<Poi | null> {
     const result = await this.findByIds([id], options);
+    return result[0] ?? null;
+  }
+
+  async findByIdForUpdate(id: number): Promise<Poi | null> {
+    const result = await this.executor.select().from(pois).where(eq(pois.id, id)).for("update");
     return result[0] ?? null;
   }
 
@@ -61,7 +69,7 @@ export class PoiRepository {
       filters.push(eq(pois.status, "PUBLISHED"));
     }
 
-    return await db
+    return await this.executor
       .select()
       .from(pois)
       .where(and(...filters));
@@ -89,14 +97,14 @@ export class PoiRepository {
       filters.push(eq(pois.status, "PUBLISHED"));
     }
 
-    return await db
+    return await this.executor
       .select()
       .from(pois)
       .where(and(...filters));
   }
 
   async findBySubmitter(submitterUserId: UserId): Promise<Poi[]> {
-    return await db
+    return await this.executor
       .select()
       .from(pois)
       .where(eq(pois.submittedByUserId, submitterUserId))
@@ -132,7 +140,7 @@ export class PoiRepository {
       : [];
     const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
-    const result = await db
+    const result = await this.executor
       .insert(pois)
       .values({
         name: normalizedName,
@@ -199,7 +207,7 @@ export class PoiRepository {
     const normalizedAvailabilityRules = normalizePoiAvailabilityRules(data.availabilityRules ?? []);
     const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
-    const result = await db
+    const result = await this.executor
       .insert(pois)
       .values({
         name: normalizedName,
@@ -246,7 +254,7 @@ export class PoiRepository {
         : normalizePoiAvailabilityRules(data.availabilityRules);
     const normalizedMeetingPoint = normalizeMeetingPointConfig(data.meetingPoint);
 
-    const result = await db
+    const result = await this.executor
       .update(pois)
       .set({
         name: normalizedName,
@@ -271,7 +279,7 @@ export class PoiRepository {
     imageUrl: string;
     submittedByUserId: UserId;
   }): Promise<Poi | null> {
-    const result = await db
+    const result = await this.executor
       .insert(pois)
       .values({
         name: data.name.trim(),
@@ -303,7 +311,7 @@ export class PoiRepository {
       rejectReason?: string | null;
     },
   ): Promise<Poi | null> {
-    const result = await db
+    const result = await this.executor
       .update(pois)
       .set({
         status: data.status,

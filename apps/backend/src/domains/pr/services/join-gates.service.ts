@@ -1,5 +1,6 @@
 import type {
   PartnerId,
+  PartnerRequest,
   PRId,
   PRJoinGateConfig,
   PRJoinGateConfigItem,
@@ -10,6 +11,7 @@ import { normalizePRJoinGateConfig, prJoinNoticeGateConfigSchema } from "../../.
 import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRJoinNoticeAcceptanceRepository } from "../../../repositories/PRJoinNoticeAcceptanceRepository";
+import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { assertPRDraftAccess, type PRDraftActor } from "./draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();
@@ -83,6 +85,35 @@ const isJoinNoticeGateResolved = async (input: {
     gateVersion: input.gateVersion,
   });
   return acceptance !== null;
+};
+
+/**
+ * Admission transactions already own a locked PR snapshot. This narrow query
+ * reuses that snapshot and executor instead of reopening a global read through
+ * the public projection path.
+ */
+export const arePRJoinGatesResolvedForUser = async (input: {
+  request: Pick<PartnerRequest, "id" | "joinGateConfig">;
+  userId: UserId;
+  executor: RepositoryExecutor;
+}): Promise<boolean> => {
+  const config = normalizePRJoinGateConfig(input.request.joinGateConfig);
+  const repository = new PRJoinNoticeAcceptanceRepository(input.executor);
+  for (const gate of config) {
+    if (gate.kind !== "JOIN_NOTICE") {
+      return false;
+    }
+    const acceptance = await repository.find({
+      prId: input.request.id,
+      userId: input.userId,
+      gateKey: gate.key,
+      gateVersion: gate.version,
+    });
+    if (!acceptance) {
+      return false;
+    }
+  }
+  return true;
 };
 
 export const getPRJoinGateProjection = async (input: {

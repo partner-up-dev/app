@@ -1,4 +1,5 @@
 import type { TradeOrderId } from "../../entities/trade-order";
+import type { BillLinePaymentExecutionSettlement } from "../bill/contracts";
 import type { CommerceOrderDetailDebugContext } from "../../lib/commerce-order-detail-debug";
 import type {
   RideHailingFareCorrectionRequired,
@@ -43,13 +44,13 @@ export type RideHailingDispatchPort = {
     cancelFeeFen: number;
     providerSnapshot: unknown;
   }>;
-  confirmFee(input: { providerOrderId: string; allowanceAmountFen?: number | null }): Promise<void>;
 };
 
 /**
- * RideHailing owns the two short atomic commits that reconcile a provider
- * observation with local Trade/Ride/Bill facts. The Port exposes semantic
- * inputs only: neither provider I/O nor repositories/executors can cross it.
+ * RideHailing owns the short atomic commits that reconcile a provider
+ * observation or qualifying BillLine settlement with local Trade/Ride/Bill
+ * facts and its causally keyed Job. The Port exposes semantic inputs only:
+ * neither provider I/O nor repositories/executors can cross it.
  */
 export type RideHailingReconciliationTransactionPort = {
   applyProviderObservation(input: {
@@ -71,6 +72,12 @@ export type RideHailingReconciliationTransactionPort = {
     mutated: boolean;
     correctionRequired: RideHailingFareCorrectionRequired | null;
   }>;
+  settlePaymentAndScheduleFeeConfirmation(input: {
+    billLineId: string;
+    paymentProviderInstanceId: string;
+    attemptCount: number;
+    settledAt: string;
+  }): Promise<BillLinePaymentExecutionSettlement>;
 };
 
 /**
@@ -100,7 +107,6 @@ export function createRideHailingDispatchPort(input: {
       }),
     queryCancelFee: (feeInput) => providerPort.queryCancelFee(feeInput),
     cancelRide: (cancelInput) => providerPort.cancelRide(cancelInput),
-    confirmFee: (feeInput) => providerPort.confirmFee(feeInput),
   };
 }
 

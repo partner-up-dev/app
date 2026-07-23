@@ -4,7 +4,8 @@ import type { UserId } from "../../../entities/user";
 
 const partnerRepo = new PartnerRepository();
 
-export type PublicPR = Omit<PartnerRequest, "title"> & {
+/** `readyCycleId` is a private causal fence, never a browser read-model fact. */
+export type PublicPR = Omit<PartnerRequest, "title" | "readyCycleId"> & {
   title?: string;
   partners: number[];
   myPartnerId: number | null;
@@ -36,7 +37,7 @@ export async function toPublicPR(
     }
   }
 
-  const { title, ...rest } = request;
+  const { title, readyCycleId: _readyCycleId, ...rest } = request;
 
   return {
     ...rest,

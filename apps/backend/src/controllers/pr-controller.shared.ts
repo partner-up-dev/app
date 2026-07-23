@@ -81,8 +81,8 @@ export const prMessageCreateSchema = z.object({
   body: prMessageBodySchema,
 });
 
-export const prMessageReadMarkerSchema = z.object({
-  lastReadMessageId: z.coerce.number().int().positive(),
+export const prMessageAcknowledgementSchema = z.object({
+  acknowledgementCursor: z.coerce.number().int().positive(),
 });
 
 export const resolveAvatarUrl = (requestUrl: string, avatarUrl: string | null): string | null => {

@@ -7,8 +7,18 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { clearAnonymousSessionCookie, readAnonymousSessionCookie } from "../auth/anonymous-session";
 import { type AuthEnv, authMiddleware, issuePublicAuthForUser } from "../auth/middleware";
+import {
+  cancelNotification,
+  type PRMessageNotificationSubscriptionAction,
+  type PRMessageNotificationSubscriptionUpdateResult,
+  updatePRMessageNotificationSubscription,
+} from "../domains/notification";
+import {
+  reconcileActivityStartRemindersForRecipient,
+  reconcileConfirmationRemindersForRecipient,
+} from "../domains/pr";
 import { AUTHENTICATED_REQUIRED_CODE } from "../domains/pr/contracts";
-import { scheduleAlternativeWaitlistNotificationsForUserSources } from "../domains/pr/ports";
+import { reconcileAlternativeWaitlistNotificationsForUserSources } from "../domains/pr/ports";
 import {
   bindWeChatToCurrentUser,
   classifyCurrentPublicUser,
@@ -19,18 +29,6 @@ import {
   type WeChatNotificationKind,
   wechatNotificationKindSchema,
 } from "../entities/user-notification-opt";
-import {
-  cancelWeChatActivityStartReminderJobsForUser,
-  cancelWeChatMeetingPointUpdatedJobsForUser,
-  cancelWeChatNewPartnerJobsForUser,
-  cancelWeChatPRMessageJobsForUser,
-  cancelWeChatPRReadyJobsForUser,
-  cancelWeChatReminderJobsForUser,
-  cancelWeChatWaitlistAlternativeAvailableJobsForUser,
-  cancelWeChatWaitlistPromotedJobsForUser,
-  rebuildWeChatActivityStartReminderJobsForUser,
-  rebuildWeChatReminderJobsForUser,
-} from "../infra/notifications";
 import { env } from "../lib/env";
 import { resolveConfiguredFrontendReturnTo } from "../lib/frontend-origin";
 import { ProblemDetailsError, throwHttpProblem } from "../lib/problem-details";
@@ -556,59 +554,81 @@ const applyNotificationSubscriptionSideEffects = async (
 ): Promise<number> => {
   if (kind === "REMINDER_CONFIRMATION") {
     if (nextRemainingCount <= 0) {
-      return cancelWeChatReminderJobsForUser(userId);
+      const cancellation = await cancelNotification({
+        template: "pr.confirmation-reminder",
+        recipientUserId: userId,
+        scope: { kind: "RECIPIENT" },
+      });
+      return cancellation.canceled;
     }
-    if (previousRemainingCount <= 0 && nextRemainingCount > 0) {
-      await rebuildWeChatReminderJobsForUser(userId);
-      return 0;
-    }
-    return 0;
+
+    const reconciliation = await reconcileConfirmationRemindersForRecipient({
+      recipientUserId: userId,
+    });
+    return reconciliation.canceled;
   }
 
   if (kind === "ACTIVITY_START_REMINDER") {
     if (nextRemainingCount <= 0) {
-      return cancelWeChatActivityStartReminderJobsForUser(userId);
+      const cancellation = await cancelNotification({
+        template: "pr.activity-start-reminder",
+        recipientUserId: userId,
+        scope: { kind: "RECIPIENT" },
+      });
+      return cancellation.canceled;
     }
-    if (previousRemainingCount <= 0 && nextRemainingCount > 0) {
-      await rebuildWeChatActivityStartReminderJobsForUser(userId);
-      return 0;
-    }
-    return 0;
+
+    const reconciliation = await reconcileActivityStartRemindersForRecipient({
+      recipientUserId: userId,
+    });
+    return reconciliation.canceled;
   }
 
-  if (kind === "NEW_PARTNER" && nextRemainingCount <= 0) {
-    return cancelWeChatNewPartnerJobsForUser(userId);
-  }
-
-  if (kind === "PR_MESSAGE" && nextRemainingCount <= 0) {
-    return cancelWeChatPRMessageJobsForUser(userId);
-  }
-
-  if (kind === "MEETING_POINT_UPDATED" && nextRemainingCount <= 0) {
-    return cancelWeChatMeetingPointUpdatedJobsForUser(userId);
-  }
-
-  if (kind === "PR_READY" && nextRemainingCount <= 0) {
-    return cancelWeChatPRReadyJobsForUser(userId);
-  }
-
-  if (kind === "WAITLIST_PROMOTED" && nextRemainingCount <= 0) {
-    return cancelWeChatWaitlistPromotedJobsForUser(userId);
-  }
-
-  if (kind === "WAITLIST_ALTERNATIVE_AVAILABLE" && nextRemainingCount <= 0) {
-    return cancelWeChatWaitlistAlternativeAvailableJobsForUser(userId);
-  }
   if (
     kind === "WAITLIST_ALTERNATIVE_AVAILABLE" &&
     previousRemainingCount <= 0 &&
     nextRemainingCount > 0
   ) {
-    await scheduleAlternativeWaitlistNotificationsForUserSources(userId);
+    await reconcileAlternativeWaitlistNotificationsForUserSources(userId);
     return 0;
   }
 
   return 0;
+};
+
+type PRMessageSubscriptionControllerDependencies = {
+  updateSubscription(input: {
+    recipientUserId: string;
+    action: PRMessageNotificationSubscriptionAction;
+  }): Promise<PRMessageNotificationSubscriptionUpdateResult>;
+};
+
+const prMessageSubscriptionControllerDependencies: PRMessageSubscriptionControllerDependencies = {
+  updateSubscription: updatePRMessageNotificationSubscription,
+};
+
+/**
+ * Converts the authenticated PR-message subscription protocol onto
+ * Notification's serialized command. Generic window invalidation remains
+ * private to Notification.
+ */
+export const applyPRMessageNotificationSubscriptionUpdate = async (
+  userId: UserId,
+  action: PRMessageNotificationSubscriptionAction,
+  dependencies: PRMessageSubscriptionControllerDependencies = prMessageSubscriptionControllerDependencies,
+): Promise<{
+  update: PRMessageNotificationSubscriptionUpdateResult;
+  deletedJobs: number;
+}> => {
+  const update = await dependencies.updateSubscription({
+    recipientUserId: userId,
+    action,
+  });
+
+  return {
+    update,
+    deletedJobs: update.invalidated.canceled,
+  };
 };
 
 const isHttpProtocol = (protocol: string): boolean => protocol === "http:" || protocol === "https:";
@@ -1122,6 +1142,34 @@ export const wechatRoute = app
       }
 
       const { kind, action } = c.req.valid("json");
+      if (kind === "PR_MESSAGE") {
+        let conversion: Awaited<ReturnType<typeof applyPRMessageNotificationSubscriptionUpdate>>;
+        try {
+          conversion = await applyPRMessageNotificationSubscriptionUpdate(identity.user.id, action);
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message === "PR_MESSAGE_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED"
+          ) {
+            return c.json({ error: "Failed to update notification subscription" }, 500);
+          }
+          throw error;
+        }
+
+        const fullState = await buildAuthenticatedSubscriptionsResponse(identity.user.id);
+        const selectedState = fullState.subscriptions.PR_MESSAGE;
+        return c.json({
+          ok: true,
+          kind,
+          action,
+          enabled: conversion.update.current.preferred,
+          optInAt: selectedState.optInAt,
+          remainingCount: conversion.update.current.remainingCredit,
+          configured: selectedState.configured,
+          deletedJobs: conversion.deletedJobs,
+        });
+      }
+
       const currentNotificationOpt = await userNotificationOptRepo.findByUserId(identity.user.id);
       const previousSnapshot = userNotificationOptRepo.getSubscriptionSnapshot(
         currentNotificationOpt,

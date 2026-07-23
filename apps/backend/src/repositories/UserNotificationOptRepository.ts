@@ -6,6 +6,7 @@ import {
   type UserNotificationOpt,
 } from "../entities/user-notification-opt";
 import type { UserId } from "../entities/user";
+import type { TransactionExecutor } from "./_executor";
 
 export type NotificationSubscriptionSnapshot = {
   enabled: boolean;
@@ -30,6 +31,98 @@ export class UserNotificationOptRepository {
       .select()
       .from(userNotificationOpts)
       .where(eq(userNotificationOpts.userId, userId));
+    return result[0] ?? null;
+  }
+
+  /**
+   * The active-admission handoff needs a source-time option snapshot that is
+   * visible in the owner's serializable transaction. This remains a narrow
+   * repository read; mutation APIs keep their ordinary owner transactions.
+   */
+  async findByUserIdInTransaction(
+    transaction: TransactionExecutor,
+    userId: UserId,
+  ): Promise<UserNotificationOpt | null> {
+    const result = await transaction
+      .select()
+      .from(userNotificationOpts)
+      .where(eq(userNotificationOpts.userId, userId));
+    return result[0] ?? null;
+  }
+
+  /**
+   * PR-message source creation and the corresponding preference mutation use
+   * this same row lock as their serialization point. A missing row remains an
+   * unavailable source-time snapshot; a later opt-in never replays that source.
+   */
+  async findByUserIdForUpdateInTransaction(
+    transaction: TransactionExecutor,
+    userId: UserId,
+  ): Promise<UserNotificationOpt | null> {
+    const result = await transaction
+      .select()
+      .from(userNotificationOpts)
+      .where(eq(userNotificationOpts.userId, userId))
+      .for("update");
+    return result[0] ?? null;
+  }
+
+  /**
+   * Narrow PR-message mutation primitives for Notification's named
+   * preference-plus-window transaction. The caller holds the existing row
+   * lock when one exists; `onConflict` handles first opt-in safely.
+   */
+  async addOneWechatPRMessageCreditInTransaction(
+    transaction: TransactionExecutor,
+    userId: UserId,
+  ): Promise<UserNotificationOpt | null> {
+    const now = new Date();
+    const result = await transaction
+      .insert(userNotificationOpts)
+      .values({
+        userId,
+        wechatPrMessageRemainingCount: 1,
+        wechatPrMessageOptIn: true,
+        wechatPrMessageOptInAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: userNotificationOpts.userId,
+        set: {
+          wechatPrMessageRemainingCount: sql`${userNotificationOpts.wechatPrMessageRemainingCount} + 1`,
+          wechatPrMessageOptIn: true,
+          wechatPrMessageOptInAt: now,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    return result[0] ?? null;
+  }
+
+  async clearWechatPRMessageCreditsInTransaction(
+    transaction: TransactionExecutor,
+    userId: UserId,
+  ): Promise<UserNotificationOpt | null> {
+    const now = new Date();
+    const result = await transaction
+      .insert(userNotificationOpts)
+      .values({
+        userId,
+        wechatPrMessageRemainingCount: 0,
+        wechatPrMessageOptIn: false,
+        wechatPrMessageOptInAt: null,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: userNotificationOpts.userId,
+        set: {
+          wechatPrMessageRemainingCount: 0,
+          wechatPrMessageOptIn: false,
+          wechatPrMessageOptInAt: null,
+          updatedAt: now,
+        },
+      })
+      .returning();
     return result[0] ?? null;
   }
 
@@ -690,6 +783,211 @@ export class UserNotificationOptRepository {
       .where(
         and(
           eq(userNotificationOpts.userId, userId),
+          gt(userNotificationOpts.wechatNewPartnerRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatNewPartnerRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  /**
+   * The generic Notification owner treats consent and WeChat credit as
+   * different facts. These targeted bridges support migrated templates
+   * without silently changing the legacy families' coupled helper.
+   */
+  async consumeOneWechatActivityStartReminderCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatActivityStartReminderRemainingCount: sql`${userNotificationOpts.wechatActivityStartReminderRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatActivityStartReminderOptIn, true),
+          gt(userNotificationOpts.wechatActivityStartReminderRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatActivityStartReminderRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatPRMessageCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatPrMessageRemainingCount: sql`${userNotificationOpts.wechatPrMessageRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatPrMessageOptIn, true),
+          gt(userNotificationOpts.wechatPrMessageRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatPrMessageRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatReminderCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatReminderRemainingCount: sql`${userNotificationOpts.wechatReminderRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatReminderOptIn, true),
+          gt(userNotificationOpts.wechatReminderRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatReminderRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatWaitlistPromotedCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatWaitlistPromotedRemainingCount: sql`${userNotificationOpts.wechatWaitlistPromotedRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatWaitlistPromotedOptIn, true),
+          gt(userNotificationOpts.wechatWaitlistPromotedRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatWaitlistPromotedRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatWaitlistAlternativeAvailableCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatWaitlistAlternativeAvailableRemainingCount: sql`${userNotificationOpts.wechatWaitlistAlternativeAvailableRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatWaitlistAlternativeAvailableOptIn, true),
+          gt(userNotificationOpts.wechatWaitlistAlternativeAvailableRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatWaitlistAlternativeAvailableRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatPRReadyCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatPrReadyRemainingCount: sql`${userNotificationOpts.wechatPrReadyRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatPrReadyOptIn, true),
+          gt(userNotificationOpts.wechatPrReadyRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatPrReadyRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatMeetingPointUpdatedCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatMeetingPointUpdatedRemainingCount: sql`${userNotificationOpts.wechatMeetingPointUpdatedRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatMeetingPointUpdatedOptIn, true),
+          gt(userNotificationOpts.wechatMeetingPointUpdatedRemainingCount, 0),
+        ),
+      )
+      .returning();
+    const row = result[0] ?? null;
+    return {
+      consumed: row !== null,
+      remainingCount: row?.wechatMeetingPointUpdatedRemainingCount ?? 0,
+      row,
+    };
+  }
+
+  async consumeOneWechatNewPartnerCreditPreservingPreference(
+    userId: UserId,
+  ): Promise<ConsumeNotificationCreditResult> {
+    const result = await db
+      .update(userNotificationOpts)
+      .set({
+        wechatNewPartnerRemainingCount: sql`${userNotificationOpts.wechatNewPartnerRemainingCount} - 1`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(userNotificationOpts.userId, userId),
+          eq(userNotificationOpts.wechatNewPartnerOptIn, true),
           gt(userNotificationOpts.wechatNewPartnerRemainingCount, 0),
         ),
       )

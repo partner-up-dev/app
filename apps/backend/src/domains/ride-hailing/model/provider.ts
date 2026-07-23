@@ -229,8 +229,6 @@ export type RideHailingProviderCancelInput = {
 
 export type RideHailingProviderConfirmFeeInput = {
   providerOrderId: string;
-  allowanceAmountFen?: number | null;
-  caocaoAllowanceAmountFen?: number | null;
 };
 
 export type RideHailingProviderPort = {

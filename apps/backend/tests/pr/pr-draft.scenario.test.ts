@@ -9,7 +9,6 @@ import {
   partnerRequests,
   partners,
   prJoinNoticeAcceptances,
-  prMessageInboxStates,
   prMessages,
   type PRId,
   type PRStatus,
@@ -74,16 +73,14 @@ const assertDraftRoot = async (
 
 const assertNoDraftChildren = async (prId: PRId): Promise<void> => {
   const db = getTestDb();
-  const [activeSlots, acceptances, messages, inboxStates] = await Promise.all([
+  const [activeSlots, acceptances, messages] = await Promise.all([
     db.select().from(partners).where(eq(partners.prId, prId)),
     db.select().from(prJoinNoticeAcceptances).where(eq(prJoinNoticeAcceptances.prId, prId)),
     db.select().from(prMessages).where(eq(prMessages.prId, prId)),
-    db.select().from(prMessageInboxStates).where(eq(prMessageInboxStates.prId, prId)),
   ]);
   assert.equal(activeSlots.length, 0);
   assert.equal(acceptances.length, 0);
   assert.equal(messages.length, 0);
-  assert.equal(inboxStates.length, 0);
 };
 
 scenario("anonymous_uuid_restores_session", async (ctx) => {
@@ -306,14 +303,6 @@ scenario("creatorless_draft_participant_and_child_reads_are_opaque", async (ctx)
       body: { body: "must not persist" },
     }),
   );
-  await assertOpaqueDraft404(
-    await requestJson(`/api/pr/${pr.id}/messages/read-marker`, {
-      method: "POST",
-      token: other.token,
-      body: { lastReadMessageId: 1 },
-    }),
-  );
-
   await assertDraftRoot(pr.id, {
     createdBy: null,
     status: "DRAFT",

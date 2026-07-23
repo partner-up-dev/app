@@ -4,7 +4,7 @@ import { z } from "zod";
 import { type AuthEnv, authMiddleware } from "../auth/middleware";
 import type { RequestAuth } from "../auth/types";
 import {
-  advancePRMessageReadMarker,
+  acknowledgePRMessageAttention,
   authorizeCreatorMutation,
   cancelWaitlistPRByUserId,
   checkIn,
@@ -43,8 +43,8 @@ import {
   partnerRequestFieldsSchema,
   prAllowEditAfterReadySchema,
   prIdParamSchema,
+  prMessageAcknowledgementSchema,
   prMessageCreateSchema,
-  prMessageReadMarkerSchema,
   prPartnerProfileParamSchema,
   requireAuthenticatedCreatorIdentity,
   requireAuthenticatedOpenId,
@@ -111,11 +111,7 @@ const resolveJoinGateSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-const getPROr404 = async (
-  id: number,
-  auth: RequestAuth,
-  operation: PRDraftAccessOperation,
-) => {
+const getPROr404 = async (id: number, auth: RequestAuth, operation: PRDraftAccessOperation) => {
   const request = await prRepo.findById(id);
   if (!request) {
     return throwHttpProblem({ status: 404, detail: "Partner request not found" });
@@ -262,22 +258,23 @@ export const partnerRequestRoute = app
     },
   )
   .post(
-    "/:id/messages/read-marker",
+    "/:id/messages/acknowledgement",
     zValidator("param", prIdParamSchema),
-    zValidator("json", prMessageReadMarkerSchema),
+    zValidator("json", prMessageAcknowledgementSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      const { lastReadMessageId } = c.req.valid("json");
+      const { acknowledgementCursor } = c.req.valid("json");
       const auth = c.get("auth");
       await getPROr404(id, auth, "participant-flow");
       const userId = requireAuthenticatedUserId(c);
-      const result = await advancePRMessageReadMarker({
-        prId: id,
-        userId,
-        lastReadMessageId,
-        actor: auth,
-      });
-      return c.json(result);
+      return c.json(
+        await acknowledgePRMessageAttention({
+          prId: id,
+          userId,
+          acknowledgementCursor,
+          actor: auth,
+        }),
+      );
     },
   )
   .get("/:id/join-gates", zValidator("param", prIdParamSchema), async (c) => {
@@ -360,9 +357,15 @@ export const partnerRequestRoute = app
 
       const creatorAuth = await authorizeCreatorMutation(id, auth, "content");
 
-      const result = await updateUserPRContent(id, payload.fields, creatorAuth.actorUserId, {
-        allowRelease: payload.allowRelease === true,
-      }, auth);
+      const result = await updateUserPRContent(
+        id,
+        payload.fields,
+        creatorAuth.actorUserId,
+        {
+          allowRelease: payload.allowRelease === true,
+        },
+        auth,
+      );
       return c.json(result);
     },
   )

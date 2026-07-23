@@ -67,6 +67,28 @@ cross-domain APIs. A curated surface is exposed from a domain root `index.ts` or
 entrypoint (`commands.ts`, `queries.ts`, `contracts.ts`, `events.ts`, or `ports.ts`); nested implementation paths
 remain private. An interface or port is not justified merely to make mocking or directory movement easier.
 
+Cross-domain consumers select the narrowest category entrypoint, not a broad
+aggregate barrel merely because it currently re-exports the needed symbol. In
+particular, a pure rule that needs owner facts imports the named query surface;
+it must not import a barrel that also initializes owner commands/use cases and
+can form a reverse initialization cycle. A root barrel is a curation boundary,
+not permission to erase command/query dependency direction.
+
+A current-state revalidation query is read-only by contract. It may apply pure
+predicates to persisted facts, but it must not invoke temporal refresh,
+promotion, release, status transition or another owner command merely to make
+an eligibility answer convenient. If state must advance, name and execute that
+owner command separately before reconciliation; never hide it behind a query
+used by Notification, a scheduler or a delivery attempt.
+
+When disappearance of one owner's fact makes another owner's pending work
+ineligible, invalidate that work at the source-fact transaction boundary. Lock
+the source aggregate and the affected current facts, mutate or tombstone the
+source fact, then call the receiving owner's semantic transaction port before
+commit. Do not reconstruct a former source fact from opaque Job payloads, and
+do not give the source a private scheduler key merely to make cleanup
+convenient.
+
 Before adding a public symbol, answer all of the following:
 
 - Is there a real cross-owner caller rather than a hypothetical reuse case?
@@ -76,6 +98,50 @@ Before adding a public symbol, answer all of the following:
 - Can the owner change its implementation without forcing unrelated callers to change?
 
 If any answer is no, keep the symbol internal or redesign the caller interaction.
+
+## Durable Fact Placement And Representation
+
+Start from the meaning and owner of a fact, not from a preferred table shape or
+normal form. Use the smallest owner-local representation that preserves the
+required invariants:
+
+1. Keep a fact inside its natural aggregate when it shares that aggregate's
+   identity, lifecycle, retention and authorization boundary.
+2. A collection-valued attribute is a valid durable representation when the
+   collection has a proven small bound, changes atomically with its owner, and
+   its members have no independent attributes or lifecycle. Array storage is
+   not an architecture defect merely because a join table is possible.
+3. Promote members into an independent relation/entity only when at least one
+   concrete need exists: independent identity or lifecycle, unbounded/high
+   cardinality, per-member metadata, selective query/update, contention,
+   referential-integrity/cascade requirements, or different retention/security
+   policy.
+4. Keep only behavior-controlling, idempotency, reconciliation, product or
+   legally required state in authoritative persistence. Attempt-by-attempt
+   history used solely for diagnosis belongs to correlated logs/traces/metrics.
+5. Do not preserve a table, state machine or repository because its schema
+   advertises possible future behavior. An unconsumed lifecycle is a proposal,
+   not an owner.
+6. A scheduler/task container owns generic execution mechanics, not the
+   business meaning of its payload's outcome. If an external effect may be
+   applied, rejected or unknown in a way that changes product reconciliation,
+   the semantic domain owner persists that fact; Job may only complete, retry,
+   fail or skip the opaque task under a generic contract.
+
+For example, the target PR message product has no per-viewer read-receipt
+fact. If a future bounded PR group needs per-message viewed membership without
+timestamps or an independent lifecycle, a message-owned set such as
+`viewedByUserIds` (possibly stored as `uuid[]`) is the default candidate. A
+separate viewed relation must earn itself through one of the needs above,
+including any required user-deletion/privacy cascade that an array cannot
+enforce safely.
+
+When provider-effect uncertainty materially changes reconciliation or product
+behavior, that fact belongs to the semantic domain owner rather than Job. The
+current CaoCao fee-confirmation path deliberately accepts possible duplicate
+effect under generic retry and therefore does not persist an uncertainty
+lifecycle; that accepted risk must not be generalized into a Job business
+status or a mandatory owner-state machine.
 
 ## Growth Decision Procedure
 

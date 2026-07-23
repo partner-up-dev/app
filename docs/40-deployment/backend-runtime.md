@@ -130,13 +130,14 @@ name.
 ## WeChat Notification Template Sources
 
 Subscription-message template ids for confirmation-reminder, activity-start
-reminder, new-partner, meeting-point-updated, waitlist-promoted, and pr-message
-are supplied only through backend `config` rows:
+reminder, new-partner, meeting-point-updated, PR-ready, waitlist-promoted, and
+pr-message are supplied only through backend `config` rows:
 
 - `wechat.submsg_confirmation_reminder_template_id`
 - `wechat.submsg_activity_start_reminder_template_id`
 - `wechat.submsg_new_partner_template_id`
 - `wechat.submsg_meeting_point_updated_template_id`
+- `wechat.submsg_pr_ready_template_id`
 - `wechat.submsg_waitlist_promoted_template_id`
 - `wechat.submsg_pr_message_template_id`
 

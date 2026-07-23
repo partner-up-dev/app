@@ -6,15 +6,18 @@ import {
   type UserId,
   type PRJoinNoticeAcceptance,
 } from "../entities";
+import type { RepositoryExecutor } from "./_executor";
 
 export class PRJoinNoticeAcceptanceRepository {
+  constructor(private readonly executor: RepositoryExecutor = db) {}
+
   async find(input: {
     prId: PRId;
     userId: UserId;
     gateKey: string;
     gateVersion: string;
   }): Promise<PRJoinNoticeAcceptance | null> {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(prJoinNoticeAcceptances)
       .where(
@@ -35,7 +38,7 @@ export class PRJoinNoticeAcceptanceRepository {
     gateVersion: string;
   }): Promise<PRJoinNoticeAcceptance | null> {
     const acceptedAt = new Date();
-    const result = await db
+    const result = await this.executor
       .insert(prJoinNoticeAcceptances)
       .values({
         prId: input.prId,
@@ -60,7 +63,7 @@ export class PRJoinNoticeAcceptanceRepository {
   }
 
   async deleteByPrIdAndUserId(input: { prId: PRId; userId: UserId }): Promise<void> {
-    await db
+    await this.executor
       .delete(prJoinNoticeAcceptances)
       .where(
         and(

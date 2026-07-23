@@ -1,55 +1,30 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { UserRepository } from "../../../repositories/UserRepository";
 import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
+import { createPrAdmissionTransactionPort } from "../adapters/pr-admission-transaction";
 import {
   resolvePublishedCreator,
   throwAuthenticatedRequired,
   type CreatorIdentityInput,
 } from "../services/creator-identity.service";
 import { resolveUserByOpenId } from "../../user";
-import { recalculatePRStatus } from "../services/slot-management.service";
 import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
 import { assertPRTimeWindowAvailableAtLocation } from "../services/poi-availability.service";
 import { operationLogService } from "../../../infra/operation-log";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
 import { assertPRStartTimeHasNotPassed } from "../services/pr-time-window-guard.service";
 import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();
-const partnerRepo = new PartnerRepository();
 const userRepo = new UserRepository();
+const prAdmissionTransaction = createPrAdmissionTransactionPort();
 
 export type PublishPRResult = {
   pr: PublicPR;
   createdBy: UserId;
-};
-
-const ensureCreatorSlotJoined = async (prId: PRId, creatorUserId: UserId) => {
-  const request = await prRepo.findById(prId);
-  if (!request) {
-    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
-  }
-
-  const existing = await partnerRepo.findActiveByPrIdAndUserId(prId, creatorUserId);
-  if (existing) {
-    return;
-  }
-
-  const targetStatus = "JOINED";
-  const created = await partnerRepo.createSlot({
-    prId,
-    userId: creatorUserId,
-    status: targetStatus,
-  });
-  if (!created) {
-    return throwHttpProblem({ status: 500, detail: "Failed to create creator partner slot" });
-  }
-
-  await recalculatePRStatus(prId);
 };
 
 export async function publishPR(
@@ -122,16 +97,44 @@ export async function publishPR(
     timeWindow: request.time,
   });
 
-  if (!request.createdBy) {
-    await prRepo.setCreatedBy(id, creatorUserId);
+  const admission = await prAdmissionTransaction.publishCreator({
+    prId: id,
+    creatorUserId,
+  });
+  if (admission.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
   }
-
-  const updated = await prRepo.updateStatus(id, "OPEN");
-  if (!updated) {
-    return throwHttpProblem({ status: 500, detail: "Failed to publish partner request" });
+  if (admission.outcome === "NOT_DRAFT") {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Only DRAFT partner requests can be published",
+    });
   }
-
-  await ensureCreatorSlotJoined(id, creatorUserId);
+  if (admission.outcome === "CREATOR_MISMATCH") {
+    return throwHttpProblem({
+      status: 403,
+      detail: "Only the draft creator can publish this partner request",
+    });
+  }
+  if (admission.outcome === "FULL") {
+    return throwHttpProblem({
+      status: 400,
+      detail: "Cannot publish - creator cannot be admitted within partner capacity",
+    });
+  }
+  if (admission.outcome === "INELIGIBLE") {
+    return throwHttpProblem({
+      status: admission.reason === "USER_INACTIVE" ? 401 : 409,
+      detail:
+        admission.reason === "USER_INACTIVE"
+          ? "Invalid authenticated user"
+          : "Cannot publish - creator now conflicts with another joined partner request",
+      code:
+        admission.reason === "USER_INACTIVE"
+          ? "PR_ADMISSION_ELIGIBILITY_CHANGED"
+          : "JOIN_TIME_WINDOW_CONFLICT",
+    });
+  }
 
   const latest = await prRepo.findById(id);
   if (!latest) {
@@ -146,7 +149,7 @@ export async function publishPR(
     detail: { fromStatus: "DRAFT", toStatus: latest.status },
   });
 
-  await scheduleAlternativeWaitlistNotificationsForCandidate(latest);
+  await reconcileAlternativeWaitlistNotificationsForCandidate(latest);
 
   return {
     pr: await toPublicPR(latest, creatorUserId),

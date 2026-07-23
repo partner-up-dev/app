@@ -10,6 +10,7 @@ const buildRequest = (overrides: Partial<PartnerRequest> = {}): PartnerRequest =
   location: "Test Location",
   route: null,
   status: "OPEN",
+  readyCycleId: null,
   visibilityStatus: "VISIBLE",
   minPartners: 1,
   maxPartners: 2,

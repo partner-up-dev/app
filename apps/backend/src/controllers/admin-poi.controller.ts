@@ -6,13 +6,13 @@ import { meetingPointConfigSchema } from "../entities/meeting-point";
 import { poiAvailabilityRulesSchema } from "../entities/poi";
 import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
 import { PoiRepository } from "../repositories/PoiRepository";
-import { findPoisByIds, findPoisByNames } from "../domains/poi";
 import {
-  captureEffectiveMeetingPointsForRequests,
-  listRequestsAffectedByPoiMeetingPoint,
-  scheduleMeetingPointNotificationsForChangedRequests,
-} from "../domains/pr/ports";
-import { publishAdminPoiApplication, rejectAdminPoiApplication } from "../domains/poi";
+  findPoisByIds,
+  findPoisByNames,
+  publishAdminPoiApplication,
+  rejectAdminPoiApplication,
+  updateAdminPoi,
+} from "../domains/poi";
 
 const app = new Hono<AdminAuthEnv>();
 const poiRepo = new PoiRepository();
@@ -44,14 +44,6 @@ const upsertPoiSchema = z.object({
 const rejectPoiSchema = z.object({
   rejectReason: z.string().trim().max(280).nullable().optional(),
 });
-
-const uniqueRequestsById = <T extends { id: number }>(items: T[]): T[] => {
-  const byId = new Map<number, T>();
-  for (const item of items) {
-    byId.set(item.id, item);
-  }
-  return Array.from(byId.values());
-};
 
 const toPoiResponse = (poi: Awaited<ReturnType<PoiRepository["listAll"]>>[number]) => ({
   id: poi.id,
@@ -158,36 +150,19 @@ export const adminPoiRoute = app
         availabilityRules,
         meetingPoint,
       } = c.req.valid("json");
-      const [existingPoi] = await findPoisByIds([poiId], {
-        includeUnpublished: true,
-      });
-      const previousName = existingPoi?.name ?? name;
-      const affectedRequests = uniqueRequestsById([
-        ...(await listRequestsAffectedByPoiMeetingPoint(previousName)),
-        ...(previousName === name ? [] : await listRequestsAffectedByPoiMeetingPoint(name)),
-      ]);
-      const previousMeetingPoints =
-        await captureEffectiveMeetingPointsForRequests(affectedRequests);
-      const updatedAt = new Date();
-
-      const poi = await poiRepo.updateById(poiId, {
-        name,
-        fullAddress: fullAddress ?? null,
-        gallery,
-        gcj02: gcj02 ?? null,
-        wgs84: wgs84 ?? null,
-        bd09: bd09 ?? null,
-        perTimeWindowCap: perTimeWindowCap ?? null,
-        availabilityRules: availabilityRules ?? existingPoi?.availabilityRules ?? [],
-        meetingPoint: meetingPoint ?? existingPoi?.meetingPoint ?? null,
-      });
-      if (!poi) {
-        return throwHttpProblem({ status: 404, detail: "POI not found" });
-      }
-      await scheduleMeetingPointNotificationsForChangedRequests({
-        previous: previousMeetingPoints,
-        requests: affectedRequests,
-        updatedAt,
+      const poi = await updateAdminPoi({
+        poiId,
+        input: {
+          name,
+          fullAddress: fullAddress ?? null,
+          gallery,
+          gcj02: gcj02 ?? null,
+          wgs84: wgs84 ?? null,
+          bd09: bd09 ?? null,
+          perTimeWindowCap: perTimeWindowCap ?? null,
+          availabilityRules,
+          meetingPoint,
+        },
       });
       return c.json(toPoiResponse(poi));
     },

@@ -50,6 +50,22 @@ are outside the backend install graph.
 - backend GitHub Releases are source code version archives owned by Release
   Please, not by the backend deploy workflow
 
+## Claim-Fence Introduction Rule
+
+When a release introduces a new per-claim completion fence for durable Jobs,
+schema-first deployment alone is insufficient. An old runner can still complete
+by Job ID after a new runner has recovered the lease, so ordinary function
+deployment serialization is not proof that the two implementations will not
+race.
+
+Before the new runner may claim work, the deployment owner must have a bounded
+drain plan that prevents old-version tick and request-tail claims, then proves
+that old active invocations have either completed or passed their prior
+lease-plus-handler bound. Only then may the fenced runtime claim work and the
+trigger resume. If that proof cannot be obtained, stop the rollout or add a
+specific compatible transition; do not treat retry as safe merely because the
+Job is durable.
+
 ## Job Runner Trigger Rollout
 
 Separate workflow: `.github/workflows/job-runner-trigger-fc-deploy.yml`

@@ -7,12 +7,7 @@ const repository = vi.hoisted(() => ({
   updateByType: vi.fn<(type: string, patch: Record<string, unknown>) => Promise<PRTypeConfig>>(),
 }));
 const coordination = vi.hoisted(() => ({
-  capture: vi.fn<() => unknown>(),
-  listAffected: vi.fn<() => unknown>(),
-  schedule:
-    vi.fn<
-      (input: { previous: Map<unknown, unknown>; requests: unknown[]; updatedAt: Date }) => unknown
-    >(),
+  update: vi.fn<() => Promise<PRTypeConfig>>(),
 }));
 const questionnaire = vi.hoisted(() => ({
   findTemplateById: vi.fn<() => unknown>(),
@@ -34,10 +29,10 @@ vi.mock("../../../repositories/FeedbackQuestionnaireRepository", () => ({
     findTemplateById = questionnaire.findTemplateById;
   },
 }));
-vi.mock("../../pr/ports", () => ({
-  captureEffectiveMeetingPointsForRequests: coordination.capture,
-  listRequestsAffectedByPRTypeMeetingPoint: coordination.listAffected,
-  scheduleMeetingPointNotificationsForChangedRequests: coordination.schedule,
+vi.mock("./pr-type-coordination-meeting-point-transaction", () => ({
+  createPRTypeCoordinationMeetingPointTransactionPort: () => ({
+    update: coordination.update,
+  }),
 }));
 
 import {
@@ -86,8 +81,7 @@ beforeEach(() => {
     ...config,
     ...patch,
   }));
-  coordination.listAffected.mockResolvedValue([]);
-  coordination.capture.mockResolvedValue(new Map());
+  coordination.update.mockResolvedValue(config);
   questionnaire.findTemplateById.mockResolvedValue({ id: 1 });
 });
 
@@ -155,25 +149,19 @@ test("participation slice only writes confirmation and gate policy columns", asy
 });
 
 test("coordination and completion slices do not cross owner boundaries", async () => {
-  await updateAdminPRTypeConfigCoordination("study", {
+  const coordinationInput = {
     meetingPoint: null,
     locationMeetingPoints: {},
-  });
-  assert.deepEqual(Object.keys(repository.updateByType.mock.calls[0][1]).sort(), [
-    "locationMeetingPoints",
-    "meetingPoint",
+  };
+  await updateAdminPRTypeConfigCoordination("study", coordinationInput);
+  assert.deepEqual(coordination.update.mock.calls[0], [
+    { type: "study", input: coordinationInput },
   ]);
-  assert.equal(coordination.listAffected.mock.calls.length, 2);
-  assert.deepEqual(coordination.listAffected.mock.calls[0], ["study", "study"]);
-  assert.deepEqual(coordination.capture.mock.calls[0], [[]]);
-  const scheduleInput = coordination.schedule.mock.calls[0][0];
-  assert.deepEqual(scheduleInput.previous, new Map());
-  assert.deepEqual(scheduleInput.requests, []);
-  assert.equal(scheduleInput.updatedAt instanceof Date, true);
+  assert.equal(repository.updateByType.mock.calls.length, 0);
 
   await updateAdminPRTypeConfigCompletion("study", { feedbackQuestionnaireTemplateId: 1 });
   assert.deepEqual(questionnaire.findTemplateById.mock.calls[0], [1]);
-  assert.deepEqual(Object.keys(repository.updateByType.mock.calls[1][1]), [
+  assert.deepEqual(Object.keys(repository.updateByType.mock.calls[0][1]), [
     "feedbackQuestionnaireTemplateId",
   ]);
 });

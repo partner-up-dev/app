@@ -34,6 +34,7 @@ const buildPR = (input: { time: [string | null, string | null] }): PartnerReques
     location: null,
     route: null,
     status: "ACTIVE",
+    readyCycleId: null,
     visibilityStatus: "VISIBLE",
     confirmationEnabled: true,
     confirmationStartOffsetMinutes: null,

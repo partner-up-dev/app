@@ -11,6 +11,7 @@ import type { OfferId } from "../../src/entities/offer";
 import { db } from "../../src/lib/db";
 import { BillLineRepository } from "../../src/repositories/BillLineRepository";
 import { RideHailingOrderRepository } from "../../src/repositories/RideHailingOrderRepository";
+import { RideHailingProviderInstanceRepository } from "../../src/repositories/RideHailingProviderInstanceRepository";
 import { TradeOrderRepository } from "../../src/repositories/TradeOrderRepository";
 import { expectJsonResponse, requestJson } from "../_infra/http/backend-app";
 import { scenario } from "../_infra/scenario/scenario";
@@ -52,9 +53,23 @@ type ProblemDetailsResponse = {
 
 const billLineRepo = new BillLineRepository();
 const rideHailingOrderRepo = new RideHailingOrderRepository();
+const rideHailingProviderRepo = new RideHailingProviderInstanceRepository();
 const tradeOrderRepo = new TradeOrderRepository();
 
 async function givenBillLineForPayment(input: { userId: string }): Promise<string> {
+  const rideHailingProvider = await rideHailingProviderRepo.create({
+    providerType: "CAOCAO",
+    instanceKey: `payment-provider-ssot-ride-${randomUUID()}`,
+    status: "ACTIVE",
+    displayName: "Payment Provider SSoT Ride Provider",
+    config: {
+      adapterMode: "CAOCAO_OPEN_API",
+      caocaoClientId: "payment-provider-ssot-ride-client",
+      signKey: "payment-provider-ssot-ride-secret",
+      endpointBaseUrl: "https://provider.invalid/v2",
+      callbackBaseUrl: "https://api.partner-up.test",
+    },
+  });
   const spu = await createProductSpu({
     name: "Provider SSOT payment fixture",
     productType: "RIDE_HAILING",
@@ -119,7 +134,23 @@ async function givenBillLineForPayment(input: { userId: string }): Promise<strin
     },
     riders: [],
     contactPhone: "13800138088",
-    executionPhase: "COMPLETED",
+    dispatchBinding: {
+      providerInstanceId: rideHailingProvider.id,
+      providerType: "CAOCAO",
+      providerOrderId: "CC-PAYMENT-PROVIDER-SSOT",
+      externalOrderId: null,
+      submittedAt: "2099-03-01T09:00:00.000Z",
+      submissionMode: "SINGLE_CANDIDATE",
+      submittedCandidates: [],
+      providerSnapshot: null,
+    },
+    executionPhase: "FINISHED",
+    finalSettlementInput: {
+      amountFen: 1200,
+      currency: "CNY",
+      providerOrderId: "CC-PAYMENT-PROVIDER-SSOT",
+      committedAt: "2099-03-01T09:30:00.000Z",
+    },
   });
   const bill = await createBillFromSeed({
     sourceOrderId: order.id,

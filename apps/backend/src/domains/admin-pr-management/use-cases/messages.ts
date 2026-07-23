@@ -6,11 +6,13 @@ import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRMessageRepository } from "../../../repositories/PRMessageRepository";
-import { createPersistedPRMessage } from "../../pr/commands";
+import { createOperatorPRMessage } from "../../pr/commands";
 import { toPRMessageThreadItem } from "../../pr/queries";
+import { createAdminPRMessageWindowLifecycleTransactionPort } from "./pr-message-window-lifecycle-transaction";
 
 const prRepository = new PartnerRequestRepository();
 const messageRepository = new PRMessageRepository();
+const messageWindowLifecycle = createAdminPRMessageWindowLifecycleTransactionPort();
 
 const assertPRExists = async (prId: PRId): Promise<void> => {
   if (!(await prRepository.findById(prId)))
@@ -33,16 +35,10 @@ export const createAdminPRMessage = async (input: {
   body: string;
   actorUserId: UserId;
 }) => {
-  const request = await prRepository.findById(input.prId);
-  if (!request) return throwHttpProblem({ status: 404, detail: "PR not found" });
-  return createPersistedPRMessage({
-    request,
+  return createOperatorPRMessage({
     prId: input.prId,
     authorUserId: input.actorUserId,
-    body: prMessageBodySchema.parse(input.body),
-    actorUserId: input.actorUserId,
-    action: "pr.create_system_message",
-    markAuthorRead: false,
+    body: input.body,
   });
 };
 
@@ -77,10 +73,13 @@ export const deleteAdminPRMessage = async (input: {
   messageId: PRMessageId;
   actorUserId: UserId | null;
 }) => {
-  const message = await messageRepository.findByPrIdAndId(input.prId, input.messageId);
-  if (!message) return throwHttpProblem({ status: 404, detail: "PR message not found" });
-  if (!(await messageRepository.deleteById(input.messageId)))
-    return throwHttpProblem({ status: 500, detail: "Failed to delete PR message" });
+  const result = await messageWindowLifecycle.tombstoneMessage({
+    prId: input.prId,
+    messageId: input.messageId,
+  });
+  if (result.outcome === "PR_MISSING" || result.outcome === "MESSAGE_NOT_VISIBLE") {
+    return throwHttpProblem({ status: 404, detail: "PR message not found" });
+  }
   operationLogService.log({
     actorId: input.actorUserId,
     action: "pr.admin_delete_message",

@@ -9,7 +9,7 @@ import {
   isPRActiveStatus,
   readVisiblePartnerRequestsByTypeAndTime,
 } from "../services/pr-read.service";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
@@ -124,5 +124,5 @@ export async function expandFullCapacityPR(prId: PRId): Promise<void> {
       detail: "Failed to reload expanded partner request",
     });
   }
-  await scheduleAlternativeWaitlistNotificationsForCandidate(createdRoot);
+  await reconcileAlternativeWaitlistNotificationsForCandidate(createdRoot);
 }

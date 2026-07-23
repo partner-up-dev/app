@@ -20,6 +20,9 @@ Program Phase 3.
 | `04-integration/` | 根代理 | 冲突消解、冻结总表、评分卡与下一阶段入口条件 |
 | `05-toolchain-recovery/` | Toolchain recovery 子任务 | 两套 oxc binding、Web build 与 System scenario 恢复证据 |
 | `06-phase3/` | 根代理 + slice owners | Program Phase 3 的当前 HEAD 校准、目标状态、durable promotion 与 executable packets |
+| `07-phase4/` | 根代理 + slice owners | Program Phase 4 User/Auth 的本地收口、外部证据分支与 completion review |
+| `08-phase5/` | 根代理 + slice owners | Program Phase 5 Commerce 的 source convergence、proof、deferred risks 与 runtime-evidence branch |
+| `09-phase6-job-notification/` | 根代理 + slice owners | Program Phase 6 Job/Notification 的 topology、runtime/owner 证据、目标设计与后续 source-slice gates |
 
 ## Evidence Protocol
 
@@ -36,13 +39,25 @@ Program Phase 3.
 2. Phase 2 — read-only baseline: historical snapshot complete; toolchain recovery separately complete.
 3. Phase 3 — target execution: all stages 3A/3B/3C and slices `3-1`–`3-8` are Complete. The current exit proof is
    [`06-phase3/exit-evidence.md`](./06-phase3/exit-evidence.md).
-4. Phase 4 — User/Auth: entry characterization and slice planning may proceed; implementation remains unauthorized
-   until its own packet, entry evidence and explicit authorization exist. Commerce, Job/Notification,
-   Observability, then global review/cleanup remain ordered after it; see `program-roadmap.md`.
+4. Phase 4 — User/Auth: local implementation and completion review complete; rollout/provider/topology evidence stays
+   externally gated.
+5. Phase 5 — Commerce: local owner convergence committed as `171319de`; runtime/provider evidence and explicit
+   deferred risks remain in its Phase packet.
+6. Phase 6 — Job/Notification runtime: `6-0`, D6-N-01, D6-J-02 and D6-F-01 have closed the read-only design.
+   The business-template/Job-task model, creation window, future-O11y boundary, PR-inbox retirement,
+   state-placement rule and simplified RideHailing fee-confirmation Job boundary are ratified. `6-1` and `6-2` are
+   locally proven; `6-3` completes all source handoffs, visible ACK and forward legacy state/decoder retirement.
+   `6-4` completes the atomic RideHailing fee-confirmation Job handoff, and `6-5` closes runtime/recovery,
+   scoped console cleanup and full local review. Phase 6 is locally complete; real O11y, existing Phase 5 debug
+   stdout and `notification_deliveries` retirement move to Phase 7.
+7. Phase 7 — Observability/Analytics: not started.
+8. Phase 8 — global review and cleanup: not started.
 
 Phase 2 后续恢复工作已在 `05-toolchain-recovery/` 完成：两套 oxc binding、Web build 与
 System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能力，因此 `01`–`04`
 中的旧 Event 与规模证据只作历史快照；当前事实和替代 owner 见 `06-phase3/entry-baseline.md`。
+当前未完成阶段、外部证据和独立工作见
+[`remaining-work-register.md`](./remaining-work-register.md)。
 
 ## Integrated Entry Points
 
@@ -57,6 +72,11 @@ System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能�
 - [`06-phase3/durable-docs-plan.md`](./06-phase3/durable-docs-plan.md)
 - [`06-phase3/verification-log.md`](./06-phase3/verification-log.md)
 - [`06-phase3/scope-audit.md`](./06-phase3/scope-audit.md)
+- [`07-phase4/00-task-packet.md`](./07-phase4/00-task-packet.md)
+- [`08-phase5/00-task-packet.md`](./08-phase5/00-task-packet.md)
+- [`09-phase6-job-notification/00-task-packet.md`](./09-phase6-job-notification/00-task-packet.md)
+- [`09-phase6-job-notification/01-runtime-topology-inventory/00-task-packet.md`](./09-phase6-job-notification/01-runtime-topology-inventory/00-task-packet.md)
 - [`program-roadmap.md`](./program-roadmap.md)
+- [`remaining-work-register.md`](./remaining-work-register.md)
 - [`06-phase3/01-baseline-and-fitness/00-task-packet.md`](./06-phase3/01-baseline-and-fitness/00-task-packet.md)
 - [`06-phase3/01-baseline-and-fitness/verification-log.md`](./06-phase3/01-baseline-and-fitness/verification-log.md)

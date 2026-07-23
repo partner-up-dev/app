@@ -44,20 +44,13 @@ import { userRoute } from "./controllers/user.controller";
 import { wechatRoute } from "./controllers/wechat.controller";
 import { wecomRoute } from "./controllers/wecom.controller";
 import { jobRunner } from "./infra/jobs";
+import { registerRideHailingFeeConfirmationJobs } from "./infra/jobs/ride-hailing-fee-confirmation";
+import { createRequestTailMaintenanceRunner } from "./infra/maintenance";
 import {
   bootstrapOfficialAccountFollowSyncJob,
   registerOfficialAccountFollowSyncJobs,
 } from "./infra/marketing";
-import {
-  registerWeChatActivityStartReminderJobs,
-  registerWeChatMeetingPointUpdatedJobs,
-  registerWeChatNewPartnerJobs,
-  registerWeChatPRMessageJobs,
-  registerWeChatPRReadyJobs,
-  registerWeChatReminderJobs,
-  registerWeChatWaitlistAlternativeAvailableJobs,
-  registerWeChatWaitlistPromotedJobs,
-} from "./infra/notifications";
+import { registerNotificationSendJobs } from "./infra/notifications";
 import { JOURNEY_ID_HEADER, journeyContextMiddleware } from "./infra/telemetry";
 import { env } from "./lib/env";
 import { resolveCredentialedCorsOrigin } from "./lib/frontend-origin";
@@ -71,17 +64,10 @@ import {
   MPWX_DOMAIN_VERIFICATION_FILENAME,
   WXOA_DOMAIN_VERIFICATION_FILENAME,
 } from "./lib/wechat-domain-verification";
-import { withTimeout } from "./lib/with-timeout";
 
 export const app = new Hono();
-registerWeChatReminderJobs();
-registerWeChatActivityStartReminderJobs();
-registerWeChatNewPartnerJobs();
-registerWeChatPRMessageJobs();
-registerWeChatMeetingPointUpdatedJobs();
-registerWeChatPRReadyJobs();
-registerWeChatWaitlistPromotedJobs();
-registerWeChatWaitlistAlternativeAvailableJobs();
+registerNotificationSendJobs();
+registerRideHailingFeeConfirmationJobs();
 registerOfficialAccountFollowSyncJobs();
 if (process.env.BACKEND_SCENARIO_DISABLE_BOOTSTRAP !== "true") {
   void bootstrapOfficialAccountFollowSyncJob().catch((error) => {
@@ -242,46 +228,19 @@ app.get("/health", (c) => c.json({ status: "ok", jobs: jobRunner.status() }));
 // Export type for RPC client
 export type AppType = typeof routes;
 
-let nextRequestTailJobTickAtMs = 0;
-let requestTailMaintenanceInFlight: Promise<void> | null = null;
+const requestTailMaintenance = createRequestTailMaintenanceRunner({
+  runner: jobRunner,
+  config: {
+    batchSize: env.JOB_RUNNER_CLAIM_BATCH_SIZE,
+    maxBatches: env.REQUEST_TAIL_JOB_TICK_MAX_BATCHES,
+    budgetMs: env.REQUEST_TAIL_JOB_TICK_BUDGET_MS,
+    leaseMs: env.JOB_RUNNER_LEASE_MS,
+    minIntervalMs: env.REQUEST_TAIL_JOB_TICK_MIN_INTERVAL_MS,
+  },
+  onError: (error) => console.error("[RequestTail] job tick failed", error),
+});
 
-const kickRequestTailMaintenance = (): void => {
-  if (requestTailMaintenanceInFlight) {
-    return;
-  }
-
-  requestTailMaintenanceInFlight = runRequestTailMaintenance()
-    .catch((error) => {
-      console.error("[RequestTail] maintenance failed", error);
-    })
-    .finally(() => {
-      requestTailMaintenanceInFlight = null;
-    });
-};
-
-const runRequestTailMaintenance = async (): Promise<void> => {
-  if (Date.now() < nextRequestTailJobTickAtMs) {
-    return;
-  }
-  nextRequestTailJobTickAtMs = Date.now() + env.REQUEST_TAIL_JOB_TICK_MIN_INTERVAL_MS;
-
-  try {
-    await withTimeout(
-      jobRunner.runDueJobs({
-        source: "request-tail",
-        batchSize: env.JOB_RUNNER_CLAIM_BATCH_SIZE,
-        maxBatches: env.REQUEST_TAIL_JOB_TICK_MAX_BATCHES,
-        budgetMs: env.REQUEST_TAIL_JOB_TICK_BUDGET_MS,
-        leaseMs: env.JOB_RUNNER_LEASE_MS,
-        claimStatementTimeoutMs: env.REQUEST_TAIL_JOB_TICK_BUDGET_MS,
-      }),
-      env.REQUEST_TAIL_JOB_TICK_BUDGET_MS,
-      "Request-tail job tick timed out",
-    );
-  } catch (error) {
-    console.error("[RequestTail] job tick failed", error);
-  }
-};
+const kickRequestTailMaintenance = requestTailMaintenance.kick;
 
 export type { OrderingEntryPayload, OrderingOfferDetail } from "./domains/merchandising/contracts";
 export type {

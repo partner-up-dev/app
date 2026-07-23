@@ -1,0 +1,15 @@
+# `6-2` Decision Log
+
+These are implementation choices inside the already ratified Phase 6 owner
+model. They do not alter the product contract or widen the slice.
+
+| ID | Decision | Why | Verification / Exit |
+| --- | --- | --- | --- |
+| 6-2-D1 | The cross-domain command is `requestNotification`; its public input is business template, recipient, channel, correlated payload and semantic metadata only. | `request` describes a business request without exposing when/how Job executes it. | Type-negative fixture and import ledger prove no Job/provider fields appear at the PR caller. |
+| 6-2-D2 | `pr.waitlist-promoted` uses `ONCE_PER_CAUSE` with private creation key derived from recipient + durable promoted partner slot. | A promoted slot is the concrete causal generation. Terminal-safe dedupe prevents duplicate sends from replaying the same promotion while not letting callers manufacture keys. | Policy unit and scenario inspect one `notification.send.v1` Job with no opportunity row. |
+| 6-2-D3 | `partner_request:<prId>:waitlist-promotion:<partnerId>` is the caller's causation identity. | `partnerId` is the durable promotion-slot identity; a later re-waitlist creates a new slot. This is semantic causation, not scheduler policy. | Task payload fixture and vertical scenario. |
+| 6-2-D4 | The generic owner core receives narrow scheduler, option, eligibility/context and channel ports; only composition/infra adapts JobRunner, PR query, repository and WeChat service. | It keeps Notification's decisions deep while avoiding Notification-core imports of PR internals or the Job singleton. | Static import search and pure fake-port handler tests. |
+| 6-2-D5 | New waitlist dispatch requires `preferred && LIMITED(remaining > 0)`. The dispatch-time decrement keeps preference; `43101` clears preference and credit. | Preference and credit are different facts even in one aggregate. This repairs the exemplar without silently changing untouched legacy-family transitions. | Option/handler matrix tests; later family cutovers migrate the remaining legacy helper semantics. |
+| 6-2-D6 | Provider results are `ACCEPTED`, `RECIPIENT_PERMISSION_REVOKED`, `PERMANENT_REFUSAL`, `PROVEN_NOT_APPLIED_RETRYABLE`, or `AMBIGUOUS`. Current non-`43101` errors map to `AMBIGUOUS`. | The current provider call has no idempotency or status-query proof; retrying unknown effects can duplicate a message. | Adapter classifier and generic disposition tests. |
+| 6-2-D7 | New exemplar tasks do not dual-write `notification_opportunities` or `notification_deliveries`. | Job is the durable task and JobRunner emits the attempt signal. The legacy tables remain only for legacy rows until later retirement. | Targeted scenario checks only the generic Job is created; schema removal remains out of scope. |
+| 6-2-D8 | Promotion-to-task insertion remains a named best-effort handoff debt. | The promotion mutation has already committed when the command is requested; no transaction-aware handoff is added speculatively in this exemplar. | Failure boundary remains explicit in the packet and is a `6-3` entry condition. |

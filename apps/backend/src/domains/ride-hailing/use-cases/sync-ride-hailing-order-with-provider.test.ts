@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   queryDriverRoute: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   applyProviderObservation: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   commitTerminalSettlement: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  settlePaymentAndScheduleFeeConfirmation: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("./provider-execution-context", () => ({
@@ -71,6 +72,8 @@ const transactionPort = (): RideHailingReconciliationTransactionPort => ({
     mocks.applyProviderObservation as RideHailingReconciliationTransactionPort["applyProviderObservation"],
   commitTerminalSettlement:
     mocks.commitTerminalSettlement as RideHailingReconciliationTransactionPort["commitTerminalSettlement"],
+  settlePaymentAndScheduleFeeConfirmation:
+    mocks.settlePaymentAndScheduleFeeConfirmation as RideHailingReconciliationTransactionPort["settlePaymentAndScheduleFeeConfirmation"],
 });
 
 beforeEach(() => {

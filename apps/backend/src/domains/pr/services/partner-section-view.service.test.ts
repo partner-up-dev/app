@@ -19,6 +19,7 @@ const buildPublicPR = (overrides: Partial<PublicPR> = {}): PublicPR => {
     location: "Test POI",
     route: null,
     status: "ACTIVE",
+    readyCycleId: null,
     visibilityStatus: "VISIBLE",
     confirmationEnabled: true,
     confirmationStartOffsetMinutes: 120,

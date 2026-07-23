@@ -7,8 +7,8 @@
 3. A current active participant can post plain-text messages inside the PR to coordinate meetup details, timing changes, or other collaboration context.
 4. An operator may also add a plain-text system message to one specific `PR` when participants need an official coordination note, fulfillment update, or other operator-authored context inside the same thread.
 5. The system persists both participant messages and operator-authored system messages inside the corresponding `PartnerRequest` context rather than forcing participants into an external chat tool.
-6. If other current active participants still have remaining notification quota, the system opens one unread wave per `PR / recipient`, schedules one delayed summary notification opportunity after a short fixed debounce window, and still limits delivery to at most one send per unread wave.
-7. After another participant revisits that PR and catches up on the unread wave, a later wave may trigger a new notification.
+6. If other current active participants still have an eligible notification option, the system opens one message-attention window per `PR / recipient`, schedules one delayed summary task after a short fixed debounce window, and limits dispatch to at most one send while that window remains open.
+7. When another participant explicitly views the visible PR thread, that acknowledgment closes the current message-attention window. Hidden loads and prefetches do not close it; a later message may open a new window.
 
 ## 2. Study Sprint Pomodoro
 

@@ -3,6 +3,7 @@ import { type NewUser, type UserId, type UserSex, users } from "../entities/user
 import { userNotificationOpts } from "../entities/user-notification-opt";
 import { userReliability } from "../entities/user-reliability";
 import { db } from "../lib/db";
+import type { RepositoryExecutor } from "./_executor";
 
 const OFFICIAL_ACCOUNT_FOLLOW_UPDATE_CHUNK_SIZE = 500;
 
@@ -18,6 +19,8 @@ const uniqueNonEmptyStrings = (values: string[]): string[] => {
 };
 
 export class UserRepository {
+  constructor(private readonly executor: RepositoryExecutor = db) {}
+
   async create(data: NewUser) {
     return db.transaction(async (tx) => {
       const result = await tx.insert(users).values(data).returning();
@@ -38,7 +41,12 @@ export class UserRepository {
   }
 
   async findById(id: UserId) {
-    const result = await db.select().from(users).where(eq(users.id, id));
+    const result = await this.executor.select().from(users).where(eq(users.id, id));
+    return result[0] ?? null;
+  }
+
+  async findByIdForUpdate(id: UserId) {
+    const result = await this.executor.select().from(users).where(eq(users.id, id)).for("update");
     return result[0] ?? null;
   }
 
@@ -48,11 +56,11 @@ export class UserRepository {
       return [];
     }
 
-    return db.select().from(users).where(inArray(users.id, uniqueIds));
+    return this.executor.select().from(users).where(inArray(users.id, uniqueIds));
   }
 
   async findByOpenId(openId: string) {
-    const result = await db.select().from(users).where(eq(users.openId, openId));
+    const result = await this.executor.select().from(users).where(eq(users.openId, openId));
     return result[0] ?? null;
   }
 

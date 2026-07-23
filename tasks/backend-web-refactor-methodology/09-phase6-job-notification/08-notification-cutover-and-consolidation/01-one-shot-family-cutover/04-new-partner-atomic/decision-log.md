@@ -1,0 +1,11 @@
+# `6-3.1d` Decision Log
+
+| ID | Decision | Exit proof |
+| --- | --- | --- |
+| `6-3.1d-D1` | A reusable Partner row's active admission, not its row ID, is the causal identity of `pr.new-partner`. | A delayed old-cycle task safe-skips after exit/re-entry; a later active admission receives a different cycle/key. |
+| `6-3.1d-D2` | `admissionCycleId`, `joinedUserId` and `joinedAtIso` are durable generic-task facts. `admissionCycleId` is also persisted on Partner so dispatch can prove the task still names the current active lifecycle. | Generic payload validation rejects an omission; dispatch compares the current slot cycle before channel I/O. |
+| `6-3.1d-D3` | Source fan-out preserves legacy recipient eligibility: active PR participant except entrant, active user with OpenID, and available `NEW_PARTNER` credit at source time. | An opted-out/creditless or non-OpenID active participant receives no task; the selected recipient set is atomic with admission. |
+| `6-3.1d-D4` | Preference/credit and source recipient filtering remain Notification-owned even though PR supplies the transaction-local active roster. | PR calls a named Notification port with candidate IDs and semantic event facts, never option columns, Job settings or provider details. |
+| `6-3.1d-D5` | Provider configuration, current preference, current membership and the original admission-cycle fence are dispatch-time checks. | A later exited/opted-out recipient produces no provider call or credit mutation; a channel configuration change requires no source mutation. |
+| `6-3.1d-D6` | New source writes only `notification.send.v1`; no new opportunity/delivery row is created. Legacy new-partner handler and cancellation remain only to drain old rows. | Source inventory finds no legacy scheduling caller; new scenario Jobs have no paired opportunity rows. |
+| `6-3.1d-D7` | Generic New Partner consumption decrements limited WeChat credit without erasing stored preference; only a known permission revocation clears both. The legacy handler keeps its historical coupled mutation while draining old rows. | A final accepted generic send leaves preference true with zero credit, and a later task skips before provider I/O until credit is renewed. |

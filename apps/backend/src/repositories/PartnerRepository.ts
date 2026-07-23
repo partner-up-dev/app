@@ -1,10 +1,17 @@
+import { randomUUID } from "node:crypto";
 import { db } from "../lib/db";
-import { partners, type PartnerId, type PartnerStatus } from "../entities/partner";
+import {
+  partners,
+  type PartnerId,
+  type PartnerStatus,
+  type WaitlistCycleId,
+} from "../entities/partner";
 import { partnerRequests } from "../entities/partner-request";
 import type { PRId } from "../entities/partner-request";
 import type { UserId } from "../entities/user";
 import { users } from "../entities/user";
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import type { RepositoryExecutor } from "./_executor";
 
 export type ActiveParticipantSummary = {
   partnerId: PartnerId;
@@ -28,6 +35,7 @@ export type AlternativeWaitlistReminderSlot = {
   partnerId: PartnerId;
   prId: PRId;
   userId: UserId;
+  waitlistCycleId: WaitlistCycleId | null;
   waitlistedAt: Date | null;
 };
 
@@ -41,18 +49,29 @@ export type RosterParticipantSummary = {
   releaseReason?: string | null;
 };
 
+const isActivePartnerStatus = (
+  status: PartnerStatus,
+): status is Extract<PartnerStatus, "JOINED" | "CONFIRMED" | "ATTENDED"> =>
+  status === "JOINED" || status === "CONFIRMED" || status === "ATTENDED";
+
 export class PartnerRepository {
+  constructor(private readonly executor: RepositoryExecutor = db) {}
+
   async findById(id: PartnerId) {
-    const result = await db.select().from(partners).where(eq(partners.id, id));
+    const result = await this.executor.select().from(partners).where(eq(partners.id, id));
     return result[0] ?? null;
   }
 
   async findByPrId(prId: PRId) {
-    return db.select().from(partners).where(eq(partners.prId, prId)).orderBy(asc(partners.id));
+    return this.executor
+      .select()
+      .from(partners)
+      .where(eq(partners.prId, prId))
+      .orderBy(asc(partners.id));
   }
 
   async findActiveByPrIdAndUserId(prId: PRId, userId: UserId) {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(partners)
       .where(
@@ -67,7 +86,7 @@ export class PartnerRepository {
   }
 
   async findPendingByPrIdAndUserId(prId: PRId, userId: UserId) {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(partners)
       .where(
@@ -78,7 +97,7 @@ export class PartnerRepository {
   }
 
   async findActiveByUserId(userId: UserId) {
-    return db
+    return this.executor
       .select()
       .from(partners)
       .where(
@@ -91,7 +110,7 @@ export class PartnerRepository {
   }
 
   async listActiveIdsByPrId(prId: PRId): Promise<PartnerId[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({ id: partners.id })
       .from(partners)
       .where(
@@ -101,8 +120,24 @@ export class PartnerRepository {
     return rows.map((row) => row.id);
   }
 
+  /**
+   * Locks the current active roster in deterministic slot order so a
+   * transaction-bound PR-message write can freeze its recipient set.
+   */
+  async listActiveParticipantUserIdsByPrIdForUpdate(prId: PRId): Promise<UserId[]> {
+    const rows = await this.executor
+      .select({ userId: partners.userId })
+      .from(partners)
+      .where(
+        and(eq(partners.prId, prId), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
+      )
+      .orderBy(asc(partners.id))
+      .for("update");
+    return rows.map((row) => row.userId);
+  }
+
   async listActiveParticipantSummariesByPrId(prId: PRId): Promise<ActiveParticipantSummary[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         status: partners.status,
@@ -129,7 +164,7 @@ export class PartnerRepository {
   }
 
   async listPendingParticipantSummariesByPrId(prId: PRId): Promise<PendingParticipantSummary[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         status: partners.status,
@@ -154,7 +189,7 @@ export class PartnerRepository {
   }
 
   async listRosterParticipantSummariesByPrId(prId: PRId): Promise<RosterParticipantSummary[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         status: partners.status,
@@ -190,7 +225,7 @@ export class PartnerRepository {
     prId: PRId,
     partnerId: PartnerId,
   ): Promise<ActiveParticipantSummary | null> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         status: partners.status,
@@ -225,7 +260,7 @@ export class PartnerRepository {
   }
 
   async countActiveByPrId(prId: PRId): Promise<number> {
-    const result = await db
+    const result = await this.executor
       .select({
         count: sql<number>`count(*)::int`,
       })
@@ -237,7 +272,7 @@ export class PartnerRepository {
   }
 
   async countPendingByPrId(prId: PRId): Promise<number> {
-    const result = await db
+    const result = await this.executor
       .select({
         count: sql<number>`count(*)::int`,
       })
@@ -251,7 +286,7 @@ export class PartnerRepository {
       return new Map<PRId, number>();
     }
 
-    const rows = await db
+    const rows = await this.executor
       .select({
         prId: partners.prId,
         count: sql<number>`count(*)::int`,
@@ -269,7 +304,7 @@ export class PartnerRepository {
   }
 
   async countTotalByPrId(prId: PRId): Promise<number> {
-    const result = await db
+    const result = await this.executor
       .select({
         count: sql<number>`count(*)::int`,
       })
@@ -288,13 +323,15 @@ export class PartnerRepository {
     const nextStatus = data.status;
     const alternativePrReminderOptIn =
       nextStatus === "PENDING" && data.alternativePrReminderOptIn === true;
-    const result = await db
+    const result = await this.executor
       .insert(partners)
       .values({
         prId: data.prId,
         userId: data.userId,
         status: nextStatus,
         waitlistedAt: nextStatus === "PENDING" ? now : null,
+        waitlistCycleId: nextStatus === "PENDING" ? randomUUID() : null,
+        admissionCycleId: isActivePartnerStatus(nextStatus) ? randomUUID() : null,
         alternativePrReminderOptIn,
         alternativePrReminderOptedInAt: alternativePrReminderOptIn ? now : null,
         exitedAt: nextStatus === "EXITED" ? now : null,
@@ -308,11 +345,12 @@ export class PartnerRepository {
 
   async updateStatus(id: PartnerId, status: PartnerStatus) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status,
         waitlistedAt: status === "PENDING" ? now : null,
+        ...(status === "PENDING" ? { waitlistCycleId: randomUUID() } : {}),
         exitedAt: status === "EXITED" ? now : null,
         releasedAt: status === "RELEASED" ? now : null,
         releaseReason: null,
@@ -324,11 +362,13 @@ export class PartnerRepository {
 
   async reactivateSlot(id: PartnerId, status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status,
         waitlistedAt: null,
+        waitlistCycleId: null,
+        admissionCycleId: randomUUID(),
         confirmedAt: status === "CONFIRMED" ? now : null,
         exitedAt: null,
         releasedAt: null,
@@ -346,11 +386,12 @@ export class PartnerRepository {
   async markPending(id: PartnerId, options: { alternativePrReminderOptIn?: boolean } = {}) {
     const now = new Date();
     const alternativePrReminderOptIn = options.alternativePrReminderOptIn === true;
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status: "PENDING",
         waitlistedAt: now,
+        waitlistCycleId: randomUUID(),
         alternativePrReminderOptIn,
         alternativePrReminderOptedInAt: alternativePrReminderOptIn ? now : null,
         confirmedAt: null,
@@ -369,11 +410,12 @@ export class PartnerRepository {
 
   async promotePendingSlot(id: PartnerId, status: Extract<PartnerStatus, "JOINED" | "CONFIRMED">) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status,
         waitlistedAt: null,
+        admissionCycleId: randomUUID(),
         confirmedAt: status === "CONFIRMED" ? now : null,
         exitedAt: null,
         releasedAt: null,
@@ -389,11 +431,12 @@ export class PartnerRepository {
   }
 
   async cancelPendingSlot(id: PartnerId) {
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status: "CANCELLED",
         waitlistedAt: null,
+        waitlistCycleId: null,
         alternativePrReminderOptIn: false,
         alternativePrReminderOptedInAt: null,
         confirmedAt: null,
@@ -415,11 +458,12 @@ export class PartnerRepository {
     location: string;
     excludePrId: PRId;
   }): Promise<AlternativeWaitlistReminderSlot[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         prId: partners.prId,
         userId: partners.userId,
+        waitlistCycleId: partners.waitlistCycleId,
         waitlistedAt: partners.waitlistedAt,
       })
       .from(partners)
@@ -444,11 +488,12 @@ export class PartnerRepository {
     location: string;
     excludePrId: PRId;
   }): Promise<AlternativeWaitlistReminderSlot[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         prId: partners.prId,
         userId: partners.userId,
+        waitlistCycleId: partners.waitlistCycleId,
         waitlistedAt: partners.waitlistedAt,
       })
       .from(partners)
@@ -471,11 +516,12 @@ export class PartnerRepository {
   async listPendingAlternativeReminderSlotsByUser(
     userId: UserId,
   ): Promise<AlternativeWaitlistReminderSlot[]> {
-    const rows = await db
+    const rows = await this.executor
       .select({
         partnerId: partners.id,
         prId: partners.prId,
         userId: partners.userId,
+        waitlistCycleId: partners.waitlistCycleId,
         waitlistedAt: partners.waitlistedAt,
       })
       .from(partners)
@@ -493,7 +539,7 @@ export class PartnerRepository {
 
   async markConfirmed(id: PartnerId) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status: "CONFIRMED",
@@ -512,7 +558,7 @@ export class PartnerRepository {
     } = {},
   ) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status: "RELEASED",
@@ -531,8 +577,41 @@ export class PartnerRepository {
     return result[0] ?? null;
   }
 
+  /**
+   * Conditional persistence primitive for a preflighted PR-content release.
+   * A stale candidate must not turn an already-exited or reactivated slot into
+   * RELEASED merely because an older content-edit preflight observed it active.
+   */
+  async markActiveReleased(
+    id: PartnerId,
+    options: {
+      releaseReason?: string | null;
+    } = {},
+  ) {
+    const now = new Date();
+    const result = await this.executor
+      .update(partners)
+      .set({
+        status: "RELEASED",
+        waitlistedAt: null,
+        exitedAt: null,
+        confirmedAt: null,
+        attendedAt: null,
+        checkInAt: null,
+        didAttend: null,
+        paymentStatus: "NONE",
+        releasedAt: now,
+        releaseReason: options.releaseReason ?? null,
+      })
+      .where(
+        and(eq(partners.id, id), inArray(partners.status, ["JOINED", "CONFIRMED", "ATTENDED"])),
+      )
+      .returning();
+    return result[0] ?? null;
+  }
+
   async findReleasedByPrIdAndUserId(prId: PRId, userId: UserId) {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(partners)
       .where(
@@ -547,7 +626,7 @@ export class PartnerRepository {
   }
 
   async findReusableInactiveByPrIdAndUserId(prId: PRId, userId: UserId) {
-    const result = await db
+    const result = await this.executor
       .select()
       .from(partners)
       .where(
@@ -563,7 +642,7 @@ export class PartnerRepository {
 
   async reportCheckIn(id: PartnerId) {
     const now = new Date();
-    const result = await db
+    const result = await this.executor
       .update(partners)
       .set({
         status: "ATTENDED",
@@ -579,6 +658,6 @@ export class PartnerRepository {
 
   async deleteByIds(ids: PartnerId[]) {
     if (ids.length === 0) return;
-    await db.delete(partners).where(inArray(partners.id, ids));
+    await this.executor.delete(partners).where(inArray(partners.id, ids));
   }
 }

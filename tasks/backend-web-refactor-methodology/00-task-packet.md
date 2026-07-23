@@ -41,9 +41,10 @@
 
 ## Candidate Method Decision
 
-> The original candidate ordering below is historical. The approved executable order is now owned by
-> `06-phase3/slice-map.md`; this paragraph is historical. The current sequence has `3-1`–`3-3` verified and
-> `3-4` PR Type Config boundary next.
+> The original candidate ordering below is historical. Program Phase numbering,
+> current status, and remaining work are owned by `program-roadmap.md` and
+> `remaining-work-register.md`; no later executor should infer a next slice
+> from the Phase 3 wording in this historical section.
 
 - 将“彻底”定义为最终消除双重 owner、反向依赖、依赖环和永久兼容缝；执行方式采用
   contract-preserving、domain-sliced、strangler-style 的渐进迁移，禁止大爆炸重写。
@@ -58,12 +59,28 @@
 ## Active Scope
 
 - Phase 1/2: 保留为历史冻结与只读基线，不覆写其原始证据。
-- Phase 3 Execute: Sir 已授权开始；`3-1` 已提交完成，`3-2`/`3-3` 已在工作树验证完成但 exit commit pending，
-  当前控制面与后续顺序见
-  `06-phase3/00-task-packet.md` 和 `program-roadmap.md`。
-- `3-4` 是下一个执行单元；不得把 Phase 3 授权扩张到后续 User/Auth、Commerce、
-  Job/Notification、Observability 或全局清理 phase。
-- 诊断命令可以产生 git-ignored 的缓存、构建或测试产物，但不得安装/升级依赖、执行写迁移或启动长期服务。
+- Phase 3: `3-1`–`3-8` 已完成并收口；其授权不得外溢到后续领域。
+- Phase 4 User/Auth: 本地实现与 completion review 已完成；4-1 rollout
+  observation、4-3.4 provider/edge topology evidence，以及 canonical-host
+  System-harness re-entry condition 仍是外部/环境分支。
+- Phase 5 Commerce: 本地 owner convergence 已由 `171319de` 提交；5-7a
+  staging/provider evidence 仍待执行或显式延后。历史 Rental Bill 支付风险和
+  RideHailing 后结算费用确认恢复分别作为 Sir 接受的风险与 Phase 6
+  atomic-settlement + typed-Job handoff 保留；不引入通用 outbox，也不得
+  在其它 slice 中偷渡修复。
+- Phase 6 Job/Notification 的只读 `6-0` topology inventory、D6-N-01、
+  D6-J-02 与 D6-F-01 已完成；Job-as-Notification-Task、business/channel template mapping、
+  Job `UNTIL_ACKNOWLEDGED`、PR inbox retirement 与通用 state-placement
+  规则已经批准并固化。`6-1` JobRunner foundation 与 `6-2` Notification exemplar
+  已本地实现和验证；`6-3` 的 one-shot、PR-message atomic window、visible ACK
+  与 legacy state/decoder retirement 已完成。`6-4` 已按曹操官方合同完成
+  atomic settlement → generic Job handoff；`6-5` 已完成 runtime/recovery、
+  scoped console/stdout 清理和全量本地复审。真实 O11y、既有 Commerce 调试
+  stdout 与 `notification_deliveries` 退役移交 Phase 7。其控制面在
+  `09-phase6-job-notification/`。
+  Phase 7 Observability/Analytics、Phase 8 global review/cleanup 尚未开始；其
+  入口、依赖和零散工作见 `remaining-work-register.md`。
+- 独立 Node/Oxc/quality-gate 工作不属于本程序 Phase；不得被上述任一领域提交吸收。
 
 ## Delegation And Validation Contract
 
@@ -76,16 +93,20 @@
 
 ## Current Status
 
-- Phase 1 completed in task-local form: product invariants, Backend/Web authority paths,
-  cross-unit contract surfaces and a root frozen-boundary register are explicit.
-- Phase 2 read-only completed: source/dependency/compatibility baselines and a 14-command
-  canonical diagnostic matrix are recorded without fixing or mutating application state.
-- Root validation reproduced three Backend and three Web high-impact metrics exactly and
-  retained two durable conflicts instead of using implementation convenience to resolve them.
-- Phase 3 `3-1` is complete: architecture objectives/growth rules, current/target topology, Backend/Web local
-  ownership rules and a reviewed architecture-fitness baseline are durable/task-local in their proper owners.
-- `3-2`/`3-3` application mutation and verification are complete in the working tree; their exit commit is
-  pending. Phase 3B has started at `3-3`; `3-4`–`3-6` remain before Phase 3C conflict closure.
+- Phase 1 and 2 are historical complete snapshots; Phase 2's toolchain recovery is also complete.
+- Phase 3 `3-1`–`3-8` is complete, including both named conflict closures.
+- Phase 4 is locally complete after its completion review; remaining claims are explicitly external evidence or
+  System-harness re-entry conditions, not local source work.
+- Phase 5 local Commerce convergence is committed as `171319de`; its local review completed F-03 Placement feedback
+  repair and carried F-01/F-02 forward as explicit deferrals. It is not a deployment-topology conclusion.
+- Phase 6 `6-0`–`6-5` is locally complete under
+  `09-phase6-job-notification/`: generic Job/Notification ownership, producer
+  handoffs, semantic ACK, legacy state/decoder retirement, atomic
+  fee-confirmation recovery, runtime seams and full local review are proven.
+  Real O11y, existing Phase 5 debug stdout and delivery-table retirement belong
+  to Phase 7.
+  Phase 7 and 8 remain ordered but have no executable packet. See
+  `remaining-work-register.md` for the complete inventory.
 
 ## Phase Exit Summary
 
@@ -95,3 +116,7 @@
 - Candidate readiness: `04-integration/next-slice-readiness.md`
 - Root verification: `04-integration/verification-log.md`
 - Current Phase 3 control surface: `06-phase3/00-task-packet.md`
+- Phase 4 control surface: `07-phase4/00-task-packet.md`
+- Phase 5 control surface: `08-phase5/00-task-packet.md`
+- Phase 6 control surface: `09-phase6-job-notification/00-task-packet.md`
+- Current remaining-work register: `remaining-work-register.md`

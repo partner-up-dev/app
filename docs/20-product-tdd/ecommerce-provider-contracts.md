@@ -41,6 +41,26 @@ This file owns provider-specific ecommerce details that shape cross-unit user ex
   current reconciliation result is `correctionRequired`; it does not create an
   adjustment or refund automatically.
 
+### Post-Settlement Fee Confirmation
+
+- Fee confirmation is a typed Job consequence of the first qualifying local
+  Bill settlement, including an all-zero final Bill settled at creation. It is
+  distinct from provider final-fare observation and final-Bill creation.
+- The settlement transaction creates one terminal-safe `ONCE_PER_CAUSE` Job.
+  Its business payload contains only local `orderId`; the handler reloads the
+  RideHailing provider binding before provider I/O, which runs outside the
+  settlement transaction.
+- CaoCao's official `POST /v2/common/feeConfirm` contract requires
+  `order_id`. Both `allowance_amount` and `cao_allowance_amount` are optional,
+  and the current request explicitly omits both rather than inventing zero
+  values or subsidy ownership.
+- The public contract does not promise fee-confirm-specific idempotency after
+  a lost response. Generic Job retry may therefore repeat an already-applied
+  provider operation; that duplicate-effect risk is explicitly accepted.
+- No fee-confirmation-specific receipt/query or parallel RideHailing
+  business/recovery lifecycle is introduced. Settled rows before the forward
+  cut-off remain unchanged.
+
 ### Cancellation Fee Boundary
 
 - User-side RideHailing cancellation from Order Detail must query CaoCao's cancellation-fee preview before sending the destructive cancellation command.

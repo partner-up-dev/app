@@ -1,4 +1,3 @@
-import type { PRMessageInboxState } from "../../../entities/pr-message-inbox-state";
 import type { PRMessageId } from "../../../entities/pr-message";
 import type { UserId, UserRole } from "../../../entities/user";
 import type { PRMessageWithAuthor } from "../../../repositories/PRMessageRepository";
@@ -23,8 +22,11 @@ export type PRMessageThreadItem = {
 export type PRMessageThreadState = {
   canPost: boolean;
   latestVisibleMessageId: PRMessageId | null;
-  lastReadMessageId: PRMessageId | null;
-  hasUnread: boolean;
+  /**
+   * Greatest PRMessage identity, including tombstones. It is the semantic
+   * acknowledgement cursor, not a read/unread projection.
+   */
+  acknowledgementCursor: PRMessageId | null;
 };
 
 export type PRMessageThreadResponse = {
@@ -36,14 +38,6 @@ export type CreatePRMessageResponse = {
   message: PRMessageThreadItem;
   thread: PRMessageThreadState;
 };
-
-const coalesceMessageId = (value: PRMessageId | null | undefined): number => value ?? 0;
-
-export const hasUnreadPRMessages = (input: {
-  latestVisibleMessageId: PRMessageId | null;
-  lastReadMessageId: PRMessageId | null;
-}): boolean =>
-  coalesceMessageId(input.latestVisibleMessageId) > coalesceMessageId(input.lastReadMessageId);
 
 export const toPRMessageThreadItem = (message: PRMessageWithAuthor): PRMessageThreadItem => ({
   id: message.id,
@@ -61,29 +55,21 @@ export const toPRMessageThreadItem = (message: PRMessageWithAuthor): PRMessageTh
 
 export const buildPRMessageThreadState = (
   latestVisibleMessageId: PRMessageId | null,
-  inboxState: Pick<PRMessageInboxState, "lastReadMessageId"> | null,
-): PRMessageThreadState => {
-  const lastReadMessageId = inboxState?.lastReadMessageId ?? null;
-
-  return {
-    canPost: true,
-    latestVisibleMessageId,
-    lastReadMessageId,
-    hasUnread: hasUnreadPRMessages({
-      latestVisibleMessageId,
-      lastReadMessageId,
-    }),
-  };
-};
+  acknowledgementCursor: PRMessageId | null = latestVisibleMessageId,
+): PRMessageThreadState => ({
+  canPost: true,
+  latestVisibleMessageId,
+  acknowledgementCursor,
+});
 
 export const buildPRMessageThreadResponse = (input: {
   messages: PRMessageWithAuthor[];
-  inboxState: Pick<PRMessageInboxState, "lastReadMessageId"> | null;
+  acknowledgementCursor?: PRMessageId | null;
 }): PRMessageThreadResponse => {
   const latestVisibleMessageId = input.messages[input.messages.length - 1]?.id ?? null;
 
   return {
     items: input.messages.map(toPRMessageThreadItem),
-    thread: buildPRMessageThreadState(latestVisibleMessageId, input.inboxState),
+    thread: buildPRMessageThreadState(latestVisibleMessageId, input.acknowledgementCursor),
   };
 };

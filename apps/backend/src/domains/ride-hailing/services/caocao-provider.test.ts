@@ -867,6 +867,34 @@ describe("Caocao live order projection", () => {
     });
   });
 
+  it("confirms the provider fee without allowance fields", async () => {
+    let requestBody: string | null = null;
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      requestBody = init?.body?.toString() ?? null;
+      return new Response(JSON.stringify({ code: 200, data: null, success: true }), {
+        status: 200,
+      });
+    };
+    const adapter = new CaocaoProviderAdapter({
+      providerInstance: caocaoProviderInstance(),
+      fetchImpl,
+    });
+
+    await adapter.confirmFee({ providerOrderId: "CC123456" });
+
+    const form = Object.fromEntries(new URLSearchParams(requestBody ?? ""));
+    const { sign, ...unsignedForm } = form;
+    expect(form.order_id).toBe("CC123456");
+    expect(form).not.toHaveProperty("allowance_amount");
+    expect(form).not.toHaveProperty("cao_allowance_amount");
+    expect(sign).toBe(
+      createCaocaoSignature({
+        params: unsignedForm,
+        signKey: "caocao-secret",
+      }),
+    );
+  });
+
   it("treats missing orderFeeVo.totalFee as no authoritative final settlement yet", async () => {
     const fetchImpl: typeof fetch = async () =>
       new Response(
@@ -917,14 +945,15 @@ describe("Caocao live order projection", () => {
     expect(detail.statusLabel).toBe("接客中");
   });
 
-  it("logs provider diagnostics for failed route queries", async () => {
+  it("does not write provider diagnostics for failed route queries", async () => {
     const stdoutWrite = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     try {
       const fetchImpl: typeof fetch = async () =>
         new Response(
           JSON.stringify({
             code: 25011,
-            msg: "订单状态不正确",
+            msg: "provider-message-secret",
+            secretPayload: "response-body-secret",
             success: false,
           }),
           { status: 200 },
@@ -936,23 +965,18 @@ describe("Caocao live order projection", () => {
 
       await expect(
         adapter.queryDriverRoute({
-          providerOrderId: "CC123456",
+          providerOrderId: "provider-order-secret",
           routeKind: "PICKUP",
         }),
-      ).rejects.toThrow("Caocao API failed: 25011 订单状态不正确");
+      ).rejects.toThrow("Caocao API failed: 25011 provider-message-secret");
 
-      const logOutput = stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join("");
-      expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
-      expect(logOutput).toContain('"event":"caocao_provider_failure"');
-      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolyline"');
-      expect(logOutput).toContain('"providerCode":25011');
-      expect(logOutput).toContain('"providerMsg":"订单状态不正确"');
+      expect(stdoutWrite).not.toHaveBeenCalled();
     } finally {
       stdoutWrite.mockRestore();
     }
   });
 
-  it("logs route query success summaries with requested and returned route metadata", async () => {
+  it("does not write provider diagnostics for successful route queries", async () => {
     const stdoutWrite = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     try {
       const fetchImpl: typeof fetch = async () =>
@@ -960,6 +984,7 @@ describe("Caocao live order projection", () => {
           JSON.stringify({
             code: 200,
             data: {
+              secretCoordinate: "99.123456,88.654321",
               driverEtaInfoVO: {
                 direction: 88,
                 lat: 30.27,
@@ -994,20 +1019,11 @@ describe("Caocao live order projection", () => {
       });
 
       await adapter.queryDriverRoute({
-        providerOrderId: "CC123456",
+        providerOrderId: "provider-order-secret",
         routeKind: "PICKUP",
       });
 
-      const logOutput = stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join("");
-      expect(logOutput).toContain('"marker":"RideHailingProviderCaocao"');
-      expect(logOutput).toContain('"event":"caocao_route_query_success"');
-      expect(logOutput).toContain('"endpointPath":"/common/queryDriverPolyline"');
-      expect(logOutput).toContain('"providerOrderId":"CC123456"');
-      expect(logOutput).toContain('"requestedRouteKind":"PICKUP"');
-      expect(logOutput).toContain('"requestedNavigationPolylineType":1');
-      expect(logOutput).toContain('"returnedNavigationPolylineType":1');
-      expect(logOutput).toContain('"returnedRouteKind":"PICKUP"');
-      expect(logOutput).toContain('"polylinePointCount":5');
+      expect(stdoutWrite).not.toHaveBeenCalled();
     } finally {
       stdoutWrite.mockRestore();
     }

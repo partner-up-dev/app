@@ -4,34 +4,29 @@
  */
 
 import type { PartnerRequest } from "../../entities/partner-request";
-import {
-  cancelWeChatActivityStartReminderJobsForParticipant,
-  cancelWeChatReminderJobsForParticipant,
-  scheduleWeChatPRReadyNotifications,
-} from "../../infra/notifications";
 import { operationLogService } from "../../infra/operation-log";
-import { PartnerRepository } from "../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../repositories/PartnerRequestRepository";
 import { UserReliabilityRepository } from "../../repositories/UserReliabilityRepository";
+import { cancelActivityStartReminderForParticipant } from "./services/activity-start-reminder-reconciler.service";
+import { cancelConfirmationRemindersForParticipant } from "./services/confirmation-reminder-reconciler.service";
 import { applyParticipantReleaseEffects } from "./services/participant-release-effects.service";
 import {
-  hasConfirmationWindowEnded,
-  hasEnabledConfirmationPolicy,
   hasParticipationPolicy,
   isJoinLockedByPolicy,
   resolveParticipationPolicy,
 } from "./services/participation-policy.service";
-import {
-  listActiveParticipantSummariesForPR,
-  recalculatePRStatus,
-} from "./services/slot-management.service";
-import { isPRActivatableStatus, isPRExpirableStatus } from "./services/status-rules";
+import { recalculatePRStatus } from "./services/slot-management.service";
+import { isPRActivatableStatus } from "./services/status-rules";
 import { getTimeWindowClose, getTimeWindowStart } from "./services/time-window.service";
 import { promoteWaitlistedPartners } from "./services/waitlist.service";
+import { createPRReadyTransitionTransactionPort } from "./adapters/pr-ready-transition-transaction";
+import { createPRTerminalTransitionTransactionPort } from "./adapters/pr-terminal-transition-transaction";
+import { releaseUnconfirmedPRParticipants } from "./commands/release-pr-participant";
 
 const prRepo = new PartnerRequestRepository();
-const partnerRepo = new PartnerRepository();
 const userReliabilityRepo = new UserReliabilityRepository();
+const prReadyTransition = createPRReadyTransitionTransactionPort();
+const prTerminalTransition = createPRTerminalTransitionTransactionPort();
 
 /**
  * Refresh a PR's temporal state: release unconfirmed slots, activate if
@@ -74,68 +69,44 @@ async function markReadyIfJoinLocked(request: PartnerRequest): Promise<PartnerRe
   const policy = resolveParticipationPolicy(request, request.time);
   if (!isJoinLockedByPolicy(policy)) return request;
 
-  const updated = await prRepo.updateStatus(request.id, "READY");
-  if (!updated) return request;
-
-  await scheduleWeChatPRReadyNotifications({
-    request: updated,
-    readyAt: new Date(),
-  });
-  operationLogService.log({
-    actorId: null,
-    action: "pr.auto_ready",
-    aggregateType: "partner_request",
-    aggregateId: String(request.id),
-    detail: { trigger: "join_lock" },
-  });
-  return updated;
+  const transition = await prReadyTransition.transitionIfJoinLocked({ prId: request.id });
+  if (transition.outcome === "TRANSITIONED") {
+    operationLogService.log({
+      actorId: null,
+      action: "pr.auto_ready",
+      aggregateType: "partner_request",
+      aggregateId: String(request.id),
+      detail: { trigger: "join_lock", readyCycleId: transition.readyCycleId },
+    });
+    return transition.request;
+  }
+  return transition.outcome === "PR_MISSING" ? request : transition.request;
 }
 
 async function expireIfNeeded(request: PartnerRequest): Promise<PartnerRequest> {
-  if (!isPRExpirableStatus(request.status as string)) return request;
-
-  const windowClose = getTimeWindowClose(request.time);
-  if (!windowClose) return request;
-  if (windowClose.getTime() > Date.now()) return request;
-
-  const slots = await partnerRepo.findByPrId(request.id);
-  const activeCount = slots.filter(
-    (slot) => slot.status === "JOINED" || slot.status === "CONFIRMED" || slot.status === "ATTENDED",
-  ).length;
-  const minPartners = request.minPartners ?? 1;
-
-  if (activeCount >= minPartners) {
-    const closed = await prRepo.updateStatus(request.id, "CLOSED");
-    return closed ?? request;
-  }
-
-  const updated = await prRepo.updateStatus(request.id, "EXPIRED");
-  return updated ?? request;
-}
-
-async function resolveReleaseTrigger(request: PartnerRequest): Promise<"confirmation_end" | null> {
-  if (!hasEnabledConfirmationPolicy(request)) {
-    return null;
-  }
-  const policy = resolveParticipationPolicy(request, request.time);
-  if (!hasConfirmationWindowEnded(policy)) return null;
-  return "confirmation_end";
+  const transition = await prTerminalTransition.finalizeAtWindowClose({ prId: request.id });
+  if (transition.outcome === "PR_MISSING") return request;
+  return transition.request;
 }
 
 async function releaseUnconfirmedSlotsIfNeeded(request: PartnerRequest): Promise<void> {
-  const trigger = await resolveReleaseTrigger(request);
-  if (!trigger) return;
-
-  const participants = await listActiveParticipantSummariesForPR(request.id);
-  const releasing = participants.filter((slot) => slot.status === "JOINED");
+  const releaseResult = await releaseUnconfirmedPRParticipants({ prId: request.id });
+  if (releaseResult.outcome === "PR_MISSING" || releaseResult.outcome === "NOT_DUE") return;
+  const releasing = releaseResult.releasedSlots;
   if (releasing.length === 0) return;
   const releasedUserIds = releasing.map((slot) => slot.userId);
 
   for (const slot of releasing) {
     await userReliabilityRepo.applyDelta(slot.userId, { released: 1 });
-    await cancelWeChatReminderJobsForParticipant(request.id, slot.userId);
-    await cancelWeChatActivityStartReminderJobsForParticipant(request.id, slot.userId);
-    await partnerRepo.markReleased(slot.partnerId);
+    await cancelActivityStartReminderForParticipant({
+      prId: request.id,
+      recipientUserId: slot.userId,
+    });
+    await cancelConfirmationRemindersForParticipant({
+      prId: request.id,
+      slotId: slot.id,
+      recipientUserId: slot.userId,
+    });
 
     operationLogService.log({
       actorId: slot.userId,
@@ -143,15 +114,15 @@ async function releaseUnconfirmedSlotsIfNeeded(request: PartnerRequest): Promise
       aggregateType: "partner_request",
       aggregateId: String(request.id),
       detail: {
-        partnerId: slot.partnerId,
-        trigger,
+        partnerId: slot.id,
+        trigger: "confirmation_end",
       },
     });
   }
 
   await recalculatePRStatus(request.id);
   await promoteWaitlistedPartners(request.id);
-  if (hasParticipationPolicy(request)) {
+  if (hasParticipationPolicy(releaseResult.request)) {
     await applyParticipantReleaseEffects({
       prId: request.id,
       releasedUserIds,

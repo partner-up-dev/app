@@ -1,15 +1,14 @@
 import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
-import {
-  cancelWeChatActivityStartReminderJobsForParticipant,
-  cancelWeChatReminderJobsForParticipant,
-} from "../../../infra/notifications";
 import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
 import { resolveUserByOpenId } from "../../user";
+import { exitActivePRParticipant } from "./release-pr-participant";
+import { cancelActivityStartReminderForParticipant } from "../services/activity-start-reminder-reconciler.service";
+import { cancelConfirmationRemindersForParticipant } from "../services/confirmation-reminder-reconciler.service";
 import { reconcileCurrentCreator } from "../services/current-creator.service";
 import { resetPRJoinGateResolutionsForUser } from "../services/join-gates.service";
 import { hasParticipationPolicy } from "../services/participation-policy.service";
@@ -18,7 +17,7 @@ import { recalculatePRStatus } from "../services/slot-management.service";
 import { isPRExitAllowedStatus } from "../services/status-rules";
 import { hasPRTimeWindowStarted } from "../services/time-window.service";
 import { promoteWaitlistedPartners } from "../services/waitlist.service";
-import { scheduleAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reminder.service";
+import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { assertPRDraftAccess, type PRDraftActor } from "../services/draft-access-policy.service";
 
@@ -52,17 +51,26 @@ export async function exitPRByUserId(
     return throwHttpProblem({ status: 400, detail: "Cannot exit after the PR starts" });
   }
 
-  await partnerRepo.updateStatus(activeSlot.id, "EXITED");
+  const exitResult = await exitActivePRParticipant({ prId: id, userId });
+  if (exitResult.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
+  }
+  if (exitResult.outcome === "PARTICIPANT_NOT_ACTIVE") {
+    return throwHttpProblem({ status: 400, detail: "Cannot exit - partner is not joined" });
+  }
+  const exitedSlot = exitResult.slot;
   await resetPRJoinGateResolutionsForUser({
     prId: id,
     userId,
-    partnerId: activeSlot.id,
+    partnerId: exitedSlot.id,
   });
   await userReliabilityRepo.applyDelta(userId, { released: 1 });
-  if (hasMaterializedParticipationPolicy) {
-    await cancelWeChatReminderJobsForParticipant(id, userId);
-    await cancelWeChatActivityStartReminderJobsForParticipant(id, userId);
-  }
+  await cancelActivityStartReminderForParticipant({ prId: id, recipientUserId: userId });
+  await cancelConfirmationRemindersForParticipant({
+    prId: id,
+    slotId: exitedSlot.id,
+    recipientUserId: userId,
+  });
   await recalculatePRStatus(id);
 
   operationLogService.log({
@@ -70,7 +78,7 @@ export async function exitPRByUserId(
     action: "partner.exit",
     aggregateType: "partner_request",
     aggregateId: String(id),
-    detail: { partnerId: activeSlot.id },
+    detail: { partnerId: exitedSlot.id },
   });
 
   await promoteWaitlistedPartners(id);
@@ -80,7 +88,7 @@ export async function exitPRByUserId(
   if (!latest) {
     return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
   }
-  await scheduleAlternativeWaitlistNotificationsForCandidate(latest);
+  await reconcileAlternativeWaitlistNotificationsForCandidate(latest);
   return toPublicPR(latest, userId);
 }
 

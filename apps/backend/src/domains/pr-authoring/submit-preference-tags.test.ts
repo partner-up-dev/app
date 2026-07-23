@@ -21,6 +21,8 @@ vi.mock("../../repositories/PRTypePreferenceTagRepository", () => ({
   },
 }));
 
+process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
+
 const { normalizePRAuthoringPreferenceLabels, submitPRAuthoringPreferenceTags } =
   await import("./use-cases/submit-preference-tags");
 

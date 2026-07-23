@@ -3,7 +3,6 @@ import { throwHttpProblem } from "../../lib/problem-details";
 import type {
   PRTypeConfigAuthoring,
   PRTypeConfigCompletion,
-  PRTypeConfigCoordination,
   PRTypeConfigCreateInput,
   PRTypeConfigDiscovery,
   PRTypeConfigOperatorDetail,
@@ -165,17 +164,6 @@ export const updatePRTypeConfigParticipation = async (
   });
 };
 
-export const updatePRTypeConfigCoordination = async (
-  type: string,
-  input: PRTypeConfigCoordination,
-): Promise<PRTypeConfigOperatorDetail> => {
-  const { normalizedType } = await requireExistingPRTypeConfig(type);
-  return await requireUpdatedPRTypeConfig(normalizedType, {
-    meetingPoint: input.meetingPoint,
-    locationMeetingPoints: input.locationMeetingPoints,
-  });
-};
-
 export const updatePRTypeConfigCompletion = async (
   type: string,
   input: PRTypeConfigCompletion,
@@ -207,11 +195,11 @@ const areRoutesEqual = (left: PRRoute, right: PRRoute): boolean =>
     const other = right[index];
     return Boolean(
       other &&
-        point.name === other.name &&
-        point.full_address === other.full_address &&
-        JSON.stringify(point.wgs84) === JSON.stringify(other.wgs84) &&
-        JSON.stringify(point.bd09) === JSON.stringify(other.bd09) &&
-        JSON.stringify(point.gcj02) === JSON.stringify(other.gcj02),
+      point.name === other.name &&
+      point.full_address === other.full_address &&
+      JSON.stringify(point.wgs84) === JSON.stringify(other.wgs84) &&
+      JSON.stringify(point.bd09) === JSON.stringify(other.bd09) &&
+      JSON.stringify(point.gcj02) === JSON.stringify(other.gcj02),
     );
   });
 

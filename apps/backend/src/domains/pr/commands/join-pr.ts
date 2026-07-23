@@ -1,30 +1,24 @@
-import type { PartnerStatus } from "../../../entities/partner";
 import type { PRId } from "../../../entities/partner-request";
 import type { User } from "../../../entities/user";
-import {
-  scheduleWeChatActivityStartReminderJobForParticipant,
-  scheduleWeChatNewPartnerNotificationsForJoin,
-  scheduleWeChatReminderJobsForParticipant,
-} from "../../../infra/notifications";
 import { operationLogService } from "../../../infra/operation-log";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import { UserReliabilityRepository } from "../../../repositories/UserReliabilityRepository";
 import { resolveUserByOpenId } from "../../user";
+import { createPrAdmissionTransactionPort } from "../adapters/pr-admission-transaction";
+import { reconcileActivityStartReminderForParticipant } from "../services/activity-start-reminder-reconciler.service";
+import { reconcileConfirmationRemindersForParticipant } from "../services/confirmation-reminder-reconciler.service";
 import { reconcileCurrentCreator } from "../services/current-creator.service";
 import { assertPRJoinGatesResolvedForUser } from "../services/join-gates.service";
 import {
-  hasEnabledConfirmationPolicy,
   hasParticipationPolicy,
   isJoinLockedByPolicy,
-  isWithinConfirmationWindow,
   resolveParticipationPolicy,
 } from "../services/participation-policy.service";
 import { assertNoUserTimeWindowConflict } from "../services/participation-time-conflict.service";
 import { assertPRTypeParticipationFrequencyLimitAllows } from "../services/pr-type-participation-frequency-limit.service";
 import { type PublicPR, toPublicPR } from "../services/pr-view.service";
-import { countActivePartnersForPR, recalculatePRStatus } from "../services/slot-management.service";
+import { countActivePartnersForPR } from "../services/slot-management.service";
 import { isPRJoinableStatus } from "../services/status-rules";
 import { closeAlternativeWaitlistSourcesAfterJoin } from "../services/waitlist-alternative-reminder.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
@@ -33,7 +27,7 @@ import { assertPRDraftAccess } from "../services/draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();
 const partnerRepo = new PartnerRepository();
-const userReliabilityRepo = new UserReliabilityRepository();
+const prAdmissionTransaction = createPrAdmissionTransactionPort();
 
 export async function joinPRAsUser(
   id: PRId,
@@ -49,22 +43,14 @@ export async function joinPRAsUser(
     operation: "participant-flow",
   });
   const refreshedRequest = await refreshTemporalStatus(request);
-  const hasMaterializedParticipationPolicy = hasParticipationPolicy(refreshedRequest);
-  const hasConfirmationPolicy = hasEnabledConfirmationPolicy(refreshedRequest);
 
-  let targetStatus: Extract<PartnerStatus, "JOINED" | "CONFIRMED"> = "JOINED";
-
-  if (hasMaterializedParticipationPolicy) {
+  if (hasParticipationPolicy(refreshedRequest)) {
     const policy = resolveParticipationPolicy(refreshedRequest, refreshedRequest.time);
     if (isJoinLockedByPolicy(policy)) {
       return throwHttpProblem({
         status: 400,
         detail: "Cannot join - partner request is locked after join lock",
       });
-    }
-
-    if (hasConfirmationPolicy && isWithinConfirmationWindow(policy)) {
-      targetStatus = "CONFIRMED";
     }
   }
 
@@ -83,10 +69,12 @@ export async function joinPRAsUser(
     if (!latest) {
       return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
     }
-    if (hasParticipationPolicy(latest)) {
-      await scheduleWeChatReminderJobsForParticipant(latest, user.id);
-      await scheduleWeChatActivityStartReminderJobForParticipant(latest, user.id);
-    }
+    await reconcileActivityStartReminderForParticipant({ prId: id, recipientUserId: user.id });
+    await reconcileConfirmationRemindersForParticipant({
+      prId: id,
+      slotId: existing.id,
+      recipientUserId: user.id,
+    });
     return toPublicPR(latest, user.id);
   }
 
@@ -110,25 +98,60 @@ export async function joinPRAsUser(
   if (refreshedRequest.maxPartners !== null && activeCount >= refreshedRequest.maxPartners) {
     return throwHttpProblem({ status: 400, detail: "Cannot join - partner request is full" });
   }
-  const latestHistoricalSlot = await partnerRepo.findReleasedByPrIdAndUserId(id, user.id);
-  const joinedSlot = latestHistoricalSlot
-    ? await partnerRepo.reactivateSlot(latestHistoricalSlot.id, targetStatus)
-    : await partnerRepo.createSlot({
-        prId: id,
-        userId: user.id,
-        status: targetStatus,
-      });
-  if (!joinedSlot) {
-    return throwHttpProblem({ status: 500, detail: "Failed to persist join participation record" });
-  }
-  const assignedPartnerId = joinedSlot.id;
-
-  await userReliabilityRepo.applyDelta(user.id, {
-    joined: 1,
-    confirmed: targetStatus === "CONFIRMED" ? 1 : 0,
+  const admission = await prAdmissionTransaction.admitDirect({
+    prId: id,
+    userId: user.id,
   });
+  if (admission.outcome === "ALREADY_ACTIVE") {
+    await reconcileCurrentCreator(id);
+    const latest = await prRepo.findById(id);
+    if (!latest) {
+      return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
+    }
+    await reconcileActivityStartReminderForParticipant({ prId: id, recipientUserId: user.id });
+    await reconcileConfirmationRemindersForParticipant({
+      prId: id,
+      slotId: admission.slot.id,
+      recipientUserId: user.id,
+    });
+    return toPublicPR(latest, user.id);
+  }
+  if (admission.outcome === "ALREADY_WAITLISTED") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Cannot join directly while this user has a pending waitlist entry",
+      code: "PR_WAITLIST_ENTRY_PENDING",
+    });
+  }
+  if (admission.outcome === "WAITLIST_PRIORITY") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Cannot join directly while an eligible waitlisted participant has priority",
+      code: "PR_WAITLIST_PRIORITY",
+    });
+  }
+  if (admission.outcome === "FULL") {
+    return throwHttpProblem({ status: 400, detail: "Cannot join - partner request is full" });
+  }
+  if (admission.outcome === "PR_MISSING") {
+    return throwHttpProblem({ status: 404, detail: "Partner request not found" });
+  }
+  if (admission.outcome === "NOT_JOINABLE") {
+    return throwHttpProblem({ status: 400, detail: "Cannot join - partner request is not open" });
+  }
+  if (admission.outcome === "INELIGIBLE") {
+    return throwHttpProblem({
+      status: 409,
+      detail: "Cannot join - admission eligibility changed; refresh and try again",
+      code: "PR_ADMISSION_ELIGIBILITY_CHANGED",
+    });
+  }
+  if (admission.outcome !== "ADMITTED") {
+    return throwHttpProblem({ status: 500, detail: "Unexpected direct admission outcome" });
+  }
 
-  await recalculatePRStatus(id);
+  const assignedPartnerId = admission.slot.id;
+  const targetStatus = admission.status;
   await reconcileCurrentCreator(id);
 
   const afterRecalculate = await prRepo.findById(id);
@@ -153,16 +176,12 @@ export async function joinPRAsUser(
   if (!latest) {
     return throwHttpProblem({ status: 500, detail: "Failed to reload partner request" });
   }
-  if (hasParticipationPolicy(latest)) {
-    await scheduleWeChatNewPartnerNotificationsForJoin({
-      request: latest,
-      joinedUserId: user.id,
-      joinedPartnerId: assignedPartnerId,
-      joinedAt: new Date(),
-    });
-    await scheduleWeChatReminderJobsForParticipant(latest, user.id);
-    await scheduleWeChatActivityStartReminderJobForParticipant(latest, user.id);
-  }
+  await reconcileActivityStartReminderForParticipant({ prId: id, recipientUserId: user.id });
+  await reconcileConfirmationRemindersForParticipant({
+    prId: id,
+    slotId: assignedPartnerId,
+    recipientUserId: user.id,
+  });
   await closeAlternativeWaitlistSourcesAfterJoin({
     alternativeRequest: latest,
     userId: user.id,

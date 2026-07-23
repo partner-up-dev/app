@@ -111,6 +111,7 @@ Owns:
   final-settlement coordination
 - the narrow atomic coordination boundary required to persist an observation
   and, after a committed terminal fare, its first final Bill consequence
+- the narrow provider fee-confirmation operation invoked by its typed Job
 
 Does not own:
 
@@ -507,6 +508,31 @@ been committed, reconciliation returns an explicit `correctionRequired`
 result and leaves both committed fare and Bill history unchanged. Automatic
 compensating adjustment/refund is intentionally deferred pending a separate
 product decision and proof; it must not be inferred from this boundary.
+
+### Post-Settlement Fee-Confirmation Boundary
+
+- Bill/BillLine owns payment-settlement truth. Provider fee confirmation is a
+  consequence of the first qualifying state in which all applicable Bill
+  charge lines are settled; it never becomes part of, or rewrites, settlement.
+- The named RideHailing reconciliation transaction atomically commits that
+  qualifying payment settlement and ensures one
+  `ride-hailing.fee-confirm.v1` Job through terminal-safe `ONCE_PER_CAUSE`
+  creation with a private key derived from the qualifying Bill cause. The
+  terminal-fare transaction uses the same handoff when creating an all-zero
+  final Bill whose charge lines are already settled.
+- Duplicate payment callbacks that return `ALREADY_SETTLED` do not create a
+  second task. Existing settled rows before the forward cut-off remain
+  unchanged.
+- The versioned Job payload carries only the stable local `orderId`; execution
+  reloads the current RideHailing provider binding. Provider I/O occurs after
+  the settlement transaction has committed and outside database locks.
+- Job owns the durable fee-confirmation task and generic
+  claim/lease/retry/terminal mechanics only. The current design adds no
+  parallel RideHailing/provider-effect business lifecycle, recovery authority,
+  or Job business status.
+- Generic retry is allowed. It may repeat an already-applied provider operation
+  after a lost response; that duplicate-effect risk is explicitly accepted for
+  the current contract.
 
 ## Termination Contract
 

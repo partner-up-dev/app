@@ -3,10 +3,8 @@ import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { RepositoryExecutor } from "../../../repositories/_executor";
 import { doTimeWindowsOverlap, type TimeWindow } from "./time-window.service";
-
-const partnerRepo = new PartnerRepository();
-const prRepo = new PartnerRequestRepository();
 
 export const JOIN_TIME_WINDOW_CONFLICT_CODE = "JOIN_TIME_WINDOW_CONFLICT";
 const JOIN_TIME_WINDOW_CONFLICT_MESSAGE =
@@ -19,7 +17,10 @@ export async function findUserTimeWindowConflict(params: {
   userId: UserId;
   targetTimeWindow: TimeWindow;
   excludePrId?: PRId | null;
+  executor?: RepositoryExecutor;
 }): Promise<PRId | null> {
+  const partnerRepo = new PartnerRepository(params.executor);
+  const prRepo = new PartnerRequestRepository(params.executor);
   const slots = await partnerRepo.findActiveByUserId(params.userId);
   const joinedPrIds = Array.from(new Set(slots.map((slot) => slot.prId))).filter((prId) =>
     params.excludePrId ? prId !== params.excludePrId : true,
@@ -42,6 +43,7 @@ export async function assertNoUserTimeWindowConflict(params: {
   userId: UserId;
   targetTimeWindow: TimeWindow;
   excludePrId?: PRId | null;
+  executor?: RepositoryExecutor;
 }): Promise<void> {
   const conflicted = await findUserTimeWindowConflict(params);
   if (!conflicted) return;

@@ -3,6 +3,7 @@
     :is="containerComponent"
     v-bind="containerProps"
     class="message-thread"
+    data-testid="pr-messages.thread"
     :class="{
       'message-thread--card': !isPageLayout,
       'message-thread--page': isPageLayout,
@@ -81,8 +82,6 @@
     </div>
 
     <PuInlineNotice v-if="submitError" tone="error" :message="submitError" />
-    <PuInlineNotice v-if="readMarkerError" tone="warning" :message="readMarkerError" />
-
     <PuFormItem
       class="message-thread__composer"
       :label="t('prPage.messageThread.inputLabel')"
@@ -128,34 +127,35 @@ import {
 } from "@partner-up-dev/design-web";
 import { formatLocalDateTimeValue } from "@/shared/datetime/formatLocalDateTime";
 import {
-  useAdvancePRMessageReadMarker,
+  useAcknowledgePRMessageAttention,
   type PRMessagesResponse,
   useCreatePRMessage,
   usePRMessages,
 } from "@/domains/pr/queries/usePRMessages";
+import { usePRMessageVisibleAcknowledgement } from "@/domains/pr/use-cases/usePRMessageVisibleAcknowledgement";
 
 const props = withDefaults(
   defineProps<{
     prId: PRId;
     showHeader?: boolean;
     layout?: "card" | "page";
+    acknowledgeAttention?: boolean;
   }>(),
   {
     showHeader: true,
     layout: "card",
+    acknowledgeAttention: false,
   },
 );
 
 const { t } = useI18n();
 const draftBody = ref("");
 const submitError = ref<string | null>(null);
-const readMarkerError = ref<string | null>(null);
-const lastReadAdvanceRequestId = ref<number | null>(null);
 
 const prIdRef = computed(() => props.prId);
 const messagesQuery = usePRMessages(prIdRef);
 const createMessageMutation = useCreatePRMessage();
-const advanceReadMarkerMutation = useAdvancePRMessageReadMarker();
+const acknowledgeAttentionMutation = useAcknowledgePRMessageAttention();
 
 const threadItems = computed(() => messagesQuery.data.value?.items ?? []);
 const thread = computed(() => messagesQuery.data.value?.thread ?? null);
@@ -171,6 +171,21 @@ const containerProps = computed(() =>
         gap: "sm" as const,
       },
 );
+const acknowledgementCursor = computed(() => thread.value?.acknowledgementCursor ?? null);
+const shouldAcknowledgeAttention = computed(
+  () =>
+    props.acknowledgeAttention &&
+    !messagesQuery.isLoading.value &&
+    messagesQuery.error.value === null,
+);
+
+usePRMessageVisibleAcknowledgement({
+  prId: prIdRef,
+  acknowledgementCursor,
+  enabled: shouldAcknowledgeAttention,
+  acknowledge: ({ prId, acknowledgementCursor: cursor }) =>
+    acknowledgeAttentionMutation.mutateAsync({ id: prId, acknowledgementCursor: cursor }),
+});
 
 const canSubmitMessage = computed(() => {
   if (!thread.value?.canPost) return false;
@@ -181,38 +196,6 @@ const canSubmitMessage = computed(() => {
 watch(draftBody, () => {
   submitError.value = null;
 });
-
-watch(
-  () =>
-    [
-      thread.value?.latestVisibleMessageId ?? null,
-      thread.value?.lastReadMessageId ?? null,
-      messagesQuery.isLoading.value,
-      advanceReadMarkerMutation.isPending.value,
-    ] as const,
-  ([latestVisibleMessageId, lastReadMessageId, isLoading, isMarkingRead]) => {
-    if (isLoading || isMarkingRead || latestVisibleMessageId === null) return;
-    if (lastReadMessageId !== null && latestVisibleMessageId <= lastReadMessageId) {
-      return;
-    }
-    if (lastReadAdvanceRequestId.value === latestVisibleMessageId) {
-      return;
-    }
-
-    lastReadAdvanceRequestId.value = latestVisibleMessageId;
-    readMarkerError.value = null;
-    void advanceReadMarkerMutation
-      .mutateAsync({
-        id: props.prId,
-        lastReadMessageId: latestVisibleMessageId,
-      })
-      .catch((error: unknown) => {
-        readMarkerError.value =
-          error instanceof Error ? error.message : t("common.operationFailed");
-      });
-  },
-  { immediate: true },
-);
 
 const resolveAuthorName = (item: PRMessagesResponse["items"][number]): string => {
   if (item.messageType === "SYSTEM") {

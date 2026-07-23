@@ -21,6 +21,11 @@ export const prMessages = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    /**
+     * Preserves message ordering for acknowledgement cursors after an admin
+     * hides a message. Ordinary message reads intentionally exclude it.
+     */
+    deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

@@ -1,4 +1,5 @@
 export { applyBillSettlementToOrder } from "./use-cases/apply-bill-settlement-to-order";
+export { settleBillLinePaymentAndApplyOrderConsequence } from "./use-cases/settle-bill-line-payment";
 export { cancelOrderFromOrderDetail } from "./use-cases/cancel-order-from-order-detail";
 export { cancelRideHailingOrderFromAdmin } from "./use-cases/cancel-ride-hailing-order-from-order-detail";
 export { confirmRideCreateAttemptFromProvider } from "./use-cases/confirm-ride-create-attempt";

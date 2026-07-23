@@ -123,6 +123,10 @@ export type PRStatus = z.infer<typeof prStatusSchema>;
 export const prStatusManualSchema = z.enum(["OPEN", "READY", "ACTIVE", "CLOSED"]);
 export type PRStatusManual = z.infer<typeof prStatusManualSchema>;
 
+/** Durable identity for one actual READY entry of a PartnerRequest. */
+export const prReadyCycleIdSchema = z.string().uuid();
+export type PRReadyCycleId = z.infer<typeof prReadyCycleIdSchema>;
+
 export const visibilityStatusSchema = z.enum(["VISIBLE", "HIDDEN"]);
 export type VisibilityStatus = z.infer<typeof visibilityStatusSchema>;
 
@@ -170,6 +174,11 @@ export const partnerRequests = pgTable("partner_requests", {
   location: text("location"),
   route: jsonb("route").$type<PRRoute | null>().default(null),
   status: text("status").$type<PRStatus>().notNull().default("OPEN"),
+  /**
+   * The last READY-entry cycle. It is authoritative for delayed PR-ready
+   * work only while this request is currently READY or ACTIVE.
+   */
+  readyCycleId: uuid("ready_cycle_id").$type<PRReadyCycleId>(),
   visibilityStatus: text("visibility_status")
     .$type<VisibilityStatus>()
     .notNull()
