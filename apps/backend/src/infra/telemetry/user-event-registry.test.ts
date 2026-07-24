@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { userTelemetryEventRegistry } from "./contracts";
 import {
   getUserTelemetryEventContract,
   getUserTelemetryEventRegistry,
@@ -10,6 +11,7 @@ describe("user telemetry event registry", () => {
   test("contains unique event name and version pairs", () => {
     const seen = new Set<string>();
 
+    expect(getUserTelemetryEventRegistry()).toBe(userTelemetryEventRegistry);
     for (const contract of getUserTelemetryEventRegistry()) {
       const key = `${contract.eventName}@${contract.eventVersion}`;
       expect(seen.has(key)).toBe(false);

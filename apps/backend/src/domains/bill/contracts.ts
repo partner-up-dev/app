@@ -1,5 +1,24 @@
 import type { TradeOrderBillingContext } from "../trade/contracts";
-import type { BillLineKind, BillLineSettlementStatus } from "./model";
+import { areThereAnyUnpaidPayableBillLines } from "./services/payable-bill-lines";
+import { deriveBillPaymentState } from "./services/bill-payment-state";
+import type {
+  BillLineKind,
+  BillLinePaymentProjection,
+  BillLineSettlementStatus,
+  BillPayableOrderContext,
+  BillPaymentState,
+  BillPaymentStateLineFact,
+  UnpaidPayableBillLineCandidate,
+} from "./model";
+
+export { areThereAnyUnpaidPayableBillLines, deriveBillPaymentState };
+export type {
+  BillLinePaymentProjection,
+  BillPayableOrderContext,
+  BillPaymentState,
+  BillPaymentStateLineFact,
+  UnpaidPayableBillLineCandidate,
+};
 
 /**
  * Bill-owned execution state that Payment may observe or transition. This is

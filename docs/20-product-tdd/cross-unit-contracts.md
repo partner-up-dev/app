@@ -79,6 +79,13 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 - The User domain owns the canonical current-public-identity query (`UserId` to public identity or `null`). Auth
   transport owns JWT verification, issuance, renewal and `x-access-token` emission; public controllers consume the
   resolved request identity rather than querying user persistence to re-decide it.
+- User also owns normalized WeChat OAuth identity completion: existing OpenID
+  identity takes precedence, an eligible current/anonymous candidate may be
+  bound or upgraded, and create-race readback remains inside that owner. The
+  WeChat HTTP boundary owns provider code exchange, signed state/handoff
+  cookies, return-target validation and redirect/header serialization; Auth
+  issues a public session only from User's stable public identity, never from a
+  persistence row.
 - The anonymous user UUID is a continuity handle, not a credential: `/auth/session` may restore only an active
   anonymous user from a UUID when a valid public bearer did not already resolve an identity. An invalid or stale UUID
   is rejected rather than upgraded or reused.
@@ -104,6 +111,9 @@ Product TDD owns only the cross-unit origin shape required by the typed HTTP con
 
 - Backend persists official-account follow confirmation on `users.wechat_official_account_followed_at`.
 - `GET /api/wechat/official-account/follow-status` returns `{ status, followedAt }`, where `status` is `FOLLOWED` or `UNKNOWN`; `FOLLOWED` requires an active authenticated user whose `users.wechat_official_account_followed_at` is present.
+- User owns that follow-status projection and its active/authenticated policy;
+  the WeChat route serializes the projection without re-reading or
+  reinterpreting the user row.
 - A 6-hour backend JobRunner task reads the WeChat official-account follower list and positively marks local users whose `open_id` appears in the list.
 - The follower-list cursor is pagination state for one scan. It is not persisted as durable user state.
 - The sync task only writes positive confirmations. Missing users in a follower-list scan remain `UNKNOWN` until a later unsubscribe webhook or reconciliation contract exists.

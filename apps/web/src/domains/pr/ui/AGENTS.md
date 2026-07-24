@@ -5,7 +5,8 @@ and primitives.
 
 ## Component Contracts
 
-- `primitives/PRPreviewCard.vue`: PR-domain preview card for PR list rows and search results. Accepts `prId`, owns the PR detail query, and supports route override, cover image, contextual time label, and an `actions` slot. Keep canonical PR facts inside the owned detail query; keep call-site props limited to caller context.
+- `composites/PRPreviewCard.vue`: PR-domain preview card for PR list rows and search results. Accepts `prId`, owns the PR detail query, and supports route override, cover image, contextual time label, and an `actions` slot. Keep canonical PR facts inside the owned detail query; keep call-site props limited to caller context.
+- `primitives/PRPreviewCardFrame.vue`: pure presentation frame for PR previews. It accepts projected display values and must not import queries.
 - `forms/DateTimeRangePicker.vue`: standalone time-window picker for start/end date-time.
 - `forms/PREditor.vue`: unified structured PR create/edit editor using `src/lib/validation`; pass `prId` only for edit mode.
 

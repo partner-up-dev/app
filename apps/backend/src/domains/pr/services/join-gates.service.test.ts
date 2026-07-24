@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PRJoinGateConfig } from "../../../entities";
+import type { PRJoinGateConfig } from "../contracts/join-gate";
 
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 

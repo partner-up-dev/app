@@ -1,7 +1,8 @@
-import type { PRId, PRJoinGateConfig } from "../../../entities";
+import type { PRId } from "../../../entities";
 import { materializeFeedbackQuestionnaireInstance } from "../../feedback-questionnaire";
 import { getPRTypeConfigCreationDefaults } from "../../pr-type-config";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { PRJoinGateConfig } from "../contracts/join-gate";
 import { materializePRTypeParticipationSnapshot } from "./pr-type-participation-defaults.service";
 
 const requestRepository = new PartnerRequestRepository();

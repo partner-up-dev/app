@@ -1,9 +1,11 @@
 export { getMyCreatedPRs } from "./queries/get-my-created-prs";
 export { getMyJoinedPRs } from "./queries/get-my-joined-prs";
-export { getPRDetail } from "./queries/get-pr-detail";
+export { getPRDetail, type PRDetail } from "./queries/get-pr-detail";
+export { getPRAttachedOrderContext } from "./queries/get-pr-attached-order-context";
 export { getPRPartnerProfile } from "./queries/get-pr-partner-profile";
 export { getPR } from "./queries/get-pr";
 export { listPRMessages } from "./queries/list-pr-messages";
+export { assertPRConfirmationOrCheckInVisible } from "./queries/assert-pr-confirmation-or-check-in-visible";
 export { getPROrderAttachmentEligibility } from "./queries/order-attachment-eligibility";
 export {
   getPRPlacementOrderingAdmission,

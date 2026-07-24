@@ -1,10 +1,8 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  FeedbackQuestionnaireAnswers,
-  FeedbackQuestionnaireInstanceId,
-} from "../../../entities/feedback-questionnaire";
+import type { FeedbackQuestionnaireInstanceId } from "../../../entities/feedback-questionnaire";
 import type { UserId } from "../../../entities/user";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
+import type { FeedbackQuestionnaireAnswers } from "../contracts";
 import { assertFeedbackAnswersMatchDefinition } from "../services/answer-validation.service";
 
 const feedbackRepo = new FeedbackQuestionnaireRepository();

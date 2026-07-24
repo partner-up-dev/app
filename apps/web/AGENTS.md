@@ -67,10 +67,8 @@ src/
 ├── shared/                 # Cross-domain infrastructure and UI primitives
 ├── processes/              # Cross-domain workflows
 ├── pages/                  # Route entrypoints only
-├── stores/                 # Legacy compatibility seams only
-├── lib/                    # Legacy compatibility seams only
+├── lib/                    # Narrow existing compatibility/util seams only
 ├── locales/
-├── router/                 # Legacy compatibility seams only
 ├── styles/
 └── ...
 ```
@@ -81,4 +79,6 @@ Rules:
 - New cross-domain primitives or infrastructure belong under `src/shared/*`.
 - Cross-domain workflows belong under `src/processes/*`.
 - App bootstrap, providers, and router wiring belong under `src/app/*`.
+- The retired top-level `router` and `stores` bridges must not be recreated;
+  session state belongs under `shared/auth`.
 - Do not add new files under legacy buckets such as top-level `queries`, `features`, `entities`, or `widgets` unless explicitly maintaining a temporary compatibility seam.

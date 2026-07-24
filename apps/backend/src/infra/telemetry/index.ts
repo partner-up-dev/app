@@ -7,10 +7,12 @@ export {
   getUserTelemetryEventContract,
   getUserTelemetryEventRegistry,
   validateRegisteredUserTelemetryEvent,
-  type UserTelemetryAttributes,
-  type UserTelemetryEventContract,
-  type UserTelemetryPayload,
 } from "./user-event-registry";
+export type {
+  UserTelemetryAttributes,
+  UserTelemetryEventContract,
+  UserTelemetryPayload,
+} from "./contracts";
 export {
   getRequestJourneyContext,
   JOURNEY_ID_HEADER,

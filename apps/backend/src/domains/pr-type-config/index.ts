@@ -4,6 +4,7 @@ export {
   createPRTypeConfig,
   updatePRTypeConfigAuthoring,
   updatePRTypeConfigCompletion,
+  updatePRTypeConfigCoordination,
   updatePRTypeConfigDiscovery,
   updatePRTypeConfigParticipation,
 } from "./commands";

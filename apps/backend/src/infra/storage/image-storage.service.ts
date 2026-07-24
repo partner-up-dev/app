@@ -2,10 +2,10 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../../lib/env";
+import { type ImageUploadPurpose, imageUploadPurposes } from "./contracts";
 
-export const imageUploadPurposes = ["poster", "poi", "feedback"] as const;
-
-export type ImageUploadPurpose = (typeof imageUploadPurposes)[number];
+export { imageUploadPurposes };
+export type { ImageUploadPurpose };
 
 type StoredImageSnapshot = {
   key: string;

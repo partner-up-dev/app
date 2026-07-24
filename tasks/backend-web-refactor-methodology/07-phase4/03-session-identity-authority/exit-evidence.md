@@ -19,3 +19,8 @@
 The protected independent paths named in the root task packet were not edited as 4-2 output. `git diff --check`
 passes after the final documentation update. No staging or commit was performed; a commit remains an explicit Sir
 decision. The next eligible slice is `4-3`, but it still needs fresh entry evidence and implementation authorization.
+
+Historical annotation (2026-07-24): this was the `4-2` event-time handoff.
+`4-3` and the remaining local Phase 4 slices were subsequently authorized,
+completed and committed. The root Program roadmap owns current status; the
+external OAuth/provider/topology non-claims above remain unchanged.

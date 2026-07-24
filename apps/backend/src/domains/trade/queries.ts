@@ -1,7 +1,12 @@
 import type { TradeOrderId } from "../../entities/trade-order";
+import type { OfferId } from "../../entities/offer";
 import { throwHttpProblem } from "../../lib/problem-details";
 import { TradeOrderRepository } from "../../repositories/TradeOrderRepository";
-import type { TradeOrderBillingContext } from "./contracts";
+import type {
+  AttachedTradeOrderSummary,
+  AttachedTradeOrderSummaryQuery,
+  TradeOrderBillingContext,
+} from "./contracts";
 
 export { getCommerceOrderDetail } from "./use-cases/rental-ordering-flow";
 export { listOfferListing } from "./use-cases/offer-listing";
@@ -61,3 +66,23 @@ export async function getTradeOrderBillingContext(input: {
     unpaidExpiresAt: order.timeout.unpaidExpiresAt,
   };
 }
+
+/**
+ * Trade owns filtering and ordering for the legacy PR attachment listing.
+ * Callers receive only the three stable fields exposed by that route.
+ */
+export const listAttachedTradeOrderSummaries = async (
+  input: AttachedTradeOrderSummaryQuery,
+): Promise<AttachedTradeOrderSummary[]> => {
+  const orders = await tradeOrderRepo.listByIdsOfferAndStatuses({
+    ids: input.orderIds.map((id) => id as TradeOrderId),
+    offerId: input.offerId as OfferId,
+    statuses: input.statuses,
+  });
+
+  return orders.map((order) => ({
+    id: order.id,
+    status: order.status,
+    offerId: order.offerId,
+  }));
+};

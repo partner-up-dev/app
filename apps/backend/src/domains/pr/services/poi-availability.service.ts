@@ -1,4 +1,4 @@
-import type { PRTimeWindow } from "../../../entities/partner-request";
+import type { PRTimeWindow } from "../contracts/partner-request";
 import type { PoiAvailabilityRule } from "../../../entities/poi";
 import { normalizePoiAvailabilityRules } from "../../../entities/poi";
 import { ProblemDetailsError } from "../../../lib/problem-details";

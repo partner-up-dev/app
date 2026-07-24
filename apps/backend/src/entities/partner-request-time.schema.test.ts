@@ -3,7 +3,7 @@ import { test } from "vitest";
 import {
   naturalLanguagePartnerRequestFieldsSchema,
   partnerRequestFieldsSchema,
-} from "./partner-request";
+} from "../domains/pr/contracts/partner-request";
 
 const baseFields = {
   title: "Badminton partner",

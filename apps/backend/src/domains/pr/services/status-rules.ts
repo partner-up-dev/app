@@ -5,7 +5,7 @@
  * for PartnerRequest status.
  */
 
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRStatus } from "../contracts/partner-request";
 import type { TimeWindow } from "./time-window.service";
 import { isWithinActiveWindow } from "./time-window.service";
 

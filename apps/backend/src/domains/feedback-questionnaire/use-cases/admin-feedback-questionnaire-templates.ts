@@ -1,10 +1,10 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import type {
-  FeedbackQuestionnaireDefinition,
   FeedbackQuestionnaireTemplate,
   FeedbackQuestionnaireTemplateId,
 } from "../../../entities/feedback-questionnaire";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
+import type { FeedbackQuestionnaireDefinition } from "../contracts";
 
 export type AdminFeedbackQuestionnaireTemplateInput = {
   key: string;

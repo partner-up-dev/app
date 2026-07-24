@@ -51,9 +51,6 @@ export const jobs = pgTable(
     jobVersion: integer("job_version").notNull().default(1),
     status: text("status").$type<JobStatus>().notNull().default("PENDING"),
     runAt: timestamp("run_at").notNull(),
-    // Legacy rollout columns stay in schema until the later contract/drop slice.
-    earlyToleranceMs: integer("early_tolerance_ms").notNull().default(0),
-    lateToleranceMs: integer("late_tolerance_ms").notNull().default(0),
     resolutionMs: integer("resolution_ms").notNull(),
     earlyToleranceUnits: integer("early_tolerance_units").notNull(),
     lateToleranceUnits: integer("late_tolerance_units").notNull(),

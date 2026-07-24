@@ -30,10 +30,13 @@ and domain-specific component contracts in nearer `AGENTS.md` files.
 
 ## Preview Data Ownership
 
-When a reusable domain component renders canonical facts for an entity, prefer
-an id-based API and let the component own the canonical detail query. Callers may
-provide caller-owned context such as route override, cover image, contextual time
-label, analytics surface, or action slots.
+When reusable domain UI renders canonical facts for an entity, prefer an
+id-based deep API at composite or surface depth. That wrapper may own the
+canonical detail query; its primitive receives projected display values and
+must not import the query. Callers may provide caller-owned context such as
+route override, cover image, contextual time label, analytics surface, or
+action slots, but should not duplicate the canonical projection merely to keep
+the wrapper query-free.
 
 Add snapshot or fallback props only when that fallback is an explicit product
 contract with meaningful user-visible value.

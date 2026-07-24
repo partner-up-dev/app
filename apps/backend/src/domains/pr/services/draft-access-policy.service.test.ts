@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { ProblemDetailsError } from "../../../lib/problem-details";
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRStatus } from "../contracts/partner-request";
 import type { AuthRole } from "../../../auth/types";
 import { assertPRDraftAccess } from "./draft-access-policy.service";
 

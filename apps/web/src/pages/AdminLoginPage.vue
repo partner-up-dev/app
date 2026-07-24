@@ -39,19 +39,19 @@
         <PuButton
           shape="pill"
           size="lg"
-          :disabled="loginMutation.isPending.value"
+          :disabled="sessionLogin.isPending.value"
           @click="handleSubmit"
         >
           {{
-            loginMutation.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction")
+            sessionLogin.isPending.value ? t("adminLogin.loggingIn") : t("adminLogin.loginAction")
           }}
         </PuButton>
 
         <p class="admin-login-card__hint">{{ t("adminLogin.seedHint") }}</p>
         <PuInlineNotice
           tone="error"
-          v-if="loginMutation.error.value"
-          :message="loginMutation.error.value.message"
+          v-if="sessionLogin.errorMessage.value"
+          :message="sessionLogin.errorMessage.value"
         />
       </div>
     </section>
@@ -62,7 +62,7 @@
 import { reactive, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useAdminLogin } from "@/domains/admin/queries/useAdminLogin";
+import { useAdminSessionLogin } from "@/domains/admin/use-cases/useAdminSessionLogin";
 import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
 import { PuButton, PuInlineNotice, PuPageScaffold } from "@partner-up-dev/design-web";
 
@@ -70,7 +70,7 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const adminSessionStore = useAdminSessionStore();
-const loginMutation = useAdminLogin();
+const sessionLogin = useAdminSessionLogin();
 const form = reactive({
   userId: "",
   password: "",
@@ -86,17 +86,11 @@ const resolveRedirectTarget = (): string => {
 };
 
 const handleSubmit = async () => {
-  const payload = await loginMutation.mutateAsync({
+  await sessionLogin.login({
     userId: form.userId.trim(),
     password: form.password,
   });
 
-  adminSessionStore.applyAuthSession({
-    role: payload.role,
-    roles: payload.roles,
-    userId: payload.userId,
-    accessToken: payload.accessToken,
-  });
   form.password = "";
   await router.replace(resolveRedirectTarget());
 };

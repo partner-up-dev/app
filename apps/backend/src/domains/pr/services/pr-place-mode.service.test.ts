@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { partnerRequestFieldsSchema } from "../../../entities/partner-request";
+import { partnerRequestFieldsSchema } from "../contracts/partner-request";
 import {
   buildPRRouteSummary,
   normalizePartnerRequestFieldsForPersistence,

@@ -28,8 +28,10 @@
 <script setup lang="ts">
 import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 import { ref } from "vue";
-import { normalizeNullableNumber } from "@/domains/admin/model/pr-type-config-editor";
-import type { AdminPRTypeConfigCompletion } from "@/domains/admin/queries/useAdminPRTypeConfigs";
+import {
+  type AdminPRTypeConfigCompletion,
+  normalizeNullableNumber,
+} from "@/domains/admin/model/pr-type-config-editor";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import NumberField from "./PRTypeConfigNumberField.vue";
 

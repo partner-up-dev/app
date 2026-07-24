@@ -1,10 +1,7 @@
 import { db } from "../../lib/db";
 import { userTelemetryEvents, userTelemetryRejectedEvents } from "../../entities/user-telemetry";
-import {
-  validateRegisteredUserTelemetryEvent,
-  type UserTelemetryAttributes,
-  type UserTelemetryPayload,
-} from "./user-event-registry";
+import type { UserTelemetryAttributes, UserTelemetryPayload } from "./contracts";
+import { validateRegisteredUserTelemetryEvent } from "./user-event-registry";
 
 export type RawUserTelemetryEventInput = {
   event_id: string;

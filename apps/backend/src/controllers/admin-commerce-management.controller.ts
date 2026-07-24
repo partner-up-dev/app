@@ -205,6 +205,8 @@ const productSkuInputSchema = z.object({
     .optional(),
 });
 
+const productSkuUpdateInputSchema = productSkuInputSchema.omit({ spuId: true });
+
 const cancellationTierSchema = z.object({
   code: z.string().trim().min(1),
   fromMinutesBeforeStart: z.number().int().nullable(),
@@ -308,25 +310,34 @@ type AdminCommerceManagementSchema = {
     $get: JsonEndpoint<EmptyInput, Awaited<ReturnType<typeof getAdminCommerceProductWorkspace>>>;
   };
   "/commerce/products/spus": {
-    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createProductSpu>>>;
+    $post: JsonEndpoint<
+      { json: z.infer<typeof productSpuInputSchema> },
+      Awaited<ReturnType<typeof createProductSpu>>
+    >;
   };
   "/commerce/products/spus/:spuId": {
     $patch: JsonEndpoint<
-      NumericParam<"spuId"> & { json: unknown },
+      NumericParam<"spuId"> & { json: z.infer<typeof productSpuInputSchema> },
       Awaited<ReturnType<typeof updateAdminCommerceProductSpu>>
     >;
   };
   "/commerce/products/skus": {
-    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createProductSku>>>;
+    $post: JsonEndpoint<
+      { json: z.infer<typeof productSkuInputSchema> },
+      Awaited<ReturnType<typeof createProductSku>>
+    >;
   };
   "/commerce/products/skus/:skuId": {
     $patch: JsonEndpoint<
-      NumericParam<"skuId"> & { json: unknown },
+      NumericParam<"skuId"> & { json: z.infer<typeof productSkuUpdateInputSchema> },
       Awaited<ReturnType<typeof updateAdminCommerceProductSku>>
     >;
   };
   "/commerce/products/skus/:skuId/cancellation-policy": {
-    $post: JsonEndpoint<NumericParam<"skuId"> & { json: unknown }, unknown>;
+    $post: JsonEndpoint<
+      NumericParam<"skuId"> & { json: z.infer<typeof skuCancellationPolicyInputSchema> },
+      unknown
+    >;
   };
   "/commerce/placement-offer/workspace": {
     $get: JsonEndpoint<
@@ -335,11 +346,14 @@ type AdminCommerceManagementSchema = {
     >;
   };
   "/commerce/offers": {
-    $post: JsonEndpoint<{ json: unknown }, Awaited<ReturnType<typeof createOffer>>>;
+    $post: JsonEndpoint<
+      { json: z.infer<typeof offerInputSchema> },
+      Awaited<ReturnType<typeof createOffer>>
+    >;
   };
   "/commerce/offers/:offerId": {
     $patch: JsonEndpoint<
-      NumericParam<"offerId"> & { json: unknown },
+      NumericParam<"offerId"> & { json: z.infer<typeof offerInputSchema> },
       Awaited<ReturnType<typeof updateAdminCommerceOffer>>
     >;
   };
@@ -429,7 +443,7 @@ export const adminCommerceManagementRoute: Hono<AdminAuthEnv, AdminCommerceManag
   .patch(
     "/commerce/products/skus/:skuId",
     zValidator("param", skuIdParamSchema),
-    zValidator("json", productSkuInputSchema.omit({ spuId: true })),
+    zValidator("json", productSkuUpdateInputSchema),
     async (c) => {
       const { skuId } = c.req.valid("param");
       const payload = c.req.valid("json");

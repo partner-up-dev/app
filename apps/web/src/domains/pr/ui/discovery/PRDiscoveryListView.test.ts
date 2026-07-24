@@ -66,7 +66,7 @@ vi.mock("./list/PRDiscoveryCreateCard.vue", () => ({ default: { render: () => nu
 vi.mock("./list/PRDiscoveryCreationSuggestionCard.vue", () => ({
   default: { render: () => null },
 }));
-vi.mock("@/domains/pr/ui/primitives/PRPreviewCard.vue", () => ({
+vi.mock("@/domains/pr/ui/composites/PRPreviewCard.vue", () => ({
   default: defineComponent({
     inheritAttrs: false,
     props: { timeLabel: { type: String, default: "" } },

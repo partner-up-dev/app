@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test, vi } from "vitest";
-import type { PRRoute } from "../../entities/partner-request";
 import type { NewPRTypeConfig, PRTypeConfig } from "../../entities/pr-type-config";
+import type { PRRoute } from "../pr/contracts/partner-request";
 
 type PRTypeConfigPatch = Partial<Omit<NewPRTypeConfig, "type" | "createdAt" | "updatedAt">>;
 

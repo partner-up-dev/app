@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TradeOrderId } from "../../../entities/trade-order";
 import type { RideHailingProviderOrderDetail } from "../model";
-import type { RideHailingReconciliationTransactionPort } from "../ports";
+import type { RideHailingReconciliationTransactionPort } from "../contracts";
 
 const mocks = vi.hoisted(() => ({
   events: [] as string[],

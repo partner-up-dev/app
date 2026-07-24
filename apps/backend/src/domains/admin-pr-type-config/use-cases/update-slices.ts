@@ -1,6 +1,7 @@
 import {
   updatePRTypeConfigAuthoring as updateAuthoring,
   updatePRTypeConfigCompletion as updateCompletion,
+  updatePRTypeConfigCoordination as updateCoordination,
   updatePRTypeConfigDiscovery as updateDiscovery,
   updatePRTypeConfigParticipation as updateParticipation,
 } from "../../pr-type-config";
@@ -12,7 +13,6 @@ import type {
   AdminPRTypeConfigDiscovery,
   AdminPRTypeConfigParticipation,
 } from "../contracts";
-import { createPRTypeCoordinationMeetingPointTransactionPort } from "./pr-type-coordination-meeting-point-transaction";
 
 export const updateAdminPRTypeConfigAuthoring = async (
   type: string,
@@ -39,10 +39,7 @@ export const updateAdminPRTypeConfigCoordination = async (
   type: string,
   input: AdminPRTypeConfigCoordination,
 ): Promise<AdminPRTypeConfigDetail> => {
-  return await createPRTypeCoordinationMeetingPointTransactionPort().update({
-    type,
-    input,
-  });
+  return await updateCoordination(type, input);
 };
 
 export const updateAdminPRTypeConfigCompletion = async (

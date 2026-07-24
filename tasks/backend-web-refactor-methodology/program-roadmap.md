@@ -31,9 +31,9 @@ Phase 3: architecture and PR migration protocol               Complete
 
 Phase 4: User/Auth                                                 local implementation complete; external rollout/topology evidence pending
 Phase 5: Commerce                                                  local source convergence committed (`171319de`); 5-7a evidence and explicit deferrals remain
-Phase 6: Job/Notification runtime                                 Complete locally; real O11y/delivery retirement handed to Phase 7
+Phase 6: Job/Notification runtime                                 Complete locally; professional O11y/delivery retention is independent future work
 Phase 7: Legacy O11y retirement / Analytics                       Complete
-Phase 8: global review and cleanup                                not started
+Phase 8: global review and cleanup                                Complete locally (`8-0`–`8-7`); uncommitted
 ```
 
 Phase 3A established the measurable/read-owner foundation through `3-1`/`3-2`. Phase 3B then carried the
@@ -108,6 +108,28 @@ therefore closed by operator evidence/decision. This does not claim
 platform-side access/deletion by Codex or implemented professional
 observability.
 
+Phase 8 completed its read-only `8-0` global rebase at `cf6cd736` under
+[`11-phase8-global-review-cleanup/`](./11-phase8-global-review-cleanup/).
+The Phase 3 reviewed fitness set initially moved from 125 findings to 21
+current findings: 17 known, four new Backend private edges and 108
+stale-known. Sir then authorized continuous execution through `8-5`.
+`8-1`–`8-5` are complete: active private-edge regressions and the fake
+canonical signal are closed; the package contract subpath retains all public
+names while definitions belong to semantic owner contracts; Web model/query
+reversals and the PR Discovery type cycle are gone; controller/repository
+edges are zero; and Backend/Web static plus dynamic-inclusive import graphs
+are acyclic after Commerce convergence. `8-6` then converged the
+Admin/PR/Share endpoint owners, retired the exact zero-consumer Web/Job/env
+compatibility set, forward-dropped only obsolete Job millisecond columns and
+reconciled historical/external proof procedures. Its integrated
+type/lint/fitness and focused Backend/System proof passed. The current fitness
+result is one known terminal WeChat OAuth callback exception with
+`0 new / 0 unresolved`. `8-7` then independently recomputed the authority
+scorecard, replayed six classic sequences, passed every canonical
+static/unit/scenario gate and reconciled durable/control handoff. Phase 8 is
+complete locally under Sir's 2026-07-24 authorization and remains uncommitted
+at `cf6cd736`.
+
 ## Program Phase Boundaries
 
 | Phase | Intended owner problem | Required entry evidence | Exit shape |
@@ -119,7 +141,7 @@ observability.
 | 5 Commerce | Order/payment/bill/fulfillment/provider authority and compensation | User/Auth contract stable; provider/idempotency matrix | Local Commerce owner closure with explicit external-evidence and deferred-risk handoffs; no false deployment claim |
 | 6 Job/Notification | JobRunner, scheduling, dispatch and retry/bootstrap ownership | Phase 5 local side-effect boundaries plus explicit 5-7a/F-02 handoffs | Explicit runtime owner, durable Job control/creation state, attempt-O11y boundary, idempotency/retry policy and lifecycle proof; `6-0`, D6-N-01, D6-J-02 and D6-F-01 have closed the read-only owner design before execution |
 | 7 Legacy O11y retirement / Analytics | Remove rejected SLS/structured-output pseudo-observability; converge user telemetry and BI without conflating signal families | Prior domain surfaces stable; negative baseline and exact deletion boundary recorded | Deployable clean baseline, Registry/fact/Web Analytics convergence, and requirement-only handoff to a future professional program-O11y task |
-| 8 Global review | Cross-phase consistency, expired compatibility and report-first findings | Phases 3–7 exited | Global fitness review, targeted cleanup, durable-doc/link/gate reconciliation |
+| 8 Global review | Cross-phase consistency, active residual owner/dependency debt, expired compatibility and report-first findings | Phases 3–7 exited | `8-0` current baseline followed by authorized targeted cleanup; durable-doc/link/gate reconciliation; external/future/independent work remains explicit |
 
 ## Program Guardrails
 

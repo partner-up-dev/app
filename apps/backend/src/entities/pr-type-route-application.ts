@@ -1,7 +1,7 @@
 import { bigserial, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
-import { type PRRoute, prRouteSchema } from "./partner-request";
+import { type PRRoute, prRouteSchema } from "../domains/pr/contracts/partner-request";
 import { prTypeConfigs } from "./pr-type-config";
 import { type UserId, users } from "./user";
 

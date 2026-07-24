@@ -4,9 +4,10 @@
  * - eventual: return current snapshot and schedule a background sync
  */
 
-import type { PartnerRequest, PRId, PRStatus } from "../../../entities/partner-request";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { PRStatus } from "../contracts/partner-request";
 import { refreshTemporalStatus } from "../temporal-refresh";
 
 export type PRReadConsistency = "strong" | "eventual";

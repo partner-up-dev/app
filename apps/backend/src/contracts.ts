@@ -8,13 +8,13 @@
 export type {
   FeedbackQuestionnaireAnswers,
   FeedbackQuestionnaireDefinition,
-} from "./entities/feedback-questionnaire";
+} from "./domains/feedback-questionnaire/contracts";
 export type {
   PRJoinGateConfig,
   PRJoinGateConfigItem,
   PRJoinGateSource,
   PRJoinNoticeGateConfig,
-} from "./entities/join-gate";
+} from "./domains/pr/contracts/join-gate";
 export type {
   CoordinatePair,
   CreatePRStructuredStatus,
@@ -27,10 +27,10 @@ export type {
   PRTimeWindow,
   VisibilityStatus,
   WeekdayLabel,
-} from "./entities/partner-request";
-export type { ImageUploadPurpose } from "./infra/storage/image-storage.service";
+} from "./domains/pr/contracts/partner-request";
+export type { ImageUploadPurpose } from "./infra/storage/contracts";
 export type {
   ActiveUserTelemetryEvent,
   ActiveUserTelemetryEventName,
   ActiveUserTelemetryEventVersion,
-} from "./infra/telemetry/user-event-registry";
+} from "./infra/telemetry/contracts";

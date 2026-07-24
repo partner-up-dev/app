@@ -1,7 +1,7 @@
-import { type PRRoute, prRouteSchema } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PRTypeRouteApplicationRepository } from "../../../repositories/PRTypeRouteApplicationRepository";
+import { type PRRoute, prRouteSchema } from "../../pr/contracts";
 import {
   normalizePRTypeRouteRejectReason,
   toPRTypeRouteApplicationView,

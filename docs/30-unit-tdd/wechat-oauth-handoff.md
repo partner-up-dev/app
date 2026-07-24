@@ -23,6 +23,12 @@ It exists because the product currently uses frontend-held application access to
 - The active OAuth provider-session boundary trims `openid` and rejects a missing or whitespace-only result before
   any callback branch can look it up, bind it, upgrade a user, or persist it. A provider user-info identity is
   compared after the same normalisation.
+- Provider exchange, signed cookies, return-target validation and
+  redirect/header mapping remain protocol-boundary concerns. Normalized
+  identity lookup/bind/upgrade/create and missing-profile persistence belong
+  to User; Auth signs only the stable public identity returned by User. The
+  callback and handoff route must not query User persistence to reconstruct
+  either policy.
 - The `wechatOAuthHandoff` query value is a nonce only. Treat it as non-secret but sensitive enough to remove from browser-visible URLs and telemetry.
 - The signed handoff cookie is short-lived, HttpOnly, path-scoped to the handoff endpoint, and must not contain the frontend access token.
 - Handoff exchange must use `credentials: "include"` so the path-scoped signed cookie reaches the backend.

@@ -1,137 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import type { InferResponseType } from "hono";
 import { computed, unref, type MaybeRef } from "vue";
+import {
+  toOfferCreateBody,
+  toOfferUpdateBody,
+  toProductSkuCreateBody,
+  toProductSkuUpdateBody,
+  toProductSpuCreateBody,
+  toProductSpuUpdateBody,
+  toSkuCancellationPolicyBody,
+  type AdminCommerceFulfillmentWorkspaceResponse,
+  type AdminCommerceOrderBillWorkspaceResponse,
+  type AdminCommercePlacementOfferWorkspaceResponse,
+  type AdminCommerceProductWorkspaceResponse,
+} from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
+import type { OfferValue } from "@/domains/admin-commerce/model/pricing-rules/offerValues";
+import type {
+  ProductSkuValue,
+  ProductSpuValue,
+  SkuCancellationPolicyValue,
+} from "@/domains/admin-commerce/model/product-management/productValues";
 import { adminClient } from "@/lib/admin-rpc";
 import { queryKeys } from "@/shared/api/query-keys";
 
 const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
   const payload = (await response.json()) as { error?: string; detail?: string };
   return payload.error || payload.detail || fallback;
-};
-
-type AdminApi = typeof adminClient.api.admin;
-type CommerceApi = AdminApi["commerce"];
-type ProductsApi = CommerceApi["products"];
-type PlacementOfferWorkspaceRoute = CommerceApi["placement-offer"]["workspace"];
-type OrdersBillsWorkspaceRoute = CommerceApi["orders-bills"]["workspace"];
-type FulfillmentsWorkspaceRoute = CommerceApi["fulfillments"]["workspace"];
-
-export type AdminCommerceProductWorkspaceResponse = InferResponseType<
-  ProductsApi["workspace"]["$get"]
->;
-export type AdminCommercePlacementOfferWorkspaceResponse = InferResponseType<
-  PlacementOfferWorkspaceRoute["$get"]
->;
-export type AdminCommerceOrderBillWorkspaceResponse = InferResponseType<
-  OrdersBillsWorkspaceRoute["$get"]
->;
-export type AdminCommerceFulfillmentWorkspaceResponse = InferResponseType<
-  FulfillmentsWorkspaceRoute["$get"]
->;
-
-export type AdminProductSpuInput = {
-  name: string;
-  productType: "RENTAL" | "RIDE_HAILING";
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
-  salesPolicy: {
-    skuSelectionPolicy:
-      | { type: "EXACTLY_ONE" }
-      | { type: "CHOICE_SET"; min: number; max?: number | null; resolvesTo: 1 };
-    quantityPolicy:
-      | { type: "FIXED"; quantity: number }
-      | { type: "PER_PARTICIPANT" }
-      | { type: "USER_SELECTED"; min: number; max: number };
-  };
-  servicePolicy:
-    | {
-        type: "RENTAL";
-        bookingLeadTimeMinutes: number;
-        serviceWindow?: {
-          weekdays: number[];
-          startTime: string;
-          endTime: string;
-        };
-        requiresContactPhone: boolean;
-        requiresRealName: boolean;
-        requiresNationalId: boolean;
-      }
-    | { type: "RIDE_HAILING" };
-  presentation: {
-    heroImageAssetIds: string[];
-    detailImageAssetIds: string[];
-    sellingPoints: string[];
-    parameterGroups: Array<{ title: string; items: Array<{ label: string; value: string }> }>;
-    noticeBlocks: Array<{ title: string; content: string }>;
-  };
-  facts: Record<string, unknown>;
-};
-
-export type AdminProductSkuInput = {
-  spuId: number;
-  name: string;
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
-  sortOrder: number;
-  presentation: {
-    heroImageAssetIds: string[];
-    detailImageAssetIds: string[];
-    sellingPoints: string[];
-    parameterGroups: Array<{ title: string; items: Array<{ label: string; value: string }> }>;
-    noticeBlocks: Array<{ title: string; content: string }>;
-  };
-  facts:
-    | {
-        type: "RENTAL";
-        zoneCode: string;
-        participantCount: number;
-        durationMinutes: number;
-      }
-    | {
-        rideHailingProviderInstanceId: string;
-        providerVehicleTypeCode: string;
-      };
-  pricingModel:
-    | { type: "FIXED_TOTAL"; amountFen: number }
-    | { type: "DYNAMIC_QUOTE"; calculatorSpec: unknown };
-  cancellationPolicyRef?: {
-    policyId: string;
-    policyVersion: number;
-  } | null;
-};
-
-export type AdminSkuCancellationPolicyInput = {
-  operatorBufferMinutes: number;
-  tiers: Array<{
-    code: string;
-    fromMinutesBeforeStart: number | null;
-    untilMinutesBeforeStart: number | null;
-    refundPercent: number;
-    requiresOperatorHandling: boolean;
-    visibleLabel: string;
-  }>;
-};
-
-export type AdminOfferInput = {
-  productType: "RENTAL" | "RIDE_HAILING";
-  spuIds: number[];
-  status: "DRAFT" | "ACTIVE" | "PAUSED" | "ARCHIVED";
-  pricingRules: Array<{
-    id: number;
-    label: string;
-    description: string;
-    conditionRule: unknown;
-    action:
-      | { type: "RESET"; payload: { pricingModel: unknown } }
-      | { type: "MINUS"; payload: { amountFen: number } }
-      | { type: "RATIO"; payload: { ratioBps: number } };
-    target:
-      | { level: "SKU"; skuId?: number }
-      | { level: "SPU"; spuId?: number }
-      | { level: "ORDER" };
-    continue: boolean;
-  }>;
-  termsVersion: number;
-  startsAt?: string | null;
-  endsAt?: string | null;
 };
 
 export type AdminPlacementInput = {
@@ -170,9 +63,9 @@ export const useCreateAdminProductSpu = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: AdminProductSpuInput) => {
+    mutationFn: async (input: ProductSpuValue) => {
       const res = await adminClient.api.admin.commerce.products.spus.$post({
-        json: input,
+        json: toProductSpuCreateBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "创建 SPU 失败"));
@@ -191,10 +84,10 @@ export const useUpdateAdminProductSpu = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ spuId, input }: { spuId: number; input: AdminProductSpuInput }) => {
+    mutationFn: async ({ spuId, input }: { spuId: number; input: ProductSpuValue }) => {
       const res = await adminClient.api.admin.commerce.products.spus[":spuId"].$patch({
         param: { spuId: spuId.toString() },
-        json: input,
+        json: toProductSpuUpdateBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新 SPU 失败"));
@@ -213,9 +106,9 @@ export const useCreateAdminProductSku = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: AdminProductSkuInput) => {
+    mutationFn: async ({ spuId, input }: { spuId: number; input: ProductSkuValue }) => {
       const res = await adminClient.api.admin.commerce.products.skus.$post({
-        json: input,
+        json: toProductSkuCreateBody(spuId, input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "创建 SKU 失败"));
@@ -234,16 +127,10 @@ export const useUpdateAdminProductSku = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      skuId,
-      input,
-    }: {
-      skuId: number;
-      input: Omit<AdminProductSkuInput, "spuId">;
-    }) => {
+    mutationFn: async ({ skuId, input }: { skuId: number; input: ProductSkuValue }) => {
       const res = await adminClient.api.admin.commerce.products.skus[":skuId"].$patch({
         param: { skuId: skuId.toString() },
-        json: input,
+        json: toProductSkuUpdateBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新 SKU 失败"));
@@ -262,18 +149,12 @@ export const useSaveAdminSkuCancellationPolicy = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      skuId,
-      input,
-    }: {
-      skuId: number;
-      input: AdminSkuCancellationPolicyInput;
-    }) => {
+    mutationFn: async ({ skuId, input }: { skuId: number; input: SkuCancellationPolicyValue }) => {
       const res = await adminClient.api.admin.commerce.products.skus[":skuId"][
         "cancellation-policy"
       ].$post({
         param: { skuId: skuId.toString() },
-        json: input,
+        json: toSkuCancellationPolicyBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "保存取消策略失败"));
@@ -305,9 +186,9 @@ export const useCreateAdminOffer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: AdminOfferInput) => {
+    mutationFn: async (input: OfferValue) => {
       const res = await adminClient.api.admin.commerce.offers.$post({
-        json: input,
+        json: toOfferCreateBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "创建 Offer 失败"));
@@ -326,10 +207,10 @@ export const useUpdateAdminOffer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ offerId, input }: { offerId: number; input: AdminOfferInput }) => {
+    mutationFn: async ({ offerId, input }: { offerId: number; input: OfferValue }) => {
       const res = await adminClient.api.admin.commerce.offers[":offerId"].$patch({
         param: { offerId: offerId.toString() },
-        json: input,
+        json: toOfferUpdateBody(input),
       });
       if (!res.ok) {
         throw new Error(await readErrorMessage(res, "更新 Offer 失败"));

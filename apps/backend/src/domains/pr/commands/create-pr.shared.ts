@@ -1,5 +1,6 @@
-import type { PRId, PRStatus } from "../../../entities/partner-request";
+import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
+import type { PRStatus } from "../contracts/partner-request";
 import type { CreatorIdentityInput } from "../services/creator-identity.service";
 import { publishPR } from "./publish-pr";
 

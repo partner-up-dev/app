@@ -1,25 +1,6 @@
-import type { BillLine } from "../../../entities/bill";
-import type { BillStatus } from "../model";
+import type { UnpaidPayableBillLineCandidate } from "../model";
 
-/**
- * Bill only needs the current order payment-window facts. The owner that
- * supplies them may use a Trade entity or a curated Trade query, but Bill's
- * payable rule must not depend on Trade's internal model types.
- */
-export type BillPayableOrderContext = {
-  status: string;
-  timeout: {
-    unpaidExpiresAt: string;
-  };
-};
-
-export type UnpaidPayableBillLineCandidate = {
-  line: Pick<BillLine, "kind" | "amountFen" | "settledAt">;
-  bill?: {
-    status: BillStatus;
-  } | null;
-  order?: BillPayableOrderContext | null;
-};
+export type { BillPayableOrderContext, UnpaidPayableBillLineCandidate } from "../model";
 
 export const isOrderUnpaidWindowOpen = (
   unpaidExpiresAt: string,

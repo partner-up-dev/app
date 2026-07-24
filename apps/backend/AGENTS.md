@@ -50,12 +50,12 @@ Controllers consume domain commands/queries/contracts and remain protocol conver
 start a new direct repository or cross-domain internal-service dependency. A domain may use its own persistence
 internals; another domain must ask through the owner's public surface.
 
-Current compatibility windows are baselined rather than described as compliant architecture:
+Current boundary status:
 
 - `src/domains/pr` is the sole canonical PR surface. The former `src/domains/pr-core` compatibility implementation
   and `PartnerRequestService` facade were retired in Phase 3 slice `3-5`; no source or test consumer remains.
-- Existing controller-to-repository and cross-domain deep imports are architecture-fitness findings. They migrate
-  with their owning behavior slices and do not authorize another edge.
+- The prior controller-to-repository and cross-domain private/deep-import windows are closed. Preserve that state:
+  add a public owner command/query/contract/port instead of recreating either edge.
 - Exceptions stay path-specific and record owner, reason, removal condition and verification; do not widen an
   allowlist to make a rule pass.
 

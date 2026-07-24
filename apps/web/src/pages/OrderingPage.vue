@@ -97,13 +97,13 @@ import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import type {
+  CreateOrderValue,
   OrderingContentInput,
   OrderingContentOutput,
   OrderingContentSummary,
 } from "@/domains/commerce/model/ordering-content";
 import type { OrderingEntryPayload } from "@/domains/commerce/model/ordering-entry-storage";
 import {
-  type CreateOrderInput,
   resolvePlacementOrderingEntry,
   useCreateOrder,
 } from "@/domains/commerce/queries/useCommerce";
@@ -185,7 +185,7 @@ const orderingContentInput = computed<OrderingContentInput | null>(() => {
   };
 });
 
-const buildOrderInput = (output: OrderingContentOutput | null): CreateOrderInput | null => {
+const buildOrderInput = (output: OrderingContentOutput | null): CreateOrderValue | null => {
   const entry = orderingEntry.value;
   if (!entry || !output) return null;
   return {
@@ -194,7 +194,7 @@ const buildOrderInput = (output: OrderingContentOutput | null): CreateOrderInput
   };
 };
 
-const createOrderInput = computed<CreateOrderInput | null>(() =>
+const createOrderInput = computed<CreateOrderValue | null>(() =>
   buildOrderInput(contentOutput.value),
 );
 
@@ -340,7 +340,7 @@ const closeOrderingDialog = (): void => {
   };
 };
 
-const createOrderFromQuoteDraft = async (input: CreateOrderInput): Promise<void> => {
+const createOrderFromQuoteDraft = async (input: CreateOrderValue): Promise<void> => {
   const idempotencyKey = createOrderIdempotencyKey.value ?? crypto.randomUUID();
   createOrderIdempotencyKey.value = idempotencyKey;
   try {

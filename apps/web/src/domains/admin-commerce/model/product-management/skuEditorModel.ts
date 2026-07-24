@@ -1,17 +1,19 @@
-import type { AdminProductSkuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
+import type {
+  ProductSkuValue,
+  ProductType,
+} from "@/domains/admin-commerce/model/product-management/productValues";
 import {
   parseIntegerField,
   type NumberInput,
-  type ProductType,
 } from "@/domains/admin-commerce/model/product-management/shared";
 
-type SkuPricingModel = AdminProductSkuInput["pricingModel"];
-type SkuFacts = AdminProductSkuInput["facts"];
-type SkuPresentation = AdminProductSkuInput["presentation"];
+type SkuPricingModel = ProductSkuValue["pricingModel"];
+type SkuFacts = ProductSkuValue["facts"];
+type SkuPresentation = ProductSkuValue["presentation"];
 
 export type SkuEditorForm = {
   name: string;
-  status: AdminProductSkuInput["status"];
+  status: ProductSkuValue["status"];
   sortOrder: NumberInput;
   rentalZoneCode: string;
   rentalParticipantCount: NumberInput;
@@ -49,7 +51,7 @@ const emptySkuPresentation = (): SkuPresentation => ({
   noticeBlocks: [],
 });
 
-export const emptySkuInput = (): Omit<AdminProductSkuInput, "spuId"> => ({
+export const emptySkuInput = (): ProductSkuValue => ({
   name: "",
   status: "DRAFT",
   sortOrder: 0,
@@ -67,7 +69,7 @@ export const emptySkuInput = (): Omit<AdminProductSkuInput, "spuId"> => ({
   cancellationPolicyRef: null,
 });
 
-export const toSkuForm = (input: Omit<AdminProductSkuInput, "spuId">): SkuEditorForm => {
+export const toSkuForm = (input: ProductSkuValue): SkuEditorForm => {
   const pricingModel = input.pricingModel;
   return {
     name: input.name,
@@ -128,9 +130,9 @@ export const buildSkuInput = (
   form: SkuEditorForm,
   productType: ProductType | null,
   presentation: SkuPresentation | null | undefined,
-  cancellationPolicyRef: AdminProductSkuInput["cancellationPolicyRef"],
+  cancellationPolicyRef: ProductSkuValue["cancellationPolicyRef"],
   labels: SkuBuildLabels,
-): Omit<AdminProductSkuInput, "spuId"> => ({
+): ProductSkuValue => ({
   name: form.name.trim(),
   status: form.status,
   sortOrder: parseIntegerField(form.sortOrder, labels.sortOrderLabel),

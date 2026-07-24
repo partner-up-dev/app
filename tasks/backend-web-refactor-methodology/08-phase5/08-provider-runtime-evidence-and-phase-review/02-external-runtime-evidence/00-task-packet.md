@@ -10,6 +10,13 @@ so it did not observe a remote HTTP response. That is an observer-path limit,
 not a deployed-runtime finding. It does not authorize source, deployment,
 provider-console, order, payment, or callback configuration mutation.
 
+Procedure annotation (2026-07-24): Phase 7 intentionally removed the
+structured edge/backend logging assumed by the original provider-proof
+procedure. The current procedure below uses operator-controlled network/edge
+capture correlated with the provider-signed request and captured Backend
+receipt/acknowledgement. It does not restore console or structured-output
+diagnostics.
+
 ## Objective
 
 Establish only the deployed facts that cannot be proven locally:
@@ -29,7 +36,7 @@ Establish only the deployed facts that cannot be proven locally:
 | Backend liveness | `GET /health` | `apps/backend/src/index.ts` | a candidate public API origin is reachable and has a backend health route |
 | Build identity | `GET /api/meta/build` | `apps/backend/src/controllers/meta.controller.ts` | deployed backend responds; it does not prove a specific Phase 5 revision unless metadata exposes it |
 | CaoCao edge | `POST /api/v1/service_provider/caocao/callback/order`; non-POST should be `405` with `Allow: POST` | `apps/backend/src/infra/edge/caocao-callback-router.ts`, `apps/backend/deploy/nginx/caocao-callback-router.location.conf` | exact public path/method reaches a compatible edge without sending a callback body |
-| CaoCao backend receipt | local route validates form signature and `callback_info` environment + provider binding | `apps/backend/src/controllers/ride-hailing-provider.controller.ts`, `apps/backend/src/domains/ride-hailing/use-cases/handle-caocao-order-status-callback.ts` | only an authorized provider-signed staging callback plus receipt log can establish this |
+| CaoCao backend receipt | local route validates form signature and `callback_info` environment + provider binding | `apps/backend/src/controllers/ride-hailing-provider.controller.ts`, `apps/backend/src/domains/ride-hailing/use-cases/handle-caocao-order-status-callback.ts` | only an authorized provider-signed staging callback plus operator-captured Backend receipt/acknowledgement can establish this |
 | WeChatPay charge/refund notify | `/api/payment/wechat-pay/:providerInstanceId/notify/{charge,refund}`; `PAYMENT_NOTIFY_BASE_URL` builds the provider-visible origin | `apps/backend/src/controllers/payment-provider.controller.ts`, `apps/backend/src/domains/payment/services/payment-provider.ts` | public reachability can be observed; configured URL and signature verification require a provider/operator safe smoke |
 
 ## Scope And Safety Controls
@@ -63,9 +70,10 @@ operator-approved safe mechanism:
 1. provider console/test facility sends a signed CaoCao callback containing a
    `pu.rhc.v1.stg.<provider-instance-id>` token for a non-commercial test
    identity;
-2. the edge log and target staging backend receipt share a supplied correlation
-   id (or another non-sensitive correlator), with the original body hash/size
-   and no edge `Host` / `Forwarded` / `X-Forwarded-*` forwarding;
+2. an operator-controlled network/edge capture and the target staging Backend
+   receipt/acknowledgement share a supplied correlation id (or another
+   non-sensitive correlator), with the original body hash/size and proof that
+   edge `Host` / `Forwarded` / `X-Forwarded-*` values were not forwarded;
 3. an invalid routing token or signature is rejected without a durable order
    mutation; and
 4. WeChatPay's test/sandbox notification mechanism reaches the exact notify
@@ -75,11 +83,13 @@ operator-approved safe mechanism:
 For a signed smoke, the operator retains the stop authority. The containment
 posture is: staging only, no real passenger/payment, one disposable test
 identity, correlation before dispatch, and forward-only runtime recovery via
-the documented edge/backend logs if the test is not acknowledged.
+the operator capture plus authoritative Backend/provider state if the test is
+not acknowledged.
 
 ## Low-Cost Verification
 
-1. Save a timestamped, redacted probe transcript in `evidence-log.md`.
+1. Save a timestamped, redacted probe transcript and operator receipt
+   reference in `evidence-log.md`.
 2. Cross-check the observed route behavior against the source contract above.
 3. Classify each fact as **observed**, **contradicted**, or **not established**;
    never upgrade a local assertion to a deployment claim.

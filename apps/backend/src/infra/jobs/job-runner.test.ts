@@ -373,17 +373,16 @@ test("unknown, invalid-version, invalid-payload and malformed-result Jobs fail w
   assert.equal(malformedStore.transitions[0]?.reason, "INVALID_HANDLER_RESULT");
 });
 
-test("legacy return/throw compatibility and stale completion preserve state", async () => {
-  const returnStore = new FakeJobStore([singleClaim(claimedJob())]);
-  const returnRunner = createJobRunner({ store: returnStore });
-  returnRunner.registerHandler("test.job", async () => undefined);
-  await returnRunner.runDueJobs({ maxBatches: 1 });
-  assert.equal(returnStore.transitions[0]?.status, "SUCCEEDED");
-
+test("typed definition throw and stale completion preserve state", async () => {
   const throwStore = new FakeJobStore([singleClaim(claimedJob())]);
   const throwRunner = createJobRunner({ store: throwStore });
-  throwRunner.registerHandler("test.job", async () => {
-    throw new Error("provider failed");
+  throwRunner.registerDefinition({
+    jobType: "test.job",
+    version: 1,
+    payloadSchema: z.object({ value: z.string() }),
+    async execute() {
+      throw new Error("provider failed");
+    },
   });
   await throwRunner.runDueJobs({ maxBatches: 1 });
   assert.equal(throwStore.transitions[0]?.status, "RETRY");
@@ -392,7 +391,14 @@ test("legacy return/throw compatibility and stale completion preserve state", as
   const staleStore = new FakeJobStore([singleClaim(claimedJob())]);
   staleStore.transitionResults = [false];
   const staleRunner = createJobRunner({ store: staleStore });
-  staleRunner.registerHandler("test.job", async () => undefined);
+  staleRunner.registerDefinition({
+    jobType: "test.job",
+    version: 1,
+    payloadSchema: z.object({ value: z.string() }),
+    async execute() {
+      return { disposition: "SUCCEEDED" };
+    },
+  });
   const staleSummary = await staleRunner.runDueJobs({ maxBatches: 1 });
   assert.equal(staleSummary.staleCompletions, 1);
   assert.equal(staleSummary.succeeded, 0);

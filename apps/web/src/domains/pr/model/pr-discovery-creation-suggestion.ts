@@ -9,7 +9,7 @@ import {
   resolvePRDiscoveryTimeWindowStartTimestamp,
   type TimeWindow,
 } from "@/domains/pr/model/pr-discovery-time-window";
-import type { PRDiscoveryPersistedCandidate } from "@/domains/pr/model/pr-discovery-types";
+import type { PRDiscoveryPersistedCandidate } from "@/domains/pr/model/pr-discovery-candidate";
 import { buildRouteSummary } from "@/domains/route/model/route";
 
 export type PRDiscoveryBrowseTimeWindow = {

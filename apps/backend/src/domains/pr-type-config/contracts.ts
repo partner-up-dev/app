@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { prJoinGateConfigSchema } from "../../entities/join-gate";
 import {
   meetingPointConfigMapSchema,
   meetingPointConfigSchema,
+  prJoinGateConfigSchema,
   type MeetingPointConfig,
-} from "../../entities/meeting-point";
-import type { PRRoute } from "../../entities/partner-request";
+  type PRRoute,
+} from "../pr/contracts";
 import {
   prTypeConfigAuthoringCreationPolicySchema,
   prTypeConfigFullCapacityExpansionPolicySchema,

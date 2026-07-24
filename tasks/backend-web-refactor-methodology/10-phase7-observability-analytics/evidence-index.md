@@ -12,7 +12,7 @@ Baseline: `537a9b4f`.
 | P7-E006 | Source/count | Commerce debug crosses browser storage/headers, Backend CORS, runtime readers and console output; 248 baseline semantic references justify one coherent retirement ledger | `apps/web/src/domains/commerce/use-cases/order-detail-debug.ts`; `apps/backend/src/index.ts:87-101`; `apps/backend/src/lib/commerce-order-detail-debug.ts` |
 | P7-E007 | Durable/conflict | Deployment truth already says FC capture/console JSON is not governed observability, while earlier sections still list configured SLS logs as an available runtime signal | `docs/40-deployment/observability.md:17-25,53-82` |
 | P7-E008 | Source/count | `operationLogService` has 25 production writers, no external query caller, fire-and-forget writes and swallowed failure; it is separate from SLS cleanup | `apps/backend/src/infra/operation-log/operation-log.service.ts:23-45`; `operation-log.repository.ts:9-44` |
-| P7-E009 | Compatibility | `notification_deliveries` is historical compatibility and cannot be retired without the future professional replacement/data decision | `docs/20-product-tdd/notification-contracts.md:310-322,425-441`; `apps/backend/src/entities/notification-delivery.ts` |
+| P7-E009 | Compatibility | `notification_deliveries` is historical compatibility and cannot be retired without the future professional replacement/data decision | `docs/20-product-tdd/notification-contracts.md:319-332,421-442`; `apps/backend/src/entities/notification-delivery.ts` |
 | P7-E010 | Source/SSoT | Web owns snake_case event/payload contracts and mapping separately from the Backend Event Registry | `apps/web/src/shared/telemetry/events.ts`; `apps/web/src/shared/telemetry/track.ts:39-52`; `apps/backend/src/infra/telemetry/user-event-registry.ts` |
 | P7-E011 | Source/non-authority | Successful PR commands await telemetry ingest after business persistence, allowing telemetry failure to change the HTTP result | `apps/backend/src/controllers/partner-request.controller.ts:126-166,333-345,373-413`; `apps/backend/src/infra/telemetry/request-event-recorder.ts:25-47` |
 | P7-E012 | Source/fact boundary | Create/join/retention use fact views; PR Discovery selects raw telemetry payload and parses it in TypeScript | `apps/backend/src/infra/analytics/pr-create-funnel.ts`; `pr-join-funnel.ts`; `bi-overview.ts`; `pr-discovery-funnel.ts:13-35`; `pr-discovery-funnel.model.ts` |
@@ -69,3 +69,7 @@ rg -n 'admin-analytics|AdminAnalyticsPage|useAdmin.*Analytics' \
 - No external saved-query deletion is claimed or required for Phase 7.
 - A clean baseline proves absence of the rejected mechanism, not presence of
   professional observability.
+- `P7-E007` is the corrected-entry conflict observed at `537a9b4f`, not an
+  active durable conflict. Phase 7 later removed the repository SLS/
+  structured-output surfaces and corrected deployment truth; `P7-E021`–
+  `P7-E024` plus the Phase 7 exit packet supersede that entry observation.

@@ -1,39 +1,22 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import { hasUserRole, type User, type UserId } from "../../../entities/user";
+import { hasUserRole, type User } from "../../../entities/user";
 import { UserRepository } from "../../../repositories/UserRepository";
 import { resolveUserByOpenId } from "../../user";
-import { ProblemDetailsError } from "../../../lib/problem-details";
+import {
+  throwAuthenticatedRequired,
+  type CreatorIdentityInput,
+} from "../contracts/creator-identity";
 
 const userRepo = new UserRepository();
-export const AUTHENTICATED_REQUIRED_CODE = "AUTHENTICATED_REQUIRED";
-
-export type CreatorIdentityInput = {
-  authenticatedUserId: UserId | null;
-  anonymousUserId: UserId | null;
-  oauthOpenId: string | null;
-};
+export {
+  AUTHENTICATED_REQUIRED_CODE,
+  throwAuthenticatedRequired,
+  type CreatorIdentityInput,
+} from "../contracts/creator-identity";
 
 export type CreatorIdentityResult = {
   user: User;
   source: "authenticated" | "wechat";
-};
-
-export const throwAuthenticatedRequired = (): never => {
-  throw new ProblemDetailsError({
-    status: 401,
-    type: "https://partner-up.app/problems/auth.authenticated_required",
-    code: AUTHENTICATED_REQUIRED_CODE,
-    localizedText: {
-      zhCN: {
-        title: "需要登录",
-        detail: "请先完成微信登录后继续操作。",
-      },
-      enUS: {
-        title: "Login required",
-        detail: "Please log in with WeChat before continuing.",
-      },
-    },
-  });
 };
 
 export async function resolveDraftCreator(input: CreatorIdentityInput): Promise<User | null> {

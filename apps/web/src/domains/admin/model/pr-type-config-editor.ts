@@ -1,11 +1,78 @@
-import type {
-  AdminPRTypeConfigAuthoring,
-  AdminPRTypeConfigCompletion,
-  AdminPRTypeConfigCoordination,
-  AdminPRTypeConfigDiscovery,
-  AdminPRTypeConfigDraft,
-  AdminPRTypeConfigParticipation,
-} from "@/domains/admin/queries/useAdminPRTypeConfigs";
+import type { PRJoinGateConfig, PRRoute } from "@partner-up-dev/backend/contracts";
+
+export type AdminPRTypeConfigStartRule =
+  | {
+      id: string;
+      kind: "ABSOLUTE";
+      startAt: string;
+      description: string | null;
+    }
+  | {
+      id: string;
+      kind: "RECURRING";
+      weekdays: number[];
+      timeOfDay: string;
+      description: string | null;
+    };
+
+export type AdminPRTypeConfigMeetingPoint = {
+  description: string | null;
+  imageUrl: string | null;
+};
+
+export type AdminPRTypeConfigAuthoring = {
+  locationPool: string[];
+  routePool: Array<{ id: string; route: PRRoute }>;
+  timePoolConfig: {
+    durationMinutes: number | null;
+    earliestLeadMinutes: number | null;
+    startRules: AdminPRTypeConfigStartRule[];
+  };
+  timeWindowEditorDefaultMode: "NORMAL" | "FUZZY" | "ADVANCED";
+  defaultMinPartners: number | null;
+  defaultMaxPartners: number | null;
+  defaultNotes: string | null;
+  authoringCreationPolicy: "USER_AND_ADMIN" | "ADMIN_ONLY";
+};
+
+export type AdminPRTypeConfigDiscovery = {
+  title: string;
+  description: string | null;
+  coverImage: string | null;
+  communityQrCode: string | null;
+  viewRatios: {
+    FORM: number;
+    CARD: number;
+    LIST: number;
+  };
+};
+
+export type AdminPRTypeConfigParticipation = {
+  defaultConfirmationEnabled: boolean;
+  defaultConfirmationStartOffsetMinutes: number;
+  defaultConfirmationEndOffsetMinutes: number;
+  defaultJoinLockOffsetMinutes: number;
+  joinGateConfig: PRJoinGateConfig;
+  participationFrequencyLimit: { intervalPrCount: number } | null;
+  fullCapacityExpansionPolicy: "ENABLED" | "DISABLED";
+};
+
+export type AdminPRTypeConfigCoordination = {
+  meetingPoint: AdminPRTypeConfigMeetingPoint | null;
+  locationMeetingPoints: Record<string, AdminPRTypeConfigMeetingPoint>;
+};
+
+export type AdminPRTypeConfigCompletion = {
+  feedbackQuestionnaireTemplateId: number | null;
+};
+
+export type AdminPRTypeConfigDraft = {
+  authoring: AdminPRTypeConfigAuthoring;
+  discovery: AdminPRTypeConfigDiscovery;
+  participation: AdminPRTypeConfigParticipation;
+  coordination: AdminPRTypeConfigCoordination;
+  completion: AdminPRTypeConfigCompletion;
+};
 
 export type PRTypeConfigSection =
   | "authoring"
@@ -39,6 +106,7 @@ export const createEmptyPRTypeConfigDraft = (type: string): AdminPRTypeConfigDra
     locationPool: [],
     routePool: [],
     timePoolConfig: { durationMinutes: null, earliestLeadMinutes: null, startRules: [] },
+    timeWindowEditorDefaultMode: "NORMAL",
     defaultMinPartners: null,
     defaultMaxPartners: null,
     defaultNotes: null,
@@ -48,6 +116,7 @@ export const createEmptyPRTypeConfigDraft = (type: string): AdminPRTypeConfigDra
     title: type,
     description: null,
     coverImage: null,
+    communityQrCode: null,
     viewRatios: { FORM: 0, CARD: 0, LIST: 0 },
   },
   participation: {

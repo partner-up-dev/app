@@ -63,7 +63,10 @@ Frontend clusters:
 - domain layer: `pr`, `share`, `user`, `admin`, `analytics`, `support`, `landing`
 - shared layer: generic UI, auth/session storage, user-telemetry runtime, and API helpers
 - page layer: route entrypoints
-- compatibility layer: top-level `lib`, `router` and `stores`; keep existing bridges narrow and add no new owners there
+- narrow compatibility/util surface: remaining top-level `lib`; add no new
+  owners there. The former top-level `router` and `stores` re-export bridges
+  are retired; router wiring belongs to `app`, and session state belongs to
+  `shared/auth`.
 
 These are subsystem clusters inside the two units, not independent top-level units.
 

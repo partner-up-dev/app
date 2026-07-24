@@ -8,11 +8,11 @@ import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRe
 import { PoiRepository } from "../../../repositories/PoiRepository";
 import type { TransactionExecutor } from "../../../repositories/_executor";
 import { createTransactionBoundMeetingPointUpdatedNotificationPort } from "../../notification";
-import { createTransactionBoundEffectiveMeetingPointResolver } from "../../pr/ports";
 import {
   captureEffectiveMeetingPointsForRequests,
   collectMeetingPointNotificationChanges,
-} from "../../pr/services/meeting-point-change-notifier.service";
+  createTransactionBoundEffectiveMeetingPointResolver,
+} from "../../pr/ports";
 
 const MAX_SERIALIZATION_ATTEMPTS = 8;
 

@@ -97,7 +97,7 @@ import {
   isValidPRDiscoveryDateTime,
 } from "@/domains/pr/model/pr-discovery-form";
 import type { PRDiscoveryRecommendationResponse } from "@/domains/pr/model/pr-discovery-types";
-import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
+import PRPreviewCard from "@/domains/pr/ui/composites/PRPreviewCard.vue";
 import PRJoinAction from "@/domains/pr/ui/sections/PRJoinAction.vue";
 
 type RecommendationCandidate = PRDiscoveryRecommendationResponse["orderedCandidates"][number];

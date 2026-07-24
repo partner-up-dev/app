@@ -1,5 +1,6 @@
-import type { PartnerRequest, PRId, PRJoinGateConfig } from "../../../entities";
+import type { PartnerRequest, PRId } from "../../../entities";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { PRJoinGateConfig } from "../contracts/join-gate";
 import { buildMaterializedPRJoinGateConfig } from "./join-gates.service";
 import { hasParticipationPolicy } from "./participation-policy.service";
 

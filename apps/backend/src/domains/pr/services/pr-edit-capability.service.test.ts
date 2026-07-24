@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import type { PartnerRequest, PartnerRequestFields } from "../../../entities/partner-request";
+import type { PartnerRequest } from "../../../entities/partner-request";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 import type { UserId } from "../../../entities/user";
 import {
   assertPRContentEditable,

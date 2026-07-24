@@ -14,7 +14,7 @@ import type { TransactionExecutor } from "../../../repositories/_executor";
 import { createBillFromSeed } from "../../bill/commands";
 import { materializeChargeLinesFromSplitRule } from "../../bill/contracts";
 import type { BillLinePaymentExecutionSnapshot } from "../../bill/contracts";
-import { deriveBillPaymentState } from "../../bill/queries";
+import { deriveBillPaymentState } from "../../bill/contracts";
 import {
   closeRideHailingOrderFromProviderCancellation,
   getRideHailingChoiceSetItem,
@@ -27,12 +27,12 @@ import {
 import type {
   RideHailingFareCorrectionRequired,
   RideHailingProviderBindingExpectation,
+  RideHailingReconciliationTransactionPort,
 } from "../contracts";
 import {
   buildRideHailingFeeConfirmationCreationKey,
   rideHailingFeeConfirmationJobIdentity,
 } from "../fee-confirmation-task";
-import type { RideHailingReconciliationTransactionPort } from "../ports";
 import {
   mergeDriverSnapshot,
   mergeVehicleSnapshot,

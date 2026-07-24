@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import type { AuthEnv } from "../auth/middleware";
-import { issuePublicAuthForUser } from "../auth/middleware";
+import { issuePublicAuthForIdentity } from "../auth/middleware";
 import {
   AUTHENTICATED_REQUIRED_CODE,
   type CreatorIdentityInput,
@@ -19,11 +19,13 @@ import { prMessageBodySchema } from "../entities/pr-message";
 import type { UserId } from "../entities/user";
 import { throwHttpProblem } from "../lib/problem-details";
 import { resolveWeChatAbilityMockOpenId } from "../lib/wechat-ability-mocking";
-import { UserRepository } from "../repositories/UserRepository";
 import { WeChatOAuthService } from "../services/WeChatOAuthService";
+import {
+  findActiveUserWeChatIdentity,
+  findCurrentPublicUserIdentity,
+} from "../domains/user/queries";
 
 const oauthService = new WeChatOAuthService();
-const userRepo = new UserRepository();
 const WECHAT_OAUTH_NOT_CONFIGURED_CODE = "WECHAT_OAUTH_NOT_CONFIGURED";
 
 export { prAllowEditAfterReadySchema };
@@ -34,12 +36,7 @@ const readBoundOpenId = async (c: Context<AuthEnv>): Promise<string | null> => {
     return null;
   }
 
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
-    return null;
-  }
-
-  return user.openId ?? null;
+  return (await findActiveUserWeChatIdentity(userId))?.openId ?? null;
 };
 
 const throwCodedHttpException = (status: 401 | 503, message: string, code: string): never => {
@@ -193,13 +190,12 @@ export const requireAuthenticatedCreatorIdentity = async (
 };
 
 export const issueResponseAuth = async (c: Context<AuthEnv>, userId: UserId): Promise<void> => {
-  const user = await userRepo.findById(userId);
-  const auth = user ? issuePublicAuthForUser(user) : null;
-  if (!auth) {
+  const identity = await findCurrentPublicUserIdentity(userId);
+  if (!identity) {
     return throwHttpProblem({ status: 401, detail: "Invalid session user" });
   }
 
-  c.set("auth", auth);
+  c.set("auth", issuePublicAuthForIdentity(identity));
 };
 
 export { createNaturalLanguagePRSchema, createStructuredPRSchema, partnerRequestFieldsSchema };

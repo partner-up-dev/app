@@ -138,6 +138,8 @@ import AdminRailPanel from "@/domains/admin/ui/layout/AdminRailPanel.vue";
 import AdminNavigationPanel from "@/domains/admin/ui/navigation/AdminNavigationPanel.vue";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import { useAdminAccess } from "@/domains/admin/use-cases/useAdminAccess";
+import { toOfferValue } from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
+import type { OfferValue } from "@/domains/admin-commerce/model/pricing-rules/offerValues";
 import {
   buildPricingRules,
   toPricingRuleDrafts,
@@ -145,7 +147,6 @@ import {
   type PricingRuleDraft,
 } from "@/domains/admin-commerce/model/pricing-rules/pricingRuleEditorModel";
 import {
-  type AdminOfferInput,
   useAdminCommercePlacementOfferWorkspace,
   useCreateAdminOffer,
   useUpdateAdminOffer,
@@ -181,8 +182,8 @@ const toDateInputValue = (value: string | Date | null | undefined): string => {
 };
 
 type OfferEditorForm = {
-  productType: AdminOfferInput["productType"];
-  status: AdminOfferInput["status"];
+  productType: OfferValue["productType"];
+  status: OfferValue["status"];
   spuIdsCsv: string;
   termsVersion: number;
   startsAt: string;
@@ -238,14 +239,15 @@ watch(
       return;
     }
 
+    const value = toOfferValue(offer);
     offerForm.value = {
-      productType: offer.productType,
-      status: offer.status,
-      spuIdsCsv: offer.spuIds.join(","),
-      termsVersion: offer.termsVersion,
-      startsAt: toDateInputValue(offer.startsAt),
-      endsAt: toDateInputValue(offer.endsAt),
-      pricingRules: toPricingRuleDrafts(offer.pricingPolicy.rules),
+      productType: value.productType,
+      status: value.status,
+      spuIdsCsv: value.spuIds.join(","),
+      termsVersion: value.termsVersion,
+      startsAt: toDateInputValue(value.startsAt),
+      endsAt: toDateInputValue(value.endsAt),
+      pricingRules: toPricingRuleDrafts(value.pricingRules),
     };
   },
   { immediate: true },
@@ -268,7 +270,7 @@ const buildPricingRuleLabels = (): PricingRuleBuildLabels => ({
   resetAmountFenLabel: t("adminCommerceProducts.resetAmountFenLabel"),
 });
 
-const buildOfferInput = (): AdminOfferInput => ({
+const buildOfferInput = (): OfferValue => ({
   productType: offerForm.value.productType,
   status: offerForm.value.status,
   spuIds: offerForm.value.spuIdsCsv

@@ -3,7 +3,7 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { deriveBillPaymentState } from "../../bill/queries";
+import { deriveBillPaymentState } from "../../bill/contracts";
 import { applyOrderPrepaidSettlementFulfillmentConsequence } from "../../fulfillment";
 
 const billRepo = new BillRepository();

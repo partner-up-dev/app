@@ -1,21 +1,21 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { throwHttpProblem } from "../lib/problem-details";
 import { meetingPointConfigSchema } from "../entities/meeting-point";
 import { poiAvailabilityRulesSchema } from "../entities/poi";
 import { adminAuthMiddleware, type AdminAuthEnv } from "../auth/admin-middleware";
-import { PoiRepository } from "../repositories/PoiRepository";
 import {
-  findPoisByIds,
-  findPoisByNames,
+  createAdminPoi,
+  findAdminPoisByIds,
+  findAdminPoisByNames,
+  listAdminPois,
   publishAdminPoiApplication,
   rejectAdminPoiApplication,
+  type AdminPoiSnapshot,
   updateAdminPoi,
 } from "../domains/poi";
 
 const app = new Hono<AdminAuthEnv>();
-const poiRepo = new PoiRepository();
 
 const byIdsQuerySchema = z.object({
   ids: z.string().min(1),
@@ -45,24 +45,18 @@ const rejectPoiSchema = z.object({
   rejectReason: z.string().trim().max(280).nullable().optional(),
 });
 
-const toPoiResponse = (poi: Awaited<ReturnType<PoiRepository["listAll"]>>[number]) => ({
+const toPoiApplicationResponse = (poi: AdminPoiSnapshot) => ({
   id: poi.id,
-  name: poi.name,
-  fullAddress: poi.fullAddress,
+  title: poi.name,
   status: poi.status,
-  gallery: poi.gallery,
-  gcj02: poi.gcj02,
-  wgs84: poi.wgs84,
-  bd09: poi.bd09,
-  perTimeWindowCap: poi.perTimeWindowCap,
-  availabilityRules: poi.availabilityRules,
-  meetingPoint: poi.meetingPoint,
+  gallery: [...poi.gallery],
+  imageUrl: poi.gallery[0] ?? null,
   submittedByUserId: poi.submittedByUserId,
   reviewedByUserId: poi.reviewedByUserId,
-  reviewedAt: poi.reviewedAt?.toISOString() ?? null,
+  reviewedAt: poi.reviewedAt,
   rejectReason: poi.rejectReason,
-  createdAt: poi.createdAt.toISOString(),
-  updatedAt: poi.updatedAt.toISOString(),
+  createdAt: poi.createdAt,
+  updatedAt: poi.updatedAt,
 });
 
 const normalizeCsvIds = (csv: string): string[] => {
@@ -83,26 +77,17 @@ const normalizeCsvNumericIds = (csv: string): number[] =>
 export const adminPoiRoute = app
   .use("*", adminAuthMiddleware)
   .get("/pois", async (c) => {
-    const pois = await poiRepo.listAll();
-    return c.json(pois.map(toPoiResponse));
+    return c.json(await listAdminPois());
   })
   .get("/pois/by-ids", zValidator("query", byIdsQuerySchema), async (c) => {
     const { ids } = c.req.valid("query");
     const normalizedIds = normalizeCsvNumericIds(ids);
-    const pois = await findPoisByIds(normalizedIds, {
-      includeUnpublished: true,
-    });
-
-    return c.json(pois.map(toPoiResponse));
+    return c.json(await findAdminPoisByIds(normalizedIds));
   })
   .get("/pois/by-names", zValidator("query", byNamesQuerySchema), async (c) => {
     const { names } = c.req.valid("query");
     const normalizedNames = normalizeCsvIds(names);
-    const pois = await findPoisByNames(normalizedNames, {
-      includeUnpublished: true,
-    });
-
-    return c.json(pois.map(toPoiResponse));
+    return c.json(await findAdminPoisByNames(normalizedNames));
   })
   .post("/pois", zValidator("json", upsertPoiSchema), async (c) => {
     const {
@@ -117,7 +102,8 @@ export const adminPoiRoute = app
       meetingPoint,
     } = c.req.valid("json");
 
-    const poi = await poiRepo.createByName(name, {
+    const poi = await createAdminPoi({
+      name,
       fullAddress: fullAddress ?? null,
       gallery,
       gcj02: gcj02 ?? null,
@@ -127,11 +113,8 @@ export const adminPoiRoute = app
       availabilityRules: availabilityRules ?? [],
       meetingPoint: meetingPoint ?? null,
     });
-    if (!poi) {
-      return throwHttpProblem({ status: 409, detail: "POI already exists" });
-    }
 
-    return c.json(toPoiResponse(poi), 201);
+    return c.json(poi, 201);
   })
   .put(
     "/pois/:poiId",
@@ -164,7 +147,7 @@ export const adminPoiRoute = app
           meetingPoint,
         },
       });
-      return c.json(toPoiResponse(poi));
+      return c.json(poi);
     },
   )
   .post("/pois/:poiId/publish", zValidator("param", poiIdParamSchema), async (c) => {
@@ -174,7 +157,7 @@ export const adminPoiRoute = app
       poiId,
       reviewedByUserId: auth.userId ?? null,
     });
-    return c.json(result);
+    return c.json(toPoiApplicationResponse(result));
   })
   .post(
     "/pois/:poiId/reject",
@@ -189,6 +172,6 @@ export const adminPoiRoute = app
         reviewedByUserId: auth.userId ?? null,
         rejectReason: rejectReason ?? null,
       });
-      return c.json(result);
+      return c.json(toPoiApplicationResponse(result));
     },
   );

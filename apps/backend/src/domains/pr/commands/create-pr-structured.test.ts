@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import type { PartnerRequestFields } from "../../../entities/partner-request";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 import type { User, UserId } from "../../../entities/user";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/test";

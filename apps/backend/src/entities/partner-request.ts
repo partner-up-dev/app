@@ -12,137 +12,67 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { type PRJoinGateConfig, prJoinGateConfigSchema } from "../domains/pr/contracts/join-gate";
+import {
+  type MeetingPointConfig,
+  meetingPointConfigSchema,
+} from "../domains/pr/contracts/meeting-point";
+import {
+  type PRAllowEditAfterReady,
+  prAllowEditAfterReadySchema,
+  type PRRoute,
+  prRouteSchema,
+  type PRStatus,
+  partnerRequestFieldsObjectSchema,
+  prStatusSchema,
+  type VisibilityStatus,
+  visibilityStatusSchema,
+} from "../domains/pr/contracts/partner-request";
 import {
   type FeedbackQuestionnaireInstanceId,
   feedbackQuestionnaireInstances,
 } from "./feedback-questionnaire";
-import { type PRJoinGateConfig, prJoinGateConfigSchema } from "./join-gate";
-import { type MeetingPointConfig, meetingPointConfigSchema } from "./meeting-point";
 import type { TradeOrderId } from "./trade-order";
 import { type UserId, users } from "./user";
-
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const instantDateTimeSchema = z.string().datetime({ offset: true });
-const naturalLanguageDateOrInstantSchema = z.union([instantDateTimeSchema, isoDateSchema]);
-const partnerSlotIdSchema = z.number().int().positive();
-const weekdayLabelSchema = z.string().trim().min(1).max(32);
-export type WeekdayLabel = z.infer<typeof weekdayLabelSchema>;
-export const coordinatePairSchema = z.tuple([z.number(), z.number()]);
-export type CoordinatePair = z.infer<typeof coordinatePairSchema>;
-export const prRoutePointSchema = z
-  .object({
-    wgs84: coordinatePairSchema.nullable(),
-    bd09: coordinatePairSchema.nullable(),
-    gcj02: coordinatePairSchema.nullable(),
-    name: z.string().trim().min(1),
-    full_address: z.string().trim().nullable(),
-  })
-  .superRefine((point, ctx) => {
-    if (point.wgs84 !== null || point.bd09 !== null || point.gcj02 !== null) {
-      return;
-    }
-
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Route point requires at least one coordinate pair",
-      path: ["gcj02"],
-    });
-  });
-export type PRRoutePoint = z.infer<typeof prRoutePointSchema>;
-export const prRouteSchema = z.array(prRoutePointSchema).min(2);
-export type PRRoute = z.infer<typeof prRouteSchema>;
-
-export const prAllowEditAfterReadySchema = z
-  .object({
-    timeWindow: z.tuple([instantDateTimeSchema, instantDateTimeSchema]).optional(),
-    location: z.literal(true).optional(),
-    route: z.literal(true).optional(),
-  })
-  .strict();
-export type PRAllowEditAfterReady = z.infer<typeof prAllowEditAfterReadySchema>;
-
-// Partner request fields (from LLM / client edits)
-export const partnerRequestFieldsObjectSchema = z.object({
-  title: z.string().optional(),
-  type: z.string(),
-  time: z.tuple([instantDateTimeSchema.nullable(), instantDateTimeSchema.nullable()]),
-  location: z.string().nullable(),
-  route: prRouteSchema.nullable().default(null),
-  minPartners: z.number().int().nonnegative().nullable(),
-  maxPartners: z.number().int().nonnegative().nullable(),
-  partners: z.array(partnerSlotIdSchema).default([]),
-  budget: z.string().nullable(),
-  preferences: z.array(z.string()),
-  notes: z.string().nullable(),
-  meetingPoint: meetingPointConfigSchema.nullable().optional(),
-});
-
-export const partnerRequestFieldsSchema = partnerRequestFieldsObjectSchema.superRefine(
-  (fields, ctx) => {
-    const hasLocation = (fields.location?.trim() ?? "").length > 0;
-    if (hasLocation && fields.route !== null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "PartnerRequest must use either location or route",
-        path: ["route"],
-      });
-    }
-  },
-);
-
-export type PartnerRequestFields = z.infer<typeof partnerRequestFieldsSchema>;
-export type PRTimeWindow = PartnerRequestFields["time"];
-
-export const naturalLanguagePartnerRequestFieldsObjectSchema =
-  partnerRequestFieldsObjectSchema.extend({
-    time: z.tuple([
-      naturalLanguageDateOrInstantSchema.nullable(),
-      naturalLanguageDateOrInstantSchema.nullable(),
-    ]),
-  });
-
-export const naturalLanguagePartnerRequestFieldsSchema =
-  naturalLanguagePartnerRequestFieldsObjectSchema.superRefine((fields, ctx) => {
-    const hasLocation = (fields.location?.trim() ?? "").length > 0;
-    if (hasLocation && fields.route !== null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "PartnerRequest must use either location or route",
-        path: ["route"],
-      });
-    }
-  });
-
-export type NaturalLanguagePartnerRequestFields = z.infer<
-  typeof naturalLanguagePartnerRequestFieldsSchema
->;
-
-// Status enum
-export const prStatusSchema = z.enum(["DRAFT", "OPEN", "READY", "ACTIVE", "CLOSED", "EXPIRED"]);
-export type PRStatus = z.infer<typeof prStatusSchema>;
-export const prStatusManualSchema = z.enum(["OPEN", "READY", "ACTIVE", "CLOSED"]);
-export type PRStatusManual = z.infer<typeof prStatusManualSchema>;
 
 /** Durable identity for one actual READY entry of a PartnerRequest. */
 export const prReadyCycleIdSchema = z.string().uuid();
 export type PRReadyCycleId = z.infer<typeof prReadyCycleIdSchema>;
 
-export const visibilityStatusSchema = z.enum(["VISIBLE", "HIDDEN"]);
-export type VisibilityStatus = z.infer<typeof visibilityStatusSchema>;
-
 export const paymentModelSchema = z.enum(["A", "C"]);
 export type PaymentModel = z.infer<typeof paymentModelSchema>;
 
-export const createPRStructuredStatusSchema = z.literal("DRAFT");
-export type CreatePRStructuredStatus = z.infer<typeof createPRStructuredStatusSchema>;
-
-export const createStructuredPRSchema = partnerRequestFieldsSchema;
-
-export const createNaturalLanguagePRSchema = z.object({
-  rawText: z.string().min(1).max(2000),
-  nowIso: instantDateTimeSchema,
-  nowWeekday: weekdayLabelSchema.nullable().optional(),
-});
+// Compatibility surface: stable PR values are owned by the PR domain.
+export {
+  coordinatePairSchema,
+  createNaturalLanguagePRSchema,
+  createPRStructuredStatusSchema,
+  createStructuredPRSchema,
+  naturalLanguagePartnerRequestFieldsObjectSchema,
+  naturalLanguagePartnerRequestFieldsSchema,
+  partnerRequestFieldsObjectSchema,
+  partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
+  prRoutePointSchema,
+  prRouteSchema,
+  prStatusManualSchema,
+  prStatusSchema,
+  visibilityStatusSchema,
+} from "../domains/pr/contracts/partner-request";
+export type {
+  CoordinatePair,
+  CreatePRStructuredStatus,
+  NaturalLanguagePartnerRequestFields,
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+  PRRoute,
+  PRRoutePoint,
+  PRStatus,
+  PRStatusManual,
+  PRTimeWindow,
+  VisibilityStatus,
+  WeekdayLabel,
+} from "../domains/pr/contracts/partner-request";
 
 // Poster cache schemas
 export const xiaohongshuPosterSchema = z.object({

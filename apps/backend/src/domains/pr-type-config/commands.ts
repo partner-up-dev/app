@@ -1,8 +1,9 @@
-import type { PRRoute } from "../../entities/partner-request";
+import type { PRRoute } from "../pr/contracts";
 import { throwHttpProblem } from "../../lib/problem-details";
 import type {
   PRTypeConfigAuthoring,
   PRTypeConfigCompletion,
+  PRTypeConfigCoordination,
   PRTypeConfigCreateInput,
   PRTypeConfigDiscovery,
   PRTypeConfigOperatorDetail,
@@ -161,6 +162,18 @@ export const updatePRTypeConfigParticipation = async (
     joinGateConfig: input.joinGateConfig,
     participationFrequencyLimit: input.participationFrequencyLimit,
     fullCapacityExpansionPolicy: input.fullCapacityExpansionPolicy,
+  });
+};
+
+export const updatePRTypeConfigCoordination = async (
+  type: string,
+  input: PRTypeConfigCoordination,
+): Promise<PRTypeConfigOperatorDetail> => {
+  const { createPRTypeCoordinationMeetingPointTransaction } =
+    await import("./use-cases/update-pr-type-coordination");
+  return await createPRTypeCoordinationMeetingPointTransaction().update({
+    type,
+    input,
   });
 };
 

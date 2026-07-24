@@ -6,7 +6,7 @@
  * use-case class.
  */
 
-import type { PartnerRequestFields } from "../../../entities/partner-request";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 
 export type TimeWindow = PartnerRequestFields["time"];
 export type ComparableTimeWindowRange = {

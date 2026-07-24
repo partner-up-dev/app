@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { imageUploadPurposes } from "../infra/storage/contracts";
 import {
-  imageUploadPurposes,
   ImageStorageError,
   readStoredImage,
   saveImageFile,

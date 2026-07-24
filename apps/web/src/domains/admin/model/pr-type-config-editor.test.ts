@@ -54,7 +54,10 @@ describe("PR type config editor model", () => {
   it("creates a fresh draft when type changes", () => {
     const previous = createEmptyPRTypeConfigDraft("study");
     previous.discovery.title = "unsaved";
-    expect(resetPRTypeConfigDraft("hiking").discovery.title).toBe("hiking");
+    const fresh = resetPRTypeConfigDraft("hiking");
+    expect(fresh.discovery.title).toBe("hiking");
+    expect(fresh.authoring.timeWindowEditorDefaultMode).toBe("NORMAL");
+    expect(fresh.discovery.communityQrCode).toBeNull();
     expect(resetPRTypeConfigDraft("study", previous).discovery.title).toBe("unsaved");
   });
 });

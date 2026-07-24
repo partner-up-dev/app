@@ -26,7 +26,7 @@ import {
   updateAdminPRTypeConfigDiscovery,
   updateAdminPRTypeConfigParticipation,
 } from "../domains/admin-pr-type-config";
-import { prRouteSchema } from "../entities/partner-request";
+import { prRouteSchema } from "../domains/pr/contracts/partner-request";
 
 const app = new Hono<AdminAuthEnv>();
 

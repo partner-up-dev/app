@@ -2,16 +2,17 @@ import { throwHttpProblem } from "../lib/problem-details";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { authMiddleware, issueAnonymousAuth, issueOperatorAuthForUser } from "../auth/middleware";
+import {
+  authMiddleware,
+  issueAnonymousAuth,
+  issueOperatorAuthForIdentity,
+} from "../auth/middleware";
 import type { AuthEnv } from "../auth/middleware";
-import { hasAnyUserRole } from "../entities/user";
-import { UserRepository } from "../repositories/UserRepository";
-import { registerAnonymousUser, verifyUserCredential } from "../domains/user";
+import { authenticateOperatorCredential, registerAnonymousUser } from "../domains/user";
 import { findCurrentPublicUserIdentity } from "../domains/user/queries";
 import { setAnonymousSessionCookie } from "../auth/anonymous-session";
 
 const app = new Hono<AuthEnv>();
-const userRepo = new UserRepository();
 
 const authSessionSchema = z.object({
   userId: z.string().uuid().optional().nullable(),
@@ -26,21 +27,20 @@ export const authRoute = app
   .use("*", authMiddleware)
   .post("/admin/login", zValidator("json", adminLoginSchema), async (c) => {
     const { userId, password } = c.req.valid("json");
-    const user = await userRepo.findById(userId);
-    if (
-      !user ||
-      !hasAnyUserRole(user.role, ["service", "analytics"]) ||
-      !(await verifyUserCredential(user, password))
-    ) {
+    const identity = await authenticateOperatorCredential({
+      userId,
+      credential: password,
+    });
+    if (!identity) {
       return throwHttpProblem({ status: 401, detail: "Invalid admin credentials" });
     }
 
-    const authenticated = issueOperatorAuthForUser(user);
+    const authenticated = issueOperatorAuthForIdentity(identity);
     c.set("auth", authenticated);
     return c.json({
       role: authenticated.role,
       roles: authenticated.roles,
-      userId: user.id,
+      userId: identity.userId,
       accessToken: authenticated.token,
     });
   })

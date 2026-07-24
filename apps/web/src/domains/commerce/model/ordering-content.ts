@@ -1,5 +1,23 @@
 import type { OrderingEntryPayload } from "./ordering-entry-storage";
-import type { CreateOrderInput } from "../queries/useCommerce";
+
+export type FixedOrderItemValue = {
+  kind: "FIXED";
+  quoteId: string;
+  quantity?: number | null;
+};
+
+export type ChoiceSetOrderItemValue = {
+  kind: "CHOICE_SET";
+  candidateQuoteIds: string[];
+  quantity?: 1 | null;
+};
+
+export type OrderItemValue = FixedOrderItemValue | ChoiceSetOrderItemValue;
+
+export type CreateOrderValue = {
+  prId: number | null;
+  items: OrderItemValue[];
+};
 
 export type OrderingContentInput = {
   source: OrderingEntryPayload["source"];
@@ -9,7 +27,7 @@ export type OrderingContentInput = {
 };
 
 export type OrderingContentOutput = {
-  items: CreateOrderInput["items"];
+  items: OrderItemValue[];
 };
 
 export type OrderingContentPriceExplanation = {

@@ -35,8 +35,11 @@
 <script setup lang="ts">
 import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
-import { type JsonDraftKey, parseJsonDraft } from "@/domains/admin/model/pr-type-config-editor";
-import type { AdminPRTypeConfigCoordination } from "@/domains/admin/queries/useAdminPRTypeConfigs";
+import {
+  type AdminPRTypeConfigCoordination,
+  type JsonDraftKey,
+  parseJsonDraft,
+} from "@/domains/admin/model/pr-type-config-editor";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import JsonField from "./PRTypeConfigJsonField.vue";
 

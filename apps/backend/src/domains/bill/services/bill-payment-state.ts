@@ -1,24 +1,13 @@
-import type { BillLine, BillLineId } from "../../../entities/bill";
-import type { BillLineSettlementStatus } from "../model";
+import type {
+  BillLinePaymentProjection,
+  BillLineSettlementStatus,
+  BillPaymentStateLineFact,
+  BillPaymentState,
+} from "../model";
 
-export type BillLinePaymentProjection = {
-  billLineId: BillLineId;
-  status: BillLineSettlementStatus;
-  paidFen: number;
-  refundableFen: number;
-};
+export type { BillLinePaymentProjection, BillPaymentState } from "../model";
 
-export type BillPaymentState = {
-  chargeTotalFen: number;
-  paidChargeFen: number;
-  refundTotalFen: number;
-  refundedFen: number;
-  allChargesPaid: boolean;
-  hasPendingPayment: boolean;
-  lines: BillLinePaymentProjection[];
-};
-
-const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
+const toLinePaymentProjection = (line: BillPaymentStateLineFact): BillLinePaymentProjection => {
   if (line.kind === "REFUND") {
     const refundedFen = line.settledAt ? line.amountFen : 0;
     return {
@@ -57,7 +46,9 @@ const toLinePaymentProjection = (line: BillLine): BillLinePaymentProjection => {
   };
 };
 
-export function deriveBillPaymentState(input: { lines: BillLine[] }): BillPaymentState {
+export function deriveBillPaymentState(input: {
+  lines: BillPaymentStateLineFact[];
+}): BillPaymentState {
   const projections = input.lines.map((line) => toLinePaymentProjection(line));
   const projectionByLineId = new Map(
     projections.map((projection) => [projection.billLineId, projection]),

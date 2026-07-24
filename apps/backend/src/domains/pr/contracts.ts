@@ -2,13 +2,7 @@ export {
   AUTHENTICATED_REQUIRED_CODE,
   throwAuthenticatedRequired,
   type CreatorIdentityInput,
-} from "./services/creator-identity.service";
-export type {
-  JoinPRByIdentityResult,
-  PRParticipantIdentityInput,
-  WaitlistPRByIdentityResult,
-} from "./commands/join-pr-by-identity";
-export type { PRDetail } from "./read-models/get-pr-detail";
+} from "./contracts/creator-identity";
 export type { PublicPR } from "./read-models/public-pr-view.service";
 export type {
   CreatePRMessageResponse,
@@ -28,3 +22,32 @@ export {
   normalizePRPreferenceLabels,
 } from "./services/preference-normalization";
 export { PR_ACTIVE_ORDER_EXISTS_CODE } from "./order-attachment-contracts";
+export {
+  prJoinGateConfigSchema,
+  prJoinGateSourceSchema,
+  prJoinNoticeGateConfigSchema,
+} from "./contracts/join-gate";
+export type {
+  PRJoinGateConfig,
+  PRJoinGateConfigItem,
+  PRJoinGateSource,
+  PRJoinNoticeGateConfig,
+} from "./contracts/join-gate";
+export { meetingPointConfigMapSchema, meetingPointConfigSchema } from "./contracts/meeting-point";
+export type { MeetingPointConfig, MeetingPointConfigMap } from "./contracts/meeting-point";
+export {
+  partnerRequestFieldsSchema,
+  prAllowEditAfterReadySchema,
+  prRouteSchema,
+  prStatusManualSchema,
+  prStatusSchema,
+} from "./contracts/partner-request";
+export type {
+  PartnerRequestFields,
+  PRAllowEditAfterReady,
+  PRRoute,
+  PRRoutePoint,
+  PRStatus,
+  PRStatusManual,
+  PRTimeWindow,
+} from "./contracts/partner-request";

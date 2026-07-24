@@ -79,6 +79,14 @@ subscription configuration and renderer. Its active participant and current
 PR-time facts remain PR-owned; Notification consumes only the named
 revalidation projection and never imports PR lifecycle mutation behavior.
 
+User preference/credit reads and mutations also enter through Notification's
+semantic surface. Notification owns channel-kind branching, the mutation and
+the decision to cancel or rebuild current work. When a positive transition
+needs source-owned rebuilding, application composition supplies only a narrow
+semantic reconciliation Port; Notification does not import the source
+domain's mutation implementation, and an HTTP controller does not reproduce
+the branching or read Notification persistence.
+
 ## Creation Contract
 
 Business owners call a curated Notification command with:

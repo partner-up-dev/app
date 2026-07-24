@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PRJoinGateConfig } from "../../../entities";
+import type { PRJoinGateConfig } from "../contracts/join-gate";
 
 process.env.DATABASE_URL ??= "postgresql://localhost:5432/partnerup_test";
 

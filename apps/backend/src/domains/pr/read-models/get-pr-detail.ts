@@ -1,9 +1,9 @@
 import type { FeedbackQuestionnaireDefinition } from "../../../entities/feedback-questionnaire";
-import type { PRRoute, PRStatus } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { FeedbackQuestionnaireRepository } from "../../../repositories/FeedbackQuestionnaireRepository";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
+import type { PRRoute, PRStatus } from "../contracts/partner-request";
 import {
   type EffectiveMeetingPoint,
   resolveEffectiveMeetingPoint,

@@ -26,7 +26,7 @@ export class PartnerRequestRepository {
     return result[0];
   }
 
-  async findById(id: PRId) {
+  async findById(id: PRId): Promise<PartnerRequest | null> {
     const result = await this.executor
       .select()
       .from(partnerRequests)

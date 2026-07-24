@@ -2,10 +2,17 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { classifyReport, RULES, scanArchitecture, stableJson } from "./lib.mjs";
+import {
+  classifyReport,
+  RULES,
+  scanArchitecture,
+  scanBackendContractFacade,
+  stableJson,
+} from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtureRoot = path.join(here, "fixtures/repository");
+const repositoryRoot = path.resolve(here, "../..");
 
 test("each initial architecture rule has one positive fixture", () => {
   const report = scanArchitecture(fixtureRoot);
@@ -26,6 +33,26 @@ test("valid owner edges do not produce findings", () => {
   const report = scanArchitecture(fixtureRoot);
   assert.equal(
     report.findings.some((item) => item.source.includes("valid")),
+    false,
+  );
+});
+
+test("unresolved imports are inventoried without becoming findings", () => {
+  const report = scanArchitecture(fixtureRoot);
+  const source = "apps/backend/src/controllers/unresolved.controller.ts";
+
+  assert.deepEqual(
+    report.unresolved.filter((item) => item.source === source),
+    [
+      {
+        line: 1,
+        source,
+        specifier: "../services/YourService",
+      },
+    ],
+  );
+  assert.equal(
+    report.findings.some((item) => item.source === source),
     false,
   );
 });
@@ -76,4 +103,19 @@ test("a reviewed fingerprint is known and all other findings stay new", () => {
   assert.equal(classified.classification.new, report.findings.length - 1);
   assert.equal(classified.findings[0].governance.owner, "fixture-owner");
   assert.equal(classified.baselineScopeDrift, false);
+});
+
+test("the Backend package contract facade reaches owner contract leaves only", () => {
+  const report = scanBackendContractFacade(repositoryRoot);
+  assert.deepEqual(report.violations, []);
+});
+
+test("the contract facade guard accepts type-only owner exports and rejects implementation edges", () => {
+  assert.deepEqual(scanBackendContractFacade(fixtureRoot).violations, []);
+  assert.deepEqual(
+    scanBackendContractFacade(fixtureRoot, "apps/backend/src/invalid-contracts.ts").violations.map(
+      (item) => item.kind,
+    ),
+    ["forbidden-contract-dependency"],
+  );
 });

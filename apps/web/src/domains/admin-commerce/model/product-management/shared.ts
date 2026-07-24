@@ -1,12 +1,3 @@
-import type {
-  AdminCommerceProductWorkspaceResponse,
-  AdminProductSpuInput,
-} from "@/domains/admin-commerce/queries/useAdminCommerce";
-
-export type ProductWorkspace = NonNullable<AdminCommerceProductWorkspaceResponse>;
-export type ProductRecord = ProductWorkspace["products"][number];
-export type SkuRecord = ProductRecord["skus"][number];
-export type ProductType = AdminProductSpuInput["productType"];
 export type NumberInput = number | string;
 
 let draftIdSeed = 0;

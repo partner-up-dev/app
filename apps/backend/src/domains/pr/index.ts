@@ -20,18 +20,18 @@ export {
 export {
   getMyCreatedPRs,
   getMyJoinedPRs,
+  getPRAttachedOrderContext,
   getPR,
   getPRDetail,
   getPRJoinGateProjection,
   getPRPartnerProfile,
+  assertPRConfirmationOrCheckInVisible,
   listPRMessages,
 } from "./queries";
-export type {
-  CreatorIdentityInput,
-  PRDetail,
-  PRParticipantIdentityInput,
-  PublicPR,
-} from "./contracts";
+export type { PRAttachedOrderContext } from "./order-attachment-contracts";
+export type { CreatorIdentityInput, PublicPR } from "./contracts";
+export type { PRDetail } from "./queries";
+export type { PRParticipantIdentityInput } from "./commands";
 export {
   assertPRDraftAccess,
   PR_DRAFT_NOT_ACCESSIBLE_CODE,

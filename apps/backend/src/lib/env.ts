@@ -31,9 +31,6 @@ const envSchema = z.object({
     z.string().default("gpt-4o-mini"),
   ),
 
-  // Deprecated: Keep for backward compatibility
-  OPENAI_API_KEY: optionalStringFromEnv,
-
   // DB operation timeout (ms) for config lookups (fallback is used on timeout)
   DB_OPERATION_TIMEOUT_MS: z.coerce.number().int().positive().default(250),
   DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(5),

@@ -1,4 +1,4 @@
-import type { WeekdayLabel } from "../../../entities/partner-request";
+import type { WeekdayLabel } from "../contracts/partner-request";
 import { PartnerRequestAIService } from "../../../services/PartnerRequestAIService";
 import { type CreatorIdentityInput } from "../services/creator-identity.service";
 import { materializeNaturalLanguagePartnerRequestFields } from "../services/pr-time-window-instant.service";

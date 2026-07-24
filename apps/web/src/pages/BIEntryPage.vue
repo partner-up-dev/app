@@ -18,8 +18,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useAdminSessionStore } from "@/domains/admin/use-cases/useAdminSessionStore";
-import { adminClient } from "@/lib/admin-rpc";
+import { useAdminSessionLogin } from "@/domains/admin/use-cases/useAdminSessionLogin";
 import {
   PuButton,
   PuInlineNotice,
@@ -28,22 +27,16 @@ import {
 } from "@partner-up-dev/design-web";
 
 const ANALYTICS_SEED_USER_ID = "00000000-0000-0000-0000-000000000002";
+const BI_LOGIN_ERROR_MESSAGE = "BI 登录失败，请检查 code。";
 
 const route = useRoute();
 const router = useRouter();
-const adminSessionStore = useAdminSessionStore();
+const sessionLogin = useAdminSessionLogin({
+  failureMessage: BI_LOGIN_ERROR_MESSAGE,
+});
 
 const isPending = ref(true);
 const errorMessage = ref<string | null>(null);
-
-const readErrorMessage = async (response: Response, fallback: string): Promise<string> => {
-  try {
-    const payload = (await response.json()) as { error?: string };
-    return payload.error || fallback;
-  } catch {
-    return fallback;
-  }
-};
 
 const resolveCode = (): string | null => {
   const rawCode = route.query.code;
@@ -58,32 +51,19 @@ const resolveCode = (): string | null => {
 const enterBI = async (): Promise<void> => {
   const code = resolveCode();
   if (!code) {
-    errorMessage.value = "BI 登录失败，请检查 code。";
+    errorMessage.value = BI_LOGIN_ERROR_MESSAGE;
     isPending.value = false;
     return;
   }
 
   try {
-    const response = await adminClient.api.auth.admin.login.$post({
-      json: {
-        userId: ANALYTICS_SEED_USER_ID,
-        password: code,
-      },
-    });
-
-    if (!response.ok) {
-      errorMessage.value = await readErrorMessage(response, "BI 登录失败，请检查 code。");
-      return;
-    }
-
-    const payload = await response.json();
-    adminSessionStore.applyAuthSession({
-      role: payload.role,
-      roles: payload.roles,
-      userId: payload.userId,
-      accessToken: payload.accessToken,
+    await sessionLogin.login({
+      userId: ANALYTICS_SEED_USER_ID,
+      password: code,
     });
     await router.replace({ name: "admin-analytics" });
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : BI_LOGIN_ERROR_MESSAGE;
   } finally {
     isPending.value = false;
   }

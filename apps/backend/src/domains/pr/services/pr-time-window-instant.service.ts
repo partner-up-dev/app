@@ -3,7 +3,7 @@ import type {
   NaturalLanguagePartnerRequestFields,
   PartnerRequestFields,
   PRAllowEditAfterReady,
-} from "../../../entities/partner-request";
+} from "../contracts/partner-request";
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const PRODUCT_TIME_ZONE_OFFSET = "+08:00";

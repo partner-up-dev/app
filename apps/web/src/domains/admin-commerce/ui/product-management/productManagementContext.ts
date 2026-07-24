@@ -9,14 +9,14 @@ import {
   type MaybeRef,
   type Ref,
 } from "vue";
+import type { AdminCommerceProductWorkspaceResponse } from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
+import type { ProductType } from "@/domains/admin-commerce/model/product-management/productValues";
 import { useAdminCommerceProductWorkspace } from "@/domains/admin-commerce/queries/useAdminCommerce";
-import type {
-  ProductRecord,
-  ProductType,
-  SkuRecord,
-} from "@/domains/admin-commerce/model/product-management/shared";
 
 type ProductWorkspaceQuery = ReturnType<typeof useAdminCommerceProductWorkspace>;
+type ProductWorkspace = NonNullable<AdminCommerceProductWorkspaceResponse>;
+type ProductRecord = ProductWorkspace["products"][number];
+type SkuRecord = ProductRecord["skus"][number];
 
 export type AdminCommerceProductManagementContext = {
   workspaceQuery: ProductWorkspaceQuery;

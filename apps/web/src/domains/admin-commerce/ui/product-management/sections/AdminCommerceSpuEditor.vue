@@ -312,6 +312,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { toProductSpuValue } from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
 import {
   buildSpuInput,
   createFactDraft,
@@ -323,7 +324,6 @@ import {
   type SpuBuildLabels,
   type SpuEditorForm,
 } from "@/domains/admin-commerce/model/product-management/spuEditorModel";
-import type { AdminProductSpuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
 import {
   useCreateAdminProductSpu,
   useUpdateAdminProductSpu,
@@ -347,23 +347,11 @@ const isSavingSpu = computed(
   () => createSpuMutation.isPending.value || updateSpuMutation.isPending.value,
 );
 
-const resolveSelectedSpuInput = (
-  product: NonNullable<typeof selectedProduct.value>,
-): AdminProductSpuInput => ({
-  name: product.spu.name,
-  productType: product.spu.productType,
-  status: product.spu.status,
-  salesPolicy: product.spu.salesPolicy,
-  servicePolicy: product.spu.servicePolicy,
-  presentation: product.spu.presentation,
-  facts: product.spu.facts,
-});
-
 watch(
   [selectedProduct, isCreatingSpu],
   ([product, creating]) => {
     spuForm.value = toSpuForm(
-      creating || !product ? emptySpuInput() : resolveSelectedSpuInput(product),
+      creating || !product ? emptySpuInput() : toProductSpuValue(product.spu),
     );
   },
   { immediate: true },

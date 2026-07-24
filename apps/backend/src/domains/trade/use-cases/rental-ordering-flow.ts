@@ -5,7 +5,7 @@ import { BillLineRepository } from "../../../repositories/BillLineRepository";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { deriveBillPaymentState } from "../../bill/queries";
+import { deriveBillPaymentState } from "../../bill/contracts";
 import type { OrderItemSnapshot, OrderTerminationAttempt, RentalRegistrant } from "../model";
 import { canRequestOrderTermination } from "../services";
 import {

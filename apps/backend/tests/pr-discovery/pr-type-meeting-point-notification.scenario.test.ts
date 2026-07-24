@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import { createTransactionBoundMeetingPointUpdatedNotificationPort } from "../../src/domains/notification";
 import { notificationTaskPayloadSchema } from "../../src/domains/notification/owner/task";
-import { createPRTypeCoordinationMeetingPointTransactionPort } from "../../src/domains/admin-pr-type-config/use-cases/pr-type-coordination-meeting-point-transaction";
+import { createPRTypeCoordinationMeetingPointTransaction } from "../../src/domains/pr-type-config/use-cases/update-pr-type-coordination";
 import { jobs } from "../../src/entities/job";
 import { pois } from "../../src/entities/poi";
 import { db } from "../../src/lib/db";
@@ -244,7 +244,7 @@ scenario("admin_pr_type_coordination_route_ignores_unused_map_change", async () 
   await assertNoLegacyMeetingPointJobs([explicit.id, locationRule.id]);
 });
 
-scenario("admin_pr_type_coordination_named_port_rolls_back_on_second_handoff", async () => {
+scenario("admin_pr_type_coordination_transaction_rolls_back_on_second_handoff", async () => {
   const creator = await givenUser("pr-type-meeting-point-rollback-creator");
   const participant = await givenUser("pr-type-meeting-point-rollback-participant");
   const prType = await givenPRTypeConfig({
@@ -260,7 +260,7 @@ scenario("admin_pr_type_coordination_named_port_rolls_back_on_second_handoff", a
   const before = await configRepo.findByType(prType.type);
   assert.ok(before);
   let handoffCount = 0;
-  const failingPort = createPRTypeCoordinationMeetingPointTransactionPort({
+  const failingTransaction = createPRTypeCoordinationMeetingPointTransaction({
     createNotificationPort: (input) => {
       const realPort = createTransactionBoundMeetingPointUpdatedNotificationPort(input);
       return {
@@ -276,7 +276,7 @@ scenario("admin_pr_type_coordination_named_port_rolls_back_on_second_handoff", a
   });
 
   await assert.rejects(
-    failingPort.update({
+    failingTransaction.update({
       type: prType.type,
       input: {
         meetingPoint: newPoint,

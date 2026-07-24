@@ -24,6 +24,7 @@ Program Phase 3.
 | `08-phase5/` | 根代理 + slice owners | Program Phase 5 Commerce 的 source convergence、proof、deferred risks 与 runtime-evidence branch |
 | `09-phase6-job-notification/` | 根代理 + slice owners | Program Phase 6 Job/Notification 的 topology、runtime/owner 证据、目标设计与后续 source-slice gates |
 | `10-phase7-observability-analytics/` | 根代理 + slice owners | Program Phase 7 的 legacy SLS/structured-output negative baseline 与 retirement、user telemetry/BI convergence、future professional-O11y handoff |
+| `11-phase8-global-review-cleanup/` | 根代理 + slice owners | Program Phase 8 的全局重基线、评分卡、冲突 disposition、`8-1`–`8-6` execution proof 与 `8-7` durable handoff |
 
 ## Evidence Protocol
 
@@ -50,9 +51,9 @@ Program Phase 3.
    locally proven; `6-3` completes all source handoffs, visible ACK and forward legacy state/decoder retirement.
    `6-4` completes the atomic RideHailing fee-confirmation Job handoff, and `6-5` closes runtime/recovery,
    scoped console cleanup and full local review. Phase 6 is locally complete;
-   existing Phase 5 debug stdout moves to Phase 7 clean-baseline cleanup,
-   while real O11y and `notification_deliveries` retirement remain a
-   post-Phase-7 future task.
+   Phase 7 subsequently removed the carried Phase 5 debug stdout, while
+   professional O11y and `notification_deliveries` retirement remain an
+   independent future task.
 7. Phase 7 — Legacy observability retirement / Analytics: `7-0` corrected
    read-only negative-baseline entry complete at `537a9b4f`; SLS-first and
    structured output are withdrawn as targets. `7-1` exact deletion decisions,
@@ -61,7 +62,12 @@ Program Phase 3.
    proof. Sir confirms no configured SLS saved query/dashboard exists and
    closes further platform inventory, so D7-04 is closed without claiming a
    platform-side audit or deletion by Codex.
-8. Phase 8 — global review and cleanup: not started.
+8. Phase 8 — global review and cleanup: `8-0`–`8-7` complete locally. Current
+   architecture fitness has one known terminal WeChat OAuth callback exception
+   and `0 new / 0 unresolved`; Backend/Web static and dynamic-inclusive import
+   graphs are acyclic. The final authority/sequence/canonical/durable review
+   passed under Sir's 2026-07-24 authorization. The working tree is
+   uncommitted at `cf6cd736`.
 
 Phase 2 后续恢复工作已在 `05-toolchain-recovery/` 完成：两套 oxc binding、Web build 与
 System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能力，因此 `01`–`04`
@@ -89,6 +95,9 @@ System scenario 均恢复。Phase 3 entry `bda22b60` 已迁移 Anchor Event 能�
 - [`10-phase7-observability-analytics/00-task-packet.md`](./10-phase7-observability-analytics/00-task-packet.md)
 - [`10-phase7-observability-analytics/slice-map.md`](./10-phase7-observability-analytics/slice-map.md)
 - [`10-phase7-observability-analytics/current-and-target-topology.md`](./10-phase7-observability-analytics/current-and-target-topology.md)
+- [`11-phase8-global-review-cleanup/00-task-packet.md`](./11-phase8-global-review-cleanup/00-task-packet.md)
+- [`11-phase8-global-review-cleanup/slice-map.md`](./11-phase8-global-review-cleanup/slice-map.md)
+- [`11-phase8-global-review-cleanup/01-global-rebase-and-baseline/current-and-target-scorecard.md`](./11-phase8-global-review-cleanup/01-global-rebase-and-baseline/current-and-target-scorecard.md)
 - [`program-roadmap.md`](./program-roadmap.md)
 - [`remaining-work-register.md`](./remaining-work-register.md)
 - [`06-phase3/01-baseline-and-fitness/00-task-packet.md`](./06-phase3/01-baseline-and-fitness/00-task-packet.md)

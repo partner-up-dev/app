@@ -1,7 +1,8 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
-import type { PRId, PRStatusManual } from "../../../entities/partner-request";
+import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
+import type { PRStatusManual } from "../contracts/partner-request";
 import { toPublicPR, type PublicPR } from "../services/pr-view.service";
 import { refreshTemporalStatus } from "../temporal-refresh";
 import { reconcileAlternativeWaitlistNotificationsForCandidate } from "../services/waitlist-alternative-reconciler.service";

@@ -92,8 +92,8 @@ import {
   type JsonDrafts,
   type JsonErrors,
   normalizeNullableNumber,
+  type AdminPRTypeConfigAuthoring,
 } from "@/domains/admin/model/pr-type-config-editor";
-import type { AdminPRTypeConfigAuthoring } from "@/domains/admin/queries/useAdminPRTypeConfigs";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import JsonField from "./PRTypeConfigJsonField.vue";
 import NumberField from "./PRTypeConfigNumberField.vue";

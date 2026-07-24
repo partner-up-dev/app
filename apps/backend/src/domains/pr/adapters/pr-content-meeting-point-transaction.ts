@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PartnerId } from "../../../entities/partner";
-import type { PartnerRequest, PartnerRequestFields, PRId } from "../../../entities/partner-request";
+import type { PartnerRequest, PRId } from "../../../entities/partner-request";
 import {
   createTransactionBoundMeetingPointUpdatedNotificationPort,
   type MeetingPointUpdatedNotificationPort,
@@ -9,6 +9,7 @@ import { db } from "../../../lib/db";
 import { PartnerRepository } from "../../../repositories/PartnerRepository";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import type { TransactionExecutor } from "../../../repositories/_executor";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 import { createTransactionBoundEffectiveMeetingPointResolver } from "./transactional-meeting-point-resolver";
 import { releasePRParticipantMessageWindow } from "./pr-participant-message-window-release";
 import {

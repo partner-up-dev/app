@@ -1,5 +1,9 @@
 import { computed, ref, unref, watch, type MaybeRef } from "vue";
 import type { PRId } from "@partner-up-dev/backend";
+import {
+  cacheWechatShareThumbnail,
+  generateWechatShareDescription,
+} from "@/domains/share/adapters/share-command-adapter";
 import type { PRShareData, RouteShareDescriptor } from "@/domains/share/model/types";
 import { useGenerateWechatThumbHtml } from "@/domains/share/queries/useGenerateWechatThumbHtml";
 import { renderPosterHtmlToBlob } from "@/domains/share/use-cases/poster/renderHtmlPoster";
@@ -10,7 +14,6 @@ import {
 } from "@/domains/share/use-cases/route-share-controller";
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 import { buildProductShareUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
-import { client } from "@/lib/rpc";
 
 type Translate = (key: string) => string;
 
@@ -194,16 +197,13 @@ export const useShareToWechatChat = ({
     try {
       isGeneratingDesc.value = true;
 
-      const res = await client.api.share["wechat-card"]["generate-description"].$post({
-        json: {
-          prId: currentPrId.value,
-        },
+      const result = await generateWechatShareDescription({
+        prId: currentPrId.value,
       });
 
       let nextDescription = resolveBaseShareDescription();
-      if (res.ok) {
-        const data = (await res.json()) as { description: string };
-        nextDescription = data.description;
+      if (result.ok) {
+        nextDescription = result.value;
       } else {
         console.warn("Failed to generate description, using fallback summary");
       }
@@ -298,12 +298,10 @@ export const useShareToWechatChat = ({
       posterUrl.value = thumbnailUrl;
 
       try {
-        await client.api.share["wechat-card"]["cache-thumbnail"].$post({
-          json: {
-            prId: currentPrId.value,
-            style: styleIndex.value,
-            posterUrl: thumbnailUrl,
-          },
+        await cacheWechatShareThumbnail({
+          prId: currentPrId.value,
+          style: styleIndex.value,
+          posterUrl: thumbnailUrl,
         });
       } catch (cacheError) {
         console.warn("Failed to cache thumbnail URL:", cacheError);

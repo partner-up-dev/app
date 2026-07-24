@@ -4,13 +4,14 @@ import type {
   PRDiscoveryRecommendationResponse as PRDiscoveryRecommendationContract,
   PRDiscoveryTypeDetailResponse,
 } from "@/domains/pr/contracts";
+import type { PRDiscoveryPersistedCandidate } from "@/domains/pr/model/pr-discovery-candidate";
 import type { PRDiscoveryCreationSuggestion } from "@/domains/pr/model/pr-discovery-creation-suggestion";
 
+export type { PRDiscoveryPersistedCandidate } from "@/domains/pr/model/pr-discovery-candidate";
 export type PRDiscoveryDirectoryResponse = PRDiscoveryDirectoryContract;
 export type PRDiscoveryCatalogItem = PRDiscoveryCatalogResponse[number];
 export type PRDiscoveryTypeDetail = PRDiscoveryTypeDetailResponse;
 export type PRDiscoveryRecommendationResponse = PRDiscoveryRecommendationContract;
-export type PRDiscoveryPersistedCandidate = PRDiscoveryDirectoryContract["candidates"][number];
 export type PRDiscoveryListRecord = PRDiscoveryDirectoryContract["listRecords"][number];
 export type PRDiscoveryCardGroup = PRDiscoveryDirectoryContract["cardGroups"][number];
 export type PRDiscoveryMatchedCandidate =

@@ -37,8 +37,6 @@ export interface JobDefinition<TPayload extends JobPayload = JobPayload> {
   execute(payload: TPayload, context: JobHandlerContext): Promise<JobExecutionResult>;
 }
 
-export type JobHandler = (payload: JobPayload, context: JobHandlerContext) => Promise<void>;
-
 export interface ScheduleOnceConfig {
   jobType: string;
   /** Defaults to 1 only for the legacy scheduling compatibility window. */

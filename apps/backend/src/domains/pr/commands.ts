@@ -18,6 +18,11 @@ export {
   resolvePRParticipantUser,
   waitlistPRByIdentity,
 } from "./commands/join-pr-by-identity";
+export type {
+  JoinPRByIdentityResult,
+  PRParticipantIdentityInput,
+  WaitlistPRByIdentityResult,
+} from "./commands/join-pr-by-identity";
 export { authorizeCreatorMutation } from "./services/creator-mutation-auth.service";
 export { resolvePRJoinGate } from "./services/join-gates.service";
 export { applyParticipantReleaseEffects } from "./services/participant-release-effects.service";

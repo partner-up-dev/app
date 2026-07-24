@@ -7,6 +7,12 @@ new numbered product slice. Both bounded source repairs, cross-review, durable p
 validation are complete; only the Phase-close commit remains. The packet still authorises no deployment,
 provider-console, or topology mutation.
 
+Historical annotation (2026-07-24): the quoted “only the Phase-close commit
+remains” statement is the event-time handoff, not current status. Phase 4 was
+subsequently committed and is locally complete; current status is owned by the
+Program roadmap and remaining-work register. No deployment/provider claim was
+added by that later closure.
+
 ## Objective
 
 Re-review the full 4-1 through 4-5 implementation and decide whether Phase 4 may close in one commit. Accept only

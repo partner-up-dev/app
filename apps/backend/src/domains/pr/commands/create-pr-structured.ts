@@ -1,10 +1,10 @@
-import type { PRJoinGateConfig } from "../../../entities";
 import type {
   PartnerRequestFields,
   PRAllowEditAfterReady,
   PRStatus,
-} from "../../../entities/partner-request";
+} from "../contracts/partner-request";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { PRJoinGateConfig } from "../contracts/join-gate";
 import { type CreatorIdentityInput } from "../services/creator-identity.service";
 import {
   type PRCreationAuthority,

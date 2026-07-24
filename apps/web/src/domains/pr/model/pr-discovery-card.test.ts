@@ -7,10 +7,8 @@ import {
   buildPRDiscoveryCreationSuggestions,
   type PRDiscoveryCreateTimeWindow,
 } from "@/domains/pr/model/pr-discovery-creation-suggestion";
-import type {
-  PRDiscoveryCardGroup,
-  PRDiscoveryPersistedCandidate,
-} from "@/domains/pr/model/pr-discovery-types";
+import type { PRDiscoveryPersistedCandidate } from "@/domains/pr/model/pr-discovery-candidate";
+import type { PRDiscoveryCardGroup } from "@/domains/pr/model/pr-discovery-types";
 
 const time = ["2099-01-01T04:00:00.000Z", "2099-01-01T05:00:00.000Z"] as [string, string];
 

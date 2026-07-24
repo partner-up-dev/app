@@ -100,6 +100,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { toSkuCancellationPolicyValue } from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
 import {
   buildPolicyInput,
   createCancellationTierDraft,
@@ -131,10 +132,11 @@ watch(
       return;
     }
 
-    policyForm.value = toPolicyForm({
-      operatorBufferMinutes: record.cancellationPolicy?.operatorBufferMinutes ?? 30,
-      tiers: record.cancellationPolicy?.tiers ?? emptyPolicyInput().tiers,
-    });
+    policyForm.value = toPolicyForm(
+      record.cancellationPolicy
+        ? toSkuCancellationPolicyValue(record.cancellationPolicy)
+        : emptyPolicyInput(),
+    );
   },
   { immediate: true },
 );

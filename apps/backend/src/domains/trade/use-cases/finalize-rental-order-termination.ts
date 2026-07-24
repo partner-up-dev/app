@@ -6,7 +6,7 @@ import { BillRepository } from "../../../repositories/BillRepository";
 import { RentalOrderRepository } from "../../../repositories/RentalOrderRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { reconcileBillToTargetAmount } from "../../bill/commands";
-import { deriveBillPaymentState } from "../../bill/queries";
+import { deriveBillPaymentState } from "../../bill/contracts";
 import { createRefundExecutionForRefundLine } from "../../payment/commands";
 import type { FulfillmentTerminationDecision, OrderTerminationAttempt } from "../model";
 import {

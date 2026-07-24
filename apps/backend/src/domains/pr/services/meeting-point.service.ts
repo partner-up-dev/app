@@ -1,9 +1,10 @@
-import type { MeetingPointConfig, MeetingPointConfigMap } from "../../../entities/meeting-point";
+import type { PartnerRequest } from "../../../entities/partner-request";
 import {
+  type MeetingPointConfig,
+  type MeetingPointConfigMap,
   normalizeMeetingPointConfig,
   normalizeMeetingPointConfigMap,
-} from "../../../entities/meeting-point";
-import type { PartnerRequest } from "../../../entities/partner-request";
+} from "../contracts/meeting-point";
 // Depend on POI's low-level query surface rather than its public barrel: the
 // latter also exports POI mutation use cases, which depend on this PR rule.
 import { resolvePublishedPoiByLocation } from "../../poi/queries";

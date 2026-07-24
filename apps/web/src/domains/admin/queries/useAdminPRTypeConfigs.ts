@@ -1,6 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferRequestType, InferResponseType } from "hono";
 import { computed, type MaybeRef, unref } from "vue";
+import {
+  type AdminPRTypeConfigCreateResponse,
+  type AdminPRTypeConfigDetailResponse,
+  type AdminPRTypeConfigSliceResponse,
+  toAdminPRTypeConfigAuthoringRequest,
+  toAdminPRTypeConfigCompletionRequest,
+  toAdminPRTypeConfigCoordinationRequest,
+  toAdminPRTypeConfigCreateRequest,
+  toAdminPRTypeConfigDiscoveryRequest,
+  toAdminPRTypeConfigParticipationRequest,
+} from "@/domains/admin/adapters/pr-type-config-adapter";
+import type {
+  AdminPRTypeConfigAuthoring,
+  AdminPRTypeConfigCompletion,
+  AdminPRTypeConfigCoordination,
+  AdminPRTypeConfigDiscovery,
+  AdminPRTypeConfigDraft,
+  AdminPRTypeConfigParticipation,
+} from "@/domains/admin/model/pr-type-config-editor";
 import { adminClient } from "@/lib/admin-rpc";
 import { readApiErrorPayload, resolveApiErrorMessage } from "@/shared/api/error";
 import { queryKeys } from "@/shared/api/query-keys";
@@ -8,25 +27,10 @@ import { queryKeys } from "@/shared/api/query-keys";
 type ConfigApi = (typeof adminClient.api.admin)["pr-type-configs"];
 type CatalogRoute = ConfigApi["catalog"];
 type DetailRoute = ConfigApi[":type"];
-type AuthoringRoute = DetailRoute["authoring"];
-type DiscoveryRoute = DetailRoute["discovery"];
-type ParticipationRoute = DetailRoute["participation"];
-type CoordinationRoute = DetailRoute["coordination"];
-type CompletionRoute = DetailRoute["completion"];
 type PreferenceTagsRoute = DetailRoute["preference-tags"];
 type PreferenceTagModerationRoute = PreferenceTagsRoute[":tagId"]["moderate"];
 
 export type AdminPRTypeConfigCatalogResponse = InferResponseType<CatalogRoute["$get"]>;
-export type AdminPRTypeConfigDetailResponse = InferResponseType<DetailRoute["$get"]>;
-export type AdminPRTypeConfigCreateInput = InferRequestType<DetailRoute["$put"]>["json"];
-export type AdminPRTypeConfigDraft = AdminPRTypeConfigCreateInput;
-export type AdminPRTypeConfigCreateResponse = InferResponseType<DetailRoute["$put"]>;
-export type AdminPRTypeConfigAuthoring = InferRequestType<AuthoringRoute["$put"]>["json"];
-export type AdminPRTypeConfigDiscovery = InferRequestType<DiscoveryRoute["$put"]>["json"];
-export type AdminPRTypeConfigParticipation = InferRequestType<ParticipationRoute["$put"]>["json"];
-export type AdminPRTypeConfigCoordination = InferRequestType<CoordinationRoute["$put"]>["json"];
-export type AdminPRTypeConfigCompletion = InferRequestType<CompletionRoute["$put"]>["json"];
-export type AdminPRTypeConfigSliceResponse = InferResponseType<AuthoringRoute["$put"]>;
 
 export class AdminPRTypeConfigRequestError extends Error {
   constructor(
@@ -89,7 +93,7 @@ export const useCreateAdminPRTypeConfig = () => {
     mutationFn: async ({ type, input }) => {
       const response = await adminClient.api.admin["pr-type-configs"][":type"].$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigCreateRequest(input),
       });
       if (!response.ok) throw new Error(await readErrorMessage(response, "保存 PR 类型配置失败"));
       return await response.json();
@@ -134,7 +138,7 @@ export const useUpdateAdminPRTypeConfigAuthoring = () =>
     (type, input) =>
       adminClient.api.admin["pr-type-configs"][":type"].authoring.$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigAuthoringRequest(input),
       }),
     "保存 Authoring 配置失败",
   );
@@ -144,7 +148,7 @@ export const useUpdateAdminPRTypeConfigDiscovery = () =>
     (type, input) =>
       adminClient.api.admin["pr-type-configs"][":type"].discovery.$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigDiscoveryRequest(input),
       }),
     "保存 Discovery 配置失败",
   );
@@ -154,7 +158,7 @@ export const useUpdateAdminPRTypeConfigParticipation = () =>
     (type, input) =>
       adminClient.api.admin["pr-type-configs"][":type"].participation.$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigParticipationRequest(input),
       }),
     "保存 Participation 配置失败",
   );
@@ -164,7 +168,7 @@ export const useUpdateAdminPRTypeConfigCoordination = () =>
     (type, input) =>
       adminClient.api.admin["pr-type-configs"][":type"].coordination.$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigCoordinationRequest(input),
       }),
     "保存 Coordination 配置失败",
   );
@@ -174,7 +178,7 @@ export const useUpdateAdminPRTypeConfigCompletion = () =>
     (type, input) =>
       adminClient.api.admin["pr-type-configs"][":type"].completion.$put({
         param: { type },
-        json: input,
+        json: toAdminPRTypeConfigCompletionRequest(input),
       }),
     "保存 Completion 配置失败",
   );

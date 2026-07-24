@@ -4,9 +4,9 @@ import { throwHttpProblem } from "../../../lib/problem-details";
 import { BillRepository } from "../../../repositories/BillRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
 import { settleBillLinePaymentExecution } from "../../bill/commands";
-import { getBillLinePaymentExecution } from "../../bill/queries";
 import type { BillLinePaymentExecutionSettlement } from "../../bill/contracts";
-import { createRideHailingReconciliationTransactionPort } from "../../ride-hailing/adapters/ride-hailing-reconciliation-transaction";
+import { getBillLinePaymentExecution } from "../../bill/queries";
+import { settleRideHailingPaymentAndScheduleFeeConfirmation } from "../../ride-hailing/ports";
 import { applyBillSettlementToOrder } from "./apply-bill-settlement-to-order";
 
 /**
@@ -37,14 +37,12 @@ export async function settleBillLinePaymentAndApplyOrderConsequence(input: {
     }
     settlement =
       order.family === "RIDE_HAILING"
-        ? await createRideHailingReconciliationTransactionPort().settlePaymentAndScheduleFeeConfirmation(
-            {
-              billLineId: input.billLineId,
-              paymentProviderInstanceId: input.paymentProviderInstanceId,
-              attemptCount: input.attemptCount,
-              settledAt: input.settledAt.toISOString(),
-            },
-          )
+        ? await settleRideHailingPaymentAndScheduleFeeConfirmation({
+            billLineId: input.billLineId,
+            paymentProviderInstanceId: input.paymentProviderInstanceId,
+            attemptCount: input.attemptCount,
+            settledAt: input.settledAt.toISOString(),
+          })
         : await settleBillLinePaymentExecution(input);
   } else {
     settlement = await settleBillLinePaymentExecution(input);

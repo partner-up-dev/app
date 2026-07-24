@@ -1,5 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { PartnerRequestFields } from "../../../entities/partner-request";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 import { getTimeWindowStart } from "./time-window.service";
 
 export const PR_START_TIME_PASSED_CODE = "PR_START_TIME_PASSED";

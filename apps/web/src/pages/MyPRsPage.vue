@@ -74,7 +74,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import PageFooter from "@/shared/ui/sections/PageFooter.vue";
-import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
+import PRPreviewCard from "@/domains/pr/ui/composites/PRPreviewCard.vue";
 import { useMyCreatedPRs } from "@/domains/pr/queries/useMyCreatedPRs";
 import { useMyJoinedPRs } from "@/domains/pr/queries/useMyJoinedPRs";
 import { useUserSessionStore } from "@/shared/auth/useUserSessionStore";

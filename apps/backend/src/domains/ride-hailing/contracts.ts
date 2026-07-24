@@ -1,3 +1,4 @@
+import type { BillLinePaymentExecutionSettlement } from "../bill/contracts";
 import type {
   RideHailingDriverSnapshot,
   RideHailingExecutionPhase,
@@ -69,4 +70,48 @@ export type RideHailingProviderObservationForReconciliation = {
   driverSnapshot: RideHailingDriverSnapshot | null;
   vehicleSnapshot: RideHailingVehicleSnapshot | null;
   providerVehicleTypeCode: string | null;
+};
+
+/**
+ * The terminal fare facts required by the atomic commit. Raw provider payloads
+ * remain in provider adapters and are not a Transaction Port concern.
+ */
+export type RideHailingTerminalSettlementObservation = {
+  amountFen: number;
+  currency: "CNY";
+  providerOrderId: string;
+};
+
+/**
+ * RideHailing owns the short atomic commits that reconcile a provider
+ * observation or qualifying BillLine settlement with local Trade/Ride/Bill
+ * facts and its causally keyed Job. The Port exposes semantic inputs only:
+ * neither provider I/O nor repositories/executors can cross it.
+ */
+export type RideHailingReconciliationTransactionPort = {
+  applyProviderObservation(input: {
+    orderId: string;
+    expectedBinding: RideHailingProviderBindingExpectation;
+    observation: RideHailingProviderObservationForReconciliation;
+    observedAt: string;
+  }): Promise<{
+    mutated: boolean;
+    effectiveExecutionPhase: NonNullable<
+      RideHailingProviderObservationForReconciliation["executionPhase"]
+    >;
+  }>;
+  commitTerminalSettlement(input: {
+    orderId: string;
+    expectedBinding: RideHailingProviderBindingExpectation;
+    settlement: RideHailingTerminalSettlementObservation;
+  }): Promise<{
+    mutated: boolean;
+    correctionRequired: RideHailingFareCorrectionRequired | null;
+  }>;
+  settlePaymentAndScheduleFeeConfirmation(input: {
+    billLineId: string;
+    paymentProviderInstanceId: string;
+    attemptCount: number;
+    settledAt: string;
+  }): Promise<BillLinePaymentExecutionSettlement>;
 };

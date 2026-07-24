@@ -2,10 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { getRequestJourneyContext } from "./request-journey-context";
 import { ingestUserTelemetryEvents } from "./user-ingest.service";
-import {
-  resolveActiveUserTelemetryEventContract,
-  type ActiveUserTelemetryEvent,
-} from "./user-event-registry";
+import type { ActiveUserTelemetryEvent } from "./contracts";
+import { resolveActiveUserTelemetryEventContract } from "./user-event-registry";
 
 export type RequestUserTelemetryEventInput = {
   [TEvent in ActiveUserTelemetryEvent as TEvent["eventName"]]: {

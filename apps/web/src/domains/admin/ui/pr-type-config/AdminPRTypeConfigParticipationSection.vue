@@ -73,10 +73,10 @@
 import { PuButton, PuInlineNotice } from "@partner-up-dev/design-web";
 import { computed, ref, watch } from "vue";
 import {
+  type AdminPRTypeConfigParticipation,
   normalizeRequiredNumber,
   parseJsonDraft,
 } from "@/domains/admin/model/pr-type-config-editor";
-import type { AdminPRTypeConfigParticipation } from "@/domains/admin/queries/useAdminPRTypeConfigs";
 import BentoItem from "@/domains/admin/ui/layout/BentoItem.vue";
 import JsonField from "./PRTypeConfigJsonField.vue";
 import NumberField from "./PRTypeConfigNumberField.vue";

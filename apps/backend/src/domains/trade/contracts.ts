@@ -12,6 +12,18 @@ export type TradeOrderBillingContext = {
   unpaidExpiresAt: string;
 };
 
+export type AttachedTradeOrderSummary = {
+  id: string;
+  status: OrderStatus;
+  offerId: number;
+};
+
+export type AttachedTradeOrderSummaryQuery = {
+  orderIds: string[];
+  offerId: number;
+  statuses: OrderStatus[];
+};
+
 /**
  * Stable Trade pricing/allocation inputs consumed by Bill while materialising
  * an owner-owned bill target. They deliberately expose no Trade persistence

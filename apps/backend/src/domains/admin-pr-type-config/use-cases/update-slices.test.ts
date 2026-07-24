@@ -7,7 +7,13 @@ const repository = vi.hoisted(() => ({
   updateByType: vi.fn<(type: string, patch: Record<string, unknown>) => Promise<PRTypeConfig>>(),
 }));
 const coordination = vi.hoisted(() => ({
-  update: vi.fn<() => Promise<PRTypeConfig>>(),
+  update:
+    vi.fn<
+      (
+        type: string,
+        input: { meetingPoint: unknown; locationMeetingPoints: unknown },
+      ) => Promise<PRTypeConfig>
+    >(),
 }));
 const questionnaire = vi.hoisted(() => ({
   findTemplateById: vi.fn<() => unknown>(),
@@ -29,10 +35,9 @@ vi.mock("../../../repositories/FeedbackQuestionnaireRepository", () => ({
     findTemplateById = questionnaire.findTemplateById;
   },
 }));
-vi.mock("./pr-type-coordination-meeting-point-transaction", () => ({
-  createPRTypeCoordinationMeetingPointTransactionPort: () => ({
-    update: coordination.update,
-  }),
+vi.mock("../../pr-type-config", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../pr-type-config")>()),
+  updatePRTypeConfigCoordination: coordination.update,
 }));
 
 import {
@@ -154,9 +159,7 @@ test("coordination and completion slices do not cross owner boundaries", async (
     locationMeetingPoints: {},
   };
   await updateAdminPRTypeConfigCoordination("study", coordinationInput);
-  assert.deepEqual(coordination.update.mock.calls[0], [
-    { type: "study", input: coordinationInput },
-  ]);
+  assert.deepEqual(coordination.update.mock.calls[0], ["study", coordinationInput]);
   assert.equal(repository.updateByType.mock.calls.length, 0);
 
   await updateAdminPRTypeConfigCompletion("study", { feedbackQuestionnaireTemplateId: 1 });

@@ -8,7 +8,6 @@ import {
   type JobDefinition,
   type JobExecutionDisposition,
   type JobExecutionResult,
-  type JobHandler,
   type ReleaseHeldReservationConfig,
   type ReleaseHeldReservationResult,
   type ReleaseHeldReservationsByCreationKeyPrefixConfig,
@@ -23,7 +22,6 @@ import {
   type ScheduleUntilAcknowledgedConfig,
 } from "./contracts";
 import type { ClaimedJob, JobCompletionStatus, JobStore } from "./job-store";
-import { createLegacyJobDefinition } from "./legacy-adapter";
 
 export type {
   ReleaseHeldReservationConfig,
@@ -47,8 +45,6 @@ export interface CreateJobRunnerOptions {
 
 export interface JobRunner {
   registerDefinition(definition: JobDefinition): void;
-  registerHandler(jobType: string, handler: JobHandler): void;
-  unregisterHandler(jobType: string): void;
   scheduleOnce(config: ScheduleOnceConfig): Promise<ScheduleOnceResult>;
   cancelPendingByDedupeSerialized(config: CancelPendingByDedupeSerializedConfig): Promise<number>;
   replacePendingByDedupe(
@@ -66,7 +62,6 @@ export interface JobRunner {
     config: ReleaseHeldReservationsByCreationKeyPrefixConfig,
   ): Promise<ReleaseHeldReservationsByCreationKeyPrefixResult>;
   cancelPendingJobsByDedupe(config: DeletePendingJobsByDedupeConfig): Promise<number>;
-  deletePendingJobsByDedupe(config: DeletePendingJobsByDedupeConfig): Promise<number>;
   runDueJobs(options?: RunDueJobsOptions): Promise<RunDueJobsSummary>;
   status(): {
     instanceId: string;
@@ -149,14 +144,6 @@ class JobRunnerImpl implements JobRunner {
     this.definitionsByType.set(definition.jobType, definitionsByVersion);
   }
 
-  registerHandler(jobType: string, handler: JobHandler): void {
-    this.registerDefinition(createLegacyJobDefinition({ jobType, handler }));
-  }
-
-  unregisterHandler(jobType: string): void {
-    this.definitionsByType.delete(jobType);
-  }
-
   scheduleOnce(config: ScheduleOnceConfig): Promise<ScheduleOnceResult> {
     return this.store.scheduleOnce(config);
   }
@@ -199,11 +186,6 @@ class JobRunnerImpl implements JobRunner {
 
   cancelPendingJobsByDedupe(config: DeletePendingJobsByDedupeConfig): Promise<number> {
     return this.store.cancelPendingJobsByDedupe(config);
-  }
-
-  /** @deprecated Compatibility name; it now preserves Job control history as CANCELED. */
-  deletePendingJobsByDedupe(config: DeletePendingJobsByDedupeConfig): Promise<number> {
-    return this.cancelPendingJobsByDedupe(config);
   }
 
   async runDueJobs(options: RunDueJobsOptions = {}): Promise<RunDueJobsSummary> {
@@ -405,7 +387,7 @@ export type {
   DeletePendingJobsByDedupeConfig,
   JobDefinition,
   JobExecutionDisposition,
-  JobHandler,
+  JobExecutionResult,
   JobHandlerContext,
   JobTransactionWriter,
   ReplacePendingByDedupeConfig,

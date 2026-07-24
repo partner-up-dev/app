@@ -1,7 +1,8 @@
-import type { PartnerRequestFields, PRId } from "../../../entities/partner-request";
+import type { PRId } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
 import { throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
+import type { PartnerRequestFields } from "../contracts/partner-request";
 import { createPRContentMeetingPointTransactionPort } from "../adapters/pr-content-meeting-point-transaction";
 import { createCoreFieldChangePRMessage } from "./create-pr-message";
 import {

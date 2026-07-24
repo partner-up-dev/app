@@ -43,5 +43,9 @@ The model must make it possible to derive slices from a lifecycle rather than fr
 The gate was satisfied before `5-2` resumed: the four subtasks agreed on the Order/CreateOrderAttempt boundary;
 Quote and provider-ID vocabulary; the query-versus-reconciliation shape for Ride detail; confirmed versus
 hypothesized Web read issues; and the resulting workstream map. Durable docs were promoted only after later
-source/scenario proof. The remaining `dispatchBinding` source-versus-durable conflict stays an explicit future
-characterization/promotion item, not a claim that this gate is still awaiting source work.
+source/scenario proof. **Historical C0 note:** the then-open
+`dispatchBinding` source-versus-durable conflict was later superseded by commit
+`171319de` and closed by the Phase 8 `8-5` source/read/write audit. Current
+source and durable truth both place provider binding on
+`ride_hailing_orders.dispatch_binding`; this sentence is retained only as
+provenance for the C0 decision point.

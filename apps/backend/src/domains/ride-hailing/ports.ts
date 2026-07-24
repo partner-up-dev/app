@@ -1,11 +1,6 @@
 import type { TradeOrderId } from "../../entities/trade-order";
-import type { BillLinePaymentExecutionSettlement } from "../bill/contracts";
-import type {
-  RideHailingFareCorrectionRequired,
-  RideHailingProviderBindingExpectation,
-  RideHailingProviderObservationForReconciliation,
-} from "./contracts";
 import type { RideHailingProviderInstance } from "../../entities/ride-hailing-provider";
+import type { BillLinePaymentExecutionSettlement } from "../bill/contracts";
 import type {
   RideHailingProviderCancelInput,
   RideHailingProviderCreateRideInput,
@@ -15,6 +10,11 @@ import type {
 } from "./model";
 import { resolveCaocaoOrderStatusCallbackUrl } from "./services/caocao-provider";
 import { createRideHailingProviderPort } from "./services/ride-hailing-provider-registry";
+
+export type {
+  RideHailingReconciliationTransactionPort,
+  RideHailingTerminalSettlementObservation,
+} from "./contracts";
 
 /**
  * Trade-facing provider capability. It intentionally omits raw callback
@@ -43,50 +43,6 @@ export type RideHailingDispatchPort = {
     cancelFeeFen: number;
     providerSnapshot: unknown;
   }>;
-};
-
-/**
- * RideHailing owns the short atomic commits that reconcile a provider
- * observation or qualifying BillLine settlement with local Trade/Ride/Bill
- * facts and its causally keyed Job. The Port exposes semantic inputs only:
- * neither provider I/O nor repositories/executors can cross it.
- */
-export type RideHailingReconciliationTransactionPort = {
-  applyProviderObservation(input: {
-    orderId: string;
-    expectedBinding: RideHailingProviderBindingExpectation;
-    observation: RideHailingProviderObservationForReconciliation;
-    observedAt: string;
-  }): Promise<{
-    mutated: boolean;
-    effectiveExecutionPhase: NonNullable<
-      RideHailingProviderObservationForReconciliation["executionPhase"]
-    >;
-  }>;
-  commitTerminalSettlement(input: {
-    orderId: string;
-    expectedBinding: RideHailingProviderBindingExpectation;
-    settlement: RideHailingTerminalSettlementObservation;
-  }): Promise<{
-    mutated: boolean;
-    correctionRequired: RideHailingFareCorrectionRequired | null;
-  }>;
-  settlePaymentAndScheduleFeeConfirmation(input: {
-    billLineId: string;
-    paymentProviderInstanceId: string;
-    attemptCount: number;
-    settledAt: string;
-  }): Promise<BillLinePaymentExecutionSettlement>;
-};
-
-/**
- * The terminal fare facts required by the atomic commit. Raw provider payloads
- * remain in provider adapters and are not a Transaction Port concern.
- */
-export type RideHailingTerminalSettlementObservation = {
-  amountFen: number;
-  currency: "CNY";
-  providerOrderId: string;
 };
 
 export function createRideHailingDispatchPort(input: {
@@ -146,4 +102,22 @@ export async function synchronizeRideHailingBeforeCancellation(input: {
     orderId: input.orderId as TradeOrderId,
     trigger: input.purpose === "FEE_PREVIEW" ? "CANCEL_FEE_PREVIEW" : "CANCEL_REQUEST",
   });
+}
+
+/**
+ * Trade-facing settlement capability. Dynamic loading keeps the persistence
+ * adapter and its dependency graph private to RideHailing while preserving
+ * the adapter's single transaction and fee-confirmation scheduling order.
+ */
+export async function settleRideHailingPaymentAndScheduleFeeConfirmation(input: {
+  billLineId: string;
+  paymentProviderInstanceId: string;
+  attemptCount: number;
+  settledAt: string;
+}): Promise<BillLinePaymentExecutionSettlement> {
+  const { createRideHailingReconciliationTransactionPort } =
+    await import("./adapters/ride-hailing-reconciliation-transaction");
+  return await createRideHailingReconciliationTransactionPort().settlePaymentAndScheduleFeeConfirmation(
+    input,
+  );
 }

@@ -21,7 +21,7 @@ export type {
   DeletePendingJobsByDedupeConfig,
   JobDefinition,
   JobExecutionDisposition,
-  JobHandler,
+  JobExecutionResult,
   JobHandlerContext,
   JobTransactionWriter,
   ReleaseHeldReservationConfig,

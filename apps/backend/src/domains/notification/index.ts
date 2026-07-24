@@ -2,6 +2,8 @@ export {
   acknowledgeNotification,
   cancelNotification,
   clearPRMessageNotificationPermission,
+  createWeChatNotificationSubscriptionCommands,
+  getWeChatNotificationSubscriptions,
   invalidateNotification,
   requestNotification,
   updatePRMessageNotificationSubscription,
@@ -11,6 +13,14 @@ export type {
   PRMessageNotificationSubscriptionState,
   PRMessageNotificationSubscriptionUpdate,
   PRMessageNotificationSubscriptionUpdateResult,
+  WeChatNotificationSubscription,
+  WeChatNotificationSubscriptionAction,
+  WeChatNotificationSubscriptionCommands,
+  WeChatNotificationSubscriptionKind,
+  WeChatNotificationSubscriptionMutationResult,
+  WeChatNotificationSubscriptionReconciliationPort,
+  WeChatNotificationSubscriptions,
+  WeChatNotificationSubscriptionUpdateResult,
 } from "./commands";
 export {
   businessNotificationChannelSchema,

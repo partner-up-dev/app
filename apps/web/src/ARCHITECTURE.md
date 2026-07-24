@@ -141,11 +141,14 @@ Within a domain:
 
 1. `ui/surfaces` -> `ui/sections`, `ui/composites`, `use-cases`, `queries`, `model`
 2. `ui/sections` -> `ui/composites`, `use-cases`, `queries`, `model`
-3. `ui/composites` -> `ui/primitives`, `model`
+3. `ui/composites` -> `ui/primitives`, `queries`, `model`
 4. `ui/primitives` -> `model` only when domain-owned
-5. `use-cases` -> `queries`, `commands`, `model`, `shared`
-6. `queries` / `commands` -> transport and shared infrastructure
+5. `use-cases` -> `queries`, `commands`, `adapters`, `model`, `shared`
+6. `queries` / `commands` / `adapters` -> transport and shared infrastructure
 7. `model` -> domain logic and generic shared helpers only
+
+A composite may import a query only when it deliberately owns a canonical read behind a stable, id-based deep
+interface. Keep caller-owned context in props and do not distribute that query across usage sites.
 
 Forbidden:
 
@@ -169,15 +172,11 @@ Forbidden:
   while pages/UI own placement and presentation.
 - Query keys come from the central key registry rather than page-local arrays.
 
-## Current Compatibility Windows
+## Current Compatibility Window
 
-These are Current exceptions, not examples for new code:
+This is a Current exception, not an example for new code:
 
 - `pages/WeChatOAuthCallbackPage.vue` performs the OAuth callback exchange at the route boundary.
-- `pages/BIEntryPage.vue` performs the current BI admin-session entry exchange.
-- `domains/pr/ui/primitives/PRPreviewCard.vue` performs its canonical PR read by id under the focused PR UI contract.
-- Historical model-to-query and model-to-RPC edges are captured by the architecture-fitness baseline and migrate
-  through their owning slices; they must not widen.
 
 Each exception must remain path-specific, keep its owner/reason/removal condition in the current task baseline,
 and be re-reviewed when its surrounding workflow changes. File size, import-edge counts and SCCs remain review

@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import type {
-  FeedbackQuestionnaireAnswers,
-  FeedbackQuestionnaireDefinition,
-} from "../../../entities/feedback-questionnaire";
+import type { FeedbackQuestionnaireAnswers, FeedbackQuestionnaireDefinition } from "../contracts";
 import { ProblemDetailsError } from "../../../lib/problem-details";
 import { assertFeedbackAnswersMatchDefinition } from "./answer-validation.service";
 

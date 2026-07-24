@@ -1,17 +1,15 @@
-import type {
-  PartnerId,
-  PartnerRequest,
-  PRId,
-  PRJoinGateConfig,
-  PRJoinGateConfigItem,
-  PRJoinGateSource,
-  UserId,
-} from "../../../entities";
-import { normalizePRJoinGateConfig, prJoinNoticeGateConfigSchema } from "../../../entities";
+import type { PartnerId, PartnerRequest, PRId, UserId } from "../../../entities";
 import { ProblemDetailsError, throwHttpProblem } from "../../../lib/problem-details";
 import { PartnerRequestRepository } from "../../../repositories/PartnerRequestRepository";
 import { PRJoinNoticeAcceptanceRepository } from "../../../repositories/PRJoinNoticeAcceptanceRepository";
 import type { RepositoryExecutor } from "../../../repositories/_executor";
+import {
+  normalizePRJoinGateConfig,
+  type PRJoinGateConfig,
+  type PRJoinGateConfigItem,
+  type PRJoinGateSource,
+  prJoinNoticeGateConfigSchema,
+} from "../contracts/join-gate";
 import { assertPRDraftAccess, type PRDraftActor } from "./draft-access-policy.service";
 
 const prRepo = new PartnerRequestRepository();

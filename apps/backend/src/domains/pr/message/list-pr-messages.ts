@@ -9,7 +9,7 @@ const messageRepo = new PRMessageRepository();
 
 export async function listPRMessages(
   prId: PRId,
-  viewerUserId: UserId,
+  viewerUserId: UserId | null,
   actor: PRDraftActor = { userId: viewerUserId, roles: ["anonymous"] },
 ) {
   await requirePRMessageParticipantAccess(prId, viewerUserId, actor);

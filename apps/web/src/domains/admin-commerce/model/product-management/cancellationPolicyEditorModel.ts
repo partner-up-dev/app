@@ -1,4 +1,4 @@
-import type { AdminSkuCancellationPolicyInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
+import type { SkuCancellationPolicyValue } from "@/domains/admin-commerce/model/product-management/productValues";
 import {
   createDraftId,
   parseIntegerField,
@@ -28,7 +28,7 @@ export type PolicyBuildLabels = {
   refundPercentLabel: string;
 };
 
-export const emptyPolicyInput = (): AdminSkuCancellationPolicyInput => ({
+export const emptyPolicyInput = (): SkuCancellationPolicyValue => ({
   operatorBufferMinutes: 30,
   tiers: [
     {
@@ -42,7 +42,7 @@ export const emptyPolicyInput = (): AdminSkuCancellationPolicyInput => ({
   ],
 });
 
-export const toPolicyForm = (input: AdminSkuCancellationPolicyInput): PolicyEditorForm => ({
+export const toPolicyForm = (input: SkuCancellationPolicyValue): PolicyEditorForm => ({
   operatorBufferMinutes: input.operatorBufferMinutes,
   tiers: input.tiers.map((tier) => ({
     id: createDraftId("tier"),
@@ -69,7 +69,7 @@ export const createCancellationTierDraft = (): CancellationTierDraft => ({
 export const buildPolicyInput = (
   form: PolicyEditorForm,
   labels: PolicyBuildLabels,
-): AdminSkuCancellationPolicyInput => ({
+): SkuCancellationPolicyValue => ({
   operatorBufferMinutes: parseIntegerField(
     form.operatorBufferMinutes,
     labels.operatorBufferMinutesLabel,

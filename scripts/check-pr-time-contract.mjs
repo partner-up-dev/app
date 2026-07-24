@@ -5,15 +5,22 @@ const read = (path) => readFileSync(resolve(path), "utf8");
 
 const checks = [
   {
-    file: "apps/backend/src/entities/partner-request.ts",
+    file: "apps/backend/src/domains/pr/contracts/partner-request.ts",
     message: "PR time schema must allow offset datetime instants.",
     pass: (content) =>
       content.includes("const instantDateTimeSchema = z.string().datetime({ offset: true });"),
   },
   {
-    file: "apps/backend/src/entities/partner-request.ts",
+    file: "apps/backend/src/domains/pr/contracts/partner-request.ts",
     message: "Persisted PR time schema must not use date-or-datetime union.",
     pass: (content) => !content.includes("isoDateOrDateTimeSchema"),
+  },
+  {
+    file: "apps/backend/src/entities/partner-request.ts",
+    message: "PR entity compatibility must re-export the owner time contract.",
+    pass: (content) =>
+      content.includes('from "../domains/pr/contracts/partner-request"') &&
+      content.includes("partnerRequestFieldsSchema"),
   },
   {
     file: "apps/web/src/lib/validation.ts",

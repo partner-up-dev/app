@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { PRId } from "@partner-up-dev/backend";
+import { cacheXiaohongshuSharePoster } from "@/domains/share/adapters/share-command-adapter";
 import type { PRShareData } from "@/domains/share/model/types";
 import { useAppScheme } from "@/domains/share/use-cases/xhs/useAppScheme";
 import { useGenerateXiaohongshuCaption } from "@/domains/share/queries/useGenerateXiaohongshuCaption";
@@ -9,7 +10,6 @@ import { renderPosterHtmlToBlob } from "@/domains/share/use-cases/poster/renderH
 import { useCloudStorage } from "@/shared/upload/useCloudStorage";
 import { isWeChatBrowser } from "@/shared/browser/isWeChatBrowser";
 import { buildProductShareUrl, type ShareSpmRouteKey } from "@/shared/url/spm";
-import { client } from "@/lib/rpc";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
   TIMING_CONSTANTS,
@@ -191,13 +191,11 @@ export const useShareToXiaohongshu = ({
 
       if (isRemoteUrl(nextPosterUrl)) {
         try {
-          await client.api.share.xiaohongshu["cache-poster"].$post({
-            json: {
-              prId,
-              caption: currentCaption,
-              posterStylePrompt: posterStylePrompt.value,
-              posterUrl: nextPosterUrl,
-            },
+          await cacheXiaohongshuSharePoster({
+            prId,
+            caption: currentCaption,
+            posterStylePrompt: posterStylePrompt.value,
+            posterUrl: nextPosterUrl,
           });
         } catch (cacheError) {
           console.warn("Failed to cache poster URL:", cacheError);

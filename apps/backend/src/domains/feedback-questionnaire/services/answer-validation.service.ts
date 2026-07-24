@@ -1,8 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  FeedbackQuestionnaireAnswers,
-  FeedbackQuestionnaireDefinition,
-} from "../../../entities/feedback-questionnaire";
+import type { FeedbackQuestionnaireAnswers, FeedbackQuestionnaireDefinition } from "../contracts";
 
 type FeedbackAnswer = FeedbackQuestionnaireAnswers[string];
 type SingleChoiceAnswer = { type: "single_choice"; value: string };

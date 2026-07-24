@@ -111,6 +111,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { toProductSkuValue } from "@/domains/admin-commerce/adapters/adminCommerceRpcAdapter";
 import {
   buildSkuInput,
   emptySkuInput,
@@ -148,15 +149,7 @@ watch(
       return;
     }
 
-    skuForm.value = toSkuForm({
-      name: record.sku.name,
-      status: record.sku.status,
-      sortOrder: record.sku.sortOrder,
-      presentation: record.sku.presentation,
-      facts: record.sku.facts,
-      pricingModel: record.sku.pricingModel,
-      cancellationPolicyRef: record.sku.cancellationPolicyRef ?? null,
-    });
+    skuForm.value = toSkuForm(toProductSkuValue(record.sku));
   },
   { immediate: true },
 );
@@ -187,7 +180,7 @@ const handleSaveSku = async () => {
     if (isCreatingSku.value) {
       const result = await createSkuMutation.mutateAsync({
         spuId: selectedSpuId.value,
-        ...input,
+        input,
       });
       context.completeSkuCreate(result.id);
       return;

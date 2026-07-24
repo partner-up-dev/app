@@ -70,9 +70,9 @@ function parseSource(relativePath, source) {
   const imports = [];
   const rawRpc = [];
 
-  function addImport(node, specifier, typeOnly, kind) {
+  function addImport(node, specifier, typeOnly, kind, wildcard = false) {
     const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-    imports.push({ kind, line: position.line + 1, specifier, typeOnly });
+    imports.push({ kind, line: position.line + 1, specifier, typeOnly, wildcard });
   }
 
   function visit(node) {
@@ -83,7 +83,13 @@ function parseSource(relativePath, source) {
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      addImport(node, node.moduleSpecifier.text, node.isTypeOnly, "export");
+      addImport(
+        node,
+        node.moduleSpecifier.text,
+        node.isTypeOnly,
+        "export",
+        node.exportClause === undefined,
+      );
     } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
@@ -344,6 +350,112 @@ export function scanArchitecture(repositoryRoot) {
     },
     findings,
     unresolved,
+  };
+}
+
+const CONTRACT_FACADE_FORBIDDEN_TARGETS = [
+  /\/entities\//u,
+  /\/repositories\//u,
+  /\/services\//u,
+  /\/adapters\//u,
+  /\/user-event-registry\.ts$/u,
+];
+
+/**
+ * Trace the Backend package type facade through relative imports/exports.
+ * The facade itself is type-export-only; owner contract leaves may contain
+ * runtime validators, but their graph must not reach persistence or
+ * implementation modules.
+ */
+export function scanBackendContractFacade(repositoryRoot, entry = "apps/backend/src/contracts.ts") {
+  const absoluteRoot = path.resolve(repositoryRoot);
+  const pending = [entry];
+  const visited = new Set();
+  const edges = [];
+  const violations = [];
+
+  while (pending.length > 0) {
+    const sourceFile = pending.pop();
+    if (!sourceFile || visited.has(sourceFile)) continue;
+    visited.add(sourceFile);
+
+    const absoluteFile = path.join(absoluteRoot, sourceFile);
+    if (!fs.existsSync(absoluteFile)) {
+      violations.push({
+        kind: "missing-module",
+        source: sourceFile,
+        target: sourceFile,
+      });
+      continue;
+    }
+
+    const source = fs.readFileSync(absoluteFile, "utf8");
+    const parsed = parseSource(sourceFile, source);
+    for (const imported of parsed.imports) {
+      if (!imported.specifier.startsWith(".") && !imported.specifier.startsWith("@/")) {
+        continue;
+      }
+
+      const target = resolveImport(absoluteRoot, sourceFile, imported.specifier);
+      if (!target) {
+        violations.push({
+          kind: "unresolved-relative-edge",
+          source: sourceFile,
+          specifier: imported.specifier,
+        });
+        continue;
+      }
+
+      edges.push({
+        kind: imported.kind,
+        source: sourceFile,
+        target,
+        typeOnly: imported.typeOnly,
+        wildcard: imported.wildcard,
+      });
+
+      if (sourceFile === entry) {
+        if (imported.kind !== "export" || !imported.typeOnly) {
+          violations.push({
+            kind: "facade-value-edge",
+            source: sourceFile,
+            target,
+          });
+        }
+        if (imported.wildcard) {
+          violations.push({
+            kind: "facade-wildcard-export",
+            source: sourceFile,
+            target,
+          });
+        }
+      }
+
+      if (CONTRACT_FACADE_FORBIDDEN_TARGETS.some((pattern) => pattern.test(`/${target}`))) {
+        violations.push({
+          kind: "forbidden-contract-dependency",
+          source: sourceFile,
+          target,
+        });
+      }
+
+      pending.push(target);
+    }
+  }
+
+  return {
+    entry,
+    files: [...visited].sort(),
+    edges: edges.sort((left, right) =>
+      [left.source, left.target, left.kind]
+        .join("|")
+        .localeCompare([right.source, right.target, right.kind].join("|")),
+    ),
+    violations: violations.sort((left, right) =>
+      [left.kind, left.source, left.target ?? left.specifier ?? ""]
+        .join("|")
+        .localeCompare([right.kind, right.source, right.target ?? right.specifier ?? ""].join("|")),
+    ),
   };
 }
 

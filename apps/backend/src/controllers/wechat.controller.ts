@@ -6,12 +6,11 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { clearAnonymousSessionCookie, readAnonymousSessionCookie } from "../auth/anonymous-session";
-import { type AuthEnv, authMiddleware, issuePublicAuthForUser } from "../auth/middleware";
+import { type AuthEnv, authMiddleware, issuePublicAuthForIdentity } from "../auth/middleware";
 import {
-  cancelNotification,
-  type PRMessageNotificationSubscriptionAction,
-  type PRMessageNotificationSubscriptionUpdateResult,
-  updatePRMessageNotificationSubscription,
+  createWeChatNotificationSubscriptionCommands,
+  getWeChatNotificationSubscriptions,
+  type WeChatNotificationSubscriptionKind,
 } from "../domains/notification";
 import {
   reconcileActivityStartRemindersForRecipient,
@@ -20,15 +19,15 @@ import {
 import { AUTHENTICATED_REQUIRED_CODE } from "../domains/pr/contracts";
 import { reconcileAlternativeWaitlistNotificationsForUserSources } from "../domains/pr/ports";
 import {
-  bindWeChatToCurrentUser,
-  classifyCurrentPublicUser,
-  upgradeAnonymousUserWithWeChat,
+  completeWeChatOAuthIdentity,
+  fillMissingWeChatProfileFields,
+  findCurrentPublicUserIdentity,
+  getActiveUserWeChatBindingState,
+  getOfficialAccountFollowStatus,
+  type CurrentPublicUserIdentity,
 } from "../domains/user";
-import { hasUserRole, type User, type UserId } from "../entities/user";
-import {
-  type WeChatNotificationKind,
-  wechatNotificationKindSchema,
-} from "../entities/user-notification-opt";
+import type { UserId } from "../entities/user";
+import { wechatNotificationKindSchema } from "../entities/user-notification-opt";
 import { env } from "../lib/env";
 import { resolveConfiguredFrontendReturnTo } from "../lib/frontend-origin";
 import { ProblemDetailsError, throwHttpProblem } from "../lib/problem-details";
@@ -36,8 +35,6 @@ import {
   isWeChatAbilityMockingEnabled,
   resolveWeChatAbilityMockOpenId,
 } from "../lib/wechat-ability-mocking";
-import { UserNotificationOptRepository } from "../repositories/UserNotificationOptRepository";
-import { UserRepository } from "../repositories/UserRepository";
 import { WeChatJssdkService } from "../services/WeChatJssdkService";
 import { type WeChatOAuthLoginSession, WeChatOAuthService } from "../services/WeChatOAuthService";
 import { WeChatSubscriptionMessageService } from "../services/WeChatSubscriptionMessageService";
@@ -45,9 +42,15 @@ import { WeChatSubscriptionMessageService } from "../services/WeChatSubscription
 const app = new Hono<AuthEnv>();
 const jssdkService = new WeChatJssdkService();
 const oauthService = new WeChatOAuthService();
-const userRepo = new UserRepository();
-const userNotificationOptRepo = new UserNotificationOptRepository();
 const subscriptionMessageService = new WeChatSubscriptionMessageService();
+
+const wechatNotificationSubscriptionCommands = createWeChatNotificationSubscriptionCommands({
+  reconciliationPort: {
+    reconcileConfirmationRemindersForRecipient,
+    reconcileActivityStartRemindersForRecipient,
+    reconcileAlternativeWaitlistNotificationsForUserSources,
+  },
+});
 
 const OAUTH_STATE_COOKIE_NAME = "wechat_oauth_state";
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
@@ -358,195 +361,41 @@ const buildAuthenticatedSubscriptionsResponse = async (
   configured: boolean;
   authenticated: boolean;
   wechatBound: boolean;
-  subscriptions: Record<WeChatNotificationKind, NotificationSubscriptionState>;
+  subscriptions: Record<WeChatNotificationSubscriptionKind, NotificationSubscriptionState>;
 }> => {
-  const notificationOpt = await userNotificationOptRepo.findByUserId(userId);
-  const channels = await buildNotificationChannelState();
+  const [subscriptions, channels] = await Promise.all([
+    getWeChatNotificationSubscriptions(userId),
+    buildNotificationChannelState(),
+  ]);
 
-  const reminder = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "REMINDER_CONFIRMATION",
-  );
-  const activityStartReminder = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "ACTIVITY_START_REMINDER",
-  );
-  const newPartner = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "NEW_PARTNER",
-  );
-  const prMessage = userNotificationOptRepo.getSubscriptionSnapshot(notificationOpt, "PR_MESSAGE");
-  const meetingPointUpdated = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "MEETING_POINT_UPDATED",
-  );
-  const prReady = userNotificationOptRepo.getSubscriptionSnapshot(notificationOpt, "PR_READY");
-  const waitlistPromoted = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "WAITLIST_PROMOTED",
-  );
-  const waitlistAlternativeAvailable = userNotificationOptRepo.getSubscriptionSnapshot(
-    notificationOpt,
-    "WAITLIST_ALTERNATIVE_AVAILABLE",
-  );
+  const project = (
+    kind: WeChatNotificationSubscriptionKind,
+    channel: Pick<
+      NotificationSubscriptionState,
+      "configured" | "requiresOpenSubscribe" | "templateId"
+    >,
+  ): NotificationSubscriptionState => ({
+    ...subscriptions[kind],
+    ...channel,
+  });
 
   return {
     configured: true,
     authenticated: true,
     wechatBound: true,
     subscriptions: {
-      REMINDER_CONFIRMATION: {
-        enabled: reminder.enabled,
-        optInAt: reminder.optInAt ? reminder.optInAt.toISOString() : null,
-        remainingCount: reminder.remainingCount,
-        configured: channels.reminder.configured,
-        requiresOpenSubscribe: channels.reminder.requiresOpenSubscribe,
-        templateId: channels.reminder.templateId,
-      },
-      ACTIVITY_START_REMINDER: {
-        enabled: activityStartReminder.enabled,
-        optInAt: activityStartReminder.optInAt ? activityStartReminder.optInAt.toISOString() : null,
-        remainingCount: activityStartReminder.remainingCount,
-        configured: channels.activityStartReminder.configured,
-        requiresOpenSubscribe: channels.activityStartReminder.requiresOpenSubscribe,
-        templateId: channels.activityStartReminder.templateId,
-      },
-      NEW_PARTNER: {
-        enabled: newPartner.enabled,
-        optInAt: newPartner.optInAt ? newPartner.optInAt.toISOString() : null,
-        remainingCount: newPartner.remainingCount,
-        configured: channels.newPartner.configured,
-        requiresOpenSubscribe: channels.newPartner.requiresOpenSubscribe,
-        templateId: channels.newPartner.templateId,
-      },
-      PR_MESSAGE: {
-        enabled: prMessage.enabled,
-        optInAt: prMessage.optInAt ? prMessage.optInAt.toISOString() : null,
-        remainingCount: prMessage.remainingCount,
-        configured: channels.prMessage.configured,
-        requiresOpenSubscribe: channels.prMessage.requiresOpenSubscribe,
-        templateId: channels.prMessage.templateId,
-      },
-      MEETING_POINT_UPDATED: {
-        enabled: meetingPointUpdated.enabled,
-        optInAt: meetingPointUpdated.optInAt ? meetingPointUpdated.optInAt.toISOString() : null,
-        remainingCount: meetingPointUpdated.remainingCount,
-        configured: channels.meetingPointUpdated.configured,
-        requiresOpenSubscribe: channels.meetingPointUpdated.requiresOpenSubscribe,
-        templateId: channels.meetingPointUpdated.templateId,
-      },
-      PR_READY: {
-        enabled: prReady.enabled,
-        optInAt: prReady.optInAt ? prReady.optInAt.toISOString() : null,
-        remainingCount: prReady.remainingCount,
-        configured: channels.prReady.configured,
-        requiresOpenSubscribe: channels.prReady.requiresOpenSubscribe,
-        templateId: channels.prReady.templateId,
-      },
-      WAITLIST_PROMOTED: {
-        enabled: waitlistPromoted.enabled,
-        optInAt: waitlistPromoted.optInAt ? waitlistPromoted.optInAt.toISOString() : null,
-        remainingCount: waitlistPromoted.remainingCount,
-        configured: channels.waitlistPromoted.configured,
-        requiresOpenSubscribe: channels.waitlistPromoted.requiresOpenSubscribe,
-        templateId: channels.waitlistPromoted.templateId,
-      },
-      WAITLIST_ALTERNATIVE_AVAILABLE: {
-        enabled: waitlistAlternativeAvailable.enabled,
-        optInAt: waitlistAlternativeAvailable.optInAt
-          ? waitlistAlternativeAvailable.optInAt.toISOString()
-          : null,
-        remainingCount: waitlistAlternativeAvailable.remainingCount,
-        configured: channels.waitlistAlternativeAvailable.configured,
-        requiresOpenSubscribe: channels.waitlistAlternativeAvailable.requiresOpenSubscribe,
-        templateId: channels.waitlistAlternativeAvailable.templateId,
-      },
+      REMINDER_CONFIRMATION: project("REMINDER_CONFIRMATION", channels.reminder),
+      ACTIVITY_START_REMINDER: project("ACTIVITY_START_REMINDER", channels.activityStartReminder),
+      NEW_PARTNER: project("NEW_PARTNER", channels.newPartner),
+      PR_MESSAGE: project("PR_MESSAGE", channels.prMessage),
+      MEETING_POINT_UPDATED: project("MEETING_POINT_UPDATED", channels.meetingPointUpdated),
+      PR_READY: project("PR_READY", channels.prReady),
+      WAITLIST_PROMOTED: project("WAITLIST_PROMOTED", channels.waitlistPromoted),
+      WAITLIST_ALTERNATIVE_AVAILABLE: project(
+        "WAITLIST_ALTERNATIVE_AVAILABLE",
+        channels.waitlistAlternativeAvailable,
+      ),
     },
-  };
-};
-
-const applyNotificationSubscriptionSideEffects = async (
-  userId: UserId,
-  kind: WeChatNotificationKind,
-  previousRemainingCount: number,
-  nextRemainingCount: number,
-): Promise<number> => {
-  if (kind === "REMINDER_CONFIRMATION") {
-    if (nextRemainingCount <= 0) {
-      const cancellation = await cancelNotification({
-        template: "pr.confirmation-reminder",
-        recipientUserId: userId,
-        scope: { kind: "RECIPIENT" },
-      });
-      return cancellation.canceled;
-    }
-
-    const reconciliation = await reconcileConfirmationRemindersForRecipient({
-      recipientUserId: userId,
-    });
-    return reconciliation.canceled;
-  }
-
-  if (kind === "ACTIVITY_START_REMINDER") {
-    if (nextRemainingCount <= 0) {
-      const cancellation = await cancelNotification({
-        template: "pr.activity-start-reminder",
-        recipientUserId: userId,
-        scope: { kind: "RECIPIENT" },
-      });
-      return cancellation.canceled;
-    }
-
-    const reconciliation = await reconcileActivityStartRemindersForRecipient({
-      recipientUserId: userId,
-    });
-    return reconciliation.canceled;
-  }
-
-  if (
-    kind === "WAITLIST_ALTERNATIVE_AVAILABLE" &&
-    previousRemainingCount <= 0 &&
-    nextRemainingCount > 0
-  ) {
-    await reconcileAlternativeWaitlistNotificationsForUserSources(userId);
-    return 0;
-  }
-
-  return 0;
-};
-
-type PRMessageSubscriptionControllerDependencies = {
-  updateSubscription(input: {
-    recipientUserId: string;
-    action: PRMessageNotificationSubscriptionAction;
-  }): Promise<PRMessageNotificationSubscriptionUpdateResult>;
-};
-
-const prMessageSubscriptionControllerDependencies: PRMessageSubscriptionControllerDependencies = {
-  updateSubscription: updatePRMessageNotificationSubscription,
-};
-
-/**
- * Converts the authenticated PR-message subscription protocol onto
- * Notification's serialized command. Generic window invalidation remains
- * private to Notification.
- */
-export const applyPRMessageNotificationSubscriptionUpdate = async (
-  userId: UserId,
-  action: PRMessageNotificationSubscriptionAction,
-  dependencies: PRMessageSubscriptionControllerDependencies = prMessageSubscriptionControllerDependencies,
-): Promise<{
-  update: PRMessageNotificationSubscriptionUpdateResult;
-  deletedJobs: number;
-}> => {
-  const update = await dependencies.updateSubscription({
-    recipientUserId: userId,
-    action,
-  });
-
-  return {
-    update,
-    deletedJobs: update.invalidated.canceled,
   };
 };
 
@@ -827,20 +676,29 @@ const throwOAuthPublicIdentityNotAllowed = (): never =>
     type: "https://partner-up.app/problems/wechat.oauth_public_identity_not_allowed",
   });
 
-const assertOAuthPublicAuthenticatedUser = (user: User): void => {
-  const identity = classifyCurrentPublicUser(user);
+const issueOAuthCallbackAuthForIdentity = (
+  c: Context<AuthEnv>,
+  identity: CurrentPublicUserIdentity | null,
+): OAuthCallbackAuthPayload => {
   if (!identity || identity.role !== "authenticated") {
-    throwOAuthPublicIdentityNotAllowed();
+    return throwOAuthPublicIdentityNotAllowed();
   }
+
+  const authenticated = issuePublicAuthForIdentity(identity);
+  c.set("auth", authenticated);
+
+  return {
+    role: "authenticated",
+    roles: ["authenticated"],
+    userId: identity.userId,
+    accessToken: authenticated.token,
+  };
 };
 
-function assertOAuthPublicAuthenticatedAuth(
-  auth: ReturnType<typeof issuePublicAuthForUser>,
-): asserts auth is NonNullable<ReturnType<typeof issuePublicAuthForUser>> {
-  if (!auth || auth.role !== "authenticated") {
-    throwOAuthPublicIdentityNotAllowed();
-  }
-}
+const toAuthenticatedPublicIdentity = (userId: UserId): CurrentPublicUserIdentity => ({
+  userId,
+  role: "authenticated",
+});
 
 const throwOAuthHandoffProblem = (
   c: Context<AuthEnv>,
@@ -849,26 +707,6 @@ const throwOAuthHandoffProblem = (
   c.set("suppressAccessTokenHeader", true);
   return throwHttpProblem(input);
 };
-
-const issueOAuthCallbackAuth = async (
-  c: Context<AuthEnv>,
-  user: User,
-): Promise<OAuthCallbackAuthPayload> => {
-  assertOAuthPublicAuthenticatedUser(user);
-  const authenticated = issuePublicAuthForUser(user);
-  assertOAuthPublicAuthenticatedAuth(authenticated);
-  c.set("auth", authenticated);
-
-  return {
-    role: "authenticated",
-    roles: ["authenticated"],
-    userId: user.id,
-    accessToken: authenticated.token,
-  };
-};
-
-const hasMissingWeChatProfile = (user: Pick<User, "nickname" | "sex" | "avatar">): boolean =>
-  !user.nickname || user.sex === null || !user.avatar;
 
 const fetchAndApplyWeChatProfileIfMissing = async (input: {
   userId: UserId;
@@ -880,7 +718,7 @@ const fetchAndApplyWeChatProfileIfMissing = async (input: {
       input.session.openId,
       input.session.scope,
     );
-    await userRepo.updateWeChatProfileFieldsIfMissing({
+    await fillMissingWeChatProfileFields({
       userId: input.userId,
       nickname: profile.nickname,
       sex: profile.sex,
@@ -892,17 +730,18 @@ const fetchAndApplyWeChatProfileIfMissing = async (input: {
 };
 
 const scheduleWeChatProfileRefreshIfMissing = (input: {
-  user: Pick<User, "id" | "nickname" | "sex" | "avatar">;
+  userId: UserId;
+  needsProfileRefresh: boolean;
   session: WeChatOAuthLoginSession | null;
 }): void => {
   const session = input.session;
-  if (!session || !hasMissingWeChatProfile(input.user)) {
+  if (!session || !input.needsProfileRefresh) {
     return;
   }
 
   setTimeout(() => {
     void fetchAndApplyWeChatProfileIfMissing({
-      userId: input.user.id,
+      userId: input.userId,
       session,
     });
   }, 0);
@@ -911,7 +750,8 @@ const scheduleWeChatProfileRefreshIfMissing = (input: {
 const resolveAuthenticatedBoundUser = async (
   c: Context,
 ): Promise<
-  { ok: true; user: User } | { ok: false; status: 401; payload: { error: string; code: string } }
+  | { ok: true; userId: UserId }
+  | { ok: false; status: 401; payload: { error: string; code: string } }
 > => {
   let userId: UserId;
   try {
@@ -927,8 +767,8 @@ const resolveAuthenticatedBoundUser = async (
     };
   }
 
-  const user = await userRepo.findById(userId);
-  if (!user || user.status !== "ACTIVE") {
+  const binding = await getActiveUserWeChatBindingState(userId);
+  if (binding.state === "UNAVAILABLE") {
     return {
       ok: false,
       status: 401,
@@ -939,7 +779,7 @@ const resolveAuthenticatedBoundUser = async (
     };
   }
 
-  if (!user.openId) {
+  if (binding.state === "UNBOUND") {
     return {
       ok: false,
       status: 401,
@@ -952,7 +792,7 @@ const resolveAuthenticatedBoundUser = async (
 
   return {
     ok: true,
-    user,
+    userId,
   };
 };
 
@@ -985,18 +825,7 @@ export const wechatRoute = app
       });
     }
 
-    const user = await userRepo.findById(userId);
-    if (!user || user.status !== "ACTIVE" || !user.wechatOfficialAccountFollowedAt) {
-      return c.json({
-        status: "UNKNOWN" as const,
-        followedAt: null,
-      });
-    }
-
-    return c.json({
-      status: "FOLLOWED" as const,
-      followedAt: user.wechatOfficialAccountFollowedAt.toISOString(),
-    });
+    return c.json(await getOfficialAccountFollowStatus(userId));
   })
   .get("/notifications/subscriptions", async (c) => {
     if (!isOAuthRuntimeAvailable()) {
@@ -1015,7 +844,7 @@ export const wechatRoute = app
       });
     }
 
-    return c.json(await buildAuthenticatedSubscriptionsResponse(identity.user.id));
+    return c.json(await buildAuthenticatedSubscriptionsResponse(identity.userId));
   })
   .post(
     "/notifications/subscriptions",
@@ -1031,67 +860,35 @@ export const wechatRoute = app
       }
 
       const { kind, action } = c.req.valid("json");
-      if (kind === "PR_MESSAGE") {
-        let conversion: Awaited<ReturnType<typeof applyPRMessageNotificationSubscriptionUpdate>>;
-        try {
-          conversion = await applyPRMessageNotificationSubscriptionUpdate(identity.user.id, action);
-        } catch (error) {
-          if (
-            error instanceof Error &&
-            error.message === "PR_MESSAGE_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED"
-          ) {
-            return c.json({ error: "Failed to update notification subscription" }, 500);
-          }
-          throw error;
-        }
-
-        const fullState = await buildAuthenticatedSubscriptionsResponse(identity.user.id);
-        const selectedState = fullState.subscriptions.PR_MESSAGE;
-        return c.json({
-          ok: true,
+      let update: Awaited<ReturnType<typeof wechatNotificationSubscriptionCommands.update>>;
+      try {
+        update = await wechatNotificationSubscriptionCommands.update({
+          userId: identity.userId,
           kind,
           action,
-          enabled: conversion.update.current.preferred,
-          optInAt: selectedState.optInAt,
-          remainingCount: conversion.update.current.remainingCredit,
-          configured: selectedState.configured,
-          deletedJobs: conversion.deletedJobs,
         });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message === "PR_MESSAGE_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED" ||
+            error.message === "WECHAT_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED")
+        ) {
+          return c.json({ error: "Failed to update notification subscription" }, 500);
+        }
+        throw error;
       }
 
-      const currentNotificationOpt = await userNotificationOptRepo.findByUserId(identity.user.id);
-      const previousSnapshot = userNotificationOptRepo.getSubscriptionSnapshot(
-        currentNotificationOpt,
-        kind,
-      );
-      const updatedNotificationOpt =
-        action === "ADD_ONE"
-          ? await userNotificationOptRepo.addOneWechatNotificationCredit(identity.user.id, kind)
-          : await userNotificationOptRepo.clearWechatNotificationCredits(identity.user.id, kind);
-      if (!updatedNotificationOpt) {
-        return c.json({ error: "Failed to update notification subscription" }, 500);
-      }
-      const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
-        updatedNotificationOpt,
-        kind,
-      );
-      const deletedJobs = await applyNotificationSubscriptionSideEffects(
-        identity.user.id,
-        kind,
-        previousSnapshot.remainingCount,
-        snapshot.remainingCount,
-      );
-      const fullState = await buildAuthenticatedSubscriptionsResponse(identity.user.id);
+      const fullState = await buildAuthenticatedSubscriptionsResponse(identity.userId);
       const selectedState = fullState.subscriptions[kind];
       return c.json({
         ok: true,
         kind,
         action,
-        enabled: snapshot.enabled,
-        optInAt: snapshot.optInAt ? snapshot.optInAt.toISOString() : null,
-        remainingCount: snapshot.remainingCount,
+        enabled: update.enabled,
+        optInAt: update.optInAt,
+        remainingCount: update.remainingCount,
         configured: selectedState.configured,
-        deletedJobs,
+        deletedJobs: update.deletedJobs,
       });
     },
   )
@@ -1124,7 +921,7 @@ export const wechatRoute = app
       });
     }
 
-    const fullState = await buildAuthenticatedSubscriptionsResponse(identity.user.id);
+    const fullState = await buildAuthenticatedSubscriptionsResponse(identity.userId);
     const reminder = fullState.subscriptions.REMINDER_CONFIRMATION;
 
     return c.json({
@@ -1150,40 +947,35 @@ export const wechatRoute = app
       }
 
       const { enabled } = c.req.valid("json");
-      const currentNotificationOpt = await userNotificationOptRepo.findByUserId(identity.user.id);
-      const previousSnapshot = userNotificationOptRepo.getSubscriptionSnapshot(
-        currentNotificationOpt,
-        "REMINDER_CONFIRMATION",
-      );
-      const updatedNotificationOpt =
-        await userNotificationOptRepo.setWechatNotificationRemainingCount(
-          identity.user.id,
-          "REMINDER_CONFIRMATION",
-          enabled ? 1 : 0,
-        );
-      if (!updatedNotificationOpt) {
-        return c.json({ error: "Failed to update reminder subscription" }, 500);
+      let update: Awaited<
+        ReturnType<typeof wechatNotificationSubscriptionCommands.setConfirmation>
+      >;
+      try {
+        update = await wechatNotificationSubscriptionCommands.setConfirmation({
+          userId: identity.userId,
+          enabled,
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message === "PR_MESSAGE_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED" ||
+            error.message === "WECHAT_NOTIFICATION_SUBSCRIPTION_WRITE_FAILED")
+        ) {
+          return c.json({ error: "Failed to update reminder subscription" }, 500);
+        }
+        throw error;
       }
-      const snapshot = userNotificationOptRepo.getSubscriptionSnapshot(
-        updatedNotificationOpt,
-        "REMINDER_CONFIRMATION",
-      );
-      const deletedJobs = await applyNotificationSubscriptionSideEffects(
-        identity.user.id,
-        "REMINDER_CONFIRMATION",
-        previousSnapshot.remainingCount,
-        snapshot.remainingCount,
-      );
-      const fullState = await buildAuthenticatedSubscriptionsResponse(identity.user.id);
+
+      const fullState = await buildAuthenticatedSubscriptionsResponse(identity.userId);
       const reminder = fullState.subscriptions.REMINDER_CONFIRMATION;
 
       return c.json({
         ok: true,
-        enabled: snapshot.enabled,
-        optInAt: snapshot.optInAt ? snapshot.optInAt.toISOString() : null,
-        remainingCount: snapshot.remainingCount,
+        enabled: update.enabled,
+        optInAt: update.optInAt,
+        remainingCount: update.remainingCount,
         configured: fullState.configured && reminder.configured,
-        deletedJobs,
+        deletedJobs: update.deletedJobs,
       });
     },
   )
@@ -1263,11 +1055,11 @@ export const wechatRoute = app
       return c.json({ error: message }, 401);
     }
 
-    const currentUser = await userRepo.findById(currentUserId);
-    if (!currentUser) {
+    const currentBinding = await getActiveUserWeChatBindingState(currentUserId);
+    if (currentBinding.state === "UNAVAILABLE") {
       return c.json({ error: "Authenticated user not found" }, 404);
     }
-    if (currentUser.openId) {
+    if (currentBinding.state === "BOUND") {
       return c.json({ error: "Current user is already bound to WeChat" }, 409);
     }
 
@@ -1328,8 +1120,8 @@ export const wechatRoute = app
       });
     }
 
-    const user = await userRepo.findById(payload.userId as UserId);
-    if (!user || user.status !== "ACTIVE") {
+    const identity = await findCurrentPublicUserIdentity(payload.userId as UserId);
+    if (!identity || identity.role !== "authenticated") {
       return throwOAuthHandoffProblem(c, {
         status: 403,
         detail: "OAuth identity is not eligible for a public session",
@@ -1340,7 +1132,7 @@ export const wechatRoute = app
 
     let authPayload: OAuthCallbackAuthPayload;
     try {
-      authPayload = await issueOAuthCallbackAuth(c, user);
+      authPayload = issueOAuthCallbackAuthForIdentity(c, identity);
     } catch (error) {
       c.set("suppressAccessTokenHeader", true);
       throw error;
@@ -1366,22 +1158,18 @@ export const wechatRoute = app
 
       return c.redirect(returnTo, 302);
     };
-    const respondAuthenticatedSuccess = async (returnTo: string, user: User) => {
+    const respondAuthenticatedSuccess = async (
+      returnTo: string,
+      identity: CurrentPublicUserIdentity,
+    ) => {
       if (!isOAuthCallbackNavigationRequest(c)) {
-        const authPayload = await issueOAuthCallbackAuth(c, user);
+        const authPayload = issueOAuthCallbackAuthForIdentity(c, identity);
         return c.json({ ok: true, returnTo, auth: authPayload });
       }
 
-      const handoffPayload = buildOAuthHandoffPayload(user.id);
+      const handoffPayload = buildOAuthHandoffPayload(identity.userId);
       await setOAuthHandoffCookie(c, handoffPayload);
       return c.redirect(appendOAuthHandoffToReturnTo(returnTo, handoffPayload.nonce), 302);
-    };
-    const resolveActiveUserById = async (userId: UserId): Promise<User> => {
-      const user = await userRepo.findById(userId);
-      if (!user || user.status !== "ACTIVE") {
-        throw new Error("Authenticated user not found");
-      }
-      return user;
     };
 
     const { code, state } = c.req.valid("query");
@@ -1444,45 +1232,20 @@ export const wechatRoute = app
           throw new Error("Mock WeChat openid is not configured");
         }
 
-        const occupiedUser = await userRepo.findByOpenId(bindOpenId);
-        if (occupiedUser && occupiedUser.status === "ACTIVE") {
-          clearAnonymousSessionCookie(c);
-          clearOAuthStateCookieByNonce(c, state);
-          clearOAuthStateCookie(c);
-          assertOAuthPublicAuthenticatedUser(occupiedUser);
-
-          return await respondAuthenticatedSuccess(
-            appendBindResultToReturnTo(statePayload.returnTo, "success"),
-            occupiedUser,
-          );
-        }
-
-        const bindTargetUser = await resolveActiveUserById(statePayload.bindUserId as UserId);
-        let boundUser: User;
-
-        if (hasUserRole(bindTargetUser.role, "anonymous")) {
-          const upgraded = await upgradeAnonymousUserWithWeChat({
-            userId: bindTargetUser.id,
-            openId: bindOpenId,
-            profile: null,
-          });
-          if (!upgraded) {
-            throw new Error("Failed to upgrade anonymous user");
-          }
-          boundUser = await resolveActiveUserById(upgraded.userId);
-        } else {
-          await bindWeChatToCurrentUser(bindTargetUser.id, bindOpenId);
-          boundUser = await resolveActiveUserById(bindTargetUser.id);
-        }
+        const boundIdentity = await completeWeChatOAuthIdentity({
+          mode: "BIND",
+          targetUserId: statePayload.bindUserId as UserId,
+          openId: bindOpenId,
+        });
+        const stableBoundIdentity = toAuthenticatedPublicIdentity(boundIdentity.userId);
 
         clearAnonymousSessionCookie(c);
         clearOAuthStateCookieByNonce(c, state);
         clearOAuthStateCookie(c);
-        assertOAuthPublicAuthenticatedUser(boundUser);
 
         return await respondAuthenticatedSuccess(
           appendBindResultToReturnTo(statePayload.returnTo, "success"),
-          boundUser,
+          stableBoundIdentity,
         );
       }
 
@@ -1501,85 +1264,26 @@ export const wechatRoute = app
         throw new Error("Mock WeChat openid is not configured");
       }
 
-      const existingUser = await userRepo.findByOpenId(loginOpenId);
-      if (existingUser) {
-        scheduleWeChatProfileRefreshIfMissing({
-          user: existingUser,
-          session: loginSession,
-        });
-        clearAnonymousSessionCookie(c);
-        clearOAuthStateCookieByNonce(c, state);
-        clearOAuthStateCookie(c);
-        return await respondAuthenticatedSuccess(statePayload.returnTo, existingUser);
-      }
-
       const bindCandidateUserId =
         (statePayload.bindUserId as UserId | null) ??
         (statePayload.anonymousUserId as UserId | null) ??
         readSessionUserId(c);
-      if (bindCandidateUserId) {
-        const bindCandidateUser = await userRepo.findById(bindCandidateUserId);
-        if (
-          bindCandidateUser &&
-          bindCandidateUser.status === "ACTIVE" &&
-          !bindCandidateUser.openId
-        ) {
-          let boundCandidate: User | null = null;
-          if (hasUserRole(bindCandidateUser.role, "anonymous")) {
-            const upgraded = await upgradeAnonymousUserWithWeChat({
-              userId: bindCandidateUser.id,
-              openId: loginOpenId,
-              profile: null,
-            });
-            if (upgraded) {
-              boundCandidate = await resolveActiveUserById(upgraded.userId);
-              scheduleWeChatProfileRefreshIfMissing({
-                user: boundCandidate,
-                session: loginSession,
-              });
-            }
-          } else {
-            await bindWeChatToCurrentUser(bindCandidateUser.id, loginOpenId);
-            boundCandidate = await userRepo.findById(bindCandidateUser.id);
-            if (boundCandidate) {
-              scheduleWeChatProfileRefreshIfMissing({
-                user: boundCandidate,
-                session: loginSession,
-              });
-            }
-          }
-
-          if (boundCandidate && boundCandidate.status === "ACTIVE") {
-            clearAnonymousSessionCookie(c);
-            clearOAuthStateCookieByNonce(c, state);
-            clearOAuthStateCookie(c);
-            return await respondAuthenticatedSuccess(statePayload.returnTo, boundCandidate);
-          }
-        }
-      }
-
-      const createdUser = await userRepo.createIfNotExists({
-        id: randomUUID() as UserId,
+      const loginIdentity = await completeWeChatOAuthIdentity({
+        mode: "LOGIN",
+        candidateUserId: bindCandidateUserId,
         openId: loginOpenId,
-        role: ["authenticated"],
-        status: "ACTIVE",
-        nickname: null,
-        sex: null,
-        avatar: null,
       });
-      const resolvedUser = createdUser ?? (await userRepo.findByOpenId(loginOpenId));
-      if (!resolvedUser || resolvedUser.status !== "ACTIVE") {
-        throw new Error("Failed to create user for WeChat OAuth login");
-      }
+      const stableLoginIdentity = toAuthenticatedPublicIdentity(loginIdentity.userId);
       scheduleWeChatProfileRefreshIfMissing({
-        user: resolvedUser,
+        userId: loginIdentity.userId,
+        needsProfileRefresh: loginIdentity.needsProfileRefresh,
         session: loginSession,
       });
 
       clearAnonymousSessionCookie(c);
       clearOAuthStateCookieByNonce(c, state);
       clearOAuthStateCookie(c);
-      return await respondAuthenticatedSuccess(statePayload.returnTo, resolvedUser);
+      return await respondAuthenticatedSuccess(statePayload.returnTo, stableLoginIdentity);
     } catch (error) {
       clearOAuthStateCookieByNonce(c, state);
       clearOAuthStateCookie(c);

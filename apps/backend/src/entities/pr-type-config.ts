@@ -11,10 +11,13 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { prJoinGateConfigSchema } from "../domains/pr/contracts/join-gate";
+import {
+  meetingPointConfigMapSchema,
+  meetingPointConfigSchema,
+} from "../domains/pr/contracts/meeting-point";
+import { prRouteSchema } from "../domains/pr/contracts/partner-request";
 import { feedbackQuestionnaireTemplates } from "./feedback-questionnaire";
-import { prJoinGateConfigSchema } from "./join-gate";
-import { meetingPointConfigMapSchema, meetingPointConfigSchema } from "./meeting-point";
-import { prRouteSchema } from "./partner-request";
 
 /** Discovery assignment weights. Consumers resolve an all-zero tuple to LIST. */
 export const prTypeConfigDiscoveryRatioSchema = z.number().int().nonnegative();

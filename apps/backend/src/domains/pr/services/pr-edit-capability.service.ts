@@ -1,10 +1,7 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type {
-  PartnerRequest,
-  PartnerRequestFields,
-  PRAllowEditAfterReady,
-} from "../../../entities/partner-request";
+import type { PartnerRequest } from "../../../entities/partner-request";
 import type { UserId } from "../../../entities/user";
+import type { PartnerRequestFields, PRAllowEditAfterReady } from "../contracts/partner-request";
 import { parseTimeWindowDate } from "./time-window.service";
 
 export type PREditableField =

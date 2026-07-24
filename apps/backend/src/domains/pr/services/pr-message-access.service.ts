@@ -16,7 +16,7 @@ export type PRMessageParticipantAccess = {
 
 export async function requirePRMessageParticipantAccess(
   prId: PRId,
-  userId: UserId,
+  userId: UserId | null,
   actor: PRDraftActor = { userId, roles: ["anonymous"] },
 ): Promise<PRMessageParticipantAccess> {
   const request = await prRepo.findById(prId);
@@ -25,6 +25,10 @@ export async function requirePRMessageParticipantAccess(
   }
 
   assertPRDraftAccess({ request, actor, operation: "participant-flow" });
+
+  if (!userId) {
+    return throwHttpProblem({ status: 401, detail: "Authentication required" });
+  }
 
   const participant = await partnerRepo.findActiveByPrIdAndUserId(prId, userId);
   if (!participant) {

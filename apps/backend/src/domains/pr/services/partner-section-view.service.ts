@@ -1,4 +1,4 @@
-import type { PRStatus } from "../../../entities/partner-request";
+import type { PRStatus } from "../contracts/partner-request";
 import type { UserId } from "../../../entities/user";
 import type {
   ActiveParticipantSummary,

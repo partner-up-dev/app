@@ -6,8 +6,13 @@ import { test } from "vitest";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/test";
 
-const { detectImageContentType, imageUploadPurposes, readStoredImage, saveImageFile } =
-  await import("./image-storage.service");
+const { imageUploadPurposes } = await import("./contracts");
+const {
+  detectImageContentType,
+  imageUploadPurposes: compatibilityImageUploadPurposes,
+  readStoredImage,
+  saveImageFile,
+} = await import("./image-storage.service");
 
 const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
 
@@ -22,6 +27,7 @@ const withTempRoot = async (fn: (rootDir: string) => Promise<void>): Promise<voi
 
 test("image upload purposes expose only active storage contracts", () => {
   assert.deepEqual(imageUploadPurposes, ["poster", "poi", "feedback"]);
+  assert.equal(compatibilityImageUploadPurposes, imageUploadPurposes);
 });
 
 test("detectImageContentType detects supported file headers", () => {

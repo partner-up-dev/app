@@ -20,6 +20,20 @@ export type {
   PRMessageNotificationSubscriptionUpdate,
   PRMessageNotificationSubscriptionUpdateResult,
 } from "./pr-message-subscription";
+export {
+  createWeChatNotificationSubscriptionCommands,
+  getWeChatNotificationSubscriptions,
+} from "./wechat-notification-subscriptions";
+export type {
+  WeChatNotificationSubscription,
+  WeChatNotificationSubscriptionAction,
+  WeChatNotificationSubscriptionCommands,
+  WeChatNotificationSubscriptionKind,
+  WeChatNotificationSubscriptionMutationResult,
+  WeChatNotificationSubscriptionReconciliationPort,
+  WeChatNotificationSubscriptions,
+  WeChatNotificationSubscriptionUpdateResult,
+} from "./wechat-notification-subscriptions";
 
 /**
  * Requests a business notification. Notification owns timing, Job creation,

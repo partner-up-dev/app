@@ -1,12 +1,12 @@
-import type { AdminProductSpuInput } from "@/domains/admin-commerce/queries/useAdminCommerce";
+import type { ProductSpuValue } from "@/domains/admin-commerce/model/product-management/productValues";
 import {
   createDraftId,
   parseIntegerField,
   type NumberInput,
 } from "@/domains/admin-commerce/model/product-management/shared";
 
-type RentalServicePolicy = Extract<AdminProductSpuInput["servicePolicy"], { type: "RENTAL" }>;
-type QuantityPolicyType = AdminProductSpuInput["salesPolicy"]["quantityPolicy"]["type"];
+type RentalServicePolicy = Extract<ProductSpuValue["servicePolicy"], { type: "RENTAL" }>;
+type QuantityPolicyType = ProductSpuValue["salesPolicy"]["quantityPolicy"]["type"];
 
 export type FactValueKind = "string" | "number" | "boolean" | "null" | "preserve";
 
@@ -44,8 +44,8 @@ export type FactEntryDraft = {
 
 export type SpuEditorForm = {
   name: string;
-  productType: AdminProductSpuInput["productType"];
-  status: AdminProductSpuInput["status"];
+  productType: ProductSpuValue["productType"];
+  status: ProductSpuValue["status"];
   quantityPolicyType: QuantityPolicyType;
   fixedQuantity: NumberInput;
   userSelectedMin: NumberInput;
@@ -91,7 +91,7 @@ export const defaultRentalServicePolicy = (): RentalServicePolicy => ({
   requiresNationalId: false,
 });
 
-export const emptySpuInput = (): AdminProductSpuInput => ({
+export const emptySpuInput = (): ProductSpuValue => ({
   name: "",
   productType: "RENTAL",
   status: "DRAFT",
@@ -144,7 +144,7 @@ const toFactDrafts = (facts: Record<string, unknown>): FactEntryDraft[] =>
   });
 
 const toParameterGroups = (
-  groups: AdminProductSpuInput["presentation"]["parameterGroups"],
+  groups: ProductSpuValue["presentation"]["parameterGroups"],
 ): ProductParameterGroupDraft[] =>
   groups.map((group) => ({
     id: createDraftId("parameter-group"),
@@ -157,7 +157,7 @@ const toParameterGroups = (
   }));
 
 const toNoticeBlocks = (
-  blocks: AdminProductSpuInput["presentation"]["noticeBlocks"],
+  blocks: ProductSpuValue["presentation"]["noticeBlocks"],
 ): ProductNoticeBlockDraft[] =>
   blocks.map((block) => ({
     id: createDraftId("notice"),
@@ -165,7 +165,7 @@ const toNoticeBlocks = (
     content: block.content,
   }));
 
-export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
+export const toSpuForm = (input: ProductSpuValue): SpuEditorForm => {
   const quantityPolicy = input.salesPolicy.quantityPolicy;
   const rentalPolicy =
     input.servicePolicy.type === "RENTAL" ? input.servicePolicy : defaultRentalServicePolicy();
@@ -197,7 +197,7 @@ export const toSpuForm = (input: AdminProductSpuInput): SpuEditorForm => {
 const buildQuantityPolicy = (
   form: SpuEditorForm,
   labels: SpuBuildLabels,
-): AdminProductSpuInput["salesPolicy"]["quantityPolicy"] => {
+): ProductSpuValue["salesPolicy"]["quantityPolicy"] => {
   if (form.quantityPolicyType === "PER_PARTICIPANT") {
     return { type: "PER_PARTICIPANT" };
   }
@@ -241,7 +241,7 @@ const assertTimeOfDay = (value: string, label: string): string => {
 const buildServicePolicy = (
   form: SpuEditorForm,
   labels: SpuBuildLabels,
-): AdminProductSpuInput["servicePolicy"] => {
+): ProductSpuValue["servicePolicy"] => {
   if (form.productType === "RIDE_HAILING") {
     return { type: "RIDE_HAILING" };
   }
@@ -295,7 +295,7 @@ const buildFactsRecord = (
   return record;
 };
 
-const buildPresentation = (form: SpuEditorForm): AdminProductSpuInput["presentation"] => ({
+const buildPresentation = (form: SpuEditorForm): ProductSpuValue["presentation"] => ({
   heroImageAssetIds: buildStringList(form.heroImageAssetIds),
   detailImageAssetIds: buildStringList(form.detailImageAssetIds),
   sellingPoints: buildStringList(form.sellingPoints),
@@ -318,10 +318,7 @@ const buildPresentation = (form: SpuEditorForm): AdminProductSpuInput["presentat
     .filter((block) => block.title.length > 0 || block.content.length > 0),
 });
 
-export const buildSpuInput = (
-  form: SpuEditorForm,
-  labels: SpuBuildLabels,
-): AdminProductSpuInput => ({
+export const buildSpuInput = (form: SpuEditorForm, labels: SpuBuildLabels): ProductSpuValue => ({
   name: form.name.trim(),
   productType: form.productType,
   status: form.status,

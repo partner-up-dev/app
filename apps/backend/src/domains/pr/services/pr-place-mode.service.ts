@@ -1,5 +1,5 @@
 import { throwHttpProblem } from "../../../lib/problem-details";
-import type { PartnerRequestFields, PRRoute } from "../../../entities/partner-request";
+import type { PartnerRequestFields, PRRoute } from "../contracts/partner-request";
 
 export const PR_PLACE_MODE_CONFLICT_CODE = "PR_PLACE_MODE_CONFLICT";
 const ROUTE_SUMMARY_MAX_LENGTH = 16;

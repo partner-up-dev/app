@@ -160,7 +160,7 @@ import OtherPRTypesSection from "@/domains/pr/ui/discovery/list/OtherPRTypesSect
 import PRDiscoveryCommunityCard from "@/domains/pr/ui/discovery/list/PRDiscoveryCommunityCard.vue";
 import PRDiscoveryCreateCard from "@/domains/pr/ui/discovery/list/PRDiscoveryCreateCard.vue";
 import PRDiscoveryCreationSuggestionCard from "@/domains/pr/ui/discovery/list/PRDiscoveryCreationSuggestionCard.vue";
-import PRPreviewCard from "@/domains/pr/ui/primitives/PRPreviewCard.vue";
+import PRPreviewCard from "@/domains/pr/ui/composites/PRPreviewCard.vue";
 import {
   buildPRDiscoveryDirectCreateCommand,
   buildPRDiscoverySuggestionCreateCommand,

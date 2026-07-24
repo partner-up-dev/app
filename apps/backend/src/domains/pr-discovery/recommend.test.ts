@@ -17,12 +17,6 @@ vi.mock("../pr/queries", async () => {
     readVisiblePartnerRequestsByType: mocks.findRequests,
   };
 });
-vi.mock("../pr/contracts", async () => {
-  const { derivePRPreferenceCategory, normalizePRPreferenceLabels } =
-    await import("../pr/services/preference-normalization");
-  return { derivePRPreferenceCategory, normalizePRPreferenceLabels };
-});
-
 vi.mock("../../repositories/PRTypeConfigRepository", () => ({
   PRTypeConfigRepository: class {
     findByType = mocks.findConfig;

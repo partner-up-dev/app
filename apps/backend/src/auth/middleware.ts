@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono";
 import type { User, UserId, UserRole } from "../entities/user";
+import type { CurrentPublicUserIdentity, OperatorCredentialIdentity } from "../domains/user";
 import { classifyCurrentPublicUser, findCurrentPublicUserIdentity } from "../domains/user/queries";
 import { isAuthenticatedAuthRole, type AuthRole, type RequestAuth } from "./types";
 import { issueAccessToken, shouldRenewAccessToken, verifyAccessToken } from "./jwt";
@@ -149,8 +150,14 @@ export const issueAnonymousAuth = (userId: UserId | null = null): RequestAuth =>
 export const issueUserAuth = (userId: UserId): RequestAuth =>
   issueRoleAuth(userId, ["authenticated"]);
 
-export const issueOperatorAuthForUser = (user: Pick<User, "id" | "role">): RequestAuth =>
-  issueRoleAuth(user.id, mapOperatorUserRolesToAuthRoles(user.role));
+export const issueOperatorAuthForIdentity = (identity: OperatorCredentialIdentity): RequestAuth =>
+  issueRoleAuth(identity.userId, mapOperatorUserRolesToAuthRoles(identity.roles));
+
+/** Issue a public-session token only from a User-owned validated identity. */
+export const issuePublicAuthForIdentity = (identity: CurrentPublicUserIdentity): RequestAuth =>
+  identity.role === "anonymous"
+    ? issueAnonymousAuth(identity.userId)
+    : issueRoleAuth(identity.userId, [identity.role]);
 
 /** Issue only a public-session token; operator roles are never minted here. */
 export const issuePublicAuthForUser = (
@@ -158,7 +165,5 @@ export const issuePublicAuthForUser = (
 ): RequestAuth | null => {
   const identity = classifyCurrentPublicUser(user);
   if (!identity) return null;
-  return identity.role === "anonymous"
-    ? issueAnonymousAuth(identity.userId)
-    : issueRoleAuth(identity.userId, [identity.role]);
+  return issuePublicAuthForIdentity(identity);
 };

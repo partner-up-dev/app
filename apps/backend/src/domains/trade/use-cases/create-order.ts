@@ -23,7 +23,7 @@ import { RideHailingOrderRepository } from "../../../repositories/RideHailingOrd
 import { RideHailingProviderInstanceRepository } from "../../../repositories/RideHailingProviderInstanceRepository";
 import { SkuCancellationPolicyRepository } from "../../../repositories/SkuCancellationPolicyRepository";
 import { TradeOrderRepository } from "../../../repositories/TradeOrderRepository";
-import { areThereAnyUnpaidPayableBillLines } from "../../bill/queries";
+import { areThereAnyUnpaidPayableBillLines } from "../../bill/contracts";
 import {
   isRideHailingSkuFacts,
   type PriceExplanation,

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { InferResponseType } from "hono";
 import { computed, onScopeDispose, type Ref, watch } from "vue";
+import { toCreateOrderRequest } from "@/domains/commerce/adapters/create-order-adapter";
+import type { CreateOrderValue } from "@/domains/commerce/model/ordering-content";
 import {
   useRideHailingOrderReconciliation,
   useRideHailingProviderObservation,
@@ -27,9 +29,8 @@ export type OfferListingResponse = InferResponseType<
   CommerceApi["offers"][":offerId"]["listing"]["$post"]
 >;
 
-export type CreateOrderInput = Parameters<CommerceApi["orders"]["$post"]>[0]["json"];
 export type CreateOrderMutationInput = {
-  command: CreateOrderInput;
+  command: CreateOrderValue;
   idempotencyKey: string;
 };
 
@@ -205,7 +206,7 @@ export const useCreateOrder = () => {
       const response = await client.api.commerce.orders.$post(
         {
           header: { "idempotency-key": input.idempotencyKey },
-          json: input.command,
+          json: toCreateOrderRequest(input.command),
         },
         {
           init: {

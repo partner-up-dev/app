@@ -165,14 +165,15 @@
 import { PuButton, PuCard, PuInlineNotice, PuLoadingState } from "@partner-up-dev/design-web";
 import { computed, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { toAdminPRTypeConfigDraft } from "@/domains/admin/adapters/pr-type-config-adapter";
 import {
   clonePRTypeConfigDraft,
   mergeSavedSlice,
+  type AdminPRTypeConfigDraft,
   type PRTypeConfigSection,
   resetPRTypeConfigDraft,
 } from "@/domains/admin/model/pr-type-config-editor";
 import {
-  type AdminPRTypeConfigDraft,
   AdminPRTypeConfigRequestError,
   useAdminPRTypeConfigCatalog,
   useAdminPRTypeConfigDetail,
@@ -236,13 +237,6 @@ const isExistingConfig = computed(() => editorState.value === "existing");
 const setInvalid = (section: PRTypeConfigSection, invalid: boolean) => {
   invalidSlices[section] = invalid;
 };
-const toDraft = (detail: NonNullable<typeof detailQuery.data.value>): AdminPRTypeConfigDraft => ({
-  authoring: structuredClone(detail.authoring),
-  discovery: structuredClone(detail.discovery),
-  participation: structuredClone(detail.participation),
-  coordination: structuredClone(detail.coordination),
-  completion: structuredClone(detail.completion),
-});
 
 watch(selectedType, () => {
   form.value = null;
@@ -255,7 +249,10 @@ watch(
   (state) => {
     if (form.value || !selectedType.value) return;
     if (state === "existing" && detailQuery.data.value)
-      form.value = resetPRTypeConfigDraft(selectedType.value, toDraft(detailQuery.data.value));
+      form.value = resetPRTypeConfigDraft(
+        selectedType.value,
+        toAdminPRTypeConfigDraft(detailQuery.data.value),
+      );
     if (state === "new") form.value = resetPRTypeConfigDraft(selectedType.value);
   },
   { immediate: true },
@@ -312,7 +309,7 @@ const completionProps = computed(() => ({
 
 const save = async () => {
   if (form.value && selectedType.value && isNewConfig.value && !hasInvalidSlice.value) {
-    form.value = toDraft(
+    form.value = toAdminPRTypeConfigDraft(
       await saveMutation.mutateAsync({
         type: selectedType.value,
         input: clonePRTypeConfigDraft(form.value),
@@ -330,46 +327,56 @@ const saveSlice = async (section: PRTypeConfigSection) => {
     form.value = mergeSavedSlice(
       form.value,
       section,
-      await authoringMutation.mutateAsync({
-        type: selectedType.value,
-        input: form.value.authoring,
-      }),
+      toAdminPRTypeConfigDraft(
+        await authoringMutation.mutateAsync({
+          type: selectedType.value,
+          input: form.value.authoring,
+        }),
+      ),
     );
   if (section === "discovery")
     form.value = mergeSavedSlice(
       form.value,
       section,
-      await discoveryMutation.mutateAsync({
-        type: selectedType.value,
-        input: form.value.discovery,
-      }),
+      toAdminPRTypeConfigDraft(
+        await discoveryMutation.mutateAsync({
+          type: selectedType.value,
+          input: form.value.discovery,
+        }),
+      ),
     );
   if (section === "participation")
     form.value = mergeSavedSlice(
       form.value,
       section,
-      await participationMutation.mutateAsync({
-        type: selectedType.value,
-        input: form.value.participation,
-      }),
+      toAdminPRTypeConfigDraft(
+        await participationMutation.mutateAsync({
+          type: selectedType.value,
+          input: form.value.participation,
+        }),
+      ),
     );
   if (section === "coordination")
     form.value = mergeSavedSlice(
       form.value,
       section,
-      await coordinationMutation.mutateAsync({
-        type: selectedType.value,
-        input: form.value.coordination,
-      }),
+      toAdminPRTypeConfigDraft(
+        await coordinationMutation.mutateAsync({
+          type: selectedType.value,
+          input: form.value.coordination,
+        }),
+      ),
     );
   if (section === "completion")
     form.value = mergeSavedSlice(
       form.value,
       section,
-      await completionMutation.mutateAsync({
-        type: selectedType.value,
-        input: form.value.completion,
-      }),
+      toAdminPRTypeConfigDraft(
+        await completionMutation.mutateAsync({
+          type: selectedType.value,
+          input: form.value.completion,
+        }),
+      ),
     );
 };
 const saveAuthoring = () => saveSlice("authoring");
