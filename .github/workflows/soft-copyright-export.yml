@@ -1,0 +1,29 @@
+name: Temporary soft copyright export
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - tools/export_partner_up_source.py
+      - .github/workflows/soft-copyright-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install reportlab
+      - run: python tools/export_partner_up_source.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: partner-up-source-identification-material
+          path: soft-copyright-source/source-program-identification-material.zip
+          if-no-files-found: error
