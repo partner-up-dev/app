@@ -65,36 +65,35 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path("tests/scenario/manual/software-manual-capture.scenario.test.ts")
           s = p.read_text()
-          s = s.replace(
+          s, count = re.subn(
+              r'''      await page\.goto\("/prd"\);\n      await page\.getByText\("羽毛球约球", \{ exact: true \}\)\.waitFor\(\{\n        state: "visible",\n        timeout: 15_000,\n      \}\);\n      await page\.getByText\("羽毛球约球", \{ exact: true \}\)\.scrollIntoViewIfNeeded\(\);''',
               '''      await page.goto("/prd");
-                    await page.getByText("羽毛球约球", { exact: true }).waitFor({
-                      state: "visible",
-                      timeout: 15_000,
-                    });
-                    await page.getByText("羽毛球约球", { exact: true }).scrollIntoViewIfNeeded();
-                    await captureViewport(page, "02-discovery-catalog");''',
-              '''      await page.goto("/prd");
-                    const catalogItem = page
-                      .getByTestId("prd.catalog.item")
-                      .filter({ hasText: "羽毛球约球" })
-                      .first();
-                    await catalogItem.waitFor({ state: "visible", timeout: 15_000 });
-                    await catalogItem.scrollIntoViewIfNeeded();
-                    await captureViewport(page, "02-discovery-catalog");''',
+              const catalogItem = page
+                .getByTestId("prd.catalog.item")
+                .filter({ hasText: "羽毛球约球" })
+                .first();
+              await catalogItem.waitFor({ state: "visible", timeout: 15_000 });
+              await catalogItem.scrollIntoViewIfNeeded();''',
+              s,
+          )
+          if count != 1:
+              raise SystemExit(f"catalog locator replacement count was {count}, expected 1")
+
+          s = s.replace(
+              'page.getByText("周六下午羽毛球双打", { exact: true }).waitFor(',
+              'page.getByText("周六下午羽毛球双打", { exact: true }).first().waitFor(',
           )
           s = s.replace(
-              'await page.getByText("周六下午羽毛球双打", { exact: true }).waitFor({',
-              'await page.getByText("周六下午羽毛球双打", { exact: true }).first().waitFor({',
+              'page.getByText("林晓", { exact: true }).waitFor(',
+              'page.getByText("林晓", { exact: true }).first().waitFor(',
           )
           s = s.replace(
-              'await page.getByText("林晓", { exact: true }).waitFor({',
-              'await page.getByText("林晓", { exact: true }).first().waitFor({',
-          )
-          s = s.replace(
-              'await page.getByText("陈然", { exact: true }).waitFor({',
-              'await page.getByText("陈然", { exact: true }).first().waitFor({',
+              'page.getByText("陈然", { exact: true }).waitFor(',
+              'page.getByText("陈然", { exact: true }).first().waitFor(',
           )
           s = s.replace(
               'await page.getByTestId("pr-detail.share.open").click();\n      await captureViewport(page, "11-share-sheet");',
@@ -102,6 +101,7 @@ jobs:
           )
           p.write_text(s)
           PY
+          grep -n -A10 -B2 'catalogItem' tests/scenario/manual/software-manual-capture.scenario.test.ts
 
       - name: Capture stateful mobile workflows
         shell: bash
