@@ -1,0 +1,30 @@
+name: Temporary soft copyright source snapshot
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - '.github/workflows/temporary-soft-copyright-source-snapshot.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 30f51b96e2498b4b85014552512a31a7345d86cb
+          fetch-depth: 1
+      - name: Archive relevant source
+        run: |
+          tar -czf partner-up-relevant-source.tar.gz \
+            package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version .npmrc \
+            apps/backend apps/web packages tests scripts \
+            --exclude='**/node_modules' --exclude='**/dist' --exclude='**/.turbo'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: partner-up-relevant-source
+          path: partner-up-relevant-source.tar.gz
+          retention-days: 3
