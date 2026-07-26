@@ -107,10 +107,22 @@ jobs:
           )
           if confirm_count != 1:
               raise SystemExit(f"participant wait replacement count was {confirm_count}, expected 1")
+
+          s, pairing_count = re.subn(
+              r'''\n      await page\.goto\(`/pr/\$\{mainPr\.id\}/pairing-code`\);\n      await page\.getByTestId\("pr-pairing-code\.code"\)\.waitFor\(\{ state: "visible", timeout: 15_000 \}\);\n      await captureViewport\(page, "12-pairing-code"\);''',
+              '',
+              s,
+          )
+          if pairing_count != 1:
+              raise SystemExit(f"pairing-code removal count was {pairing_count}, expected 1")
+          s = s.replace('      "12-pairing-code.png",\n', '')
           p.write_text(s)
           PY
-          grep -n -A10 -B2 'catalogItem' tests/scenario/manual/software-manual-capture.scenario.test.ts
           grep -n -A8 -B4 '10-participant-state' tests/scenario/manual/software-manual-capture.scenario.test.ts
+          if grep -q 'pr-pairing-code.code' tests/scenario/manual/software-manual-capture.scenario.test.ts; then
+            echo 'pairing code block still present' >&2
+            exit 1
+          fi
 
       - name: Capture stateful mobile workflows
         shell: bash
