@@ -92,10 +92,6 @@ jobs:
               'page.getByText("林晓", { exact: true }).first().waitFor(',
           )
           s = s.replace(
-              'page.getByText("陈然", { exact: true }).waitFor(',
-              'page.getByText("陈然", { exact: true }).first().waitFor(',
-          )
-          s = s.replace(
               'await page.getByTestId("pr-detail.share.open").click();\n      await captureViewport(page, "11-share-sheet");',
               'await page.getByTestId("pr-detail.share.open").click();\n      await page.locator(\'[role="dialog"]\').first().waitFor({ state: "visible", timeout: 15_000 });\n      await captureViewport(page, "11-share-sheet");',
           )
@@ -116,13 +112,19 @@ jobs:
           if pairing_count != 1:
               raise SystemExit(f"pairing-code removal count was {pairing_count}, expected 1")
           s = s.replace('      "12-pairing-code.png",\n', '')
+
+          s, profile_count = re.subn(
+              r'''      await page\.getByText\("陈然", \{ exact: true \}\)(?:\.first\(\))?\.waitFor\(\{ state: "visible", timeout: 15_000 \}\);''',
+              '''      await page.locator("#me-profile-nickname").waitFor({ state: "visible", timeout: 15_000 });
+              await page.waitForTimeout(500);''',
+              s,
+          )
+          if profile_count != 1:
+              raise SystemExit(f"profile readiness replacement count was {profile_count}, expected 1")
+
           p.write_text(s)
           PY
-          grep -n -A8 -B4 '10-participant-state' tests/scenario/manual/software-manual-capture.scenario.test.ts
-          if grep -q 'pr-pairing-code.code' tests/scenario/manual/software-manual-capture.scenario.test.ts; then
-            echo 'pairing code block still present' >&2
-            exit 1
-          fi
+          grep -n -A5 -B3 '16-my-profile' tests/scenario/manual/software-manual-capture.scenario.test.ts
 
       - name: Capture stateful mobile workflows
         shell: bash
