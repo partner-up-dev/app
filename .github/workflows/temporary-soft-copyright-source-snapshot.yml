@@ -19,10 +19,10 @@ jobs:
           fetch-depth: 1
       - name: Archive relevant source
         run: |
-          tar -czf partner-up-relevant-source.tar.gz \
+          tar --exclude='**/node_modules' --exclude='**/dist' --exclude='**/.turbo' \
+            -czf partner-up-relevant-source.tar.gz \
             package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version .npmrc \
-            apps/backend apps/web packages tests scripts \
-            --exclude='**/node_modules' --exclude='**/dist' --exclude='**/.turbo'
+            apps/backend apps/web packages tests scripts
       - uses: actions/upload-artifact@v4
         with:
           name: partner-up-relevant-source
