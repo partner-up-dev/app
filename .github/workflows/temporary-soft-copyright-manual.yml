@@ -1,0 +1,56 @@
+name: Temporary soft copyright manual evidence
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - '.github/workflows/temporary-soft-copyright-manual.yml'
+      - 'scripts/temporary-soft-copyright-manual-crawl.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout evidence branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          mkdir -p /tmp/partnerup-crawler
+          cd /tmp/partnerup-crawler
+          npm init -y
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture mobile site evidence
+        env:
+          NODE_PATH: /tmp/partnerup-crawler/node_modules
+          PARTNERUP_BASE_URL: https://app.partner-up.cn
+          SOURCE_COMMIT: 30f51b96e2498b4b85014552512a31a7345d86cb
+          MAX_PAGES: '35'
+        run: |
+          cp scripts/temporary-soft-copyright-manual-crawl.mjs /tmp/partnerup-crawler/crawl.mjs
+          node /tmp/partnerup-crawler/crawl.mjs
+          tar -czf soft-copyright-manual-evidence/apps-web-source.tar.gz \
+            apps/web/package.json apps/web/src
+          git ls-tree -r --name-only 30f51b96e2498b4b85014552512a31a7345d86cb -- apps/web \
+            > soft-copyright-manual-evidence/apps-web-files.txt
+          printf '%s\n' '30f51b96e2498b4b85014552512a31a7345d86cb' \
+            > soft-copyright-manual-evidence/source-commit.txt
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-up-mobile-manual-evidence
+          path: soft-copyright-manual-evidence
+          if-no-files-found: error
+          retention-days: 7
