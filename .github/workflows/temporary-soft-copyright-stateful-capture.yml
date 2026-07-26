@@ -99,18 +99,18 @@ jobs:
               'await page.getByTestId("pr-detail.share.open").click();\n      await captureViewport(page, "11-share-sheet");',
               'await page.getByTestId("pr-detail.share.open").click();\n      await page.locator(\'[role="dialog"]\').first().waitFor({ state: "visible", timeout: 15_000 });\n      await captureViewport(page, "11-share-sheet");',
           )
-          s = s.replace(
-              '''      await page.getByTestId("pr-detail.participant.confirm-action").waitFor({
-                      state: "visible",
-                      timeout: 15_000,
-                    });''',
+          s, confirm_count = re.subn(
+              r'''      await page\.getByTestId\("pr-detail\.participant\.confirm-action"\)\.waitFor\(\{\n        state: "visible",\n        timeout: 15_000,\n      \}\);''',
               '''      await page.locator('[data-page="pr-detail"]').waitFor({ state: "visible", timeout: 15_000 });
-                    await page.waitForTimeout(750);''',
+              await page.waitForTimeout(750);''',
+              s,
           )
+          if confirm_count != 1:
+              raise SystemExit(f"participant wait replacement count was {confirm_count}, expected 1")
           p.write_text(s)
           PY
           grep -n -A10 -B2 'catalogItem' tests/scenario/manual/software-manual-capture.scenario.test.ts
-          grep -n -A4 -B2 '10-participant-state' tests/scenario/manual/software-manual-capture.scenario.test.ts
+          grep -n -A8 -B4 '10-participant-state' tests/scenario/manual/software-manual-capture.scenario.test.ts
 
       - name: Capture stateful mobile workflows
         shell: bash
