@@ -61,8 +61,52 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Capture stateful mobile workflows
+      - name: Tighten temporary capture locators
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("tests/scenario/manual/software-manual-capture.scenario.test.ts")
+          s = p.read_text()
+          s = s.replace(
+              '''      await page.goto("/prd");
+                    await page.getByText("羽毛球约球", { exact: true }).waitFor({
+                      state: "visible",
+                      timeout: 15_000,
+                    });
+                    await page.getByText("羽毛球约球", { exact: true }).scrollIntoViewIfNeeded();
+                    await captureViewport(page, "02-discovery-catalog");''',
+              '''      await page.goto("/prd");
+                    const catalogItem = page
+                      .getByTestId("prd.catalog.item")
+                      .filter({ hasText: "羽毛球约球" })
+                      .first();
+                    await catalogItem.waitFor({ state: "visible", timeout: 15_000 });
+                    await catalogItem.scrollIntoViewIfNeeded();
+                    await captureViewport(page, "02-discovery-catalog");''',
+          )
+          s = s.replace(
+              'await page.getByText("周六下午羽毛球双打", { exact: true }).waitFor({',
+              'await page.getByText("周六下午羽毛球双打", { exact: true }).first().waitFor({',
+          )
+          s = s.replace(
+              'await page.getByText("林晓", { exact: true }).waitFor({',
+              'await page.getByText("林晓", { exact: true }).first().waitFor({',
+          )
+          s = s.replace(
+              'await page.getByText("陈然", { exact: true }).waitFor({',
+              'await page.getByText("陈然", { exact: true }).first().waitFor({',
+          )
+          s = s.replace(
+              'await page.getByTestId("pr-detail.share.open").click();\n      await captureViewport(page, "11-share-sheet");',
+              'await page.getByTestId("pr-detail.share.open").click();\n      await page.locator(\'[role="dialog"]\').first().waitFor({ state: "visible", timeout: 15_000 });\n      await captureViewport(page, "11-share-sheet");',
+          )
+          p.write_text(s)
+          PY
+
+      - name: Capture stateful mobile workflows
+        shell: bash
+        run: |
+          set -o pipefail
           rm -rf soft-copyright-manual-capture
           pnpm exec vitest run \
             --project system-scenario \
