@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout evidence branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -32,22 +34,30 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Capture mobile site evidence
+        continue-on-error: true
         env:
           NODE_PATH: /tmp/partnerup-crawler/node_modules
           PARTNERUP_BASE_URL: https://app.partner-up.cn
           SOURCE_COMMIT: 30f51b96e2498b4b85014552512a31a7345d86cb
-          MAX_PAGES: '35'
+          MAX_PAGES: '25'
         run: |
+          mkdir -p soft-copyright-manual-evidence
           cp scripts/temporary-soft-copyright-manual-crawl.mjs /tmp/partnerup-crawler/crawl.mjs
-          node /tmp/partnerup-crawler/crawl.mjs
+          set +e
+          node /tmp/partnerup-crawler/crawl.mjs 2>&1 | tee soft-copyright-manual-evidence/crawl.log
+          crawl_status=${PIPESTATUS[0]}
+          set -e
           tar -czf soft-copyright-manual-evidence/apps-web-source.tar.gz \
             apps/web/package.json apps/web/src
           git ls-tree -r --name-only 30f51b96e2498b4b85014552512a31a7345d86cb -- apps/web \
             > soft-copyright-manual-evidence/apps-web-files.txt
           printf '%s\n' '30f51b96e2498b4b85014552512a31a7345d86cb' \
             > soft-copyright-manual-evidence/source-commit.txt
+          printf '%s\n' "$crawl_status" > soft-copyright-manual-evidence/crawl-exit-code.txt
+          exit "$crawl_status"
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: partner-up-mobile-manual-evidence
