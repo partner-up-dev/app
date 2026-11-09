@@ -28,15 +28,16 @@ and recovery expectations for the deployed system.
 1. [environments.md](./environments.md): runtime owner router and branch split
 2. [local-development.md](./local-development.md): local portless runtime
 3. [backend-runtime.md](./backend-runtime.md): backend FC, DB, and job-runner runtime truth
-4. [frontend-runtime.md](./frontend-runtime.md): frontend ESA runtime truth
-5. [provider-edge-routing.md](./provider-edge-routing.md): provider callback edge routing
-6. [rollout.md](./rollout.md): rollout owner router
-7. [ci-gates.md](./ci-gates.md): validation gate topology
-8. [backend-rollout.md](./backend-rollout.md): backend and job-runner deploy flow
-9. [frontend-rollout.md](./frontend-rollout.md): frontend ESA deploy flow
-10. [release-automation.md](./release-automation.md): release metadata and GitHub Release semantics
-11. [observability.md](./observability.md): available signals and explicit gaps
-12. [recovery.md](./recovery.md): failure recovery routing
+4. [database-operations.md](./database-operations.md): PostgreSQL service, backup, restore, and RDS rollback boundary
+5. [frontend-runtime.md](./frontend-runtime.md): frontend ESA runtime truth
+6. [provider-edge-routing.md](./provider-edge-routing.md): provider callback edge routing
+7. [rollout.md](./rollout.md): rollout owner router
+8. [ci-gates.md](./ci-gates.md): validation gate topology
+9. [backend-rollout.md](./backend-rollout.md): backend and job-runner deploy flow
+10. [frontend-rollout.md](./frontend-rollout.md): frontend ESA deploy flow
+11. [release-automation.md](./release-automation.md): release metadata and GitHub Release semantics
+12. [observability.md](./observability.md): available signals and explicit gaps
+13. [recovery.md](./recovery.md): failure recovery routing
 
 ## How This Layer Connects To Adjacent Layers
 

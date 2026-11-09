@@ -38,6 +38,21 @@ are outside the backend install graph.
 12. deploy backend FC function
 13. on `master`, publish function version and update `production` alias
 
+## Environment Switch Ordering
+
+Both branch deployments first update the FC function `LATEST`. A `master`
+deployment then publishes an immutable version from that state and moves the
+`production` alias, while staging continues to execute `LATEST`. Because
+environment variables are deployed with the function, a production deployment
+temporarily leaves `LATEST` carrying production configuration.
+
+When a production rollout is performed independently of a corresponding
+develop rollout, redeploy `develop` after the production alias has been
+published. Verify both `/api/meta/build` endpoints and one environment-specific
+database-backed API before declaring the pair converged. The production alias
+must remain on its published version while the develop deployment restores
+staging configuration to `LATEST`.
+
 ## Rollout Guarantees
 
 - migrations happen before backend deploy
@@ -49,6 +64,8 @@ are outside the backend install graph.
   `.git` directory
 - backend GitHub Releases are source code version archives owned by Release
   Please, not by the backend deploy workflow
+- paired environment changes restore `LATEST` with a final develop deployment
+  after the production alias is published
 
 ## Claim-Fence Introduction Rule
 

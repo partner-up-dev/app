@@ -63,6 +63,10 @@ Local reset flows exist for development and tests only.
 - staging and production are forward-only
 - non-transactional migrations must be restart-safe and explicitly marked
 - local reset flows do not imply production recovery options
+- ECS PostgreSQL service, backup, and restore operations are owned by
+  `database-operations.md`
+- RDS is a temporary rollback source only while an explicit migration rollback
+  window remains open; it is not the normal deployment target
 
 ## Operational Recovery Entry Points
 
@@ -79,3 +83,5 @@ Local reset flows exist for development and tests only.
   - [backend-rollout.md](./backend-rollout.md)
   - [frontend-rollout.md](./frontend-rollout.md)
   - [provider-edge-routing.md](./provider-edge-routing.md)
+- after database restore or endpoint changes, run the migration workflow first,
+  then verify build metadata and an environment-specific database-backed API

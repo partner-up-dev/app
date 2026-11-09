@@ -160,6 +160,10 @@ Runtime code that needs to separate staging and production behavior must use
 `PARTNERUP_ENVIRONMENT`, not `NODE_ENV`, because both deployed backend runtimes
 use `NODE_ENV=production`.
 
+The hosted PostgreSQL topology, service operations, logical backup, restore,
+and RDS rollback boundary are owned by
+[database-operations.md](./database-operations.md).
+
 ## Job Runner Trigger Runtime
 
 There is a separate FC deployment for the external job-runner trigger function:
